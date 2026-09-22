@@ -252,7 +252,7 @@ asks 0:24 to 1:45 (comet-2 at 0:43: extractor 0.44, solar 0.31, plant 0.14 with 
 called shelling") does not take the option off Jev's picks: the option's own words on the menu win, and the
 forbidden action is chosen at 0.4-0.8 whenever its words fit the moment. A positive standing instruction is
 followed; a negative one is not. The remedy is a removal (the option or place off that actor's menu), not a sentence.
-**Status.** supported (2026-09-22, `docs/studies/jev-comet-series.md` §3.1)
+**Status.** supported (2026-09-22, `docs/studies/jev-comet-series.md` §3.1); holds against the standing rules too: two phrasings of "a never-clause removes the choice" left the forbidden detachments at 21-26 % right and the forbidden shelling at 45-48 % against 38 % (`docs/studies/2026-09-22-jev-rules-ab.md`)
 **Evidence.** While "never splits / never sends detachments / no detachments" was in force: comet-2 4 detachments in
 40 group asks, comet-3 22 in 109, comet-5 7 in 48 (23:14-23:29: the player had just written "forbade detachments",
 group_Z1 sent one every five seconds at 0.50-0.75). While "it never advances to the place called shelling" was in
@@ -388,12 +388,37 @@ at 21:59 the commander had been out of sight for a second and was no party, so t
 at E4, and Jev chose attack_unit on it (0.66); at 22:01 both were offered as "3 unidentified at 333 from spot_44 (E4)"
 and "1 armcom at spot_17 (H2)" and Jev chose the raiders again (attack_unit 0.74); the player's rewritten packet then
 named "party_2", which the naming did not hold.
-**Status.** observed (2026-09-22), one game; names held and the words changed the same night (H-HANDS-PARTY-NAMES); hands-1-bulldogs: names held (no same-member party renamed), the commander words not yet seen in play.
+**Status.** observed (2026-09-22), one game; names held and the words changed the same night (H-HANDS-PARTY-NAMES); hands-1-bulldogs: names held (no same-member party renamed), the commander words not yet seen in play; replayed on plan-1's 22:01 moment the new words put the commander's party at 0.56 against 0.38 and the pick on it, where a commander-first rule sentence left it at 0.40 (`docs/studies/2026-09-22-jev-rules-ab.md`).
 **Evidence.** `run/matches/1790111510-plan-1-bulldogs/00`, `jev-0.jsonl` calls 21:58-22:10 (`questions.group_F.whom`,
 `answers`, `played`), `strategist-0.jsonl` turns 52-53.
 **Would be wrong if.** Jev chose the commander's party with the distance and the commander's words in front of it as
 often as it chose the raiders without them; hands-1-bulldogs is the first look.
 **Used by.** H-HANDS-PARTY-NAMES (`picture.rs` `enemy_parties`, `menu.rs` `party_words`).
+
+### K-jev-rules-fight-in-sight
+**Claim.** A sentence in the standing rules, "an enemy party in sight within 600 of a group that outweighs it is
+fought now, whatever the instructions call it", turns a share of the holds beside a base under attack into engage:
+on forty recorded moments where a group held with a party in sight within 800 and one of our buildings beside it died
+in the next 30 s, the right pick rose from 2 % to 28-32 %, and from 1/25 to 8-9/25 where the odds words said we
+outweigh every party in sight; forty raider-at-our-extractor holds went from 2 % to 18-22 %. Two of forty ordinary
+decisions changed. Where some party outweighs us the rule hardly moves the answer.
+**Status.** measured offline (2026-09-22 night, `run/jev_ab.py`, two runs agreeing); in the rules from this commit;
+unmeasured in play.
+**Evidence.** `docs/studies/data/jev-ab-2026-09-22-rules-2.jsonl`, variants home/home2 against base.
+**Would be wrong if.** Games with the rule showed the same unanswered-raider count on the scorecard (hands-1: 21).
+**Used by.** H-HANDS-RULES.
+
+### K-jev-shelling-sentence-was-an-order
+**Claim.** The rules' "`shelling` is where a weapon hitting us from out of sight likeliest stands, and advancing onto
+it kills it" read to Jev as a standing order to go there: on forty recorded fight_to/move_to answers of shelling
+where the packet named places for the group or forbade shelling, the named place was picked 38 % of the time under
+the old sentence, 55 % with the last clause cut, and 80 % under "only where the weapon likeliest stands; a group
+advances onto it only when the instructions say so, and otherwise goes to the place the instructions name". No
+control decision changed.
+**Status.** measured offline (2026-09-22 night); in the rules from this commit; unmeasured in play.
+**Evidence.** `docs/studies/data/jev-ab-2026-09-22-rules-2.jsonl`, variants shelling/shelling2 against base.
+**Would be wrong if.** Groups under fire stopped answering the unseen shooter when the packet did want it.
+**Used by.** H-HANDS-RULES, H-HANDS-SHELLED.
 
 ### K-hands-air-hold-cancels-the-strike
 **Claim.** An air group's hold (a move to the group's centre plus move state 0 per unit), re-issued every lane tick
