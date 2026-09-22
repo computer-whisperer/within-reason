@@ -78,9 +78,16 @@ impl Brain {
                     Some(Task::Build { def, started: true, .. }) if !queue => Some(*def),
                     _ => None,
                 };
+                // Helping the lab it already helps is the same task going on, not a new guard order: re-issued, the
+                // order reset the task's clock every ask and the picture said "since 2 s ago" of a minute's helping.
+                let helping = match self.pianist.as_ref().and_then(|p| p.tasks.get(&id)) {
+                    Some(Task::Assist { lab, .. }) if !queue => Some(*lab),
+                    _ => None,
+                };
                 let pick = match pick {
                     Pick::Building(def) | Pick::BuildingAt(def) if started_def == Some(def) => Pick::Continue,
                     Pick::Extractor if started_def.is_some_and(|d| self.world.is_extractor_def(d)) => Pick::Continue,
+                    Pick::AssistLab(lab) if helping == Some(lab) => Pick::Continue,
                     other => other,
                 };
                 match pick {
