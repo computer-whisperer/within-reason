@@ -116,6 +116,9 @@ pub struct Pianist {
     /// What the last picture named, so an answer's place or party can be looked up.
     pub(super) places: Vec<Place>,
     pub(super) parties: Vec<Party>,
+    /// The number the next new enemy party is named with (H-HANDS-PARTY-NAMES); a `Cell` because the picture is
+    /// built through `&self`.
+    pub(super) next_party: std::cell::Cell<usize>,
     /// Things worth telling: (frame, text).
     recent: VecDeque<(i32, String)>,
     /// What the hands did this call, for the player's report (`Shared.hands`).
@@ -233,6 +236,7 @@ impl Pianist {
             allowed_seen: HashMap::new(),
             places: Vec::new(),
             parties: Vec::new(),
+            next_party: std::cell::Cell::new(1),
             recent: VecDeque::new(),
             scripts: HashMap::new(),
             done: Vec::new(),

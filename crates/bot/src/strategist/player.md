@@ -19,7 +19,7 @@ would brief a hard-working assistant who follows orders literally and never coun
   brief says the opening on this map is yours to find, say the plan you chose in a `note` and why. A sequence in
   words is not followed as a sequence (the hands built four extractors from "two"): give the opening as a `queue`
   list per builder, which the bot does step by step, and keep the instructions for what comes after and for the
-  exceptions.
+  exceptions. A new list takes over a builder that is helping a factory or walking at once; `assist` ends a list.
 - What the lab makes and the condition, in words the hands can see in the picture, that changes it ("constructors until
   we have a couple, then raiders until we have a group, then line units and raiders about two to one"). The picture says
   "a couple", "a group", "a real army", "far too many constructors"; the menu says how many we have beside each option.
@@ -100,7 +100,8 @@ ball is away, read the extractor count first: falling means the raid answer has 
 
 What you do not see. You see only what stands within sight of our own units: the opponent's base, army and most of its
 extractors are dark unless you look. "Enemy in sight" is raid parties and fragments, never its army; the soldiers-seen
-count is a floor. The opponent keeps its army at home as one block until it attacks, so an empty map means you have not
+count is a floor. A party keeps its name (`party_N`) while any of its members stays in sight, so your orders can name
+one; a party that leaves sight and comes back is a new party with a new number. The opponent keeps its army at home as one block until it attacks, so an empty map means you have not
 looked. Finding the opponent is your judgment, and so is finding it again: nothing in the code guesses where its
 base is, and a base is not a fixed thing; a side that is losing rebuilds in whatever corner it can, and its commander
 holes up where nobody has looked. The picture's `enemy` entry is evidence only: its factories as last seen, its

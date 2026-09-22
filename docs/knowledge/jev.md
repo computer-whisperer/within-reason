@@ -367,6 +367,34 @@ warning "often wrong by 500 or more" did not move the player off it.
 **Would be wrong if.** A player shown an area and a never-looked list scouts no better than one shown a point.
 **Used by.** H-HANDS-ENEMY-EVIDENCE.
 
+### K-hands-fillers-outlast-the-list
+**Claim.** A builder on one of the bot's filler tasks (helping a factory above all) was never looked at again for its
+list: the list's next step was ordered only when the builder was idle or its build in progress 60 % done, and a
+guard order never ends. plan-1-bulldogs: the commander helped the vehicle plant from 3:46 to 14:24 (562 s) while the
+player gave it lists at 5:30, 7:00, 8:30 and 10:36, none of which started; the picture showed the pending list beside
+"helping lab_14835". The player's diagnosis at 9:51 ("a builder helping a factory that has nothing to build counts as
+busy for good") was right, except that the factory need not be idle: any helping blocked the list.
+**Status.** observed (2026-09-22), one game; fixed the same night (H-HANDS-SCRIPT: fillers give way at once).
+**Evidence.** `run/matches/1790111510-plan-1-bulldogs/00`, `jev-0.jsonl` `state.actors.commander.doing` 4:00-14:24,
+`strategist-0.jsonl` `queue` calls at turns 4-10.
+**Would be wrong if.** The list had started and the builder walked back to help on its own.
+**Used by.** H-HANDS-SCRIPT (`menu.rs`, the `ready` test).
+
+### K-hands-party-handles-shuffled
+**Claim.** Enemy parties were named by distance from home on every picture, so a name in the player's orders pointed
+at another party by the next ask, and the `whom` choices carried no distance from the group and named a commander only
+by its internal name. plan-1-bulldogs 21:58: the packet said every soldier of group_F attacks the enemy commander now;
+at 21:59 the commander had been out of sight for a second and was no party, so the only `whom` choice was the raiders
+at E4, and Jev chose attack_unit on it (0.66); at 22:01 both were offered as "3 unidentified at 333 from spot_44 (E4)"
+and "1 armcom at spot_17 (H2)" and Jev chose the raiders again (attack_unit 0.74); the player's rewritten packet then
+named "party_2", which the naming did not hold.
+**Status.** observed (2026-09-22), one game; names held and the words changed the same night (H-HANDS-PARTY-NAMES).
+**Evidence.** `run/matches/1790111510-plan-1-bulldogs/00`, `jev-0.jsonl` calls 21:58-22:10 (`questions.group_F.whom`,
+`answers`, `played`), `strategist-0.jsonl` turns 52-53.
+**Would be wrong if.** Jev chose the commander's party with the distance and the commander's words in front of it as
+often as it chose the raiders without them; hands-1-bulldogs is the first look.
+**Used by.** H-HANDS-PARTY-NAMES (`picture.rs` `enemy_parties`, `menu.rs` `party_words`).
+
 ### K-hands-air-hold-cancels-the-strike
 **Claim.** An air group's hold (a move to the group's centre plus move state 0 per unit), re-issued every lane tick
 and whenever a followed target leaves sight, cancels the attack orders the same group was given: bombers ordered

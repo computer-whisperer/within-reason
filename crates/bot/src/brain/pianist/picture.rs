@@ -43,6 +43,8 @@ pub(crate) struct Party {
     pub at: Vec3,
     pub metal: f32,
     pub composition: String,
+    /// Their commander is one of its members.
+    pub has_commander: bool,
 }
 
 pub(crate) struct Picture {
@@ -216,8 +218,11 @@ impl Brain {
         }
     }
 
-    /// Enemy mobile units in sight, grouped into parties, nearest home first.
-    pub(super) fn enemy_parties(&self, enemies: &[EnemyUnit]) -> Vec<Party> {
+    /// Enemy mobile units in sight, grouped into parties, nearest home first. A party keeps the name it had in the
+    /// last picture while any member of it is still in it (H-HANDS-PARTY-NAMES: named by distance from home, the
+    /// names shuffled as parties moved, and the player's "party_2" in its orders meant another party by the next
+    /// ask); a new party takes a number never used in this game.
+    pub(super) fn enemy_parties(&self, enemies: &[EnemyUnit], previous: &[Party], next_name: &std::cell::Cell<usize>) -> Vec<Party> {
         let mobile: Vec<&EnemyUnit> = enemies.iter().filter(|e| e.def.is_none_or(|d| self.world.def(d).is_some_and(|d| d.speed > 0.0))).collect();
         let mut party_of: Vec<Option<usize>> = vec![None; mobile.len()];
         let mut parties: Vec<Party> = Vec::new();
@@ -248,11 +253,29 @@ impl Brain {
                 metal += mobile[*i].def.and_then(|d| self.world.def(d)).map_or(110.0, |d| d.metal_cost);
             }
             let composition = counts.iter().map(|(name, n)| format!("{n} {name}")).collect::<Vec<_>>().join(", ");
-            parties.push(Party { name: String::new(), ids: members.iter().map(|i| mobile[*i].id).collect(), at, metal, composition });
+            let has_commander = members.iter().any(|i| mobile[*i].def.is_some_and(|d| self.world.is_commander_def(d)));
+            parties.push(Party { name: String::new(), ids: members.iter().map(|i| mobile[*i].id).collect(), at, metal, composition, has_commander });
         }
         parties.sort_by(|a, b| a.at.dist2d(self.home).total_cmp(&b.at.dist2d(self.home)));
-        for (i, party) in parties.iter_mut().enumerate() {
-            party.name = format!("party_{}", i + 1);
+        // Names: the last picture's for a party sharing a member with one of them (the larger overlap wins a name
+        // two of them claim), a fresh number for the rest.
+        let mut taken: Vec<String> = Vec::new();
+        for party in parties.iter_mut() {
+            let kept = previous
+                .iter()
+                .filter(|old| !taken.contains(&old.name))
+                .map(|old| (old.ids.iter().filter(|id| party.ids.contains(id)).count(), &old.name))
+                .filter(|(shared, _)| *shared > 0)
+                .max_by_key(|(shared, _)| *shared)
+                .map(|(_, name)| name.clone());
+            if let Some(name) = kept {
+                taken.push(name.clone());
+                party.name = name;
+            }
+        }
+        for party in parties.iter_mut().filter(|p| p.name.is_empty()) {
+            party.name = format!("party_{}", next_name.get());
+            next_name.set(next_name.get() + 1);
         }
         parties
     }
@@ -443,7 +466,10 @@ impl Brain {
         if let Some(s) = &shelling {
             places.push(Place { name: "shelling".into(), at: s.at, spot: None });
         }
-        let parties = self.enemy_parties(&snapshot.enemies);
+        let parties = match self.pianist.as_ref() {
+            Some(p) => self.enemy_parties(&snapshot.enemies, &p.parties, &p.next_party),
+            None => self.enemy_parties(&snapshot.enemies, &[], &std::cell::Cell::new(1)),
+        };
 
         let mut place_entries: BTreeMap<String, Value> = BTreeMap::new();
         for place in &places {

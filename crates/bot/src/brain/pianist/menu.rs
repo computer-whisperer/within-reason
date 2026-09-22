@@ -11,7 +11,7 @@ use serde_json::{Value, json};
 use super::super::roster::Kit;
 use super::Pianist;
 use super::super::{Brain, FRAMES_PER_SECOND};
-use super::picture::{Picture, distance_words};
+use super::picture::{Party, Picture, distance_words};
 use super::{REVIEW_FRAMES, Task};
 
 /// Free spots on a builder's menu, nearest by its own walking first.
@@ -160,9 +160,13 @@ impl Brain {
             // next step when the builder is free, or when the build in progress is 60% done (queued behind it), and
             // skips a step it cannot do. An enemy on the builder puts it back on the menu until that is over.
             if !threatened && pianist.scripts.get(&name).is_some_and(|steps| !steps.is_empty()) {
+                // The player's list outranks the bot's fillers: a builder helping a factory, walking, reclaiming or
+                // repairing takes its next step at once (plan-1: the commander helped a plant from 3:46 to 14:24 while
+                // four lists waited, since a guard order never ends). A build in progress keeps the 60 % rule.
                 let ready = match &task {
                     None => unit.idle,
-                    Some(_) => queue_ahead,
+                    Some(Task::Build { .. }) => queue_ahead,
+                    Some(_) => true,
                 };
                 if ready && let Some(menu) = self.scripted_step(unit, &name, &mut pianist, picture, own, frame, queue_ahead, task.is_some(), kit) {
                     pianist.last_asked.insert(name.clone(), frame);
@@ -292,7 +296,7 @@ impl Brain {
             // H-HANDS-COMMANDER-FIGHTS: a builder is offered the attack on a party beside it that it outweighs alone; the
             // commander's D-gun is the early answer to raiders (human-1, second game: the player ordered it in five
             // packets and nothing on the menu could do it while two Pawns razed the base).
-            let busy_party = |p: &super::picture::Party| {
+            let busy_party = |p: &Party| {
                 own.iter().any(|u| u.pos.dist2d(p.at) < 150.0 && self.world.def(u.def).is_some_and(|d| d.speed == 0.0))
                     || pianist.groups.iter().any(|g| matches!(&g.task, super::GroupTask::Engage { party, .. } if party.iter().any(|id| p.ids.contains(id))))
             };
@@ -425,7 +429,11 @@ impl Brain {
                 offer("continue", Pick::Continue, "Carry on with what it is doing.".into());
             }
             let enemies = tick.snapshot.enemies.as_slice();
-            let parties_words: Vec<String> = picture.parties.iter().map(|p| format!("{} ({}, at {}, {} from this group): {}", p.name, p.composition, self.place_words(&picture.places, p.at), distance_words(p.at.dist2d(centre)), self.odds_words(&units, p, enemies))).collect();
+            // A party with their commander in it says so in plain words, and every party says how far it is from this
+            // group (plan-1: offered "3 unidentified at E4" and "1 armcom at H2", Jev sent nine Bulls 3,000 away at the
+            // first while the commander stood 447 away).
+            let party_words = |p: &Party| format!("{} at {}, {} from this group ({:.0} away): {}", if p.has_commander { format!("THEIR COMMANDER, the unit whose death wins the game ({})", p.composition) } else { p.composition.clone() }, self.place_words(&picture.places, p.at), distance_words(p.at.dist2d(centre)), p.at.dist2d(centre), self.odds_words(&units, p, enemies));
+            let parties_words: Vec<String> = picture.parties.iter().map(|p| format!("{}: {}", p.name, party_words(p))).collect();
             offer("hold", Pick::Hold, "Stand where it is; fight whatever mobile comes within reach and step out of turret reach. Nothing beyond reach is protected by this.".into());
             offer("move_to", Pick::MoveTo { fight: false }, "Walk to the place in `where` without stopping to fight on the way (it runs from everything).".into());
             offer("fight_to", Pick::MoveTo { fight: true }, "Advance to the place in `where`, arriving together and fighting everything on the way and there, turrets included: it does not stop at a turret's reach, so it is the attack. What is known to stand at a place is in its entry in the picture; nothing here weighs it.".into());
@@ -458,7 +466,7 @@ impl Brain {
                 (format!("{name}.how_many"), Question::choice(format!("If {name} sends a detachment, how many soldiers go?"), [("2", "two"), ("4", "four"), ("8", "eight"), ("half", "half of the group")])),
             ];
             if !picture.parties.is_empty() {
-                let criteria: BTreeMap<String, Value> = picture.parties.iter().map(|p| (p.name.clone(), json!(format!("{} at {}: {}", p.composition, self.place_words(&picture.places, p.at), self.odds_words(&units, p, enemies))))).collect();
+                let criteria: BTreeMap<String, Value> = picture.parties.iter().map(|p| (p.name.clone(), json!(party_words(p)))).collect();
                 questions.push((format!("{name}.whom"), Question::Choice { instructions: json!(format!("If {name} attacks an enemy party, which one?")), criteria }));
             }
             pianist.last_asked.insert(name.clone(), frame);
