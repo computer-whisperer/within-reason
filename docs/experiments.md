@@ -241,3 +241,25 @@ W-L-T = wins, losses, timeouts; (n) = aborted by engine crash.
 | policy-1-easy | 9ea361a | Comet Catcher, easy, W strip, Armada mirrored, `--place`, `--policy --player` (the Lua runtime, NO Jev), effort low, `run/matches/1790088367-policy-1-easy` | 1 | 1-0-0 (13.9 min) | the first game played by the player's Lua policy alone (docs/design/2026-09-22-policy-replay.md, "The runtime") | WON. 12 turns, wall median 7.1 s (max 20.1 at the 42-line rebuild of 8:01; the three smallest amendments 3-15 lines took 5-6 s); one 41-line script at 0:00, then ten amendments of one or two handlers (3-42 lines). The runtime ran 343 times, 0.09 ms median, no errors; 3 illegal orders (spot_25 is not a place in the picture: a spot named in code is not a named place; the player marked five search points instead). Orders: assist_lab 71, fight_to 54, move_to 51, extractor 50, Blitz 42, Stout 42. The player's own arc: opening as a list, Blitzes, scout east, sweep the eastern spots when the guess was empty, recall and mass at 8:01 when Blitzes died piecemeal to turrets, one attack at ~34 units, advance onto the shelling, engage beside the march; the enemy commander killed at 13:53. Debrief in the inbox. claude2 +0.0 points. |
 | policy-2-medium | 6b37066 (played on 821c982) | Comet Catcher, medium, W strip, Armada mirrored, `--place`, `--policy --player` (the Lua runtime, no Jev), effort low, `run/matches/1790088808-policy-2-medium` | 1 | 0-1-0 (28.8 min) | the policy alone against medium | LOST to the same shape as Jev's comet games: Fleas and Ticks ate the extractors from 3:03 with no turrets and no constructors (the first plant handler made Blitzes only), energy at zero from minute two, BARb's vehicle plant in our half at C7 found at 22:32, the commander at 11% by 24:50, three extractors left at 26:24. 56 turns, wall median 7.9 s (max 17); 918 runs, 0.10 ms median, no errors, no illegal orders. Harness: the policy overrode the commander's queued list every second (4:36-5:21) until the player cancelled the lists: fixed in 6b37066 (a listed builder is not the policy's to order). The player's debrief: two Masons before any Blitz, turrets at the outer spots by 3:30, never a list and the policy on one builder, one ball, scout east early and inside our own half. claude2 +0.0 points. |
 | policy-models-comet-5 | 4432c8b (merged) | a subagent in a worktree: other models as the policy-writing player over turns 0-12 of comet-5 (`run/model_cli.py`, `docs/studies/policy-models.md`) | 13 turns × 11 runs, 2,000 decisions | not a batch | which model gets a legal, faithful amendment under 5 s | None as a median: Sonnet 5 without thinking is closest (7 s median, 4 of 13 turns under 5 s, those the "unchanged" or under-15-line ones); Haiku 4.5 with its default thinking 140 s a turn, without it 16 s (it writes twice Sonnet's tokens); Codex models 22-56 s with a 3.4 s floor per call and 30-80 lines an amendment; 0 illegal orders in 2,000 decisions across every model. Time is generation: ~1.5 s process for claude -p, ~100 tokens/s. Verified by the main session on three runs. claude2 +3 points (mostly Haiku thinking), Codex on the ChatGPT plan. |
+
+## Fundamentals scorecards (`run/floor.py`, from 2026-09-22)
+
+The floor of each game, whatever its result (the user: "floor skill: sloppy execution, missed evidence"). Columns:
+idle% builder-seconds idle; e0% seconds with the energy store empty; mfull% seconds with the metal store full; react_s
+median seconds from a raider at our extractor to an order against it; unanswered such episodes with no order in 60 s;
+never orders against a "never" clause of the packet; noop% group asks answering hold on a holding group; illegal policy
+orders refused; stuck_s commander move failures; known% the player's enemy-army figure over the truth (higher is better);
+base_min when the base first read found; look_min when we first stood at their start; turn_s the player's median turn.
+
+| match | result | min | idle% | e0% | mfull% | react_s | unanswered | never | noop% | illegal | stuck_s | known% | base_min | look_min | turn_s |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| comet-1-easy | Win | 17.5 | 0.5 | 6.8 | 41.4 | - | 0 | 7 | 36 | 0 | 0 | 56 | 11.9 | 5.3 | 4.7 |
+| comet-2-medium | Loss | 8.6 | 1.4 | 0.0 | 1.4 | 55 | 2 | 4 | 62 | 0 | 0 | 32 | - | - | 5.0 |
+| comet-3-medium | Loss | 17.0 | 2.3 | 0.0 | 0.7 | 52 | 3 | 22 | 67 | 0 | 0 | 15 | - | - | 5.7 |
+| comet-4-medium | Loss | 16.9 | 0.4 | 12.9 | 43.9 | 68 | 3 | 0 | 58 | 0 | 153 | 30 | 10.4 | 3.8 | 5.4 |
+| comet-5-medium | Loss | 27.7 | 0.6 | 7.6 | 0.4 | 4 | 0 | 7 | 50 | 0 | 0 | 29 | - | 5.1 | 5.4 |
+| policy-1-easy | Win | 13.9 | 0.4 | 25.0 | 0.8 | - | 0 | 0 | 0 | 3 | 0 | 22 | - | 5.5 | 7.1 |
+| policy-2-medium | Loss | 28.8 | 2.8 | 15.3 | 0.4 | - | 0 | 0 | 0 | 0 | 0 | 32 | - | - | 7.9 |
+
+The policy games' raider columns are empty because without Jev the picture was not logged; the runtime's log line
+carries it from the next build.

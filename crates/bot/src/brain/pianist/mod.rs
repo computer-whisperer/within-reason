@@ -18,7 +18,7 @@ use std::io::Write as _;
 use std::path::Path;
 
 use bot_protocol::{Command, Event, Tick, UnitDefId, UnitId, Vec3};
-use serde_json::json;
+use serde_json::{Value, json};
 
 use super::economy::FIRST_ORDER_FRAME;
 use super::roster::Kit;
@@ -551,7 +551,13 @@ impl Brain {
         let pianist = self.pianist.as_mut().expect("pianist mode");
         let played = std::mem::take(&mut pianist.played);
         if let Some(log) = &mut pianist.log {
-            let line = json!({ "t": "policy", "f": frame, "ms": ms, "orders": orders_json, "error": error, "illegal": illegal, "continued": continued, "played": played, "version": pianist.policy.as_ref().map_or(0, |p| p.version) });
+            // Without Jev this line is the only record of the picture (the scorecard and the audit read it).
+            let mut state = picture.state.clone();
+            if let Some(fields) = state.as_object_mut() {
+                fields.remove("instructions");
+                fields.remove("rules");
+            }
+            let line = json!({ "t": "policy", "f": frame, "ms": ms, "orders": orders_json, "error": error, "illegal": illegal, "continued": continued, "played": played, "version": pianist.policy.as_ref().map_or(0, |p| p.version), "state": if pianist.client.is_none() { state } else { Value::Null }, "groups": groups, "places": places });
             let _ = writeln!(log, "{line}");
         }
         n
