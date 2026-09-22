@@ -409,6 +409,7 @@ impl Brain {
             }
             Some(Task::Assist { lab, since }) => format!("helping lab_{} build, since {}", lab.0, ago(*since)),
             Some(Task::Reclaim { at, since }) => format!("taking apart wrecks at {}, since {}", self.place_words(places, *at), ago(*since)),
+            Some(Task::ReclaimUnit { target, since }) => format!("taking apart our {} on the player's order, since {}", self.known_units.get(target).map_or("unit".to_string(), |(def, _)| format!("{}_{}", self.name(*def), target.0)), ago(*since)),
             Some(Task::Repair { target, since }) => format!("repairing our {}, since {}", self.known_units.get(target).map_or("unit", |(def, _)| self.name(*def)), ago(*since)),
             Some(Task::Walk { place, to, since }) => format!("walking to {place}, {:.0} to go, since {}", unit.pos.dist2d(*to), ago(*since)),
         }
@@ -740,6 +741,19 @@ impl Brain {
                     (Some(now), true) => format!("building a {now}"),
                     (Some(now), false) => format!("building a {now}, then {}", queue.iter().map(|(def, _)| self.short_words(*def)).collect::<Vec<_>>().join(" then ")),
                 });
+                if let Some(lane) = self.lane_of(unit) {
+                    let stuck = self.stuck_in_lane(&lane, own);
+                    if !stuck.is_empty() {
+                        let longest = stuck.iter().map(|(_, since)| frame - since).max().unwrap_or(0);
+                        let blockers = self.lane_blockers(&lane, own, unit.id);
+                        entry["yard"] = json!(format!(
+                            "blocked: {} of ours have stood in its exit lane unable to move, the longest for {}; nothing it finishes can leave. {}",
+                            stuck.len(),
+                            clock(longest),
+                            if blockers.is_empty() { "Nothing of ours stands in the lane: the jam is the units themselves or the ground.".to_string() } else { format!("In the lane: {}; the player's remove tool takes them away.", blockers.iter().map(|u| self.handle(u)).collect::<Vec<_>>().join(", ")) }
+                        ));
+                    }
+                }
                 let coming = own.iter().filter(|u| u.being_built && self.world.is_constructor_def(u.def)).count() + queue.iter().filter(|(def, _)| self.world.is_constructor_def(*def)).count();
                 entry["we_have"] = json!(format!("constructors {constructors}{} ({}); soldiers {} ({})", if coming > 0 { format!(" and {coming} being made") } else { String::new() }, constructor_words(constructors + coming, extractors), soldiers.len(), soldier_words(soldiers.len(), army_metal)));
                 if let Some(list) = self.allowed_units(&name) {
@@ -802,6 +816,18 @@ impl Brain {
             }
             if let Some(seconds) = group.stalled_seconds(frame).filter(|s| *s >= 20) {
                 entry["progress"] = json!(format!("has not got nearer its goal for {seconds} s: stalled"));
+            }
+            let stuck: Vec<&OwnUnit> = units.iter().filter(|u| self.stuck.contains_key(&u.id)).copied().collect();
+            if !stuck.is_empty() {
+                let longest = stuck.iter().filter_map(|u| self.stuck.get(&u.id)).map(|s| frame - s.since).max().unwrap_or(0);
+                let yard = own.iter().filter(|f| self.lane_of(f).is_some_and(|lane| stuck.iter().any(|u| lane.contains(u.pos)))).map(|f| self.actor_name(f.id)).next();
+                entry["stuck"] = json!(format!(
+                    "{} of its {} soldiers cannot move (the engine gives up their moves), the longest for {}{}",
+                    stuck.len(),
+                    units.len(),
+                    clock(longest),
+                    match yard { Some(name) => format!(", standing in {name}'s exit lane"), None => format!(", at {}", self.place_words(&places, stuck[0].pos)) }
+                ));
             }
             let fleeing = units.iter().filter(|u| self.lane.fleeing(u.id)).count();
             if fleeing > 0 {

@@ -71,8 +71,10 @@ pub enum Objective {
     /// (docs/design/2026-09-22-plan-search.md). Soldiers of a type no goal names are worth nothing here: in plan-1
     /// to hands-2 a single-goal search stripped the raiders from every order and the player put them back by hand.
     /// The shortfall is what makes a cheap goal hold against an expensive one: at their metal alone, four Flashes by
-    /// 3:30 lost to the Bull chain (one Flash at 5:00, the hands-2 record's header).
-    Target { goals: Vec<Goal> },
+    /// 3:30 lost to the Bull chain (one Flash at 5:00, the hands-2 record's header). `income`: metal a second wanted
+    /// by a time, each short of it costing `TARGET_SHORTFALL` times a minute of the missing income (the user,
+    /// 2026-09-22: a target order gets the unit and can fail at setting up the economy afterwards).
+    Target { goals: Vec<Goal>, income: Vec<(f64, f64)> },
 }
 
 /// What a game is expected to have by each second of the clock: a piecewise-linear curve per quantity. The standard
@@ -177,20 +179,20 @@ impl Objective {
 
     /// Goals separated by commas after the word `target`: each `UNIT[:COUNT] [by M:SS]`, the unit by its full name
     /// in `units`, the count as the `produce` tool writes it (`armflash:4`), the time as `M:SS` or seconds after
-    /// `by` or `@`. `target armflash:4 by 3:30, armbull by 9:00`; `target:armbull@540` on the command line.
+    /// `by` or `@`; or `income:N by M:SS`, metal a second wanted by then. `target armflash:4 by 3:30, armbull by
+    /// 9:00, income:40 by 10:00`; `target:armbull@540` on the command line.
     pub fn parse_target(text: &str, units: &Units) -> Result<Objective, String> {
-        const SHAPE: &str = "target UNIT[:COUNT] [by M:SS], ...";
+        const SHAPE: &str = "target UNIT[:COUNT] [by M:SS], income:N by M:SS, ...";
         let rest = text.trim().strip_prefix("target").ok_or_else(|| format!("{text:?}: not a target objective ({SHAPE})"))?;
         let rest = rest.strip_prefix(':').unwrap_or(rest);
         let mut goals = Vec::new();
+        let mut income = Vec::new();
         for entry in rest.split(',').map(str::trim).filter(|e| !e.is_empty()) {
             let words: Vec<&str> = entry.split(|c: char| c == '@' || c.is_whitespace()).filter(|w| !w.is_empty() && *w != "by").collect();
             let Some(&what) = words.first() else { continue };
-            let (name, count) = match what.split_once(':') {
-                Some((name, n)) => (name, Some(n.parse::<usize>().map_err(|_| format!("{what}: the count after the colon is a whole number"))?.max(1))),
-                None => (what, None),
-            };
-            let unit = units.index(name).ok_or_else(|| format!("{name}: no such unit type in this game"))?;
+            if words.len() > 2 {
+                return Err(format!("{entry:?}: one unit (or income) and at most a time per goal ({SHAPE})"));
+            }
             let by = match words.get(1) {
                 None => None,
                 Some(w) => Some(match w.split_once(':') {
@@ -198,21 +200,37 @@ impl Objective {
                     None => w.parse::<f64>().map_err(|_| format!("{w}: not a time"))?,
                 }),
             };
-            if words.len() > 2 {
-                return Err(format!("{entry:?}: one unit and at most a time per goal ({SHAPE})"));
+            if let Some(rate) = what.strip_prefix("income:") {
+                let rate = rate.parse::<f64>().map_err(|_| format!("{what}: metal a second after the colon is a number"))?;
+                let by = by.ok_or_else(|| format!("{entry:?}: an income goal needs its time (income:40 by 10:00)"))?;
+                income.push((rate, by));
+                continue;
             }
+            let (name, count) = match what.split_once(':') {
+                Some((name, n)) => (name, Some(n.parse::<usize>().map_err(|_| format!("{what}: the count after the colon is a whole number"))?.max(1))),
+                None => (what, None),
+            };
+            let unit = units.index(name).ok_or_else(|| format!("{name}: no such unit type in this game"))?;
             goals.push(Goal { unit, count, by });
         }
-        if goals.is_empty() {
+        if goals.is_empty() && income.is_empty() {
             return Err(format!("{text:?}: not a target objective ({SHAPE})"));
         }
-        Ok(Objective::Target { goals })
+        Ok(Objective::Target { goals, income })
     }
 
     /// The goals of a `target` objective, in the order given; empty for the others.
     pub fn goals(&self) -> &[Goal] {
         match self {
-            Objective::Target { goals } => goals,
+            Objective::Target { goals, .. } => goals,
+            _ => &[],
+        }
+    }
+
+    /// The income goals of a `target` objective, (metal a second, by second); empty for the others.
+    pub fn income_goals(&self) -> &[(f64, f64)] {
+        match self {
+            Objective::Target { income, .. } => income,
             _ => &[],
         }
     }
@@ -253,8 +271,13 @@ impl Objective {
                 let soldiers = against(army, Expectations::at(expect.army_metal, horizon), EXPECTED_ARMY, EXTRA_ARMY);
                 made + TEMPO_INCOME_SECONDS * (income - (1.0 - exposed) * outcome.exposed_income) + extractors + constructors + soldiers + Self::there(units, outcome, *contact) - TEMPO_STALL_METAL * stalled + shaping
             }
-            Objective::Target { goals } => {
+            Objective::Target { goals, income: wanted } => {
                 let stalled: f64 = outcome.samples.iter().map(|s| 1.0 - s.stall).sum();
+                // Income short of what was wanted at its time: a minute of the missing income, `TARGET_SHORTFALL` times.
+                let mut short = 0.0;
+                for &(rate, by) in wanted {
+                    short += TARGET_SHORTFALL * 60.0 * (rate - outcome.metal_income_at(by)).max(0.0);
+                }
                 let commander = units.list.iter().position(|u| u.role == Role::Commander).unwrap_or(0);
                 let mut made = 0.0;
                 let mut early = 0.0;
@@ -282,7 +305,7 @@ impl Objective {
                 chain.sort_unstable();
                 chain.dedup();
                 let makers: f64 = outcome.finished.iter().filter(|f| chain.contains(&f.unit)).map(|f| units.list[f.unit].metal_cost).sum::<f64>() * 0.5;
-                made + makers + TARGET_INCOME_SECONDS * income - TEMPO_STALL_METAL * stalled + early + shaping
+                made + makers + TARGET_INCOME_SECONDS * income - TEMPO_STALL_METAL * stalled + early - short + shaping
             }
         }
     }

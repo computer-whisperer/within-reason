@@ -11,6 +11,7 @@ mod groups;
 mod hands;
 mod menu;
 mod picture;
+mod remove;
 mod policy;
 
 use std::collections::{BTreeMap, HashMap, VecDeque};
@@ -55,6 +56,8 @@ pub(super) enum Task {
     Build { def: UnitDefId, near: Vec3, spot: Option<usize>, ordered: i32, started: bool },
     Assist { lab: UnitId, since: i32 },
     Reclaim { at: Vec3, since: i32 },
+    /// Taking one unit of ours apart on the player's order (`remove` tool).
+    ReclaimUnit { target: UnitId, since: i32 },
     Repair { target: UnitId, since: i32 },
     Walk { to: Vec3, place: String, since: i32 },
 }
@@ -63,7 +66,7 @@ impl Task {
     fn since(&self) -> i32 {
         match self {
             Task::Build { ordered, .. } => *ordered,
-            Task::Assist { since, .. } | Task::Reclaim { since, .. } | Task::Repair { since, .. } | Task::Walk { since, .. } => *since,
+            Task::Assist { since, .. } | Task::Reclaim { since, .. } | Task::ReclaimUnit { since, .. } | Task::Repair { since, .. } | Task::Walk { since, .. } => *since,
         }
     }
 }
@@ -200,6 +203,10 @@ impl Pianist {
                 *since = frame;
                 order = Some(Command::Guard { unit: builder, target: *lab });
             }
+            Task::ReclaimUnit { target, since } => {
+                *since = frame;
+                order = Some(Command::ReclaimUnit { unit: builder, target: *target, queue: false });
+            }
             Task::Reclaim { since, .. } | Task::Repair { since, .. } | Task::Walk { since, .. } => *since = frame,
         }
         self.tasks.insert(builder, next);
@@ -304,6 +311,8 @@ impl Brain {
         if let Some(shared) = self.strategist.clone() {
             let soldiers: Vec<&bot_protocol::OwnUnit> = tick.snapshot.own_units.iter().filter(|u| !u.being_built && self.is_army(u, kit)).collect();
             self.publish_field(tick, kit, &soldiers, &shared);
+            self.publish_cards(tick, &shared);
+            self.take_removals(tick, commands, &shared);
         }
         if tick.frame < FIRST_ORDER_FRAME {
             return;
@@ -837,7 +846,7 @@ impl Brain {
                 Some(Task::Build { started: true, ordered, .. }) if frame - ordered > super::economy::ORDER_GRACE_FRAMES => {
                     pianist.tasks.remove(&unit.id);
                 }
-                Some(Task::Reclaim { since, .. }) | Some(Task::Repair { since, .. }) if frame - since > super::economy::ORDER_GRACE_FRAMES => {
+                Some(Task::Reclaim { since, .. }) | Some(Task::ReclaimUnit { since, .. }) | Some(Task::Repair { since, .. }) if frame - since > super::economy::ORDER_GRACE_FRAMES => {
                     pianist.tasks.remove(&unit.id);
                 }
                 Some(Task::Walk { to, since, place }) if unit.pos.dist2d(*to) < 150.0 || frame - since > 40 * FRAMES_PER_SECOND || (place.starts_with("party_") && frame - since > 10 * FRAMES_PER_SECOND) => {

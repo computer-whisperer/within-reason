@@ -27,6 +27,7 @@ mod tier2;
 mod wake;
 mod roster;
 mod routes;
+mod yards;
 
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::sync::Arc;
@@ -130,6 +131,11 @@ pub struct Brain {
     /// Hits on our units with a known attacker in the last `HIT_MEMORY` frames: what each enemy party is shooting
     /// (H-HANDS-PARTY-KILLING).
     hits: Vec<Hit>,
+    /// Our factories' exit lanes this tick, kept clear of new buildings; our mobile units that cannot move; the
+    /// factories whose blocked yard the player has been told of (`yards.rs`).
+    lanes: Vec<bot_protocol::Lane>,
+    stuck: HashMap<UnitId, yards::Stuck>,
+    yard_warned: HashSet<UnitId>,
     /// Chat lines of ours not yet seen back from the engine, which echoes every line as a chat event from our own
     /// host player (human-1: the player was woken by its own "gl hf").
     said: Vec<String>,
@@ -242,6 +248,9 @@ impl Brain {
             shelling: Vec::new(),
             shelling_warned: i32::MIN / 2,
             hits: Vec::new(),
+            lanes: Vec::new(),
+            stuck: HashMap::new(),
+            yard_warned: HashSet::new(),
             said: Vec::new(),
             heard_chat_at: -1,
             razed: Vec::new(),
@@ -338,6 +347,7 @@ impl Brain {
         self.update_territory(tick, &kit);
         self.track_wrecks(tick);
         self.track_losses(tick, &kit);
+        self.track_yards(tick);
         let mut commands = Vec::new();
         self.relay_chat(tick, &mut commands);
         // The game names AIs at random (ai_namer.lua), so the bot says who it is, once the engine takes orders.

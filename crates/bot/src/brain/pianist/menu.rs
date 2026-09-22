@@ -60,6 +60,8 @@ pub(crate) enum Pick {
     BuildingAt(UnitDefId),
     AssistLab(UnitId),
     Reclaim(Vec3),
+    /// Take one unit of ours apart (a `reclaim <handle>` list step from the `remove` tool).
+    ReclaimUnit(UnitId),
     Repair(UnitId),
     WalkTo,
     RetreatHome,
@@ -571,6 +573,12 @@ impl Brain {
                         pianist.scripts.get_mut(name)?.push_front(step);
                         return None;
                     }
+                },
+                // `reclaim <handle>`: one unit of ours, taken apart for its metal (the `remove` tool).
+                "reclaim" => match place.as_deref().and_then(|h| self.unit_by_handle(h, own)) {
+                    Some(target) if target.id == unit.id => Err("a builder cannot take itself apart".to_string()),
+                    Some(target) => Ok((Pick::ReclaimUnit(target.id), Vec::new(), None)),
+                    None => Err(format!("{} no longer stands", place.as_deref().unwrap_or("it"))),
                 },
                 // Any unit by its internal name; one that stands at a place (a defence, a radar) needs the place.
                 other => match self.world.def_named(other) {

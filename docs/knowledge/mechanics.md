@@ -210,3 +210,19 @@ at E3"; the player marked its own guess at 2:25 "to stop the commander wandering
 south).
 **Used by.** H-MAP-ENEMY-START (a guess nearer than a third of the map's short side is discarded for the mirror;
 the boxes are logged at the start).
+
+### K-mech-factory-exit-is-its-front
+**Claim.** A factory's finished units leave through its front (the side its building facing points to: 0 south +z,
+1 east, 2 north, 3 west): the engine sends each to `pos + frontdir * (radius + unit radius)` and searches empty
+spots forward of the front (`Factory.cpp` `SendToEmptySpot`). A building whose centre lies within about 170 elmos of
+the front seals the yard: the units finished after it stand in the yard, the engine gives up their moves, and the
+factory builds nothing more while they stand there, whatever is in the bank.
+**Status.** demonstrated (2026-09-22, hands-2-bulldogs), one game; the engine source read for the exit rule.
+**Evidence.** `run/matches/1790117628-hands-2-bulldogs/00`: solars at the player's mark `avp_side` finished 10:54-11:54,
+one 16 x, 165 z off the plant's centre (the plant faced south); Bulls three to seven finished 11:42-14:24 stood within
+thirty elmos of the exit 5.0-7.5 min each; 156 move-failed events on Bulls; the plant finished nothing 14:24-19:04
+with metal 2,000-5,600 of storage full; all five left at 19:10 as the solars and then the plant were destroyed. The
+first two Bulls (9:36, 10:42, before the solars) left within seconds.
+**Would be wrong if.** Units left through another side too, or a building at the front but off the engine's search
+strip let them out; `yard_min` on the scorecard over the coming games tells.
+**Used by.** H-ECO-YARD-LANE, H-HANDS-STUCK-WORDS, H-PLAYER-REMOVE.

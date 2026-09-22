@@ -358,3 +358,19 @@ from minute 9 on one plant.
 **Evidence.** `run/matches/1790052919-comet-4-medium`: the turn-one calls, `analyze_match` curves.
 **Would be wrong if.** The list on the east strip, or against hard, were a minute slower.
 **Used by.** the player's brief (the Comet Catcher section).
+
+### K-plan-target-order-is-a-chain
+**Claim.** A `target` search answers with the chain to the thing asked and what pays for it inside the horizon, and
+nothing else: no soldiers of other types, no economy past the horizon, no defence. Followed to the letter it gets the
+unit early and leaves the game thin around it: in hands-2-bulldogs seven constructors by 9:30, one plant, no soldier
+between the sixth Flash (about 4:30) and the first Bull (9:36), metal full from minute eight. The user's own annealer
+of the same shape did the same ("they work at getting the unit you asked for quickly, but can fail at setting you up
+for a stable economy afterwards"). The economy and the army around the chain are the requester's to add, as goals
+(units with counts and times, `income:N by M:SS`) or by deviating from the answer; experience is meant to layer over
+the search, not the other way round.
+**Status.** observed (2026-09-22), four player games (plan-1, plan-2, hands-1, hands-2) and the user's experience.
+**Evidence.** the four games' `strategist-0.jsonl` `search` calls (`target armbull` alone each time) and their
+`queue` calls; hands-2's curves (`run/floor.py`: mfull 50 %).
+**Would be wrong if.** A target search with income and raider goals, followed to the letter, held the economy and
+the front through minute fifteen in a Bulls game.
+**Used by.** H-PLAYER-PLAN-SEARCH (income goals; the guide: "a target order is a chain to the thing asked").

@@ -200,14 +200,21 @@ fn target_goals_count_up_to_their_count_and_seed_every_chain() {
     };
     let (four, six) = (list(4), list(6));
     assert!(six.finished.iter().filter(|f| f.unit == pw).count() >= 6, "the lab finished six Pawns in five minutes");
-    let counted = Objective::Target { goals: vec![Goal { unit: pw, count: Some(4), by: None }] };
-    let open = Objective::Target { goals: vec![Goal { unit: pw, count: None, by: None }] };
+    let counted = Objective::Target { goals: vec![Goal { unit: pw, count: Some(4), by: None }], income: vec![] };
+    let open = Objective::Target { goals: vec![Goal { unit: pw, count: None, by: None }], income: vec![] };
     let cost = units.list[pw].metal_cost;
     assert!((counted.score(units, &six, 300.0) - counted.score(units, &four, 300.0)).abs() < cost, "extras beyond the count are not rewarded");
     assert!(open.score(units, &six, 300.0) - open.score(units, &four, 300.0) > 1.5 * cost, "without a count every one counts");
+    // An income goal: short of it at its time costs three minutes of the missing income; met, nothing.
+    let at_4 = four.metal_income_at(240.0);
+    let met = Objective::Target { goals: vec![], income: vec![(at_4 - 1.0, 240.0)] };
+    let missed = Objective::Target { goals: vec![], income: vec![(at_4 + 2.0, 240.0)] };
+    assert!((met.score(units, &four, 300.0) - missed.score(units, &four, 300.0) - 3.0 * 60.0 * 2.0).abs() < 1e-6);
+    assert_eq!(Objective::parse_target("target income:40 by 10:00", units).unwrap().income_goals(), &[(40.0, 600.0)]);
+    assert!(Objective::parse_target("target income:40", units).unwrap_err().contains("needs its time"));
     // A deadline is a requirement: six Pawns asked by the time the fourth finished are two short, three metal each.
     let fourth = four.finished.iter().filter(|f| f.unit == pw).nth(3).unwrap().t;
-    let due = Objective::Target { goals: vec![Goal { unit: pw, count: Some(6), by: Some(fourth) }] };
-    let loose = Objective::Target { goals: vec![Goal { unit: pw, count: Some(6), by: None }] };
+    let due = Objective::Target { goals: vec![Goal { unit: pw, count: Some(6), by: Some(fourth) }], income: vec![] };
+    let loose = Objective::Target { goals: vec![Goal { unit: pw, count: Some(6), by: None }], income: vec![] };
     assert!((loose.score(units, &four, 300.0) - due.score(units, &four, 300.0) - 2.0 * buildorder::anneal::TARGET_SHORTFALL * cost).abs() < 1e-6);
 }

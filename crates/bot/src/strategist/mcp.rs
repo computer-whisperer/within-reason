@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use tiny_http::{Header, Method, Response, Server};
 
 use super::Mode;
-use super::shared::{Focus, OrderKind, OutpostTurrets, PlanContext, Post, Shared, Stance, Timed};
+use super::shared::{Focus, OrderKind, OutpostTurrets, PlanContext, Post, Removal, Shared, Stance, Timed};
 use super::transcript::Transcript;
 
 const DEFAULT_TTL_SECONDS: i64 = 120;
@@ -140,7 +140,7 @@ fn tool_list(mode: Mode) -> Value {
               "description": "Simulate a build order from the game as it stands now, without ordering anything: lists of steps per builder in the `queue` tool's words (`extractor spot_N`, `assist`, any unit's internal name with an optional spot or marked place; a factory's list is unit names), keyed by actor name (commander, lab_N, plant_N, factory_N, constructor_N) or next_factory_1, next_constructor_1 for what is not standing yet. Returns the curves by minute (extractors, income, stall, army metal, build power), the minute each unit type first finishes, and what each builder actually did with its list (steps it could not do are named). The simulator knows the economy and building; it knows nothing of the enemy, losses or terrain jams, and runs about ten percent optimistic.",
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["queues"], "properties": { "queues": { "type": "object" }, "minutes": { "type": "number", "description": "How far ahead to simulate (default 8, at most 20)." } } } },
             { "name": "search",
-              "description": "Search build orders in the simulator from the game as it stands now, without ordering anything: an objective in words (`income`, `army`, `mix` (army plus two minutes of income), or `target`: goals after commas, each a unit with an optional count and time, e.g. `target armflash:4 by 3:30, armbull by 9:00`; only the units the goals name count, so name the raiders you want beside the heavy units, or the search leaves them out), a horizon in minutes and a time budget in seconds (default 10). The search runs beside the game and its answer comes with your next report, for which you are woken; `wait: true` holds your turn for it instead (the cap is 20 s in the arena, where the game holds during a turn, and 3 s in a realtime game, where it does not). The search may use the whole roster: every generator, storage, converter, extractor, factory, nano and unit the faction reaches. Returns the best order found in the `plan` tool's words with its curves and score. Give `queues` to start the search from your own order.",
+              "description": "Search build orders in the simulator from the game as it stands now, without ordering anything: an objective in words (`income`, `army`, `mix` (army plus two minutes of income), or `target`: goals after commas, each a unit with an optional count and time, or `income:N by M:SS` for metal a second by then, e.g. `target armflash:4 by 3:30, armbull by 9:00, income:40 by 10:00`; only what the goals name counts, so name the raiders and the income you want beside the heavy units, or the search leaves them out: a target order is a chain to the thing asked and nothing else), a horizon in minutes and a time budget in seconds (default 10). The search runs beside the game and its answer comes with your next report, for which you are woken; `wait: true` holds your turn for it instead (the cap is 20 s in the arena, where the game holds during a turn, and 3 s in a realtime game, where it does not). The search may use the whole roster: every generator, storage, converter, extractor, factory, nano and unit the faction reaches. Returns the best order found in the `plan` tool's words with its curves and score. Give `queues` to start the search from your own order.",
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["objective"], "properties": { "objective": { "type": "string" }, "minutes": { "type": "number" }, "seconds": { "type": "number" }, "wait": { "type": "boolean" }, "queues": { "type": "object" } } } },
             { "name": "instruct",
               "description": format!("Your standing instructions to your hands: the whole packet, replacing the last one. Jev reads it every second beside the picture and picks each actor's next action from a menu, so write it as standing orders in plain words: the build order per builder as a sequence, what the lab makes and when that changes, where each group stands, when it engages, scouts and attacks, what to do about raids. Name places as the picture does (home, spot_N, passage_N, and any place you marked with `mark`; a spot or passage you name here is always on your hands' menu, however far) and groups as group_A, group_B. No arithmetic for the hands to do: say \"when we have about ten soldiers\", not a formula. At most {INSTRUCTIONS_LIMIT} characters."),
@@ -157,13 +157,16 @@ fn tool_list(mode: Mode) -> Value {
             { "name": "produce",
               "description": "What each factory or builder may build: an object of actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" (every commander and constructor) or \"all\" (everyone) to a list of unit names (as the roster writes them: armpw, armham, armck, armfus), or null to lift the restriction. A name with a count after a colon (armck:1) is allowed that many more times from now and then drops off the list by itself: the way to say 'one constructor, then raiders' to hands that cannot count. A lab with a list is offered only those units and nothing else, every time it is asked; your instructions still say which of them and when. A builder without a list is offered the usual buildings (generators, factories, light and heavy turrets, radar, storage, the tier-2 lab and extractor, fusion); a list replaces that, so a fusion reactor, an aircraft plant or a jammer from a constructor is asked for here. Use it when the packet's words are not getting the mix you want. A list naming nothing the actor can build leaves it unrestricted; the actor's entry in the picture shows its list. Your policy is not bound by lists: it may order anything a builder can build.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "null" } ] }, "description": "Actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" or \"all\" to unit names, or null." } },
+            { "name": "remove",
+              "description": "Take apart or blow up what we own: {\"reclaim\": [handles], \"by\": \"constructor_N\" (optional; else the nearest builder without a list)} puts `reclaim <handle>` steps at the front of that builder's list, and most of the metal comes back; {\"destruct\": [handles]} sends the engine's self-destruct, and nothing comes back. A handle is a unit's name and id as the picture writes it (armsolar_31002: a factory's `yard` entry names the buildings in its exit lane) or an actor's name (constructor_N, plant_N, commander). Every unit that self-destructs blows up: the answer says the blast's radius and damage and what of ours stands inside it, and a destruct that would kill something of ours is refused unless \"accept_losses\": true. The commander's blast is the game's largest; a reclaim is the safe way beside anything that matters.",
+              "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "reclaim": { "type": "array", "items": { "type": "string" } }, "by": { "type": "string" }, "destruct": { "type": "array", "items": { "type": "string" } }, "accept_losses": { "type": "boolean" } } } },
             { "name": "policy",
               "description": "Your Lua policy (with `bot --policy`): the script your hands run once a game second over the picture, in place of, or beside, Jev's reading of your packet. {\"set\": script} replaces the whole policy and starts a fresh Lua state; {\"amend\": chunk} runs the chunk in the living state, so each top-level function or table it defines replaces the one of that name in place and the rest stands (globals persist); {} returns the policy in force. A parse error is answered at once; runtime errors and the orders given come in your report. The script defines decide(S) and returns { [actor] = { [\"do\"] = option, where = place, whom = party, how_many = \"2\"|\"4\"|\"8\"|\"half\", where_scout = place } }; only an option in that actor's S.actors[name].options can be ordered; an actor left out keeps its course.",
               "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "set": { "type": "string" }, "amend": { "type": "string" } } } },
             { "name": "say",
               "description": "Say something in the game's chat, to everyone playing. Short lines. The report shows what people say to you; when an experienced player offers advice or asks what you are doing, answer, and ask them what they would do: their feedback is what this project learns from.",
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "maxLength": 240 } } } },
-            orders(&["instruct", "queue", "policy", "lane", "mark", "produce", "say", "note", "wait"], "your instructions or policy, build lists, footwork settings, marked places, what labs may build, a chat line, a note and when to be woken"),
+            orders(&["instruct", "queue", "policy", "lane", "mark", "produce", "remove", "say", "note", "wait"], "your instructions or policy, build lists, footwork settings, marked places, what labs may build, removals, a chat line, a note and when to be woken"),
             wait("A group of ours starts fighting an enemy party.", "Woken when this many soldiers of each named unit type are alive, e.g. {\"armham\": 6}. {} clears it."),
             note,
         ]),
@@ -243,7 +246,7 @@ fn tool_list(mode: Mode) -> Value {
 /// What `orders` may batch in a mode.
 fn batchable(mode: Mode) -> &'static [&'static str] {
     match mode {
-        Mode::Player => &["instruct", "queue", "policy", "lane", "mark", "produce", "say", "note", "wait"],
+        Mode::Player => &["instruct", "queue", "policy", "lane", "mark", "produce", "remove", "say", "note", "wait"],
         Mode::Strategist | Mode::Commander => &["squad", "set_directives", "set_production", "request_turret", "expansion", "note", "wait"],
     }
 }
@@ -418,15 +421,17 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>, mode: Mode) ->
             let mut lines: Vec<String> = Vec::new();
             for name in names {
                 let name = name.as_str().ok_or("names are strings")?;
+                let blast_words = |b: Option<(f32, f32)>| b.map_or("none".to_string(), |(r, d)| format!("radius {r:.0}, damage {d:.0}"));
+                let blasts = shared.blasts.lock().unwrap().get(name).map(|(death, selfd, secs)| format!(" Blasts: dying {}; self-destruct {} after {secs:.0} s.", blast_words(*death), blast_words(*selfd))).unwrap_or_default();
                 lines.push(match crate::brain::pianist::glossary::entry(name) {
                     Some(e) => format!(
-                        "{} ({name}): {}, tier {}{}. {}. {}",
+                        "{} ({name}): {}, tier {}{}. {}. {}{blasts}",
                         e.name, e.class, e.tier,
                         if e.made_by.is_empty() { String::new() } else { format!(", made by {}", e.made_by.join(", ")) },
                         e.numbers(),
                         if e.prose.is_empty() { e.gloss.clone() } else { e.prose.clone() }
                     ),
-                    None => format!("{name}: not in the glossary"),
+                    None => format!("{name}: not in the glossary{blasts}"),
                 });
             }
             Ok(lines.join("\n"))
@@ -612,6 +617,71 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>, mode: Mode) ->
             }
             Ok(format!("{}; they see it from their next look", said.join("; ")))
         }
+        "remove" => {
+            let cards = shared.own_cards.lock().unwrap().clone();
+            if cards.is_empty() {
+                return Err("your hands have not published our units yet: try again in a few seconds".into());
+            }
+            let list = |key: &str| -> Result<Vec<String>, String> {
+                match &arguments[key] {
+                    Value::Null => Ok(Vec::new()),
+                    Value::String(s) => Ok(vec![s.trim().to_string()]),
+                    Value::Array(items) => items.iter().map(|v| v.as_str().map(|s| s.trim().to_string()).ok_or_else(|| format!("{key}: handles are strings"))).collect(),
+                    _ => Err(format!("{key}: a list of handles")),
+                }
+            };
+            let (reclaim, destruct) = (list("reclaim")?, list("destruct")?);
+            if reclaim.is_empty() && destruct.is_empty() {
+                return Err("remove takes {\"reclaim\": [handles]} and/or {\"destruct\": [handles]}; a handle is <unit>_<id> as the picture writes it (armsolar_31002) or an actor name".into());
+            }
+            let find = |h: &str| cards.iter().find(|c| c.handle == h || c.actor.as_deref() == Some(h));
+            for h in reclaim.iter().chain(&destruct) {
+                find(h).ok_or_else(|| format!("{h}: nothing of ours has that name (handles are <unit>_<id> as the picture writes them, e.g. armsolar_31002, or an actor name)"))?;
+            }
+            let by = arguments["by"].as_str().map(str::to_string);
+            if let Some(b) = &by
+                && !cards.iter().any(|c| c.actor.as_deref() == Some(b) && c.handle != *b)
+            {
+                return Err(format!("{b}: not a builder standing now"));
+            }
+            let accept = arguments["accept_losses"].as_bool().unwrap_or(false);
+            let mut said: Vec<String> = Vec::new();
+            let mut refused: Vec<String> = Vec::new();
+            for h in &destruct {
+                let c = find(h).expect("checked above");
+                match c.self_destruct {
+                    None => said.push(format!("{h} self-destructs in {:.0} s with no blast", c.self_destruct_seconds)),
+                    Some((radius, damage)) => {
+                        let inside: Vec<&_> = cards.iter().filter(|o| o.handle != c.handle && (o.at.0 - c.at.0).hypot(o.at.1 - c.at.1) <= radius).collect();
+                        let killed: Vec<String> = inside.iter().filter(|o| o.health <= damage).map(|o| format!("{} ({:.0} health)", o.actor.clone().unwrap_or_else(|| o.handle.clone()), o.health)).collect();
+                        if !killed.is_empty() && !accept {
+                            refused.push(format!("{h}: its blast (radius {radius:.0}, damage {damage:.0}) would kill {} of ours: {}; pass \"accept_losses\": true to do it anyway, or reclaim it instead", killed.len(), killed.join(", ")));
+                            continue;
+                        }
+                        said.push(format!(
+                            "{h} self-destructs in {:.0} s: blast radius {radius:.0}, damage {damage:.0}; of ours within it: {}",
+                            c.self_destruct_seconds,
+                            if inside.is_empty() { "nothing".to_string() } else { inside.iter().map(|o| format!("{} ({:.0} health{})", o.actor.clone().unwrap_or_else(|| o.handle.clone()), o.health, if o.health <= damage { ", dies" } else { "" })).collect::<Vec<_>>().join(", ") }
+                        ));
+                    }
+                }
+            }
+            if !refused.is_empty() {
+                return Err(refused.join("; "));
+            }
+            for h in &reclaim {
+                let c = find(h).expect("checked above");
+                said.push(format!("{h} ({}, {:.0} metal) is taken apart by {}; most of its metal comes back", c.unit, c.metal, by.as_deref().unwrap_or("the nearest builder without a list")));
+            }
+            let mut removals = shared.removals.lock().unwrap();
+            if !destruct.is_empty() {
+                removals.push(Removal::Destruct { targets: destruct });
+            }
+            if !reclaim.is_empty() {
+                removals.push(Removal::Reclaim { targets: reclaim, by });
+            }
+            Ok(format!("{}; your hands carry it out from their next look", said.join("; ")))
+        }
         "squad" => squad(arguments, shared),
         "set_production" => {
             let weights = arguments["weights"].as_object().ok_or("weights must be an object")?;
@@ -783,18 +853,46 @@ mod tests {
         assert!(results[0].contains("score") && results[0].contains("curves"), "{}", results[0]);
         assert!(shared.triggers.lock().unwrap().iter().any(|t| t.contains("search has finished")));
         // Held: the answer now, within the mode's cap.
-        let held = call_tool("search", &json!({ "objective": "target armpw:4 by 2:30, armck by 3:00", "minutes": 3, "seconds": 1, "wait": true }), &shared, Mode::Player).unwrap();
+        let held = call_tool("search", &json!({ "objective": "target armpw:4 by 2:30, armck by 3:00, income:5 by 3:00", "minutes": 3, "seconds": 1, "wait": true }), &shared, Mode::Player).unwrap();
         assert!(held.contains("score") && held.contains("armpw"), "{held}");
-        assert!(held.contains("goals: armpw: 4 asked, ") && held.contains("; armck: "), "each goal is answered: {held}");
+        assert!(held.contains("goals: income: 5 a second asked for by 3:00, ") && held.contains("; armpw: 4 asked, ") && held.contains("; armck: "), "each goal is answered: {held}");
+        assert!(call_tool("search", &json!({ "objective": "target income:40" }), &shared, Mode::Player).unwrap_err().contains("needs its time"));
         assert!(call_tool("search", &json!({ "objective": "glory" }), &shared, Mode::Player).unwrap_err().contains("not an objective"));
         assert!(call_tool("search", &json!({ "objective": "target armpw, glory" }), &shared, Mode::Player).unwrap_err().contains("no such unit"));
+    }
+
+    #[test]
+    fn remove_names_the_blast_and_refuses_to_kill_our_own() {
+        use super::super::shared::{Removal, UnitCard};
+        let shared = Arc::new(Shared::default());
+        assert!(call_tool("remove", &json!({ "destruct": ["armsolar_7"] }), &shared, Mode::Player).unwrap_err().contains("not published"));
+        let card = |handle: &str, actor: Option<&str>, at: (f32, f32), health: f32, blast: Option<(f32, f32)>| UnitCard { handle: handle.into(), actor: actor.map(str::to_string), unit: handle.split('_').next().unwrap().into(), at, health, metal: 155.0, self_destruct: blast, self_destruct_seconds: 5.0 };
+        *shared.own_cards.lock().unwrap() = vec![
+            card("armsolar_7", None, (100.0, 100.0), 400.0, Some((120.0, 500.0))),
+            card("armavp_3", Some("plant_3"), (150.0, 100.0), 3000.0, Some((300.0, 2000.0))),
+            card("armck_9", Some("constructor_9"), (160.0, 120.0), 300.0, None),
+            card("armmex_4", None, (900.0, 900.0), 300.0, Some((50.0, 100.0))),
+        ];
+        assert!(call_tool("remove", &json!({}), &shared, Mode::Player).unwrap_err().contains("remove takes"));
+        assert!(call_tool("remove", &json!({ "reclaim": ["armsolar_99"] }), &shared, Mode::Player).unwrap_err().contains("nothing of ours has that name"));
+        let refused = call_tool("remove", &json!({ "destruct": ["armsolar_7"] }), &shared, Mode::Player).unwrap_err();
+        assert!(refused.contains("would kill 1 of ours: constructor_9 (300 health)") && refused.contains("accept_losses"), "{refused}");
+        assert!(shared.removals.lock().unwrap().is_empty(), "a refused destruct orders nothing");
+        let done = call_tool("remove", &json!({ "destruct": ["armmex_4"], "reclaim": ["armsolar_7"], "by": "constructor_9" }), &shared, Mode::Player).unwrap();
+        assert!(done.contains("armmex_4 self-destructs in 5 s: blast radius 50, damage 100; of ours within it: nothing") && done.contains("armsolar_7 (armsolar, 155 metal) is taken apart by constructor_9"), "{done}");
+        let removals = shared.removals.lock().unwrap().clone();
+        assert!(matches!(&removals[0], Removal::Destruct { targets } if targets == &["armmex_4".to_string()]));
+        assert!(matches!(&removals[1], Removal::Reclaim { targets, by: Some(b) } if targets == &["armsolar_7".to_string()] && b == "constructor_9"));
+        let accepted = call_tool("remove", &json!({ "destruct": ["armsolar_7"], "accept_losses": true }), &shared, Mode::Player).unwrap();
+        assert!(accepted.contains("constructor_9 (300 health, dies)") && accepted.contains("plant_3 (3000 health)"), "{accepted}");
+        assert!(call_tool("remove", &json!({ "reclaim": ["armsolar_7"], "by": "constructor_77" }), &shared, Mode::Player).unwrap_err().contains("not a builder standing now"));
     }
 
     #[test]
     fn the_player_has_its_lever_and_none_of_the_commanders() {
         let names = |mode: Mode| tool_list(mode).as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap().to_string()).collect::<Vec<_>>();
         let player = names(Mode::Player);
-        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "produce", "policy", "say", "orders", "wait", "note"]);
+        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "produce", "remove", "policy", "say", "orders", "wait", "note"]);
         let commander = names(Mode::Commander);
         assert!(commander.contains(&"squad".to_string()) && !commander.contains(&"instruct".to_string()));
         for tool in batchable(Mode::Player) {
@@ -903,16 +1001,23 @@ mod planning {
     pub(super) const REALTIME_MAX_SECONDS: f64 = 3.0;
     const SEARCH_THREADS: usize = 4;
     const TARGET_COUNT: usize = 6;
-    pub(super) const OBJECTIVES: &str = "income, army, mix, or target UNIT[:COUNT] [by M:SS], more goals after commas";
+    pub(super) const OBJECTIVES: &str = "income, army, mix, or target UNIT[:COUNT] [by M:SS], more goals after commas, income:N by M:SS among them";
 
     /// The `target` objective's goals against the found order, one line each: how many finished, and when the
     /// asked-for count (or the first) did against the deadline. None for the other objectives.
-    fn goals_words(ctx: &PlanContext, goals: &[Goal], outcome: &Outcome) -> Option<String> {
-        if goals.is_empty() {
+    fn goals_words(ctx: &PlanContext, goals: &[Goal], income: &[(f64, f64)], outcome: &Outcome) -> Option<String> {
+        if goals.is_empty() && income.is_empty() {
             return None;
         }
         let units = &ctx.game.units;
-        let lines: Vec<String> = goals
+        let mut lines: Vec<String> = income
+            .iter()
+            .map(|&(rate, by)| {
+                let got = outcome.metal_income_at(by);
+                format!("income: {rate:.0} a second asked for by {}, {got:.1} in the order{}", mmss(by), if got >= rate { "" } else { " (short)" })
+            })
+            .collect();
+        lines.extend(goals
             .iter()
             .map(|g| {
                 let name = &units.list[g.unit].name;
@@ -927,8 +1032,7 @@ mod planning {
                     (None, None) => "none finished by the horizon".to_string(),
                 };
                 format!("{name}: {asked}{} finished by the horizon; {when}", finished.len())
-            })
-            .collect();
+            }));
         Some(format!("\n\ngoals: {}", lines.join("; ")))
     }
 
@@ -958,7 +1062,7 @@ mod planning {
                 let palette = Palette::roster(units, ctx.game.commander, ctx.turret, ctx.water);
                 let (factories, constructors) = (ctx.standing_factories + 2, ctx.standing_constructors + 3);
                 let start = given.or_else(|| match &objective {
-                    Objective::Target { goals } => {
+                    Objective::Target { goals, .. } => {
                         let goals: Vec<(usize, usize)> = goals.iter().map(|g| (g.unit, g.count.unwrap_or(TARGET_COUNT))).collect();
                         Some(palette.chain_seed(units, ctx.game.commander, &goals, factories, constructors, ctx.wind))
                     }
@@ -967,7 +1071,7 @@ mod planning {
                 let search = Search { objective, horizon, iterations: 0, seed: ctx.frame as u64 + 1, factories, constructors, hot: 0.02, start };
                 let found = anneal_within(units, &ctx.scenario, &ctx.state, &palette, &search, std::time::Duration::from_secs_f64(seconds), SEARCH_THREADS);
                 let mut out = report(ctx, &found.plan, &found.outcome, Some(found.score));
-                if let Some(goals) = goals_words(ctx, search.objective.goals(), &found.outcome) {
+                if let Some(goals) = goals_words(ctx, search.objective.goals(), search.objective.income_goals(), &found.outcome) {
                     out.push_str(&goals);
                 }
                 Ok(out)

@@ -67,9 +67,10 @@ impl Brain {
                 let mut task: Option<Task> = None;
                 let mut build = |plan: Plan, spot: Option<usize>| -> Option<String> {
                     let (def, site) = self.build_site_for(&plan, unit, kit)?;
+                    let near = site.near;
                     commands.push(Command::Build { unit: id, def, site: Some(site), queue });
-                    task = Some(Task::Build { def, near: site.near, spot, ordered: frame, started: false });
-                    Some(format!("build a {} at {}", self.name(def), self.place_words(&picture.places, site.near)))
+                    task = Some(Task::Build { def, near, spot, ordered: frame, started: false });
+                    Some(format!("build a {} at {}", self.name(def), self.place_words(&picture.places, near)))
                 };
                 // H-HANDS-STARTED: the kind of building already started, answered again, is the same build going
                 // on, not a second frame (pianist-player-6: "generator" three asks running, three frames, two decayed).
@@ -122,6 +123,11 @@ impl Brain {
                             task = Some(Task::Reclaim { at, since: frame });
                             did = Some(format!("reclaim wrecks at {}", self.place_words(&picture.places, at)));
                         }
+                    }
+                    Pick::ReclaimUnit(target) => {
+                        commands.push(Command::ReclaimUnit { unit: id, target, queue });
+                        task = Some(Task::ReclaimUnit { target, since: frame });
+                        did = Some(format!("take apart our {}", own.iter().find(|u| u.id == target).map_or("unit".to_string(), |u| self.handle(u))));
                     }
                     Pick::Repair(target) => {
                         commands.push(Command::Repair { unit: id, target, queue });

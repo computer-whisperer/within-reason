@@ -217,7 +217,7 @@ impl Brain {
                         self.fire("H-T2-MOHO");
                         self.jobs.insert(unit.id, kit.advanced_extractor);
                         self.last_orders.insert(unit.id, (tick.frame, kit.advanced_extractor, spot));
-                        let site = BuildSite { near: spot, search_radius: 0.0, min_dist: 0 };
+                        let site = BuildSite { near: spot, search_radius: 0.0, min_dist: 0, keep_out: Vec::new() };
                         commands.push(Command::Build { unit: unit.id, def: kit.advanced_extractor, site: Some(site), queue: false });
                     }
                     _ => {
@@ -280,20 +280,7 @@ impl Brain {
                     continue;
                 }
                 self.fire(rule);
-                let (def_id, site) = match plan {
-                    // The game rejects an extractor that is not exactly on its spot (cmd_mex_denier.lua), and the shim
-                    // places extractors exactly at `near`, searching nowhere.
-                    Plan::Extractor(spot) => (kit.extractor, BuildSite { near: self.extractor_site(spot, unit), search_radius: 0.0, min_dist: 0 }),
-                    // Where the builder stands is reachable by definition; fall back to it when the usual anchor is not.
-                    Plan::Near(def_id, anchor) if self.is_unreachable(anchor) => {
-                        (def_id, BuildSite { near: unit.pos, search_radius: 500.0, min_dist: self.gap_around(def_id, kit) })
-                    }
-                    Plan::Near(def_id, anchor) => {
-                        (def_id, BuildSite { near: anchor, search_radius: 1000.0, min_dist: self.gap_around(def_id, kit) })
-                    }
-                    Plan::Beside(def_id, anchor) => (def_id, BuildSite { near: anchor, search_radius: NANO_REACH, min_dist: 2 }),
-                    Plan::Reclaim(_) | Plan::Repair(_) => unreachable!("handled above"),
-                };
+                let Some((def_id, site)) = self.build_site_for(&plan, unit, kit) else { continue };
                 // An order whose builder is idle again within two ticks never started: count it and say where.
                 // (The window is the first re-plan after the order grace: a shorter one never fired.)
                 if let Some((frame, earlier, near)) = self.last_orders.insert(unit.id, (tick.frame, def_id, site.near))
@@ -514,14 +501,16 @@ impl Brain {
         if !self.world.def(unit.def).is_some_and(|d| d.build_options.contains(&planned_def)) {
             return None;
         }
+        // Nothing but an extractor goes in a factory's exit lane (yards.rs).
+        let keep_out = self.lanes.clone();
         Some(match *plan {
             // The game rejects an extractor that is not exactly on its spot (cmd_mex_denier.lua), and the shim
             // places extractors exactly at `near`, searching nowhere.
-            Plan::Extractor(spot) => (kit.extractor, BuildSite { near: self.extractor_site(spot, unit), search_radius: 0.0, min_dist: 0 }),
+            Plan::Extractor(spot) => (kit.extractor, BuildSite { near: self.extractor_site(spot, unit), search_radius: 0.0, min_dist: 0, keep_out: Vec::new() }),
             // Where the builder stands is reachable by definition; fall back to it when the usual anchor is not.
-            Plan::Near(def_id, anchor) if self.is_unreachable(anchor) => (def_id, BuildSite { near: unit.pos, search_radius: 500.0, min_dist: self.gap_around(def_id, kit) }),
-            Plan::Near(def_id, anchor) => (def_id, BuildSite { near: anchor, search_radius: 1000.0, min_dist: self.gap_around(def_id, kit) }),
-            Plan::Beside(def_id, anchor) => (def_id, BuildSite { near: anchor, search_radius: NANO_REACH, min_dist: 2 }),
+            Plan::Near(def_id, anchor) if self.is_unreachable(anchor) => (def_id, BuildSite { near: unit.pos, search_radius: 500.0, min_dist: self.gap_around(def_id, kit), keep_out }),
+            Plan::Near(def_id, anchor) => (def_id, BuildSite { near: anchor, search_radius: 1000.0, min_dist: self.gap_around(def_id, kit), keep_out }),
+            Plan::Beside(def_id, anchor) => (def_id, BuildSite { near: anchor, search_radius: NANO_REACH, min_dist: 2, keep_out }),
             Plan::Reclaim(_) | Plan::Repair(_) => return None,
         })
     }

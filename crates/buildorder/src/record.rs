@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use bot_protocol::{Converter, MoveClass, MoveKind, Terrain, UnitDefId, UnitDefInfo};
+use bot_protocol::{Blast, Converter, MoveClass, MoveKind, Terrain, UnitDefId, UnitDefInfo};
 use serde_json::Value;
 
 use crate::game::{distance, Game};
@@ -132,9 +132,19 @@ fn unit_table(header: &Value) -> Result<Units, String> {
                 // `slope_mod` is in records from 2026-09-20 night on; older ones walk flat ground at full speed everywhere.
                 Some(MoveClass { kind: kind(m[0].as_str()?)?, max_slope: m[1].as_f64()? as f32, depth: m[2].as_f64()? as f32, slope_mod: m.get(3).and_then(|v| v.as_f64()).unwrap_or(0.0) as f32 })
             }),
+            // Records from 2026-09-22 late night on; the simulator reads none of these.
+            footprint: d["footprint"].as_array().map_or((0, 0), |f| (f[0].as_i64().unwrap_or(0) as i32, f[1].as_i64().unwrap_or(0) as i32)),
+            death_blast: blast(&d["death_blast"]),
+            self_destruct_blast: blast(&d["selfd_blast"]),
+            self_destruct_seconds: number(d, "selfd_seconds"),
         })
         .collect();
     Ok(Units::new(&defs))
+}
+
+fn blast(v: &Value) -> Option<Blast> {
+    let b = v.as_array()?;
+    Some(Blast { radius: b[0].as_f64()? as f32, damage: b[1].as_f64()? as f32 })
 }
 
 /// The terrain grid in the file beside the record (`docs/harness/record-format.md`); empty when it is missing.

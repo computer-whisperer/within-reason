@@ -13,7 +13,7 @@ use std::ffi::{c_int, c_void};
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Mutex;
 
-use bot_protocol::{BuildSite, Command, Commands, Event, Tick, ToBot, UnitDefId, UnitId, Vec3};
+use bot_protocol::{Command, Commands, Event, Tick, ToBot, UnitDefId, UnitId, Vec3};
 use recoil_ai_sys as sys;
 
 use engine::Engine;
@@ -152,7 +152,7 @@ impl Instance {
     fn apply(&mut self, commands: Commands) {
         for mut command in commands.0 {
             if let Command::Build { unit, def, site: Some(site), .. } = &mut command {
-                match self.engine.find_build_site(*def, *site) {
+                match self.engine.find_build_site(*def, site) {
                     Some(pos) => {
                         if std::env::var_os("WITHIN_REASON_TRACE_BUILDS").is_some() {
                             self.log(format_args!(
@@ -160,7 +160,7 @@ impl Instance {
                                 unit.0, def.0, site.near.x, site.near.z, pos.x, pos.z
                             ));
                         }
-                        *site = BuildSite { near: pos, ..*site }
+                        site.near = pos;
                     }
                     None => {
                         if std::env::var_os("WITHIN_REASON_TRACE_BUILDS").is_some() {
@@ -188,6 +188,7 @@ impl Instance {
                 | Command::MoveState { unit, .. }
                 | Command::Guard { unit, .. }
                 | Command::ReclaimFeature { unit, .. }
+                | Command::ReclaimUnit { unit, .. }
                 | Command::Resurrect { unit, .. }
                 | Command::Repair { unit, .. }
                 | Command::SelfDestruct { unit }) = command

@@ -169,6 +169,21 @@ pub struct UnitDefInfo {
     pub weapon_count: i32,
     pub build_options: Vec<UnitDefId>,
     pub move_class: Option<MoveClass>,
+    /// The ground it stands on, in 8-elmo squares (x, z) before facing: a factory's exit lane runs off its front.
+    pub footprint: (i32, i32),
+    /// What its death does to what stands around it; None for a unit that dies quietly.
+    pub death_blast: Option<Blast>,
+    /// What its self-destruct does (the commander's is the game's largest); None when it has none.
+    pub self_destruct_blast: Option<Blast>,
+    /// Seconds from the self-destruct order to the blast.
+    pub self_destruct_seconds: f32,
+}
+
+/// An explosion: full `damage` at its centre, falling to nothing at `radius` elmos.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Blast {
+    pub radius: f32,
+    pub damage: f32,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -245,6 +260,9 @@ pub struct OwnUnit {
     pub idle: bool,
     /// The frame at which its first weapon can next fire; 0 for a unit without one. For the control lane's kiting.
     pub reload_frame: i32,
+    /// The engine's building facing: 0 south (+z), 1 east (+x), 2 north (-z), 3 west (-x). A factory's units leave
+    /// through its front (`Factory.cpp` `SendToEmptySpot`). 0 for a mobile unit.
+    pub facing: i32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -308,6 +326,9 @@ pub enum Command {
     Guard { unit: UnitId, target: UnitId },
     /// Take one feature apart for its metal.
     ReclaimFeature { unit: UnitId, feature: FeatureId, queue: bool },
+    /// Take one unit of ours apart for its metal: the player's way to remove a building that stands in a factory's
+    /// exit lane (docs/design/2026-09-22-yard-and-reclaim.md).
+    ReclaimUnit { unit: UnitId, target: UnitId, queue: bool },
     /// Raise the unit a wreck was (resurrection bots only); it costs energy and time, no metal.
     Resurrect { unit: UnitId, feature: FeatureId, queue: bool },
     /// Restore `target`'s health (a builder's job; it also finishes a stalled construction).
@@ -328,10 +349,49 @@ pub enum Command {
 }
 
 /// The shim resolves this to the closest legal build position, since only it can query the map.
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BuildSite {
     pub near: Vec3,
     pub search_radius: f32,
     /// Minimum gap to other buildings, in build squares.
     pub min_dist: i32,
+    /// Ground no site may have its centre on: our factories' exit lanes (docs/design/2026-09-22-yard-and-reclaim.md).
+    pub keep_out: Vec<Lane>,
+}
+
+/// A strip of ground: within `half_width` of the segment `from`-`to`. A factory's exit lane runs from its centre out
+/// through its front.
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Lane {
+    pub from: Vec3,
+    pub to: Vec3,
+    pub half_width: f32,
+}
+
+impl Lane {
+    /// Whether `p` lies on the strip (in the ground plane).
+    pub fn contains(&self, p: Vec3) -> bool {
+        let (dx, dz) = (self.to.x - self.from.x, self.to.z - self.from.z);
+        let len2 = (dx * dx + dz * dz).max(1e-6);
+        let t = (((p.x - self.from.x) * dx + (p.z - self.from.z) * dz) / len2).clamp(0.0, 1.0);
+        let (cx, cz) = (self.from.x + t * dx, self.from.z + t * dz);
+        (p.x - cx).hypot(p.z - cz) <= self.half_width
+    }
+}
+
+#[cfg(test)]
+mod lane_tests {
+    use super::{Lane, Vec3};
+
+    #[test]
+    fn a_lane_is_a_strip_from_the_factory_out_through_its_front() {
+        let at = |x: f32, z: f32| Vec3 { x, y: 0.0, z };
+        // A plant at (2440, 3123) facing south (+z): hands-2's solar 165 elmos off its front sat in the lane.
+        let lane = Lane { from: at(2440.0, 3123.0), to: at(2440.0, 3123.0 + 400.0), half_width: 100.0 };
+        assert!(lane.contains(at(2456.0, 3288.0)));
+        assert!(lane.contains(at(2440.0, 3523.0)), "the far end is on the strip");
+        assert!(!lane.contains(at(2440.0, 3000.0)), "behind the factory is not");
+        assert!(!lane.contains(at(2600.0, 3288.0)), "beside the lane is not");
+        assert!(!lane.contains(at(2440.0, 3700.0)), "well past the end is not (the strip has round ends)");
+    }
 }

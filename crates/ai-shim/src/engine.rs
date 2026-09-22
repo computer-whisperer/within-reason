@@ -5,7 +5,7 @@
 use std::ffi::{CStr, CString, c_int, c_void};
 
 use bot_protocol::{
-    AllyUnit, BuildSite, Command, Converter, EnemyUnit, Hello, MapInfo, MoveClass, MoveKind, OwnUnit, Resource, Snapshot, Terrain,
+    AllyUnit, Blast, BuildSite, Command, Converter, EnemyUnit, Hello, MapInfo, MoveClass, MoveKind, OwnUnit, Resource, Snapshot, Terrain,
     FeatureId, StartBox, TeamInfo, UnitDefId, UnitDefInfo, UnitId, Vec3, Wreck,
 };
 use recoil_ai_sys as sys;
@@ -235,7 +235,24 @@ impl Engine {
             weapon_count: call!(self, UnitDef_getWeaponMounts(id)),
             build_options: options.into_iter().map(UnitDefId).collect(),
             move_class: self.move_class(id),
+            footprint: (call!(self, UnitDef_getXSize(id)), call!(self, UnitDef_getZSize(id))),
+            death_blast: self.blast(call!(self, UnitDef_getDeathExplosion(id))),
+            self_destruct_blast: self.blast(call!(self, UnitDef_getSelfDExplosion(id))),
+            self_destruct_seconds: call!(self, UnitDef_getSelfDCountdown(id)) as f32,
         }
+    }
+
+    /// An explosion weapon's reach and its largest damage figure; None for no weapon or one that hurts nothing.
+    fn blast(&self, weapon: c_int) -> Option<Blast> {
+        if weapon < 0 {
+            return None;
+        }
+        let count = call!(self, WeaponDef_Damage_getTypes(weapon, std::ptr::null_mut(), 0)).max(0);
+        let mut damages = vec![0f32; count as usize];
+        call!(self, WeaponDef_Damage_getTypes(weapon, damages.as_mut_ptr(), count));
+        let damage = damages.into_iter().fold(0f32, f32::max);
+        let radius = call!(self, WeaponDef_getAreaOfEffect(weapon));
+        (damage > 0.0 && radius > 0.0).then_some(Blast { radius, damage })
     }
 
     fn converter(&self, id: c_int) -> Option<Converter> {
@@ -264,6 +281,7 @@ impl Engine {
                 being_built: call!(self, Unit_isBeingBuilt(id)),
                 idle: call!(self, Unit_getCurrentCommands(id)) == 0,
                 reload_frame: self.reload_frame(id),
+                facing: call!(self, Unit_getBuildingFacing(id)),
             })
             .collect();
 
@@ -370,13 +388,15 @@ impl Engine {
     /// An extractor goes exactly on its spot or nowhere: the engine's site search refuses a spot holding a wreck,
     /// though building there is allowed (the builder reclaims the wreck first). Anything else keeps off the
     /// metal spots, or the base's own generators bury the nearest extractor sites.
-    pub fn find_build_site(&self, def: UnitDefId, site: BuildSite) -> Option<Vec3> {
+    pub fn find_build_site(&self, def: UnitDefId, site: &BuildSite) -> Option<Vec3> {
         if call!(self, UnitDef_getExtractsResource(def.0, self.metal)) > 0.0 {
             let mut at = [site.near.x, site.near.y, site.near.z];
             return call!(self, Map_isPossibleToBuildAt(def.0, at.as_mut_ptr(), sys::UNIT_COMMAND_BUILD_NO_FACING))
                 .then_some(site.near);
         }
-        let on_a_spot = |pos: Vec3| self.metal_spots.iter().any(|s| s.dist2d(pos) < SPOT_KEEPOUT);
+        // ... and out of our factories' exit lanes, or the yard fills with our own solar collectors (hands-2-bulldogs:
+        // five Bulls stood in the plant's exit for five to seven minutes behind a solar 165 elmos off its front).
+        let on_a_spot = |pos: Vec3| self.metal_spots.iter().any(|s| s.dist2d(pos) < SPOT_KEEPOUT) || site.keep_out.iter().any(|lane| lane.contains(pos));
         // The search returns the closest site to its centre, so walk the centre outwards until the answer is clear.
         let rings = [0.0, 1.0, 2.0, 3.0].map(|r| r * 2.0 * SPOT_KEEPOUT);
         for (ring, radius) in rings.into_iter().enumerate() {
@@ -392,7 +412,7 @@ impl Engine {
         None
     }
 
-    fn closest_build_site(&self, def: UnitDefId, centre: Vec3, site: BuildSite) -> Option<Vec3> {
+    fn closest_build_site(&self, def: UnitDefId, centre: Vec3, site: &BuildSite) -> Option<Vec3> {
         let mut near = [centre.x, centre.y, centre.z];
         let mut found = [0f32; 3];
         call!(self, Map_findClosestBuildSite(
@@ -533,8 +553,8 @@ impl Engine {
         const NO_GROUP: c_int = -1;
         const NO_TIMEOUT: c_int = c_int::MAX;
         match *command {
-            Command::Build { unit, def, site, queue } => {
-                let mut pos = site.map_or([0.0; 3], |s| [s.near.x, s.near.y, s.near.z]);
+            Command::Build { unit, def, ref site, queue } => {
+                let mut pos = site.as_ref().map_or([0.0; 3], |s| [s.near.x, s.near.y, s.near.z]);
                 self.handle(sys::COMMAND_UNIT_BUILD, &mut sys::SBuildUnitCommand {
                     unitId: unit.0,
                     groupId: NO_GROUP,
@@ -619,6 +639,13 @@ impl Engine {
                 options: options(queue),
                 timeOut: NO_TIMEOUT,
                 toReclaimFeatureId: feature.0,
+            }),
+            Command::ReclaimUnit { unit, target, queue } => self.handle(sys::COMMAND_UNIT_RECLAIM_UNIT, &mut sys::SReclaimUnitUnitCommand {
+                unitId: unit.0,
+                groupId: NO_GROUP,
+                options: options(queue),
+                timeOut: NO_TIMEOUT,
+                toReclaimUnitId: target.0,
             }),
             Command::Resurrect { unit, feature, queue } => self.handle(sys::COMMAND_UNIT_RESURRECT, &mut sys::SResurrectUnitCommand {
                 unitId: unit.0,

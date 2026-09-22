@@ -142,7 +142,7 @@ fn optimize(args: &Args) {
     };
     let (factories_n, constructors_n) = (args.number::<usize>("--factories", 2), args.number::<usize>("--constructors", 6));
     let start = match &objective {
-        Objective::Target { goals } => {
+        Objective::Target { goals, .. } => {
             let goals: Vec<(usize, usize)> = goals.iter().map(|g| (g.unit, g.count.unwrap_or(6))).collect();
             Some(palette.chain_seed(units, game.commander, &goals, factories_n, constructors_n, match scenario.wind { buildorder::sim::Wind::Constant(w) => w, _ => 10.0 }))
         }

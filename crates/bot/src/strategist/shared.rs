@@ -533,6 +533,28 @@ pub struct PlanContext {
     pub frame: i32,
 }
 
+/// One unit of ours as the player may name it: `handle` is `<unit>_<id>` (armsolar_31002), `actor` the name the
+/// picture gives a builder or factory (constructor_N, plant_N, commander).
+#[derive(Clone, Debug, Default)]
+pub struct UnitCard {
+    pub handle: String,
+    pub actor: Option<String>,
+    pub unit: String,
+    pub at: (f32, f32),
+    pub health: f32,
+    pub metal: f32,
+    /// (radius, damage) of its self-destruct; None for none.
+    pub self_destruct: Option<(f32, f32)>,
+    pub self_destruct_seconds: f32,
+}
+
+/// What the player wants removed (`remove` tool): taken apart by a builder (most of the metal comes back) or blown up.
+#[derive(Clone, Debug)]
+pub enum Removal {
+    Reclaim { targets: Vec<String>, by: Option<String> },
+    Destruct { targets: Vec<String> },
+}
+
 /// State shared between the brain's thread, the MCP server and the strategist driver.
 #[derive(Default)]
 pub struct Shared {
@@ -575,6 +597,13 @@ pub struct Shared {
     /// What the player lets each lab build (`produce` tool, H-HANDS-PRODUCE): lab name (`lab_N`) or `all` to unit
     /// names; a lab not listed builds anything.
     pub allowed: Mutex<BTreeMap<String, Vec<String>>>,
+    /// One card per finished unit of ours, by the handle the player names it with (`remove` tool); the pianist
+    /// republishes them every ask (docs/design/2026-09-22-yard-and-reclaim.md).
+    pub own_cards: Mutex<Vec<UnitCard>>,
+    /// Unit name to (death blast, self-destruct blast, self-destruct seconds), each blast (radius, damage); once.
+    pub blasts: Mutex<BTreeMap<String, (Option<(f32, f32)>, Option<(f32, f32)>, f32)>>,
+    /// The `remove` tool's orders, taken by the pianist.
+    pub removals: Mutex<Vec<Removal>>,
     pub wake: Mutex<Wake>,
     /// Chat from people in the game, unread by the player: (frame, player number, text).
     pub chat_in: Mutex<Vec<(i32, i32, String)>>,

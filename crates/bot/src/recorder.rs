@@ -33,6 +33,8 @@ pub struct Recorder {
     header: Option<Value>,
     /// Units of either side as last seen, so an event about a unit that is gone still has a type and a place.
     known: HashMap<UnitId, (Option<UnitDefId>, Vec3)>,
+    /// Our buildings' facing as last seen, for the `finished` event (a factory's exit lane runs off its front).
+    facings: HashMap<UnitId, i32>,
     next_sample: i32,
     /// Since the last sample: heuristic firings, damage taken per unit, slowest `decide`.
     rules: BTreeMap<&'static str, u32>,
@@ -64,6 +66,7 @@ impl Recorder {
                 def_index: hello.unit_defs.iter().enumerate().map(|(i, d)| (d.id, i)).collect(),
                 header: Some(header(hello, mode, session, pianist)),
                 known: HashMap::new(),
+                facings: HashMap::new(),
                 next_sample: 0,
                 rules: BTreeMap::new(),
                 milling: Milling::default(),
@@ -91,6 +94,9 @@ impl Recorder {
         }
         for unit in &tick.snapshot.own_units {
             self.known.insert(unit.id, (Some(unit.def), unit.pos));
+            if unit.facing != 0 || self.facings.contains_key(&unit.id) {
+                self.facings.insert(unit.id, unit.facing);
+            }
         }
         for enemy in &tick.snapshot.enemies {
             let def = enemy.def.or_else(|| self.known.get(&enemy.id).and_then(|k| k.0));
@@ -154,7 +160,11 @@ impl Recorder {
                 r["by"] = json!(builder.map(|b| b.0));
                 r
             }
-            Event::UnitFinished { unit } => about(self, "finished", unit),
+            Event::UnitFinished { unit } => {
+                let mut r = about(self, "finished", unit);
+                r["facing"] = json!(self.facings.get(&unit).copied().unwrap_or(0));
+                r
+            }
             Event::UnitMoveFailed { unit } => about(self, "move_failed", unit),
             Event::UnitDestroyed { unit, attacker } => {
                 let mut r = about(self, "destroyed", unit);
@@ -191,7 +201,7 @@ impl Recorder {
         let list: Vec<Value> = commands
             .iter()
             .map(|command| match *command {
-                Command::Build { unit, def, site, .. } => match site {
+                Command::Build { unit, def, ref site, .. } => match site {
                     Some(site) => json!(["build", unit.0, self.def(Some(def)), site.near.x as i32, site.near.z as i32]),
                     None => json!(["build", unit.0, self.def(Some(def))]),
                 },
@@ -202,6 +212,7 @@ impl Recorder {
                 Command::Guard { unit, target } => json!(["guard", unit.0, target.0]),
                 Command::Repair { unit, target, .. } => json!(["repair", unit.0, target.0]),
                 Command::ReclaimFeature { unit, feature, .. } => json!(["reclaim_feature", unit.0, feature.0]),
+                Command::ReclaimUnit { unit, target, .. } => json!(["reclaim_unit", unit.0, target.0]),
                 Command::Resurrect { unit, feature, .. } => json!(["resurrect", unit.0, feature.0]),
                 Command::Say { ref text } => json!(["say", text]),
                 Command::Attack { unit, target, .. } => json!(["attack", unit.0, target.0]),
@@ -296,6 +307,10 @@ fn header(hello: &Hello, mode: &str, session: bool, pianist: bool) -> Value {
                 "energy_upkeep": d.energy_upkeep, "wind_cap": d.wind_cap, "metal_storage": d.metal_storage,
                 "energy_storage": d.energy_storage,
                 "radar_range": d.radar_range,
+                "footprint": [d.footprint.0, d.footprint.1],
+                "death_blast": d.death_blast.map(|b| json!([b.radius, b.damage])),
+                "selfd_blast": d.self_destruct_blast.map(|b| json!([b.radius, b.damage])),
+                "selfd_seconds": d.self_destruct_seconds,
                 "converter": d.converter.map(|c| json!([c.capacity, c.efficiency])),
                 "move": d.move_class.map(|m| json!([format!("{:?}", m.kind).to_lowercase(), m.max_slope, m.depth, m.slope_mod])),
             })

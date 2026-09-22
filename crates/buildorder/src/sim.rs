@@ -164,6 +164,11 @@ impl Outcome {
         self.samples.last().expect("at least one second simulated")
     }
 
+    /// Metal income at second `t`: the nearest sample's, the last one's past the end.
+    pub fn metal_income_at(&self, t: f64) -> f64 {
+        self.samples.iter().min_by(|a, b| (a.t - t).abs().total_cmp(&(b.t - t).abs())).map_or(0.0, |s| s.metal_income)
+    }
+
     /// Mean metal income over the `window` seconds before `t`.
     pub fn mean_metal_income(&self, t: f64, window: f64) -> f64 {
         let picked: Vec<f64> = self.samples.iter().filter(|s| s.t > t - window && s.t <= t).map(|s| s.metal_income).collect();
