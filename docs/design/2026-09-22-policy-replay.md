@@ -57,3 +57,43 @@ the policy would have won. A played game is the next step if the scripts hold up
 
 One Opus session per turn (claude-opus-5, effort low, the claude2 account, snapshot before and `--since` after);
 Lua runs are local and free. Game five: 51 turns, 1,100 decisions.
+
+## Results, game five (2026-09-22)
+
+Three runs of `run/policy_replay.py`, Opus (claude-opus-5, effort low) on the claude2 account, no overage.
+
+| run | turns | wall per turn | output tokens | script size | errors | legal | agree with Jev | reacted |
+|---|---|---|---|---|---|---|---|---|
+| full rewrite, process per turn (the old role text) | 51 | median 29 s, max 43 | median 2,870 | 99-216 lines | runtime errors on 36 turns, all one planted bug | 1,100 of 1,100 | 390 | 3 of 64 |
+| amendments, process per turn, corrected text | 13 (0-12) | median 12 s; "unchanged" turns 6-7 s | median 787 | grows 120 to 545 lines | none | 200 of 200 | 100 | 8 of 14 |
+| amendments, warm session, corrected text | 13 (0-12) | median 12 s; "unchanged" turns 2.4-3.0 s | median 855 | grows 134 to 488 lines | none | 200 of 200 | 75 | 3 of 14 |
+
+An earlier amendment run with the old text (kept as `policy-amend-v1`) gave median 14 s, no errors, 81 agreements.
+
+What the numbers say:
+
+- **Opus writes legal policies under fire.** 1,500 scored decisions across the runs, no illegal option, no bad place,
+  no load error; one packet violation. The first script of a game came in 22-43 s and 99-147 lines.
+- **The one bug was the prompt's.** The role text's example indexed `enemies_near` as a list; the picture gives a
+  string. Every full-rewrite turn from 3:53 to 21:00 raised "attempt to get length of a nil value" on every call and
+  gave no orders, because each rewrite carried the previous script's line and the model never saw the error. The
+  corrected text describes the fields as strings and the harness now feeds the script's run count, errors and orders
+  into the next prompt; the corrected runs raised nothing.
+- **Time is generation, not startup.** A warm session cuts the floor from 6-7 s to 2.5 s and no more: at about
+  100 output tokens a second, an 850-token amendment is 8-13 s. Opus at low effort (the lowest the CLI offers)
+  rewrites whole handlers of 20-75 lines. A five-second turn, the user's target, is an amendment of about 250 tokens.
+- **Appending grows the policy.** Twelve amendments took the script from 120 to 545 lines, most of it dead copies of
+  redefined handlers, and the prompt's new tokens per turn from 11k to 17k. A runtime must replace a handler in place.
+- **The scripts re-issue orders.** On 29 of 61 asks where the actor was busy the corrected script ordered `fight_to`
+  to the destination it was already walking to; the runtime must treat an order equal to the current task as continue.
+- **Agreement with Jev is not a quality measure here** (the scripts disagree with Jev on groups by design: posts and
+  detachments where Jev held); `reacted` and the packet checks are.
+
+Levers toward five seconds, for the user's choice: amendments bounded to one short function with in-place
+replacement; rules as data (a one-line rule per change); a faster model writing the amendments (a subagent is
+measuring Sonnet 5, Haiku 4.5 and the OpenAI models through the Codex CLI on the same 13 turns).
+
+The user's ruling on the targets (2026-09-22): Jev turns sub-second (they are, 200 ms); player turns about 5 s or
+faster. The user's next interest: a real game, Opus against BARb easy with the policy and no Jev. Needed: the `mlua`
+runtime in the bot calling `decide` once a second and feeding the orders to `play_one` as scripted answers, a
+`policy` tool (set or amend, handler replaced in place, errors and orders in the turn report), a `--policy` switch.
