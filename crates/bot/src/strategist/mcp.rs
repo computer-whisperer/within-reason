@@ -389,6 +389,13 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>, mode: Mode) ->
             // thinking time can cost games).
             let context = shared.plan_context.lock().unwrap().clone().ok_or("the simulator has no picture of the game yet: try again in a few seconds")?;
             let marks = shared.marks.lock().unwrap().clone();
+            // The objective is checked now, not on the thread, so a wrong one is refused at once.
+            let text = arguments["objective"].as_str().ok_or("search takes an objective in words")?.trim();
+            if text.starts_with("target") {
+                buildorder::anneal::Objective::parse_target(text, &context.game.units)?;
+            } else if buildorder::anneal::Objective::parse(text).is_none() {
+                return Err(format!("{text}: not an objective (income, army, mix, or target UNIT by M:SS)"));
+            }
             let lockstep = shared.lockstep.load(Ordering::Relaxed);
             let cap = if lockstep { planning::MAX_SECONDS } else { planning::REALTIME_MAX_SECONDS };
             let seconds = arguments["seconds"].as_f64().unwrap_or(planning::DEFAULT_SECONDS).clamp(1.0, cap);
@@ -740,6 +747,43 @@ fn parse<T: serde::de::DeserializeOwned>(value: &Value) -> Result<Option<T>, Str
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The simulator's view of a recorded game, as the brain would publish it, for the tools' tests.
+    fn plan_context() -> Arc<PlanContext> {
+        let game = buildorder::record::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../buildorder/tests/fixtures/quicksilver-nw.jsonl"), 60.0).unwrap().game;
+        let ground = game.ground();
+        let scenario = game.scenario(game.own_half(), ground);
+        let state = buildorder::sim::State::start(&scenario);
+        let wind = game.mean_wind();
+        let spots = game.spots.iter().map(|(at, _)| *at).collect();
+        Arc::new(PlanContext { game: Arc::new(game), scenario, state, actors: vec![("commander".into(), 0)], standing_factories: 0, standing_constructors: 0, spots, turret: None, water: true, wind, frame: 0 })
+    }
+
+    #[test]
+    fn plan_simulates_the_players_words_and_search_answers_beside_the_game() {
+        let shared = Arc::new(Shared::default());
+        assert!(call_tool("plan", &json!({ "queues": { "commander": ["extractor", "extractor", "armwin", "armlab"] } }), &shared, Mode::Player).is_err(), "no picture yet");
+        *shared.plan_context.lock().unwrap() = Some(plan_context());
+        let planned = call_tool("plan", &json!({ "queues": { "commander": ["extractor", "extractor", "armwin", "armlab", "assist"], "next_factory_1": ["armck", "armpw"] }, "minutes": 4 }), &shared, Mode::Player).unwrap();
+        assert!(planned.contains("curves") && planned.contains("armlab at") && planned.contains("next_factory_1"), "{planned}");
+        assert!(call_tool("plan", &json!({ "queues": { "commander": ["armnothing"] } }), &shared, Mode::Player).unwrap_err().contains("not a unit"));
+        // Beside the game: an answer at once, the result and a wake within the budget and a little.
+        let started = call_tool("search", &json!({ "objective": "income", "minutes": 3, "seconds": 1 }), &shared, Mode::Player).unwrap();
+        assert!(started.starts_with("searching for 1 s beside the game"), "{started}");
+        let mut waited = 0;
+        while shared.search_results.lock().unwrap().is_empty() && waited < 100 {
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            waited += 1;
+        }
+        let results = shared.search_results.lock().unwrap().clone();
+        assert_eq!(results.len(), 1, "the answer is posted for the next report");
+        assert!(results[0].contains("score") && results[0].contains("curves"), "{}", results[0]);
+        assert!(shared.triggers.lock().unwrap().iter().any(|t| t.contains("search has finished")));
+        // Held: the answer now, within the mode's cap.
+        let held = call_tool("search", &json!({ "objective": "target armpw by 2:30", "minutes": 3, "seconds": 1, "wait": true }), &shared, Mode::Player).unwrap();
+        assert!(held.contains("score") && held.contains("armpw"), "{held}");
+        assert!(call_tool("search", &json!({ "objective": "glory" }), &shared, Mode::Player).unwrap_err().contains("not an objective"));
+    }
 
     #[test]
     fn the_player_has_its_lever_and_none_of_the_commanders() {
