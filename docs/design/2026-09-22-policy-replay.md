@@ -147,3 +147,10 @@ reinforcements to join the ball where it is.
 
 Follow-ups from the game: spots named in the policy's text join the picture's places as the packet's do; the
 scripted (list) plays in the policy's log line carry source `jev` and should say `list`.
+
+## Other models
+
+`--model` picks the backend (`run/model_cli.py`: `claude -p` for Claude models, `codex exec` for OpenAI models) and
+`--out NAME` keeps each model's run in its own directory. Turns 0-12 of game five in amendment mode for sonnet,
+haiku, gpt-5.5, gpt-5.6-sol, gpt-5.6-luna, gpt-5.6-terra and gpt-6-astra, against the user's 5-second turn
+target: `docs/studies/policy-models.md`.

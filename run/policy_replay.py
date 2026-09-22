@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
-"""Opus writes the policy, offline (docs/design/2026-09-22-policy-replay.md): for each recorded player turn of a
-match, Opus gets the report it saw in the game and a role text whose lever is a Lua policy (`run/policy/policy-player.md`
+"""The model writes the policy, offline (docs/design/2026-09-22-policy-replay.md): for each recorded player turn of a
+match, the model gets the report Opus saw in the game and a role text whose lever is a Lua policy (`run/policy/policy-player.md`
 + the brief), answers with a script, and the script is run in Lua 5.4 over every hands' call recorded between that
 turn and the next (`jev-<ai>.jsonl`): its orders are scored against the menu, Jev's play and the packet's prohibitions.
 
-usage: run/policy_replay.py <match dir> [--turns A-B] [--mode rewrite|amend] [--warm] [--skip-opus] [--policy FILE] [--summarize] [--model ID] [--effort LEVEL]
+usage: run/policy_replay.py <match dir> [--turns A-B] [--mode rewrite|amend] [--warm] [--skip-opus] [--policy FILE] [--summarize] [--model ID] [--effort LEVEL] [--thinking N] [--out NAME]
   Scripts and results land in <match dir>/policy/ (turn-NN.lua, turn-NN.json, replay.jsonl), or policy-amend/ in
   amendment mode, where a turn answers with only the functions it changes and the harness appends them; -warm when
-  --warm keeps one claude session across turns (stream-json, as the bot runs the player) instead of a process a turn.
+  --warm keeps one claude session across turns (stream-json, as the bot runs the player) instead of a process a turn;
+  --out NAME puts them in <match dir>/NAME instead (one directory per model under comparison; --summarize reads the same one).
   --skip-opus replays the saved scripts; --policy FILE replays one script for every turn (a harness test).
-  Opus runs on ~/.claude2 (weekly allotment only): a usage snapshot is taken before and reported after.
+  --model picks the backend (run/model_cli.py): claude-* runs through `claude -p` on ~/.claude2 (weekly allotment
+  only: a usage snapshot is taken before and reported after), gpt-* through `codex exec` on its own subscription.
+  --effort is the CLI's reasoning setting (claude: low is the floor; codex: none where the model accepts it, else
+  low); --thinking 0 turns a Claude model's thinking off, which --effort low alone does not do for haiku.
 """
 import json
 import os
@@ -21,6 +25,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from jev_audit import Match, clock  # noqa: E402
+from model_cli import ask, backend_of  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ROLE = os.path.join(REPO, "run", "policy", "policy-player.md")
@@ -187,23 +192,7 @@ def run_policy(policy, calls):
     return ({"load_error": load_error} if load_error else {}), results
 
 
-# ---------------------------------------------------------------- Opus
-
-def ask_opus(system, user, model, effort, config_dir):
-    env = {**os.environ, "CLAUDE_CONFIG_DIR": config_dir}
-    cmd = ["claude", "-p", "--model", model, "--effort", effort, "--tools", "", "--strict-mcp-config", "--output-format", "json", "--system-prompt", system]
-    started = time.time()
-    proc = subprocess.run(cmd, input=user, capture_output=True, text=True, env=env, timeout=900)
-    wall = time.time() - started
-    if proc.returncode != 0:
-        return {"error": proc.stderr.strip()[:500], "wall": wall, "text": proc.stdout[:2000]}
-    try:
-        out = json.loads(proc.stdout)
-        text = out.get("result") or ""
-        return {"text": text, "wall": wall, "cost_usd": out.get("total_cost_usd"), "usage": out.get("usage"), "duration_ms": out.get("duration_ms"), "is_error": out.get("is_error")}
-    except ValueError:
-        return {"text": proc.stdout, "wall": wall}
-
+# ---------------------------------------------------------------- the model's answer
 
 class WarmSession:
     """One `claude -p` process kept across turns over stream-json, as the bot keeps the player (strategist/mod.rs):
@@ -343,13 +332,16 @@ def main():
     if warm:
         args.remove("--warm")
     config_dir = flag("--claude-config-dir", os.path.join(os.path.expanduser("~"), ".claude2"))
+    out_name = flag("--out")
+    thinking = flag("--thinking")
+    thinking = int(thinking) if thinking is not None else None
     skip_opus = "--skip-opus" in args or bool(policy_file)
     summarize = "--summarize" in args
     dirs = [a for a in args if not a.startswith("--")]
     if not dirs:
         sys.exit(__doc__)
     m = Match(dirs[0])
-    out_dir = os.path.join(m.dir, "policy" + ("-amend" if mode == "amend" else "") + ("-warm" if warm else ""))
+    out_dir = os.path.join(m.dir, out_name or ("policy" + ("-amend" if mode == "amend" else "") + ("-warm" if warm else "")))
     os.makedirs(out_dir, exist_ok=True)
     if summarize:
         return print_summary(m, out_dir)
@@ -360,7 +352,7 @@ def main():
     system = open(ROLE).read() + open(BRIEF).read()
     packets = packets_by_turn(m)
     snapshot = None
-    if not skip_opus:
+    if not skip_opus and backend_of(model) == "claude":
         snapshot = os.path.join(REPO, "run", f"usage-before-policy-{int(time.time())}.json")
         subprocess.run([sys.executable, os.path.join(REPO, "run", "claude_usage.py"), "--snapshot", snapshot, config_dir], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     previous = None
@@ -384,7 +376,7 @@ def main():
                     continue
                 policy = open(lua_path).read()
                 if os.path.exists(meta_path):
-                    meta.update({k: v for k, v in json.load(open(meta_path)).items() if k in ("wall", "cost_usd", "usage", "closing")})
+                    meta.update({k: v for k, v in json.load(open(meta_path)).items() if k in ("model", "wall", "api_s", "cost_usd", "usage", "closing")})
             else:
                 if previous is None and i > 0 and os.path.exists(os.path.join(out_dir, f"turn-{i - 1:02d}.lua")):
                     previous = (m.turns[i - 1]["frame"], open(os.path.join(out_dir, f"turn-{i - 1:02d}.lua")).read())
@@ -397,9 +389,11 @@ def main():
                     user += f"\n\nYour policy in force, written at {clock(previous[0])}:\n```lua\n{previous[1]}\n```\nKeep it, amend it or replace it; answer with the complete script."
                 else:
                     user += "\n\nNo policy is in force yet: write the first one."
-                r = session.ask(user) if session else ask_opus(system, user, model, effort, config_dir)
-                meta.update({"wall": r.get("wall"), "cost_usd": r.get("cost_usd"), "usage": r.get("usage"), "opus_error": r.get("error"),
+                r = session.ask(user) if session else ask(system, user, model, effort, config_dir, thinking=thinking)
+                meta.update({"model": model, "effort": effort, "thinking": thinking, "wall": r.get("wall"), "api_s": r.get("api_s"), "cost_usd": r.get("cost_usd"), "usage": r.get("usage"), "model_error": r.get("error"),
                              "duration_ms": r.get("duration_ms"), "duration_api_ms": r.get("duration_api_ms")})
+                if r.get("overage"):
+                    sys.exit("STOP: the claude session reports isUsingOverage true")
                 if r.get("error"):
                     print(f"turn {i} {clock(f0)}: session error: {r['error'][:200]}")
                     if session:
@@ -447,7 +441,8 @@ def main():
                 replay.write(json.dumps(row) + "\n")
             replay.flush()
             sent = f", {meta['amend_lines']} sent" if "amend_lines" in meta else ""
-            print(f"turn {i:2d} {clock(f0)} ({t['why'][:40]}): {meta['lines']} lines{sent} in {meta.get('wall') or 0:.0f} s; "
+            api = f" ({meta['api_s']:.0f} s model)" if meta.get("api_s") is not None else ""
+            print(f"turn {i:2d} {clock(f0)} ({t['why'][:40]}): {meta['lines']} lines{sent} in {meta.get('wall') or 0:.0f} s{api}; "
                   + (f"LOAD ERROR {meta['load_error']}" if meta["load_error"] else
                      f"{errors} runtime errors over {len(calls)} calls; {meta['ordered']}/{len(rows)} ordered, {meta['legal']} legal, {meta['agree']} agree with Jev, "
                      f"{meta['violations']} violate the packet, reacted {reacted}/{episodes}"))
@@ -469,9 +464,13 @@ def print_summary(m, out_dir):
     rows = [json.loads(l) for l in open(os.path.join(out_dir, "replay.jsonl"))] if os.path.exists(os.path.join(out_dir, "replay.jsonl")) else []
     n = len(metas)
     walls = sorted(x.get("wall") or 0 for x in metas)
-    print(f"{m.label}: {n} turns; scripts {sum(1 for x in metas if not x.get('no_script'))}, load errors {sum(1 for x in metas if x.get('load_error'))}, "
-          f"turns with runtime errors {sum(1 for x in metas if x.get('runtime_errors'))}; wall median {walls[n // 2] if n else 0:.0f} s, max {walls[-1] if n else 0:.0f}, over 45 s: {sum(1 for w in walls if w > 45)}; "
-          f"lines median {sorted(x.get('lines', 0) for x in metas)[n // 2] if n else 0}; cost ${sum(x.get('cost_usd') or 0 for x in metas):.2f}")
+    apis = sorted(x["api_s"] for x in metas if x.get("api_s") is not None)
+    models = sorted({x.get("model") for x in metas if x.get("model")})
+    print(f"{m.label} ({os.path.basename(out_dir)}, {', '.join(models) or 'model unrecorded'}): {n} turns; scripts {sum(1 for x in metas if not x.get('no_script'))}, "
+          f"load errors {sum(1 for x in metas if x.get('load_error'))}, turns with runtime errors {sum(1 for x in metas if x.get('runtime_errors'))}, model errors {sum(1 for x in metas if x.get('model_error'))}; "
+          f"wall median {walls[n // 2] if n else 0:.0f} s, max {walls[-1] if n else 0:.0f}, over 45 s: {sum(1 for w in walls if w > 45)}"
+          + (f"; model's own time median {apis[len(apis) // 2]:.0f} s, max {apis[-1]:.0f}" if apis else "")
+          + f"; lines median {sorted(x.get('lines', 0) for x in metas)[n // 2] if n else 0}; cost ${sum(x.get('cost_usd') or 0 for x in metas):.2f}")
     sent = [x["amend_lines"] for x in metas if "amend_lines" in x]
     if sent:
         outs = sorted(((x.get("usage") or {}).get("output_tokens") or 0) for x in metas)
