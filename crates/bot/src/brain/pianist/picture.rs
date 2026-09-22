@@ -17,6 +17,10 @@ use super::{GroupTask, Task};
 const FREE_SPOTS: usize = 10;
 /// Enemy extractors known, nearest first.
 const ENEMY_SPOTS: usize = 6;
+/// How many never-looked and long-unseen spots the enemy evidence lists.
+const NEVER_LOOKED: usize = 24;
+/// A spot last in sight longer ago than this is listed as long unseen.
+const LONG_UNSEEN: i32 = 5 * 60 * FRAMES_PER_SECOND;
 const PASSAGES: usize = 3;
 /// Enemies this close together are one party.
 const PARTY_RADIUS: f32 = 400.0;
@@ -334,8 +338,6 @@ impl Brain {
 
         // Places.
         let mut places: Vec<Place> = vec![Place { name: "home".into(), at: self.home, spot: None }];
-        let enemy_base = self.enemy_base(self.home);
-        places.push(Place { name: "enemy_base".into(), at: enemy_base, spot: None });
         let extractor_at = |spot: Vec3| own.iter().find(|u| kit.is_extractor(u.def) && u.pos.dist2d(spot) < 100.0);
         let taken_by_task: Vec<usize> = pianist.tasks.values().filter_map(|t| if let Task::Build { spot: Some(i), .. } = t { Some(*i) } else { None }).collect();
         let mut listed: Vec<usize> = Vec::new();
@@ -440,25 +442,15 @@ impl Brain {
                         format!("our extractor{}{beside_words}", if u.being_built { " (being built)" } else { "" })
                     } else {
                         let taker = pianist.tasks.iter().find_map(|(id, t)| matches!(t, Task::Build { spot: Some(s), .. } if *s == i).then_some(*id));
-                        match taker {
-                            Some(id) => format!("free metal spot, {} is on its way to take it{beside_words}", self.actor_name(id)),
-                            None => format!("free metal spot{beside_words}"),
+                        match (taker, self.spot_seen(i)) {
+                            (Some(id), _) => format!("free metal spot, {} is on its way to take it{beside_words}", self.actor_name(id)),
+                            (None, None) => format!("metal spot never in our sight: nobody knows what stands here{beside_words}"),
+                            (None, Some(seen)) if frame - seen > LONG_UNSEEN => format!("free metal spot when last in sight, {} ago{beside_words}", clock(frame - seen)),
+                            (None, Some(_)) => format!("free metal spot{beside_words}"),
                         }
                     }
                 }
                 None if place.name == "home" => "our start: the lab and the base stand here".into(),
-                None if place.name == "enemy_base" => match self.found_enemy_base() {
-                    Some(_) => {
-                        let mut kinds: BTreeMap<&str, usize> = BTreeMap::new();
-                        for (def, pos, _) in self.enemy_buildings.values() {
-                            if pos.dist2d(enemy_base) < 1500.0 {
-                                *kinds.entry(self.name(*def)).or_default() += 1;
-                            }
-                        }
-                        format!("the enemy base, found: {}", kinds.iter().map(|(n, k)| format!("{k} {n}")).collect::<Vec<_>>().join(", "))
-                    }
-                    None => "where the enemy is presumed to start; not yet seen".into(),
-                },
                 None if place.name == "shelling" => {
                     let s = shelling.as_ref().expect("a shelling place has a shelling");
                     format!("where the {} shelling us from out of our sight likeliest stands: its range is {:.0}, {} hits on us in the last 20 s from the {}; advancing a group onto it (fight_to) kills it, a group that stays where it is keeps being hit", self.weapon_words(&s.weapon), s.range, s.hits, super::super::shelling::compass(s.dir))
@@ -471,6 +463,19 @@ impl Brain {
             entry["what"] = json!(what);
             if let Some(words) = self.party_words(&parties, place.at) {
                 entry["enemies_near"] = json!(words);
+            }
+            // Its buildings remembered within 500: what a group sent here meets (docs/design/2026-09-22-enemy-evidence.md, decision 4).
+            let mut near: BTreeMap<String, usize> = BTreeMap::new();
+            let mut oldest = frame;
+            for (def, pos, seen) in self.enemy_buildings.values() {
+                if pos.dist2d(place.at) < 500.0 {
+                    *near.entry(self.short_words(*def)).or_default() += 1;
+                    oldest = oldest.min(*seen);
+                }
+            }
+            if !near.is_empty() {
+                let turrets = self.enemy_buildings.values().filter(|(def, pos, _)| pos.dist2d(place.at) < 500.0 && self.world.def(*def).is_some_and(|d| d.weapon_count > 0)).count();
+                entry["their_buildings_near"] = json!(format!("{} ({} armed; last seen {} ago)", near.iter().map(|(n, k)| format!("{k} {n}")).collect::<Vec<_>>().join(", "), turrets, clock(frame - oldest)));
             }
             if let Some(i) = place.spot
                 && let Some(lost) = self.spot_losses.get(&i)
@@ -542,9 +547,38 @@ impl Brain {
             *remembered.entry(self.world.grid(*pos)).or_default().entry(self.name(*def)).or_default() += 1;
         }
         let remembered: Vec<String> = remembered.iter().map(|(grid, kinds)| format!("{grid}: {}", kinds.iter().map(|(n, k)| format!("{k} {n}")).collect::<Vec<_>>().join(", "))).collect();
+        // Evidence, not a base: where its factories were seen, its start box, and where nobody of ours has looked
+        // (docs/design/2026-09-22-enemy-evidence.md).
+        let mut factories: Vec<(i32, String)> = self
+            .enemy_buildings
+            .values()
+            .filter(|(def, _, _)| self.world.is_factory_def(*def))
+            .map(|(def, pos, seen)| (*seen, format!("{} at {} ({:.0}, {:.0}), last in sight {} ago", self.short_words(*def), self.world.grid(*pos), pos.x, pos.z, clock(frame - seen))))
+            .collect();
+        factories.extend(self.enemy_factories_gone.iter().map(|(def, pos, at)| (*at, format!("{} at {} ({:.0}, {:.0}), destroyed at {}", self.short_words(*def), self.world.grid(*pos), pos.x, pos.z, clock(*at)))));
+        factories.sort_by_key(|(seen, _)| std::cmp::Reverse(*seen));
+        let factories: Vec<String> = factories.into_iter().map(|(_, words)| words).collect();
+        let our_ally = self.world.hello.ally_team;
+        let their_boxes: Vec<&bot_protocol::StartBox> = self.world.hello.start_boxes.iter().filter(|b| b.ally_team != our_ally).collect();
+        let in_their_box = |spot: Vec3| their_boxes.iter().any(|b| b.contains(spot));
+        let start_box = if their_boxes.is_empty() {
+            "the lobby gave it no start box: it started anywhere".to_string()
+        } else {
+            format!("its commander was placed at 0:00 somewhere inside the lobby's box for its team, cells {}; where it stands now, and where it has built since, is known only from what our units see", their_boxes.iter().map(|b| self.world.box_cells(b)).collect::<Vec<_>>().join(" and "))
+        };
+        let mut never: Vec<(f32, usize)> = (0..spots.len()).filter(|i| self.spot_seen(*i).is_none()).map(|i| (spots[i].dist2d(self.home), i)).collect();
+        never.sort_by(|a, b| a.0.total_cmp(&b.0));
+        let never_total = never.len();
+        let never: Vec<String> = never.iter().take(NEVER_LOOKED).map(|(_, i)| format!("spot_{i} ({}{})", self.world.grid(spots[*i]), if in_their_box(spots[*i]) { ", in its start box" } else { "" })).collect();
+        let mut stale: Vec<(i32, usize)> = (0..spots.len()).filter_map(|i| self.spot_seen(i).filter(|seen| frame - seen > LONG_UNSEEN).map(|seen| (seen, i))).collect();
+        stale.sort();
+        let stale: Vec<String> = stale.iter().take(NEVER_LOOKED).map(|(seen, i)| format!("spot_{i} ({}) {} ago", self.world.grid(spots[*i]), clock(frame - seen))).collect();
         let enemy = json!({
             "in_sight": in_sight,
-            "base": match self.found_enemy_base() { Some(at) => format!("found at {}", self.place_words(&places, at)), None => format!("not found; presumed at {}", self.world.grid(enemy_base)) },
+            "factories_seen": if factories.is_empty() { json!("none, ever: nothing of ours has had one in sight") } else { json!(factories) },
+            "start_box": start_box,
+            "never_looked": format!("{never_total} of the map's {} metal spots have never been within sight of a unit of ours; a base is always beside metal. Nearest home first: {}{}", spots.len(), if never.is_empty() { "none".to_string() } else { never.join(", ") }, if never_total > NEVER_LOOKED { ", ..." } else { "" }),
+            "looked_long_ago": if stale.is_empty() { json!("none") } else { json!(stale) },
             "buildings_seen": remembered,
             "army_known": format!("{} soldiers worth {:.0} metal seen in the last three minutes and not seen to die; it may have much more", known_soldiers.len(), known_metal.max(0.0)),
             "commander": self.enemy_commander_seen.map_or("never seen".to_string(), |(pos, seen)| format!("seen at {} {} ago{}", self.place_words(&places, pos), clock(frame - seen), if self.reachable_on_foot(pos) { "" } else { " (in the water or on ground our bots cannot walk to: it is amphibious, our soldiers are not)" })),

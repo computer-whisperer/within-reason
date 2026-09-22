@@ -140,14 +140,14 @@ impl Brain {
         // H-HANDS-GROUPS: newcomers.
         let mut loose: Vec<&OwnUnit> = soldiers.iter().copied().filter(|u| !pianist.groups.iter().any(|g| g.members.contains(&u.id))).collect();
         loose.sort_by_key(|u| u.id.0);
-        let enemy_base = self.enemy_base(home);
+        let far_side = self.world.mirrored(home);
         for unit in loose {
             let domain = self.world.domain_of(unit.def);
             let candidates: Vec<(f32, Vec3, usize)> = pianist.groups.iter().enumerate().filter(|(_, g)| g.domain == domain).filter_map(|(i, g)| centre_of(&g.units(own)).map(|c| (c.dist2d(unit.pos), c, i))).collect();
             let near = candidates.iter().filter(|(d, _, _)| *d < ADOPT_RADIUS).max_by(|a, b| pianist.groups[a.2].members.len().cmp(&pianist.groups[b.2].members.len()).then(b.0.total_cmp(&a.0)));
             let far = candidates
                 .iter()
-                .filter(|(d, c, _)| *d < ADOPT_FAR && c.dist2d(home) < c.dist2d(enemy_base))
+                .filter(|(d, c, _)| *d < ADOPT_FAR && c.dist2d(home) < c.dist2d(far_side))
                 .max_by(|a, b| pianist.groups[a.2].members.len().cmp(&pianist.groups[b.2].members.len()).then(b.0.total_cmp(&a.0)));
             match (near, far) {
                 (Some((_, _, i)), _) => pianist.groups[*i].members.push(unit.id),
@@ -186,7 +186,7 @@ impl Brain {
         // Standing orders, under each group's footwork rules (H-HANDS-LANE).
         let footwork: Vec<crate::strategist::shared::Footwork> = pianist.groups.iter().map(|g| self.footwork_of(&g.name)).collect();
         let marks: Vec<String> = self.strategist.as_ref().map(|s| s.marks.lock().unwrap().keys().cloned().collect()).unwrap_or_default();
-        let is_mark_name = |place: &str| place != "home" && place != "enemy_base" && !place.starts_with("spot_") && !place.starts_with("passage_");
+        let is_mark_name = |place: &str| place != "home" && !place.starts_with("spot_") && !place.starts_with("passage_");
         let mut marches: Vec<(usize, Vec3)> = Vec::new();
         let mut stalled: Vec<String> = Vec::new();
         for (index, group) in pianist.groups.iter_mut().enumerate() {

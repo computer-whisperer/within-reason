@@ -251,6 +251,8 @@ W-L-T = wins, losses, timeouts; (n) = aborted by engine crash.
 
 ## Fundamentals scorecards (`run/floor.py`, from 2026-09-22)
 
+From the evidence games (2026-09-22 evening) the `base_min` column is `fac_min` (the minute the picture first listed a factory of theirs seen) and `look_min` is measured against the enemy commander's true start from the truth file rather than the bot's guess; the rows above that line keep the old columns (their `look_min` said how soon a unit stood at the guess, which on Comet's standard boxes was 2,000 from the enemy).
+
 The floor of each game, whatever its result (the user: "floor skill: sloppy execution, missed evidence"). Columns:
 idle% builder-seconds idle; e0% seconds with the energy store empty; mfull% seconds with the metal store full; react_s
 median seconds from a raider at our extractor to an order against it; unanswered such episodes with no order in 60 s;

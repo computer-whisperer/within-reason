@@ -52,7 +52,14 @@ impl World {
         format!("{}{}", (b'A' + column) as char, row + 1)
     }
 
-    /// The point opposite `pos` through the map centre: a first guess at where the enemy starts.
+    /// The grid cells a start box touches, as a range ("G1-H8", or "G3" for one cell).
+    pub fn box_cells(&self, b: &bot_protocol::StartBox) -> String {
+        let a = self.grid(Vec3 { x: b.left + 1.0, y: 0.0, z: b.top + 1.0 });
+        let z = self.grid(Vec3 { x: b.right - 1.0, y: 0.0, z: b.bottom - 1.0 });
+        if a == z { a } else { format!("{a}-{z}") }
+    }
+
+    /// The point opposite `pos` through the map centre: the map's far side.
     pub fn mirrored(&self, pos: Vec3) -> Vec3 {
         Vec3 { x: self.hello.map.width - pos.x, y: 0.0, z: self.hello.map.height - pos.z }
     }

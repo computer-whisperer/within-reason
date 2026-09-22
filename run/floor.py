@@ -18,8 +18,8 @@ Columns (lower is better unless said):
   illegal    policy orders refused (option not offered, place unknown, actor on a list)
   stuck s    seconds the commander reported a move failure
   known%     the player's enemy-army metal as a share of the truth, median over its turns past minute five (higher is better)
-  base min   minute the picture first read the enemy base as found (- if never)
-  look min   minute one of our units first stood within 1,500 of the enemy start (- if never)
+  fac min    minute the picture first listed a factory of theirs seen (- if never)
+  look min   minute one of our units first stood within 1,500 of the enemy commander's true start, from the truth file (- if never)
   turn s     the player's wall seconds a turn, median
 """
 import json
@@ -46,15 +46,14 @@ def scorecard(m):
     builders = {i for i, d in defs.items() if d.get("build_speed", 0) > 0 and d.get("class") != "building"}
     idle = alive = 0
     e0 = mfull = total = 0
-    enemy_start = None
     look = None
+    first_truth = min(m.truth) if m.truth else None
+    enemy_start = next(((u[2], u[3]) for u in m.truth[first_truth] if u[1].endswith("com")), None) if first_truth is not None else None
     for line in open(next(os.path.join(m.dir, f) for f in os.listdir(m.dir) if f.startswith("record-"))):
         try:
             r = json.loads(line)
         except ValueError:
             continue
-        if r.get("t") == "intent" and enemy_start is None:
-            enemy_start = r.get("enemy_start")
         if r.get("t") != "s":
             continue
         total += 1
@@ -78,14 +77,14 @@ def scorecard(m):
     never = 0
     illegal = 0
     packet = ""
-    base = None
+    fac = None
     tasks = {}
     for c in m.calls:
         if "instructions" in c:
             packet = c["instructions"]
         state = c.get("state") or {}
-        if base is None and not str((state.get("enemy") or {}).get("base", "not found")).startswith("not found"):
-            base = c["f"]
+        if fac is None and isinstance((state.get("enemy") or {}).get("factories_seen"), list):
+            fac = c["f"]
         for g in c.get("groups") or []:
             tasks[f"group_{g['name']}"] = (g.get("task") or {}).get("kind")
         for entry in (state.get("actors") or {}).values():
@@ -142,13 +141,13 @@ def scorecard(m):
         "illegal": illegal,
         "stuck_s": round(stuck * sample / frames) if stuck else 0,
         "known%": round(med(known, 0)) if known else None,
-        "base_min": round(base / frames / 60, 1) if base else None,
+        "fac_min": round(fac / frames / 60, 1) if fac else None,
         "look_min": round(look / frames / 60, 1) if look else None,
         "turn_s": round(med(walls, 0), 1) if walls else None,
     }
 
 
-COLUMNS = ["result", "minutes", "idle%", "e0%", "mfull%", "react_s", "unanswered", "never", "noop%", "illegal", "stuck_s", "known%", "base_min", "look_min", "turn_s"]
+COLUMNS = ["result", "minutes", "idle%", "e0%", "mfull%", "react_s", "unanswered", "never", "noop%", "illegal", "stuck_s", "known%", "fac_min", "look_min", "turn_s"]
 
 
 def main():

@@ -108,9 +108,14 @@ ball is away, read the extractor count first: falling means the raid answer has 
 What you do not see. You see only what stands within sight of our own units: the opponent's base, army and most of its
 extractors are dark unless you look. "Enemy in sight" is raid parties and fragments, never its army; the soldiers-seen
 count is a floor. The opponent keeps its army at home as one block until it attacks, so an empty map means you have not
-looked. Scouting is an instruction to a group ("send one scout to enemy_base whenever it has not been seen for a few
-minutes"); the enemy base in the picture reads "not found" until a scout has stood there, and the hands will not advance
-on a base they cannot see.
+looked. Finding the opponent is your judgment, and so is finding it again: nothing in the code guesses where its
+base is, and a base is not a fixed thing; a side that is losing rebuilds in whatever corner it can, and its commander
+holes up where nobody has looked. The picture's `enemy` entry is evidence only: its factories as last seen, its
+commander as last seen, its buildings remembered by cell, the lobby's start box for its team (where its commander was
+placed at 0:00, no more), and the metal spots never within sight of a unit of ours. Scouting is an instruction to a
+group naming a spot ("send one scout to spot_40, then spot_38, whenever they have not been seen for a few minutes"),
+chosen from that list, the start box first early on; when the evidence is thin, sweep the army as one body through
+named spots rather than sending it to a point nobody has seen.
 
 Holding ground and attacking. Defence is yours: nothing in the code answers a raider at a structure on its own, and the
 hands answer only as your packet tells them. Left to a bare "engage", they send the whole ball after one scout car and

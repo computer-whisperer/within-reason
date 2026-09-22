@@ -117,6 +117,9 @@ pub struct Brain {
     heard_chat_at: i32,
     /// Buildings `forget_razed_buildings` dropped this tick, for the team board.
     razed: Vec<UnitId>,
+    /// Factories of theirs seen destroyed or found razed: definition, position, frame. Evidence for the player of
+    /// where the opponent has been (docs/design/2026-09-22-enemy-evidence.md).
+    enemy_factories_gone: Vec<(UnitDefId, Vec3, i32)>,
     /// Every enemy soldier seen and not known dead, with when it was last seen: what we know of their army, a floor.
     enemy_soldiers: HashMap<UnitId, (UnitDefId, i32)>,
     /// Where and when the enemy commander was last seen: killing it wins the game.
@@ -220,6 +223,7 @@ impl Brain {
             said: Vec::new(),
             heard_chat_at: -1,
             razed: Vec::new(),
+            enemy_factories_gone: Vec::new(),
             enemy_soldiers: HashMap::new(),
             enemy_commander_seen: None,
             recent_events: VecDeque::new(),

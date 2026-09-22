@@ -274,8 +274,8 @@ job, not a reason to walk away. [experiments ledger: human-1, human-2]
   took the extractors from 15 to 5 while the ball hunted; its block came at 16 with Janus rocket trucks and Stumpy
   tanks behind two artillery pieces. Its lessons: on medium, turrets and a home guard on the raids' passage come before
   the hunt; labs and the commander never forward of the army; a ball never stands under unseen artillery: advance
-  onto it or leave; and when the report says the base guess is at a place our units have stood on and seen nothing,
-  the guess is wrong.
+  onto it or leave; and a place our units have stood on and seen nothing has no base: the opponent is where the
+  evidence says, never where a point on the map says.
 - pianist-player-6 (2026-09-21, Opus at low effort, WON at 29 minutes, the first win against MEDIUM): a win with the
   economy destroyed. Ten extractors at 6:00, then twelve Flashes held us at 0 to 3 for fifteen minutes; turrets on
   every spot and a ball of Maces parked at the passage both failed, because Maces cannot catch Flashes and the raids

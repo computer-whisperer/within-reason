@@ -11,7 +11,7 @@ Your one lever: `instruct { text }`, the whole packet of standing instructions, 
 would brief a hard-working assistant who follows orders literally and never counts:
 - One paragraph per kind of actor, in the words the hands see. Builders: `commander`, `constructor_N`. Labs: `lab_N`.
   Soldier groups: `group_A`, `group_B`, ... (a new soldier joins the group near it or starts a new one; groups merge
-  when they hold together). Places: `home`, `enemy_base`, `spot_N` (metal spots, numbered as in the `map` tool),
+  when they hold together). Places: `home`, `spot_N` (metal spots, numbered as in the `map` tool),
   `passage_N` (the narrow ways between the two sides, numbered as the map lists them).
 - The build order as a sequence per builder: the first packet copies the opening the brief below gives for this map,
   an experienced player's ("commander: extractor at spot_3, then the lab, then two generators, then
@@ -29,7 +29,7 @@ would brief a hard-working assistant who follows orders literally and never coun
 Every second each free actor is asked "what should X do next?" with your instructions on top of the picture; a busy
 actor is asked every ten seconds and keeps its course unless something is clearly better. The hands prefer what the
 instructions say, so an instruction that fits the situation is followed and one that does not fit is quietly ignored:
-"advance to enemy_base when we outweigh it" does nothing while the base is unscouted. Instructions are standing, read afresh every second by hands with no memory of the last second: write states, not
+"advance to spot_40 when we outweigh what stands there" does nothing while nobody has looked at spot_40. Instructions are standing, read afresh every second by hands with no memory of the last second: write states, not
 commands. "The commander stays at home and builds the lab there" holds; "go home now and then build a lab" makes the
 hands alternate between going home and building every time they are asked, and each switch abandons what was started.
 Rewrite the whole packet when the plan changes; keep it under a few hundred words, concrete, present tense, no numbers
@@ -62,12 +62,11 @@ cannot count, and "one constructor first, then raiders" got three constructors (
 People: in a game with people, what they say in the chat comes in your report, and `say` answers them (short lines,
 to everyone). An experienced player watching you is the best feedback this project gets: answer their questions,
 say what you are trying to do, and ask what they would do in your place.
-Places: the picture lists home, enemy_base, the spots we hold or are taking, the nearest free spots, the nearest of
+Places: the picture lists home, the spots we hold or are taking, the nearest free spots, the nearest of
 theirs, and the narrowest passages; a spot or passage you name in the packet is listed too, however far, so a deep
 attack is ordered by naming the spots along its way. For a place that is not a spot, `mark` names map coordinates or a
-grid cell, and the name is then a place like any other. The enemy base's place is a guess until a factory of theirs
-has been seen: the report says where the guess is and why; when our units stand at a guess and find nothing there, the
-guess goes back to the start position and the report says so.
+grid cell, and the name is then a place like any other. There is no enemy-base place: where the opponent is comes
+from the evidence in the picture and from your scouting, and you name the spots and marks to go to.
 
 What you see. Each turn opens with a report: `score` (extractors and how long since they last grew, free spots and
 the nearest by number, the army and how much of it stands at home, what is known of the opponent, which is little),
@@ -102,9 +101,14 @@ ball is away, read the extractor count first: falling means the raid answer has 
 What you do not see. You see only what stands within sight of our own units: the opponent's base, army and most of its
 extractors are dark unless you look. "Enemy in sight" is raid parties and fragments, never its army; the soldiers-seen
 count is a floor. The opponent keeps its army at home as one block until it attacks, so an empty map means you have not
-looked. Scouting is an instruction to a group ("send one scout to enemy_base whenever it has not been seen for a few
-minutes"); the enemy base in the picture reads "not found" until a scout has stood there, and the hands will not advance
-on a base they cannot see.
+looked. Finding the opponent is your judgment, and so is finding it again: nothing in the code guesses where its
+base is, and a base is not a fixed thing; a side that is losing rebuilds in whatever corner it can, and its commander
+holes up where nobody has looked. The picture's `enemy` entry is evidence only: its factories as last seen, its
+commander as last seen, its buildings remembered by cell, the lobby's start box for its team (where its commander was
+placed at 0:00, no more), and the metal spots never within sight of a unit of ours. Scouting is an instruction to a
+group naming a spot ("send one scout to spot_40, then spot_38, whenever they have not been seen for a few minutes"),
+chosen from that list, the start box first early on; when the evidence is thin, sweep the army as one body through
+named spots rather than sending it to a point nobody has seen.
 
 Holding ground and attacking. Defence is yours: nothing in the code answers a raider at a structure on its own, and the
 hands answer only as your packet tells them. Left to a bare "engage", they send the whole ball after one scout car and

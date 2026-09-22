@@ -107,7 +107,7 @@ impl Brain {
                 self.last_loss_at_home_frame = tick.frame;
             }
             let killer = attacker.and_then(|id| self.enemy_defs.get(&id)).map_or("unseen", |d| self.name(*d));
-            let place = if pos.dist2d(self.home) < super::army::BASE_RADIUS { "at home" } else if pos.dist2d(self.home) < pos.dist2d(self.enemy_base(pos)) { "in our half" } else { "in their half" };
+            let place = if pos.dist2d(self.home) < super::army::BASE_RADIUS { "at home" } else if pos.dist2d(self.home) < pos.dist2d(self.world.mirrored(self.home)) { "in our half" } else { "in their half" };
             let line = format!("lost {} to {killer} {place}", self.name(def));
             if let Some(shared) = &self.strategist {
                 *shared.fights.lock().unwrap().entry(line.clone()).or_default() += 1;
@@ -149,7 +149,11 @@ impl Brain {
         let mut seen = Vec::new();
         for event in &tick.events {
             if let Event::EnemyDestroyed { enemy } = event {
-                self.enemy_buildings.remove(enemy);
+                if let Some((def, pos, _)) = self.enemy_buildings.remove(enemy)
+                    && self.world.is_factory_def(def)
+                {
+                    self.enemy_factories_gone.push((def, pos, tick.frame));
+                }
                 self.enemy_soldiers.remove(enemy);
                 gone.push(*enemy);
             }
@@ -239,7 +243,6 @@ impl Brain {
                 army: soldiers.len(),
             },
             home: self.place(self.home),
-            presumed_enemy_start: self.place(self.enemy_base(self.home)),
             home_group: self.group(&home_group),
             attackers: self.group(&attackers),
             waves_sent: self.army.waves_sent(),
@@ -294,7 +297,12 @@ impl Brain {
         json!({
             "name": map.name, "width": map.width, "height": map.height,
             "grid": "8x8 cells; columns A-H run west to east (x), rows 1-8 run north to south (z)",
-            "our_start": self.place(self.home), "presumed_enemy_start": self.place(self.enemy_base(self.home)),
+            "our_start": self.place(self.home),
+            "start_boxes": self.world.hello.start_boxes.iter().map(|b| json!({
+                "ally_team": b.ally_team, "ours": b.ally_team == self.world.hello.ally_team, "cells": self.world.box_cells(b),
+                "left": b.left as i32, "top": b.top as i32, "right": b.right as i32, "bottom": b.bottom as i32,
+            })).collect::<Vec<_>>(),
+            "start_boxes_note": "the lobby's start boxes: each team's commander was placed somewhere inside its box at 0:00. The engine tells nobody where; where the opponent stands now is known only from what our units see",
             "metal_spots": spots,
             "metal_spots_note": "n is the spot's number for the `expansion` tool; walk_from_home is the walking distance for our bots; null means they cannot walk there",
             "terrain": self.terrain_sketch(),

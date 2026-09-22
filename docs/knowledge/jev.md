@@ -354,3 +354,15 @@ is kept until the target dies or is lost. So a Stop is no hold for an air group,
 **Would be wrong if.** BAR's gadgets override the move state or the auto-attack for aircraft (its default aircraft
 move state was not found in `luarules`), or held bombers on move state 0 still hunt.
 **Used by.** H-HANDS-DOMAINS.
+
+### K-hands-presumed-point-reads-as-a-lead
+**Claim.** A named point in the picture ("base not found; presumed at G4", an `enemy_base` place) is taken by the
+player as a lead however it is qualified: scouts go to it, the army waits for a sighting there, and no other place is
+searched while it stands. Wrong by 2,000 elmos, it cost the bombers game its whole eight-minute wait and every
+Comet game its scouting.
+**Status.** demonstrated (2026-09-22): roster-1-bombers (the flight held at home 13:24-21:12 "for a confirmed
+sighting from a Blink" while the Blinks flew to the guess), comet-1 to comet-5, policy-1 to -3, luna/terra-jev.
+**Evidence.** the ledger rows of those games; the picture text at that date (`enemy.base`); the overview's own
+warning "often wrong by 500 or more" did not move the player off it.
+**Would be wrong if.** A player shown an area and a never-looked list scouts no better than one shown a point.
+**Used by.** H-HANDS-ENEMY-EVIDENCE.

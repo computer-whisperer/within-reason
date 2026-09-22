@@ -426,19 +426,9 @@ impl Brain {
             }
             let enemies = tick.snapshot.enemies.as_slice();
             let parties_words: Vec<String> = picture.parties.iter().map(|p| format!("{} ({}, at {}, {} from this group): {}", p.name, p.composition, self.place_words(&picture.places, p.at), distance_words(p.at.dist2d(centre)), self.odds_words(&units, p, enemies))).collect();
-            let base_words = {
-                let base = self.enemy_base(centre);
-                let force = self.known_enemy_force(base, 1500.0, enemies);
-                let ratio = self.odds(&Brain::force_of(&units), &force);
-                let turrets = self.enemy_buildings.values().filter(|(def, pos, _)| pos.dist2d(base) < 1500.0 && self.world.def(*def).is_some_and(|d| d.weapon_count > 0)).count();
-                format!(
-                    "the enemy base as we know it ({turrets} turrets known, its soldiers seen there lately): {}",
-                    if self.found_enemy_base().is_none() { "not found yet, what stands there is unknown: scout it first (`scout`)" } else if ratio >= 2.5 { "we outweigh it heavily" } else if ratio >= 1.3 { "we outweigh it" } else if ratio >= 0.8 { "an even fight" } else { "it outweighs us" }
-                )
-            };
             offer("hold", Pick::Hold, "Stand where it is; fight whatever mobile comes within reach and step out of turret reach. Nothing beyond reach is protected by this.".into());
             offer("move_to", Pick::MoveTo { fight: false }, "Walk to the place in `where` without stopping to fight on the way (it runs from everything).".into());
-            offer("fight_to", Pick::MoveTo { fight: true }, format!("Advance to the place in `where`, arriving together and fighting everything on the way and there, turrets included: it does not stop at a turret's reach, so it is the attack. Against {base_words}."));
+            offer("fight_to", Pick::MoveTo { fight: true }, "Advance to the place in `where`, arriving together and fighting everything on the way and there, turrets included: it does not stop at a turret's reach, so it is the attack. What is known to stand at a place is in its entry in the picture; nothing here weighs it.".into());
             if !picture.parties.is_empty() {
                 offer("engage", Pick::Engage, format!("Attack the enemy party named in `whom` now and follow it. In sight: {}.", parties_words.join("; ")));
                 offer("attack_unit", Pick::AttackUnit, "Every soldier of this group attacks one unit of the party named in `whom`: its commander when it is there, else its dearest unit; they chase it until it dies or is lost, then hold. The order that kills a commander, and the only order by which aircraft pick their target.".into());

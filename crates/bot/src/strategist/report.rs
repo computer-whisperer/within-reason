@@ -91,32 +91,22 @@ fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
             .collect();
         lines.push(format!("seats: you command {} seats, each with its own economy | {}", seats.len(), seats.join(" | ")));
     }
-    if s.enemy_bases.len() > 1 {
-        let bases: Vec<String> = s
-            .enemy_bases
-            .iter()
-            .map(|(team, at, found, dead)| {
-                let who = team.map_or("an opponent".to_string(), |t| format!("team {t}"));
-                let state = if *dead { "razed, no longer a target" } else if *found { "base FOUND" } else { "base unscouted, guessed" };
-                format!("{who}: {state} at {} ({}, {})", at.grid, at.x, at.z)
-            })
-            .collect();
-        lines.push(format!("opponents: {}", bases.join(" | ")));
-    }
     let places = |list: &[Place]| list.iter().map(|p| format!("{} ({}, {})", p.grid, p.x, p.z)).collect::<Vec<_>>().join("; ");
+    // Evidence, never a guess (docs/design/2026-09-22-enemy-evidence.md): finding the opponent is the player's.
+    let gone = if s.enemy_factories_gone.is_empty() { String::new() } else { format!("; seen destroyed: {}", s.enemy_factories_gone.iter().map(|(p, at)| format!("{} ({}, {}) at {}", p.grid, p.x, p.z, clock(*at))).collect::<Vec<_>>().join("; ")) };
+    let boxes = if s.enemy_start_boxes.is_empty() { "the lobby gave it no start box".to_string() } else { format!("its commander was placed at 0:00 inside its lobby box, cells {}", s.enemy_start_boxes.join(" and ")) };
+    let in_box = s.never_looked.iter().filter(|(_, _, inside)| *inside).count();
+    let unseen: Vec<String> = s.never_looked.iter().take(8).map(|(n, p, inside)| format!("#{n} {}{}", p.grid, if *inside { " (in its box)" } else { "" })).collect();
     lines.push(format!(
-        "to win: its commander {}; its factories seen: {}",
+        "to win: its commander {}; its factories standing as far as we know: {}{}; {}; where it stands and builds now is known only from what our units see, and it may rebuild anywhere. Metal spots never within sight of a unit of ours: {} ({} inside its box){}",
         s.enemy_commander.as_ref().map_or("has never been seen".to_string(), |(p, ago)| format!("was last seen at {} ({}, {}) {} ago{}", p.grid, p.x, p.z, clock(*ago), if s.enemy_commander_afloat { ", in the water or on ground our bots cannot walk to (it is amphibious; our soldiers are not)" } else { "" })),
-        if let (true, Some(base)) = (s.enemy_factories.is_empty(), &s.enemy_base_found) {
-            format!("none standing now; its base is FOUND at {} ({}, {}), where we saw a factory (since destroyed or out of mind); its commander and whatever else it has are most likely still there", base.grid, base.x, base.z)
-        } else if s.enemy_factories.is_empty() { format!("none, its base is unscouted (the game's guess is {} ({}, {}), often wrong by 500 or more)", briefing.presumed_enemy_start.grid, briefing.presumed_enemy_start.x, briefing.presumed_enemy_start.z) } else { places(&s.enemy_factories) }
+        if s.enemy_factories.is_empty() { "none seen standing".to_string() } else { places(&s.enemy_factories) },
+        gone,
+        boxes,
+        s.never_looked.len(),
+        in_box,
+        if unseen.is_empty() { String::new() } else { format!("; nearest home first: {}", unseen.join(", ")) }
     ));
-    if let Some(elsewhere) = &s.guess_disproved {
-        lines.push(format!(
-            "THE GUESS IS WRONG: our soldiers stand at the guessed enemy start and there is no base in sight. A base is always beside metal; the nearest metal spots we have nobody near: {}. Send scouts or the army to look, nearest first",
-            places(elsewhere)
-        ));
-    }
     if !s.raid_targets.is_empty() {
         let list: Vec<String> = s.raid_targets.iter().map(|(p, turrets)| format!("{} ({}, {}){}", p.grid, p.x, p.z, if *turrets > 0 { format!(" turrets {turrets}m") } else { " no turret seen".into() })).collect();
         lines.push(format!("to raid: its extractors seen outside its base, nearest first: {}", list.join("; ")));

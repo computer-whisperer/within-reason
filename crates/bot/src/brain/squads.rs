@@ -315,8 +315,13 @@ impl Brain {
             traded_3_min: traded(&|frame| recent(&frame)),
             traded: traded(&|_| true),
             seconds_since_turn: Some(shared.last_turn_frame.load(std::sync::atomic::Ordering::Relaxed)).filter(|at| *at > 0).map(|at| (tick.frame - at) / FRAMES_PER_SECOND),
-            enemy_base_found: self.found_enemy_base().map(|pos| self.place(pos)),
-            enemy_bases: self.enemy_bases.iter().map(|b| (b.team, self.place(b.at), b.found, b.dead)).collect(),
+            enemy_start_boxes: self.world.hello.start_boxes.iter().filter(|b| b.ally_team != self.world.hello.ally_team).map(|b| self.world.box_cells(b)).collect(),
+            never_looked: {
+                let boxes: Vec<&bot_protocol::StartBox> = self.world.hello.start_boxes.iter().filter(|b| b.ally_team != self.world.hello.ally_team).collect();
+                let mut never: Vec<(f32, usize)> = self.world.hello.metal_spots.iter().enumerate().filter(|(i, _)| self.spot_seen(*i).is_none()).map(|(i, s)| (s.dist2d(self.home), i)).collect();
+                never.sort_by(|a, b| a.0.total_cmp(&b.0));
+                never.into_iter().map(|(_, i)| { let s = self.world.hello.metal_spots[i]; (i, self.place(s), boxes.iter().any(|b| b.contains(s))) }).collect()
+            },
             enemy_spots_seen: enemy_extractors.len(),
             enemy_factories: self
                 .enemy_buildings
@@ -324,29 +329,13 @@ impl Brain {
                 .filter(|(def, _, _)| self.world.def(*def).is_some_and(|d| !d.build_options.is_empty()))
                 .map(|(_, pos, _)| self.place(*pos))
                 .collect(),
+            enemy_factories_gone: self.enemy_factories_gone.iter().map(|(_, pos, at)| (self.place(*pos), at / FRAMES_PER_SECOND)).collect(),
             raid_targets: self
                 .raid_targets()
                 .into_iter()
                 .take(6)
                 .map(|t| (self.place(t), self.known_enemy_force(t, 500.0, &[]).turret_metal as u32))
                 .collect(),
-            guess_disproved: {
-                let guess = self.enemy_base(self.home);
-                let standing_there = soldiers.iter().any(|u| u.pos.dist2d(guess) < 500.0);
-                let base_known = self.enemy_buildings.values().any(|(_, pos, _)| pos.dist2d(guess) < 900.0);
-                (standing_there && !base_known).then(|| {
-                    let mut spots: Vec<Vec3> = self
-                        .world
-                        .hello
-                        .metal_spots
-                        .iter()
-                        .filter(|s| self.reachable_on_foot(**s) && !soldiers.iter().any(|u| u.pos.dist2d(**s) < 600.0))
-                        .copied()
-                        .collect();
-                    spots.sort_by(|a, b| a.dist2d(guess).total_cmp(&b.dist2d(guess)));
-                    spots.into_iter().take(4).map(|s| self.place(s)).collect()
-                })
-            },
             enemy_commander: self.enemy_commander_seen.map(|(pos, seen)| (self.place(pos), (tick.frame - seen) / FRAMES_PER_SECOND)),
             enemy_commander_afloat: self.enemy_commander_seen.is_some_and(|(pos, _)| !self.reachable_on_foot(pos)),
             enemy_soldiers_seen: self.enemy_soldiers.values().filter(|(_, seen)| recent(seen)).count(),

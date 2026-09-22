@@ -249,3 +249,21 @@ definitions' move classes.
 **Evidence.** pianist-player-7: the enemy commander ended at (6825, 5906) on the south-east shore beside a shipyard
 with a ball of 226 Maces stalled at the water's edge; the referee called the win with 8 enemy units left.
 **Used by.** the map tool's `water` entry, the picture's and the report's enemy-commander lines.
+
+### K-maps-barb-starts-where-the-guesser-puts-it
+**Claim.** An AI seat with no start position in the script is placed at 0:00 by the game's own start-point guesser
+(`common/lib_startpoint_guesser.lua` `GuessOne`, called from `game_initial_spawn.lua` for unplaced teams): among the
+free metal spots inside its box, the one whose neighbours within 575 elmos and 300 height score best, so a cluster's
+middle, not the box centre and not the mirror of ours. On Comet Catcher's standard boxes (the west and east strips)
+that is the north end of the east strip, (6899, 660-680), while the mirror of our start snapped to metal is the middle
+of the strip, (6936, 2680): 2,000 elmos off. With the arena's earlier custom boxes ("frontier") the two agreed within
+120.
+**Status.** demonstrated (2026-09-22): 86 surviving Comet games' truth files against the record's `intent`
+`enemy_start`; every game since rush-7 (2026-09-20, standard boxes) 1,999-2,020 off, every game before within 120.
+**Evidence.** `run/matches/*comet*/00/truth-0.jsonl` frame 0 (`armcom` position) against `record-0.jsonl` `intent`;
+the scorecard rows through 2026-09-22 read "base never found" in 11 of 14 while `look_min` (then measured against
+the guess) said a unit of ours stood there by minute 4-9.
+**Would be wrong if.** BARb moved its commander after placement (the truth shows it within 20 of the placement all
+game), or a lobby set start positions explicitly.
+**Used by.** H-HANDS-ENEMY-EVIDENCE (why no guess is shown); H-MAP-ENEMY-START's status. The bot's own modes could
+replicate the guesser; under the player nothing is guessed.

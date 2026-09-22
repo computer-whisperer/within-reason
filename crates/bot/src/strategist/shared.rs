@@ -18,7 +18,6 @@ pub struct Briefing {
     pub wind_range: (f32, f32),
     pub counts: Counts,
     pub home: Place,
-    pub presumed_enemy_start: Place,
     pub home_group: Group,
     pub attackers: Group,
     pub waves_sent: usize,
@@ -353,25 +352,24 @@ pub struct Score {
     pub traded: (u32, u32),
     /// Game seconds since the commander's previous turn began; `None` before its first.
     pub seconds_since_turn: Option<i32>,
-    /// Where a factory of the opponent's has been seen, standing or not.
-    pub enemy_base_found: Option<Place>,
-    /// Every enemy seat's base: team (when known), place, whether a factory of it has been seen (else the place is a
-    /// guess), whether it has been razed.
-    pub enemy_bases: Vec<(Option<i32>, Place, bool, bool)>,
+    /// The opponent's lobby start boxes, one per enemy ally team, as grid cell ranges: where its commander was
+    /// placed at 0:00 and nothing more (docs/design/2026-09-22-enemy-evidence.md).
+    pub enemy_start_boxes: Vec<String>,
+    /// Metal spots never within sight of a unit of ours, nearest home first: number, place, inside an enemy box.
+    pub never_looked: Vec<(usize, Place, bool)>,
     /// The opponent's soldiers seen in the last three minutes and not seen to die, and their metal. Older sightings
     /// are left out: most of its soldiers die where we cannot see, and a count that never forgets only grows.
     pub enemy_soldiers_seen: usize,
     pub enemy_soldiers_seen_metal: u32,
-    /// Its factories seen and not seen destroyed, and its commander's last sighting with its age in seconds.
+    /// Its factories seen and not seen destroyed; those seen destroyed or found razed, with the game second; and its
+    /// commander's last sighting with its age in seconds.
     pub enemy_factories: Vec<Place>,
+    pub enemy_factories_gone: Vec<(Place, i32)>,
     pub enemy_commander: Option<(Place, i32)>,
     /// Its last seen position is off ground our bots can walk to: in the sea, where only amphibians follow.
     pub enemy_commander_afloat: bool,
     /// Its extractors seen outside its base, nearest to us first, each with the metal of turrets known within 500.
     pub raid_targets: Vec<(Place, u32)>,
-    /// Set when our soldiers stand at the guessed enemy start and no enemy building is known near it: the guess is
-    /// wrong, and these are the nearest metal spots none of our soldiers is near, where a base could be.
-    pub guess_disproved: Option<Vec<Place>>,
 }
 
 #[derive(Clone, Debug, Serialize)]

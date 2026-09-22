@@ -76,6 +76,11 @@ impl Brain {
         }
     }
 
+    /// The frame a spot was last within an own unit's sight; `None` when never.
+    pub(super) fn spot_seen(&self, index: usize) -> Option<i32> {
+        self.spots.seen.get(index).copied().flatten()
+    }
+
     /// Frames since the spot was in sight; never seen counts as long ago.
     fn spot_staleness(&self, index: usize, frame: i32) -> i32 {
         self.spots.seen.get(index).copied().flatten().map_or(NEVER_SEEN_FRAMES, |seen| (frame - seen).min(NEVER_SEEN_FRAMES))

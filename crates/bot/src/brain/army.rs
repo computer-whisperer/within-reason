@@ -337,7 +337,7 @@ impl Brain {
     }
 
     /// A remembered building that our soldiers are standing next to and cannot see is gone.
-    fn forget_razed_buildings(&mut self, soldiers: &[&OwnUnit], visible: &[EnemyUnit]) {
+    fn forget_razed_buildings(&mut self, soldiers: &[&OwnUnit], visible: &[EnemyUnit], frame: i32) {
         const IN_PLAIN_SIGHT: f32 = 250.0;
         let razed: Vec<UnitId> = self
             .enemy_buildings
@@ -346,7 +346,11 @@ impl Brain {
             .map(|(id, _)| *id)
             .collect();
         for id in &razed {
-            self.enemy_buildings.remove(id);
+            if let Some((def, pos, _)) = self.enemy_buildings.remove(id)
+                && self.world.is_factory_def(def)
+            {
+                self.enemy_factories_gone.push((def, pos, frame));
+            }
         }
         self.razed.extend(razed);
     }
@@ -387,7 +391,7 @@ impl Brain {
         // H-ARMY-TARGET: attack buildings, never whatever unit was seen last. Raiders near our own base used to
         // drag every wave back into our half of the map. Roll the enemy up from the outside: the remembered
         // building nearest to us, else where the enemy presumably started.
-        self.forget_razed_buildings(&soldiers, snapshot.enemies.as_slice());
+        self.forget_razed_buildings(&soldiers, snapshot.enemies.as_slice(), tick.frame);
         let previous_target = self.army.target;
         let attackers_nearest = previous_target.and_then(|t| {
             soldiers.iter().filter(|u| self.army.attackers.contains(&u.id)).map(|u| u.pos.dist2d(t)).min_by(f32::total_cmp)
