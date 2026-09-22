@@ -66,3 +66,13 @@ loop is where a plan that keeps winning becomes a claim in the brief.
 4. Calibration on today's records; the study document.
 5. One player game with the tools on the Bulls objective (the energy question in the same game), read by the
    scorecard and the transcript's tool calls.
+
+## Status (2026-09-22 night)
+
+Steps 1-4 built (e5f8280, 793b206, e3bca72). Step 5, plan-1-bulldogs: WON with 19 Bulls and seven Advanced Solar
+Collectors; the player searched once on its first turn, read the answer as a ceiling ("no army at all") and planned
+around it. Left open: the simulator's army curve runs 30-50 % low and its income 15-25 % high on the player's
+openings (the study document); the search's answers favour many constructors and no army, which the player must
+weigh; the `queues_note` says the order must be given by `queue` and `produce`, and the player queued a building to
+the commander that only a constructor builds (the tool's queue names carry the right builder; the words could say
+"only a constructor builds this"). Two hands findings from the game are in the ledger row for the next floor pass.
