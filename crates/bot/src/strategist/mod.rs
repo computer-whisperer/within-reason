@@ -557,6 +557,10 @@ fn player_prompt(game_time: &str, headline: &str, shared: &Shared, seen: &mut re
     }
     let wake = serde_json::to_string(&*shared.wake.lock().unwrap()).unwrap_or_default();
     let chat: Vec<String> = std::mem::take(&mut *shared.chat_in.lock().unwrap()).into_iter().map(|(frame, player, text)| format!("{} player {player}: {text}", crate::brain::pianist::clock(frame))).collect();
+    let searches = std::mem::take(&mut *shared.search_results.lock().unwrap());
+    if !searches.is_empty() {
+        prompt += &format!("Your search finished (the simulator's answer, from the game as it stood when you asked):\n{}\n\n", searches.join("\n"));
+    }
     prompt += &format!(
         "[{game_time}] Woken because: {headline}\n{}\nwake conditions in force: {wake}",
         report::player_report(seen, &briefing, &field, &fights, &hands, &chat, fresh_session)

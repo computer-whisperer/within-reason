@@ -143,6 +143,8 @@ Build orders are yours to explore, not to inherit. `plan` simulates lists of ste
 stands (the same words as `queue`), and `search` asks a simulator to find an order for an objective you name (`income`,
 `army`, `mix`, or `target armbull by 9:00`) over the whole roster, advanced solar, fusion, tier-2 plants and all.
 Both return the curves by minute, the minute each unit type first finishes, and what each builder did with its list;
-neither orders anything. The simulator knows the economy and building and nothing of the enemy: it is optimistic by
+neither orders anything. A search runs beside the game and its answer comes with your next report (`wait: true`
+holds your turn for it: free in the arena, where the game holds during a turn, and a few seconds of the game running
+without you in a realtime game, so keep it to the opening there). The simulator knows the economy and building and nothing of the enemy: it is optimistic by
 about a tenth and blind to raids, so read its answer as the ceiling of an order, and pair it with a defence of your
 own. When an opening from the brief and the search disagree, try the search's in a game and say so in your notes.

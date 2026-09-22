@@ -40,9 +40,12 @@ player game out of thirty.
    power), the minute each named unit type first finished, and the effective queues with what was passed over and
    why. It simulates from the game's latest published state, on the tool's own thread.
 6. **The `search` tool.** An objective in words (`income`, `army`, `mix`, `target UNIT by M:SS`), a horizon and a
-   time budget in seconds (at most twenty: the game holds during a turn). The annealer runs from the live state with
-   the roster palette, warm-started from the player's current queues when it gives them, and returns the best plan
-   in the same vocabulary with its curves, and the score's parts. The player writes the packet; nothing is ordered.
+   time budget in seconds. The annealer runs from the live state with the roster palette, warm-started from the
+   player's current queues when it gives them, and returns the best plan in the same vocabulary with its curves,
+   and the score's parts. The player writes the packet; nothing is ordered. **Amended after plan-1 (the user: in-game
+   thinking time can cost games):** the search runs beside the game by default and its answer comes with the next
+   report, for which the player is woken; `wait: true` holds the turn for it, capped at 20 s in lockstep, where the
+   game holds during a turn anyway, and 3 s in realtime, where it does not; the tool text says which.
 7. **The same on the command line.** `buildorder optimize|simulate --palette roster --objective target:armbull@540`
    and plan text in full internal names, so the exploration can run offline against a record's header.
 8. **The published state.** The brain publishes a `PlanContext` (the game's unit table and scenario once, the state

@@ -60,7 +60,7 @@ impl Drop for McpServer {
     }
 }
 
-fn handle(call: &Value, shared: &Shared, transcript: &Transcript, mode: Mode) -> Option<Value> {
+fn handle(call: &Value, shared: &Arc<Shared>, transcript: &Transcript, mode: Mode) -> Option<Value> {
     let id = call.get("id")?.clone();
     let method = call["method"].as_str().unwrap_or_default();
     let result = match method {
@@ -140,8 +140,8 @@ fn tool_list(mode: Mode) -> Value {
               "description": "Simulate a build order from the game as it stands now, without ordering anything: lists of steps per builder in the `queue` tool's words (`extractor spot_N`, `assist`, any unit's internal name with an optional spot or marked place; a factory's list is unit names), keyed by actor name (commander, lab_N, plant_N, factory_N, constructor_N) or next_factory_1, next_constructor_1 for what is not standing yet. Returns the curves by minute (extractors, income, stall, army metal, build power), the minute each unit type first finishes, and what each builder actually did with its list (steps it could not do are named). The simulator knows the economy and building; it knows nothing of the enemy, losses or terrain jams, and runs about ten percent optimistic.",
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["queues"], "properties": { "queues": { "type": "object" }, "minutes": { "type": "number", "description": "How far ahead to simulate (default 8, at most 20)." } } } },
             { "name": "search",
-              "description": "Search build orders in the simulator from the game as it stands now, without ordering anything: an objective in words (`income`, `army`, `mix` (army plus two minutes of income), or `target UNIT by M:SS`, e.g. `target armbull by 9:00`), a horizon in minutes and a time budget in seconds (default 10, at most 20; the game holds while you wait). The search may use the whole roster: every generator, storage, converter, extractor, factory, nano and unit the faction reaches. Returns the best order found in the `plan` tool's words with its curves and score. Give `queues` to start the search from your own order.",
-              "inputSchema": { "type": "object", "additionalProperties": false, "required": ["objective"], "properties": { "objective": { "type": "string" }, "minutes": { "type": "number" }, "seconds": { "type": "number" }, "queues": { "type": "object" } } } },
+              "description": "Search build orders in the simulator from the game as it stands now, without ordering anything: an objective in words (`income`, `army`, `mix` (army plus two minutes of income), or `target UNIT by M:SS`, e.g. `target armbull by 9:00`), a horizon in minutes and a time budget in seconds (default 10). The search runs beside the game and its answer comes with your next report, for which you are woken; `wait: true` holds your turn for it instead (the cap is 20 s in the arena, where the game holds during a turn, and 3 s in a realtime game, where it does not). The search may use the whole roster: every generator, storage, converter, extractor, factory, nano and unit the faction reaches. Returns the best order found in the `plan` tool's words with its curves and score. Give `queues` to start the search from your own order.",
+              "inputSchema": { "type": "object", "additionalProperties": false, "required": ["objective"], "properties": { "objective": { "type": "string" }, "minutes": { "type": "number" }, "seconds": { "type": "number" }, "wait": { "type": "boolean" }, "queues": { "type": "object" } } } },
             { "name": "instruct",
               "description": format!("Your standing instructions to your hands: the whole packet, replacing the last one. Jev reads it every second beside the picture and picks each actor's next action from a menu, so write it as standing orders in plain words: the build order per builder as a sequence, what the lab makes and when that changes, where each group stands, when it engages, scouts and attacks, what to do about raids. Name places as the picture does (home, spot_N, passage_N, and any place you marked with `mark`; a spot or passage you name here is always on your hands' menu, however far) and groups as group_A, group_B. No arithmetic for the hands to do: say \"when we have about ten soldiers\", not a formula. At most {INSTRUCTIONS_LIMIT} characters."),
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string" } } } },
@@ -249,7 +249,7 @@ fn batchable(mode: Mode) -> &'static [&'static str] {
 }
 
 /// The `orders` tool: several tool calls in one request. `wait` goes last wherever it was listed, since it ends the turn.
-fn orders(arguments: &Value, shared: &Shared, mode: Mode) -> Result<String, String> {
+fn orders(arguments: &Value, shared: &Arc<Shared>, mode: Mode) -> Result<String, String> {
     let calls = arguments["calls"].as_array().ok_or("calls must be a list")?;
     let (mut waits, others): (Vec<&Value>, Vec<&Value>) = calls.iter().partition(|c| c["tool"] == "wait");
     // `orders` is the whole turn: with no `wait` listed the wake settings stand and the turn ends all the same. (In
@@ -284,7 +284,7 @@ fn orders(arguments: &Value, shared: &Shared, mode: Mode) -> Result<String, Stri
     Ok(lines.join("\n"))
 }
 
-fn call_tool(name: &str, arguments: &Value, shared: &Shared, mode: Mode) -> Result<String, String> {
+fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>, mode: Mode) -> Result<String, String> {
     if !tool_list(mode).as_array().is_some_and(|tools| tools.iter().any(|t| t["name"] == name)) {
         return Err(format!("{name} is not a tool in this mode"));
     }
@@ -378,10 +378,33 @@ fn call_tool(name: &str, arguments: &Value, shared: &Shared, mode: Mode) -> Resu
                 }
             }
         }
-        "plan" | "search" => {
+        "plan" => {
             let context = shared.plan_context.lock().unwrap().clone().ok_or("the simulator has no picture of the game yet: try again in a few seconds")?;
             let marks = shared.marks.lock().unwrap().clone();
-            planning::run(name, arguments, &context, &marks)
+            planning::run(name, arguments, 0.0, &context, &marks)
+        }
+        "search" => {
+            // Beside the game by default, the answer with the next report; `wait` holds the turn for it. The budget's
+            // cap is the mode's: lockstep holds the game anyway, realtime does not (the user, 2026-09-22: in-game
+            // thinking time can cost games).
+            let context = shared.plan_context.lock().unwrap().clone().ok_or("the simulator has no picture of the game yet: try again in a few seconds")?;
+            let marks = shared.marks.lock().unwrap().clone();
+            let lockstep = shared.lockstep.load(Ordering::Relaxed);
+            let cap = if lockstep { planning::MAX_SECONDS } else { planning::REALTIME_MAX_SECONDS };
+            let seconds = arguments["seconds"].as_f64().unwrap_or(planning::DEFAULT_SECONDS).clamp(1.0, cap);
+            if arguments["wait"].as_bool().unwrap_or(false) {
+                return planning::run(name, arguments, seconds, &context, &marks);
+            }
+            let (board, arguments) = (Arc::clone(shared), arguments.clone());
+            std::thread::spawn(move || {
+                let answer = planning::run("search", &arguments, seconds, &context, &marks).unwrap_or_else(|e| format!("the search failed: {e}"));
+                board.search_results.lock().unwrap().push(answer);
+                board.trigger("your search has finished: its answer is at the top of this report".into());
+            });
+            Ok(format!(
+                "searching for {seconds:.0} s beside the game; the answer comes with your next report, and you will be woken for it{}. Pass \"wait\": true to hold the game and have it now (at most {cap:.0} s in this mode).",
+                if lockstep { "" } else { " while the game runs on" }
+            ))
         }
         "units" => {
             let names = arguments["names"].as_array().ok_or("units takes {\"names\": [\"armpw\", ...]}")?;
@@ -728,7 +751,7 @@ mod tests {
         for tool in batchable(Mode::Player) {
             assert!(player.contains(&tool.to_string()));
         }
-        let shared = Shared::default();
+        let shared = Arc::new(Shared::default());
         assert!(call_tool("squad", &json!({ "name": "a" }), &shared, Mode::Player).is_err());
         assert!(call_tool("instruct", &json!({ "text": "commander: build the lab first." }), &shared, Mode::Player).is_ok());
         assert_eq!(*shared.instructions.lock().unwrap(), "commander: build the lab first.");
@@ -760,7 +783,7 @@ mod tests {
     #[test]
     fn the_lane_tool_sets_footwork_by_group() {
         use super::super::shared::Footwork;
-        let shared = Shared::default();
+        let shared = Arc::new(Shared::default());
         assert!(call_tool("lane", &json!({ "group_A": "raw", "all": ["fan", "focus"] }), &shared, Mode::Player).is_ok());
         let lane = shared.lane.lock().unwrap().clone();
         assert_eq!(lane["group_A"], Footwork::raw());
@@ -775,7 +798,7 @@ mod tests {
 
     #[test]
     fn marks_are_named_places_by_coordinates_or_cell() {
-        let shared = Shared::default();
+        let shared = Arc::new(Shared::default());
         *shared.map.lock().unwrap() = json!({ "width": 8000.0, "height": 8000.0 });
         assert!(call_tool("mark", &json!({ "south_gate": [3600, 5400], "far_east": "H4" }), &shared, Mode::Player).is_ok());
         let marks = shared.marks.lock().unwrap().clone();
@@ -791,7 +814,7 @@ mod tests {
 
     #[test]
     fn produce_whitelists_a_lab_or_all() {
-        let shared = Shared::default();
+        let shared = Arc::new(Shared::default());
         assert!(call_tool("produce", &json!({ "all": ["armpw", "armham"], "lab_7": [] }), &shared, Mode::Player).is_ok());
         let allowed = shared.allowed.lock().unwrap().clone();
         assert_eq!(allowed["all"], vec!["armpw".to_string(), "armham".to_string()]);
@@ -825,8 +848,10 @@ mod planning {
 
     const DEFAULT_MINUTES: f64 = 8.0;
     const MAX_MINUTES: f64 = 20.0;
-    const DEFAULT_SECONDS: f64 = 10.0;
-    const MAX_SECONDS: f64 = 20.0;
+    pub(super) const DEFAULT_SECONDS: f64 = 10.0;
+    /// The cap in lockstep, where the game holds during a turn; and in realtime, where it does not.
+    pub(super) const MAX_SECONDS: f64 = 20.0;
+    pub(super) const REALTIME_MAX_SECONDS: f64 = 3.0;
     const SEARCH_THREADS: usize = 4;
     const TARGET_COUNT: usize = 6;
 
@@ -835,7 +860,7 @@ mod planning {
         format!("{}:{:02}", s / 60, s % 60)
     }
 
-    pub(super) fn run(name: &str, arguments: &Value, ctx: &PlanContext, marks: &BTreeMap<String, (f32, f32)>) -> Result<String, String> {
+    pub(super) fn run(name: &str, arguments: &Value, seconds: f64, ctx: &PlanContext, marks: &BTreeMap<String, (f32, f32)>) -> Result<String, String> {
         let units = &ctx.game.units;
         let minutes = arguments["minutes"].as_f64().unwrap_or(DEFAULT_MINUTES).clamp(1.0, MAX_MINUTES);
         let horizon = minutes * 60.0;
@@ -853,7 +878,6 @@ mod planning {
             _ => {
                 let text = arguments["objective"].as_str().ok_or("search takes an objective in words")?.trim().to_string();
                 let objective = if text.starts_with("target") { Objective::parse_target(&text, units)? } else { Objective::parse(&text).ok_or_else(|| format!("{text}: not an objective (income, army, mix, or target UNIT by M:SS)"))? };
-                let seconds = arguments["seconds"].as_f64().unwrap_or(DEFAULT_SECONDS).clamp(1.0, MAX_SECONDS);
                 let palette = Palette::roster(units, ctx.game.commander, ctx.turret, ctx.water);
                 let (factories, constructors) = (ctx.standing_factories + 2, ctx.standing_constructors + 3);
                 let start = given.or_else(|| match objective {

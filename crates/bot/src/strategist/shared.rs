@@ -535,6 +535,8 @@ pub struct PlanContext {
 #[derive(Default)]
 pub struct Shared {
     pub plan_context: Mutex<Option<std::sync::Arc<PlanContext>>>,
+    /// Answers of searches run beside the game, for the player's next report.
+    pub search_results: Mutex<Vec<String>>,
     /// The commander ended its turn with `wait` and has not been given its next report yet: it may order nothing.
     /// (Given an immediate answer to `wait`, it took the wait to be over and went on polling and ordering on the
     /// running game, in one endless response: commander game 10, first attempt.)
