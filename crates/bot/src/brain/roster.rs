@@ -54,6 +54,26 @@ pub const ROSTERS: [Roster; 2] = [
     },
 ];
 
+/// What a builder is offered when the player has whitelisted nothing for it (docs/design/2026-09-22-full-roster.md,
+/// decision 5): the Kit's buildings and the usual mid-game ones, cut to what the builder can build. The rest of its
+/// build list is reached through `produce`, and always by the policy. Extractors are the `extractor` option.
+const USUAL_ARMADA: &[&str] = &[
+    "armsolar", "armwin", "armadvsol", "armmakr", "armlab", "armvp", "armap", "armhp", "armsy", "armllt", "armhlt", "armrl", "armrad", "armarad", "armnanotc",
+    "armmstor", "armestor", "armalab", "armavp", "armaap", "armmoho", "armfus", "armmmkr", "armguard", "armflak", "armdl",
+];
+const USUAL_CORTEX: &[&str] = &[
+    "corsolar", "corwin", "coradvsol", "cormakr", "corlab", "corvp", "corap", "corhp", "corsy", "corllt", "corhlt", "corrl", "corrad", "corarad", "cornanotc",
+    "cormstor", "corestor", "coralab", "coravp", "coraap", "cormoho", "corfus", "cormmkr", "corpun", "corflak", "cordl",
+];
+
+/// The usual list for a builder of the faction its name belongs to.
+pub fn usual_menu(builder_name: &str) -> &'static [&'static str] {
+    match World::faction_of(builder_name) {
+        "cortex" => USUAL_CORTEX,
+        _ => USUAL_ARMADA,
+    }
+}
+
 /// A roster resolved against the running game's unit definitions.
 #[derive(Clone, Copy)]
 pub struct Kit {

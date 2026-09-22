@@ -328,3 +328,17 @@ policy-1-easy: 343 runs, 0 errors, 3 illegal orders (spot_25 not a place).
 **Evidence.** `run/matches/1790088367-policy-1-easy`; the ledger row.
 **Would be wrong if.** A rerun lost, or medium showed the policy unable to keep up with raids between turns.
 **Used by.** H-HANDS-POLICY.
+
+### K-hands-roster-reaches-the-game
+**Claim.** The game's build tree, read from the definitions, reaches 190 Armada and 187 Cortex units from the
+commander, the largest single build list being 45 (the construction hovercraft) and a constructor bot's 30: far under
+Jev's 255 options a question, so the whole build list can stand in the policy's state, while Jev's menu is kept to a
+usual list of about fourteen or the player's whitelist (K-jev-split-vote). The game's own language file names every
+reachable unit, so the glossary covers the roster with no gaps.
+**Status.** counted (2026-09-22, the record header of comet-5; `language/en/units.json` of the checkout at 54199a0d);
+its effect on play unmeasured.
+**Evidence.** `docs/design/2026-09-22-full-roster.md`; the reachability count in the design's "What stands today".
+**Would be wrong if.** Jev's picks over a fourteen-option builder menu were worse than over the old nine (the noop
+and better_option Nouls of `run/jev_sweep.py` over a new game against a Comet game), or the policy's option table
+made a turn's amendment slower.
+**Used by.** H-HANDS-ROSTER.

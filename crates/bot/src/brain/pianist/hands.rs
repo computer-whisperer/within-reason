@@ -80,7 +80,7 @@ impl Brain {
                 };
                 let pick = match pick {
                     Pick::Building(def) | Pick::BuildingAt(def) if started_def == Some(def) => Pick::Continue,
-                    Pick::Extractor if started_def.is_some_and(|d| kit.is_extractor(d)) => Pick::Continue,
+                    Pick::Extractor if started_def.is_some_and(|d| self.world.is_extractor_def(d)) => Pick::Continue,
                     other => other,
                 };
                 match pick {
@@ -135,7 +135,7 @@ impl Brain {
                         did = Some(format!("attack {party_name}"));
                     }
                     Pick::RetreatHome => {
-                        match (unit.def == kit.commander).then(|| self.commander_waypoint_home(unit.pos)).flatten() {
+                        match self.world.is_commander_def(unit.def).then(|| self.commander_waypoint_home(unit.pos)).flatten() {
                             Some(waypoint) => {
                                 commands.push(Command::Move { unit: id, to: waypoint, queue });
                                 commands.push(Command::Move { unit: id, to: self.home, queue: true });

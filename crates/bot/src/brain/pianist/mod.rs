@@ -6,6 +6,7 @@
 //! In lockstep the call holds the game (the arena's shim waits for the reply); against a live engine it costs a
 //! late tick a second. The call fails safe: every actor keeps its task until the next answer.
 
+pub mod glossary;
 mod groups;
 mod hands;
 mod menu;
@@ -466,7 +467,18 @@ impl Brain {
                 continue;
             }
             let qid = if matches!(menu.actor, menu::Actor::Lab(_)) { format!("{}.next", menu.name) } else { format!("{}.do", menu.name) };
-            let criteria = menu.questions.iter().find(|(id, _)| *id == qid).and_then(|(_, q)| if let jev::Question::Choice { criteria, .. } = q { Some(criteria.clone()) } else { None }).unwrap_or_default();
+            let mut criteria = menu.questions.iter().find(|(id, _)| *id == qid).and_then(|(_, q)| if let jev::Question::Choice { criteria, .. } = q { Some(criteria.clone()) } else { None }).unwrap_or_default();
+            // The policy reaches everything the builder can build, not only what Jev is offered (the roster design,
+            // decision 6): the rest of the menu's options, worded from the glossary.
+            for (key, pick) in &menu.options {
+                if !criteria.contains_key(key) {
+                    let words = match pick {
+                        menu::Pick::Building(def) | menu::Pick::BuildingAt(def) => format!("{} (not on the hands' menu; the policy may order it{})", self.unit_words(*def), if matches!(pick, menu::Pick::BuildingAt(_)) { ", with `where`" } else { "" }),
+                        _ => "(not on the hands' menu)".to_string(),
+                    };
+                    criteria.insert(key.clone(), json!(words));
+                }
+            }
             options.insert(menu.name.clone(), criteria);
         }
         let state = Policy::state_for(&picture.state, &options, &groups, &places, frame);
@@ -744,7 +756,11 @@ impl Brain {
                     // The frame stands where the engine put it, up to a building's width from the point ordered
                     // (pianist-player-6: two windmills 200 from their ordered point were not seen as started, and
                     // the next "generator" answer ordered a third; both decayed). The task's site is the frame.
-                    if let Some(Task::Build { started, near, .. }) = pianist.tasks.get_mut(&builder) {
+                    if let Some(Task::Build { started, near, def, .. }) = pianist.tasks.get_mut(&builder) {
+                        if !*started {
+                            // The builder's count against its `produce` caps ("armllt:2" from this builder).
+                            *pianist.produced.entry((builder, self.world.def(*def).map_or(String::new(), |d| d.name.clone()))).or_insert(0) += 1;
+                        }
                         *started = true;
                         if let Some(frame_unit) = own.iter().find(|u| u.id == unit) {
                             *near = frame_unit.pos;
@@ -847,7 +863,7 @@ impl Brain {
                 pianist.refused_spots.insert(i, frame + REFUSED_FRAMES);
             }
             let text = format!("the engine refused a {name} at {}: the site was bad", self.world.grid(near));
-            let actor = self.actor_name(unit, kit);
+            let actor = self.actor_name(unit);
             let pianist = self.pianist.as_mut().expect("pianist mode");
             pianist.done.push(format!("{} {actor}: {text}", picture::clock(frame)));
             pianist.note(frame, text);

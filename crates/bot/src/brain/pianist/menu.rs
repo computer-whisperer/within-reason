@@ -134,8 +134,8 @@ impl Brain {
 
         // Builders.
         let under_fire: Vec<UnitId> = tick.events.iter().filter_map(|e| if let bot_protocol::Event::UnitDamaged { unit, .. } = e { Some(*unit) } else { None }).collect();
-        for unit in own.iter().filter(|u| !u.being_built && (u.def == kit.commander || kit.is_constructor(u.def))) {
-            let name = self.actor_name(unit.id, kit);
+        for unit in own.iter().filter(|u| !u.being_built && self.world.is_mobile_builder(u.def)) {
+            let name = self.actor_name(unit.id);
             let task = pianist.tasks.get(&unit.id).cloned();
             let last = pianist.last_asked.get(&name).copied().unwrap_or(i32::MIN / 2);
             // H-HANDS-STARTED: a build the engine has started (a nanoframe stands) is not put to the question until it
@@ -147,7 +147,7 @@ impl Brain {
             let started = match &task {
                 Some(Task::Build { def, near, started: true, .. }) => {
                     let share = own.iter().filter(|u| u.being_built && u.def == *def).map(|u| (u.pos.dist2d(*near), u.health / u.max_health.max(1.0))).min_by(|a, b| a.0.total_cmp(&b.0)).map_or(0.0, |(_, share)| share);
-                    Some((self.short_words(*def, kit), share))
+                    Some((self.short_words(*def), share))
                 }
                 _ => None,
             };
@@ -215,50 +215,61 @@ impl Brain {
                     offer("extractor", Pick::Extractor, format!("Build a metal extractor (income) at the free spot answered in `where`; the nearest free spots for it: {}.", list.join(", ")));
                 }
             }
-            // Wind and solar as two options (human-4: the player asked for solar in three packets and the one
-            // "generator" option was wind, chosen by the map's average): solar costs no energy to build and works
-            // when the store is empty; wind is cheap and needs energy to build.
-            let map = &self.world.hello.map;
-            let cost = |def: UnitDefId| self.world.def(def).map_or(0.0, |d| d.metal_cost);
-            // The count beside the option: the hands do not count what stands against a plan (comet-1: "three solar
-            // collectors, then the plant" got two, then extractors).
+            // Every building the player allows for this builder, else the faction's usual list, keyed by the game's
+            // internal name and worded from the definition and the glossary (docs/design/2026-09-22-full-roster.md).
+            // The whole build list goes into `options` for the policy, which may order anything the builder can
+            // build; Jev is asked only what is offered, so the vote is not split over forty options.
+            let build_list: Vec<UnitDefId> = self.world.def(unit.def).map(|d| d.build_options.clone()).unwrap_or_default();
+            let allowed = self.allowed_units(&name);
+            // A changed allowance restarts the builder's counts against its caps ("armllt:2": two more, then off).
+            if pianist.allowed_seen.get(&name) != allowed.as_ref() {
+                pianist.produced.retain(|(b, _), _| *b != unit.id);
+                match &allowed {
+                    Some(list) => pianist.allowed_seen.insert(name.clone(), list.clone()),
+                    None => pianist.allowed_seen.remove(&name),
+                };
+            }
+            let permits = |list: &[String], b: UnitDefId| {
+                let unit_name = self.name(b).to_string();
+                list.iter().map(|e| super::allowance(e)).any(|(n, cap)| n == unit_name && cap.is_none_or(|cap| pianist.produced.get(&(unit.id, unit_name.clone())).copied().unwrap_or(0) < cap))
+            };
+            let usual = super::super::roster::usual_menu(self.name(unit.def));
+            let offered: Vec<UnitDefId> = match &allowed {
+                Some(list) if build_list.iter().any(|b| permits(list, *b)) => build_list.iter().copied().filter(|b| permits(list, *b)).collect(),
+                _ => build_list.iter().copied().filter(|b| usual.contains(&self.name(*b))).collect(),
+            };
+            let reach = self.world.def(unit.def).map_or(100.0, |d| d.build_distance) + 300.0;
+            let factories = own.iter().filter(|u| self.world.is_factory_def(u.def)).count();
             let generators = format!(
                 "We have {} solar collectors and {} wind generators standing or started.",
                 own.iter().filter(|u| u.def == kit.solar || u.def == kit.advanced_solar).count(),
                 own.iter().filter(|u| u.def == kit.wind).count()
             );
-            let wind_words = format!("Build a wind generator beside itself ({:.0} metal; gives {:.0} to {:.0} energy a second here, {:.0} on average; building it draws energy). {generators} Our energy now: {energy_words}.", cost(kit.wind), map.wind_min, map.wind_max, (map.wind_min + map.wind_max) / 2.0);
-            let solar_words = format!("Build a solar collector beside itself ({:.0} metal; a steady 20 energy a second; building it draws no energy, so it is the generator to build while the store is empty). {generators} Our energy now: {energy_words}.", cost(kit.solar));
-            let factories = own.iter().filter(|u| kit.is_factory(u.def)).count();
-            let factory_words = match factories {
-                0 => "we have no factory yet: nothing makes soldiers or constructors without one".to_string(),
-                1 => "we have one factory already; a second doubles production when metal is banking up".to_string(),
-                n => format!("we have {n} factories already"),
-            };
-            for (key, def, words) in [
-                ("wind_generator", kit.wind, wind_words),
-                ("solar_collector", kit.solar, solar_words),
-                ("lab", kit.lab, format!("Build a bot lab (the factory for bots: cheap units that climb slopes) in the base yard; {:.0} metal. {factory_words}. Our metal now: {metal_words}.{}", cost(kit.lab), self.build_draw_words(unit, kit.lab, tick))),
-                ("vehicle_plant", kit.plant, format!("Build a vehicle plant (the factory for tanks: faster and tougher than bots on flat open ground, no slopes) in the base yard; {:.0} metal. {factory_words}. Our metal now: {metal_words}.{}", cost(kit.plant), self.build_draw_words(unit, kit.plant, tick))),
-                ("converter", kit.converter, "Build an energy-to-metal converter beside itself (1150 metal; only with a large energy surplus and no free spots).".to_string()),
-                ("advanced_lab", kit.advanced_lab, "Build the advanced (tier 2) bot lab in the base yard: 2600 metal, for a strong economy only.".to_string()),
-            ] {
-                if can(def) {
-                    offer(key, Pick::Building(def), words);
+            let mut off_menu: Vec<(String, Pick)> = Vec::new();
+            for def in &build_list {
+                if *def == kit.extractor {
+                    continue;
                 }
-            }
-            if can(kit.nano) && own.iter().any(|u| kit.is_factory(u.def) && !u.being_built) {
-                offer("construction_turret", Pick::Building(kit.nano), "Build a construction turret beside the nearest factory: adds build power to it (metal must be flowing in faster than the factory spends it).".into());
-            }
-            if can(kit.turret) {
-                offer("turret_at", Pick::BuildingAt(kit.turret), "Build a light laser turret (85 metal) at the place answered in `where`: repels lone raiders at an extractor.".into());
-            }
-            if can(kit.radar) {
-                offer("radar_at", Pick::BuildingAt(kit.radar), "Build a radar tower (60 metal, sees 2000) at the place answered in `where`.".into());
+                // A sea building only where there is water for it.
+                if super::glossary::entry(self.name(*def)).is_some_and(|e| e.has_flag("on_water")) && !self.world.water_within(unit.pos, reach) {
+                    continue;
+                }
+                let pick = if self.placed_at_place(*def) { Pick::BuildingAt(*def) } else { Pick::Building(*def) };
+                if offered.contains(def) {
+                    // A construction turret only beside a standing factory.
+                    let nano = self.world.def(*def).is_some_and(|d| d.speed == 0.0 && d.build_speed > 0.0 && d.build_options.is_empty());
+                    if nano && !own.iter().any(|u| self.world.is_factory_def(u.def) && !u.being_built) {
+                        continue;
+                    }
+                    let words = self.building_words(unit, *def, tick, &energy_words, &metal_words, factories, &generators);
+                    offer(self.name(*def), pick, words);
+                } else {
+                    off_menu.push((self.name(*def).to_string(), pick));
+                }
             }
             // Helping the lab is offered on a queue-ahead ask too, ordered by the bot as the build finishes (human-6: a
             // commander kept building by the queue-ahead was never offered it and did not help the lab for two minutes).
-            if let Some(lab) = own.iter().filter(|u| kit.is_factory(u.def) && !u.being_built).min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos))) {
+            if let Some(lab) = own.iter().filter(|u| self.world.is_factory_def(u.def) && !u.being_built).min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos))) {
                 offer("assist_lab", Pick::AssistLab(lab.id), if queue_ahead { "Then help the nearest factory (lab or plant) build: adds this builder's build power to whatever it makes, until told otherwise.".into() } else { "Help the nearest factory (lab or plant) build: adds this builder's build power to whatever it makes.".into() });
             }
             if let Some(field) = self.reclaim.fields.iter().filter(|f| f.metal >= 100.0 && f.at.dist2d(unit.pos) < RECLAIM_WITHIN).max_by(|a, b| a.metal.total_cmp(&b.metal)) {
@@ -267,7 +278,7 @@ impl Brain {
             let hurt = own
                 .iter()
                 .filter(|u| u.id != unit.id && !u.being_built && u.health < u.max_health * 0.7 && u.pos.dist2d(unit.pos) < REPAIR_WITHIN)
-                .filter(|u| u.def == kit.commander || self.world.def(u.def).is_some_and(|d| d.speed == 0.0))
+                .filter(|u| self.world.is_commander_def(u.def) || self.world.def(u.def).is_some_and(|d| d.speed == 0.0))
                 .min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)));
             if let Some(hurt) = hurt {
                 offer("repair", Pick::Repair(hurt.id), format!("Repair our {} at {} ({:.0}% health).", self.name(hurt.def), self.place_words(&picture.places, hurt.pos), hurt.health / hurt.max_health * 100.0));
@@ -290,6 +301,7 @@ impl Brain {
                     offer("attack", Pick::Attack(party.at, party.name.clone()), format!("Attack {} ({}, {:.0} away, {why}) now and come back to what it was doing: against this unit alone, {odds}; its guns beside our soldiers turn an even trade. Raiders outrun it: a party farther off is not offered.", party.name, party.composition, party.at.dist2d(unit.pos)));
                 }
             }
+            options.extend(off_menu);
             let instructions = json!(if let Some((what, share)) = started.as_ref().filter(|_| queue_ahead) {
                 format!(
                     "The {what} {name} is building is {:.0}% done. Given `actors.{name}` and the player's `instructions`, what should it do the moment that is finished? The answer is ordered behind it now, so it starts without a pause. Energy now: {energy_words}. Metal now: {metal_words}.",
@@ -300,7 +312,7 @@ impl Brain {
             });
             let mut questions = vec![
                 (format!("{name}.do"), Question::Choice { instructions, criteria }),
-                (format!("{name}.where"), where_question(&format!("Suppose {name} builds a turret or a radar, or walks somewhere: at which place? Choose the place the instructions and the situation call for."), &spots, false)),
+                (format!("{name}.where"), where_question(&format!("Suppose {name} builds something that stands at a place (a defence, a radar, a tier-2 extractor over a spot), or walks somewhere: at which place? Choose the place the instructions and the situation call for."), &spots, false)),
             ];
             if !spots.is_empty() {
                 questions.push((format!("{name}.where_extractor"), where_question(&format!("Suppose {name} builds a metal extractor next: at which of these free spots? Nearer is sooner; ground held by us is safer; enemies near a spot get the builder killed."), &spots, true)));
@@ -319,8 +331,8 @@ impl Brain {
         }
 
         // Factories: labs and plants.
-        for unit in own.iter().filter(|u| !u.being_built && kit.is_factory(u.def)) {
-            let name = self.actor_name(unit.id, kit);
+        for unit in own.iter().filter(|u| !u.being_built && self.world.is_factory_def(u.def)) {
+            let name = self.actor_name(unit.id);
             let queued = pianist.lab_queue.get(&unit.id).map_or(0, Vec::len);
             let last = pianist.last_asked.get(&name).copied().unwrap_or(i32::MIN / 2);
             // One order waiting at most (H-HANDS-MENU): with two, three constructors were ordered in six seconds before
@@ -329,9 +341,9 @@ impl Brain {
                 continue;
             }
             let Some(def) = self.world.def(unit.def) else { continue };
-            let extractors = own.iter().filter(|u| !u.being_built && kit.is_extractor(u.def)).count();
-            let constructors = own.iter().filter(|u| !u.being_built && kit.is_constructor(u.def)).count();
-            let constructors_coming = own.iter().filter(|u| u.being_built && kit.is_constructor(u.def)).count() + queued;
+            let extractors = own.iter().filter(|u| !u.being_built && self.world.is_extractor_def(u.def)).count();
+            let constructors = own.iter().filter(|u| !u.being_built && self.world.is_constructor_def(u.def)).count();
+            let constructors_coming = own.iter().filter(|u| u.being_built && self.world.is_constructor_def(u.def)).count() + queued;
             let coming_words = if constructors_coming > 0 { format!(" and {constructors_coming} more being made") } else { String::new() };
             let soldiers: Vec<&OwnUnit> = own.iter().filter(|u| !u.being_built && self.is_army(u, kit)).collect();
             let army_metal: f32 = soldiers.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
@@ -362,14 +374,14 @@ impl Brain {
                 options.insert(key.clone(), Pick::Unit(*buildable));
                 // The count in words beside the option: Jev does not count what it has against a plan
                 // (pianist-smoke-1: thirty constructors and no soldier by minute nine).
-                let have = if kit.is_constructor(*buildable) {
+                let have = if self.world.is_constructor_def(*buildable) {
                     format!(" We have {constructors} constructors already{coming_words}: {}.", super::picture::constructor_words(constructors + constructors_coming, extractors))
                 } else if self.world.def(*buildable).is_some_and(|d| d.weapon_count > 0 && d.speed > 0.0) {
                     format!(" Our soldiers: {}.", super::picture::soldier_words(soldiers.len(), army_metal))
                 } else {
                     String::new()
                 };
-                criteria.insert(key, json!(format!("Build a {}.{have}", self.unit_words(*buildable, kit))));
+                criteria.insert(key, json!(format!("Build a {}.{have}", self.unit_words(*buildable))));
             }
             let instructions = json!(format!(
                 "Given `actors.{name}`, `ours`, `economy` and the player's `instructions`, which unit should {name} build next? We have {constructors} constructors{coming_words} ({}) and {} soldiers ({}).{}",
@@ -532,16 +544,7 @@ impl Brain {
                         None => Ok((Pick::Extractor, spots.iter().map(|(i, _)| *i).collect(), None)),
                     }
                 }
-                "solar" => building(kit.solar),
-                "wind" => building(kit.wind),
-                "lab" => building(kit.lab),
-                "vehicle_plant" => building(kit.plant),
-                "converter" => building(kit.converter),
-                "advanced_lab" => building(kit.advanced_lab),
-                "construction_turret" => building(kit.nano),
-                "turret" => at_place(kit.turret),
-                "radar" => at_place(kit.radar),
-                "assist" => match own.iter().filter(|u| kit.is_factory(u.def)).min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos))) {
+                "assist" => match own.iter().filter(|u| self.world.is_factory_def(u.def)).min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos))) {
                     Some(factory) => Ok((Pick::AssistLab(factory.id), Vec::new(), None)),
                     None => {
                         // Nothing to help yet: the step waits at the front of the list.
@@ -549,7 +552,12 @@ impl Brain {
                         return None;
                     }
                 },
-                other => Err(format!("'{other}' is not a step the list knows")),
+                // Any unit by its internal name; one that stands at a place (a defence, a radar) needs the place.
+                other => match self.world.def_named(other) {
+                    Some(def) if self.placed_at_place(def) => at_place(def),
+                    Some(def) => building(def),
+                    None => Err(format!("'{other}' is not a unit name the game knows")),
+                },
             };
             match resolved {
                 Ok((pick, spots, where_)) => {
@@ -572,6 +580,65 @@ impl Brain {
                 }
             }
         }
+    }
+
+    /// A building that stands at the place answered in `where` rather than beside the builder or in the yard: a
+    /// defence, a radar, a jammer or sonar, a tier-2 extractor over a spot (the roster design, decision 3).
+    pub(super) fn placed_at_place(&self, def: UnitDefId) -> bool {
+        let Some(d) = self.world.def(def) else { return false };
+        let flagged = super::glossary::entry(&d.name).is_some_and(|e| e.has_flag("radar_jammer") || e.has_flag("sonar"));
+        d.speed == 0.0 && d.build_speed == 0.0 && d.build_options.is_empty() && (d.weapon_count > 0 || d.radar_range > 0.0 || d.extracts_metal > 0.0 || flagged)
+    }
+
+    /// The words on a building's option: the unit's words, where it goes, and what the picture knows that bears on
+    /// it (the generators standing, the factory count, the store's fate over the build, the energy and metal lines).
+    #[allow(clippy::too_many_arguments)]
+    fn building_words(&self, builder: &OwnUnit, def: UnitDefId, tick: &Tick, energy_words: &str, metal_words: &str, factories: usize, generators: &str) -> String {
+        let Some(d) = self.world.def(def) else { return String::new() };
+        let map = &self.world.hello.map;
+        let energy_maker = d.energy_make > 0.0 || d.energy_upkeep < 0.0 || d.wind_cap > 0.0;
+        let placing = if d.extracts_metal > 0.0 {
+            "over the extractor at the spot answered in `where`"
+        } else if self.placed_at_place(def) {
+            "at the place answered in `where`"
+        } else if !d.build_options.is_empty() {
+            "in the base yard"
+        } else if d.build_speed > 0.0 {
+            "beside the nearest factory: adds its build power to whatever that makes (metal must be flowing in faster than the factory spends it)"
+        } else {
+            "beside itself"
+        };
+        let mut tail: Vec<String> = Vec::new();
+        if d.wind_cap > 0.0 {
+            tail.push(format!("gives {:.0} to {:.0} energy a second here, {:.0} on average; building it draws energy", map.wind_min, map.wind_max, (map.wind_min + map.wind_max) / 2.0));
+        } else if energy_maker {
+            let steady = d.energy_make + (-d.energy_upkeep).max(0.0);
+            tail.push(format!("a steady {steady:.0} energy a second{}", if d.energy_cost <= 0.0 { "; building it draws no energy, so it is the generator to build while the store is empty" } else { "" }));
+        }
+        if energy_maker {
+            tail.push(generators.to_string());
+            tail.push(format!("Our energy now: {energy_words}"));
+        }
+        if !d.build_options.is_empty() {
+            tail.push(match factories {
+                0 => "we have no factory yet: nothing makes soldiers or constructors without one".to_string(),
+                1 => "we have one factory already; a second doubles production when metal is banking up".to_string(),
+                n => format!("we have {n} factories already"),
+            });
+            tail.push(format!("Our metal now: {metal_words}"));
+        }
+        if d.converter.is_some() {
+            tail.push("turns energy into metal: only with a large energy surplus and no free spots".to_string());
+        }
+        if d.metal_storage > 0.0 || d.energy_storage > 0.0 {
+            tail.push(format!("adds {:.0} metal and {:.0} energy to what we can store", d.metal_storage, d.energy_storage));
+        }
+        if d.radar_range > 0.0 {
+            tail.push(format!("sees {:.0} around it", d.radar_range));
+        }
+        let draw = if !d.build_options.is_empty() || d.metal_cost >= 500.0 { self.build_draw_words(builder, def, tick) } else { String::new() };
+        let tail = if tail.is_empty() { String::new() } else { format!(" {}.", tail.join(". ")) };
+        format!("Build a {} {placing}.{tail}{draw}", self.unit_words(def))
     }
 
     fn build_draw_words(&self, builder: &OwnUnit, def: UnitDefId, tick: &Tick) -> String {

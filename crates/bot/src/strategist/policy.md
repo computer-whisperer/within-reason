@@ -46,14 +46,15 @@ substring test that treats nil as "", `starts(s, words)` likewise for a prefix.
 
 The orders: `return { [actor] = { ["do"] = option, where = place, whom = party, how_many = "2"|"4"|"8"|"half",
 where_scout = place }, ... }`. An actor not in the table keeps what it is doing (the hands' `continue`). `where` is a
-place name from `S.places` (for `extractor`, a free spot; for `fight_to`, `move_to`, `split`, `turret_at`, `radar_at`,
+place name from `S.places` (for `extractor`, a free spot; for `fight_to`, `move_to`, `split`, a building that stands at a place (`armllt`, `armrad`, `armmoho` over a spot),
 `walk_to`, the destination); `whom` is a party name from the actor's `enemies_near` or `enemies_at_our_extractors`
 (`party_1`...); `how_many` goes with `send_against` and `split`; `where_scout` with `scout`.
 
 The vocabulary (option names as the menus offer them; each actor's `options` this second is the truth): builders
-`extractor`, `wind_generator`, `solar_collector`, `lab`, `vehicle_plant`, `converter`, `advanced_lab`,
-`construction_turret`, `turret_at`, `radar_at`, `assist_lab`, `reclaim`, `repair`, `walk_to`, `retreat_home`,
-`attack`, `wait`, `continue`. Labs and plants: a unit name (`armflash`, `armstump`, `armcv`, ...) or `nothing`. Groups:
+`extractor` (with `where` a free spot), any building by its internal name (`armsolar`, `armvp`, `armllt`, `armfus`;
+the roster on your first report lists them all, and a builder's `options` carries its whole build list, the ones the
+hands are not offered marked so), `assist_lab`, `reclaim`, `repair`, `walk_to`, `retreat_home`, `attack`, `wait`,
+`continue`. Labs and plants: a unit name (`armflash`, `armstump`, `armcv`, ...) or `nothing`. Groups:
 `hold`, `move_to` (running from everything), `fight_to` (advancing as one, fighting everything on the way), `engage`
 (a party in sight), `retreat`, `split`, `send_against`, `scout`, `join_group_X`, `continue`.
 

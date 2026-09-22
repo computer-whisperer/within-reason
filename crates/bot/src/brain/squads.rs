@@ -252,14 +252,19 @@ impl Brain {
                 turret_within_300: turrets.iter().any(|t| t.dist2d(x.pos) < 300.0),
             })
             .collect();
-        // Every tier-1 factory's options, the plant's after the lab's (comet-1: the list was the bot lab's alone, and
-        // every `produce` naming a Blitz or a Mason was refused all game).
-        let mut buildable: Vec<(String, u32)> = [kit.lab, kit.plant]
-            .into_iter()
-            .filter_map(|factory| self.world.def(factory))
-            .flat_map(|factory| factory.build_options.iter().filter_map(|id| self.world.def(*id)).map(|d| (d.name.clone(), d.metal_cost as u32)))
+        // Everything a builder or factory of ours standing now can build (comet-1: the list was the bot lab's alone,
+        // and every `produce` naming a Blitz or a Mason was refused all game), and the whole roster the commander
+        // reaches by build lists (docs/design/2026-09-22-full-roster.md), each with its metal.
+        let mut buildable: Vec<(String, u32)> = own
+            .iter()
+            .filter(|u| !u.being_built)
+            .filter_map(|u| self.world.def(u.def))
+            .filter(|d| !d.build_options.is_empty())
+            .flat_map(|maker| maker.build_options.iter().filter_map(|id| self.world.def(*id)).map(|d| (d.name.clone(), d.metal_cost as u32)))
             .collect();
+        buildable.sort();
         buildable.dedup_by(|a, b| a.0 == b.0);
+        let roster: Vec<(String, u32)> = self.world.reachable_from(kit.commander).iter().filter_map(|id| self.world.def(*id)).map(|d| (d.name.clone(), d.metal_cost as u32)).collect();
         let enemy_extractors: Vec<Vec3> = self
             .enemy_buildings
             .values()
@@ -373,6 +378,7 @@ impl Brain {
             extractors,
             turrets: turrets.iter().map(|t| self.place(*t)).collect(),
             buildable,
+            roster,
             production_weights: self.production_weights.clone().into_iter().collect(),
             turret_requests_pending: self.turret_requests.len(),
             spot_plan: {

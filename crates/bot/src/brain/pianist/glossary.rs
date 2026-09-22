@@ -13,8 +13,6 @@ pub struct Entry {
     #[serde(default)]
     pub name: String,
     #[serde(default)]
-    pub faction: String,
-    #[serde(default)]
     pub tier: u8,
     #[serde(default)]
     pub class: String,
@@ -106,11 +104,6 @@ fn parse(text: &str) -> HashMap<String, Entry> {
 
 pub fn entry(internal: &str) -> Option<&'static Entry> {
     GLOSSARY.get(internal)
-}
-
-/// How many units the glossary knows.
-pub fn len() -> usize {
-    GLOSSARY.len()
 }
 
 #[cfg(test)]

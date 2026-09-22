@@ -8,6 +8,7 @@ use bot_protocol::{EnemyUnit, Event, OwnUnit, Tick, UnitDefId, Vec3};
 use serde_json::{Value, json};
 
 use super::super::roster::Kit;
+use super::glossary;
 use super::super::territory::Ground;
 use super::super::{Brain, FRAMES_PER_SECOND};
 use super::{GroupTask, Task};
@@ -136,118 +137,69 @@ pub(crate) fn distance_words(elmos: f32) -> &'static str {
 
 impl Brain {
     /// A unit type in a few words, for the menus and the picture.
-    pub(super) fn unit_words(&self, def: UnitDefId, kit: &Kit) -> String {
-        let name = self.name(def);
-        let metal = self.world.def(def).map_or(0.0, |d| d.metal_cost);
-        let role = if def == kit.commander {
-            "our commander: the strongest builder, a good fighter; the game is lost if it dies"
-        } else if def == kit.constructor {
-            "constructor: builds anything tier 1, repairs, reclaims; expands the economy"
-        } else if def == kit.vehicle_constructor {
-            "constructor vehicle: builds anything tier 1, repairs, reclaims; faster than the bot on flat ground"
-        } else if def == kit.raider {
-            "raider: fast and light, kills builders, extractors and lone turrets, loses to line units"
-        } else if def == kit.line {
-            "line unit: wins most tier-1 fights at equal metal, slow"
-        } else if def == kit.skirmisher {
-            "rocket skirmisher: outranges turrets, loses to anything that closes on it"
-        } else if def == kit.second {
-            "brawler: tough close fighter"
-        } else if def == kit.artillery {
-            "artillery: long range, needs something in front of it"
-        } else if def == kit.resurrector {
-            "resurrection bot: raises and reclaims wrecks, cannot fight"
-        } else if def == kit.advanced_constructor {
-            "advanced constructor: upgrades extractors, builds tier 2"
-        } else if def == kit.extractor {
-            "metal extractor"
-        } else if def == kit.solar {
-            "solar collector: 20 energy a second"
-        } else if def == kit.wind {
-            "wind generator: energy with the wind"
-        } else if def == kit.lab {
-            "bot lab: the factory for bots"
-        } else if def == kit.plant {
-            "vehicle plant: the factory for tanks"
-        } else if def == kit.turret {
-            "light laser turret"
-        } else if def == kit.radar {
-            "radar tower: sees 2000 around it"
-        } else if def == kit.nano {
-            "construction turret: adds build power to the lab beside it"
-        } else if def == kit.converter {
-            "energy-to-metal converter"
-        } else if def == kit.advanced_lab {
-            "advanced bot lab: tier 2"
-        } else if let Some((_, role)) = vehicle_words(name) {
-            role
-        } else {
-            "unit"
+    /// A definition's role in a word or two: the glossary's class, else read off the definition.
+    pub(super) fn class_words(&self, def: UnitDefId) -> String {
+        if let Some(e) = glossary::entry(self.name(def)).filter(|e| !e.class.is_empty()) {
+            return e.class.clone();
+        }
+        let Some(d) = self.world.def(def) else { return "unit".into() };
+        let mobile = d.speed > 0.0;
+        let word = match () {
+            _ if self.world.is_commander_def(def) => "commander",
+            _ if d.extracts_metal > 0.0 => "metal extractor",
+            _ if !mobile && !d.build_options.is_empty() => "factory",
+            _ if !mobile && d.build_speed > 0.0 => "construction turret",
+            _ if !mobile && d.weapon_count > 0 => "defence",
+            _ if !mobile && d.radar_range > 0.0 => "radar",
+            _ if !mobile && d.converter.is_some() => "energy converter",
+            _ if !mobile && (d.energy_make > 0.0 || d.energy_upkeep < 0.0 || d.wind_cap > 0.0) => "energy building",
+            _ if !mobile && (d.metal_storage > 0.0 || d.energy_storage > 0.0) => "storage",
+            _ if !mobile => "building",
+            _ if d.build_speed > 0.0 => "constructor",
+            _ if d.weapon_count > 0 => "soldier",
+            _ => "unit",
         };
-        format!("{name} ({role}; {metal:.0} metal)")
+        word.to_string()
+    }
+
+    /// A unit for a menu line or an actor's `is`: "Pawn (armpw; raider bot, 54 metal): gloss".
+    pub(super) fn unit_words(&self, def: UnitDefId) -> String {
+        let internal = self.name(def);
+        let metal = self.world.def(def).map_or(0.0, |d| d.metal_cost);
+        match glossary::entry(internal) {
+            Some(e) if !e.name.is_empty() => {
+                let gloss = if e.gloss.is_empty() { String::new() } else { format!(": {}", e.gloss) };
+                format!("{} ({internal}; {}, {metal:.0} metal){gloss}", e.name, if e.class.is_empty() { self.class_words(def) } else { e.class.clone() })
+            }
+            _ if self.world.is_commander_def(def) => format!("{internal} (our commander; the strongest builder, a good fighter; the game is lost if it dies)"),
+            _ => format!("{internal} ({}; {metal:.0} metal)", self.class_words(def)),
+        }
+    }
+
+    /// A type in the picture's prose: "Solar Collector (armsolar)", or the internal name and its class.
+    pub(super) fn short_words(&self, def: UnitDefId) -> String {
+        let internal = self.name(def);
+        match glossary::entry(internal) {
+            Some(e) if !e.name.is_empty() => format!("{} ({internal})", e.name),
+            _ => format!("{internal} ({})", self.class_words(def)),
+        }
     }
 
     fn composition_words(&self, units: &[&OwnUnit]) -> String {
-        let mut counts: BTreeMap<&str, usize> = BTreeMap::new();
+        let mut counts: BTreeMap<String, usize> = BTreeMap::new();
         for unit in units {
-            *counts.entry(self.name(unit.def)).or_default() += 1;
+            *counts.entry(self.short_words(unit.def)).or_default() += 1;
         }
         counts.iter().map(|(name, n)| format!("{n} {name}")).collect::<Vec<_>>().join(", ")
     }
 
-    /// A type's role in a word or two, for the picture (the internal name means nothing to a reader).
-    pub(super) fn short_words(&self, def: UnitDefId, kit: &Kit) -> String {
-        let word = if def == kit.commander {
-            "commander"
-        } else if def == kit.constructor {
-            "constructor"
-        } else if def == kit.extractor {
-            "extractor"
-        } else if def == kit.advanced_extractor {
-            "advanced extractor"
-        } else if def == kit.solar || def == kit.advanced_solar {
-            "solar collector"
-        } else if def == kit.wind {
-            "wind generator"
-        } else if def == kit.lab {
-            "lab"
-        } else if def == kit.plant {
-            "vehicle plant"
-        } else if def == kit.vehicle_constructor {
-            "constructor vehicle"
-        } else if def == kit.advanced_lab {
-            "advanced lab"
-        } else if def == kit.turret {
-            "light turret"
-        } else if def == kit.radar {
-            "radar"
-        } else if def == kit.nano {
-            "construction turret"
-        } else if def == kit.converter {
-            "converter"
-        } else if def == kit.raider {
-            "raider"
-        } else if def == kit.line {
-            "line unit"
-        } else if def == kit.skirmisher {
-            "skirmisher"
-        } else if def == kit.second {
-            "brawler"
-        } else if def == kit.resurrector {
-            "resurrection bot"
-        } else if let Some((word, _)) = vehicle_words(self.name(def)) {
-            word
-        } else {
-            return self.name(def).to_string();
-        };
-        format!("{} ({word})", self.name(def))
-    }
-
-    /// The player's production whitelist for a lab (H-HANDS-PRODUCE): the lab's own, else `all`, else none.
-    pub(super) fn allowed_units(&self, lab: &str) -> Option<Vec<String>> {
+    /// The player's whitelist for an actor (`produce`, H-HANDS-PRODUCE): its own, else `all_builders` for a builder,
+    /// else `all`, else none.
+    pub(super) fn allowed_units(&self, actor: &str) -> Option<Vec<String>> {
         let shared = self.strategist.as_ref()?;
         let allowed = shared.allowed.lock().unwrap();
-        allowed.get(lab).or_else(|| allowed.get("all")).cloned()
+        let builder = actor == "commander" || actor.starts_with("constructor_");
+        allowed.get(actor).or_else(|| if builder { allowed.get("all_builders") } else { None }).or_else(|| allowed.get("all")).cloned()
     }
 
     /// The named place nearest `pos`, with its grid cell, or the grid cell alone.
@@ -345,13 +297,13 @@ impl Brain {
             .map(|(d, p)| format!("{} ({}) {:.0} away", p.name, p.composition, d))
     }
 
-    fn task_words(&self, task: Option<&Task>, unit: &OwnUnit, places: &[Place], frame: i32, kit: &Kit) -> String {
+    fn task_words(&self, task: Option<&Task>, unit: &OwnUnit, places: &[Place], frame: i32) -> String {
         let ago = |since: i32| format!("{} s ago", (frame - since) / FRAMES_PER_SECOND);
         match task {
             None if unit.idle => "idle, waiting for an order".into(),
             None => "finishing an order".into(),
             Some(Task::Build { def, near, started, ordered, .. }) => {
-                let what = self.short_words(*def, kit);
+                let what = self.short_words(*def);
                 let walk = unit.pos.dist2d(*near);
                 if *started {
                     format!("building a {what} at {}, ordered {}", self.place_words(places, *near), ago(*ordered))
@@ -474,7 +426,7 @@ impl Brain {
                     let beside: Vec<String> = own
                         .iter()
                         .filter(|u| !kit.is_extractor(u.def) && u.pos.dist2d(spot) < 200.0 && self.world.def(u.def).is_some_and(|d| d.speed == 0.0))
-                        .map(|u| format!("our {}{}", self.short_words(u.def, kit), if u.being_built { " (being built)" } else { "" }))
+                        .map(|u| format!("our {}{}", self.short_words(u.def), if u.being_built { " (being built)" } else { "" }))
                         .collect();
                     let beside_words = if beside.is_empty() { String::new() } else { format!(" (beside it: {})", beside.join(", ")) };
                     if let Some(seen) = their_spot(spot) {
@@ -485,7 +437,7 @@ impl Brain {
                     } else {
                         let taker = pianist.tasks.iter().find_map(|(id, t)| matches!(t, Task::Build { spot: Some(s), .. } if *s == i).then_some(*id));
                         match taker {
-                            Some(id) => format!("free metal spot, {} is on its way to take it{beside_words}", self.actor_name(id, kit)),
+                            Some(id) => format!("free metal spot, {} is on its way to take it{beside_words}", self.actor_name(id)),
                             None => format!("free metal spot{beside_words}"),
                         }
                     }
@@ -544,15 +496,15 @@ impl Brain {
             .take(3)
             .map(|f| format!("{:.0} metal of wrecks at {}{}", f.metal, self.place_words(&places, f.at), if f.safe { "" } else { " (not safe)" }))
             .collect();
-        let extractors = count(&|u| kit.is_extractor(u.def));
-        let constructors = count(&|u| kit.is_constructor(u.def));
+        let extractors = count(&|u| self.world.is_extractor_def(u.def));
+        let constructors = count(&|u| self.world.is_constructor_def(u.def));
         let ours = json!({
             "extractors": extractors,
-            "labs": count(&|u| kit.is_factory(u.def)),
+            "labs": count(&|u| self.world.is_factory_def(u.def)),
             "constructors": format!("{constructors}: {}", constructor_words(constructors, extractors)),
-            "turrets": count(&|u| u.def == kit.turret),
-            "radars": count(&|u| u.def == kit.radar),
-            "generators": count(&|u| u.def == kit.solar || u.def == kit.wind || u.def == kit.advanced_solar),
+            "turrets": count(&|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0 && d.weapon_count > 0)),
+            "radars": count(&|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0 && d.radar_range > 0.0)),
+            "generators": count(&|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0 && (d.energy_make > 0.0 || d.energy_upkeep < 0.0 || d.wind_cap > 0.0))),
             "soldiers": format!("{}: {} worth {:.0} metal ({})", soldier_words(soldiers.len(), army_metal), soldiers.len(), army_metal.max(0.0), self.composition_words(&soldiers)),
             "wrecks": wreck_fields,
         });
@@ -573,7 +525,7 @@ impl Brain {
                 };
                 let near_ours = own
                     .iter()
-                    .filter(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0) || u.def == kit.commander || kit.is_constructor(u.def))
+                    .filter(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0) || self.world.is_mobile_builder(u.def))
                     .map(|u| (u.pos.dist2d(p.at), u))
                     .filter(|(d, _)| *d < NEAR)
                     .min_by(|a, b| a.0.total_cmp(&b.0))
@@ -606,21 +558,21 @@ impl Brain {
         });
         let mut actors: BTreeMap<String, Value> = BTreeMap::new();
         for unit in own.iter().filter(|u| !u.being_built) {
-            let builder = unit.def == kit.commander || kit.is_constructor(unit.def);
-            let lab = kit.is_factory(unit.def);
+            let builder = self.world.is_mobile_builder(unit.def);
+            let lab = self.world.is_factory_def(unit.def);
             if !builder && !lab {
                 continue;
             }
-            let name = self.actor_name(unit.id, kit);
+            let name = self.actor_name(unit.id);
             let mut entry = json!({
-                "is": self.unit_words(unit.def, kit),
+                "is": self.unit_words(unit.def),
                 "at": self.place_words(&places, unit.pos),
             });
             if builder {
                 entry["health"] = json!(format!("{} ({:.0}%)", health_words(unit.health / unit.max_health), unit.health / unit.max_health * 100.0));
-                entry["doing"] = json!(self.task_words(pianist.tasks.get(&unit.id), unit, &places, frame, kit));
+                entry["doing"] = json!(self.task_words(pianist.tasks.get(&unit.id), unit, &places, frame));
                 if let Some(next) = pianist.queued.get(&unit.id) {
-                    entry["next"] = json!(format!("queued to start the moment this is done: {}", self.task_words(Some(next), unit, &places, frame, kit)));
+                    entry["next"] = json!(format!("queued to start the moment this is done: {}", self.task_words(Some(next), unit, &places, frame)));
                 }
                 if let Some(steps) = pianist.scripts.get(&name).filter(|s| !s.is_empty()) {
                     entry["list"] = json!(format!("the player's list, done by the bot without asking: {}", steps.iter().cloned().collect::<Vec<_>>().join(", ")));
@@ -638,15 +590,15 @@ impl Brain {
                 let queue = pianist.lab_queue.get(&unit.id).map(Vec::as_slice).unwrap_or_default();
                 // What stands on its pad now (the queue holds only what is not yet started, human-6: "building "
                 // with the queue empty and a Grunt on the pad).
-                let on_pad = own.iter().filter(|u| u.being_built && u.pos.dist2d(unit.pos) < 120.0 && self.world.def(u.def).is_some_and(|d| d.speed > 0.0)).map(|u| format!("{} ({:.0}% built)", self.short_words(u.def, kit), u.health / u.max_health.max(1.0) * 100.0)).next();
+                let on_pad = own.iter().filter(|u| u.being_built && u.pos.dist2d(unit.pos) < 120.0 && self.world.def(u.def).is_some_and(|d| d.speed > 0.0)).map(|u| format!("{} ({:.0}% built)", self.short_words(u.def), u.health / u.max_health.max(1.0) * 100.0)).next();
                 entry["doing"] = json!(match (on_pad, queue.is_empty()) {
                     (None, true) if unit.idle => "idle: building nothing".to_string(),
                     (None, true) => "starting a unit".to_string(),
-                    (None, false) => format!("building {}", queue.iter().map(|(def, _)| self.short_words(*def, kit)).collect::<Vec<_>>().join(" then ")),
+                    (None, false) => format!("building {}", queue.iter().map(|(def, _)| self.short_words(*def)).collect::<Vec<_>>().join(" then ")),
                     (Some(now), true) => format!("building a {now}"),
-                    (Some(now), false) => format!("building a {now}, then {}", queue.iter().map(|(def, _)| self.short_words(*def, kit)).collect::<Vec<_>>().join(" then ")),
+                    (Some(now), false) => format!("building a {now}, then {}", queue.iter().map(|(def, _)| self.short_words(*def)).collect::<Vec<_>>().join(" then ")),
                 });
-                let coming = own.iter().filter(|u| u.being_built && kit.is_constructor(u.def)).count() + queue.iter().filter(|(def, _)| kit.is_constructor(*def)).count();
+                let coming = own.iter().filter(|u| u.being_built && self.world.is_constructor_def(u.def)).count() + queue.iter().filter(|(def, _)| self.world.is_constructor_def(*def)).count();
                 entry["we_have"] = json!(format!("constructors {constructors}{} ({}); soldiers {} ({})", if coming > 0 { format!(" and {coming} being made") } else { String::new() }, constructor_words(constructors + coming, extractors), soldiers.len(), soldier_words(soldiers.len(), army_metal)));
                 if let Some(list) = self.allowed_units(&name) {
                     let words: Vec<String> = list
@@ -656,9 +608,9 @@ impl Brain {
                             let def = self.world.def_named(n)?;
                             let made = pianist.produced.get(&(unit.id, n.to_string())).copied().unwrap_or(0);
                             Some(match cap {
-                                Some(cap) if made >= cap => format!("{} (all {cap} allowed made: no more)", self.short_words(def, kit)),
-                                Some(cap) => format!("{} ({} more allowed)", self.short_words(def, kit), cap - made),
-                                None => self.short_words(def, kit),
+                                Some(cap) if made >= cap => format!("{} (all {cap} allowed made: no more)", self.short_words(def)),
+                                Some(cap) => format!("{} ({} more allowed)", self.short_words(def), cap - made),
+                                None => self.short_words(def),
                             })
                         })
                         .collect();
@@ -764,29 +716,15 @@ impl Brain {
     }
 
     /// How an actor is named in the picture and the questions.
-    pub(super) fn actor_name(&self, unit: bot_protocol::UnitId, kit: &Kit) -> String {
+    pub(super) fn actor_name(&self, unit: bot_protocol::UnitId) -> String {
+        // By what the definition is, not by the Kit: a captured factory of the other faction is played like ours.
         match self.known_units.get(&unit).map(|(def, _)| *def) {
-            Some(def) if def == kit.commander => "commander".into(),
-            Some(def) if def == kit.plant => format!("plant_{}", unit.0),
-            Some(def) if def == kit.lab || def == kit.advanced_lab => format!("lab_{}", unit.0),
+            Some(def) if self.world.is_commander_def(def) => "commander".into(),
+            Some(def) if self.world.is_factory_def(def) && self.name(def).ends_with("vp") => format!("plant_{}", unit.0),
+            Some(def) if self.world.is_factory_def(def) && self.name(def).contains("lab") => format!("lab_{}", unit.0),
+            Some(def) if self.world.is_factory_def(def) => format!("factory_{}", unit.0),
             _ => format!("constructor_{}", unit.0),
         }
     }
 }
 
-/// The tier-1 vehicles by name: a short word for the picture and a role for the menu (the kit names no vehicle but
-/// the plant and its constructor; the plant offers whatever the game lets it build). Numbers from the unit files.
-fn vehicle_words(name: &str) -> Option<(&'static str, &'static str)> {
-    Some(match name {
-        "armfav" | "corfav" => ("scout car", "scout car: very fast, almost unarmed; sees for the army"),
-        "armflash" | "corgator" => ("raider tank", "raider tank: fast, kills builders and extractors, loses to tanks and turrets"),
-        "armstump" | "corraid" => ("tank", "tank: the plant's line unit, wins tier-1 fights at equal metal; 350 range, short of a light turret's 430"),
-        "armjanus" => ("rocket tank", "rocket tank: a heavy burst at 380 range, slow to reload"),
-        "corlevlr" => ("assault tank", "assault tank: a heavy short-range shot, slow"),
-        "armsam" | "cormist" => ("rocket vehicle", "rocket vehicle: 700 range, outranges turrets, weak up close"),
-        "armart" | "corwolv" => ("artillery vehicle", "artillery vehicle: 710 range, needs something in front of it"),
-        "armpincer" | "corgarp" => ("amphibious tank", "amphibious tank: crosses water; a weaker tank on land"),
-        "armbeaver" | "cormuskrat" => ("amphibious constructor", "amphibious constructor: builds on water and land, slow"),
-        _ => return None,
-    })
-}

@@ -133,11 +133,14 @@ fn tool_list(mode: Mode) -> Value {
             { "name": "situation",
               "description": "The picture your hands read this second, exactly as Jev sees it (without your instructions and the standing rules): economy, ours, enemy, places by name, every actor with what it is doing, recent events. You are sent a summary of it at the start of every turn; call this to read the whole picture, or a place's entry by name.",
               "inputSchema": { "type": "object", "properties": {}, "additionalProperties": false } },
+            { "name": "units",
+              "description": "The glossary entry for units by internal name, ours or the opponent's (the roster on your first report lists ours; sightings and losses name theirs): what it is for, what it beats and loses to, when to build it, its numbers. Several names at once.",
+              "inputSchema": { "type": "object", "additionalProperties": false, "required": ["names"], "properties": { "names": { "type": "array", "items": { "type": "string" }, "minItems": 1 } } } },
             { "name": "instruct",
               "description": format!("Your standing instructions to your hands: the whole packet, replacing the last one. Jev reads it every second beside the picture and picks each actor's next action from a menu, so write it as standing orders in plain words: the build order per builder as a sequence, what the lab makes and when that changes, where each group stands, when it engages, scouts and attacks, what to do about raids. Name places as the picture does (home, enemy_base, spot_N, passage_N, and any place you marked with `mark`; a spot or passage you name here is always on your hands' menu, however far) and groups as group_A, group_B. No arithmetic for the hands to do: say \"when we have about ten soldiers\", not a formula. At most {INSTRUCTIONS_LIMIT} characters."),
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string" } } } },
             { "name": "queue",
-              "description": "A builder's build list, done exactly and in order by the bot itself without asking your hands: an object of builder name (commander, constructor_N) to a list of steps, or null (or an empty list) to cancel its list. Steps: \"extractor spot_N\" (or \"extractor\" for the nearest free spot), \"solar\", \"wind\", \"lab\", \"vehicle_plant\", \"converter\", \"advanced_lab\", \"construction_turret\", \"turret <place>\", \"radar <place>\", \"assist\" (help the nearest factory, standing or being built: the last step of an opening). Each step is ordered when the one before is 60% built, so nothing idles; a step that cannot be done (the spot taken, a place unknown, a building this builder cannot make) is skipped and said in the hands' report. While a list runs the builder is off your hands' menu unless an enemy is on it; your instructions take over when the list is done. This is how an opening is made to happen as written: the hands do not follow a sequence (comet-1, comet-2: 'three solars, then the plant' got extractors and the plant at 1:45).",
+              "description": "A builder's build list, done exactly and in order by the bot itself without asking your hands: an object of builder name (commander, constructor_N) to a list of steps, or null (or an empty list) to cancel its list. Steps: \"extractor spot_N\" (or \"extractor\" for the nearest free spot), any building by its internal name as the roster lists it (\"armsolar\", \"armvp\", \"armnanotc\", \"armfus\"), one that stands at a place with the place after it (\"armllt spot_3\", \"armrad home\", \"armmoho spot_3\" over our extractor there), \"assist\" (help the nearest factory, standing or being built: the last step of an opening). Each step is ordered when the one before is 60% built, so nothing idles; a step that cannot be done (the spot taken, a place unknown, a building this builder cannot make) is skipped and said in the hands' report. While a list runs the builder is off your hands' menu unless an enemy is on it; your instructions take over when the list is done. This is how an opening is made to happen as written: the hands do not follow a sequence (comet-1, comet-2: 'three solars, then the plant' got extractors and the plant at 1:45).",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "null" } ] }, "description": "Builder name to steps, or null." } },
             { "name": "lane",
               "description": "Which footwork rules your hands' code applies to a group's soldiers between your hands' orders, per group name or for \"all\": \"raw\" (none: the group's orders reach the engine exactly as given), \"on\" (all of them, the default), or a list of the rules to keep. The rules: flee (a soldier steps out of the reach of a turret or a fight it was not sent against, or one it would die in), fan (spreads out under a commander's D-gun), focus (soldiers standing together shoot one target at a time), kite (a soldier that outranges its enemy steps back while reloading), march (an advancing group waits for its stragglers so it arrives together), follow (an engaging group is re-sent after its party as it moves). A setting stands until you change it; the group's picture entry shows it when it is not the default.",
@@ -146,8 +149,8 @@ fn tool_list(mode: Mode) -> Value {
               "description": "Name a place of your own for your hands: an object of name to [x, z] map coordinates or a grid cell (\"E7\": its centre), or null to forget it. A marked place joins the picture's places at once, so instructions can send groups and builders there (\"group_B: advance to south_gate\"), and its entry says whose ground it is and what enemy is near. Names are lower-case words with underscores; home, enemy_base, spot_N, passage_N and group_N are taken. Any spot or passage you name in the packet is on your hands' menu already, however far; mark is for places that are not spots.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }, { "type": "string" }, { "type": "null" } ] }, "description": "Place name to [x, z], a grid cell, or null." } },
             { "name": "produce",
-              "description": "What each factory may build: an object of factory name (lab_N or plant_N) or \"all\" to a list of unit names (as the report writes them: armpw, armham, armck), or null to lift the restriction. A name with a count after a colon (armck:1) is allowed that many more times from now and then drops off the list by itself: the way to say 'one constructor, then raiders' to hands that cannot count. A lab with a list is offered only those units and nothing else, every time it is asked; your instructions still say which of them and when. Use it when the packet's words are not getting the mix you want. A list naming nothing the lab can build leaves that lab unrestricted; the lab's entry in the picture shows its list.",
-              "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "null" } ] }, "description": "Factory name (lab_N or plant_N) or \"all\" to unit names, or null." } },
+              "description": "What each factory or builder may build: an object of actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" (every commander and constructor) or \"all\" (everyone) to a list of unit names (as the roster writes them: armpw, armham, armck, armfus), or null to lift the restriction. A name with a count after a colon (armck:1) is allowed that many more times from now and then drops off the list by itself: the way to say 'one constructor, then raiders' to hands that cannot count. A lab with a list is offered only those units and nothing else, every time it is asked; your instructions still say which of them and when. A builder without a list is offered the usual buildings (generators, factories, light and heavy turrets, radar, storage, the tier-2 lab and extractor, fusion); a list replaces that, so a fusion reactor, an aircraft plant or a jammer from a constructor is asked for here. Use it when the packet's words are not getting the mix you want. A list naming nothing the actor can build leaves it unrestricted; the actor's entry in the picture shows its list. Your policy is not bound by lists: it may order anything a builder can build.",
+              "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "null" } ] }, "description": "Actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" or \"all\" to unit names, or null." } },
             { "name": "policy",
               "description": "Your Lua policy (with `bot --policy`): the script your hands run once a game second over the picture, in place of, or beside, Jev's reading of your packet. {\"set\": script} replaces the whole policy and starts a fresh Lua state; {\"amend\": chunk} runs the chunk in the living state, so each top-level function or table it defines replaces the one of that name in place and the rest stands (globals persist); {} returns the policy in force. A parse error is answered at once; runtime errors and the orders given come in your report. The script defines decide(S) and returns { [actor] = { [\"do\"] = option, where = place, whom = party, how_many = \"2\"|\"4\"|\"8\"|\"half\", where_scout = place } }; only an option in that actor's S.actors[name].options can be ordered; an actor left out keeps its course.",
               "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "set": { "type": "string" }, "amend": { "type": "string" } } } },
@@ -369,8 +372,28 @@ fn call_tool(name: &str, arguments: &Value, shared: &Shared, mode: Mode) -> Resu
                 }
             }
         }
+        "units" => {
+            let names = arguments["names"].as_array().ok_or("units takes {\"names\": [\"armpw\", ...]}")?;
+            let mut lines: Vec<String> = Vec::new();
+            for name in names {
+                let name = name.as_str().ok_or("names are strings")?;
+                lines.push(match crate::brain::pianist::glossary::entry(name) {
+                    Some(e) => format!(
+                        "{} ({name}): {}, tier {}{}. {}. {}",
+                        e.name, e.class, e.tier,
+                        if e.made_by.is_empty() { String::new() } else { format!(", made by {}", e.made_by.join(", ")) },
+                        e.numbers(),
+                        if e.prose.is_empty() { e.gloss.clone() } else { e.prose.clone() }
+                    ),
+                    None => format!("{name}: not in the glossary"),
+                });
+            }
+            Ok(lines.join("\n"))
+        }
         "queue" => {
-            const STEPS: [&str; 11] = ["extractor", "solar", "wind", "lab", "vehicle_plant", "converter", "advanced_lab", "construction_turret", "turret", "radar", "assist"];
+            // A step is an extractor, help, or any unit the roster knows (the field's roster, when the bot has
+            // published one; before that any word, and the bot skips what it cannot do and says so).
+            let roster: Vec<String> = shared.field().roster.iter().map(|(name, _)| name.clone()).collect();
             let lists = arguments.as_object().filter(|o| !o.is_empty()).ok_or("queue takes an object: builder name (commander or constructor_N) to a list of steps, or null to cancel")?;
             let mut parsed: Vec<(String, Option<Vec<String>>)> = Vec::new();
             for (name, value) in lists {
@@ -394,11 +417,8 @@ fn call_tool(name: &str, arguments: &Value, shared: &Shared, mode: Mode) -> Resu
                         for step in &steps {
                             let mut words = step.split_whitespace();
                             let kind = words.next().unwrap_or_default();
-                            if !STEPS.contains(&kind) {
-                                return Err(format!("{name}: '{step}' is not a step; the steps are {}", STEPS.join(", ")));
-                            }
-                            if matches!(kind, "turret" | "radar") && words.next().is_none() {
-                                return Err(format!("{name}: '{step}' needs a place (turret spot_3, radar home)"));
+                            if !matches!(kind, "extractor" | "assist") && !roster.is_empty() && !roster.contains(&kind.to_string()) {
+                                return Err(format!("{name}: '{step}' is not a step; a step is extractor, assist, or a unit's internal name from the roster (armsolar, armllt spot_3)"));
                             }
                         }
                         Some(steps)
@@ -505,11 +525,11 @@ fn call_tool(name: &str, arguments: &Value, shared: &Shared, mode: Mode) -> Resu
         }
         "produce" => {
             let lists = arguments.as_object().filter(|o| !o.is_empty()).ok_or("produce takes an object: factory name (lab_N or plant_N) or \"all\" to a list of unit names (a name with :N caps it at N more), or null to lift it")?;
-            let known: Vec<String> = shared.field().buildable.iter().map(|(name, _)| name.clone()).collect();
+            let known: Vec<String> = shared.field().roster.iter().map(|(name, _)| name.clone()).collect();
             let mut parsed: Vec<(String, Option<Vec<String>>)> = Vec::new();
             for (name, value) in lists {
-                if name != "all" && !name.starts_with("lab_") && !name.starts_with("plant_") {
-                    return Err(format!("{name}: lists are by factory name (lab_N or plant_N) or \"all\""));
+                if !matches!(name.as_str(), "all" | "all_builders" | "commander") && !["lab_", "plant_", "factory_", "constructor_"].iter().any(|p| name.starts_with(p)) {
+                    return Err(format!("{name}: lists are by actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" or \"all\""));
                 }
                 let list = match value {
                     Value::Null => None,
@@ -520,7 +540,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Shared, mode: Mode) -> Resu
                         for unit in &units {
                             let (unit_name, cap) = crate::brain::pianist::allowance(unit);
                             if !known.is_empty() && !known.contains(&unit_name.to_string()) {
-                                return Err(format!("{unit_name} is not something our labs build; they build: {}", known.join(", ")));
+                                return Err(format!("{unit_name} is not a unit of our roster (internal names as the roster lists them)"));
                             }
                             if unit.contains(':') && cap.is_none() {
                                 return Err(format!("{unit}: a count after the colon is a whole number of one or more (corck:1)"));
@@ -546,7 +566,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Shared, mode: Mode) -> Resu
                     }
                 }
             }
-            Ok(format!("{}; the labs see it from their next look", said.join("; ")))
+            Ok(format!("{}; they see it from their next look", said.join("; ")))
         }
         "squad" => squad(arguments, shared),
         "set_production" => {
@@ -691,7 +711,7 @@ mod tests {
     fn the_player_has_its_lever_and_none_of_the_commanders() {
         let names = |mode: Mode| tool_list(mode).as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap().to_string()).collect::<Vec<_>>();
         let player = names(Mode::Player);
-        assert_eq!(player, ["overview", "map", "situation", "instruct", "queue", "lane", "mark", "produce", "policy", "say", "orders", "wait", "note"]);
+        assert_eq!(player, ["overview", "map", "situation", "units", "instruct", "queue", "lane", "mark", "produce", "policy", "say", "orders", "wait", "note"]);
         let commander = names(Mode::Commander);
         assert!(commander.contains(&"squad".to_string()) && !commander.contains(&"instruct".to_string()));
         for tool in batchable(Mode::Player) {
@@ -702,17 +722,20 @@ mod tests {
         assert!(call_tool("instruct", &json!({ "text": "commander: build the lab first." }), &shared, Mode::Player).is_ok());
         assert_eq!(*shared.instructions.lock().unwrap(), "commander: build the lab first.");
         assert!(call_tool("instruct", &json!({ "text": "x".repeat(INSTRUCTIONS_LIMIT + 1) }), &shared, Mode::Player).is_err());
-        assert!(call_tool("queue", &json!({ "commander": ["extractor spot_45", "solar", "vehicle_plant", "assist"], "constructor_7": null }), &shared, Mode::Player).is_ok());
+        assert!(call_tool("queue", &json!({ "commander": ["extractor spot_45", "armsolar", "armvp", "assist"], "constructor_7": null }), &shared, Mode::Player).is_ok());
         assert_eq!(shared.queues.lock().unwrap().get("commander").cloned().flatten().map(|s| s.len()), Some(4));
         assert!(shared.queues.lock().unwrap().contains_key("constructor_7"));
-        assert!(call_tool("queue", &json!({ "commander": ["turret"] }), &shared, Mode::Player).is_err());
+        // With a roster published, a step must be a unit of it; without one any word passes and the bot skips it.
+        shared.publish_field(0, super::super::shared::Field { roster: vec![("armsolar".into(), 155), ("armllt".into(), 85)], ..Default::default() });
+        assert!(call_tool("queue", &json!({ "commander": ["turret spot_3"] }), &shared, Mode::Player).is_err());
+        assert!(call_tool("queue", &json!({ "commander": ["armllt spot_3", "armsolar"] }), &shared, Mode::Player).is_ok());
         // Every player tool but the readers and `orders` itself can be batched (comet-3: `queue` was refused by the
         // batch as "not a tool that can be batched" and the game ran without the list).
         for tool in ["instruct", "queue", "policy", "lane", "mark", "produce", "say", "note", "wait"] {
             assert!(batchable(Mode::Player).contains(&tool), "{tool}");
         }
-        assert!(orders(&json!({ "calls": [{ "tool": "queue", "arguments": { "commander": ["solar"] } }] }), &shared, Mode::Player).unwrap().contains("1 steps"));
-        assert!(call_tool("queue", &json!({ "group_A": ["solar"] }), &shared, Mode::Player).is_err());
+        assert!(orders(&json!({ "calls": [{ "tool": "queue", "arguments": { "commander": ["armsolar"] } }] }), &shared, Mode::Player).unwrap().contains("1 steps"));
+        assert!(call_tool("queue", &json!({ "group_A": ["armsolar"] }), &shared, Mode::Player).is_err());
         assert!(call_tool("queue", &json!({ "commander": ["windmill"] }), &shared, Mode::Player).is_err());
         // The shapes the model actually sent to cancel or replace a list (comet-5).
         for form in [json!({ "commander": "null" }), json!({ "commander": [] }), json!({ "commander": null })] {
@@ -767,6 +790,10 @@ mod tests {
         assert_eq!(crate::brain::pianist::allowance("armck:2"), ("armck", Some(2)));
         assert_eq!(crate::brain::pianist::allowance("armpw"), ("armpw", None));
         assert!(call_tool("produce", &json!({ "group_A": ["armpw"] }), &shared, Mode::Player).is_err());
+        assert!(call_tool("produce", &json!({ "commander": ["armfus:1"], "all_builders": ["armllt", "armsolar"] }), &shared, Mode::Player).is_ok());
+        assert_eq!(shared.allowed.lock().unwrap()["all_builders"], vec!["armllt".to_string(), "armsolar".to_string()]);
+        assert!(call_tool("units", &json!({ "names": ["armpw"] }), &shared, Mode::Player).is_ok());
+        assert!(call_tool("units", &json!({}), &shared, Mode::Player).is_err());
         assert!(call_tool("produce", &json!({ "all": "armpw" }), &shared, Mode::Player).is_err());
         assert!(call_tool("produce", &json!({ "lab_7": null }), &shared, Mode::Player).is_ok());
         assert!(!shared.allowed.lock().unwrap().contains_key("lab_7"));
