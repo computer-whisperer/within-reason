@@ -135,8 +135,14 @@ fn contact(briefing: &Briefing, field: &Field) -> Vec<String> {
     let mut lines = Vec::new();
     for cluster in &briefing.enemies_visible {
         lines.push(format!(
-            "enemy in sight: {} at {} ({}, {}), {} from home: {}",
-            cluster.units, cluster.at.grid, cluster.at.x, cluster.at.z, cluster.distance_from_home, counted(&cluster.composition)
+            "enemy in sight: {} at {} ({}, {}), {} from home: {}{}",
+            cluster.units,
+            cluster.at.grid,
+            cluster.at.x,
+            cluster.at.z,
+            cluster.distance_from_home,
+            counted(&cluster.composition),
+            cluster.killing.as_ref().map_or(String::new(), |(what, metal)| format!("; killing {what} ({metal:.0} metal) now"))
         ));
     }
     let threatened: Vec<String> = field

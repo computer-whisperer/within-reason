@@ -203,19 +203,21 @@ impl Brain {
         let (attackers, home_group): (Vec<&OwnUnit>, Vec<&OwnUnit>) =
             soldiers.iter().partition(|u| self.army.is_attacker(u.id));
 
-        let mut cells: BTreeMap<String, (Vec3, BTreeMap<&str, usize>, usize)> = BTreeMap::new();
+        let mut cells: BTreeMap<String, (Vec3, BTreeMap<&str, usize>, usize, Vec<UnitId>)> = BTreeMap::new();
         for enemy in &snapshot.enemies {
-            let cell = cells.entry(self.world.grid(enemy.pos)).or_insert((enemy.pos, BTreeMap::new(), 0));
+            let cell = cells.entry(self.world.grid(enemy.pos)).or_insert((enemy.pos, BTreeMap::new(), 0, Vec::new()));
             *cell.1.entry(enemy.def.map_or("unidentified", |def| self.name(def))).or_default() += 1;
             cell.2 += 1;
+            cell.3.push(enemy.id);
         }
         let enemies_visible = cells
             .into_values()
-            .map(|(pos, composition, units)| EnemyCluster {
+            .map(|(pos, composition, units, ids)| EnemyCluster {
                 at: self.place(pos),
                 units,
                 composition: composition.into_iter().map(|(name, n)| (name.to_string(), n)).collect(),
                 distance_from_home: pos.dist2d(self.home) as i32,
+                killing: self.killing_words(&ids),
             })
             .collect();
         let mut enemy_buildings_remembered: Vec<RememberedBuilding> = self

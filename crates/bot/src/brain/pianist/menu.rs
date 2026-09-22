@@ -20,6 +20,9 @@ const NEAR_SPOTS: usize = 6;
 const HOLD_REVIEW_FRAMES: i32 = 5 * FRAMES_PER_SECOND;
 /// A lab that answered "nothing" is not asked again for this long.
 const LAB_REVIEW_FRAMES: i32 = 3 * FRAMES_PER_SECOND;
+/// H-HANDS-PARTY-KILLING: how near a party shooting something of ours must be for the hold option to say that
+/// holding leaves it to die.
+const KILLER_REACH: f32 = 1200.0;
 /// Wrecks and things to repair within this of a builder are offered.
 const RECLAIM_WITHIN: f32 = 1800.0;
 const REPAIR_WITHIN: f32 = 1200.0;
@@ -437,7 +440,9 @@ impl Brain {
             // to 52 % right beside a base under attack, the party line alone hardly at all).
             let party_words = |p: &Party| format!("{} at {}, {} from this group ({:.0} away){}: {}", if p.has_commander { format!("THEIR COMMANDER, the unit whose death wins the game ({})", p.composition) } else { p.composition.clone() }, self.place_words(&picture.places, p.at), distance_words(p.at.dist2d(centre)), p.at.dist2d(centre), p.killing.as_ref().map_or(String::new(), |(what, metal)| format!(", killing {what} ({metal:.0} metal) now")), self.odds_words(&units, p, enemies));
             let parties_words: Vec<String> = picture.parties.iter().map(|p| format!("{}: {}", p.name, party_words(p))).collect();
-            let killers: Vec<&str> = picture.parties.iter().filter(|p| p.killing.is_some()).map(|p| p.name.as_str()).collect();
+            // Only a killer within reach of an answer (hands-2: the sentence named a raider 5,000 away killing one
+            // Blitz, and the group was asked to weigh that; within 1,200 it fought 63 asks of 85, beyond it held).
+            let killers: Vec<&str> = picture.parties.iter().filter(|p| p.killing.is_some() && p.at.dist2d(centre) <= KILLER_REACH).map(|p| p.name.as_str()).collect();
             let hold_words = match killers.as_slice() {
                 [] => "Stand where it is; fight whatever mobile comes within reach and step out of turret reach. Nothing beyond reach is protected by this.".to_string(),
                 names => format!("Stand where it is; fight whatever mobile comes within reach and step out of turret reach. Nothing beyond reach is protected by this. Holding now leaves what {} is killing to die.", names.join(" and ")),

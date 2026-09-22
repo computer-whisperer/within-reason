@@ -287,7 +287,7 @@ impl Brain {
 
     /// What the units `ids` have hit in the last seconds, buildings first, one entry per kind with its count, and the
     /// metal of the victims; nothing when they have hit nothing of ours.
-    fn killing_words(&self, ids: &[bot_protocol::UnitId]) -> Option<(String, f32)> {
+    pub(crate) fn killing_words(&self, ids: &[bot_protocol::UnitId]) -> Option<(String, f32)> {
         let mut victims: Vec<(bot_protocol::UnitId, UnitDefId)> = Vec::new();
         for h in self.hits.iter().filter(|h| ids.contains(&h.attacker)) {
             if !victims.iter().any(|(id, _)| *id == h.victim) {
