@@ -57,3 +57,10 @@ the policy would have won. A played game is the next step if the scripts hold up
 
 One Opus session per turn (claude-opus-5, effort low, the claude2 account, snapshot before and `--since` after);
 Lua runs are local and free. Game five: 51 turns, 1,100 decisions.
+
+## Other models
+
+`--model` picks the backend (`run/model_cli.py`: `claude -p` for Claude models, `codex exec` for OpenAI models) and
+`--out NAME` keeps each model's run in its own directory. Turns 0-12 of game five in amendment mode for sonnet,
+haiku, gpt-5.5, gpt-5.6-sol, gpt-5.6-luna, gpt-5.6-terra and gpt-6-astra, against the user's 5-second turn
+target: `docs/studies/policy-models.md`.
