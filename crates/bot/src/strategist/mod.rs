@@ -57,11 +57,13 @@ impl Mode {
 
     /// Read from the checkout at every session start (`crate::texts`): an edit needs no rebuild.
     fn system_prompt(self) -> String {
-        use crate::texts::{read, COMMANDER_BRIEF, COMMANDER_PROMPT, PLAYER_BRIEF, PLAYER_PROMPT, STRATEGIST_PROMPT};
+        use crate::texts::{read, COMMANDER_BRIEF, COMMANDER_PROMPT, PLAYER_BRIEF, PLAYER_PROMPT, POLICY_PROMPT, STRATEGIST_PROMPT};
         match self {
             Mode::Strategist => read(&STRATEGIST_PROMPT),
             // The role, then what the project knows (`docs/README.md`: the brief is rewritten from the knowledge base).
             Mode::Commander => read(&COMMANDER_PROMPT) + &read(&COMMANDER_BRIEF),
+            // The player's lever is the packet, or the Lua policy when the runtime is on (`bot --policy`).
+            Mode::Player if policy_mode() => read(&POLICY_PROMPT) + &read(&PLAYER_BRIEF),
             Mode::Player => read(&PLAYER_PROMPT) + &read(&PLAYER_BRIEF),
         }
     }
@@ -338,6 +340,17 @@ pub(crate) fn realtime() -> bool {
     std::env::var_os("WITHIN_REASON_REALTIME").is_some()
 }
 
+/// `bot --policy`: the player's lever is a Lua policy (its role text, its tool); set once at start.
+static POLICY_MODE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub fn set_policy_mode(on: bool) {
+    POLICY_MODE.store(on, std::sync::atomic::Ordering::Relaxed);
+}
+
+pub(crate) fn policy_mode() -> bool {
+    POLICY_MODE.load(std::sync::atomic::Ordering::Relaxed)
+}
+
 /// The commander is shown the picture outright (a tool call to look would double its turn), in full at the start of
 /// a session and as changes afterwards.
 fn commander_prompt(game_time: &str, headline: &str, shared: &Shared, seen: &mut report::Seen, fresh_session: bool) -> String {
@@ -375,6 +388,7 @@ fn player_prompt(game_time: &str, headline: &str, shared: &Shared, seen: &mut re
         let mut hands = shared.hands.lock().unwrap();
         let snapshot = hands.clone();
         hands.done.clear();
+        hands.policy_stats = Default::default();
         snapshot
     };
     let mut prompt = String::new();

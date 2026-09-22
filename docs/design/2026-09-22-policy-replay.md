@@ -97,3 +97,36 @@ The user's ruling on the targets (2026-09-22): Jev turns sub-second (they are, 2
 faster. The user's next interest: a real game, Opus against BARb easy with the policy and no Jev. Needed: the `mlua`
 runtime in the bot calling `decide` once a second and feeding the orders to `play_one` as scripted answers, a
 `policy` tool (set or amend, handler replaced in place, errors and orders in the turn report), a `--policy` switch.
+
+## The runtime (2026-09-22, the user: "replace in place and allow state; build it so that lua can plausibly run alongside jev, with opus sending commands to both")
+
+Target design, written before the build.
+
+- **Where it sits.** `brain/pianist/policy.rs`: a `Policy` (an `mlua` Lua 5.4 state, vendored) owned by the
+  `Pianist` beside the Jev client, which becomes optional. Each ask, after the picture and the menus are built, the
+  policy is called once with the picture as a table (`S`, exactly the replay harness's shape: the actors with their
+  `options` from the menus, `groups`, `places`, `economy`, `enemy`, `ours`). Its orders become synthetic answers
+  (`<actor>.do` chosen at probability one, plus `where`, `whom`, `how_many`, `where_scout`, `where_extractor`) and
+  the menus it ordered are played by `play_one` unchanged (the switch margin is passed by construction). The menus
+  it did not order go to Jev when Jev is on, and continue when it is off. So both hands can play at once, the
+  policy taking the actors it names, and the player commands both: `policy` for the script, `instruct` for Jev.
+- **Replace in place, allow state.** The Lua state lives for the game; globals persist between seconds and across
+  amendments. An amendment is executed in that state, so a redefined function or table replaces the old one at the
+  Lua level; the policy's text is kept as top-level blocks keyed by the name they define (`function NAME`,
+  `NAME = ...`; unnamed blocks keep their order), and an amendment's blocks replace the blocks of the same name, so
+  the text shown to the player stays flat. `set` replaces the whole script and starts a fresh state.
+- **An order equal to the actor's current task is continue**: a group already advancing to the place, a builder
+  already helping that factory or walking there; builds are covered by H-HANDS-STARTED.
+- **Feedback.** The pianist counts the policy's runs, errors (first text kept), orders by option and illegal orders
+  (an option the actor was not offered, a place not in the picture); the player's report carries one line of it
+  every turn and the policy in force at a session's first turn; the `policy` tool with no arguments returns the
+  text in force. The Jev log's `played` entries and the record's decisions carry source `policy`.
+- **The tool.** `policy { "set": script }` or `{ "amend": chunk }` (or `{}` to read); the chunk is syntax-checked
+  in the tool call so the player hears of a parse error at once; runtime errors come in the report. Batchable in
+  `orders`.
+- **Switches.** `bot --policy [--pianist]` and `arena --policy`: the policy runtime on; with `--pianist` too, Jev
+  beside it; `--player` needs one of them. The player's role text in policy mode is
+  `crates/bot/src/strategist/policy.md` (the replay's text adapted to the live tools) + the same brief.
+- **Not now:** realtime (the policy call is in the brain thread and takes milliseconds, so it is fine either way);
+  the global Nouls without Jev (no hands' wake); a time budget per call (a runaway script; `mlua`'s instruction
+  hook is the place if it is ever needed).

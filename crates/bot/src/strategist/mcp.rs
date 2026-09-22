@@ -148,10 +148,13 @@ fn tool_list(mode: Mode) -> Value {
             { "name": "produce",
               "description": "What each factory may build: an object of factory name (lab_N or plant_N) or \"all\" to a list of unit names (as the report writes them: armpw, armham, armck), or null to lift the restriction. A name with a count after a colon (armck:1) is allowed that many more times from now and then drops off the list by itself: the way to say 'one constructor, then raiders' to hands that cannot count. A lab with a list is offered only those units and nothing else, every time it is asked; your instructions still say which of them and when. Use it when the packet's words are not getting the mix you want. A list naming nothing the lab can build leaves that lab unrestricted; the lab's entry in the picture shows its list.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "null" } ] }, "description": "Factory name (lab_N or plant_N) or \"all\" to unit names, or null." } },
+            { "name": "policy",
+              "description": "Your Lua policy (with `bot --policy`): the script your hands run once a game second over the picture, in place of, or beside, Jev's reading of your packet. {\"set\": script} replaces the whole policy and starts a fresh Lua state; {\"amend\": chunk} runs the chunk in the living state, so each top-level function or table it defines replaces the one of that name in place and the rest stands (globals persist); {} returns the policy in force. A parse error is answered at once; runtime errors and the orders given come in your report. The script defines decide(S) and returns { [actor] = { [\"do\"] = option, where = place, whom = party, how_many = \"2\"|\"4\"|\"8\"|\"half\", where_scout = place } }; only an option in that actor's S.actors[name].options can be ordered; an actor left out keeps its course.",
+              "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "set": { "type": "string" }, "amend": { "type": "string" } } } },
             { "name": "say",
               "description": "Say something in the game's chat, to everyone playing. Short lines. The report shows what people say to you; when an experienced player offers advice or asks what you are doing, answer, and ask them what they would do: their feedback is what this project learns from.",
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "maxLength": 240 } } } },
-            orders(&["instruct", "lane", "mark", "produce", "say", "note", "wait"], "your instructions, footwork settings, marked places, what labs may build, a chat line, a note and when to be woken"),
+            orders(&["instruct", "queue", "policy", "lane", "mark", "produce", "say", "note", "wait"], "your instructions or policy, build lists, footwork settings, marked places, what labs may build, a chat line, a note and when to be woken"),
             wait("A group of ours starts fighting an enemy party.", "Woken when this many soldiers of each named unit type are alive, e.g. {\"armham\": 6}. {} clears it."),
             note,
         ]),
@@ -231,7 +234,7 @@ fn tool_list(mode: Mode) -> Value {
 /// What `orders` may batch in a mode.
 fn batchable(mode: Mode) -> &'static [&'static str] {
     match mode {
-        Mode::Player => &["instruct", "queue", "lane", "mark", "produce", "say", "note", "wait"],
+        Mode::Player => &["instruct", "queue", "policy", "lane", "mark", "produce", "say", "note", "wait"],
         Mode::Strategist | Mode::Commander => &["squad", "set_directives", "set_production", "request_turret", "expansion", "note", "wait"],
     }
 }
@@ -325,6 +328,46 @@ fn call_tool(name: &str, arguments: &Value, shared: &Shared, mode: Mode) -> Resu
             }
             *shared.instructions.lock().unwrap() = text.to_string();
             Ok(format!("instructions replaced ({} characters); your hands read them from their next look, once your turn ends", text.chars().count()))
+        }
+        "policy" => {
+            use super::shared::PolicyChange;
+            let set = arguments["set"].as_str().map(str::trim).filter(|t| !t.is_empty());
+            let amend = arguments["amend"].as_str().map(str::trim).filter(|t| !t.is_empty());
+            match (set, amend) {
+                (Some(_), Some(_)) => Err("policy takes \"set\" or \"amend\", not both".into()),
+                (None, None) => {
+                    let hands = shared.hands.lock().unwrap();
+                    if !hands.policy_on {
+                        return Err("the policy runtime is off in this game (bot --policy); your lever is `instruct`".into());
+                    }
+                    Ok(if hands.policy_text.is_empty() { "no policy is in force".to_string() } else { format!("policy in force (version {}):\n{}", hands.policy_version, hands.policy_text) })
+                }
+                (Some(script), None) => {
+                    if !shared.hands.lock().unwrap().policy_on {
+                        return Err("the policy runtime is off in this game (bot --policy); your lever is `instruct`".into());
+                    }
+                    crate::brain::pianist::Policy::check(script).map_err(|e| format!("the script does not parse: {e}"))?;
+                    if !script.contains("function decide") && !script.contains("decide =") {
+                        return Err("the script defines no `decide` function".into());
+                    }
+                    shared.policy.lock().unwrap().push(PolicyChange::Set(script.to_string()));
+                    Ok(format!("policy replaced ({} lines): it runs from the next game second, once your turn ends", script.lines().count()))
+                }
+                (None, Some(chunk)) => {
+                    if !shared.hands.lock().unwrap().policy_on {
+                        return Err("the policy runtime is off in this game (bot --policy); your lever is `instruct`".into());
+                    }
+                    if chunk.trim() == "-- unchanged" {
+                        return Ok("policy unchanged".into());
+                    }
+                    if shared.hands.lock().unwrap().policy_text.is_empty() && shared.policy.lock().unwrap().iter().all(|c| !matches!(c, PolicyChange::Set(_))) {
+                        return Err("no policy is in force to amend: set one first".into());
+                    }
+                    crate::brain::pianist::Policy::check(chunk).map_err(|e| format!("the amendment does not parse: {e}"))?;
+                    shared.policy.lock().unwrap().push(PolicyChange::Amend(chunk.to_string()));
+                    Ok(format!("amendment accepted ({} lines): what it defines replaces the same names in place from the next game second", chunk.lines().count()))
+                }
+            }
         }
         "queue" => {
             const STEPS: [&str; 11] = ["extractor", "solar", "wind", "lab", "vehicle_plant", "converter", "advanced_lab", "construction_turret", "turret", "radar", "assist"];
@@ -648,7 +691,7 @@ mod tests {
     fn the_player_has_its_lever_and_none_of_the_commanders() {
         let names = |mode: Mode| tool_list(mode).as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap().to_string()).collect::<Vec<_>>();
         let player = names(Mode::Player);
-        assert_eq!(player, ["overview", "map", "situation", "instruct", "queue", "lane", "mark", "produce", "say", "orders", "wait", "note"]);
+        assert_eq!(player, ["overview", "map", "situation", "instruct", "queue", "lane", "mark", "produce", "policy", "say", "orders", "wait", "note"]);
         let commander = names(Mode::Commander);
         assert!(commander.contains(&"squad".to_string()) && !commander.contains(&"instruct".to_string()));
         for tool in batchable(Mode::Player) {
@@ -665,7 +708,7 @@ mod tests {
         assert!(call_tool("queue", &json!({ "commander": ["turret"] }), &shared, Mode::Player).is_err());
         // Every player tool but the readers and `orders` itself can be batched (comet-3: `queue` was refused by the
         // batch as "not a tool that can be batched" and the game ran without the list).
-        for tool in ["instruct", "queue", "lane", "mark", "produce", "say", "note", "wait"] {
+        for tool in ["instruct", "queue", "policy", "lane", "mark", "produce", "say", "note", "wait"] {
             assert!(batchable(Mode::Player).contains(&tool), "{tool}");
         }
         assert!(orders(&json!({ "calls": [{ "tool": "queue", "arguments": { "commander": ["solar"] } }] }), &shared, Mode::Player).unwrap().contains("1 steps"));

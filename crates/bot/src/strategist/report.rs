@@ -296,6 +296,18 @@ pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, fights
         lines.push(format!("actors gone (dead, merged or split): {}", gone.join(", ")));
     }
     seen.hands = actors;
+    if hands.policy_on {
+        if hands.policy_text.is_empty() {
+            lines.push("your policy: none is in force; every actor keeps its course until you set one (`policy`)".into());
+        } else {
+            lines.push(format!("{} (version {}, {} lines)", hands.policy_stats.words(), hands.policy_version, hands.policy_text.lines().count()));
+            if full {
+                lines.push("your policy in force:\n```lua".into());
+                lines.push(hands.policy_text.clone());
+                lines.push("```".into());
+            }
+        }
+    }
     let high: Vec<String> = hands.globals.iter().filter(|(_, p)| **p >= 0.5).map(|(q, p)| format!("{q} {p:.2}")).collect();
     if !high.is_empty() {
         lines.push(format!("your hands judge (yes-probability): {}", high.join(", ")));

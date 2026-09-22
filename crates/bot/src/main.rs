@@ -26,6 +26,7 @@ use world::World;
 fn main() -> io::Result<()> {
     let mut mode = None;
     let mut pianist = false;
+    let mut policy = false;
     for argument in std::env::args().skip(1) {
         match argument.as_str() {
             "--strategist" => mode = Some((Mode::Strategist, false)),
@@ -33,12 +34,14 @@ fn main() -> io::Result<()> {
             "--commander-each" => mode = Some((Mode::Commander, true)),
             "--player" => mode = Some((Mode::Player, false)),
             "--pianist" => pianist = true,
-            other => return Err(io::Error::other(format!("unknown argument {other}; usage: bot [--strategist | --commander | --commander-each | --player] [--pianist]"))),
+            "--policy" => policy = true,
+            other => return Err(io::Error::other(format!("unknown argument {other}; usage: bot [--strategist | --commander | --commander-each | --player] [--pianist] [--policy]"))),
         }
     }
-    if mode.is_some_and(|(m, _)| m == Mode::Player) && !pianist {
-        return Err(io::Error::other("--player is the pianist's player: give --pianist too"));
+    if mode.is_some_and(|(m, _)| m == Mode::Player) && !pianist && !policy {
+        return Err(io::Error::other("--player is the pianist's player: give --pianist (Jev) or --policy (the Lua runtime), or both"));
     }
+    strategist::set_policy_mode(policy);
     let path = socket_path();
     // A previous run may have left its socket file behind; nothing can be listening on it.
     if UnixStream::connect(&path).is_err() {
@@ -49,7 +52,7 @@ fn main() -> io::Result<()> {
     for stream in listener.incoming() {
         let stream = stream?;
         std::thread::spawn(move || {
-            if let Err(e) = session(stream, mode, pianist) {
+            if let Err(e) = session(stream, mode, pianist, policy) {
                 eprintln!("session ended: {e}");
             }
         });
@@ -62,7 +65,7 @@ fn log_dir() -> std::path::PathBuf {
 }
 
 /// `mode`: the kind of LLM session, and whether each seat gets its own (else one per team).
-fn session(mut stream: UnixStream, mode: Option<(Mode, bool)>, pianist: bool) -> io::Result<()> {
+fn session(mut stream: UnixStream, mode: Option<(Mode, bool)>, pianist: bool, policy: bool) -> io::Result<()> {
     let mut input = stream.try_clone()?;
     let mut reader = FrameReader::default();
     let mut next = move || reader.read::<ToBot>(&mut input).map(|m| m.expect("blocking socket"));
@@ -78,20 +81,22 @@ fn session(mut stream: UnixStream, mode: Option<(Mode, bool)>, pianist: bool) ->
             if each { start() } else { board.strategist(start) }
         })
         .and_then(|started| started.inspect_err(|e| eprintln!("strategist failed to start: {e}")).ok());
-    let mode_name = match (mode, pianist) {
-        (Some((Mode::Player, _)), _) => "player",
-        (_, true) => "pianist",
-        (None, _) => "heuristic",
-        (Some((Mode::Strategist, _)), _) => "strategist",
-        (Some((Mode::Commander, _)), _) => "commander",
+    let mode_name = match (mode, pianist, policy) {
+        (Some((Mode::Player, _)), _, false) => "player",
+        (Some((Mode::Player, _)), _, true) => "policy-player",
+        (_, true, _) => "pianist",
+        (_, false, true) => "policy",
+        (None, _, _) => "heuristic",
+        (Some((Mode::Strategist, _)), _, _) => "strategist",
+        (Some((Mode::Commander, _)), _, _) => "commander",
     };
     // No key, no pianist: the process says so and the seat is not played at all rather than by the heuristics,
     // which would pass for the pianist in the ledger.
-    let pianist = match pianist {
-        false => None,
-        true => match brain::pianist::Pianist::from_env(&log_dir(), hello.ai_id) {
+    let pianist = match (pianist, policy) {
+        (false, false) => None,
+        (jev, policy) => match brain::pianist::Pianist::new(jev, policy, &log_dir(), hello.ai_id) {
             Ok(pianist) => {
-                eprintln!("[ai {}] pianist: Jev ({}) plays from the instructions", hello.ai_id, pianist.model());
+                eprintln!("[ai {}] pianist: {} plays from the player's {}", hello.ai_id, pianist.model(), if policy && jev { "policy and instructions" } else if policy { "policy" } else { "instructions" });
                 Some(pianist)
             }
             Err(e) => return Err(io::Error::other(format!("pianist mode asked for but {e}"))),
@@ -108,7 +113,7 @@ fn session(mut stream: UnixStream, mode: Option<(Mode, bool)>, pianist: bool) ->
         banner += &format!(" | off: {disabled}");
     }
     if pianist.is_some() {
-        banner += &format!(" | hands: Jev {}", pianist.as_ref().map_or("", |p| p.model()));
+        banner += &format!(" | hands: {}", pianist.as_ref().map_or(String::new(), |p| p.model()));
     }
     let mut brain = Brain::new(World::new(hello), strategist.as_ref().map(|s| s.shared.clone()), board, banner, pianist);
     write_frame(&mut stream, &Commands::default())?;

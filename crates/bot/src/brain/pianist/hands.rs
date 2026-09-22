@@ -178,7 +178,7 @@ impl Brain {
             pianist.stats.switches += 1;
         }
         if let Some(did) = &did {
-            let from = if scripted.is_some() { " (from its list)" } else { "" };
+            let from = if scripted.is_some() { " (from its list)" } else if menu.policy { " (policy)" } else { "" };
             pianist.done.push(format!("{} {name}: {did}{from}", super::picture::clock(frame)));
         }
         let kind: &'static str = match menu.actor {
@@ -189,8 +189,9 @@ impl Brain {
         };
         let inputs = json!({ "actor": name, "options": menu.options.keys().collect::<Vec<_>>(), "busy": menu.busy });
         let outputs = json!({ "choice": choice, "played": chosen, "probability": p(&choice), "confidence": confidence, "scripted": scripted.is_some(), "where": where_, "where_extractor": where_extractor, "where_scout": where_scout, "whom": whom, "how_many": how_many, "did": did });
-        self.pianist.as_mut().expect("pianist mode").played.push(json!({ "actor": inputs["actor"], "kind": kind, "busy": menu.busy, "options": inputs["options"], "choice": choice, "played": chosen, "kept": kept, "probability": p(&choice), "confidence": confidence, "did": did }));
-        self.journal.note_from("jev", frame, kind, inputs, outputs);
+        let source = if menu.policy { "policy" } else { "jev" };
+        self.pianist.as_mut().expect("pianist mode").played.push(json!({ "actor": inputs["actor"], "kind": kind, "busy": menu.busy, "options": inputs["options"], "choice": choice, "played": chosen, "kept": kept, "probability": p(&choice), "confidence": confidence, "did": did, "source": source }));
+        self.journal.note_from(source, frame, kind, inputs, outputs);
     }
 
     #[allow(clippy::too_many_arguments)]

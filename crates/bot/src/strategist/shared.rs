@@ -486,6 +486,19 @@ pub struct Hands {
     pub engaged: Vec<String>,
     /// Question id (without `global.`) to the yes-probability of the last call.
     pub globals: BTreeMap<String, f64>,
+    /// The player's policy (`brain/pianist/policy.rs`): what it did since the last turn (drained by the driver), the
+    /// script in force and its version; `policy_on` when the runtime is on at all.
+    pub policy_on: bool,
+    pub policy_stats: crate::brain::pianist::PolicyStats,
+    pub policy_text: String,
+    pub policy_version: u32,
+}
+
+/// A change to the policy from the `policy` tool, applied by the brain at its next ask.
+#[derive(Clone, Debug)]
+pub enum PolicyChange {
+    Set(String),
+    Amend(String),
 }
 
 /// Lockstep turns: the brain asks for a turn and holds the game (its reply to the engine) until the turn is over.
@@ -528,6 +541,8 @@ pub struct Shared {
     pub queues: Mutex<BTreeMap<String, Option<Vec<String>>>>,
     /// What the pianist publishes for the player (`brain/pianist`), read into its turn report.
     pub hands: Mutex<Hands>,
+    /// Scripts and amendments from the `policy` tool, oldest first; the brain drains this at each ask.
+    pub policy: Mutex<Vec<PolicyChange>>,
     /// The player's footwork settings by group name (`group_A`) or `all` (`lane` tool, H-HANDS-LANE).
     pub lane: Mutex<BTreeMap<String, Footwork>>,
     /// Places the player named (`mark` tool): name to (x, z). They join the picture's places (H-HANDS-NAMED-PLACES).

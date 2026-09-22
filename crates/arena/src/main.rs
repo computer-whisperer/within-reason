@@ -23,7 +23,8 @@
 //!              [--commander-each]   (a commander of its own for every seat of ours)
 //!              [--commander-model ID]   (the session's model instead of the role's usual one, e.g. claude-opus-5)
 //!              [--pianist]      (Jev plays every unit from a prose packet in place of the decision heuristics)
-//!              [--player]       (with --pianist: an Opus player writes the packet; turns hold the game as the commander's do)
+//!              [--player]       (with --pianist or --policy: an Opus player writes the packet or the policy; turns hold the game as the commander's do)
+//!              [--policy]       (the player's Lua policy runs every unit; with --pianist too, Jev plays the actors the policy leaves out)
 
 mod place;
 mod record;
@@ -70,8 +71,10 @@ struct Options {
     /// With `commander`: every seat of ours gets its own session instead of one for the team.
     commander_each: bool,
     pianist: bool,
-    /// With `pianist`: the Opus player over it (`docs/design/2026-09-21-pianist.md`, "The player").
+    /// With `pianist` or `policy`: the Opus player over it (`docs/design/2026-09-21-pianist.md`, "The player").
     player: bool,
+    /// The Lua policy runtime (`docs/design/2026-09-22-policy-replay.md`, "The runtime").
+    policy: bool,
     commander_model: Option<String>,
     /// Play every match as this faction instead of alternating.
     side: Option<&'static str>,
@@ -161,7 +164,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("BARb {}", options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "strategist": options.strategist, "commander": options.commander, "commander_each": options.commander_each, "pianist": options.pianist, "player": options.player, "commander_model": options.commander_model, "effort": options.effort, "think_penalty": options.think_penalty, "seed_base": options.seed_base, "opening_plan": options.opening_plan, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "strategist": options.strategist, "commander": options.commander, "commander_each": options.commander_each, "pianist": options.pianist, "player": options.player, "policy": options.policy, "commander_model": options.commander_model, "effort": options.effort, "think_penalty": options.think_penalty, "seed_base": options.seed_base, "opening_plan": options.opening_plan, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 
@@ -295,9 +298,10 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         .args(options.strategist.then_some("--strategist"))
         .args(options.commander.then_some(if options.commander_each { "--commander-each" } else { "--commander" }))
         .args(options.pianist.then_some("--pianist"))
+        .args(options.policy.then_some("--policy"))
         .args(options.player.then_some("--player"))
         // The pianist's every request and answer, for study (`docs/design/2026-09-21-pianist.md`).
-        .envs(options.pianist.then_some(("WITHIN_REASON_JEV_LOG", "1")))
+        .envs((options.pianist || options.policy).then_some(("WITHIN_REASON_JEV_LOG", "1")))
         .env("WITHIN_REASON_SOCKET", &socket)
         .env("WITHIN_REASON_LOG_DIR", &dir)
         .env("WITHIN_REASON_DISABLE", &disable)
@@ -561,6 +565,7 @@ fn parse_args() -> Options {
         commander_each: false,
         pianist: false,
         player: false,
+        policy: false,
         commander_model: None,
         side: None,
         corner: None,
@@ -620,7 +625,11 @@ fn parse_args() -> Options {
                 continue;
             }
             "--player" => {
-                (options.pianist, options.player) = (true, true);
+                options.player = true;
+                continue;
+            }
+            "--policy" => {
+                options.policy = true;
                 continue;
             }
             "--realtime" => {
@@ -687,11 +696,15 @@ fn parse_args() -> Options {
     if options.boxes.rects(&options.map, ally_teams).is_none() {
         usage(&format!("no start boxes for {ally_teams} ally teams on {} with --boxes {:?}: the lobby has none saved for that count, or the layout has no room (--ffa takes at most 3 enemies, with corners)", options.map, options.boxes));
     }
+    // `--player` alone is the pianist's player, as before; with `--policy` the policy is the hands unless Jev is asked for too.
+    if options.player && !options.policy {
+        options.pianist = true;
+    }
     options
 }
 
 fn usage(problem: &str) -> ! {
-    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--label TEXT] [--mirror] [--place] [--swap-corners] [--play-out] [--strategist | --commander | --commander-each] [--pianist] [--player] [--realtime] [--commander-model ID] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--effort LEVEL] [--think-penalty X] [--opponent-opening any|bots|vehicles] [--seed-base N] [--opening-plan PATH] [--base-port N]");
+    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--label TEXT] [--mirror] [--place] [--swap-corners] [--play-out] [--strategist | --commander | --commander-each] [--pianist] [--policy] [--player] [--realtime] [--commander-model ID] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--effort LEVEL] [--think-penalty X] [--opponent-opening any|bots|vehicles] [--seed-base N] [--opening-plan PATH] [--base-port N]");
     std::process::exit(2)
 }
 

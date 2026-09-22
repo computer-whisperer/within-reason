@@ -99,6 +99,8 @@ pub(crate) struct Menu {
     pub spots: Vec<usize>,
     /// A step from the player's list (H-HANDS-SCRIPT): the option to play without asking, and its place, if any.
     pub scripted: Option<(String, Option<String>)>,
+    /// Ordered by the player's policy (`policy.rs`), not by Jev.
+    pub policy: bool,
 }
 
 impl Brain {
@@ -312,7 +314,7 @@ impl Brain {
                 queue_ahead,
                 options,
                 spots: spots.iter().map(|(i, _)| *i).collect(),
-                scripted: None,
+                scripted: None, policy: false,
             });
         }
 
@@ -375,7 +377,7 @@ impl Brain {
                 if allowed.is_some() && buildables.len() < def.build_options.len() { " The player allows only the units offered here." } else { "" }
             ));
             pianist.last_asked.insert(name.clone(), frame);
-            menus.push(Menu { actor: Actor::Lab(unit.id), questions: vec![(format!("{name}.next"), Question::Choice { instructions, criteria })], name, busy: queued > 0, queue_ahead: false, options, spots: Vec::new(), scripted: None });
+            menus.push(Menu { actor: Actor::Lab(unit.id), questions: vec![(format!("{name}.next"), Question::Choice { instructions, criteria })], name, busy: queued > 0, queue_ahead: false, options, spots: Vec::new(), scripted: None, policy: false });
         }
 
         // Groups.
@@ -454,7 +456,7 @@ impl Brain {
                 questions.push((format!("{name}.whom"), Question::Choice { instructions: json!(format!("If {name} attacks an enemy party, which one?")), criteria }));
             }
             pianist.last_asked.insert(name.clone(), frame);
-            menus.push(Menu { actor: Actor::Group(group.name.clone()), name, busy, queue_ahead: false, questions, options, spots: Vec::new(), scripted: None });
+            menus.push(Menu { actor: Actor::Group(group.name.clone()), name, busy, queue_ahead: false, questions, options, spots: Vec::new(), scripted: None, policy: false });
         }
 
         // Global.
@@ -466,7 +468,7 @@ impl Brain {
             if self.strategist.is_some() {
                 questions.push(("global.needs_player".to_string(), Question::noul("Given everything, does the situation need the player's attention now: something the `instructions` do not cover, or a plan that has stopped fitting the game?")));
             }
-            menus.push(Menu { actor: Actor::Global, name: "global".into(), busy: false, queue_ahead: false, questions, options: BTreeMap::new(), spots: Vec::new(), scripted: None });
+            menus.push(Menu { actor: Actor::Global, name: "global".into(), busy: false, queue_ahead: false, questions, options: BTreeMap::new(), spots: Vec::new(), scripted: None, policy: false });
         }
         self.pianist = Some(pianist);
         menus
@@ -560,7 +562,7 @@ impl Brain {
                         questions: Vec::new(),
                         options: BTreeMap::from([(key.clone(), pick)]),
                         spots,
-                        scripted: Some((key, where_)),
+                        scripted: Some((key, where_)), policy: false,
                     });
                 }
                 Err(why) => {

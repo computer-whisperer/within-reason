@@ -10,6 +10,7 @@ mod groups;
 mod hands;
 mod menu;
 mod picture;
+mod policy;
 
 use std::collections::{BTreeMap, HashMap, VecDeque};
 use std::fs::File;
@@ -25,6 +26,7 @@ use super::{Brain, FRAMES_PER_SECOND};
 pub(super) use groups::{Group, GroupTask};
 pub(super) use picture::{Party, Place};
 pub(crate) use picture::clock;
+pub use policy::{Policy, PolicyStats};
 
 /// Game seconds between calls (`WITHIN_REASON_JEV_INTERVAL` overrides).
 const INTERVAL_SECONDS: f32 = 1.0;
@@ -79,7 +81,11 @@ struct Stats {
 }
 
 pub struct Pianist {
-    client: jev::Client,
+    /// Jev, when `--pianist`; without it the actors the policy leaves out keep their course.
+    client: Option<jev::Client>,
+    /// The player's Lua policy (`policy.rs`), when `--policy`: none until the player sets one.
+    policy_on: bool,
+    pub(super) policy: Option<Policy>,
     /// Realtime (`WITHIN_REASON_REALTIME`): the call runs on this thread and its answer is played on the tick it
     /// arrives, so the game and the control lane never wait on Jev; in lockstep the call is made in place.
     worker: Option<Worker>,
@@ -196,17 +202,20 @@ impl Pianist {
         order
     }
 
-    /// The client from the environment (the key file or `TYPESAFE_API_KEY`); `Err` says why there is none.
-    pub fn from_env(log_dir: &Path, ai_id: i32) -> Result<Pianist, String> {
-        let client = jev::Client::from_env().map_err(|e| e.to_string())?;
+    /// The hands: Jev from the environment (the key file or `TYPESAFE_API_KEY`) when `jev`, the policy runtime when
+    /// `policy`, either or both; `Err` says why Jev cannot be had.
+    pub fn new(jev: bool, policy: bool, log_dir: &Path, ai_id: i32) -> Result<Pianist, String> {
+        let client = if jev { Some(jev::Client::from_env().map_err(|e| e.to_string())?) } else { None };
         let seconds: f32 = std::env::var("WITHIN_REASON_JEV_INTERVAL").ok().and_then(|v| v.parse().ok()).unwrap_or(INTERVAL_SECONDS);
         let log = match std::env::var("WITHIN_REASON_JEV_LOG").ok().filter(|v| !v.is_empty() && v != "0") {
             Some(_) => File::create(log_dir.join(format!("jev-{ai_id}.jsonl"))).ok(),
             None => None,
         };
-        let worker = if crate::strategist::realtime() { jev::Client::from_env().ok().map(spawn_worker) } else { None };
+        let worker = if jev && crate::strategist::realtime() { jev::Client::from_env().ok().map(spawn_worker) } else { None };
         Ok(Pianist {
             client,
+            policy_on: policy,
+            policy: None,
             worker,
             pending: None,
             next_request: 0,
@@ -240,17 +249,23 @@ impl Pianist {
     /// The log's first line: what every call shares.
     pub fn log_header(&mut self, ai_id: i32, rules: &str) {
         self.logged_rules = rules.to_string();
+        let model = self.model();
         if let Some(log) = &mut self.log {
             let line = json!({
-                "t": "header", "format": "within-reason-jev", "version": LOG_VERSION, "ai_id": ai_id, "model": self.client.model(),
+                "t": "header", "format": "within-reason-jev", "version": LOG_VERSION, "ai_id": ai_id, "model": model,
                 "interval_frames": self.interval_frames, "rules": rules,
             });
             let _ = writeln!(log, "{line}");
         }
     }
 
-    pub fn model(&self) -> &str {
-        self.client.model()
+    /// The hands by name, for the banner and the log: "Jev jev-latest", "policy", or both.
+    pub fn model(&self) -> String {
+        match (&self.client, self.policy_on) {
+            (Some(client), true) => format!("Jev {} + policy", client.model()),
+            (Some(client), false) => format!("Jev {}", client.model()),
+            (None, _) => "policy".to_string(),
+        }
     }
 
     pub(super) fn note(&mut self, frame: i32, text: String) {
@@ -314,9 +329,30 @@ impl Brain {
                 }
             }
         }
+        self.apply_policy_changes(tick.frame);
         let picture = self.picture(tick, kit);
-        let menus = self.menus(tick, kit, &picture);
+        let mut menus = self.menus(tick, kit, &picture);
         if menus.is_empty() {
+            return;
+        }
+        {
+            let pianist = self.pianist.as_mut().expect("pianist mode");
+            pianist.places = picture.places.clone();
+            pianist.parties = picture.parties.clone();
+        }
+        // The policy takes the actors it names; the rest go to Jev, or keep their course without it.
+        self.policy_pass(tick, kit, &picture, &mut menus, commands);
+        let status_due = tick.due() % (60 * FRAMES_PER_SECOND) < self.pianist.as_ref().expect("pianist mode").interval_frames;
+        if self.pianist.as_ref().expect("pianist mode").client.is_none() {
+            self.publish_hands(&picture, &BTreeMap::new());
+            if status_due {
+                self.pianist_status_line(tick.frame);
+            }
+            return;
+        }
+        if menus.iter().all(|m| matches!(m.actor, menu::Actor::Global)) && menus.len() < 2 && self.pianist.as_ref().expect("pianist mode").policy.is_some() {
+            // Only the global questions are left and the policy has the actors: nothing to ask this second.
+            self.publish_hands(&picture, &BTreeMap::new());
             return;
         }
         let mut questions: BTreeMap<String, jev::Question> = BTreeMap::new();
@@ -326,7 +362,6 @@ impl Brain {
             }
         }
         let request = jev::Request { state: picture.state.clone(), questions };
-        let status_due = tick.due() % (60 * FRAMES_PER_SECOND) < self.pianist.as_ref().expect("pianist mode").interval_frames;
         {
             let pianist = self.pianist.as_mut().expect("pianist mode");
             if pianist.stats.calls == 0 && pianist.logged_instructions.is_empty() {
@@ -349,10 +384,8 @@ impl Brain {
         }
         let (response, ai) = {
             let pianist = self.pianist.as_mut().expect("pianist mode");
-            pianist.places = picture.places.clone();
-            pianist.parties = picture.parties.clone();
             pianist.played.clear();
-            (pianist.client.ask(&request), self.world.hello.ai_id)
+            (pianist.client.as_ref().expect("checked above").ask(&request), self.world.hello.ai_id)
         };
         match response {
             Ok(response) => {
@@ -376,9 +409,186 @@ impl Brain {
                 eprintln!("[ai {ai}] f={} pianist: {e}; every actor keeps its task", tick.frame);
             }
         }
-        if tick.due() % (60 * FRAMES_PER_SECOND) < self.pianist.as_ref().expect("pianist mode").interval_frames {
+        if status_due {
             self.pianist_status_line(tick.frame);
         }
+    }
+
+    /// The player's `policy` calls since the last ask: a new script, or amendments to the one in force.
+    fn apply_policy_changes(&mut self, frame: i32) {
+        let Some(shared) = self.strategist.clone() else { return };
+        let changes = std::mem::take(&mut *shared.policy.lock().unwrap());
+        let pianist = self.pianist.as_mut().expect("pianist mode");
+        for change in changes {
+            let outcome = match change {
+                crate::strategist::shared::PolicyChange::Set(script) => match Policy::set(&script) {
+                    Ok(policy) => {
+                        let lines = policy.lines();
+                        pianist.policy = Some(policy);
+                        Ok(format!("policy set ({lines} lines)"))
+                    }
+                    Err(e) => Err(format!("the new policy failed to load and the old one stands: {e}")),
+                },
+                crate::strategist::shared::PolicyChange::Amend(chunk) => match pianist.policy.as_mut() {
+                    Some(policy) => policy.amend(&chunk).map(|done| format!("policy amended: {}", done.join(", "))).map_err(|e| format!("the amendment failed to load: {e}")),
+                    None => Err("no policy is in force to amend".into()),
+                },
+            };
+            let text = match outcome {
+                Ok(text) => text,
+                Err(text) => text,
+            };
+            pianist.done.push(format!("{} {text}", picture::clock(frame)));
+            pianist.note(frame, text);
+        }
+    }
+
+    /// The policy's orders for this second: the menus it names are played from its answers at probability one and
+    /// taken out of `menus`; an order equal to the actor's current task counts as continue. Returns how many it took.
+    fn policy_pass(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, menus: &mut Vec<menu::Menu>, commands: &mut Vec<Command>) -> usize {
+        let frame = tick.frame;
+        let own = &tick.snapshot.own_units;
+        if self.pianist.as_ref().is_none_or(|p| p.policy.is_none()) {
+            return 0;
+        }
+        let groups = self.groups_json(own);
+        let places = self.places_json();
+        let mut options: BTreeMap<String, BTreeMap<String, serde_json::Value>> = BTreeMap::new();
+        for menu in menus.iter() {
+            if matches!(menu.actor, menu::Actor::Global) {
+                continue;
+            }
+            let qid = if matches!(menu.actor, menu::Actor::Lab(_)) { format!("{}.next", menu.name) } else { format!("{}.do", menu.name) };
+            let criteria = menu.questions.iter().find(|(id, _)| *id == qid).and_then(|(_, q)| if let jev::Question::Choice { criteria, .. } = q { Some(criteria.clone()) } else { None }).unwrap_or_default();
+            options.insert(menu.name.clone(), criteria);
+        }
+        let state = Policy::state_for(&picture.state, &options, &groups, &places, frame);
+        let started = std::time::Instant::now();
+        let result = self.pianist.as_mut().and_then(|p| p.policy.as_mut()).expect("checked above").decide(&state);
+        let ms = started.elapsed().as_secs_f32() * 1000.0;
+        let mut answers: BTreeMap<String, jev::Answer> = BTreeMap::new();
+        let mut taken: Vec<menu::Menu> = Vec::new();
+        let mut illegal: Vec<String> = Vec::new();
+        let mut continued: Vec<String> = Vec::new();
+        let mut orders_json = serde_json::Map::new();
+        let mut error = None;
+        match result {
+            Err(e) => error = Some(e),
+            Ok(orders) => {
+                for (actor, order) in orders {
+                    orders_json.insert(actor.clone(), json!({ "do": order.choice, "params": order.params }));
+                    let Some(i) = menus.iter().position(|m| m.name == actor && !matches!(m.actor, menu::Actor::Global)) else {
+                        illegal.push(format!("{actor}: not asked this second"));
+                        continue;
+                    };
+                    if !menus[i].options.contains_key(&order.choice) {
+                        illegal.push(format!("{actor}: {} is not on its menu", order.choice));
+                        continue;
+                    }
+                    if let Some(place) = order.params.get("where").or_else(|| order.params.get("where_scout")).or_else(|| order.params.get("where_extractor"))
+                        && !picture.places.iter().any(|p| p.name == *place)
+                    {
+                        illegal.push(format!("{actor}: {place} is not a place in the picture"));
+                        continue;
+                    }
+                    let mut menu = menus.remove(i);
+                    if self.same_as_current(&menu, &order) {
+                        continued.push(actor.clone());
+                        continue;
+                    }
+                    menu.policy = true;
+                    let qid = if matches!(menu.actor, menu::Actor::Lab(_)) { format!("{actor}.next") } else { format!("{actor}.do") };
+                    let sure = |choice: &str| jev::Answer::Choice { choice: choice.to_string(), probabilities: BTreeMap::from([(choice.to_string(), 1.0)]), confidence: 1.0 };
+                    answers.insert(qid, sure(&order.choice));
+                    for (k, v) in &order.params {
+                        answers.insert(format!("{actor}.{k}"), sure(v));
+                    }
+                    if order.choice == "extractor"
+                        && let Some(place) = order.params.get("where")
+                        && !order.params.contains_key("where_extractor")
+                    {
+                        answers.insert(format!("{actor}.where_extractor"), sure(place));
+                    }
+                    taken.push(menu);
+                }
+            }
+        }
+        let n = taken.len();
+        {
+            let policy = self.pianist.as_mut().and_then(|p| p.policy.as_mut()).expect("checked above");
+            for menu in &taken {
+                *policy.stats.given.entry(answers.get(&format!("{}.do", menu.name)).or_else(|| answers.get(&format!("{}.next", menu.name))).and_then(|a| if let jev::Answer::Choice { choice, .. } = a { Some(choice.clone()) } else { None }).unwrap_or_default()).or_insert(0) += 1;
+            }
+            if !continued.is_empty() {
+                *policy.stats.given.entry("continue".into()).or_insert(0) += continued.len() as u32;
+            }
+            if policy.stats.illegal.len() < 20 {
+                policy.stats.illegal.extend(illegal.iter().cloned());
+            }
+        }
+        if let Some(e) = &error
+            && self.pianist.as_ref().and_then(|p| p.policy.as_ref()).is_some_and(|p| p.stats.errors == 1)
+        {
+            let text = format!("policy error: {e}");
+            let pianist = self.pianist.as_mut().expect("pianist mode");
+            pianist.done.push(format!("{} {text}", picture::clock(frame)));
+            pianist.note(frame, text);
+        }
+        if n > 0 {
+            self.play(tick, kit, picture, taken, &answers, commands);
+        }
+        let pianist = self.pianist.as_mut().expect("pianist mode");
+        let played = std::mem::take(&mut pianist.played);
+        if let Some(log) = &mut pianist.log {
+            let line = json!({ "t": "policy", "f": frame, "ms": ms, "orders": orders_json, "error": error, "illegal": illegal, "continued": continued, "played": played, "version": pianist.policy.as_ref().map_or(0, |p| p.version) });
+            let _ = writeln!(log, "{line}");
+        }
+        n
+    }
+
+    /// An order that is what the actor is doing already: a group advancing to that place or holding, a builder
+    /// helping that factory or walking there. Builds are covered by H-HANDS-STARTED in `play_one`.
+    fn same_as_current(&self, menu: &menu::Menu, order: &policy::Order) -> bool {
+        let pianist = self.pianist.as_ref().expect("pianist mode");
+        let where_ = order.params.get("where").map(String::as_str);
+        match &menu.actor {
+            menu::Actor::Group(name) => match pianist.groups.iter().find(|g| g.name == *name).map(|g| &g.task) {
+                Some(GroupTask::Hold { .. }) => order.choice == "hold",
+                Some(GroupTask::Move { place, fight, .. }) => ((order.choice == "fight_to" && *fight) || (order.choice == "move_to" && !*fight)) && where_ == Some(place.as_str()),
+                Some(GroupTask::Engage { .. }) => order.choice == "engage",
+                None => false,
+            },
+            menu::Actor::Builder(id) => match pianist.tasks.get(id) {
+                Some(Task::Assist { .. }) => order.choice == "assist_lab",
+                Some(Task::Walk { place, .. }) => (order.choice == "walk_to" && where_ == Some(place.as_str())) || (order.choice == "retreat_home" && place == "home"),
+                _ => false,
+            },
+            _ => false,
+        }
+    }
+
+    /// The groups as the log and the policy see them: name, members, centre, task.
+    fn groups_json(&self, own: &[bot_protocol::OwnUnit]) -> Vec<serde_json::Value> {
+        let Some(pianist) = self.pianist.as_ref() else { return Vec::new() };
+        pianist
+            .groups
+            .iter()
+            .map(|g| {
+                let units = g.units(own);
+                let centre = groups::centre_of(&units);
+                let task = match &g.task {
+                    GroupTask::Hold { .. } => json!({ "kind": "hold" }),
+                    GroupTask::Move { to, place, fight, .. } => json!({ "kind": if *fight { "fight_to" } else { "move_to" }, "place": place, "to": [to.x as i32, to.z as i32] }),
+                    GroupTask::Engage { at, .. } => json!({ "kind": "engage", "to": [at.x as i32, at.z as i32] }),
+                };
+                json!({ "name": g.name, "members": g.members.iter().map(|id| id.0).collect::<Vec<_>>(), "at": centre.map(|c| [c.x as i32, c.z as i32]), "task": task })
+            })
+            .collect()
+    }
+
+    fn places_json(&self) -> Vec<serde_json::Value> {
+        let Some(pianist) = self.pianist.as_ref() else { return Vec::new() };
+        pianist.places.iter().map(|p| json!({ "name": p.name, "x": p.at.x as i32, "z": p.at.z as i32, "spot": p.spot })).collect()
     }
 
     /// The hands' versioned model, said in the game chat once the first answer names it (the start banner can only
@@ -455,10 +665,12 @@ impl Brain {
     /// and parties by name so a reader can draw them.
     fn log_call(&mut self, tick: &Tick, request: &jev::Request, response: &jev::Response) {
         let own = &tick.snapshot.own_units;
-        let Some(pianist) = self.pianist.as_mut() else { return };
-        if pianist.log.is_none() {
+        if self.pianist.as_ref().is_none_or(|p| p.log.is_none()) {
             return;
         }
+        let groups = self.groups_json(own);
+        let places = self.places_json();
+        let pianist = self.pianist.as_mut().expect("pianist mode");
         let mut state = request.state.clone();
         let instructions = state["instructions"].as_str().unwrap_or_default().to_string();
         let rules = state["rules"].as_str().unwrap_or_default().to_string();
@@ -474,21 +686,6 @@ impl Brain {
         if changed {
             pianist.logged_instructions = instructions.clone();
         }
-        let groups: Vec<serde_json::Value> = pianist
-            .groups
-            .iter()
-            .map(|g| {
-                let units = g.units(own);
-                let centre = groups::centre_of(&units);
-                let task = match &g.task {
-                    GroupTask::Hold { .. } => json!({ "kind": "hold" }),
-                    GroupTask::Move { to, place, fight, .. } => json!({ "kind": if *fight { "fight_to" } else { "move_to" }, "place": place, "to": [to.x as i32, to.z as i32] }),
-                    GroupTask::Engage { at, .. } => json!({ "kind": "engage", "to": [at.x as i32, at.z as i32] }),
-                };
-                json!({ "name": g.name, "members": g.members.iter().map(|id| id.0).collect::<Vec<_>>(), "at": centre.map(|c| [c.x as i32, c.z as i32]), "task": task })
-            })
-            .collect();
-        let places: Vec<serde_json::Value> = pianist.places.iter().map(|p| json!({ "name": p.name, "x": p.at.x as i32, "z": p.at.z as i32, "spot": p.spot })).collect();
         let parties: Vec<serde_json::Value> = pianist.parties.iter().map(|p| json!({ "name": p.name, "ids": p.ids.iter().map(|id| id.0).collect::<Vec<_>>(), "x": p.at.x as i32, "z": p.at.z as i32, "metal": p.metal as i32, "composition": p.composition })).collect();
         let mut line = json!({
             "t": "call", "f": tick.frame, "ms": (response.latency.as_secs_f32() * 1000.0) as u32, "model": response.model, "usage": response.usage,
@@ -654,6 +851,12 @@ impl Brain {
         let mut hands = shared.hands.lock().unwrap();
         hands.picture = state;
         hands.done.append(&mut pianist.done);
+        hands.policy_on = pianist.policy_on;
+        if let Some(policy) = &mut pianist.policy {
+            hands.policy_stats.merge(std::mem::take(&mut policy.stats));
+            hands.policy_text = policy.text();
+            hands.policy_version = policy.version;
+        }
         hands.engaged = pianist.played.iter().filter(|p| p["did"].as_str().is_some_and(|d| d.starts_with("attack "))).filter_map(|p| p["actor"].as_str().map(str::to_string)).collect();
         hands.globals = answers.iter().filter_map(|(id, a)| id.strip_prefix("global.").map(|q| (q.to_string(), a.probability_of("yes")))).collect();
     }

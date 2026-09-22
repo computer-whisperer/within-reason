@@ -17,6 +17,8 @@ pub struct Text {
 pub const STRATEGIST_PROMPT: Text = Text { path: "crates/bot/src/strategist/prompt.md", compiled: include_str!("strategist/prompt.md") };
 pub const COMMANDER_PROMPT: Text = Text { path: "crates/bot/src/strategist/commander.md", compiled: include_str!("strategist/commander.md") };
 pub const PLAYER_PROMPT: Text = Text { path: "crates/bot/src/strategist/player.md", compiled: include_str!("strategist/player.md") };
+/// The player whose lever is a Lua policy (`docs/design/2026-09-22-policy-replay.md`, "The runtime").
+pub const POLICY_PROMPT: Text = Text { path: "crates/bot/src/strategist/policy.md", compiled: include_str!("strategist/policy.md") };
 pub const COMMANDER_BRIEF: Text = Text { path: "docs/briefs/commander.md", compiled: include_str!("../../../docs/briefs/commander.md") };
 pub const PLAYER_BRIEF: Text = Text { path: "docs/briefs/player.md", compiled: include_str!("../../../docs/briefs/player.md") };
 pub const HANDS_RULES: Text = Text { path: "crates/bot/src/brain/pianist/rules.md", compiled: include_str!("brain/pianist/rules.md") };
@@ -78,7 +80,7 @@ mod tests {
     #[test]
     fn the_checkout_is_found_from_the_test_binary_and_its_files_match_the_compiled_copies() {
         assert!(super::root().is_some(), "the test binary runs under target/, below the checkout");
-        for text in [&super::PLAYER_PROMPT, &super::PLAYER_BRIEF, &super::HANDS_RULES, &super::HANDS_DEFAULT] {
+        for text in [&super::PLAYER_PROMPT, &super::POLICY_PROMPT, &super::PLAYER_BRIEF, &super::HANDS_RULES, &super::HANDS_DEFAULT] {
             assert_eq!(super::read(text), text.compiled, "{} on disk differs from the copy compiled into this test binary", text.path);
         }
     }
