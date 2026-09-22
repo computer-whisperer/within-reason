@@ -45,6 +45,9 @@ pub(crate) struct Party {
     pub composition: String,
     /// Their commander is one of its members.
     pub has_commander: bool,
+    /// What it is shooting now, from the hits of the last seconds (H-HANDS-PARTY-KILLING): "our Vehicle Plant
+    /// (armvp), 2 of our Solar Collector (armsolar)" and the metal of those units.
+    pub killing: Option<(String, f32)>,
 }
 
 pub(crate) struct Picture {
@@ -254,7 +257,9 @@ impl Brain {
             }
             let composition = counts.iter().map(|(name, n)| format!("{n} {name}")).collect::<Vec<_>>().join(", ");
             let has_commander = members.iter().any(|i| mobile[*i].def.is_some_and(|d| self.world.is_commander_def(d)));
-            parties.push(Party { name: String::new(), ids: members.iter().map(|i| mobile[*i].id).collect(), at, metal, composition, has_commander });
+            let ids: Vec<bot_protocol::UnitId> = members.iter().map(|i| mobile[*i].id).collect();
+            let killing = self.killing_words(&ids);
+            parties.push(Party { name: String::new(), ids, at, metal, composition, has_commander, killing });
         }
         parties.sort_by(|a, b| a.at.dist2d(self.home).total_cmp(&b.at.dist2d(self.home)));
         // Names: the last picture's for a party sharing a member with one of them (the larger overlap wins a name
@@ -278,6 +283,31 @@ impl Brain {
             next_name.set(next_name.get() + 1);
         }
         parties
+    }
+
+    /// What the units `ids` have hit in the last seconds, buildings first, one entry per kind with its count, and the
+    /// metal of the victims; nothing when they have hit nothing of ours.
+    fn killing_words(&self, ids: &[bot_protocol::UnitId]) -> Option<(String, f32)> {
+        let mut victims: Vec<(bot_protocol::UnitId, UnitDefId)> = Vec::new();
+        for h in self.hits.iter().filter(|h| ids.contains(&h.attacker)) {
+            if !victims.iter().any(|(id, _)| *id == h.victim) {
+                victims.push((h.victim, h.victim_def));
+            }
+        }
+        if victims.is_empty() {
+            return None;
+        }
+        victims.sort_by_key(|(_, def)| self.world.def(*def).is_none_or(|d| d.speed > 0.0));
+        let metal: f32 = victims.iter().map(|(_, def)| self.world.def(*def).map_or(0.0, |d| d.metal_cost)).sum();
+        let mut counts: Vec<(UnitDefId, usize)> = Vec::new();
+        for (_, def) in &victims {
+            match counts.iter_mut().find(|(d, _)| d == def) {
+                Some((_, n)) => *n += 1,
+                None => counts.push((*def, 1)),
+            }
+        }
+        let words = counts.iter().map(|(def, n)| if *n == 1 { format!("our {}", self.short_words(*def)) } else { format!("{n} of our {}", self.short_words(*def)) }).collect::<Vec<_>>().join(", ");
+        Some((words, metal))
     }
 
     /// The fight simulator's odds of `units` against a party, in words (Jev compares nothing itself).
@@ -611,7 +641,7 @@ impl Brain {
                     .filter(|(d, _)| *d < NEAR)
                     .min_by(|a, b| a.0.total_cmp(&b.0))
                     .map(|(d, u)| format!("; {d:.0} from our {}", self.name(u.def)));
-                format!("{}: {} worth {:.0} metal at {}, {} from home, {heading}{}", p.name, p.composition, p.metal, self.place_words(&places, p.at), distance_words(p.at.dist2d(self.home)), near_ours.unwrap_or_default())
+                format!("{}: {} worth {:.0} metal at {}, {} from home, {heading}{}{}", p.name, p.composition, p.metal, self.place_words(&places, p.at), distance_words(p.at.dist2d(self.home)), near_ours.unwrap_or_default(), p.killing.as_ref().map_or(String::new(), |(what, metal)| format!("; killing {what} ({metal:.0} metal) now")))
             })
             .collect();
         let known_soldiers: Vec<&(UnitDefId, i32)> = self.enemy_soldiers.values().filter(|(_, seen)| frame - seen < ARMY_MEMORY).collect();

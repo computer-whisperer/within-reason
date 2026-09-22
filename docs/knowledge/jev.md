@@ -426,13 +426,13 @@ a base under attack 7 to 12-17 % right on 29 recorded moments) and much when sai
 ("Holding now leaves what party_85 is killing to die": 25 % alone, 52 % on top of the fight-in-sight rule, from 34 %
 with the rule alone; raiders at our extractors 19 to 52 %). No control decision changed beyond the two the rule
 alone changes. Jev weighs the words of the option it is about to pick over the words of the party it is not picking.
-**Status.** measured offline (2026-09-22 night, `run/jev_ab.py` variants killing/hold_cost/home2_hold_cost); not
-built.
+**Status.** measured offline (2026-09-22 night, `run/jev_ab.py` variants killing/hold_cost/home2_hold_cost); built
+the same night (H-HANDS-PARTY-KILLING), unmeasured in play.
 **Evidence.** `docs/studies/data/jev-ab-2026-09-22-shooting-2.jsonl`; `docs/studies/2026-09-22-jev-rules-ab.md`
 second round.
 **Would be wrong if.** In play, groups engaged parties that outweigh them because the hold words named a loss; the
 odds words stay on the engage line and the replay showed no such flips among the controls.
-**Used by.** nothing yet; the next hands change if built (damage attributed to parties, hold words with the cost).
+**Used by.** H-HANDS-PARTY-KILLING.
 
 ### K-hands-air-hold-cancels-the-strike
 **Claim.** An air group's hold (a move to the group's centre plus move state 0 per unit), re-issued every lane tick

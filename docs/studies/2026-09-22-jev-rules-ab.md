@@ -107,8 +107,8 @@ Over all forty controls no variant disturbed more than the two the rule alone di
 party line alone do little (7 to 12-17 %); the same fact on the hold option's own words does more (hold_cost alone
 25 %), and on top of the rule it is the best of anything tried: holds beside a base under attack 34 to 52 % right,
 raiders at our extractors ignored 19 to 52 %, mean probability on fighting 0.42 to 0.53. Jev reads the option it is
-about to pick more than the party it is not looking at. Not built: it needs the bot to attribute damage to a party
-(the attacker ids of `UnitDamaged`, kept a few seconds) and the hold and party words in `menu.rs` to carry it.
+about to pick more than the party it is not looking at. Built the same night as H-HANDS-PARTY-KILLING: the bot keeps the
+attacker ids of `UnitDamaged` for three seconds, and the party lines and the hold option carry the words.
 
 ## Done from this
 

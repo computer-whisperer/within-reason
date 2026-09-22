@@ -40,6 +40,18 @@ use crate::strategist::shared::{Directives, Shared};
 use crate::world::World;
 use roster::{Kit, ROSTERS};
 
+/// How long a hit counts as "shooting now" in the picture (H-HANDS-PARTY-KILLING).
+const HIT_MEMORY: i32 = 3 * FRAMES_PER_SECOND;
+
+/// One of our units hit by a known enemy unit.
+#[derive(Clone, Copy, Debug)]
+struct Hit {
+    frame: i32,
+    victim: UnitId,
+    victim_def: UnitDefId,
+    attacker: UnitId,
+}
+
 const FRAMES_PER_SECOND: i32 = 30;
 /// Frames between runs of the whole brain (`think`), 2 Hz: the shim's ticks come more often than that, for the
 /// control lane (`micro.rs`), and must divide this (`docs/design/2026-09-20-micro-lane.md`).
@@ -115,6 +127,9 @@ pub struct Brain {
     /// Hits from out of sight in the last twenty seconds (`shelling.rs`), and when the player was last woken for them.
     shelling: Vec<shelling::Shell>,
     shelling_warned: i32,
+    /// Hits on our units with a known attacker in the last `HIT_MEMORY` frames: what each enemy party is shooting
+    /// (H-HANDS-PARTY-KILLING).
+    hits: Vec<Hit>,
     /// Chat lines of ours not yet seen back from the engine, which echoes every line as a chat event from our own
     /// host player (human-1: the player was woken by its own "gl hf").
     said: Vec<String>,
@@ -226,6 +241,7 @@ impl Brain {
             enemy_buildings: HashMap::new(),
             shelling: Vec::new(),
             shelling_warned: i32::MIN / 2,
+            hits: Vec::new(),
             said: Vec::new(),
             heard_chat_at: -1,
             razed: Vec::new(),
@@ -337,6 +353,7 @@ impl Brain {
         }
         if self.pianist.is_some() {
             self.track_shelling(tick);
+            self.track_hits(tick);
             self.run_pianist(tick, &kit, &mut commands);
             if tick.frame % planner::PLAN_CONTEXT_FRAMES < TICK_FRAMES_GUESS {
                 self.publish_plan_context(tick, &kit);
@@ -401,6 +418,19 @@ impl Brain {
         let (dx, dz) = (enemy.x - self.home.x, enemy.z - self.home.z);
         let len = dx.hypot(dz).max(1.0);
         self.snap_to_reachable(Vec3 { x: self.home.x + dx / len * distance, y: 0.0, z: self.home.z + dz / len * distance })
+    }
+
+    /// The hits of this tick with a known attacker are kept for `HIT_MEMORY` frames, so the picture can say what a
+    /// party in sight is shooting (H-HANDS-PARTY-KILLING: the replay of recorded holds beside a base under attack
+    /// showed the hold option's words carrying the cost is what moves the hands, K-jev-hold-words-carry-the-cost).
+    fn track_hits(&mut self, tick: &Tick) {
+        self.hits.retain(|h| tick.frame - h.frame <= HIT_MEMORY);
+        for event in &tick.events {
+            let Event::UnitDamaged { unit, attacker: Some(attacker), .. } = *event else { continue };
+            if let Some(victim) = tick.snapshot.own_units.iter().find(|u| u.id == unit) {
+                self.hits.push(Hit { frame: tick.frame, victim: unit, victim_def: victim.def, attacker });
+            }
+        }
     }
 
     /// A hurt commander away from home walks back; losing it loses the game.
