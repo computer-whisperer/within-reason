@@ -344,6 +344,11 @@ impl Brain {
         self.policy_pass(tick, kit, &picture, &mut menus, commands);
         let status_due = tick.due() % (60 * FRAMES_PER_SECOND) < self.pianist.as_ref().expect("pianist mode").interval_frames;
         if self.pianist.as_ref().expect("pianist mode").client.is_none() {
+            // Without Jev the players' lists still play themselves (H-HANDS-SCRIPT); everything else keeps its course.
+            let listed: Vec<menu::Menu> = menus.into_iter().filter(|m| m.scripted.is_some()).collect();
+            if !listed.is_empty() {
+                self.play(tick, kit, &picture, listed, &BTreeMap::new(), commands);
+            }
             self.publish_hands(&picture, &BTreeMap::new());
             if status_due {
                 self.pianist_status_line(tick.frame);

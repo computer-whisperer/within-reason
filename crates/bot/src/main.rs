@@ -115,6 +115,10 @@ fn session(mut stream: UnixStream, mode: Option<(Mode, bool)>, pianist: bool, po
     if pianist.is_some() {
         banner += &format!(" | hands: {}", pianist.as_ref().map_or(String::new(), |p| p.model()));
     }
+    // The player's first turn comes before the hands' first ask: the report and the `policy` tool must know the runtime is on.
+    if let Some(strategist) = &strategist {
+        strategist.shared.hands.lock().unwrap().policy_on = policy;
+    }
     let mut brain = Brain::new(World::new(hello), strategist.as_ref().map(|s| s.shared.clone()), board, banner, pianist);
     write_frame(&mut stream, &Commands::default())?;
     loop {
