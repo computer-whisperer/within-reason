@@ -374,7 +374,7 @@ guard order never ends. plan-1-bulldogs: the commander helped the vehicle plant 
 player gave it lists at 5:30, 7:00, 8:30 and 10:36, none of which started; the picture showed the pending list beside
 "helping lab_14835". The player's diagnosis at 9:51 ("a builder helping a factory that has nothing to build counts as
 busy for good") was right, except that the factory need not be idle: any helping blocked the list.
-**Status.** observed (2026-09-22), one game; fixed the same night (H-HANDS-SCRIPT: fillers give way at once).
+**Status.** observed (2026-09-22), one game; fixed the same night (H-HANDS-SCRIPT: fillers give way at once), seen working in hands-1-bulldogs (ten list steps to helping builders).
 **Evidence.** `run/matches/1790111510-plan-1-bulldogs/00`, `jev-0.jsonl` `state.actors.commander.doing` 4:00-14:24,
 `strategist-0.jsonl` `queue` calls at turns 4-10.
 **Would be wrong if.** The list had started and the builder walked back to help on its own.
@@ -388,7 +388,7 @@ at 21:59 the commander had been out of sight for a second and was no party, so t
 at E4, and Jev chose attack_unit on it (0.66); at 22:01 both were offered as "3 unidentified at 333 from spot_44 (E4)"
 and "1 armcom at spot_17 (H2)" and Jev chose the raiders again (attack_unit 0.74); the player's rewritten packet then
 named "party_2", which the naming did not hold.
-**Status.** observed (2026-09-22), one game; names held and the words changed the same night (H-HANDS-PARTY-NAMES).
+**Status.** observed (2026-09-22), one game; names held and the words changed the same night (H-HANDS-PARTY-NAMES); hands-1-bulldogs: names held (no same-member party renamed), the commander words not yet seen in play.
 **Evidence.** `run/matches/1790111510-plan-1-bulldogs/00`, `jev-0.jsonl` calls 21:58-22:10 (`questions.group_F.whom`,
 `answers`, `played`), `strategist-0.jsonl` turns 52-53.
 **Would be wrong if.** Jev chose the commander's party with the distance and the commander's words in front of it as
