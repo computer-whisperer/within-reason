@@ -4,9 +4,10 @@ match, Opus gets the report it saw in the game and a role text whose lever is a 
 + the brief), answers with a script, and the script is run in Lua 5.4 over every hands' call recorded between that
 turn and the next (`jev-<ai>.jsonl`): its orders are scored against the menu, Jev's play and the packet's prohibitions.
 
-usage: run/policy_replay.py <match dir> [--turns A-B] [--mode rewrite|amend] [--skip-opus] [--policy FILE] [--summarize] [--model ID] [--effort LEVEL]
+usage: run/policy_replay.py <match dir> [--turns A-B] [--mode rewrite|amend] [--warm] [--skip-opus] [--policy FILE] [--summarize] [--model ID] [--effort LEVEL]
   Scripts and results land in <match dir>/policy/ (turn-NN.lua, turn-NN.json, replay.jsonl), or policy-amend/ in
-  amendment mode, where a turn answers with only the functions it changes and the harness appends them.
+  amendment mode, where a turn answers with only the functions it changes and the harness appends them; -warm when
+  --warm keeps one claude session across turns (stream-json, as the bot runs the player) instead of a process a turn.
   --skip-opus replays the saved scripts; --policy FILE replays one script for every turn (a harness test).
   Opus runs on ~/.claude2 (weekly allotment only): a usage snapshot is taken before and reported after.
 """
@@ -204,6 +205,57 @@ def ask_opus(system, user, model, effort, config_dir):
         return {"text": proc.stdout, "wall": wall}
 
 
+class WarmSession:
+    """One `claude -p` process kept across turns over stream-json, as the bot keeps the player (strategist/mod.rs):
+    no process start per turn, and the session remembers its earlier turns."""
+
+    def __init__(self, system, model, effort, config_dir, stderr_path):
+        env = {**os.environ, "CLAUDE_CONFIG_DIR": config_dir}
+        cmd = ["claude", "-p", "--model", model, "--effort", effort, "--tools", "", "--strict-mcp-config", "--system-prompt", system,
+               "--input-format", "stream-json", "--output-format", "stream-json", "--verbose"]
+        self.stderr = open(stderr_path, "w")
+        self.proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self.stderr, text=True, env=env, bufsize=1)
+        self.turns = 0
+
+    def ask(self, user):
+        started = time.time()
+        self.proc.stdin.write(json.dumps({"type": "user", "message": {"role": "user", "content": user}}) + "\n")
+        self.proc.stdin.flush()
+        texts = []
+        result = None
+        while True:
+            line = self.proc.stdout.readline()
+            if not line:
+                return {"error": "the session ended", "wall": time.time() - started, "text": "".join(texts)}
+            try:
+                msg = json.loads(line)
+            except ValueError:
+                continue
+            kind = msg.get("type")
+            if kind == "assistant":
+                for c in (msg.get("message") or {}).get("content") or []:
+                    if c.get("type") == "text":
+                        texts.append(c["text"])
+            elif kind == "rate_limit_event":
+                info = msg.get("rate_limit_info") or {}
+                if info.get("isUsingOverage") or info.get("status") not in (None, "allowed"):
+                    return {"error": f"rate limit event: {json.dumps(info)[:200]}", "wall": time.time() - started, "text": "".join(texts)}
+            elif kind == "result":
+                result = msg
+                break
+        self.turns += 1
+        return {"text": "".join(texts), "wall": time.time() - started, "cost_usd": result.get("total_cost_usd"), "usage": result.get("usage"),
+                "duration_ms": result.get("duration_ms"), "duration_api_ms": result.get("duration_api_ms"), "is_error": result.get("is_error")}
+
+    def end(self):
+        try:
+            self.proc.stdin.close()
+            self.proc.wait(timeout=10)
+        except Exception:  # noqa: BLE001
+            self.proc.kill()
+        self.stderr.close()
+
+
 def extract_lua(text):
     m = re.search(r"```lua\s*\n(.*?)```", text, re.S)
     if m:
@@ -287,6 +339,9 @@ def main():
     turns_arg = flag("--turns")
     policy_file = flag("--policy")
     mode = flag("--mode", "rewrite")
+    warm = "--warm" in args
+    if warm:
+        args.remove("--warm")
     config_dir = flag("--claude-config-dir", os.path.join(os.path.expanduser("~"), ".claude2"))
     skip_opus = "--skip-opus" in args or bool(policy_file)
     summarize = "--summarize" in args
@@ -294,7 +349,7 @@ def main():
     if not dirs:
         sys.exit(__doc__)
     m = Match(dirs[0])
-    out_dir = os.path.join(m.dir, "policy-amend" if mode == "amend" else "policy")
+    out_dir = os.path.join(m.dir, "policy" + ("-amend" if mode == "amend" else "") + ("-warm" if warm else ""))
     os.makedirs(out_dir, exist_ok=True)
     if summarize:
         return print_summary(m, out_dir)
@@ -310,6 +365,7 @@ def main():
         subprocess.run([sys.executable, os.path.join(REPO, "run", "claude_usage.py"), "--snapshot", snapshot, config_dir], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     previous = None
     feedback = ""
+    session = WarmSession(system, model, effort, config_dir, os.path.join(out_dir, "session-stderr.log")) if warm and not skip_opus else None
     replay_path = os.path.join(out_dir, "replay.jsonl")
     with open(replay_path, "a") as replay:
         for i in turns:
@@ -341,8 +397,13 @@ def main():
                     user += f"\n\nYour policy in force, written at {clock(previous[0])}:\n```lua\n{previous[1]}\n```\nKeep it, amend it or replace it; answer with the complete script."
                 else:
                     user += "\n\nNo policy is in force yet: write the first one."
-                r = ask_opus(system, user, model, effort, config_dir)
-                meta.update({"wall": r.get("wall"), "cost_usd": r.get("cost_usd"), "usage": r.get("usage"), "opus_error": r.get("error")})
+                r = session.ask(user) if session else ask_opus(system, user, model, effort, config_dir)
+                meta.update({"wall": r.get("wall"), "cost_usd": r.get("cost_usd"), "usage": r.get("usage"), "opus_error": r.get("error"),
+                             "duration_ms": r.get("duration_ms"), "duration_api_ms": r.get("duration_api_ms")})
+                if r.get("error"):
+                    print(f"turn {i} {clock(f0)}: session error: {r['error'][:200]}")
+                    if session:
+                        break
                 text = r.get("text") or ""
                 chunk = extract_lua(text)
                 closing = re.sub(r"```.*?```", "", text, flags=re.S).strip()
@@ -390,6 +451,8 @@ def main():
                   + (f"LOAD ERROR {meta['load_error']}" if meta["load_error"] else
                      f"{errors} runtime errors over {len(calls)} calls; {meta['ordered']}/{len(rows)} ordered, {meta['legal']} legal, {meta['agree']} agree with Jev, "
                      f"{meta['violations']} violate the packet, reacted {reacted}/{episodes}"))
+    if session:
+        session.end()
     if snapshot:
         usage = subprocess.run([sys.executable, os.path.join(REPO, "run", "claude_usage.py"), "--since", snapshot, config_dir], capture_output=True, text=True)
         since = next((l.strip() for l in usage.stdout.splitlines() if "since snapshot" in l), usage.stdout.strip()[-200:])
