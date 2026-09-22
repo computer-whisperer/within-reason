@@ -96,7 +96,7 @@ fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
     let gone = if s.enemy_factories_gone.is_empty() { String::new() } else { format!("; seen destroyed: {}", s.enemy_factories_gone.iter().map(|(p, at)| format!("{} ({}, {}) at {}", p.grid, p.x, p.z, clock(*at))).collect::<Vec<_>>().join("; ")) };
     let boxes = if s.enemy_start_boxes.is_empty() { "the lobby gave it no start box".to_string() } else { format!("its commander was placed at 0:00 inside its lobby box, cells {}", s.enemy_start_boxes.join(" and ")) };
     let in_box = s.never_looked.iter().filter(|(_, _, inside)| *inside).count();
-    let unseen: Vec<String> = s.never_looked.iter().take(8).map(|(n, p, inside)| format!("#{n} {}{}", p.grid, if *inside { " (in its box)" } else { "" })).collect();
+    let unseen: Vec<String> = s.never_looked.iter().filter(|(_, _, inside)| *inside).chain(s.never_looked.iter().filter(|(_, _, inside)| !*inside)).take(10).map(|(n, p, inside)| format!("#{n} {}{}", p.grid, if *inside { " (in its box)" } else { "" })).collect();
     lines.push(format!(
         "to win: its commander {}; its factories standing as far as we know: {}{}; {}; where it stands and builds now is known only from what our units see, and it may rebuild anywhere. Metal spots never within sight of a unit of ours: {} ({} inside its box){}",
         s.enemy_commander.as_ref().map_or("has never been seen".to_string(), |(p, ago)| format!("was last seen at {} ({}, {}) {} ago{}", p.grid, p.x, p.z, clock(*ago), if s.enemy_commander_afloat { ", in the water or on ground our bots cannot walk to (it is amphibious; our soldiers are not)" } else { "" })),
@@ -105,7 +105,7 @@ fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
         boxes,
         s.never_looked.len(),
         in_box,
-        if unseen.is_empty() { String::new() } else { format!("; nearest home first: {}", unseen.join(", ")) }
+        if unseen.is_empty() { String::new() } else { format!("; its box's first, then nearest home first: {}", unseen.join(", ")) }
     ));
     if !s.raid_targets.is_empty() {
         let list: Vec<String> = s.raid_targets.iter().map(|(p, turrets)| format!("{} ({}, {}){}", p.grid, p.x, p.z, if *turrets > 0 { format!(" turrets {turrets}m") } else { " no turret seen".into() })).collect();

@@ -569,7 +569,9 @@ impl Brain {
         let mut never: Vec<(f32, usize)> = (0..spots.len()).filter(|i| self.spot_seen(*i).is_none()).map(|i| (spots[i].dist2d(self.home), i)).collect();
         never.sort_by(|a, b| a.0.total_cmp(&b.0));
         let never_total = never.len();
-        let never: Vec<String> = never.iter().take(NEVER_LOOKED).map(|(_, i)| format!("spot_{i} ({}{})", self.world.grid(spots[*i]), if in_their_box(spots[*i]) { ", in its start box" } else { "" })).collect();
+        let words = |list: &[&(f32, usize)]| if list.is_empty() { "none".to_string() } else { format!("{}{}", list.iter().take(NEVER_LOOKED).map(|(_, i)| format!("spot_{i} ({})", self.world.grid(spots[*i]))).collect::<Vec<_>>().join(", "), if list.len() > NEVER_LOOKED { ", ..." } else { "" }) };
+        let in_box: Vec<&(f32, usize)> = never.iter().filter(|(_, i)| in_their_box(spots[*i])).collect();
+        let elsewhere: Vec<&(f32, usize)> = never.iter().filter(|(_, i)| !in_their_box(spots[*i])).collect();
         let mut stale: Vec<(i32, usize)> = (0..spots.len()).filter_map(|i| self.spot_seen(i).filter(|seen| frame - seen > LONG_UNSEEN).map(|seen| (seen, i))).collect();
         stale.sort();
         let stale: Vec<String> = stale.iter().take(NEVER_LOOKED).map(|(seen, i)| format!("spot_{i} ({}) {} ago", self.world.grid(spots[*i]), clock(frame - seen))).collect();
@@ -577,7 +579,7 @@ impl Brain {
             "in_sight": in_sight,
             "factories_seen": if factories.is_empty() { json!("none, ever: nothing of ours has had one in sight") } else { json!(factories) },
             "start_box": start_box,
-            "never_looked": format!("{never_total} of the map's {} metal spots have never been within sight of a unit of ours; a base is always beside metal. Nearest home first: {}{}", spots.len(), if never.is_empty() { "none".to_string() } else { never.join(", ") }, if never_total > NEVER_LOOKED { ", ..." } else { "" }),
+            "never_looked": format!("{never_total} of the map's {} metal spots have never been within sight of a unit of ours; a base is always beside metal. Inside its start box, nearest home first: {}. Elsewhere, nearest home first: {}", spots.len(), words(&in_box), words(&elsewhere)),
             "looked_long_ago": if stale.is_empty() { json!("none") } else { json!(stale) },
             "buildings_seen": remembered,
             "army_known": format!("{} soldiers worth {:.0} metal seen in the last three minutes and not seen to die; it may have much more", known_soldiers.len(), known_metal.max(0.0)),
