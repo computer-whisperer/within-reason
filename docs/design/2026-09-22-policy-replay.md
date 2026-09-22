@@ -130,3 +130,20 @@ Target design, written before the build.
 - **Not now:** realtime (the policy call is in the brain thread and takes milliseconds, so it is fine either way);
   the global Nouls without Jev (no hands' wake); a time budget per call (a runaway script; `mlua`'s instruction
   hook is the place if it is ever needed).
+
+### policy-1-easy (2026-09-22): the first game, won
+
+`run/matches/1790088367-policy-1-easy`, Comet Catcher, BARb easy, the policy alone (no Jev): **won in 13.9 min**.
+Twelve turns, wall median 7.1 s: the 41-line first script took 12 s; the amendments (one or two handlers, 3 to 42
+lines) 5 to 10 s, the 42-line rebuild of 8:01 20 s. The runtime ran 343 times at 0.09 ms median with no error. Three
+illegal orders, all one cause: the policy named `spot_25`, which was not among the picture's places (a spot named in
+the packet is put on the menu, H-HANDS-NAMED-PLACES; one named in code was not); the player marked five search
+points and swept them. Opus wrote the policy as the role text asked (handlers per kind, globals for state: a search
+index and a "made_plant" flag) and its turns read like a player's: scout east at 4:00, sweep the eastern spots at
+6:00 when the base guess was empty, recall and mass at 8:01 when Blitzes died piecemeal to turrets, one attack at
+34 units, advance onto the shelling at 12:01, engage beside the march at 12:15. Its two wishes: to see where unseen
+fire comes from (the picture names `shelling`; the policy did not use it until told), and a standing rule for
+reinforcements to join the ball where it is.
+
+Follow-ups from the game: spots named in the policy's text join the picture's places as the packet's do; the
+scripted (list) plays in the policy's log line carry source `jev` and should say `list`.
