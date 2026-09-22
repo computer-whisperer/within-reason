@@ -108,4 +108,59 @@ impl Units {
     pub fn extractor(&self, builder: usize) -> Option<usize> {
         self.cheapest(builder, |u| u.extracts_metal > 0.0)
     }
+
+    /// Every unit type reachable from `root` by build menus, `root` first, in breadth-first order.
+    pub fn reachable(&self, root: usize) -> Vec<usize> {
+        let mut seen = vec![root];
+        let mut i = 0;
+        while i < seen.len() {
+            for next in &self.list[seen[i]].builds {
+                if !seen.contains(next) {
+                    seen.push(*next);
+                }
+            }
+            i += 1;
+        }
+        seen
+    }
+
+    /// The shortest chain of makers from `root` to `target` by build menus (`root` first, `target` last), if any.
+    pub fn chain(&self, root: usize, target: usize) -> Option<Vec<usize>> {
+        let mut parent: Vec<Option<usize>> = vec![None; self.list.len()];
+        let mut queue = std::collections::VecDeque::from([root]);
+        let mut seen = vec![false; self.list.len()];
+        seen[root] = true;
+        while let Some(at) = queue.pop_front() {
+            if at == target {
+                let mut path = vec![at];
+                while let Some(p) = parent[*path.last().unwrap()] {
+                    path.push(p);
+                }
+                path.reverse();
+                return Some(path);
+            }
+            for next in &self.list[at].builds {
+                if !seen[*next] {
+                    seen[*next] = true;
+                    parent[*next] = Some(at);
+                    queue.push_back(*next);
+                }
+            }
+        }
+        None
+    }
+
+    /// Whether a unit type is sea-bound: a ship, a submarine, or a building whose name marks it as on or under
+    /// water (the numbers carry no such flag; the names do: `armsy`, `armuwes`, `coruwmex`).
+    pub fn sea_bound(&self, unit: usize) -> bool {
+        let u = &self.list[unit];
+        let ship = u.move_class.is_some_and(|m| matches!(m.kind, bot_protocol::MoveKind::Ship));
+        let name = u.name.get(3..).unwrap_or("");
+        ship || name.starts_with("uw") || name == "sy" || name.starts_with("asy") || name.starts_with("fhp") || name.contains("float") || name.starts_with("tl") || name.starts_with("dl")
+    }
+
+    /// The least an extractor type extracts: the tier-1 rate that a spot's metal is quoted for.
+    pub fn basic_extraction(&self) -> f64 {
+        self.list.iter().filter(|u| u.extracts_metal > 0.0).map(|u| u.extracts_metal).fold(f64::INFINITY, f64::min)
+    }
 }

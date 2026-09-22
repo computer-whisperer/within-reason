@@ -53,6 +53,10 @@ pub enum Objective {
     /// army metal up to the expected `EXPECTED_ARMY` times, beyond `EXTRA_ARMY`; the contact term as in `Tempo`;
     /// less the stall penalty.
     Expect { exposed: f64, contact: Option<Contact>, expect: Expectations },
+    /// Metal of finished units of one type at the horizon, plus `MIX_INCOME_SECONDS` of the final income, less the
+    /// stall penalty, plus an earliness bonus (one unit's metal per minute the first one finishes before `by`
+    /// seconds). The player's question: "Bulls at full speed by minute nine" (docs/design/2026-09-22-plan-search.md).
+    Target { unit: usize, by: Option<f64> },
 }
 
 /// What a game is expected to have by each second of the clock: a piecewise-linear curve per quantity. The standard
@@ -138,6 +142,8 @@ pub const TEMPO_STALL_METAL: f64 = 3.0;
 
 /// In `Objective::Mix` one metal/s of income at the horizon counts as this much army metal.
 pub const MIX_INCOME_SECONDS: f64 = 120.0;
+/// In `Objective::Target` the income at the horizon is a tiebreaker, not the point.
+pub const TARGET_INCOME_SECONDS: f64 = 20.0;
 
 impl Objective {
     pub fn parse(name: &str) -> Option<Objective> {
@@ -151,6 +157,24 @@ impl Objective {
         }
     }
 
+    /// `target:armbull`, `target:armbull@540` (seconds) or the words `target armbull by 9:00`; the unit by its full
+    /// name in `units`.
+    pub fn parse_target(text: &str, units: &Units) -> Result<Objective, String> {
+        let words: Vec<&str> = text.split(|c: char| c == ':' || c == '@' || c.is_whitespace()).filter(|w| !w.is_empty() && *w != "by").collect();
+        if words.first() != Some(&"target") || words.len() < 2 {
+            return Err(format!("{text:?}: not a target objective (target UNIT [by M:SS])"));
+        }
+        let unit = units.index(words[1]).ok_or_else(|| format!("{}: no such unit type in this game", words[1]))?;
+        let by = match words.get(2) {
+            None => None,
+            Some(w) => Some(match w.split_once(':') {
+                Some((m, s)) => 60.0 * m.parse::<f64>().map_err(|_| format!("{w}: not a time"))? + s.parse::<f64>().map_err(|_| format!("{w}: not a time"))?,
+                None => w.parse::<f64>().map_err(|_| format!("{w}: not a time"))?,
+            }),
+        };
+        Ok(Objective::Target { unit, by })
+    }
+
     pub fn name(self) -> &'static str {
         match self {
             Objective::Income => "income",
@@ -158,6 +182,7 @@ impl Objective {
             Objective::Mix => "mix",
             Objective::Tempo { .. } => "tempo",
             Objective::Expect { .. } => "expect",
+            Objective::Target { .. } => "target",
         }
     }
 
@@ -185,6 +210,21 @@ impl Objective {
                 let constructors = against(last.constructors as f64, Expectations::at(expect.constructors, horizon), EXPECTED_CONSTRUCTOR, EXTRA_CONSTRUCTOR);
                 let soldiers = against(army, Expectations::at(expect.army_metal, horizon), EXPECTED_ARMY, EXTRA_ARMY);
                 made + TEMPO_INCOME_SECONDS * (income - (1.0 - exposed) * outcome.exposed_income) + extractors + constructors + soldiers + Self::there(units, outcome, contact) - TEMPO_STALL_METAL * stalled + shaping
+            }
+            Objective::Target { unit, by } => {
+                let cost = units.list[unit].metal_cost;
+                let made = outcome.finished.iter().filter(|f| f.unit == unit).count() as f64 * cost;
+                let stalled: f64 = outcome.samples.iter().map(|s| 1.0 - s.stall).sum();
+                let first = outcome.finished.iter().find(|f| f.unit == unit).map(|f| f.t);
+                let early = match (first, by) {
+                    (Some(t), Some(by)) => cost * (by - t).max(0.0) / 60.0,
+                    _ => 0.0,
+                };
+                // A slope toward the target before any is finished: half the metal of every maker on its chain
+                // that stands (the plant, the constructor that builds the plant), and the target's own progress.
+                let chain = units.chain(units.list.iter().position(|u| u.role == Role::Commander).unwrap_or(0), unit).unwrap_or_default();
+                let makers: f64 = outcome.finished.iter().filter(|f| f.unit != unit && chain.contains(&f.unit)).map(|f| units.list[f.unit].metal_cost).sum::<f64>() * 0.5;
+                made + makers + TARGET_INCOME_SECONDS * income - TEMPO_STALL_METAL * stalled + early + shaping
             }
         }
     }
@@ -257,6 +297,56 @@ impl Palette {
         Palette { mobile, factory: from_factory, constructor, factory_unit: factory, turrets }
     }
 
+    /// The whole roster (docs/design/2026-09-22-plan-search.md, decision 1): every building that makes, stores,
+    /// converts or extracts, every factory and nano, that the commander or any constructor reachable from it can
+    /// build; the factory list is the union of every reachable factory's soldiers and mobile builders. `mobile[0]`
+    /// stays the basic extractor and `mobile[1]` the wind generator, as the moves and the seed plan expect.
+    pub fn roster(units: &Units, commander: usize, turret: Option<usize>, water: bool) -> Palette {
+        // Without water on the map, nothing sea-bound and no factory that makes only sea-bound units.
+        let reach: Vec<usize> = units
+            .reachable(commander)
+            .into_iter()
+            .filter(|u| water || !(units.sea_bound(*u) || (units.list[*u].role == Role::Factory && units.list[*u].builds.iter().all(|b| units.sea_bound(*b)))))
+            .collect();
+        let builders: Vec<usize> = reach.iter().copied().filter(|u| matches!(units.list[*u].role, Role::Commander | Role::Builder)).collect();
+        let factories: Vec<usize> = reach.iter().copied().filter(|u| units.list[*u].role == Role::Factory).collect();
+        let offer = |test: &dyn Fn(&Unit) -> bool| builders.iter().find_map(|b| units.cheapest(*b, test));
+        let mex = offer(&|u| u.extracts_metal > 0.0).expect("the roster has an extractor");
+        let wind = offer(&|u| u.wind_cap > 0.0).expect("the roster has a wind generator");
+        let mut mobile: Vec<Item> = vec![Item::Build(mex), Item::Build(wind)];
+        for b in &builders {
+            for u in &units.list[*b].builds {
+                let def = &units.list[*u];
+                let useful = match def.role {
+                    Role::Eco => def.speed == 0.0 && (def.extracts_metal > 0.0 || def.energy_make > 0.0 || def.wind_cap > 0.0 || def.conv_capacity > 0.0 || def.energy_storage >= 1000.0 || def.metal_storage >= 1000.0 || def.metal_make > 0.0),
+                    Role::Factory | Role::Nano => true,
+                    _ => false,
+                };
+                if useful && reach.contains(u) && !mobile.contains(&Item::Build(*u)) {
+                    mobile.push(Item::Build(*u));
+                }
+            }
+        }
+        if let Some(t) = turret && !mobile.contains(&Item::Build(t)) {
+            mobile.push(Item::Build(t));
+        }
+        mobile.push(Item::Assist);
+        let factory_unit = units.list[commander].builds.iter().copied().filter(|u| reach.contains(u) && units.list[*u].role == Role::Factory).min_by(|a, b| units.list[*a].metal_cost.total_cmp(&units.list[*b].metal_cost)).expect("the commander builds a factory");
+        let constructor = units.cheapest(factory_unit, |u| u.role == Role::Builder && u.builds.contains(&factory_unit)).expect("the first factory builds a constructor");
+        let mut from_factory = vec![Item::Build(constructor)];
+        for f in &factories {
+            for u in &units.list[*f].builds {
+                let def = &units.list[*u];
+                let mobile_eco = def.role == Role::Eco && def.speed > 0.0;
+                let wanted = def.role == Role::Builder || ((def.role == Role::Army || mobile_eco) && !NOT_FIGHTERS.iter().any(|s| def.name.ends_with(s)));
+                if wanted && reach.contains(u) && !from_factory.contains(&Item::Build(*u)) {
+                    from_factory.push(Item::Build(*u));
+                }
+            }
+        }
+        Palette { mobile, factory: from_factory, constructor, factory_unit, turrets: turret.into_iter().collect() }
+    }
+
     fn pick(&self, kind: QueueKind, rng: &mut Rng) -> Step {
         let list = if kind == QueueKind::Factory { &self.factory } else { &self.mobile };
         Step { item: list[rng.below(list.len())], site: None }
@@ -274,6 +364,63 @@ impl Palette {
         let soldier = *self.factory.get(1).unwrap_or(&self.factory[0]);
         plan.factories[0].extend(std::iter::repeat_n(Step { item: soldier, site: None }, 4));
         plan.constructors[0].extend(std::iter::repeat_n(Step { item: mex, site: None }, 3));
+        plan
+    }
+
+    /// The seed plan with the production chain to `target` laid through it (docs/design/2026-09-22-plan-search.md,
+    /// decision 4): the commander's factory becomes the chain's first factory, each factory on the chain makes
+    /// the next builder, each builder on the chain builds the next factory, and the last factory makes `count`
+    /// of the target. A search from here has the target in hand and improves the order around it.
+    pub fn chain_seed(&self, units: &Units, commander: usize, target: usize, count: usize, factories: usize, constructors: usize, wind: f64) -> Plan {
+        let mut plan = self.seed_plan(factories, constructors);
+        // Weak wind (Comet: 1 to 4): the seed's generators are the steady kind.
+        if wind < 6.0 && let Some(steady) = self.mobile.iter().find(|i| matches!(i, Item::Build(u) if units.list[*u].wind_cap == 0.0 && units.list[*u].energy_make > 0.0 && units.list[*u].role == Role::Eco)) {
+            let wind_item = self.mobile[1];
+            for step in plan.commander.iter_mut() {
+                if step.item == wind_item {
+                    step.item = *steady;
+                }
+            }
+        }
+        let Some(chain) = units.chain(commander, target) else { return plan };
+        if chain.len() >= 2 && units.list[chain[1]].role == Role::Factory {
+            for step in plan.commander.iter_mut() {
+                if step.item == Item::Build(self.factory_unit) {
+                    step.item = Item::Build(chain[1]);
+                }
+            }
+        }
+        let (mut fac, con) = (0usize, 0usize);
+        for pair in chain.windows(2) {
+            let (maker, made) = (pair[0], pair[1]);
+            match units.list[maker].role {
+                Role::Commander => {
+                    if units.list[made].role != Role::Factory {
+                        plan.commander.push(Step::build(made));
+                    }
+                }
+                Role::Factory => {
+                    if plan.factories.len() <= fac {
+                        plan.factories.resize(fac + 1, Vec::new());
+                    }
+                    if made == target {
+                        plan.factories[fac].extend(std::iter::repeat_n(Step::build(target), count));
+                    } else if !plan.factories[fac].contains(&Step::build(made)) {
+                        plan.factories[fac].insert(0, Step::build(made));
+                    }
+                }
+                Role::Builder => {
+                    if plan.constructors.len() <= con {
+                        plan.constructors.resize(con + 1, Vec::new());
+                    }
+                    plan.constructors[con].push(Step::build(made));
+                    if units.list[made].role == Role::Factory {
+                        fac += 1;
+                    }
+                }
+                _ => {}
+            }
+        }
         plan
     }
 }
@@ -399,6 +546,9 @@ pub fn anneal(units: &Units, scenario: &Scenario, state: &State, palette: &Palet
         let temperature = best.score.abs().max(1.0) * hot * (cold / hot).powf(i as f64 / search.iterations as f64);
         let mut candidate = current.clone();
         mutate(&mut candidate, &alive, palette, &spots, &mut rng);
+        if std::env::var_os("BUILDORDER_TRACE").is_some() {
+            eprintln!("iteration {i}:\n{}", candidate.to_text(units));
+        }
         let (score, outcome) = evaluate(&candidate);
         if score >= current_score || rng.unit() < ((score - current_score) / temperature).exp() {
             // Continue from what the builders actually did: no skipped steps, no unreached tail, default extractors

@@ -9,7 +9,7 @@ use buildorder::record;
 use buildorder::sim::{simulate, Outcome, Sample, Scenario, State, Wind};
 
 const USAGE: &str = "usage: (the game, that is map, start, faction and unit numbers, comes from a match record's header)
-  buildorder optimize  --game RECORD.jsonl [--factory lab|vp] [--objective income|army|mix|tempo|expect] [--contact WALK[,AT,WEIGHT]] [--minutes 10]
+  buildorder optimize  --game RECORD.jsonl [--factory lab|vp] [--palette kit|roster] [--objective income|army|mix|tempo|expect|target:UNIT[@SECONDS]] [--contact WALK[,AT,WEIGHT]] [--minutes 10]
                        [--iterations 40000] [--restarts 8] [--seed 1] [--wind MEAN] [--detour X] [--factories 2] [--constructors 6] [--leash ELMOS]
                        [--no-nano] [--turret llt] [--csv FILE] [--plan-out FILE]      (--detour X: open ground, every walk X straight lines,
                                                                         in place of the map's own ground)
@@ -121,7 +121,8 @@ fn optimize(args: &Args) {
     let game = game(args);
     let units = &game.units;
     let factory = args.text("--factory", "lab");
-    let mut objective = Objective::parse(&args.text("--objective", "mix")).unwrap_or_else(|| die("unknown objective"));
+    let objective_text = args.text("--objective", "mix");
+    let mut objective = if objective_text.starts_with("target") { Objective::parse_target(&objective_text, units).unwrap_or_else(|e| die(&e)) } else { Objective::parse(&objective_text).unwrap_or_else(|| die("unknown objective")) };
     // `--contact WALK[,AT,WEIGHT]`: the tempo objective's first-contact term (docs/design/2026-09-20-rush-benchmark.md).
     if let Objective::Tempo { contact, .. } | Objective::Expect { contact, .. } = &mut objective
         && args.has("--contact")
@@ -133,16 +134,26 @@ fn optimize(args: &Args) {
     let minutes: f64 = args.number("--minutes", 10.0);
     let scenario = scenario(&game, args);
     let factory_unit = game.factory(&factory).unwrap_or_else(|| die(&format!("the commander builds no {factory}")));
-    let palette = Palette::new(units, game.commander, factory_unit, !args.has("--no-nano"), units.index(&format!("{}{}", game.side(), args.text("--turret", "llt"))));
+    let turret = units.index(&format!("{}{}", game.side(), args.text("--turret", "llt")));
+    let water = game.terrain.heights.iter().any(|h| *h < 0);
+    let palette = match args.text("--palette", "kit").as_str() {
+        "roster" => Palette::roster(units, game.commander, turret, water),
+        _ => Palette::new(units, game.commander, factory_unit, !args.has("--no-nano"), turret),
+    };
+    let (factories_n, constructors_n) = (args.number::<usize>("--factories", 2), args.number::<usize>("--constructors", 6));
+    let start = match objective {
+        Objective::Target { unit, .. } => Some(palette.chain_seed(units, game.commander, unit, 6, factories_n, constructors_n, match scenario.wind { buildorder::sim::Wind::Constant(w) => w, _ => 10.0 })),
+        _ => None,
+    };
     let search = Search {
         objective,
         horizon: minutes * 60.0,
         iterations: args.number("--iterations", 40_000),
         seed: args.number("--seed", 1),
-        factories: args.number("--factories", 2),
-        constructors: args.number("--constructors", 6),
+        factories: factories_n,
+        constructors: constructors_n,
         hot: args.number("--hot", 0.02),
-        start: None,
+        start,
     };
     let found = anneal_restarts(units, &scenario, &State::start(&scenario), &palette, &search, args.number("--restarts", 8));
     println!("# {} {factory} from {:.0},{:.0}, objective {} at {minutes} min, score {:.1}", game.side(), game.home.0, game.home.1, objective.name(), found.score);

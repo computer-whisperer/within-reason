@@ -131,7 +131,7 @@ impl Plan {
                 let item = if name == "assist" {
                     Item::Assist
                 } else {
-                    Item::Build(units.index(&format!("{side}{name}")).ok_or_else(|| format!("unknown unit {side}{name}"))?)
+                    Item::Build(units.index(name).or_else(|| units.index(&format!("{side}{name}"))).ok_or_else(|| format!("unknown unit {name}"))?)
                 };
                 steps.push(Step { item, site });
             }

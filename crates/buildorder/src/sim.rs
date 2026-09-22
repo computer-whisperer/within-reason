@@ -294,6 +294,10 @@ pub fn simulate(units: &Units, scenario: &Scenario, state: &State, plan: &Plan, 
     let extractor = units.extractor(sc.commander).expect("the commander builds an extractor");
     // An extractor on a site outside the scenario's spots (a replay's) pays what the scenario's spots do on average.
     let mean_spot = sc.spots.iter().map(|s| s.metal).sum::<f64>() / sc.spots.len().max(1) as f64;
+    // An extractor that extracts more than the basic rate is an upgrade: it goes on a standing extractor's spot and
+    // adds the difference (docs/design/2026-09-22-plan-search.md, decision 2).
+    let basic_extraction = units.basic_extraction();
+    let is_upgrade = |unit: usize| units.list[unit].extracts_metal > basic_extraction * 1.5;
     let t0 = state.t0.round();
     // Spots taken: by a standing extractor, or by one a builder is on (begun or not).
     let taken = |at: (f64, f64)| {
@@ -345,6 +349,7 @@ pub fn simulate(units: &Units, scenario: &Scenario, state: &State, plan: &Plan, 
     let (mut army_count, mut army_value) = (0u32, state.army_metal);
     let (mut metal_wasted, mut energy_wasted, mut metal_spent) = (0.0, 0.0, 0.0);
     let (mut extractor_sites, mut turret_sites): (Vec<((f64, f64), f64)>, Vec<(f64, f64)>) = (Vec::new(), Vec::new());
+    let mut upgraded: Vec<(f64, f64)> = Vec::new();
     for u in &state.standing {
         let def = &units.list[u.unit];
         steady_metal += def.metal_make;
@@ -408,6 +413,12 @@ pub fn simulate(units: &Units, scenario: &Scenario, state: &State, plan: &Plan, 
                     Item::Build(unit) => {
                         let def = &units.list[unit];
                         if !units.list[builder.unit].builds.contains(&unit) {
+                            // The default extractor a builder cannot build (an advanced constructor builds only the
+                            // advanced one): this builder is finished, or it would be handed the default forever.
+                            if builder.next > plan.queue(queue).len() {
+                                builders[b].state = Doing::Done;
+                                break;
+                            }
                             continue;
                         }
                         if builder.is_factory {
@@ -424,7 +435,28 @@ pub fn simulate(units: &Units, scenario: &Scenario, state: &State, plan: &Plan, 
                             continue;
                         }
                         let mut pays = 0.0;
-                        let site = if def.extracts_metal > 0.0 {
+                        let site = if is_upgrade(unit) {
+                            let from = next.site.unwrap_or(builder.place);
+                            let ratio = def.extracts_metal / basic_extraction;
+                            let standing = extractor_sites
+                                .iter()
+                                .enumerate()
+                                .filter(|(_, (site, _))| !upgraded.contains(site) && next.site.is_none_or(|s| distance(s, *site) < 100.0))
+                                .min_by(|a, b| distance(a.1.0, from).total_cmp(&distance(b.1.0, from)));
+                            match standing {
+                                Some((_, (site, old))) => {
+                                    let (site, old) = (*site, *old);
+                                    upgraded.push(site);
+                                    pays = old * (ratio - 1.0);
+                                    site
+                                }
+                                None if builder.next > plan.queue(queue).len() => {
+                                    builders[b].state = Doing::Done;
+                                    break;
+                                }
+                                None => continue,
+                            }
+                        } else if def.extracts_metal > 0.0 {
                             pays = mean_spot;
                             let from = next.site.unwrap_or(builder.place);
                             let leashed = queue == 0 && sc.commander_leash < f64::MAX;
@@ -559,7 +591,9 @@ pub fn simulate(units: &Units, scenario: &Scenario, state: &State, plan: &Plan, 
             upkeep += (-def.energy_make).max(0.0);
             metal_storage += def.metal_storage;
             energy_storage += def.energy_storage;
-            if def.extracts_metal > 0.0 {
+            if is_upgrade(unit) {
+                extractor_metal += pays;
+            } else if def.extracts_metal > 0.0 {
                 extractors += 1;
                 extractor_metal += pays;
                 extractor_sites.push((site, pays));
