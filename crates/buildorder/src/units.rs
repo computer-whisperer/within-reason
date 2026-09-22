@@ -159,6 +159,14 @@ impl Units {
         ship || name.starts_with("uw") || name == "sy" || name.starts_with("asy") || name.starts_with("fhp") || name.contains("float") || name.starts_with("tl") || name.starts_with("dl")
     }
 
+    /// Whether a unit type stands only on a geothermal vent (the numbers carry no such flag; the names do: `armgeo`,
+    /// `corageo`, `armgmm`, `corbhmth`, `armuwgeo`). The map's vents never reach the simulator, so the roster leaves
+    /// these out rather than raise a plant where no vent is.
+    pub fn needs_vent(&self, unit: usize) -> bool {
+        let name = self.list[unit].name.get(3..).unwrap_or("");
+        name.contains("geo") || name == "gmm" || name == "bhmth"
+    }
+
     /// The least an extractor type extracts: the tier-1 rate that a spot's metal is quoted for.
     pub fn basic_extraction(&self) -> f64 {
         self.list.iter().filter(|u| u.extracts_metal > 0.0).map(|u| u.extracts_metal).fold(f64::INFINITY, f64::min)

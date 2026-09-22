@@ -302,10 +302,12 @@ impl Palette {
     /// build; the factory list is the union of every reachable factory's soldiers and mobile builders. `mobile[0]`
     /// stays the basic extractor and `mobile[1]` the wind generator, as the moves and the seed plan expect.
     pub fn roster(units: &Units, commander: usize, turret: Option<usize>, water: bool) -> Palette {
-        // Without water on the map, nothing sea-bound and no factory that makes only sea-bound units.
+        // Without water on the map, nothing sea-bound and no factory that makes only sea-bound units; never a
+        // building that needs a geothermal vent, since the simulator does not know where the vents are.
         let reach: Vec<usize> = units
             .reachable(commander)
             .into_iter()
+            .filter(|u| !units.needs_vent(*u))
             .filter(|u| water || !(units.sea_bound(*u) || (units.list[*u].role == Role::Factory && units.list[*u].builds.iter().all(|b| units.sea_bound(*b)))))
             .collect();
         let builders: Vec<usize> = reach.iter().copied().filter(|u| matches!(units.list[*u].role, Role::Commander | Role::Builder)).collect();

@@ -79,3 +79,12 @@ openings (the study document); the search's answers favour many constructors and
 weigh; the `queues_note` says the order must be given by `queue` and `produce`, and the player queued a building to
 the commander that only a constructor builds (the tool's queue names carry the right builder; the words could say
 "only a constructor builds this"). Two hands findings from the game are in the ledger row for the next floor pass.
+
+Decision 6 amended (746f839): `search` runs beside the game by default, its answer at the top of the next report with
+a wake; `wait: true` holds the turn, capped 20 s in lockstep and 3 s in realtime, and the tool text says the cost.
+plan-2-bulldogs (the verification game) WON with 33 Bulls; the player held its one search on the opening turn (28.5 s
+wall at frame 5, 5.5 s median after), so the held path was seen in a game and the path beside the game in the unit
+test. The search's answer leaned on a geothermal plant on a map with no vent: the roster now leaves out vent-bound
+units by name (`Units::needs_vent`), since the map's vents never reach the simulator. Left open from that game: the
+Advanced Vehicle Plant took 5:18 to build against the simulator's 1:00 or so (energy empty 71 % of minute 7), which is
+the assist and overhead calibration named in the study document.
