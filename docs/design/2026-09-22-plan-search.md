@@ -88,3 +88,13 @@ test. The search's answer leaned on a geothermal plant on a map with no vent: th
 units by name (`Units::needs_vent`), since the map's vents never reach the simulator. Left open from that game: the
 Advanced Vehicle Plant took 5:18 to build against the simulator's 1:00 or so (energy empty 71 % of minute 7), which is
 the assist and overhead calibration named in the study document.
+
+Decision 4 amended (2026-09-22 night, the user: "tried to search for build order that did x, got one that was missing
+army, tried to add it in post, didn't go well"): `target` takes goals after commas, each `UNIT[:COUNT] [by M:SS]`
+(`target armflash:4 by 3:30, armbull by 9:00`). Each goal counts its finished units up to its count, earns the
+earliness bonus on the asked-for count's finish, and loses `TARGET_SHORTFALL` (three) times its metal for every unit
+short of the count at the deadline; the chain seed lays every goal's chain and shares the factories between them; the
+answer carries a `goals` line per goal. The shortfall is what makes a cheap goal hold: at metal alone four Flashes by
+3:30 lost to the Bull chain (one Flash at 5:00; with the penalty, four by 3:00 and three Bulls by 10:00 against four,
+on the hands-2 record's header). In plan-1 to hands-2 the player asked `target armbull` alone every time; the
+soldiers it wanted beside the Bulls were worth nothing to that objective (K-plan-single-goal-strips-the-rest).

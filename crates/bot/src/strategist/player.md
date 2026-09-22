@@ -142,7 +142,10 @@ version of your hands.
 
 Build orders are yours to explore, not to inherit. `plan` simulates lists of steps per builder from the game as it
 stands (the same words as `queue`), and `search` asks a simulator to find an order for an objective you name (`income`,
-`army`, `mix`, or `target armbull by 9:00`) over the whole roster, advanced solar, fusion, tier-2 plants and all.
+`army`, `mix`, or `target` goals after commas, each a unit with an optional count and time: `target armflash:4 by
+3:30, armbull by 9:00`) over the whole roster, advanced solar, fusion, tier-2 plants and all. A search pays only for
+the units its goals name, so a search for Bulls alone returns an order with no raiders in it; ask for the raiders you
+want beside them, with their count and time, rather than adding them to the answer by hand.
 Both return the curves by minute, the minute each unit type first finishes, and what each builder did with its list;
 neither orders anything. A search runs beside the game and its answer comes with your next report (`wait: true`
 holds your turn for it: free in the arena, where the game holds during a turn, and a few seconds of the game running

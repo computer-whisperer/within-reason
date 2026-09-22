@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 
-use buildorder::anneal::{anneal, Objective, Palette, Search};
+use buildorder::anneal::{anneal, Goal, Objective, Palette, Search};
 use buildorder::game::{Game, Spot, Straight};
 use buildorder::plan::{Item, Plan, Step};
 use buildorder::sim::{simulate, Outcome, Scenario, State};
@@ -165,4 +165,49 @@ fn annealing_is_deterministic_and_beats_its_seed_plan() {
     // The plan handed back reproduces its score when simulated afresh.
     let again = run(units, &scenario, &a.plan, 300.0);
     assert!((Objective::Mix.score(&game.units, &again, 300.0) - a.score).abs() < 1e-9);
+}
+
+/// A `target` with several goals (docs/design/2026-09-22-plan-search.md, decision 4 amended 2026-09-22 night): each
+/// goal counts only up to its count, the chain seed lays every goal's chain, and a soldier no goal names is worth
+/// nothing more than its shaping.
+#[test]
+fn target_goals_count_up_to_their_count_and_seed_every_chain() {
+    let game = game();
+    let units = &game.units;
+    let (flash, bull, ck, vp) = (units.index("armflash").unwrap(), units.index("armbull").unwrap(), units.index("armck").unwrap(), units.index("armvp").unwrap());
+    let parsed = Objective::parse_target("target armflash:4 by 3:30, armbull by 9:00", units).unwrap();
+    assert_eq!(parsed.goals(), &[Goal { unit: flash, count: Some(4), by: Some(210.0) }, Goal { unit: bull, count: None, by: Some(540.0) }]);
+    assert_eq!(Objective::parse_target("target:armbull@540", units).unwrap().goals(), &[Goal { unit: bull, count: None, by: Some(540.0) }]);
+    assert!(Objective::parse_target("target armnothing", units).unwrap_err().contains("no such unit"));
+    assert!(Objective::parse_target("target armflash:many", units).unwrap_err().contains("whole number"));
+    assert!(Objective::parse_target("target", units).unwrap_err().contains("not a target objective"));
+    // The seed lays both chains: the commander's factory is the vehicle plant, which makes the Flashes and the
+    // constructor that builds the advanced plant, which makes the Bulls.
+    let palette = Palette::roster(units, game.commander, units.index("armllt"), false);
+    let seed = palette.chain_seed(units, game.commander, &[(flash, 4), (bull, 6)], 2, 3, 3.0);
+    assert!(seed.commander.iter().any(|s| s.item == Item::Build(vp)), "{seed:?}");
+    assert_eq!(seed.factories[0].iter().filter(|s| s.item == Item::Build(flash)).count(), 4);
+    assert_eq!(seed.factories[1].iter().filter(|s| s.item == Item::Build(bull)).count(), 6);
+    assert!(seed.constructors[0].iter().any(|s| s.item == Item::Build(units.index("armavp").unwrap())));
+    // Up to the count: two more Pawns than asked add less than one Pawn's metal, and with no count they add two.
+    let scenario = game.scenario(game.own_half(), game.ground());
+    let pw = units.index("armpw").unwrap();
+    let list = |n: usize| {
+        let mut plan = Plan::empty(1, 1);
+        plan.commander = [Item::Build(units.extractor(game.commander).unwrap()); 2].into_iter().chain([Item::Build(units.index("armwin").unwrap()); 2]).chain([Item::Build(units.index("armlab").unwrap())]).map(|item| Step { item, site: None }).collect();
+        plan.factories[0] = std::iter::once(Step::build(ck)).chain(std::iter::repeat_n(Step::build(pw), n)).collect();
+        run(units, &scenario, &plan, 300.0)
+    };
+    let (four, six) = (list(4), list(6));
+    assert!(six.finished.iter().filter(|f| f.unit == pw).count() >= 6, "the lab finished six Pawns in five minutes");
+    let counted = Objective::Target { goals: vec![Goal { unit: pw, count: Some(4), by: None }] };
+    let open = Objective::Target { goals: vec![Goal { unit: pw, count: None, by: None }] };
+    let cost = units.list[pw].metal_cost;
+    assert!((counted.score(units, &six, 300.0) - counted.score(units, &four, 300.0)).abs() < cost, "extras beyond the count are not rewarded");
+    assert!(open.score(units, &six, 300.0) - open.score(units, &four, 300.0) > 1.5 * cost, "without a count every one counts");
+    // A deadline is a requirement: six Pawns asked by the time the fourth finished are two short, three metal each.
+    let fourth = four.finished.iter().filter(|f| f.unit == pw).nth(3).unwrap().t;
+    let due = Objective::Target { goals: vec![Goal { unit: pw, count: Some(6), by: Some(fourth) }] };
+    let loose = Objective::Target { goals: vec![Goal { unit: pw, count: Some(6), by: None }] };
+    assert!((loose.score(units, &four, 300.0) - due.score(units, &four, 300.0) - 2.0 * buildorder::anneal::TARGET_SHORTFALL * cost).abs() < 1e-6);
 }

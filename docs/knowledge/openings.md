@@ -253,6 +253,21 @@ the base's wins (docs/README: 12 games ±14 points), the economy and army curves
 from the players' and the searched openings; the commander's requirements (step 3) are meant to set them.
 **Used by.** H-OPEN-SEARCH.
 
+### K-plan-single-goal-strips-the-rest
+**Claim.** A `target` search with one goal leaves every other soldier out of its order: the objective pays for the
+goal's units, its makers and 20 s of income, and a raider is metal spent on none of those. Given a second goal at its
+metal alone the search still drops it when it competes with an expensive chain (four Flashes by 3:30 against Bulls:
+one Flash at 5:00); a shortfall penalty of three times the unit's metal per unit missing at the deadline holds it
+(four Flashes by 3:00, three Bulls by 10:00 against four without them).
+**Status.** observed (2026-09-22), the hands-2 record's header under `buildorder optimize --palette roster`, four
+restarts of 20,000 iterations each; the player's own searches in plan-1, plan-2, hands-1 and hands-2 were all
+`target armbull` alone, and the player added the raiders to the returned order by hand each time.
+**Evidence.** `run/matches/1790117628-hands-2-bulldogs/00/record-0.jsonl`; the four games' `strategist-0.jsonl`
+`search` calls; `target_goals_count_up_to_their_count_and_seed_every_chain` in `crates/buildorder/tests/arithmetic.rs`.
+**Would be wrong if.** The annealer kept a cheap deadline goal against an expensive chain at metal alone given more
+iterations, or the penalty of three made the search over-serve a raider goal at the expensive goal's cost in a game.
+**Used by.** H-PLAYER-PLAN-SEARCH (goals after commas; `TARGET_SHORTFALL`).
+
 ### K-open-search-beats-rules
 **Claim.** An opening found by half a second of search over a simulator of this game's economy beats our hand-ordered
 opening on every opening measure at once, on the same seeds: extractors 5.2 / 8.2 / 11.4 at minutes 3 / 4 / 5 against

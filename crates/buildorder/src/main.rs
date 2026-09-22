@@ -9,7 +9,7 @@ use buildorder::record;
 use buildorder::sim::{simulate, Outcome, Sample, Scenario, State, Wind};
 
 const USAGE: &str = "usage: (the game, that is map, start, faction and unit numbers, comes from a match record's header)
-  buildorder optimize  --game RECORD.jsonl [--factory lab|vp] [--palette kit|roster] [--objective income|army|mix|tempo|expect|target:UNIT[@SECONDS]] [--contact WALK[,AT,WEIGHT]] [--minutes 10]
+  buildorder optimize  --game RECORD.jsonl [--factory lab|vp] [--palette kit|roster] [--objective income|army|mix|tempo|expect|target:UNIT[:COUNT][@SECONDS][,UNIT..]] [--contact WALK[,AT,WEIGHT]] [--minutes 10]
                        [--iterations 40000] [--restarts 8] [--seed 1] [--wind MEAN] [--detour X] [--factories 2] [--constructors 6] [--leash ELMOS]
                        [--no-nano] [--turret llt] [--csv FILE] [--plan-out FILE]      (--detour X: open ground, every walk X straight lines,
                                                                         in place of the map's own ground)
@@ -141,8 +141,11 @@ fn optimize(args: &Args) {
         _ => Palette::new(units, game.commander, factory_unit, !args.has("--no-nano"), turret),
     };
     let (factories_n, constructors_n) = (args.number::<usize>("--factories", 2), args.number::<usize>("--constructors", 6));
-    let start = match objective {
-        Objective::Target { unit, .. } => Some(palette.chain_seed(units, game.commander, unit, 6, factories_n, constructors_n, match scenario.wind { buildorder::sim::Wind::Constant(w) => w, _ => 10.0 })),
+    let start = match &objective {
+        Objective::Target { goals } => {
+            let goals: Vec<(usize, usize)> = goals.iter().map(|g| (g.unit, g.count.unwrap_or(6))).collect();
+            Some(palette.chain_seed(units, game.commander, &goals, factories_n, constructors_n, match scenario.wind { buildorder::sim::Wind::Constant(w) => w, _ => 10.0 }))
+        }
         _ => None,
     };
     let search = Search {
@@ -156,7 +159,7 @@ fn optimize(args: &Args) {
         start,
     };
     let found = anneal_restarts(units, &scenario, &State::start(&scenario), &palette, &search, args.number("--restarts", 8));
-    println!("# {} {factory} from {:.0},{:.0}, objective {} at {minutes} min, score {:.1}", game.side(), game.home.0, game.home.1, objective.name(), found.score);
+    println!("# {} {factory} from {:.0},{:.0}, objective {} at {minutes} min, score {:.1}", game.side(), game.home.0, game.home.1, search.objective.name(), found.score);
     print!("{}", found.plan.to_text(units));
     print!("\n{MILESTONE_HEADER}{}", milestone_rows("best", &found.outcome));
     if let Some(path) = args.value("--csv") {

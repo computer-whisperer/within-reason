@@ -29,7 +29,16 @@ impl Rng {
     }
 }
 
+/// One entry of a `target` objective: a unit type, how many are asked for (all that finish count when none is
+/// given) and the second the asked-for count should have finished by.
 #[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Goal {
+    pub unit: usize,
+    pub count: Option<usize>,
+    pub by: Option<f64>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum Objective {
     /// Metal income (commander, extractors, converters), mean of the last 30 s before the horizon.
     Income,
@@ -53,10 +62,17 @@ pub enum Objective {
     /// army metal up to the expected `EXPECTED_ARMY` times, beyond `EXTRA_ARMY`; the contact term as in `Tempo`;
     /// less the stall penalty.
     Expect { exposed: f64, contact: Option<Contact>, expect: Expectations },
-    /// Metal of finished units of one type at the horizon, plus `MIX_INCOME_SECONDS` of the final income, less the
-    /// stall penalty, plus an earliness bonus (one unit's metal per minute the first one finishes before `by`
-    /// seconds). The player's question: "Bulls at full speed by minute nine" (docs/design/2026-09-22-plan-search.md).
-    Target { unit: usize, by: Option<f64> },
+    /// Goals by unit type: for each, the metal of its finished units at the horizon (up to its count, when one is
+    /// given), plus an earliness bonus (one unit's metal per minute the asked-for count, or the first one, finishes
+    /// before `by`), less `TARGET_SHORTFALL` times the metal of every unit short of the asked-for count (or of the
+    /// first) at `by`, plus half the metal of every standing maker on the goals' production chains (a slope toward
+    /// them before any is finished); once over all goals, `TARGET_INCOME_SECONDS` of the final income, less the stall
+    /// penalty. The player's questions: "Bulls at full speed by minute nine", "four Flashes by 3:30 and Bulls by 9:00"
+    /// (docs/design/2026-09-22-plan-search.md). Soldiers of a type no goal names are worth nothing here: in plan-1
+    /// to hands-2 a single-goal search stripped the raiders from every order and the player put them back by hand.
+    /// The shortfall is what makes a cheap goal hold against an expensive one: at their metal alone, four Flashes by
+    /// 3:30 lost to the Bull chain (one Flash at 5:00, the hands-2 record's header).
+    Target { goals: Vec<Goal> },
 }
 
 /// What a game is expected to have by each second of the clock: a piecewise-linear curve per quantity. The standard
@@ -144,6 +160,8 @@ pub const TEMPO_STALL_METAL: f64 = 3.0;
 pub const MIX_INCOME_SECONDS: f64 = 120.0;
 /// In `Objective::Target` the income at the horizon is a tiebreaker, not the point.
 pub const TARGET_INCOME_SECONDS: f64 = 20.0;
+/// What a goal's unit missing at its deadline costs, in its own metal: a deadline is a requirement, not a preference.
+pub const TARGET_SHORTFALL: f64 = 3.0;
 
 impl Objective {
     pub fn parse(name: &str) -> Option<Objective> {
@@ -157,25 +175,49 @@ impl Objective {
         }
     }
 
-    /// `target:armbull`, `target:armbull@540` (seconds) or the words `target armbull by 9:00`; the unit by its full
-    /// name in `units`.
+    /// Goals separated by commas after the word `target`: each `UNIT[:COUNT] [by M:SS]`, the unit by its full name
+    /// in `units`, the count as the `produce` tool writes it (`armflash:4`), the time as `M:SS` or seconds after
+    /// `by` or `@`. `target armflash:4 by 3:30, armbull by 9:00`; `target:armbull@540` on the command line.
     pub fn parse_target(text: &str, units: &Units) -> Result<Objective, String> {
-        let words: Vec<&str> = text.split(|c: char| c == ':' || c == '@' || c.is_whitespace()).filter(|w| !w.is_empty() && *w != "by").collect();
-        if words.first() != Some(&"target") || words.len() < 2 {
-            return Err(format!("{text:?}: not a target objective (target UNIT [by M:SS])"));
+        const SHAPE: &str = "target UNIT[:COUNT] [by M:SS], ...";
+        let rest = text.trim().strip_prefix("target").ok_or_else(|| format!("{text:?}: not a target objective ({SHAPE})"))?;
+        let rest = rest.strip_prefix(':').unwrap_or(rest);
+        let mut goals = Vec::new();
+        for entry in rest.split(',').map(str::trim).filter(|e| !e.is_empty()) {
+            let words: Vec<&str> = entry.split(|c: char| c == '@' || c.is_whitespace()).filter(|w| !w.is_empty() && *w != "by").collect();
+            let Some(&what) = words.first() else { continue };
+            let (name, count) = match what.split_once(':') {
+                Some((name, n)) => (name, Some(n.parse::<usize>().map_err(|_| format!("{what}: the count after the colon is a whole number"))?.max(1))),
+                None => (what, None),
+            };
+            let unit = units.index(name).ok_or_else(|| format!("{name}: no such unit type in this game"))?;
+            let by = match words.get(1) {
+                None => None,
+                Some(w) => Some(match w.split_once(':') {
+                    Some((m, s)) => 60.0 * m.parse::<f64>().map_err(|_| format!("{w}: not a time"))? + s.parse::<f64>().map_err(|_| format!("{w}: not a time"))?,
+                    None => w.parse::<f64>().map_err(|_| format!("{w}: not a time"))?,
+                }),
+            };
+            if words.len() > 2 {
+                return Err(format!("{entry:?}: one unit and at most a time per goal ({SHAPE})"));
+            }
+            goals.push(Goal { unit, count, by });
         }
-        let unit = units.index(words[1]).ok_or_else(|| format!("{}: no such unit type in this game", words[1]))?;
-        let by = match words.get(2) {
-            None => None,
-            Some(w) => Some(match w.split_once(':') {
-                Some((m, s)) => 60.0 * m.parse::<f64>().map_err(|_| format!("{w}: not a time"))? + s.parse::<f64>().map_err(|_| format!("{w}: not a time"))?,
-                None => w.parse::<f64>().map_err(|_| format!("{w}: not a time"))?,
-            }),
-        };
-        Ok(Objective::Target { unit, by })
+        if goals.is_empty() {
+            return Err(format!("{text:?}: not a target objective ({SHAPE})"));
+        }
+        Ok(Objective::Target { goals })
     }
 
-    pub fn name(self) -> &'static str {
+    /// The goals of a `target` objective, in the order given; empty for the others.
+    pub fn goals(&self) -> &[Goal] {
+        match self {
+            Objective::Target { goals } => goals,
+            _ => &[],
+        }
+    }
+
+    pub fn name(&self) -> &'static str {
         match self {
             Objective::Income => "income",
             Objective::Army => "army",
@@ -188,7 +230,7 @@ impl Objective {
 
     /// Higher is better. Small shaping terms (metal put to use, half-built soldiers) give the search a slope on
     /// plateaus; they are three orders of magnitude below the terms that matter.
-    pub fn score(self, units: &Units, outcome: &Outcome, horizon: f64) -> f64 {
+    pub fn score(&self, units: &Units, outcome: &Outcome, horizon: f64) -> f64 {
         let income = outcome.mean_metal_income(horizon, 30.0);
         let army = outcome.last().army_value + 0.5 * outcome.army_in_progress;
         let shaping = 1e-3 * outcome.last().metal_spent;
@@ -199,7 +241,7 @@ impl Objective {
             Objective::Tempo { army: weight, exposed, contact } => {
                 let made: f64 = outcome.samples.iter().map(|s| s.metal_income).sum();
                 let stalled: f64 = outcome.samples.iter().map(|s| 1.0 - s.stall).sum();
-                let there = Self::there(units, outcome, contact);
+                let there = Self::there(units, outcome, *contact);
                 made + TEMPO_INCOME_SECONDS * (income - (1.0 - exposed) * outcome.exposed_income) + weight * army + there - TEMPO_STALL_METAL * stalled + shaping
             }
             Objective::Expect { exposed, contact, expect } => {
@@ -209,21 +251,37 @@ impl Objective {
                 let extractors = against(last.extractors as f64, Expectations::at(expect.extractors, horizon), EXPECTED_EXTRACTOR, EXTRA_EXTRACTOR);
                 let constructors = against(last.constructors as f64, Expectations::at(expect.constructors, horizon), EXPECTED_CONSTRUCTOR, EXTRA_CONSTRUCTOR);
                 let soldiers = against(army, Expectations::at(expect.army_metal, horizon), EXPECTED_ARMY, EXTRA_ARMY);
-                made + TEMPO_INCOME_SECONDS * (income - (1.0 - exposed) * outcome.exposed_income) + extractors + constructors + soldiers + Self::there(units, outcome, contact) - TEMPO_STALL_METAL * stalled + shaping
+                made + TEMPO_INCOME_SECONDS * (income - (1.0 - exposed) * outcome.exposed_income) + extractors + constructors + soldiers + Self::there(units, outcome, *contact) - TEMPO_STALL_METAL * stalled + shaping
             }
-            Objective::Target { unit, by } => {
-                let cost = units.list[unit].metal_cost;
-                let made = outcome.finished.iter().filter(|f| f.unit == unit).count() as f64 * cost;
+            Objective::Target { goals } => {
                 let stalled: f64 = outcome.samples.iter().map(|s| 1.0 - s.stall).sum();
-                let first = outcome.finished.iter().find(|f| f.unit == unit).map(|f| f.t);
-                let early = match (first, by) {
-                    (Some(t), Some(by)) => cost * (by - t).max(0.0) / 60.0,
-                    _ => 0.0,
-                };
-                // A slope toward the target before any is finished: half the metal of every maker on its chain
-                // that stands (the plant, the constructor that builds the plant), and the target's own progress.
-                let chain = units.chain(units.list.iter().position(|u| u.role == Role::Commander).unwrap_or(0), unit).unwrap_or_default();
-                let makers: f64 = outcome.finished.iter().filter(|f| f.unit != unit && chain.contains(&f.unit)).map(|f| units.list[f.unit].metal_cost).sum::<f64>() * 0.5;
+                let commander = units.list.iter().position(|u| u.role == Role::Commander).unwrap_or(0);
+                let mut made = 0.0;
+                let mut early = 0.0;
+                // Every maker on any goal's chain, once, less the goals themselves: a slope toward the goals before
+                // any is finished (the plant, the constructor that builds the plant).
+                let mut chain: Vec<usize> = Vec::new();
+                for goal in goals {
+                    let cost = units.list[goal.unit].metal_cost;
+                    let finished: Vec<f64> = outcome.finished.iter().filter(|f| f.unit == goal.unit).map(|f| f.t).collect();
+                    let counted = goal.count.map_or(finished.len(), |n| n.min(finished.len()));
+                    made += counted as f64 * cost;
+                    // The asked-for count's finish (the first one's when no count is asked), against the deadline.
+                    let done_at = goal.count.map_or(finished.first().copied(), |n| finished.get(n - 1).copied());
+                    if let (Some(t), Some(by)) = (done_at, goal.by) {
+                        early += cost * (by - t).max(0.0) / 60.0;
+                    }
+                    if let Some(by) = goal.by {
+                        let asked = goal.count.unwrap_or(1);
+                        let in_time = finished.iter().filter(|t| **t <= by).count();
+                        early -= TARGET_SHORTFALL * cost * asked.saturating_sub(in_time) as f64;
+                    }
+                    chain.extend(units.chain(commander, goal.unit).unwrap_or_default());
+                }
+                chain.retain(|u| !goals.iter().any(|g| g.unit == *u));
+                chain.sort_unstable();
+                chain.dedup();
+                let makers: f64 = outcome.finished.iter().filter(|f| chain.contains(&f.unit)).map(|f| units.list[f.unit].metal_cost).sum::<f64>() * 0.5;
                 made + makers + TARGET_INCOME_SECONDS * income - TEMPO_STALL_METAL * stalled + early + shaping
             }
         }
@@ -369,11 +427,13 @@ impl Palette {
         plan
     }
 
-    /// The seed plan with the production chain to `target` laid through it (docs/design/2026-09-22-plan-search.md,
-    /// decision 4): the commander's factory becomes the chain's first factory, each factory on the chain makes
-    /// the next builder, each builder on the chain builds the next factory, and the last factory makes `count`
-    /// of the target. A search from here has the target in hand and improves the order around it.
-    pub fn chain_seed(&self, units: &Units, commander: usize, target: usize, count: usize, factories: usize, constructors: usize, wind: f64) -> Plan {
+    /// The seed plan with the production chains to the `goals` (unit, count) laid through it
+    /// (docs/design/2026-09-22-plan-search.md, decision 4): the commander's factory becomes the first goal's first
+    /// factory, each factory on a chain makes the next builder, each builder on a chain builds the next factory, and
+    /// the factory that makes a goal makes `count` of it. Chains share what they have in common: a factory laid for
+    /// one goal serves the next, and a factory the commander builds that the first goal did not need is added to
+    /// its list. A search from here has the goals in hand and improves the order around them.
+    pub fn chain_seed(&self, units: &Units, commander: usize, goals: &[(usize, usize)], factories: usize, constructors: usize, wind: f64) -> Plan {
         let mut plan = self.seed_plan(factories, constructors);
         // Weak wind (Comet: 1 to 4): the seed's generators are the steady kind.
         if wind < 6.0 && let Some(steady) = self.mobile.iter().find(|i| matches!(i, Item::Build(u) if units.list[*u].wind_cap == 0.0 && units.list[*u].energy_make > 0.0 && units.list[*u].role == Role::Eco)) {
@@ -384,43 +444,61 @@ impl Palette {
                 }
             }
         }
-        let Some(chain) = units.chain(commander, target) else { return plan };
-        if chain.len() >= 2 && units.list[chain[1]].role == Role::Factory {
-            for step in plan.commander.iter_mut() {
-                if step.item == Item::Build(self.factory_unit) {
-                    step.item = Item::Build(chain[1]);
+        // The factory queues laid so far, by factory unit type; the commander's factory is queue 0.
+        let mut laid: Vec<(usize, usize)> = Vec::new();
+        let con = 0usize;
+        for &(target, count) in goals {
+            let Some(chain) = units.chain(commander, target) else { continue };
+            let mut fac = 0usize;
+            for pair in chain.windows(2) {
+                let (maker, made) = (pair[0], pair[1]);
+                match units.list[maker].role {
+                    Role::Commander => {
+                        if units.list[made].role != Role::Factory {
+                            plan.commander.push(Step::build(made));
+                        } else if laid.is_empty() {
+                            for step in plan.commander.iter_mut() {
+                                if step.item == Item::Build(self.factory_unit) {
+                                    step.item = Item::Build(made);
+                                }
+                            }
+                            laid.push((made, 0));
+                        } else if let Some(&(_, q)) = laid.iter().find(|(u, _)| *u == made) {
+                            fac = q;
+                        } else {
+                            plan.commander.push(Step::build(made));
+                            fac = laid.len();
+                            laid.push((made, fac));
+                        }
+                    }
+                    Role::Factory => {
+                        if plan.factories.len() <= fac {
+                            plan.factories.resize(fac + 1, Vec::new());
+                        }
+                        if made == target {
+                            plan.factories[fac].extend(std::iter::repeat_n(Step::build(target), count));
+                        } else if !plan.factories[fac].contains(&Step::build(made)) {
+                            plan.factories[fac].insert(0, Step::build(made));
+                        }
+                    }
+                    Role::Builder => {
+                        if plan.constructors.len() <= con {
+                            plan.constructors.resize(con + 1, Vec::new());
+                        }
+                        if units.list[made].role != Role::Factory {
+                            if !plan.constructors[con].contains(&Step::build(made)) {
+                                plan.constructors[con].push(Step::build(made));
+                            }
+                        } else if let Some(&(_, q)) = laid.iter().find(|(u, _)| *u == made) {
+                            fac = q;
+                        } else {
+                            plan.constructors[con].push(Step::build(made));
+                            fac = laid.len();
+                            laid.push((made, fac));
+                        }
+                    }
+                    _ => {}
                 }
-            }
-        }
-        let (mut fac, con) = (0usize, 0usize);
-        for pair in chain.windows(2) {
-            let (maker, made) = (pair[0], pair[1]);
-            match units.list[maker].role {
-                Role::Commander => {
-                    if units.list[made].role != Role::Factory {
-                        plan.commander.push(Step::build(made));
-                    }
-                }
-                Role::Factory => {
-                    if plan.factories.len() <= fac {
-                        plan.factories.resize(fac + 1, Vec::new());
-                    }
-                    if made == target {
-                        plan.factories[fac].extend(std::iter::repeat_n(Step::build(target), count));
-                    } else if !plan.factories[fac].contains(&Step::build(made)) {
-                        plan.factories[fac].insert(0, Step::build(made));
-                    }
-                }
-                Role::Builder => {
-                    if plan.constructors.len() <= con {
-                        plan.constructors.resize(con + 1, Vec::new());
-                    }
-                    plan.constructors[con].push(Step::build(made));
-                    if units.list[made].role == Role::Factory {
-                        fac += 1;
-                    }
-                }
-                _ => {}
             }
         }
         plan

@@ -140,7 +140,7 @@ fn tool_list(mode: Mode) -> Value {
               "description": "Simulate a build order from the game as it stands now, without ordering anything: lists of steps per builder in the `queue` tool's words (`extractor spot_N`, `assist`, any unit's internal name with an optional spot or marked place; a factory's list is unit names), keyed by actor name (commander, lab_N, plant_N, factory_N, constructor_N) or next_factory_1, next_constructor_1 for what is not standing yet. Returns the curves by minute (extractors, income, stall, army metal, build power), the minute each unit type first finishes, and what each builder actually did with its list (steps it could not do are named). The simulator knows the economy and building; it knows nothing of the enemy, losses or terrain jams, and runs about ten percent optimistic.",
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["queues"], "properties": { "queues": { "type": "object" }, "minutes": { "type": "number", "description": "How far ahead to simulate (default 8, at most 20)." } } } },
             { "name": "search",
-              "description": "Search build orders in the simulator from the game as it stands now, without ordering anything: an objective in words (`income`, `army`, `mix` (army plus two minutes of income), or `target UNIT by M:SS`, e.g. `target armbull by 9:00`), a horizon in minutes and a time budget in seconds (default 10). The search runs beside the game and its answer comes with your next report, for which you are woken; `wait: true` holds your turn for it instead (the cap is 20 s in the arena, where the game holds during a turn, and 3 s in a realtime game, where it does not). The search may use the whole roster: every generator, storage, converter, extractor, factory, nano and unit the faction reaches. Returns the best order found in the `plan` tool's words with its curves and score. Give `queues` to start the search from your own order.",
+              "description": "Search build orders in the simulator from the game as it stands now, without ordering anything: an objective in words (`income`, `army`, `mix` (army plus two minutes of income), or `target`: goals after commas, each a unit with an optional count and time, e.g. `target armflash:4 by 3:30, armbull by 9:00`; only the units the goals name count, so name the raiders you want beside the heavy units, or the search leaves them out), a horizon in minutes and a time budget in seconds (default 10). The search runs beside the game and its answer comes with your next report, for which you are woken; `wait: true` holds your turn for it instead (the cap is 20 s in the arena, where the game holds during a turn, and 3 s in a realtime game, where it does not). The search may use the whole roster: every generator, storage, converter, extractor, factory, nano and unit the faction reaches. Returns the best order found in the `plan` tool's words with its curves and score. Give `queues` to start the search from your own order.",
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["objective"], "properties": { "objective": { "type": "string" }, "minutes": { "type": "number" }, "seconds": { "type": "number" }, "wait": { "type": "boolean" }, "queues": { "type": "object" } } } },
             { "name": "instruct",
               "description": format!("Your standing instructions to your hands: the whole packet, replacing the last one. Jev reads it every second beside the picture and picks each actor's next action from a menu, so write it as standing orders in plain words: the build order per builder as a sequence, what the lab makes and when that changes, where each group stands, when it engages, scouts and attacks, what to do about raids. Name places as the picture does (home, spot_N, passage_N, and any place you marked with `mark`; a spot or passage you name here is always on your hands' menu, however far) and groups as group_A, group_B. No arithmetic for the hands to do: say \"when we have about ten soldiers\", not a formula. At most {INSTRUCTIONS_LIMIT} characters."),
@@ -394,7 +394,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>, mode: Mode) ->
             if text.starts_with("target") {
                 buildorder::anneal::Objective::parse_target(text, &context.game.units)?;
             } else if buildorder::anneal::Objective::parse(text).is_none() {
-                return Err(format!("{text}: not an objective (income, army, mix, or target UNIT by M:SS)"));
+                return Err(format!("{text}: not an objective ({})", planning::OBJECTIVES));
             }
             let lockstep = shared.lockstep.load(Ordering::Relaxed);
             let cap = if lockstep { planning::MAX_SECONDS } else { planning::REALTIME_MAX_SECONDS };
@@ -783,9 +783,11 @@ mod tests {
         assert!(results[0].contains("score") && results[0].contains("curves"), "{}", results[0]);
         assert!(shared.triggers.lock().unwrap().iter().any(|t| t.contains("search has finished")));
         // Held: the answer now, within the mode's cap.
-        let held = call_tool("search", &json!({ "objective": "target armpw by 2:30", "minutes": 3, "seconds": 1, "wait": true }), &shared, Mode::Player).unwrap();
+        let held = call_tool("search", &json!({ "objective": "target armpw:4 by 2:30, armck by 3:00", "minutes": 3, "seconds": 1, "wait": true }), &shared, Mode::Player).unwrap();
         assert!(held.contains("score") && held.contains("armpw"), "{held}");
+        assert!(held.contains("goals: armpw: 4 asked, ") && held.contains("; armck: "), "each goal is answered: {held}");
         assert!(call_tool("search", &json!({ "objective": "glory" }), &shared, Mode::Player).unwrap_err().contains("not an objective"));
+        assert!(call_tool("search", &json!({ "objective": "target armpw, glory" }), &shared, Mode::Player).unwrap_err().contains("no such unit"));
     }
 
     #[test]
@@ -886,7 +888,7 @@ mod tests {
 mod planning {
     use std::collections::BTreeMap;
 
-    use buildorder::anneal::{anneal_within, Objective, Palette, Search};
+    use buildorder::anneal::{anneal_within, Goal, Objective, Palette, Search};
     use buildorder::plan::{Item, Plan, Step};
     use buildorder::sim::{simulate, Outcome};
     use serde_json::{Value, json};
@@ -901,6 +903,34 @@ mod planning {
     pub(super) const REALTIME_MAX_SECONDS: f64 = 3.0;
     const SEARCH_THREADS: usize = 4;
     const TARGET_COUNT: usize = 6;
+    pub(super) const OBJECTIVES: &str = "income, army, mix, or target UNIT[:COUNT] [by M:SS], more goals after commas";
+
+    /// The `target` objective's goals against the found order, one line each: how many finished, and when the
+    /// asked-for count (or the first) did against the deadline. None for the other objectives.
+    fn goals_words(ctx: &PlanContext, goals: &[Goal], outcome: &Outcome) -> Option<String> {
+        if goals.is_empty() {
+            return None;
+        }
+        let units = &ctx.game.units;
+        let lines: Vec<String> = goals
+            .iter()
+            .map(|g| {
+                let name = &units.list[g.unit].name;
+                let finished: Vec<f64> = outcome.finished.iter().filter(|f| f.unit == g.unit).map(|f| f.t).collect();
+                let asked = g.count.map_or(String::new(), |n| format!("{n} asked, "));
+                let done_at = g.count.map_or(finished.first().copied(), |n| finished.get(n - 1).copied());
+                let when = match (done_at, g.by) {
+                    (Some(t), Some(by)) if t <= by => format!("{} finished at {} ({} asked for)", g.count.map_or("the first".to_string(), |n| format!("the {n}th")), mmss(t), mmss(by)),
+                    (Some(t), Some(by)) => format!("{} finished at {}, {} late of {}", g.count.map_or("the first".to_string(), |n| format!("the {n}th")), mmss(t), mmss(t - by), mmss(by)),
+                    (Some(t), None) => format!("{} finished at {}", g.count.map_or("the first".to_string(), |n| format!("the {n}th")), mmss(t)),
+                    (None, Some(by)) => format!("{} not finished by the horizon ({} asked for)", g.count.map_or("the first".to_string(), |n| format!("the {n}th")), mmss(by)),
+                    (None, None) => "none finished by the horizon".to_string(),
+                };
+                format!("{name}: {asked}{} finished by the horizon; {when}", finished.len())
+            })
+            .collect();
+        Some(format!("\n\ngoals: {}", lines.join("; ")))
+    }
 
     fn mmss(seconds: f64) -> String {
         let s = seconds.max(0.0).round() as i64;
@@ -924,16 +954,23 @@ mod planning {
             }
             _ => {
                 let text = arguments["objective"].as_str().ok_or("search takes an objective in words")?.trim().to_string();
-                let objective = if text.starts_with("target") { Objective::parse_target(&text, units)? } else { Objective::parse(&text).ok_or_else(|| format!("{text}: not an objective (income, army, mix, or target UNIT by M:SS)"))? };
+                let objective = if text.starts_with("target") { Objective::parse_target(&text, units)? } else { Objective::parse(&text).ok_or_else(|| format!("{text}: not an objective ({OBJECTIVES})"))? };
                 let palette = Palette::roster(units, ctx.game.commander, ctx.turret, ctx.water);
                 let (factories, constructors) = (ctx.standing_factories + 2, ctx.standing_constructors + 3);
-                let start = given.or_else(|| match objective {
-                    Objective::Target { unit, .. } => Some(palette.chain_seed(units, ctx.game.commander, unit, TARGET_COUNT, factories, constructors, ctx.wind)),
+                let start = given.or_else(|| match &objective {
+                    Objective::Target { goals } => {
+                        let goals: Vec<(usize, usize)> = goals.iter().map(|g| (g.unit, g.count.unwrap_or(TARGET_COUNT))).collect();
+                        Some(palette.chain_seed(units, ctx.game.commander, &goals, factories, constructors, ctx.wind))
+                    }
                     _ => None,
                 });
                 let search = Search { objective, horizon, iterations: 0, seed: ctx.frame as u64 + 1, factories, constructors, hot: 0.02, start };
                 let found = anneal_within(units, &ctx.scenario, &ctx.state, &palette, &search, std::time::Duration::from_secs_f64(seconds), SEARCH_THREADS);
-                Ok(report(ctx, &found.plan, &found.outcome, Some(found.score)))
+                let mut out = report(ctx, &found.plan, &found.outcome, Some(found.score));
+                if let Some(goals) = goals_words(ctx, search.objective.goals(), &found.outcome) {
+                    out.push_str(&goals);
+                }
+                Ok(out)
             }
         }
     }
