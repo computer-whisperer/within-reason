@@ -60,10 +60,14 @@ pub const ROSTERS: [Roster; 2] = [
 const USUAL_ARMADA: &[&str] = &[
     "armsolar", "armwin", "armadvsol", "armmakr", "armlab", "armvp", "armap", "armhp", "armsy", "armllt", "armhlt", "armrl", "armrad", "armarad", "armnanotc",
     "armmstor", "armestor", "armalab", "armavp", "armaap", "armmoho", "armfus", "armmmkr", "armguard", "armflak", "armdl",
+    // Tier 2 (the advanced constructors' lists): advanced fusion and geothermal, the advanced storages, the jammer,
+    // the tier-2 defences, the anti-nuke, the targeting facility.
+    "armafus", "armageo", "armuwadvms", "armuwadves", "armveil", "armpb", "armanni", "armamb", "armamd", "armtarg",
 ];
 const USUAL_CORTEX: &[&str] = &[
     "corsolar", "corwin", "coradvsol", "cormakr", "corlab", "corvp", "corap", "corhp", "corsy", "corllt", "corhlt", "corrl", "corrad", "corarad", "cornanotc",
     "cormstor", "corestor", "coralab", "coravp", "coraap", "cormoho", "corfus", "cormmkr", "corpun", "corflak", "cordl",
+    "corafus", "corageo", "coruwadvms", "coruwadves", "corshroud", "corvipe", "cordoom", "cortoast", "corfmd", "cortarg",
 ];
 
 /// The usual list for a builder of the faction its name belongs to.
