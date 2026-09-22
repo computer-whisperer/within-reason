@@ -61,3 +61,13 @@ map... we should be careful with lingering heuristics."
 4. `run/floor.py`: `look_min` from the truth, `fac_min`.
 5. Rerun the bombers and Bulls objective games (Comet easy, Opus with Jev), judged by `fac_min`, `look_min` and
    whether the flight receives a target.
+
+## Status (2026-09-22 evening)
+
+Built (8e7c8e0, c1f41f4, e420a6c). evidence-1-bombers: the opponent found by the player's own scouting (a scout
+plane at 6:06, the bombers "flying to spot_12 to find them"; its plant and commander in the picture at 13:12, where
+roster-1 never found them); lost on the air hold cancelling every strike (K-hands-air-hold-cancels-the-strike, the
+domains design's next pass). evidence-2-bulldogs was invalid: the builders' free-spot rule keyed on the words "free"
+and the new "never in our sight" words failed it (fixed e420a6c); rerun as evidence-3-bulldogs. Two things the
+picture still does not say that the player wanted: nothing (the never-looked list was used as intended: "scouts
+hunt their base" through named spots).

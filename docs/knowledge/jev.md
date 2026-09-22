@@ -366,3 +366,18 @@ sighting from a Blink" while the Blinks flew to the guess), comet-1 to comet-5, 
 warning "often wrong by 500 or more" did not move the player off it.
 **Would be wrong if.** A player shown an area and a never-looked list scouts no better than one shown a point.
 **Used by.** H-HANDS-ENEMY-EVIDENCE.
+
+### K-hands-air-hold-cancels-the-strike
+**Claim.** An air group's hold (a move to the group's centre plus move state 0 per unit), re-issued every lane tick
+and whenever a followed target leaves sight, cancels the attack orders the same group was given: bombers ordered
+onto a commander turn back within a second, circle over the enemy base under its anti-air and never drop.
+**Status.** demonstrated (2026-09-22, evidence-1-bombers): 233 Stormbringers built, 228 dead (214 to attackers out
+of our sight), the enemy commander never under 93 % health; the record's command lines give the bombers 220 attack
+orders and about 4,000 move and move-state orders over the game, 1,161 move-state orders in minutes 30-35 alone;
+the player ordered `attack_unit` on the commander eleven times ("the bombers are on top of their commander").
+**Evidence.** `run/matches/1790102056-evidence-1-bombers/00/record-0.jsonl` (`cmd` lines), `truth-0.jsonl`
+(commander health), the ledger row.
+**Would be wrong if.** The move orders came from the player's own packet (they did not: it ordered attack_unit and
+nothing else at the end) or the bombers dropped and missed (the commander's health never moved).
+**Used by.** H-HANDS-DOMAINS (to fix: an air group with a target keeps its attack order until the target is dead or
+lost for a long while; the hold is issued once, not every tick).
