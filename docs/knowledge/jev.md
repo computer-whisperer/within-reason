@@ -308,3 +308,23 @@ otherwise. `pointless_ask` 0.33-0.47 on a holding group told to hold against 0.2
 **Would be wrong if.** A reworded `missing_option` (naming the actor's paragraph only) reached the precision of
 `contradicts`.
 **Used by.** `run/jev_sweep.py` (the debrief should carry its top ten).
+
+### K-policy-writes-legal-scripts-under-fire
+**Claim.** Opus at low effort writes a Lua policy over the hands' picture that is legal every time (no option the
+actor was not offered, no parse error), in one script of 100-150 lines at a game's start and amendments of one or
+two handlers (3-42 lines) afterwards; the errors it makes are the picture's shape (a field taken for a list, a spot
+named in code that the picture did not list), and it does not see a runtime error unless it is told.
+**Status.** supported (2026-09-22, `docs/design/2026-09-22-policy-replay.md`)
+**Evidence.** Offline replay of comet-5: 1,500 decisions over three runs, 0 illegal, 0 load errors; the one
+runtime error came from the role text's own example and stood on 36 turns until the harness fed errors back.
+policy-1-easy: 343 runs, 0 errors, 3 illegal orders (spot_25 not a place).
+**Would be wrong if.** A medium or a human game produced parse errors or illegal orders at any rate.
+**Used by.** H-HANDS-POLICY.
+
+### K-policy-plays-easy-alone
+**Claim.** The policy alone, without Jev, beats BARb easy on Comet Catcher: the player's turns read as a player's
+(scout, sweep, recall, mass, one attack) and the script carried them.
+**Status.** demonstrated once (2026-09-22, policy-1-easy: won in 13.9 min, 12 turns, median 7.1 s a turn)
+**Evidence.** `run/matches/1790088367-policy-1-easy`; the ledger row.
+**Would be wrong if.** A rerun lost, or medium showed the policy unable to keep up with raids between turns.
+**Used by.** H-HANDS-POLICY.

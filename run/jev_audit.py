@@ -56,7 +56,7 @@ class Match:
                 self.samples.append(r)
             elif t == "ev":
                 self.events.append(r)
-            elif t == "d" and r.get("source") == "jev" and isinstance(r.get("inputs"), dict):
+            elif t == "d" and r.get("source") in ("jev", "list", "policy") and isinstance(r.get("inputs"), dict):
                 self.decisions[(r["f"], r["inputs"].get("actor"))] = r["outputs"] or {}
             elif t == "intent" and self.home is None:
                 self.home = tuple(r["home"])

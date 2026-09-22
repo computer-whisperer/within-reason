@@ -416,12 +416,18 @@ impl Brain {
         // H-HANDS-NAMED-PLACES: every spot and passage the instructions name is a place, however far (pianist-player-5:
         // the player named spot_36 in the south for four turns and it was never on the menu, the list being the
         // nearest free spots and the nearest of theirs), and so is every place the player marked.
-        let instructions = self
+        let mut instructions = self
             .strategist
             .as_ref()
             .map(|s| s.instructions.lock().unwrap().clone())
             .filter(|i| !i.trim().is_empty())
             .unwrap_or_else(|| crate::texts::read(&crate::texts::HANDS_DEFAULT));
+        // The policy's text names places as the packet does (policy-1-easy: `spot_25` in the script was refused as
+        // no place in the picture, and the player marked five points instead).
+        if let Some(policy) = self.pianist.as_ref().and_then(|p| p.policy.as_ref()) {
+            instructions.push('\n');
+            instructions.push_str(&policy.text());
+        }
         for token in instructions.split(|c: char| !c.is_ascii_alphanumeric() && c != '_') {
             if let Some(i) = token.strip_prefix("spot_").and_then(|n| n.parse::<usize>().ok()) {
                 // An islet spot nobody can walk to is no place to send anyone (pianist-player-7: the ball stood 151 s
