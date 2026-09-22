@@ -500,7 +500,10 @@ impl Brain {
             .filter_map(|p| p.spot.map(|i| (i, p.at)))
             .filter(|(i, _)| !taken.contains(i) && !pianist.refused_spots.get(i).is_some_and(|until| *until > frame))
             .filter(|(_, at)| !own.iter().any(|u| kit.is_extractor(u.def) && u.pos.dist2d(*at) < 100.0))
-            .filter(|(i, _)| picture.state["places"][format!("spot_{i}")]["what"].as_str().is_some_and(|w| w.starts_with("free")))
+            // Free as far as we know: no extractor of theirs remembered on it, and not an ally's ground. A spot
+            // nobody of ours has looked at counts as free (evidence-2-bulldogs: the words "never in our sight" failed
+            // an earlier test on the words starting with "free", and every unscouted spot was refused for ten minutes).
+            .filter(|(i, at)| !self.enemy_buildings.values().any(|(def, pos, _)| pos.dist2d(*at) < 100.0 && self.world.def(*def).is_some_and(|d| d.extracts_metal > 0.0)) && self.spot_open_to_us(*i, *at, frame))
             // By this builder's own movement class: an air constructor reaches every spot, a tank fewer than a bot.
             .filter(|(_, at)| self.reachable_for(self.walker_of(unit.def), *at))
             .map(|(i, _)| (i, self.seconds_to_spot(unit.def, i, unit.pos)))
