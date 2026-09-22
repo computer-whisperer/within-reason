@@ -249,13 +249,34 @@ fn extractor_lines(seen: &mut Seen, field: &Field, full: bool, lines: &mut Vec<S
 
 /// The player's report: the front, then its hands: every actor as the picture has it (in full at first, then the
 /// ones whose entry changed), Jev's judgements when they are high, and what the hands did since the last turn.
+/// The faction's whole roster once a session (docs/design/2026-09-22-full-roster.md, decision 7): one line a unit
+/// from the glossary, by tier; what stands now can build the ones marked. The `units` tool has the prose.
+fn roster_lines(field: &Field) -> String {
+    use crate::brain::pianist::glossary;
+    let now: Vec<&str> = field.buildable.iter().map(|(n, _)| n.as_str()).collect();
+    let mut entries: Vec<(u8, String)> = field
+        .roster
+        .iter()
+        .map(|(name, metal)| match glossary::entry(name) {
+            Some(e) => (e.tier, format!("{}{}", e.line(name), if now.contains(&name.as_str()) { " [now]" } else { "" })),
+            None => (9, format!("{name} ({metal} metal){}", if now.contains(&name.as_str()) { " [now]" } else { "" })),
+        })
+        .collect();
+    entries.sort();
+    let mut lines = vec![format!(
+        "our roster ({} units the commander reaches by build lists; [now] marks what a builder or factory standing now can build; `units` gives any entry's full prose):",
+        entries.len()
+    )];
+    lines.extend(entries.into_iter().map(|(_, line)| format!("  {line}")));
+    lines.join("\n")
+}
+
 pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, fights: &[String], hands: &Hands, chat: &[String], full: bool) -> String {
     let mut lines = front(briefing, field, fights);
     lines.extend(contact(briefing, field));
     extractor_lines(seen, field, full, &mut lines);
     if full {
-        let buildable: Vec<String> = field.buildable.iter().map(|(n, m)| format!("{n} {m}m")).collect();
-        lines.push(format!("the factories can build: {}", buildable.join(", ")));
+        lines.push(roster_lines(field));
     }
     // Each actor on one line, as the hands see it: the words the instructions have to speak to.
     let mut actors: Vec<String> = Vec::new();

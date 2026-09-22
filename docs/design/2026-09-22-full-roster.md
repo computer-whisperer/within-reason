@@ -82,6 +82,12 @@ should be able to easily include the full unit set and game rule descriptions").
    ("2 Grunts (corak, raider bots)") so the picture reads the same as the roster.
 8. **The Kit stays** for the bot's heuristics, the openings and the arena's non-player modes. The player, the hands
    and the policy no longer go through it for what may be built.
+9. **Roles by definition, not by faction table** (the user, 2026-09-22: "it is possible for a cortex commander to
+   reach armada units and vice versa through various gift and unit stealing mechanics... the engine should be capable
+   of both"). Who is asked as a builder, a factory or an extractor is decided from the definition (`build_speed`,
+   `speed`, `build_options`, `extracts_metal`), so a captured or gifted unit of the other faction is played like our
+   own; the glossary holds both factions and the words follow the unit, not our side. The default list is chosen by
+   the builder's own faction (its name's prefix). The Kit keeps its faction table for the bot's heuristics.
 
 ## What this does not decide
 
@@ -90,6 +96,19 @@ should be able to easily include the full unit set and game rule descriptions").
 - Tier-3 gantries, nuclear and anti-nuclear, long-range cannons and the like are offered when the build tree reaches
   them; nothing in the harness knows their use yet beyond the prose.
 - Legion is out (not in the arena's games).
+
+## Status (2026-09-22 evening)
+
+Steps 1 to 6 built on branch `roster` (e246600 and after): the glossary (377 units, every one with gloss and prose,
+written by a subagent from the unit files, the game's wiki pages and the duel claims), the menus from the build lists
+with the usual list and the whitelist, `produce` over builders, placement by property, sea gating, `units`, the roster
+table on the first report, the policy's whole build list, roles by definition. Step 7 ran as the user's objective games (2026-09-22 13:20-13:47, Opus with Jev, Comet easy, `arena --objective`):
+bombers (two Aircraft Plants, 58 Stormbringers; lost, the commander never seen), Bulls (the Advanced Vehicle Plant at
+7:36, seven Bulls; lost on energy), hovers (six platforms, 79 Crocodiles; WON, the commander killed). Every branch of the
+tree was reached by name through `queue`, `produce` and the menus; the losses were play, not reach (the ledger rows). Left as they were:
+`run/jev_audit.py`'s `unsure` section and `run/policy_replay.py` still name the old place-taking keys (`turret_at`,
+`radar_at`), which is right for the recorded games they read and wrong for new ones; the replay's role text
+(`run/policy/policy-player.md`) was updated with the live one.
 
 ## Steps
 

@@ -13,6 +13,7 @@ fn outpost(rules: &Rules, pursuers: (&str, u32), distance: f32, intent: Intent) 
         intent,
         assets: (0..4).map(|i| (unit("armmex"), Vec2::new(150.0, 250.0 * (i as f32 - 1.5)))).collect(),
         party_buildings: Vec::new(),
+        pursuer_buildings: Vec::new(),
         seconds: 60.0,
     }
 }

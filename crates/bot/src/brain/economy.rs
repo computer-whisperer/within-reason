@@ -370,17 +370,27 @@ impl Brain {
     /// generators beside the builder until the first lab is started (H-ECO-OPENING: no walking between the first buildings).
     pub(super) fn place_planned(&self, def: UnitDefId, builder: &OwnUnit, own: &[OwnUnit], kit: &Kit) -> Plan {
         let lab = own.iter().filter(|u| kit.is_factory(u.def)).min_by(|a, b| a.pos.dist2d(builder.pos).total_cmp(&b.pos.dist2d(builder.pos)));
+        // By what the definition is (a factory, a defence, a construction turret), so every building the game has
+        // places (docs/design/2026-09-22-full-roster.md, decision 3).
+        let info = self.world.def(def);
+        let static_builder = info.is_some_and(|d| d.speed == 0.0 && d.build_speed > 0.0 && d.build_options.is_empty());
+        let on_water = super::pianist::glossary::entry(self.name(def)).is_some_and(|e| e.has_flag("on_water"));
         match def {
+            // A sea building stands on the water nearest the builder (the menu offers it only with water in reach).
+            d if on_water => match self.world.nearest_water(builder.pos, info.map_or(100.0, |b| b.build_distance) + 300.0) {
+                Some(water) => Plan::Near(d, water),
+                None => Plan::Near(d, builder.pos),
+            },
             // The yard, but no farther from the builder than its reach: the commander built the lab at its feet in
             // both experienced players' replays and never took a step for it (rush-2-ab: ours walked 280 for it).
-            d if d == kit.lab || d == kit.plant => Plan::Near(d, self.beside_builder(builder, self.forward_of_home(LAB_YARD), own, LAB_CLEARANCE, LAB_SPOT_CLEARANCE)),
-            d if d == kit.turret => Plan::Near(d, self.forward_of_home(TURRET_LINE)),
-            d if d == kit.nano && lab.is_some() => Plan::Beside(d, lab.unwrap().pos),
+            d if self.world.is_factory_def(d) => Plan::Near(d, self.beside_builder(builder, self.forward_of_home(LAB_YARD), own, LAB_CLEARANCE, LAB_SPOT_CLEARANCE)),
+            d if info.is_some_and(|i| i.speed == 0.0 && i.weapon_count > 0) => Plan::Near(d, self.forward_of_home(TURRET_LINE)),
+            d if static_builder && lab.is_some() => Plan::Beside(d, lab.unwrap().pos),
+            d if static_builder => Plan::Near(d, self.forward_of_home(-BACK_FIELD)),
             // As the simulator places them: beside the builder wherever it stands, no walking (queue-smoke: a planned
             // solar went to the back field 497 elmos from a commander out at a far extractor, and the plan's timing
             // with it).
-            d if d != kit.nano => Plan::Beside(d, self.beside_builder(builder, self.enemy_base(builder.pos), own, BUILDING_CLEARANCE, SPOT_CLEARANCE)),
-            d => Plan::Near(d, self.forward_of_home(-BACK_FIELD)),
+            d => Plan::Beside(d, self.beside_builder(builder, self.enemy_base(builder.pos), own, BUILDING_CLEARANCE, SPOT_CLEARANCE)),
         }
     }
 
@@ -531,8 +541,9 @@ impl Brain {
     }
 
     /// The gap, in build squares, a new building keeps from its neighbours: wide enough for units to walk through.
-    fn gap_around(&self, def: UnitDefId, kit: &Kit) -> i32 {
-        if def == kit.lab || def == kit.plant { LAB_GAP } else { BUILDING_GAP }
+    fn gap_around(&self, def: UnitDefId, _kit: &Kit) -> i32 {
+        // Any factory: the hover platform and the aircraft plant have exit lanes like the lab's.
+        if self.world.is_factory_def(def) { LAB_GAP } else { BUILDING_GAP }
     }
 
     pub(super) fn is_unreachable(&self, point: Vec3) -> bool {

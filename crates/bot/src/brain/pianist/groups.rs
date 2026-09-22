@@ -8,6 +8,7 @@ use bot_protocol::{Command, OwnUnit, Tick, UnitId, Vec3};
 
 use super::super::roster::Kit;
 use super::super::{Brain, FRAMES_PER_SECOND};
+use crate::world::Domain;
 
 /// H-HANDS-GROUPS: a new soldier joins the largest group whose centre is this close, else forms a new one; two holding
 /// groups whose centres are this close merge, the smaller into the larger (smoke-5: forty one-unit groups round home).
@@ -39,7 +40,9 @@ pub(crate) enum GroupTask {
     /// `committed`: the hold an advance arrives in, still committed to everything there (H-HANDS-GROUPS).
     Hold { since: i32, committed: bool },
     Move { to: Vec3, place: String, fight: bool, since: i32 },
-    Engage { party: Vec<UnitId>, at: Vec3, since: i32, last_seen: i32 },
+    /// `target`: one unit of the party every member attacks directly (`attack_unit`, and every air group's
+    /// engagement): re-issued while it is seen, the group holds when it is lost or dead.
+    Engage { party: Vec<UnitId>, at: Vec3, since: i32, last_seen: i32, target: Option<UnitId> },
 }
 
 impl GroupTask {
@@ -51,6 +54,8 @@ impl GroupTask {
 #[derive(Debug)]
 pub(crate) struct Group {
     pub name: String,
+    /// Its members' movement domain (docs/design/2026-09-22-domains.md): a group never mixes air and ground.
+    pub domain: Domain,
     pub members: Vec<UnitId>,
     pub task: GroupTask,
     /// H-ARMY-MARCH's memory: who is waiting for the body.
@@ -65,8 +70,28 @@ pub(crate) struct Group {
 }
 
 impl Group {
-    pub(crate) fn new(name: String, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
-        Group { name, members, task, held: HashSet::new(), last_order: frame, enemies_near: false, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false }
+    pub(crate) fn new(name: String, domain: Domain, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
+        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, enemies_near: false, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false }
+    }
+
+    /// The orders that make this group stand still: a stop for ground units; for aircraft, whose empty queue is a
+    /// licence to hunt, hold position and a move to the centre (the domains design, decision 4).
+    pub(crate) fn hold_orders(&self, units: &[&OwnUnit]) -> Vec<Command> {
+        match self.domain {
+            Domain::Air => {
+                let centre = centre_of(units).unwrap_or_default();
+                units.iter().flat_map(|u| [Command::MoveState { unit: u.id, state: 0 }, Command::Move { unit: u.id, to: centre, queue: false }]).collect()
+            }
+            _ => units.iter().map(|u| Command::Stop { unit: u.id }).collect(),
+        }
+    }
+
+    /// Before an order to an air group: manoeuvre again, so a fight order picks targets on its way.
+    pub(crate) fn release_orders(&self, units: &[&OwnUnit]) -> Vec<Command> {
+        match self.domain {
+            Domain::Air => units.iter().map(|u| Command::MoveState { unit: u.id, state: 1 }).collect(),
+            _ => Vec::new(),
+        }
     }
 
     /// Game seconds since a moving group last got nearer its goal; `None` when it is not moving.
@@ -117,7 +142,8 @@ impl Brain {
         loose.sort_by_key(|u| u.id.0);
         let enemy_base = self.enemy_base(home);
         for unit in loose {
-            let candidates: Vec<(f32, Vec3, usize)> = pianist.groups.iter().enumerate().filter_map(|(i, g)| centre_of(&g.units(own)).map(|c| (c.dist2d(unit.pos), c, i))).collect();
+            let domain = self.world.domain_of(unit.def);
+            let candidates: Vec<(f32, Vec3, usize)> = pianist.groups.iter().enumerate().filter(|(_, g)| g.domain == domain).filter_map(|(i, g)| centre_of(&g.units(own)).map(|c| (c.dist2d(unit.pos), c, i))).collect();
             let near = candidates.iter().filter(|(d, _, _)| *d < ADOPT_RADIUS).max_by(|a, b| pianist.groups[a.2].members.len().cmp(&pianist.groups[b.2].members.len()).then(b.0.total_cmp(&a.0)));
             let far = candidates
                 .iter()
@@ -131,7 +157,9 @@ impl Brain {
                 }
                 (None, None) => {
                     let name = pianist.new_group_name();
-                    pianist.groups.push(Group::new(name, vec![unit.id], GroupTask::Hold { since: frame, committed: false }, frame));
+                    let group = Group::new(name, domain, vec![unit.id], GroupTask::Hold { since: frame, committed: false }, frame);
+                    commands.extend(group.hold_orders(&[unit]));
+                    pianist.groups.push(group);
                 }
             }
         }
@@ -142,6 +170,7 @@ impl Brain {
             let centres: Vec<Option<Vec3>> = pianist.groups.iter().map(|g| centre_of(&g.units(own))).collect();
             let pair = (0..pianist.groups.len()).flat_map(|a| (0..pianist.groups.len()).map(move |b| (a, b))).find(|(a, b)| {
                 a != b
+                    && pianist.groups[*a].domain == pianist.groups[*b].domain
                     && !pianist.groups[*a].task.busy()
                     && !pianist.groups[*b].task.busy()
                     && pianist.groups[*a].members.len() <= pianist.groups[*b].members.len()
@@ -181,21 +210,34 @@ impl Brain {
                         } else {
                             format!("group_{} gave up its {} to {place}: it has not got nearer for {} s, {to_go:.0} short of it, and holds where it is", group.name, if *fight { "advance" } else { "walk" }, (frame - group.progressed) / FRAMES_PER_SECOND)
                         });
-                        commands.extend(units.iter().map(|u| Command::Stop { unit: u.id }));
+                        commands.extend(group.hold_orders(&units));
                         group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
                     } else if *fight {
                         if frame - group.progressed >= STALL_FRAMES && !group.stall_warned {
                             group.stall_warned = true;
                             stalled.push(format!("group_{} was told to advance to {place} and has not got nearer for {} s, {to_go:.0} short of it", group.name, (frame - group.progressed) / FRAMES_PER_SECOND));
                         }
-                        if footwork[index].march {
+                        if footwork[index].march && group.domain != Domain::Air {
                             marches.push((index, *to));
                         }
                     }
                 }
-                GroupTask::Engage { party, at, last_seen, .. } => {
+                GroupTask::Engage { party, at, last_seen, target, .. } => {
                     let seen: Vec<&bot_protocol::EnemyUnit> = enemies.iter().filter(|e| party.contains(&e.id)).collect();
-                    if let Some(now) = centre_of_enemies(&seen) {
+                    // A named target: the attack stands while the target is seen; when it is gone the group holds.
+                    if let Some(t) = *target {
+                        if let Some(e) = seen.iter().find(|e| e.id == t) {
+                            *last_seen = frame;
+                            if e.pos.dist2d(*at) > FOLLOW_DISTANCE && frame - group.last_order >= FOLLOW_FRAMES {
+                                *at = e.pos;
+                                group.last_order = frame;
+                                commands.extend(units.iter().map(|u| Command::Attack { unit: u.id, target: t, queue: false }));
+                            }
+                        } else if frame - *last_seen > LOST_FRAMES {
+                            commands.extend(group.hold_orders(&units));
+                            group.task = GroupTask::Hold { since: frame, committed: false };
+                        }
+                    } else if let Some(now) = centre_of_enemies(&seen) {
                         *last_seen = frame;
                         if footwork[index].follow && now.dist2d(*at) > FOLLOW_DISTANCE && frame - group.last_order >= FOLLOW_FRAMES {
                             *at = now;
@@ -203,6 +245,7 @@ impl Brain {
                             commands.extend(units.iter().map(|u| Command::Fight { unit: u.id, to: now, queue: false }));
                         }
                     } else if frame - *last_seen > LOST_FRAMES {
+                        commands.extend(group.hold_orders(&units));
                         group.task = GroupTask::Hold { since: frame, committed: false };
                     }
                 }

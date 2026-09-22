@@ -151,7 +151,7 @@ K-maps-comet-barb-opens-bots, the tempo model]
   commander at 8:58 at the north-east end of its strip and fed nine Blitzes into its D-gun (1,540 metal lost to
   660); the game was won by a gathered wave of 19 and then 32 onto its base at 11:57. The user, watching the replay:
   "radars would have helped there". No radar was built all game: have a constructor build one at the front edge of
-  our strip by minute three (`radar_at` a spot or a mark; it sees 2,000), and another mid-map when the tanks go
+  our strip by minute three (`armrad` at a spot or a mark; it sees 2,000), and another mid-map when the tanks go
   out. The base was packed (18 solars and 5 plants within 800 of home) and tanks path badly through buildings:
   groups of 8 and of 48 stalled at home for 35 to 67 s trying to walk out. Put the solars on named spots away from
   the plants (a constructor's job) and the plants apart. Energy sat at 0 at 11:57 with five plants: about eight
@@ -161,8 +161,8 @@ K-maps-comet-barb-opens-bots, the tempo model]
   constructor" (every `produce` naming a Blitz or a Mason was refused that game: the tool knew the bot lab's units
   only; fixed). The first Blitz came at 4:52; its Rascals and Blitzes ate thirteen extractors from 4:10 against no
   army, and the commander chased a scout car it cannot catch. So: the opening goes in a `queue` list per builder,
-  which the bot does step by step (commander: extractor spot_45, extractor spot_50, solar, solar, solar,
-  vehicle_plant, solar, solar, assist), `produce` caps the constructors (`armcv:1`), the instructions say the plant is
+  which the bot does step by step (commander: extractor spot_45, extractor spot_50, armsolar, armsolar, armsolar,
+  armvp, armsolar, armsolar, assist), `produce` caps the constructors (`armcv:1`), the instructions say the plant is
   the only factory and the commander never chases; and a few Blitzes stay home as the guard from the first one,
   since medium raids from 4:00 with scout cars and Blitzes. Their plant came first on medium too.
 - comet-3 (medium, LOST at 17.0 min): the `queue` list ran to the second (extractors 0:03 and 0:11, three solars,
@@ -175,15 +175,15 @@ K-maps-comet-barb-opens-bots, the tempo model]
   strip", took the middle spots the menu lists first by walking time (spot_43, spot_52, spot_38, on open ground
   toward the enemy) and each died within 27 to 70 s to Ticks and Pawns; the strip's own spots were untouched until
   5:38. So the moment `constructor_N` appears in the picture, give it a `queue` list of the strip's spots by name
-  with a turret after each pair (extractor spot_36, extractor spot_54, turret spot_54, extractor spot_28, ...), and
+  with a turret after each pair (extractor spot_36, extractor spot_54, armllt spot_54, extractor spot_28, ...), and
   allow the second constructor by minute three: the strip has fourteen spots and one Mason never reaches them. The
   raids: 24 extractors lost, to Ticks (21 metal, faster than a Blitz), Pawns and Blitzes; Blitzes cannot catch
   Ticks, a light turret at the spot can. The fight: thirteen Blitzes died to one Rocketeer and one Centurion at
   11:57; this opponent opened with a bot lab and had Centurions by minute twelve; switch the plant to Stouts the
   first time a line bot is seen, and keep Blitzes for what cannot shoot back.
 - comet-4 (medium, LOST at 16.9 min, the commander killed at home): **the opening to copy on this map, found.**
-  Commander list: extractor spot_45, extractor spot_50, solar, solar, vehicle_plant, extractor spot_36, extractor
-  spot_43, solar, assist; `produce {"all": ["armcv:2", "armflash"]}`; each constructor given a list of the strip's
+  Commander list: extractor spot_45, extractor spot_50, armsolar, armsolar, armvp, extractor spot_36, extractor
+  spot_43, armsolar, assist; `produce {"all": ["armcv:2", "armflash"]}`; each constructor given a list of the strip's
   spots with a turret after each pair as it appeared. That gave the plant at 0:41, two constructors by 1:30, the
   first Blitz at 2:08, thirteen by 4:07, six extractors at 2:30, thirteen at minute 8 and nineteen at minute 10 with
   income 41: ahead of this opponent all game on the board. It was lost on three things, all after the opening.

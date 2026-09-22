@@ -34,12 +34,17 @@ commands. "The commander stays at home and builds the lab there" holds; "go home
 hands alternate between going home and building every time they are asked, and each switch abandons what was started.
 Rewrite the whole packet when the plan changes; keep it under a few hundred words, concrete, present tense, no numbers
 the hands would have to compute.
-The menu's vocabulary (what an instruction can ask for): builders build an extractor at a free spot, a wind generator or a solar collector, a lab or a vehicle plant, a
-converter, the advanced lab, a construction turret, a light turret or a radar at a named place, help the lab, take wrecks
-apart, repair, walk to a place, go home. Labs and plants (`lab_N`, `plant_N`) build any tier-1 unit of theirs or nothing. Groups hold, walk to a place (running
+The menu's vocabulary (what an instruction can ask for): builders build an extractor at a free spot, any building of
+the roster (by default the usual ones: generators, the factories, light and heavy turrets, radar, storage, the tier-2
+lab and extractor, fusion; `produce` puts anything else on a builder's menu), a defence or a radar at a named place, help
+the lab, take wrecks apart, repair, walk to a place, go home. Labs, plants and other factories (`lab_N`, `plant_N`,
+`factory_N`) build any unit of theirs or nothing. Your first report carries the whole roster, one line a unit by internal
+name; `units` gives any unit's full entry, ours or theirs. Groups hold, walk to a place (running
 from everything), advance to a place fighting (arriving together), engage a party in sight, retreat home, split a
 detachment to a place, send a detachment of two, four or eight against a party in sight (`send_against`: the rest
-carry on), send one scout to a place, join another group. Nothing else can be asked for; say what you wished
+carry on), send one scout to a place, join another group of the same kind (ground, hover or air groups never mix), or
+`attack_unit`: every soldier on one unit of a party, its commander when it is there, until it dies (the order that
+kills a commander; aircraft pick their target only this way, a fight order bombs whatever is nearest). Nothing else can be asked for; say what you wished
 you could order, in your closing sentence, whenever you hit that edge.
 Between your hands' orders, the code applies footwork rules to soldiers: a soldier steps out of a turret's reach it
 was not sent against or out of a fight it would die in (`flee`), spreads out under a commander's D-gun (`fan`),

@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use bot_protocol::{UnitDefId, UnitId, Vec3};
+use bot_protocol::{MoveClass, MoveKind, UnitDefId, UnitId, Vec3};
 
 use super::Brain;
 use super::roster::Kit;
@@ -14,16 +14,36 @@ const ENEMY_MOVED: f32 = 600.0;
 /// A place this near a metal spot borrows the spot's field for its routes.
 const SPOT_PROXY: f32 = 400.0;
 
-/// The movement classes we field: our soldiers and constructors walk as the lab's raider does, the commander as
-/// itself (`COMMANDERBOT` crosses different ground, and slower on slopes). Vehicles when a game has them.
+/// How a unit gets about (docs/design/2026-09-22-domains.md, decision 8): aircraft go straight, everything else
+/// by the fields of its own movement class. The soldiers' default (the lab's raider's class) serves the picture's
+/// "our half", the passages and the sketch.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Walker {
-    Bots,
-    Commander,
+    Air,
+    Class(ClassKey),
+}
+
+/// A movement class as a key: its kind, its slope limit and its depth, rounded.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct ClassKey {
+    kind: MoveKind,
+    max_slope: i32,
+    depth: i32,
+}
+
+impl ClassKey {
+    fn of(class: MoveClass) -> ClassKey {
+        ClassKey { kind: class.kind, max_slope: (class.max_slope * 255.0).round() as i32, depth: (class.depth * 10.0).round() as i32 }
+    }
 }
 
 pub struct Routes {
+    /// The soldiers' walker (the lab's raider's class): the default for every question without a unit.
+    soldiers: Walker,
     from_home: Field,
+    /// Where each movement class we field can stand, and its distances from home: for snapping and reachability
+    /// by class. Built at the survey for every class among the units the commander reaches.
+    classes: HashMap<Walker, (Vec<bool>, Field)>,
     /// Effective elmos from home for the commander (its own class and slopes), for its leash in seconds.
     commander_from_home: Option<Field>,
     /// Distance from the nearest live enemy base.
@@ -78,24 +98,42 @@ impl Brain {
             spots.iter().filter(|s| from_home.distance(**s).is_none()).map(|s| format!("({:.0}, {:.0})", s.x, s.z)).collect();
         eprintln!("[ai {}] terrain: spots we cannot walk to: {}", self.ai(), cut_off.join(" "));
         let commander_class = self.world.def(kit.commander).and_then(|d| d.move_class);
-        let bot_costs = terrain::costs(terrain, class);
         let commander_costs = commander_class.map(|c| terrain::costs(terrain, c));
         let commander_from_home = commander_costs.as_ref().and_then(|costs| Field::from_costs(terrain, costs, &[self.home]));
+        // Every movement class among the units the commander reaches by build lists, the raider's included.
+        let mut distinct: Vec<(Walker, MoveClass)> = Vec::new();
+        for id in self.world.reachable_from(kit.commander) {
+            if let Some(mc) = self.world.def(id).filter(|d| d.speed > 0.0).and_then(|d| d.move_class) {
+                let key = Walker::Class(ClassKey::of(mc));
+                if !distinct.iter().any(|(k, _)| *k == key) {
+                    distinct.push((key, mc));
+                }
+            }
+        }
+        let classes: HashMap<Walker, (Vec<bool>, Field)> = distinct
+            .iter()
+            .filter_map(|(key, mc)| {
+                let passable = terrain::passable(terrain, *mc);
+                Field::from(terrain, &passable, self.home).map(|f| (*key, (passable, f)))
+            })
+            .collect();
+        eprintln!("[ai {}] terrain: fields for {} movement classes", self.ai(), classes.len());
         let (sender, receiver) = std::sync::mpsc::channel();
         {
             let terrain = terrain.clone();
             let spots = spots.clone();
+            let all_costs: Vec<(Walker, Vec<u32>)> = distinct.iter().map(|(key, mc)| (*key, terrain::costs(&terrain, *mc))).collect();
             std::thread::spawn(move || {
                 let mut fields = HashMap::new();
-                fields.insert(Walker::Bots, spots.iter().map(|spot| Field::from_costs(&terrain, &bot_costs, &[*spot])).collect());
-                if let Some(costs) = commander_costs {
-                    fields.insert(Walker::Commander, spots.iter().map(|spot| Field::from_costs(&terrain, &costs, &[*spot])).collect());
+                for (key, costs) in all_costs {
+                    fields.insert(key, spots.iter().map(|spot| Field::from_costs(&terrain, &costs, &[*spot])).collect());
                 }
                 let _ = sender.send(fields);
             });
         }
         self.routes = Some(Routes {
-            from_home, commander_from_home, from_enemy, enemy_origins, passable, spot_fields: HashMap::new(), spot_fields_pending: Some(receiver),
+            soldiers: Walker::Class(ClassKey::of(class)),
+            from_home, classes, commander_from_home, from_enemy, enemy_origins, passable, spot_fields: HashMap::new(), spot_fields_pending: Some(receiver),
             commander_costs: commander_class.map(|c| terrain::costs(terrain, c)), safe_home: None, safe_home_pending: None, safe_home_against: (Vec::new(), None),
         });
         for p in self.passages() {
@@ -205,9 +243,46 @@ impl Brain {
         None
     }
 
-    /// Which class a unit of this type walks as.
+    /// How a unit of this type gets about: straight for aircraft, else by its own movement class; a building or an
+    /// unknown type as our soldiers do.
     pub(super) fn walker_of(&self, def: UnitDefId) -> Walker {
-        if self.kit.is_some_and(|k| k.commander == def) { Walker::Commander } else { Walker::Bots }
+        match self.world.def(def) {
+            Some(d) if d.speed > 0.0 && d.move_class.is_none() => Walker::Air,
+            Some(d) if d.move_class.is_some() => Walker::Class(ClassKey::of(d.move_class.expect("checked"))),
+            _ => self.soldiers_walker(),
+        }
+    }
+
+    fn soldiers_walker(&self) -> Walker {
+        self.routes.as_ref().map_or(Walker::Air, |r| r.soldiers)
+    }
+
+    /// The walker of a group: its first member's.
+    pub(super) fn group_walker(&self, group: &super::pianist::Group, own: &[bot_protocol::OwnUnit]) -> Walker {
+        group.members.iter().find_map(|id| own.iter().find(|u| u.id == *id)).map_or(self.soldiers_walker(), |u| self.walker_of(u.def))
+    }
+
+    /// Where a unit of this walker is sent for `pos`: the point itself for aircraft, else the ground its class can
+    /// reach nearest it.
+    pub(super) fn snap_for(&self, walker: Walker, pos: Vec3) -> Vec3 {
+        match walker {
+            Walker::Air => pos,
+            Walker::Class(_) => match self.routes.as_ref().and_then(|r| r.classes.get(&walker)) {
+                Some((_, from_home)) => from_home.snap(pos).unwrap_or(pos),
+                None => self.snap_to_reachable(pos),
+            },
+        }
+    }
+
+    /// Whether a unit of this walker can get from home to `pos`; true when we cannot tell.
+    pub(super) fn reachable_for(&self, walker: Walker, pos: Vec3) -> bool {
+        match walker {
+            Walker::Air => true,
+            Walker::Class(_) => match self.routes.as_ref().and_then(|r| r.classes.get(&walker)) {
+                Some((_, from_home)) => from_home.distance(pos).is_some(),
+                None => self.reachable_on_foot(pos),
+            },
+        }
     }
 
     /// Effective elmos (elmos at full speed, slopes priced) from `from` to the metal spot with this index for a
@@ -219,7 +294,7 @@ impl Brain {
 
     /// As our soldiers walk.
     pub(super) fn walk_to_spot(&self, index: usize, from: Vec3) -> f32 {
-        self.walk_to_spot_as(Walker::Bots, index, from)
+        self.walk_to_spot_as(self.soldiers_walker(), index, from)
     }
 
     /// Seconds a unit of this type takes from `from` to the spot (its speed over the effective elmos).
@@ -234,7 +309,7 @@ impl Brain {
     /// (the user, 2026-09-20).
     pub(super) fn route_to(&self, from: Vec3, to: Vec3) -> Option<Vec<Vec3>> {
         let (index, _) = self.world.hello.metal_spots.iter().enumerate().map(|(i, s)| (i, s.dist2d(to))).filter(|(_, d)| *d < SPOT_PROXY).min_by(|a, b| a.1.total_cmp(&b.1))?;
-        let field = self.routes.as_ref()?.spot_fields.get(&Walker::Bots)?.get(index)?.as_ref()?;
+        let field = self.routes.as_ref()?.spot_fields.get(&self.soldiers_walker())?.get(index)?.as_ref()?;
         let route = field.route(from);
         (!route.is_empty()).then_some(route)
     }

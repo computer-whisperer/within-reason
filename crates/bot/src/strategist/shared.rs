@@ -296,8 +296,10 @@ pub struct Field {
     pub squads: Vec<SquadStatus>,
     pub extractors: Vec<ExtractorStatus>,
     pub turrets: Vec<Place>,
-    /// What our factories can build, with metal cost.
+    /// What our standing builders and factories can build now, with metal cost.
     pub buildable: Vec<(String, u32)>,
+    /// Every unit the commander reaches by build lists: the faction's whole roster, with metal cost.
+    pub roster: Vec<(String, u32)>,
     pub production_weights: Vec<(String, u32)>,
     pub turret_requests_pending: usize,
     /// The expansion plan in force, as spot numbers with their grid cells, for the report.

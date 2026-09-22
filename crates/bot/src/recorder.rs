@@ -207,6 +207,7 @@ impl Recorder {
                 Command::Attack { unit, target, .. } => json!(["attack", unit.0, target.0]),
                 Command::GiveUnit { def, at } => json!(["give", self.def(Some(def)), at.x as i32, at.z as i32]),
                 Command::SelfDestruct { unit } => json!(["selfdestruct", unit.0]),
+                Command::MoveState { unit, state } => json!(["movestate", unit.0, state]),
             })
             .collect();
         self.line(&json!({ "t": "cmd", "f": frame, "c": list }));
@@ -332,14 +333,21 @@ fn header(hello: &Hello, mode: &str, session: bool, pianist: bool) -> Value {
 /// A coarse class from the definition's numbers alone, so it holds for every faction and for enemy units too.
 fn class(d: &bot_protocol::UnitDefInfo) -> &'static str {
     let mobile = d.speed > 0.0;
+    let flies = mobile && d.move_class.is_none();
     match () {
         _ if d.name.ends_with("com") && mobile && d.build_speed > 0.0 => "commander",
         _ if d.extracts_metal > 0.0 => "extractor",
         _ if !mobile && !d.build_options.is_empty() => "factory",
         _ if !mobile && d.weapon_count > 0 => "turret",
         _ if !mobile => "building",
+        _ if flies && d.build_speed > 0.0 => "air_builder",
+        _ if flies => "aircraft",
         _ if d.build_speed > 0.0 => "builder",
-        _ if d.weapon_count > 0 => "army",
+        _ if d.weapon_count > 0 => match d.move_class.map(|m| m.kind) {
+            Some(bot_protocol::MoveKind::Hover) => "hover",
+            Some(bot_protocol::MoveKind::Ship) => "ship",
+            _ => "army",
+        },
         _ => "other",
     }
 }

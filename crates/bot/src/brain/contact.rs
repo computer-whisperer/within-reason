@@ -140,17 +140,10 @@ impl Brain {
     pub(super) fn survey_sim_defs(&mut self) {
         let rules = self.contacts.rules.clone();
         let table = &rules.units;
+        // Every definition the table has, aircraft included; a type it lacks gets the glossary's numbers from
+        // `sim_stats` rather than a stand-in by metal (docs/design/2026-09-22-domains.md, decision 7).
         for def in &self.world.hello.unit_defs {
-            // Aircraft have no place in a ground chase.
-            if def.speed > 0.0 && def.move_class.is_none() {
-                continue;
-            }
-            let kind = |mobile: bool, armed: bool| (mobile, armed) == (def.speed > 0.0, def.weapon_count > 0);
-            let stand_in = || {
-                let like = table.list.iter().enumerate().filter(|(_, u)| !u.air && kind(u.mobile(), u.reach() > 0.0));
-                like.min_by(|a, b| (a.1.metal - def.metal_cost).abs().total_cmp(&(b.1.metal - def.metal_cost).abs())).map(|(i, _)| i)
-            };
-            if let Some(index) = table.index(&def.name).or_else(stand_in) {
+            if let Some(index) = table.index(&def.name) {
                 self.contacts.sim_defs.insert(def.id, index);
             }
         }

@@ -13,6 +13,7 @@ use super::journal::Milling;
 use super::threat::ThreatGrid;
 use super::{Brain, FRAMES_PER_SECOND};
 use crate::strategist::shared::Footwork;
+use crate::world::Domain;
 
 /// Only soldiers with an enemy this close are looked at.
 const HORIZON: f32 = 700.0;
@@ -202,7 +203,7 @@ impl Brain {
         let Some(kit) = self.kit else { return };
         for command in commands {
             let Some(unit) = unit_of(command) else { continue };
-            let soldier = self.known_units.get(&unit).is_some_and(|(def, _)| *def != kit.commander && self.world.def(*def).is_some_and(|d| d.speed > 0.0 && d.weapon_count > 0 && d.build_speed == 0.0));
+            let soldier = self.known_units.get(&unit).is_some_and(|(def, _)| *def != kit.commander && self.world.def(*def).is_some_and(|d| d.speed > 0.0 && d.weapon_count > 0 && d.build_speed == 0.0) && self.world.domain_of(*def) != Domain::Air);
             if soldier {
                 // A new order from the brain outranks the lane's step (the lane claims again if it must); the same
                 // order again does not (micro-flee-debug3: a wounded Pawn held out of a fight was sent back into it
@@ -325,7 +326,8 @@ impl Brain {
         let mut commands = Vec::new();
         let debug = std::env::var_os("WITHIN_REASON_MICRO_DEBUG").is_some();
 
-        let soldiers: Vec<&OwnUnit> = snapshot.own_units.iter().filter(|u| !u.being_built && self.is_army(u, &kit)).collect();
+        // Aircraft are not in the lane: its steps are ground cells and its threats ground guns (the domains design).
+        let soldiers: Vec<&OwnUnit> = snapshot.own_units.iter().filter(|u| !u.being_built && self.is_army(u, &kit) && self.world.domain_of(u.def) != Domain::Air).collect();
         // Which rules each soldier is under (H-HANDS-LANE): a raw unit passes straight through to its order.
         let footwork = self.lane.footwork.clone();
         let rules_of = |id: UnitId| footwork.get(&id).copied().unwrap_or_default();
@@ -639,9 +641,15 @@ impl Brain {
     }
 
     /// Reach, damage a second and speed (elmos a second) of a unit type from the simulator's table.
-    fn sim_stats(&self, def: UnitDefId) -> Option<(f32, f32, f32)> {
-        let unit = &self.contacts.rules.units.list[*self.contacts.sim_defs.get(&def)?];
-        Some((unit.reach(), unit.dps(), unit.speed))
+    /// A type's reach, damage a second and speed against ground: the simulator's table, else the glossary's numbers
+    /// for a type the table lacks (never a stand-in by metal).
+    pub(super) fn sim_stats(&self, def: UnitDefId) -> Option<(f32, f32, f32)> {
+        if let Some(i) = self.contacts.sim_defs.get(&def) {
+            let unit = &self.contacts.rules.units.list[*i];
+            return Some((unit.reach(), unit.dps(), unit.speed));
+        }
+        let entry = super::pianist::glossary::entry(self.name(def))?;
+        Some((entry.range, entry.dps.unwrap_or(0.0), entry.speed))
     }
 
     /// A claimed unit no behaviour wants any more gets its standing order back, once.

@@ -17,11 +17,12 @@
 //!              [--think-penalty X]   (commander: its orders land X game seconds late per wall second it thought; 1 = as in a live game, default 0)
 //!              [--seed-base N]   (default 1; match i plays seed N+i, for the engine and for BARb: a fresh N is a fresh set of games)
 //!              [--opening-plan PATH]   (the bot plays this plan text instead of searching one; run/replay_plan.py writes one from a replay)
+//!              [--objective TEXT]   (a requirement for the player, appended to its role text: "kill the commander with Thunder bombers")
 //!              [--base-port N]   (default 9100; match i uses N+2i and N+2i+1, so a second arena needs another range)
 //!              [--strategist]   (Claude Code strategist per match; use with --speed 2 and few matches)
 //!              [--commander]    (Sonnet field commander per match, one for all our seats; the game is held still during its turns, so any --speed)
 //!              [--commander-each]   (a commander of its own for every seat of ours)
-//!              [--commander-model ID]   (the session's model instead of the role's usual one, e.g. claude-opus-5)
+//!              [--commander-model ID] [--objective TEXT]   (the session's model instead of the role's usual one, e.g. claude-opus-5)
 //!              [--pianist]      (Jev plays every unit from a prose packet in place of the decision heuristics)
 //!              [--player]       (with --pianist or --policy: an Opus player writes the packet or the policy; turns hold the game as the commander's do)
 //!              [--policy]       (the player's Lua policy runs every unit; with --pianist too, Jev plays the actors the policy leaves out)
@@ -76,6 +77,8 @@ struct Options {
     /// The Lua policy runtime (`docs/design/2026-09-22-policy-replay.md`, "The runtime").
     policy: bool,
     commander_model: Option<String>,
+    /// A requirement for the player, appended to its role text (`WITHIN_REASON_OBJECTIVE`).
+    objective: Option<String>,
     /// Play every match as this faction instead of alternating.
     side: Option<&'static str>,
     /// Fixes our start corner; otherwise it alternates.
@@ -164,7 +167,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("BARb {}", options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "strategist": options.strategist, "commander": options.commander, "commander_each": options.commander_each, "pianist": options.pianist, "player": options.player, "policy": options.policy, "commander_model": options.commander_model, "effort": options.effort, "think_penalty": options.think_penalty, "seed_base": options.seed_base, "opening_plan": options.opening_plan, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "strategist": options.strategist, "commander": options.commander, "commander_each": options.commander_each, "pianist": options.pianist, "player": options.player, "policy": options.policy, "commander_model": options.commander_model, "objective": options.objective, "effort": options.effort, "think_penalty": options.think_penalty, "seed_base": options.seed_base, "opening_plan": options.opening_plan, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 
@@ -311,6 +314,7 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         .envs(options.claude_config_dir.as_ref().map(|dir| ("WITHIN_REASON_CLAUDE_CONFIG_DIR", dir)))
         .envs(options.effort.as_ref().map(|effort| ("WITHIN_REASON_EFFORT", effort)))
         .envs(options.commander_model.as_ref().map(|model| ("WITHIN_REASON_MODEL", model)))
+        .envs(options.objective.as_ref().map(|text| ("WITHIN_REASON_OBJECTIVE", text)))
         .envs(options.think_penalty.as_ref().map(|penalty| ("WITHIN_REASON_THINK_PENALTY", penalty)))
         .envs(options.realtime.then_some(("WITHIN_REASON_REALTIME", "1")))
         .stderr(File::create(dir.join("bot.log"))?)
@@ -567,6 +571,7 @@ fn parse_args() -> Options {
         player: false,
         policy: false,
         commander_model: None,
+        objective: None,
         side: None,
         corner: None,
         ours: 1,
@@ -652,6 +657,7 @@ fn parse_args() -> Options {
             "--claude-config-dir" => options.claude_config_dir = Some(value()),
             "--effort" => options.effort = Some(value()),
             "--commander-model" => options.commander_model = Some(value()),
+            "--objective" => options.objective = Some(value()),
             "--think-penalty" => options.think_penalty = Some(value()),
             "--opponent-opening" => {
                 options.opponent_opening = value();
@@ -704,7 +710,7 @@ fn parse_args() -> Options {
 }
 
 fn usage(problem: &str) -> ! {
-    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--label TEXT] [--mirror] [--place] [--swap-corners] [--play-out] [--strategist | --commander | --commander-each] [--pianist] [--policy] [--player] [--realtime] [--commander-model ID] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--effort LEVEL] [--think-penalty X] [--opponent-opening any|bots|vehicles] [--seed-base N] [--opening-plan PATH] [--base-port N]");
+    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--label TEXT] [--mirror] [--place] [--swap-corners] [--play-out] [--strategist | --commander | --commander-each] [--pianist] [--policy] [--player] [--realtime] [--commander-model ID] [--objective TEXT] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--effort LEVEL] [--think-penalty X] [--opponent-opening any|bots|vehicles] [--seed-base N] [--opening-plan PATH] [--base-port N]");
     std::process::exit(2)
 }
 

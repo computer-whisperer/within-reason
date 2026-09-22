@@ -63,8 +63,8 @@ impl Mode {
             // The role, then what the project knows (`docs/README.md`: the brief is rewritten from the knowledge base).
             Mode::Commander => read(&COMMANDER_PROMPT) + &read(&COMMANDER_BRIEF),
             // The player's lever is the packet, or the Lua policy when the runtime is on (`bot --policy`).
-            Mode::Player if policy_mode() => read(&POLICY_PROMPT) + &read(&PLAYER_BRIEF),
-            Mode::Player => read(&PLAYER_PROMPT) + &read(&PLAYER_BRIEF),
+            Mode::Player if policy_mode() => read(&POLICY_PROMPT) + &read(&PLAYER_BRIEF) + &objective(),
+            Mode::Player => read(&PLAYER_PROMPT) + &read(&PLAYER_BRIEF) + &objective(),
         }
     }
 
@@ -82,6 +82,18 @@ impl Mode {
             Mode::Strategist => usize::MAX,
             Mode::Commander | Mode::Player => 40,
         }
+    }
+}
+
+/// A requirement the user set for this game (`arena --objective`, `WITHIN_REASON_OBJECTIVE`): "kill the commander
+/// with Thunder bombers", to prove a branch of the roster reachable. Appended to the player's role text.
+fn objective() -> String {
+    match std::env::var("WITHIN_REASON_OBJECTIVE") {
+        Ok(text) if !text.trim().is_empty() => {
+            eprintln!("[strategist] objective in the role text: {}", text.trim());
+            format!("\n\n**This game's objective, set by the user (it overrides the brief's plan where they conflict; winning any other way does not count):** {}\n", text.trim())
+        }
+        _ => String::new(),
     }
 }
 

@@ -314,7 +314,7 @@ mod tests {
     const SCRIPT: &str = r#"
 -- the opening
 step = step or 1
-COM = { "extractor", "solar_collector" }
+COM = { "extractor", "armsolar" }
 
 function commander(S, a)
   if a.options.extractor then return { ["do"] = "extractor", where = "spot_45" } end
@@ -336,7 +336,7 @@ end
         json!({
             "clock": "0:02", "frame": 60,
             "actors": {
-                "commander": { "kind": "builder", "doing": "idle", "options": { "extractor": "an extractor", "solar_collector": "a solar" }, "enemies_at_our_extractors": [] },
+                "commander": { "kind": "builder", "doing": "idle", "options": { "extractor": "an extractor", "armsolar": "a solar" }, "enemies_at_our_extractors": [] },
                 "group_A": { "kind": "group", "doing": "holding", "enemies_near": "party_1 (1 armflash): we outweigh it", "options": { "hold": "", "engage": "" }, "enemies_at_our_extractors": [] },
                 "plant_1": { "kind": "lab", "options": { "armflash": "", "nothing": "" }, "enemies_at_our_extractors": [] }
             },
@@ -363,11 +363,11 @@ end
         let mut policy = Policy::set(SCRIPT).unwrap();
         policy.decide(&state()).unwrap();
         let before = policy.blocks.len();
-        let done = policy.amend("function commander(S, a)\n  return { [\"do\"] = \"solar_collector\" }\nend\n").unwrap();
+        let done = policy.amend("function commander(S, a)\n  return { [\"do\"] = \"armsolar\" }\nend\n").unwrap();
         assert_eq!(done, vec!["commander replaced"]);
         assert_eq!(policy.blocks.len(), before);
-        assert!(policy.text().contains("solar_collector\" }") && !policy.text().contains("where = \"spot_45\""));
-        assert_eq!(policy.decide(&state()).unwrap()["commander"].choice, "solar_collector");
+        assert!(policy.text().contains("armsolar\" }") && !policy.text().contains("where = \"spot_45\""));
+        assert_eq!(policy.decide(&state()).unwrap()["commander"].choice, "armsolar");
         let step: i64 = policy.lua.globals().get("step").unwrap();
         assert_eq!(step, 3, "an amendment keeps the globals");
         assert!(policy.amend("function group(S, name, a) return nil end").unwrap()[0].ends_with("added"));
