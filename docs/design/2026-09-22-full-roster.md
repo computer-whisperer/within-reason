@@ -97,6 +97,17 @@ should be able to easily include the full unit set and game rule descriptions").
   them; nothing in the harness knows their use yet beyond the prose.
 - Legion is out (not in the arena's games).
 
+## Status (2026-09-22 evening)
+
+Steps 1 to 6 built on branch `roster` (e246600 and after): the glossary (377 units, every one with gloss and prose,
+written by a subagent from the unit files, the game's wiki pages and the duel claims), the menus from the build lists
+with the usual list and the whitelist, `produce` over builders, placement by property, sea gating, `units`, the roster
+table on the first report, the policy's whole build list, roles by definition. Step 7 (the two games on Comet easy)
+waits for the Codex chain to end, since an arena batch rebuilds the main tree at every game start. Left as they were:
+`run/jev_audit.py`'s `unsure` section and `run/policy_replay.py` still name the old place-taking keys (`turret_at`,
+`radar_at`), which is right for the recorded games they read and wrong for new ones; the replay's role text
+(`run/policy/policy-player.md`) was updated with the live one.
+
 ## Steps
 
 1. `run/unit_stats.py`: from the game checkout, the generated part of `crates/bot/data/units.json` for every unit
