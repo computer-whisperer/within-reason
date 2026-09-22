@@ -246,3 +246,65 @@ now executed by the bot (`queue`, H-HANDS-SCRIPT) and the words are kept for wha
 asks 0:24 to 1:45 (comet-2 at 0:43: extractor 0.44, solar 0.31, plant 0.14 with three solars standing).
 **Would be wrong if.** A worded sequence were followed under a different phrasing, or the list were not.
 **Used by.** the `queue` tool (`mcp.rs`, `menu.rs` `scripted_step`), the player's prompt.
+
+### K-jev-never-is-not-heard
+**Claim.** A prohibition in the packet ("never splits", "never sends detachments", "never advances to the place
+called shelling") does not take the option off Jev's picks: the option's own words on the menu win, and the
+forbidden action is chosen at 0.4-0.8 whenever its words fit the moment. A positive standing instruction is
+followed; a negative one is not. The remedy is a removal (the option or place off that actor's menu), not a sentence.
+**Status.** supported (2026-09-22, `docs/studies/jev-comet-series.md` §3.1)
+**Evidence.** While "never splits / never sends detachments / no detachments" was in force: comet-2 4 detachments in
+40 group asks, comet-3 22 in 109, comet-5 7 in 48 (23:14-23:29: the player had just written "forbade detachments",
+group_Z1 sent one every five seconds at 0.50-0.75). While "it never advances to the place called shelling" was in
+force (comet-1 13:47) group_L advanced to shelling on 7 of 25 asks at 0.58-0.84. "The commander never chases" held
+(0 of 113), where the menu's own words agree with the packet.
+**Would be wrong if.** The same packets with the option's description rewritten to name the prohibition ("the
+instructions forbid this group to split") produced no detachments; then the words, not the negation, were the cause.
+**Used by.** nothing yet (the `forbid` proposal, study §8.1).
+
+### K-hands-detachment-folds-back
+**Claim.** A detachment born of `send_against` or `split` is asked on the next tick with `join_group_<parent>` on
+its menu, and takes it at 0.55-0.75 while its party still stands: the raider is left alone and the order is undone
+a second after it was given.
+**Status.** demonstrated (2026-09-22, study §4a)
+**Evidence.** comet-5: 26 of 58 detachments rejoined within 30 s (group_O and group_P after 1 s at 8:26 and 8:29,
+group_Y after 1 s at 10:54); comet-3 15 of 39; comet-4 6 of 16; comet-2 3 of 5. The player's turn at 11:09 in
+comet-5 read "10:49 group_A: send 4 soldiers as group_X against party_1; 10:51 group_X: join group_A".
+**Would be wrong if.** The detachments that rejoined had already lost their party (the entries at the join read
+"attacking party_1 at spot_36, for 1 s" with the party in sight).
+**Used by.** nothing yet (study §8.2).
+
+### K-hands-scout-at-the-guess-does-nothing
+**Claim.** When a group stands on the enemy base guess and the base is unfound, `scout` with `where_scout` =
+enemy_base is the hands' answer every ask and does nothing (a scout to within 600 of the group is dropped), while
+the group's entry calls the guess "their_base"; the base is found only when the group happens to walk on.
+**Status.** demonstrated (2026-09-22, study §4c)
+**Evidence.** comet-4 8:30-10:00: fifteen `scout enemy_base` answers at 0.63-0.81 with `did` empty, the entry
+"at their_base (G4)", the base line "not found; presumed at G4"; the real base at H1/H2 was found at 10:22. Across
+the series `scout` was chosen 23 times in 1,161 offers and `radar_at` 3 in 1,092; the base was never found in
+comet-2, comet-3 and comet-5, and the player's army figure was a third of the truth in every game past minute five.
+**Would be wrong if.** The guess had been within 600 of the real base (it was 2,000 off).
+**Used by.** nothing yet (study §8.4).
+
+### K-hands-odds-ignore-health
+**Claim.** The odds words on a builder's or group's entry price our side by definitions (`force_of` sums defs), so a
+commander at 25 % reads "against this unit alone, we outweigh it" against a nine-unit party, and Jev attacks.
+**Status.** demonstrated (2026-09-22, study §3.5, §4d)
+**Evidence.** comet-4 16:47: health 25 %, eighteen hits that second, "we outweigh it"; attack 0.55, retreat_home
+0.13; health 2 % at 16:49 and the game lost. The sweep's `contradicts` Noul flagged the moment at 0.84.
+**Would be wrong if.** The pick had gone the same way with the odds line reading "it outweighs us".
+**Used by.** nothing yet (study §8.3).
+
+### K-jev-hindsight-contradicts-only
+**Claim.** Put back to Jev in hindsight with the packet, the entry, the menu and the play, one question works:
+"does the play go against the instructions for this actor" (single-hop over text it can see). Whether an option
+was missing, whether the ask was pointless, whether a danger was foreseeable, whether another option fit better:
+none separates (saturated, or a death detector, or flat).
+**Status.** supported (2026-09-22, `run/jev_sweep.py`, study §7)
+**Evidence.** 3,503 decisions, 7.2 M tokens, $0.30, 2.5 min. `contradicts`: 6 of 7 top flags right by hand and in
+agreement with the mechanical "never" count. `missing_option`: 2 of 3 wrong (a plant building the one allowed unit
+at 0.77). `better_option` at 0.6+ on 57-82 %. `blind` 0.71-0.84 when something died in the next 30 s, 0.07-0.09
+otherwise. `pointless_ask` 0.33-0.47 on a holding group told to hold against 0.27-0.41 on the rest.
+**Would be wrong if.** A reworded `missing_option` (naming the actor's paragraph only) reached the precision of
+`contradicts`.
+**Used by.** `run/jev_sweep.py` (the debrief should carry its top ten).
