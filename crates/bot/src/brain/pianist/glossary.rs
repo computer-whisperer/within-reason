@@ -121,4 +121,15 @@ mod tests {
         assert!(flat["corak"].prose.is_empty());
         assert!(parse("not json").is_empty());
     }
+
+    #[test]
+    fn the_checked_in_glossary_covers_both_factions() {
+        assert!(GLOSSARY.len() >= 370, "{}", GLOSSARY.len());
+        let pawn = entry("armpw").unwrap();
+        assert_eq!(pawn.name, "Pawn");
+        assert!(!pawn.prose.is_empty() && !pawn.gloss.is_empty() && pawn.made_by.contains(&"armlab".to_string()));
+        assert!(entry("corsy").unwrap().has_flag("on_water"));
+        assert!(entry("armcom").is_some() && entry("corcom").is_some());
+        assert!(GLOSSARY.values().all(|e| !e.gloss.is_empty() && !e.prose.is_empty() && !e.name.is_empty()));
+    }
 }
