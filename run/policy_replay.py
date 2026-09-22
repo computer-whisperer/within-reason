@@ -309,6 +309,7 @@ def main():
         snapshot = os.path.join(REPO, "run", f"usage-before-policy-{int(time.time())}.json")
         subprocess.run([sys.executable, os.path.join(REPO, "run", "claude_usage.py"), "--snapshot", snapshot, config_dir], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     previous = None
+    feedback = ""
     replay_path = os.path.join(out_dir, "replay.jsonl")
     with open(replay_path, "a") as replay:
         for i in turns:
@@ -332,6 +333,8 @@ def main():
                 if previous is None and i > 0 and os.path.exists(os.path.join(out_dir, f"turn-{i - 1:02d}.lua")):
                     previous = (m.turns[i - 1]["frame"], open(os.path.join(out_dir, f"turn-{i - 1:02d}.lua")).read())
                 user = t["prompt"]
+                if previous and feedback:
+                    user += "\n\n" + feedback
                 if previous and mode == "amend":
                     user += f"\n\nYour policy in force, written at {clock(previous[0])}:\n```lua\n{previous[1]}\n```\nAnswer with only the functions you change (complete top-level definitions), or the line `-- unchanged`."
                 elif previous:
@@ -369,6 +372,15 @@ def main():
                          "holds": sum(1 for r in rows if r["script"] == "hold"), "violations": sum(1 for r in rows if r.get("violates")),
                          "bad_places": sum(1 for r in rows if r.get("bad_place")), "reacted": reacted, "episodes": episodes, "lines": policy.count("\n") + 1})
             json.dump(meta, open(meta_path, "w"))
+            given = {}
+            for row in rows:
+                given[row["script"]] = given.get(row["script"], 0) + 1
+            first_error = next((r["error"] for r in results.values() if "error" in r), None)
+            feedback = (f"Your policy since your last turn ran {len(calls)} times; {errors} of those runs raised an error"
+                        + (f" (the first: {first_error})" if first_error else "") + "; the orders it gave, counted: "
+                        + (", ".join(f"{k} {v}" for k, v in sorted(given.items(), key=lambda kv: -kv[1])) or "none") + ".")
+            if load.get("load_error"):
+                feedback = f"Your policy since your last turn did not load: {load['load_error']}. Every actor kept its course."
             for row in rows:
                 row["turn"] = i
                 replay.write(json.dumps(row) + "\n")

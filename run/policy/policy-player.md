@@ -18,8 +18,10 @@ The script defines `decide(S)`, called once a second with the picture `S`, and r
     function decide(S)
       local orders = {}
       for name, a in pairs(S.actors) do
-        if a.kind == "group" and a.options.send_against and #a.enemies_at_our_extractors > 0 and a.units:find("real army") then
+        if a.kind == "group" and a.options.send_against and #a.enemies_at_our_extractors > 0 and has(a.units, "real army") then
           orders[name] = { ["do"] = "send_against", whom = "party_1", how_many = "4" }
+        elseif a.kind == "group" and a.options.engage and has(a.enemies_near, "we outweigh it") then
+          orders[name] = { ["do"] = "engage", whom = "party_1" }
         end
       end
       return orders
@@ -28,7 +30,9 @@ The script defines `decide(S)`, called once a second with the picture `S`, and r
 `S.clock` ("12:34") and `S.frame`. `S.actors[name]` is every actor the hands see this second, by the names you know
 (`commander`, `constructor_N`, `plant_N`, `lab_N`, `group_A`...), each with `kind` ("builder", "lab" or "group") and
 the words of its entry: `at`, `doing`, `health`, `units`, `is`, `from_home`, `list`, `next`, `allowed`, `we_have`,
-`enemies_near`, `enemies_at_our_extractors` (a list of strings), `under_fire`, `footwork`, `lane`; and `options`, a
+`enemies_near` (one string, or nil when nothing is near), `enemies_at_our_extractors` (a list of strings, empty when
+none), `under_fire`, `footwork`, `lane`; every entry field but that list is a string or nil, so test them with `has`,
+never with `#` or an index; and `options`, a
 table from option name to the option's words: the menu the hands would be offered for that actor this second. Only
 an option in `options` can be ordered; anything else is illegal and ignored. `S.groups[name]` has `x`, `z`, `members`
 and `task` for each group. `S.economy.metal` and `S.economy.energy` are the economy lines in words. `S.enemy` has
@@ -50,7 +54,8 @@ The vocabulary (option names as the menus offer them; each actor's `options` thi
 `hold`, `move_to` (running from everything), `fight_to` (advancing as one, fighting everything on the way), `engage`
 (a party in sight), `retreat`, `split`, `send_against`, `scout`, `join_group_X`, `continue`.
 
-Amending. After the first turn you are shown the policy in force and you answer with only the functions you change,
+Amending. After the first turn you are shown the policy in force, how many times it ran since your last turn, the
+errors it raised and the orders it gave (the script's own record, beside the report's), and you answer with only the functions you change,
 each as a complete top-level definition, or the line `-- unchanged` when nothing changes; the bot appends what you
 send to the policy, so a redefined function replaces the old one and everything else stands. For that to work, keep
 the shape: `decide(S)` loops over `S.actors` and calls one global handler per kind, `commander(S, a)`,
