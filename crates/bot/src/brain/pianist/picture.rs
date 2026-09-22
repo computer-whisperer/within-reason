@@ -266,6 +266,10 @@ impl Brain {
         let ratio = self.odds(&ours, &theirs);
         if units.is_empty() {
             "we have nobody to send"
+        } else if !self.force_can_hit(&ours, self.all_air(&theirs)) {
+            "we cannot hit it: nothing in this group shoots at what it is"
+        } else if !self.force_can_hit(&theirs, self.all_air(&ours)) {
+            "it cannot hit us: nothing there shoots at what this group is"
         } else if ratio >= 2.5 {
             "we outweigh it heavily"
         } else if ratio >= 1.3 {
@@ -460,9 +464,7 @@ impl Brain {
                     format!("where the {} shelling us from out of our sight likeliest stands: its range is {:.0}, {} hits on us in the last 20 s from the {}; advancing a group onto it (fight_to) kills it, a group that stays where it is keeps being hit", self.weapon_words(&s.weapon), s.range, s.hits, super::super::shelling::compass(s.dir))
                 }
                 None if marks.contains_key(&place.name) => {
-                    let walkable = self.snap_to_reachable(place.at);
-                    let off = walkable.dist2d(place.at);
-                    if off > 150.0 { format!("a place the player marked; our bots cannot walk onto it, the nearest ground they can reach is {off:.0} away (units sent here stop there)") } else { "a place the player marked".into() }
+                    if self.reachable_on_foot(place.at) { "a place the player marked".into() } else { "a place the player marked; our ground units cannot get there from home (water or a cliff: aircraft can, hovercraft over water can); a ground group sent here stops at the nearest ground it can reach".into() }
                 }
                 None => "a narrow passage between the two sides".into(),
             };
@@ -641,13 +643,13 @@ impl Brain {
             let doing = match &group.task {
                 GroupTask::Hold { since, committed } => format!("holding for {}{}", ago(*since), if *committed { ", fighting everything here, turrets included, since it arrived by advancing" } else { "" }),
                 GroupTask::Move { to, place, fight, since } => format!("{} to {place}, {:.0} to go, for {}", if *fight { "advancing" } else { "walking" }, centre.dist2d(*to), ago(*since)),
-                GroupTask::Engage { party, at, since, .. } => {
+                GroupTask::Engage { party, at, since, target, .. } => {
                     let name = parties.iter().find(|p| p.ids.iter().any(|id| party.contains(id))).map_or("a party now out of sight".to_string(), |p| p.name.clone());
-                    format!("attacking {name} at {}, for {}", self.place_words(&places, *at), ago(*since))
+                    format!("attacking {name}{} at {}, for {}", if target.is_some() { " (one named unit of it, until it dies)" } else { "" }, self.place_words(&places, *at), ago(*since))
                 }
             };
             let mut entry = json!({
-                "units": format!("{}: {} ({} soldiers worth {metal:.0} metal)", soldier_words(units.len(), metal), self.composition_words(&units), units.len()),
+                "units": format!("{}: {} ({} soldiers worth {metal:.0} metal{})", soldier_words(units.len(), metal), self.composition_words(&units), units.len(), if group.domain == crate::world::Domain::Ground { String::new() } else { format!("; an {} group", group.domain.word()) }),
                 "at": self.place_words(&places, centre),
                 "health": format!("{} on average", health_words(health)),
                 "doing": doing,

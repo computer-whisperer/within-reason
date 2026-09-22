@@ -53,7 +53,9 @@ the roster on your first report lists them all, and a builder's `options` carrie
 hands are not offered marked so), `assist_lab`, `reclaim`, `repair`, `walk_to`, `retreat_home`, `attack`, `wait`,
 `continue`. Labs and plants: a unit name (`armflash`, `armstump`, `armcv`, ...) or `nothing`. Groups:
 `hold`, `move_to` (running from everything), `fight_to` (advancing as one, fighting everything on the way), `engage`
-(a party in sight), `retreat`, `split`, `send_against`, `scout`, `join_group_X`, `continue`.
+(a party in sight), `attack_unit` (every soldier on one unit of the party in `whom`: its commander, else its dearest; the
+order that kills a commander, and how aircraft pick a target), `retreat`, `split`, `send_against`, `scout`,
+`join_group_X`, `continue`.
 
 Amending. After the first turn you are shown the policy in force, how many times it ran since your last turn, the
 errors it raised and the orders it gave (the script's own record, beside the report's), and you answer with only the functions you change,

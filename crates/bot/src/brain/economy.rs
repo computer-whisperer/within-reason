@@ -374,7 +374,13 @@ impl Brain {
         // places (docs/design/2026-09-22-full-roster.md, decision 3).
         let info = self.world.def(def);
         let static_builder = info.is_some_and(|d| d.speed == 0.0 && d.build_speed > 0.0 && d.build_options.is_empty());
+        let on_water = super::pianist::glossary::entry(self.name(def)).is_some_and(|e| e.has_flag("on_water"));
         match def {
+            // A sea building stands on the water nearest the builder (the menu offers it only with water in reach).
+            d if on_water => match self.world.nearest_water(builder.pos, info.map_or(100.0, |b| b.build_distance) + 300.0) {
+                Some(water) => Plan::Near(d, water),
+                None => Plan::Near(d, builder.pos),
+            },
             // The yard, but no farther from the builder than its reach: the commander built the lab at its feet in
             // both experienced players' replays and never took a step for it (rush-2-ab: ours walked 280 for it).
             d if self.world.is_factory_def(d) => Plan::Near(d, self.beside_builder(builder, self.forward_of_home(LAB_YARD), own, LAB_CLEARANCE, LAB_SPOT_CLEARANCE)),
@@ -535,8 +541,9 @@ impl Brain {
     }
 
     /// The gap, in build squares, a new building keeps from its neighbours: wide enough for units to walk through.
-    fn gap_around(&self, def: UnitDefId, kit: &Kit) -> i32 {
-        if def == kit.lab || def == kit.plant { LAB_GAP } else { BUILDING_GAP }
+    fn gap_around(&self, def: UnitDefId, _kit: &Kit) -> i32 {
+        // Any factory: the hover platform and the aircraft plant have exit lanes like the lab's.
+        if self.world.is_factory_def(def) { LAB_GAP } else { BUILDING_GAP }
     }
 
     pub(super) fn is_unreachable(&self, point: Vec3) -> bool {

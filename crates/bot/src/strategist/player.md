@@ -42,7 +42,9 @@ the lab, take wrecks apart, repair, walk to a place, go home. Labs, plants and o
 name; `units` gives any unit's full entry, ours or theirs. Groups hold, walk to a place (running
 from everything), advance to a place fighting (arriving together), engage a party in sight, retreat home, split a
 detachment to a place, send a detachment of two, four or eight against a party in sight (`send_against`: the rest
-carry on), send one scout to a place, join another group. Nothing else can be asked for; say what you wished
+carry on), send one scout to a place, join another group of the same kind (ground, hover or air groups never mix), or
+`attack_unit`: every soldier on one unit of a party, its commander when it is there, until it dies (the order that
+kills a commander; aircraft pick their target only this way, a fight order bombs whatever is nearest). Nothing else can be asked for; say what you wished
 you could order, in your closing sentence, whenever you hit that edge.
 Between your hands' orders, the code applies footwork rules to soldiers: a soldier steps out of a turret's reach it
 was not sent against or out of a fight it would die in (`flee`), spreads out under a commander's D-gun (`fan`),

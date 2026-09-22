@@ -302,7 +302,12 @@ impl Brain {
             if pos.dist2d(place) < radius
                 && let Some(d) = self.world.def(*def).filter(|d| d.weapon_count > 0)
             {
-                force.turret_metal += d.metal_cost;
+                if self.can_hit(*def, false) {
+                    force.turret_metal += d.metal_cost;
+                }
+                if self.can_hit(*def, true) {
+                    force.turret_metal_air += d.metal_cost;
+                }
             }
         }
         for enemy in visible.iter().filter(|e| e.pos.dist2d(place) < radius) {

@@ -342,3 +342,15 @@ its effect on play unmeasured.
 and better_option Nouls of `run/jev_sweep.py` over a new game against a Comet game), or the policy's option table
 made a turn's amendment slower.
 **Used by.** H-HANDS-ROSTER.
+
+### K-engine-aircraft-hunt-with-an-empty-queue
+**Claim.** An aircraft with an empty command queue attacks the closest valid target within 1000 times its move state
+(0 hold position, 1 manoeuvre, 2 roam) on its next slow update, and a fight order makes it bomb the closest valid
+target about 500 times its move state ahead on its line, not the party the order was aimed at; a direct attack order
+is kept until the target dies or is lost. So a Stop is no hold for an air group, and a fight order picks no target.
+**Status.** read from the engine source (2026-09-22, `rts/Sim/Units/CommandAI/AirCAI.cpp`: `AUTO_GENERATE_ATTACK_ORDERS`,
+`ExecuteFight`, `ExecuteAttack`); not yet seen in a game.
+**Evidence.** `docs/studies/2026-09-22-micro-air-sea-review.md`, findings 3 and 5.
+**Would be wrong if.** BAR's gadgets override the move state or the auto-attack for aircraft (its default aircraft
+move state was not found in `luarules`), or held bombers on move state 0 still hunt.
+**Used by.** H-HANDS-DOMAINS.

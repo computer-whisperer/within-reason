@@ -584,7 +584,7 @@ impl Brain {
             menu::Actor::Group(name) => match pianist.groups.iter().find(|g| g.name == *name).map(|g| &g.task) {
                 Some(GroupTask::Hold { .. }) => order.choice == "hold",
                 Some(GroupTask::Move { place, fight, .. }) => ((order.choice == "fight_to" && *fight) || (order.choice == "move_to" && !*fight)) && where_ == Some(place.as_str()),
-                Some(GroupTask::Engage { .. }) => order.choice == "engage",
+                Some(GroupTask::Engage { target, .. }) => (order.choice == "engage" && target.is_none()) || (order.choice == "attack_unit" && target.is_some()),
                 None => false,
             },
             menu::Actor::Builder(id) => match pianist.tasks.get(id) {
@@ -608,7 +608,7 @@ impl Brain {
                 let task = match &g.task {
                     GroupTask::Hold { .. } => json!({ "kind": "hold" }),
                     GroupTask::Move { to, place, fight, .. } => json!({ "kind": if *fight { "fight_to" } else { "move_to" }, "place": place, "to": [to.x as i32, to.z as i32] }),
-                    GroupTask::Engage { at, .. } => json!({ "kind": "engage", "to": [at.x as i32, at.z as i32] }),
+                    GroupTask::Engage { at, target, .. } => json!({ "kind": if target.is_some() { "attack_unit" } else { "engage" }, "to": [at.x as i32, at.z as i32] }),
                 };
                 json!({ "name": g.name, "members": g.members.iter().map(|id| id.0).collect::<Vec<_>>(), "at": centre.map(|c| [c.x as i32, c.z as i32]), "task": task })
             })

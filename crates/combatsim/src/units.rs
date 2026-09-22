@@ -94,6 +94,17 @@ impl Weapon {
             && self.damage_to("standard") > 0.0
     }
 
+    /// Whether this weapon can hit an aircraft: its target category admits flyers (a `VTOL`-only weapon hits nothing
+    /// else) and it is not one of the kinds that take no part in a fight at all.
+    pub fn hits_air(&self) -> bool {
+        !matches!(self.only_targets.as_str(), "SURFACE" | "NOTAIR" | "MINE" | "NOTHOVER" | "EMPABLE")
+            && !self.paralyzer
+            && !self.stockpile
+            && !self.water_only
+            && !self.command_fire
+            && self.damage_to("vtol").max(self.damage_to("standard")) > 0.0
+    }
+
     /// Seconds for a shot to cover `distance`. Missiles start slow and accelerate to `velocity`; everything else
     /// flies at `velocity` (the engine's ballistic arc is longer than the straight line, which this ignores).
     pub fn flight_time(&self, distance: f32) -> f32 {
@@ -151,6 +162,20 @@ impl Unit {
     /// Longest reach against ground; 0 for a unit that cannot fight one.
     pub fn reach(&self) -> f32 {
         self.weapons.iter().filter(|w| w.hits_ground()).map(|w| w.range).fold(0.0, f32::max)
+    }
+
+    /// Longest reach against aircraft; 0 for a unit that cannot hit one.
+    pub fn reach_air(&self) -> f32 {
+        self.weapons.iter().filter(|w| w.hits_air()).map(|w| w.range).fold(0.0, f32::max)
+    }
+
+    /// Damage a second against an aircraft (the `vtol` armour class, else the default) with every air-capable weapon.
+    pub fn dps_air(&self) -> f32 {
+        self.weapons
+            .iter()
+            .filter(|w| w.hits_air() && w.reload > 0.0)
+            .map(|w| w.damage_to("vtol") * w.burst.max(1) as f32 * w.projectiles.max(1) as f32 / w.reload)
+            .sum()
     }
 
     /// Damage a second against a standard-armour ground unit with every ground weapon firing as fast as it reloads,

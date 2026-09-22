@@ -120,7 +120,7 @@ pub struct Terrain {
     pub slopes: Vec<u8>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum MoveKind {
     Tank,
     Bot,
@@ -319,6 +319,9 @@ pub enum Command {
     SelfDestruct { unit: UnitId },
     /// Attack one unit of theirs: the turret first, deliberately, when a raid or an answer is priced against it.
     Attack { unit: UnitId, target: UnitId, queue: bool },
+    /// The engine's move state: 0 hold position, 1 manoeuvre, 2 roam. An aircraft with an empty queue hunts targets
+    /// within 1000 times its move state, so an air group holds by setting 0 (docs/design/2026-09-22-domains.md).
+    MoveState { unit: UnitId, state: i32 },
     /// A line in the game chat, to everyone: the bot names itself at the start (the game gives AIs random names;
     /// `{name}` in the text becomes the one given to this AI).
     Say { text: String },

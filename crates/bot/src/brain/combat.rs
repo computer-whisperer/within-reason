@@ -44,7 +44,10 @@ impl Matchups {
 #[derive(Default, Clone)]
 pub struct Force {
     pub units: HashMap<UnitDefId, usize>,
+    /// Metal of the armed buildings standing with it that can hit ground (hover and ship count as ground).
     pub turret_metal: f32,
+    /// Metal of those that can hit aircraft (docs/design/2026-09-22-domains.md, decision 6).
+    pub turret_metal_air: f32,
     /// Radar contacts: something mobile is there, of a type we cannot see.
     pub unidentified: usize,
 }
@@ -59,13 +62,34 @@ impl Force {
 }
 
 impl Brain {
-    /// Fighting power of `force` against `other`, in metal-equivalents.
+    /// Whether every mobile unit of a force flies: what its opponent must be able to hit.
+    pub(super) fn all_air(&self, force: &Force) -> bool {
+        !force.units.is_empty() && force.units.keys().all(|def| self.world.domain_of(*def) == crate::world::Domain::Air)
+    }
+
+    /// Whether a unit of this type has a weapon for aircraft, or for the ground: from the simulator's table; a type
+    /// the table lacks is taken to hit ground only.
+    pub(super) fn can_hit(&self, def: UnitDefId, air: bool) -> bool {
+        match self.contacts.sim_defs.get(&def).map(|i| &self.contacts.rules.units.list[*i]) {
+            Some(unit) => if air { unit.reach_air() > 0.0 } else { unit.reach() > 0.0 },
+            None => !air && self.world.def(def).is_some_and(|d| d.weapon_count > 0),
+        }
+    }
+
+    /// Whether anything in a force can hit `air` (or ground) at all: soldiers or turrets.
+    pub(super) fn force_can_hit(&self, force: &Force, air: bool) -> bool {
+        force.units.keys().any(|def| self.can_hit(*def, air)) || (if air { force.turret_metal_air } else { force.turret_metal }) > 0.0 || force.unidentified > 0
+    }
+
+    /// Fighting power of `force` against `other`, in metal-equivalents: only what can hit the other's domain counts.
     fn power(&self, force: &Force, other: &Force) -> f32 {
         let metal = |def: UnitDefId| self.world.def(def).map_or(0.0, |d| d.metal_cost);
+        let other_air = self.all_air(other);
         let other_total: f32 = other.units.iter().map(|(def, n)| metal(*def) * *n as f32).sum();
         let soldiers: f32 = force
             .units
             .iter()
+            .filter(|(def, _)| self.can_hit(**def, other_air))
             .map(|(def, n)| {
                 let effectiveness = if other_total > 0.0 {
                     other.units.iter().map(|(against, k)| metal(*against) * *k as f32 / other_total * self.matchups.effectiveness(self.name(*def), self.name(*against))).sum()
@@ -77,7 +101,8 @@ impl Brain {
             .sum();
         // A radar contact is counted as an average tier-1 soldier at face value: ignoring it made a column of
         // twenty blips weigh nothing.
-        soldiers + TURRET_WORTH * force.turret_metal + UNIDENTIFIED_METAL * force.unidentified as f32
+        let turrets = if other_air { force.turret_metal_air } else { force.turret_metal };
+        soldiers + TURRET_WORTH * turrets + UNIDENTIFIED_METAL * force.unidentified as f32
     }
 
     /// Our power over theirs if `ours` fights `theirs`: above 1 we should win, and by the square law a ratio r leaves

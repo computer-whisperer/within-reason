@@ -17,11 +17,8 @@ import json, math, re, subprocess, sys, pathlib
 root = pathlib.Path(sys.argv[1])
 FPS = 30
 
-# Which units: the two factions' commanders, everything the tier-1 and tier-2 bot labs and vehicle plants build,
-# and every land defence of either faction. That covers the duel tables, our own tier-2 options and what BARb
-# fields against us (which includes tier-2 vehicles it builds from an advanced plant).
-FACTORIES = ["lab", "vp", "alab", "avp"]
-EXTRA = ["com"]
+# Which units: everything either commander reaches by build lists (the whole roster of both factions, aircraft,
+# hovercraft and ships included), and every land defence of either faction.
 # What raiders come for: economy buildings, unarmed, in a scenario only to be burned or saved (chase scenarios).
 ASSETS = ["mex", "win", "solar", "makr", "estor", "nanotc", "rad"]
 DEFENCE_DIRS = ["ArmBuildings/LandDefenceOffence", "CorBuildings/LandDefenceOffence"]
@@ -181,15 +178,32 @@ def mounted(weapons):
     return list(weapons.values()) if isinstance(weapons, dict) else list(weapons)
 
 
+def reachable(files, roots):
+    """Every unit reachable from `roots` by build lists (docs/design/2026-09-22-domains.md: the table covers the
+    whole roster, air, hover and sea included, so that the bot never prices a class it fields by a stand-in)."""
+    seen, queue = set(roots), list(roots)
+    while queue:
+        name = queue.pop()
+        if name not in files:
+            continue
+        for option in mounted(load([files[name]]).get(name, {}).get("buildoptions", []) or []):
+            if not isinstance(option, str):
+                continue
+            option = option.lower()
+            if option not in seen:
+                seen.add(option)
+                queue.append(option)
+    return seen
+
+
 def main():
     files = {p.stem: p for p in (root / "units").rglob("*.lua")}
-    wanted = []
+    wanted = set()
     for side in ("arm", "cor"):
-        wanted += [side + s for s in FACTORIES + EXTRA + ASSETS]
-        for factory in FACTORIES:
-            wanted += load([files[side + factory]])[side + factory].get("buildoptions", [])
-    wanted += [p.stem for d in DEFENCE_DIRS for p in (root / "units" / d).glob("*.lua")]
-    wanted = sorted({n for n in wanted if n in files})
+        wanted |= {side + s for s in ASSETS}
+        wanted |= reachable(files, [side + "com"])
+    wanted |= {p.stem for d in DEFENCE_DIRS for p in (root / "units" / d).glob("*.lua")}
+    wanted = sorted(n for n in wanted if n in files)
 
     defs = load([files[n] for n in wanted])
     classes = armor_classes()

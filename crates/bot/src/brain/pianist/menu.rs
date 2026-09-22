@@ -69,6 +69,8 @@ pub(crate) enum Pick {
     Hold,
     MoveTo { fight: bool },
     Engage,
+    /// Every member attacks one unit of the party in `whom`: its commander, else its dearest (the domains design).
+    AttackUnit,
     Split,
     /// `how_many` soldiers nearest the party in `whom` go and attack it as a new group; the rest carry on.
     Detach,
@@ -294,7 +296,8 @@ impl Brain {
                 own.iter().any(|u| u.pos.dist2d(p.at) < 150.0 && self.world.def(u.def).is_some_and(|d| d.speed == 0.0))
                     || pianist.groups.iter().any(|g| matches!(&g.task, super::GroupTask::Engage { party, .. } if party.iter().any(|id| p.ids.contains(id))))
             };
-            if let Some(party) = picture.parties.iter().filter(|p| p.at.dist2d(unit.pos) < ATTACK_REACH || (p.at.dist2d(unit.pos) < ATTACK_JOIN && busy_party(p))).min_by(|a, b| a.at.dist2d(unit.pos).total_cmp(&b.at.dist2d(unit.pos))) {
+            let armed = self.world.def(unit.def).is_some_and(|d| d.weapon_count > 0);
+            if let Some(party) = picture.parties.iter().filter(|_| armed).filter(|p| p.at.dist2d(unit.pos) < ATTACK_REACH || (p.at.dist2d(unit.pos) < ATTACK_JOIN && busy_party(p))).min_by(|a, b| a.at.dist2d(unit.pos).total_cmp(&b.at.dist2d(unit.pos))) {
                 let odds = self.odds_words(&[unit], party, tick.snapshot.enemies.as_slice());
                 if odds.starts_with("we outweigh") {
                     let why = if party.at.dist2d(unit.pos) < ATTACK_REACH { "within reach" } else { "busy at our buildings or fighting our soldiers, so it can be caught" };
@@ -393,7 +396,7 @@ impl Brain {
         }
 
         // Groups.
-        let group_names: Vec<(String, Option<Vec3>)> = pianist.groups.iter().map(|g| (g.name.clone(), super::groups::centre_of(&g.units(own)))).collect();
+        let group_names: Vec<(String, Option<Vec3>, crate::world::Domain)> = pianist.groups.iter().map(|g| (g.name.clone(), super::groups::centre_of(&g.units(own)), g.domain)).collect();
         let scout_out = pianist.groups.iter().any(|g| g.members.len() == 1 && matches!(g.task, super::GroupTask::Move { fight: false, .. }));
         // H-HANDS-DETACH: a party some group of ours already engages is not offered for a detachment; asked every
         // five seconds, a group sent four soldiers after the same Flash squad eleven times in forty seconds and the
@@ -438,6 +441,7 @@ impl Brain {
             offer("fight_to", Pick::MoveTo { fight: true }, format!("Advance to the place in `where`, arriving together and fighting everything on the way and there, turrets included: it does not stop at a turret's reach, so it is the attack. Against {base_words}."));
             if !picture.parties.is_empty() {
                 offer("engage", Pick::Engage, format!("Attack the enemy party named in `whom` now and follow it. In sight: {}.", parties_words.join("; ")));
+                offer("attack_unit", Pick::AttackUnit, "Every soldier of this group attacks one unit of the party named in `whom`: its commander when it is there, else its dearest unit; they chase it until it dies or is lost, then hold. The order that kills a commander, and the only order by which aircraft pick their target.".into());
             }
             offer("retreat", Pick::Retreat, "Fall back to our base.".into());
             if units.len() >= 2 {
@@ -453,7 +457,7 @@ impl Brain {
                     offer("scout", Pick::Scout, "Send one soldier (a raider if the group has one) to look at the place in `where_scout` and stand there watching; the rest carry on. This is how the enemy base and its army get seen.".into());
                 }
             }
-            if let Some((other, _)) = group_names.iter().filter(|(n, c)| *n != group.name && c.is_some()).min_by(|a, b| a.1.unwrap().dist2d(centre).total_cmp(&b.1.unwrap().dist2d(centre))) {
+            if let Some((other, _, _)) = group_names.iter().filter(|(n, c, d)| *n != group.name && c.is_some() && *d == group.domain).min_by(|a, b| a.1.unwrap().dist2d(centre).total_cmp(&b.1.unwrap().dist2d(centre))) {
                 offer(&format!("join_group_{other}"), Pick::Join(other.clone()), format!("Merge into group_{other} and take its task."));
             }
             let instructions = json!(format!("Given `actors.{name}`, `enemy` and the player's `instructions`, what should {name} do next?"));
@@ -507,6 +511,8 @@ impl Brain {
             .filter(|(i, _)| !taken.contains(i) && !pianist.refused_spots.get(i).is_some_and(|until| *until > frame))
             .filter(|(_, at)| !own.iter().any(|u| kit.is_extractor(u.def) && u.pos.dist2d(*at) < 100.0))
             .filter(|(i, _)| picture.state["places"][format!("spot_{i}")]["what"].as_str().is_some_and(|w| w.starts_with("free")))
+            // By this builder's own movement class: an air constructor reaches every spot, a tank fewer than a bot.
+            .filter(|(_, at)| self.reachable_for(self.walker_of(unit.def), *at))
             .map(|(i, _)| (i, self.seconds_to_spot(unit.def, i, unit.pos)))
             .collect();
         spots.sort_by(|a, b| a.1.total_cmp(&b.1));
