@@ -31,6 +31,9 @@ mod routes;
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::sync::Arc;
 
+/// A tick's spacing in frames, for periodic work keyed on `frame % N` (ticks come every few frames).
+const TICK_FRAMES_GUESS: i32 = 8;
+
 use bot_protocol::{Command, Event, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
 
 use crate::strategist::shared::{Directives, Shared};
@@ -71,6 +74,8 @@ pub struct Brain {
     /// The rolling economy plan (`planner.rs`), and whether planning is over for this game (the commander is gone).
     planner: Option<planner::Planner>,
     planner_off: bool,
+    /// The simulator's view of this game and its ground, built once for the `plan` and `search` tools.
+    plan_game: Option<(Arc<buildorder::game::Game>, Arc<dyn buildorder::game::Ground>)>,
     /// The pianist (`pianist/`): Jev plays every actor from the player's instructions; no decision heuristic runs.
     pianist: Option<pianist::Pianist>,
     /// Whose ground is whose (`territory.rs`).
@@ -197,6 +202,7 @@ impl Brain {
             reclaim: Default::default(),
             planner: None,
             planner_off: false,
+            plan_game: None,
             pianist,
             territory: Default::default(),
             repair_claims: HashMap::new(),
@@ -332,6 +338,9 @@ impl Brain {
         if self.pianist.is_some() {
             self.track_shelling(tick);
             self.run_pianist(tick, &kit, &mut commands);
+            if tick.frame % planner::PLAN_CONTEXT_FRAMES < TICK_FRAMES_GUESS {
+                self.publish_plan_context(tick, &kit);
+            }
         } else {
             self.protect_commander(tick, &kit, &mut commands);
             self.run_economy(tick, &kit, &mut commands);

@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use tiny_http::{Header, Method, Response, Server};
 
 use super::Mode;
-use super::shared::{Focus, OrderKind, OutpostTurrets, Post, Shared, Stance, Timed};
+use super::shared::{Focus, OrderKind, OutpostTurrets, PlanContext, Post, Shared, Stance, Timed};
 use super::transcript::Transcript;
 
 const DEFAULT_TTL_SECONDS: i64 = 120;
@@ -136,6 +136,12 @@ fn tool_list(mode: Mode) -> Value {
             { "name": "units",
               "description": "The glossary entry for units by internal name, ours or the opponent's (the roster on your first report lists ours; sightings and losses name theirs): what it is for, what it beats and loses to, when to build it, its numbers. Several names at once.",
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["names"], "properties": { "names": { "type": "array", "items": { "type": "string" }, "minItems": 1 } } } },
+            { "name": "plan",
+              "description": "Simulate a build order from the game as it stands now, without ordering anything: lists of steps per builder in the `queue` tool's words (`extractor spot_N`, `assist`, any unit's internal name with an optional spot or marked place; a factory's list is unit names), keyed by actor name (commander, lab_N, plant_N, factory_N, constructor_N) or next_factory_1, next_constructor_1 for what is not standing yet. Returns the curves by minute (extractors, income, stall, army metal, build power), the minute each unit type first finishes, and what each builder actually did with its list (steps it could not do are named). The simulator knows the economy and building; it knows nothing of the enemy, losses or terrain jams, and runs about ten percent optimistic.",
+              "inputSchema": { "type": "object", "additionalProperties": false, "required": ["queues"], "properties": { "queues": { "type": "object" }, "minutes": { "type": "number", "description": "How far ahead to simulate (default 8, at most 20)." } } } },
+            { "name": "search",
+              "description": "Search build orders in the simulator from the game as it stands now, without ordering anything: an objective in words (`income`, `army`, `mix` (army plus two minutes of income), or `target UNIT by M:SS`, e.g. `target armbull by 9:00`), a horizon in minutes and a time budget in seconds (default 10, at most 20; the game holds while you wait). The search may use the whole roster: every generator, storage, converter, extractor, factory, nano and unit the faction reaches. Returns the best order found in the `plan` tool's words with its curves and score. Give `queues` to start the search from your own order.",
+              "inputSchema": { "type": "object", "additionalProperties": false, "required": ["objective"], "properties": { "objective": { "type": "string" }, "minutes": { "type": "number" }, "seconds": { "type": "number" }, "queues": { "type": "object" } } } },
             { "name": "instruct",
               "description": format!("Your standing instructions to your hands: the whole packet, replacing the last one. Jev reads it every second beside the picture and picks each actor's next action from a menu, so write it as standing orders in plain words: the build order per builder as a sequence, what the lab makes and when that changes, where each group stands, when it engages, scouts and attacks, what to do about raids. Name places as the picture does (home, spot_N, passage_N, and any place you marked with `mark`; a spot or passage you name here is always on your hands' menu, however far) and groups as group_A, group_B. No arithmetic for the hands to do: say \"when we have about ten soldiers\", not a formula. At most {INSTRUCTIONS_LIMIT} characters."),
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string" } } } },
@@ -371,6 +377,11 @@ fn call_tool(name: &str, arguments: &Value, shared: &Shared, mode: Mode) -> Resu
                     Ok(format!("amendment accepted ({} lines): what it defines replaces the same names in place from the next game second", chunk.lines().count()))
                 }
             }
+        }
+        "plan" | "search" => {
+            let context = shared.plan_context.lock().unwrap().clone().ok_or("the simulator has no picture of the game yet: try again in a few seconds")?;
+            let marks = shared.marks.lock().unwrap().clone();
+            planning::run(name, arguments, &context, &marks)
         }
         "units" => {
             let names = arguments["names"].as_array().ok_or("units takes {\"names\": [\"armpw\", ...]}")?;
@@ -711,7 +722,7 @@ mod tests {
     fn the_player_has_its_lever_and_none_of_the_commanders() {
         let names = |mode: Mode| tool_list(mode).as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap().to_string()).collect::<Vec<_>>();
         let player = names(Mode::Player);
-        assert_eq!(player, ["overview", "map", "situation", "units", "instruct", "queue", "lane", "mark", "produce", "policy", "say", "orders", "wait", "note"]);
+        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "produce", "policy", "say", "orders", "wait", "note"]);
         let commander = names(Mode::Commander);
         assert!(commander.contains(&"squad".to_string()) && !commander.contains(&"instruct".to_string()));
         for tool in batchable(Mode::Player) {
@@ -797,5 +808,205 @@ mod tests {
         assert!(call_tool("produce", &json!({ "all": "armpw" }), &shared, Mode::Player).is_err());
         assert!(call_tool("produce", &json!({ "lab_7": null }), &shared, Mode::Player).is_ok());
         assert!(!shared.allowed.lock().unwrap().contains_key("lab_7"));
+    }
+}
+
+/// The `plan` and `search` tools (docs/design/2026-09-22-plan-search.md, decisions 5 and 6): the player's queue
+/// vocabulary in and out of the simulator's plans.
+mod planning {
+    use std::collections::BTreeMap;
+
+    use buildorder::anneal::{anneal_within, Objective, Palette, Search};
+    use buildorder::plan::{Item, Plan, Step};
+    use buildorder::sim::{simulate, Outcome};
+    use serde_json::{Value, json};
+
+    use super::PlanContext;
+
+    const DEFAULT_MINUTES: f64 = 8.0;
+    const MAX_MINUTES: f64 = 20.0;
+    const DEFAULT_SECONDS: f64 = 10.0;
+    const MAX_SECONDS: f64 = 20.0;
+    const SEARCH_THREADS: usize = 4;
+    const TARGET_COUNT: usize = 6;
+
+    fn mmss(seconds: f64) -> String {
+        let s = seconds.max(0.0).round() as i64;
+        format!("{}:{:02}", s / 60, s % 60)
+    }
+
+    pub(super) fn run(name: &str, arguments: &Value, ctx: &PlanContext, marks: &BTreeMap<String, (f32, f32)>) -> Result<String, String> {
+        let units = &ctx.game.units;
+        let minutes = arguments["minutes"].as_f64().unwrap_or(DEFAULT_MINUTES).clamp(1.0, MAX_MINUTES);
+        let horizon = minutes * 60.0;
+        let given = match arguments.get("queues") {
+            Some(q) if q.is_object() => Some(plan_from_queues(ctx, q, marks)?),
+            Some(Value::Null) | None => None,
+            Some(_) => return Err("queues is an object: actor name to a list of steps".into()),
+        };
+        match name {
+            "plan" => {
+                let plan = given.ok_or("plan takes {\"queues\": {...}}")?;
+                let outcome = simulate(units, &ctx.scenario, &ctx.state, &plan, horizon);
+                Ok(report(ctx, &plan, &outcome, None))
+            }
+            _ => {
+                let text = arguments["objective"].as_str().ok_or("search takes an objective in words")?.trim().to_string();
+                let objective = if text.starts_with("target") { Objective::parse_target(&text, units)? } else { Objective::parse(&text).ok_or_else(|| format!("{text}: not an objective (income, army, mix, or target UNIT by M:SS)"))? };
+                let seconds = arguments["seconds"].as_f64().unwrap_or(DEFAULT_SECONDS).clamp(1.0, MAX_SECONDS);
+                let palette = Palette::roster(units, ctx.game.commander, ctx.turret, ctx.water);
+                let (factories, constructors) = (ctx.standing_factories + 2, ctx.standing_constructors + 3);
+                let start = given.or_else(|| match objective {
+                    Objective::Target { unit, .. } => Some(palette.chain_seed(units, ctx.game.commander, unit, TARGET_COUNT, factories, constructors, ctx.wind)),
+                    _ => None,
+                });
+                let search = Search { objective, horizon, iterations: 0, seed: ctx.frame as u64 + 1, factories, constructors, hot: 0.02, start };
+                let found = anneal_within(units, &ctx.scenario, &ctx.state, &palette, &search, std::time::Duration::from_secs_f64(seconds), SEARCH_THREADS);
+                Ok(report(ctx, &found.plan, &found.outcome, Some(found.score)))
+            }
+        }
+    }
+
+    /// The name the player knows for a plan queue.
+    fn queue_name(ctx: &PlanContext, queue: usize, factories: usize) -> String {
+        if let Some((name, _)) = ctx.actors.iter().find(|(_, q)| *q == queue) {
+            return name.clone();
+        }
+        if queue == 0 {
+            "commander".into()
+        } else if queue <= factories {
+            format!("next_factory_{}", queue - ctx.standing_factories)
+        } else {
+            format!("next_constructor_{}", queue - factories - ctx.standing_constructors)
+        }
+    }
+
+    fn plan_from_queues(ctx: &PlanContext, queues: &Value, marks: &BTreeMap<String, (f32, f32)>) -> Result<Plan, String> {
+        let units = &ctx.game.units;
+        let object = queues.as_object().ok_or("queues is an object")?;
+        let next_of = |name: &str, prefix: &str| name.strip_prefix(prefix).and_then(|n| n.parse::<usize>().ok()).filter(|n| *n >= 1);
+        let extra_factories = object.keys().filter_map(|k| next_of(k, "next_factory_")).max().unwrap_or(0);
+        let extra_constructors = object.keys().filter_map(|k| next_of(k, "next_constructor_")).max().unwrap_or(0);
+        let factories = ctx.standing_factories + extra_factories;
+        let mut plan = Plan::empty(factories, ctx.standing_constructors + extra_constructors);
+        let basic = units.extractor(ctx.game.commander).ok_or("the commander builds no extractor")?;
+        for (name, list) in object {
+            let queue = if let Some((_, q)) = ctx.actors.iter().find(|(n, _)| n == name) {
+                *q
+            } else if name == "commander" {
+                0
+            } else if let Some(n) = next_of(name, "next_factory_") {
+                ctx.standing_factories + n
+            } else if let Some(n) = next_of(name, "next_constructor_") {
+                factories + ctx.standing_constructors + n
+            } else {
+                return Err(format!("{name}: not a builder standing now ({}) nor next_factory_N / next_constructor_N", ctx.actors.iter().map(|(n, _)| n.as_str()).collect::<Vec<_>>().join(", ")));
+            };
+            let items = match list {
+                Value::Array(items) => items.iter().map(|v| v.as_str().map(|s| s.trim().to_string()).ok_or_else(|| format!("{name}: steps are strings"))).collect::<Result<Vec<_>, _>>()?,
+                Value::String(s) => s.split(',').map(|s| s.trim().to_string()).filter(|s| !s.is_empty()).collect(),
+                _ => return Err(format!("{name}: a list of steps")),
+            };
+            let mut steps = Vec::new();
+            for text in items {
+                let mut words = text.split_whitespace();
+                let kind = words.next().unwrap_or_default();
+                let place = words.next();
+                let site = match place {
+                    None => None,
+                    Some(p) => Some(if let Some(n) = p.strip_prefix("spot_").and_then(|n| n.parse::<usize>().ok()) {
+                        *ctx.spots.get(n).ok_or_else(|| format!("{name}: {p} is not a spot"))?
+                    } else if let Some((x, z)) = marks.get(p) {
+                        (*x as f64, *z as f64)
+                    } else {
+                        return Err(format!("{name}: {p} is neither a spot nor a marked place"));
+                    }),
+                };
+                let item = match kind {
+                    "assist" => Item::Assist,
+                    "extractor" => Item::Build(basic),
+                    other => Item::Build(units.index(other).ok_or_else(|| format!("{name}: {other} is not a unit of this game"))?),
+                };
+                steps.push(Step { item, site });
+            }
+            *plan.queue_mut(queue) = steps;
+        }
+        Ok(plan)
+    }
+
+    fn step_words(ctx: &PlanContext, step: &Step) -> String {
+        let units = &ctx.game.units;
+        let name = match step.item {
+            Item::Assist => return "assist".into(),
+            Item::Build(u) if units.list[u].extracts_metal > 0.0 && units.list[u].extracts_metal <= units.basic_extraction() * 1.5 => "extractor".to_string(),
+            Item::Build(u) => units.list[u].name.clone(),
+        };
+        match step.site {
+            None => name,
+            Some((x, z)) => match ctx.spots.iter().enumerate().find(|(_, s)| ((s.0 - x).powi(2) + (s.1 - z).powi(2)).sqrt() < 100.0) {
+                Some((n, _)) => format!("{name} spot_{n}"),
+                None => format!("{name} @{x:.0},{z:.0}"),
+            },
+        }
+    }
+
+    fn report(ctx: &PlanContext, plan: &Plan, outcome: &Outcome, score: Option<f64>) -> String {
+        let units = &ctx.game.units;
+        let factories = plan.factories.len();
+        let mut queues: BTreeMap<String, Value> = BTreeMap::new();
+        let mut passed: BTreeMap<String, Vec<String>> = BTreeMap::new();
+        for q in 0..plan.queue_count() {
+            let name = queue_name(ctx, q, factories);
+            let given: Vec<String> = plan.queue(q).iter().map(|s| step_words(ctx, s)).collect();
+            let done: Vec<String> = outcome.effective.get(q).map(|e| e.iter().map(|s| step_words(ctx, s)).collect()).unwrap_or_default();
+            if given.is_empty() && done.is_empty() {
+                continue;
+            }
+            let mut left = done.clone();
+            let mut missing = Vec::new();
+            for step in &given {
+                match left.iter().position(|d| d == step) {
+                    Some(i) => {
+                        left.remove(i);
+                    }
+                    None => missing.push(step.clone()),
+                }
+            }
+            if !missing.is_empty() {
+                passed.insert(name.clone(), missing);
+            }
+            queues.insert(name, json!(if score.is_some() { done } else { given }));
+        }
+        let t0 = ctx.state.t0;
+        let mut curves: Vec<String> = Vec::new();
+        let mut minute = 1.0;
+        while t0 + minute * 60.0 <= outcome.last().t + 0.5 {
+            let t = t0 + minute * 60.0;
+            if let Some(s) = outcome.samples.iter().find(|s| (s.t - t).abs() < 0.51) {
+                curves.push(format!("{}: extractors {}, metal +{:.1}/s, energy +{:.0}/s, stalled {:.0}%, army {:.0} metal ({} units), build power {:.0}, factories {}, constructors {}, nanos {}", mmss(t), s.extractors, s.metal_income, s.energy_income, (1.0 - s.stall) * 100.0, s.army_value, s.army_count, s.build_power, s.factories, s.constructors, s.nanos));
+            }
+            minute += 1.0;
+        }
+        let mut firsts: BTreeMap<String, f64> = BTreeMap::new();
+        for f in &outcome.finished {
+            firsts.entry(units.list[f.unit].name.clone()).or_insert(f.t);
+        }
+        let mut firsts: Vec<(f64, String)> = firsts.into_iter().map(|(n, t)| (t, n)).collect();
+        firsts.sort_by(|a, b| a.0.total_cmp(&b.0));
+        let mut out = json!({
+            "from": format!("the game at {} (the simulator's picture is refreshed every ten seconds)", mmss(t0)),
+            "queues": queues,
+            "curves": curves,
+            "first_finished": firsts.iter().map(|(t, n)| format!("{n} at {}", mmss(*t))).collect::<Vec<_>>(),
+            "note": "the simulator knows the economy and building, not the enemy, losses or terrain; about ten percent optimistic on quiet openings",
+        });
+        if !passed.is_empty() {
+            out["passed_over"] = json!(passed.iter().map(|(n, s)| format!("{n}: {} (this builder cannot build it, no free spot, or the list was not reached in time)", s.join(", "))).collect::<Vec<_>>());
+        }
+        if let Some(score) = score {
+            out["score"] = json!(format!("{score:.0}"));
+            out["queues_note"] = json!("the order as the builders would carry it out; give it to `queue` (builders) and `produce` (factories) yourself if you want it");
+        }
+        Ok::<String, String>(out.to_string()).unwrap_or_default()
     }
 }

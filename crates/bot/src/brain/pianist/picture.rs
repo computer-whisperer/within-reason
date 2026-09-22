@@ -805,7 +805,7 @@ impl Brain {
     }
 
     /// How an actor is named in the picture and the questions.
-    pub(super) fn actor_name(&self, unit: bot_protocol::UnitId) -> String {
+    pub(crate) fn actor_name(&self, unit: bot_protocol::UnitId) -> String {
         // By what the definition is, not by the Kit: a captured factory of the other faction is played like ours.
         match self.known_units.get(&unit).map(|(def, _)| *def) {
             Some(def) if self.world.is_commander_def(def) => "commander".into(),

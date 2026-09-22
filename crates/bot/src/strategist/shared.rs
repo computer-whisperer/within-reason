@@ -511,9 +511,30 @@ pub struct Gate {
     pub closed: bool,
 }
 
+/// What the `plan` and `search` tools simulate from: the game's unit table and ground (once), the scenario and the
+/// state as of `frame`, and the standing builders' actor names by plan queue (docs/design/2026-09-22-plan-search.md,
+/// decision 8). Published by the brain every few seconds; the tools never touch the brain.
+pub struct PlanContext {
+    pub game: std::sync::Arc<buildorder::game::Game>,
+    pub scenario: buildorder::sim::Scenario,
+    pub state: buildorder::sim::State,
+    /// (actor name as the picture names it, plan queue index): the commander is queue 0, then the factories in
+    /// order, then the mobile builders.
+    pub actors: Vec<(String, usize)>,
+    pub standing_factories: usize,
+    pub standing_constructors: usize,
+    /// Every metal spot of the map, by the picture's spot number.
+    pub spots: Vec<(f64, f64)>,
+    pub turret: Option<usize>,
+    pub water: bool,
+    pub wind: f64,
+    pub frame: i32,
+}
+
 /// State shared between the brain's thread, the MCP server and the strategist driver.
 #[derive(Default)]
 pub struct Shared {
+    pub plan_context: Mutex<Option<std::sync::Arc<PlanContext>>>,
     /// The commander ended its turn with `wait` and has not been given its next report yet: it may order nothing.
     /// (Given an immediate answer to `wait`, it took the wait to be over and went on polling and ordering on the
     /// running game, in one endless response: commander game 10, first attempt.)

@@ -27,6 +27,8 @@ const HORIZON_SECONDS: f64 = 180.0;
 /// A new plan from a fresh snapshot this often, when nothing forces one sooner; never sooner than the minimum, whatever
 /// comes and goes (in the smoke game constructors dying under a raid forced one every twelve seconds).
 const PLAN_INTERVAL_FRAMES: i32 = 30 * FRAMES_PER_SECOND;
+/// How often the plan context for the `plan` and `search` tools is published under the player.
+pub(super) const PLAN_CONTEXT_FRAMES: i32 = 10 * FRAMES_PER_SECOND;
 const PLAN_MIN_INTERVAL_FRAMES: i32 = 10 * FRAMES_PER_SECOND;
 /// Metal spots within this of an armed enemy in sight are left out of the search, and a plan's named spot within it
 /// is refused: the rules' spot choice (which knows the threat) takes over for that step.
@@ -171,15 +173,32 @@ impl Brain {
                 matches!(game.units.list[unit].role, Role::Eco | Role::Turret | Role::Nano).then(|| Standing { unit, site: at(u.pos), pays: pays(unit, u.pos) })
             })
             .collect();
+        // By role, not by the Kit (docs/design/2026-09-22-plan-search.md, decision 3): every factory and every mobile
+        // builder that stands gets a queue, whatever its type.
         let rank = |def: UnitDefId| match def {
             d if d == kit.commander => Some(0),
-            d if d == kit.lab => Some(1),
-            d if d == kit.constructor => Some(2),
+            d if self.world.is_factory_def(d) => Some(1),
+            d if self.world.is_mobile_builder(d) => Some(2),
             _ => None,
         };
         let mut builders: Vec<(&OwnUnit, usize, usize)> = own.iter().filter(|u| !u.being_built).filter_map(|u| Some((u, rank(u.def)?, index(u.def)?))).collect();
         builders.sort_by_key(|(u, rank, _)| (*rank, u.id.0));
         let job_of = |builder: &OwnUnit| -> Option<Job> {
+            // Under the player the builder's task is the pianist's: the nanoframe of that type nearest the site,
+            // else the site it walks to.
+            if let Some(pianist) = &self.pianist {
+                return match pianist.tasks.get(&builder.id) {
+                    Some(super::pianist::Task::Build { def, near, .. }) => {
+                        let unit = index(*def)?;
+                        let frame = own.iter().filter(|u| u.being_built && u.def == *def && u.pos.dist2d(*near) < JOB_REACH).min_by(|a, b| a.pos.dist2d(*near).total_cmp(&b.pos.dist2d(*near)));
+                        Some(match frame {
+                            Some(f) => Job { unit, site: at(f.pos), progress: (f.health / f.max_health.max(1.0)).clamp(0.0, 1.0) as f64, pays: pays(unit, f.pos) },
+                            None => Job { unit, site: at(*near), progress: 0.0, pays: pays(unit, *near) },
+                        })
+                    }
+                    _ => None,
+                };
+            }
             // The nanoframe it made and has not finished (the nearest, if several); else the build it was last sent
             // to and has not begun, if it is still on its way there.
             let frame = own
@@ -211,6 +230,58 @@ impl Brain {
             builders: builders.iter().map(|(u, _, unit)| StateBuilder { unit: *unit, place: at(u.pos), job: job_of(u) }).collect(),
         };
         (state, builders.iter().map(|(u, rank, _)| (u.id, *rank)).collect())
+    }
+
+    /// Publishes what the `plan` and `search` tools simulate from (docs/design/2026-09-22-plan-search.md, decision 8).
+    pub(super) fn publish_plan_context(&mut self, tick: &Tick, kit: &Kit) {
+        let Some(shared) = self.strategist.clone() else { return };
+        if self.plan_game.is_none() {
+            let Some(game) = self.buildorder_game(kit) else { return };
+            let ground = game.ground();
+            self.plan_game = Some((Arc::new(game), ground));
+        }
+        let (game, ground) = self.plan_game.clone().expect("built above");
+        let (state, order) = self.snapshot(tick, kit, &game);
+        let scenario = self.scenario(tick, &game, ground);
+        let standing_factories = order.iter().filter(|(_, rank)| *rank == 1).count();
+        let standing_constructors = order.iter().filter(|(_, rank)| *rank == 2).count();
+        let (mut factories, mut constructors) = (0, 0);
+        let actors: Vec<(String, usize)> = order
+            .iter()
+            .map(|(id, rank)| {
+                let queue = match rank {
+                    0 => 0,
+                    1 => {
+                        factories += 1;
+                        factories
+                    }
+                    _ => {
+                        constructors += 1;
+                        standing_factories + constructors
+                    }
+                };
+                (self.actor_name(*id), queue)
+            })
+            .collect();
+        let hello = &self.world.hello;
+        let wind = match scenario.wind {
+            buildorder::sim::Wind::Constant(w) => w,
+            _ => game.mean_wind(),
+        };
+        let context = crate::strategist::shared::PlanContext {
+            game,
+            scenario,
+            state,
+            actors,
+            standing_factories,
+            standing_constructors,
+            spots: hello.metal_spots.iter().map(|s| (s.x as f64, s.z as f64)).collect(),
+            turret: hello.unit_defs.iter().position(|d| d.id == kit.turret),
+            water: hello.terrain.heights.iter().any(|h| *h < 0),
+            wind,
+            frame: tick.frame,
+        };
+        *shared.plan_context.lock().unwrap() = Some(Arc::new(context));
     }
 
     /// The scenario a plan is priced in now: the spots ours on foot, less those an armed enemy in sight stands by.
