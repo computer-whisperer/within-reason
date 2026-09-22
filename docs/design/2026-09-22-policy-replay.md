@@ -154,3 +154,20 @@ scripted (list) plays in the policy's log line carry source `jev` and should say
 `--out NAME` keeps each model's run in its own directory. Turns 0-12 of game five in amendment mode for sonnet,
 haiku, gpt-5.5, gpt-5.6-sol, gpt-5.6-luna, gpt-5.6-terra and gpt-6-astra, against the user's 5-second turn
 target: `docs/studies/policy-models.md`.
+
+### policy-2-medium (2026-09-22): lost, and one runtime conflict found
+
+`run/matches/1790088808-policy-2-medium`: lost in 28.8 min to the shape Jev's games lost to (raids on the extractors
+from 3:03, the economy never back). 56 turns, wall median 7.9 s, max 17; 918 runs, no error, no illegal order (the
+spot fix held). The conflict: a builder with a `queue` list was on the policy's menu too, and the policy's
+`assist_lab` overrode the commander's list every second from 4:36 to 5:21 until the player cancelled the lists and
+drove the builders from the script. Fixed (6b37066): a listed builder is not offered to the policy, and an order for
+it is refused with the reason. The player's wishes: a standing "turret at every outer spot as it is taken", the
+extractors with enemies on them ranked by distance from the ball, an automatic cap on solars at energy surplus.
+
+### Other models as the player (2026-09-22, a subagent's study, `docs/studies/policy-models.md`)
+
+No model reaches a five-second amendment as a median; Sonnet 5 without thinking is closest at 7 s, and every model
+writes legal policies (0 illegal orders in 2,000 decisions). The subagent's harness note, that an appended
+amendment cannot remove a broken line (gpt-5.6-sol left a stray `")` and the offline policy never loaded again for
+ten turns), does not apply to the runtime: an amendment that fails to load is refused and the text stands.
