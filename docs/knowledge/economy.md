@@ -154,3 +154,17 @@ four windmills; the first constructor took 43 s (1:10 to 1:53). The same shape i
 30 between builds).
 **Used by.** the brief's map paragraph (one solar, then wind); the lab option's draw words (H-HANDS-MENU); the flow
 words' seconds to empty.
+
+### K-energy-plant-draw-outruns-solars
+**Claim.** A factory draws `build_power x energy_cost / build_time` energy a second at full speed: a Vehicle Plant on
+Blitzes 68, an Aircraft Plant on Stormbringers 132, an Advanced Vehicle Plant on Bulls 339 (seventeen Solar
+Collectors), a Construction Turret helping with a Bull 113, the commander building the Advanced Vehicle Plant 155.
+The player, shown the store, the income and a stall word, queues solars in threes and sixes after the stall and never
+catches a tier-2 plant: the energy store was empty 42 % of evidence-3-bulldogs ("the armavp has been starved of
+energy for six minutes"), 46 % of roster-2, 25-43 % of the Opus A/B games.
+**Status.** demonstrated for the numbers (2026-09-22, `crates/bot/data/units.json`: `energy`, `build_time`,
+`build_power`); the remedy (H-HANDS-ENERGY-DRAW's budget line) untested.
+**Evidence.** the ledger rows named; `run/floor.py` `e0%`.
+**Would be wrong if.** The engine's build rate is not build power over build time (it is, for a lone builder at
+full resources), or the player ignores a stated shortfall as it ignored the stall word.
+**Used by.** H-HANDS-ENERGY-DRAW.

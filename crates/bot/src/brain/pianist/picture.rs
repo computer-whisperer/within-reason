@@ -11,7 +11,7 @@ use super::super::roster::Kit;
 use super::glossary;
 use super::super::territory::Ground;
 use super::super::{Brain, FRAMES_PER_SECOND};
-use super::{GroupTask, Task};
+use super::{GroupTask, Pianist, Task};
 
 /// Free spots the picture lists, nearest home on foot first.
 const FREE_SPOTS: usize = 10;
@@ -258,6 +258,39 @@ impl Brain {
     }
 
     /// The fight simulator's odds of `units` against a party, in words (Jev compares nothing itself).
+    /// What each factory and building builder would draw at full speed on what it builds now: (actor name, energy a
+    /// second, metal a second). A factory on what stands on its pad, else its queue's first unit; a builder on its
+    /// build task (docs/design/2026-09-22-energy-draw.md).
+    pub(super) fn production_draws(&self, own: &[OwnUnit], pianist: &Pianist) -> Vec<(String, f32, f32)> {
+        let rate = |power: f32, def: UnitDefId| self.world.def(def).filter(|d| d.build_time > 0.0).map_or((0.0, 0.0), |d| (power * d.energy_cost / d.build_time, power * d.metal_cost / d.build_time));
+        let mut draws = Vec::new();
+        for unit in own.iter().filter(|u| !u.being_built) {
+            let Some(def) = self.world.def(unit.def) else { continue };
+            let building = if self.world.is_factory_def(unit.def) {
+                own.iter().find(|u| u.being_built && u.pos.dist2d(unit.pos) < 120.0 && self.world.def(u.def).is_some_and(|d| d.speed > 0.0)).map(|u| u.def).or_else(|| pianist.lab_queue.get(&unit.id).and_then(|q| q.first()).map(|(d, _)| *d))
+            } else if self.world.is_mobile_builder(unit.def) {
+                match pianist.tasks.get(&unit.id) {
+                    Some(Task::Build { def, .. }) => Some(def.clone()),
+                    _ => None,
+                }
+            } else {
+                None
+            };
+            if let Some(target) = building {
+                let (energy, metal) = rate(def.build_speed, target);
+                if energy > 0.0 {
+                    draws.push((self.actor_name(unit.id), energy, metal));
+                }
+            }
+        }
+        draws
+    }
+
+    /// Whether our faction's build tree (from the commander) reaches a definition.
+    pub(super) fn faction_reaches(&self, def: UnitDefId) -> bool {
+        self.kit.map(|k| self.world.reachable_from(k.commander).contains(&def)).unwrap_or(false)
+    }
+
     pub(super) fn odds_words(&self, units: &[&OwnUnit], party: &Party, enemies: &[EnemyUnit]) -> &'static str {
         let mut theirs = super::super::combat::Force::default();
         for enemy in enemies.iter().filter(|e| party.ids.contains(&e.id)) {
@@ -485,12 +518,27 @@ impl Brain {
             place_entries.insert(place.name.clone(), entry);
         }
 
-        // Economy and what we have.
+        // Economy and what we have. The energy budget: what our factories and builders would draw at full speed
+        // (docs/design/2026-09-22-energy-draw.md), so the size of a stall is a number before it is a stall.
         let m = &snapshot.metal;
         let e = &snapshot.energy;
+        let draws: Vec<(String, f32, f32)> = self.production_draws(own, pianist);
+        let draw_total: f32 = draws.iter().map(|(_, e, _)| e).sum();
+        let budget = if draws.is_empty() {
+            String::new()
+        } else {
+            let short = draw_total - e.income;
+            let mut fixes: Vec<String> = Vec::new();
+            for (name, unit_income) in [("armsolar", 20.0), ("corsolar", 20.0), ("armadvsol", 75.0), ("coradvsol", 75.0), ("armfus", 1000.0), ("corfus", 1000.0)] {
+                if let Some(def) = self.world.def_named(name) && self.faction_reaches(def) {
+                    fixes.push(format!("{:.1} {}", short.max(0.0) / unit_income, self.short_words(def)));
+                }
+            }
+            format!(" Our production at full speed would draw {draw_total:.0} a second ({}); against the income that is {}", draws.iter().map(|(who, e, _)| format!("{who} {e:.0}")).collect::<Vec<_>>().join(", "), if short > 0.0 { format!("short by {short:.0}, which is {}", fixes.join(" or ")) } else { format!("{:.0} to spare", -short) })
+        };
         let economy = json!({
             "metal": format!("{:.0} of {:.0} stored ({}); {:.1} a second coming in, {:.1} going out: {}", m.current, m.storage, stock_words(m.current, m.storage), m.income, m.usage, flow_words(m.income, m.usage, m.current, m.storage)),
-            "energy": format!("{:.0} of {:.0} stored ({}); {:.0} a second coming in, {:.0} going out: {}. The wind now: {:.0} of this map's {:.0} to {:.0} ({})", e.current, e.storage, stock_words(e.current, e.storage), e.income, e.usage, flow_words(e.income, e.usage, e.current, e.storage), snapshot.wind, self.world.hello.map.wind_min, self.world.hello.map.wind_max, if snapshot.wind < 6.0 { "weak: wind generators give little at the moment" } else { "blowing: wind generators pay" }),
+            "energy": format!("{:.0} of {:.0} stored ({}); {:.0} a second coming in, {:.0} going out: {}.{budget} The wind now: {:.0} of this map's {:.0} to {:.0} ({})", e.current, e.storage, stock_words(e.current, e.storage), e.income, e.usage, flow_words(e.income, e.usage, e.current, e.storage), snapshot.wind, self.world.hello.map.wind_min, self.world.hello.map.wind_max, if snapshot.wind < 6.0 { "weak: wind generators give little at the moment" } else { "blowing: wind generators pay" }),
         });
         let count = |f: &dyn Fn(&OwnUnit) -> bool| own.iter().filter(|u| !u.being_built && f(u)).count();
         let soldiers: Vec<&OwnUnit> = own.iter().filter(|u| !u.being_built && self.is_army(u, kit)).collect();
@@ -655,6 +703,9 @@ impl Brain {
                     entry["allowed"] = json!(if words.is_empty() { "the player allows nothing this lab can build: it builds anything".to_string() } else { format!("the player allows only: {}", words.join(", ")) });
                 }
                 entry["health"] = json!(health_words(unit.health / unit.max_health));
+            }
+            if let Some((_, energy, metal)) = draws.iter().find(|(who, _, _)| *who == name) {
+                entry["draw"] = json!(format!("draws about {energy:.0} energy and {metal:.1} metal a second at full speed on what it builds now"));
             }
             actors.insert(name, entry);
         }

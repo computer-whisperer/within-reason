@@ -212,8 +212,10 @@ impl Brain {
         match pick {
             Pick::Continue => {}
             Pick::Hold => {
+                // Orders only on entering the hold (H-HANDS-AIR-TARGET, decision 12): a holding group picked `hold`
+                // again gets none, where an air group used to get a move and a move state per member every ask.
                 let group = &mut pianist.groups[index];
-                if group.task.busy() || group.domain == crate::world::Domain::Air {
+                if group.task.busy() {
                     commands.extend(group.hold_orders(&units));
                 }
                 group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
@@ -247,7 +249,7 @@ impl Brain {
                             did = Some(format!("attack {} ({})", party.name, party.composition));
                         }
                     }
-                    group.set_task(GroupTask::Engage { party: party.ids.clone(), at: party.at, since: frame, last_seen: frame, target: target.map(|(t, _)| t) }, frame);
+                    group.set_task(GroupTask::Engage { party: party.ids.clone(), at: party.at, since: frame, last_seen: frame, target: target.map(|(t, _)| t), searched: false }, frame);
                     group.last_order = frame;
                 }
             }
@@ -302,7 +304,7 @@ impl Brain {
                     let name = pianist.new_group_name();
                     pianist.last_asked.insert(format!("group_{name}"), frame);
                     did = Some(format!("send {} soldiers as group_{name} against {} ({})", detached.len(), party.name, party.composition));
-                    pianist.groups.push(Group::new(name, domain, detached, GroupTask::Engage { party: party.ids.clone(), at: party.at, since: frame, last_seen: frame, target: target.map(|(t, _)| t) }, frame));
+                    pianist.groups.push(Group::new(name, domain, detached, GroupTask::Engage { party: party.ids.clone(), at: party.at, since: frame, last_seen: frame, target: target.map(|(t, _)| t), searched: false }, frame));
                 }
             }
             Pick::Scout => {

@@ -5,6 +5,8 @@ the transcript and the truth file. One row per match, the same columns every gam
 the scorecard over the recorded games rather than by wins.
 
 usage: run/floor.py run/matches/<batch>/<NN> [...] [--ledger] [--json]
+       run/floor.py --batch run/matches/<batch> [...]        one row per batch: median (min-max) of each column
+       run/floor.py --arms run/matches/<A> run/matches/<B>    the two batches side by side, A then B
   --ledger prints one markdown row per match for docs/experiments.md; --json prints the numbers.
 
 Columns (lower is better unless said):
@@ -150,6 +152,37 @@ def scorecard(m):
 COLUMNS = ["result", "minutes", "idle%", "e0%", "mfull%", "react_s", "unanswered", "never", "noop%", "illegal", "stuck_s", "known%", "fac_min", "look_min", "turn_s"]
 
 
+def batch_rows(batch):
+    """The scorecards of every finished match in a batch directory."""
+    rows = []
+    for name in sorted(os.listdir(batch)):
+        d = os.path.join(batch, name)
+        if os.path.isdir(d) and any(f.startswith("record-") for f in os.listdir(d)):
+            try:
+                rows.append(scorecard(Match(d)))
+            except (StopIteration, KeyError, ValueError) as e:
+                print(f"{d}: skipped ({e})", file=sys.stderr)
+    return rows
+
+
+def batch_summary(batch):
+    rows = batch_rows(batch)
+    wins = sum(1 for r in rows if r["result"] == "Win")
+    out = {"batch": os.path.basename(batch), "games": len(rows), "wins": wins}
+    for c in COLUMNS[1:]:
+        xs = [r[c] for r in rows if r[c] is not None]
+        out[c] = f"{med(xs):.1f} ({min(xs):.0f}-{max(xs):.0f})" if xs else "-"
+    return out
+
+
+def print_batches(batches):
+    rows = [batch_summary(b) for b in batches]
+    width = max(len(r["batch"]) for r in rows)
+    print(f"{'batch':{width}s} {'games':>6s} {'wins':>5s} " + " ".join(f"{c:>16s}" for c in COLUMNS[1:]))
+    for r in rows:
+        print(f"{r['batch']:{width}s} {r['games']:>6d} {r['wins']:>5d} " + " ".join(f"{r[c]:>16s}" for c in COLUMNS[1:]))
+
+
 def main():
     args = sys.argv[1:]
     ledger = "--ledger" in args
@@ -157,6 +190,9 @@ def main():
     dirs = [a for a in args if not a.startswith("--")]
     if not dirs:
         sys.exit(__doc__)
+    if "--batch" in args or "--arms" in args:
+        print_batches(dirs)
+        return
     rows = [scorecard(Match(d)) for d in dirs]
     if as_json:
         print(json.dumps(rows, indent=1))

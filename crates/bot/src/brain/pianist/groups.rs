@@ -23,8 +23,11 @@ const ARRIVED: f32 = 300.0;
 /// An engaged group is sent on when its party has moved this far, and no more often than this.
 const FOLLOW_DISTANCE: f32 = 150.0;
 const FOLLOW_FRAMES: i32 = 2 * FRAMES_PER_SECOND;
-/// A party nobody has seen for this long is gone; the group holds where it stands.
+/// A party nobody has seen for this long is gone; a ground group holds where it stands, an air group searches its
+/// target's last position once and holds only after `AIR_LOST_FRAMES` (H-HANDS-AIR-TARGET: evidence-1-bombers, where
+/// the hold after six seconds out of sight cancelled every strike).
 const LOST_FRAMES: i32 = 6 * FRAMES_PER_SECOND;
+const AIR_LOST_FRAMES: i32 = 60 * FRAMES_PER_SECOND;
 /// H-HANDS-STALL: a moving group whose centre has not come this much closer to its goal in this long is stalled; the
 /// picture says so, and an advancing one wakes the player once (pianist-player-2: the ball stood five minutes short
 /// of the enemy base with the player reading "under fire" and nothing about the hands).
@@ -42,7 +45,8 @@ pub(crate) enum GroupTask {
     Move { to: Vec3, place: String, fight: bool, since: i32 },
     /// `target`: one unit of the party every member attacks directly (`attack_unit`, and every air group's
     /// engagement): re-issued while it is seen, the group holds when it is lost or dead.
-    Engage { party: Vec<UnitId>, at: Vec3, since: i32, last_seen: i32, target: Option<UnitId> },
+    /// `searched`: an air group has been sent to its lost target's last position.
+    Engage { party: Vec<UnitId>, at: Vec3, since: i32, last_seen: i32, target: Option<UnitId>, searched: bool },
 }
 
 impl GroupTask {
@@ -222,18 +226,30 @@ impl Brain {
                         }
                     }
                 }
-                GroupTask::Engage { party, at, last_seen, target, .. } => {
+                GroupTask::Engage { party, at, last_seen, target, searched, .. } => {
                     let seen: Vec<&bot_protocol::EnemyUnit> = enemies.iter().filter(|e| party.contains(&e.id)).collect();
-                    // A named target: the attack stands while the target is seen; when it is gone the group holds.
+                    let air = group.domain == Domain::Air;
+                    // A named target: the attack stands while the target is seen. Lost, a ground group holds; an air
+                    // group searches the last position once and holds only much later (H-HANDS-AIR-TARGET).
                     if let Some(t) = *target {
                         if let Some(e) = seen.iter().find(|e| e.id == t) {
+                            let found_again = *searched;
                             *last_seen = frame;
-                            if e.pos.dist2d(*at) > FOLLOW_DISTANCE && frame - group.last_order >= FOLLOW_FRAMES {
+                            *searched = false;
+                            if found_again || (e.pos.dist2d(*at) > FOLLOW_DISTANCE && frame - group.last_order >= FOLLOW_FRAMES) {
                                 *at = e.pos;
                                 group.last_order = frame;
                                 commands.extend(units.iter().map(|u| Command::Attack { unit: u.id, target: t, queue: false }));
                             }
-                        } else if frame - *last_seen > LOST_FRAMES {
+                        } else if air && frame - *last_seen > AIR_LOST_FRAMES {
+                            commands.extend(group.hold_orders(&units));
+                            group.task = GroupTask::Hold { since: frame, committed: false };
+                        } else if air && frame - *last_seen > LOST_FRAMES && !*searched {
+                            *searched = true;
+                            group.last_order = frame;
+                            let to = *at;
+                            commands.extend(units.iter().map(|u| Command::Fight { unit: u.id, to, queue: false }));
+                        } else if !air && frame - *last_seen > LOST_FRAMES {
                             commands.extend(group.hold_orders(&units));
                             group.task = GroupTask::Hold { since: frame, committed: false };
                         }
