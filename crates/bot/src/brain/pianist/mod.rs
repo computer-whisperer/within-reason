@@ -460,7 +460,9 @@ impl Brain {
         let places = self.places_json();
         let mut options: BTreeMap<String, BTreeMap<String, serde_json::Value>> = BTreeMap::new();
         for menu in menus.iter() {
-            if matches!(menu.actor, menu::Actor::Global) {
+            // A builder on a list plays its next step itself (H-HANDS-SCRIPT); the policy is not offered it
+            // (policy-2-medium: the policy's assist_lab overrode the commander's opening list every second).
+            if matches!(menu.actor, menu::Actor::Global) || menu.scripted.is_some() {
                 continue;
             }
             let qid = if matches!(menu.actor, menu::Actor::Lab(_)) { format!("{}.next", menu.name) } else { format!("{}.do", menu.name) };
@@ -486,6 +488,10 @@ impl Brain {
                         illegal.push(format!("{actor}: not asked this second"));
                         continue;
                     };
+                    if menus[i].scripted.is_some() {
+                        illegal.push(format!("{actor}: on a list from `queue`, which plays itself; cancel the list to order it"));
+                        continue;
+                    }
                     if !menus[i].options.contains_key(&order.choice) {
                         illegal.push(format!("{actor}: {} is not on its menu", order.choice));
                         continue;
