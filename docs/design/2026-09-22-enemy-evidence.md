@@ -68,6 +68,8 @@ Built (8e7c8e0, c1f41f4, e420a6c). evidence-1-bombers: the opponent found by the
 plane at 6:06, the bombers "flying to spot_12 to find them"; its plant and commander in the picture at 13:12, where
 roster-1 never found them); lost on the air hold cancelling every strike (K-hands-air-hold-cancels-the-strike, the
 domains design's next pass). evidence-2-bulldogs was invalid: the builders' free-spot rule keyed on the words "free"
-and the new "never in our sight" words failed it (fixed e420a6c); rerun as evidence-3-bulldogs. Two things the
-picture still does not say that the player wanted: nothing (the never-looked list was used as intended: "scouts
-hunt their base" through named spots).
+and the new "never in our sight" words failed it (fixed e420a6c). evidence-3-bulldogs, the valid rerun: WON with
+the objective met, the opponent found by sweeping "the far corners" and "north through their box" from the
+never-looked list, its base marked from its buildings and its commander found at G2 before the Bulls went. Across the
+two valid games the player used the evidence as intended and asked for nothing the picture lacked. What the games
+left: energy (empty 16 % and 42 %) and the air hold (the domains design's next pass).
