@@ -10,36 +10,41 @@ use serde::Deserialize;
 
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct Entry {
-    #[serde(default)]
+    #[serde(default, deserialize_with = "or_default")]
     pub name: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "or_default")]
     pub tier: u8,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "or_default")]
     pub class: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "or_default")]
     pub made_by: Vec<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "or_default")]
     pub metal: f32,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "or_default")]
     pub energy: f32,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "or_default")]
     pub health: f32,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "or_default")]
     pub speed: f32,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "or_default")]
     pub range: f32,
     #[serde(default)]
     pub dps: Option<f32>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "or_default")]
     pub sight: f32,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "or_default")]
     pub build_power: f32,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "or_default")]
     pub flags: Vec<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "or_default")]
     pub gloss: String,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "or_default")]
     pub prose: String,
+}
+
+/// A field written as `null` by the generator (an unarmed unit's range, a building's speed) reads as its default.
+fn or_default<'de, D: serde::Deserializer<'de>, T: Deserialize<'de> + Default>(d: D) -> Result<T, D::Error> {
+    Option::<T>::deserialize(d).map(Option::unwrap_or_default)
 }
 
 impl Entry {
@@ -115,7 +120,7 @@ mod tests {
         let nested = parse(r#"{"source": "abc", "units": {"armpw": {"name": "Pawn", "tier": 1, "metal": 54, "gloss": "fast"}}}"#);
         assert_eq!(nested["armpw"].name, "Pawn");
         assert_eq!(nested["armpw"].line("armpw"), "Pawn armpw (t1, 54 metal): fast");
-        let flat = parse(r#"{"source": "abc", "corak": {"name": "Grunt", "made_by": ["corlab"], "flags": ["amphibious"]}}"#);
+        let flat = parse(r#"{"source": "abc", "corak": {"name": "Grunt", "made_by": ["corlab"], "flags": ["amphibious"], "speed": null, "range": null, "dps": null}}"#);
         assert_eq!(flat.len(), 1);
         assert!(flat["corak"].has_flag("amphibious"));
         assert!(flat["corak"].prose.is_empty());
