@@ -9,3 +9,7 @@ run/cache-template
 run/usage-*.json
 target-*/
 __pycache__/
+
+# Never a symlink at these paths: a merge replaced the ignored directories with symlinks and deleted every recorded game (2026-09-22)
+run/matches
+run/logs
