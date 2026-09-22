@@ -89,7 +89,10 @@ impl Mode {
 /// with Thunder bombers", to prove a branch of the roster reachable. Appended to the player's role text.
 fn objective() -> String {
     match std::env::var("WITHIN_REASON_OBJECTIVE") {
-        Ok(text) if !text.trim().is_empty() => format!("\n\n**This game's objective, set by the user (it overrides the brief's plan where they conflict; winning any other way does not count):** {}\n", text.trim()),
+        Ok(text) if !text.trim().is_empty() => {
+            eprintln!("[strategist] objective in the role text: {}", text.trim());
+            format!("\n\n**This game's objective, set by the user (it overrides the brief's plan where they conflict; winning any other way does not count):** {}\n", text.trim())
+        }
         _ => String::new(),
     }
 }
