@@ -99,12 +99,42 @@ struct Launch {
     /// `claude --effort`: stated, never inherited, so a transcript can be compared with another.
     effort: String,
     mcp_config: String,
+    mcp_url: String,
     transcript: Arc<Transcript>,
 }
 
+/// Which CLI runs the model: Claude Code for Claude models, the Codex CLI for OpenAI ones (`gpt-*`), chosen by the
+/// model's name. Codex has no long-lived session over stdin: every turn is one `codex exec`, resumed on the thread the
+/// first one started, with the role text as `AGENTS.md` in the working directory and the bot's MCP server attached by
+/// URL.
+#[derive(Clone, Copy, PartialEq, Debug)]
+enum Backend {
+    Claude,
+    Codex,
+}
+
+impl Backend {
+    fn for_model(model: &str) -> Backend {
+        if model.starts_with("gpt-") || model.starts_with("o3") || model.starts_with("o4") { Backend::Codex } else { Backend::Claude }
+    }
+}
+
+enum SessionKind {
+    Claude { child: Child, stdin: ChildStdin },
+    Codex {
+        model: String,
+        effort: String,
+        cwd: PathBuf,
+        mcp_url: String,
+        transcript: Arc<Transcript>,
+        thread_id: Arc<std::sync::Mutex<Option<String>>>,
+        child: Arc<std::sync::Mutex<Option<Child>>>,
+        turn_done_tx: std::sync::mpsc::Sender<()>,
+    },
+}
+
 struct Session {
-    child: Child,
-    stdin: ChildStdin,
+    kind: SessionKind,
     turn_done: Receiver<()>,
     /// The system prompt this session was started with (`texts::digest`), to notice an edit on disk.
     prompt: u64,
@@ -129,11 +159,18 @@ impl Strategist {
             Into::into,
         );
         let effort = std::env::var("WITHIN_REASON_EFFORT").ok().filter(|e| !e.is_empty()).unwrap_or_else(|| DEFAULT_EFFORT.into());
-        let launch = Launch { mode, cwd, config_dir, effort, mcp_config: mcp_config.to_string(), transcript };
+        let mcp_url = format!("http://127.0.0.1:{}/mcp", server.port);
+        let launch = Launch { mode, cwd, config_dir, effort, mcp_config: mcp_config.to_string(), mcp_url, transcript };
         let session = launch.spawn()?;
         eprintln!(
-            "[ai {ai_id}] {mode:?} started ({}, effort {}, account {}, MCP on port {})",
-            mode.model(), launch.effort, launch.config_dir.display(), server.port
+            "[ai {ai_id}] {mode:?} started ({}, effort {}, {}, MCP on port {})",
+            mode.model(),
+            launch.effort,
+            match Backend::for_model(&mode.model()) {
+                Backend::Claude => format!("account {}", launch.config_dir.display()),
+                Backend::Codex => "the Codex CLI on its own login".to_string(),
+            },
+            server.port
         );
         let stop = Arc::new(AtomicBool::new(false));
         let (driver_shared, driver_stop) = (shared.clone(), stop.clone());
@@ -151,6 +188,24 @@ impl Drop for Strategist {
 impl Launch {
     fn spawn(&self) -> std::io::Result<Session> {
         let prompt = self.mode.system_prompt();
+        if Backend::for_model(&self.mode.model()) == Backend::Codex {
+            std::fs::write(self.cwd.join("AGENTS.md"), &prompt)?;
+            let (turn_done_tx, turn_done) = channel();
+            let kind = SessionKind::Codex {
+                model: self.mode.model(),
+                effort: match self.effort.as_str() {
+                    "xhigh" | "max" => "xhigh".to_string(),
+                    other => other.to_string(),
+                },
+                cwd: self.cwd.clone(),
+                mcp_url: self.mcp_url.clone(),
+                transcript: self.transcript.clone(),
+                thread_id: Arc::new(std::sync::Mutex::new(None)),
+                child: Arc::new(std::sync::Mutex::new(None)),
+                turn_done_tx,
+            };
+            return Ok(Session { kind, turn_done, prompt: crate::texts::digest(&prompt) });
+        }
         let mut child = Command::new("claude")
             .current_dir(&self.cwd)
             .env("CLAUDE_CONFIG_DIR", &self.config_dir)
@@ -191,14 +246,95 @@ impl Launch {
                 }
             }
         });
-        Ok(Session { child, stdin, turn_done, prompt: crate::texts::digest(&prompt) })
+        Ok(Session { kind: SessionKind::Claude { child, stdin }, turn_done, prompt: crate::texts::digest(&prompt) })
     }
 }
 
 impl Session {
-    fn end(mut self) {
-        let _ = self.child.kill();
-        let _ = self.child.wait();
+    /// One turn's prompt to the model: a line on the session's stdin (Claude), or one `codex exec` on the thread
+    /// (Codex), whose events go to the transcript in the same shape and whose exit is the turn's result.
+    fn send(&mut self, prompt: &str) -> bool {
+        match &mut self.kind {
+            SessionKind::Claude { stdin, .. } => {
+                let line = json!({ "type": "user", "message": { "role": "user", "content": prompt } });
+                writeln!(stdin, "{line}").and_then(|()| stdin.flush()).is_ok()
+            }
+            SessionKind::Codex { model, effort, cwd, mcp_url, transcript, thread_id, child, turn_done_tx } => {
+                let mut command = Command::new("codex");
+                command.arg("exec");
+                if let Some(id) = thread_id.lock().unwrap().as_ref() {
+                    command.args(["resume", id]);
+                }
+                // The bot's tools are MCP calls, which `codex exec` refuses under every approval policy but the
+                // bypass; the working directory is empty and the sandbox has nothing to guard there. `resume` takes
+                // neither `-s` nor `-C`, so the directory is the process's.
+                command
+                    .current_dir(&*cwd)
+                    .args(["--json", "-m", model, "--skip-git-repo-check", "--dangerously-bypass-approvals-and-sandbox"])
+                    .args(["-c", &format!("model_reasoning_effort=\"{effort}\"")])
+                    .args(["-c", &format!("mcp_servers.wreason.url=\"{mcp_url}\"")])
+                    .arg("-")
+                    .stdin(Stdio::piped())
+                    .stdout(Stdio::piped())
+                    .stderr(std::fs::File::create(cwd.with_file_name(cwd.file_name().map(|n| n.to_string_lossy().replace("-cwd", "-stderr.log")).unwrap_or_default())).map_or(Stdio::null(), Stdio::from));
+                let mut spawned = match command.spawn() {
+                    Ok(c) => c,
+                    Err(e) => {
+                        eprintln!("[strategist] codex exec failed to start: {e}");
+                        return false;
+                    }
+                };
+                let Some(mut stdin) = spawned.stdin.take() else { return false };
+                let Some(stdout) = spawned.stdout.take() else { return false };
+                let prompt = prompt.to_string();
+                std::thread::spawn(move || {
+                    let _ = stdin.write_all(prompt.as_bytes());
+                    drop(stdin);
+                });
+                *child.lock().unwrap() = Some(spawned);
+                let (transcript, thread_id, child, model, done) = (transcript.clone(), thread_id.clone(), child.clone(), model.clone(), turn_done_tx.clone());
+                std::thread::spawn(move || {
+                    let mut usage = Value::Null;
+                    for line in BufReader::new(stdout).lines().map_while(Result::ok) {
+                        let Ok(event) = serde_json::from_str::<Value>(&line) else { continue };
+                        match event["type"].as_str().unwrap_or_default() {
+                            "thread.started" => {
+                                if let Some(id) = event["thread_id"].as_str() {
+                                    *thread_id.lock().unwrap() = Some(id.to_string());
+                                }
+                            }
+                            "item.completed" if event["item"]["type"] == "agent_message" => {
+                                let text = event["item"]["text"].as_str().unwrap_or_default();
+                                transcript.record(json!({ "kind": "assistant", "message": { "message": { "model": model, "content": [{ "type": "text", "text": text }] } } }));
+                            }
+                            "turn.completed" => usage = event["usage"].clone(),
+                            "error" => transcript.record(json!({ "kind": "error", "message": event })),
+                            _ => {}
+                        }
+                    }
+                    let status = child.lock().unwrap().as_mut().map(|c| c.wait().ok());
+                    *child.lock().unwrap() = None;
+                    transcript.record(json!({ "kind": "result", "message": { "type": "result", "usage": usage, "modelUsage": { model.clone(): { "inputTokens": usage["input_tokens"], "outputTokens": usage["output_tokens"], "cacheReadInputTokens": usage["cached_input_tokens"] } }, "exit": format!("{status:?}") } }));
+                    let _ = done.send(());
+                });
+                true
+            }
+        }
+    }
+
+    fn end(self) {
+        match self.kind {
+            SessionKind::Claude { mut child, .. } => {
+                let _ = child.kill();
+                let _ = child.wait();
+            }
+            SessionKind::Codex { child, .. } => {
+                if let Some(mut c) = child.lock().unwrap().take() {
+                    let _ = c.kill();
+                    let _ = c.wait();
+                }
+            }
+        }
     }
 }
 
@@ -275,8 +411,7 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
         let started = Instant::now();
         launch.transcript.record(json!({ "kind": "turn", "frame": frame, "prompt": prompt }));
         shared.turn_over.store(false, Ordering::Relaxed);
-        let line = json!({ "type": "user", "message": { "role": "user", "content": prompt } });
-        let sent = writeln!(session.stdin, "{line}").and_then(|()| session.stdin.flush()).is_ok();
+        let sent = session.send(&prompt);
         let mut abandoned = false;
         let finished = sent
             && loop {
@@ -331,7 +466,9 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
 /// A turn is abandoned after this long with no answer: in lockstep 45 s (the engine's watchdog, HangTimeout, is 60 s by
 /// default and the arena raises it to 600; turns run 1 to 11 s), in real time 120 s (the game runs on meanwhile).
 fn turn_cap(mode: Mode) -> Duration {
-    Duration::from_secs(if mode.lockstep() { 45 } else { 120 })
+    // A Codex turn is one process with a 3 s floor and 20-60 s of writing (docs/studies/policy-models.md): the
+    // lockstep cap that catches a hung Claude session would discard most of them.
+    Duration::from_secs(if mode.lockstep() && Backend::for_model(&mode.model()) == Backend::Claude { 45 } else { 120 })
 }
 
 /// `WITHIN_REASON_REALTIME`: the game is never held for a turn or an answer (a game against people; the arena's
