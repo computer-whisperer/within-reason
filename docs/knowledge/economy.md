@@ -168,3 +168,13 @@ energy for six minutes"), 46 % of roster-2, 25-43 % of the Opus A/B games.
 **Would be wrong if.** The engine's build rate is not build power over build time (it is, for a lone builder at
 full resources), or the player ignores a stated shortfall as it ignored the stall word.
 **Used by.** H-HANDS-ENERGY-DRAW.
+
+### K-sim-player-games-army-underestimated
+**Claim.** Against the player games of 2026-09-22 (thirteen Armada vehicle openings on Comet), the build-order
+simulator runs 15-25 % high on metal income from minute 4 and 30-50 % low on army metal built, and puts the first
+Vehicle Plant 11 s late (71 s against 60): its replay carries what was built, not who assisted, and its walk-and-build
+constants were fitted on bot labs. Its army curve is a floor for a fed plant and its income a ceiling.
+**Status.** demonstrated (2026-09-22, `buildorder calibrate`; the table in `docs/studies/build-order.md`).
+**Evidence.** `run/matches/1790104460-evidence-3-bulldogs`, `1790106884-ab55-jev-medium/0*`, `1790106884-ab5-jev-medium/0*`.
+**Would be wrong if.** The assist and the factory overhead, once modelled from these records, close the army gap.
+**Used by.** H-PLAYER-PLAN-SEARCH (the tools' note to the player).

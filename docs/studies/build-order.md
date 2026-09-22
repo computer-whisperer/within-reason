@@ -183,3 +183,36 @@ con3-5: energy at home, two more construction turrets (7:10, 8:30), the second l
   (K-barb-we-lose-the-fights-not-the-build); a 5x larger army is a different regime, but it is not evidence of winning.
 - Not done: feeding an optimum to the bot and playing it; a leashed-commander or raided-outpost variant of the
   simulator; map metal values from the metal map instead of the measured 2.0.
+
+## 2026-09-22: the roster palette and the tier-2 records
+
+The palette can now be the whole roster (`--palette roster`: every generator, storage, converter, extractor, factory
+and nano the commander or a reachable constructor builds; the factory list is the union of every reachable factory's
+soldiers and builders; sea-bound types only on maps with water), an advanced extractor is an upgrade on a standing
+extractor's spot, and `--objective target:UNIT[@SECONDS]` scores the metal of finished units of one type with a
+credit for the makers on its chain and an earliness bonus, searching from a seed with the chain laid through it
+(`docs/design/2026-09-22-plan-search.md`). Found on the way: a constructor that cannot build the basic extractor (the
+Advanced Construction Vehicle) was handed the default extractor step forever and the simulation never returned.
+
+`buildorder calibrate` over thirteen player games of 2026-09-22 (evidence-3-bulldogs and the two Comet medium A/B
+arms; Armada, the vehicle opening the player copies from the brief; only minutes with at most two units lost so far):
+
+| minute | quiet games | metal/s recorded / simulated | error | army metal built recorded / simulated | extractors recorded / simulated |
+|---|---|---|---|---|---|
+| 1 | 13 | 6.2 / 6.6 | +6 % | 0 / 0 | 2.0 / 2.0 |
+| 2 | 13 | 9.1 / 7.8 | -13 % | 0 / 0 | 4.0 / 3.0 |
+| 3 | 13 | 12.7 / 13.7 | +7 % | 432 / 313 | 5.7 / 6.1 |
+| 4 | 12 | 15.8 / 18.3 | +16 % | 1045 / 697 | 7.1 / 7.6 |
+| 5 | 8 | 17.6 / 21.1 | +20 % | 1842 / 1086 | 8.1 / 8.8 |
+| 6 | 4 | 21.5 / 26.4 | +23 % | 2640 / 1622 | 9.8 / 10.8 |
+| 7 | 3 | 26.2 / 30.7 | +17 % | 3923 / 2347 | 12.7 / 12.7 |
+| 8 | 2 | 26.4 / 30.6 | +16 % | 4785 / 2475 | 12.5 / 12.5 |
+
+The first factory (a Vehicle Plant here) finished at 59.8 s recorded against 71.0 s simulated: the walk-and-build
+constants were fitted on bot labs. From minute 4 the simulator runs 15-25 % high on metal income and 30-50 % LOW on
+army metal built: the player games run the plant with the commander assisting and with the plant's own build power
+better used than the simulator's replay of the queue (the replay carries what was built, not who assisted), so the
+simulator's army curve is a floor for a fed plant, and its income a ceiling. Both biases are the wrong way for a plan
+that races to tier 2: it will promise extractors sooner and Bulls later than the game gives. Calibrating the assist and
+the factory overhead on these records is the next study; until then the tools say "about ten percent optimistic",
+which understates the army side.
