@@ -109,20 +109,6 @@ NEVER_RULE_2 = (
 HOME_RULE_2 = " An enemy party in sight within 600 of a group that outweighs it is fought now, whatever the instructions call it."
 SHELLING_RULE_2 = re.compile(r", and advancing onto it kills it\.")
 
-# name -> (rules transform, questions transform or None)
-VARIANTS = {
-    "base": (lambda rules: rules, None),
-    "never": (lambda rules: rules + NEVER_RULE, None),
-    "never2": (lambda rules: rules + NEVER_RULE_2, None),
-    "home": (lambda rules: rules + HOME_RULE, None),
-    "home2": (lambda rules: rules + HOME_RULE_2, None),
-    "commander": (lambda rules: rules + COMMANDER_RULE, None),
-    "shelling": (shelling_rule, None),
-    # The old sentence with its last clause cut: the smallest change that stops calling shelling a target.
-    "shelling2": (lambda rules: SHELLING_RULE_2.sub(".", rules), None),
-    "all": (lambda rules: shelling_rule(rules) + NEVER_RULE + HOME_RULE + COMMANDER_RULE, None),
-    "words": (lambda rules: rules, commander_words),
-}
 
 
 def api_key():
@@ -154,6 +140,101 @@ def ask(key, state, questions, model):
 
 def dist(a, b):
     return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
+
+
+GLOSSARY = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "crates", "bot", "data", "units.json")))["units"]
+SHOOTING_REACH = 450.0
+
+
+def plural(name):
+    return name + "es" if re.search(r"(s|x|z|ch|sh)$", name) else name + "s"
+
+
+def english(name):
+    entry = GLOSSARY.get(name) or {}
+    return entry.get("name") or name
+
+
+def shooting_at(m, f, parties):
+    """What each party is shooting at the moment: our units that took damage in the sample at `f` (the record sums
+    UnitDamaged per second) and stand within a weapon's reach of the party, buildings first. Evidence of the moment,
+    not hindsight: the bot has the same from the attacker ids of the damage events."""
+    sample = next((x for x in m.samples if x["f"] >= f), None)
+    if not sample or not sample.get("dmg"):
+        return {}
+    hurt = {u for u, d in sample["dmg"] if d > 0}
+    out = {}
+    for p in parties:
+        victims = [u for u in sample["own"] if u[0] in hurt and dist((u[2], u[3]), (p["x"], p["z"])) <= SHOOTING_REACH]
+        if victims:
+            victims.sort(key=lambda u: m.defs.get(u[1], {}).get("class") != "building")
+            counts = collections.Counter(english(m.def_name(u[1])) for u in victims)
+            metal = sum(m.defs.get(u[1], {}).get("metal", 0) for u in victims)
+            out[p["name"]] = {"what": ", ".join(f"our {name}" if n == 1 else f"{n} of our {plural(name)}" for name, n in counts.items()), "metal": metal}
+    return out
+
+
+def clause(entry, style):
+    if style == "killing":
+        return f"killing {entry['what']} ({entry['metal']:.0f} metal) now"
+    return f"shooting {entry['what']} now"
+
+
+def shooting_words(questions, moment, style="shooting", on_hold=False):
+    """The party lines (engage and whom) say what the party is shooting now (the user, 2026-09-22: try the
+    'killing our Advanced Vehicle Plant' variation); `on_hold` puts the cost on the hold option's own words too."""
+    shooting = {k: clause(v, style) for k, v in (moment.get("shooting") or {}).items()}
+    if not shooting:
+        return questions
+    actor = moment["actor"]
+    out = json.loads(json.dumps(questions))
+    whom = (out.get(f"{actor}.whom") or {}).get("criteria") or {}
+    for name, words in list(whom.items()):
+        if name in shooting:
+            head, sep, odds = str(words).rpartition(": ")
+            whom[name] = f"{head}, {shooting[name]}{sep}{odds}" if sep else f"{words}, {shooting[name]}"
+    do = (out.get(f"{actor}.do") or {}).get("criteria") or {}
+    if "engage" in do:
+        # One segment per party, "party_N ...: odds", separated by "; " (two formats: the older
+        # "party_N (composition, at place, far): odds" and the newer "party_N: composition at place, far (N away): odds");
+        # the clause goes before the odds.
+        text = str(do["engage"])
+        head, _, rest = text.partition("In sight: ")
+        segments = rest.rstrip(".").split("; ") if rest else []
+        for i, seg in enumerate(segments):
+            name = seg.split(":")[0].split(" ")[0]
+            if name in shooting:
+                body, sep, odds = seg.rpartition(": ")
+                if sep:
+                    body = body[:-1] + f", {shooting[name]})" if body.endswith(")") and "(" in body and not body.endswith("away)") else body + f", {shooting[name]}"
+                    segments[i] = f"{body}{sep}{odds}"
+        if segments:
+            do["engage"] = head + "In sight: " + "; ".join(segments) + "."
+    if on_hold and "hold" in do:
+        do["hold"] = str(do["hold"]) + " Holding now leaves what " + " and ".join(shooting) + " is " + ("killing" if style == "killing" else "shooting") + " to die."
+    return out
+
+
+# name -> (rules transform, questions transform or None)
+VARIANTS = {
+    "base": (lambda rules: rules, None),
+    "never": (lambda rules: rules + NEVER_RULE, None),
+    "never2": (lambda rules: rules + NEVER_RULE_2, None),
+    "home": (lambda rules: rules + HOME_RULE, None),
+    "home2": (lambda rules: rules + HOME_RULE_2, None),
+    "commander": (lambda rules: rules + COMMANDER_RULE, None),
+    "shelling": (shelling_rule, None),
+    # The old sentence with its last clause cut: the smallest change that stops calling shelling a target.
+    "shelling2": (lambda rules: SHELLING_RULE_2.sub(".", rules), None),
+    "all": (lambda rules: shelling_rule(rules) + NEVER_RULE + HOME_RULE + COMMANDER_RULE, None),
+    "words": (lambda rules: rules, commander_words),
+    "shooting": (lambda rules: rules, shooting_words),
+    "home2_shooting": (lambda rules: rules + HOME_RULE_2, shooting_words),
+    "killing": (lambda rules: rules, lambda q, mo: shooting_words(q, mo, "killing")),
+    "home2_killing": (lambda rules: rules + HOME_RULE_2, lambda q, mo: shooting_words(q, mo, "killing")),
+    "hold_cost": (lambda rules: rules, lambda q, mo: shooting_words(q, mo, "killing", on_hold=True)),
+    "home2_hold_cost": (lambda rules: rules + HOME_RULE_2, lambda q, mo: shooting_words(q, mo, "killing", on_hold=True)),
+}
 
 
 def requests_of(m):
@@ -200,7 +281,7 @@ def moments_of(m):
             if chosen is None:
                 continue
             options = set((q.get("criteria") or {}).keys())
-            common = {"match": m.label, "f": f, "clock": clock(f), "actor": actor, "qid": qid, "chosen": chosen, "p_chosen": probs.get(chosen, 0.0), "state": state, "questions": c["questions"], "groups": c.get("groups") or [], "parties": parties}
+            common = {"match": m.label, "f": f, "clock": clock(f), "actor": actor, "qid": qid, "chosen": chosen, "p_chosen": probs.get(chosen, 0.0), "state": state, "questions": c["questions"], "groups": c.get("groups") or [], "parties": parties, "shooting": shooting_at(m, f, parties) if parties else {}}
             group = groups.get(actor)
             # hold_beside_attack
             if group and group.get("at") and chosen in ("hold", "continue") and parties:
@@ -248,7 +329,8 @@ def controls_of(m, n, rng):
             if qid.endswith(".do"):
                 chosen, probs = choice_of(c, qid)
                 if chosen and probs.get(chosen, 0.0) >= 0.6:
-                    pool.append({"match": m.label, "f": c["f"], "clock": clock(c["f"]), "actor": qid[:-3], "qid": qid, "chosen": chosen, "p_chosen": probs[chosen], "state": state, "questions": c["questions"], "detector": "control", "wanted": [chosen], "note": "ordinary decision, chosen at 0.6 or more"})
+                    parties = c.get("parties") or []
+                    pool.append({"match": m.label, "f": c["f"], "clock": clock(c["f"]), "actor": qid[:-3], "qid": qid, "chosen": chosen, "p_chosen": probs[chosen], "state": state, "questions": c["questions"], "groups": c.get("groups") or [], "parties": parties, "shooting": shooting_at(m, c["f"], parties) if parties else {}, "detector": "control", "wanted": [chosen], "note": "ordinary decision, chosen at 0.6 or more"})
     rng.shuffle(pool)
     return pool[:n]
 
@@ -268,6 +350,25 @@ def replay(moment, variant, key, model, repeat):
         answer = (response or {}).get("answers", {}).get(moment["qid"]) or {}
         runs.append({"choice": answer.get("choice"), "probabilities": answer.get("probabilities") or {}})
     return runs
+
+
+def summarize_plain(rows, variants):
+    by = collections.defaultdict(list)
+    for r in rows:
+        by[(r["detector"], r["variant"])].append(r)
+    for d in sorted({d for d, _ in by}):
+        cells = []
+        n = 0
+        for v in variants:
+            rs = by.get((d, v), [])
+            if not rs:
+                cells.append(f"{'-':>16s}")
+                continue
+            n = len(rs)
+            p = statistics.mean(statistics.mean(sum(run["probabilities"].get(w, 0.0) for w in r["wanted"]) for run in r["runs"]) for r in rs)
+            right = statistics.mean(statistics.mean(1.0 if run["choice"] in r["wanted"] else 0.0 for run in r["runs"]) for r in rs)
+            cells.append(f"{p:8.2f} {100 * right:6.0f}%")
+        print(f"{d:20s} {n:4d} " + " ".join(cells))
 
 
 def summarize(rows):
@@ -291,6 +392,10 @@ def summarize(rows):
             right = statistics.mean(statistics.mean(1.0 if run["choice"] in r["wanted"] else 0.0 for run in r["runs"]) for r in rs)
             cells.append(f"{p:8.2f} {100 * right:6.0f}%")
         print(f"{d:20s} {n:4d} " + " ".join(cells))
+    with_evidence = [r for r in rows if r.get("shooting")]
+    if any(v.endswith("shooting") for v in variants) and with_evidence:
+        print("\nmoments with shooting evidence only (the words variants change nothing on the rest):")
+        summarize_plain([r for r in rows if (r["match"], r["f"], r["qid"]) in {(x["match"], x["f"], x["qid"]) for x in with_evidence}], variants)
     print("\nP(wanted): the probability Jev puts on the options judged right, averaged over the moments; right%: how often its pick is one of them.")
     print("For control the wanted option is the recorded choice, so right% is how much ordinary play a variant leaves alone.")
 
@@ -360,7 +465,7 @@ def main():
             except Exception as e:  # noqa: BLE001
                 print(f"{mo['match']} {mo['clock']} {mo['actor']} {v}: {e}", file=sys.stderr)
                 continue
-            row = {k: mo[k] for k in ("match", "f", "clock", "actor", "qid", "chosen", "p_chosen", "detector", "wanted", "note")}
+            row = {k: mo.get(k) for k in ("match", "f", "clock", "actor", "qid", "chosen", "p_chosen", "detector", "wanted", "note", "shooting")}
             row.update({"variant": v, "runs": runs})
             rows.append(row)
             sink.write(json.dumps(row) + "\n")

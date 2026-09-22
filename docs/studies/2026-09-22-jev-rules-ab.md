@@ -82,6 +82,34 @@ shelling_over_named 0.47 to 0.71 under shelling; never and commander left every 
    the party. The party words say where it is and how far, not what it is doing; "shooting our Advanced Vehicle
    Plant now" on the party line is the next words variant to try, and it can be tested here before it is built.
 
+## Second round: the party line saying what it is shooting (the user: "try that 'killing our Advanced Vehicle Plant' variation")
+
+Evidence of the moment, not hindsight: the record's `dmg` sample at the ask (damage per unit over the last second)
+names our units within 450 of a party that took damage, buildings first; the bot has the same from the attacker ids
+of its damage events. 29 of the 40 hold_beside_attack moments and 27 of the 40 raider_ignored ones had such a party.
+Three phrasings, each alone and on top of the fight-in-sight rule now in force (`home2`):
+
+- `shooting`: the party line (engage and whom) ends ", shooting our Advanced Vehicle Plant now" before the odds.
+- `killing`: ", killing our Vehicle Plant, our Advanced Vehicle Plant (3190 metal) now".
+- `hold_cost`: `killing` on the party line, and the hold option's own words end "Holding now leaves what party_85 is
+  killing to die."
+
+right% on the moments with shooting evidence (`docs/studies/data/jev-ab-2026-09-22-shooting-2.jsonl`):
+
+| detector | n | base | home2 | home2+shooting | killing | home2+killing | hold_cost | home2+hold_cost |
+|---|---|---|---|---|---|---|---|---|
+| control (with evidence) | 7 | 86 | 86 | 86 | 100 | 86 | 86 | 86 |
+| hold_beside_attack | 29 | 7 | 34 | 34 | 17 | 38 | 31 | 52 |
+| raider_ignored | 27 | 7 | 19 | 37 | 7 | 26 | 30 | 52 |
+| never_split | 13 | 8 | 46 | 54 | 8 | 62 | 15 | 54 |
+
+Over all forty controls no variant disturbed more than the two the rule alone disturbs. Reading: the words on the
+party line alone do little (7 to 12-17 %); the same fact on the hold option's own words does more (hold_cost alone
+25 %), and on top of the rule it is the best of anything tried: holds beside a base under attack 34 to 52 % right,
+raiders at our extractors ignored 19 to 52 %, mean probability on fighting 0.42 to 0.53. Jev reads the option it is
+about to pick more than the party it is not looking at. Not built: it needs the bot to attribute damage to a party
+(the attacker ids of `UnitDamaged`, kept a few seconds) and the hold and party words in `menu.rs` to carry it.
+
 ## Done from this
 
 The two winning sentences (`shelling`, `home2`) are in `rules.md` from this commit (242 words, from 206);
