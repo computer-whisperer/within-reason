@@ -118,6 +118,14 @@ opening search's half second, a commander's turn) costs game time that it does n
 half a second of search was twenty game seconds of a standing commander. Batches before this date ran the heuristic
 without it (orders landed a frame or two late, nothing more).
 
+**Think penalty (`--think-penalty X`, default 1 with `--player`, else 0).** Lockstep freezes the world while a player or
+commander thinks, which a live game does not: there the picture ages and the orders land late. The penalty puts that
+latency back: a turn's outputs (the packet, lists, production, marks, policy changes, footwork, removals; the commander
+mode's directives, field orders and wake) are held back X game seconds per wall second the turn took, the old orders
+standing meanwhile, and the hands act inside the gap as they would live. So a batch is compressed (speed 50, the
+game held) but representative of a real-time game. Every player game before 2026-09-23 15:00 ran without it
+(docs/harness/pitfalls.md); pass `--think-penalty 0` to turn it off on purpose, and say so in the ledger row.
+
 **Tick rate (since 2026-09-20 evening).** The shim sends a tick every 3 frames (10 Hz) for the control lane; the whole
 brain still runs every 15. In lockstep that is five times the round trips, each paid in wall time (measured: see the
 tick-smoke and tick-cost rows of `docs/experiments.md`). `WITHIN_REASON_TICK_FRAMES=15` in the arena's environment
