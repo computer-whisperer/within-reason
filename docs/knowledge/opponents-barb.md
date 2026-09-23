@@ -597,6 +597,21 @@ four v33 maps, and the extractor model does not transfer at all).
 **Used by.** (none yet) — candidate: H-ARMY-WAVE-GATE's estimate of the enemy army, and a line in the commander's
 briefing. Integration proposal in the study.
 
+### K-barb-hard-aggressive-tech-clock
+**Claim.** On Comet Catcher hard_aggressive opens a bot lab, raids with Ticks and Pawns from 5:00, and climbs the
+tiers on a clock a tier-1 vehicle army cannot follow: Centurions and a Gunslinger by 12:00, a Fatboy and
+Sharpshooters by 19:00, a Pulsar (1,400 range) at D2/E2 and a Marauder by 24:00, a Razorback (tier 3) at 25:00, with
+a moho extractor at D1; its base was north-east (the commander at H3 at 2:56) and reached west to D1/D2 by the end.
+Stout, Janus and Shellshocker mass held a heavy-laser line at home and lost every open-ground trade against it (25k
+lost to 18k destroyed at 25:38; fifty Stouts to the Razorback party in three minutes).
+**Status.** observed (2026-09-22), one game.
+**Evidence.** `run/matches/1790125719-escalate-4-hard-aggressive`: the player's notes at 12:20, 14:19, 19:20, 24:45, 26:15; the record's enemy_seen and
+enemy_destroyed events (armwar, armfido, armsnipe, armanni, armmar, armraz).
+**Would be wrong if.** A rematch with our own tier 2 by 13:00 met the same units at the same times and still lost the
+trades, or hard_aggressive stayed at tier 1 for twenty minutes in another game here.
+**Used by.** the player's brief (the escalate-4 bullet: the Advanced Vehicle Plant by 12:00, the lead converted within
+two minutes).
+
 ### K-barb-commander-dgun-beats-a-pawn-party
 **Claim.** BARb's commander, standing at its base, kills a party of Pawns that attacks it: the D-gun takes one a shot
 and the laser the rest, and the fight simulator, which has no D-gun, prices the party's attack as a win. Four Pawns

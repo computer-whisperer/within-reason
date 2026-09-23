@@ -76,3 +76,15 @@ Step 5, yard-1-bulldogs: WON at 17:10 with 13 Bulls; no building in either plant
 against hands-2's 3,187, metal full 0.7 % against 50 %; the player's one search asked four goals with an income goal
 (the guide's sentence heard on the first try); `remove` untried, nothing to remove. Left open: the advanced-solar
 step the player skipped (an energy stall 8:45-10:00), and a new factory's own future lane against what already stands.
+
+**Observed 2026-09-22 late (escalate-4-hard-aggressive, `run/matches/1790125719-escalate-4-hard-aggressive`).** Two plants ordered by two builders within a minute
+(7:57 the commander's `armvp plant_site`, 6:42 a constructor's `armvp spot_36`, both sites chosen at order time) went up
+at (1568, 2734) and (1664, 3054), both facing south: the second stands on the edge of the first's lane (96 elmos off
+its axis, exactly `half_width + LANE_MARGIN`), and the first's Blitzes could not leave (ten move failures in minute
+10, `yard_min` 0.8). The lane rule sees only factories that stand; a site chosen while another factory's order is
+still walking to its place is not checked against that factory's lane, nor is a new factory's own lane checked
+against what stands. Candidate (not built): count pending factory orders as lanes (the engine faces our buildings
+south, facing 0, in every recorded game), check a new factory's own south lane against standing buildings, and widen
+`LANE_MARGIN` past a factory's half-width. `remove` had its first use here: the blocked plant reclaimed by the
+commander, asked 10:44, gone 11:22 (the first ask went to a constructor's list and waited on its current build).
+

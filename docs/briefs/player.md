@@ -278,6 +278,25 @@ K-maps-comet-barb-opens-bots, the tempo model]
   packet changes unless the packet names that walk wrong and abandoned ("group_B's walk to spot_13 is abandoned;
   advance east to spot_6" took effect in one turn); "advance to X first" with X behind the group sends it home; give
   artillery its own named group or it splits off and dies alone; footwork off for a group you are committing.
+- escalate-4 (HARD_AGGRESSIVE, Opus 5.5 at medium effort, LOST at 28.4 min, the commander killed at home by a
+  Razorback): the opening held (the players' order from the B5 start: 10 extractors and income 20 at 4:00, nothing
+  lost, their commander seen at H3 by the Rover at 2:56), and the game was lost between 6:00 and 10:00: extractors
+  stalled at 14-17 from 7:00 to the end (the players have 19 at 6:52 and climb), the bank went to 1,273 at 8:00 with
+  three constructors, and four plants went up on income 29 (energy 0 at 9:17, metal 0 at 10:44, a nano took 100 s).
+  This opponent went tier 2 while we stayed tier 1: Centurions and a Gunslinger at 12:00 ground down a 17-Blitz ball
+  (4.5k lost for 1.6k), a Fatboy and Sharpshooters at 19:00 broke the spot_38/39 line as our push left, a Pulsar
+  (1,400 range) at D2/E2 and unseen snipers killed two pushes into their half at 24:00, and a Razorback (tier 3,
+  3.8k metal) with Hounds, Welders and a Fatboy killed fifty Stouts in the middle at 26:15 (13k lost in three
+  minutes). Ticks took every extractor without a turret from 5:00 (33 extractors lost); their base reached west to a
+  moho at D1. `remove` worked in play: a plant whose exit another plant blocked was reclaimed by the commander
+  (asked 10:44, gone 11:22; the first ask went to a constructor's list and waited for its step). Its own plan for the
+  rematch: the same opening with a turret on every extractor and the guards told in words to attack on sight; no
+  more than two plants plus nanos, the bank into three or four constructors taking the north strip (19, 22, 14, 7),
+  the south-middle (47, 63, 64, 69) and the middle (24, 33), 22 extractors by 10:00; a heavy laser tower line at
+  38/39/26 and the Advanced Vehicle Plant (armavp) started by 12:00, Stouts and Janus holding meanwhile; convert an
+  army lead within two minutes of having it (4:1 at 17:00 was the window), with tier 2 in front, a scout or radar
+  ahead of the ball, and the commander's list cancelled before any fight it is needed in (a builder on a list is off
+  your hands' menu, and the commander never engaged the Razorback because "help the plant" was still running).
 
 **What your hands did alone (pianist-smoke-1 to -6, pianist-easy-1, pianist-audit-1: four wins, four losses and a
 timeout against easy from the default packet, `docs/experiments.md`).** [docs/knowledge/jev.md]
