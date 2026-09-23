@@ -270,3 +270,15 @@ ids), the samples' idle flag.
 **Would be wrong if.** A turret with no order helped a factory in its reach anyway in some game version.
 **Used by.** H-ECO-NANO-GUARD.
 
+### K-mech-start-script-names-the-seats
+**Claim.** The game's start script, which the AI interface hands the shim whole (`Game_getSetupScript`), names every
+seat: a `[PLAYERn]` section per person with `name`, `team`, `spectator` and, in lobby games run by SPADS, `skill=[43.19]`
+and `rank`; an `[AIn]` section per AI with `shortname`, `version`, `team`, `name` and an `[options]` block carrying
+BARb's `profile`; `[TEAMn]` with `allyteam` and `side`. Nothing else in the interface says who plays a team. In games
+the user hosts the AI's chat lines appear under the host's name, so the script is the only reliable source.
+**Status.** read from the scripts (2026-09-23): the arena's (`run/matches/*/00/script.txt`), the lobby's in the demo
+headers (`run/matches/1789929416-replay-ben-vs-medium/*.sdfz`, `1790122851-replay-vak-vs-artur-comet`).
+**Evidence.** The scripts named; `crates/ai-shim/src/script.rs` tests parse both shapes.
+**Would be wrong if.** A lobby wrote AI seats without a `team` or people without a `name`.
+**Used by.** H-PLAYER-SIDES; the record header's `seats`.
+

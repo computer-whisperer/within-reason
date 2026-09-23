@@ -10,6 +10,8 @@ use serde::{Deserialize, Serialize};
 /// The brain's summary of the game, published every tick for the strategist to read.
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct Briefing {
+    /// Every side of the game, ours first: who plays each seat (H-PLAYER-SIDES).
+    pub sides: Vec<Side>,
     pub game_time: String,
     pub frame: i32,
     pub metal: Resource,
@@ -747,5 +749,14 @@ mod tests {
 pub struct Allowance {
     pub call: u64,
     pub units: Vec<String>,
+}
+
+/// One ally team as the player is told of it: ours or not, and its seats in words ("keithphw (a person, lobby skill
+/// 43)", "BARb medium (an AI)", "you (WReason)").
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct Side {
+    pub ours: bool,
+    pub ally_team: i32,
+    pub seats: Vec<String>,
 }
 

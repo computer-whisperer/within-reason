@@ -3,7 +3,7 @@
 //! on what did. The front of the report describes the game (the score, the trade, the economy, the ground, the
 //! opponent) and is the same for the commander and the player; the tail is what each one commands.
 
-use super::shared::{Briefing, Field, Hands, Place, SquadStatus};
+use super::shared::{Briefing, Field, Hands, Place, SquadStatus, Side};
 
 /// The hands' `did` lines a player's report carries at most.
 const DONE_LINES: usize = 40;
@@ -82,6 +82,20 @@ fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
     if !field.wreck_fields.is_empty() || field.resurrection_bots > 0 {
         let fields: Vec<String> = field.wreck_fields.iter().take(5).map(|(at, metal, safe)| format!("{} {metal} metal{}", at.grid, if *safe { "" } else { " (not safe)" })).collect();
         lines.push(format!("wrecks: {} | resurrection bots {}", if fields.is_empty() { "none known".to_string() } else { fields.join(", ") }, field.resurrection_bots));
+    }
+    // Who is in the game (H-PLAYER-SIDES; human-9: a 2v1 against a person and BARb, and the player was never told).
+    if !briefing.sides.is_empty() {
+        let ours: Vec<&Side> = briefing.sides.iter().filter(|s| s.ours).collect();
+        let theirs: Vec<&Side> = briefing.sides.iter().filter(|s| !s.ours).collect();
+        let our_seats: usize = ours.iter().map(|s| s.seats.len()).sum();
+        let their_seats: usize = theirs.iter().map(|s| s.seats.len()).sum();
+        let shape = if theirs.len() > 1 { format!("{our_seats} of ours against {} sides of {their_seats} seats", theirs.len()) } else { format!("a {our_seats}v{their_seats}") };
+        lines.push(format!(
+            "sides ({shape}): yours: {}{} | against you: {}",
+            ours.iter().flat_map(|s| s.seats.iter()).cloned().collect::<Vec<_>>().join(", "),
+            if our_seats > 1 { " (allies fight beside you; their units are theirs to order)" } else { "" },
+            if theirs.is_empty() { "nobody".to_string() } else { theirs.iter().map(|s| s.seats.join(", ")).collect::<Vec<_>>().join(" | ") }
+        ));
     }
     if briefing.seats.len() > 1 {
         let seats: Vec<String> = briefing

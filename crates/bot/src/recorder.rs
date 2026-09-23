@@ -327,6 +327,7 @@ fn header(hello: &Hello, mode: &str, session: bool, pianist: bool) -> Value {
     json!({
         "t": "header", "format": "within-reason-record", "version": FORMAT_VERSION,
         "ai_id": hello.ai_id, "team": hello.team, "ally_team": hello.ally_team, "start_frame": hello.frame,
+        "seats": hello.teams.iter().map(|t| json!({ "team": t.team, "ally_team": t.ally_team, "side": t.side, "controller": t.controller })).collect::<Vec<_>>(),
         "frames_per_second": 30, "sample_frames": SAMPLE_FRAMES, "tick_frames": hello.tick_frames, "mode": mode,
         "wall_start": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs()),
         "map": { "name": map.name, "width": map.width, "height": map.height, "wind_min": map.wind_min, "wind_max": map.wind_max, "extractor_radius": map.extractor_radius },

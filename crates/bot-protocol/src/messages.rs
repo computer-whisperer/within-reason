@@ -70,6 +70,21 @@ pub struct TeamInfo {
     pub ally_team: i32,
     /// Faction name as the start script gives it; may be empty.
     pub side: String,
+    /// Who plays the seat, from the start script; `Unknown` from a shim older than 2026-09-23.
+    #[serde(default)]
+    pub controller: Controller,
+}
+
+/// Who plays a seat, read from the start script's `[PLAYERn]` and `[AIn]` sections (human-9: the player could not
+/// tell it was a 2v1 against a person and BARb).
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub enum Controller {
+    #[default]
+    Unknown,
+    /// A person: the lobby name, and the lobby's skill rating when the script carries one (`skill=[43.19]`).
+    Person { name: String, skill: Option<f32> },
+    /// An AI: its name in the game, its short name (WReason, BARb), version, and its `profile` option when set.
+    Ai { name: String, short_name: String, version: String, profile: Option<String> },
 }
 
 /// An ally team's start box, in elmos. The engine tells nobody where another team actually started.

@@ -227,7 +227,9 @@ impl Brain {
             .collect();
         enemy_buildings_remembered.sort_by(|a, b| a.at.grid.cmp(&b.at.grid).then(a.name.cmp(&b.name)));
 
+        let sides = self.sides();
         let briefing = Briefing {
+            sides,
             seats: Vec::new(),
             game_time: clock(tick.frame),
             frame: tick.frame,
@@ -332,3 +334,40 @@ impl Brain {
         format!("party of {} raiders at {} after {target}: {doing}; {} sorties so far", party.len(), self.world.grid(centre), self.raid.sorties)
     }
 }
+
+impl Brain {
+    /// Every ally team of the game with its seats in words, ours first (from the start script's controllers).
+    pub(super) fn sides(&self) -> Vec<crate::strategist::shared::Side> {
+        use bot_protocol::Controller;
+        let hello = &self.world.hello;
+        let mut ally_teams: Vec<i32> = hello.teams.iter().map(|t| t.ally_team).collect();
+        ally_teams.sort_unstable();
+        ally_teams.dedup();
+        ally_teams.sort_by_key(|a| *a != hello.ally_team);
+        ally_teams
+            .into_iter()
+            .map(|ally_team| {
+                let seats = hello
+                    .teams
+                    .iter()
+                    .filter(|t| t.ally_team == ally_team)
+                    .map(|t| {
+                        let who = match &t.controller {
+                            _ if t.team == hello.team => "you (WReason)".to_string(),
+                            Controller::Person { name, skill: Some(skill) } => format!("{name} (a person, lobby skill {skill:.0})"),
+                            Controller::Person { name, skill: None } => format!("{name} (a person)"),
+                            Controller::Ai { short_name, profile: Some(profile), .. } if short_name.eq_ignore_ascii_case("wreason") => format!("Within Reason {profile} (another seat of this bot)"),
+                            Controller::Ai { short_name, .. } if short_name.eq_ignore_ascii_case("wreason") => "Within Reason (another seat of this bot)".to_string(),
+                            Controller::Ai { short_name, profile: Some(profile), .. } => format!("{short_name} {profile} (an AI)"),
+                            Controller::Ai { short_name, .. } => format!("{short_name} (an AI)"),
+                            Controller::Unknown => format!("team {} (who plays it is not in the script)", t.team),
+                        };
+                        if t.side.is_empty() { who } else { format!("{who}, {}", t.side) }
+                    })
+                    .collect();
+                crate::strategist::shared::Side { ours: ally_team == hello.ally_team, ally_team, seats }
+            })
+            .collect()
+    }
+}
+

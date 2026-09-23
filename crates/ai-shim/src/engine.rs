@@ -5,6 +5,7 @@
 use std::ffi::{CStr, CString, c_int, c_void};
 
 use bot_protocol::{
+    Controller,
     AllyUnit, Blast, BuildSite, Command, Converter, EnemyUnit, Hello, MapInfo, MoveClass, MoveKind, OwnUnit, Resource, Snapshot, Terrain,
     FeatureId, StartBox, TeamInfo, UnitDefId, UnitDefInfo, UnitId, Vec3, Wreck,
 };
@@ -139,14 +140,16 @@ impl Engine {
         }
         self.metal_spots = metal_spots.clone();
 
+        let script = self.string(call!(self, Game_getSetupScript()));
+        let controllers = crate::script::controllers(&script);
         let teams = (0..call!(self, Game_getTeams()))
             .map(|team| TeamInfo {
                 team,
                 ally_team: call!(self, Game_getTeamAllyTeam(team)),
                 side: self.string(call!(self, Game_getTeamSide(team))),
+                controller: controllers.iter().find(|(t, _)| *t == team).map_or(Controller::Unknown, |(_, c)| c.clone()),
             })
             .collect();
-        let script = self.string(call!(self, Game_getSetupScript()));
         let game_id = {
             use std::hash::{Hash, Hasher};
             let mut hasher = std::collections::hash_map::DefaultHasher::new();

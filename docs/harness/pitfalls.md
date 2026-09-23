@@ -66,7 +66,7 @@ of a strip's extractor clusters. `--boxes standard` (the default) reads the lobb
 `savedBoxes.dat` (or `mapDetails.lua`'s `StartboxesSet`, zlib and base64) rather than falling back to `corners`.
 
 - The bot protocol changed on 2026-09-22 (`UnitDamaged` gained `from` and `weapon`; later that day `Snapshot` gained `wind`; `Command::MoveState`; late
-  that night `UnitDefInfo` gained `footprint` and the blasts, `OwnUnit` `facing`, `BuildSite` `keep_out`, and `Command::ReclaimUnit`): the arena builds both
+  that night `UnitDefInfo` gained `footprint` and the blasts, `OwnUnit` `facing`, `BuildSite` `keep_out`, and `Command::ReclaimUnit`, and on 2026-09-23 `TeamInfo.controller` (who plays each seat)): the arena builds both
   sides, but GUI play needs `run/install_to_bar.sh` re-run so the installed shim matches the bot.
 
 - The engine's watchdog (`HangTimeout`, 60 s by default, 600 at most) kills a game whose main thread stalls that long,
