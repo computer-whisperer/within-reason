@@ -5,7 +5,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use bot_protocol::{OwnUnit, Tick, UnitDefId, UnitId, Vec3};
-use jev::Question;
+use jev::{Answer, Question};
 use serde_json::{Value, json};
 
 use super::super::roster::Kit;
@@ -30,9 +30,6 @@ const REPAIR_WITHIN: f32 = 1200.0;
 /// A builder farther than this from home is offered the way home.
 const AWAY: f32 = 400.0;
 /// An enemy party this close to a group is news that gets it asked at once.
-/// The most characters of questions one Jev call carries; the rest wait for the next call (about 22k tokens of
-/// questions on a 5-8k-token picture, under the 64k window that shell-1's 135k-character calls overran).
-pub(super) const QUESTION_BUDGET_CHARS: usize = 80_000;
 pub(super) const ALARM: f32 = 600.0;
 /// A builder on a started build is asked again only with an enemy party this close (H-HANDS-STARTED).
 const STARTED_ALARM: f32 = 800.0;
@@ -112,6 +109,11 @@ pub(crate) struct Menu {
     pub scripted: Option<(String, Option<String>)>,
     /// Ordered by the player's policy (`policy.rs`), not by Jev.
     pub policy: bool,
+    /// Answered without asking, from the actor's last real answer (H-HANDS-DIET, decision 7): the question id and
+    /// the answer; the menu's questions are not sent.
+    pub replay: Option<(String, Answer)>,
+    /// The key a real answer to this menu is stored under, for replay.
+    pub replay_key: Option<String>,
 }
 
 impl Brain {
@@ -129,10 +131,14 @@ impl Brain {
         // One place question per kind of action, each with its premise stated: a single "where, if the action needs a
         // place, else home" was answered "home" nearly every time, since it cannot see which action was chosen
         // (pianist-smoke-5: scouts sent home, advances to home, forty one-unit groups).
-        let where_question = |premise: &str, spots: &[(usize, f32)], only_spots: bool| {
+        // A group's list is the places in play (H-HANDS-DIET, decision 2): every place of the map under every group
+        // question was 23 % of the tokens of a 30-minute game, used in 8 % of the plays.
+        let diet = pianist.diet.clone();
+        let where_question = |premise: &str, spots: &[(usize, f32)], only_spots: bool, from: Option<Vec3>, destination: Option<&str>| {
+            let in_reach: Vec<String> = if only_spots { Vec::new() } else { self.places_in_reach(&diet, picture, from, destination).into_iter().map(|p| p.name.clone()).collect() };
             let criteria: BTreeMap<String, Value> = place_names
                 .iter()
-                .filter(|(n, _)| !only_spots || spots.iter().any(|(i, _)| format!("spot_{i}") == *n))
+                .filter(|(n, _)| if only_spots { spots.iter().any(|(i, _)| format!("spot_{i}") == *n) } else { in_reach.contains(n) })
                 .map(|(n, d)| {
                     let walk = spots.iter().find(|(i, _)| format!("spot_{i}") == *n).map_or(String::new(), |(_, s)| format!("; {s:.0} s of walking for this builder"));
                     (n.clone(), json!(format!("{d}{walk}")))
@@ -292,7 +298,7 @@ impl Brain {
                     if nano && !own.iter().any(|u| self.world.is_factory_def(u.def) && !u.being_built) {
                         continue;
                     }
-                    let words = self.building_words(&pianist, unit, *def, tick, &energy_words, &metal_words, factories, &generators);
+                    let words = self.building_words(&pianist, unit, *def, tick, factories);
                     offer(self.name(*def), pick, words);
                 } else {
                     off_menu.push((self.name(*def).to_string(), pick));
@@ -336,18 +342,18 @@ impl Brain {
             options.extend(off_menu);
             let instructions = json!(if let Some((what, share)) = started.as_ref().filter(|_| queue_ahead) {
                 format!(
-                    "The {what} {name} is building is {:.0}% done. Given `actors.{name}` and the player's `instructions`, what should it do the moment that is finished? The answer is ordered behind it now, so it starts without a pause. Energy now: {energy_words}. Metal now: {metal_words}.",
+                    "The {what} {name} is building is {:.0}% done. Given `actors.{name}` and the player's `instructions`, what should it do the moment that is finished? The answer is ordered behind it now, so it starts without a pause. Energy now: {energy_words}. Metal now: {metal_words}. {generators}",
                     share * 100.0
                 )
             } else {
-                format!("Given `actors.{name}` and the player's `instructions`, what should {name} do next? Prefer what the instructions say; keep to the plan unless the situation has changed. Energy now: {energy_words}. Metal now: {metal_words}.")
+                format!("Given `actors.{name}` and the player's `instructions`, what should {name} do next? Prefer what the instructions say; keep to the plan unless the situation has changed. Energy now: {energy_words}. Metal now: {metal_words}. {generators}")
             });
             let mut questions = vec![
                 (format!("{name}.do"), Question::Choice { instructions, criteria }),
-                (format!("{name}.where"), where_question(&format!("Suppose {name} builds something that stands at a place (a defence, a radar, a tier-2 extractor over a spot), or walks somewhere: at which place? Choose the place the instructions and the situation call for."), &spots, false)),
+                (format!("{name}.where"), where_question(&format!("Suppose {name} builds something that stands at a place (a defence, a radar, a tier-2 extractor over a spot), or walks somewhere: at which place? Choose the place the instructions and the situation call for."), &spots, false, Some(unit.pos), None)),
             ];
             if !spots.is_empty() {
-                questions.push((format!("{name}.where_extractor"), where_question(&format!("Suppose {name} builds a metal extractor next: at which of these free spots? Nearer is sooner; ground held by us is safer; enemies near a spot get the builder killed."), &spots, true)));
+                questions.push((format!("{name}.where_extractor"), where_question(&format!("Suppose {name} builds a metal extractor next: at which of these free spots? Nearer is sooner; ground held by us is safer; enemies near a spot get the builder killed."), &spots, true, None, None)));
             }
             pianist.last_asked.insert(name.clone(), frame);
             menus.push(Menu {
@@ -358,7 +364,7 @@ impl Brain {
                 queue_ahead,
                 options,
                 spots: spots.iter().map(|(i, _)| *i).collect(),
-                scripted: None, policy: false,
+                scripted: None, policy: false, replay: None, replay_key: None,
             });
         }
 
@@ -421,7 +427,18 @@ impl Brain {
                 if allowed.is_some() && buildables.len() < def.build_options.len() { " The player allows only the units offered here." } else { "" }
             ));
             pianist.last_asked.insert(name.clone(), frame);
-            menus.push(Menu { actor: Actor::Lab(unit.id), questions: vec![(format!("{name}.next"), Question::Choice { instructions, criteria })], name, busy: queued > 0, queue_ahead: false, options, spots: Vec::new(), scripted: None, policy: false });
+            // H-HANDS-DIET, decision 7: the same question over the same entry under the same instructions, numbers
+            // aside, is answered from the last real answer's distribution for the diet's replay window.
+            let question = (format!("{name}.next"), Question::Choice { instructions, criteria });
+            let key = super::diet::without_numbers(&format!("{}{}{}", serde_json::to_string(&question.1).unwrap_or_default(), picture.state["actors"][&name], picture.state["instructions"]));
+            let replay = match (pianist.diet.replay_frames, pianist.replays.get(&name)) {
+                (Some(window), Some(r)) if r.key == key && frame - r.since < window => {
+                    let seed = (frame as u64) ^ name.bytes().fold(0u64, |h, b| h.wrapping_mul(31).wrapping_add(b as u64));
+                    super::diet::draw(&r.probabilities, seed).map(|choice| (question.0.clone(), Answer::Choice { choice, probabilities: r.probabilities.clone(), confidence: r.confidence }))
+                }
+                _ => None,
+            };
+            menus.push(Menu { actor: Actor::Lab(unit.id), questions: vec![question], name, busy: queued > 0, queue_ahead: false, options, spots: Vec::new(), scripted: None, policy: false, replay, replay_key: Some(key) });
         }
 
         // Groups.
@@ -439,7 +456,10 @@ impl Brain {
             let enemies_near = picture.parties.iter().any(|p| p.at.dist2d(centre) < ALARM);
             let alarm = enemies_near && !group.enemies_near;
             group.enemies_near = enemies_near;
-            let review = if group.task.busy() { REVIEW_FRAMES } else { HOLD_REVIEW_FRAMES };
+            // A holding group with nothing within twice the alarm reach and no hit since the last call is quiet:
+            // its review is the diet's (H-HANDS-DIET, decision 6; started-1: 17 % of the tokens asked only such groups).
+            let quiet = !group.task.busy() && !picture.parties.iter().any(|p| p.at.dist2d(centre) < 2.0 * ALARM) && !group.members.iter().any(|m| pianist.hits.contains_key(m));
+            let review = if group.task.busy() { REVIEW_FRAMES } else if quiet { pianist.diet.quiet_hold_review } else { HOLD_REVIEW_FRAMES };
             let forced = places_changed || pianist.due_now.contains(&name);
             if !(alarm || forced || frame - last >= review) {
                 continue;
@@ -489,7 +509,7 @@ impl Brain {
                 }
                 // One scout out at a time (smoke-6: a raider every ten seconds to the enemy base, five dead by 5:00).
                 if !scout_out {
-                    offer("scout", Pick::Scout, "Send one soldier (a raider if the group has one) to look at the place in `where_scout` and stand there watching; the rest carry on. This is how the enemy base and its army get seen.".into());
+                    offer("scout", Pick::Scout, "Send one soldier (a raider if the group has one) to look at what we know least: the enemy base if nothing of ours has seen it for three minutes, else the nearest spot never looked at inside its start box; it stands there watching and the rest carry on. This is how the enemy base and its army get seen.".into());
                 }
             }
             if let Some((other, _, _)) = group_names.iter().filter(|(n, c, d)| *n != group.name && c.is_some() && *d == group.domain).min_by(|a, b| a.1.unwrap().dist2d(centre).total_cmp(&b.1.unwrap().dist2d(centre))) {
@@ -498,8 +518,7 @@ impl Brain {
             let instructions = json!(format!("Given `actors.{name}`, `enemy` and the player's `instructions`, what should {name} do next?"));
             let mut questions = vec![
                 (format!("{name}.do"), Question::Choice { instructions, criteria }),
-                (format!("{name}.where"), where_question(&format!("Suppose {name} advances, moves or sends a detachment: to which place? Choose where the instructions and the situation call for it to stand or fight."), &[], false)),
-                (format!("{name}.where_scout"), where_question(&format!("Suppose {name} sends one soldier to look at a place: which place needs looking at? The enemy base if it is not found or not seen lately, else the spots we know least about."), &[], false)),
+                (format!("{name}.where"), where_question(&format!("Suppose {name} advances, moves or sends a detachment: to which place? Choose where the instructions and the situation call for it to stand or fight."), &[], false, Some(centre), group.task.place())),
                 (format!("{name}.how_many"), Question::choice(format!("If {name} sends a detachment, how many soldiers go?"), [("1", "one: enough for a single scout car or Tick"), ("2", "two"), ("4", "four"), ("8", "eight"), ("half", "half of the group")])),
             ];
             if !picture.parties.is_empty() {
@@ -507,7 +526,7 @@ impl Brain {
                 questions.push((format!("{name}.whom"), Question::Choice { instructions: json!(format!("If {name} attacks an enemy party, which one?")), criteria }));
             }
             pianist.last_asked.insert(name.clone(), frame);
-            menus.push(Menu { actor: Actor::Group(group.name.clone()), name, busy, queue_ahead: false, questions, options, spots: Vec::new(), scripted: None, policy: false });
+            menus.push(Menu { actor: Actor::Group(group.name.clone()), name, busy, queue_ahead: false, questions, options, spots: Vec::new(), scripted: None, policy: false, replay: None, replay_key: None });
         }
 
         // The call's size: Jev's window is 64k tokens and shell-1 sent two calls past it (46 questions, 135k characters
@@ -526,7 +545,7 @@ impl Brain {
         let mut deferred: Vec<usize> = Vec::new();
         for i in asking {
             let size: usize = menus[i].questions.iter().map(|(k, q)| k.len() + serde_json::to_string(q).map_or(0, |s| s.len())).sum();
-            if chars + size > QUESTION_BUDGET_CHARS && chars > 0 {
+            if chars + size > pianist.diet.question_budget && chars > 0 {
                 deferred.push(i);
             } else {
                 chars += size;
@@ -550,7 +569,7 @@ impl Brain {
             if self.strategist.is_some() {
                 questions.push(("global.needs_player".to_string(), Question::noul("Given everything, does the situation need the player's attention now: something the `instructions` do not cover, or a plan that has stopped fitting the game?")));
             }
-            menus.push(Menu { actor: Actor::Global, name: "global".into(), busy: false, queue_ahead: false, questions, options: BTreeMap::new(), spots: Vec::new(), scripted: None, policy: false });
+            menus.push(Menu { actor: Actor::Global, name: "global".into(), busy: false, queue_ahead: false, questions, options: BTreeMap::new(), spots: Vec::new(), scripted: None, policy: false, replay: None, replay_key: None });
         }
         pianist.due_now.clear();
         // The call after this one takes what was deferred (a packet's builders), and comes half a second on.
@@ -658,7 +677,7 @@ impl Brain {
                         questions: Vec::new(),
                         options: BTreeMap::from([(key.clone(), pick)]),
                         spots,
-                        scripted: Some((key, where_)), policy: false,
+                        scripted: Some((key, where_)), policy: false, replay: None, replay_key: None,
                     });
                 }
                 Err(why) => {
@@ -681,7 +700,9 @@ impl Brain {
     /// The words on a building's option: the unit's words, where it goes, and what the picture knows that bears on
     /// it (the generators standing, the factory count, the store's fate over the build, the energy and metal lines).
     #[allow(clippy::too_many_arguments)]
-    fn building_words(&self, pianist: &Pianist, builder: &OwnUnit, def: UnitDefId, tick: &Tick, energy_words: &str, metal_words: &str, factories: usize, generators: &str) -> String {
+    // The economy and the generators standing are said once in the question's instructions, not in every option
+    // (H-HANDS-DIET, decision 5: the repeated sentences were a fifth of the builder questions' characters).
+    fn building_words(&self, pianist: &Pianist, builder: &OwnUnit, def: UnitDefId, tick: &Tick, factories: usize) -> String {
         let Some(d) = self.world.def(def) else { return String::new() };
         let map = &self.world.hello.map;
         let energy_maker = d.energy_make > 0.0 || d.energy_upkeep < 0.0 || d.wind_cap > 0.0;
@@ -702,10 +723,6 @@ impl Brain {
         } else if energy_maker {
             let steady = d.energy_make + (-d.energy_upkeep).max(0.0);
             tail.push(format!("a steady {steady:.0} energy a second{}", if d.energy_cost <= 0.0 { "; building it draws no energy, so it is the generator to build while the store is empty" } else { "" }));
-        }
-        if energy_maker {
-            tail.push(generators.to_string());
-            tail.push(format!("Our energy now: {energy_words}"));
         }
         if !d.build_options.is_empty() {
             // What of this very type is already under way, so a standing sentence in the packet ("an Advanced Vehicle
@@ -733,7 +750,6 @@ impl Brain {
                 1 => "we have one factory already; a second doubles production when metal is banking up".to_string(),
                 n => format!("we have {n} factories already"),
             });
-            tail.push(format!("Our metal now: {metal_words}"));
         }
         if d.converter.is_some() {
             tail.push("turns energy into metal: only with a large energy surplus and no free spots".to_string());

@@ -52,7 +52,6 @@ impl Brain {
         let listed = scripted.as_ref().and_then(|(_, place)| place.clone());
         let where_ = listed.clone().or_else(|| answered("where"));
         let where_extractor = listed.or_else(|| answered("where_extractor"));
-        let where_scout = answered("where_scout");
         let whom = answers.get(&format!("{name}.whom")).and_then(|a| if let Answer::Choice { choice, .. } = a { Some(choice.clone()) } else { None });
         let how_many = answers.get(&format!("{name}.how_many")).and_then(|a| if let Answer::Choice { choice, .. } = a { Some(choice.clone()) } else { None });
         let place = |named: &Option<String>| named.as_ref().and_then(|n| picture.places.iter().find(|p| p.name == *n)).cloned();
@@ -173,6 +172,11 @@ impl Brain {
                 }
             }
             Actor::Lab(id) => {
+                if let (Some(key), None) = (&menu.replay_key, &menu.replay)
+                    && let Some(pianist) = self.pianist.as_mut()
+                {
+                    pianist.replays.insert(name.clone(), super::Replay { key: key.clone(), probabilities: probabilities.clone(), confidence, since: frame });
+                }
                 if let Pick::Unit(def) = pick {
                     commands.push(Command::Build { unit: id, def, site: None, queue: false });
                     self.pianist.as_mut().expect("pianist mode").lab_queue.entry(id).or_default().push((def, frame));
@@ -180,7 +184,7 @@ impl Brain {
                 }
             }
             Actor::Group(ref group_name) => {
-                did = self.play_group(tick, picture, group_name, pick, &where_, &where_scout, &whom, &how_many, commands);
+                did = self.play_group(tick, picture, group_name, pick, &where_, &whom, &how_many, commands);
             }
             Actor::Global => {}
         }
@@ -201,14 +205,14 @@ impl Brain {
             Actor::Global => "global",
         };
         let inputs = json!({ "actor": name, "options": menu.options.keys().collect::<Vec<_>>(), "busy": menu.busy });
-        let outputs = json!({ "choice": choice, "played": chosen, "probability": p(&choice), "confidence": confidence, "scripted": scripted.is_some(), "where": where_, "where_extractor": where_extractor, "where_scout": where_scout, "whom": whom, "how_many": how_many, "did": did });
+        let outputs = json!({ "choice": choice, "played": chosen, "probability": p(&choice), "confidence": confidence, "scripted": scripted.is_some(), "where": where_, "where_extractor": where_extractor, "whom": whom, "how_many": how_many, "did": did });
         let source = if menu.policy { "policy" } else if scripted.is_some() { "list" } else { "jev" };
         self.pianist.as_mut().expect("pianist mode").played.push(json!({ "actor": inputs["actor"], "kind": kind, "busy": menu.busy, "options": inputs["options"], "choice": choice, "played": chosen, "kept": kept, "probability": p(&choice), "confidence": confidence, "did": did, "source": source }));
         self.journal.note_from(source, frame, kind, inputs, outputs);
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn play_group(&mut self, tick: &Tick, picture: &Picture, group_name: &str, pick: Pick, where_: &Option<String>, where_scout: &Option<String>, whom: &Option<String>, how_many: &Option<String>, commands: &mut Vec<Command>) -> Option<String> {
+    fn play_group(&mut self, tick: &Tick, picture: &Picture, group_name: &str, pick: Pick, where_: &Option<String>, whom: &Option<String>, how_many: &Option<String>, commands: &mut Vec<Command>) -> Option<String> {
         let frame = tick.frame;
         let own = &tick.snapshot.own_units;
         let home = self.home;
@@ -325,8 +329,8 @@ impl Brain {
                 }
             }
             Pick::Scout => {
-                // A scout to where the group stands looks at nothing.
-                if let Some(p) = place(where_scout).filter(|p| centre.is_none_or(|c| c.dist2d(p.at) > 600.0)) {
+                // The place is the bot's (H-HANDS-DIET, decision 1). A scout to where the group stands looks at nothing.
+                if let Some(p) = centre.and_then(|c| self.scout_target(c, picture, frame)).filter(|p| centre.is_none_or(|c| c.dist2d(p.at) > 600.0)) {
                     let domain = pianist.groups[index].domain;
                     let to = self.snap_for(self.group_walker(&pianist.groups[index], own), p.at);
                     // The fastest soldier of the group goes: a raider by the glossary's class when there is one.

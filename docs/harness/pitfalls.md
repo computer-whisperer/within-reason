@@ -77,3 +77,8 @@ of a strip's extractor clusters. `--boxes standard` (the default) reads the lobb
 - A game against people is realtime: `run/human_game.sh` (`WITHIN_REASON_REALTIME=1` beside `--pianist --player`), or
   nothing waits for it and nothing pauses. In lockstep runs (the arena's default) a wall-clock wait costs game time at
   the arena's speed, which is why the pianist's Jev call stays in place there.
+
+- **The hands' token diet is a level, not a fact of the build.** `WITHIN_REASON_HANDS_EFFORT` (lean | normal | full) sets
+  how much of the picture a Jev call carries; the arena passes `lean` unless `--hands-effort` says otherwise, `run/human_game.sh`
+  passes `normal` unless its third argument says otherwise, and the record's and the jev log's headers carry the level. Read a
+  game's Jev cost against its level; compare games at the same level.

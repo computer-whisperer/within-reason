@@ -54,6 +54,14 @@ impl GroupTask {
         !matches!(self, GroupTask::Hold { .. })
     }
 
+    /// The place a walk is bound for, by name.
+    pub(crate) fn place(&self) -> Option<&str> {
+        match self {
+            GroupTask::Move { place, .. } => Some(place.as_str()),
+            _ => None,
+        }
+    }
+
     /// The frame the task was set.
     pub(crate) fn since(&self) -> i32 {
         match self {

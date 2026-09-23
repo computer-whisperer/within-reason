@@ -591,3 +591,21 @@ deferred half a second) verified in started-1: 1,370 calls, none failed, the lar
 enemy stood on it (groups are kept first).
 **Used by.** H-HANDS-SCHEDULE.
 
+### K-hands-place-lists-were-the-bill
+**Claim.** In a 30-minute hard_aggressive game (1,350-1,370 calls, 24-25M input tokens, about a dollar) the characters
+sent went: 23 % to the two lists of all 55 places under every group question (`where`, used in 8 % of the group
+plays, and `where_scout`, used twice a game), 21 % to the places block (54 entries of 168 characters every call,
+about one a call named in the instructions), 18 % to the builder questions (24 options of 200-950 characters, a fifth
+of them the economy sentences repeated in each), 15 % to the actors (12 points of it actors not asked), 9 % to the
+group decisions themselves, 4.5 % to the enemy block and 3.3 % to the rules; 17 % of the tokens went to calls asking
+only holding groups with nothing near, and 4-6 % to asks whose question, entry and instructions differed from the
+previous only in numbers (the factory, 90-98 % the same answer). Exact repeats were 7-18 a game: every entry carries
+a clock or a distance.
+**Status.** measured (2026-09-23) on started-1 and shell-1 (`scratchpad/jev_waste.py`); the diet (H-HANDS-DIET)
+untried.
+**Evidence.** `run/matches/1790174701-started-1-hard-aggressive/00/jev-0.jsonl`,
+`run/matches/1790172269-shell-1-hard-aggressive/00/jev-0.jsonl`: `usage`, `state`, `questions`, `played` per call.
+**Would be wrong if.** The pruned `where` list left out the place the instructions or the fight called for, a brief
+actor entry lost a join or a detachment its words carried, or the replayed factory answers flattened a mix.
+**Used by.** H-HANDS-DIET, H-HANDS-SCHEDULE.
+

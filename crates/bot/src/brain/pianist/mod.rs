@@ -12,6 +12,7 @@ mod hands;
 mod menu;
 mod picture;
 mod remove;
+mod diet;
 mod schedule;
 mod policy;
 
@@ -74,8 +75,31 @@ impl Task {
     }
 }
 
+/// A factory's last real answer (H-HANDS-DIET, decision 7).
+pub(super) struct Replay {
+    /// The question, the actor's entry and the instructions with their numbers struck.
+    pub key: String,
+    pub probabilities: BTreeMap<String, f64>,
+    pub confidence: f64,
+    /// The frame of the real ask.
+    pub since: i32,
+}
+
+/// Jev's answers with the replayed menus' answers beside them.
+fn replayed_answers(menus: &[menu::Menu], answers: &BTreeMap<String, jev::Answer>) -> BTreeMap<String, jev::Answer> {
+    let mut all = answers.clone();
+    for m in menus {
+        if let Some((id, answer)) = &m.replay {
+            all.insert(id.clone(), answer.clone());
+        }
+    }
+    all
+}
+
 #[derive(Default)]
 struct Stats {
+    /// Calls not made because every real question was answered from a factory's last answer.
+    replayed: u32,
     calls: u32,
     errors: u32,
     /// Realtime: requests whose answer had not come after `STALE_FRAMES`, dropped unplayed.
@@ -133,6 +157,10 @@ pub struct Pianist {
     pub(super) due_next: HashSet<String>,
     /// Our units hit since the last call, with the frame: the menus' under-fire set, across the ticks between calls.
     pub(super) hits: HashMap<UnitId, i32>,
+    /// The token diet's level and knobs (H-HANDS-DIET).
+    pub(super) diet: diet::Diet,
+    /// A factory's last real answer, by actor name, replayed while its inputs change only in numbers.
+    pub(super) replays: HashMap<String, Replay>,
     /// The picture's place names at the last call: a change (a mark, a lane) puts every group on the call.
     pub(super) places_seen: BTreeSet<String>,
     /// The packet text `packet_frame` was set for, so one change sets it once.
@@ -269,6 +297,8 @@ impl Pianist {
             packet_frame: 0,
             due_now: HashSet::new(),
             due_next: HashSet::new(),
+            diet: diet::Diet::from_env(),
+            replays: HashMap::new(),
             hits: HashMap::new(),
             places_seen: BTreeSet::new(),
             packet_seen: String::new(),
@@ -298,7 +328,7 @@ impl Pianist {
         if let Some(log) = &mut self.log {
             let line = json!({
                 "t": "header", "format": "within-reason-jev", "version": LOG_VERSION, "ai_id": ai_id, "model": model,
-                "interval_frames": self.interval_frames, "rules": rules,
+                "interval_frames": self.interval_frames, "rules": rules, "hands_effort": self.diet.level_name(),
             });
             let _ = writeln!(log, "{line}");
         }
@@ -445,12 +475,24 @@ impl Brain {
             return;
         }
         let mut questions: BTreeMap<String, jev::Question> = BTreeMap::new();
-        for menu in &menus {
+        for menu in menus.iter().filter(|m| m.replay.is_none()) {
             for (id, question) in &menu.questions {
                 questions.insert(id.clone(), question.clone());
             }
         }
-        let request = jev::Request { state: picture.state.clone(), questions };
+        // Every real question answered from a replay: nothing to ask; the replays play without a call.
+        if menus.iter().any(|m| m.replay.is_some()) && menus.iter().all(|m| m.replay.is_some() || m.questions.is_empty() || matches!(m.actor, menu::Actor::Global)) {
+            let answers = replayed_answers(&menus, &BTreeMap::new());
+            self.pianist.as_mut().expect("pianist mode").stats.replayed += 1;
+            self.play(tick, kit, &picture, menus, &answers, commands);
+            self.publish_hands(&picture, &answers);
+            return;
+        }
+        let state = {
+            let pianist = self.pianist.as_ref().expect("pianist mode");
+            self.trim_state(pianist, &picture, &menus, tick)
+        };
+        let request = jev::Request { state, questions };
         {
             let pianist = self.pianist.as_mut().expect("pianist mode");
             if pianist.stats.calls == 0 && pianist.logged_instructions.is_empty() {
@@ -484,9 +526,10 @@ impl Brain {
                     pianist.stats.tokens += response.usage["input_tokens"].as_u64().unwrap_or(0);
                 }
                 self.announce_hands(&response, commands);
-                self.play(tick, kit, &picture, menus, &response.answers, commands);
-                self.pianist_globals(tick, &response.answers);
-                self.publish_hands(&picture, &response.answers);
+                let answers = replayed_answers(&menus, &response.answers);
+                self.play(tick, kit, &picture, menus, &answers, commands);
+                self.pianist_globals(tick, &answers);
+                self.publish_hands(&picture, &answers);
                 self.log_call(tick, &request, &response);
             }
             Err(e) => {
@@ -756,9 +799,10 @@ impl Brain {
                     pianist.played.clear();
                 }
                 self.announce_hands(&response, commands);
-                self.play(tick, kit, &pending.picture, pending.menus, &response.answers, commands);
-                self.pianist_globals(tick, &response.answers);
-                self.publish_hands(&pending.picture, &response.answers);
+                let answers = replayed_answers(&pending.menus, &response.answers);
+                self.play(tick, kit, &pending.picture, pending.menus, &answers, commands);
+                self.pianist_globals(tick, &answers);
+                self.publish_hands(&pending.picture, &answers);
                 self.log_call(tick, &pending.request, &response);
             }
             Err(e) => {
@@ -1005,8 +1049,8 @@ impl Brain {
         let median = latencies.get(latencies.len() / 2).copied().unwrap_or(0.0);
         let max = latencies.last().copied().unwrap_or(0.0);
         eprintln!(
-            "[ai {}] f={frame} pianist this minute: {} calls ({} failed, {} dropped), median {median:.0} ms, longest {max:.0}, {} tokens in, {} questions; busy actors changed course {} times, kept {}; groups {}, tasks {}",
-            self.world.hello.ai_id, stats.calls, stats.errors, stats.dropped, stats.tokens, stats.questions, stats.switches, stats.kept, pianist.groups.len(), pianist.tasks.len()
+            "[ai {}] f={frame} pianist this minute: {} calls ({} failed, {} dropped, {} replayed), median {median:.0} ms, longest {max:.0}, {} tokens in, {} questions; busy actors changed course {} times, kept {}; groups {}, tasks {}",
+            self.world.hello.ai_id, stats.calls, stats.errors, stats.dropped, stats.replayed, stats.tokens, stats.questions, stats.switches, stats.kept, pianist.groups.len(), pianist.tasks.len()
         );
     }
 }
