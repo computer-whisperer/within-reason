@@ -340,7 +340,7 @@ impl Brain {
     pub(super) fn sides(&self) -> Vec<crate::strategist::shared::Side> {
         use bot_protocol::Controller;
         let hello = &self.world.hello;
-        let mut ally_teams: Vec<i32> = hello.teams.iter().map(|t| t.ally_team).collect();
+        let mut ally_teams: Vec<i32> = hello.teams.iter().filter(|t| t.controller != Controller::Gaia).map(|t| t.ally_team).collect();
         ally_teams.sort_unstable();
         ally_teams.dedup();
         ally_teams.sort_by_key(|a| *a != hello.ally_team);
@@ -350,7 +350,7 @@ impl Brain {
                 let seats = hello
                     .teams
                     .iter()
-                    .filter(|t| t.ally_team == ally_team)
+                    .filter(|t| t.ally_team == ally_team && t.controller != Controller::Gaia)
                     .map(|t| {
                         let who = match &t.controller {
                             _ if t.team == hello.team => "you (WReason)".to_string(),
@@ -360,9 +360,13 @@ impl Brain {
                             Controller::Ai { short_name, .. } if short_name.eq_ignore_ascii_case("wreason") => "Within Reason (another seat of this bot)".to_string(),
                             Controller::Ai { short_name, profile: Some(profile), .. } => format!("{short_name} {profile} (an AI)"),
                             Controller::Ai { short_name, .. } => format!("{short_name} (an AI)"),
+                            Controller::Gaia => unreachable!("filtered above"),
                             Controller::Unknown => format!("team {} (who plays it is not in the script)", t.team),
                         };
-                        if t.side.is_empty() { who } else { format!("{who}, {}", t.side) }
+                        // The engine lowercases faction names.
+                        let mut side = t.side.chars();
+                        let side = side.next().map(|c| c.to_ascii_uppercase().to_string() + side.as_str()).unwrap_or_default();
+                        if side.is_empty() { who } else { format!("{who}, {side}") }
                     })
                     .collect();
                 crate::strategist::shared::Side { ours: ally_team == hello.ally_team, ally_team, seats }

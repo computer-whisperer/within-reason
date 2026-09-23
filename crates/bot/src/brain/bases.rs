@@ -46,7 +46,8 @@ impl super::Brain {
     pub(super) fn guess_enemy_bases(&mut self) {
         let hello = &self.world.hello;
         let mut bases: Vec<EnemyBase> = Vec::new();
-        let enemy_teams: Vec<(i32, i32)> = hello.teams.iter().filter(|t| t.ally_team != hello.ally_team).map(|t| (t.team, t.ally_team)).collect();
+        // Not the engine's Gaia team, which is on no side (it stood in this list as a phantom enemy base until 2026-09-23).
+        let enemy_teams: Vec<(i32, i32)> = hello.teams.iter().filter(|t| t.ally_team != hello.ally_team && t.controller != bot_protocol::Controller::Gaia).map(|t| (t.team, t.ally_team)).collect();
         for (index, (team, ally_team)) in enemy_teams.iter().enumerate() {
             let sharing: Vec<i32> = enemy_teams.iter().filter(|(_, a)| a == ally_team).map(|(t, _)| *t).collect();
             let at = match hello.start_boxes.iter().find(|b| b.ally_team == *ally_team) {

@@ -142,12 +142,17 @@ impl Engine {
 
         let script = self.string(call!(self, Game_getSetupScript()));
         let controllers = crate::script::controllers(&script);
+        let scripted_teams = crate::script::teams(&script);
         let teams = (0..call!(self, Game_getTeams()))
             .map(|team| TeamInfo {
                 team,
                 ally_team: call!(self, Game_getTeamAllyTeam(team)),
                 side: self.string(call!(self, Game_getTeamSide(team))),
-                controller: controllers.iter().find(|(t, _)| *t == team).map_or(Controller::Unknown, |(_, c)| c.clone()),
+                controller: if !scripted_teams.is_empty() && !scripted_teams.contains(&team) {
+                    Controller::Gaia
+                } else {
+                    controllers.iter().find(|(t, _)| *t == team).map_or(Controller::Unknown, |(_, c)| c.clone())
+                },
             })
             .collect();
         let game_id = {

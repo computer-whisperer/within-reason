@@ -29,10 +29,10 @@ pub fn start_rects(script: &str) -> Vec<(i32, [f32; 4])> {
     rects
 }
 
-/// Every `[name] { ... }` section of the script with its body, nested braces kept inside the body, keys lowercased.
-fn sections(script: &str) -> Vec<(String, String)> {
+/// Every `[name] { ... }` section of the script: the name lowercased, the body as written (nested braces kept).
+fn sections(script: &str) -> Vec<(String, &str)> {
     let lower = script.to_ascii_lowercase();
-    let bytes = lower.as_bytes();
+    let bytes = script.as_bytes();
     let mut out = Vec::new();
     let mut i = 0;
     while let Some(open) = lower[i..].find('[') {
@@ -51,14 +51,14 @@ fn sections(script: &str) -> Vec<(String, String)> {
             }
             j += 1;
         }
-        out.push((name, lower[body_start..j.saturating_sub(1).max(body_start)].to_string()));
+        out.push((name, &script[body_start..j.saturating_sub(1).max(body_start)]));
         // Nested sections are found on their own by continuing just past the opening brace.
         i = body_start;
     }
     out
 }
 
-/// `key=value;` pairs at the top level of a section body (nested sections skipped).
+/// The value of `key=value;` at the top level of a section body (keys matched without case, nested sections skipped).
 fn value(body: &str, key: &str) -> Option<String> {
     let mut depth = 0;
     let mut pair = String::new();
@@ -77,8 +77,13 @@ fn value(body: &str, key: &str) -> Option<String> {
         let (k, v) = p.split_once('=')?;
         // A nested section's name may precede the key in the same run ("[options] { .. } team=1" is split by ';').
         let k = k.rsplit(']').next().unwrap_or(k).trim();
-        (k == key).then(|| v.trim().to_string())
+        k.eq_ignore_ascii_case(key).then(|| v.trim().to_string())
     })
+}
+
+/// The teams the script declares (`[TEAMn]`): a team the engine lists beyond these is its Gaia team.
+pub fn teams(script: &str) -> Vec<i32> {
+    sections(script).into_iter().filter_map(|(name, _)| name.strip_prefix("team").and_then(|n| n.parse::<i32>().ok())).collect()
 }
 
 /// Who plays each team: `(team, controller)` for every non-spectator player and every AI in the script.
@@ -95,7 +100,7 @@ pub fn controllers(script: &str) -> Vec<(i32, Controller)> {
             out.push((team, Controller::Person { name: value(body, "name").unwrap_or_default(), skill }));
         } else if name.starts_with("ai") && name[2..].chars().all(|c| c.is_ascii_digit()) && name.len() > 2 {
             let Some(team) = value(body, "team").and_then(|t| t.parse::<i32>().ok()) else { continue };
-            let options = body.find("[options]").and_then(|at| {
+            let options = body.to_ascii_lowercase().find("[options]").and_then(|at| {
                 let rest = &body[at..];
                 let open = rest.find('{')?;
                 let close = rest[open..].find('}')?;
@@ -126,12 +131,13 @@ mod tests {
         let seats = super::controllers(lobby);
         assert_eq!(seats.len(), 2);
         assert_eq!(seats[0], (0, Controller::Person { name: "[gecko]u6bkep".into(), skill: Some(19.24) }));
-        assert_eq!(seats[1], (1, Controller::Ai { name: "barbarianai(1)".into(), short_name: "barb".into(), version: String::new(), profile: Some("medium".into()) }));
+        assert_eq!(seats[1], (1, Controller::Ai { name: "BARbarianAI(1)".into(), short_name: "BARb".into(), version: String::new(), profile: Some("medium".into()) }));
+        assert_eq!(super::teams(lobby), vec![0]);
         let arena = "[GAME]\n{\n\t[PLAYER0] { Name=arena; Spectator=1; }\n\t[AI0] { Name=ai0; Team=0; Host=0; ShortName=WReason; Version=0.1; }\n\t[AI1] { Name=ai1; Team=1; Host=0; ShortName=BARb; Version=stable; [OPTIONS] { profile=hard_aggressive; random_seed=1; disabledunits=; } }\n}";
         let seats = super::controllers(arena);
         assert_eq!(seats.len(), 2);
-        assert!(matches!(&seats[0].1, Controller::Ai { short_name, profile: None, .. } if short_name == "wreason"));
-        assert!(matches!(&seats[1].1, Controller::Ai { short_name, profile: Some(p), version, .. } if short_name == "barb" && p == "hard_aggressive" && version == "stable"));
+        assert!(matches!(&seats[0].1, Controller::Ai { short_name, profile: None, .. } if short_name == "WReason"));
+        assert!(matches!(&seats[1].1, Controller::Ai { short_name, profile: Some(p), version, .. } if short_name == "BARb" && p == "hard_aggressive" && version == "stable"));
     }
 
     #[test]

@@ -81,6 +81,8 @@ pub struct TeamInfo {
 pub enum Controller {
     #[default]
     Unknown,
+    /// The engine's neutral team (critters, wrecks): in the game's team list but in no script section, nobody's.
+    Gaia,
     /// A person: the lobby name, and the lobby's skill rating when the script carries one (`skill=[43.19]`).
     Person { name: String, skill: Option<f32> },
     /// An AI: its name in the game, its short name (WReason, BARb), version, and its `profile` option when set.
