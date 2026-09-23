@@ -303,6 +303,24 @@ K-maps-comet-barb-opens-bots, the tempo model]
   army lead within two minutes of having it (4:1 at 17:00 was the window), with tier 2 in front, a scout or radar
   ahead of the ball, and the commander's list cancelled before any fight it is needed in (a builder on a list is off
   your hands' menu, and the commander never engaged the Razorback because "help the plant" was still running).
+- escalate-5 (HARD_AGGRESSIVE rematch, Opus 5.5 at medium effort, LOST at 28.5 min, called with the commander
+  fleeing south at 35 %): the opening on the players' order again (plant 0:50, the commander out to spot_43/38/39,
+  15 extractors and income 32 at 5:13, their commander seen at F1 at 2:43), and then the opposite mistake to game 4:
+  **1,600 to 1,850 metal sat in the bank from 6:00 to 10:00** with one plant, a second from 7:12 and three
+  constructors. A bank above 500 with income over 30 is build power missing, not a plant missing: the players have
+  five constructors by 5:00 and three nano turrets on the one plant by 6:37 and never bank past 700. So: raise the
+  constructor cap to `armcv:4` or 5 the moment the second one stands, nanos on the plant from 5:00, and only then a
+  second plant. The Advanced Vehicle Plant was started at 9:16 at a marked yard west of home and died unfinished at
+  15:08 to two or three Blitzes with no soldier near it (2,600 metal); the second stood at 18:45 and its Mausers
+  came at 19:00, after the Stout ball had broken on an E2-E3 turret nest (two heavy laser towers) at 17:08 and been
+  fed piecemeal into a Fatboy, Hounds and a sniper at 19:47. Put the tier-2 plant beside the home turrets with a
+  Blitz pair standing at it, and start it while the bank is high, not after. Each new `queue` list starts from its
+  first step and the build in progress continues; a list whose first step is a turret delays the plant behind it (four
+  lists in a minute at 15:08-16:08 each began with `armllt home`, and the plant waited until a list began with it).
+  Energy hit zero at 7:08 on eight solars with six Blitzes a minute (the players had twelve solars at 6:00) and again
+  at 18:22 when advanced solars, which cost energy to build, crawled in the empty store: plain solars when the store
+  is empty. 45 extractors lost, most to single Ticks and Blitzes at spots no soldier stood near; the pickets rule
+  above is the answer. Their tier 2 came on the clock of game 4 (Hounds by 14:00, Fatboy 19:00, Razorback 25:48).
 
 **What your hands did alone (pianist-smoke-1 to -6, pianist-easy-1, pianist-audit-1: four wins, four losses and a
 timeout against easy from the default packet, `docs/experiments.md`).** [docs/knowledge/jev.md]
