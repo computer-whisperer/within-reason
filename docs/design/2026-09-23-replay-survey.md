@@ -85,3 +85,11 @@ on 2026-09-23 too), so the brief, the picture and the cards name the same spots;
 for the bot maps them by position (nearest within 130). `run/replays/pick.py`, `fetch.py`, `card.py` and `replay.py`
 stand; the 29 kept Comet Catcher duels are on disk with their versions in the pool, and the parallel replay of the
 other 28 was started at 14:45.
+
+**2026-09-23 15:00, the first batch.** 17 of the 29 Comet Catcher duels replayed and carded in 25 minutes on four
+engines (320-770 s each); 12 died in a second to a port collision in the runner (ports were given by index, not per
+worker: fixed, and those 12 are replaying). A first pass over the 17 cards, 34 sides: the first factory at 0:51 (median)
+and a vehicle plant in 25 of 34 sides (a bot lab in 9); a second factory in 23 of 34 at 8.9 min (median); tier 2 in
+only 3 sides, at 16 min; 16 extractors and income 39 at 8:00 (winners 18, losers 15); five or more Rovers before 3:00
+in 13 of 34 sides, a raid opening the pros' replay never showed; the higher-OS player won 14 of 17. Starts vary inside
+the box (A4 and B5 west, G4, H5 and H1 east), so "from the west start" claims must say which cell.
