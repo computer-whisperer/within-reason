@@ -492,7 +492,7 @@ player asked one tier-2 plant by list (west_yard, 9:34) and two more came off th
 10:18 p 0.29, from constructors whose menus offered the plant among forty options with no word that one was already
 under way); escalate-3 and -7 each got four plants the same way. The menu's words carry the count of the type and
 nothing about the one being built, so nothing in the ask tells the hands that the sentence is already being obeyed.
-**Status.** observed (2026-09-23), three games; with the under-way words a second tier-2 plant was still started 52 s after the first (concurrent-1: the words state, the choice stays the hands' and the packet's).
+**Status.** observed (2026-09-23), four games; with the under-way words a second tier-2 plant was still started 52 s after the first (concurrent-1: the words state, the choice stays the hands' and the packet's). In schedule-1 a constructor queued a second tier-2 plant off the free menu 16 s after the first was ordered by list, and its option carried no under-way words at all: the branch that names an ordered, unstarted factory read the pianist through `self.pianist`, which is taken out of the brain while the menus are built, so it never fired in any game (only the being-built branch did). Fixed 2026-09-23 03:00 (the pianist is passed in); untried since.
 **Evidence.** `run/matches/1790137350-fixes-1-hard-aggressive/00/jev-0.jsonl` (the three armavp picks and their options), `strategist-0.jsonl` (the packets at
 8:53, 9:22, 9:34), the record's armavp created events (9:54, 10:20, 10:21 by three builders).
 **Would be wrong if.** With the under-way words on the option the free builders still picked the plant at the same

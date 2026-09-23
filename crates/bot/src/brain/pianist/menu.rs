@@ -284,7 +284,7 @@ impl Brain {
                     if nano && !own.iter().any(|u| self.world.is_factory_def(u.def) && !u.being_built) {
                         continue;
                     }
-                    let words = self.building_words(unit, *def, tick, &energy_words, &metal_words, factories, &generators);
+                    let words = self.building_words(&pianist, unit, *def, tick, &energy_words, &metal_words, factories, &generators);
                     offer(self.name(*def), pick, words);
                 } else {
                     off_menu.push((self.name(*def).to_string(), pick));
@@ -639,7 +639,7 @@ impl Brain {
     /// The words on a building's option: the unit's words, where it goes, and what the picture knows that bears on
     /// it (the generators standing, the factory count, the store's fate over the build, the energy and metal lines).
     #[allow(clippy::too_many_arguments)]
-    fn building_words(&self, builder: &OwnUnit, def: UnitDefId, tick: &Tick, energy_words: &str, metal_words: &str, factories: usize, generators: &str) -> String {
+    fn building_words(&self, pianist: &Pianist, builder: &OwnUnit, def: UnitDefId, tick: &Tick, energy_words: &str, metal_words: &str, factories: usize, generators: &str) -> String {
         let Some(d) = self.world.def(def) else { return String::new() };
         let map = &self.world.hello.map;
         let energy_maker = d.energy_make > 0.0 || d.energy_upkeep < 0.0 || d.wind_cap > 0.0;
@@ -676,12 +676,13 @@ impl Brain {
                 .filter(|u| u.being_built && u.def == def)
                 .map(|u| format!("one being built at {} ({:.0}% done)", self.world.grid(u.pos), 100.0 * u.health / u.max_health.max(1.0)))
                 .collect();
-            if let Some(pianist) = self.pianist.as_ref() {
-                under_way.extend(pianist.tasks.iter().filter_map(|(builder, t)| match t {
-                    Task::Build { def: d2, near, started: false, .. } if *d2 == def => Some(format!("one ordered by {} at {}, not started", self.actor_name(*builder), self.world.grid(*near))),
-                    _ => None,
-                }));
-            }
+            // The pianist is taken out of `self` while the menus are built, so it is passed in: read through
+            // `self.pianist` this branch never fired, and schedule-1's second tier-2 plant was offered without the
+            // words 16 s after the first was ordered by list.
+            under_way.extend(pianist.tasks.iter().filter_map(|(builder, t)| match t {
+                Task::Build { def: d2, near, started: false, .. } if *d2 == def => Some(format!("one ordered by {} at {}, not started", self.actor_name(*builder), self.world.grid(*near))),
+                _ => None,
+            }));
             if !under_way.is_empty() {
                 tail.push(format!("{} of this very type already under way: {}; this would be another", under_way.len(), under_way.join("; ")));
             }
