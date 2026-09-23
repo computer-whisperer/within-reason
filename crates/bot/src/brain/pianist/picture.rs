@@ -532,7 +532,10 @@ impl Brain {
                     let s = shelling.as_ref().expect("a shelling place has a shelling");
                     // An estimate, said as one: the old words ("advancing a group onto it kills it") sent groups under blind
                     // fire toward a moving point for two minutes at a time (escalate-5 12:29, escalate-7 12:29, fixes-1 15:33).
-                    format!("an estimate, not a sighting: where the {} shelling us from out of our sight likeliest stands, four fifths of its range along the hits' direction (it moves with each hit); its range is {:.0}, {} hits on us in the last {} s from the {}, the last {} s ago; anything of ours within {:.0} of it is in its reach and cannot see it; what sees it (a scout, a radar) or outranges it decides, as the instructions say", self.weapon_words(&s.weapon), s.range, s.hits, super::super::shelling::SHELL_MEMORY / super::super::FRAMES_PER_SECOND, super::super::shelling::compass(s.dir), (frame - s.last) / super::super::FRAMES_PER_SECOND, s.range)
+                    match &s.attributed {
+                        Some(a) => format!("where the {} whose fire hits us from out of our sight was last seen, {} s ago (not a sighting now: it may have moved); its range is {:.0}, {} hits on us in the last {} s, the last {} s ago; anything of ours within {:.0} of it is in its reach; what sees it or outranges it decides, as the instructions say", a.name, (frame - a.seen) / super::super::FRAMES_PER_SECOND, s.range, s.hits, super::super::shelling::SHELL_MEMORY / super::super::FRAMES_PER_SECOND, (frame - s.last) / super::super::FRAMES_PER_SECOND, s.range),
+                        None => format!("an estimate, not a sighting: where the {} shelling us from out of our sight likeliest stands, four fifths of its range along the hits' direction (it moves with each hit); its range is {:.0}, {} hits on us in the last {} s from the {}, the last {} s ago; anything of ours within {:.0} of it is in its reach and cannot see it; what sees it (a scout, a radar) or outranges it decides, as the instructions say", self.weapon_words(&s.weapon), s.range, s.hits, super::super::shelling::SHELL_MEMORY / super::super::FRAMES_PER_SECOND, super::super::shelling::compass(s.dir), (frame - s.last) / super::super::FRAMES_PER_SECOND, s.range),
+                    }
                 }
                 None if marks.contains_key(&place.name) => {
                     if self.reachable_on_foot(place.at) { "a place the player marked".into() } else { "a place the player marked; our ground units cannot get there from home (water or a cliff: aircraft can, hovercraft over water can); a ground group sent here stops at the nearest ground it can reach".into() }
@@ -634,8 +637,8 @@ impl Brain {
                 format!("{}: {} worth {:.0} metal at {}, {} from home, {heading}{}{}", p.name, p.composition, p.metal, self.place_words(&places, p.at), distance_words(p.at.dist2d(self.home)), near_ours.unwrap_or_default(), p.killing.as_ref().map_or(String::new(), |(what, metal)| format!("; killing {what} ({metal:.0} metal) now")))
             })
             .collect();
-        let known_soldiers: Vec<&(UnitDefId, i32)> = self.enemy_soldiers.values().filter(|(_, seen)| frame - seen < ARMY_MEMORY).collect();
-        let known_metal: f32 = known_soldiers.iter().filter_map(|(def, _)| self.world.def(*def)).map(|d| d.metal_cost).sum();
+        let known_soldiers: Vec<&(UnitDefId, Vec3, i32)> = self.enemy_soldiers.values().filter(|(_, _, seen)| frame - seen < ARMY_MEMORY).collect();
+        let known_metal: f32 = known_soldiers.iter().filter_map(|(def, _, _)| self.world.def(*def)).map(|d| d.metal_cost).sum();
         let mut remembered: BTreeMap<String, BTreeMap<&str, usize>> = BTreeMap::new();
         for (def, pos, _) in self.enemy_buildings.values() {
             *remembered.entry(self.world.grid(*pos)).or_default().entry(self.name(*def)).or_default() += 1;
@@ -868,7 +871,10 @@ impl Brain {
                             return format!("{who} ({n} hits)");
                         }
                         match &shelling {
-                            Some(s) => format!("something out of our sight, {n} hits: a {} with range {:.0} from the {}; its likeliest place is `shelling` at {}", self.weapon_words(&s.weapon), s.range, super::super::shelling::compass(s.dir), self.place_words(&places, s.at)),
+                            Some(s) => match &s.attributed {
+                                Some(a) => format!("something out of our sight, {n} hits: a {} with range {:.0}, likely the {} seen {} s ago at {} (the place `shelling`)", self.weapon_words(&s.weapon), s.range, a.name, (frame - a.seen) / super::super::FRAMES_PER_SECOND, self.place_words(&places, s.at)),
+                                None => format!("something out of our sight, {n} hits: a {} with range {:.0} from the {}; its likeliest place is `shelling` at {}", self.weapon_words(&s.weapon), s.range, super::super::shelling::compass(s.dir), self.place_words(&places, s.at)),
+                            },
                             None => format!("something out of our sight, {n} hits: a turret or artillery that outranges us"),
                         }
                     })

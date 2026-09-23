@@ -514,6 +514,9 @@ impl Brain {
             menus.push(Menu { actor: Actor::Global, name: "global".into(), busy: false, queue_ahead: false, questions, options: BTreeMap::new(), spots: Vec::new(), scripted: None, policy: false });
         }
         pianist.due_now.clear();
+        // The call after this one takes what was deferred (a packet's builders), and comes half a second on.
+        let deferred: Vec<String> = pianist.due_next.drain().collect();
+        pianist.due_now.extend(deferred);
         pianist.hits.clear();
         self.pianist = Some(pianist);
         menus

@@ -50,6 +50,16 @@ pub(super) struct Shelling {
     /// The frame of the latest hit.
     pub last: i32,
     pub units: Vec<UnitId>,
+    /// The unit the hits are laid to when one of the weapon's type was seen within its reach of them lately: `at`
+    /// is then where it was seen (quick-1, 4:56: the enemy commander's hits on group_A, seen seven seconds before at
+    /// the same place, were said as shelling from an unknown; escalate-2: two alarms of the same kind).
+    pub attributed: Option<Attribution>,
+}
+
+/// A remembered enemy that explains the hits.
+pub(super) struct Attribution {
+    pub name: String,
+    pub seen: i32,
 }
 
 impl Brain {
@@ -108,8 +118,12 @@ impl Brain {
             return;
         }
         self.shelling_warned = frame;
+        let laid_to = match &s.attributed {
+            Some(a) => format!(": likely the {} seen {} s ago there, and the picture's place `shelling` is where it was seen", a.name, (frame - a.seen) / FRAMES_PER_SECOND),
+            None => ": the picture names the place `shelling` where it likeliest stands".to_string(),
+        };
         shared.trigger(format!(
-            "our soldiers are being shelled from out of sight by a {} (range {:.0}) from the {}, {} hits in {} s: the picture names the place `shelling` where it likeliest stands",
+            "our soldiers are being shelled from out of sight by a {} (range {:.0}) from the {}, {} hits in {} s{laid_to}",
             self.weapon_words(&s.weapon), s.range, compass(s.dir), s.hits, (frame - s.since) / FRAMES_PER_SECOND
         ));
     }
@@ -154,6 +168,23 @@ impl Brain {
         let mut units: Vec<UnitId> = shells.iter().map(|s| s.unit).collect();
         units.sort();
         units.dedup();
-        Some(Shelling { at, dir, weapon, range, hits: shells.len(), since: shells.iter().map(|s| s.frame).min().unwrap_or(0), last: shells.iter().map(|s| s.frame).max().unwrap_or(0), units })
+        let last = shells.iter().map(|s| s.frame).max().unwrap_or(0);
+        // A remembered enemy of the weapon's type within its reach of the hits, seen lately: the nearest to the
+        // estimate explains the hits, and its last seen place replaces the estimate.
+        let shooter = weapon.split('_').next().and_then(|prefix| self.world.def_named(prefix));
+        let attributed = shooter.and_then(|def| {
+            let reach = range * 1.1;
+            let mut seen: Vec<(Vec3, i32)> = self.enemy_buildings.values().filter(|(d, _, _)| *d == def).map(|(_, p, f)| (*p, *f)).collect();
+            seen.extend(self.enemy_soldiers.values().filter(|(d, _, f)| *d == def && last - f <= SHELL_MEMORY).map(|(_, p, f)| (*p, *f)));
+            if self.is_commander_def(def) {
+                seen.extend(self.enemy_commander_seen.filter(|(_, f)| last - f <= SHELL_MEMORY));
+            }
+            seen.into_iter().filter(|(p, _)| p.dist2d(origin) <= reach).min_by(|a, b| a.0.dist2d(at).total_cmp(&b.0.dist2d(at))).map(|(p, f)| (p, Attribution { name: self.name(def).to_string(), seen: f }))
+        });
+        let (at, attributed) = match attributed {
+            Some((p, a)) => (p, Some(a)),
+            None => (at, None),
+        };
+        Some(Shelling { at, dir, weapon, range, hits: shells.len(), since: shells.iter().map(|s| s.frame).min().unwrap_or(0), last, units, attributed })
     }
 }

@@ -68,8 +68,9 @@ impl Brain {
         self.pianist = Some(pianist);
     }
 
-    /// A new packet: every group and every builder not on a list is asked at the next call (the player's words are
-    /// for now, not for the next review period).
+    /// A new packet: every group is asked at the next call and every builder not on a list at the one after it, half
+    /// a second later (the player's words are for now, not for the next review period; two calls so that neither
+    /// carries every actor: schedule-1's packet calls reached 41 questions and 47k of the 64k tokens).
     pub(super) fn schedule_all_for_packet(&mut self, tick: &Tick) {
         let Some(mut pianist) = self.pianist.take() else { return };
         let names: Vec<String> = pianist.groups.iter().map(|g| format!("group_{}", g.name)).collect();
@@ -77,7 +78,7 @@ impl Brain {
         for unit in tick.snapshot.own_units.iter().filter(|u| !u.being_built && self.world.is_mobile_builder(u.def)) {
             let name = self.actor_name(unit.id);
             if !pianist.scripts.get(&name).is_some_and(|s| !s.is_empty()) {
-                pianist.due_now.insert(name);
+                pianist.due_next.insert(name);
             }
         }
         self.pianist = Some(pianist);

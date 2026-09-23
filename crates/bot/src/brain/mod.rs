@@ -150,7 +150,8 @@ pub struct Brain {
     /// where the opponent has been (docs/design/2026-09-22-enemy-evidence.md).
     enemy_factories_gone: Vec<(UnitDefId, Vec3, i32)>,
     /// Every enemy soldier seen and not known dead, with when it was last seen: what we know of their army, a floor.
-    enemy_soldiers: HashMap<UnitId, (UnitDefId, i32)>,
+    /// Enemy soldiers seen: definition, where, when (the shelling attribution and the army counts read it).
+    enemy_soldiers: HashMap<UnitId, (UnitDefId, Vec3, i32)>,
     /// Where and when the enemy commander was last seen: killing it wins the game.
     enemy_commander_seen: Option<(Vec3, i32)>,
     recent_events: VecDeque<String>,

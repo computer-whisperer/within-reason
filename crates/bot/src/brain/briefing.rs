@@ -168,7 +168,7 @@ impl Brain {
                 self.enemy_buildings.insert(enemy.id, (def, enemy.pos, tick.frame));
                 seen.push((enemy.id, (def, enemy.pos, tick.frame)));
             } else if info.weapon_count > 0 && info.build_speed == 0.0 {
-                self.enemy_soldiers.insert(enemy.id, (def, tick.frame));
+                self.enemy_soldiers.insert(enemy.id, (def, enemy.pos, tick.frame));
             }
         }
         // H-TEAM-BOARD: what one seat of ours has seen, all know.

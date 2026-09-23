@@ -128,6 +128,9 @@ pub struct Pianist {
     pub(super) packet_frame: i32,
     /// Actors an event or a new packet put on the next call, whatever their review period (H-HANDS-SCHEDULE).
     pub(super) due_now: HashSet<String>,
+    /// Actors for the call after the next one: a packet's builders, asked half a second after its groups so one call
+    /// does not carry every actor (schedule-1: 41 questions and 47k of the 64k tokens with 13 actors).
+    pub(super) due_next: HashSet<String>,
     /// Our units hit since the last call, with the frame: the menus' under-fire set, across the ticks between calls.
     pub(super) hits: HashMap<UnitId, i32>,
     /// The picture's place names at the last call: a change (a mark, a lane) puts every group on the call.
@@ -265,6 +268,7 @@ impl Pianist {
             script_frame: HashMap::new(),
             packet_frame: 0,
             due_now: HashSet::new(),
+            due_next: HashSet::new(),
             hits: HashMap::new(),
             places_seen: BTreeSet::new(),
             packet_seen: String::new(),

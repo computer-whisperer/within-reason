@@ -688,7 +688,7 @@ impl Brain {
         };
         // A radar contact is taken for the soldier of theirs we have seen most, as the pricing does.
         let mut counted: HashMap<UnitDefId, usize> = HashMap::new();
-        self.enemy_soldiers.values().for_each(|(def, _)| *counted.entry(*def).or_default() += 1);
+        self.enemy_soldiers.values().for_each(|(def, _, _)| *counted.entry(*def).or_default() += 1);
         let blip = counted.into_iter().max_by_key(|(def, n)| (*n, def.0)).map(|(def, _)| def).or(self.kit.as_ref().map(|k| k.line));
         let is_commander = |def: UnitDefId| self.world.def(def).is_some_and(|d| d.name.ends_with("com") && d.build_speed > 0.0);
         let mut sources = Vec::new();

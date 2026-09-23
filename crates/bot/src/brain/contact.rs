@@ -159,7 +159,7 @@ impl Brain {
         };
         // A radar contact is taken for the soldier of theirs we have seen most, or for one like our own.
         let mut seen: HashMap<UnitDefId, usize> = HashMap::new();
-        self.enemy_soldiers.values().for_each(|(def, _)| *seen.entry(*def).or_default() += 1);
+        self.enemy_soldiers.values().for_each(|(def, _, _)| *seen.entry(*def).or_default() += 1);
         let blip = seen.into_iter().max_by_key(|(def, n)| (*n, def.0)).map(|(def, _)| def).or(self.kit.as_ref().map(|k| k.line));
         let walks = |e: &&EnemyUnit| e.def.is_none_or(|d| self.world.def(d).is_some_and(|d| d.speed > 0.0 && d.move_class.is_some()));
         let contacts: Vec<&EnemyUnit> = snapshot.enemies.iter().filter(walks).filter(|e| ours(e.pos)).collect();
@@ -280,7 +280,7 @@ impl Brain {
             let their = |ours: UnitDefId| {
                 // Their faction's counterpart of our unit by name suffix, else ours (the simulator prices by type).
                 let suffix = self.world.def(ours).map(|d| d.name[3..].to_string()).unwrap_or_default();
-                self.enemy_buildings.values().map(|(d, _, _)| *d).chain(self.enemy_soldiers.values().map(|(d, _)| *d))
+                self.enemy_buildings.values().map(|(d, _, _)| *d).chain(self.enemy_soldiers.values().map(|(d, _, _)| *d))
                     .find(|d| self.world.def(*d).is_some_and(|x| x.name.ends_with(&suffix)))
                     .unwrap_or(ours)
             };
@@ -309,7 +309,7 @@ impl Brain {
         assets.truncate(RAID_MAX_ASSETS);
         // Their soldiers (the commander among them) as pursuers from where they stand, grouped as ours are.
         let mut seen: HashMap<UnitDefId, usize> = HashMap::new();
-        self.enemy_soldiers.values().for_each(|(def, _)| *seen.entry(*def).or_default() += 1);
+        self.enemy_soldiers.values().for_each(|(def, _, _)| *seen.entry(*def).or_default() += 1);
         let blip = seen.into_iter().max_by_key(|(def, n)| (*n, def.0)).map(|(def, _)| def).or(self.kit.as_ref().map(|k| k.line));
         let mut groups: HashMap<(usize, i32, i32), (u32, f32, f32)> = HashMap::new();
         for enemy in tick.snapshot.enemies.iter().filter(|e| e.pos.dist2d(target) < CONTACT_RADIUS) {

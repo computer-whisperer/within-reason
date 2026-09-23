@@ -501,7 +501,7 @@ impl Brain {
         // a true 4900 from minute 20 (the tempo study, 430 games); everything seen alive reads 3400, still a floor.
         let all_seen = self.enabled("H-ARMY-GATE-ALL-SEEN").then(|| {
             let mut army = Force::default();
-            self.enemy_soldiers.values().for_each(|(def, _)| army.add(*def));
+            self.enemy_soldiers.values().for_each(|(def, _, _)| army.add(*def));
             army
         });
         if let Some(army) = &all_seen {

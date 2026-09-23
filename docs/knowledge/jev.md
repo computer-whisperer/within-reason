@@ -527,8 +527,8 @@ tokens and 326 ms over 15k, the largest call 29k of a 64k window.
 **Status.** measured (2026-09-23) from `run/matches/1790137350-fixes-1-hard-aggressive/00/jev-0.jsonl` and escalate-7's; the event-aware scheduler
 (H-HANDS-SCHEDULE) verified in schedule-1-hard-aggressive (won 18.9): a group's next ask after losing a unit came 0.9 s later (median, max 2.9)
 against 5.7 s (max 9.8) before, every group but one was asked on the call after each of 25 packets (82 of 83; before 39 of 169), and the cost did
-not move (612 calls, 8.05M input tokens, $0.34 against 686, 8.64M, $0.36: fewer calls, each a little larger). The packet call is the new peak:
-28-41 questions, up to 47k of the 64k window with 13 actors; a game with twenty builders on no list would pass it.
+not move (612 calls, 8.05M input tokens, $0.34 against 686, 8.64M, $0.36: fewer calls, each a little larger). The packet call was the new peak:
+28-41 questions, up to 47k of the 64k window with 13 actors; since 2026-09-23 04:00 the builders go on the call after the groups' (untried).
 **Evidence.** The jev logs' `usage`, `questions` and `ms` per call; the player's notes in fixes-1.
 **Would be wrong if.** The scheduler's extra calls doubled the tokens a game without the front-line groups answering
 within two seconds of a hit or a packet.
@@ -544,4 +544,18 @@ the builder and drops its task before the list) untried.
 **Evidence.** `pianist/mod.rs`, the list loop: `scripts.remove` alone on `None`; the two debriefs in `docs/briefs/inbox`.
 **Would be wrong if.** The player used `stop` where `null` was meant and lost frames it wanted finished.
 **Used by.** H-HANDS-SCRIPT.
+
+### K-hands-shelling-named-a-seen-shooter
+**Claim.** Hits from out of sight were laid to an unknown shooter even when a unit of the weapon's type had just been
+seen within the weapon's reach of the hits: quick-1 (Quicksilver, 4:56) woke the player for "shelling" by the enemy
+commander, seen 7 s before at the very place the estimate named (the player: "the 'shelling' wake was stale");
+escalate-2 had two alarms (9:06, 10:06) that put enemy turrets far out of range of the group they said was hit. The
+weapon's definition name carries the shooter's unit type, and the brain remembers enemy buildings, soldiers (90 s)
+and the commander with their places, so the hits can be laid to the nearest such unit within reach.
+**Status.** observed (2026-09-23), two games; the attribution (H-HANDS-SHELLED amended) untried.
+**Evidence.** quick-1's strategist log, the turn at 4:50 and the jev call at 4:52 (`commander: seen at shelling (F6)
+0:07 ago`); escalate-2's debrief.
+**Would be wrong if.** The hits were laid to a seen unit of the type that was not the shooter (two of the type about),
+and a group walked to the wrong one.
+**Used by.** H-HANDS-SHELLED.
 
