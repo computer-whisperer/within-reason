@@ -99,7 +99,7 @@ impl Brain {
             }
             self.trade_log.push((tick.frame, cost, 0.0));
             if kit.is_extractor(def)
-                && let Some(index) = self.world.hello.metal_spots.iter().position(|s| s.dist2d(pos) < 100.0)
+                && let Some(index) = self.world.hello.metal_spots.iter().position(|s| s.dist2d(pos) < self.spot_occupied_radius())
             {
                 *self.spot_losses.entry(index).or_default() += 1;
             }

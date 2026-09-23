@@ -163,7 +163,7 @@ impl Brain {
             if game.units.list[unit].extracts_metal == 0.0 {
                 return 0.0;
             }
-            hello.metal_spots.iter().filter(|s| s.dist2d(pos) < 100.0).map(|s| game.spot_metal(s.y as f64)).next().unwrap_or(0.0)
+            hello.metal_spots.iter().filter(|s| s.dist2d(pos) < hello.map.spot_radius()).map(|s| game.spot_metal(s.y as f64)).next().unwrap_or(0.0)
         };
         let standing: Vec<Standing> = own
             .iter()
@@ -276,6 +276,7 @@ impl Brain {
             standing_factories,
             standing_constructors,
             spots: hello.metal_spots.iter().map(|s| (s.x as f64, s.z as f64)).collect(),
+            spot_radius: hello.map.spot_radius() as f64,
             turret: hello.unit_defs.iter().position(|d| d.id == kit.turret),
             water: hello.terrain.heights.iter().any(|h| *h < 0),
             wind,
@@ -673,7 +674,7 @@ impl Brain {
             // the rules would hand out.
             let named = step.site.map(|(x, z)| Vec3 { x: x as f32, y: 0.0, z: z as f32 }).and_then(|site| {
                 let (i, spot) = self.world.hello.metal_spots.iter().copied().enumerate().min_by(|a, b| a.1.dist2d(site).total_cmp(&b.1.dist2d(site)))?;
-                let free = spot.dist2d(site) < 100.0 && !self.spot_claims.contains_key(&i) && !self.spot_taken(spot, own, kit) && !self.is_unreachable(spot);
+                let free = spot.dist2d(site) < self.spot_occupied_radius() && !self.spot_claims.contains_key(&i) && !self.spot_taken(spot, own, kit) && !self.is_unreachable(spot);
                 let safe = !raiders.iter().any(|r| r.dist2d(spot) < RAID_RADIUS);
                 (free && safe).then(|| {
                     self.spot_claims.insert(i, tick.frame);

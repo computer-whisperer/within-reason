@@ -14,7 +14,6 @@ use super::FRAMES_PER_SECOND;
 
 const ALLY_GROUND_FRAMES: i32 = 3 * 60 * FRAMES_PER_SECOND;
 /// An extractor this close to a spot is on it (as `economy.rs` has it for our own).
-const ON_SPOT: f32 = 100.0;
 
 impl super::Brain {
     pub(super) fn is_commander_def(&self, def: UnitDefId) -> bool {
@@ -36,7 +35,7 @@ impl super::Brain {
     }
 
     pub(super) fn allied_extractor_on(&self, spot: Vec3) -> bool {
-        self.allies.iter().any(|a| a.pos.dist2d(spot) < ON_SPOT.max(self.spot_occupied_radius()) && self.world.def(a.def).is_some_and(|d| d.extracts_metal > 0.0))
+        self.allies.iter().any(|a| a.pos.dist2d(spot) < self.spot_occupied_radius() && self.world.def(a.def).is_some_and(|d| d.extracts_metal > 0.0))
     }
 
     /// False for a spot at an ally's door that the ally has not had three minutes to take (or retake).

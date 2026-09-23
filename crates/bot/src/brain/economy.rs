@@ -73,7 +73,6 @@ const SPOT_CLAIM_FRAMES: i32 = 60 * FRAMES_PER_SECOND;
 /// An extractor this close to a spot's centre stands on that spot, at least; the map's extractor radius when larger,
 /// since an extractor may be built anywhere within it (`extractor_site`; rush-20: offset extractors were not seen as
 /// occupying their spot, which was claimed and ordered again and again, 3 extractors built by minute 3 for 12 orders).
-const SPOT_OCCUPIED_RADIUS: f32 = 60.0;
 /// Gaps between base buildings, in 8-elmo build squares. Three squares made a maze the army could not leave.
 const BUILDING_GAP: i32 = 5;
 const LAB_GAP: i32 = 8;
@@ -868,7 +867,7 @@ impl Brain {
     }
 
     pub(super) fn spot_occupied_radius(&self) -> f32 {
-        self.world.hello.map.extractor_radius.max(SPOT_OCCUPIED_RADIUS)
+        self.world.hello.map.spot_radius()
     }
 
     pub(super) fn spot_taken(&self, spot: Vec3, own: &[OwnUnit], kit: &Kit) -> bool {
@@ -879,7 +878,7 @@ impl Brain {
     /// The nearest far-flung extractor with no turret beside it; raiders pick those off first. `only` (when not
     /// empty) restricts it to the extractors standing on those numbered metal spots.
     fn unguarded_outpost(&self, builder: &OwnUnit, own: &[OwnUnit], kit: &Kit, only: &[usize]) -> Option<Vec3> {
-        let named = |pos: Vec3| only.is_empty() || only.iter().any(|n| self.world.hello.metal_spots.get(*n).is_some_and(|s| s.dist2d(pos) < 100.0));
+        let named = |pos: Vec3| only.is_empty() || only.iter().any(|n| self.world.hello.metal_spots.get(*n).is_some_and(|s| s.dist2d(pos) < self.spot_occupied_radius()));
         let guarded = |pos: Vec3| {
             let turret_near = own.iter().any(|u| u.def == kit.turret && u.pos.dist2d(pos) < OUTPOST_GUARD_RADIUS);
             // Somebody is already building a turret for THIS place. (The test used to ignore the place, so one turret

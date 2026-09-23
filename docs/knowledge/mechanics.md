@@ -258,6 +258,23 @@ where the walk is shortest, as `extractor_site` does for us.
 engine spots matched the game's.
 **Used by.** H-ECO-SPOT-CENTROID.
 
+### K-mech-spot-held-within-extractor-radius
+**Claim.** The game counts an extractor as standing on a metal spot when it is within `Game.extractorRadius` (120
+elmos on Comet Catcher and Quicksilver) of the spot: `cmd_mex_denier.lua` denies a build order for a spot that has an
+extractor of the same ally team within that radius (`mexExists`), and allows a position only where the radius covers
+the spot's whole patch. Our own site chooser places extractors up to that radius off the centre toward the builder
+(median 101, max 113 in four games), so any smaller test of "held" reads our own spots as free.
+**Status.** measured (2026-09-23) in fixes-1, concurrent-1, schedule-1 and quick-1: 53 of 59 refused extractor
+orders were for a spot where our own extractor already stood when the order was given (offsets 99-104 from the
+centre), the picture calling the spot "free metal spot"; the orders cost 2-26 s of walking each and were never
+retried (the spot was taken). H-ECO-SPOT-HELD makes the radius the one test; untried in a game.
+**Evidence.** `upstream/Beyond-All-Reason/luarules/gadgets/cmd_mex_denier.lua`,
+`common/upgets/api_resource_spot_finder.lua` (`IsBuildingPositionValid`); the four matches' `bot.log` "never
+started" lines against their records' `created` events.
+**Would be wrong if.** Extractor orders at spots we hold kept being refused with the radius test in place, or
+free spots near our extractors were read as held (a neighbouring spot within 120 of one of ours).
+**Used by.** H-ECO-SPOT-HELD, H-ECO-SPOT-CENTROID.
+
 ### K-mech-nano-turrets-idle-without-an-order
 **Claim.** A construction turret does nothing on its own: the game gives it no order when it stands, and it helps a
 factory only under a guard (or repair) order. In escalate-7 five turrets stood beside the plant from 6:15 and were

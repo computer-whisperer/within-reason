@@ -363,9 +363,27 @@ impl Brain {
         self.pianist.as_mut().expect("pianist mode").last_ask_frame = tick.frame;
         if let Some(shared) = &self.strategist {
             let lists = std::mem::take(&mut *shared.queues.lock().unwrap());
-            let pianist = self.pianist.as_mut().expect("pianist mode");
             for (name, list) in lists {
-                match list {
+                // A list beginning with `stop` (or the bare word) drops what the builder is doing now: the build in
+                // progress is abandoned and its frame decays. `null` cancels the list and lets that build finish
+                // (escalate-1, comet-5: the player asked to cancel a queued plant and the hands finished it).
+                let mut steps = list;
+                if let Some(s) = steps.as_mut()
+                    && s.first().is_some_and(|w| w == "stop")
+                {
+                    s.remove(0);
+                    if let Some(unit) = self.unit_by_handle(&name, &tick.snapshot.own_units).map(|u| u.id) {
+                        commands.push(Command::Stop { unit });
+                        let pianist = self.pianist.as_mut().expect("pianist mode");
+                        pianist.tasks.remove(&unit);
+                        pianist.done.push(format!("{} {name}: stopped what it was doing on your `stop`", picture::clock(tick.frame)));
+                    }
+                    if s.is_empty() {
+                        steps = None;
+                    }
+                }
+                let pianist = self.pianist.as_mut().expect("pianist mode");
+                match steps {
                     Some(steps) => {
                         pianist.script_frame.insert(name.clone(), tick.frame);
                         pianist.scripts.insert(name, steps.into());

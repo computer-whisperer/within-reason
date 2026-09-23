@@ -123,6 +123,16 @@ pub struct MapInfo {
     pub extractor_radius: f32,
 }
 
+impl MapInfo {
+    /// How far from a spot's centre an extractor still stands on that spot: the game denies a second extractor
+    /// within the extractor radius of the spot (cmd_mex_denier.lua `mexExists`), and our own site chooser places
+    /// one up to that radius off the centre toward the builder. Every test of "is this spot held" uses this;
+    /// four games read spots we held as free with a 100-elmo test against extractors placed 100-113 off centre.
+    pub fn spot_radius(&self) -> f32 {
+        self.extractor_radius.max(60.0)
+    }
+}
+
 /// The ground, at the engine's slope-map resolution. Rows run north to south (z), cells west to east (x).
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Terrain {

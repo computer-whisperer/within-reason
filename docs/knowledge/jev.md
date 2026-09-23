@@ -534,3 +534,14 @@ not move (612 calls, 8.05M input tokens, $0.34 against 686, 8.64M, $0.36: fewer 
 within two seconds of a hit or a packet.
 **Used by.** H-HANDS-SCHEDULE.
 
+### K-hands-cancel-left-the-build-running
+**Claim.** Cancelling a builder's list (`queue` with `null`) removed the list and nothing else: a build the builder
+had started ran on to completion, and the player had no order that dropped it (escalate-1: "a way to cancel a
+constructor's queued plant that actually stops it, rather than the hands finishing it at spot_7"; comet-5, 24:11: the
+commander finished a stale solar list).
+**Status.** observed (2026-09-23), two games; the `stop` step (a list beginning with `stop`, or the bare word, stops
+the builder and drops its task before the list) untried.
+**Evidence.** `pianist/mod.rs`, the list loop: `scripts.remove` alone on `None`; the two debriefs in `docs/briefs/inbox`.
+**Would be wrong if.** The player used `stop` where `null` was meant and lost frames it wanted finished.
+**Used by.** H-HANDS-SCRIPT.
+

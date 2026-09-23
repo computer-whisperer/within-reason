@@ -158,9 +158,9 @@ impl Brain {
     /// The free metal spot to take next under escort: the nearest on foot that is contested, when no held one is free.
     fn escort_target(&self, tick: &Tick, kit: &Kit) -> Option<Vec3> {
         let taken = |spot: Vec3| {
-            tick.snapshot.own_units.iter().any(|u| kit.is_extractor(u.def) && u.pos.dist2d(spot) < 100.0)
+            tick.snapshot.own_units.iter().any(|u| kit.is_extractor(u.def) && u.pos.dist2d(spot) < self.spot_occupied_radius())
                 || self.allied_extractor_on(spot)
-                || self.enemy_buildings.values().any(|(_, pos, _)| pos.dist2d(spot) < 100.0)
+                || self.enemy_buildings.values().any(|(_, pos, _)| pos.dist2d(spot) < self.spot_occupied_radius())
         };
         let free: Vec<(usize, Vec3)> = self
             .world

@@ -318,7 +318,7 @@ impl Brain {
     /// lies within 100 of it (extractors, radars and turrets at spots), else the straight line at its speed.
     pub(super) fn seconds_to_site(&self, def: UnitDefId, from: Vec3, site: Vec3) -> f32 {
         let speed = self.world.def(def).map_or(1.0, |d| d.speed.max(1.0));
-        match self.world.hello.metal_spots.iter().position(|s| s.dist2d(site) < 100.0) {
+        match self.world.hello.metal_spots.iter().position(|s| s.dist2d(site) < self.spot_occupied_radius()) {
             Some(index) => self.seconds_to_spot(def, index, from),
             None => site.dist2d(from) / speed,
         }

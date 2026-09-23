@@ -334,7 +334,7 @@ impl Brain {
         }
         let unscouted = self.raid.target.is_some_and(|t| self.is_unscouted(t, tick.frame));
         let held = !arrived && tick.frame < self.raid.hold_until;
-        let still_there = self.raid.target.is_some_and(|t| held || self.enemy_buildings.values().any(|(_, pos, _)| pos.dist2d(t) < 100.0) || (!arrived && (unscouted || t.dist2d(self.enemy_base(t)) < BASE_RADIUS)));
+        let still_there = self.raid.target.is_some_and(|t| held || self.enemy_buildings.values().any(|(_, pos, _)| pos.dist2d(t) < self.spot_occupied_radius()) || (!arrived && (unscouted || t.dist2d(self.enemy_base(t)) < BASE_RADIUS)));
         let target = if still_there { self.raid.target } else { self.pressure_target(centre, tick) };
         if std::env::var_os("WITHIN_REASON_RAID_DEBUG").is_some() && let Some(t) = self.raid.target && target != Some(t) {
             eprintln!("[ai {}] f={} raid-debug: target {:?} dropped: arrived={arrived} held={held} hold_until={} unscouted={unscouted} mode={:?} -> {:?}", self.ai(), tick.frame, (t.x as i32, t.z as i32), self.raid.hold_until, self.raid.mode, target.map(|p| (p.x as i32, p.z as i32)));

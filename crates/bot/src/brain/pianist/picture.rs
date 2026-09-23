@@ -412,7 +412,7 @@ impl Brain {
 
         // Places.
         let mut places: Vec<Place> = vec![Place { name: "home".into(), at: self.home, spot: None }];
-        let extractor_at = |spot: Vec3| own.iter().find(|u| kit.is_extractor(u.def) && u.pos.dist2d(spot) < 100.0);
+        let extractor_at = |spot: Vec3| own.iter().find(|u| kit.is_extractor(u.def) && u.pos.dist2d(spot) < self.spot_occupied_radius());
         let taken_by_task: Vec<usize> = pianist.tasks.values().filter_map(|t| if let Task::Build { spot: Some(i), .. } = t { Some(*i) } else { None }).collect();
         let mut listed: Vec<usize> = Vec::new();
         for (i, spot) in spots.iter().enumerate() {
@@ -426,7 +426,7 @@ impl Brain {
             .filter(|(def, _, _)| self.world.def(*def).is_some_and(|d| d.extracts_metal > 0.0))
             .map(|(_, pos, seen)| (*pos, *seen))
             .collect();
-        let their_spot = |spot: Vec3| enemy_extractors.iter().find(|(pos, _)| pos.dist2d(spot) < 100.0).map(|(_, seen)| *seen);
+        let their_spot = |spot: Vec3| enemy_extractors.iter().find(|(pos, _)| pos.dist2d(spot) < self.spot_occupied_radius()).map(|(_, seen)| *seen);
         let mut free: Vec<(f32, usize)> = spots
             .iter()
             .enumerate()
@@ -505,7 +505,7 @@ impl Brain {
                     // The extractor on the spot itself (within its radius) is what takes it; the buildings beside it
                     // are said separately (the user, 2026-09-22: a starting spot never taken, every game: the
                     // neighbouring spot's extractor 300 away read as "our extractor" here, and the spot was never free).
-                    let on_spot = own.iter().find(|u| kit.is_extractor(u.def) && u.pos.dist2d(spot) < self.world.hello.map.extractor_radius + 10.0);
+                    let on_spot = own.iter().find(|u| kit.is_extractor(u.def) && u.pos.dist2d(spot) < self.spot_occupied_radius());
                     let beside: Vec<String> = own
                         .iter()
                         .filter(|u| !kit.is_extractor(u.def) && u.pos.dist2d(spot) < 200.0 && self.world.def(u.def).is_some_and(|d| d.speed == 0.0))

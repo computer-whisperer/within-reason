@@ -247,7 +247,7 @@ impl Brain {
             .filter(|u| kit.is_extractor(u.def))
             .map(|x| ExtractorStatus {
                 at: self.place(x.pos),
-                spot: self.world.hello.metal_spots.iter().position(|s| s.dist2d(x.pos) < 100.0),
+                spot: self.world.hello.metal_spots.iter().position(|s| s.dist2d(x.pos) < self.spot_occupied_radius()),
                 enemies_within_600: tick.snapshot.enemies.iter().filter(|e| e.pos.dist2d(x.pos) < 600.0).count(),
                 turret_within_300: turrets.iter().any(|t| t.dist2d(x.pos) < 300.0),
             })
@@ -272,7 +272,7 @@ impl Brain {
             .map(|(_, pos, _)| *pos)
             .collect();
         let our_extractors: Vec<Vec3> = own.iter().filter(|u| kit.is_extractor(u.def)).map(|u| u.pos).collect();
-        let held = |spot: Vec3, by: &[Vec3]| by.iter().any(|p| p.dist2d(spot) < 100.0);
+        let held = |spot: Vec3, by: &[Vec3]| by.iter().any(|p| p.dist2d(spot) < self.spot_occupied_radius());
         let free: Vec<Vec3> = self
             .world
             .hello

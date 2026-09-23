@@ -531,6 +531,8 @@ pub struct PlanContext {
     pub standing_constructors: usize,
     /// Every metal spot of the map, by the picture's spot number.
     pub spots: Vec<(f64, f64)>,
+    /// How far from a spot's centre a site still names that spot (`MapInfo::spot_radius`).
+    pub spot_radius: f64,
     pub turret: Option<usize>,
     pub water: bool,
     pub wind: f64,

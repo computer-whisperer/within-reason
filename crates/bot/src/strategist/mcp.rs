@@ -146,8 +146,8 @@ fn tool_list(mode: Mode) -> Value {
               "description": format!("Your standing instructions to your hands: the whole packet, replacing the last one. Jev reads it every second beside the picture and picks each actor's next action from a menu, so write it as standing orders in plain words: the build order per builder as a sequence, what the lab makes and when that changes, where each group stands, when it engages, scouts and attacks, what to do about raids. Name places as the picture does (home, spot_N, passage_N, and any place you marked with `mark`; a spot or passage you name here is always on your hands' menu, however far) and groups as group_A, group_B. No arithmetic for the hands to do: say \"when we have about ten soldiers\", not a formula. At most {INSTRUCTIONS_LIMIT} characters."),
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string" } } } },
             { "name": "queue",
-              "description": "A builder's build list, done exactly and in order by the bot itself without asking your hands: an object of builder name (commander, constructor_N) to a list of steps, or null (or an empty list) to cancel its list. Steps: \"extractor spot_N\" (or \"extractor\" for the nearest free spot), any building by its internal name as the roster lists it (\"armsolar\", \"armvp\", \"armnanotc\", \"armfus\"), one that stands at a place with the place after it (\"armllt spot_3\", \"armrad home\", \"armmoho spot_3\" over our extractor there); any other building may take a place too (\"armvp spot_39\", \"armnanotc home\") and without one a factory stands beside its builder toward the yard, a generator beside the builder, a construction turret beside the nearest factory (it guards that factory once it stands), \"assist\" (help the nearest factory, standing or being built: the last step of a list, and only the last; the tool refuses steps after it). Each step is ordered when the one before is 60% built, so nothing idles; a new list takes over a builder that is helping a factory, walking, reclaiming or repairing at once; a step that cannot be done (the spot taken, a place unknown, a building this builder cannot make) is skipped and said in the hands' report. While a list runs the builder is off your hands' menu unless an enemy is on it; your instructions take over when the list is done. This is how an opening is made to happen as written: the hands do not follow a sequence (comet-1, comet-2: 'three solars, then the plant' got extractors and the plant at 1:45).",
-              "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "null" } ] }, "description": "Builder name to steps, or null." } },
+              "description": "A builder's build list, done exactly and in order by the bot itself without asking your hands: an object of builder name (commander, constructor_N) to a list of steps, or null (or an empty list) to cancel its list; null leaves a build in progress to finish, a list whose first step is \"stop\" (or the bare word \"stop\") drops that build first, its frame decaying, and the rest of the list follows. Steps: \"extractor spot_N\" (or \"extractor\" for the nearest free spot), any building by its internal name as the roster lists it (\"armsolar\", \"armvp\", \"armnanotc\", \"armfus\"), one that stands at a place with the place after it (\"armllt spot_3\", \"armrad home\", \"armmoho spot_3\" over our extractor there); any other building may take a place too (\"armvp spot_39\", \"armnanotc home\") and without one a factory stands beside its builder toward the yard, a generator beside the builder, a construction turret beside the nearest factory (it guards that factory once it stands), \"assist\" (help the nearest factory, standing or being built: the last step of a list, and only the last; the tool refuses steps after it). Each step is ordered when the one before is 60% built, so nothing idles; a new list takes over a builder that is helping a factory, walking, reclaiming or repairing at once; a step that cannot be done (the spot taken, a place unknown, a building this builder cannot make) is skipped and said in the hands' report. While a list runs the builder is off your hands' menu unless an enemy is on it; your instructions take over when the list is done. This is how an opening is made to happen as written: the hands do not follow a sequence (comet-1, comet-2: 'three solars, then the plant' got extractors and the plant at 1:45).",
+              "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "null" }, { "type": "string", "enum": ["stop"] } ] }, "description": "Builder name to steps, null, or \"stop\"." } },
             { "name": "lane",
               "description": "Which footwork rules your hands' code applies to a group's soldiers between your hands' orders, per group name or for \"all\": \"raw\" (none: the group's orders reach the engine exactly as given), \"on\" (all of them, the default), or a list of the rules to keep. The rules: flee (a soldier steps out of the reach of a turret or a fight it was not sent against, or one it would die in), fan (spreads out under a commander's D-gun), focus (soldiers standing together shoot one target at a time), kite (a soldier that outranges its enemy steps back while reloading), march (an advancing group waits for its stragglers so it arrives together), follow (an engaging group is re-sent after its party as it moves). A setting stands until you change it; the group's picture entry shows it when it is not the default.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "string", "enum": ["raw", "on"] }, { "type": "array", "items": { "type": "string", "enum": ["flee", "fan", "focus", "kite", "march", "follow"] } } ] }, "description": "Group name (group_A) or \"all\" to its setting." } },
@@ -452,6 +452,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>, mode: Mode) ->
                 // string, an empty list to cancel.
                 let value = match value {
                     Value::String(s) if s.trim() == "null" => Value::Null,
+                    Value::String(s) if s.trim() == "stop" => Value::Array(vec![Value::String("stop".into())]),
                     Value::String(s) if s.trim_start().starts_with('[') => serde_json::from_str(s).map_err(|e| format!("{name}: {e}"))?,
                     Value::String(s) => Value::Array(vec![Value::String(s.clone())]),
                     other => other.clone(),
@@ -464,7 +465,10 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>, mode: Mode) ->
                         for (i, step) in steps.iter().enumerate() {
                             let mut words = step.split_whitespace();
                             let kind = words.next().unwrap_or_default();
-                            if !matches!(kind, "extractor" | "assist") && !roster.is_empty() && !roster.contains(&kind.to_string()) {
+                            if kind == "stop" && i > 0 {
+                                return Err(format!("{name}: 'stop' only begins a list (it drops the build in progress, then the list follows)"));
+                            }
+                            if !matches!(kind, "extractor" | "assist" | "stop") && !roster.is_empty() && !roster.contains(&kind.to_string()) {
                                 return Err(format!("{name}: '{step}' is not a step; a step is extractor, assist, or a unit's internal name from the roster (armsolar, armllt spot_3)"));
                             }
                             if kind == "assist" && i + 1 < steps.len() {
@@ -481,8 +485,10 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>, mode: Mode) ->
             let mut said: Vec<String> = Vec::new();
             for (name, list) in parsed {
                 said.push(match &list {
+                    Some(steps) if steps.len() == 1 && steps[0] == "stop" => format!("{name}: list cancelled and its build in progress dropped"),
+                    Some(steps) if steps[0] == "stop" => format!("{name}: its build in progress dropped, then {} steps in order from its next look", steps.len() - 1),
                     Some(steps) => format!("{name}: {} steps, done in order from its next look", steps.len()),
-                    None => format!("{name}: list cancelled"),
+                    None => format!("{name}: list cancelled; a build in progress finishes (begin the list with \"stop\" to drop it)"),
                 });
                 queues.insert(name, list);
             }
@@ -831,7 +837,7 @@ mod tests {
         let state = buildorder::sim::State::start(&scenario);
         let wind = game.mean_wind();
         let spots = game.spots.iter().map(|(at, _)| *at).collect();
-        Arc::new(PlanContext { game: Arc::new(game), scenario, state, actors: vec![("commander".into(), 0)], standing_factories: 0, standing_constructors: 0, spots, turret: None, water: true, wind, frame: 0 })
+        Arc::new(PlanContext { game: Arc::new(game), scenario, state, actors: vec![("commander".into(), 0)], standing_factories: 0, standing_constructors: 0, spots, spot_radius: 120.0, turret: None, water: true, wind, frame: 0 })
     }
 
     #[test]
@@ -924,6 +930,10 @@ mod tests {
         for form in [json!({ "commander": "null" }), json!({ "commander": [] }), json!({ "commander": null })] {
             assert!(call_tool("queue", &form, &shared, Mode::Player).unwrap().contains("cancelled"), "{form}");
             assert!(shared.queues.lock().unwrap().get("commander").cloned().flatten().is_none());
+            let said = call_tool("queue", &json!({ "constructor_7": "stop", "commander": ["stop", "armsolar"] }), &shared, Mode::Player).unwrap();
+            assert!(said.contains("constructor_7: list cancelled and its build in progress dropped") && said.contains("commander: its build in progress dropped, then 1 steps"), "{said}");
+            assert_eq!(shared.queues.lock().unwrap().get("constructor_7").cloned().flatten(), Some(vec!["stop".to_string()]));
+            assert!(call_tool("queue", &json!({ "commander": ["armsolar", "stop"] }), &shared, Mode::Player).is_err());
         }
         assert!(call_tool("queue", &json!({ "commander": "[\"assist\"]" }), &shared, Mode::Player).unwrap().contains("1 steps"));
         assert!(call_tool("queue", &json!({ "commander": "assist" }), &shared, Mode::Player).unwrap().contains("1 steps"));
@@ -1169,7 +1179,7 @@ mod planning {
         };
         match step.site {
             None => name,
-            Some((x, z)) => match ctx.spots.iter().enumerate().find(|(_, s)| ((s.0 - x).powi(2) + (s.1 - z).powi(2)).sqrt() < 100.0) {
+            Some((x, z)) => match ctx.spots.iter().enumerate().find(|(_, s)| ((s.0 - x).powi(2) + (s.1 - z).powi(2)).sqrt() < ctx.spot_radius) {
                 Some((n, _)) => format!("{name} spot_{n}"),
                 None => format!("{name} @{x:.0},{z:.0}"),
             },

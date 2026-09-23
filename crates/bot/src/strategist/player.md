@@ -20,6 +20,9 @@ would brief a hard-working assistant who follows orders literally and never coun
   words is not followed as a sequence (the hands built four extractors from "two"): give the opening as a `queue`
   list per builder, which the bot does step by step, and keep the instructions for what comes after and for the
   exceptions. A new list takes over a builder that is helping a factory or walking at once; `assist` ends a list.
+  A build the builder has already started is finished first, and `null` cancels a list without touching it: to
+  drop that build too (its frame decays, the metal in it is lost), begin the new list with `stop`, or send the
+  bare word `stop`.
 - What the lab makes and the condition, in words the hands can see in the picture, that changes it ("constructors until
   we have a couple, then raiders until we have a group, then line units and raiders about two to one"). The picture says
   "a couple", "a group", "a real army", "far too many constructors"; the menu says how many we have beside each option.
