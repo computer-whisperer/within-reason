@@ -492,7 +492,7 @@ player asked one tier-2 plant by list (west_yard, 9:34) and two more came off th
 10:18 p 0.29, from constructors whose menus offered the plant among forty options with no word that one was already
 under way); escalate-3 and -7 each got four plants the same way. The menu's words carry the count of the type and
 nothing about the one being built, so nothing in the ask tells the hands that the sentence is already being obeyed.
-**Status.** observed (2026-09-23), three games; the under-way words untried.
+**Status.** observed (2026-09-23), three games; with the under-way words a second tier-2 plant was still started 52 s after the first (concurrent-1: the words state, the choice stays the hands' and the packet's).
 **Evidence.** `run/matches/1790137350-fixes-1-hard-aggressive/00/jev-0.jsonl` (the three armavp picks and their options), `strategist-0.jsonl` (the packets at
 8:53, 9:22, 9:34), the record's armavp created events (9:54, 10:20, 10:21 by three builders).
 **Would be wrong if.** With the under-way words on the option the free builders still picked the plant at the same
@@ -508,7 +508,7 @@ escalate-7 (12:29, "the hands kept picking the vanishing `shelling` place; its o
 it"), fixes-1 (15:33, group_T stood at spot_8 under fire for two minutes and moved the turn the word was dropped).
 The place is right to exist (the user, pianist-player-6: the army had no way to push out to what shelled it); the
 recommendation in its words was wrong, since whether to go, to see it first or to leave its reach is the packet's.
-**Status.** observed (2026-09-23), three games; the observation-only words untried.
+**Status.** observed (2026-09-23), three games; with the observation-only words (schedule-1-hard-aggressive) the place stood in 230 of 612 calls and a group advanced onto it once, on the player's own route.
 **Evidence.** The player's notes at the times above; `crates/bot/src/brain/pianist/picture.rs` (the old words, in
 git before ce6a358's successor).
 **Would be wrong if.** With observation-only words the groups still walked onto the estimate at the same rate, which
@@ -525,7 +525,10 @@ picture and about 800-900 each question; one of four or five groups asked per ca
 $0.35-0.36 at Jev's price. Asking every group every call would about double that; latency was 244 ms under 9k
 tokens and 326 ms over 15k, the largest call 29k of a 64k window.
 **Status.** measured (2026-09-23) from `run/matches/1790137350-fixes-1-hard-aggressive/00/jev-0.jsonl` and escalate-7's; the event-aware scheduler
-(H-HANDS-SCHEDULE) untried.
+(H-HANDS-SCHEDULE) verified in schedule-1-hard-aggressive (won 18.9): a group's next ask after losing a unit came 0.9 s later (median, max 2.9)
+against 5.7 s (max 9.8) before, every group but one was asked on the call after each of 25 packets (82 of 83; before 39 of 169), and the cost did
+not move (612 calls, 8.05M input tokens, $0.34 against 686, 8.64M, $0.36: fewer calls, each a little larger). The packet call is the new peak:
+28-41 questions, up to 47k of the 64k window with 13 actors; a game with twenty builders on no list would pass it.
 **Evidence.** The jev logs' `usage`, `questions` and `ms` per call; the player's notes in fixes-1.
 **Would be wrong if.** The scheduler's extra calls doubled the tokens a game without the front-line groups answering
 within two seconds of a hit or a packet.
