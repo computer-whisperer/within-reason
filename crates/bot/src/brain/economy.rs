@@ -282,7 +282,7 @@ impl Brain {
                     continue;
                 }
                 self.fire(rule);
-                let Some((def_id, site)) = self.build_site_for(&plan, unit, kit) else { continue };
+                let Some((def_id, site)) = self.build_site_for(&plan, unit, &tick.snapshot.own_units, kit) else { continue };
                 // An order whose builder is idle again within two ticks never started: count it and say where.
                 // (The window is the first re-plan after the order grace: a shorter one never fired.)
                 if let Some((frame, earlier, near)) = self.last_orders.insert(unit.id, (tick.frame, def_id, site.near))
@@ -442,7 +442,7 @@ impl Brain {
                     continue;
                 }
             };
-            let Some((def_id, site)) = self.build_site_for(&plan, unit, kit) else { continue };
+            let Some((def_id, site)) = self.build_site_for(&plan, unit, &tick.snapshot.own_units, kit) else { continue };
             self.fire("H-OPEN-QUEUE");
             self.queued.insert(unit.id, (def_id, site.near, tick.frame));
             commands.push(Command::Build { unit: unit.id, def: def_id, site: Some(site), queue: true });
@@ -494,7 +494,7 @@ impl Brain {
     }
 
     /// What a plan builds and where the engine is asked to put it. None when the builder cannot build it.
-    pub(super) fn build_site_for(&self, plan: &Plan, unit: &OwnUnit, kit: &Kit) -> Option<(UnitDefId, BuildSite)> {
+    pub(super) fn build_site_for(&self, plan: &Plan, unit: &OwnUnit, own: &[OwnUnit], kit: &Kit) -> Option<(UnitDefId, BuildSite)> {
         let planned_def = match plan {
             Plan::Extractor(_) => kit.extractor,
             Plan::Near(def_id, _) | Plan::Beside(def_id, _) => *def_id,
@@ -505,6 +505,8 @@ impl Brain {
         }
         // Nothing but an extractor goes in a factory's exit lane (yards.rs).
         let mut keep_out = self.lanes.clone();
+        // A new factory's own exit lane must be clear of what stands or is ordered (the mirrored lanes).
+        keep_out.extend(self.own_lane_keep_out(planned_def, own));
         // A site the engine refused for this type is not asked again while the refusal stands (a point lane).
         if let Some(pianist) = self.pianist.as_ref() {
             keep_out.extend(pianist.refused_sites.iter().filter(|(def, _, _)| *def == planned_def).map(|(_, at, _)| Lane { from: *at, to: *at, half_width: REFUSED_SITE_RADIUS }));

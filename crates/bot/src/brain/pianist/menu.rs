@@ -657,6 +657,25 @@ impl Brain {
             tail.push(format!("Our energy now: {energy_words}"));
         }
         if !d.build_options.is_empty() {
+            // What of this very type is already under way, so a standing sentence in the packet ("an Advanced Vehicle
+            // Plant goes up at west_yard") is not read by every free builder as an order for one more (fixes-1: three
+            // tier-2 plants from three builders within 30 s, one asked for; escalate-3 and -7: four plants each).
+            let mut under_way: Vec<String> = tick
+                .snapshot
+                .own_units
+                .iter()
+                .filter(|u| u.being_built && u.def == def)
+                .map(|u| format!("one being built at {} ({:.0}% done)", self.world.grid(u.pos), 100.0 * u.health / u.max_health.max(1.0)))
+                .collect();
+            if let Some(pianist) = self.pianist.as_ref() {
+                under_way.extend(pianist.tasks.iter().filter_map(|(builder, t)| match t {
+                    Task::Build { def: d2, near, started: false, .. } if *d2 == def => Some(format!("one ordered by {} at {}, not started", self.actor_name(*builder), self.world.grid(*near))),
+                    _ => None,
+                }));
+            }
+            if !under_way.is_empty() {
+                tail.push(format!("{} of this very type already under way: {}; this would be another", under_way.len(), under_way.join("; ")));
+            }
             tail.push(match factories {
                 0 => "we have no factory yet: nothing makes soldiers or constructors without one".to_string(),
                 1 => "we have one factory already; a second doubles production when metal is banking up".to_string(),

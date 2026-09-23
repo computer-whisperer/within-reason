@@ -485,3 +485,17 @@ the engine's refusal at 8:19, the same order at 8:19 again).
 which would put the cause in Jev's reading of the packet rather than in the margin.
 **Used by.** H-HANDS-SWITCH, H-HANDS-SCRIPT, H-HANDS-REFUSED (amended 2026-09-23).
 
+### K-hands-a-standing-sentence-builds-many
+**Claim.** A sentence in the packet about one building ("An Advanced Vehicle Plant goes up at west_yard; free
+constructors at home help it") is read by every free builder asked under it as a reason to build one: in fixes-1 the
+player asked one tier-2 plant by list (west_yard, 9:34) and two more came off the free menu within 30 s (9:48 p 0.46,
+10:18 p 0.29, from constructors whose menus offered the plant among forty options with no word that one was already
+under way); escalate-3 and -7 each got four plants the same way. The menu's words carry the count of the type and
+nothing about the one being built, so nothing in the ask tells the hands that the sentence is already being obeyed.
+**Status.** observed (2026-09-23), three games; the under-way words untried.
+**Evidence.** `run/matches/1790137350-fixes-1-hard-aggressive/00/jev-0.jsonl` (the three armavp picks and their options), `strategist-0.jsonl` (the packets at
+8:53, 9:22, 9:34), the record's armavp created events (9:54, 10:20, 10:21 by three builders).
+**Would be wrong if.** With the under-way words on the option the free builders still picked the plant at the same
+rate, which would put the cause in the packet's wording rather than in the option's.
+**Used by.** H-HANDS-MENU (amended), H-ECO-YARD-LANE (pending orders' lanes).
+

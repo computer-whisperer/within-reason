@@ -88,3 +88,5 @@ south, facing 0, in every recorded game), check a new factory's own south lane a
 `LANE_MARGIN` past a factory's half-width. `remove` had its first use here: the blocked plant reclaimed by the
 commander, asked 10:44, gone 11:22 (the first ask went to a constructor's list and waited on its current build).
 
+**Decided 2026-09-23 (after escalate-4 and fixes-1).** Pending factory orders have lanes (facing south, the engine's facing for every building of ours in the records), and a new factory's own south lane is kept clear of every building of ours standing or ordered by the mirrored north-pointing lanes in `keep_out` (`yards.rs` `own_lane_keep_out`). `LANE_MARGIN` stays 48. The factory option's words now say what of that type is already under way.
+

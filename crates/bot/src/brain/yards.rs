@@ -3,7 +3,7 @@
 //! yard five to seven minutes each, the plant built nothing for five minutes with metal and energy full, and the
 //! picture said nothing of it though the engine raised 156 move-failed events on the Bulls.
 
-use bot_protocol::{Event, Lane, OwnUnit, UnitId, Vec3};
+use bot_protocol::{Event, Lane, OwnUnit, UnitId, Vec3, UnitDefId};
 
 use super::{Brain, Tick};
 
@@ -29,21 +29,57 @@ impl Brain {
     /// The lane a factory's finished units leave through: from its centre out through its front by the footprint's
     /// half depth plus `LANE_DEPTH`, as wide as the footprint plus `LANE_MARGIN` a side. None for anything else.
     pub(super) fn lane_of(&self, factory: &OwnUnit) -> Option<Lane> {
-        if !self.world.is_factory_def(factory.def) {
+        self.lane_at(factory.def, factory.pos, factory.facing)
+    }
+
+    /// The exit lane a factory of this type would have standing at `pos` with this facing (0 south, the engine's
+    /// facing for every building of ours in the recorded games), so a factory not yet standing has a lane too.
+    pub(super) fn lane_at(&self, def_id: UnitDefId, pos: Vec3, facing: i32) -> Option<Lane> {
+        if !self.world.is_factory_def(def_id) {
             return None;
         }
-        let def = self.world.def(factory.def)?;
+        let def = self.world.def(def_id)?;
         let (half_width, half_depth) = (def.footprint.0 as f32 * SQUARE / 2.0, def.footprint.1 as f32 * SQUARE / 2.0);
         // The engine's facing: 0 south (+z), 1 east (+x), 2 north (-z), 3 west (-x). The footprint's z is its depth
         // in its own frame whichever way it faces.
-        let (fx, fz) = match factory.facing.rem_euclid(4) {
+        let (fx, fz) = match facing.rem_euclid(4) {
             0 => (0.0, 1.0),
             1 => (1.0, 0.0),
             2 => (0.0, -1.0),
             _ => (-1.0, 0.0),
         };
         let reach = half_depth + LANE_DEPTH;
-        Some(Lane { from: factory.pos, to: Vec3 { x: factory.pos.x + fx * reach, y: factory.pos.y, z: factory.pos.z + fz * reach }, half_width: half_width + LANE_MARGIN })
+        Some(Lane { from: pos, to: Vec3 { x: pos.x + fx * reach, y: pos.y, z: pos.z + fz * reach }, half_width: half_width + LANE_MARGIN })
+    }
+
+    /// Factory build orders the engine has not started yet: (type, site). A site chosen now must stay clear of their
+    /// lanes too (escalate-4, fixes-1: two and three factories ordered within a minute, one in another's lane).
+    pub(super) fn pending_factories(&self) -> Vec<(UnitDefId, Vec3)> {
+        let Some(pianist) = self.pianist.as_ref() else { return Vec::new() };
+        pianist
+            .tasks
+            .values()
+            .filter_map(|t| match t {
+                super::pianist::Task::Build { def, near, started: false, .. } if self.world.is_factory_def(*def) => Some((*def, *near)),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// Where a new factory of this type must not stand for its own exit lane (facing south) to be clear of what
+    /// stands or is ordered: for every building of ours, the mirror of the lane, pointing north from it. A site in
+    /// one of these would have that building in its lane (the yard design's open case, decided 2026-09-23).
+    pub(super) fn own_lane_keep_out(&self, def_id: UnitDefId, own: &[OwnUnit]) -> Vec<Lane> {
+        let Some(def) = self.world.def(def_id).filter(|_| self.world.is_factory_def(def_id)) else { return Vec::new() };
+        let (half_width, half_depth) = (def.footprint.0 as f32 * SQUARE / 2.0, def.footprint.1 as f32 * SQUARE / 2.0);
+        let reach = half_depth + LANE_DEPTH;
+        let mirror = |at: Vec3| Lane { from: Vec3 { x: at.x, y: at.y, z: at.z - half_depth }, to: Vec3 { x: at.x, y: at.y, z: at.z - reach }, half_width: half_width + LANE_MARGIN };
+        let standing = own.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0 && d.extracts_metal == 0.0)).map(|u| mirror(u.pos));
+        let ordered = self.pianist.as_ref().map(|p| p.tasks.values()).into_iter().flatten().filter_map(|t| match t {
+            super::pianist::Task::Build { def, near, .. } if self.world.def(*def).is_some_and(|d| d.speed == 0.0 && d.extracts_metal == 0.0) => Some(mirror(*near)),
+            _ => None,
+        });
+        standing.chain(ordered).collect()
     }
 
     /// Every tick: the lanes of our factories, standing or being built (a site chosen now must stay clear of a lane
@@ -51,6 +87,8 @@ impl Brain {
     pub(super) fn track_yards(&mut self, tick: &Tick) {
         let own = &tick.snapshot.own_units;
         self.lanes = own.iter().filter_map(|u| self.lane_of(u)).collect();
+        let pending: Vec<Lane> = self.pending_factories().into_iter().filter_map(|(def, at)| self.lane_at(def, at, 0)).collect();
+        self.lanes.extend(pending);
         self.stuck.retain(|id, s| own.iter().any(|u| u.id == *id && u.pos.dist2d(s.at) < STUCK_FREE));
         for event in &tick.events {
             let Event::UnitMoveFailed { unit } = event else { continue };
