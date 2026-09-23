@@ -620,7 +620,12 @@ eleven real-time games on disk the player was inside a turn 27-52 % of the game'
 after them. The arena results overstate a live game's by that latency. The penalty existed but held back only the
 commander mode's outputs, so it would not have applied to the player's packet.
 **Status.** measured (2026-09-23) on the real-time records (`run/matches/*human-*`, `*realtime-*`) and the arena
-code; the corrected penalty (every turn output held back, default 1 with `--player`) untried: penalty-1..4 next.
+code. The corrected penalty (every turn output held back, default 1 with `--player`) verified live in penalty-1
+(turn 1's instructions reached the hands at frame 705, due 535) and played in penalty-1..4 (Jev medium/low, Lua
+medium/low, hard_aggressive): 0-4 at 25-30 min, 300-770 game seconds held per game, turn lengths unchanged by the
+penalty (medium 7.6 s, low 6.0 s median). One game each, and all four debriefs blame unscouted pushes into tier-2
+artillery, so the penalty's own weight at this tier is not separated yet; the Lua side's opening suffered most
+(penalty-3: 4 extractors at 5:00, "amendments land a turn late" on top of the runtime's own one-turn lag).
 **Evidence.** `crates/bot/src/strategist/shared.rs` `hold_for_turn` before 2026-09-23; the `batch.json` of every
 player game (`"think_penalty": null`); the scratchpad measurement over the real-time strategist and record logs.
 **Would be wrong if.** The penalised games' results matched the unpenalised ones: then the latency did not matter at
