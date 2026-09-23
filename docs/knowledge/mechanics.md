@@ -227,3 +227,32 @@ first two Bulls (9:36, 10:42, before the solars) left within seconds.
 strip let them out; `yard_min` on the scorecard over the coming games tells (yard-1-bulldogs, with the lanes kept
 clear: 0 minutes, and thirteen Bulls left within half a minute but one held by its group).
 **Used by.** H-ECO-YARD-LANE, H-HANDS-STUCK-WORDS, H-PLAYER-REMOVE.
+
+### K-mech-air-damage-per-armour-class
+**Claim.** Every weapon in the game carries a damage per armour class, and aircraft are the `vtol` class: the Blitz's
+gun does 9 a bullet to ground and 2 to aircraft, the Stout's 97 and 18, the Pawn's likewise a fifth; the Whistler's
+second missile 160 to aircraft and 1 to ground, the Nettle's the same shape. Whether a weapon may fire at aircraft is
+the mount's `onlytargetcategory` (VTOL is aircraft; SURFACE and NOTAIR exclude them; NOTSUB includes them) and
+`badtargetcategory` VTOL makes them a target of last resort: a Blitz fires up only when nothing on the ground is in
+range. So eight Blitzes put about 50 damage a second on a 560-health Banshee, and only once the ground is clear.
+**Status.** read from the unit files (2026-09-23), `upstream/Beyond-All-Reason/units/*/armflash.lua` lines 139-148
+and the like; whether a rocket or a shell that may target an aircraft hits a moving one is not measured.
+**Evidence.** The unit files; human-9 (`run/matches/1790132629-human-9`): six Banshees killed eight Blitzes at 8:22 with no loss.
+**Would be wrong if.** The engine ignored the class table for aircraft, or a Blitz group in a duel took a Banshee down
+at its ground rate.
+**Used by.** H-HANDS-ROSTER (the glossary's air words, `run/unit_stats.py`).
+
+### K-mech-spot-centre-is-the-metal-centroid
+**Claim.** The engine's metal spot positions (`Map_getResourceMapSpotsPositions`) are not where the game and BARb put
+extractors: on Comet Catcher they sit 82 elmos (+40, +72) from every extractor BARb built at the north-east start and
+60-200 from 32 of the 42 the experienced players built; both snap to the metal-weighted centre of the patch. An
+extractor asked at the engine's point can be refused ("the site was bad": human-9, spot_5 at 0:28, the third start
+extractor lost for two minutes) though most are tolerated and earn within a tenth of the players' rate.
+**Status.** observed (2026-09-23), one map; the centroid published from spots-1-easy on, to be checked against the
+truth files' positions.
+**Evidence.** The yard-1 header's spot table against BARb's four extractors in escalate-7's truth file (all four
++40, +72); the players' 42 extractors in `run/matches/1790122851-replay-vak-vs-artur-comet`; human-9's refusal.
+**Would be wrong if.** The centroid sat as far from BARb's extractors as the engine's point did, or another map's
+engine spots matched the game's.
+**Used by.** H-ECO-SPOT-CENTROID.
+

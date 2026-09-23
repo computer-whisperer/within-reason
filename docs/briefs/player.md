@@ -29,6 +29,12 @@ Thug `corthud` 140/1100/45/380 line unit; Trasher `corcrash` anti-air only; Grav
   pair of extractors; a home guard that walks out after the extractor is gone is not defence (the user, watching
   escalate-4: 33 extractors lost, most to single Ticks at spots no soldier stood near). [K-hands-ball-chases-lone-raiders,
   K-army-pickets-across-the-front]
+- An enemy Aircraft Plant in sight (the report names factory types) means gunships in about ninety seconds: a Nettle
+  beside each pair of extractors and Whistlers in the plant before the first one comes. Tier-1 tanks and bots do a
+  fifth of their damage to aircraft and fire up only when nothing on the ground is in range; every unit's roster
+  line says what it does to aircraft. (human-9: the plant was seen at 2:16 and reported as a bare grid, the first
+  Banshee came at 3:54, six of them killed eight Blitzes at 8:22.) [K-army-air-plant-seen-means-aa,
+  K-mech-air-damage-per-armour-class]
 - Fights are decided by value on the spot: the side with more metal of soldiers there, a turret counting about three
   times its metal, loses less nine times in ten; beyond 2:1 almost always. Our units move at different speeds and a
   group sent across the map arrives strung out unless it is sent with `fight_to`, which marches it together.

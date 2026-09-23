@@ -366,7 +366,8 @@ pub struct Score {
     pub enemy_soldiers_seen_metal: u32,
     /// Its factories seen and not seen destroyed; those seen destroyed or found razed, with the game second; and its
     /// commander's last sighting with its age in seconds.
-    pub enemy_factories: Vec<Place>,
+    /// Enemy factories standing as far as we know: the unit's internal name and where.
+    pub enemy_factories: Vec<(String, Place)>,
     pub enemy_factories_gone: Vec<(Place, i32)>,
     pub enemy_commander: Option<(Place, i32)>,
     /// Its last seen position is off ground our bots can walk to: in the sea, where only amphibians follow.

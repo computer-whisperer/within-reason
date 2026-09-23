@@ -425,11 +425,12 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>, mode: Mode) ->
                 let blasts = shared.blasts.lock().unwrap().get(name).map(|(death, selfd, secs)| format!(" Blasts: dying {}; self-destruct {} after {secs:.0} s.", blast_words(*death), blast_words(*selfd))).unwrap_or_default();
                 lines.push(match crate::brain::pianist::glossary::entry(name) {
                     Some(e) => format!(
-                        "{} ({name}): {}, tier {}{}. {}. {}{blasts}",
+                        "{} ({name}): {}, tier {}{}. {}. {}{}{blasts}",
                         e.name, e.class, e.tier,
                         if e.made_by.is_empty() { String::new() } else { format!(", made by {}", e.made_by.join(", ")) },
                         e.numbers(),
-                        if e.prose.is_empty() { e.gloss.clone() } else { e.prose.clone() }
+                        if e.prose.is_empty() { e.gloss.clone() } else { e.prose.clone() },
+                        if e.air.is_empty() { String::new() } else { format!(" Against aircraft: {}.", e.air) }
                     ),
                     None => format!("{name}: not in the glossary{blasts}"),
                 });

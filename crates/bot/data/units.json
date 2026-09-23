@@ -17,9 +17,12 @@
    "speed": 47.4,
    "range": 1200,
    "dps": 2.2,
+   "dps_air": 258.2,
+   "air": "anti-air only: 258 dps against aircraft",
    "sight": 400,
    "flags": [
-    "amphibious"
+    "amphibious",
+    "anti_air"
    ],
    "gloss": "tier-2 anti-air bot, missiles at 1200 and 880; air only, walks under water; keep it behind the army",
    "prose": "The Archangel is the tier-2 mobile anti-air: 520 metal, 2200 health, speed 47, a long-range missile at 1200 and a second at 880 that do full damage to aircraft and nothing to anything else. It covers an army against gunships and bombers from the back and can walk under water, though not fire from there. It is worth its cost only when the enemy has air; against a ground push it is 520 metal that does not shoot."
@@ -41,6 +44,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 312,
    "build_power": 600,
    "flags": [],
@@ -62,8 +67,11 @@
    "speed": 63,
    "range": 840,
    "dps": 3.9,
+   "dps_air": 430.2,
+   "air": "anti-air only: 430 dps against aircraft",
    "sight": 475,
    "flags": [
+    "anti_air",
     "floats"
    ],
    "gloss": "tier-2 anti-air ship, flak and missiles at 840; one clears a wave of light aircraft; nothing against ships",
@@ -84,6 +92,8 @@
    "speed": 192,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 430,
    "build_power": 120,
    "energy_make": 10,
@@ -108,6 +118,8 @@
    "speed": 33,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 380,
    "build_power": 210,
    "energy_make": 14,
@@ -130,6 +142,8 @@
    "speed": 72,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 156,
    "build_power": 350,
    "energy_make": 30,
@@ -154,6 +168,8 @@
    "speed": 52.5,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 330,
    "build_power": 290,
    "energy_make": 20,
@@ -181,6 +197,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 260,
    "energy_make": 80,
    "flags": [],
@@ -204,6 +222,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_make": 3000,
    "energy_storage": 9000,
@@ -228,6 +248,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_make": 1250,
    "energy_storage": 12000,
@@ -251,9 +273,12 @@
    "speed": 88.5,
    "range": 700,
    "dps": 1.4,
+   "dps_air": 84.5,
+   "air": "anti-air only: 84 dps against aircraft",
    "sight": 509,
    "flags": [
     "hover",
+    "anti_air",
     "sonar",
     "floats"
    ],
@@ -276,6 +301,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 286,
    "build_power": 600,
    "flags": [],
@@ -301,6 +328,8 @@
    "speed": null,
    "range": 1380,
    "dps": 194.4,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 442,
    "flags": [],
    "gloss": "2500-metal cloakable pop-up artillery, 350 damage at 1380; kills the enemy's artillery and turrets from hiding",
@@ -323,6 +352,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 201,
    "flags": [
     "antinuke"
@@ -350,6 +381,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 286,
    "energy_upkeep": 3,
    "flags": [
@@ -375,10 +408,13 @@
    "speed": 90,
    "range": 600,
    "dps": 109.6,
+   "dps_air": 63.3,
+   "air": "63 dps against aircraft (58% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 380,
    "flags": [
     "needs_energy_to_fire",
-    "amphibious"
+    "amphibious",
+    "anti_air"
    ],
    "gloss": "fast amphibious bot with a laser and an anti-air missile; raids from the sea, expensive for what it kills",
    "prose": "The Platypus is a 260-metal amphibious bot (1170 health, speed 90) with a light laser at range 275 and an anti-air missile at 600. It swims on the surface rather than walking the sea floor, so it can cross water to raid naval buildings and light aircraft and arrive from a side the enemy does not watch. It is expensive for a raider and loses a straight fight to any line unit; in the simulated tier-2 study it never beat the tier-1 line. Build a few for sea-side raids, not as an army."
@@ -401,6 +437,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 234,
    "build_power": 300,
    "flags": [
@@ -426,6 +464,8 @@
    "speed": 70.0,
    "range": 370,
    "dps": 70,
+   "dps_air": 20.7,
+   "air": "21 dps against aircraft (30% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 509,
    "flags": [
     "hover",
@@ -451,6 +491,8 @@
    "speed": null,
    "range": 1400,
    "dps": 1090.9,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 780,
    "energy_storage": 1000,
    "flags": [
@@ -474,6 +516,8 @@
    "speed": 63,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 1000,
    "build_power": 1000,
    "energy_make": 300,
@@ -509,6 +553,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 292,
    "build_power": 150,
    "flags": [],
@@ -534,6 +580,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 1000,
    "flags": [],
    "gloss": "400-metal tier-2 radar tower, 3500 radar; sees most of a map",
@@ -554,6 +602,8 @@
    "speed": 54,
    "range": 710,
    "dps": 42.3,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 364,
    "flags": [],
    "gloss": "tier-1 artillery, 710 range outranges every tier-1 tower; 620 health, blind past 364, needs a spotter and a screen",
@@ -575,6 +625,8 @@
    "speed": 37,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 380,
    "energy_upkeep": 80,
    "flags": [
@@ -598,6 +650,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 215,
    "flags": [
     "submerged",
@@ -624,6 +678,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 299,
    "build_power": 600,
    "flags": [
@@ -648,9 +704,12 @@
    "speed": null,
    "range": 915,
    "dps": 360,
+   "dps_air": 360,
+   "air": "360 dps against aircraft, its full damage",
    "sight": 585,
    "flags": [
     "submerged",
+    "anti_air",
     "sonar",
     "on_water"
    ],
@@ -672,6 +731,8 @@
    "speed": 207,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 430,
    "flags": [
     "transport",
@@ -698,6 +759,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 283.4,
    "build_power": 600,
    "flags": [],
@@ -719,6 +782,8 @@
    "speed": 317.4,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 1275,
    "flags": [
     "flies",
@@ -743,12 +808,15 @@
    "speed": 45.6,
    "range": 860,
    "dps": 1452.5,
+   "dps_air": 1052.5,
+   "air": "1052 dps against aircraft (72% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 617,
    "energy_make": 150,
    "energy_storage": 2500,
    "flags": [
     "needs_energy_to_fire",
     "amphibious",
+    "anti_air",
     "gantry"
    ],
    "gloss": "13500-metal walking fortress; blasters, tachyon beam at 800; loses to air, EMP and being D-gunned",
@@ -769,6 +837,8 @@
    "speed": 57.9,
    "range": 880,
    "dps": 600,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 600,
    "flags": [
     "floats"
@@ -797,6 +867,8 @@
    "speed": null,
    "range": 490,
    "dps": 266,
+   "dps_air": 20,
+   "air": "20 dps against aircraft (8% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 475,
    "flags": [
     "needs_energy_to_fire"
@@ -820,6 +892,8 @@
    "speed": 42,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 330,
    "build_power": 80,
    "energy_make": 8,
@@ -844,6 +918,8 @@
    "speed": 204,
    "range": 420,
    "dps": 167.6,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 624,
    "flags": [
     "flies"
@@ -866,6 +942,8 @@
    "speed": 160.8,
    "range": 380,
    "dps": 106.7,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 550,
    "flags": [
     "flies"
@@ -890,6 +968,8 @@
    "speed": null,
    "range": 4650,
    "dps": 123.1,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 273,
    "flags": [
     "needs_energy_to_fire",
@@ -913,6 +993,8 @@
    "speed": 62,
    "range": 460,
    "dps": 245.5,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 494,
    "flags": [],
    "gloss": "tier-2 heavy tank, 4650 health, 270-damage plasma at 460; wins mid-range fights, needs a tank-killer beside it",
@@ -933,6 +1015,8 @@
    "speed": 136,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 430,
    "build_power": 50,
    "energy_make": 5,
@@ -958,6 +1042,8 @@
    "speed": 66.9,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 351,
    "build_power": 110,
    "energy_make": 11,
@@ -988,8 +1074,12 @@
    "speed": null,
    "range": 1200,
    "dps": 2.5,
+   "dps_air": 625,
+   "air": "anti-air only: 625 dps against aircraft",
    "sight": 380,
-   "flags": [],
+   "flags": [
+    "anti_air"
+   ],
    "gloss": "750-metal medium-range anti-air battery, four-missile bursts at 1200, 4450 health; the tower that kills most aircraft",
    "prose": "The Chainsaw is the heavy tier-1 anti-air battery: 750 metal and 7300 energy, 4450 health, four-missile bursts at range 1200 for aircraft only, and built to survive bombs. It has the most health, range and damage of the tier-1 and tier-2 anti-air towers and takes down most aircraft, the Liche (armliche) included; it is dearer than the Nettle (armrl) and Ferret (armferret) and does nothing against ground. It is the anti-air to build once the enemy has shown bombers or gunships rather than scouts; earlier the Nettle (armrl) does."
   },
@@ -1008,6 +1098,8 @@
    "speed": 36,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 380,
    "build_power": 80,
    "energy_make": 7,
@@ -1032,6 +1124,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_make": 750,
    "energy_storage": 2500,
@@ -1060,6 +1154,8 @@
    "speed": null,
    "range": 430,
    "dps": 158.8,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 440,
    "flags": [
     "stealth",
@@ -1081,12 +1177,15 @@
    "speed": 37.5,
    "range": 300,
    "dps": 187.5,
+   "dps_air": 187.5,
+   "air": "188 dps against aircraft, its full damage",
    "sight": 450,
    "build_power": 300,
    "energy_make": 30,
    "flags": [
     "cloak",
     "amphibious",
+    "anti_air",
     "sonar"
    ],
    "gloss": "the one unit you cannot lose; builds the base, D-guns anything at 250, laser at 300",
@@ -1107,6 +1206,8 @@
    "speed": 78,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 500,
    "build_power": 150,
    "energy_make": 15,
@@ -1131,6 +1232,8 @@
    "speed": 54,
    "range": 765,
    "dps": 141.2,
+   "dps_air": 35.3,
+   "air": "35 dps against aircraft (25% of its ground damage)",
    "sight": 500,
    "flags": [
     "amphibious",
@@ -1154,6 +1257,8 @@
    "speed": 60,
    "range": 500,
    "dps": 357,
+   "dps_air": 24,
+   "air": "24 dps against aircraft (7% of its ground damage)",
    "sight": 600,
    "flags": [
     "needs_energy_to_fire",
@@ -1180,6 +1285,8 @@
    "speed": 65.4,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 400,
    "build_power": 125,
    "energy_make": 7,
@@ -1204,6 +1311,8 @@
    "speed": 124,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 430,
    "build_power": 75,
    "energy_make": 20,
@@ -1229,6 +1338,8 @@
    "speed": 54,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 330,
    "build_power": 90,
    "energy_make": 10,
@@ -1252,6 +1363,8 @@
    "speed": 104.7,
    "range": 280,
    "dps": 135,
+   "dps_air": 30,
+   "air": "30 dps against aircraft (22% of its ground damage)",
    "sight": 375,
    "flags": [
     "floats"
@@ -1275,11 +1388,14 @@
    "speed": 37.5,
    "range": 300,
    "dps": 187.5,
+   "dps_air": 187.5,
+   "air": "188 dps against aircraft, its full damage",
    "sight": 450,
    "build_power": 300,
    "energy_make": 15,
    "flags": [
     "amphibious",
+    "anti_air",
     "sonar"
    ],
    "gloss": "a look-alike commander with a weak D-gun and 300 build power; bait and front-line builder",
@@ -1302,6 +1418,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 210,
    "flags": [],
    "gloss": "a fake fusion for 270 metal that makes nothing; draws bombers away from the real one",
@@ -1322,6 +1440,8 @@
    "speed": 210,
    "range": 520,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 520,
    "flags": [
     "paralyzer",
@@ -1357,8 +1477,11 @@
    "speed": null,
    "range": 600,
    "dps": 150,
+   "dps_air": 150,
+   "air": "150 dps against aircraft, its full damage",
    "sight": 617,
    "flags": [
+    "anti_air",
     "sonar"
    ],
    "gloss": "240-metal coastal torpedo launcher on land, 150 dps at 600 with sonar; guards shore buildings from ships and subs",
@@ -1387,6 +1510,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 1,
    "flags": [],
    "gloss": "8-metal wall block with 2800 health; funnels tier-1 units and stops low shots; tier-2 tanks roll over it",
@@ -1409,6 +1534,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 455,
    "flags": [
     "emp"
@@ -1431,6 +1558,8 @@
    "speed": 53.9,
    "range": 2450,
    "dps": 1248.8,
+   "dps_air": 352.9,
+   "air": "353 dps against aircraft (28% of its ground damage)",
    "sight": 689,
    "flags": [
     "floats"
@@ -1460,6 +1589,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_storage": 6000,
    "flags": [],
@@ -1491,6 +1622,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 560,
    "energy_upkeep": 3,
    "flags": [
@@ -1514,6 +1647,8 @@
    "speed": 75,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 380,
    "build_power": 140,
    "energy_make": 12,
@@ -1537,6 +1672,8 @@
    "speed": 111.3,
    "range": 230,
    "dps": 120,
+   "dps_air": 40,
+   "air": "40 dps against aircraft (33% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 380,
    "flags": [],
    "gloss": "tier-2 fast raider bot (speed 111); 120 dps at 230; kills what is unguarded, loses stand-up fights",
@@ -1557,6 +1694,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_upkeep": 150,
    "flags": [
@@ -1581,6 +1720,8 @@
    "speed": 168,
    "range": 180,
    "dps": 35,
+   "dps_air": 2,
+   "air": "2 dps against aircraft (6% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 635,
    "flags": [],
    "gloss": "31-metal scout car, speed 168, sight 635; finds the enemy and kills bare extractors; dies to anything",
@@ -1601,6 +1742,8 @@
    "speed": 30,
    "range": 700,
    "dps": 114.3,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 510,
    "flags": [],
    "gloss": "1400-metal plasma bot, 800-damage shell with 300 area at 700; kills packed armies, slow and alone it dies",
@@ -1626,6 +1769,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 1,
    "flags": [
     "submerged",
@@ -1655,9 +1800,12 @@
    "speed": null,
    "range": 950,
    "dps": 1.7,
+   "dps_air": 208.3,
+   "air": "anti-air only: 208 dps against aircraft",
    "sight": 375,
    "flags": [
-    "stealth"
+    "stealth",
+    "anti_air"
    ],
    "gloss": "330-metal pop-up anti-air missile battery at 950; kills bombers and gunships, hides when idle; nothing against ground",
    "prose": "The Ferret is the pop-up anti-air missile battery: 330 metal and 5700 energy, 1600 health, fast missiles at range 950 for aircraft only, retracting out of sight when idle and invisible to radar. It is the mid-cost anti-air that kills bombers and gunships rather than just scouts, and it hides from air scouts until they are in range. Against ground it does nothing."
@@ -1678,9 +1826,12 @@
    "speed": null,
    "range": 850,
    "dps": 2,
+   "dps_air": 500,
+   "air": "anti-air only: 500 dps against aircraft",
    "sight": 525,
    "flags": [
     "submerged",
+    "anti_air",
     "on_water"
    ],
    "gloss": "the tier-2 flak gun on water, 820 metal, wide bursts at 850 against aircraft",
@@ -1705,6 +1856,8 @@
    "speed": null,
    "range": 630,
    "dps": 233.3,
+   "dps_air": 57.8,
+   "air": "58 dps against aircraft (25% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 630,
    "flags": [
     "submerged",
@@ -1733,6 +1886,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 286,
    "build_power": 150,
    "flags": [
@@ -1757,6 +1912,8 @@
    "speed": 69,
    "range": 650,
    "dps": 77.3,
+   "dps_air": 10.6,
+   "air": "11 dps against aircraft (14% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 400,
    "flags": [],
    "gloss": "tier-2 skirmish bot; 650-range mortar outranges every tower but plasma batteries; fast for its range",
@@ -1777,9 +1934,12 @@
    "speed": 289.2,
    "range": 680,
    "dps": 13.3,
+   "dps_air": 138.9,
+   "air": "anti-air only: 139 dps against aircraft",
    "sight": 430,
    "flags": [
-    "flies"
+    "flies",
+    "anti_air"
    ],
    "gloss": "tier-1 fighter, speed 289, missiles at 680 against aircraft only; the answer to enemy air, useless against ground",
    "prose": "The Falcon is the tier-1 fighter: 73 metal, 167 health, speed 289, a homing missile at range 680 that hurts only aircraft. It is the most effective tier-1 air defence because it reaches any part of the map, and a patrol of them in front of the base stops scouts, Banshees (armkam) and bombers; sent ahead of a bombing run they break the enemy's fighter wall. It cannot hit ground at all. Build them once enemy aircraft have been seen."
@@ -1802,8 +1962,12 @@
    "speed": null,
    "range": 850,
    "dps": 2,
+   "dps_air": 500,
+   "air": "anti-air only: 500 dps against aircraft",
    "sight": 525,
-   "flags": [],
+   "flags": [
+    "anti_air"
+   ],
    "gloss": "820-metal tier-2 flak gun at 850; wide bursts shatter groups of aircraft; nothing against ground",
    "prose": "The Arbalest is the tier-2 flak gun: 820 metal and 13000 energy, 1750 health, rapid flak at range 850 whose wide bursts shatter most aircraft in a formation. It is the answer to massed bombers and gunships around a base or on a front; missile anti-air reaches further and flak kills groups. Only the tier-2 constructors and the Consul (armconsul) build it, and it does nothing against ground."
   },
@@ -1822,6 +1986,8 @@
    "speed": 101,
    "range": 180,
    "dps": 90,
+   "dps_air": 20,
+   "air": "20 dps against aircraft (22% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 350,
    "flags": [],
    "gloss": "fast tier-1 raider tank (speed 101), 90 dps at 180; kills economy and rocket bots, dies to Pounders",
@@ -1842,6 +2008,8 @@
    "speed": 132,
    "range": 140,
    "dps": 40,
+   "dps_air": 3.3,
+   "air": "3 dps against aircraft (8% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 600,
    "flags": [],
    "gloss": "21-metal scout; sees 600, dies to anything; finds the enemy and kills unguarded extractors",
@@ -1862,6 +2030,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 78,
    "flags": [
     "stealth"
@@ -1889,6 +2059,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "flags": [
     "submerged",
@@ -1915,6 +2087,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 1,
    "flags": [],
    "gloss": "40-metal tier-2 wall with 8900 health; stops tier-1 and tier-2 units and low shots; tier-3 plows through",
@@ -1940,6 +2114,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 760,
    "flags": [
     "submerged",
@@ -1968,9 +2144,12 @@
    "speed": null,
    "range": 765,
    "dps": 0.6,
+   "dps_air": 67.6,
+   "air": "anti-air only: 68 dps against aircraft",
    "sight": 455,
    "flags": [
     "submerged",
+    "anti_air",
     "on_water"
    ],
    "gloss": "the light anti-air tower on water, 80 metal, missiles at 765; early cover for a naval base",
@@ -1993,6 +2172,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_make": 750,
    "energy_storage": 2500,
@@ -2017,6 +2198,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_storage": 1000,
    "flags": [],
@@ -2044,6 +2227,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_make": 300,
    "energy_storage": 1000,
@@ -2068,6 +2253,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_make": 750,
    "energy_storage": 1500,
@@ -2090,6 +2277,8 @@
    "speed": 70.5,
    "range": 220,
    "dps": 87.5,
+   "dps_air": 8,
+   "air": "8 dps against aircraft (9% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 494,
    "flags": [
     "stealth"
@@ -2118,6 +2307,8 @@
    "speed": null,
    "range": 1220,
    "dps": 105.9,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 455,
    "flags": [],
    "gloss": "1250-metal plasma battery, 300-damage shells at 1220; kills extractors, radar and turrets behind the line; needs a spotter",
@@ -2138,6 +2329,8 @@
    "speed": 46.2,
    "range": 380,
    "dps": 60,
+   "dps_air": 12.1,
+   "air": "12 dps against aircraft (20% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 380,
    "flags": [],
    "gloss": "the tier-1 line bot; plasma at 380, wins most equal-metal fights, loses to Pounders and kiting",
@@ -2158,10 +2351,13 @@
    "speed": 358,
    "range": 740,
    "dps": 17.1,
+   "dps_air": 535.7,
+   "air": "anti-air only: 536 dps against aircraft",
    "sight": 430,
    "flags": [
     "stealth",
-    "flies"
+    "flies",
+    "anti_air"
    ],
    "gloss": "tier-2 stealth fighter, speed 358, missiles at 740; invisible to radar; kills heavy and massed aircraft",
    "prose": "The Highwind is the tier-2 fighter: 150 metal, 370 health, speed 358, homing missiles at range 740 for aircraft only, and invisible to radar so the enemy cannot count them. It kills heavy aircraft and groups of them, and sent ahead of bombers it opens a gap in the enemy fighter wall. It cannot hit ground."
@@ -2186,6 +2382,8 @@
    "speed": null,
    "range": 620,
    "dps": 215,
+   "dps_air": 19.4,
+   "air": "19 dps against aircraft (9% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 494,
    "flags": [
     "needs_energy_to_fire"
@@ -2214,6 +2412,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 286,
    "build_power": 150,
    "flags": [],
@@ -2235,6 +2435,8 @@
    "speed": 110,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 430,
    "flags": [
     "transport",
@@ -2258,6 +2460,8 @@
    "speed": 43,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 330,
    "energy_upkeep": 80,
    "flags": [
@@ -2286,6 +2490,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 195,
    "energy_upkeep": 40,
    "flags": [
@@ -2309,6 +2515,8 @@
    "speed": 54,
    "range": 380,
    "dps": 88,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 330,
    "flags": [],
    "gloss": "tier-1 twin rocket tank, 660 damage a volley with wide splash at 380; kills packed groups, poor vs swarms",
@@ -2331,9 +2539,12 @@
    "speed": 56.2,
    "range": 760,
    "dps": 0.5,
+   "dps_air": 55,
+   "air": "anti-air only: 55 dps against aircraft",
    "sight": 380,
    "flags": [
-    "amphibious"
+    "amphibious",
+    "anti_air"
    ],
    "gloss": "tier-1 anti-air bot; missiles at 760 only hurt aircraft, useless against ground; walks under water",
    "prose": "The Crossbow is the tier-1 mobile anti-air: 125 metal, 630 health, speed 56, missiles at range 760 that do full damage to aircraft and 1 point to anything else, so it is nothing against ground units and a Pawn (armpw) kills it. It is worth building only after enemy aircraft or an aircraft plant have been seen; two or three walking with the army stop Banshees (armkam) and bombers from picking off the line. It can walk under water but cannot fire from there."
@@ -2358,6 +2569,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 494,
    "flags": [
     "stealth"
@@ -2380,6 +2593,8 @@
    "speed": 184.8,
    "range": 350,
    "dps": 38.6,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 520,
    "flags": [
     "flies"
@@ -2403,6 +2618,8 @@
    "speed": null,
    "range": 800,
    "dps": 540,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 700,
    "flags": [
     "submerged",
@@ -2434,6 +2651,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 290,
    "build_power": 150,
    "flags": [],
@@ -2455,9 +2674,12 @@
    "speed": 285,
    "range": 400,
    "dps": 187.5,
+   "dps_air": 187.5,
+   "air": "188 dps against aircraft, its full damage",
    "sight": 500,
    "flags": [
     "flies",
+    "anti_air",
     "sonar"
    ],
    "gloss": "tier-2 torpedo bomber, three 375-damage homing torpedoes; kills ships and submarines, nothing against land",
@@ -2478,6 +2700,8 @@
    "speed": 90,
    "range": 600,
    "dps": 147.1,
+   "dps_air": 42.9,
+   "air": "43 dps against aircraft (29% of its ground damage)",
    "sight": 390,
    "flags": [
     "needs_energy_to_fire"
@@ -2500,6 +2724,8 @@
    "speed": 294.9,
    "range": 250,
    "dps": 625,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 455,
    "flags": [
     "flies"
@@ -2529,6 +2755,8 @@
    "speed": null,
    "range": 430,
    "dps": 160.7,
+   "dps_air": 10.7,
+   "air": "11 dps against aircraft (7% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 494,
    "flags": [
     "needs_energy_to_fire"
@@ -2551,6 +2779,8 @@
    "speed": 99,
    "range": 710,
    "dps": 250.5,
+   "dps_air": 69,
+   "air": "69 dps against aircraft (28% of its ground damage)",
    "sight": 500,
    "flags": [
     "needs_energy_to_fire",
@@ -2575,6 +2805,8 @@
    "speed": 50.1,
    "range": 575,
    "dps": 205.6,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 620,
    "flags": [
     "hover",
@@ -2608,6 +2840,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "flags": [],
    "gloss": "converts 70 energy a second into 1 metal for 1 metal to build; for surplus energy only, chains explosions",
@@ -2628,6 +2862,8 @@
    "speed": 42,
    "range": 950,
    "dps": 531.9,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 650,
    "flags": [
     "needs_energy_to_fire"
@@ -2651,6 +2887,8 @@
    "speed": 94.5,
    "range": 600,
    "dps": 336.2,
+   "dps_air": 42.9,
+   "air": "43 dps against aircraft (13% of its ground damage)",
    "sight": 455,
    "flags": [
     "amphibious",
@@ -2675,6 +2913,8 @@
    "speed": 40.5,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 900,
    "flags": [],
    "gloss": "mobile radar bot, 2200 radar and 900 sight; lets skirmishers and artillery use their range; unarmed",
@@ -2695,6 +2935,8 @@
    "speed": 60,
    "range": 820,
    "dps": 85.7,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 330,
    "flags": [],
    "gloss": "tier-2 mobile artillery, 820 range; kills towers from outside their reach; slow and helpless if reached",
@@ -2716,6 +2958,8 @@
    "speed": 50,
    "range": 365,
    "dps": 265,
+   "dps_air": 65,
+   "air": "65 dps against aircraft (25% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 550,
    "flags": [],
    "gloss": "tier-2 skirmish bot, 265 dps at 365, repairs itself, range grows with kills; loses to swarms and heavies",
@@ -2738,6 +2982,8 @@
    "speed": null,
    "range": 2400,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 600,
    "flags": [
     "needs_energy_to_fire"
@@ -2760,6 +3006,8 @@
    "speed": 33,
    "range": 1300,
    "dps": 105.6,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 330,
    "flags": [
     "stealth"
@@ -2793,6 +3041,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_upkeep": 3,
    "flags": [],
@@ -2815,6 +3065,8 @@
    "speed": 63.9,
    "range": 710,
    "dps": 50,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 509,
    "flags": [
     "hover",
@@ -2839,6 +3091,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 83.2,
    "flags": [
     "stealth"
@@ -2863,6 +3117,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 83.2,
    "flags": [
     "stealth"
@@ -2886,6 +3142,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 83.2,
    "flags": [
     "stealth"
@@ -2908,6 +3166,8 @@
    "speed": 66,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 300,
    "build_power": 200,
    "flags": [
@@ -2931,6 +3191,8 @@
    "speed": 75,
    "range": 220,
    "dps": 5,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 450,
    "build_power": 40,
    "flags": [
@@ -2956,6 +3218,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "flags": [],
    "gloss": "tier-2 converter, 600 energy a second into 10.3 metal for 380 metal; barely better than tier 1",
@@ -2978,6 +3242,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_upkeep": 20,
    "flags": [],
@@ -2999,8 +3265,11 @@
    "speed": 63,
    "range": 1550,
    "dps": 108.8,
+   "dps_air": 69,
+   "air": "69 dps against aircraft (64% of its ground damage)",
    "sight": 318.5,
    "flags": [
+    "anti_air",
     "floats"
    ],
    "gloss": "tier-2 missile cruiser, 650-damage rockets at 1550 over terrain; levels a shore base from beyond every turret's reach",
@@ -3028,6 +3297,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "metal_storage": 3000,
    "flags": [],
@@ -3055,6 +3326,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 380,
    "build_power": 200,
    "flags": [],
@@ -3080,6 +3353,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 380,
    "build_power": 200,
    "flags": [
@@ -3105,6 +3380,8 @@
    "speed": null,
    "range": 730,
    "dps": 421.9,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 598,
    "flags": [],
    "gloss": "680-metal pop-up gauss turret, 422 dps at 730, hunkers to double its health; loses to skirmishers that out-range it",
@@ -3125,6 +3402,8 @@
    "speed": 375,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 865,
    "flags": [
     "flies"
@@ -3148,6 +3427,8 @@
    "speed": 63,
    "range": 305,
    "dps": 77.3,
+   "dps_air": 16.7,
+   "air": "17 dps against aircraft (22% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 500,
    "flags": [
     "amphibious",
@@ -3175,6 +3456,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 169,
    "build_power": 300,
    "flags": [
@@ -3200,9 +3483,12 @@
    "speed": 258,
    "range": 1280,
    "dps": 190,
+   "dps_air": 190,
+   "air": "190 dps against aircraft, its full damage",
    "sight": 430,
    "flags": [
-    "flies"
+    "flies",
+    "anti_air"
    ],
    "gloss": "tier-2 strategic bomber, five 266-damage bombs; four take a fusion in a pass; dies to fighters and flak",
    "prose": "The Blizzard is the tier-2 bomber: 230 metal, 1130 health, speed 258, a run of five 266-damage bombs. It is for buildings: four of them kill a Fusion Reactor (armfus) in one pass, and it hurts a group of units if the run is laid across their path. It is cheaper and weaker than the Hailstorm (corhurc); fighters and flak kill it, so scout and escort."
@@ -3222,8 +3508,11 @@
    "speed": 81,
    "range": 470,
    "dps": 116.7,
+   "dps_air": 61.7,
+   "air": "62 dps against aircraft (53% of its ground damage)",
    "sight": 500,
    "flags": [
+    "anti_air",
     "floats"
    ],
    "gloss": "tier-1 assault frigate, plasma at 470, 2150 health; beats destroyers in numbers, no anti-submarine weapon",
@@ -3245,9 +3534,12 @@
    "speed": 93,
    "range": 760,
    "dps": 66.2,
+   "dps_air": 70.8,
+   "air": "71 dps against aircraft, its full damage",
    "sight": 750,
    "flags": [
     "stealth",
+    "anti_air",
     "sonar",
     "floats"
    ],
@@ -3270,6 +3562,8 @@
    "speed": 87,
    "range": 180,
    "dps": 90,
+   "dps_air": 20,
+   "air": "20 dps against aircraft (22% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 429,
    "flags": [],
    "gloss": "fast cheap raider bot; kills builders, extractors and lone turrets, loses to line bots and riot tanks",
@@ -3297,6 +3591,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 680,
    "flags": [],
    "gloss": "60-metal radar tower, 2100 radar, 680 sight; shows what moves within range as dots; jammed, blocked by hills",
@@ -3317,6 +3613,8 @@
    "speed": 69,
    "range": 475,
    "dps": 1050,
+   "dps_air": 200,
+   "air": "200 dps against aircraft (19% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 450,
    "flags": [
     "needs_energy_to_fire",
@@ -3340,6 +3638,8 @@
    "speed": 66,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 300,
    "build_power": 150,
    "flags": [
@@ -3365,6 +3665,8 @@
    "speed": 78,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 430,
    "build_power": 200,
    "flags": [
@@ -3396,8 +3698,12 @@
    "speed": null,
    "range": 765,
    "dps": 0.6,
+   "dps_air": 67.6,
+   "air": "anti-air only: 68 dps against aircraft",
    "sight": 455,
-   "flags": [],
+   "flags": [
+    "anti_air"
+   ],
    "gloss": "80-metal light anti-air tower, missiles at 765; stops scouts and light aircraft, nothing against ground; needs radar",
    "prose": "The Nettle is the light anti-air tower: 80 metal and 900 energy, 330 health, missiles at range 765 that do full damage to aircraft and nothing worth counting to anything else. A few around a base or an extractor line stop Blinks (armpeep), Banshees (armkam) and lone bombers; its rate of fire is low, so a swarm or a heavy gunship gets through unless several stand together, and it fires further than it sees, so radar coverage makes it work. Build it only after enemy aircraft or an aircraft plant have been seen."
   },
@@ -3416,8 +3722,12 @@
    "speed": 50.7,
    "range": 475,
    "dps": 41.3,
+   "dps_air": 41.3,
+   "air": "41 dps against aircraft, its full damage, and only when nothing on the ground is in range",
    "sight": 380,
-   "flags": [],
+   "flags": [
+    "anti_air"
+   ],
    "gloss": "rocket bot that outranges light turrets (475 vs 430); slow single rockets, loses to anything that closes",
    "prose": "The Rocketeer fires one 157-damage rocket every 3.8 seconds at range 475: 120 metal, 720 health, speed 51. Its range is more than a Sentry (armllt) or Guard (corllt) has, so a group held at range kills light turrets and the extractors behind them; it is worth building for that. Against anything that moves it is poor, because the rocket is slow and unguided and the engine barely leads a moving target: in equal-metal duels it lost to the Thug (corthud), Incisor (corgator), Blitz (armflash) and Brute (corraid), and it is inside the reach of a Twin Guard (corhllt, 490) and heavy laser tower (620). Give it a screen of Pawns (armpw) or Maces (armham) in front, and never let it fight raiders alone. It cannot hit aircraft."
   },
@@ -3438,6 +3748,8 @@
    "speed": 67.2,
    "range": 700,
    "dps": 146.9,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 500,
    "flags": [
     "sonar",
@@ -3461,6 +3773,8 @@
    "speed": 156.9,
    "range": 425,
    "dps": 66.7,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 595,
    "flags": [
     "needs_energy_to_fire",
@@ -3484,8 +3798,12 @@
    "speed": 55,
    "range": 700,
    "dps": 26.1,
+   "dps_air": 48,
+   "air": "48 dps against aircraft, its full damage",
    "sight": 620,
-   "flags": [],
+   "flags": [
+    "anti_air"
+   ],
    "gloss": "tier-1 missile truck, 550 range against ground and 700 against air; low damage, outranges light towers",
    "prose": "The Whistler is a light missile truck: 150 metal, 820 health, speed 55, a ground missile at range 550 doing 86 damage every 3.3 seconds (26 a second) and a separate homing anti-air missile at 700. It outranges the light towers and the commander and keeps chipping from a distance, and it is the vehicle plant's only anti-air; its damage is low and it loses any close fight. Keep it at range behind Stouts (armstump) with a fight order rather than attack, so it does not close."
   },
@@ -3504,9 +3822,12 @@
    "speed": 267.3,
    "range": 1280,
    "dps": 142.9,
+   "dps_air": 142.9,
+   "air": "143 dps against aircraft, its full damage, and only when nothing on the ground is in range",
    "sight": 455,
    "flags": [
-    "flies"
+    "flies",
+    "anti_air"
    ],
    "gloss": "tier-1 seaplane bomber, five 200-damage bombs; hits slow ships and static naval targets; loses to fighters and flak",
    "prose": "The Tsunami is a seaplane bomber: 240 metal, 1170 health, speed 267, a run of five 200-damage bombs every 7 seconds. It hits slow ships, naval buildings and grouped units, and it makes surprise runs on a land base from the sea; tier-1 anti-air alone struggles to stop it, fighters and flak do. Scout first, send fighters ahead, and pair with a radar plane for targets."
@@ -3526,6 +3847,8 @@
    "speed": 51,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 450,
    "flags": [
     "antinuke"
@@ -3550,6 +3873,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 240,
    "energy_upkeep": 125,
    "flags": [],
@@ -3571,6 +3896,8 @@
    "speed": 210,
    "range": 600,
    "dps": 114,
+   "dps_air": 5,
+   "air": "5 dps against aircraft (4% of its ground damage)",
    "sight": 535,
    "flags": [
     "flies",
@@ -3594,6 +3921,8 @@
    "speed": 57,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 900,
    "flags": [],
    "gloss": "tier-2 radar vehicle, 2300 radar and 900 sight; lets artillery and skirmishers use their range; unarmed",
@@ -3614,6 +3943,8 @@
    "speed": 338.1,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 1100,
    "flags": [
     "flies",
@@ -3637,10 +3968,13 @@
    "speed": 45,
    "range": 800,
    "dps": 206.2,
+   "dps_air": 206.2,
+   "air": "206 dps against aircraft, its full damage",
    "sight": 550,
    "flags": [
     "submerged",
     "stealth",
+    "anti_air",
     "sonar"
    ],
    "gloss": "tier-2 battle submarine, 825-damage torpedoes at 800; the naval sniper, kills heavy ships; loses to Barracudas",
@@ -3661,9 +3995,12 @@
    "speed": 310.8,
    "range": 710,
    "dps": 14.4,
+   "dps_air": 252,
+   "air": "anti-air only: 252 dps against aircraft",
    "sight": 430,
    "flags": [
-    "flies"
+    "flies",
+    "anti_air"
    ],
    "gloss": "tier-1 seaplane fighter, air-to-air missiles at 710; escorts bombers and ships, submerges to escape",
    "prose": "The Cyclone is the seaplane fighter: 90 metal, 220 health, speed 311, anti-air missiles at range 710 that do nothing to ground. It escorts seaplane bombers and a fleet against enemy aircraft and can submerge under water to escape fighters. Against anything on the ground it is useless."
@@ -3684,6 +4021,8 @@
    "speed": 113.7,
    "range": 230,
    "dps": 60,
+   "dps_air": 11.7,
+   "air": "12 dps against aircraft (19% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 550,
    "flags": [
     "hover",
@@ -3709,6 +4048,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "build_power": 1800,
    "energy_storage": 1400,
@@ -3733,6 +4074,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "build_power": 1800,
    "energy_storage": 1400,
@@ -3761,6 +4104,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 455,
    "flags": [
     "nuke"
@@ -3783,6 +4128,8 @@
    "speed": 45,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 390,
    "energy_upkeep": 90,
    "flags": [
@@ -3807,6 +4154,8 @@
    "speed": 33,
    "range": 900,
    "dps": 250,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 455,
    "flags": [
     "needs_energy_to_fire"
@@ -3838,6 +4187,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_make": 20,
    "flags": [],
@@ -3860,6 +4211,8 @@
    "speed": 71.5,
    "range": 280,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 550,
    "build_power": 150,
    "flags": [
@@ -3885,6 +4238,8 @@
    "speed": 47,
    "range": 575,
    "dps": 160.7,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 440,
    "flags": [],
    "gloss": "all-terrain rocket spider, three rockets at 575; climbs cliffs to reach turrets; poor against fast targets",
@@ -3905,6 +4260,8 @@
    "speed": 65,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 550,
    "build_power": 50,
    "flags": [
@@ -3928,6 +4285,8 @@
    "speed": 300,
    "range": 1280,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 430,
    "flags": [
     "paralyzer",
@@ -3953,6 +4312,8 @@
    "speed": 75,
    "range": 350,
    "dps": 80.8,
+   "dps_air": 15,
+   "air": "15 dps against aircraft (19% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 350,
    "flags": [],
    "gloss": "tier-1 medium tank, 1800 health, plasma at 350; the vehicle line unit, loses to Maces and Pounders",
@@ -3973,9 +4334,12 @@
    "speed": 66,
    "range": 500,
    "dps": 85.5,
+   "dps_air": 85.5,
+   "air": "86 dps against aircraft, its full damage",
    "sight": 400,
    "flags": [
     "submerged",
+    "anti_air",
     "sonar"
    ],
    "gloss": "tier-1 submarine, unguided torpedoes at 500; invisible without sonar, kills underwater extractors and unguarded fleets",
@@ -3996,9 +4360,12 @@
    "speed": 81,
    "range": 400,
    "dps": 175,
+   "dps_air": 175,
+   "air": "175 dps against aircraft, its full damage",
    "sight": 390,
    "flags": [
     "submerged",
+    "anti_air",
     "sonar"
    ],
    "gloss": "tier-2 fast submarine, homing torpedoes at 400; the submarine killer, hunts battle subs; a few in every tier-2 navy",
@@ -4028,6 +4395,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 340,
    "build_power": 150,
    "flags": [
@@ -4054,6 +4423,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_upkeep": 100,
    "flags": [],
@@ -4075,6 +4446,8 @@
    "speed": 54,
    "range": 540,
    "dps": 967.7,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 600,
    "flags": [
     "paralyzer",
@@ -4100,9 +4473,12 @@
    "speed": 250,
    "range": 1280,
    "dps": 91.7,
+   "dps_air": 91.7,
+   "air": "92 dps against aircraft, its full damage",
    "sight": 430,
    "flags": [
-    "flies"
+    "flies",
+    "anti_air"
    ],
    "gloss": "tier-1 bomber, five 110-damage bombs in a line; kills buildings and slow groups; loses to fighters and anti-air",
    "prose": "The Stormbringer is the tier-1 bomber: 150 metal, 670 health, speed 250, a run of five 110-damage bombs dropped in a line. It kills buildings, slow units and packed groups, and a few of them level an undefended expansion; fighters and any anti-air kill it. Scout the target and its anti-air first, send Falcons (armfig) ahead, and line the run up with the target's layout; it is slightly weaker than the Whirlwind (corshad)."
@@ -4128,6 +4504,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 130,
    "flags": [
     "submerged",
@@ -4156,9 +4534,12 @@
    "speed": null,
    "range": 500,
    "dps": 186.7,
+   "dps_air": 186.7,
+   "air": "187 dps against aircraft, its full damage",
    "sight": 494,
    "flags": [
     "submerged",
+    "anti_air",
     "sonar",
     "on_water"
    ],
@@ -4183,6 +4564,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 169,
    "energy_storage": 40000,
    "flags": [],
@@ -4207,6 +4590,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 195,
    "metal_storage": 10000,
    "flags": [],
@@ -4229,6 +4614,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_make": 1250,
    "energy_storage": 12000,
@@ -4259,6 +4646,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 182,
    "energy_storage": 6000,
    "flags": [
@@ -4283,6 +4672,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 143,
    "energy_make": 1200,
    "energy_storage": 2500,
@@ -4312,6 +4703,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_make": 300,
    "energy_storage": 1000,
@@ -4334,6 +4727,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 182,
    "energy_upkeep": 20,
    "flags": [
@@ -4358,6 +4753,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 156,
    "flags": [
     "on_water"
@@ -4385,6 +4782,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 182,
    "metal_storage": 3000,
    "flags": [
@@ -4409,6 +4808,8 @@
    "speed": 84,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 260,
    "flags": [
     "amphibious"
@@ -4431,6 +4832,8 @@
    "speed": 33,
    "range": 1450,
    "dps": 316.2,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 625,
    "flags": [
     "gantry"
@@ -4456,6 +4859,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 155,
    "energy_upkeep": 125,
    "flags": [
@@ -4488,6 +4893,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "build_power": 150,
    "flags": [],
@@ -4511,6 +4918,8 @@
    "speed": null,
    "range": 5750,
    "dps": 2708.3,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 700,
    "flags": [
     "needs_energy_to_fire",
@@ -4534,6 +4943,8 @@
    "speed": 45,
    "range": 325,
    "dps": 183.3,
+   "dps_air": 30,
+   "air": "30 dps against aircraft (16% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 380,
    "flags": [],
    "gloss": "tough anti-swarm bot; twin lasers shred Pawns and Grunts at 325; slow, loses to Pounders and stand-off",
@@ -4562,6 +4973,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "flags": [],
    "gloss": "40-metal wind generator; output follows the map's wind, average 12 on Quicksilver; costs energy to build",
@@ -4582,8 +4995,12 @@
    "speed": 70.5,
    "range": 775,
    "dps": 1.4,
+   "dps_air": 272.7,
+   "air": "anti-air only: 273 dps against aircraft",
    "sight": 390,
-   "flags": [],
+   "flags": [
+    "anti_air"
+   ],
    "gloss": "tier-2 flak tank; wide-area flak at 775 kills groups of aircraft; nothing against ground",
    "prose": "The Shredder is the tier-2 flak vehicle: 450 metal, 2600 health, speed 70.5, rapid flak at range 775 whose wide bursts kill tier-1 and most tier-2 aircraft in groups. It has no ground weapon at all and needs the army for cover; flak's range is shorter than missile anti-air but far better against a formation. Build it only once enemy air has been seen."
   },
@@ -4602,6 +5019,8 @@
    "speed": 48,
    "range": 280,
    "dps": 129.4,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 380,
    "flags": [
     "needs_energy_to_fire"
@@ -4625,9 +5044,12 @@
    "speed": 34.5,
    "range": 1300,
    "dps": 0.9,
+   "dps_air": 233.1,
+   "air": "anti-air only: 233 dps against aircraft",
    "sight": 390,
    "flags": [
-    "amphibious"
+    "amphibious",
+    "anti_air"
    ],
    "gloss": "tier-2 heavy anti-air bot, missiles at 1300 and flak at 775; air only, walks under water",
    "prose": "The Manticore is the tier-2 mobile anti-air: 650 metal, 3200 health, speed 34.5, a missile launcher at range 1300 and a flak cannon at 775, both for aircraft only. It covers an army from the back against bombers and gunships and can walk under water, though not fire from there. Against ground it does nothing, so it is worth building only once the enemy has shown air."
@@ -4649,6 +5071,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 305.5,
    "build_power": 600,
    "flags": [],
@@ -4670,6 +5094,8 @@
    "speed": 181.5,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 430,
    "build_power": 130,
    "energy_make": 10,
@@ -4694,6 +5120,8 @@
    "speed": 33,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 380,
    "build_power": 220,
    "energy_make": 14,
@@ -4716,6 +5144,8 @@
    "speed": 64.8,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 156,
    "build_power": 350,
    "energy_make": 30,
@@ -4740,6 +5170,8 @@
    "speed": 49.5,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 330,
    "build_power": 310,
    "energy_make": 20,
@@ -4767,6 +5199,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 260,
    "energy_make": 80,
    "flags": [],
@@ -4790,6 +5224,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_make": 3000,
    "energy_storage": 9000,
@@ -4814,6 +5250,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_make": 1250,
    "energy_storage": 12000,
@@ -4837,9 +5275,12 @@
    "speed": 88.5,
    "range": 700,
    "dps": 1.4,
+   "dps_air": 84.5,
+   "air": "anti-air only: 84 dps against aircraft",
    "sight": 509,
    "flags": [
     "hover",
+    "anti_air",
     "sonar",
     "floats"
    ],
@@ -4862,6 +5303,8 @@
    "speed": 81,
    "range": 215,
    "dps": 74,
+   "dps_air": 14,
+   "air": "14 dps against aircraft (19% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 520,
    "flags": [],
    "gloss": "cheap fast raider bot; kills builders, extractors and scouts, loses to Pawns, Thugs and light tanks",
@@ -4883,6 +5326,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 288.6,
    "build_power": 600,
    "flags": [],
@@ -4905,6 +5350,8 @@
    "speed": 55.5,
    "range": 300,
    "dps": 132.4,
+   "dps_air": 33.5,
+   "air": "34 dps against aircraft (25% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 400,
    "flags": [
     "needs_energy_to_fire",
@@ -4932,6 +5379,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 240,
    "build_power": 300,
    "flags": [
@@ -4956,6 +5405,8 @@
    "speed": 63,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 1000,
    "build_power": 1000,
    "energy_make": 300,
@@ -4991,6 +5442,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "build_power": 150,
    "flags": [],
@@ -5012,6 +5465,8 @@
    "speed": 159,
    "range": 410,
    "dps": 110.9,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 550,
    "flags": [
     "flies"
@@ -5038,6 +5493,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 1000,
    "flags": [],
    "gloss": "400-metal tier-2 radar tower, 3500 radar; sees most of a map",
@@ -5058,8 +5515,11 @@
    "speed": 60.5,
    "range": 870,
    "dps": 157.6,
+   "dps_air": 429,
+   "air": "anti-air only: 429 dps against aircraft",
    "sight": 465,
    "flags": [
+    "anti_air",
     "floats"
    ],
    "gloss": "tier-2 anti-air ship, flak and missiles at 870; wipes waves of aircraft light and heavy; sails inside the fleet",
@@ -5080,6 +5540,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 210,
    "flags": [
     "submerged",
@@ -5106,6 +5568,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 301.6,
    "build_power": 600,
    "flags": [
@@ -5130,9 +5594,12 @@
    "speed": null,
    "range": 890,
    "dps": 362.6,
+   "dps_air": 362.6,
+   "air": "363 dps against aircraft, its full damage",
    "sight": 585,
    "flags": [
     "submerged",
+    "anti_air",
     "sonar",
     "on_water"
    ],
@@ -5157,6 +5624,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 286,
    "build_power": 600,
    "flags": [],
@@ -5178,6 +5647,8 @@
    "speed": 321,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 1250,
    "flags": [
     "flies",
@@ -5201,8 +5672,12 @@
    "speed": 54,
    "range": 800,
    "dps": 133.3,
+   "dps_air": 133.3,
+   "air": "133 dps against aircraft, its full damage, and only when nothing on the ground is in range",
    "sight": 650,
-   "flags": [],
+   "flags": [
+    "anti_air"
+   ],
    "gloss": "tier-2 missile tank, 1000-damage homing missile at 800 every 7.5 s; kills most tier-2 in three hits",
    "prose": "The Banisher fires a 1000-damage homing missile with a 128 splash every 7.5 seconds at range 800: 1000 metal, 2500 health, speed 54. It kills fast units that cannot dodge, Hounds (armfido) and Jaguars (armlatnk), most tier-2 threats in two or three hits, and it hits aircraft, though it prefers ground targets so it is unreliable as anti-air alone. It turns slowly and dies if caught; keep it behind Tigers (correap) with a side to the enemy so it can run, and use it as a first strike rather than a line."
   },
@@ -5221,6 +5696,8 @@
    "speed": 53.1,
    "range": 950,
    "dps": 658.9,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 600,
    "flags": [
     "needs_energy_to_fire",
@@ -5246,6 +5723,8 @@
    "speed": null,
    "range": 1650,
    "dps": 324,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 650,
    "energy_make": 450,
    "flags": [
@@ -5269,6 +5748,8 @@
    "speed": 49.5,
    "range": 2550,
    "dps": 1306.6,
+   "dps_air": 352.9,
+   "air": "353 dps against aircraft (27% of its ground damage)",
    "sight": 650,
    "flags": [
     "needs_energy_to_fire",
@@ -5294,6 +5775,8 @@
    "speed": null,
    "range": 6100,
    "dps": 2727.3,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 700,
    "flags": [
     "needs_energy_to_fire",
@@ -5317,6 +5800,8 @@
    "speed": 280.5,
    "range": 220,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 430,
    "flags": [
     "paralyzer",
@@ -5341,6 +5826,8 @@
    "speed": 131,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 430,
    "build_power": 55,
    "energy_make": 5,
@@ -5365,6 +5852,8 @@
    "speed": 38,
    "range": 275,
    "dps": 343.8,
+   "dps_air": 68.8,
+   "air": "69 dps against aircraft (20% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 380,
    "flags": [
     "needs_energy_to_fire"
@@ -5387,6 +5876,8 @@
    "speed": 48,
    "range": 1350,
    "dps": 600,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 700,
    "flags": [
     "gantry"
@@ -5410,6 +5901,8 @@
    "speed": 60.9,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 338,
    "build_power": 115,
    "energy_make": 11,
@@ -5436,6 +5929,8 @@
    "speed": 34.5,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 380,
    "build_power": 85,
    "energy_make": 7,
@@ -5456,12 +5951,15 @@
    "speed": 37.5,
    "range": 300,
    "dps": 187.5,
+   "dps_air": 187.5,
+   "air": "188 dps against aircraft, its full damage",
    "sight": 450,
    "build_power": 300,
    "energy_make": 30,
    "flags": [
     "cloak",
     "amphibious",
+    "anti_air",
     "sonar"
    ],
    "gloss": "the one unit you cannot lose; builds the base, D-guns anything at 262, laser at 300",
@@ -5484,9 +5982,12 @@
    "speed": 53.5,
    "range": 760,
    "dps": 0.5,
+   "dps_air": 55,
+   "air": "anti-air only: 55 dps against aircraft",
    "sight": 380,
    "flags": [
-    "amphibious"
+    "amphibious",
+    "anti_air"
    ],
    "gloss": "tier-1 anti-air bot; missiles at 760 only hurt aircraft, useless against ground; walks under water",
    "prose": "The Trasher is the tier-1 mobile anti-air: 125 metal, 640 health, speed 53, missiles at range 760 that do full damage to aircraft and 1 point to anything else, so against ground it is nothing and a Grunt (corak) kills it. Build it only once enemy aircraft or an aircraft plant have been seen; two or three with the army stop gunships and bombers picking the line apart. It can walk under water but not fire from there."
@@ -5506,6 +6007,8 @@
    "speed": 54,
    "range": 500,
    "dps": 406.8,
+   "dps_air": 45,
+   "air": "45 dps against aircraft (11% of its ground damage)",
    "sight": 600,
    "flags": [
     "needs_energy_to_fire",
@@ -5530,6 +6033,8 @@
    "speed": 114.9,
    "range": 840,
    "dps": 631.2,
+   "dps_air": 95,
+   "air": "95 dps against aircraft (15% of its ground damage)",
    "sight": 494,
    "flags": [
     "needs_energy_to_fire",
@@ -5555,6 +6060,8 @@
    "speed": 60,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 400,
    "build_power": 125,
    "energy_make": 7,
@@ -5579,6 +6086,8 @@
    "speed": 140,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 430,
    "build_power": 75,
    "energy_make": 20,
@@ -5603,6 +6112,8 @@
    "speed": 152.4,
    "range": 430,
    "dps": 72.3,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 595,
    "flags": [
     "flies"
@@ -5625,6 +6136,8 @@
    "speed": 51,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 330,
    "build_power": 95,
    "energy_make": 10,
@@ -5648,11 +6161,14 @@
    "speed": 37.5,
    "range": 300,
    "dps": 187.5,
+   "dps_air": 187.5,
+   "air": "188 dps against aircraft, its full damage",
    "sight": 450,
    "build_power": 300,
    "energy_make": 15,
    "flags": [
     "amphibious",
+    "anti_air",
     "sonar"
    ],
    "gloss": "a look-alike commander with a weak D-gun and 300 build power; bait and front-line builder",
@@ -5673,6 +6189,8 @@
    "speed": 63,
    "range": 700,
    "dps": 1606.7,
+   "dps_air": 250,
+   "air": "250 dps against aircraft (17% of its ground damage)",
    "sight": 500,
    "flags": [
     "gantry"
@@ -5703,8 +6221,11 @@
    "speed": null,
    "range": 600,
    "dps": 150,
+   "dps_air": 150,
+   "air": "150 dps against aircraft, its full damage",
    "sight": 611,
    "flags": [
+    "anti_air",
     "sonar"
    ],
    "gloss": "250-metal coastal torpedo launcher on land, 150 dps at 600 with sonar; guards shore buildings from ships and subs",
@@ -5727,6 +6248,8 @@
    "speed": null,
    "range": 950,
    "dps": 1513.1,
+   "dps_air": 421.9,
+   "air": "422 dps against aircraft (28% of its ground damage)",
    "sight": 780,
    "energy_storage": 1000,
    "flags": [
@@ -5759,6 +6282,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 1,
    "flags": [],
    "gloss": "8-metal wall block with 2800 health; funnels tier-1 units and stops low shots; tier-2 tanks roll over it",
@@ -5780,9 +6305,12 @@
    "speed": null,
    "range": 850,
    "dps": 2,
+   "dps_air": 500,
+   "air": "anti-air only: 500 dps against aircraft",
    "sight": 525,
    "flags": [
     "submerged",
+    "anti_air",
     "on_water"
    ],
    "gloss": "the tier-2 flak gun on water, 850 metal, wide bursts at 850 against aircraft",
@@ -5808,8 +6336,12 @@
    "speed": null,
    "range": 1200,
    "dps": 2.5,
+   "dps_air": 625,
+   "air": "anti-air only: 625 dps against aircraft",
    "sight": 380,
-   "flags": [],
+   "flags": [
+    "anti_air"
+   ],
    "gloss": "800-metal medium-range anti-air battery, four-missile bursts at 1200, 4450 health; the tower that kills most aircraft",
    "prose": "The Eradicator is the heavy tier-1 anti-air battery: 800 metal and 7900 energy, 4450 health, four-missile bursts at range 1200 for aircraft only. It has the most health, range and damage of the Cortex tier-1 anti-air towers and takes down most aircraft, the Liche (armliche) included, so it goes on the front line to hedge out enemy air; it does nothing against ground. It is the anti-air to build once the enemy has shown bombers or gunships rather than scouts; earlier the Thistle (corrl) does."
   },
@@ -5835,6 +6367,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_storage": 6000,
    "flags": [],
@@ -5857,6 +6391,8 @@
    "speed": 109.8,
    "range": 280,
    "dps": 91.1,
+   "dps_air": 13.3,
+   "air": "13 dps against aircraft (15% of its ground damage)",
    "sight": 600,
    "flags": [
     "floats"
@@ -5879,6 +6415,8 @@
    "speed": 41,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 330,
    "energy_upkeep": 80,
    "flags": [
@@ -5907,6 +6445,8 @@
    "speed": null,
    "range": 435,
    "dps": 160.7,
+   "dps_air": 10.7,
+   "air": "11 dps against aircraft (7% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 455,
    "energy_upkeep": 3,
    "flags": [
@@ -5940,6 +6480,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 540,
    "energy_upkeep": 5,
    "flags": [
@@ -5963,6 +6505,8 @@
    "speed": 90,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 520,
    "build_power": 125,
    "energy_make": 15,
@@ -5985,6 +6529,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_upkeep": 150,
    "flags": [
@@ -6009,6 +6555,8 @@
    "speed": 153,
    "range": 180,
    "dps": 31.8,
+   "dps_air": 1.8,
+   "air": "2 dps against aircraft (6% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 600,
    "flags": [],
    "gloss": "26-metal scout car, the fastest land unit; finds the enemy and kills bare extractors; any hit kills it",
@@ -6030,6 +6578,8 @@
    "speed": null,
    "range": 900,
    "dps": 731,
+   "dps_air": 352,
+   "air": "352 dps against aircraft (48% of its ground damage)",
    "sight": 780,
    "energy_storage": 1000,
    "flags": [
@@ -6060,6 +6610,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 1,
    "flags": [
     "submerged",
@@ -6087,6 +6639,8 @@
    "speed": null,
    "range": 630,
    "dps": 231,
+   "dps_air": 52,
+   "air": "52 dps against aircraft (23% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 630,
    "flags": [
     "submerged",
@@ -6115,6 +6669,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 312,
    "build_power": 150,
    "flags": [
@@ -6140,6 +6696,8 @@
    "speed": 360,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 835,
    "flags": [
     "flies"
@@ -6165,8 +6723,12 @@
    "speed": null,
    "range": 850,
    "dps": 2,
+   "dps_air": 500,
+   "air": "anti-air only: 500 dps against aircraft",
    "sight": 525,
-   "flags": [],
+   "flags": [
+    "anti_air"
+   ],
    "gloss": "850-metal tier-2 flak gun at 850; wide bursts shatter groups of aircraft; nothing against ground",
    "prose": "The Birdshot is the tier-2 flak gun: 850 metal and 14000 energy, 1840 health, rapid flak at range 850 whose wide bursts devastate most aircraft in a formation. It is the answer to massed bombers and gunships around a base or on a front; missile anti-air reaches further and flak kills groups. Only the tier-2 constructors and the Twitcher (corfast) build it, and it does nothing against ground."
   },
@@ -6187,6 +6749,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 195,
    "flags": [
     "antinuke"
@@ -6209,6 +6773,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 71.5,
    "flags": [
     "stealth"
@@ -6236,6 +6802,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "flags": [
     "submerged",
@@ -6262,6 +6830,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 1,
    "flags": [],
    "gloss": "40-metal tier-2 wall with 8900 health; stops tier-1 and tier-2 units and low shots; tier-3 plows through",
@@ -6287,6 +6857,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 740,
    "flags": [
     "submerged",
@@ -6315,9 +6887,12 @@
    "speed": null,
    "range": 765,
    "dps": 0.6,
+   "dps_air": 67.6,
+   "air": "anti-air only: 68 dps against aircraft",
    "sight": 455,
    "flags": [
     "submerged",
+    "anti_air",
     "on_water"
    ],
    "gloss": "the light anti-air tower on water, 80 metal, missiles at 765; early cover for a naval base",
@@ -6338,6 +6913,8 @@
    "speed": 93,
    "range": 710,
    "dps": 375.5,
+   "dps_air": 69,
+   "air": "69 dps against aircraft (18% of its ground damage)",
    "sight": 500,
    "flags": [
     "floats"
@@ -6362,6 +6939,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_make": 850,
    "energy_storage": 2500,
@@ -6386,6 +6965,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "build_power": 1800,
    "energy_storage": 1400,
@@ -6410,6 +6991,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "build_power": 1800,
    "energy_storage": 1400,
@@ -6437,6 +7020,8 @@
    "speed": 58.5,
    "range": 305,
    "dps": 77.3,
+   "dps_air": 16.7,
+   "air": "17 dps against aircraft (22% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 500,
    "flags": [
     "amphibious",
@@ -6462,6 +7047,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_storage": 1000,
    "flags": [],
@@ -6483,6 +7070,8 @@
    "speed": 85,
    "range": 230,
    "dps": 93.8,
+   "dps_air": 17.5,
+   "air": "18 dps against aircraft (19% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 330,
    "flags": [],
    "gloss": "fast tier-1 light tank (speed 85), laser at 230; raids economy, beats Pawns and rocket bots; dies to towers",
@@ -6509,6 +7098,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_make": 300,
    "energy_storage": 1000,
@@ -6531,6 +7122,8 @@
    "speed": 39,
    "range": 650,
    "dps": 257.1,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 395,
    "flags": [],
    "gloss": "1650-metal superheavy tank, 900-damage wide-splash plasma at 650; deletes tier-1 groups; blind past 395",
@@ -6552,6 +7145,8 @@
    "speed": 45.3,
    "range": 300,
    "dps": 343.8,
+   "dps_air": 31.2,
+   "air": "31 dps against aircraft (9% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 450,
    "flags": [
     "needs_energy_to_fire",
@@ -6582,6 +7177,8 @@
    "speed": null,
    "range": 490,
    "dps": 321.4,
+   "dps_air": 21.4,
+   "air": "21 dps against aircraft (7% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 475,
    "flags": [
     "needs_energy_to_fire"
@@ -6609,6 +7206,8 @@
    "speed": null,
    "range": 620,
    "dps": 217.5,
+   "dps_air": 29.2,
+   "air": "29 dps against aircraft (13% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 455,
    "flags": [
     "needs_energy_to_fire"
@@ -6637,6 +7236,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 312,
    "build_power": 150,
    "flags": [],
@@ -6658,6 +7259,8 @@
    "speed": 54,
    "range": 1210,
    "dps": 100,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 380,
    "flags": [],
    "gloss": "tier-2 vertical-launch rocket bot, 1210 range, 800 damage; hits behind cliffs and walls; 610 health",
@@ -6678,6 +7281,8 @@
    "speed": 324.3,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 1130,
    "flags": [
     "flies",
@@ -6701,9 +7306,12 @@
    "speed": 248.4,
    "range": 1280,
    "dps": 237.9,
+   "dps_air": 237.9,
+   "air": "238 dps against aircraft, its full damage",
    "sight": 430,
    "flags": [
-    "flies"
+    "flies",
+    "anti_air"
    ],
    "gloss": "tier-2 heavy bomber, five 333-damage bombs; three take a fusion in a pass; dies to fighters and flak",
    "prose": "The Hailstorm is the tier-2 bomber: 310 metal, 1520 health, speed 248, a run of five 333-damage bombs. It is for buildings: three kill a Fusion Reactor (corfus) in one pass, and laid across an army's path it hurts units too. It is stronger and dearer than the Blizzard (armpnix); fighters and flak kill it, so scout and escort."
@@ -6723,6 +7331,8 @@
    "speed": 100,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 430,
    "flags": [
     "transport",
@@ -6748,6 +7358,8 @@
    "speed": null,
    "range": 4950,
    "dps": 125,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 273,
    "flags": [
     "needs_energy_to_fire",
@@ -6777,6 +7389,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 104,
    "energy_upkeep": 25,
    "flags": [
@@ -6800,9 +7414,12 @@
    "speed": 16.5,
    "range": 590,
    "dps": 1121.4,
+   "dps_air": 621.4,
+   "air": "621 dps against aircraft (55% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 720,
    "flags": [
     "needs_energy_to_fire",
+    "anti_air",
     "gantry"
    ],
    "gloss": "20000-metal walking turret: disintegrator at 590, beam lasers; 335000 health, speed 16; no anti-air",
@@ -6828,6 +7445,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 494,
    "flags": [
     "stealth"
@@ -6850,6 +7469,8 @@
    "speed": 45,
    "range": 700,
    "dps": 766.7,
+   "dps_air": 250,
+   "air": "250 dps against aircraft (42% of its ground damage)",
    "sight": 455,
    "flags": [
     "gantry"
@@ -6873,12 +7494,15 @@
    "speed": 37,
    "range": 950,
    "dps": 4186.9,
+   "dps_air": 2187.5,
+   "air": "2188 dps against aircraft (52% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 845,
    "energy_make": 300,
    "energy_storage": 5000,
    "flags": [
     "needs_energy_to_fire",
     "amphibious",
+    "anti_air",
     "gantry"
    ],
    "gloss": "29000-metal experimental walker; plasma, rockets and a 5500-damage laser at 900; loses to massed range and D-guns",
@@ -6908,6 +7532,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 290,
    "build_power": 150,
    "flags": [],
@@ -6929,6 +7555,8 @@
    "speed": 40,
    "range": 315,
    "dps": 105.6,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 330,
    "flags": [],
    "gloss": "tier-1 riot tank; beats every tier-1 land unit at equal metal; slow (40), loses only to being outranged",
@@ -6956,6 +7584,8 @@
    "speed": null,
    "range": 435,
    "dps": 160.7,
+   "dps_air": 10.7,
+   "air": "11 dps against aircraft (7% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 494,
    "flags": [
     "needs_energy_to_fire"
@@ -6978,6 +7608,8 @@
    "speed": 51,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 450,
    "flags": [
     "antinuke"
@@ -7006,8 +7638,12 @@
    "speed": null,
    "range": 950,
    "dps": 2.5,
+   "dps_air": 225,
+   "air": "anti-air only: 225 dps against aircraft",
    "sight": 375,
-   "flags": [],
+   "flags": [
+    "anti_air"
+   ],
    "gloss": "350-metal hardened anti-air missile battery at 950, 2500 health; kills bombers and gunships quickly; nothing against ground",
    "prose": "The SAM is the mid-cost anti-air battery: 350 metal and 5500 energy, 2500 health, fast missiles at range 950 for aircraft only. It kills bombers rapidly and is a serious threat to gunships, stronger and tougher than the same metal of Thistles (corrl), with a quick build; the Eradicator (corerad) reaches further and flak kills groups. Against ground it does nothing."
   },
@@ -7033,6 +7669,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "flags": [],
    "gloss": "converts 70 energy a second into 1 metal for 1 metal to build; for surplus energy only, chains explosions",
@@ -7054,6 +7692,8 @@
    "speed": 75,
    "range": 300,
    "dps": 200,
+   "dps_air": 60,
+   "air": "60 dps against aircraft (30% of its ground damage)",
    "sight": 600,
    "build_power": 200,
    "energy_make": 10,
@@ -7079,6 +7719,8 @@
    "speed": 58,
    "range": 800,
    "dps": 84,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 330,
    "flags": [],
    "gloss": "tier-2 mobile artillery, 420-damage shells with 72 splash at 800; kills packed groups and towers; helpless if reached",
@@ -7106,6 +7748,8 @@
    "speed": null,
    "range": 410,
    "dps": 320,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 422,
    "flags": [
     "stealth"
@@ -7138,6 +7782,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_upkeep": 3,
    "flags": [],
@@ -7161,6 +7807,8 @@
    "speed": null,
    "range": 650,
    "dps": 623.5,
+   "dps_air": 131.9,
+   "air": "132 dps against aircraft (21% of its ground damage)",
    "sight": 676,
    "energy_upkeep": 20,
    "flags": [
@@ -7185,6 +7833,8 @@
    "speed": 63.9,
    "range": 700,
    "dps": 61.1,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 509,
    "flags": [
     "hover",
@@ -7209,6 +7859,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 83.2,
    "flags": [
     "stealth"
@@ -7234,6 +7886,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 83.2,
    "flags": [
     "stealth"
@@ -7257,6 +7911,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 83.2,
    "flags": [
     "stealth"
@@ -7279,8 +7935,12 @@
    "speed": 52,
    "range": 700,
    "dps": 25.6,
+   "dps_air": 48,
+   "air": "48 dps against aircraft, its full damage",
    "sight": 620,
-   "flags": [],
+   "flags": [
+    "anti_air"
+   ],
    "gloss": "tier-1 missile truck, 575 range against ground and homing missiles at 700 against air; kills light towers untouched",
    "prose": "The Lasher is a light missile truck: 155 metal, 860 health, speed 52, a ground rocket at range 575 doing 63 damage every 2.5 seconds and a homing anti-air missile at 700. Its range beats the light towers by a wide margin: in equal-metal duels it killed Sentries (armllt) and Guards (corllt) without a scratch, and packs of it wear down heavy laser towers. Blitzes (armflash) and fast infantry kill it in close, so keep it at range with a fight order behind Pounders (corlevlr) or Brutes (corraid). It is the vehicle plant's anti-air."
   },
@@ -7299,6 +7959,8 @@
    "speed": 57.8,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 300,
    "build_power": 200,
    "flags": [
@@ -7322,6 +7984,8 @@
    "speed": 69,
    "range": 220,
    "dps": 5,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 450,
    "build_power": 40,
    "flags": [
@@ -7347,6 +8011,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "flags": [],
    "gloss": "tier-2 converter, 600 energy a second into 10.3 metal for 370 metal; barely better than tier 1",
@@ -7369,6 +8035,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_upkeep": 20,
    "flags": [],
@@ -7390,6 +8058,8 @@
    "speed": 50,
    "range": 850,
    "dps": 65.6,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 380,
    "flags": [],
    "gloss": "tier-2 mortar bot, 850 range; wears down turret lines from safety; 940 health, dies to anything that closes",
@@ -7410,8 +8080,11 @@
    "speed": 61.4,
    "range": 1550,
    "dps": 138,
+   "dps_air": 69,
+   "air": "69 dps against aircraft (50% of its ground damage)",
    "sight": 318.5,
    "flags": [
+    "anti_air",
     "floats"
    ],
    "gloss": "tier-2 cruise missile ship, 1100-damage rockets at 1550 over terrain, ignore shields; levels a shore base",
@@ -7439,6 +8112,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "metal_storage": 3000,
    "flags": [],
@@ -7461,6 +8136,8 @@
    "speed": 40.5,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 330,
    "build_power": 85,
    "energy_make": 8,
@@ -7491,6 +8168,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 380,
    "build_power": 200,
    "flags": [],
@@ -7516,6 +8195,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 380,
    "build_power": 200,
    "flags": [
@@ -7539,6 +8220,8 @@
    "speed": 78,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 430,
    "build_power": 200,
    "flags": [
@@ -7565,6 +8248,8 @@
    "speed": 51,
    "range": 575,
    "dps": 205.6,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 500,
    "flags": [
     "amphibious",
@@ -7592,6 +8277,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 169,
    "build_power": 300,
    "flags": [
@@ -7617,6 +8304,8 @@
    "speed": 82.5,
    "range": 480,
    "dps": 120,
+   "dps_air": 38.8,
+   "air": "39 dps against aircraft (32% of its ground damage)",
    "sight": 500,
    "flags": [
     "floats"
@@ -7640,8 +8329,11 @@
    "speed": 69,
    "range": 750,
    "dps": 24,
+   "dps_air": 60,
+   "air": "60 dps against aircraft, its full damage",
    "sight": 670,
    "flags": [
+    "anti_air",
     "sonar",
     "floats"
    ],
@@ -7669,6 +8361,8 @@
    "speed": null,
    "range": 1245,
    "dps": 110.5,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 455,
    "flags": [],
    "gloss": "1300-metal plasma battery, 350-damage shells at 1245; kills extractors, radar and turrets behind the line; needs a spotter",
@@ -7690,6 +8384,8 @@
    "speed": 82.5,
    "range": 230,
    "dps": 240,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 380,
    "flags": [],
    "gloss": "fast tier-2 flamethrower raider; 240 dps at 230, arms its self-destruct in a second; loses to towers and gunships",
@@ -7717,6 +8413,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 680,
    "flags": [],
    "gloss": "60-metal radar tower, 2100 radar, 680 sight; shows what moves within range as dots; jammed, blocked by hills",
@@ -7737,6 +8435,8 @@
    "speed": 72,
    "range": 350,
    "dps": 80.8,
+   "dps_air": 15,
+   "air": "15 dps against aircraft (19% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 350,
    "flags": [],
    "gloss": "tier-1 medium tank, 2000 health, plasma at 350; the vehicle line unit, loses to Maces and Pounders",
@@ -7757,6 +8457,8 @@
    "speed": 69,
    "range": 410,
    "dps": 155.7,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 462,
    "flags": [],
    "gloss": "tier-2 heavy tank, 5300 health, 156 dps at 410; a brick with a gun, cheaper than the Bull",
@@ -7777,6 +8479,8 @@
    "speed": 66,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 300,
    "build_power": 150,
    "flags": [
@@ -7809,8 +8513,12 @@
    "speed": null,
    "range": 765,
    "dps": 0.6,
+   "dps_air": 67.6,
+   "air": "anti-air only: 68 dps against aircraft",
    "sight": 455,
-   "flags": [],
+   "flags": [
+    "anti_air"
+   ],
    "gloss": "80-metal light anti-air tower, missiles at 765; stops scouts and light aircraft, nothing against ground; needs radar",
    "prose": "The Thistle is the light anti-air tower: 80 metal and 850 energy, 335 health, missiles at range 765 that do full damage to aircraft and nothing worth counting to anything else. A few around a base or an extractor line stop Finches (corfink), gunships and lone bombers; its rate of fire is low, so a swarm gets through unless several stand together, and it fires further than it sees, so radar coverage makes it work. Build it only after enemy aircraft or an aircraft plant have been seen."
   },
@@ -7829,6 +8537,8 @@
    "speed": 76,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 260,
    "flags": [
     "amphibious"
@@ -7853,6 +8563,8 @@
    "speed": 62.4,
    "range": 710,
    "dps": 154,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 500,
    "flags": [
     "sonar",
@@ -7878,6 +8590,8 @@
    "speed": 72,
    "range": 340,
    "dps": 163.6,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 385,
    "flags": [
     "amphibious",
@@ -7901,9 +8615,12 @@
    "speed": 240,
    "range": 1280,
    "dps": 150,
+   "dps_air": 150,
+   "air": "150 dps against aircraft, its full damage, and only when nothing on the ground is in range",
    "sight": 455,
    "flags": [
-    "flies"
+    "flies",
+    "anti_air"
    ],
    "gloss": "tier-1 seaplane bomber; skipping bombs bounce across water into ships and naval buildings; loses to fighters and flak",
    "prose": "The Dam Buster is a seaplane bomber: 200 metal, 940 health, speed 240, three 50-damage bombs every 8 seconds that skip across the water without exploding and can hit beyond the drop point. It hits slow ships, naval buildings and grouped units and makes surprise runs on a land base from the sea; fighters and flak kill it. Scout first and send fighters ahead."
@@ -7925,6 +8642,8 @@
    "speed": null,
    "range": 2400,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 600,
    "flags": [
     "needs_energy_to_fire"
@@ -7949,6 +8668,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 225,
    "energy_upkeep": 125,
    "flags": [],
@@ -7970,6 +8691,8 @@
    "speed": 185,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 500,
    "flags": [
     "transport",
@@ -7993,6 +8716,8 @@
    "speed": 200,
    "range": 600,
    "dps": 85.5,
+   "dps_air": 3.8,
+   "air": "4 dps against aircraft (4% of its ground damage)",
    "sight": 535,
    "flags": [
     "flies",
@@ -8016,8 +8741,12 @@
    "speed": 69,
    "range": 775,
    "dps": 1.4,
+   "dps_air": 272.7,
+   "air": "anti-air only: 273 dps against aircraft",
    "sight": 338,
-   "flags": [],
+   "flags": [
+    "anti_air"
+   ],
    "gloss": "tier-2 flak tank; wide-area flak at 775 kills groups of aircraft; nothing against ground",
    "prose": "The Fury is the tier-2 flak vehicle: 470 metal, 2700 health, speed 69, rapid flak at range 775 whose wide bursts kill tier-1 and most tier-2 aircraft in groups. It has no ground weapon and needs the army for cover; flak's range is shorter than missile anti-air but far better against a formation. Build it once enemy air has been seen."
   },
@@ -8036,9 +8765,12 @@
    "speed": 315.6,
    "range": 710,
    "dps": 14.4,
+   "dps_air": 240,
+   "air": "anti-air only: 240 dps against aircraft",
    "sight": 430,
    "flags": [
-    "flies"
+    "flies",
+    "anti_air"
    ],
    "gloss": "tier-1 seaplane fighter, air-to-air missiles at 710; escorts bombers and ships, submerges to escape",
    "prose": "The Bat is the seaplane fighter: 90 metal, 220 health, speed 316, guided anti-air missiles at range 710 that do nothing to ground. It escorts seaplane bombers and a fleet against enemy aircraft, faster than the Cyclone (armsfig) with less health, and it submerges to escape fighters or to ambush a bomber. Against the ground it is useless."
@@ -8059,6 +8791,8 @@
    "speed": 109.5,
    "range": 230,
    "dps": 60,
+   "dps_air": 11.7,
+   "air": "12 dps against aircraft (19% of its ground damage)",
    "sight": 550,
    "flags": [
     "hover",
@@ -8082,9 +8816,12 @@
    "speed": 234,
    "range": 1280,
    "dps": 93.3,
+   "dps_air": 93.3,
+   "air": "93 dps against aircraft, its full damage",
    "sight": 430,
    "flags": [
-    "flies"
+    "flies",
+    "anti_air"
    ],
    "gloss": "tier-1 bomber, five 112-damage bombs every 6 s; kills buildings and slow groups; loses to fighters and anti-air",
    "prose": "The Whirlwind is the tier-1 bomber: 150 metal, 680 health, speed 234, a run of five 112-damage bombs. It is for buildings and slow packed units, and a few level an undefended expansion; fighters and any anti-air kill it. Scout first, send Valiants (corveng) ahead to clear the fighter wall, and drag the attack order along the target's layout for a carpet run."
@@ -8104,9 +8841,12 @@
    "speed": 84,
    "range": 400,
    "dps": 159.1,
+   "dps_air": 159.1,
+   "air": "159 dps against aircraft, its full damage",
    "sight": 390,
    "flags": [
     "submerged",
+    "anti_air",
     "sonar"
    ],
    "gloss": "tier-2 fast submarine, homing torpedoes at 400; the submarine killer, hunts Serpents and Krakens; a few in every navy",
@@ -8128,6 +8868,8 @@
    "speed": 48,
    "range": 800,
    "dps": 407.1,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 520,
    "flags": [
     "amphibious",
@@ -8154,6 +8896,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 155,
    "energy_upkeep": 125,
    "flags": [
@@ -8179,6 +8923,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 455,
    "flags": [
     "nuke"
@@ -8201,6 +8947,8 @@
    "speed": 40,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 403,
    "energy_upkeep": 80,
    "flags": [
@@ -8225,6 +8973,8 @@
    "speed": 84,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 260,
    "flags": [
     "amphibious"
@@ -8248,6 +8998,8 @@
    "speed": 67.0,
    "range": 370,
    "dps": 70,
+   "dps_air": 20.7,
+   "air": "21 dps against aircraft (30% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 491,
    "flags": [
     "hover",
@@ -8272,6 +9024,8 @@
    "speed": 45.3,
    "range": 725,
    "dps": 166.7,
+   "dps_air": 55.6,
+   "air": "56 dps against aircraft (33% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 650,
    "flags": [
     "needs_energy_to_fire",
@@ -8306,6 +9060,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_make": 20,
    "flags": [],
@@ -8327,6 +9083,8 @@
    "speed": 35,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 380,
    "energy_upkeep": 80,
    "flags": [
@@ -8350,6 +9108,8 @@
    "speed": 62,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 550,
    "build_power": 50,
    "flags": [
@@ -8373,10 +9133,13 @@
    "speed": 39,
    "range": 850,
    "dps": 206.2,
+   "dps_air": 206.2,
+   "air": "206 dps against aircraft, its full damage",
    "sight": 570,
    "flags": [
     "submerged",
     "stealth",
+    "anti_air",
     "sonar"
    ],
    "gloss": "tier-2 battle submarine, 1650-damage torpedoes at 850; kills heavy ships and tier-3 amphibians; loses to Predators",
@@ -8397,8 +9160,12 @@
    "speed": 47.7,
    "range": 475,
    "dps": 41.3,
+   "dps_air": 41.3,
+   "air": "41 dps against aircraft, its full damage, and only when nothing on the ground is in range",
    "sight": 380,
-   "flags": [],
+   "flags": [
+    "anti_air"
+   ],
    "gloss": "rocket bot that outranges light turrets (475 vs 435); slow rockets, loses to anything that closes",
    "prose": "The Aggravator fires one 157-damage rocket every 3.8 seconds at range 475: 110 metal, 740 health, speed 48. It outranges a Guard (corllt) or Sentry (armllt), so a group held at range kills light turrets and what stands behind them, and it forces a commander back. Against moving units it is poor: the rocket is slow and unguided and barely leads its target, and in equal-metal duels it lost to every mobile unit it could not outrange; the Twin Guard (corhllt, 490) and heavy laser towers (620) outreach it. Screen it with Grunts (corak) or Thugs (corthud). It cannot hit aircraft."
   },
@@ -8417,9 +9184,12 @@
    "speed": 57,
    "range": 500,
    "dps": 136.8,
+   "dps_air": 136.8,
+   "air": "137 dps against aircraft, its full damage",
    "sight": 400,
    "flags": [
     "submerged",
+    "anti_air",
     "sonar"
    ],
    "gloss": "tier-1 submarine, unguided torpedoes at 500; invisible without sonar, kills underwater extractors and unguarded fleets",
@@ -8440,6 +9210,8 @@
    "speed": 23,
    "range": 650,
    "dps": 503.3,
+   "dps_air": 118.3,
+   "air": "118 dps against aircraft (24% of its ground damage)",
    "sight": 510,
    "flags": [
     "needs_energy_to_fire"
@@ -8471,6 +9243,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 340,
    "build_power": 150,
    "flags": [
@@ -8497,6 +9271,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_upkeep": 100,
    "flags": [],
@@ -8519,6 +9295,8 @@
    "speed": 50,
    "range": 340,
    "dps": 331.2,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 380,
    "flags": [
     "needs_energy_to_fire"
@@ -8541,6 +9319,8 @@
    "speed": 45,
    "range": 380,
    "dps": 60,
+   "dps_air": 12.1,
+   "air": "12 dps against aircraft (20% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 380,
    "flags": [],
    "gloss": "the tier-1 line bot; plasma at 380, wins most equal-metal fights, loses to Pounders and kiting",
@@ -8567,6 +9347,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 130,
    "flags": [
     "submerged",
@@ -8590,9 +9372,12 @@
    "speed": 279,
    "range": 400,
    "dps": 150,
+   "dps_air": 150,
+   "air": "150 dps against aircraft, its full damage",
    "sight": 500,
    "flags": [
     "flies",
+    "anti_air",
     "sonar"
    ],
    "gloss": "tier-2 torpedo bomber, 1200-damage homing torpedo; kills ships and submarines, nothing against land",
@@ -8618,9 +9403,12 @@
    "speed": null,
    "range": 500,
    "dps": 186.7,
+   "dps_air": 186.7,
+   "air": "187 dps against aircraft, its full damage",
    "sight": 495,
    "flags": [
     "submerged",
+    "anti_air",
     "sonar",
     "on_water"
    ],
@@ -8646,6 +9434,8 @@
    "speed": null,
    "range": 1390,
    "dps": 200,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 416,
    "flags": [],
    "gloss": "2500-metal pop-up artillery, 420 damage at 1390; out-ranges the enemy's artillery and towers except vertical launchers",
@@ -8666,6 +9456,8 @@
    "speed": 40.5,
    "range": 1470,
    "dps": 400,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 351,
    "flags": [],
    "gloss": "tier-2 heavy artillery, 200-damage shells twice a second at 1470 over walls and hills; carpets an area; friendly-fire hazard",
@@ -8688,6 +9480,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 455,
    "flags": [],
    "gloss": "1200-metal tactical missile launcher, stockpiled 4000-damage missiles with a 380 blast at 2250; strips defences before an assault",
@@ -8711,6 +9505,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 192,
    "energy_storage": 40000,
    "flags": [],
@@ -8735,6 +9531,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 182,
    "metal_storage": 10000,
    "flags": [],
@@ -8757,6 +9555,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_make": 1250,
    "energy_storage": 12000,
@@ -8787,6 +9587,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 169,
    "energy_storage": 6000,
    "flags": [
@@ -8811,6 +9613,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 143,
    "energy_make": 1220,
    "energy_storage": 2500,
@@ -8840,6 +9644,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "energy_make": 300,
    "energy_storage": 1000,
@@ -8865,6 +9671,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 169,
    "energy_upkeep": 20,
    "flags": [
@@ -8889,6 +9697,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 143,
    "flags": [
     "on_water"
@@ -8916,6 +9726,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 169,
    "metal_storage": 3000,
    "flags": [
@@ -8941,6 +9753,8 @@
    "speed": 198,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 430,
    "flags": [
     "transport",
@@ -8964,10 +9778,13 @@
    "speed": 379,
    "range": 690,
    "dps": 24,
+   "dps_air": 500,
+   "air": "anti-air only: 500 dps against aircraft",
    "sight": 430,
    "flags": [
     "stealth",
-    "flies"
+    "flies",
+    "anti_air"
    ],
    "gloss": "tier-2 stealth fighter, speed 379, missiles at 690; invisible to radar; the air-superiority unit",
    "prose": "The Nighthawk is the tier-2 fighter: 145 metal, 290 health, speed 379, guided missiles at range 690 for aircraft, invisible to radar so the enemy cannot count them. It kills heavy aircraft and groups of them, and paired with a bombing run it clears the air defence ahead of the bombers; it is faster and more fragile than the Highwind (armhawk). It cannot usefully hit ground."
@@ -8987,9 +9804,12 @@
    "speed": 297.6,
    "range": 680,
    "dps": 13.3,
+   "dps_air": 138.9,
+   "air": "anti-air only: 139 dps against aircraft",
    "sight": 430,
    "flags": [
-    "flies"
+    "flies",
+    "anti_air"
    ],
    "gloss": "tier-1 fighter, speed 298, missiles at 680 against aircraft only; the answer to enemy air, useless against ground",
    "prose": "The Valiant is the tier-1 fighter: 73 metal, 156 health, speed 298, a guided missile at range 680 that hurts only aircraft. It reaches any part of the map, so a patrol in front of the base stops scouts, gunships and bombers, and sent ahead of a bombing run it breaks the enemy's fighter wall. It cannot hit ground. Build them once enemy aircraft have been seen."
@@ -9011,6 +9831,8 @@
    "speed": null,
    "range": 730,
    "dps": 412.5,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 546,
    "flags": [],
    "gloss": "730-metal pop-up sabot battery, 825 damage every 2 s at 730; kills raiders and heavies alike, retracts under fire",
@@ -9031,6 +9853,8 @@
    "speed": 38,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 925,
    "flags": [],
    "gloss": "mobile radar bot, 2200 radar and 925 sight; lets mortars and artillery use their range; unarmed",
@@ -9059,6 +9883,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 279,
    "build_power": 150,
    "flags": [],
@@ -9080,6 +9906,8 @@
    "speed": 50,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 900,
    "flags": [],
    "gloss": "tier-2 radar vehicle, 2200 radar and 900 sight; lets artillery use its range; unarmed and slow",
@@ -9100,6 +9928,8 @@
    "speed": 33,
    "range": 1310,
    "dps": 106.2,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 330,
    "flags": [
     "stealth"
@@ -9129,6 +9959,8 @@
    "speed": null,
    "range": null,
    "dps": null,
+   "dps_air": null,
+   "air": "",
    "sight": 273,
    "flags": [],
    "gloss": "43-metal wind generator; output follows the map's wind, average 12 on Quicksilver; costs energy to build",
@@ -9149,6 +9981,8 @@
    "speed": 48,
    "range": 710,
    "dps": 42.3,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 330,
    "flags": [],
    "gloss": "tier-1 artillery, 710 range outranges every tier-1 tower; 750 health, blind past 330, needs a spotter and a screen",

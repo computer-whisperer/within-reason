@@ -93,9 +93,8 @@ impl Engine {
         let float_count = call!(self, Map_getResourceMapSpotsPositions(self.metal, std::ptr::null_mut(), 0));
         let mut floats = vec![0f32; float_count.max(0) as usize];
         call!(self, Map_getResourceMapSpotsPositions(self.metal, floats.as_mut_ptr(), float_count));
-        let metal_spots: Vec<Vec3> =
+        let mut metal_spots: Vec<Vec3> =
             floats.chunks_exact(3).map(|s| Vec3 { x: s[0], y: s[1], z: s[2] }).collect();
-        self.metal_spots = metal_spots.clone();
         // The raw metal map: one value per 2x2 heightmap squares (16 elmos), index 0 top left. Each square with metal
         // belongs to the nearest spot within a patch's reach of it.
         const METAL_SQUARE: f32 = 2.0 * SQUARE_SIZE;
@@ -105,6 +104,8 @@ impl Engine {
         let mut raw = vec![0i16; raw_count.max(0) as usize];
         call!(self, Map_getResourceMapRaw(self.metal, raw.as_mut_ptr(), raw_count));
         let mut metal_spot_squares: Vec<Vec<(f32, f32)>> = vec![Vec::new(); metal_spots.len()];
+        // (sum of x times metal, sum of z times metal, sum of metal) per spot, for the centroid below.
+        let mut weighted: Vec<(f64, f64, f64)> = vec![(0.0, 0.0, 0.0); metal_spots.len()];
         for (index, value) in raw.iter().enumerate() {
             if *value <= 0 || half_w == 0 {
                 continue;
@@ -122,8 +123,21 @@ impl Engine {
                 && (spot.x - x).hypot(spot.z - z) < PATCH_REACH
             {
                 metal_spot_squares[i].push((x, z));
+                let w = *value as f64;
+                weighted[i] = (weighted[i].0 + x as f64 * w, weighted[i].1 + z as f64 * w, weighted[i].2 + w);
             }
         }
+        // The engine's spot positions are not where the game puts extractors: on Comet Catcher they sit 82 elmos
+        // (+40, +72) from every extractor BARb and people build (human-9, the escalate-7 truth file), and the site
+        // asked at the corner spot was refused. The game and BARb snap to the metal-weighted centre of the patch,
+        // so that is the spot we publish; the squares stay for placing anywhere the extractor radius allows.
+        for (spot, (sx, sz, sw)) in metal_spots.iter_mut().zip(&weighted) {
+            if *sw > 0.0 {
+                spot.x = (sx / sw) as f32;
+                spot.z = (sz / sw) as f32;
+            }
+        }
+        self.metal_spots = metal_spots.clone();
 
         let teams = (0..call!(self, Game_getTeams()))
             .map(|team| TeamInfo {

@@ -327,7 +327,7 @@ impl Brain {
                 .enemy_buildings
                 .values()
                 .filter(|(def, _, _)| self.world.def(*def).is_some_and(|d| !d.build_options.is_empty()))
-                .map(|(_, pos, _)| self.place(*pos))
+                .map(|(def, pos, _)| (self.name(*def).to_string(), self.place(*pos)))
                 .collect(),
             enemy_factories_gone: self.enemy_factories_gone.iter().map(|(_, pos, at)| (self.place(*pos), at / FRAMES_PER_SECOND)).collect(),
             raid_targets: self

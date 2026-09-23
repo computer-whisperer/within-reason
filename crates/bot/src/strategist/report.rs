@@ -100,7 +100,17 @@ fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
     lines.push(format!(
         "to win: its commander {}; its factories standing as far as we know: {}{}; {}; where it stands and builds now is known only from what our units see, and it may rebuild anywhere. Metal spots never within sight of a unit of ours: {} ({} inside its box){}",
         s.enemy_commander.as_ref().map_or("has never been seen".to_string(), |(p, ago)| format!("was last seen at {} ({}, {}) {} ago{}", p.grid, p.x, p.z, clock(*ago), if s.enemy_commander_afloat { ", in the water or on ground our bots cannot walk to (it is amphibious; our soldiers are not)" } else { "" })),
-        if s.enemy_factories.is_empty() { "none seen standing".to_string() } else { places(&s.enemy_factories) },
+        if s.enemy_factories.is_empty() {
+            "none seen standing".to_string()
+        } else {
+            // Named by type (human-9: an Aircraft Plant seen at 2:16 was reported as "A4 (992, 2488)" and the first
+            // anti-air came after the first gunship).
+            s.enemy_factories
+                .iter()
+                .map(|(name, p)| format!("{} {name} at {} ({}, {})", crate::brain::pianist::glossary::entry(name).map_or(name.as_str(), |e| e.name.as_str()), p.grid, p.x, p.z))
+                .collect::<Vec<_>>()
+                .join("; ")
+        },
         gone,
         boxes,
         s.never_looked.len(),

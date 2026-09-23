@@ -30,6 +30,14 @@ pub struct Entry {
     pub range: f32,
     #[serde(default)]
     pub dps: Option<f32>,
+    /// Damage a second against aircraft (the game's `vtol` armour class), None when it cannot hit them.
+    #[serde(default)]
+    pub dps_air: Option<f32>,
+    /// What it does to aircraft, in words (`run/unit_stats.py` `air_words`): "does nothing to aircraft", "anti-air
+    /// only: 48 dps against aircraft", "20 dps against aircraft (22% of its ground damage, and only when nothing on
+    /// the ground is in range)".
+    #[serde(default, deserialize_with = "or_default")]
+    pub air: String,
     #[serde(default, deserialize_with = "or_default")]
     pub sight: f32,
     #[serde(default, deserialize_with = "or_default")]
@@ -56,7 +64,8 @@ impl Entry {
     pub fn line(&self, internal: &str) -> String {
         let by = if self.made_by.is_empty() { String::new() } else { format!("{}, ", self.made_by.join("/")) };
         let gloss = if self.gloss.is_empty() { String::new() } else { format!(": {}", self.gloss) };
-        format!("{} {internal} ({by}t{}, {:.0} metal){gloss}", self.name, self.tier, self.metal)
+        let air = if self.air.is_empty() { String::new() } else { format!("; {}", self.air) };
+        format!("{} {internal} ({by}t{}, {:.0} metal){gloss}{air}", self.name, self.tier, self.metal)
     }
 
     /// The numbers a player wants beside the prose.

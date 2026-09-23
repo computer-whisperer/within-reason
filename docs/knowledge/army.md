@@ -374,3 +374,16 @@ experienced players' game lost one extractor in seven minutes with a light turre
 in numbers to the parties that follow the Ticks.
 **Used by.** H-HANDS-DETACH (`how_many` 1), the player's guide and brief (pickets from the first Blitzes).
 
+### K-army-air-plant-seen-means-aa
+**Claim.** An enemy Aircraft Plant in sight is the whole warning: its first gunship is about ninety seconds behind
+it, tier-1 tanks and bots do a fifth of their damage to it and only when the ground is clear, and an 80-metal Nettle
+beside each pair of extractors or Whistlers in the plant before it arrives is the answer; after it arrives the
+extractors are already gone.
+**Status.** stated by the user 2026-09-23 ("WReason should have noticed the air lab I was building, and could have
+countered the build directly"); one game.
+**Evidence.** `run/matches/1790132629-human-9`: the plant seen at 2:16, reported as a grid without its type, the first Banshee at 3:54, Nettles
+from 4:42, eight Blitzes to six Banshees at 8:22.
+**Would be wrong if.** Nettles at the extractors from the sighting still lost them to gunships, or the plant were
+seen and no aircraft came in a run of games.
+**Used by.** H-HANDS-ENEMY-EVIDENCE (the factory type on the report line); the player's brief.
+

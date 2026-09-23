@@ -233,6 +233,8 @@ def used_weapons(u):
         wd = wdefs.get(key)
         if not wd or not wd.get("weapontype") or wd.get("weapontype") == "Shield":
             continue
+        # The target categories live on the mount, not the definition: carried over for `targets`.
+        wd = dict(wd, _only=w.get("onlytargetcategory"), _bad=w.get("badtargetcategory"))
         if wd.get("commandfire") or wd.get("interceptor"):
             continue
         dmg = wd.get("damage") or {}
@@ -259,19 +261,62 @@ def reload_seconds(wd):
     return frames / GAME_FPS
 
 
-def weapon_dps(wd):
-    """Damage a second against the default armour class: damage x burst x projectiles
-    over the frame-rounded reload. A weapon with no 'default' entry does the engine's
-    default of 1 (anti-air missiles are the usual case). Stockpiled weapons (nukes,
-    tactical missiles, the EMP launcher) have no rate of fire and give None."""
+def weapon_dps(wd, armour="default"):
+    """Damage a second against an armour class ('default' for ground, 'vtol' for
+    aircraft: the game gives every weapon a damage per class, and a class not listed
+    takes 'default'): damage x burst x projectiles over the frame-rounded reload. A
+    weapon with no 'default' entry does the engine's default of 1 (anti-air missiles are
+    the usual case). Stockpiled weapons (nukes, tactical missiles, the EMP launcher) have
+    no rate of fire and give None."""
     if wd.get("paralyzer") or wd.get("stockpile"):
         return None
     reload = reload_seconds(wd)
     if not reload:
         return None
     dmg = wd.get("damage") or {}
-    per = float(dmg.get("default", 1.0) or 0)
+    per = float(dmg.get(armour, dmg.get("default", 1.0)) or 0)
     return per * float(wd.get("burst") or 1) * float(wd.get("projectiles") or 1) / reload
+
+
+def targets(wd):
+    """(hits ground, hits air, air is a bad target) from the weapon's target categories:
+    'onlytargetcategory' names what it may fire at (VTOL is aircraft; SURFACE and NOTAIR
+    exclude them; NOTSUB and an empty value include them), 'badtargetcategory' what it
+    fires at only when nothing better is in range (the Blitz and the Stout name VTOL)."""
+    only = str(wd.get("_only") or "").upper().split()
+    bad = str(wd.get("_bad") or "").upper().split()
+    air = not only or any(c in ("VTOL", "NOTSUB", "NOTSHIP", "NOTHOVER", "MOBILE", "ALL") for c in only)
+    ground = not only or any(c not in ("VTOL",) for c in only)
+    return ground, air, "VTOL" in bad
+
+
+def air_summary(u):
+    """(dps against ground, dps against aircraft, aircraft a bad target) over the unit's
+    usable weapons, each counted only against what it may fire at."""
+    ws = used_weapons(u)
+    ground = air = 0.0
+    reluctant = False
+    for w in ws:
+        g, a, bad = targets(w)
+        if g:
+            ground += weapon_dps(w) or 0
+        if a:
+            air += weapon_dps(w, "vtol") or 0
+            reluctant = reluctant or bad
+    return round(ground, 1), round(air, 1), reluctant
+
+
+def air_words(ground, air, reluctant):
+    """One clause for the glossary line: what the unit does to aircraft."""
+    if not air:
+        return "does nothing to aircraft" if ground else ""
+    if not ground:
+        return f"anti-air only: {air:.0f} dps against aircraft"
+    share = air / ground if ground else 1
+    tail = ", and only when nothing on the ground is in range" if reluctant else ""
+    if share >= 0.8:
+        return f"{air:.0f} dps against aircraft, its full damage{tail}"
+    return f"{air:.0f} dps against aircraft ({share:.0%} of its ground damage{tail})"
 
 
 def weapon_summary(u):
@@ -528,6 +573,9 @@ def flags_of(name, u, tier_class):
         f.append("hover")
     if u.get("canfly"):
         f.append("flies")
+    ground_dps, air_dps, _ = air_summary(u)
+    if air_dps and (not ground_dps or air_dps >= 0.5 * ground_dps):
+        f.append("anti_air")
     if float(u.get("radardistancejam") or 0) >= JAMMER_MIN:
         f.append("radar_jammer")
     if float(u.get("sonardistance") or 0) > 0:
@@ -550,7 +598,7 @@ def flags_of(name, u, tier_class):
 # ---------------------------------------------------------------- entries
 
 GENERATED = ["name", "faction", "tier", "made_by", "class", "metal", "energy", "build_time", "health",
-             "speed", "range", "dps", "sight", "build_power", "energy_make", "energy_upkeep",
+             "speed", "range", "dps", "dps_air", "air", "sight", "build_power", "energy_make", "energy_upkeep",
              "energy_storage", "metal_storage", "flags"]
 
 
@@ -579,6 +627,9 @@ def entry(name, u, lang, tier, made_by):
     e["speed"] = num(u.get("speed")) if u.get("canmove") else None
     e["range"] = num(rng)
     e["dps"] = num(dps)
+    ground_dps, air_dps, reluctant = air_summary(u)
+    e["dps_air"] = num(air_dps) if air_dps else None
+    e["air"] = air_words(ground_dps, air_dps, reluctant)
     e["sight"] = num(u.get("sightdistance"))
     if u.get("builder") and u.get("workertime"):
         e["build_power"] = num(u.get("workertime"))
