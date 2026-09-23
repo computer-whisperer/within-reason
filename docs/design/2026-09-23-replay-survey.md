@@ -66,5 +66,10 @@ against K-open-comet-pro-order (3, 5, 6), then Quicksilver, then the maps the re
 
 ## Status
 
-The spike done 2026-09-23 13:50: the API read, one 17-minute Comet Catcher duel (OS 28 against 36, test-31383,
-already in the pool) downloaded and replayed (timing below).
+The spike done 2026-09-23 14:00: the API read, one 17-minute Comet Catcher duel (OS 28 against 36, test-31383,
+already in the pool) downloaded (522 KB) and replayed in 608 s of wall clock, 1.7 times faster than the game (eight
+engines would do about 27 such games an hour); both players' records read (`run/matches/1790185785-replay-spike-comet-duel`):
+the west player (OS 28, lost) 16 extractors and income 36 at 8:00 with the plant at 0:35 and a second constructor
+early, the east player (OS 36, won) 12 extractors and income 30 with the plant at 0:34 and eleven Rovers before 2:30,
+a Rover raid opening the card must make visible. A replay record's header has no `seats` (the widget writes it, not
+the shim): the card takes the players, OS and factions from the API detail, kept in the manifest.
