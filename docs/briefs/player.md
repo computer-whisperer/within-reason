@@ -321,6 +321,20 @@ K-maps-comet-barb-opens-bots, the tempo model]
   at 18:22 when advanced solars, which cost energy to build, crawled in the empty store: plain solars when the store
   is empty. 45 extractors lost, most to single Ticks and Blitzes at spots no soldier stood near; the pickets rule
   above is the answer. Their tier 2 came on the clock of game 4 (Hounds by 14:00, Fatboy 19:00, Razorback 25:48).
+- escalate-6 (HARD_AGGRESSIVE, third game, Opus 5.5 at medium effort, LOST at 23.0 min, called with the commander
+  fleeing south): the same opening (13 extractors and income 30 at 5:00, their bot lab found at G1 at 3:12 by the
+  Rover) and the same bank: 1,357 at 6:00, 1,898 at 7:00, still 1,470 at 10:00, named in a note at 7:46 ("the key")
+  and not spent until the raids had taken the income away. Pawn waves of four to eight into the north strip and home
+  from 7:00 took 32 extractors, six plants (one half built), eight constructors and five nanos; the Blitz groups
+  answered them piecemeal and `send_against` split the army into five to seven detachments that died one by one
+  (15:58: "forced one ball, no detachments"). By 12:00 the count was 8 extractors and income 20, and the game was
+  decided. Two constructors stood stuck 215-250 s at the second yard (one reclaimed at 13:49); a solar stood in a new
+  plant's exit lane (`remove` took it at 9:39-10:06); a constructor's list ran on from an extractor and turret at
+  spot_24 that stood at 1-3 % built (14:35-14:44, open). What three games at this tier say together: the opening is
+  right and the game is lost between 6:00 and 10:00, when the metal must become constructors and nanos (five
+  constructors by 5:00: `produce` counts `armcv:N` as N more from now, so ask for `armcv:3` again when three stand),
+  the outer extractors must have a picket and a turret before 5:00, and the first Pawn wave at 7:00 must be met by
+  one group at the strip's north end, not by detachments from everywhere.
 
 **What your hands did alone (pianist-smoke-1 to -6, pianist-easy-1, pianist-audit-1: four wins, four losses and a
 timeout against easy from the default packet, `docs/experiments.md`).** [docs/knowledge/jev.md]
