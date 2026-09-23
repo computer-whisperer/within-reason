@@ -264,7 +264,8 @@ factory only under a guard (or repair) order. In escalate-7 five turrets stood b
 idle in all 2,388 samples of them, with no command ever sent to one; every "nanos on the plant" lesson in the brief
 had bought nothing.
 **Status.** stated by the user 2026-09-23, watching escalate-7 ("the construction turrets don't actually appear to be
-configured to assist the lab they were placed near"); confirmed in the record.
+configured to assist the lab they were placed near"); confirmed in the record; with the guard order (H-ECO-NANO-GUARD)
+fixes-1's five turrets were idle in 4 samples of 2,686.
 **Evidence.** `run/matches/1790132331-escalate-7-hard-aggressive`: finished events for armnanotc (6:15, 7:56, 8:18, 8:45, 9:08), the `cmd` records (none to those
 ids), the samples' idle flag.
 **Would be wrong if.** A turret with no order helped a factory in its reach anyway in some game version.

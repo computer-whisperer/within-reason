@@ -473,8 +473,10 @@ abandoned", which took effect in one turn), escalate-5 (6:53, five Blitzes lost 
 escalate-7 (6:53 the same; 8:19-8:42 two constructors held a refused nano site through three new lists, the build
 never started and never displaced). The words that worked each time were a statement that the old task was over:
 what the hands lacked was that statement from the harness itself.
-**Status.** observed (2026-09-23), four games; the fix (a changed packet asks every older task afresh with no margin;
-a newer list displaces an unstarted build; a refused site is kept out) untried.
+**Status.** observed (2026-09-23), four games. The fix (a changed packet asks every older task afresh with no margin;
+a newer list displaces an unstarted build; a refused site is kept out) in fixes-1: courses kept by the margin fell from
+5-7 % of busy asks (7-10 % for groups) to 4 % (5 %), so the margin was a small part of it; the rest is Jev choosing
+`continue` itself, and the `shelling` place still held a group until the player dropped the word (15:33).
 **Evidence.** `run/matches/1790124804-escalate-3-hard/00`, `.../1790127241-escalate-5-hard-aggressive/00`,
 `.../1790132331-escalate-7-hard-aggressive/00`: the player's notes at the times above; the jev log's `kept` counts;
 escalate-7's constructor_5134 picture entries 7:57-8:49 ("about to build a Construction Turret at 330 from spot_28",
