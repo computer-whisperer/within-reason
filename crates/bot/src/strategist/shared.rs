@@ -1,6 +1,7 @@
 //! What the brain and the strategist exchange: a briefing going up, directives coming down.
 
 use std::collections::BTreeMap;
+use std::sync::atomic::AtomicU64;
 use std::sync::{Condvar, Mutex};
 
 use bot_protocol::{Resource, Vec3};
@@ -596,7 +597,10 @@ pub struct Shared {
     pub marks: Mutex<BTreeMap<String, (f32, f32)>>,
     /// What the player lets each lab build (`produce` tool, H-HANDS-PRODUCE): lab name (`lab_N`) or `all` to unit
     /// names; a lab not listed builds anything.
-    pub allowed: Mutex<BTreeMap<String, Vec<String>>>,
+    pub allowed: Mutex<BTreeMap<String, Allowance>>,
+    /// Counts `produce` calls, so a list re-issued word for word is a fresh allowance (escalate-5: `armcv:2` asked
+    /// again at 4:15 and 4:43 gave no constructor, the counts having been spent on the same list at 1:15).
+    pub produce_calls: AtomicU64,
     /// One card per finished unit of ours, by the handle the player names it with (`remove` tool); the pianist
     /// republishes them every ask (docs/design/2026-09-22-yard-and-reclaim.md).
     pub own_cards: Mutex<Vec<UnitCard>>,
@@ -735,3 +739,12 @@ mod tests {
         assert!(serde_json::from_str::<OutpostTurrets>("\"some\"").is_err());
     }
 }
+
+/// What the player lets an actor build (`produce`): the units, with the number of the call that set them, so the
+/// hands restart their caps whenever the player speaks again, even in the same words.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Allowance {
+    pub call: u64,
+    pub units: Vec<String>,
+}
+

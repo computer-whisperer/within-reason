@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use tiny_http::{Header, Method, Response, Server};
 
 use super::Mode;
-use super::shared::{Focus, OrderKind, OutpostTurrets, PlanContext, Post, Removal, Shared, Stance, Timed};
+use super::shared::{Allowance, Focus, OrderKind, OutpostTurrets, PlanContext, Post, Removal, Shared, Stance, Timed};
 use super::transcript::Transcript;
 
 const DEFAULT_TTL_SECONDS: i64 = 120;
@@ -155,7 +155,7 @@ fn tool_list(mode: Mode) -> Value {
               "description": "Name a place of your own for your hands: an object of name to [x, z] map coordinates or a grid cell (\"E7\": its centre), or null to forget it. A marked place joins the picture's places at once, so instructions can send groups and builders there (\"group_B: advance to south_gate\"), and its entry says whose ground it is and what enemy is near. Names are lower-case words with underscores; home, spot_N, passage_N and group_N are taken. Any spot or passage you name in the packet is on your hands' menu already, however far; mark is for places that are not spots.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }, { "type": "string" }, { "type": "null" } ] }, "description": "Place name to [x, z], a grid cell, or null." } },
             { "name": "produce",
-              "description": "What each factory or builder may build: an object of actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" (every commander and constructor) or \"all\" (everyone) to a list of unit names (as the roster writes them: armpw, armham, armck, armfus), or null to lift the restriction. A name with a count after a colon (armck:1) is allowed that many more times from now and then drops off the list by itself: the way to say 'one constructor, then raiders' to hands that cannot count. A lab with a list is offered only those units and nothing else, every time it is asked; your instructions still say which of them and when. A builder without a list is offered the usual buildings (generators, factories, light and heavy turrets, radar, storage, the tier-2 lab and extractor, fusion); a list replaces that, so a fusion reactor, an aircraft plant or a jammer from a constructor is asked for here. Use it when the packet's words are not getting the mix you want. A list naming nothing the actor can build leaves it unrestricted; the actor's entry in the picture shows its list. Your policy is not bound by lists: it may order anything a builder can build.",
+              "description": "What each factory or builder may build: an object of actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" (every commander and constructor) or \"all\" (everyone) to a list of unit names (as the roster writes them: armpw, armham, armck, armfus), or null to lift the restriction. A name with a count after a colon (armck:1) is allowed that many more times from now and then drops off the list by itself; saying the same list again restarts the count: the way to say 'one constructor, then raiders' to hands that cannot count. A lab with a list is offered only those units and nothing else, every time it is asked; your instructions still say which of them and when. A builder without a list is offered the usual buildings (generators, factories, light and heavy turrets, radar, storage, the tier-2 lab and extractor, fusion); a list replaces that, so a fusion reactor, an aircraft plant or a jammer from a constructor is asked for here. Use it when the packet's words are not getting the mix you want. A list naming nothing the actor can build leaves it unrestricted; the actor's entry in the picture shows its list. Your policy is not bound by lists: it may order anything a builder can build.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "null" } ] }, "description": "Actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" or \"all\" to unit names, or null." } },
             { "name": "remove",
               "description": "Take apart or blow up what we own: {\"reclaim\": [handles], \"by\": \"constructor_N\" (optional; else the nearest builder without a list)} puts `reclaim <handle>` steps at the front of that builder's list, and most of the metal comes back; {\"destruct\": [handles]} sends the engine's self-destruct, and nothing comes back. A handle is a unit's name and id as the picture writes it (armsolar_31002: a factory's `yard` entry names the buildings in its exit lane) or an actor's name (constructor_N, plant_N, commander). Every unit that self-destructs blows up: the answer says the blast's radius and damage and what of ours stands inside it, and a destruct that would kill something of ours is refused unless \"accept_losses\": true. The commander's blast is the game's largest; a reclaim is the safe way beside anything that matters.",
@@ -602,12 +602,13 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>, mode: Mode) ->
                 parsed.push((name.clone(), list));
             }
             let mut allowed = shared.allowed.lock().unwrap();
+            let call = shared.produce_calls.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
             let mut said: Vec<String> = Vec::new();
             for (name, list) in parsed {
                 match list {
                     Some(units) => {
                         said.push(format!("{name} may build only {}", if units.is_empty() { "nothing".to_string() } else { units.join(", ") }));
-                        allowed.insert(name, units);
+                        allowed.insert(name, Allowance { call, units });
                     }
                     None => {
                         allowed.remove(&name);
@@ -964,15 +965,18 @@ mod tests {
         let shared = Arc::new(Shared::default());
         assert!(call_tool("produce", &json!({ "all": ["armpw", "armham"], "lab_7": [] }), &shared, Mode::Player).is_ok());
         let allowed = shared.allowed.lock().unwrap().clone();
-        assert_eq!(allowed["all"], vec!["armpw".to_string(), "armham".to_string()]);
-        assert!(allowed["lab_7"].is_empty());
+        assert_eq!(allowed["all"].units, vec!["armpw".to_string(), "armham".to_string()]);
+        assert!(allowed["lab_7"].units.is_empty());
         assert!(call_tool("produce", &json!({ "all": ["armck:1", "armpw"] }), &shared, Mode::Player).is_ok());
         assert!(call_tool("produce", &json!({ "all": ["armck:x"] }), &shared, Mode::Player).is_err());
         assert_eq!(crate::brain::pianist::allowance("armck:2"), ("armck", Some(2)));
         assert_eq!(crate::brain::pianist::allowance("armpw"), ("armpw", None));
         assert!(call_tool("produce", &json!({ "group_A": ["armpw"] }), &shared, Mode::Player).is_err());
         assert!(call_tool("produce", &json!({ "commander": ["armfus:1"], "all_builders": ["armllt", "armsolar"] }), &shared, Mode::Player).is_ok());
-        assert_eq!(shared.allowed.lock().unwrap()["all_builders"], vec!["armllt".to_string(), "armsolar".to_string()]);
+        assert_eq!(shared.allowed.lock().unwrap()["all_builders"].units, vec!["armllt".to_string(), "armsolar".to_string()]);
+        let first = shared.allowed.lock().unwrap()["all_builders"].call;
+        assert!(call_tool("produce", &json!({ "all_builders": ["armllt", "armsolar"] }), &shared, Mode::Player).is_ok());
+        assert!(shared.allowed.lock().unwrap()["all_builders"].call > first, "the same list again is a fresh allowance");
         assert!(call_tool("units", &json!({ "names": ["armpw"] }), &shared, Mode::Player).is_ok());
         assert!(call_tool("units", &json!({}), &shared, Mode::Player).is_err());
         assert!(call_tool("produce", &json!({ "all": "armpw" }), &shared, Mode::Player).is_err());

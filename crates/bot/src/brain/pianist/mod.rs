@@ -15,6 +15,8 @@ mod remove;
 mod policy;
 
 use std::collections::{BTreeMap, HashMap, VecDeque};
+
+use crate::strategist::shared::Allowance;
 use std::fs::File;
 use std::io::Write as _;
 use std::path::Path;
@@ -115,7 +117,7 @@ pub struct Pianist {
     /// Units each lab has started since its allowance was set, by unit name (`produce` caps, "corck:1").
     pub(super) produced: HashMap<(UnitId, String), usize>,
     /// The allowance each lab (by name) was last seen with; a change restarts its counts.
-    pub(super) allowed_seen: HashMap<String, Vec<String>>,
+    pub(super) allowed_seen: HashMap<String, Allowance>,
     /// What the last picture named, so an answer's place or party can be looked up.
     pub(super) places: Vec<Place>,
     pub(super) parties: Vec<Party>,

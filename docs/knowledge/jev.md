@@ -448,3 +448,19 @@ the player ordered `attack_unit` on the commander eleven times ("the bombers are
 nothing else at the end) or the bombers dropped and missed (the commander's health never moved).
 **Used by.** H-HANDS-DOMAINS (to fix: an air group with a target keeps its attack order until the target is dead or
 lost for a long while; the hold is issued once, not every tick).
+
+### K-hands-menu-verdicts-beat-the-packet
+**Claim.** A judgement written into a menu option's words outweighs the player's packet when they disagree. The lab
+menu said "We have 3 constructors already: enough for the spots we hold" beside the constructor option (a sentence
+from pianist-smoke-1, when the hands built thirty); with the packet saying "two more constructors first, then
+Blitzes" and the constructor offered, Jev chose a Blitz 16 asks of 17 (escalate-5, 4:53-8:00), and with only the
+constructor allowed and 541-1,357 metal banked it chose "nothing" 12 asks running for 35 s (escalate-6, 5:19-5:52)
+until the player relented. The menu's words state observations; the packet judges.
+**Status.** observed (2026-09-22 late), two games; the facts-only wording untried.
+**Evidence.** `run/matches/1790127241-escalate-5-hard-aggressive/00/jev-0.jsonl` and `.../1790129025-escalate-6-hard-aggressive/00/jev-0.jsonl`:
+the plant's `played` entries (options, choice, probability) in those windows; `strategist-0.jsonl` the packets.
+**Would be wrong if.** With the verdict removed the plant still chose Blitzes over an asked-for constructor at the
+same rate, which would put the bias in the model or in the "nothing" option's words rather than in the sentence.
+**Used by.** H-HANDS-MENU (the count beside a constructor option is facts only); the tempo-not-rules principle
+(docs/README.md: the harness states observations only).
+

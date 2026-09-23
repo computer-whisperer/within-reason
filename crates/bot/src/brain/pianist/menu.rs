@@ -12,6 +12,7 @@ use super::super::roster::Kit;
 use super::Pianist;
 use super::super::{Brain, FRAMES_PER_SECOND};
 use super::picture::{Party, Picture, distance_words};
+use crate::strategist::shared::Allowance;
 use super::{REVIEW_FRAMES, Task};
 
 /// Free spots on a builder's menu, nearest by its own walking first.
@@ -236,7 +237,7 @@ impl Brain {
             if pianist.allowed_seen.get(&name) != allowed.as_ref() {
                 pianist.produced.retain(|(b, _), _| *b != unit.id);
                 match &allowed {
-                    Some(list) => pianist.allowed_seen.insert(name.clone(), list.clone()),
+                    Some(a) => pianist.allowed_seen.insert(name.clone(), a.clone()),
                     None => pianist.allowed_seen.remove(&name),
                 };
             }
@@ -246,7 +247,7 @@ impl Brain {
             };
             let usual = super::super::roster::usual_menu(self.name(unit.def));
             let offered: Vec<UnitDefId> = match &allowed {
-                Some(list) if build_list.iter().any(|b| permits(list, *b)) => build_list.iter().copied().filter(|b| permits(list, *b)).collect(),
+                Some(Allowance { units: list, .. }) if build_list.iter().any(|b| permits(list, *b)) => build_list.iter().copied().filter(|b| permits(list, *b)).collect(),
                 _ => build_list.iter().copied().filter(|b| usual.contains(&self.name(*b))).collect(),
             };
             let reach = self.world.def(unit.def).map_or(100.0, |d| d.build_distance) + 300.0;
@@ -369,7 +370,7 @@ impl Brain {
             if pianist.allowed_seen.get(&name) != allowed.as_ref() {
                 pianist.produced.retain(|(lab, _), _| *lab != unit.id);
                 match &allowed {
-                    Some(list) => pianist.allowed_seen.insert(name.clone(), list.clone()),
+                    Some(a) => pianist.allowed_seen.insert(name.clone(), a.clone()),
                     None => pianist.allowed_seen.remove(&name),
                 };
             }
@@ -378,7 +379,7 @@ impl Brain {
                 list.iter().map(|e| super::allowance(e)).any(|(n, cap)| n == unit_name && cap.is_none_or(|cap| pianist.produced.get(&(unit.id, unit_name.clone())).copied().unwrap_or(0) < cap))
             };
             let buildables: Vec<UnitDefId> = match &allowed {
-                Some(list) if def.build_options.iter().any(|b| permits(list, *b)) => def.build_options.iter().copied().filter(|b| permits(list, *b)).collect(),
+                Some(Allowance { units: list, .. }) if def.build_options.iter().any(|b| permits(list, *b)) => def.build_options.iter().copied().filter(|b| permits(list, *b)).collect(),
                 _ => def.build_options.clone(),
             };
             for buildable in &buildables {
@@ -387,7 +388,7 @@ impl Brain {
                 // The count in words beside the option: Jev does not count what it has against a plan
                 // (pianist-smoke-1: thirty constructors and no soldier by minute nine).
                 let have = if self.world.is_constructor_def(*buildable) {
-                    format!(" We have {constructors} constructors already{coming_words}: {}.", super::picture::constructor_words(constructors + constructors_coming, extractors))
+                    format!(" We have {constructors} constructors{coming_words} for {extractors} extractors.")
                 } else if self.world.def(*buildable).is_some_and(|d| d.weapon_count > 0 && d.speed > 0.0) {
                     format!(" Our soldiers: {}.", super::picture::soldier_words(soldiers.len(), army_metal))
                 } else {
@@ -396,8 +397,8 @@ impl Brain {
                 criteria.insert(key, json!(format!("Build a {}.{have}", self.unit_words(*buildable))));
             }
             let instructions = json!(format!(
-                "Given `actors.{name}`, `ours`, `economy` and the player's `instructions`, which unit should {name} build next? We have {constructors} constructors{coming_words} ({}) and {} soldiers ({}).{}",
-                super::picture::constructor_words(constructors + constructors_coming, extractors), soldiers.len(), super::picture::soldier_words(soldiers.len(), army_metal),
+                "Given `actors.{name}`, `ours`, `economy` and the player's `instructions`, which unit should {name} build next? We have {constructors} constructors{coming_words} for {extractors} extractors and {} soldiers ({}).{}",
+                soldiers.len(), super::picture::soldier_words(soldiers.len(), army_metal),
                 if allowed.is_some() && buildables.len() < def.build_options.len() { " The player allows only the units offered here." } else { "" }
             ));
             pianist.last_asked.insert(name.clone(), frame);

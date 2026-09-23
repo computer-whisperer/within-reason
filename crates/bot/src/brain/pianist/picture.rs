@@ -3,6 +3,7 @@
 //! instructions at the top. Places and enemy parties are named here so that the menus' answers can name them back.
 
 use std::collections::BTreeMap;
+use crate::strategist::shared::Allowance;
 
 use bot_protocol::{EnemyUnit, Event, OwnUnit, Tick, UnitDefId, Vec3};
 use serde_json::{Value, json};
@@ -106,20 +107,6 @@ fn health_words(share: f32) -> &'static str {
 }
 
 /// How many constructors we have, against the extractors they serve.
-pub(crate) fn constructor_words(constructors: usize, extractors: usize) -> &'static str {
-    if constructors == 0 {
-        "none"
-    } else if constructors <= 2 {
-        "a couple, few"
-    } else if constructors <= (extractors / 2 + 2).max(4) {
-        "enough for the spots we hold"
-    } else if constructors <= extractors + 2 {
-        "many, more than the spots need"
-    } else {
-        "far too many: more constructors than extractors, each one metal that is not a soldier"
-    }
-}
-
 pub(crate) fn soldier_words(soldiers: usize, metal: f32) -> &'static str {
     if soldiers == 0 {
         "none: we have no army at all"
@@ -204,7 +191,7 @@ impl Brain {
 
     /// The player's whitelist for an actor (`produce`, H-HANDS-PRODUCE): its own, else `all_builders` for a builder,
     /// else `all`, else none.
-    pub(super) fn allowed_units(&self, actor: &str) -> Option<Vec<String>> {
+    pub(super) fn allowed_units(&self, actor: &str) -> Option<Allowance> {
         let shared = self.strategist.as_ref()?;
         let allowed = shared.allowed.lock().unwrap();
         let builder = actor == "commander" || actor.starts_with("constructor_");
@@ -613,7 +600,7 @@ impl Brain {
         let ours = json!({
             "extractors": extractors,
             "labs": count(&|u| self.world.is_factory_def(u.def)),
-            "constructors": format!("{constructors}: {}", constructor_words(constructors, extractors)),
+            "constructors": constructors,
             "turrets": count(&|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0 && d.weapon_count > 0)),
             "radars": count(&|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0 && d.radar_range > 0.0)),
             "generators": count(&|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0 && (d.energy_make > 0.0 || d.energy_upkeep < 0.0 || d.wind_cap > 0.0))),
@@ -755,8 +742,8 @@ impl Brain {
                     }
                 }
                 let coming = own.iter().filter(|u| u.being_built && self.world.is_constructor_def(u.def)).count() + queue.iter().filter(|(def, _)| self.world.is_constructor_def(*def)).count();
-                entry["we_have"] = json!(format!("constructors {constructors}{} ({}); soldiers {} ({})", if coming > 0 { format!(" and {coming} being made") } else { String::new() }, constructor_words(constructors + coming, extractors), soldiers.len(), soldier_words(soldiers.len(), army_metal)));
-                if let Some(list) = self.allowed_units(&name) {
+                entry["we_have"] = json!(format!("constructors {constructors}{} for {extractors} extractors; soldiers {} ({})", if coming > 0 { format!(" and {coming} being made") } else { String::new() }, soldiers.len(), soldier_words(soldiers.len(), army_metal)));
+                if let Some(Allowance { units: list, .. }) = self.allowed_units(&name) {
                     let words: Vec<String> = list
                         .iter()
                         .filter_map(|e| {
