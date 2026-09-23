@@ -82,3 +82,8 @@ of a strip's extractor clusters. `--boxes standard` (the default) reads the lobb
   how much of the picture a Jev call carries; the arena passes `lean` unless `--hands-effort` says otherwise, `run/human_game.sh`
   passes `normal` unless its third argument says otherwise, and the record's and the jev log's headers carry the level. Read a
   game's Jev cost against its level; compare games at the same level.
+
+- **The arena rebuilds everything but itself.** `run/install_ai.sh` runs `cargo build --release` at batch start, so the shim and
+  the bot of a batch are the tree's, but the arena process that launched the batch is the binary that existed before the build:
+  a new arena flag or default (diet-1: `--hands-effort`, default lean) is not in effect until the next arena start after a build.
+  After changing `crates/arena`, run `cargo build --release` (or one batch) before the batch that needs it.
