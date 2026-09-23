@@ -435,6 +435,38 @@ pub struct Footwork {
     pub follow: bool,
 }
 
+/// What one turn changed, held back by the think penalty (`hold_for_turn`) and put into force by `apply_delayed`.
+/// Whole-state fields carry the turn's final value; the consumed ones (`queues`, `policy`, `removals`) carry only
+/// what the turn added, so nothing the brain already took is played twice.
+#[derive(Clone, Debug)]
+pub struct TurnOutputs {
+    pub directives: Directives,
+    pub field_orders: FieldOrders,
+    pub wake: Wake,
+    pub instructions: String,
+    pub queues: BTreeMap<String, Option<Vec<String>>>,
+    pub policy: Vec<PolicyChange>,
+    pub lane: BTreeMap<String, Footwork>,
+    pub marks: BTreeMap<String, (f32, f32)>,
+    pub allowed: BTreeMap<String, Allowance>,
+    pub removals: Vec<Removal>,
+}
+
+impl TurnOutputs {
+    /// This state with the consumed fields cut to what `before` did not have.
+    fn delta_from(mut self, before: &TurnOutputs) -> TurnOutputs {
+        self.queues.retain(|k, v| before.queues.get(k) != Some(v));
+        // Policy changes and removals are appended during a turn and never reordered: the tail is the turn's.
+        if self.policy.len() >= before.policy.len() {
+            self.policy.drain(..before.policy.len());
+        }
+        if self.removals.len() >= before.removals.len() {
+            self.removals.drain(..before.removals.len());
+        }
+        self
+    }
+}
+
 impl Default for Footwork {
     fn default() -> Footwork {
         Footwork { flee: true, fan: true, focus: true, kite: true, march: true, follow: true }
@@ -628,7 +660,7 @@ pub struct Shared {
     /// it thought (1 = as if the game had kept running while it thought; 0 = at once). Set once at start.
     pub think_penalty: Mutex<f32>,
     /// A turn's orders waiting out their delay: the frame they take effect, and what then becomes live.
-    pub delayed: Mutex<Option<(i32, Directives, FieldOrders, Wake)>>,
+    pub delayed: Mutex<Option<(i32, TurnOutputs)>>,
 }
 
 impl Shared {
@@ -638,7 +670,7 @@ impl Shared {
 
     /// Brain side: ask for a turn and hold the game until it is over. Returns at once when no session can answer.
     pub fn hold_for_turn(&self, reason: String, frame: i32) {
-        let before = (self.directives.lock().unwrap().clone(), self.field_orders.lock().unwrap().clone(), self.wake.lock().unwrap().clone());
+        let before = self.outputs();
         let started = std::time::Instant::now();
         {
             let mut gate = self.gate.lock().unwrap();
@@ -649,18 +681,47 @@ impl Shared {
             self.gate_changed.notify_all();
             let _gate = self.gate_changed.wait_while(gate, |g| !g.closed && (g.requested.is_some() || g.in_progress)).unwrap();
         }
-        // The game stood still while the commander thought. With a penalty, what it ordered waits as long (in game
-        // time) as it took to decide, and the old orders stand meanwhile: the latency it would have in a live game.
+        // The game stood still while the player thought. With a penalty, what it ordered waits as long (in game time)
+        // as it took to decide, and the old orders stand meanwhile: the latency it would have in a live game. Until
+        // 2026-09-23 only the commander mode's outputs waited; the player's packet, lists, production, marks, policy,
+        // footwork and removals landed at once, so the penalty did nothing in a pianist or Lua game (the user: "we
+        // want to compress arena games to get through them faster, but otherwise be representative of realtime games").
         let penalty = *self.think_penalty.lock().unwrap();
         if penalty > 0.0 {
             let delay = (started.elapsed().as_secs_f32() * penalty * 30.0) as i32;
-            let ordered = (
-                std::mem::replace(&mut *self.directives.lock().unwrap(), before.0),
-                std::mem::replace(&mut *self.field_orders.lock().unwrap(), before.1),
-                std::mem::replace(&mut *self.wake.lock().unwrap(), before.2),
-            );
-            *self.delayed.lock().unwrap() = Some((frame + delay, ordered.0, ordered.1, ordered.2));
+            let after = self.outputs();
+            self.restore(before.clone());
+            *self.delayed.lock().unwrap() = Some((frame + delay, after.delta_from(&before)));
         }
+    }
+
+    /// Everything a turn can change that the game reads.
+    fn outputs(&self) -> TurnOutputs {
+        TurnOutputs {
+            directives: self.directives.lock().unwrap().clone(),
+            field_orders: self.field_orders.lock().unwrap().clone(),
+            wake: self.wake.lock().unwrap().clone(),
+            instructions: self.instructions.lock().unwrap().clone(),
+            queues: self.queues.lock().unwrap().clone(),
+            policy: self.policy.lock().unwrap().clone(),
+            lane: self.lane.lock().unwrap().clone(),
+            marks: self.marks.lock().unwrap().clone(),
+            allowed: self.allowed.lock().unwrap().clone(),
+            removals: self.removals.lock().unwrap().clone(),
+        }
+    }
+
+    fn restore(&self, o: TurnOutputs) {
+        *self.directives.lock().unwrap() = o.directives;
+        *self.field_orders.lock().unwrap() = o.field_orders;
+        *self.wake.lock().unwrap() = o.wake;
+        *self.instructions.lock().unwrap() = o.instructions;
+        *self.queues.lock().unwrap() = o.queues;
+        *self.policy.lock().unwrap() = o.policy;
+        *self.lane.lock().unwrap() = o.lane;
+        *self.marks.lock().unwrap() = o.marks;
+        *self.allowed.lock().unwrap() = o.allowed;
+        *self.removals.lock().unwrap() = o.removals;
     }
 
     /// Brain side, realtime: ask for a turn and go on; the game does not wait (the user, 2026-09-22: "the main
@@ -679,10 +740,19 @@ impl Shared {
     pub fn apply_delayed(&self, frame: i32) -> bool {
         let mut delayed = self.delayed.lock().unwrap();
         match delayed.take() {
-            Some((at, directives, orders, wake)) if frame >= at => {
-                *self.directives.lock().unwrap() = directives;
-                *self.field_orders.lock().unwrap() = orders;
-                *self.wake.lock().unwrap() = wake;
+            Some((at, o)) if frame >= at => {
+                // The turn's outputs land: the whole-state fields are set, the consumed ones (lists, policy changes,
+                // removals) are added to what has come since.
+                *self.directives.lock().unwrap() = o.directives;
+                *self.field_orders.lock().unwrap() = o.field_orders;
+                *self.wake.lock().unwrap() = o.wake;
+                *self.instructions.lock().unwrap() = o.instructions;
+                *self.lane.lock().unwrap() = o.lane;
+                *self.marks.lock().unwrap() = o.marks;
+                *self.allowed.lock().unwrap() = o.allowed;
+                self.queues.lock().unwrap().extend(o.queues);
+                self.policy.lock().unwrap().extend(o.policy);
+                self.removals.lock().unwrap().extend(o.removals);
                 false
             }
             waiting => {

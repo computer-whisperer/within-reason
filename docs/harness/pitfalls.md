@@ -87,3 +87,16 @@ of a strip's extractor clusters. `--boxes standard` (the default) reads the lobb
   the bot of a batch are the tree's, but the arena process that launched the batch is the binary that existed before the build:
   a new arena flag or default (diet-1: `--hands-effort`, default lean) is not in effect until the next arena start after a build.
   After changing `crates/arena`, run `cargo build --release` (or one batch) before the batch that needs it.
+
+## Every player game before 2026-09-23 15:00 ran without the think penalty, and the penalty covered only the commander mode
+
+The arena holds the game during a turn. `--think-penalty X` makes a turn's orders land X game seconds late per wall
+second of thinking, the latency of a live game, but it defaulted to 0 and no series script passed it, so every
+pianist and Lua player game in the ledger up to and including pace-1 was played with the world frozen while the player
+thought: the player never met an event that arrived while it was thinking (in the real-time human games 55 % of the
+critical events did, and the next turn came a median 6 s after them). And as coded the penalty held back only the
+commander mode's directives, field orders and wake; the player's packet, lists, production, marks, policy changes,
+footwork and removals landed at once, so passing it would have changed nothing. Since 2026-09-23 15:00 the penalty
+holds back everything a turn changes (`shared.rs` `TurnOutputs`, `hold_for_turn`, `apply_delayed`) and `--player`
+defaults it to 1. Read the earlier player rows with that in mind; the penalty series (penalty-1..4) is the first
+representative set. `--think-penalty 0` turns it off deliberately.

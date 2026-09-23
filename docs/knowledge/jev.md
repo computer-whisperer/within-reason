@@ -612,3 +612,18 @@ names) and the `where` lists the instructions fill (31 places).
 actor entry lost a join or a detachment its words carried, or the replayed factory answers flattened a mix.
 **Used by.** H-HANDS-DIET, H-HANDS-SCHEDULE.
 
+### K-arena-player-turns-were-held-without-penalty
+**Claim.** The arena's player games up to pace-1 (2026-09-23) were played with the game held during every turn and
+no think penalty, so the player answered a frozen picture and its orders landed at the frame it was woken on; in the
+eleven real-time games on disk the player was inside a turn 27-52 % of the game's time, 55 % of the critical events
+(an own extractor, soldier or commander destroyed) fell inside a turn, and the next turn came a median 6 s (p90 20 s)
+after them. The arena results overstate a live game's by that latency. The penalty existed but held back only the
+commander mode's outputs, so it would not have applied to the player's packet.
+**Status.** measured (2026-09-23) on the real-time records (`run/matches/*human-*`, `*realtime-*`) and the arena
+code; the corrected penalty (every turn output held back, default 1 with `--player`) untried: penalty-1..4 next.
+**Evidence.** `crates/bot/src/strategist/shared.rs` `hold_for_turn` before 2026-09-23; the `batch.json` of every
+player game (`"think_penalty": null`); the scratchpad measurement over the real-time strategist and record logs.
+**Would be wrong if.** The penalised games' results matched the unpenalised ones: then the latency did not matter at
+this tier.
+**Used by.** the arena's `--player` default; H-HANDS-SCHEDULE (the hands act inside the latency).
+

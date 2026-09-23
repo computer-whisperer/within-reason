@@ -15,7 +15,7 @@
 //!              [--effort low|medium|high|xhigh|max]   (the LLM session's `claude --effort`; default high)
 //!              [--hands-effort lean|normal|full]      (the hands' Jev token diet; default lean, the bulk games' level)
 //!              [--opponent-opening any|bots|vehicles]   (pins BARb's first factory by disabling the other; default any)
-//!              [--think-penalty X]   (commander: its orders land X game seconds late per wall second it thought; 1 = as in a live game, default 0)
+//!              [--think-penalty X]   (the player's or commander's orders land X game seconds late per wall second it thought; 1 = as in a live game; default 1 with --player, else 0)
 //!              [--seed-base N]   (default 1; match i plays seed N+i, for the engine and for BARb: a fresh N is a fresh set of games)
 //!              [--opening-plan PATH]   (the bot plays this plan text instead of searching one; run/replay_plan.py writes one from a replay)
 //!              [--objective TEXT]   (a requirement for the player, appended to its role text: "kill the commander with Thunder bombers")
@@ -170,7 +170,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("BARb {}", options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "strategist": options.strategist, "commander": options.commander, "commander_each": options.commander_each, "pianist": options.pianist, "player": options.player, "policy": options.policy, "commander_model": options.commander_model, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "think_penalty": options.think_penalty, "seed_base": options.seed_base, "opening_plan": options.opening_plan, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "strategist": options.strategist, "commander": options.commander, "commander_each": options.commander_each, "pianist": options.pianist, "player": options.player, "policy": options.policy, "commander_model": options.commander_model, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "seed_base": options.seed_base, "opening_plan": options.opening_plan, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 
@@ -319,7 +319,8 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         .env("WITHIN_REASON_HANDS_EFFORT", options.hands_effort.as_deref().unwrap_or("lean"))
         .envs(options.commander_model.as_ref().map(|model| ("WITHIN_REASON_MODEL", model)))
         .envs(options.objective.as_ref().map(|text| ("WITHIN_REASON_OBJECTIVE", text)))
-        .envs(options.think_penalty.as_ref().map(|penalty| ("WITHIN_REASON_THINK_PENALTY", penalty)))
+        // A player game is played as a live one unless told otherwise: its orders land as late as it thought.
+        .envs(options.think_penalty.as_deref().or(options.player.then_some("1")).map(|penalty| ("WITHIN_REASON_THINK_PENALTY", penalty.to_string())))
         .envs(options.realtime.then_some(("WITHIN_REASON_REALTIME", "1")))
         .stderr(File::create(dir.join("bot.log"))?)
         .spawn()?;
