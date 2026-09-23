@@ -68,3 +68,16 @@ the window. Checked by `scratchpad/jev_waste.py` on the next hard_aggressive gam
 ## Status
 
 Built 2026-09-23 13:00 (`pianist/diet.rs` and the sites it names); the check game at lean follows the Lua series.
+
+## Checked (2026-09-23)
+
+| game | level | result | calls | tokens a call (median) | $ a minute |
+|---|---|---|---|---|---|
+| started-1 | (before) | Loss 30.6 | 1,370 | 15.6k | 0.035 |
+| diet-1 | normal | Win 18.9 | 637 | 10.3k | 0.016 |
+| diet-2 | lean | Win 15.5 | 530 | 9.25k | 0.015 |
+
+The ask latency after a loss stayed at 1.2-1.3 s. Left at lean: builder questions 34 % (24 options of 300-460
+characters), the places block 22 % (36 places a call), group questions 14 % (`where` lists 31 places, the
+instructions naming many). Next cuts, if wanted: the places block from the asked *groups'* reach and the spots the
+instructions and the asked entries name (not the enemy block's); a shorter unit line per builder option.

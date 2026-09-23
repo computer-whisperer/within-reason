@@ -602,7 +602,10 @@ only holding groups with nothing near, and 4-6 % to asks whose question, entry a
 previous only in numbers (the factory, 90-98 % the same answer). Exact repeats were 7-18 a game: every entry carries
 a clock or a distance.
 **Status.** measured (2026-09-23) on started-1 and shell-1 (`scratchpad/jev_waste.py`); the diet (H-HANDS-DIET)
-untried.
+verified in diet-1 (normal: 10.3k tokens a call, won) and diet-2 (lean: 9.25k a call, $0.015 a minute against $0.035,
+won 15.5): the place lists and the `where_scout` question were the bill they measured as; what remains is the
+builder options (34 % at lean), the places block (22 %: the asked builders' reach and the spots the enemy block
+names) and the `where` lists the instructions fill (31 places).
 **Evidence.** `run/matches/1790174701-started-1-hard-aggressive/00/jev-0.jsonl`,
 `run/matches/1790172269-shell-1-hard-aggressive/00/jev-0.jsonl`: `usage`, `state`, `questions`, `played` per call.
 **Would be wrong if.** The pruned `where` list left out the place the instructions or the fight called for, a brief
