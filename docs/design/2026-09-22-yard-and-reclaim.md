@@ -70,4 +70,9 @@ or eat our own structures and units ... We should make sure the player is aware 
 ## Status (2026-09-22 late night)
 
 Steps 1-4 built. The scorecard's `stuck_s` is unit-seconds stuck (hands-2: 3,187 against hands-1's 12) and `yard_min`
-reads lanes from the header's footprints and the `finished` events' facings, so older records show `-`. Step 5 next.
+reads lanes from the header's footprints and the `finished` events' facings, so older records show `-`.
+
+Step 5, yard-1-bulldogs: WON at 17:10 with 13 Bulls; no building in either plant's lane, `yard_min` 0, `stuck_s` 44
+against hands-2's 3,187, metal full 0.7 % against 50 %; the player's one search asked four goals with an income goal
+(the guide's sentence heard on the first try); `remove` untried, nothing to remove. Left open: the advanced-solar
+step the player skipped (an energy stall 8:45-10:00), and a new factory's own future lane against what already stands.

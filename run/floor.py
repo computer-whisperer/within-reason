@@ -166,7 +166,7 @@ def stuck_and_yards(m, defs, positions, frames, sample):
     factory had a stuck unit in its exit lane, as `brain/yards.rs` draws it (None without footprints in the header)."""
     spans = {}  # unit -> [(start frame, end frame)]
     for e in m.events:
-        if e["k"] != "move_failed" or defs.get(e["d"], {}).get("speed", 0) <= 0:
+        if e["k"] != "move_failed" or defs.get(e.get("d"), {}).get("speed", 0) <= 0:
             continue
         pos = positions.get(e["u"], [])
         if spans.get(e["u"]) and spans[e["u"]][-1][1] >= e["f"]:
@@ -185,7 +185,7 @@ def stuck_and_yards(m, defs, positions, frames, sample):
         return stuck_frames, None
     lanes = []
     for e in m.events:
-        d = defs.get(e["d"], {})
+        d = defs.get(e.get("d"), {})
         if e["k"] != "finished" or not d.get("builds") or d.get("speed", 0) > 0 or "facing" not in e:
             continue
         xs, zs = d.get("footprint", [0, 0])

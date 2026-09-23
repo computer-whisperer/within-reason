@@ -372,5 +372,8 @@ the search, not the other way round.
 **Evidence.** the four games' `strategist-0.jsonl` `search` calls (`target armbull` alone each time) and their
 `queue` calls; hands-2's curves (`run/floor.py`: mfull 50 %).
 **Would be wrong if.** A target search with income and raider goals, followed to the letter, held the economy and
-the front through minute fifteen in a Bulls game.
+the front through minute fifteen in a Bulls game. Close to it already: yard-1-bulldogs asked six Flashes, the plant,
+three Bulls and income 25 in one search, won at 17:10 with 13 Bulls and metal full 0.7 % of the game; but the player
+skipped the answer's advanced solar and stalled energy 8:45-10:00 (its own note), so the answer was still not
+followed to the letter.
 **Used by.** H-PLAYER-PLAN-SEARCH (income goals; the guide: "a target order is a chain to the thing asked").

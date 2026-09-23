@@ -224,5 +224,6 @@ thirty elmos of the exit 5.0-7.5 min each; 156 move-failed events on Bulls; the 
 with metal 2,000-5,600 of storage full; all five left at 19:10 as the solars and then the plant were destroyed. The
 first two Bulls (9:36, 10:42, before the solars) left within seconds.
 **Would be wrong if.** Units left through another side too, or a building at the front but off the engine's search
-strip let them out; `yard_min` on the scorecard over the coming games tells.
+strip let them out; `yard_min` on the scorecard over the coming games tells (yard-1-bulldogs, with the lanes kept
+clear: 0 minutes, and thirteen Bulls left within half a minute but one held by its group).
 **Used by.** H-ECO-YARD-LANE, H-HANDS-STUCK-WORDS, H-PLAYER-REMOVE.

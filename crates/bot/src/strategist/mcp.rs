@@ -1005,6 +1005,14 @@ mod planning {
 
     /// The `target` objective's goals against the found order, one line each: how many finished, and when the
     /// asked-for count (or the first) did against the deadline. None for the other objectives.
+    /// "the first", "the 2nd", "the 3rd", "the 4th" ...
+    fn nth(n: Option<usize>) -> String {
+        match n {
+            None | Some(1) => "the first".to_string(),
+            Some(n) => format!("the {n}{}", match (n % 10, n % 100) { (1, x) if x != 11 => "st", (2, x) if x != 12 => "nd", (3, x) if x != 13 => "rd", _ => "th" }),
+        }
+    }
+
     fn goals_words(ctx: &PlanContext, goals: &[Goal], income: &[(f64, f64)], outcome: &Outcome) -> Option<String> {
         if goals.is_empty() && income.is_empty() {
             return None;
@@ -1024,11 +1032,12 @@ mod planning {
                 let finished: Vec<f64> = outcome.finished.iter().filter(|f| f.unit == g.unit).map(|f| f.t).collect();
                 let asked = g.count.map_or(String::new(), |n| format!("{n} asked, "));
                 let done_at = g.count.map_or(finished.first().copied(), |n| finished.get(n - 1).copied());
+                let which = nth(g.count);
                 let when = match (done_at, g.by) {
-                    (Some(t), Some(by)) if t <= by => format!("{} finished at {} ({} asked for)", g.count.map_or("the first".to_string(), |n| format!("the {n}th")), mmss(t), mmss(by)),
-                    (Some(t), Some(by)) => format!("{} finished at {}, {} late of {}", g.count.map_or("the first".to_string(), |n| format!("the {n}th")), mmss(t), mmss(t - by), mmss(by)),
-                    (Some(t), None) => format!("{} finished at {}", g.count.map_or("the first".to_string(), |n| format!("the {n}th")), mmss(t)),
-                    (None, Some(by)) => format!("{} not finished by the horizon ({} asked for)", g.count.map_or("the first".to_string(), |n| format!("the {n}th")), mmss(by)),
+                    (Some(t), Some(by)) if t <= by => format!("{which} finished at {} ({} asked for)", mmss(t), mmss(by)),
+                    (Some(t), Some(by)) => format!("{which} finished at {}, {} late of {}", mmss(t), mmss(t - by), mmss(by)),
+                    (Some(t), None) => format!("{which} finished at {}", mmss(t)),
+                    (None, Some(by)) => format!("{which} not finished by the horizon ({} asked for)", mmss(by)),
                     (None, None) => "none finished by the horizon".to_string(),
                 };
                 format!("{name}: {asked}{} finished by the horizon; {when}", finished.len())
