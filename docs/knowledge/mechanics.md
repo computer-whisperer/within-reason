@@ -282,9 +282,11 @@ our standing extractor's position: the game upgrades it in place, and any other 
 (the spot's extractor is within the extractor radius: `cmd_mex_denier.lua` `mexExists`). Our extractors stand up to
 113 elmos off the spot's centre (H-ECO-SPOT-CENTROID's offset placement), so a moho ordered "at spot_N" and placed at
 the centre is refused.
-**Status.** observed (2026-09-23), low-1-jev-hard-aggressive: three `armmoho spot_N` list steps at 24:46 refused
+**Status.** supported (2026-09-23): low-1-jev-hard-aggressive, three `armmoho spot_N` list steps at 24:46 refused
 "site bad" at 11 elmos from the centres and 97, 104 and 25 from our extractors; the player flagged it. Fixed in
-`economy.rs` `build_site_for` (the site is our extractor's position); untried.
+`economy.rs` `build_site_for` (the site is our extractor's position): pace-1 built eight mohos through it, every one
+on our extractor's position, and the 18 refusals left were mohos over a frame or over a finished moho
+(K-hands-moho-over-a-frame-was-refused).
 **Evidence.** `run/matches/1790185145-low-1-jev-hard-aggressive/00/bot.log` "armmoho order ... never started" against
 the record's `created` extractors.
 **Would be wrong if.** A moho placed on our extractor's position were still refused (a footprint or terrain rule).

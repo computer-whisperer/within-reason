@@ -380,6 +380,17 @@ impl Brain {
 
     fn task_words(&self, task: Option<&Task>, unit: &OwnUnit, places: &[Place], frame: i32) -> String {
         let ago = |since: i32| format!("{} s ago", (frame - since) / FRAMES_PER_SECOND);
+        let mut words = self.task_course(task, unit, places, frame);
+        // A builder whose moves the engine gives up says so, as a group's soldiers do (pace-1: constructor_9823 read
+        // "walking to build ... 951 to go" for four minutes wedged behind the first plant).
+        if let Some(stuck) = self.stuck.get(&unit.id) {
+            words.push_str(&format!("; stuck: it cannot move from {}, its moves have failed since {}", self.place_words(places, stuck.at), ago(stuck.since)));
+        }
+        words
+    }
+
+    fn task_course(&self, task: Option<&Task>, unit: &OwnUnit, places: &[Place], frame: i32) -> String {
+        let ago = |since: i32| format!("{} s ago", (frame - since) / FRAMES_PER_SECOND);
         match task {
             None if unit.idle => "idle, waiting for an order".into(),
             None => "finishing an order".into(),

@@ -105,8 +105,9 @@ pub(crate) struct Menu {
     pub options: BTreeMap<String, Pick>,
     /// A builder's free spots, nearest by its own walking first.
     pub spots: Vec<usize>,
-    /// A step from the player's list (H-HANDS-SCRIPT): the option to play without asking, and its place, if any.
-    pub scripted: Option<(String, Option<String>)>,
+    /// A step from the player's list (H-HANDS-SCRIPT): the option to play without asking, its place, if any, and
+    /// the step's own words (put back at the list's front if the hands divert the builder from it).
+    pub scripted: Option<(String, Option<String>, String)>,
     /// Ordered by the player's policy (`policy.rs`), not by Jev.
     pub policy: bool,
     /// Answered without asking, from the actor's last real answer (H-HANDS-DIET, decision 7): the question id and
@@ -677,7 +678,7 @@ impl Brain {
                         questions: Vec::new(),
                         options: BTreeMap::from([(key.clone(), pick)]),
                         spots,
-                        scripted: Some((key, where_)), policy: false, replay: None, replay_key: None,
+                        scripted: Some((key, where_, step.clone())), policy: false, replay: None, replay_key: None,
                     });
                 }
                 Err(why) => {

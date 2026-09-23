@@ -67,7 +67,7 @@ pub(super) enum Task {
 }
 
 impl Task {
-    fn since(&self) -> i32 {
+    pub(super) fn since(&self) -> i32 {
         match self {
             Task::Build { ordered, .. } => *ordered,
             Task::Assist { since, .. } | Task::Reclaim { since, .. } | Task::ReclaimUnit { since, .. } | Task::Repair { since, .. } | Task::Walk { since, .. } => *since,
@@ -131,6 +131,10 @@ pub struct Pianist {
     pub(super) queued: HashMap<UnitId, Task>,
     /// The player's lists of steps per builder (by actor name), done by the bot without asking (H-HANDS-SCRIPT).
     pub(super) scripts: HashMap<String, VecDeque<String>>,
+    /// The list step each builder is on (its words, and the clock of the task it became): diverted from that task
+    /// by the hands, the builder gets the step back at the front of its list (pace-1: an extractor step at spot_7
+    /// was lost to a "go home", and the list went on to the turret).
+    pub(super) list_steps: HashMap<UnitId, (String, i32)>,
     /// When each builder, lab or group (by name) was last asked.
     last_asked: HashMap<String, i32>,
     /// Units a lab has been told to build and not yet started, oldest first.
@@ -309,6 +313,7 @@ impl Pianist {
             next_party: std::cell::Cell::new(1),
             recent: VecDeque::new(),
             scripts: HashMap::new(),
+            list_steps: HashMap::new(),
             done: Vec::new(),
             needs_player_run: 0,
             last_player_wake: i32::MIN / 2,

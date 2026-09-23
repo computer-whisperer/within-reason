@@ -632,3 +632,46 @@ player game (`"think_penalty": null`); the scratchpad measurement over the real-
 this tier.
 **Used by.** the arena's `--player` default; H-HANDS-SCHEDULE (the hands act inside the latency).
 
+### K-hands-moho-over-a-frame-was-refused
+**Claim.** A tier-2 extractor ordered at a spot where a tier-2 frame is already going up, or where the tier-2
+extractor already stands, is refused by the site search (the frame is not a basic extractor of ours to upgrade, and
+the engine will not put a second frame on it), and the hands retried such spots every two seconds: the list and the
+hands both named spots by the player's words, not by what stood there.
+**Status.** measured (2026-09-23, pace-1-hard-aggressive, 17:31-26:47): 18 `no_site` events, all `armmoho`, 23
+"armmoho order ... never started"; over a frame at spot_45 (18:05, the frame 17:31-19:08), spot_50 (19:09, 19:40,
+20:36; the frame 18:28-20:42), spot_54 (25:24); over a finished moho at spot_36 (five times 23:25-23:34) and spot_30
+(24:17, 24:37, 25:47); the player's lists named spot_36 twice and spot_50 after its upgrade, `queue` answered "done
+in order" each time. Eight mohos stood in nine minutes from two advanced constructors, one frame at a time. The
+three winning games at this tier built no moho (0 `no_site`). Fixed in `hands.rs` (H-HANDS-UPGRADE: repair the
+frame, else the nearest extractor still to upgrade), untried.
+**Evidence.** `run/matches/1790188079-pace-1-hard-aggressive/00/record-0.jsonl` (`no_site` events), `bot.log`,
+`jev-0.jsonl` (the `where` answers); the Opus review of the game (2026-09-23 evening).
+**Would be wrong if.** A build order at a same-type frame's position were accepted and continued the frame: then the
+repair route is a detour, not a need.
+**Used by.** H-HANDS-UPGRADE.
+
+### K-hands-lane-from-the-centre-counted-behind-the-plant
+**Claim.** The exit lane measured from a factory's centre (a strip of half-width 96 from the centre out through the
+front) contained points up to 96 elmos behind the factory, so a unit wedged against its back wall counted as
+standing in the lane, and the `yard` wake and the factory's `yard` words said the lane was blocked while units left
+through the front every 10-25 s.
+**Status.** measured (2026-09-23, pace-1): constructor_9823 at (1400-1423, 3600-3631), between a solar and the north
+wall of the plant at (1424, 3694) with a 12x12 footprint, from 23:46 until the plant died at 29:56 (364 stuck
+seconds, 124 failed moves); three `yard` wakes (10:32, 24:28, 25:30) said "nothing of ours stands in the lane";
+the plant built a Stout every 10-25 s throughout. The lane now starts at the front face (`yards.rs` `lane_at`).
+**Evidence.** The record's `move_failed` events and the strategist log's wake prompts; the Opus review.
+**Would be wrong if.** The engine's `SendToEmptySpot` sent units out of any side: then a lane behind is a lane too.
+**Used by.** H-ECO-YARD-LANE, H-HANDS-STUCK-WORDS.
+
+### K-hands-a-diverted-list-step-was-lost
+**Claim.** A list step was popped from the builder's list when it was ordered; when the hands then diverted the
+builder (a retreat home under fire, an attack), the step's task was replaced and the list resumed at the following
+step, so the diverted step was never done.
+**Status.** measured (2026-09-23, pace-1): constructor_16966 on `extractor spot_7` at 18:22, sent home by the hands at
+18:40, its list going on to `armllt spot_7`; no extractor at spot_7 for the rest of the game. Fixed (`Pianist::list_steps`,
+the step back at the front when the builder is diverted from the task it became), untried.
+**Evidence.** `run/matches/1790188079-pace-1-hard-aggressive/00/jev-0.jsonl` (`did` lines of constructor_16966); the
+Opus review.
+**Would be wrong if.** The player meant a diversion to cancel the step: then the step should be dropped and said.
+**Used by.** H-HANDS-SCRIPT.
+

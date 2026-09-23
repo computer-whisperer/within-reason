@@ -26,8 +26,11 @@ pub(super) struct Stuck {
 }
 
 impl Brain {
-    /// The lane a factory's finished units leave through: from its centre out through its front by the footprint's
-    /// half depth plus `LANE_DEPTH`, as wide as the footprint plus `LANE_MARGIN` a side. None for anything else.
+    /// The lane a factory's finished units leave through: from its front face out by `LANE_DEPTH`, as wide as the
+    /// footprint plus `LANE_MARGIN` a side. None for anything else. Measured from the centre, as it was until
+    /// pace-1, the strip's rounded start reached behind the factory too: a constructor wedged between a solar and
+    /// the plant's back wall counted as standing in the lane, and three "exit lane is blocked" wakes named a lane
+    /// that was free.
     pub(super) fn lane_of(&self, factory: &OwnUnit) -> Option<Lane> {
         self.lane_at(factory.def, factory.pos, factory.facing)
     }
@@ -49,7 +52,8 @@ impl Brain {
             _ => (-1.0, 0.0),
         };
         let reach = half_depth + LANE_DEPTH;
-        Some(Lane { from: pos, to: Vec3 { x: pos.x + fx * reach, y: pos.y, z: pos.z + fz * reach }, half_width: half_width + LANE_MARGIN })
+        let front = Vec3 { x: pos.x + fx * half_depth, y: pos.y, z: pos.z + fz * half_depth };
+        Some(Lane { from: front, to: Vec3 { x: pos.x + fx * reach, y: pos.y, z: pos.z + fz * reach }, half_width: half_width + LANE_MARGIN })
     }
 
     /// Factory build orders the engine has not started yet: (type, site). A site chosen now must stay clear of their
@@ -110,9 +114,11 @@ impl Brain {
             if self.yard_warned.insert(factory) {
                 let name = self.actor_name(factory);
                 let blockers = self.lane_blockers(&lane, own, factory);
+                let names: Vec<String> = stuck.iter().filter_map(|(id, _)| own.iter().find(|u| u.id == *id)).map(|u| self.handle(u)).collect();
                 let text = format!(
-                    "{name}'s exit lane is blocked: {} of ours have stood in it unable to move for {}{}",
+                    "{name}'s exit lane is blocked: {} of ours ({}) have stood in it unable to move for {}{}",
                     stuck.len(),
+                    names.join(", "),
                     super::pianist::clock(longest),
                     if blockers.is_empty() { "; nothing of ours stands in the lane".to_string() } else { format!("; in the lane: {} (the remove tool takes them away)", blockers.iter().map(|u| self.handle(u)).collect::<Vec<_>>().join(", ")) }
                 );

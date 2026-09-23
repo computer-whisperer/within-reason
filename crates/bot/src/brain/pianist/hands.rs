@@ -36,7 +36,7 @@ impl Brain {
         // A step from the player's list plays itself (H-HANDS-SCRIPT); anything else is the answer's choice.
         let scripted = menu.scripted.clone();
         let (choice, probabilities, confidence): (String, BTreeMap<String, f64>, f64) = match (&scripted, answers.get(&question)) {
-            (Some((key, _)), _) => (key.clone(), BTreeMap::new(), 1.0),
+            (Some((key, _, _)), _) => (key.clone(), BTreeMap::new(), 1.0),
             (None, Some(Answer::Choice { choice, probabilities, confidence })) => (choice.clone(), probabilities.clone(), *confidence),
             _ => return,
         };
@@ -49,7 +49,7 @@ impl Brain {
             kept = true;
         }
         let answered = |q: &str| answers.get(&format!("{name}.{q}")).and_then(|a| if let Answer::Choice { choice, .. } = a { Some(choice.clone()) } else { None });
-        let listed = scripted.as_ref().and_then(|(_, place)| place.clone());
+        let listed = scripted.as_ref().and_then(|(_, place, _)| place.clone());
         let where_ = listed.clone().or_else(|| answered("where"));
         let where_extractor = listed.or_else(|| answered("where_extractor"));
         let whom = answers.get(&format!("{name}.whom")).and_then(|a| if let Answer::Choice { choice, .. } = a { Some(choice.clone()) } else { None });
@@ -63,6 +63,7 @@ impl Brain {
                 // H-HANDS-QUEUE: asked ahead, the answer is ordered behind the build in progress and kept as the
                 // builder's next task.
                 let queue = menu.queue_ahead;
+                let previous_since = self.pianist.as_ref().and_then(|p| p.tasks.get(&id)).map(Task::since);
                 let mut task: Option<Task> = None;
                 let mut build = |plan: Plan, spot: Option<usize>| -> Option<String> {
                     let (def, site) = self.build_site_for(&plan, unit, own, kit)?;
@@ -102,6 +103,34 @@ impl Brain {
                     Pick::Building(def) => {
                         let plan = self.place_planned(def, unit, own, kit);
                         did = build(plan, None);
+                    }
+                    // A tier-2 extractor goes over one of our basic extractors (K-mech-tier-2-extractor-stands-on-ours).
+                    // One already upgrading at the answered spot is helped to finish, not ordered again, and a spot
+                    // already upgraded, or a place that holds no extractor of ours, sends the builder to its nearest
+                    // extractor still to upgrade (pace-1: 18 refused sites, every one a moho ordered over a frame or
+                    // over a finished moho, one spot five times in nine seconds).
+                    Pick::BuildingAt(def) if self.world.def(def).is_some_and(|d| d.extracts_metal > 0.0) => {
+                        let radius = self.spot_occupied_radius();
+                        let asked = place(&where_).map(|p| p.at);
+                        let upgradable = |u: &&OwnUnit| kit.is_extractor(u.def) && u.def != def && !u.being_built && !own.iter().any(|f| f.def == def && f.pos.dist2d(u.pos) < radius);
+                        match asked.and_then(|at| own.iter().find(|u| u.def == def && u.being_built && u.pos.dist2d(at) < radius)) {
+                            Some(under_way) => {
+                                commands.push(Command::Repair { unit: id, target: under_way.id, queue });
+                                task = Some(Task::Repair { target: under_way.id, since: frame });
+                                did = Some(format!("help finish the {} already under way at {}", self.name(def), self.place_words(&picture.places, under_way.pos)));
+                            }
+                            None => {
+                                let at_asked = asked.and_then(|at| own.iter().filter(upgradable).find(|u| u.pos.dist2d(at) < radius));
+                                let target = at_asked.or_else(|| own.iter().filter(upgradable).min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos))));
+                                match target {
+                                    Some(ours) => {
+                                        let redirected = at_asked.is_none() && asked.is_some();
+                                        did = build(Plan::Near(def, ours.pos), None).map(|d| if redirected { format!("{d}: the place answered has no extractor of ours left to upgrade") } else { d });
+                                    }
+                                    None => did = Some(format!("nothing to do: no extractor of ours is left to upgrade into a {}", self.name(def))),
+                                }
+                            }
+                        }
                     }
                     Pick::BuildingAt(def) => {
                         let at = place(&where_).map_or(unit.pos, |p| p.at);
@@ -169,6 +198,23 @@ impl Brain {
                     }
                 } else if matches!(pick, Pick::Wait) {
                     self.pianist.as_mut().expect("pianist mode").tasks.remove(&id);
+                }
+                // The list step this builder is on, and its return to the list when the hands divert the builder
+                // from the task it became (a retreat, an attack, another build): the list resumes where it was
+                // interrupted, not one step on. A list the player cancelled meanwhile stays cancelled.
+                let pianist = self.pianist.as_mut().expect("pianist mode");
+                if let Some((_, _, step)) = &scripted {
+                    if !queue {
+                        pianist.list_steps.insert(id, (step.clone(), frame));
+                    }
+                } else if !queue && !matches!(pick, Pick::Continue | Pick::Wait) && did.is_some() {
+                    if let Some((step, at)) = pianist.list_steps.remove(&id)
+                        && previous_since == Some(at)
+                        && let Some(list) = pianist.scripts.get_mut(&name)
+                    {
+                        list.push_front(step.clone());
+                        did = did.map(|d| format!("{d}; its list step '{step}' waits for it"));
+                    }
                 }
             }
             Actor::Lab(id) => {
