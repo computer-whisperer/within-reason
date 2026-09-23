@@ -643,7 +643,8 @@ hands both named spots by the player's words, not by what stood there.
 (24:17, 24:37, 25:47); the player's lists named spot_36 twice and spot_50 after its upgrade, `queue` answered "done
 in order" each time. Eight mohos stood in nine minutes from two advanced constructors, one frame at a time. The
 three winning games at this tier built no moho (0 `no_site`). Fixed in `hands.rs` (H-HANDS-UPGRADE: repair the
-frame, else the nearest extractor still to upgrade), untried.
+frame, else the nearest extractor still to upgrade): upgrade-2 ordered three moho frames, 0 refused sites, four "help
+finish the armmoho already under way" plays.
 **Evidence.** `run/matches/1790188079-pace-1-hard-aggressive/00/record-0.jsonl` (`no_site` events), `bot.log`,
 `jev-0.jsonl` (the `where` answers); the Opus review of the game (2026-09-23 evening).
 **Would be wrong if.** A build order at a same-type frame's position were accepted and continued the frame: then the
@@ -658,7 +659,8 @@ through the front every 10-25 s.
 **Status.** measured (2026-09-23, pace-1): constructor_9823 at (1400-1423, 3600-3631), between a solar and the north
 wall of the plant at (1424, 3694) with a 12x12 footprint, from 23:46 until the plant died at 29:56 (364 stuck
 seconds, 124 failed moves); three `yard` wakes (10:32, 24:28, 25:30) said "nothing of ours stands in the lane";
-the plant built a Stout every 10-25 s throughout. The lane now starts at the front face (`yards.rs` `lane_at`).
+the plant built a Stout every 10-25 s throughout. The lane now starts at the front face (`yards.rs` `lane_at`);
+upgrade-2: no yard wake, and a constructor stuck at yard2 said so in its `doing`.
 **Evidence.** The record's `move_failed` events and the strategist log's wake prompts; the Opus review.
 **Would be wrong if.** The engine's `SendToEmptySpot` sent units out of any side: then a lane behind is a lane too.
 **Used by.** H-ECO-YARD-LANE, H-HANDS-STUCK-WORDS.
@@ -669,7 +671,8 @@ builder (a retreat home under fire, an attack), the step's task was replaced and
 step, so the diverted step was never done.
 **Status.** measured (2026-09-23, pace-1): constructor_16966 on `extractor spot_7` at 18:22, sent home by the hands at
 18:40, its list going on to `armllt spot_7`; no extractor at spot_7 for the rest of the game. Fixed (`Pianist::list_steps`,
-the step back at the front when the builder is diverted from the task it became), untried.
+the step back at the front when the builder is diverted from the task it became): upgrade-2 returned 14 steps
+(`extractor spot_22`, `armllt spot_59`, `armllt spot_38`, `assist` eleven times).
 **Evidence.** `run/matches/1790188079-pace-1-hard-aggressive/00/jev-0.jsonl` (`did` lines of constructor_16966); the
 Opus review.
 **Would be wrong if.** The player meant a diversion to cancel the step: then the step should be dropped and said.
