@@ -463,7 +463,7 @@ impl Brain {
                 if unengaged && units.len() >= DETACH_FROM {
                     // H-HANDS-DETACH: a raider at a structure is met by a few soldiers, not the ball (realtime-2: 11 of
                     // 18 engagements were the whole ball after one Fav, Stump or Beaver, while a Fav killed a lab at home).
-                    offer("send_against", Pick::Detach, "Send a detachment, the number in `how_many` of the soldiers nearest to the enemy party named in `whom`, to attack it and follow it; the rest carry on as they were. The answer to a raider at one of our extractors while this group stays: a few soldiers catch a raider, the whole group chasing one does not.".into());
+                    offer("send_against", Pick::Detach, "Send a detachment, the number in `how_many` of the soldiers nearest to the enemy party named in `whom`, to attack it and follow it; the rest carry on as they were. The answer to a raider at one of our extractors while this group stays: one soldier catches a single Tick or scout car, a few catch a small party, the whole group chasing one does not.".into());
                 }
                 // One scout out at a time (smoke-6: a raider every ten seconds to the enemy base, five dead by 5:00).
                 if !scout_out {
@@ -478,7 +478,7 @@ impl Brain {
                 (format!("{name}.do"), Question::Choice { instructions, criteria }),
                 (format!("{name}.where"), where_question(&format!("Suppose {name} advances, moves or sends a detachment: to which place? Choose where the instructions and the situation call for it to stand or fight."), &[], false)),
                 (format!("{name}.where_scout"), where_question(&format!("Suppose {name} sends one soldier to look at a place: which place needs looking at? The enemy base if it is not found or not seen lately, else the spots we know least about."), &[], false)),
-                (format!("{name}.how_many"), Question::choice(format!("If {name} sends a detachment, how many soldiers go?"), [("2", "two"), ("4", "four"), ("8", "eight"), ("half", "half of the group")])),
+                (format!("{name}.how_many"), Question::choice(format!("If {name} sends a detachment, how many soldiers go?"), [("1", "one: enough for a single scout car or Tick"), ("2", "two"), ("4", "four"), ("8", "eight"), ("half", "half of the group")])),
             ];
             if !picture.parties.is_empty() {
                 let criteria: BTreeMap<String, Value> = picture.parties.iter().map(|p| (p.name.clone(), json!(party_words(p)))).collect();

@@ -360,3 +360,17 @@ lane made or failed to make (`docs/design/2026-09-20-micro-lane.md`, status).
 turrets and the commander, or in soldier-seconds under fire (`run/micro_ledger.py`).
 **Used by.** H-MICRO-LANE, H-MICRO-FLEE.
 
+### K-army-pickets-across-the-front
+**Claim.** Tick and scout-car raids on the outer extractors are standard and expected (BARb from about 5:00 on Comet
+Catcher, outermost spots first), so the answer is decided before they come: single soldiers or pairs standing across
+the front at each outer spot cluster, told to attack on sight, answer a raider in seconds; a guard at home sent after
+the extractor is attacked arrives after it is gone. One responding unit is enough for a single Tick; more is wasted
+and pulls the group about.
+**Status.** stated by the user 2026-09-22 late, watching escalate-4-hard-aggressive; not measured over games.
+**Evidence.** `run/matches/1790125719-escalate-4-hard-aggressive`: 33 extractors lost, most to single Ticks at spots no
+soldier stood near while the Blitzes held as a guard group at home or at spot_43 (the player's notes 5:19, 10:00); the
+experienced players' game lost one extractor in seven minutes with a light turret beside each pair.
+**Would be wrong if.** Pickets of one across the front lost as many extractors to Ticks as the home guard did, or died
+in numbers to the parties that follow the Ticks.
+**Used by.** H-HANDS-DETACH (`how_many` 1), the player's guide and brief (pickets from the first Blitzes).
+

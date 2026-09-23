@@ -21,8 +21,14 @@ Thug `corthud` 140/1100/45/380 line unit; Trasher `corcrash` anti-air only; Grav
   standing on an approach also stops a lone enemy raider; chasing raiders with the army does not. [K-units-dont-chase-raiders]
 - Defence is the player's: nothing in the code answers a raider at a structure on its own, and told only "engage", the
   hands send the whole ball after one scout car and never catch it while another kills a lab at home (realtime-2, won
-  anyway on hard). A raider at an extractor is met by two or four from the nearest group (`send_against`) or by a group
-  left where the raids pass; the packet says which, before the ball leaves. [K-hands-ball-chases-lone-raiders]
+  anyway on hard). A single Tick or scout car at an extractor is met by one soldier from the nearest group (`send_against`
+  with `how_many` 1; two or four for a small party) or by a group left where the raids pass; the packet says which,
+  before the ball leaves. The raids are standard and expected (Ticks from 5:00 on Comet Catcher, outermost spots
+  first), so the answer stands across the front before they come: pickets of one or two Blitzes at each outer spot
+  cluster from the first Blitzes out of the plant, told in words to attack on sight, with a light turret beside each
+  pair of extractors; a home guard that walks out after the extractor is gone is not defence (the user, watching
+  escalate-4: 33 extractors lost, most to single Ticks at spots no soldier stood near). [K-hands-ball-chases-lone-raiders,
+  K-army-pickets-across-the-front]
 - Fights are decided by value on the spot: the side with more metal of soldiers there, a turret counting about three
   times its metal, loses less nine times in ten; beyond 2:1 almost always. Our units move at different speeds and a
   group sent across the map arrives strung out unless it is sent with `fight_to`, which marches it together.

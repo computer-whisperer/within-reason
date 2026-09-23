@@ -277,6 +277,7 @@ impl Brain {
             Pick::Split => {
                 if let Some(p) = place(where_) {
                     let n = match how_many.as_deref() {
+                        Some("1") => 1,
                         Some("2") => 2,
                         Some("4") => 4,
                         Some("8") => 8,
@@ -303,6 +304,7 @@ impl Brain {
                 });
                 if let Some(party) = party {
                     let n = match how_many.as_deref() {
+                        Some("1") => 1,
                         Some("2") => 2,
                         Some("4") => 4,
                         Some("8") => 8,
