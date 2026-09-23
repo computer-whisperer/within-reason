@@ -30,6 +30,9 @@ const REPAIR_WITHIN: f32 = 1200.0;
 /// A builder farther than this from home is offered the way home.
 const AWAY: f32 = 400.0;
 /// An enemy party this close to a group is news that gets it asked at once.
+/// The most characters of questions one Jev call carries; the rest wait for the next call (about 22k tokens of
+/// questions on a 5-8k-token picture, under the 64k window that shell-1's 135k-character calls overran).
+pub(super) const QUESTION_BUDGET_CHARS: usize = 80_000;
 pub(super) const ALARM: f32 = 600.0;
 /// A builder on a started build is asked again only with an enemy party this close (H-HANDS-STARTED).
 const STARTED_ALARM: f32 = 800.0;
@@ -195,7 +198,12 @@ impl Brain {
                 Some(_) if started.is_some() && !threatened => (false, queue_ahead && frame - last >= LAB_REVIEW_FRAMES),
                 Some(task) => (false, frame - last >= REVIEW_FRAMES && frame - task.since() >= LAB_REVIEW_FRAMES),
             };
-            if !(free || due || pianist.due_now.contains(&name)) {
+            // An event or a packet puts the builder on the call, except over a started build no enemy threatens:
+            // H-HANDS-STARTED holds over the packet (shell-1: two packets put the tier-2 plant's builder on the call
+            // at 0 % of a metal-starved frame, and Jev sent it to help a factory both times; the frames decayed, and
+            // the game was lost without tier 2).
+            let asked_for = pianist.due_now.contains(&name) && !(started.is_some() && !threatened);
+            if !(free || due || asked_for) {
                 continue;
             }
             // Busy for the switch margin only when the task was set under the current packet (H-HANDS-SWITCH).
@@ -502,6 +510,37 @@ impl Brain {
             menus.push(Menu { actor: Actor::Group(group.name.clone()), name, busy, queue_ahead: false, questions, options, spots: Vec::new(), scripted: None, policy: false });
         }
 
+        // The call's size: Jev's window is 64k tokens and shell-1 sent two calls past it (46 questions, 135k characters
+        // of questions, 62k tokens) and lost both. The questions of one call are kept under a budget of characters;
+        // the actors past it wait for the next call, half a second on, groups kept first (they are the ones an event
+        // put here), then factories, then builders. Lists play without questions and are never deferred.
+        let mut asking: Vec<usize> = (0..menus.len()).filter(|i| menus[*i].scripted.is_none() && !menus[*i].questions.is_empty()).collect();
+        let rank = |m: &Menu| match m.actor {
+            Actor::Group(_) => 0,
+            Actor::Lab(_) => 1,
+            Actor::Builder(_) => 2,
+            Actor::Global => 3,
+        };
+        asking.sort_by_key(|i| rank(&menus[*i]));
+        let mut chars = 0usize;
+        let mut deferred: Vec<usize> = Vec::new();
+        for i in asking {
+            let size: usize = menus[i].questions.iter().map(|(k, q)| k.len() + serde_json::to_string(q).map_or(0, |s| s.len())).sum();
+            if chars + size > QUESTION_BUDGET_CHARS && chars > 0 {
+                deferred.push(i);
+            } else {
+                chars += size;
+            }
+        }
+        if !deferred.is_empty() {
+            for i in &deferred {
+                pianist.due_next.insert(menus[*i].name.clone());
+            }
+            deferred.sort_unstable();
+            for i in deferred.into_iter().rev() {
+                menus.remove(i);
+            }
+        }
         // Global.
         if !menus.is_empty() {
             let mut questions = vec![

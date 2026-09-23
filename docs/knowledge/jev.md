@@ -554,10 +554,39 @@ commander, seen 7 s before at the very place the estimate named (the player: "th
 escalate-2 had two alarms (9:06, 10:06) that put enemy turrets far out of range of the group they said was hit. The
 weapon's definition name carries the shooter's unit type, and the brain remembers enemy buildings, soldiers (90 s)
 and the commander with their places, so the hits can be laid to the nearest such unit within reach.
-**Status.** observed (2026-09-23), two games; the attribution (H-HANDS-SHELLED amended) untried.
+**Status.** observed (2026-09-23), two games; the attribution in play in shell-1: 469 of 845 shelling calls named a seen unit, most of them Rovers (range 180) seen 0 s before, which says the shelling place fires for any out-of-sight hit, a raider's included; a range floor is the open candidate.
 **Evidence.** quick-1's strategist log, the turn at 4:50 and the jev call at 4:52 (`commander: seen at shelling (F6)
 0:07 ago`); escalate-2's debrief.
 **Would be wrong if.** The hits were laid to a seen unit of the type that was not the shooter (two of the type about),
 and a group walked to the wrong one.
 **Used by.** H-HANDS-SHELLED.
+
+### K-hands-packet-asked-over-a-started-frame
+**Claim.** The event-aware scheduler's packet rule (every builder not on a list is asked at the next call) reached
+builders standing on a started build, which H-HANDS-STARTED keeps off the menu until it is done: shell-1's tier-2
+plant builder, its list ended (`armavp avp_yard, assist`), was put on the call by the packets of 18:19 and 21:28 at
+0 % of a metal-starved frame, `busy` false because the task predated the packet, and Jev chose `assist_lab` both
+times (0.41 and above the `continue` at 0 %: "nothing wasted"); the frames decayed and the game was lost at 33:27
+with a 4:1 economy lead and no tier 2. Four more frames went the same way to the player's `stop` and to new lists.
+**Status.** observed (2026-09-23), one game, six frames; the fix (a started, unthreatened build stays off the
+packet's and the events' call) untried.
+**Evidence.** `run/matches/1790172269-shell-1-hard-aggressive/00`: the jev log's `played` at 1100 s and 1288 s
+(`constructor_28184`, `assist_lab`, source jev, busy false), the record's `created` and `destroyed` events for the
+six `armavp` frames, the player's notes at 20:02 and 24:57.
+**Would be wrong if.** A builder on a frame that will never finish (metal starved for minutes) needed the packet to
+move it, and the player had no other way: it has `queue` with `stop`.
+**Used by.** H-HANDS-STARTED, H-HANDS-SCHEDULE.
+
+### K-hands-a-call-can-overrun-the-window
+**Claim.** A Jev call's size is the questions': about 1,400 characters a question at the median and up to 2,900 for a
+group with many places and parties in reach, so a call asking 45 actors' worth of questions ran to 135k characters
+and 62k tokens, past the 64k window: shell-1 lost two calls to `max_tokens_exceeded` (11:34, 22:28) and sent 69 calls
+over 40k tokens and 20 over 50k; the game's Jev bill was $1.00 against $0.18-0.36 for the shorter games.
+**Status.** measured (2026-09-23) from shell-1's jev log; the question budget (80k characters a call, the rest
+deferred half a second) untried.
+**Evidence.** `run/matches/1790172269-shell-1-hard-aggressive/00/jev-0.jsonl`: the two `error` entries and the
+`usage` and `questions` of the calls around them.
+**Would be wrong if.** Deferred actors waited more than a call or two, or the budget cut a group's questions while an
+enemy stood on it (groups are kept first).
+**Used by.** H-HANDS-SCHEDULE.
 
