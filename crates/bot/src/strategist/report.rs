@@ -91,7 +91,6 @@ fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
             .collect();
         lines.push(format!("seats: you command {} seats, each with its own economy | {}", seats.len(), seats.join(" | ")));
     }
-    let places = |list: &[Place]| list.iter().map(|p| format!("{} ({}, {})", p.grid, p.x, p.z)).collect::<Vec<_>>().join("; ");
     // Evidence, never a guess (docs/design/2026-09-22-enemy-evidence.md): finding the opponent is the player's.
     let gone = if s.enemy_factories_gone.is_empty() { String::new() } else { format!("; seen destroyed: {}", s.enemy_factories_gone.iter().map(|(p, at)| format!("{} ({}, {}) at {}", p.grid, p.x, p.z, clock(*at))).collect::<Vec<_>>().join("; ")) };
     let boxes = if s.enemy_start_boxes.is_empty() { "the lobby gave it no start box".to_string() } else { format!("its commander was placed at 0:00 inside its lobby box, cells {}", s.enemy_start_boxes.join(" and ")) };

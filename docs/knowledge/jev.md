@@ -464,3 +464,22 @@ same rate, which would put the bias in the model or in the "nothing" option's wo
 **Used by.** H-HANDS-MENU (the count beside a constructor option is facts only); the tempo-not-rules principle
 (docs/README.md: the harness states observations only).
 
+### K-hands-standing-task-outlives-the-packet
+**Claim.** A task set under one packet survives the next: the switch margin (H-HANDS-SWITCH, 0.15 over `continue`)
+applied to every busy actor whatever the packet's age, so a group's walk or a builder's unstarted build outlived the
+packet that should have ended it until the player's words tipped the probability. Escalate-3 (8:31, "the hands sent
+it back home"; 16:05, a walk west into beamer fire kept after a rewrite until the packet named it "wrong and
+abandoned", which took effect in one turn), escalate-5 (6:53, five Blitzes lost to a walk two packets had ended),
+escalate-7 (6:53 the same; 8:19-8:42 two constructors held a refused nano site through three new lists, the build
+never started and never displaced). The words that worked each time were a statement that the old task was over:
+what the hands lacked was that statement from the harness itself.
+**Status.** observed (2026-09-23), four games; the fix (a changed packet asks every older task afresh with no margin;
+a newer list displaces an unstarted build; a refused site is kept out) untried.
+**Evidence.** `run/matches/1790124804-escalate-3-hard/00`, `.../1790127241-escalate-5-hard-aggressive/00`,
+`.../1790132331-escalate-7-hard-aggressive/00`: the player's notes at the times above; the jev log's `kept` counts;
+escalate-7's constructor_5134 picture entries 7:57-8:49 ("about to build a Construction Turret at 330 from spot_28",
+the engine's refusal at 8:19, the same order at 8:19 again).
+**Would be wrong if.** With the margin lifted on a packet change the groups still kept their walks at the same rate,
+which would put the cause in Jev's reading of the packet rather than in the margin.
+**Used by.** H-HANDS-SWITCH, H-HANDS-SCRIPT, H-HANDS-REFUSED (amended 2026-09-23).
+

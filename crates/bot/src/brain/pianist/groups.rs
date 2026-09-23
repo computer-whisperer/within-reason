@@ -53,6 +53,13 @@ impl GroupTask {
     pub(crate) fn busy(&self) -> bool {
         !matches!(self, GroupTask::Hold { .. })
     }
+
+    /// The frame the task was set.
+    pub(crate) fn since(&self) -> i32 {
+        match self {
+            GroupTask::Hold { since, .. } | GroupTask::Move { since, .. } | GroupTask::Engage { since, .. } => *since,
+        }
+    }
 }
 
 #[derive(Debug)]

@@ -114,6 +114,19 @@ pub struct Pianist {
     next_group: usize,
     /// Spots where the engine refused an extractor, and until when they are left off the menus (H-HANDS-REFUSED).
     pub(super) refused_spots: HashMap<usize, i32>,
+    /// Sites the engine refused for a building (the type, the point, until when): kept out of that type's site
+    /// search for `REFUSED_FRAMES` (escalate-7: a nano turret's site was refused at 8:19 and re-ordered at the same
+    /// point from the list's next step, twice, while two new lists waited).
+    pub(super) refused_sites: Vec<(UnitDefId, Vec3, i32)>,
+    /// The frame each builder's list was last set by the player (`queue`): a list newer than the builder's task
+    /// displaces a build the engine has not started (H-HANDS-SCRIPT).
+    pub(super) script_frame: HashMap<String, i32>,
+    /// The frame the player's packet last changed. A task ordered before it is not protected by the switch margin
+    /// (H-HANDS-SWITCH): the new packet is asked afresh (escalate-3, -5, -7: a group's walk outlived three packets
+    /// until one named it abandoned).
+    pub(super) packet_frame: i32,
+    /// The packet text `packet_frame` was set for, so one change sets it once.
+    packet_seen: String,
     /// Units each lab has started since its allowance was set, by unit name (`produce` caps, "corck:1").
     pub(super) produced: HashMap<(UnitId, String), usize>,
     /// The allowance each lab (by name) was last seen with; a change restarts its counts.
@@ -241,6 +254,10 @@ impl Pianist {
             groups: Vec::new(),
             next_group: 0,
             refused_spots: HashMap::new(),
+            refused_sites: Vec::new(),
+            script_frame: HashMap::new(),
+            packet_frame: 0,
+            packet_seen: String::new(),
             produced: HashMap::new(),
             allowed_seen: HashMap::new(),
             places: Vec::new(),
@@ -337,9 +354,11 @@ impl Brain {
             for (name, list) in lists {
                 match list {
                     Some(steps) => {
+                        pianist.script_frame.insert(name.clone(), tick.frame);
                         pianist.scripts.insert(name, steps.into());
                     }
                     None => {
+                        pianist.script_frame.insert(name.clone(), tick.frame);
                         pianist.scripts.remove(&name);
                     }
                 }
@@ -347,6 +366,15 @@ impl Brain {
         }
         self.apply_policy_changes(tick.frame);
         let picture = self.picture(tick, kit);
+        {
+            // A changed packet is asked afresh: no standing task is protected by the switch margin against it.
+            let pianist = self.pianist.as_mut().expect("pianist mode");
+            let instructions = picture.state["instructions"].as_str().unwrap_or_default();
+            if !instructions.is_empty() && instructions != pianist.logged_instructions && instructions != pianist.packet_seen {
+                pianist.packet_seen = instructions.to_string();
+                pianist.packet_frame = tick.frame;
+            }
+        }
         let mut menus = self.menus(tick, kit, &picture);
         if menus.is_empty() {
             return;
@@ -876,6 +904,9 @@ impl Brain {
             pianist.tasks.remove(&unit);
             if let Some(i) = refused_spot {
                 pianist.refused_spots.insert(i, frame + REFUSED_FRAMES);
+            } else {
+                pianist.refused_sites.retain(|(_, _, until)| *until > frame);
+                pianist.refused_sites.push((def, near, frame + REFUSED_FRAMES));
             }
             let text = format!("the engine refused a {name} at {}: the site was bad", self.world.grid(near));
             let actor = self.actor_name(unit);

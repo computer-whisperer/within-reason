@@ -83,6 +83,9 @@ impl Entry {
         if let Some(dps) = self.dps.filter(|d| *d > 0.0) {
             parts.push(format!("{dps:.0} damage a second"));
         }
+        if let Some(air) = self.dps_air.filter(|d| *d > 0.0) {
+            parts.push(format!("{air:.0} against aircraft"));
+        }
         if self.sight > 0.0 {
             parts.push(format!("sees {:.0}", self.sight));
         }

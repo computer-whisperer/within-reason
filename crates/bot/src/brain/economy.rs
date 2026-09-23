@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use bot_protocol::{BuildSite, Command, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
+use bot_protocol::{BuildSite, Command, Lane, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
 
 use super::planner::Planned;
 use super::roster::Kit;
@@ -86,6 +86,8 @@ const MEX_STEP: f32 = 8.0;
 const MEX_MARGIN: f32 = 6.0;
 /// How far off its centre an extractor still counts as refused for that spot (the dropped-order fallback).
 pub(super) const MEX_PATCH: f32 = 130.0;
+/// How far around a site the engine refused for a building the next search for that type keeps away.
+const REFUSED_SITE_RADIUS: f32 = 64.0;
 const LAB_YARD: f32 = 350.0;
 /// How far a building's anchor keeps from anything of ours standing or started, so the engine's closest free site
 /// to it stays within the builder's reach: the lab's gap (LAB_GAP squares) plus half of it and a neighbour, and a
@@ -502,7 +504,11 @@ impl Brain {
             return None;
         }
         // Nothing but an extractor goes in a factory's exit lane (yards.rs).
-        let keep_out = self.lanes.clone();
+        let mut keep_out = self.lanes.clone();
+        // A site the engine refused for this type is not asked again while the refusal stands (a point lane).
+        if let Some(pianist) = self.pianist.as_ref() {
+            keep_out.extend(pianist.refused_sites.iter().filter(|(def, _, _)| *def == planned_def).map(|(_, at, _)| Lane { from: *at, to: *at, half_width: REFUSED_SITE_RADIUS }));
+        }
         Some(match *plan {
             // The game rejects an extractor that is not exactly on its spot (cmd_mex_denier.lua), and the shim
             // places extractors exactly at `near`, searching nowhere.

@@ -169,9 +169,13 @@ impl Brain {
                 // The player's list outranks the bot's fillers: a builder helping a factory, walking, reclaiming or
                 // repairing takes its next step at once (plan-1: the commander helped a plant from 3:46 to 14:24 while
                 // four lists waited, since a guard order never ends). A build in progress keeps the 60 % rule.
+                let list_frame = pianist.script_frame.get(&name).copied().unwrap_or(0);
                 let ready = match &task {
                     None => unit.idle,
-                    Some(Task::Build { .. }) => queue_ahead,
+                    Some(Task::Build { started: true, .. }) => queue_ahead,
+                    // A build the engine has not started yet gives way to a list set after it was ordered
+                    // (escalate-7: two constructors held a refused nano site through three new lists).
+                    Some(Task::Build { ordered, .. }) => queue_ahead || list_frame > *ordered,
                     Some(_) => true,
                 };
                 if ready && let Some(menu) = self.scripted_step(unit, &name, &mut pianist, picture, own, frame, queue_ahead, task.is_some(), kit) {
@@ -188,7 +192,8 @@ impl Brain {
             if !(free || due) {
                 continue;
             }
-            let busy = task.is_some();
+            // Busy for the switch margin only when the task was set under the current packet (H-HANDS-SWITCH).
+            let busy = task.as_ref().is_some_and(|t| t.since() >= pianist.packet_frame);
             let mut options: BTreeMap<String, Pick> = BTreeMap::new();
             let mut criteria: BTreeMap<String, Value> = BTreeMap::new();
             let mut offer = |key: &str, pick: Pick, words: String| {
@@ -424,7 +429,8 @@ impl Brain {
             if !(alarm || frame - last >= review) {
                 continue;
             }
-            let busy = group.task.busy();
+            // Busy for the switch margin only when the task was set under the current packet (H-HANDS-SWITCH).
+            let busy = group.task.busy() && group.task.since() >= pianist.packet_frame;
             let mut options: BTreeMap<String, Pick> = BTreeMap::new();
             let mut criteria: BTreeMap<String, Value> = BTreeMap::new();
             let mut offer = |key: &str, pick: Pick, words: String| {
