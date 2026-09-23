@@ -244,10 +244,12 @@ impl Launch {
                 if matches!(kind, "assistant" | "result" | "rate_limit_event") {
                     transcript.record(json!({ "kind": kind, "message": message }));
                 }
-                // We spend weekly allotments only: the first sign of paid overage, or of any limit, ends the session.
+                // We spend weekly allotments only: the first sign of paid overage, or of a limit reached, ends the
+                // session. `allowed_warning` is the CLI's note that a window passed a threshold (75 %) and is still
+                // allowed: upgrade-1 (2026-09-23) lost its player at 0:13 to that warning read as a limit.
                 let limit = &message["rate_limit_info"];
                 if kind == "rate_limit_event"
-                    && (limit["isUsingOverage"].as_bool() == Some(true) || limit["status"].as_str().is_some_and(|s| s != "allowed"))
+                    && (limit["isUsingOverage"].as_bool() == Some(true) || limit["status"].as_str().is_some_and(|s| !matches!(s, "allowed" | "allowed_warning")))
                 {
                     eprintln!("[strategist] STOPPING: rate limit event {limit}");
                     transcript.record(json!({ "kind": "stopped", "reason": limit }));

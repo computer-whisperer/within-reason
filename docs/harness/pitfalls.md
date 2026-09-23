@@ -100,3 +100,13 @@ footwork and removals landed at once, so passing it would have changed nothing. 
 holds back everything a turn changes (`shared.rs` `TurnOutputs`, `hold_for_turn`, `apply_delayed`) and `--player`
 defaults it to 1. Read the earlier player rows with that in mind; the penalty series (penalty-1..4) is the first
 representative set. `--think-penalty 0` turns it off deliberately.
+
+## The player stopped at 0:13 on a usage warning (2026-09-23 evening)
+
+The strategist's session guard ended the player's session on the first `rate_limit_event` whose status was not
+`allowed`. The CLI also sends `allowed_warning` when a window passes a threshold (the 7-day window at 75 %), with
+`isUsingOverage: false`: upgrade-1-hard-aggressive lost its player after turn 1 and the bot's heuristics played the
+rest (metal full 70 % of the game, one plant). The guard now stops only on overage or a status other than `allowed`
+and `allowed_warning`. A game whose `bot.log` says "Player session ended; heuristics carry on alone" in the first
+minute is void: check the `stopped` line in `strategist-0.jsonl` for the reason before reading the game.
+
