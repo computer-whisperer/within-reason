@@ -728,6 +728,14 @@ impl Brain {
                     (Some(now), true) => format!("building a {now}"),
                     (Some(now), false) => format!("building a {now}, then {}", queue.iter().map(|(def, _)| self.short_words(*def)).collect::<Vec<_>>().join(" then ")),
                 });
+                let (nanos, nanos_idle) = self.nanos_on(unit, own);
+                if nanos > 0 {
+                    entry["nanos"] = json!(format!(
+                        "{nanos} construction turret{} in reach guard it{}",
+                        if nanos == 1 { "" } else { "s" },
+                        if nanos_idle > 0 { format!(" ({nanos_idle} idle this second)") } else { String::new() }
+                    ));
+                }
                 if let Some(lane) = self.lane_of(unit) {
                     let stuck = self.stuck_in_lane(&lane, own);
                     if !stuck.is_empty() {

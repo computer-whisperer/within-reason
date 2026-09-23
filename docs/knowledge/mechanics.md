@@ -258,3 +258,15 @@ where the walk is shortest, as `extractor_site` does for us.
 engine spots matched the game's.
 **Used by.** H-ECO-SPOT-CENTROID.
 
+### K-mech-nano-turrets-idle-without-an-order
+**Claim.** A construction turret does nothing on its own: the game gives it no order when it stands, and it helps a
+factory only under a guard (or repair) order. In escalate-7 five turrets stood beside the plant from 6:15 and were
+idle in all 2,388 samples of them, with no command ever sent to one; every "nanos on the plant" lesson in the brief
+had bought nothing.
+**Status.** stated by the user 2026-09-23, watching escalate-7 ("the construction turrets don't actually appear to be
+configured to assist the lab they were placed near"); confirmed in the record.
+**Evidence.** `run/matches/1790132331-escalate-7-hard-aggressive`: finished events for armnanotc (6:15, 7:56, 8:18, 8:45, 9:08), the `cmd` records (none to those
+ids), the samples' idle flag.
+**Would be wrong if.** A turret with no order helped a factory in its reach anyway in some game version.
+**Used by.** H-ECO-NANO-GUARD.
+

@@ -27,6 +27,7 @@ mod tier2;
 mod wake;
 mod roster;
 mod routes;
+mod nanos;
 mod yards;
 
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
@@ -136,6 +137,8 @@ pub struct Brain {
     lanes: Vec<bot_protocol::Lane>,
     stuck: HashMap<UnitId, yards::Stuck>,
     yard_warned: HashSet<UnitId>,
+    /// Construction turrets told to guard a factory (H-ECO-NANO-GUARD).
+    nano_guards: nanos::NanoGuards,
     /// Chat lines of ours not yet seen back from the engine, which echoes every line as a chat event from our own
     /// host player (human-1: the player was woken by its own "gl hf").
     said: Vec<String>,
@@ -251,6 +254,7 @@ impl Brain {
             lanes: Vec::new(),
             stuck: HashMap::new(),
             yard_warned: HashSet::new(),
+            nano_guards: HashMap::new(),
             said: Vec::new(),
             heard_chat_at: -1,
             razed: Vec::new(),
@@ -349,6 +353,7 @@ impl Brain {
         self.track_losses(tick, &kit);
         self.track_yards(tick);
         let mut commands = Vec::new();
+        self.tend_nanos(tick, &mut commands);
         self.relay_chat(tick, &mut commands);
         // The game names AIs at random (ai_namer.lua), so the bot says who it is, once the engine takes orders.
         if tick.frame >= 2 * FRAMES_PER_SECOND

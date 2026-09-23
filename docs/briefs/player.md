@@ -161,7 +161,7 @@ K-maps-comet-barb-opens-bots, the tempo model]
   (thirteen by 5:00, twenty-four by 6:50), a constructor at 3:09, 4:30 and 5:46 (five in all), a Rascal now and then
   (seven). The constructors take the strip's spots behind the commander (spot_45, spot_50, spot_52, spot_61, spot_63,
   spot_64, spot_59, spot_54) with a turret at the far ones, and from 5:00 build nano turrets on the plant (three by
-  6:37) and an energy storage: one plant all game, made faster, not a second plant. Metal spent as it came (the store
+  6:37; a construction turret of ours guards the nearest factory once it stands, from 2026-09-23) and an energy storage: one plant all game, made faster, not a second plant. Metal spent as it came (the store
   under 30 through minutes 2-4), then 300-500 banked from 5:00 with income 23 at 4:00, 32 at 5:00 and 43 at 6:52 (9,
   13, 19 extractors); solars 5 by 2:20, 7 by 4:00, 17 by 6:46, the energy store dipping to 22 while the plant went up
   and to 114 in minute 5, never zero. His Flashes were never one ball: in twos and threes across the whole map from
