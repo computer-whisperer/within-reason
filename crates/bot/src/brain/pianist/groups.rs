@@ -78,11 +78,21 @@ pub(crate) struct Group {
     pub best_to_go: f32,
     pub progressed: i32,
     pub stall_warned: bool,
+    /// The group this one was split from (a detachment, a split, a scout), and when: said in the picture on both
+    /// sides, so the player sees an army in pieces as it happens (escalate-6: seven detachments died one by one).
+    pub parent: Option<String>,
+    pub born: i32,
 }
 
 impl Group {
     pub(crate) fn new(name: String, domain: Domain, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, enemies_near: false, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false }
+        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, enemies_near: false, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame }
+    }
+
+    /// A group split from another.
+    pub(crate) fn split_from(mut self, parent: &str) -> Group {
+        self.parent = Some(parent.to_string());
+        self
     }
 
     /// The orders that make this group stand still: a stop for ground units; for aircraft, whose empty queue is a

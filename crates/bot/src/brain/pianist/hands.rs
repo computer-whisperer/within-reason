@@ -292,7 +292,8 @@ impl Brain {
                     let name = pianist.new_group_name();
                     pianist.last_asked.insert(format!("group_{name}"), frame);
                     did = Some(format!("send {} soldiers as group_{name} to {}", detached.len(), p.name));
-                    pianist.groups.push(Group::new(name, domain, detached, GroupTask::Move { to, place: p.name.clone(), fight: true, since: frame }, frame));
+                    let parent_name = pianist.groups[index].name.clone();
+                    pianist.groups.push(Group::new(name, domain, detached, GroupTask::Move { to, place: p.name.clone(), fight: true, since: frame }, frame).split_from(&parent_name));
                 }
             }
             Pick::Detach => {
@@ -319,7 +320,8 @@ impl Brain {
                     let name = pianist.new_group_name();
                     pianist.last_asked.insert(format!("group_{name}"), frame);
                     did = Some(format!("send {} soldiers as group_{name} against {} ({})", detached.len(), party.name, party.composition));
-                    pianist.groups.push(Group::new(name, domain, detached, GroupTask::Engage { party: party.ids.clone(), at: party.at, since: frame, last_seen: frame, target: target.map(|(t, _)| t), searched: false }, frame));
+                    let parent_name = pianist.groups[index].name.clone();
+                    pianist.groups.push(Group::new(name, domain, detached, GroupTask::Engage { party: party.ids.clone(), at: party.at, since: frame, last_seen: frame, target: target.map(|(t, _)| t), searched: false }, frame).split_from(&parent_name));
                 }
             }
             Pick::Scout => {
@@ -339,7 +341,8 @@ impl Brain {
                         let name = pianist.new_group_name();
                         pianist.last_asked.insert(format!("group_{name}"), frame);
                         did = Some(format!("send a {} as group_{name} to look at {}", self.name(scout.def), p.name));
-                        pianist.groups.push(Group::new(name, domain, vec![scout.id], GroupTask::Move { to, place: p.name.clone(), fight: false, since: frame }, frame));
+                        let parent_name = pianist.groups[index].name.clone();
+                        pianist.groups.push(Group::new(name, domain, vec![scout.id], GroupTask::Move { to, place: p.name.clone(), fight: false, since: frame }, frame).split_from(&parent_name));
                     }
                 }
             }

@@ -814,6 +814,21 @@ impl Brain {
             if let Some(seconds) = group.stalled_seconds(frame).filter(|s| *s >= 20) {
                 entry["progress"] = json!(format!("has not got nearer its goal for {seconds} s: stalled"));
             }
+            // The army in pieces, said on both sides (escalate-6: 19 detachments and 15 splits in ten minutes, five to
+            // nine groups alive, dying one by one; nothing in the picture counted them).
+            let children: Vec<&super::Group> = pianist.groups.iter().filter(|g| g.parent.as_deref() == Some(group.name.as_str()) && !g.members.is_empty()).collect();
+            if !children.is_empty() {
+                let soldiers: usize = children.iter().map(|g| g.members.len()).sum();
+                let oldest = children.iter().map(|g| frame - g.born).max().unwrap_or(0) / FRAMES_PER_SECOND;
+                entry["detachments_out"] = json!(format!(
+                    "{} group{} of {soldiers} soldiers split from it in the last {} s, still out: {}",
+                    children.len(), if children.len() == 1 { "" } else { "s" }, oldest,
+                    children.iter().map(|g| format!("group_{} ({})", g.name, g.members.len())).collect::<Vec<_>>().join(", ")
+                ));
+            }
+            if let Some(parent) = &group.parent {
+                entry["split_from"] = json!(format!("group_{parent}, {} ago", ago(group.born)));
+            }
             let stuck: Vec<&OwnUnit> = units.iter().filter(|u| self.stuck.contains_key(&u.id)).copied().collect();
             if !stuck.is_empty() {
                 let longest = stuck.iter().filter_map(|u| self.stuck.get(&u.id)).map(|s| frame - s.since).max().unwrap_or(0);
