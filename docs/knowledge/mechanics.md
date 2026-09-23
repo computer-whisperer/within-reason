@@ -248,8 +248,10 @@ extractors: on Comet Catcher they sit 82 elmos (+40, +72) from every extractor B
 60-200 from 32 of the 42 the experienced players built; both snap to the metal-weighted centre of the patch. An
 extractor asked at the engine's point can be refused ("the site was bad": human-9, spot_5 at 0:28, the third start
 extractor lost for two minutes) though most are tolerated and earn within a tenth of the players' rate.
-**Status.** observed (2026-09-23), one map; the centroid published from spots-1-easy on, to be checked against the
-truth files' positions.
+**Status.** supported (2026-09-23 00:30): the centroid the shim now publishes matches BARb's four extractors at the
+north-east start to the elmo (spots-1-easy's header against escalate-7's truth file); the players' 42 extractors sit a
+median 93 from it, 36 of them 60-200 off, which is the valid area around the centre, not the centre: people build
+where the walk is shortest, as `extractor_site` does for us.
 **Evidence.** The yard-1 header's spot table against BARb's four extractors in escalate-7's truth file (all four
 +40, +72); the players' 42 extractors in `run/matches/1790122851-replay-vak-vs-artur-comet`; human-9's refusal.
 **Would be wrong if.** The centroid sat as far from BARb's extractors as the engine's point did, or another map's
