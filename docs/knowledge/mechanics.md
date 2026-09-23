@@ -276,6 +276,20 @@ started" lines against their records' `created` events.
 free spots near our extractors were read as held (a neighbouring spot within 120 of one of ours).
 **Used by.** H-ECO-SPOT-HELD, H-ECO-SPOT-CENTROID.
 
+### K-mech-tier-2-extractor-stands-on-ours
+**Claim.** A tier-2 extractor (Advanced Metal Extractor, `armmoho`/`cormoho`) over a spot we hold is built exactly on
+our standing extractor's position: the game upgrades it in place, and any other position on that spot is refused
+(the spot's extractor is within the extractor radius: `cmd_mex_denier.lua` `mexExists`). Our extractors stand up to
+113 elmos off the spot's centre (H-ECO-SPOT-CENTROID's offset placement), so a moho ordered "at spot_N" and placed at
+the centre is refused.
+**Status.** observed (2026-09-23), low-1-jev-hard-aggressive: three `armmoho spot_N` list steps at 24:46 refused
+"site bad" at 11 elmos from the centres and 97, 104 and 25 from our extractors; the player flagged it. Fixed in
+`economy.rs` `build_site_for` (the site is our extractor's position); untried.
+**Evidence.** `run/matches/1790185145-low-1-jev-hard-aggressive/00/bot.log` "armmoho order ... never started" against
+the record's `created` extractors.
+**Would be wrong if.** A moho placed on our extractor's position were still refused (a footprint or terrain rule).
+**Used by.** H-ECO-SPOT-CENTROID, H-HANDS-SCRIPT.
+
 ### K-mech-nano-turrets-idle-without-an-order
 **Claim.** A construction turret does nothing on its own: the game gives it no order when it stands, and it helps a
 factory only under a guard (or repair) order. In escalate-7 five turrets stood beside the plant from 6:15 and were

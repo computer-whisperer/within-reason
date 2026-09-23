@@ -514,6 +514,15 @@ impl Brain {
             // The game rejects an extractor that is not exactly on its spot (cmd_mex_denier.lua), and the shim
             // places extractors exactly at `near`, searching nowhere.
             Plan::Extractor(spot) => (kit.extractor, BuildSite { near: self.extractor_site(spot, unit), search_radius: 0.0, min_dist: 0, keep_out: Vec::new() }),
+            // A tier-2 extractor over one of ours goes exactly where ours stands: the game upgrades in place and
+            // refuses any other position on a held spot (low-1: three `armmoho spot_N` orders at the spots' centres,
+            // 97-104 elmos from our extractors placed off centre, all "site bad"; the player: "upgrade path not working").
+            Plan::Near(def_id, anchor) | Plan::Beside(def_id, anchor)
+                if self.world.def(def_id).is_some_and(|d| d.extracts_metal > 0.0)
+                    && let Some(ours) = own.iter().filter(|u| kit.is_extractor(u.def) && u.def != def_id && u.pos.dist2d(anchor) < self.spot_occupied_radius()).min_by(|a, b| a.pos.dist2d(anchor).total_cmp(&b.pos.dist2d(anchor))) =>
+            {
+                (def_id, BuildSite { near: ours.pos, search_radius: 0.0, min_dist: 0, keep_out: Vec::new() })
+            }
             // Where the builder stands is reachable by definition; fall back to it when the usual anchor is not.
             Plan::Near(def_id, anchor) if self.is_unreachable(anchor) => (def_id, BuildSite { near: unit.pos, search_radius: 500.0, min_dist: self.gap_around(def_id, kit), keep_out }),
             Plan::Near(def_id, anchor) => (def_id, BuildSite { near: anchor, search_radius: 1000.0, min_dist: self.gap_around(def_id, kit), keep_out }),

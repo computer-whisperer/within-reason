@@ -25,7 +25,7 @@ survey should be preparing us for that").
 
 ## Decisions
 
-1. **Select by manifest, not by hand.** `run/replays/select.py` pages the API for a map (or every map), keeps duels
+1. **Select by manifest, not by hand.** `run/replays/pick.py` pages the API for a map (or every map), keeps duels
    without bots that ended normally, unmodified (`tweakunits`, `tweakdefs` empty; `startmetal` 1000), 6-40 minutes,
    both players' OS at or above a floor (25 to start), and writes `run/data/replays/manifest.jsonl`: one line per
    match with the detail fields that matter (id, file, map script and file name, game and engine version, duration,
