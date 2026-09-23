@@ -267,7 +267,8 @@ the spot's whole patch. Our own site chooser places extractors up to that radius
 **Status.** measured (2026-09-23) in fixes-1, concurrent-1, schedule-1 and quick-1: 53 of 59 refused extractor
 orders were for a spot where our own extractor already stood when the order was given (offsets 99-104 from the
 centre), the picture calling the spot "free metal spot"; the orders cost 2-26 s of walking each and were never
-retried (the spot was taken). H-ECO-SPOT-HELD makes the radius the one test; untried in a game.
+retried (the spot was taken). H-ECO-SPOT-HELD makes the radius the one test; verified in held-1-hard-aggressive: 0 refused
+extractor orders and no held spot called free in 393 sampled entries.
 **Evidence.** `upstream/Beyond-All-Reason/luarules/gadgets/cmd_mex_denier.lua`,
 `common/upgets/api_resource_spot_finder.lua` (`IsBuildingPositionValid`); the four matches' `bot.log` "never
 started" lines against their records' `created` events.

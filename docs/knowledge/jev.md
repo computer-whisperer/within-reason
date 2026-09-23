@@ -540,7 +540,9 @@ had started ran on to completion, and the player had no order that dropped it (e
 constructor's queued plant that actually stops it, rather than the hands finishing it at spot_7"; comet-5, 24:11: the
 commander finished a stale solar list).
 **Status.** observed (2026-09-23), two games; the `stop` step (a list beginning with `stop`, or the bare word, stops
-the builder and drops its task before the list) untried.
+the builder and drops its task before the list) used once in held-1 (2:58): the builder was idle within 2 s and its
+extractor frame was destroyed; the list's next step, a turret, was then not built because a Pawn within the started-alarm
+reach took the builder off its list for the menu (H-HANDS-SCRIPT's threatened rule).
 **Evidence.** `pianist/mod.rs`, the list loop: `scripts.remove` alone on `None`; the two debriefs in `docs/briefs/inbox`.
 **Would be wrong if.** The player used `stop` where `null` was meant and lost frames it wanted finished.
 **Used by.** H-HANDS-SCRIPT.
