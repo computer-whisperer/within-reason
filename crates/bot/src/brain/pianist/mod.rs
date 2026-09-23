@@ -12,9 +12,10 @@ mod hands;
 mod menu;
 mod picture;
 mod remove;
+mod schedule;
 mod policy;
 
-use std::collections::{BTreeMap, HashMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 
 use crate::strategist::shared::Allowance;
 use std::fs::File;
@@ -125,6 +126,12 @@ pub struct Pianist {
     /// (H-HANDS-SWITCH): the new packet is asked afresh (escalate-3, -5, -7: a group's walk outlived three packets
     /// until one named it abandoned).
     pub(super) packet_frame: i32,
+    /// Actors an event or a new packet put on the next call, whatever their review period (H-HANDS-SCHEDULE).
+    pub(super) due_now: HashSet<String>,
+    /// Our units hit since the last call, with the frame: the menus' under-fire set, across the ticks between calls.
+    pub(super) hits: HashMap<UnitId, i32>,
+    /// The picture's place names at the last call: a change (a mark, a lane) puts every group on the call.
+    pub(super) places_seen: BTreeSet<String>,
     /// The packet text `packet_frame` was set for, so one change sets it once.
     packet_seen: String,
     /// Units each lab has started since its allowance was set, by unit name (`produce` caps, "corck:1").
@@ -257,6 +264,9 @@ impl Pianist {
             refused_sites: Vec::new(),
             script_frame: HashMap::new(),
             packet_frame: 0,
+            due_now: HashSet::new(),
+            hits: HashMap::new(),
+            places_seen: BTreeSet::new(),
             packet_seen: String::new(),
             produced: HashMap::new(),
             allowed_seen: HashMap::new(),
@@ -339,10 +349,13 @@ impl Brain {
         if self.pianist.as_ref().expect("pianist mode").worker.is_some() {
             self.collect_answer(tick, kit, commands);
         }
+        self.schedule_asks(tick);
         let due = {
             let pianist = self.pianist.as_ref().expect("pianist mode");
-            // Realtime: one request in flight at a time; this second's ask waits for the answer.
-            pianist.pending.is_none() && tick.frame - pianist.last_ask_frame >= pianist.interval_frames
+            // Realtime: one request in flight at a time; this second's ask waits for the answer. An event that put an
+            // actor on the call brings the call forward to half a second after the last (H-HANDS-SCHEDULE).
+            let since = tick.frame - pianist.last_ask_frame;
+            pianist.pending.is_none() && (since >= pianist.interval_frames || (!pianist.due_now.is_empty() && since >= schedule::EVENT_CALL_GAP))
         };
         if !due {
             return;
@@ -366,6 +379,7 @@ impl Brain {
         }
         self.apply_policy_changes(tick.frame);
         let picture = self.picture(tick, kit);
+        let mut packet_changed = false;
         {
             // A changed packet is asked afresh: no standing task is protected by the switch margin against it.
             let pianist = self.pianist.as_mut().expect("pianist mode");
@@ -373,7 +387,11 @@ impl Brain {
             if !instructions.is_empty() && instructions != pianist.logged_instructions && instructions != pianist.packet_seen {
                 pianist.packet_seen = instructions.to_string();
                 pianist.packet_frame = tick.frame;
+                packet_changed = true;
             }
+        }
+        if packet_changed {
+            self.schedule_all_for_packet(tick);
         }
         let mut menus = self.menus(tick, kit, &picture);
         if menus.is_empty() {

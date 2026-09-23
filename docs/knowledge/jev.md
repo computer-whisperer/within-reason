@@ -515,3 +515,19 @@ git before ce6a358's successor).
 would put the cause in the packet's own sentences about shelling.
 **Used by.** H-HANDS-SHELLED (amended); the tempo-not-rules principle (the harness states observations only).
 
+### K-hands-review-periods-hid-the-turn
+**Claim.** Before 2026-09-23 an actor reached a Jev call only on its review period (10 s busy, 5 s holding) or when
+an enemy party first came within 600 of it; a new packet marked nothing due, and the events of the ticks between
+calls were not seen (the under-fire set was the current tick's events alone, one tick in ten). So the player's
+retreat in fixes-1 reached the group six seconds after it was written (the user, watching). What withholding
+saved, measured on fixes-1 and escalate-7: 40-43 calls a minute, 11-12k input tokens a call of which 3.5-4.6k is the
+picture and about 800-900 each question; one of four or five groups asked per call; 8.3-8.6M input tokens a game,
+$0.35-0.36 at Jev's price. Asking every group every call would about double that; latency was 244 ms under 9k
+tokens and 326 ms over 15k, the largest call 29k of a 64k window.
+**Status.** measured (2026-09-23) from `run/matches/1790137350-fixes-1-hard-aggressive/00/jev-0.jsonl` and escalate-7's; the event-aware scheduler
+(H-HANDS-SCHEDULE) untried.
+**Evidence.** The jev logs' `usage`, `questions` and `ms` per call; the player's notes in fixes-1.
+**Would be wrong if.** The scheduler's extra calls doubled the tokens a game without the front-line groups answering
+within two seconds of a hit or a packet.
+**Used by.** H-HANDS-SCHEDULE.
+

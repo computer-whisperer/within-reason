@@ -2,7 +2,7 @@
 //! speculatively, the place and the party an action may need; and the global questions. Jev cannot choose what is
 //! not offered, so the options are the whole vocabulary of the hands.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use bot_protocol::{OwnUnit, Tick, UnitDefId, UnitId, Vec3};
 use jev::Question;
@@ -30,7 +30,7 @@ const REPAIR_WITHIN: f32 = 1200.0;
 /// A builder farther than this from home is offered the way home.
 const AWAY: f32 = 400.0;
 /// An enemy party this close to a group is news that gets it asked at once.
-const ALARM: f32 = 600.0;
+pub(super) const ALARM: f32 = 600.0;
 /// A builder on a started build is asked again only with an enemy party this close (H-HANDS-STARTED).
 const STARTED_ALARM: f32 = 800.0;
 /// A builder whose started build is this far along is asked what comes next, and the answer is queued behind it
@@ -141,7 +141,13 @@ impl Brain {
         let metal_words = picture.state["economy"]["metal"].as_str().unwrap_or_default().to_string();
 
         // Builders.
-        let under_fire: Vec<UnitId> = tick.events.iter().filter_map(|e| if let bot_protocol::Event::UnitDamaged { unit, .. } = e { Some(*unit) } else { None }).collect();
+        // Hit since the last call, across the ticks between (the scheduler's memory), not this tick's events alone.
+        let mut under_fire: Vec<UnitId> = tick.events.iter().filter_map(|e| if let bot_protocol::Event::UnitDamaged { unit, .. } = e { Some(*unit) } else { None }).collect();
+        under_fire.extend(pianist.hits.keys().copied());
+        // A place marked or renamed since the last call puts every group on this one (H-HANDS-SCHEDULE).
+        let place_set: BTreeSet<String> = picture.places.iter().map(|p| p.name.clone()).collect();
+        let places_changed = !pianist.places_seen.is_empty() && place_set != pianist.places_seen;
+        pianist.places_seen = place_set;
         for unit in own.iter().filter(|u| !u.being_built && self.world.is_mobile_builder(u.def)) {
             let name = self.actor_name(unit.id);
             let task = pianist.tasks.get(&unit.id).cloned();
@@ -189,7 +195,7 @@ impl Brain {
                 Some(_) if started.is_some() && !threatened => (false, queue_ahead && frame - last >= LAB_REVIEW_FRAMES),
                 Some(task) => (false, frame - last >= REVIEW_FRAMES && frame - task.since() >= LAB_REVIEW_FRAMES),
             };
-            if !(free || due) {
+            if !(free || due || pianist.due_now.contains(&name)) {
                 continue;
             }
             // Busy for the switch margin only when the task was set under the current packet (H-HANDS-SWITCH).
@@ -426,7 +432,8 @@ impl Brain {
             let alarm = enemies_near && !group.enemies_near;
             group.enemies_near = enemies_near;
             let review = if group.task.busy() { REVIEW_FRAMES } else { HOLD_REVIEW_FRAMES };
-            if !(alarm || frame - last >= review) {
+            let forced = places_changed || pianist.due_now.contains(&name);
+            if !(alarm || forced || frame - last >= review) {
                 continue;
             }
             // Busy for the switch margin only when the task was set under the current packet (H-HANDS-SWITCH).
@@ -506,6 +513,8 @@ impl Brain {
             }
             menus.push(Menu { actor: Actor::Global, name: "global".into(), busy: false, queue_ahead: false, questions, options: BTreeMap::new(), spots: Vec::new(), scripted: None, policy: false });
         }
+        pianist.due_now.clear();
+        pianist.hits.clear();
         self.pianist = Some(pianist);
         menus
     }
