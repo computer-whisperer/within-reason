@@ -12,8 +12,9 @@ use super::pianist::GroupTask;
 use super::{Brain, FRAMES_PER_SECOND};
 
 /// Hits older than this are forgotten (20 s until realtime-1: the place flickered with each hit and the hands re-sent
-/// the ball to it, pianist-player-12 and -13).
-const SHELL_MEMORY: i32 = 45 * FRAMES_PER_SECOND;
+/// the ball to it, pianist-player-12 and -13; 45 s until 2026-09-23, when the place vanishing mid-walk was the player's
+/// complaint in three games).
+pub(super) const SHELL_MEMORY: i32 = 90 * FRAMES_PER_SECOND;
 /// A shelling with no hit for this long, and a unit of ours standing within `STOOD_ON` of its place, is over: the
 /// shooter is dead or gone, and the place goes.
 const QUIET_FRAMES: i32 = 10 * FRAMES_PER_SECOND;
@@ -46,6 +47,8 @@ pub(super) struct Shelling {
     pub range: f32,
     pub hits: usize,
     pub since: i32,
+    /// The frame of the latest hit.
+    pub last: i32,
     pub units: Vec<UnitId>,
 }
 
@@ -151,6 +154,6 @@ impl Brain {
         let mut units: Vec<UnitId> = shells.iter().map(|s| s.unit).collect();
         units.sort();
         units.dedup();
-        Some(Shelling { at, dir, weapon, range, hits: shells.len(), since: shells.iter().map(|s| s.frame).min().unwrap_or(0), units })
+        Some(Shelling { at, dir, weapon, range, hits: shells.len(), since: shells.iter().map(|s| s.frame).min().unwrap_or(0), last: shells.iter().map(|s| s.frame).max().unwrap_or(0), units })
     }
 }

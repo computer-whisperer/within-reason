@@ -499,3 +499,19 @@ nothing about the one being built, so nothing in the ask tells the hands that th
 rate, which would put the cause in the packet's wording rather than in the option's.
 **Used by.** H-HANDS-MENU (amended), H-ECO-YARD-LANE (pending orders' lanes).
 
+### K-hands-shelling-place-led-groups-under-fire
+**Claim.** A place whose words recommend an action is taken as an order by every group asked about it: the `shelling`
+place said "advancing a group onto it (fight_to) kills it, a group that stays where it is keeps being hit", and
+groups walked onto the estimate, under fire from a shooter they could not see, toward a point that moved with each
+hit, until the player rewrote the packet or dropped the word: escalate-5 (12:29, 386 hits in 20 s at spot_23),
+escalate-7 (12:29, "the hands kept picking the vanishing `shelling` place; its own text recommends advancing onto
+it"), fixes-1 (15:33, group_T stood at spot_8 under fire for two minutes and moved the turn the word was dropped).
+The place is right to exist (the user, pianist-player-6: the army had no way to push out to what shelled it); the
+recommendation in its words was wrong, since whether to go, to see it first or to leave its reach is the packet's.
+**Status.** observed (2026-09-23), three games; the observation-only words untried.
+**Evidence.** The player's notes at the times above; `crates/bot/src/brain/pianist/picture.rs` (the old words, in
+git before ce6a358's successor).
+**Would be wrong if.** With observation-only words the groups still walked onto the estimate at the same rate, which
+would put the cause in the packet's own sentences about shelling.
+**Used by.** H-HANDS-SHELLED (amended); the tempo-not-rules principle (the harness states observations only).
+

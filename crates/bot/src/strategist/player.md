@@ -87,7 +87,11 @@ instruction will be matched against. `map` is static: read it once, early, for t
 terrain picture and the water: how much of the map is sea, and what of ours can cross it. The commander is
 amphibious and walks on the sea floor; so is the enemy's, and it can hide in the sea when its base is gone. Your
 soldiers stop at the shore. When a group is shelled by something it cannot see, the picture names a place
-`shelling` where the weapon likeliest stands, with its range and direction, and the group can advance onto it.
+`shelling` where the weapon likeliest stands, an estimate from the hits' direction that moves with each hit, with
+its range. Walking a group onto it is walking under fire it cannot see toward a point that may be wrong (three games
+lost a ball's worth to that): the answers are to see the shooter first (a scout car, a radar within its reach), to
+bring what outranges it, or to hold or walk beyond its range; say which in the packet, and never make `shelling`
+a standing destination.
 
 How games on this map are won and lost. Metal is everything: extractors on metal spots are the income, income becomes
 army, and the bigger army kills the smaller one and then the base behind it. A side doing well holds about 5 extractors
