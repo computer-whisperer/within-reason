@@ -139,7 +139,7 @@ K-maps-comet-barb-opens-bots, the tempo model]
   Armada, the west player from (954, 2520), fifty elmos from where the arena places you;
   `run/matches/1790122851-replay-vak-vs-artur-comet`, run/view_match.py opens it) [K-open-comet-pro-order,
   K-open-comet-commander-expands, K-open-comet-rascals-lose-to-the-commander, K-open-comet-flash-raids-take-the-resign].
-  The commander: extractors 0:03, 0:10, 0:24 (the three spots beside the start), solars 0:31, 0:40, 0:49, the plant
+  The commander: extractors 0:03, 0:10, 0:24 (the three spots beside the start: spot_30, spot_28, spot_36 from the A4 start at (904, 2457), where the arena puts you too), solars 0:31, 0:40, 0:49, the plant
   at 0:58 (standing 1:16), one more solar, then out: from 2:00 it walks toward the middle and builds an extractor
   every twenty to sixty seconds at the middle spots nearest home (spot_43 at 2:33, spot_38 and spot_39 by 3:36,
   spot_26 and spot_24 by 4:46, spot_33 and spot_31 by 6:15, at x 1,900 to 3,700), a light turret beside each pair
@@ -204,7 +204,7 @@ K-maps-comet-barb-opens-bots, the tempo model]
   Ticks, a light turret at the spot can. The fight: thirteen Blitzes died to one Rocketeer and one Centurion at
   11:57; this opponent opened with a bot lab and had Centurions by minute twelve; switch the plant to Stouts the
   first time a line bot is seen, and keep Blitzes for what cannot shoot back.
-- comet-4 (medium, LOST at 16.9 min, the commander killed at home): **the opening to copy on this map, found.**
+- comet-4 (medium, LOST at 16.9 min, the commander killed at home): the opening the bot played through comet-5 and opus55-1/3 (superseded by the players' order above: three solars before the plant, not two, and the commander out; its spot names are from an older start, escalate-1's note: "nearest spots here are 28 and 30, not 45/50").
   Commander list: extractor spot_45, extractor spot_50, armsolar, armsolar, armvp, extractor spot_36, extractor
   spot_43, armsolar, assist; `produce {"all": ["armcv:2", "armflash"]}`; each constructor given a list of the strip's
   spots with a turret after each pair as it appeared. That gave the plant at 0:41, two constructors by 1:30, the
@@ -232,6 +232,20 @@ K-maps-comet-barb-opens-bots, the tempo model]
   built with the metal at zero and energy full ("solars were pure waste", 24:06): count the plants and hold solars at
   about eight per running plant. `queue` takes an empty list or null to cancel a list (the strings sent at 24:11 are
   accepted now too).
+- escalate-1 (easy, Opus 5.5 at medium effort, WON at 14.6 min, their commander killed at H2 at 14:36): the first
+  game on the players' order. Commander list mex 28, mex 30, two solars, plant (standing 1:00), mex 36, mex 19, then
+  out at 3:05 to spot_38, spot_26, spot_39 with turrets and a radar; `produce armcv:2, armflash`. Energy hit zero at
+  2:00 with two solars while the plant made constructors: three before the plant, as the players do, and two more by
+  2:00. Twenty-five extractors, none lost; income 30 at 5:00 and 45 at 10:00; metal banked 1,030 at 5:00 with one
+  plant, then two more plants at 5:10 and 5:15 and 0-60 banked from 7:00 (the players nano one plant instead; either
+  spends it, banking does not). The hands put the two "home" plants where their builders stood (the strip's north end
+  and the commander's outpost): a factory step may name its place now (`armvp spot_39`), and a cancelled list does not
+  stop a building already started. Nothing was scouted until a solar came into sight at 8:00: the players have a
+  Rascal out by 1:20 and a radar at the front by 4:00. Sixty Blitzes lost, about twenty of them fed piecemeal into the
+  commander's D-gun, light turrets and a beamer at H2 from 9:20 to 11:00; the win came when 57 soldiers gathered at
+  spot_35 and went in together at 13:46. Its own lessons: gather first and commit everything in one push; turn the
+  footwork off for a retreat or a run through turrets (sidestepping held a group under a beamer for 49 hits at
+  11:05-11:40); give a raid one far destination, not a chain of middle spots to go "through".
 
 **What your hands did alone (pianist-smoke-1 to -6, pianist-easy-1, pianist-audit-1: four wins, four losses and a
 timeout against easy from the default packet, `docs/experiments.md`).** [docs/knowledge/jev.md]

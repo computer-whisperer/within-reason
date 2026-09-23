@@ -580,9 +580,11 @@ impl Brain {
                     Some(target) => Ok((Pick::ReclaimUnit(target.id), Vec::new(), None)),
                     None => Err(format!("{} no longer stands", place.as_deref().unwrap_or("it"))),
                 },
-                // Any unit by its internal name; one that stands at a place (a defence, a radar) needs the place.
+                // Any unit by its internal name; one that stands at a place (a defence, a radar) needs the place, and any
+                // other building takes one when given (escalate-1-easy: `armvp home` from a constructor at the strip's
+                // north end put the plant there, the place word read and dropped).
                 other => match self.world.def_named(other) {
-                    Some(def) if self.placed_at_place(def) => at_place(def),
+                    Some(def) if self.placed_at_place(def) || place.is_some() => at_place(def),
                     Some(def) => building(def),
                     None => Err(format!("'{other}' is not a unit name the game knows")),
                 },
