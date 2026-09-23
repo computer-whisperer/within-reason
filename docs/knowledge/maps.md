@@ -98,6 +98,11 @@ until 5:38 (comet-3). The strip's spots are named in the brief, so the player li
 **Status.** observed (2026-09-23), one game.
 **Evidence.** `run/matches/1790052453-comet-3-medium`: the extractor timeline (2:28 spot_43 died 3:17, 2:59 spot_52
 died 3:27, 3:27 spot_43 again died 6:02); `jev-0.jsonl` the constructor's picks.
+**Update 2026-09-22 (the players' replay, `run/matches/1790122851-replay-vak-vs-artur-comet`).** Experienced players take exactly these spots first: the west
+player's commander built spot_43 at 2:33 and spot_38 and spot_39 by 3:36, a light turret beside each pair, a solar or
+two and a radar at the outpost, and none died in seven minutes (K-open-comet-commander-expands). The claim is about an
+unguarded constructor at an open spot against Ticks, not about the spots: taken by the commander with a turret beside
+them, they are the first expansion, not the last.
 **Would be wrong if.** Middle spots held as long as strip spots against the same raids.
 **Used by.** the player's brief (Comet Catcher section).
 

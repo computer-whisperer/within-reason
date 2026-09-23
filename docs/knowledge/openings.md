@@ -359,6 +359,75 @@ from minute 9 on one plant.
 **Would be wrong if.** The list on the east strip, or against hard, were a minute slower.
 **Used by.** the player's brief (the Comet Catcher section).
 
+### K-open-comet-pro-order
+**Claim.** Experienced players open Comet Catcher with a vehicle plant before 1:00 on solars, and the order by the
+clock is: extractors 0:03, 0:10 (and 0:24 when a third spot is in reach), solars 0:31, 0:40, 0:49, the plant 0:58
+(standing 1:16), a solar at 1:29; the plant two Rascals (1:17, 1:20), a constructor (1:24), a second (1:41), two
+Rascals, then Flashes from 2:12 one every ten to fifteen seconds (thirteen by 5:00, twenty-four by 6:50) with a
+constructor at 3:09, 4:30 and 5:46 and a Rascal now and then (seven in all). Metal is spent as it comes (the store
+under 30 through minutes 2-4), then 300-500 sits banked from 5:00 while income goes 23, 32, 43 at 4:00, 5:00, 6:52 (9,
+13, 19 extractors); solars 5 by 2:20, 7 by 4:00, 17 by 6:46 for one plant, the energy store dipping to 22 while the
+plant went up and to 114 in minute 5, never zero. From 5:00 the plant gets nano turrets (three by 6:37) and an energy
+storage (6:18): one plant made faster, no second factory in seven minutes. The other player's opening was the same
+shape a half-minute faster (two solars, the plant at 0:34 standing 0:53, a solar, then extractors) and his energy sat
+at 0-30 through minutes 4-6 on 18 solars because his plant ran without pause.
+**Status.** transcribed (2026-09-22) from one people's 1v1 (both rank 5, skills 52 and 43, Armada against Armada,
+2026-09-09, game test-31251).
+**Evidence.** `run/matches/1790122851-replay-vak-vs-artur-comet` (run/replay_match.py on the user's demo): record-0 is the west player ([MADO]VAK, the winner, from
+(954, 2520): fifty elmos from where the arena places us), record-1 the east player; created events, plant production by
+`by`, resource samples.
+**Would be wrong if.** Other high-level games on this map opened with a bot lab, or with wind, or banked nothing for
+a second plant by minute 5.
+**Used by.** the player's brief (the Comet Catcher section: the opening to copy on this map).
+
+### K-open-comet-commander-expands
+**Claim.** On Comet Catcher the commander is the frontier builder, not the plant's helper: from 2:00 it walks toward
+the middle and builds an extractor every twenty to sixty seconds at the middle spots nearest home (our table's
+spot_43 at 2:33, spot_38 and spot_39 by 3:36, spot_26 and spot_24 by 4:46, spot_33 and spot_31 by 6:15, at x 1,900 to
+3,700), a light turret beside each pair (2:45, 3:42, 4:53, 6:22), a solar or two and a radar at each outpost (4:09,
+5:40), and stands 2,600 elmos east of its start at 6:30 at full health; the other commander did the same from its
+side and the two never met. The four or five constructors take the strip's spots behind it (spot_45, spot_50,
+spot_52, spot_61, spot_63, spot_64, spot_59, spot_54, a turret at the far ones) and from 5:00 build the nano turrets on
+the plant. Neither commander fought except against the first scout cars at home.
+**Status.** observed (2026-09-22), one game, both players.
+**Evidence.** `run/matches/1790122851-replay-vak-vs-artur-comet`: the commander's position every 30 s and `by` on the created events (the commander built 12 of the
+west player's 21 extractors, all eight light turrets, three radars and 12 of 17 solars).
+**Would be wrong if.** Other high-level games on this map kept the commander at the plant past minute 3, or lost it
+in the middle to the other side's raiders.
+**Used by.** the player's brief (the Comet Catcher section). Our games to date keep the commander home helping the
+plant (comet-4's list ends `assist`); this is the largest difference between the players' game and ours.
+
+### K-open-comet-rascals-lose-to-the-commander
+**Claim.** The plant's first units on both sides are Rascals (scout cars, 31 metal), for sight; a Rascal swarm loses.
+The east player made sixteen in six minutes and sent them at the west base in twos and threes from 1:30; the
+commander, one light turret at the plant (built 2:03, standing 2:16) and the first Flashes killed fifteen of them (six
+in minute 2 alone, at the base) for one Rascal and one Flash, and he had no army at 4:00 and five Flashes at 6:00
+against fourteen. The winner made seven Rascals and spent them as scouts deep in the other half (lost 4:21, 5:23,
+5:31 at x 5,300-6,800).
+**Status.** observed (2026-09-22), one game.
+**Evidence.** `run/matches/1790122851-replay-vak-vs-artur-comet`: plant production by `by`, destroyed events with places (record-1: fifteen armfav lost by 5:35,
+six of them 2:04-2:34 within 900 of the west plant).
+**Would be wrong if.** A Rascal opening in another high-level game on this map paid for itself in constructors or
+extractors killed.
+**Used by.** the player's brief (two Rascals for sight, then Flashes; a light turret at the plant by 2:00 for the
+other side's scout cars).
+
+### K-open-comet-flash-raids-take-the-resign
+**Claim.** The winner's Flashes were never one ball: from 4:00 they spread 2,400-4,800 elmos across the map in twos
+and threes at the other side's extractors, constructors and solars (a start extractor at 4:44, four solars beside the
+plant 5:46-5:51, the north end's two extractors, a turret and two constructors 6:08-6:29), losing seven Flashes, three
+of them to turrets at the plant; the other player resigned at 6:45 with fifteen extractors to nineteen, income 36 to
+43 and five Flashes to fourteen. The resign came on the army count and the unanswered raids, not on the economy.
+Against this opponent the same raids go at extractors and constructors, never at the commander, whose D-gun takes a
+small group (comet-1).
+**Status.** observed (2026-09-22), one game; against BARb untried in this shape (our Flash groups have gone as one
+ball).
+**Evidence.** `run/matches/1790122851-replay-vak-vs-artur-comet`: army centroid spread per 30 s (r 2,466-4,863 from 4:00), enemy_destroyed events with places,
+record-1's four self-destruct commands at 6:45 (CMD_SELFD, the resign).
+**Would be wrong if.** The raids in other high-level games here were one group, or a person held on at equal extractors
+and won on a later army.
+**Used by.** the player's brief (the Comet Catcher section).
+
 ### K-plan-target-order-is-a-chain
 **Claim.** A `target` search answers with the chain to the thing asked and what pays for it inside the horizon, and
 nothing else: no soldiers of other types, no economy past the horizon, no defence. Followed to the letter it gets the

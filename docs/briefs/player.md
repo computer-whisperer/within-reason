@@ -135,13 +135,36 @@ K-maps-comet-barb-opens-bots, the tempo model]
   in the picture and in `produce`. Against bots: a Blitz is two Pawns' metal with twice a Pawn's health and speed
   and kills constructors and extractors the same way; a Stout beats any tier-1 bot head on and takes a light turret
   with a few friends but does not outrange it (350 against 430); Whistlers and Shellshockers do.
-- The opening here is yours to find: it is the question this series asks (the user: "figure out an alternate meta;
-  a classic vehicles map will require different patterns and tempo"). Matt's opening below is a bots opening on
-  Quicksilver; its shape (two extractors, generators, the factory standing by 0:35 with the commander helping it, one
-  constructor and then raiders under a `produce` cap) is the starting point, with solars for the wind and the plant
-  for the lab, and everything after that is open: how many solars before the plant, Blitz raids against Pawn
-  raids, when the Stouts come, how far the tanks range on a map with no chokes. Say the plan you chose in a `note`
-  on turn one and, at the end, what you would change; the next game's brief carries it.
+- **The opening two experienced players used on this map** (a 1v1 of 2026-09-09, both rank 5, Armada against
+  Armada, the west player from (954, 2520), fifty elmos from where the arena places you;
+  `run/matches/1790122851-replay-vak-vs-artur-comet`, run/view_match.py opens it) [K-open-comet-pro-order,
+  K-open-comet-commander-expands, K-open-comet-rascals-lose-to-the-commander, K-open-comet-flash-raids-take-the-resign].
+  The commander: extractors 0:03, 0:10, 0:24 (the three spots beside the start), solars 0:31, 0:40, 0:49, the plant
+  at 0:58 (standing 1:16), one more solar, then out: from 2:00 it walks toward the middle and builds an extractor
+  every twenty to sixty seconds at the middle spots nearest home (spot_43 at 2:33, spot_38 and spot_39 by 3:36,
+  spot_26 and spot_24 by 4:46, spot_33 and spot_31 by 6:15, at x 1,900 to 3,700), a light turret beside each pair
+  (2:45, 3:42, 4:53, 6:22), a solar or two and a radar at each outpost (4:09, 5:40), and it stood 2,600 elmos east of
+  its start at 6:30 at full health; the other commander did the same from its side. The plant: two Rascals, a
+  constructor, a second constructor at 1:41, two Rascals, then Flashes from 2:12 one every ten to fifteen seconds
+  (thirteen by 5:00, twenty-four by 6:50), a constructor at 3:09, 4:30 and 5:46 (five in all), a Rascal now and then
+  (seven). The constructors take the strip's spots behind the commander (spot_45, spot_50, spot_52, spot_61, spot_63,
+  spot_64, spot_59, spot_54) with a turret at the far ones, and from 5:00 build nano turrets on the plant (three by
+  6:37) and an energy storage: one plant all game, made faster, not a second plant. Metal spent as it came (the store
+  under 30 through minutes 2-4), then 300-500 banked from 5:00 with income 23 at 4:00, 32 at 5:00 and 43 at 6:52 (9,
+  13, 19 extractors); solars 5 by 2:20, 7 by 4:00, 17 by 6:46, the energy store dipping to 22 while the plant went up
+  and to 114 in minute 5, never zero. His Flashes were never one ball: in twos and threes across the whole map from
+  4:00, at the other side's extractors, constructors and solars (a start extractor at 4:44, four solars beside the
+  plant at 5:46-5:51, the north end's extractors and two constructors 6:08-6:29), losing seven, and the other player
+  resigned at 6:45 with fifteen extractors to his nineteen and five Flashes to his fourteen. The loser's mistake, to
+  avoid: sixteen Rascals in six minutes sent at the enemy base in twos and threes; the commander, one light turret at
+  the plant (2:03) and the first Flashes killed fifteen of them, and he had no army at 4:00. So on this map: the plant
+  by 1:00 after three solars, two Rascals for sight and then Flashes without a gap, a light turret at the plant by
+  2:00 for the enemy's scout cars, the commander out to the middle spots with a turret and a radar at each outpost
+  while the constructors fill the strip, nanos on the plant at 5:00, and Flashes spent on their economy in small
+  groups from 4:00. Against this opponent rather than a person: its Ticks and Pawns come at the outer extractors from
+  4:00 (comet-3), so the turret beside each pair matters more, and its commander D-guns a small group (comet-1), so the
+  raids go at extractors and constructors, never at the commander. Say the plan you chose in a `note` on turn one and,
+  at the end, what you would change; the next game's brief carries it.
 - comet-1 (easy, WON at 17.5 min): the plan was two extractors, three solars, the plant by 0:40, `armcv:1` then
   Blitzes. The hands built the extractors at 0:03 and 0:11, solars at 0:18 and 0:28, then two more extractors and a
   solar, and the plant only at 1:40 with 890 metal banked: the plant's menu words warned that the store would empty,
