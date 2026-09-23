@@ -569,7 +569,8 @@ plant builder, its list ended (`armavp avp_yard, assist`), was put on the call b
 times (0.41 and above the `continue` at 0 %: "nothing wasted"); the frames decayed and the game was lost at 33:27
 with a 4:1 economy lead and no tier 2. Four more frames went the same way to the player's `stop` and to new lists.
 **Status.** observed (2026-09-23), one game, six frames; the fix (a started, unthreatened build stays off the
-packet's and the events' call) untried.
+packet's and the events' call) verified in started-1: over 52 packet calls the only builders asked while building were
+under fire.
 **Evidence.** `run/matches/1790172269-shell-1-hard-aggressive/00`: the jev log's `played` at 1100 s and 1288 s
 (`constructor_28184`, `assist_lab`, source jev, busy false), the record's `created` and `destroyed` events for the
 six `armavp` frames, the player's notes at 20:02 and 24:57.
@@ -583,7 +584,7 @@ group with many places and parties in reach, so a call asking 45 actors' worth o
 and 62k tokens, past the 64k window: shell-1 lost two calls to `max_tokens_exceeded` (11:34, 22:28) and sent 69 calls
 over 40k tokens and 20 over 50k; the game's Jev bill was $1.00 against $0.18-0.36 for the shorter games.
 **Status.** measured (2026-09-23) from shell-1's jev log; the question budget (80k characters a call, the rest
-deferred half a second) untried.
+deferred half a second) verified in started-1: 1,370 calls, none failed, the largest 47k tokens.
 **Evidence.** `run/matches/1790172269-shell-1-hard-aggressive/00/jev-0.jsonl`: the two `error` entries and the
 `usage` and `questions` of the calls around them.
 **Would be wrong if.** Deferred actors waited more than a call or two, or the budget cut a group's questions while an
