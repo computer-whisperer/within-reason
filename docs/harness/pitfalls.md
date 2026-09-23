@@ -26,6 +26,15 @@
   hundreds of times per match means its orders are not executing. `DROPPED order` lines in `bot.log` and
   `WITHIN_REASON_TRACE_BUILDS` placements in `engine.log` say which and where.
 
+## Fetching one game version for a replay strands the arena until `byar:test` is fetched too
+
+`pr-downloader --download-game "Beyond All Reason test-NNNNN-xxxxxxx"` (what `run/replay_match.py` needs for a demo
+from another build) also refreshes `run/data/rapid/.../versions.gz`, so the `byar:test` tag now names whatever build
+is current upstream. The arena resolves the tag from that file and the engine dies in two seconds with `Dependent
+archive "beyond all reason test-NNNNN" not found` (escalate-1-easy, 2026-09-22: the aborted match, no game). After
+fetching a version for a replay, fetch `byar:test` too (docs/harness/engine.md, the same command with the tag) before
+the next batch; the pool dedups, so it is a few hundred files.
+
 ## A replay that names the game by rapid tag will not open in the lobby
 
 The engine accepts `GameType=byar:test` and resolves the tag itself, but the name goes into the replay's header as
