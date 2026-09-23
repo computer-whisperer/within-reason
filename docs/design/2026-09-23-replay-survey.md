@@ -93,3 +93,13 @@ and a vehicle plant in 25 of 34 sides (a bot lab in 9); a second factory in 23 o
 only 3 sides, at 16 min; 16 extractors and income 39 at 8:00 (winners 18, losers 15); five or more Rovers before 3:00
 in 13 of 34 sides, a raid opening the pros' replay never showed; the higher-OS player won 14 of 17. Starts vary inside
 the box (A4 and B5 west, G4, H5 and H1 east), so "from the west start" claims must say which cell.
+
+**2026-09-23 15:45, all 29 carded.** The 12 replayed again on the fixed runner (343-684 s each); 29 of 29 kept Comet
+Catcher duels have cards. `run/replays/aggregate.py` gives the first pass over the 58 sides: the first factory at 0:54
+(median), a vehicle plant in 40 of 58 (a bot lab in 14, an aircraft plant in 4); a second factory in 44 of 58 at 9.2
+min; tier 2 in 4 sides at 15.5 min; extractors at 4:00 median 7 (winners 8, losers 6), at 8:00 median 16 (winners 18,
+losers 15, income 39), at 12:00 median 21.5 (winners 28, losers 14.5, income 54; 36 sides still playing); five or more
+Rovers at the 2:00 sample in 14 of 58; **every side lost an extractor**, the first at 4:18 (median); the higher-OS
+player won 22 of 29. Start cells A4 17, B5 12 in the west; H5 19, G4 8, H1 2 in the east. The winners' curve pulls
+away between 8 and 12 minutes (18 to 28 extractors against 15 to 14.5), which is the window our tier-hard games
+plateau in (22-25 extractors flat from 16:00 in pace-1). Next: the synthesis pilot, after the spot-numbering decision.
