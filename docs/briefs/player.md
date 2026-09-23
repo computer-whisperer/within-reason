@@ -259,6 +259,25 @@ K-maps-comet-barb-opens-bots, the tempo model]
   footwork on and chased single Blitzes to spot_59 instead of going east; at the H2 plant it lost 26 Blitzes, twelve
   to the commander's D-gun. Its own lessons: footwork off and a spot route for a commit; Stouts in front before
   closing on a plant with the commander at it; each raid group its own single target.
+- escalate-3 (HARD, Opus 5.5 at medium effort, WON at 17.3 min, their commander killed at G1 (6291, 747) by 25
+  Stouts): the players' order taken on turn one and on schedule (two extractors, three solars, the plant at 0:49
+  standing 1:08, `armfav:1, armcv:2, armflash`, the commander out at 2:00 to spot_43, 38, 39 with turrets and a radar,
+  standing at (2891, 2951) by 3:00 and never hurt). Energy still hit zero at 4:00 on four solars with metal banking:
+  the players had seven by 4:00; budget a solar per Blitz queued and put them on a constructor before the drop, and
+  again when a plant is added (a second stall at 9:51 with four plants making Stouts at 2,100 energy each). Hard
+  opened a bot lab and fought differently: a fortress at E3/F3 (a Gauntlet at 1,220 range, a heavy laser tower at
+  620, a beamer, walls, an artillery turret at F2 by the end) with Maces, Rocketeers and resurrection bots in front,
+  and Pawn raids that took extractors from 20 to 16 from 13:00 and killed a plant. The trade was even all game
+  (11,591 destroyed against 11,442 lost at 16:50); the win was volume (18 extractors and 3,500 of army against 225 seen
+  at 8:00) and the route: after two pushes into the fortress, the ball went along the north edge (spot_3, 6, 10, 5,
+  12, 17, all over 1,300 from F3), found the advanced bot lab at G2 (6248, 856) and the commander beside it. Their base
+  was north (G1-G2) every time it was looked for; four Rovers found nothing in the south-east. Its own lessons: go
+  round by the north edge from the first commit; keep a Blitz group at home for Pawns (Stouts cannot catch them) with
+  turrets at spot_36, 52, 61, 22; cap the factories in words (the hands built four plants: the commander cannot build
+  a nano turret, it is not on its roster, and it made a plant instead); the hands keep a group's old walk after the
+  packet changes unless the packet names that walk wrong and abandoned ("group_B's walk to spot_13 is abandoned;
+  advance east to spot_6" took effect in one turn); "advance to X first" with X behind the group sends it home; give
+  artillery its own named group or it splits off and dies alone; footwork off for a group you are committing.
 
 **What your hands did alone (pianist-smoke-1 to -6, pianist-easy-1, pianist-audit-1: four wins, four losses and a
 timeout against easy from the default packet, `docs/experiments.md`).** [docs/knowledge/jev.md]
