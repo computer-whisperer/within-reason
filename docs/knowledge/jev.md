@@ -456,7 +456,7 @@ from pianist-smoke-1, when the hands built thirty); with the packet saying "two 
 Blitzes" and the constructor offered, Jev chose a Blitz 16 asks of 17 (escalate-5, 4:53-8:00), and with only the
 constructor allowed and 541-1,357 metal banked it chose "nothing" 12 asks running for 35 s (escalate-6, 5:19-5:52)
 until the player relented. The menu's words state observations; the packet judges.
-**Status.** observed (2026-09-22 late), two games; the facts-only wording untried.
+**Status.** supported (2026-09-22 late): two games with the verdict, one without. With the sentence reduced to the counts (escalate-7) the same plant chose the constructor 8 asks of 13 when offered and the packet's asks were met (four constructors by 3:19, six by 6:20); the game was won.
 **Evidence.** `run/matches/1790127241-escalate-5-hard-aggressive/00/jev-0.jsonl` and `.../1790129025-escalate-6-hard-aggressive/00/jev-0.jsonl`:
 the plant's `played` entries (options, choice, probability) in those windows; `strategist-0.jsonl` the packets.
 **Would be wrong if.** With the verdict removed the plant still chose Blitzes over an asked-for constructor at the

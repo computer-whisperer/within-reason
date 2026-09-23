@@ -335,6 +335,22 @@ K-maps-comet-barb-opens-bots, the tempo model]
   constructors by 5:00: `produce` counts `armcv:N` as N more from now, so ask for `armcv:3` again when three stand),
   the outer extractors must have a picket and a turret before 5:00, and the first Pawn wave at 7:00 must be met by
   one group at the strip's north end, not by detachments from everywhere.
+- escalate-7 (HARD_AGGRESSIVE, fourth game, Opus 5.5 at medium effort, **WON at 16.0 min**, their commander killed at
+  G1 (6387, 753) by 37 Blitzes and Stouts on `attack_unit` at 15:43, with their advanced lab, a Gauntlet and a
+  beamer in the same three minutes): the first game after the hands were fixed to follow a `produce` ask (a list
+  said again restarts its count) and to write the constructor count without a verdict. The plant made constructors
+  8 asks of 13 when offered (game 5: 1 of 17): four by 3:19 on `armcv:3`, six by 6:20, and the extractor count
+  climbed 11, 14, 17, 20, 22 at 5:00, 6:00, 7:00, 10:00, 13:00 with nine lost all game (games 4-6: 32-45). The bank
+  still reached 1,870 at 8:00 (a second plant at 7:16, nanos, an energy stall 6:20-6:45 on seven solars with six
+  builders) and drained from 9:00. The rest as the brief says: one ball at spot_39/24 with pickets north and south,
+  their block of Rocketeers, Maces and Centurions broken at D4 at 11:33 (2.5k for 1.0k), the far-north route
+  (spot_24, 0, 1, 8, 3, 11, 16, 6) past the E2/E3 nest to G1, a home guard of 2-7k at spot_33/39 the whole time, and
+  everything onto the commander the moment it was seen. What it still cost: five Blitzes raiding F2 at 6:50 (the
+  hands kept the walk after "abandon"), 1.5k chasing a party into the E2/E3 nest at 13:00, twelve Blitzes to LLTs at
+  E1 (switch the plants to Stouts when the attack reaches structures, at 12:45 not 14:48), and a `produce` cap on
+  `plant_1` that did nothing because the plant is `plant_5440` once it stands (three Rovers came). Open in the hands:
+  lists given to constructors mid-walk at 8:19-8:42 were not taken; a plant's engine queue keeps units already
+  queued when the allowance changes; the `shelling` place still leads a group under an unseen beamer.
 
 **What your hands did alone (pianist-smoke-1 to -6, pianist-easy-1, pianist-audit-1: four wins, four losses and a
 timeout against easy from the default packet, `docs/experiments.md`).** [docs/knowledge/jev.md]
