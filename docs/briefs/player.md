@@ -246,6 +246,19 @@ K-maps-comet-barb-opens-bots, the tempo model]
   spot_35 and went in together at 13:46. Its own lessons: gather first and commit everything in one push; turn the
   footwork off for a retreat or a run through turrets (sidestepping held a group under a beamer for 49 hits at
   11:05-11:40); give a raid one far destination, not a chain of middle spots to go "through".
+- escalate-2 (medium, Opus 5.5 at medium effort, WON at 13.5 min, their plant killed at H2 at 13:21 and the
+  commander at G1 after): the same adapted comet-4 list, and energy hit zero at 2:00 on two solars a second time
+  (three before the plant, then three more by 2:00: the plant's Blitzes cost 900 energy each). The home guard was
+  stationed at spot_36, beside the plant, and five of twelve Blitzes stood jammed in the plant's exit lane from 3:30
+  (the picture's `stuck` line said so; the station moved to spot_38 at 4:12 and footwork went off to let them out):
+  never station a group on the spot beside a factory; spot_38 or farther. The commander stayed home helping the
+  plant all game and the constructors took the middle; nothing was seen until 5:25. This opponent went vehicles
+  (Blitzes, then Janus at 9:00) and raided the middle spots in parties of five to seven from 6:00 (spot_39, spot_52,
+  spot_62); four-Blitz detachments arrived one at a time and lost eight extractors and six turrets, the whole home
+  group did not. Three plants by 8:26 kept the bank at 0-450 with income 36-46. The ball of 41 committed at 9:55 with
+  footwork on and chased single Blitzes to spot_59 instead of going east; at the H2 plant it lost 26 Blitzes, twelve
+  to the commander's D-gun. Its own lessons: footwork off and a spot route for a commit; Stouts in front before
+  closing on a plant with the commander at it; each raid group its own single target.
 
 **What your hands did alone (pianist-smoke-1 to -6, pianist-easy-1, pianist-audit-1: four wins, four losses and a
 timeout against easy from the default packet, `docs/experiments.md`).** [docs/knowledge/jev.md]
