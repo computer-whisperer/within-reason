@@ -73,3 +73,15 @@ the west player (OS 28, lost) 16 extractors and income 36 at 8:00 with the plant
 early, the east player (OS 36, won) 12 extractors and income 30 with the plant at 0:34 and eleven Rovers before 2:30,
 a Rover raid opening the card must make visible. A replay record's header has no `seats` (the widget writes it, not
 the shim): the card takes the players, OS and factions from the API detail, kept in the manifest.
+
+**2026-09-23 14:45.** The card is complete on the spike duel re-replayed with the widget writing the game's own metal
+spots (`mex_count`, `mex_x<i>`, `mex_z<i>`, `mex_metal<i>` game rules params) and fuller unit rows (class, build
+speed, extraction): 80 spots, every extractor with its spot and grid, roles (commander, constructor N, factory) on the
+build order, factories with start and finish, curves, the first extractor lost (the west player's spot_19 to a Rover at
+2:08, rebuilt at 2:13, 2:23 and 2:36). **The game's spot list has 80 spots on Comet Catcher where the engine's, which
+the shim reads, has 75: the cards' spot numbers are not the bot's.** The shim should read the game's list from the same
+rules params (the positions people's extractors snap to, which settles the extractor placement the user asked about
+on 2026-09-23 too), so the brief, the picture and the cards name the same spots; until then a claim that names spots
+for the bot maps them by position (nearest within 130). `run/replays/pick.py`, `fetch.py`, `card.py` and `replay.py`
+stand; the 29 kept Comet Catcher duels are on disk with their versions in the pool, and the parallel replay of the
+other 28 was started at 14:45.

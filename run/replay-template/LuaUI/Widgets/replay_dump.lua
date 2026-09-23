@@ -68,7 +68,13 @@ local function header(team)
 	-- The record's first line, before any event of frame 0: the side from the team's setup, not from a unit.
 	local _, _, _, _, sideName, allyTeam = Spring.GetTeamInfo(team)
 	local side = (sideName or ""):sub(1, 3)
+	-- The game's own metal spots, as its spot finder publishes them (api_resource_spot_finder.lua setMexGameRules):
+	-- the positions people's and BARb's extractors snap to, so a card's spot numbers are the map's.
 	local spots = {}
+	local count = Spring.GetGameRulesParam("mex_count") or 0
+	for i = 1, count do
+		spots[#spots + 1] = { Spring.GetGameRulesParam("mex_x" .. i) or 0, Spring.GetGameRulesParam("mex_z" .. i) or 0, Spring.GetGameRulesParam("mex_metal" .. i) or 0 }
+	end
 	put(team, json({
 		t = "header", format = "within-reason-record", version = 1, ai_id = team, team = team, ally_team = allyTeam, side = side,
 		mode = "replay", start_frame = 0, first_tick_frame = 0, frames_per_second = 30, sample_frames = SAMPLE,
@@ -90,7 +96,7 @@ function widget:Initialize()
 	for i, id in ipairs(ids) do
 		local d = UnitDefs[id]
 		defIndex[id] = i - 1
-		defRows[i] = { id = id, name = d.name, class = class(d), metal = d.metalCost, energy = d.energyCost, speed = d.speed, weapons = #d.weapons }
+		defRows[i] = { id = id, name = d.name, class = class(d), metal = d.metalCost, energy = d.energyCost, speed = d.speed, weapons = #d.weapons, build_speed = d.buildSpeed or 0, extracts_metal = d.extractsMetal or 0 }
 	end
 	local gaia = Spring.GetGaiaTeamID()
 	for _, team in ipairs(Spring.GetTeamList()) do
