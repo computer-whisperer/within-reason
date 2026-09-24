@@ -161,11 +161,12 @@ K-maps-comet-barb-opens-bots, the tempo model]
   13 at 48.5, 2026-09-24; the earlier VAK-Artur game of 2026-09-09 agrees) [K-map-comet-catcher-remake-1-8-two-solars-before-the-plant,
   K-map-comet-catcher-remake-1-8-commander-assists-the-plant, K-open-comet-our-plant-starves, K-open-comet-pro-order].
   The commander: extractors on the two or three spots beside the start (spot_30, spot_28, spot_36 from A4; spot_45,
-  spot_50 from B5), two or three solars, never a fourth before the plant, the plant at 0:43 to 0:58 (standing 1:05 to
-  1:17). **Then it guards the plant**: the pros' commander stands at the plant from the second it is done and steps
+  spot_50 from B5), three solars (two at most if the plant is up by 0:45), never a fourth before the plant, the plant at 0:43 to 0:58
+  (standing 1:05 to 1:17); then the fourth solar at about 1:30 and the fifth by 3:00, the pool's clocks: on two or
+  three solars the energy store ran dry behind a plant making Blitzes (2v1b-medium 3:57, 2v1b-hard_aggressive 2:00). **Then it guards the plant**: the pros' commander stands at the plant from the second it is done and steps
   out only for one solar or one extractor at a time, back to the plant after each (thebluegecko 140 s of the first
   240 guarding, the pool 50). Write it as the list: `armvp`, `assist 25`, `extractor spot_36`, `assist 25`, `extractor
-  spot_28`, `assist 25`, ... with a solar only where the store will read over 100 and energy is not full (2v1-medium
+  spot_28`, `assist 25`, ... with the fourth solar near 1:30 and the fifth by 3:00, and none beyond those where energy is full (2v1-medium
   and 2v1-hard put solars five and six at 1:38 and 2:20 with energy full and the store at 0: each was three
   extractors' metal). Your first list lands at about 0:25, when the hands have already ordered two extractors and a
   solar; the hands skip the steps of your list they have ordered already, so write the whole opening from its
