@@ -330,8 +330,11 @@ the refusal keeps most of it out. The AI interface reports shots (`EVENT_WEAPON_
 hits on enemies (`EVENT_ENEMY_DAMAGED`, sent to the attacker's own team only, and only while the enemy is in sight
 or on radar), so "in reach and silent" is observable for our own units and not for a replay's spectator seat.
 **Status.** read from the engine and the game (2026-09-24), after experienced players told the user the balls "cannot
-see past each other's turrets"; the muzzled share and the friendly-fire share are the fire instrument's to show
-(`run/fire.py` over records from 2026-09-24 on).
+see past each other's turrets"; measured once (worth-1, 24 min, a Stout army): 8% of soldier-seconds with an enemy in
+reach were muzzled (no shot for 3 s or two reloads), 36% of those with a friend within a hull's width of the line to
+the nearest enemy, 26% with the enemy at the reach's edge, 39% clear; the share did not rise with the ball (6 or more
+friends within 120: 6%; alone: 14%); Stouts fired 0.51 a second in reach against 0.83 possible; friendly fire 5.4%
+of damage dealt. A friend on the line costs about 3% of a Stout's time in reach: real and small in this game.
 **Evidence.** `rts/Sim/Misc/LosMap.cpp` (raycasts against `mipHeightMap` only, `LOS_BONUS_HEIGHT` 5);
 `rts/Sim/Units/UnitDef.cpp` `losHeight` default 20; `rts/Sim/Weapons/WeaponDef.cpp` `avoidFriendly` default true;
 `rts/Sim/Weapons/Weapon.cpp` `HaveFreeLineOfFire` (`TraceRay`/`TestCone` with the avoid flags) and `Cannon.cpp`

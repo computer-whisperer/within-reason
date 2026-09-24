@@ -8,13 +8,27 @@ For every soldier-second with an enemy inside the soldier's reach (the header's 
 did it shoot? A soldier in reach for `--quiet` seconds, or twice its reload, whichever is longer, without a shot is
 counted muzzled: the engine refuses a shot whose line crosses a friend (`avoidFriendly`), and a unit with its target in
 range does not step aside. The share is given by how many of our soldiers stand within 120 of the muzzled one, since a
-ball hides its own rear ranks. Then friendly fire by shooter type, and the two exchange tables by type pair (our hits
+ball hides its own rear ranks, and each muzzled second is sorted by its line to the nearest enemy in reach: a friend
+within a hull's width (`HULL`) of that line, the enemy at the edge of the reach (the last `EDGE` elmos, where the
+engine's own range test and ours can disagree), or a clear line (terrain, turning, a target it will not shoot). Then friendly fire by shooter type, and the two exchange tables by type pair (our hits
 on them, theirs on us, -1 a type never seen: fire from out of sight).
 """
 import argparse, collections, json, math, os, sys
 
 SLACK = 20.0     # the micro's FOCUS_SLACK: a target this far beyond the reach still counts as in it
 BALL = 120.0     # friends within this of a soldier: its ball
+HULL = 24.0      # a friend this close to the line of fire blocks it (a tank's collision radius is about 20)
+EDGE = 40.0      # a target within this of the reach's edge: the range test may say out of reach
+
+
+def near_segment(px, pz, ax, az, bx, bz):
+    """Distance from P to the segment AB."""
+    dx, dz = bx - ax, bz - az
+    l2 = dx * dx + dz * dz
+    if l2 <= 0.0:
+        return math.hypot(px - ax, pz - az)
+    t = max(0.0, min(1.0, ((px - ax) * dx + (pz - az) * dz) / l2))
+    return math.hypot(px - (ax + t * dx), pz - (az + t * dz))
 
 
 def record_of(path):
@@ -38,7 +52,7 @@ def read(path, quiet_floor):
             return None
         out = {
             "reach_s": collections.Counter(), "shots": collections.Counter(), "muzzled_s": collections.Counter(),
-            "ball": collections.Counter(), "ball_reach": collections.Counter(),
+            "ball": collections.Counter(), "ball_reach": collections.Counter(), "why": collections.Counter(),
             "ff": collections.Counter(), "dealt": 0.0, "xo": collections.Counter(), "xi": collections.Counter(),
             "seconds": 0, "instrumented": False,
         }
@@ -68,9 +82,11 @@ def read(path, quiet_floor):
             enemies = [(x, z) for e, d, x, z, hp in r["en"]]
             for u, d, x, z in soldiers:
                 reach = defs[d]["reach"] + SLACK
-                if not any((x - ex) ** 2 + (z - ez) ** 2 < reach * reach for ex, ez in enemies):
+                in_reach = [(ex, ez) for ex, ez in enemies if (x - ex) ** 2 + (z - ez) ** 2 < reach * reach]
+                if not in_reach:
                     quiet[u] = 0
                     continue
+                ex, ez = min(in_reach, key=lambda e: (x - e[0]) ** 2 + (z - e[1]) ** 2)
                 name = defs[d]["name"]
                 out["reach_s"][name] += 1
                 out["shots"][name] += shots.get(u, 0)
@@ -83,6 +99,9 @@ def read(path, quiet_floor):
                 if quiet[u] >= max(quiet_floor, 2 * defs[d]["reload"]):
                     out["muzzled_s"][name] += 1
                     out["ball"][bucket(friends)] += 1
+                    blocked = any(v != u and near_segment(fx, fz, x, z, ex, ez) < HULL and (fx - x) ** 2 + (fz - z) ** 2 < (x - ex) ** 2 + (z - ez) ** 2 for v, _, fx, fz in soldiers)
+                    edge = math.hypot(x - ex, z - ez) > reach - EDGE
+                    out["why"]["a friend on the line" if blocked else "target at the reach's edge" if edge else "clear line"] += 1
         # friendly fire by type: the last type seen for the shooter id
         types = {}
         f.seek(0)
@@ -114,6 +133,7 @@ def report(label, r, pairs):
     for t, s in r["reach_s"].most_common(10):
         print(f"    {t:10} {s:6} {r['shots'][t]:6} {r['shots'][t] / s:5.2f} {r['muzzled_s'][t]:6}")
     print("  muzzled share by friends within 120: " + ", ".join(f"{b} {100 * r['ball'][b] / max(1, r['ball_reach'][b]):.0f}% of {r['ball_reach'][b]} s" for b in ("alone", "1-2", "3-5", "6+")))
+    print("  muzzled seconds by cause: " + ", ".join(f"{k} {n} ({100 * n / max(1, total_muzzled):.0f}%)" for k, n in r["why"].most_common()))
     ff = sum(r["ff"].values())
     print(f"friendly fire {ff:.0f} of {r['dealt']:.0f} dealt ({100 * ff / max(1.0, r['dealt'] + ff):.1f}%): " + ", ".join(f"{t} {d:.0f}" for t, d in r["ff"].most_common(6)))
     defs = r["defs"]
