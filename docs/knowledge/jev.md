@@ -782,8 +782,7 @@ Stouts, three Warriors and a Hammer (1390 metal, every one outreaching its D-gun
 that it walks back from soldiers bigger than a raider, followed the line: an extractor toward the party at 98%,
 `attack party_108` at 50%, `retreat_home` at 10%, dead four seconds after the first hit. The same weight against
 five Pawns (270 metal, all inside its D-gun) reads the same words, and there they are true.
-**Status.** demonstrated (wake-4, 2026-09-24, one death that lost a game led 26k to 2.7k); the fix's effect is the
-replay's to show.
+**Status.** demonstrated (wake-4, 2026-09-24, one death that lost a game led 26k to 2.7k); the fix replayed (commander-ab, 165 recorded asks): on the 27 the new odds call outweighed the hands take the commander away on 67% with the new line and the rule sentence together (30% recorded; 30% with the line alone, 44% with the sentence alone), on the 117 raider asks 5% (4% recorded); wake-4's fatal ask went from `extractor` 0.70 to `retreat_home` 0.68.
 **Evidence.** `run/matches/1790221479-wake-4/00/jev-0.jsonl` f=38175-38370 (the commander's entry and answers);
 `combat.rs` `power` before 2026-09-24 (metal times the matchup factor); `crates/bot/data/units.json` (armcom 187.5
 dps, 3700 health; armstump 80.8, 1800, 225 metal; armwar 183, 1590, 270).

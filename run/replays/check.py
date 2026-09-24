@@ -3,7 +3,8 @@
 One row per side of every carded match in the manifest, with the numbers claims quote; `--count EXPR` evaluates a
 Python expression over each row and prints how many sides (or games) satisfy it, so "the plant before 1:00 in 41 of
 58 sides" is checked as `--count "ff_secs < 60"`.
-usage: run/replays/check.py [--map FILE_NAME] [--table] [--count EXPR ...] [--by won|start|faction] [--games]
+usage: run/replays/check.py [--map FILE_NAME] [--min-os N] [--table] [--count EXPR ...] [--by won|start|faction] [--games]
+`--min-os N` keeps only the games where every player's OS is N or above (the players' advice, 2026-09-24: 25 is too low to learn from; 40 and above).
 Row fields: id, team, player, os, faction (arm|cor), start (cell), won, higher_os, duration_secs, ff_kind, ff_secs,
   ff_at, sf_kind, sf_secs, t2_secs, t2_unit, ex4, inc4, ex6, inc6, ex8, inc8, ex10, ex12, inc12, cons5, cons10,
   rovers2 (Rovers at the 2:00 sample), army8, army12, lost_secs, lost_spot, lost_grid, lost_by, first_seen_secs,
@@ -15,12 +16,13 @@ MANIFEST = 'run/data/replays/manifest.jsonl'
 def secs(c):
     if not c or '?' in c: return None
     m, s = c.split(':'); return int(m) * 60 + int(s)
-def rows(map_file=None):
+def rows(map_file=None, min_os=None):
     out = []
     for l in open(MANIFEST):
         r = json.loads(l)
         if not (r.get('keep') and r.get('card')): continue
         if map_file and r.get('map_file') != map_file: continue
+        if min_os is not None and any(p.get('os') is None or p['os'] < min_os for p in r['players']): continue
         c = json.load(open(r['match'] + '/card.json'))
         winners = set(r.get('winners') or [])
         won_team = {p['team'] for p in r['players'] if p['name'] in winners}
@@ -62,10 +64,11 @@ def main():
             i = args.index(name); v = args[i + 1]; del args[i:i + 2]; return v
         return default
     map_file = opt('--map'); by = opt('--by'); games = '--games' in args; table = '--table' in args
+    min_os = opt('--min-os'); min_os = float(min_os) if min_os is not None else None
     exprs = []
     while '--count' in args:
         i = args.index('--count'); exprs.append(args[i + 1]); del args[i:i + 2]
-    rs = rows(map_file)
+    rs = rows(map_file, min_os)
     if table or not exprs:
         keys = ['id', 'team', 'os', 'faction', 'start', 'won', 'ff_kind', 'ff_secs', 'sf_kind', 'sf_secs', 't2_secs', 'ex4', 'ex8', 'ex12', 'inc8', 'cons5', 'rovers2', 'lost_secs', 'lost_by', 'duration_secs', 'fight_cells']
         print('\t'.join(keys))
