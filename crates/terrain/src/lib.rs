@@ -349,7 +349,7 @@ mod weighted {
     use super::*;
 
     fn flat(width: u32, height: u32) -> Terrain {
-        Terrain { cell: 16.0, width, height, heights: vec![50; (width * height) as usize], slopes: vec![0; (width * height) as usize] }
+        Terrain { cell: 16.0, width, height, heights: vec![50; (width * height) as usize], metal: Vec::new(), slopes: vec![0; (width * height) as usize] }
     }
 
     fn at(x: f32, z: f32) -> Vec3 {
@@ -406,7 +406,7 @@ mod field_timing {
     #[ignore]
     fn a_field_over_a_quicksilver_sized_grid() {
         let (width, height) = (448u32, 448u32);
-        let terrain = Terrain { cell: 16.0, width, height, heights: vec![50; (width * height) as usize], slopes: vec![0; (width * height) as usize] };
+        let terrain = Terrain { cell: 16.0, width, height, heights: vec![50; (width * height) as usize], metal: Vec::new(), slopes: vec![0; (width * height) as usize] };
         let passable = vec![true; (width * height) as usize];
         let started = std::time::Instant::now();
         for i in 0..44 {
