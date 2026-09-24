@@ -28,7 +28,7 @@ would brief a hard-working assistant who follows orders literally and never coun
   brief says the opening on this map is yours to find, say the plan you chose in a `note` and why. A sequence in
   words is not followed as a sequence (the hands built four extractors from "two"): give the opening as a `queue`
   list per builder, which the bot does step by step, and keep the instructions for what comes after and for the
-  exceptions. A new list takes over a builder that is helping a factory or walking at once; `assist` ends a list.
+  exceptions. A new list takes over a builder that is helping a factory or walking at once; a bare `assist` ends a list, and `assist N` (seconds) sits anywhere in one: the builder helps the nearest factory N seconds, then the next step. In the first minutes the plant's metal is the limit, not build power: the pros' commander guards the plant between its own builds and the store never reads 0; when it does, the plant is starving.
   A build the builder has already started is finished first, and `null` cancels a list without touching it: to
   drop that build too (its frame decays, the metal in it is lost), begin the new list with `stop`, or send the
   bare word `stop`.

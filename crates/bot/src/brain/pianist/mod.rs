@@ -364,9 +364,39 @@ impl Pianist {
 
 impl Brain {
     /// The pianist's whole turn of the brain: bookkeeping every think, a call to Jev when one is due.
+    /// A timed list step `assist N` ends after N seconds: the task is dropped and the builder is put on the next call,
+    /// where its list's next step plays (H-HANDS-SCRIPT). The engine keeps the guard until the next order replaces it.
+    fn end_timed_assists(&mut self, frame: i32) {
+        let pianist = self.pianist.as_mut().expect("pianist mode");
+        let mut ended: Vec<UnitId> = Vec::new();
+        for (unit, (step, _)) in &pianist.list_steps {
+            let mut words = step.split_whitespace();
+            if words.next() != Some("assist") {
+                continue;
+            }
+            let Some(seconds) = words.next().and_then(|w| w.parse::<i32>().ok()) else { continue };
+            if let Some(Task::Assist { since, .. }) = pianist.tasks.get(unit)
+                && frame - since >= seconds * FRAMES_PER_SECOND
+            {
+                ended.push(*unit);
+            }
+        }
+        if ended.is_empty() {
+            return;
+        }
+        let names: Vec<(UnitId, String)> = ended.iter().map(|u| (*u, self.actor_name(*u))).collect();
+        let pianist = self.pianist.as_mut().expect("pianist mode");
+        for (unit, name) in names {
+            pianist.tasks.remove(&unit);
+            pianist.list_steps.remove(&unit);
+            pianist.due_now.insert(name);
+        }
+    }
+
     pub(super) fn run_pianist(&mut self, tick: &Tick, kit: &Kit, commands: &mut Vec<Command>) {
         self.pianist_housekeeping(tick, kit, commands);
         self.keep_groups(tick, kit, commands);
+        self.end_timed_assists(tick.frame);
         // H-REC-CREW under the pianist: resurrection bots are the player's to produce and the bot's to work. They build
         // nothing, so the hands never ask them, and the economy loop that drives them does not run here (2026-09-24:
         // a produced Lazarus would have idled all game).

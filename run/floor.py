@@ -34,6 +34,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from jev_audit import Match, clock  # noqa: E402
 
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 NEVER_SPLIT = re.compile(r"never (splits|sends? (a )?detachment|sends? detachments)|forbid(s|ding)? detachments|no detachments|never split", re.I)
 NEVER_SHELLING = re.compile(r"never (advances|walks|goes)[^.]*shelling|shelling[^.]*is (banned|forbidden)|never[^.]*called shelling", re.I)
 
@@ -151,10 +153,25 @@ def scorecard(m):
         "fac_min": round(fac / frames / 60, 1) if fac else None,
         "look_min": round(look / frames / 60, 1) if look else None,
         "turn_s": round(med(walls, 0), 1) if walls else None,
+        # The opening against the pros' (run/replays/assist.py; the OS 40+ pool on Comet Catcher: 19 factory units by
+        # 4:00, the metal store below 20 in 9% of the seconds from 1:00 to 4:00, the commander guarding the plant 50 s).
+        **opening(m),
     }
 
 
-COLUMNS = ["result", "minutes", "idle%", "e0%", "mfull%", "react_s", "unanswered", "never", "noop%", "illegal", "stuck_s", "yard_min", "known%", "fac_min", "look_min", "turn_s"]
+def opening(m):
+    try:
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "replays"))
+        from assist import side_of, glossary
+        row = side_of(os.path.relpath(m.dir, REPO), m.header.get("ai_id", 0), 240.0, glossary())
+    except Exception:
+        row = None
+    if not row:
+        return {"fac4": None, "stall4": None, "assist4": None}
+    return {"fac4": row["fac_units"], "stall4": row["stalled"], "assist4": row["assist_s"]}
+
+
+COLUMNS = ["result", "minutes", "idle%", "e0%", "mfull%", "react_s", "unanswered", "never", "noop%", "illegal", "stuck_s", "yard_min", "known%", "fac_min", "look_min", "turn_s", "fac4", "stall4", "assist4"]
 
 
 STUCK_FREE = 80.0

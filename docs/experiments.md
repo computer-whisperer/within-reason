@@ -317,6 +317,8 @@ W-L-T = wins, losses, timeouts; (n) = aborted by engine crash.
 
 From the evidence games (2026-09-22 evening) the `base_min` column is `fac_min` (the minute the picture first listed a factory of theirs seen) and `look_min` is measured against the enemy commander's true start from the truth file rather than the bot's guess; the rows above that line keep the old columns (their `look_min` said how soon a unit stood at the guess, which on Comet's standard boxes was 2,000 from the enemy).
 
+From 2026-09-24 three opening columns from `run/replays/assist.py`: `fac4` units out of the factory by 4:00 (the OS 40+ pool's median 19, thebluegecko 24), `stall4` the share of seconds from 1:00 to 4:00 with the metal store below 20 (the pool 9%), `assist4` the commander's seconds guarding the plant by 4:00 (the pool 50, thebluegecko 140); our six games before the brief change: 7, 31%, 0.
+
 The floor of each game, whatever its result (the user: "floor skill: sloppy execution, missed evidence"). Columns:
 idle% builder-seconds idle; e0% seconds with the energy store empty; mfull% seconds with the metal store full; react_s
 median seconds from a raider at our extractor to an order against it; unanswered such episodes with no order in 60 s;

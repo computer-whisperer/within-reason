@@ -685,6 +685,8 @@ impl Brain {
                         None => Ok((Pick::Extractor, spots.iter().map(|(i, _)| *i).collect(), None)),
                     }
                 }
+                // `assist` or `assist N`: the seconds, when given, end the step (`run_pianist` ends the task and the
+                // list goes on); the step's words stay in `list_steps` so the timer can read them.
                 "assist" => match own.iter().filter(|u| self.world.is_factory_def(u.def)).min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos))) {
                     Some(factory) => Ok((Pick::AssistLab(factory.id), Vec::new(), None)),
                     None => {

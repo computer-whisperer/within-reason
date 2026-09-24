@@ -3,16 +3,17 @@
 user (2026-09-24), on the fourth solar too early: "when you pause building and let the commander simply assist the
 bot lab. That and the metal availability are the opportunity costs".
 
-    run/replays/assist.py [--floors 25,40] [--until 240] [--player NAME] [--rows]
+    run/replays/assist.py [--floors 25,40] [--until 240] [--player NAME] [--rows] [--ours run/matches/<batch>...]
 
 Per side, over the first `--until` seconds (4:00): seconds the commander spent assisting the factory (a `guard`
 command from the widget's command log, until its next command), its own builds and their clocks (the third and fourth
 solar), the factory's units in the window and how fast they came against the factory alone (the build events, the
 glossary's build times), and the metal: the bank at 1:00, 2:00, 3:00 and the share of seconds the store sat below 20
 (stalled) or above 150 (floating). `--rows` prints every side; otherwise the pools' medians, winners against losers,
-and `--player`'s own rows.
+and `--player`'s own rows. `--ours` reads our own arena records (the bot's `cmd` lines have the same shape) so our
+opening sits in the same table as the pros'.
 """
-import argparse, collections, json, os, statistics
+import argparse, collections, json, os, statistics, sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 MANIFEST = os.path.join(REPO, "run/data/replays/manifest.jsonl")
@@ -150,6 +151,7 @@ def main():
     ap.add_argument("--player")
     ap.add_argument("--map", default="Comet Catcher Remake 1.8")
     ap.add_argument("--rows", action="store_true")
+    ap.add_argument("--ours", nargs="*", default=[])
     a = ap.parse_args()
     g = glossary()
     for floor in a.floors.split(","):
@@ -163,6 +165,24 @@ def main():
         print(f"  commander assisted the factory 30 s or more: {len(assisted)} of {len(rows)}; won {sum(1 for r in assisted if r['won'])} of {len(assisted)} against {sum(1 for r in rows if r['won'] and r['assist_s'] < 30)} of {len(rows) - len(assisted)}")
         early4 = [r for r in rows if r["solar4"] is not None and r["solar4"] < 120]
         print(f"  fourth solar before 2:00: {len(early4)} of {len(rows)}; their assist median {fmt(med(early4, 'assist_s'), 'assist_s')} s against {fmt(med([r for r in rows if r not in early4], 'assist_s'), 'assist_s')} s; won {sum(1 for r in early4 if r['won'])} of {len(early4)}")
+    if a.ours:
+        rows = []
+        for m in a.ours:
+            d = m if os.path.basename(m) == "00" else os.path.join(m, "00")
+            row = side_of(os.path.relpath(d, REPO), 0, a.until, g)
+            if row is None:
+                print(f"{m}: no record", file=sys.stderr)
+                continue
+            try:
+                res = [json.loads(l) for l in open(os.path.join(REPO, os.path.dirname(d) if os.path.basename(d) == "00" else d, "results.jsonl"))]
+                won = res[0].get("outcome") == "Win"
+            except Exception:
+                won = False
+            row.update(id=os.path.basename(os.path.dirname(d))[:8], player=os.path.basename(os.path.dirname(d)), os=0, won=won, faction="?", date="ours")
+            rows.append(row)
+        print(f"== ours: {len(rows)} games")
+        print_rows(rows)
+        print("  medians: " + ", ".join(f"{k} {fmt(med(rows, k), k)}" for k in KEYS))
     if a.player:
         rows = [r for r in sides(0.0, a.until, g, a.map) if a.player.lower() in r["player"].lower()]
         print(f"== {a.player}: {len(rows)} sides")

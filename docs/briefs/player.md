@@ -157,50 +157,26 @@ K-maps-comet-barb-opens-bots, the tempo model]
   in the picture and in `produce`. Against bots: a Blitz is two Pawns' metal with twice a Pawn's health and speed
   and kills constructors and extractors the same way; a Stout beats any tier-1 bot head on and takes a light turret
   with a few friends but does not outrange it (350 against 430); Whistlers and Shellshockers do.
-- **The opening two experienced players used on this map** (a 1v1 of 2026-09-09, both rank 5, Armada against
-  Armada, the west player from (954, 2520), fifty elmos from where the arena places you;
-  `run/matches/1790122851-replay-vak-vs-artur-comet`, run/view_match.py opens it) [K-open-comet-pro-order,
-  K-open-comet-commander-expands, K-open-comet-rascals-lose-to-the-commander, K-open-comet-flash-raids-take-the-resign].
-  The commander: extractors 0:03, 0:10, 0:24 (the three spots beside the start: spot_30, spot_28, spot_36 from the A4 start at (904, 2457), where the arena puts you too), solars 0:31, 0:40, 0:49, the plant
-  at 0:58 (standing 1:16), one more solar, then out. **The higher pool is stricter (33 duels with both players at OS
-  40 and above, 2026-09-24, K-map-comet-catcher-remake-1-8-two-solars-before-the-plant): two solars before the
-  plant, never four and rarely three, the plant started at 0:43 (median; before 0:45 in half the sides), and after it
-  a solar, the first constructor, a solar, then two Rovers from the plant while the commander walks out; the third
-  to fifth solars come by 2:00 and the eighth by 5:00. An experienced player's own rule, told to the user: more than
-  three solars in the early opening is a major mistake. thebluegecko (OS 48.5, the strongest in the pool, 9 of 13
-  Comet duels won against players at 40-43) opens on three: extractors 0:03, 0:10, 0:25, solars 0:31, 0:40, 0:49,
-  the plant at 0:58, then a constructor, a solar and Rovers, or Rovers straight; the opponents at 40-43 open on two
-  with the plant at 0:34. Either line, never a fourth solar before the plant: two extractors, two or three solars,
-  the plant, then constructor and solar as the commander's next two, Rovers first from the plant. The moment the
-  plant stands the commander guards it (assist) and steps out only for the next solar or extractor: thebluegecko
-  guards it 140 s of the first 240, the pool 50; the plant's units then come 1.5 times faster and the start's bank
-  goes into them (150 left at 2:00, 100 at 3:00). The limit is metal, not the commander's hands: the fourth solar at
-  1:33 costs five Rovers at the moment the bank is thinnest, and the winners at 40+ run it lower than the losers
-  (K-map-comet-catcher-remake-1-8-commander-assists-the-plant).** Then out: from 2:00 it walks toward the middle and builds an extractor
-  every twenty to sixty seconds at the middle spots nearest home (spot_43 at 2:33, spot_38 and spot_39 by 3:36,
-  spot_26 and spot_24 by 4:46, spot_33 and spot_31 by 6:15, at x 1,900 to 3,700), a light turret beside each pair
-  (2:45, 3:42, 4:53, 6:22), a solar or two and a radar at each outpost (4:09, 5:40), and it stood 2,600 elmos east of
-  its start at 6:30 at full health; the other commander did the same from its side. The plant: two Rascals, a
-  constructor, a second constructor at 1:41, two Rascals, then Flashes from 2:12 one every ten to fifteen seconds
-  (thirteen by 5:00, twenty-four by 6:50), a constructor at 3:09, 4:30 and 5:46 (five in all), a Rascal now and then
-  (seven). The constructors take the strip's spots behind the commander (spot_45, spot_50, spot_52, spot_61, spot_63,
-  spot_64, spot_59, spot_54) with a turret at the far ones, and from 5:00 build nano turrets on the plant (three by
-  6:37; a construction turret of ours guards the nearest factory once it stands, from 2026-09-23) and an energy storage: one plant all game, made faster, not a second plant. Metal spent as it came (the store
-  under 30 through minutes 2-4), then 300-500 banked from 5:00 with income 23 at 4:00, 32 at 5:00 and 43 at 6:52 (9,
-  13, 19 extractors); solars 5 by 2:20, 7 by 4:00, 17 by 6:46, the energy store dipping to 22 while the plant went up
-  and to 114 in minute 5, never zero. His Flashes were never one ball: in twos and threes across the whole map from
-  4:00, at the other side's extractors, constructors and solars (a start extractor at 4:44, four solars beside the
-  plant at 5:46-5:51, the north end's extractors and two constructors 6:08-6:29), losing seven, and the other player
-  resigned at 6:45 with fifteen extractors to his nineteen and five Flashes to his fourteen. The loser's mistake, to
-  avoid: sixteen Rascals in six minutes sent at the enemy base in twos and threes; the commander, one light turret at
-  the plant (2:03) and the first Flashes killed fifteen of them, and he had no army at 4:00. So on this map: the plant
-  by 1:00 after three solars, two Rascals for sight and then Flashes without a gap, a light turret at the plant by
-  2:00 for the enemy's scout cars, the commander out to the middle spots with a turret and a radar at each outpost
-  while the constructors fill the strip, nanos on the plant at 5:00, and Flashes spent on their economy in small
-  groups from 4:00. Against this opponent rather than a person: its Ticks and Pawns come at the outer extractors from
-  4:00 (comet-3), so the turret beside each pair matters more, and its commander D-guns a small group (comet-1), so the
-  raids go at extractors and constructors, never at the commander. Say the plan you chose in a `note` on turn one and,
-  at the end, what you would change; the next game's brief carries it.
+- **The opening on this map, from the replays** (33 duels with both players at OS 40 and above and thebluegecko's
+  13 at 48.5, 2026-09-24; the earlier VAK-Artur game of 2026-09-09 agrees) [K-map-comet-catcher-remake-1-8-two-solars-before-the-plant,
+  K-map-comet-catcher-remake-1-8-commander-assists-the-plant, K-open-comet-our-plant-starves, K-open-comet-pro-order].
+  The commander: extractors on the two or three spots beside the start (spot_30, spot_28, spot_36 from A4; spot_45,
+  spot_50 from B5), two or three solars, never a fourth before the plant, the plant at 0:43 to 0:58 (standing 1:05 to
+  1:17). **Then it guards the plant**: the pros' commander stands at the plant from the second it is done and steps
+  out only for one solar or one extractor at a time, back to the plant after each (thebluegecko 140 s of the first
+  240 guarding, the pool 50). Write it as the list: `armvp`, `assist 25`, `armsolar`, `assist 25`, `extractor
+  spot_36`, `assist 25`, `armsolar`, ... The plant's first units are Rovers (31 metal: half the pros' first eight
+  units), one constructor after a Rover or two, a second constructor near 2:00; not three constructors at once.
+  **The limit in the first four minutes is metal, not build power**: the store should read about 150 at 2:00 and
+  100 at 3:00 and never 0; when it reads 0 the plant is starving and the commander's own build is the thing to
+  drop. Check at 4:00: about eighteen units out of the plant (we had seven when the commander walked off to turrets
+  and far extractors with the store at 0 from 2:00), five solars, the store between 50 and 200. No turrets and no
+  extractors beyond the home spots from the commander before 2:00; the first constructor takes the next spots
+  (spot_43 at 2:33, spot_38 and spot_39 by 3:36 from A4), a light turret beside each pair after that. From 2:00 the
+  commander can walk toward the middle with the second constructor's work behind it, as the VAK game's did (an
+  extractor every twenty to sixty seconds at the middle spots nearest home, a turret beside each pair, a radar at each
+  outpost); the pros at 40+ mostly keep it nearer the plant until 4:00. Rascals (`armfav`, 31 metal) lose to the
+  commander's D-gun; Blitz raids on the far extractors take the resign.
 - **The replay survey: 29 duels of players at OS 25 and above on this map (2026-09-23; the claims in
   docs/knowledge/maps.md under "Comet Catcher Remake 1.8: the replay survey", the map file
   docs/knowledge/maps/comet_catcher_remake_1.8.md).** Spot numbers there are the game's 80-spot list, not yours: read

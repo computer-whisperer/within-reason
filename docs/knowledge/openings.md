@@ -492,3 +492,21 @@ winners and 10 of 29 losers, and built 5 or more after 2:00 in 9 winners and 10 
 were 3 or more in 10 winners and 11 losers, so it is a style, not the winners' pattern.
 **Used by.** (candidate: the brief's constructor count, 7 by 10:00)
 
+### K-open-comet-our-plant-starves
+**Claim.** Our Comet opening matches the pros' to 1:00 and then starves the plant: in six player games (wake-1 to
+wake-4, worth-1, escalate-7) the store fell from 610 at 1:00 to 153 at 1:20, 46 at 1:40 and 0 at 2:00, sat below 20
+in 31% of the seconds from 1:00 to 4:00 (the OS 40+ pool 9%; thebluegecko 7%), the commander never guarded the plant
+(the pool 50 s, thebluegecko 140), and the plant had made 7 units by 4:00 (the pool 19, thebluegecko 24): a Rover,
+then three constructors (405 metal) and Blitz, while the commander walked off to solars, turrets and far extractors
+(six solars by 4:00 against the pool's five, the fourth at 0:49 before the plant stood). The pros' plant makes Rovers
+first (55% of the first eight units), one constructor after a Rover or two, and the commander stands at the plant
+feeding the start's bank into it; their store never empties.
+**Status.** measured (2026-09-24, `run/replays/assist.py --ours ...` against `--floors 40`); the brief's opening
+rewritten on it and the `assist N` list step added; the next game (bank-1) is the check.
+**Evidence.** `run/replays/assist.py --floors 40 --ours run/matches/1790225138-worth-1 ...` (the table in
+`docs/experiments.md`, gecko-duels and bank-1 rows); the scorecard's `fac4`, `stall4`, `assist4`.
+**Would be wrong if.** The pros' bank came from something the records do not show (a reclaim of the start's rocks:
+the cards' build orders show none before 2:00), or our seven units by 4:00 were the player's choice of dearer units
+rather than a stall (the store at 0 from 2:00 says stall).
+**Used by.** `docs/briefs/player.md` (the Comet opening); H-HANDS-SCRIPT (`assist N`).
+
