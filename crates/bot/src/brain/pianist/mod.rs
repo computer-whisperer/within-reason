@@ -15,6 +15,7 @@ mod remove;
 mod diet;
 mod schedule;
 mod policy;
+mod family;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 
@@ -88,6 +89,26 @@ fn replayed_answers(menus: &[menu::Menu], answers: &BTreeMap<String, jev::Answer
         }
     }
     all
+}
+
+/// The replays put back, and every group's `do` composed from its `kind` and refinement answers (H-HANDS-TWO-LEVEL).
+fn composed_answers(menus: &[menu::Menu], answers: &BTreeMap<String, jev::Answer>) -> BTreeMap<String, jev::Answer> {
+    let mut all = replayed_answers(menus, answers);
+    for m in menus {
+        let qid = format!("{}.do", m.name);
+        if let Some((_, flat)) = m.questions.iter().find(|(id, _)| *id == qid)
+            && let Some(answer) = family::compose(&m.name, flat, answers)
+        {
+            all.insert(qid, answer);
+        }
+    }
+    all
+}
+
+/// The menus' questions as built (a group's flat `do` among them), for the log: the readers and the offline replays
+/// take the flat layout, and the raw `kind` and refinement answers sit beside the composed `do` in `answers`.
+fn flat_questions(menus: &[menu::Menu]) -> BTreeMap<String, jev::Question> {
+    menus.iter().filter(|m| m.replay.is_none()).flat_map(|m| m.questions.iter().cloned()).collect()
 }
 
 #[derive(Default)]
@@ -545,7 +566,12 @@ impl Brain {
         let mut questions: BTreeMap<String, jev::Question> = BTreeMap::new();
         for menu in menus.iter().filter(|m| m.replay.is_none()) {
             for (id, question) in &menu.questions {
-                questions.insert(id.clone(), question.clone());
+                // A group's `do` goes as its families and their refinements (H-HANDS-TWO-LEVEL).
+                if matches!(menu.actor, menu::Actor::Group(_)) && *id == format!("{}.do", menu.name) {
+                    questions.extend(family::questions(&menu.name, question));
+                } else {
+                    questions.insert(id.clone(), question.clone());
+                }
             }
         }
         // Every real question answered from a replay: nothing to ask; the replays play without a call.
@@ -594,10 +620,11 @@ impl Brain {
                     pianist.stats.tokens += response.usage["input_tokens"].as_u64().unwrap_or(0);
                 }
                 self.announce_hands(&response, commands);
-                let answers = replayed_answers(&menus, &response.answers);
+                let answers = composed_answers(&menus, &response.answers);
+                let flat = flat_questions(&menus);
                 self.play(tick, kit, &picture, menus, &answers, commands);
                 self.publish_hands(&picture, &answers);
-                self.log_call(tick, &request, &response);
+                self.log_call(tick, &request, &response, flat, &answers);
             }
             Err(e) => {
                 let pianist = self.pianist.as_mut().expect("pianist mode");
@@ -866,10 +893,11 @@ impl Brain {
                     pianist.played.clear();
                 }
                 self.announce_hands(&response, commands);
-                let answers = replayed_answers(&pending.menus, &response.answers);
+                let answers = composed_answers(&pending.menus, &response.answers);
+                let flat = flat_questions(&pending.menus);
                 self.play(tick, kit, &pending.picture, pending.menus, &answers, commands);
                 self.publish_hands(&pending.picture, &answers);
-                self.log_call(tick, &pending.request, &response);
+                self.log_call(tick, &pending.request, &response, flat, &answers);
             }
             Err(e) => {
                 let pianist = self.pianist.as_mut().expect("pianist mode");
@@ -885,7 +913,7 @@ impl Brain {
     /// One line of the log per call: the request (the instructions and the rules only when they changed; the rules
     /// are in the header and re-read from disk each call), the answers, what the hands played, and the groups, places
     /// and parties by name so a reader can draw them.
-    fn log_call(&mut self, tick: &Tick, request: &jev::Request, response: &jev::Response) {
+    fn log_call(&mut self, tick: &Tick, request: &jev::Request, response: &jev::Response, questions: BTreeMap<String, jev::Question>, answers: &BTreeMap<String, jev::Answer>) {
         let own = &tick.snapshot.own_units;
         if self.pianist.as_ref().is_none_or(|p| p.log.is_none()) {
             return;
@@ -911,7 +939,7 @@ impl Brain {
         let parties: Vec<serde_json::Value> = pianist.parties.iter().map(|p| json!({ "name": p.name, "ids": p.ids.iter().map(|id| id.0).collect::<Vec<_>>(), "x": p.at.x as i32, "z": p.at.z as i32, "metal": p.metal as i32, "composition": p.composition })).collect();
         let mut line = json!({
             "t": "call", "f": tick.frame, "ms": (response.latency.as_secs_f32() * 1000.0) as u32, "model": response.model, "usage": response.usage,
-            "retries": response.retries, "state": state, "questions": request.questions, "answers": response.answers,
+            "retries": response.retries, "state": state, "questions": questions, "answers": answers, "two_level": request.questions.keys().any(|k| k.ends_with(".kind")),
             "played": std::mem::take(&mut pianist.played), "groups": groups, "places": places, "parties": parties,
         });
         if rules_changed {

@@ -810,12 +810,12 @@ detachment). Putting the hold option's cost clause on `continue` in the flat lay
 the structure does it, not the words. The cost: 18% of ordinary decisions (recorded at 0.6 or more, unflagged)
 change, ten of fourteen from `continue` to `engage`.
 **Status.** measured offline (2026-09-24, `run/jev_ab.py --variants base,continue_cost,two_level`, 40 moments a
-detector from six games and 40 controls, two repeats: `docs/studies/data/jev-ab-two-level-2026-09-24.jsonl`); not
-built in the hands, not tried live.
+detector from six games and 40 controls, two repeats: `docs/studies/data/jev-ab-two-level-2026-09-24.jsonl`); built
+in the hands the same night (H-HANDS-TWO-LEVEL, `pianist/family.rs`), the check game family-1 (hard_aggressive) is the
+live test: the detectors' rates on its log against the six games'.
 **Evidence.** The ledger row jev-ab-two-level; ../jev_experiments battery F (a synonym takes half the leader's mass;
 flips only under a 0.75 lead) and battery D (batching is free), which made the one-request layout possible.
 **Would be wrong if.** The live composition (the family's mass, then its refinement) behaved differently from the
 offline replay, or the 18% of changed ordinary decisions cost more games than the freed moments win.
-**Used by.** Nothing yet; the candidate is the hands' menu builder (`pianist/menu.rs`) emitting the two-level
-questions and `hands.rs` composing the answer, with the switch margin taken against the stay family's mass.
+**Used by.** H-HANDS-TWO-LEVEL (the request in `mod.rs`, the composition in `family.rs`, the margin in `hands.rs`).
 

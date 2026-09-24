@@ -10,6 +10,7 @@ use serde_json::json;
 use super::super::economy::Plan;
 use super::super::roster::Kit;
 use super::super::Brain;
+use super::family::{family_mass, family_of};
 use super::menu::{Actor, Menu, Pick, nearest_of};
 use super::picture::Picture;
 use super::groups::LAST_HOLD;
@@ -43,11 +44,17 @@ impl Brain {
         };
         let mut chosen = choice.clone();
         let p = |option: &str| probabilities.get(option).copied().unwrap_or(0.0);
-        // H-HANDS-SWITCH: a busy actor changes course only for a clear winner.
+        // H-HANDS-SWITCH: a busy actor changes course only for a clear winner. A group's answer is composed from
+        // families (H-HANDS-TWO-LEVEL): its own family's mass against the stay family's, and a pick within the stay
+        // family (hold over continue) is the refinement's to make, with no margin.
         let mut kept = false;
-        if scripted.is_none() && menu.busy && chosen != "continue" && p(&chosen) - p("continue") < SWITCH_MARGIN {
-            chosen = "continue".into();
-            kept = true;
+        if scripted.is_none() && menu.busy && chosen != "continue" {
+            let group = matches!(menu.actor, Actor::Group(_)) && probabilities.keys().any(|k| family_of(k).is_some());
+            let (own, keep) = if group { (family_mass(&chosen, &probabilities), family_mass("continue", &probabilities)) } else { (p(&chosen), p("continue")) };
+            if !(group && family_of(&chosen) == Some("stay")) && own - keep < SWITCH_MARGIN {
+                chosen = "continue".into();
+                kept = true;
+            }
         }
         let answered = |q: &str| answers.get(&format!("{name}.{q}")).and_then(|a| if let Answer::Choice { choice, .. } = a { Some(choice.clone()) } else { None });
         let listed = scripted.as_ref().and_then(|(_, place, _)| place.clone());
