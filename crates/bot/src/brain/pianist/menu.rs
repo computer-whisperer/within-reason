@@ -78,6 +78,8 @@ pub(crate) enum Pick {
     /// Every member attacks one unit of the party in `whom`: its commander, else its dearest (the domains design).
     AttackUnit,
     Split,
+    /// Back to where the group last held, not fighting on the way (H-HANDS-FALL-BACK).
+    FallBack,
     /// `how_many` soldiers nearest the party in `whom` go and attack it as a new group; the rest carry on.
     Detach,
     /// One soldier, a raider if there is one, walks to `where` and stands there.
@@ -457,6 +459,16 @@ impl Brain {
             let enemies_near = picture.parties.iter().any(|p| p.at.dist2d(centre) < ALARM);
             let alarm = enemies_near && !group.enemies_near;
             group.enemies_near = enemies_near;
+            // H-HANDS-LOSS-WAKE: a party newly within reach that the group does not outweigh wakes the player.
+            if alarm && let Some(shared) = &self.strategist {
+                let nearest = picture.parties.iter().filter(|p| p.at.dist2d(centre) < ALARM).min_by(|a, b| a.at.dist2d(centre).total_cmp(&b.at.dist2d(centre)));
+                if let Some(p) = nearest {
+                    let odds = self.odds_words(&units, p, tick.snapshot.enemies.as_slice());
+                    if !odds.starts_with("we outweigh") && !odds.starts_with("it cannot hit us") {
+                        shared.trigger(format!("{name} ({} soldiers) has met {} ({}) at {}: {odds}", units.len(), p.name, p.composition, self.place_words(&picture.places, p.at)));
+                    }
+                }
+            }
             // A holding group with nothing within twice the alarm reach and no hit since the last call is quiet:
             // its review is the diet's (H-HANDS-DIET, decision 6; started-1: 17 % of the tokens asked only such groups).
             let quiet = !group.task.busy() && !picture.parties.iter().any(|p| p.at.dist2d(centre) < 2.0 * ALARM) && !group.members.iter().any(|m| pianist.hits.contains_key(m));
@@ -500,6 +512,11 @@ impl Brain {
                 offer("attack_unit", Pick::AttackUnit, "Every soldier of this group attacks one unit of the party named in `whom`: its commander when it is there, else its dearest unit; they chase it until it dies or is lost, then hold. The order that kills a commander, and the only order by which aircraft pick their target.".into());
             }
             offer("retreat", Pick::Retreat, "Fall back to our base.".into());
+            // H-HANDS-FALL-BACK: a busy group can go back to where it last held, the answer for one losing soldiers
+            // while the player's orders are on their way.
+            if group.task.busy() && let Some(back) = group.last_hold {
+                offer("fall_back", Pick::FallBack, format!("Fall back to where it last held ({}, {} away) without fighting on the way; less far than `retreat`.", self.place_words(&picture.places, back), distance_words(back.dist2d(centre))));
+            }
             if units.len() >= 2 {
                 offer("split", Pick::Split, "Send a detachment, the number in `how_many` of the nearest soldiers, to advance to the place in `where`; the rest carry on as they were.".into());
                 let unengaged = picture.parties.iter().any(|p| p.ids.len() <= DETACH_PARTY_MAX && !p.ids.iter().any(|id| engaged.contains(id)));
@@ -563,13 +580,10 @@ impl Brain {
         }
         // Global.
         if !menus.is_empty() {
-            let mut questions = vec![
+            let questions = vec![
                 ("global.base_in_danger".to_string(), Question::noul("Given `enemy` and `places`, is our base or our commander in danger right now?")),
                 ("global.attack_coming".to_string(), Question::noul("Given `enemy`, is a large enemy attack on us likely within the next minute or two?")),
             ];
-            if self.strategist.is_some() {
-                questions.push(("global.needs_player".to_string(), Question::noul("Given everything, does the situation need the player's attention now: something the `instructions` do not cover, or a plan that has stopped fitting the game?")));
-            }
             menus.push(Menu { actor: Actor::Global, name: "global".into(), busy: false, queue_ahead: false, questions, options: BTreeMap::new(), spots: Vec::new(), scripted: None, policy: false, replay: None, replay_key: None });
         }
         pianist.due_now.clear();

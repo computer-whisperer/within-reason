@@ -46,12 +46,6 @@ const RECENT_FRAMES: i32 = 90 * FRAMES_PER_SECOND;
 /// H-HANDS-REFUSED: a spot where the engine refused an extractor is left off every menu for this long (smoke-4: the
 /// commander asked for the same refused spot thirty times running beside the enemy base, and died there).
 const REFUSED_FRAMES: i32 = 90 * FRAMES_PER_SECOND;
-/// H-HANDS-PLAYER-WAKE: the player is woken when Jev says the game needs it for this many calls running, at most this
-/// often.
-const NEEDS_PLAYER_PROBABILITY: f64 = 0.8;
-const NEEDS_PLAYER_CALLS: u32 = 3;
-const NEEDS_PLAYER_COOLDOWN: i32 = 60 * FRAMES_PER_SECOND;
-
 /// What a builder or a lab is committed to.
 #[derive(Clone, Debug)]
 pub(super) enum Task {
@@ -183,8 +177,6 @@ pub struct Pianist {
     recent: VecDeque<(i32, String)>,
     /// What the hands did this call, for the player's report (`Shared.hands`).
     pub(super) done: Vec<String>,
-    needs_player_run: u32,
-    last_player_wake: i32,
     /// The whole request and answer per call, when `WITHIN_REASON_JEV_LOG` is set (`docs/harness/record-format.md`,
     /// "The pianist's log").
     log: Option<File>,
@@ -315,8 +307,6 @@ impl Pianist {
             scripts: HashMap::new(),
             list_steps: HashMap::new(),
             done: Vec::new(),
-            needs_player_run: 0,
-            last_player_wake: i32::MIN / 2,
             log,
             logged_instructions: String::new(),
             logged_rules: String::new(),
@@ -533,7 +523,6 @@ impl Brain {
                 self.announce_hands(&response, commands);
                 let answers = replayed_answers(&menus, &response.answers);
                 self.play(tick, kit, &picture, menus, &answers, commands);
-                self.pianist_globals(tick, &answers);
                 self.publish_hands(&picture, &answers);
                 self.log_call(tick, &request, &response);
             }
@@ -806,7 +795,6 @@ impl Brain {
                 self.announce_hands(&response, commands);
                 let answers = replayed_answers(&pending.menus, &response.answers);
                 self.play(tick, kit, &pending.picture, pending.menus, &answers, commands);
-                self.pianist_globals(tick, &answers);
                 self.publish_hands(&pending.picture, &answers);
                 self.log_call(tick, &pending.request, &response);
             }
@@ -1027,20 +1015,6 @@ impl Brain {
         }
         hands.engaged = pianist.played.iter().filter(|p| p["did"].as_str().is_some_and(|d| d.starts_with("attack "))).filter_map(|p| p["actor"].as_str().map(str::to_string)).collect();
         hands.globals = answers.iter().filter_map(|(id, a)| id.strip_prefix("global.").map(|q| (q.to_string(), a.probability_of("yes")))).collect();
-    }
-
-    /// The global answers: the player's wake (H-HANDS-PLAYER-WAKE).
-    fn pianist_globals(&mut self, tick: &Tick, answers: &BTreeMap<String, jev::Answer>) {
-        let needs = answers.get("global.needs_player").map_or(0.0, |a| a.probability_of("yes"));
-        let pianist = self.pianist.as_mut().expect("pianist mode");
-        pianist.needs_player_run = if needs >= NEEDS_PLAYER_PROBABILITY { pianist.needs_player_run + 1 } else { 0 };
-        if pianist.needs_player_run >= NEEDS_PLAYER_CALLS && tick.frame - pianist.last_player_wake >= NEEDS_PLAYER_COOLDOWN {
-            pianist.last_player_wake = tick.frame;
-            pianist.needs_player_run = 0;
-            if let Some(shared) = &self.strategist {
-                shared.trigger(format!("your hands say the situation needs you (probability {needs:.2} for three seconds running)"));
-            }
-        }
     }
 
     fn pianist_status_line(&mut self, frame: i32) {

@@ -176,6 +176,9 @@ pub struct Brain {
     stuck_cells: HashMap<(i32, i32), u32>,
     /// Frames at which we lost an extractor, within the trigger cooldown.
     extractor_losses: VecDeque<i32>,
+    /// Every unit of ours destroyed by the enemy in the last three minutes: frame, unit, type. The wakes read it (a
+    /// group's losses since the player's last orders, losses while its orders were on their way, the wait floor).
+    pub(crate) unit_losses: VecDeque<(i32, UnitId, UnitDefId)>,
     last_station: Vec3,
     /// Each builder's latest order: frame, what, and near where. For spotting orders that never start.
     last_orders: HashMap<UnitId, (i32, UnitDefId, Vec3)>,
@@ -272,6 +275,7 @@ impl Brain {
             spot_losses: HashMap::new(),
             stuck_cells: HashMap::new(),
             extractor_losses: VecDeque::new(),
+            unit_losses: VecDeque::new(),
             last_station: Vec3::default(),
             last_orders: HashMap::new(),
             queued: HashMap::new(),

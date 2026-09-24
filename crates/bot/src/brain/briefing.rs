@@ -98,6 +98,7 @@ impl Brain {
                 continue;
             }
             self.trade_log.push((tick.frame, cost, 0.0));
+            self.unit_losses.push_back((tick.frame, *unit, def));
             if kit.is_extractor(def)
                 && let Some(index) = self.world.hello.metal_spots.iter().position(|s| s.dist2d(pos) < self.spot_occupied_radius())
             {
@@ -121,6 +122,9 @@ impl Brain {
             if kit.is_extractor(def) {
                 self.extractor_losses.push_back(tick.frame);
             }
+        }
+        while self.unit_losses.front().is_some_and(|(f, ..)| tick.frame - f > 3 * 60 * FRAMES_PER_SECOND) {
+            self.unit_losses.pop_front();
         }
         while self.extractor_losses.front().is_some_and(|f| tick.frame - f > TRIGGER_COOLDOWN_FRAMES) {
             self.extractor_losses.pop_front();

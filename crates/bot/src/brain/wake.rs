@@ -3,8 +3,11 @@
 
 use std::sync::atomic::Ordering;
 
+use std::collections::BTreeMap;
+
 use bot_protocol::Tick;
 
+use super::pianist::GroupTask;
 use super::roster::Kit;
 use super::{Brain, FRAMES_PER_SECOND};
 
@@ -13,6 +16,11 @@ const MIN_GAP_FRAMES: i32 = 5 * FRAMES_PER_SECOND;
 const THREAT_RADIUS: f32 = 600.0;
 /// The commander is woken when our extractor count has made no new high for this long, and again this long after.
 const STAGNATION_FRAMES: i32 = 4 * 60 * FRAMES_PER_SECOND;
+/// H-WAKE-HOT-FLOOR: while a fight is on (a group or squad engaged, or a unit of ours lost within `HOT_LOSS_FRAMES`)
+/// the quiet time the commander set is capped at this (upgrade-2: the player set 40 s during the collapse, slept 35 s,
+/// and its next turn had nine losses on the way and seven in the one after).
+const HOT_MAX_SECONDS: u32 = 10;
+const HOT_LOSS_FRAMES: i32 = 30 * FRAMES_PER_SECOND;
 
 #[derive(Default)]
 pub struct WakeState {
@@ -29,6 +37,8 @@ pub struct WakeState {
     pub(super) losses: Vec<i32>,
     /// Reasons that fired while a turn could not be taken yet.
     pending: Vec<String>,
+    /// The turn whose orders are on their way (the think penalty), while they are (H-WAKE-FLIGHT-REVIEW).
+    in_flight: Option<i32>,
 }
 
 impl Brain {
@@ -77,6 +87,30 @@ impl Brain {
         let field = shared.field();
         let mut reasons: Vec<String> = std::mem::take(&mut self.wake.pending);
         reasons.append(&mut shared.triggers.lock().unwrap());
+        // H-WAKE-FLIGHT-REVIEW: orders that land after losses on their way are reviewed the moment they land (upgrade-2:
+        // 45 of 84 flights had a loss of ours inside, 9 woke a turn at landing, 11 waited 7 to 37 s for the timer).
+        match (busy, self.wake.in_flight) {
+            (true, None) => self.wake.in_flight = Some(last_turn_frame),
+            (false, Some(turn)) => {
+                self.wake.in_flight = None;
+                let mut kinds: BTreeMap<&str, usize> = BTreeMap::new();
+                let mut metal = 0.0;
+                for (_, _, def) in self.unit_losses.iter().filter(|(f, ..)| *f >= turn) {
+                    *kinds.entry(self.name(*def)).or_default() += 1;
+                    metal += self.world.def(*def).map_or(0.0, |d| d.metal_cost);
+                }
+                if !kinds.is_empty() {
+                    let names: Vec<String> = kinds.iter().map(|(name, n)| format!("{n} {name}")).collect();
+                    reasons.push(format!(
+                        "while your orders were on their way ({} s) we lost {} units worth {metal:.0} metal: {}",
+                        (tick.frame - turn) / FRAMES_PER_SECOND,
+                        kinds.values().sum::<usize>(),
+                        names.join(", ")
+                    ));
+                }
+            }
+            _ => {}
+        }
 
         // Conditions wake on their rising edge: a raid is news when it starts, not every tick it lasts.
         let threatened: Vec<&str> =
@@ -122,8 +156,16 @@ impl Brain {
         }
 
         let since = tick.frame - last_turn_frame;
-        if reasons.is_empty() && since >= wake.max_seconds as i32 * FRAMES_PER_SECOND {
-            reasons.push(format!("{} s have passed", since / FRAMES_PER_SECOND));
+        let hot = self.unit_losses.back().is_some_and(|(f, ..)| tick.frame - f <= HOT_LOSS_FRAMES)
+            || field.squads.iter().any(|s| s.engaged)
+            || self.pianist.as_ref().is_some_and(|p| p.groups.iter().any(|g| matches!(g.task, GroupTask::Engage { .. })));
+        let max_seconds = if hot { wake.max_seconds.min(HOT_MAX_SECONDS) } else { wake.max_seconds };
+        if reasons.is_empty() && since >= max_seconds as i32 * FRAMES_PER_SECOND {
+            reasons.push(if max_seconds < wake.max_seconds {
+                format!("{} s have passed (your wait of {} s is capped at {HOT_MAX_SECONDS} s while a fight is on: a group engaged, or a loss in the last 30 s)", since / FRAMES_PER_SECOND, wake.max_seconds)
+            } else {
+                format!("{} s have passed", since / FRAMES_PER_SECOND)
+            });
         }
         // Under the pianist the player opens the game, since the factory is its choice (comet-0: the hands built a
         // bot lab under the default text before the player's first turn, on a vehicles map). The field commander

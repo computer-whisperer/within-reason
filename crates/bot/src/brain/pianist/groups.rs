@@ -4,7 +4,7 @@
 
 use std::collections::HashSet;
 
-use bot_protocol::{Command, OwnUnit, Tick, UnitId, Vec3};
+use bot_protocol::{Command, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
 
 use super::super::roster::Kit;
 use super::super::{Brain, FRAMES_PER_SECOND};
@@ -37,6 +37,13 @@ const STALL_FRAMES: i32 = 45 * FRAMES_PER_SECOND;
 /// (pianist-player-7: the ball answered `continue` for 151 s short of an islet spot, then for 103 s short of a mark
 /// on the shore, while the player rewrote the packet four times).
 const GIVE_UP_FRAMES: i32 = 90 * FRAMES_PER_SECOND;
+/// H-HANDS-LOSS-WAKE: a group wakes the player once per turn when, since the player's last orders, it has lost this
+/// many soldiers or this share of its metal (upgrade-2: a unit loss woke nothing, and the ball shed pairs against the
+/// Hounds for 7 to 37 s until the timer; Jev's `needs_player` Noul was a constant 0.77 with noise, retired).
+const LOSS_WAKE_COUNT: usize = 2;
+const LOSS_WAKE_SHARE: f32 = 0.25;
+/// How a `fall_back` walk names its destination in the group's task (H-HANDS-FALL-BACK); not a mark's name.
+pub(super) const LAST_HOLD: &str = "where it last held,";
 
 #[derive(Clone, Debug)]
 pub(crate) enum GroupTask {
@@ -90,11 +97,23 @@ pub(crate) struct Group {
     /// sides, so the player sees an army in pieces as it happens (escalate-6: seven detachments died one by one).
     pub parent: Option<String>,
     pub born: i32,
+    /// Soldiers lost since the player's last orders (frame, type), and the turn frame they count from; whether the
+    /// player has been woken for them this turn (H-HANDS-LOSS-WAKE).
+    pub losses: Vec<(i32, UnitDefId)>,
+    pub losses_since: i32,
+    pub loss_warned: bool,
+    /// Where the group last stood holding: the `fall_back` option's destination (H-HANDS-FALL-BACK).
+    pub last_hold: Option<Vec3>,
 }
 
 impl Group {
     pub(crate) fn new(name: String, domain: Domain, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, enemies_near: false, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame }
+        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, enemies_near: false, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None }
+    }
+
+    /// The metal lost since the player's last orders.
+    pub(crate) fn lost_metal(&self, world: &crate::world::World) -> f32 {
+        self.losses.iter().filter_map(|(_, def)| world.def(*def)).map(|d| d.metal_cost).sum()
     }
 
     /// A group split from another.
@@ -162,10 +181,44 @@ impl Brain {
         let frame = tick.frame;
         let home = self.home;
         let Some(mut pianist) = self.pianist.take() else { return };
+        // Losses since the player's last orders, per group; enough of them wake the player (H-HANDS-LOSS-WAKE).
+        let turn_frame = self.strategist.as_ref().map_or(0, |s| s.last_turn_frame.load(std::sync::atomic::Ordering::Relaxed));
+        let mut loss_wakes: Vec<String> = Vec::new();
         for group in &mut pianist.groups {
+            if group.losses_since != turn_frame {
+                (group.losses_since, group.loss_warned) = (turn_frame, false);
+                group.losses.clear();
+            }
+            for (f, id, def) in self.unit_losses.iter().rev().take_while(|(f, ..)| *f == frame) {
+                if group.members.contains(id) {
+                    group.losses.push((*f, *def));
+                }
+            }
             group.members.retain(|id| soldiers.iter().any(|u| u.id == *id));
+            let standing: f32 = group.units(own).iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
+            let lost = group.lost_metal(&self.world);
+            if !group.loss_warned && !group.members.is_empty() && (group.losses.len() >= LOSS_WAKE_COUNT || lost >= LOSS_WAKE_SHARE * (standing + lost)) {
+                group.loss_warned = true;
+                let doing = match &group.task {
+                    GroupTask::Hold { .. } => "holding".to_string(),
+                    GroupTask::Move { place, fight, .. } => format!("{} to {place}", if *fight { "advancing" } else { "walking" }),
+                    GroupTask::Engage { .. } => "attacking a party".to_string(),
+                };
+                loss_wakes.push(format!(
+                    "group_{} has lost {} of its {} soldiers ({lost:.0} metal) since your last orders, {doing} at {}",
+                    group.name,
+                    group.losses.len(),
+                    group.members.len() + group.losses.len(),
+                    self.world.grid(centre_of(&group.units(own)).unwrap_or_default())
+                ));
+            }
         }
         pianist.groups.retain(|g| !g.members.is_empty());
+        if let Some(shared) = &self.strategist {
+            for text in loss_wakes {
+                shared.trigger(text);
+            }
+        }
         // H-HANDS-GROUPS: newcomers.
         let mut loose: Vec<&OwnUnit> = soldiers.iter().copied().filter(|u| !pianist.groups.iter().any(|g| g.members.contains(&u.id))).collect();
         loose.sort_by_key(|u| u.id.0);
@@ -215,14 +268,14 @@ impl Brain {
         // Standing orders, under each group's footwork rules (H-HANDS-LANE).
         let footwork: Vec<crate::strategist::shared::Footwork> = pianist.groups.iter().map(|g| self.footwork_of(&g.name)).collect();
         let marks: Vec<String> = self.strategist.as_ref().map(|s| s.marks.lock().unwrap().keys().cloned().collect()).unwrap_or_default();
-        let is_mark_name = |place: &str| place != "home" && !place.starts_with("spot_") && !place.starts_with("passage_");
+        let is_mark_name = |place: &str| place != "home" && !place.starts_with("spot_") && !place.starts_with("passage_") && !place.starts_with(LAST_HOLD);
         let mut marches: Vec<(usize, Vec3)> = Vec::new();
         let mut stalled: Vec<String> = Vec::new();
         for (index, group) in pianist.groups.iter_mut().enumerate() {
             let units = group.units(own);
             let Some(centre) = centre_of(&units) else { continue };
             match &mut group.task {
-                GroupTask::Hold { .. } => {}
+                GroupTask::Hold { .. } => group.last_hold = Some(centre),
                 GroupTask::Move { to, fight, place, .. } => {
                     let to_go = centre.dist2d(*to);
                     if to_go < group.best_to_go - PROGRESS_STEP {

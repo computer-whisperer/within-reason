@@ -12,6 +12,7 @@ use super::super::roster::Kit;
 use super::super::Brain;
 use super::menu::{Actor, Menu, Pick, nearest_of};
 use super::picture::Picture;
+use super::groups::LAST_HOLD;
 use super::{Group, GroupTask, SWITCH_MARGIN, Task};
 
 impl Brain {
@@ -323,6 +324,17 @@ impl Brain {
                 group.set_task(GroupTask::Move { to: home, place: "home".into(), fight: false, since: frame }, frame);
                 group.last_order = frame;
                 did = Some("fall back home".into());
+            }
+            Pick::FallBack => {
+                if let Some(to) = pianist.groups[index].last_hold {
+                    let place = format!("{} {}", LAST_HOLD, self.place_words(&picture.places, to));
+                    let group = &mut pianist.groups[index];
+                    commands.extend(group.release_orders(&units));
+                    commands.extend(ids.iter().map(|id| Command::Move { unit: *id, to, queue: false }));
+                    group.set_task(GroupTask::Move { to, place: place.clone(), fight: false, since: frame }, frame);
+                    group.last_order = frame;
+                    did = Some(format!("fall back to {place}"));
+                }
             }
             Pick::Split => {
                 if let Some(p) = place(where_) {

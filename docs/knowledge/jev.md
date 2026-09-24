@@ -678,3 +678,39 @@ Opus review.
 **Would be wrong if.** The player meant a diversion to cancel the step: then the step should be dropped and said.
 **Used by.** H-HANDS-SCRIPT.
 
+### K-hands-needs-player-was-noise
+**Claim.** Jev's `needs_player` Noul carried no information: a bell around 0.77 (0.72 to 0.83), 99 % of calls at or
+above 0.5, with the 0.8 wake threshold inside its mode; its crossings selected noise, not events.
+**Status.** measured (2026-09-23, upgrade-2, penalty-1, penalty-2): medians 0.77, 0.76, 0.77; at or above 0.8 on 19,
+25 and 28 % of calls; within 10 s of a loss of ours 24 % (upgrade-2) and 35 % (penalty-2) crossed, against 10 and
+6 % with no loss in 30 s; the wakes it produced (10, 10, 16 per game) came 2 to 4 s after the orders landed. The
+study of 2026-09-22 (`docs/studies/jev-comet-series.md` h) had it at 0.6 or more on 78-96 % of calls. Retired.
+**Evidence.** `run/wake_read.py` on the three matches (the histogram and the loss split).
+**Would be wrong if.** A sharper question (one naming what the instructions cover) gave a bimodal answer; untried.
+**Used by.** H-HANDS-LOSS-WAKE (its replacement).
+
+### K-player-idle-after-the-flight-costs-more-than-the-flight
+**Claim.** Under the think penalty the player is blind while its orders are on their way (41-44 % of game time), but
+a loss of ours reached the next turn as late while the player was idle as during a flight, because a unit loss woke
+nothing: only extractor losses, enemies near an extractor, a group starting an attack, shelling and the timer did.
+**Status.** measured (2026-09-23): upgrade-2 (medium) a loss of ours to the next turn start 8.6 s median, p90 20.7,
+9.3 s during a flight against 7.6 idle; penalty-2 (low) 5.1 s, 5.1 against 5.0; penalty-1 7.0, 8.5 against 6.0. Of
+84 flights in upgrade-2, 45 had a loss inside, 9 woke a turn within 1 s of landing, 11 waited 7 to 37 s for the
+timer. The player chose 40 to 60 s waits on 30 of 85 turns, one at 19:34 during the collapse (35 s asleep, nine
+losses in the next flight).
+**Evidence.** `run/wake_read.py run/matches/1790198489-upgrade-2-hard-aggressive/00` (and penalty-1, penalty-2).
+**Would be wrong if.** The turns woken sooner did not change what the hands did: check the wake-1 game's losses
+per flight and the turns' orders against upgrade-2.
+**Used by.** H-HANDS-LOSS-WAKE, H-WAKE-FLIGHT-REVIEW, H-WAKE-HOT-FLOOR.
+
+### K-hands-carried-on-while-losing-in-flight
+**Claim.** A group losing a member while the player's orders were on their way was asked again within about a second
+and chose to carry on (continue, engage, attack, advance) almost every time; nothing told Jev that a fight going wrong
+with the player out was its to end.
+**Status.** measured (2026-09-23): upgrade-2, 30 such group moments, 20 asked before the landing, next ask 1.1 s
+median; choices continue 2, engage 2, walk 2, attack 5, retreat 1, fall back home 1, never asked again 4. penalty-2:
+41 moments, 31 before the landing, advance 8, continue 7, hold 5, engage 3, attack 6, retreat 1.
+**Evidence.** the same script's "hands' next choice" table.
+**Would be wrong if.** With the `player` line, the `losses` line and the fall-back rule Jev still continues: then the
+rule must be mechanical (a losing group with the player out falls back without asking).
+**Used by.** H-HANDS-FALL-BACK.

@@ -825,6 +825,9 @@ impl Brain {
             if let Some(words) = self.footwork_of(&group.name).words() {
                 entry["lane"] = json!(words);
             }
+            if !group.losses.is_empty() {
+                entry["losses"] = json!(format!("lost {} soldiers ({:.0} metal) since the player's last orders, {} ago", group.losses.len(), group.lost_metal(&self.world), ago(group.losses_since)));
+            }
             if let Some(seconds) = group.stalled_seconds(frame).filter(|s| *s >= 20) {
                 entry["progress"] = json!(format!("has not got nearer its goal for {seconds} s: stalled"));
             }
@@ -901,7 +904,7 @@ impl Brain {
             crate::texts::read(&crate::texts::HANDS_RULES),
             if wind >= 8.0 { "wind generators (40 metal) beat solar collectors here" } else { "solar collectors are the reliable energy here" }
         );
-        let state = json!({
+        let mut state = json!({
             "instructions": instructions,
             "clock": clock(frame),
             "rules": rules,
@@ -912,6 +915,17 @@ impl Brain {
             "actors": actors,
             "recent": pianist.recent(frame),
         });
+        // H-HANDS-FALL-BACK: whether the player can answer now. Under the think penalty its orders land as long after
+        // the turn as it took to decide, and nothing new comes from it meanwhile.
+        if let Some(shared) = &self.strategist {
+            let turn = shared.last_turn_frame.load(std::sync::atomic::Ordering::Relaxed);
+            let landing = shared.delayed.lock().unwrap().as_ref().map(|(at, _)| *at);
+            state["player"] = json!(match landing {
+                Some(at) => format!("deciding: its orders from {} s ago reach you in {} s, and nothing new comes from it before then; the instructions are its last word", (frame - turn) / FRAMES_PER_SECOND, (at - frame).max(0) / FRAMES_PER_SECOND),
+                None if turn > 0 => format!("watching: its last orders reached you {} s ago; a group losing soldiers or meeting a party it does not outweigh, an extractor threatened or lost, wake it within a few seconds", (frame - turn) / FRAMES_PER_SECOND),
+                None => "has not spoken yet".to_string(),
+            });
+        }
         Picture { state, places, parties }
     }
 

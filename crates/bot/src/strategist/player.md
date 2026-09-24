@@ -156,8 +156,10 @@ turn. Write nothing after it. Look things up (`situation`, `overview`, `map`) on
 you need, and as a separate call before `orders`. Nothing takes effect until your turn ends. `wait` sets a maximum quiet
 time and the events that wake you early (enemies near an extractor, an extractor lost, a group engaging, soldiers of a
 type reaching a count); you are also woken when the extractor count has not grown for four minutes with free spots left,
-and when your hands judge that the situation needs you. Early, or when the plan is set and nothing is happening, wait
-long; when a fight is on, wait short. Coordinates are map units; grid names (A1..H8) are for talking about places, but
+when a group of yours has lost two soldiers or a quarter of its metal since your last orders, when a group meets a
+party it does not outweigh, and the moment your orders land if anything of ours died while they were on their way.
+While a fight is on (a group engaged, or a loss in the last 30 s) the quiet time is capped at 10 s whatever you set.
+Early, or when the plan is set and nothing is happening, wait long. Coordinates are map units; grid names (A1..H8) are for talking about places, but
 the hands only know the named places, so instructions name spots and passages, not cells.
 
 Every few turns ask: are we gaining ground or only holding it; what did the hands do with the last packet, and where did
