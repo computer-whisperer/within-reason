@@ -118,3 +118,10 @@ back whole when they amend a line. A `pick.py` run that appended lines while a r
 batch's next write (2026-09-24, thebluegecko's four duels, re-added). The runner now merges its `match`/`card` fields
 into the file as it is at write time; the fetcher still writes its start-time copy, so do not run `pick.py` while
 `fetch.py` runs.
+
+## Replay records have no damage (2026-09-24)
+The records written from the replay pipeline (`run/replays/replay.py`, the dump widget) carry an empty `dmg` on every
+sample: the widget does not hook UnitDamaged. Damage in those records is the drop in a unit's health between
+consecutive samples (`run/replays/shapes.py` does this for both sides), never the field. Shots, friendly fire and the
+exchange tables (`shots`, `ff`, `xo`, `xi`, `xf`) exist only in the bot's own records.
+
