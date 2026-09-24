@@ -59,21 +59,21 @@ for d in sys.argv[1:]:
     # jev needs_player
     np_=[(c['f'],c['answers'].get('global.needs_player',{}).get('noul')) for c in calls if 'global.needs_player' in c.get('answers',{})]
     vals=[v for _,v in np_ if v is not None]
-    print(f"  jev calls {len(calls)}, call gap median {S.median((calls[i+1]['f']-calls[i]['f'])/FPS for i in range(len(calls)-1)):.2f}s; needs_player asked on {len(np_)} calls: median {S.median(vals):.2f}, >=0.8 on {sum(v>=0.8 for v in vals)} ({sum(v>=0.8 for v in vals)/len(vals):.0%}), >=0.5 on {sum(v>=0.5 for v in vals)}")
+    print(f"  jev calls {len(calls)}, call gap median {S.median((calls[i+1]['f']-calls[i]['f'])/FPS for i in range(len(calls)-1)):.2f}s; needs_player asked on {len(np_)} calls" + (f": median {S.median(vals):.2f}, >=0.8 on {sum(v>=0.8 for v in vals)} ({sum(v>=0.8 for v in vals)/len(vals):.0%}), >=0.5 on {sum(v>=0.5 for v in vals)}" if vals else " (retired)"))
     # runs of 3 >=0.8: potential triggers; which were suppressed by cooldown/busy
     run=0; fires=[]; last=-10**9
     for f,v in np_:
         run=run+1 if (v or 0)>=0.8 else 0
         if run>=3:
             fires.append(f)
-    print(f"  calls completing a run of 3 >=0.8: {len(fires)}")
+    if vals: print(f"  calls completing a run of 3 >=0.8: {len(fires)}")
     # streak lengths
     streaks=[];run=0
     for f,v in np_:
         if (v or 0)>=0.8: run+=1
         elif run: streaks.append(run); run=0
     if run: streaks.append(run)
-    print(f"  streaks of >=0.8: {len(streaks)}, length median {S.median(streaks) if streaks else 0}, max {max(streaks) if streaks else 0}, total calls in streaks of >=3: {sum(s for s in streaks if s>=3)}")
+    if vals: print(f"  streaks of >=0.8: {len(streaks)}, length median {S.median(streaks) if streaks else 0}, max {max(streaks) if streaks else 0}, total calls in streaks of >=3: {sum(s for s in streaks if s>=3)}")
     # event latency: our losses, extractor losses, engagements begun
     defs={}
     hdr=[json.loads(l) for l in open(d+'/record-0.jsonl')][0]

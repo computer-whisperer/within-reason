@@ -701,6 +701,10 @@ losses in the next flight).
 **Evidence.** `run/wake_read.py run/matches/1790198489-upgrade-2-hard-aggressive/00` (and penalty-1, penalty-2).
 **Would be wrong if.** The turns woken sooner did not change what the hands did: check the wake-1 game's losses
 per flight and the turns' orders against upgrade-2.
+**Check (2026-09-23, wake-1, won 18.5).** The schedule moved as designed: a loss of ours to the next turn 5.4 s median
+(p90 10.9); flights with a loss inside were followed within 2.2 s median and never over 5 s; timer-only turns 4 of
+100; 5.4 turns a minute at the same $0.11 a turn. Whether the sooner turns won the game is one game's evidence: the
+economy and one committed push did, and group_C was still wiped at 11:34 with the wakes on time.
 **Used by.** H-HANDS-LOSS-WAKE, H-WAKE-FLIGHT-REVIEW, H-WAKE-HOT-FLOOR.
 
 ### K-hands-carried-on-while-losing-in-flight
@@ -713,4 +717,7 @@ median; choices continue 2, engage 2, walk 2, attack 5, retreat 1, fall back hom
 **Evidence.** the same script's "hands' next choice" table.
 **Would be wrong if.** With the `player` line, the `losses` line and the fall-back rule Jev still continues: then the
 rule must be mechanical (a losing group with the player out falls back without asking).
+**Check (2026-09-23, wake-1).** It still continues: at the 24 in-flight loss moments the hands chose continue 9, attack 6,
+walk 3, fall_back 1 (`fall_back` was offered on 393 asks and chosen 9 times in the game). The words did not hold; the
+mechanical rule is the next step, for the user's decision.
 **Used by.** H-HANDS-FALL-BACK.
