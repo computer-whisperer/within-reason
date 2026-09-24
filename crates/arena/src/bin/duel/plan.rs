@@ -6,6 +6,8 @@ pub struct Job {
     pub x: String,
     pub y: String,
     pub rep: u32,
+    /// Index into the batch's formations (`Batch::shapes`): how the two armies stand and advance.
+    pub shape: usize,
     /// Times this job was handed out before (a match that aborts gives its running duels back).
     pub attempts: u32,
 }
@@ -46,10 +48,14 @@ pub fn cross(ours: &[String], theirs: &[String]) -> Vec<(String, String)> {
     pairs
 }
 
-/// `reps` jobs per pair, in an order that spreads a pair's repetitions over sites and matches.
-pub fn jobs(pairs: &[(String, String)], reps: u32) -> Vec<Job> {
+/// `reps` jobs per pair and shape, in an order that spreads a pair's repetitions over sites and matches.
+pub fn jobs(pairs: &[(String, String)], reps: u32, shapes: usize) -> Vec<Job> {
     let mut jobs: Vec<Job> = (0..reps)
-        .flat_map(|rep| pairs.iter().map(move |(x, y)| Job { x: x.clone(), y: y.clone(), rep, attempts: 0 }))
+        .flat_map(|rep| {
+            (0..shapes).flat_map(move |shape| {
+                pairs.iter().map(move |(x, y)| Job { x: x.clone(), y: y.clone(), rep, shape, attempts: 0 })
+            })
+        })
         .collect();
     // A fixed shuffle (the same plan every run): long fights and short ones mix, so sites stay evenly loaded.
     let mut state = 0x9E37_79B9_7F4A_7C15u64;

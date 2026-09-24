@@ -4,6 +4,10 @@ Written 2026-09-24 at the user's direction, before any code (the user: "The stou
 now"; the project agreed as phases, the first two to an Opus agent in a worktree). Branch `muzzle-sim`, worktree
 `/home/christian/workspace/playground/bar_bots-muzzle`.
 
+**Status (2026-09-24).** Phase 1 built and measured (`muzzle-stout-shapes`): on flat ground a ball of 24 Stouts is
+not muzzled (under 0.5% of in-reach seconds, full rate of fire) and beats a line abreast; the live 14-18% comes from
+something the flat mirror duel lacks (`docs/studies/2026-09-24-muzzled-ball.md`). Phase 2 in progress.
+
 ## The problem, as measured
 - The engine refuses a shot whose line (or a cannon's arc) crosses an allied hull: every weapon keeps `avoidFriendly`,
   BAR overrides it nowhere; a unit with its target in range and its shot refused stops and points, it does not step

@@ -6,9 +6,12 @@ use bot_protocol::{Terrain, Vec3};
 
 /// Distance between the two armies' front ranks' centres; beyond every tier-1 weapon's range (artillery: ~710).
 pub const SEPARATION: f32 = 1100.0;
-/// Rectangle checked for flatness: the separation plus room for the ranks behind, and the width of a rank.
+/// Least rectangle checked for flatness: the separation plus 170 behind each front rank, and 640 across. A batch whose
+/// formations are deeper or wider gets a rectangle that holds them (`Footprint::holding`).
 const LENGTH: f32 = 1440.0;
 const WIDTH: f32 = 640.0;
+/// Ground checked beyond a formation's last rank and outside its outer files.
+const MARGIN: f32 = 120.0;
 /// Two sites' rectangles stay this far apart: a team shares sight between its duels, and artillery reaches ~710.
 const SITE_GAP: f32 = 900.0;
 /// No site this close to a commander, who shoots at what comes near and whose death ends the game; tier-1 units
@@ -24,6 +27,97 @@ pub struct Site {
     pub centre: Vec3,
 }
 
+/// The rectangle a site must offer: `length` along the west-east axis, `width` across it.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Footprint {
+    pub length: f32,
+    pub width: f32,
+}
+
+impl Footprint {
+    /// The least rectangle that holds both armies of every duel named: `(formation, count)` per army.
+    pub fn holding(armies: impl IntoIterator<Item = (Formation, u32)>) -> Footprint {
+        let mut footprint = Footprint { length: LENGTH, width: WIDTH };
+        for (formation, count) in armies {
+            let (across, depth) = formation.extent(count);
+            footprint.length = footprint.length.max(SEPARATION + 2.0 * (depth + MARGIN));
+            footprint.width = footprint.width.max(across + 2.0 * MARGIN);
+        }
+        footprint
+    }
+}
+
+/// How an army is spawned and led: its shape, and the elmos between neighbours.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Formation {
+    pub kind: FormationKind,
+    pub spacing: f32,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum FormationKind {
+    /// Ranks of this many across the approach, further ranks behind; the whole army attack-moves at the enemy's
+    /// centre, so it closes into a ball (what the tables before 2026-09-24 were made with, at eight).
+    Ranks(u32),
+    /// One rank across the approach; each unit attack-moves at the enemy's centre shifted by its own place in the
+    /// rank, so the line advances as a line.
+    Line,
+}
+
+impl Formation {
+    /// `ranks8`, `ranks:8`, `line`, each optionally with `@SPACING`; `spacing` when none is given.
+    pub fn parse(text: &str, spacing: f32) -> Option<Formation> {
+        let (shape, spacing) = match text.split_once('@') {
+            Some((shape, s)) => (shape, s.parse().ok()?),
+            None => (text, spacing),
+        };
+        let kind = match shape {
+            "line" => FormationKind::Line,
+            _ => FormationKind::Ranks(shape.strip_prefix("ranks")?.trim_start_matches(':').parse().ok().filter(|&n| n > 0)?),
+        };
+        Some(Formation { kind, spacing })
+    }
+
+    pub fn label(&self) -> String {
+        match self.kind {
+            FormationKind::Ranks(n) => format!("ranks{n}@{:.0}", self.spacing),
+            FormationKind::Line => format!("line@{:.0}", self.spacing),
+        }
+    }
+
+    fn per_rank(&self, count: u32) -> u32 {
+        match self.kind {
+            FormationKind::Ranks(n) => n,
+            FormationKind::Line => count.max(1),
+        }
+    }
+
+    /// Width across the approach and depth behind the front rank, centre to centre.
+    pub fn extent(&self, count: u32) -> (f32, f32) {
+        let per_rank = self.per_rank(count);
+        let ranks = count.div_ceil(per_rank).max(1);
+        ((count.min(per_rank).max(1) - 1) as f32 * self.spacing, (ranks - 1) as f32 * self.spacing)
+    }
+
+    /// Positions for `count` units: ranks run north-south through `front`, further ranks stack away from the enemy.
+    pub fn places(&self, front: Vec3, faces_east: bool, count: u32) -> Vec<Vec3> {
+        let per_rank = self.per_rank(count);
+        let spacing = self.spacing;
+        let back = if faces_east { -spacing } else { spacing };
+        (0..count)
+            .map(|i| {
+                let (rank, file) = (i / per_rank, i % per_rank);
+                let in_rank = (count - rank * per_rank).min(per_rank);
+                Vec3 {
+                    x: front.x + back * rank as f32,
+                    y: front.y,
+                    z: front.z + (file as f32 - (in_rank - 1) as f32 / 2.0) * spacing,
+                }
+            })
+            .collect()
+    }
+}
+
 impl Site {
     /// Centre of the front rank at the west (`true`) or east end.
     pub fn end(&self, west: bool) -> Vec3 {
@@ -32,13 +126,14 @@ impl Site {
     }
 }
 
-/// Up to `wanted` sites. `max_slope` is the engine slope value (0-1) the least agile listed unit manages.
-pub fn choose(terrain: &Terrain, max_slope: f32, commanders: &[Vec3], wanted: usize) -> Vec<Site> {
+/// Up to `wanted` sites of `footprint`. `max_slope` is the engine slope value (0-1) the least agile listed unit manages.
+pub fn choose(terrain: &Terrain, max_slope: f32, commanders: &[Vec3], wanted: usize, footprint: Footprint) -> Vec<Site> {
+    let Footprint { length, width: across } = footprint;
     let (width, height) = (terrain.width as usize, terrain.height as usize);
     if width == 0 || terrain.heights.len() != width * height {
         return Vec::new();
     }
-    let (length_cells, width_cells) = ((LENGTH / terrain.cell) as usize, (WIDTH / terrain.cell) as usize);
+    let (length_cells, width_cells) = ((length / terrain.cell) as usize, (across / terrain.cell) as usize);
     let slope_limit = (max_slope * 255.0) as u8;
     let mut candidates = Vec::new();
     for z0 in (0..height.saturating_sub(width_cells)).step_by(STRIDE) {
@@ -62,7 +157,7 @@ pub fn choose(terrain: &Terrain, max_slope: f32, commanders: &[Vec3], wanted: us
                 y: (low + high) as f32 / 2.0,
                 z: (z0 as f32 + width_cells as f32 / 2.0) * terrain.cell,
             };
-            if commanders.iter().all(|c| rect_distance(centre, *c) >= COMMANDER_GAP) {
+            if commanders.iter().all(|c| rect_distance(centre, *c, footprint) >= COMMANDER_GAP) {
                 candidates.push((high - low, centre));
             }
         }
@@ -84,7 +179,7 @@ pub fn choose(terrain: &Terrain, max_slope: f32, commanders: &[Vec3], wanted: us
         let mut sites: Vec<Site> = Vec::new();
         for (_, centre) in &candidates {
             let clear = sites.iter().all(|s| {
-                (s.centre.x - centre.x).abs() >= LENGTH + SITE_GAP || (s.centre.z - centre.z).abs() >= WIDTH + SITE_GAP
+                (s.centre.x - centre.x).abs() >= length + SITE_GAP || (s.centre.z - centre.z).abs() >= across + SITE_GAP
             });
             if clear && sites.len() < wanted {
                 sites.push(Site { centre: *centre });
@@ -97,26 +192,9 @@ pub fn choose(terrain: &Terrain, max_slope: f32, commanders: &[Vec3], wanted: us
     best
 }
 
-/// Distance from `point` to the site rectangle centred on `centre`.
-fn rect_distance(centre: Vec3, point: Vec3) -> f32 {
-    let dx = ((point.x - centre.x).abs() - LENGTH / 2.0).max(0.0);
-    let dz = ((point.z - centre.z).abs() - WIDTH / 2.0).max(0.0);
+/// Distance from `point` to the site rectangle of `footprint` centred on `centre`.
+fn rect_distance(centre: Vec3, point: Vec3, footprint: Footprint) -> f32 {
+    let dx = ((point.x - centre.x).abs() - footprint.length / 2.0).max(0.0);
+    let dz = ((point.z - centre.z).abs() - footprint.width / 2.0).max(0.0);
     dx.hypot(dz)
-}
-
-/// Positions for `count` units: ranks run north-south through `front`, further ranks stack away from the enemy.
-pub fn formation(front: Vec3, faces_east: bool, count: u32, spacing: f32) -> Vec<Vec3> {
-    const PER_RANK: u32 = 8;
-    let back = if faces_east { -spacing } else { spacing };
-    (0..count)
-        .map(|i| {
-            let (rank, file) = (i / PER_RANK, i % PER_RANK);
-            let in_rank = (count - rank * PER_RANK).min(PER_RANK);
-            Vec3 {
-                x: front.x + back * rank as f32,
-                y: front.y,
-                z: front.z + (file as f32 - (in_rank - 1) as f32 / 2.0) * spacing,
-            }
-        })
-        .collect()
 }

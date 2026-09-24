@@ -334,7 +334,9 @@ see past each other's turrets"; measured once (worth-1, 24 min, a Stout army): 8
 reach were muzzled (no shot for 3 s or two reloads), 36% of those with a friend within a hull's width of the line to
 the nearest enemy, 26% with the enemy at the reach's edge, 39% clear; the share did not rise with the ball (6 or more
 friends within 120: 6%; alone: 14%); Stouts fired 0.51 a second in reach against 0.83 possible; friendly fire 5.4%
-of damage dealt. A friend on the line costs about 3% of a Stout's time in reach: real and small in this game.
+of damage dealt. A friend on the line costs about 3% of a Stout's time in reach: real and small in this game. In the duel
+harness (2026-09-24, `muzzle-stout-shapes`) a ball of 24 Stouts on flat ground was muzzled under 0.5% of its
+in-reach seconds and fired 0.83 a second: the arc clears the hulls there (K-units-duel-a-stout-ball-is-not-muzzled-on-flat-ground).
 **Evidence.** `rts/Sim/Misc/LosMap.cpp` (raycasts against `mipHeightMap` only, `LOS_BONUS_HEIGHT` 5);
 `rts/Sim/Units/UnitDef.cpp` `losHeight` default 20; `rts/Sim/Weapons/WeaponDef.cpp` `avoidFriendly` default true;
 `rts/Sim/Weapons/Weapon.cpp` `HaveFreeLineOfFire` (`TraceRay`/`TestCone` with the avoid flags) and `Cannon.cpp`
