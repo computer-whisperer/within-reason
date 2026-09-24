@@ -103,3 +103,19 @@ Rovers at the 2:00 sample in 14 of 58; **every side lost an extractor**, the fir
 player won 22 of 29. Start cells A4 17, B5 12 in the west; H5 19, G4 8, H1 2 in the east. The winners' curve pulls
 away between 8 and 12 minutes (18 to 28 extractors against 15 to 14.5), which is the window our tier-hard games
 plateau in (22-25 extractors flat from 16:00 in pace-1). Next: the synthesis pilot, after the spot-numbering decision.
+
+**2026-09-23 23:30, the synthesis pilot.** One Opus agent read the 29 cards against `docs/knowledge/questions.md` and
+filed 22 claims (the tally by script over 58 sides), a map file `docs/knowledge/maps/comet_catcher_remake_1.8.md` with
+a spot-by-cell table and a "what our bot should copy" list, and the index `docs/knowledge/replays.md`; the claims were
+checked with the new `run/replays/check.py` (a per-side table from the cards and `--count EXPR`; decision 6) and merged
+into `maps.md` (17 per-map claims), `openings.md`, `army.md` and `economy.md`. What the agent found that the first pass
+had not: the game is decided between 8:00 and 12:00 (winners add 11 extractors, losers 1, over 18 games), winners spend
+in that window (banked 500+ at 10:00 in 7 of 22 against 15 of 22 losers), raids are met with turrets (9 against 6 by
+8:00; a turret at 0:27 before the factory in 18 of 29 winners), the later plant with the turret won 18 of 29 sides
+against the 0:34 plant's 11 (confounded with OS), and the expansion direction differs by start and result (H5 winners
+south first, 5 of 7 with spot_60 by 2:10). The agent also found card defects, all fixed and the cards re-cut: the
+record header's `side` was wrong on 22 of 58 sides (now the faction from what was built), 28 spots had two cells (now
+the spot's own), `first_enemy_seen` was 0:00 everywhere (removed), `factories` were sorted as strings, kills in the last
+15 s (a resign's self-destruct) are counted apart, every building has its cell, the first tier-2 unit is on the card.
+Still open: the spot-number bridge to the bot (the user's decision), the brief's Comet section citing the new claims,
+Quicksilver next.

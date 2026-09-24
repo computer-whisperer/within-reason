@@ -387,3 +387,23 @@ from 4:42, eight Blitzes to six Banshees at 8:22.
 seen and no aircraft came in a run of games.
 **Used by.** H-HANDS-ENEMY-EVIDENCE (the factory type on the report line); the player's brief.
 
+## Comet Catcher Remake 1.8: the replay survey (2026-09-23)
+
+Claims from the game cards of 29 public 1v1 duels (both players OS 25 and above, games of 2026-09-20 to 2026-09-23 on BAR test-31357 to 31383), filed by the synthesis agent against `docs/knowledge/questions.md` and checked with `run/replays/check.py`; the map file `docs/knowledge/maps/comet_catcher_remake_1.8.md` and the index `docs/knowledge/replays.md` point here. Spot numbers are the cards' (the game's own 80-spot list), not the bot's (the engine's 75); they map to the bot's by position (nearest within 130), and every spot carries its grid cell (8x8 over 8192x6144). Unit names: armfav Rover, corfav Rascal, armflash Blitz, corgator Incisor, corak Grunt, armpw Pawn, armflea Tick, armstump Stout, corraid Brute, armllt/corllt the light laser turret. "W"/"L" are the winners' and the losers' sides. Remaining card limits: `fights` is the eight costliest cell-minutes per game; the cards carry no unit positions over time (held back or chasing cannot be read); the killer of the first extractor is "?" on 10 sides; one manifest start (bcaeb16a, Chronopolize) disagrees with the card's B5 and the card is used. Fixed after the survey (cards re-cut 2026-09-23 evening): the faction field, the spots' cells, the first-enemy-seen field (removed: a replay sees everything), the factories' order, the last 15 s of kills counted apart, cells on every building, the first tier-2 unit.
+
+### K-army-comet-raiders-to-12
+**Claim.** Tier-1 raiders are the army through 12:00. Armada sides (average per side): 3.1 Rovers and 0.7 Blitz at 2:00
+(25 sides), 5.2 Rovers and 3.6 Blitz at 4:00, 8.1 Blitz and 3.6 Rovers at 6:00, 13.1 Blitz at 8:00 (21), 17.3 at 10:00
+(18), 24.1 at 12:00 (15). Cortex: 2.4 Rascals at 2:00 (33), 4.4 Grunts, 4.2 Rascals, 2.5 Incisors at 4:00, 7.2 Incisors
+and 6.1 Grunts at 6:00, 13.2 Incisors at 8:00 (29), 19.8 at 10:00 (26), 25.6 at 12:00 (21). Line units (Stout, Brute,
+Thud, Pounder, Janus, artillery) were in 5 of 25 winners' armies at 8:00, 11 of 22 at 10:00, 10 of 18 at 12:00, at a
+median 3% of the count at 12:00; Brutes first appear at 10:00 (median, 17 Cortex sides) and Stouts at 12:00 (7 Armada
+sides). Scout cars fall from the lead unit at 2:00-4:00 to under three per side from 8:00 (Rascals under one).
+**Status.** observed (2026-09-23, replay survey)
+**Evidence.** all 29 (`army_by_type` every two minutes).
+**Would be wrong if.** Games on a later version with line units by 8:00 in most sides. **Refines**
+K-open-comet-flash-raids-take-the-resign: the Blitz (and the Incisor for Cortex) is the army all game, not only the
+opening. What beats what cannot be read from the cards: kills and losses are whole-game totals by type; a per-fight
+composition (the types dying on each side in each fight cell) would answer it.
+**Used by.** (candidate: the unit-mix lever in the brief)
+

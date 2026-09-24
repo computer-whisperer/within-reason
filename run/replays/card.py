@@ -97,12 +97,24 @@ class Record:
 T2 = {"armavp", "armalab", "armaap", "armasy", "coravp", "coralab", "coraap", "corasy", "armmoho", "cormoho", "armfus", "corfus", "armack", "armacv", "corack", "coracv"}
 
 
+def secs(c):
+    m, s = c.split(":")
+    return int(m) * 60 + int(s)
+
+
+def side_of(order, header_side):
+    """The faction from what was built (the replay records' header `side` was wrong on 22 of 58 sides)."""
+    prefixes = Counter(o["unit"][:3] for o in order if o["unit"][:3] in ("arm", "cor", "leg"))
+    return prefixes.most_common(1)[0][0] if prefixes else header_side
+
+
 def team_card(rec, until_frames):
     own_ids = set()
     role_of = {}  # unit id -> role words for the builder
     by_role = lambda by: "factory" if rec.is_factory(role_of.get(by, (None,))[0]) else role_of.get(by, ("", "?"))[1] if by in role_of else "?"
     order, factories, spots_taken = [], {}, []
     first_t2 = None
+    first_t2_unit = None
     commander = None
     for e in rec.events:
         if e.get("k") == "created":
@@ -123,19 +135,26 @@ def team_card(rec, until_frames):
             if first_t2 is None and rec.tier2(d):
                 first_t2 = {"unit": nm, "clock": clock(e["f"])}
             spot = rec.spot_of(e["x"], e["z"]) if rec.is_extractor(d) else None
+            # A spot's cell is the spot's own, not the extractor's (a snapped extractor on a cell boundary gave 28 of
+            # 80 spots two cells in the first survey); every building carries its cell, so turret positions can be read.
             if spot is not None:
-                spots_taken.append({"clock": clock(e["f"]), "spot": spot, "grid": rec.grid(e["x"], e["z"])})
+                spots_taken.append({"clock": clock(e["f"]), "spot": spot, "grid": rec.grid(*rec.spots[spot])})
+            if first_t2_unit is None and rec.tier2(d) and not rec.is_factory(d) and not rec.d(d).get("speed", 0) == 0:
+                first_t2_unit = {"unit": nm, "clock": clock(e["f"])}
             if e["f"] <= until_frames and not nm.endswith("com"):
                 by = e.get("by")
                 who = role_of.get(by, (None, "?"))[1] if by is not None else "?"
                 entry = {"clock": clock(e["f"]), "unit": nm, "by": who}
                 if spot is not None:
                     entry["spot"] = spot
+                    entry["grid"] = rec.grid(*rec.spots[spot])
+                elif rec.d(d).get("speed", 0) == 0:
                     entry["grid"] = rec.grid(e["x"], e["z"])
                 order.append(entry)
         elif e.get("k") == "finished" and e["u"] in factories:
             factories[e["u"]]["finished"] = clock(e["f"])
-    losses, kills = Counter(), Counter()
+    losses, kills, end_kills = Counter(), Counter(), Counter()
+    end_frame = max((s["f"] for s in rec.samples), default=0) - 15 * FPS
     first_extractor_lost = None
     fights = defaultdict(lambda: {"ours": 0, "theirs": 0, "first": None, "last": None})
     for e in rec.events:
@@ -144,23 +163,25 @@ def team_card(rec, until_frames):
             nm = rec.name(e.get("d"))
             losses[nm] += 1
             if rec.is_extractor(e.get("d")) and first_extractor_lost is None:
-                first_extractor_lost = {"clock": clock(e["f"]), "spot": rec.spot_of(e["x"], e["z"]), "by": rec.name(e.get("by_d"))}
+                spot = rec.spot_of(e["x"], e["z"])
+                first_extractor_lost = {"clock": clock(e["f"]), "spot": spot, "grid": rec.grid(*rec.spots[spot]) if spot is not None else rec.grid(e["x"], e["z"]), "by": rec.name(e.get("by_d"))}
             cell = (e["f"] // (60 * FPS), rec.grid(e["x"], e["z"]))
             fights[cell]["ours"] += 1
         elif k == "enemy_destroyed":
             nm = rec.name(e.get("d")) if e.get("d") is not None else "?"
+            if e["f"] >= end_frame:
+                end_kills[nm] += 1  # the last 15 s: a resign's self-destruct looks like kills
+                continue
             kills[nm] += 1
             if "x" in e:
                 cell = (e["f"] // (60 * FPS), rec.grid(e["x"], e["z"]))
                 fights[cell]["theirs"] += 1
     curves = []
     composition = []
-    first_enemy = None
     last_minute = -1
     for s in rec.samples:
-        if first_enemy is None and s.get("en"):
-            en = s["en"][0]
-            first_enemy = {"clock": clock(s["f"]), "unit": rec.name(en[1]), "grid": rec.grid(en[2], en[3])}
+        # A replay's records see everything (the widget writes them with full vision), so "first enemy seen" is 0:00
+        # on every side and is not written; first contact needs the first fight instead.
         minute = s["f"] // (60 * FPS)
         if minute == last_minute or s["f"] % (60 * FPS) > 2 * FPS:
             continue
@@ -184,11 +205,11 @@ def team_card(rec, until_frames):
             if rec.name(u[1]).endswith("com"):
                 start = {"x": u[2], "z": u[3], "grid": rec.grid(u[2], u[3])}
     return {
-        "team": rec.header.get("team"), "ally_team": rec.header.get("ally_team"), "side": rec.header.get("side"), "start": start,
-        "build_order": order, "factories": sorted(factories.values(), key=lambda f: f["started"]), "first_tier2": first_t2,
+        "team": rec.header.get("team"), "ally_team": rec.header.get("ally_team"), "side": side_of(order, rec.header.get("side")), "start": start,
+        "build_order": order, "factories": sorted(factories.values(), key=lambda f: secs(f["started"])), "first_tier2": first_t2, "first_tier2_unit": first_t2_unit,
         "spots_taken": spots_taken, "curves": curves, "army_by_type": composition,
-        "first_enemy_seen": first_enemy, "first_extractor_lost": first_extractor_lost,
-        "losses": dict(losses.most_common()), "kills": dict(kills.most_common()), "fights": fights_out,
+        "first_extractor_lost": first_extractor_lost,
+        "losses": dict(losses.most_common()), "kills": dict(kills.most_common()), "end_kills": dict(end_kills.most_common()), "fights": fights_out,
     }
 
 
@@ -201,13 +222,13 @@ def markdown(card):
         who = t.get("player") or f"team {t['team']}"
         out += ["", f"## {who} ({t['side']}, start {t['start']['grid'] if t['start'] else '?'})", ""]
         out.append("Build order to the cut-off: " + "; ".join(f"{o['clock']} {o['unit']}" + (f" spot_{o['spot']} {o['grid']}" if "spot" in o else "") + (f" ({o['by']})" if o["by"] not in ("?", "commander") else "") for o in t["build_order"]))
-        out.append("Factories: " + ", ".join(f"{f['unit']} {f['started']}-{f['finished'] or '?'} at {f['at']}" for f in t["factories"]) + (f". First tier 2: {t['first_tier2']['unit']} at {t['first_tier2']['clock']}." if t["first_tier2"] else ". No tier 2."))
+        out.append("Factories: " + ", ".join(f"{f['unit']} {f['started']}-{f['finished'] or '?'} at {f['at']}" for f in t["factories"]) + (f". First tier 2: {t['first_tier2']['unit']} at {t['first_tier2']['clock']}" + (f", first tier-2 unit {t['first_tier2_unit']['unit']} at {t['first_tier2_unit']['clock']}" if t.get("first_tier2_unit") else "") + "." if t["first_tier2"] else ". No tier 2."))
         out.append("By minute (extractors / constructors / metal income / army metal): " + " ".join(f"{c['minute']}:{c['extractors']}/{c['constructors']}/{c['metal_income']:.0f}/{c['army_metal']}" for c in t["curves"] if c["minute"] % 2 == 0))
         out.append("Army every two minutes: " + "; ".join(f"{c['minute']}: " + ", ".join(f"{n} {k}" for k, n in c["army"].items()) for c in t["army_by_type"] if c["army"]))
-        if t["first_enemy_seen"]:
-            out.append(f"First enemy seen {t['first_enemy_seen']['clock']}: {t['first_enemy_seen']['unit']} at {t['first_enemy_seen']['grid']}." + (f" First extractor lost {t['first_extractor_lost']['clock']} at spot_{t['first_extractor_lost']['spot']} to a {t['first_extractor_lost']['by']}." if t["first_extractor_lost"] else ""))
+        if t["first_extractor_lost"]:
+            out.append(f"First extractor lost {t['first_extractor_lost']['clock']} at spot_{t['first_extractor_lost']['spot']} ({t['first_extractor_lost'].get('grid', '?')}) to a {t['first_extractor_lost']['by']}.")
         out.append("Spots taken: " + " ".join(f"{s['clock']} spot_{s['spot']}({s['grid']})" for s in t["spots_taken"]))
-        out.append("Lost: " + ", ".join(f"{n} {k}" for k, n in list(t["losses"].items())[:8]) + ". Killed: " + ", ".join(f"{n} {k}" for k, n in list(t["kills"].items())[:8]) + ".")
+        out.append("Lost: " + ", ".join(f"{n} {k}" for k, n in list(t["losses"].items())[:8]) + ". Killed: " + ", ".join(f"{n} {k}" for k, n in list(t["kills"].items())[:8]) + "." + (f" In the last 15 s (the end, or a resign): {sum(t['end_kills'].values())} of theirs died." if t.get("end_kills") else ""))
         out.append("Fighting (minute, cell, ours lost / theirs lost): " + "; ".join(f"{f['minute']} {f['grid']} {f['ours_lost']}/{f['theirs_lost']}" for f in t["fights"]))
     return "\n".join(out) + "\n"
 

@@ -446,3 +446,49 @@ three Bulls and income 25 in one search, won at 17:10 with 13 Bulls and metal fu
 skipped the answer's advanced solar and stalled energy 8:45-10:00 (its own note), so the answer was still not
 followed to the letter.
 **Used by.** H-PLAYER-PLAN-SEARCH (income goals; the guide: "a target order is a chain to the thing asked").
+
+## Comet Catcher Remake 1.8: the replay survey (2026-09-23)
+
+Claims from the game cards of 29 public 1v1 duels (both players OS 25 and above, games of 2026-09-20 to 2026-09-23 on BAR test-31357 to 31383), filed by the synthesis agent against `docs/knowledge/questions.md` and checked with `run/replays/check.py`; the map file `docs/knowledge/maps/comet_catcher_remake_1.8.md` and the index `docs/knowledge/replays.md` point here. Spot numbers are the cards' (the game's own 80-spot list), not the bot's (the engine's 75); they map to the bot's by position (nearest within 130), and every spot carries its grid cell (8x8 over 8192x6144). Unit names: armfav Rover, corfav Rascal, armflash Blitz, corgator Incisor, corak Grunt, armpw Pawn, armflea Tick, armstump Stout, corraid Brute, armllt/corllt the light laser turret. "W"/"L" are the winners' and the losers' sides. Remaining card limits: `fights` is the eight costliest cell-minutes per game; the cards carry no unit positions over time (held back or chasing cannot be read); the killer of the first extractor is "?" on 10 sides; one manifest start (bcaeb16a, Chronopolize) disagrees with the card's B5 and the card is used. Fixed after the survey (cards re-cut 2026-09-23 evening): the faction field, the spots' cells, the first-enemy-seen field (removed: a replay sees everything), the factories' order, the last 15 s of kills counted apart, cells on every building, the first tier-2 unit.
+
+### K-open-start-geometry-mirror-pairs
+**Claim.** On Comet Catcher the starts come in half-turn mirror pairs: A4 (about 900, 2540) with H5 (7290, 3600), B5
+(1420, 3560) with G4 (6770, 2580); H1 (7290, 760) has no west mirror in these games. The spot cells mirror to within a
+cell (A4's spot_28/spot_30 and H5's spot_48/spot_51; B4's spot_36 and G5's spot_42; the B3-B1 strip and the G6-G8 strip).
+Each start has three spots within the first minute's walk (two before the factory, the third at 0:44-1:25), and the
+first raid on an extractor comes at 3:22 from G4 (8 sides) but 5:10 from its mirror B5 (12), so the geometry alone does
+not set the raid clock. Pairings: A4-H5 11 games (A4 won 7), B5-H5 8 (B5 won 5), A4-G4 5 (G4 won 3), B5-G4 3 (G4 won 2),
+H1 2 (H1 lost both); west starts won 17 of 29 with the higher-OS player in the west in 14.
+**Status.** observed (2026-09-23, replay survey)
+**Evidence.** all 29 (card start cells; manifest start positions).
+**Would be wrong if.** A spot list with coordinates showed the spots off the half-turn by more than a spot's spacing. What
+the question asks (spots in the first minute's walk, the distance to the middle, the passages) needs walking times and
+spot coordinates per start, which the cards do not carry: a map-facts block with the start's spot distances would.
+**Used by.** (candidate: the arena's start placement; a fair test uses mirrored starts)
+
+### K-open-comet-radar-nano-solars-habits
+**Claim.** Standing habits across the 58 sides: a radar by 3:04 (winners' median; losers 2:58), in 57 of 58 sides by
+8:00; the first nano turret at 5:42 (winners and losers alike), in 50 of 58 by 8:00, winners a median 2 by 8:00 against
+1; no wind generator in any of 58 sides (solars only: two before the factory, 16 by 8:00 for winners against 13); constructors
+at 2:00 a median 2 for winners against 1 for losers;
+dragon's teeth (cordrag) in the opening in 2 Cortex sides.
+**Status.** observed (2026-09-23, replay survey)
+**Evidence.** all 29.
+**Would be wrong if.** Later versions changed the wind range; wind on this map is low (K-open-comet-solars-starve-the-opening
+says 1 to 4). **Refines** K-open-comet-solars-starve-the-opening: the people buy solars, two before the plant and a
+median 13 to 16 by 8:00, and it does not starve them because they keep adding extractors (18 by 8:00 for winners); the
+claim's point (extractors before generators beyond the second) holds only for the first two minutes.
+**Used by.** (candidate: the brief's standing instructions: radar by 3:00, a nano turret by 6:00)
+
+### K-open-comet-constructors-take-the-flanks
+**Claim.** The extractors past the home three and the next pair are the constructors' work: the commander built a median
+5 of the winners' extractors to 8:00 (25%) and the constructors the rest; the commander built half or more in 7 of 29
+winners and 10 of 29 losers, and built 5 or more after 2:00 in 9 winners and 10 losers. Winners had more constructors at
+10:00 (median 7 against 5) and at 12:00 (9.5 against 6).
+**Status.** observed (2026-09-23, replay survey)
+**Evidence.** all 29 (`build_order[].by`).
+**Would be wrong if.** The card's `by` attributed an assisting constructor's work to the commander or the reverse.
+**Refines** K-open-comet-commander-expands (one game): commander-built extractors in the middle columns C-F before 8:00
+were 3 or more in 10 winners and 11 losers, so it is a style, not the winners' pattern.
+**Used by.** (candidate: the brief's constructor count, 7 by 10:00)
+

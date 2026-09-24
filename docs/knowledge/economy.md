@@ -178,3 +178,22 @@ constants were fitted on bot labs. Its army curve is a floor for a fed plant and
 **Evidence.** `run/matches/1790104460-evidence-3-bulldogs`, `1790106884-ab55-jev-medium/0*`, `1790106884-ab5-jev-medium/0*`.
 **Would be wrong if.** The assist and the factory overhead, once modelled from these records, close the army gap.
 **Used by.** H-PLAYER-PLAN-SEARCH (the tools' note to the player).
+
+## Comet Catcher Remake 1.8: the replay survey (2026-09-23)
+
+Claims from the game cards of 29 public 1v1 duels (both players OS 25 and above, games of 2026-09-20 to 2026-09-23 on BAR test-31357 to 31383), filed by the synthesis agent against `docs/knowledge/questions.md` and checked with `run/replays/check.py`; the map file `docs/knowledge/maps/comet_catcher_remake_1.8.md` and the index `docs/knowledge/replays.md` point here. Spot numbers are the cards' (the game's own 80-spot list), not the bot's (the engine's 75); they map to the bot's by position (nearest within 130), and every spot carries its grid cell (8x8 over 8192x6144). Unit names: armfav Rover, corfav Rascal, armflash Blitz, corgator Incisor, corak Grunt, armpw Pawn, armflea Tick, armstump Stout, corraid Brute, armllt/corllt the light laser turret. "W"/"L" are the winners' and the losers' sides. Remaining card limits: `fights` is the eight costliest cell-minutes per game; the cards carry no unit positions over time (held back or chasing cannot be read); the killer of the first extractor is "?" on 10 sides; one manifest start (bcaeb16a, Chronopolize) disagrees with the card's B5 and the card is used. Fixed after the survey (cards re-cut 2026-09-23 evening): the faction field, the spots' cells, the first-enemy-seen field (removed: a replay sees everything), the factories' order, the last 15 s of kills counted apart, cells on every building, the first tier-2 unit.
+
+### K-eco-winner-pulls-away-8-to-12
+**Claim.** On Comet Catcher the income gap is small to 8:00 (winner minus loser, median: 0 at 2:00, 2.3 at 4:00 and 6:00,
+6.9 at 8:00) and opens after (13.6 at 10:00 over 22 games, 21.2 at 12:00 over 18). The winners spend in the window and
+bank after it: at 10:00 7 of 22 winners and 15 of 22 losers had 500 or more metal stored; at 12:00 11 of 18 winners
+and 9 of 18 losers, at 14:00 9 of 14 and 4 of 14. Energy is tight on both sides (energy stored under 50 at some minute
+from 3:00 to 8:00 in 40 of 58 sides) and the winners buy more of it: solars by 8:00 median 16 against 13, energy income
+at 8:00 400 against 330.
+**Status.** observed (2026-09-23, replay survey)
+**Evidence.** all 29.
+**Would be wrong if.** The losers' bank at 10:00 came from a factory killed rather than unspent income (the card cannot
+tell). The spend-then-bank shape contradicts K-open-comet-vehicle-list's "2,100 metal banked from minute 9 on one
+plant" as a habit to keep: the people's winners had under 500 banked at 10:00 in 15 of 22.
+**Used by.** (candidate: the bot's spend rule from 8:00; the plateau at 22-25 extractors)
+
