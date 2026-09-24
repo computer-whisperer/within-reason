@@ -143,3 +143,5 @@ fortnight) and filed with `pick.py --id`; thebluegecko's four duels (Comet, Gasb
 against Artur91 at OS 43) are in the manifest. Two defects fixed: the fetcher recorded a demo already on disk in
 memory only, and the runner rewrote the manifest from its start-time copy, dropping lines a picker appended meanwhile
 (it now merges into the file as it is).
+
+**2026-09-24 04:00.** `run/replays/assist.py`: the commander's early assist (the widget's `guard` on the plant), solar clocks, factory-unit speed-up and the metal store over the first four minutes, per side and by pool; the claim K-map-comet-catcher-remake-1-8-commander-assists-the-plant.

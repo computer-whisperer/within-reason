@@ -171,7 +171,12 @@ K-maps-comet-barb-opens-bots, the tempo model]
   Comet duels won against players at 40-43) opens on three: extractors 0:03, 0:10, 0:25, solars 0:31, 0:40, 0:49,
   the plant at 0:58, then a constructor, a solar and Rovers, or Rovers straight; the opponents at 40-43 open on two
   with the plant at 0:34. Either line, never a fourth solar before the plant: two extractors, two or three solars,
-  the plant, then constructor and solar as the commander's next two, Rovers first from the plant.** Then out: from 2:00 it walks toward the middle and builds an extractor
+  the plant, then constructor and solar as the commander's next two, Rovers first from the plant. The moment the
+  plant stands the commander guards it (assist) and steps out only for the next solar or extractor: thebluegecko
+  guards it 140 s of the first 240, the pool 50; the plant's units then come 1.5 times faster and the start's bank
+  goes into them (150 left at 2:00, 100 at 3:00). The limit is metal, not the commander's hands: the fourth solar at
+  1:33 costs five Rovers at the moment the bank is thinnest, and the winners at 40+ run it lower than the losers
+  (K-map-comet-catcher-remake-1-8-commander-assists-the-plant).** Then out: from 2:00 it walks toward the middle and builds an extractor
   every twenty to sixty seconds at the middle spots nearest home (spot_43 at 2:33, spot_38 and spot_39 by 3:36,
   spot_26 and spot_24 by 4:46, spot_33 and spot_31 by 6:15, at x 1,900 to 3,700), a light turret beside each pair
   (2:45, 3:42, 4:53, 6:22), a solar or two and a radar at each outpost (4:09, 5:40), and it stood 2,600 elmos east of

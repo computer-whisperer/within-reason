@@ -313,6 +313,31 @@ plant (the count by 2:00 does not separate winners from losers).
 **Used by.** `docs/briefs/player.md` (the Comet Catcher opening: two solars, the plant, then solar, constructor, solar,
 Rovers).
 
+### K-map-comet-catcher-remake-1-8-commander-assists-the-plant
+**Claim.** After the plant the commander's work is the plant: in the first 4:00 at OS 40 and above (80 sides) it
+guards the plant (the widget's `guard` command, the assist) for 50 s (median; 30 s or more in 45 of 80), first at
+1:35, stepping out for a solar or an extractor and back; thebluegecko (48.5) guards it 140 s of the 240 (first at 1:18,
+the second the plant stands), builds its fourth solar at 1:32 like everyone (the pool's median 1:33, before 2:00 in 59
+of 80 sides) and its sixth by 4:00, and gets 24 factory units out by 4:00 against the pool's 18. The factory's units
+come 1.5 to 1.6 times faster than the plant alone (the commander's 300 build power over the plant's 150 would give
+3.0), so the ceiling is metal, not build power: the store sits below 20 in 9% of the seconds from 1:00 to 4:00 and above
+150 in 42%; the bank at 1:00 is the start's 1000 less the opening (570 median), at 2:00 150, at 3:00 100. Winners at
+40+ assist less than losers (32 s against 93 s), have less in the bank at 3:00 (72 against 107) and stall more (11%
+against 7%): they spend harder, and a fourth solar before 2:00 does not separate winners from losers (29 of 59 won),
+nor does assisting (20 of 45 against 20 of 35). So the fourth solar's cost is the metal (155, five Rovers) at a moment
+when the bank is 150, not the commander's hands: the sides that build it before 2:00 assist more (95 s against 0),
+not less. The user's frame (2026-09-24, "when you pause building and let the commander simply assist the lab. That
+and the metal availability are the opportunity costs of building the fourth solar too early") holds on the metal
+and not on the assist, in this pool.
+**Status.** observed (2026-09-24, `run/replays/assist.py --floors 25,40 --player thebluegecko`); one map, the first
+four minutes, the assist read as the commander's `guard` command until its next order.
+**Evidence.** the replay records' `cmd` lines (the widget logs every command by unit) and `created`/`finished`
+events against the glossary's build times; the samples' metal store.
+**Would be wrong if.** A `guard` on a unit other than the plant were common in the first minutes (the commander
+guards nothing else that early), or the widget missed commands given by shift-queue (the plant finish and the first
+guard fall within a second in thebluegecko's games, so the log has them).
+**Used by.** `docs/briefs/player.md` (the Comet opening: guard the plant between builds; spend the bank through it).
+
 ### K-map-comet-catcher-remake-1-8-two-openings
 **Claim.** The sides open one of two ways. The fast plant (no turret; the first factory started 0:34-0:39 after
 extractor, extractor, solar, solar) in 22 of 58 sides, 16 of them Armada; and the turret opening (extractor 0:03, extractor
