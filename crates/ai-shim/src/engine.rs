@@ -695,6 +695,13 @@ impl Engine {
                 timeOut: NO_TIMEOUT,
                 moveState: state,
             }),
+            Command::FireState { unit, state } => self.handle(sys::COMMAND_UNIT_SET_FIRE_STATE, &mut sys::SSetFireStateUnitCommand {
+                unitId: unit.0,
+                groupId: NO_GROUP,
+                options: 0,
+                timeOut: NO_TIMEOUT,
+                fireState: state,
+            }),
             Command::SetRepeat { unit, repeat } => {
                 self.handle(sys::COMMAND_UNIT_SET_REPEAT, &mut sys::SSetRepeatUnitCommand {
                     unitId: unit.0,

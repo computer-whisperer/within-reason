@@ -1,0 +1,738 @@
+{
+ "format": "within-reason-scenario",
+ "version": 1,
+ "map": "Comet Catcher Remake 1.8",
+ "map_size": [
+  8192.0,
+  6144.0
+ ],
+ "centre": [
+  2388,
+  3585
+ ],
+ "source": {
+  "record": "/home/christian/workspace/playground/bar_bots/run/matches/1790261454-2v1b-hard/00/record-0.jsonl",
+  "clock": "13:50",
+  "frame": 24900,
+  "radius": 1300.0,
+  "enemies": "truth",
+  "truth_frame": 24900,
+  "orders_window": 20.0,
+  "live": [
+   {
+    "seconds": 30.0,
+    "ours": 1.0,
+    "theirs": 0.997
+   },
+   {
+    "seconds": 60.0,
+    "ours": 0.858,
+    "theirs": 0.931
+   }
+  ]
+ },
+ "sides": [
+  {
+   "name": "ours",
+   "units": [
+    {
+     "type": "armflash",
+     "x": 2540,
+     "z": 3470,
+     "health": 1.0,
+     "heading": [
+      0.649,
+      -0.761
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 3132,
+      "z": 2791
+     },
+     "source_id": 29158
+    },
+    {
+     "type": "armllt",
+     "x": 2352,
+     "z": 4416,
+     "health": 1.0,
+     "source_id": 22253
+    },
+    {
+     "type": "armflash",
+     "x": 1985,
+     "z": 3702,
+     "health": 1.0,
+     "heading": [
+      -0.083,
+      -0.997
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 2040,
+      "z": 3368
+     },
+     "source_id": 12874
+    },
+    {
+     "type": "armllt",
+     "x": 2864,
+     "z": 4688,
+     "health": 1.0,
+     "source_id": 21029
+    },
+    {
+     "type": "armllt",
+     "x": 2672,
+     "z": 3824,
+     "health": 1.0,
+     "source_id": 13665
+    },
+    {
+     "type": "armstump",
+     "x": 2538,
+     "z": 3002,
+     "health": 1.0,
+     "heading": [
+      -0.972,
+      0.233
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 1212,
+      "z": 3427
+     },
+     "source_id": 24945
+    },
+    {
+     "type": "armstump",
+     "x": 1916,
+     "z": 3202,
+     "health": 1.0,
+     "heading": [
+      -0.186,
+      0.983
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 1212,
+      "z": 3427
+     },
+     "source_id": 18227
+    },
+    {
+     "type": "armstump",
+     "x": 2539,
+     "z": 3038,
+     "health": 1.0,
+     "heading": [
+      -0.988,
+      0.156
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 1212,
+      "z": 3427
+     },
+     "source_id": 7267
+    },
+    {
+     "type": "armstump",
+     "x": 1815,
+     "z": 2790,
+     "health": 1.0,
+     "heading": [
+      -0.666,
+      0.746
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 1212,
+      "z": 3427
+     },
+     "source_id": 13005
+    },
+    {
+     "type": "armllt",
+     "x": 1616,
+     "z": 2816,
+     "health": 1.0,
+     "source_id": 26315
+    },
+    {
+     "type": "armstump",
+     "x": 1826,
+     "z": 3324,
+     "health": 1.0,
+     "heading": [
+      -0.62,
+      0.785
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 1212,
+      "z": 3427
+     },
+     "source_id": 2610
+    },
+    {
+     "type": "armstump",
+     "x": 2811,
+     "z": 2994,
+     "health": 1.0,
+     "heading": [
+      0.994,
+      0.11
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 1212,
+      "z": 3427
+     },
+     "source_id": 3930
+    },
+    {
+     "type": "armstump",
+     "x": 2634,
+     "z": 3157,
+     "health": 1.0,
+     "heading": [
+      -0.69,
+      0.724
+     ],
+     "order": {
+      "kind": "move",
+      "x": 1286,
+      "z": 5421
+     },
+     "source_id": 4829
+    },
+    {
+     "type": "armstump",
+     "x": 2074,
+     "z": 4020,
+     "health": 1.0,
+     "heading": [
+      0.426,
+      0.905
+     ],
+     "order": {
+      "kind": "move",
+      "x": 1286,
+      "z": 5421
+     },
+     "source_id": 31496
+    },
+    {
+     "type": "armstump",
+     "x": 2078,
+     "z": 4509,
+     "health": 1.0,
+     "order": {
+      "kind": "move",
+      "x": 2057,
+      "z": 4509
+     },
+     "source_id": 21996
+    },
+    {
+     "type": "armstump",
+     "x": 2315,
+     "z": 4327,
+     "health": 1.0,
+     "heading": [
+      -0.214,
+      0.977
+     ],
+     "order": {
+      "kind": "move",
+      "x": 1286,
+      "z": 5421
+     },
+     "source_id": 27825
+    },
+    {
+     "type": "armstump",
+     "x": 2081,
+     "z": 3728,
+     "health": 1.0,
+     "heading": [
+      -0.199,
+      -0.98
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 2040,
+      "z": 3368
+     },
+     "source_id": 5722
+    },
+    {
+     "type": "armstump",
+     "x": 2345,
+     "z": 3630,
+     "health": 1.0,
+     "heading": [
+      0.453,
+      -0.892
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 3132,
+      "z": 2791
+     },
+     "source_id": 5078
+    },
+    {
+     "type": "armstump",
+     "x": 2037,
+     "z": 3643,
+     "health": 1.0,
+     "heading": [
+      -0.204,
+      -0.979
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 2040,
+      "z": 3368
+     },
+     "source_id": 133
+    },
+    {
+     "type": "armstump",
+     "x": 2305,
+     "z": 4408,
+     "health": 1.0,
+     "heading": [
+      -0.134,
+      0.991
+     ],
+     "order": {
+      "kind": "move",
+      "x": 1286,
+      "z": 5421
+     },
+     "source_id": 4410
+    },
+    {
+     "type": "armstump",
+     "x": 2054,
+     "z": 4465,
+     "health": 1.0,
+     "heading": [
+      -0.998,
+      -0.055
+     ],
+     "order": {
+      "kind": "move",
+      "x": 2057,
+      "z": 4509
+     },
+     "source_id": 18503
+    },
+    {
+     "type": "armstump",
+     "x": 2112,
+     "z": 3701,
+     "health": 1.0,
+     "heading": [
+      -0.199,
+      -0.98
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 2040,
+      "z": 3368
+     },
+     "source_id": 3560
+    },
+    {
+     "type": "armstump",
+     "x": 2114,
+     "z": 3628,
+     "health": 1.0,
+     "heading": [
+      -0.199,
+      -0.98
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 2040,
+      "z": 3368
+     },
+     "source_id": 30728
+    },
+    {
+     "type": "armstump",
+     "x": 2002,
+     "z": 3675,
+     "health": 1.0,
+     "heading": [
+      0.103,
+      -0.995
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 2040,
+      "z": 3368
+     },
+     "source_id": 25389
+    },
+    {
+     "type": "armstump",
+     "x": 2084,
+     "z": 4548,
+     "health": 1.0,
+     "order": {
+      "kind": "move",
+      "x": 2057,
+      "z": 4509
+     },
+     "source_id": 19795
+    },
+    {
+     "type": "armstump",
+     "x": 2011,
+     "z": 3593,
+     "health": 1.0,
+     "heading": [
+      0.08,
+      -0.997
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 2040,
+      "z": 3368
+     },
+     "source_id": 1544
+    },
+    {
+     "type": "armstump",
+     "x": 2068,
+     "z": 3767,
+     "health": 1.0,
+     "heading": [
+      -0.191,
+      -0.982
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 2040,
+      "z": 3368
+     },
+     "source_id": 20334
+    },
+    {
+     "type": "armstump",
+     "x": 2093,
+     "z": 4473,
+     "health": 1.0,
+     "heading": [
+      -0.581,
+      0.814
+     ],
+     "order": {
+      "kind": "move",
+      "x": 2057,
+      "z": 4509
+     },
+     "source_id": 10810
+    },
+    {
+     "type": "armstump",
+     "x": 2132,
+     "z": 3666,
+     "health": 1.0,
+     "heading": [
+      -0.201,
+      -0.98
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 2040,
+      "z": 3368
+     },
+     "source_id": 5421
+    },
+    {
+     "type": "armstump",
+     "x": 2070,
+     "z": 3620,
+     "health": 1.0,
+     "heading": [
+      -0.221,
+      -0.975
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 2040,
+      "z": 3368
+     },
+     "source_id": 7623
+    },
+    {
+     "type": "armstump",
+     "x": 2063,
+     "z": 3691,
+     "health": 1.0,
+     "heading": [
+      -0.188,
+      -0.982
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 2040,
+      "z": 3368
+     },
+     "source_id": 1470
+    },
+    {
+     "type": "armstump",
+     "x": 2092,
+     "z": 3662,
+     "health": 1.0,
+     "heading": [
+      -0.186,
+      -0.983
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 2040,
+      "z": 3368
+     },
+     "source_id": 10174
+    },
+    {
+     "type": "armstump",
+     "x": 2109,
+     "z": 3790,
+     "health": 1.0,
+     "heading": [
+      -0.16,
+      -0.987
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 2040,
+      "z": 3368
+     },
+     "source_id": 21174
+    },
+    {
+     "type": "armstump",
+     "x": 1930,
+     "z": 4492,
+     "health": 1.0,
+     "heading": [
+      0.36,
+      -0.933
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 2040,
+      "z": 3368
+     },
+     "source_id": 1611
+    },
+    {
+     "type": "armstump",
+     "x": 2009,
+     "z": 4243,
+     "health": 1.0,
+     "heading": [
+      0.027,
+      -1.0
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 2040,
+      "z": 3368
+     },
+     "source_id": 24715
+    }
+   ]
+  },
+  {
+   "name": "theirs",
+   "units": [
+    {
+     "type": "armjanus",
+     "x": 3501,
+     "z": 4168,
+     "health": 1.0,
+     "heading": [
+      0.0,
+      1.0
+     ],
+     "source_id": 17727
+    },
+    {
+     "type": "armjanus",
+     "x": 3462,
+     "z": 4150,
+     "health": 0.78,
+     "heading": [
+      0.037,
+      0.999
+     ],
+     "source_id": 16917
+    },
+    {
+     "type": "armjanus",
+     "x": 3489,
+     "z": 4207,
+     "health": 1.0,
+     "heading": [
+      0.0,
+      1.0
+     ],
+     "source_id": 27342
+    },
+    {
+     "type": "armart",
+     "x": 3560,
+     "z": 3479,
+     "health": 1.0,
+     "heading": [
+      -0.577,
+      0.816
+     ],
+     "source_id": 25235
+    },
+    {
+     "type": "armflash",
+     "x": 1235,
+     "z": 3550,
+     "health": 0.8,
+     "heading": [
+      -1.0,
+      -0.015
+     ],
+     "source_id": 29070
+    },
+    {
+     "type": "armart",
+     "x": 3517,
+     "z": 3080,
+     "health": 0.83,
+     "heading": [
+      -0.038,
+      -0.999
+     ],
+     "source_id": 1281
+    },
+    {
+     "type": "armjanus",
+     "x": 3410,
+     "z": 4070,
+     "health": 1.0,
+     "heading": [
+      0.158,
+      0.987
+     ],
+     "source_id": 318
+    },
+    {
+     "type": "armpw",
+     "x": 3233,
+     "z": 3036,
+     "health": 1.0,
+     "heading": [
+      1.0,
+      0.026
+     ],
+     "source_id": 5949
+    },
+    {
+     "type": "armflash",
+     "x": 1151,
+     "z": 3287,
+     "health": 0.71,
+     "heading": [
+      -0.315,
+      -0.949
+     ],
+     "source_id": 25524
+    },
+    {
+     "type": "armflash",
+     "x": 3303,
+     "z": 3041,
+     "health": 0.58,
+     "heading": [
+      1.0,
+      0.0
+     ],
+     "source_id": 5976
+    },
+    {
+     "type": "armflash",
+     "x": 1140,
+     "z": 3356,
+     "health": 0.78,
+     "heading": [
+      -0.965,
+      -0.264
+     ],
+     "source_id": 29416
+    },
+    {
+     "type": "armflash",
+     "x": 1335,
+     "z": 3412,
+     "health": 0.95,
+     "heading": [
+      -0.964,
+      0.266
+     ],
+     "source_id": 995
+    },
+    {
+     "type": "armflash",
+     "x": 1326,
+     "z": 3435,
+     "health": 0.86,
+     "heading": [
+      -0.86,
+      -0.511
+     ],
+     "source_id": 6989
+    },
+    {
+     "type": "armstump",
+     "x": 3342,
+     "z": 4147,
+     "health": 1.0,
+     "heading": [
+      0.261,
+      0.965
+     ],
+     "source_id": 27708
+    },
+    {
+     "type": "armstump",
+     "x": 3312,
+     "z": 4116,
+     "health": 1.0,
+     "heading": [
+      0.288,
+      0.958
+     ],
+     "source_id": 31343
+    },
+    {
+     "type": "armstump",
+     "x": 3372,
+     "z": 4174,
+     "health": 1.0,
+     "heading": [
+      0.22,
+      0.975
+     ],
+     "source_id": 940
+    }
+   ]
+  }
+ ]
+}

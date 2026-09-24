@@ -205,6 +205,27 @@ by up to ~500 elmos for the largest armies) rather than from spacing. Not separa
 **Used by.** (candidate: the brain's blob attack-move is the tight case; spreading a Pawn wave is worth more than its unit
 stats suggest)
 
+### K-units-duel-a-stout-ball-is-not-muzzled-on-flat-ground
+**Claim.** On flat ground, a ball of 24 Stouts `armstump` closing on 24 at the duel director's attack-move fires at
+its full rate whenever an enemy is in reach: 0.79-0.84 shots per in-reach second of 0.83 possible, muzzled (the
+`run/fire.py` definition) 0.0-0.4% of in-reach seconds in ranks of eight, in a line abreast and against either, with
+friendly fire 0.1% of the damage it does. The line abreast loses to the ball (margin -0.13 +- 0.03, 1 win in 8): its
+ends are out of reach while the ball's front fires. So the 14-18% muzzled and 0.44-0.45 shots per in-reach second of
+the Stouts in the live games (2v1b-hard, bank-1) come from something the flat mirror duel does not have, not from the
+ball's own hulls as such; in those games the share is highest for a soldier alone (26% in 2v1b-hard) and a clear line
+is the largest cause (46-56%).
+**Status.** supported for the duel setup (2026-09-24; a rerun after the director's rework agreed, the line losing 15
+of 16 over both); what the live games add is open. Phase 2's replays of recorded engagements
+(`docs/studies/2026-09-24-muzzled-ball.md`) muzzle our side 2-3% in three of them and 23% in one: bank-1 27:34, out-ranged
+by Fatboys and Fidos, lost 0-8. The muzzling belongs to that matchup and ground, and that scenario is where to take it apart
+**Evidence.** Batch `muzzle-stout-shapes` (24 duels, Mithril Mountain v2.0.1, `run/matches/1790287202-duel-muzzle-stout-shapes`);
+`run/fire.py` over `1790261454-2v1b-hard/00` and `1790257668-bank-1/00`.
+**Would be wrong if.** The same duel on sloped ground, against a mixed enemy, or with the control lane's orders instead
+of one attack-move showed the ball muzzled well above the lone soldier; or the duel instrument missed shots the record
+counts (it reads the same `WeaponFired` event).
+**Used by.** H-DUEL-FORMATION (harness only); the premise of the muzzle project's phase 4 (a footwork rule for a muzzled
+ball) rests on the opposite and needs the phase 2 replays first.
+
 ### K-units-duel-range-vs-turrets
 **Claim.** Against light laser towers at equal metal: Lasher `cormist` (range 575) wins untouched, +96 / +100; Rocketeer
 +43 / +37 and Aggravator +24 / +28 (range 475 against 430-435) win but pay for it; Mace +60 / +52 and Thug +63 / +53

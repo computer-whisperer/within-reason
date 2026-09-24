@@ -9,9 +9,18 @@ use std::path::Path;
 use crate::director::DuelResult;
 
 pub const HEADER: &str = "match,site,sequence,x,y,rep,x_end,x_team,n_x,n_y,metal_x,metal_y,winner,reason,seconds,\
-contact_seconds,survivors_x,survivors_y,value_left_x,value_left_y,damage_taken_x,damage_taken_y,spread_x,spread_y";
+contact_seconds,survivors_x,survivors_y,value_left_x,value_left_y,damage_taken_x,damage_taken_y,spread_x,spread_y,\
+form_x,form_y,reach_s_x,reach_s_y,shots_x,shots_y,muzzled_line_x,muzzled_line_y,muzzled_edge_x,muzzled_edge_y,\
+muzzled_clear_x,muzzled_clear_y,ff_x,ff_y,dealt_x,dealt_y,health_err_x,health_err_y";
 
 pub fn row(r: &DuelResult) -> String {
+    let [fx, fy] = &r.fire;
+    let fire = format!(
+        "{},{},{},{},{},{},{},{},{},{},{},{},{:.0},{:.0},{:.0},{:.0},{:.3},{:.3}",
+        r.formation[0], r.formation[1], fx.reach_seconds, fy.reach_seconds, fx.shots, fy.shots,
+        fx.muzzled[0], fy.muzzled[0], fx.muzzled[1], fy.muzzled[1], fx.muzzled[2], fy.muzzled[2],
+        fx.friendly_fire, fy.friendly_fire, fx.dealt, fy.dealt, r.health_error[0], r.health_error[1],
+    );
     format!(
         "{},{},{},{},{},{},{},{},{},{},{:.0},{:.0},{},{},{:.1},{},{},{},{:.3},{:.3},{:.0},{:.0},{:.0},{:.0}",
         r.match_index, r.site, r.sequence, r.job.x, r.job.y, r.job.rep,
@@ -20,10 +29,10 @@ pub fn row(r: &DuelResult) -> String {
         r.contact_seconds.map_or(String::new(), |s| format!("{s:.1}")),
         r.survivors[0], r.survivors[1], r.value_left[0], r.value_left[1], r.damage_taken[0], r.damage_taken[1],
         r.spread_at_contact[0], r.spread_at_contact[1],
-    )
+    ) + "," + &fire
 }
 
-/// One pairing seen from its first unit's side.
+/// One pairing (in one pair of formations) seen from its first unit's side.
 #[derive(Default, Clone)]
 struct Tally {
     duels: u32,
@@ -34,11 +43,23 @@ struct Tally {
     seconds: f32,
     own_count: u32,
     other_count: u32,
+    /// The fire instrument summed over the duels that carry it (none in a batch from before 2026-09-24):
+    /// duels, in-reach seconds, shots, muzzled seconds by cause, friendly fire, dealt, dealt by the other side.
+    fire_duels: u32,
+    reach_s: f32,
+    shots: f32,
+    muzzled: [f32; 3],
+    ff: f32,
+    dealt: f32,
+    dealt_against: f32,
 }
+
+/// Columns of the fire instrument, as `x` and `y`; batches from before 2026-09-24 have none of them.
+const FIRE: [&str; 7] = ["reach_s", "shots", "muzzled_line", "muzzled_edge", "muzzled_clear", "ff", "dealt"];
 
 /// Reads raw duel rows (several files may be merged) and writes `pairs.csv`, `matrix.csv` and `matrix.md` to `out`.
 pub fn write(inputs: &[&Path], out: &Path) -> io::Result<()> {
-    let mut tallies: BTreeMap<(String, String), Tally> = BTreeMap::new();
+    let mut tallies: BTreeMap<(String, String, String, String), Tally> = BTreeMap::new();
     let mut units: Vec<String> = Vec::new();
     for input in inputs {
         let text = fs::read_to_string(input)?;
@@ -48,6 +69,10 @@ pub fn write(inputs: &[&Path], out: &Path) -> io::Result<()> {
         let (x, y, n_x, n_y) = (column("x")?, column("y")?, column("n_x")?, column("n_y")?);
         let (winner, reason, seconds) = (column("winner")?, column("reason")?, column("seconds")?);
         let (left_x, left_y) = (column("value_left_x")?, column("value_left_y")?);
+        let optional = |name: &str| header.iter().position(|h| *h == name);
+        let forms = [optional("form_x"), optional("form_y")];
+        let fire: Option<Vec<[usize; 2]>> =
+            FIRE.iter().map(|c| Some([optional(&format!("{c}_x"))?, optional(&format!("{c}_y"))?])).collect();
         for line in lines {
             let f: Vec<&str> = line.split(',').collect();
             if f.len() != header.len() || f[reason] == "spawn_failed" {
@@ -55,15 +80,21 @@ pub fn write(inputs: &[&Path], out: &Path) -> io::Result<()> {
             }
             let number = |i: usize| f[i].parse::<f32>().unwrap_or(0.0);
             let margin = number(left_x) - number(left_y);
+            let form = |i: usize| forms[i].map_or("", |c| f[c]);
+            // Per army: in-reach seconds, shots, muzzled by cause, friendly fire, dealt.
+            let fired = fire.as_ref().map(|columns| [0, 1].map(|side| columns.iter().map(|c| number(c[side])).collect::<Vec<f32>>()));
             for name in [f[x], f[y]] {
                 if !units.iter().any(|u| u == name) {
                     units.push(name.to_string());
                 }
             }
             // Each duel counts once from either side; a unit against itself only once.
-            let views = [(f[x], f[y], margin, "x", n_x, n_y), (f[y], f[x], -margin, "y", n_y, n_x)];
-            for (own, other, margin, won_as, own_n, other_n) in views.into_iter().take(if f[x] == f[y] { 1 } else { 2 }) {
-                let tally = tallies.entry((own.to_string(), other.to_string())).or_default();
+            // A mirror pairing in two different formations is two pairings, each seen from its first army.
+            let views = [(f[x], f[y], margin, "x", n_x, n_y, 0), (f[y], f[x], -margin, "y", n_y, n_x, 1)];
+            let mirror = f[x] == f[y] && form(0) == form(1);
+            for (own, other, margin, won_as, own_n, other_n, side) in views.into_iter().take(if mirror { 1 } else { 2 }) {
+                let key = (own.to_string(), other.to_string(), form(side).to_string(), form(1 - side).to_string());
+                let tally = tallies.entry(key).or_default();
                 tally.duels += 1;
                 tally.wins += u32::from(f[winner] == won_as);
                 tally.losses += u32::from(f[winner] != won_as && f[winner] != "draw");
@@ -71,14 +102,47 @@ pub fn write(inputs: &[&Path], out: &Path) -> io::Result<()> {
                 tally.seconds += number(seconds);
                 tally.own_count = number(own_n) as u32;
                 tally.other_count = number(other_n) as u32;
+                if let Some(fired) = &fired {
+                    tally.fire_duels += 1;
+                    // In a mirror both armies fought in the same condition, so both count.
+                    let armies = if mirror { vec![0, 1] } else { vec![side] };
+                    for army in armies {
+                        let (mine, theirs) = (&fired[army], &fired[1 - army]);
+                        tally.reach_s += mine[0];
+                        tally.shots += mine[1];
+                        for cause in 0..3 {
+                            tally.muzzled[cause] += mine[2 + cause];
+                        }
+                        tally.ff += mine[5];
+                        tally.dealt += mine[6];
+                        tally.dealt_against += theirs[6];
+                    }
+                }
             }
         }
     }
 
-    let mut pairs = String::from("unit,against,n_unit,n_against,duels,wins,losses,draws,mean_margin,mean_seconds\n");
-    for ((own, other), t) in &tallies {
+    // The first ten columns are the 2026-09-19 layout (`combatsim` reads them by position); the rest were added
+    // 2026-09-24 and are empty for duels without the fire instrument.
+    let mut pairs = String::from(
+        "unit,against,n_unit,n_against,duels,wins,losses,draws,mean_margin,mean_seconds,formation,formation_against,\
+         shots_per_reach_s,muzzled_share,muzzled_line,muzzled_edge,muzzled_clear,ff_share,exchange\n",
+    );
+    for ((own, other, form, form_against), t) in &tallies {
+        let fire = if t.fire_duels == 0 {
+            ",,,,,,".to_string()
+        } else {
+            let muzzled: f32 = t.muzzled.iter().sum();
+            let share = |n: f32| if muzzled > 0.0 { format!("{:.3}", n / muzzled) } else { String::new() };
+            format!(
+                "{:.3},{:.3},{},{},{},{:.3},{}",
+                t.shots / t.reach_s.max(1.0), muzzled / t.reach_s.max(1.0), share(t.muzzled[0]), share(t.muzzled[1]),
+                share(t.muzzled[2]), t.ff / (t.dealt + t.ff).max(1.0),
+                if t.dealt_against > 0.0 { format!("{:.3}", t.dealt / t.dealt_against) } else { String::new() },
+            )
+        };
         let _ = writeln!(
-            pairs, "{own},{other},{},{},{},{},{},{},{:.3},{:.1}",
+            pairs, "{own},{other},{},{},{},{},{},{},{:.3},{:.1},{form},{form_against},{fire}",
             t.own_count, t.other_count, t.duels, t.wins, t.losses, t.duels - t.wins - t.losses,
             t.margin / t.duels as f32, t.seconds / t.duels as f32
         );
@@ -86,9 +150,11 @@ pub fn write(inputs: &[&Path], out: &Path) -> io::Result<()> {
     fs::write(out.join("pairs.csv"), pairs)?;
 
     // Rows fight columns: +100 means the row unit won untouched, -100 that it died without scratching the column unit.
+    // Formations pooled.
     let cell = |own: &str, other: &str| {
-        let own_view = tallies.get(&(own.to_string(), other.to_string()));
-        own_view.map(|t| (100.0 * t.margin / t.duels as f32).round() as i32)
+        let views = tallies.iter().filter(|((o, a, _, _), _)| o == own && a == other).map(|(_, t)| t);
+        let (margin, duels) = views.fold((0.0, 0), |(m, d), t| (m + t.margin, d + t.duels));
+        (duels > 0).then(|| (100.0 * margin / duels as f32).round() as i32)
     };
     let mut csv = format!("unit,{}\n", units.join(","));
     let mut md = format!("| row vs column | {} | mean |\n|---|{}---|\n", units.join(" | "), "---|".repeat(units.len()));

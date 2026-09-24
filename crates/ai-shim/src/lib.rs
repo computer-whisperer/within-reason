@@ -186,6 +186,7 @@ impl Instance {
                 | Command::Stop { unit }
                 | Command::SetRepeat { unit, .. }
                 | Command::MoveState { unit, .. }
+                | Command::FireState { unit, .. }
                 | Command::Guard { unit, .. }
                 | Command::ReclaimFeature { unit, .. }
                 | Command::ReclaimUnit { unit, .. }

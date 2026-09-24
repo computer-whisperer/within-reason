@@ -237,7 +237,8 @@ the grid beside the match record and the viewer draws it (`docs/harness/record-f
 Unit-against-unit tests for the matchup table (`docs/harness/duels.md`): a headless match in which both teams are our AI
 and the `duel` binary (in the arena crate) is the bot for both, so one director spawns both armies, orders them and
 scores the fight. The protocol gained two commands at the end of `Command`, `GiveUnit` (the AI interface's spawn cheat)
-and `SelfDestruct`; normal matches never send them. The arena crate became a library plus two binaries so that `duel`
+and `SelfDestruct`, and on 2026-09-24 `FireState` (a recorded engagement's units hold fire while the director hurts them
+to their recorded health, `docs/harness/duels.md`, Scenarios); normal matches never send them. The arena crate became a library plus two binaries so that `duel`
 shares the autohost channel and the engine chores (`crates/arena/src/harness.rs`).
 Chose-because: the director needs both sides' state on the same frame (to start both armies together and to know when
 a fight is over), which two independent brain sessions in `bot` would have had to share through a side channel.

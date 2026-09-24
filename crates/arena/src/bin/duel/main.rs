@@ -3,13 +3,17 @@
 //! This process is the bot for both teams: the shims connect to it instead of `bot`. See `docs/harness/duels.md`.
 //!
 //! usage: duel (--units a,b,c | --ours a,b --theirs c,d | --pairs a:b,c:d) [--reps N] [--budget METAL | --count N]
-//!             [--parallel N] [--sites N] [--duels-per-match N] [--time-limit SECONDS] [--sweep-waves N] [--spacing ELMOS] [--spread ELMOS] [--speed N] [--map NAME]
+//!             [--parallel N] [--sites N] [--duels-per-match N] [--time-limit SECONDS] [--sweep-waves N] [--spacing ELMOS] [--formation X[/Y],...] [--spread ELMOS] [--speed N] [--map NAME]
 //!             [--label TEXT] [--base-port N]
+//!        duel --scenario FILE [--reps N] [--parallel N] [--time-limit SECONDS] [--speed N] [--label TEXT] [--base-port N]
+//!             (a recorded engagement, `scenario.rs`, fought `--reps` times on its own map and place)
 //!        duel --report DIR [duels.csv ...]   (rebuild the tables in DIR, from its own duels.csv or the files named)
 
 mod director;
+mod fire;
 mod plan;
 mod report;
+mod scenario;
 mod script;
 mod sites;
 
@@ -32,6 +36,8 @@ use bot_protocol::{Commands, FrameReader, ToBot, write_frame};
 
 use director::{Batch, Director};
 use plan::{Job, Sizing};
+use scenario::Scenario;
+use sites::Formation;
 
 /// A match whose director hears nothing for this long has hung.
 const STALL_ALLOWANCE: Duration = Duration::from_secs(120);
@@ -47,13 +53,19 @@ struct Options {
     duels_per_match: u32,
     time_limit: i32,
     sweep_waves: u32,
+    /// Elmos between neighbours for a formation that names none.
     spacing: f32,
+    /// How the two armies stand, one entry per shape the batch fights every pairing in (`--formation`).
+    shapes: Vec<[Formation; 2]>,
     /// H-MICRO-SPREAD for the first unit of each pairing: elmos between the points its units are sent to.
     spread: f32,
     speed: u32,
     map: String,
     label: String,
     base_port: u16,
+    /// `--scenario`: this engagement instead of pairings, and the start boxes that keep the commanders away from it.
+    scenario: Option<Scenario>,
+    boxes: [script::StartBox; 2],
 }
 
 fn main() -> io::Result<()> {
@@ -72,14 +84,19 @@ fn main() -> io::Result<()> {
     let stamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
     let batch_dir = repo.join(format!("run/matches/{stamp}-duel-{}", options.label));
     fs::create_dir_all(&batch_dir)?;
-    let jobs = plan::jobs(&options.pairs, options.reps);
-    println!("{} duels ({} pairings x {}) on {} -> {}", jobs.len(), options.pairs.len(), options.reps, options.map, batch_dir.display());
+    let jobs = plan::jobs(&options.pairs, options.reps, options.shapes.len());
+    let shapes: Vec<String> = options.shapes.iter().map(|[x, y]| format!("{}/{}", x.label(), y.label())).collect();
+    println!(
+        "{} duels ({} pairings x {} shapes x {}) on {} -> {}",
+        jobs.len(), options.pairs.len(), options.shapes.len(), options.reps, options.map, batch_dir.display()
+    );
     fs::write(
         batch_dir.join("batch.json"),
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": git_commit(&repo), "map": options.map, "pairings": options.pairs.len(),
             "reps": options.reps, "sizing": format!("{:?}", options.sizing), "time_limit": options.time_limit,
-            "speed": options.speed, "sweep_waves": options.sweep_waves, "spacing": options.spacing, "spread": options.spread, "sites": options.sites, "duels_per_match": options.duels_per_match,
+            "speed": options.speed, "sweep_waves": options.sweep_waves, "spacing": options.spacing, "formations": shapes, "spread": options.spread, "sites": options.sites, "duels_per_match": options.duels_per_match,
+            "scenario": options.scenario.as_ref().map(|s| s.centre),
         }))?,
     )?;
 
@@ -94,16 +111,19 @@ fn main() -> io::Result<()> {
         sizing: options.sizing,
         time_limit: options.time_limit,
         sweep_waves: options.sweep_waves,
-        spacing: options.spacing,
+        shapes: options.shapes.clone(),
         spread: options.spread,
+        scenario: options.scenario.clone(),
         on_result: Box::new(move |result| {
             // Written as they finish, so an interrupted batch keeps what it has.
             let _ = writeln!(csv.lock().unwrap(), "{}", report::row(result));
             let n = done.fetch_add(1, Ordering::Relaxed) + 1;
+            let muzzled = |i: usize| 100.0 * result.fire[i].muzzled_seconds() as f32 / result.fire[i].reach_seconds.max(1) as f32;
             println!(
-                "[{n}/{total}] {}x{} vs {}x{}: {} ({}) {:.0}s, left {:.0}% / {:.0}%",
-                result.count[0], result.job.x, result.count[1], result.job.y, result.winner, result.reason,
-                result.seconds, 100.0 * result.value_left[0], 100.0 * result.value_left[1]
+                "[{n}/{total}] {}x{} ({}) vs {}x{} ({}): {} ({}) {:.0}s, left {:.0}% / {:.0}%, muzzled {:.0}% / {:.0}%",
+                result.count[0], result.job.x, result.formation[0], result.count[1], result.job.y, result.formation[1],
+                result.winner, result.reason, result.seconds, 100.0 * result.value_left[0], 100.0 * result.value_left[1],
+                muzzled(0), muzzled(1)
             );
         }),
     });
@@ -154,7 +174,7 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, batch: &Arc<Batch
         copy_tree(&cache_template, &dir.join("cache"))?;
     }
     let script_path = dir.join("script.txt");
-    fs::write(&script_path, script::render(&resolve_game(repo, GAME_TAG)?, &options.map, host_port, host_port + 1, index as u32 + 1))?;
+    fs::write(&script_path, script::render(&resolve_game(repo, GAME_TAG)?, &options.map, host_port, host_port + 1, index as u32 + 1, options.boxes))?;
 
     let mut autohost = Autohost::bind(host_port + 1)?;
     // Unix socket paths are limited to ~108 bytes, so the socket cannot live in the match directory.
@@ -281,14 +301,18 @@ fn parse_args() -> io::Result<Options> {
         time_limit: 240,
         sweep_waves: 3,
         spacing: 56.0,
+        shapes: Vec::new(),
         spread: 0.0,
         speed: 50,
         map: "Quicksilver Remake 1.24".into(),
         label: "batch".into(),
         base_port: 9500,
+        scenario: None,
+        boxes: script::DUEL_BOXES,
     };
     let list = |text: String| text.split(',').map(str::to_string).collect::<Vec<_>>();
     let (mut ours, mut theirs) = (Vec::new(), Vec::new());
+    let mut formations = String::from("ranks8");
     let mut args = std::env::args().skip(1);
     while let Some(flag) = args.next() {
         if flag == "--report" {
@@ -319,22 +343,45 @@ fn parse_args() -> io::Result<Options> {
             "--time-limit" => options.time_limit = number(value()) as i32,
             "--sweep-waves" => options.sweep_waves = number(value()),
             "--spacing" => options.spacing = number(value()) as f32,
+            "--formation" => formations = value(),
             "--spread" => options.spread = number(value()) as f32,
             "--speed" => options.speed = number(value()),
             "--base-port" => options.base_port = number(value()) as u16,
             "--map" => options.map = value(),
+            "--scenario" => {
+                let scenario = Scenario::load(std::path::Path::new(&value())).unwrap_or_else(|e| usage(&e));
+                let [x, z] = scenario.centre;
+                let [w, h] = scenario.map_size;
+                options.boxes = script::farthest_corners(x / w.max(1.0), z / h.max(1.0));
+                options.map = scenario.map.clone();
+                options.pairs.push((scenario.sides[0].name.clone(), scenario.sides[1].name.clone()));
+                options.scenario = Some(scenario);
+            }
             "--label" => options.label = value(),
             _ => usage(&format!("unknown argument {flag}")),
         }
     }
     options.pairs.extend(plan::cross(&ours, &theirs));
+    // `X` or `X/Y` per shape, comma-separated: X for the first army of each pairing, Y (default ranks of eight) for
+    // the second; each at `--spacing` unless it names its own with `@`.
+    for shape in formations.split(',') {
+        let (x, y) = shape.split_once('/').unwrap_or((shape, "ranks8"));
+        let parse = |text: &str| {
+            Formation::parse(text, options.spacing).unwrap_or_else(|| usage(&format!("--formation: {text} is not ranksN, line, or either @SPACING")))
+        };
+        options.shapes.push([parse(x), parse(y)]);
+    }
     if options.pairs.is_empty() {
-        usage("no pairings: give --units, --ours with --theirs, or --pairs");
+        usage("no pairings: give --units, --ours with --theirs, --pairs, or --scenario");
+    }
+    if options.scenario.is_some() && (options.pairs.len() != 1 || options.shapes.len() != 1) {
+        usage("--scenario fights its own sides: no pairings and no formations beside it");
     }
     Ok(options)
 }
 
 fn usage(problem: &str) -> ! {
-    eprintln!("{problem}\nusage: duel (--units a,b,c | --ours a,b --theirs c,d | --pairs a:b,c:d) [--reps N] [--budget METAL | --count N] [--parallel N] [--sites N] [--duels-per-match N] [--time-limit SECONDS] [--sweep-waves N] [--spacing ELMOS] [--spread ELMOS] [--speed N] [--map NAME] [--label TEXT] [--base-port N]\n       duel --report DIR [duels.csv ...]");
+    eprintln!("{problem}\nusage: duel (--units a,b,c | --ours a,b --theirs c,d | --pairs a:b,c:d) [--reps N] [--budget METAL | --count N] [--parallel N] [--sites N] [--duels-per-match N] [--time-limit SECONDS] [--sweep-waves N] [--spacing ELMOS] [--formation X[/Y],...] [--spread ELMOS] [--speed N] [--map NAME] [--label TEXT] [--base-port N]\n       duel --scenario FILE [--reps N] [--parallel N] [--time-limit SECONDS] [--speed N] [--label TEXT] [--base-port N]
+       duel --report DIR [duels.csv ...]");
     std::process::exit(2)
 }

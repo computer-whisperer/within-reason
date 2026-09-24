@@ -4,6 +4,14 @@ Written 2026-09-24 at the user's direction, before any code (the user: "The stou
 now"; the project agreed as phases, the first two to an Opus agent in a worktree). Branch `muzzle-sim`, worktree
 `/home/christian/workspace/playground/bar_bots-muzzle`.
 
+**Status (2026-09-24).** Phase 1 built and measured (`muzzle-stout-shapes`): on flat ground a ball of 24 Stouts is
+not muzzled (under 0.5% of in-reach seconds, full rate of fire) and beats a line abreast; the live 14-18% comes from
+something the flat mirror duel lacks (`docs/studies/2026-09-24-muzzled-ball.md`). Phase 2 built and measured:
+`run/engagement.py` cuts a scenario, `duel --scenario` fights it (health by hurting after spawning, facing by a short
+move: the cheat sets neither); the three engagements replay stably (margin sd 0.01-0.09 over 8), and only bank-1 27:34
+(out-ranged by Fatboys) muzzles us, 23%. The simulator cannot take the files yet (no per-unit health or orders, no
+reader, no hulls): phase 3's list. Phases 3 and 4 not started.
+
 ## The problem, as measured
 - The engine refuses a shot whose line (or a cannon's arc) crosses an allied hull: every weapon keeps `avoidFriendly`,
   BAR overrides it nowhere; a unit with its target in range and its shot refused stops and points, it does not step
