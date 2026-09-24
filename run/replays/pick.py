@@ -3,6 +3,7 @@
 
     run/replays/pick.py [--map "Comet Catcher Remake 1.8"]... [--preset duel] [--pages 3] [--min-os 25]
                           [--min-minutes 6] [--max-minutes 40] [--manifest run/data/replays/manifest.jsonl]
+    run/replays/pick.py --id <match id>... [the same floors]      judge the matches named instead of paging
 
 Pages BAR's replay API (https://api.bar-rts.com/replays) for each map given (every map when none), reads the detail
 of each match not yet in the manifest, and appends one line per match: kept or not and why. Kept: the preset, no
@@ -104,9 +105,25 @@ def main():
             for line in f:
                 if line.strip():
                     known.add(json.loads(line)["id"])
+    ids = [args[i + 1] for i, a in enumerate(args) if a == "--id"]
     added = kept = 0
     with open(manifest, "a") as out:
-        for map_name in maps or [None]:
+        # Named matches (a player's games found by scanning the list: the API's player filter is a no-op, 2026-09-24).
+        for match_id in ids:
+            if match_id in known:
+                print(f"{match_id[:8]} already in the manifest")
+                continue
+            detail = get(f"{API}/{match_id}")
+            time.sleep(PAUSE)
+            why = judge(detail, preset, min_os, min_minutes, max_minutes)
+            entry = line_of(detail, why)
+            out.write(json.dumps(entry) + "\n")
+            out.flush()
+            known.add(match_id)
+            added += 1
+            kept += entry["keep"]
+            print(f"{match_id[:8]} {entry['map_script']} {(entry['duration_ms'] or 0) // 60000} min: {entry['why']}")
+        for map_name in (maps or [None]) if not ids else []:
             for page in range(1, pages + 1):
                 query = {"page": page, "limit": 20, "preset": preset, "hasBots": "false"}
                 if map_name:
