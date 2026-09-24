@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """The fire instrument read out of match records (docs/harness/record-format.md, the `s` line's `dealt`, `shots`,
-`ff`, `xo`, `xi`; records from 2026-09-24 on).
+`ff`, `xo`, `xi`, and `xf` from the evening of 2026-09-24 on; records from 2026-09-24 on).
 
     run/fire.py <match dir or record>... [--quiet 3] [--pairs 12]
 
@@ -53,7 +53,7 @@ def read(path, quiet_floor):
         out = {
             "reach_s": collections.Counter(), "shots": collections.Counter(), "muzzled_s": collections.Counter(),
             "ball": collections.Counter(), "ball_reach": collections.Counter(), "why": collections.Counter(),
-            "ff": collections.Counter(), "dealt": 0.0, "xo": collections.Counter(), "xi": collections.Counter(),
+            "ff": collections.Counter(), "dealt": 0.0, "xo": collections.Counter(), "xi": collections.Counter(), "xf": collections.Counter(),
             "seconds": 0, "instrumented": False,
         }
         quiet = collections.Counter()
@@ -77,6 +77,8 @@ def read(path, quiet_floor):
                 out["xo"][(a, b)] += d
             for a, b, d in r["xi"]:
                 out["xi"][(a, b)] += d
+            for a, b, d in r.get("xf", []):
+                out["xf"][(a, b)] += d
             own = r["own"]
             soldiers = [(u, d, x, z) for u, d, x, z, hp, fl in own if defs[d]["class"] == "army" and defs[d]["reach"] > 0 and not fl & 1]
             enemies = [(x, z) for e, d, x, z, hp in r["en"]]
@@ -137,6 +139,8 @@ def report(label, r, pairs):
     ff = sum(r["ff"].values())
     print(f"friendly fire {ff:.0f} of {r['dealt']:.0f} dealt ({100 * ff / max(1.0, r['dealt'] + ff):.1f}%): " + ", ".join(f"{t} {d:.0f}" for t, d in r["ff"].most_common(6)))
     defs = r["defs"]
+    if r["xf"]:
+        print("  our hits on our own (shooter -> victim, damage): " + ", ".join(f"{name(defs, a)}->{name(defs, b)} {d:.0f}" for (a, b), d in r["xf"].most_common(pairs)))
     print("  our hits on them (type -> type, damage): " + ", ".join(f"{name(defs, a)}->{name(defs, b)} {d:.0f}" for (a, b), d in r["xo"].most_common(pairs)))
     print("  their hits on us: " + ", ".join(f"{name(defs, a)}->{name(defs, b)} {d:.0f}" for (a, b), d in r["xi"].most_common(pairs)))
     unseen = sum(d for (a, b), d in r["xi"].items() if a < 0)

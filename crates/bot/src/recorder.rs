@@ -46,6 +46,9 @@ pub struct Recorder {
     dealt: BTreeMap<UnitId, f32>,
     shots: BTreeMap<UnitId, u32>,
     friendly: BTreeMap<UnitId, f32>,
+    /// Friendly fire by type pair (shooter's type, victim's type), for the sample's `xf`: who is killing whom on
+    /// our own side (the user, 2026-09-24, from a replay: the Stouts' shells kill the Blitzes in front of them).
+    exchange_friendly: BTreeMap<(i64, i64), f32>,
     exchange_out: BTreeMap<(i64, i64), f32>,
     exchange_in: BTreeMap<(i64, i64), f32>,
     /// Our own units as of the last tick: a hit on one of ours by another of ours is friendly fire.
@@ -83,6 +86,7 @@ impl Recorder {
                 dealt: BTreeMap::new(),
                 shots: BTreeMap::new(),
                 friendly: BTreeMap::new(),
+                exchange_friendly: BTreeMap::new(),
                 exchange_out: BTreeMap::new(),
                 exchange_in: BTreeMap::new(),
                 own: HashSet::new(),
@@ -172,6 +176,8 @@ impl Recorder {
                 if let Some(attacker) = attacker {
                     if self.own.contains(&attacker) {
                         *self.friendly.entry(attacker).or_default() += damage;
+                        let pair = (self.def(self.known.get(&attacker).and_then(|k| k.0)), self.def(self.known.get(&unit).and_then(|k| k.0)));
+                        *self.exchange_friendly.entry(pair).or_default() += damage;
                     } else {
                         let pair = (self.def(self.known.get(&attacker).and_then(|k| k.0)), self.def(self.known.get(&unit).and_then(|k| k.0)));
                         *self.exchange_in.entry(pair).or_default() += damage;
@@ -302,6 +308,11 @@ impl Recorder {
         for (i, (unit, damage)) in std::mem::take(&mut self.friendly).into_iter().enumerate() {
             let comma = if i == 0 { "" } else { "," };
             let _ = write!(self.buffer, "{comma}[{},{damage:.0}]", unit.0);
+        }
+        self.buffer.push_str("],\"xf\":[");
+        for (i, ((from, to), damage)) in std::mem::take(&mut self.exchange_friendly).into_iter().enumerate() {
+            let comma = if i == 0 { "" } else { "," };
+            let _ = write!(self.buffer, "{comma}[{from},{to},{damage:.0}]");
         }
         self.buffer.push_str("],\"xo\":[");
         for (i, ((from, to), damage)) in std::mem::take(&mut self.exchange_out).into_iter().enumerate() {
