@@ -516,10 +516,29 @@ impl Brain {
                 offer("engage", Pick::Engage, "Attack the enemy party named in `whom` now and follow it: the parties in sight are under `enemy.in_sight`, and how this group weighs against the nearest is on its own `enemies_near` line.".into());
                 offer("attack_unit", Pick::AttackUnit, "Every soldier of this group attacks one unit of the party named in `whom`: its commander when it is there, else its dearest unit; they chase it until it dies or is lost, then hold. The order that kills a commander, and the only order by which aircraft pick their target.".into());
             }
-            offer("retreat", Pick::Retreat, "Fall back to our base.".into());
-            // H-HANDS-FALL-BACK: a busy group can go back to where it last held, the answer for one losing soldiers
-            // while the player's orders are on their way.
-            if group.task.busy() && let Some(back) = group.last_hold {
+            // H-HANDS-FALL-BACK: a group already walking back is not offered the two ways back again (wake-2: retreat
+            // and fall_back alternated every ask); `fall_back` is offered when something calls for it, a party that
+            // outweighs the group within its alarm reach or a noticeable share lost in the last 30 s, and only to a
+            // station farther from that party than the group stands (the options are code's to offer, Jev's to pick).
+            let walking_back = matches!(&group.task, super::GroupTask::Move { fight: false, place, .. } if place == "home" || place.starts_with(super::groups::LAST_HOLD));
+            if !walking_back {
+                offer("retreat", Pick::Retreat, "Fall back to our base.".into());
+            }
+            let nearest_party = picture.parties.iter().map(|p| (p.at.dist2d(centre), p)).filter(|(d, _)| *d < ALARM).min_by(|a, b| a.0.total_cmp(&b.0)).map(|(_, p)| p);
+            let odds_against = nearest_party.is_some_and(|p| {
+                let odds = self.odds_words(&units, p, enemies);
+                !odds.starts_with("we outweigh") && !odds.starts_with("it cannot hit us")
+            });
+            let (_, lost_lately) = group.lost_since(frame - 30 * FRAMES_PER_SECOND, &self.world);
+            let standing: f32 = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
+            let losing = lost_lately >= 0.1 * (lost_lately + standing);
+            if !walking_back
+                && group.task.busy()
+                && (odds_against || losing)
+                && let Some(back) = group.last_hold
+                && back.dist2d(centre) > 300.0
+                && nearest_party.is_none_or(|p| p.at.dist2d(back) > p.at.dist2d(centre) + 300.0)
+            {
                 offer("fall_back", Pick::FallBack, format!("Fall back to where it last held ({}, {} away) without fighting on the way; less far than `retreat`.", self.place_words(&picture.places, back), distance_words(back.dist2d(centre))));
             }
             if units.len() >= 2 {

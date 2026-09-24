@@ -44,6 +44,9 @@ const LOSS_WAKE_COUNT: usize = 2;
 const LOSS_WAKE_SHARE: f32 = 0.25;
 /// How a `fall_back` walk names its destination in the group's task (H-HANDS-FALL-BACK); not a mark's name.
 pub(super) const LAST_HOLD: &str = "where it last held,";
+/// A hold this long is a station worth falling back to (wake-2: a one-second pause at the front became "where it
+/// last held", and group_L fell back to where it stood, held, retreated, and fell back again, eleven times in 30 s).
+pub(super) const STATION_FRAMES: i32 = 15 * FRAMES_PER_SECOND;
 
 #[derive(Clone, Debug)]
 pub(crate) enum GroupTask {
@@ -276,7 +279,11 @@ impl Brain {
             let units = group.units(own);
             let Some(centre) = centre_of(&units) else { continue };
             match &mut group.task {
-                GroupTask::Hold { .. } => group.last_hold = Some(centre),
+                GroupTask::Hold { since, .. } => {
+                    if frame - *since >= STATION_FRAMES {
+                        group.last_hold = Some(centre);
+                    }
+                }
                 GroupTask::Move { to, fight, place, .. } => {
                     let to_go = centre.dist2d(*to);
                     if to_go < group.best_to_go - PROGRESS_STEP {

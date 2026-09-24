@@ -93,6 +93,8 @@ def scorecard(m):
         for g in c.get("groups") or []:
             tasks[f"group_{g['name']}"] = (g.get("task") or {}).get("kind")
         for entry in (state.get("actors") or {}).values():
+            if not isinstance(entry, dict):
+                continue  # an unasked actor is one line since 2026-09-23
             for text in entry.get("enemies_at_our_extractors") or []:
                 mm = re.match(r"(party_\d+)", text)
                 if mm:

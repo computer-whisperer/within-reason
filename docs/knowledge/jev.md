@@ -735,6 +735,8 @@ states; the real bundle is measured in wake-2).
 **Evidence.** the jev log's `state` and `questions` at frames 20370 and 32850.
 **Would be wrong if.** The cut state answered worse on the control moments: check wake-2's ordinary decisions against
 wake-1's with `run/jev_ab.py --control`.
+**Check (2026-09-23, wake-2).** In the game: 7,861 input tokens a call median (10,296), 25 place entries (40), 10.1k
+characters of state (14.3k); $0.31 for 24.8 min against $0.35 for 18.5. The bare-name `where` options were answered.
 **Used by.** H-HANDS-DIET.
 
 ### K-hands-precedence-wording
@@ -754,4 +756,12 @@ attack. With the state cuts the same 9 of 21 at 8.0k tokens against 9.9k.
 **Would be wrong if.** In the check game the hands fall back from fights the player meant them to press (the 18:15
 shape): then the packet needs a named way to override the rule ("even when losing a large share"), and the rules a
 sentence that honours it.
+**Check (2026-09-23, wake-2, lost 24.8).** Over-corrected live: 27 of 42 in-flight loss moments fell back (wake-1: 1
+of 24) and 203 of 900 group choices were a fall-back or retreat, 27 of them with "we outweigh it" and no losses line.
+Two harness defects of the option itself did much of it: a one-second hold at the front became "where it last
+held", so `fall_back` arrived at once and the group stood to be asked again; and `retreat` and `fall_back` were both
+offered to a group already walking back, which alternated them every ask (group_L, 17:09-17:39, at 0.92-0.96 each).
+Fixed (a station is 15 s of holding; the option only when a party within reach outweighs the group or a tenth of its
+metal went in 30 s, to a station farther from the party; nothing offered twice to a group already walking back): the
+prompt's own share of the over-correction is measured in wake-3.
 **Used by.** H-HANDS-FALL-BACK.
