@@ -110,3 +110,11 @@ rest (metal full 70 % of the game, one plant). The guard now stops only on overa
 and `allowed_warning`. A game whose `bot.log` says "Player session ended; heuristics carry on alone" in the first
 minute is void: check the `stopped` line in `strategist-0.jsonl` for the reason before reading the game.
 
+
+## The replay manifest is rewritten whole by the fetcher and the runner
+
+`run/replays/fetch.py` and `run/replays/replay.py` read `run/data/replays/manifest.jsonl` at their start and write it
+back whole when they amend a line. A `pick.py` run that appended lines while a replay batch ran lost them at the
+batch's next write (2026-09-24, thebluegecko's four duels, re-added). The runner now merges its `match`/`card` fields
+into the file as it is at write time; the fetcher still writes its start-time copy, so do not run `pick.py` while
+`fetch.py` runs.

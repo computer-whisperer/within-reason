@@ -61,3 +61,31 @@ From `_inbox/replays-comet-catcher-2026-09-23.md`; "all 29" is every Comet Catch
 - K-eco-winner-pulls-away-8-to-12: all 29
 - K-open-comet-radar-nano-solars-habits: all 29
 - K-open-comet-constructors-take-the-flanks: all 29
+
+## Comet Catcher Remake 1.8, both players at OS 40 and above (25 duels, carded 2026-09-24; `run/replays/pick.py --min-os 40 --pages 12`)
+
+- `7834a86a48942dc28dddaaea37677ab1` 2026-09-14, Comet Catcher Remake 1.8: RAM_Noctis (42.71, Cortex, B5) vs [APM]Hellontoast (41.06, Cortex, H5); won RAM_Noctis; 21:47
+- `7b44a86a09b02b6d698d115f21c1b474` 2026-09-14, Comet Catcher Remake 1.8: [MADO]f1sher (49.66, Cortex, A4) vs [APM]Hellontoast (41.06, Armada, G4); won [MADO]f1sher; 11:19
+- `c047a86a99188b9516fbced6f8ae4cf2` 2026-09-14, Comet Catcher Remake 1.8: [MADO]f1sher (49.66, Cortex, A4) vs [MADO]Artur91 (43.19, Armada, G4); won [MADO]Artur91; 12:05
+- `2865a96aa44b470ed00b2cea102e6091` 2026-09-15, Comet Catcher Remake 1.8: [MADO]Artur91 (43.19, Armada, B5) vs [MADO]Baldric (44.65, Armada, G4); won [MADO]Baldric; 9:04
+- `e467a96ae824cb9ac2c134590f327a69` 2026-09-15, Comet Catcher Remake 1.8: [MADO]Artur91 (43.19, Armada, B5) vs [MADO]Baldric (44.65, Cortex, H5); won [MADO]Baldric; 17:22
+- `596ca96a289a5a445c04f10fd526b4b8` 2026-09-15, Comet Catcher Remake 1.8: [MADO]Artur91 (43.19, Armada, A4) vs [MADO]Baldric (44.65, Cortex, H5); won [MADO]Artur91; 15:30
+- `e0cba96a4de3c962c38212cebc147777` 2026-09-15, Comet Catcher Remake 1.8: Immort (43.21, Armada, A4) vs JelousOfMyEco (42.63, Armada, H5); won JelousOfMyEco; 6:44
+- `03cea96a6a9fd7c565358ef63d48f2d7` 2026-09-15, Comet Catcher Remake 1.8: Immort (43.21, Armada, A4) vs JelousOfMyEco (42.63, Cortex, H5); won Immort; 11:03
+- `2500ab6a84f25a19c8aff575ce14f728` 2026-09-16, Comet Catcher Remake 1.8: [MADO]Artur91 (43.4, Armada, B5) vs cooolcat1239 (42.58, Cortex, H5); won cooolcat1239; 9:59
+- `0a03ab6a3ef5892e68c5d2d99ab9abf7` 2026-09-16, Comet Catcher Remake 1.8: [MADO]Artur91 (43.4, Armada, B5) vs cooolcat1239 (42.58, Cortex, H5); won [MADO]Artur91; 11:10
+- `6812ab6adde2aa319ff3c2e357c06240` 2026-09-16, Comet Catcher Remake 1.8: [MADO]Baldric (45.23, Cortex, A4) vs [MADO]Artur91 (43.4, Armada, H5); won [MADO]Artur91; 18:18
+- `a418ab6a25dbbb7a0188146542d47c0a` 2026-09-16, Comet Catcher Remake 1.8: PRO_Jamerz (44.43, Cortex, A6) vs [MADO]Artur91 (43.4, Armada, G4); won PRO_Jamerz; 9:16
+- `4d1eab6ae1fc17e08b8a1e664ee30888` 2026-09-16, Comet Catcher Remake 1.8: TehHardStuckOS25erer (43.22, Cortex, A4) vs BM_chickentasty (44.89, Armada, H5); won BM_chickentasty; 15:26
+- `9a22ab6a34f08e7899d3135880727712` 2026-09-16, Comet Catcher Remake 1.8: TehHardStuckOS25erer (43.22, Cortex, A4) vs BM_chickentasty (44.89, Cortex, H5); won TehHardStuckOS25erer; 18:20
+- `5027ab6ac64de239ceec3d562125fe74` 2026-09-16, Comet Catcher Remake 1.8: TehHardStuckOS25erer (43.22, Cortex, A4) vs BM_chickentasty (44.89, Armada, H5); won TehHardStuckOS25erer; 15:32
+- `e62bab6a3002813de0955ddbcd7cee74` 2026-09-16, Comet Catcher Remake 1.8: [MADO]Artur91 (43.4, Armada, B5) vs TehHardStuckOS25erer (43.22, Cortex, H5); won [MADO]Artur91; 14:52
+- `bb2fab6a69723eedf7ee45dfd931dc76` 2026-09-17, Comet Catcher Remake 1.8: [MADO]Artur91 (43.4, Armada, B5) vs TehHardStuckOS25erer (43.22, Cortex, H5); won [MADO]Artur91; 12:21
+- `1f33ab6ab75ea1046adea79820d8438b` 2026-09-17, Comet Catcher Remake 1.8: [MADO]Artur91 (43.4, Armada, B5) vs TehHardStuckOS25erer (43.22, Armada, H5); won [MADO]Artur91; 8:14
+- `3337ab6acb69233473848ceaf6fe7cba` 2026-09-17, Comet Catcher Remake 1.8: [MADO]Artur91 (43.4, Armada, A4) vs TehHardStuckOS25erer (43.22, Armada, H1); won [MADO]Artur91; 9:17
+- `f639ab6a6f7ec7cbfe7378e170ee2c95` 2026-09-17, Comet Catcher Remake 1.8: [MADO]Artur91 (43.4, Armada, A4) vs TehHardStuckOS25erer (43.22, Armada, H1); won [MADO]Artur91; 15:21
+- `b0a9ad6aafab0604e810db932a12e7ea` 2026-09-18, Comet Catcher Remake 1.8: AnnaDrama (53.89, Cortex, A4) vs [APM]Hellontoast (41.15, Cortex, H5); won AnnaDrama; 18:38
+- `d6aead6aa00ca8663c70a1f51d937aff` 2026-09-18, Comet Catcher Remake 1.8: [MADO]Baldric (45.22, Cortex, A4) vs [MADO]fins (41.09, Armada, H5); won [MADO]fins; 10:20
+- `54e4af6a3c4bf99b59c7cf7a3f3ac1b3` 2026-09-20, Comet Catcher Remake 1.8: [MADO]Artur91 (43.4, Armada, B5) vs [APM]ieNemo (45.77, Cortex, H5); won [MADO]Artur91; 17:14
+- `9f1fb46a003ba6d25b3f0b414cf76090` 2026-09-23, Comet Catcher Remake 1.8: [APM]Hellontoast (41.15, Cortex, A4) vs AgentOG (44.02, Cortex, H5); won [APM]Hellontoast; 12:23
+- `8731b46ae98e2865b64e132b58fb86ac` 2026-09-23, Comet Catcher Remake 1.8: [APM]Hellontoast (41.15, Cortex, A4) vs [APM]HornetPro (40.14, Cortex, H5); won [APM]HornetPro; 15:47

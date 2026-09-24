@@ -54,6 +54,9 @@ def main():
     for r in kept:
         path = os.path.join(DATA, "replays", r["map_file"], r["file"])
         if os.path.exists(path) and os.path.getsize(path) > 0:
+            # A demo already on disk (a line re-added after a manifest rewrite lost it) is recorded too.
+            if r.get("demo") != os.path.relpath(path, REPO):
+                changed = True
             r["demo"] = os.path.relpath(path, REPO)
             continue
         if limit is not None and fetched >= limit:

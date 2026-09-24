@@ -162,7 +162,13 @@ K-maps-comet-barb-opens-bots, the tempo model]
   `run/matches/1790122851-replay-vak-vs-artur-comet`, run/view_match.py opens it) [K-open-comet-pro-order,
   K-open-comet-commander-expands, K-open-comet-rascals-lose-to-the-commander, K-open-comet-flash-raids-take-the-resign].
   The commander: extractors 0:03, 0:10, 0:24 (the three spots beside the start: spot_30, spot_28, spot_36 from the A4 start at (904, 2457), where the arena puts you too), solars 0:31, 0:40, 0:49, the plant
-  at 0:58 (standing 1:16), one more solar, then out: from 2:00 it walks toward the middle and builds an extractor
+  at 0:58 (standing 1:16), one more solar, then out. **The higher pool is stricter (33 duels with both players at OS
+  40 and above, 2026-09-24, K-map-comet-catcher-remake-1-8-two-solars-before-the-plant): two solars before the
+  plant, never four and rarely three, the plant started at 0:43 (median; before 0:45 in half the sides), and after it
+  a solar, the first constructor, a solar, then two Rovers from the plant while the commander walks out; the third
+  to fifth solars come by 2:00 and the eighth by 5:00. An experienced player's own rule, told to the user: more than
+  three solars in the early opening is a major mistake. Use the two-solar line: two extractors, two solars, the
+  plant, then solar, constructor, solar as the commander's next three, Rovers first from the plant.** Then out: from 2:00 it walks toward the middle and builds an extractor
   every twenty to sixty seconds at the middle spots nearest home (spot_43 at 2:33, spot_38 and spot_39 by 3:36,
   spot_26 and spot_24 by 4:46, spot_33 and spot_31 by 6:15, at x 1,900 to 3,700), a light turret beside each pair
   (2:45, 3:42, 4:53, 6:22), a solar or two and a radar at each outpost (4:09, 5:40), and it stood 2,600 elmos east of

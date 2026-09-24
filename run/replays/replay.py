@@ -86,8 +86,18 @@ def main():
                 row["card"] = card
             done += 1
             print(f"  {match_id[:8]} {row['map_script']} {row['duration_ms'] // 60000} min: {'records' if match else 'FAILED'}{' + card' if card else ''} in {seconds} s (exit {rc})")
+            # Merged into the file as it is now, not the copy read at the start: a picker or fetcher run meanwhile
+            # appends or amends lines, and a rewrite from the copy lost four of them (2026-09-24).
+            current = [json.loads(l) for l in open(manifest) if l.strip()]
+            for r in current:
+                if r["id"] == match_id:
+                    r["match"] = row.get("match")
+                    r["card"] = row.get("card")
+                    if r["match"] is None:
+                        r.pop("match", None)
+                        r.pop("card", None)
             with open(manifest, "w") as out:
-                for r in rows:
+                for r in current:
                     out.write(json.dumps(r) + "\n")
     print(f"{done} replayed; {sum(1 for r in rows if r.get('card'))} of {sum(1 for r in rows if r.get('keep'))} kept replays have cards")
 

@@ -277,6 +277,36 @@ replicate the guesser; under the player nothing is guessed.
 
 Claims from the game cards of 29 public 1v1 duels (both players OS 25 and above, games of 2026-09-20 to 2026-09-23 on BAR test-31357 to 31383), filed by the synthesis agent against `docs/knowledge/questions.md` and checked with `run/replays/check.py`; the map file `docs/knowledge/maps/comet_catcher_remake_1.8.md` and the index `docs/knowledge/replays.md` point here. Spot numbers are the cards' (the game's own 80-spot list), not the bot's (the engine's 75); they map to the bot's by position (nearest within 130), and every spot carries its grid cell (8x8 over 8192x6144). Unit names: armfav Rover, corfav Rascal, armflash Blitz, corgator Incisor, corak Grunt, armpw Pawn, armflea Tick, armstump Stout, corraid Brute, armllt/corllt the light laser turret. "W"/"L" are the winners' and the losers' sides. Remaining card limits: `fights` is the eight costliest cell-minutes per game; the cards carry no unit positions over time (held back or chasing cannot be read); the killer of the first extractor is "?" on 10 sides; one manifest start (bcaeb16a, Chronopolize) disagrees with the card's B5 and the card is used. Fixed after the survey (cards re-cut 2026-09-23 evening): the faction field, the spots' cells, the first-enemy-seen field (removed: a replay sees everything), the factories' order, the last 15 s of kills counted apart, cells on every building, the first tier-2 unit.
 
+**Re-checked 2026-09-24 on 33 games with both players at OS 40 and above** (66 sides; 25 fetched that day with
+`run/replays/pick.py --min-os 40 --pages 12`, the tables from `run/replays/recheck.py --floors 25,40`, the players'
+advice to the user being that 25 is too low to learn from). What held at the higher floor: the plant first in 77% of
+sides (all: 77%), the fast plant before 0:45 in 52% (51%), the commander's turret before 0:30 in 32% (35%),
+extractors at 12:00 winners 29 against losers 17 (the same), income at 8:00 41 against 35 (41 against 34), light
+turrets by 8:00 9 against 7 (9 against 6), a second factory in 79% at 7:56 (the same), tier 2 in 5% (6%), the first
+extractor lost at 4:12 (4:15), 60% of the fight-list deaths on rows 4 and 5 (62%). What moved: army metal at 8:00 is
+even at the higher floor, 1763 against 1702 (all: 1800 against 1602), so the winners' lead at 8:00 is extractors and
+turrets, not soldiers; the higher-OS side won 18 of 33 (55%) against 36 of 54 (67%), as it should when both are strong;
+games are shorter, 12:23 median against 13:34. The solar count is the new claim below.
+
+### K-map-comet-catcher-remake-1-8-two-solars-before-the-plant
+**Claim.** The opening builds two solar collectors before the first factory: 2 in 44 of 66 sides at OS 40 and above
+(0 or 1 in 15, 3 in 7, 4 or more in none; the whole pool 80 of 108, 17, 11, 0). The third and fourth come after the
+plant: by 2:00 the median is 4 (4 or more in 49 of 66) and by 3:00 5, by 5:00 8, winners and losers alike (4 or more
+by 2:00: 23 of 33 winners, 26 of 33 losers). The five build-order entries after the plant are, at each position, a
+solar (29 of 66), a constructor (15) or a solar (25), a solar (24), a solar (18) or a Rover (11), a Rover (15), with two
+solars among the five for winners and losers both; the one sequence that repeats is solar, constructor, solar, Rover,
+Rover (8 of 66). So the user's high-OS friend's rule, "more than three solars in the early opening is a major
+mistake", is the pool's habit read strictly: nobody builds a fourth before the plant, and few a third; the plant at
+0:43 (median) comes on two, and the energy for it is built while it stands. Our brief's opening (three solars, the
+plant at 0:58, from the VAK-Artur game) is the minority line.
+**Status.** observed (2026-09-24, 33 games at OS 40+; the whole pool agrees); no result signal either way past the
+plant (the count by 2:00 does not separate winners from losers).
+**Evidence.** `run/replays/recheck.py --floors 25,40` (the solar rows and the five actions); the cards' `build_order`.
+**Would be wrong if.** The cards missed solars started by the commander before the plant (the build order is every
+`created` event with its builder; a solar begun and cancelled would be counted, a solar assisted not started would not).
+**Used by.** `docs/briefs/player.md` (the Comet Catcher opening: two solars, the plant, then solar, constructor, solar,
+Rovers).
+
 ### K-map-comet-catcher-remake-1-8-two-openings
 **Claim.** The sides open one of two ways. The fast plant (no turret; the first factory started 0:34-0:39 after
 extractor, extractor, solar, solar) in 22 of 58 sides, 16 of them Armada; and the turret opening (extractor 0:03, extractor
@@ -530,8 +560,8 @@ in 17 (later in 8); built more solars by 8:00 in 18 (fewer in 8; median 2 more);
 29; had the turret before 1:00 when the other did not in 10 games (the reverse in 6); had more extractors at 10:00 in 14
 of 22 (median 4.5 more) but at 4:00 and 6:00 only 12 and 13 of 29. It did not plant earlier (earlier in 13, later in
 15) or make more scout cars by 3:00 (12 against 13).
-**Status.** observed (2026-09-23, replay survey)
-**Evidence.** all 29.
+**Status.** observed (2026-09-23, replay survey); at OS 40 and above (2026-09-24, 33 games) the higher-OS side won 18 of 33, 55%: the habits below are the pool's, the result at the top is closer to even.
+**Evidence.** all 29; `run/replays/recheck.py`.
 **Would be wrong if.** The differences held between winners and losers of equal OS but not by OS (that is, skill shows as
 the result, not as habits). Paired by result instead: the winner had more solars in 20 of 29, more energy income at 8:00
 in 19 of 25, more extractors at 4:00 in 16 (fewer in 4).

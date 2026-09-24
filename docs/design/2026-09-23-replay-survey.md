@@ -131,3 +131,15 @@ under 1,400, as the brief has them). The bridge is now explicit: the shim reads 
 centroid-snapped list otherwise, and logs the source and any spot of ours with no engine spot within 130. Smoke games
 spots-comet and spots-quick (easy, four minutes, heuristic brain): 80 and 44 spots, 14 and 8 extractors finished, no
 refused site. Quicksilver's game list is checked the same way when a Quicksilver replay is carded.
+
+**2026-09-24 02:30, the high-OS pull.** Experienced players told the user that OS 25 is too low to learn from and 40 and
+above is where the lessons are. `pick.py --map "Comet Catcher Remake 1.8" --min-os 40 --pages 12` examined 180 more
+matches and kept 25 (33 Comet duels at 40+ in all), their demos fetched, the one missing game version (test-31320)
+fetched with `byar:test` refetched, and all 25 replayed and carded in two batches (six on versions in the pool, then
+19 on four engines in about 50 minutes). `check.py --min-os` and `recheck.py` (the claims side by side by OS floor)
+were added; the results are in maps.md under the Comet claims (what held, what moved, the new solar claim). The API's
+`players[]` filter is a no-op, so a player's games are found by paging the whole list (100 a page, about 400 pages a
+fortnight) and filed with `pick.py --id`; thebluegecko's four duels (Comet, Gasbag Grabens, two on Full Metal Plate
+against Artur91 at OS 43) are in the manifest. Two defects fixed: the fetcher recorded a demo already on disk in
+memory only, and the runner rewrote the manifest from its start-time copy, dropping lines a picker appended meanwhile
+(it now merges into the file as it is).
