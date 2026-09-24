@@ -3,7 +3,7 @@
 //! Switched on with `WITHIN_REASON_RECORD=1`; writes `record-<ai_id>.jsonl` into the log directory. The file is
 //! append-only and flushed every tick, so a match that is killed is viewable up to its last tick.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt::Write as _;
 use std::fs::{File, OpenOptions};
 use std::io::{self, Write};
@@ -41,6 +41,15 @@ pub struct Recorder {
     /// The control lane's milling counters since the last sample.
     milling: Milling,
     damage: BTreeMap<UnitId, f32>,
+    /// Since the last sample, the fire instrument (`record-format.md`, the `s` line): damage each unit of ours dealt
+    /// to enemies, shots each fired, damage each did to our own side, and the two exchange tables by type.
+    dealt: BTreeMap<UnitId, f32>,
+    shots: BTreeMap<UnitId, u32>,
+    friendly: BTreeMap<UnitId, f32>,
+    exchange_out: BTreeMap<(i64, i64), f32>,
+    exchange_in: BTreeMap<(i64, i64), f32>,
+    /// Our own units as of the last tick: a hit on one of ours by another of ours is friendly fire.
+    own: HashSet<UnitId>,
     slowest_decide_ms: f32,
     /// The most frames a tick of the interval arrived late by (`Tick::late`).
     latest_tick: i32,
@@ -71,6 +80,12 @@ impl Recorder {
                 rules: BTreeMap::new(),
                 milling: Milling::default(),
                 damage: BTreeMap::new(),
+                dealt: BTreeMap::new(),
+                shots: BTreeMap::new(),
+                friendly: BTreeMap::new(),
+                exchange_out: BTreeMap::new(),
+                exchange_in: BTreeMap::new(),
+                own: HashSet::new(),
                 slowest_decide_ms: 0.0,
                 latest_tick: 0,
                 intent: None,
@@ -92,6 +107,7 @@ impl Recorder {
             header["first_tick_frame"] = json!(tick.frame);
             self.line(&header);
         }
+        self.own.extend(tick.snapshot.own_units.iter().map(|u| u.id));
         for unit in &tick.snapshot.own_units {
             self.known.insert(unit.id, (Some(unit.def), unit.pos));
             if unit.facing != 0 || self.facings.contains_key(&unit.id) {
@@ -151,8 +167,28 @@ impl Recorder {
             // Idle is a unit flag in the samples; damage is summed into the next sample.
             Event::UnitIdle { .. } => return,
             Event::Chat { player, ref text } => json!({ "t": "ev", "f": frame, "k": "chat", "player": player, "text": text }),
-            Event::UnitDamaged { unit, damage, .. } => {
+            Event::UnitDamaged { unit, attacker, damage, .. } => {
                 *self.damage.entry(unit).or_default() += damage;
+                if let Some(attacker) = attacker {
+                    if self.own.contains(&attacker) {
+                        *self.friendly.entry(attacker).or_default() += damage;
+                    } else {
+                        let pair = (self.def(self.known.get(&attacker).and_then(|k| k.0)), self.def(self.known.get(&unit).and_then(|k| k.0)));
+                        *self.exchange_in.entry(pair).or_default() += damage;
+                    }
+                }
+                return;
+            }
+            Event::EnemyDamaged { enemy, attacker, damage, .. } => {
+                if let Some(attacker) = attacker {
+                    *self.dealt.entry(attacker).or_default() += damage;
+                    let pair = (self.def(self.known.get(&attacker).and_then(|k| k.0)), self.def(self.known.get(&enemy).and_then(|k| k.0)));
+                    *self.exchange_out.entry(pair).or_default() += damage;
+                }
+                return;
+            }
+            Event::WeaponFired { unit, .. } => {
+                *self.shots.entry(unit).or_default() += 1;
                 return;
             }
             Event::UnitCreated { unit, builder } => {
@@ -171,6 +207,7 @@ impl Recorder {
                 r["by"] = json!(attacker.map(|a| a.0));
                 r["by_d"] = json!(self.def(attacker.and_then(|a| self.known.get(&a)).and_then(|k| k.0)));
                 self.known.remove(&unit);
+                self.own.remove(&unit);
                 r
             }
             Event::EnemyEnterLos { enemy } => about(self, "enemy_seen", enemy),
@@ -251,6 +288,31 @@ impl Recorder {
             let comma = if i == 0 { "" } else { "," };
             let _ = write!(self.buffer, "{comma}[{},{damage:.0}]", unit.0);
         }
+        self.buffer.push_str("],\"dealt\":[");
+        for (i, (unit, damage)) in std::mem::take(&mut self.dealt).into_iter().enumerate() {
+            let comma = if i == 0 { "" } else { "," };
+            let _ = write!(self.buffer, "{comma}[{},{damage:.0}]", unit.0);
+        }
+        self.buffer.push_str("],\"shots\":[");
+        for (i, (unit, shots)) in std::mem::take(&mut self.shots).into_iter().enumerate() {
+            let comma = if i == 0 { "" } else { "," };
+            let _ = write!(self.buffer, "{comma}[{},{shots}]", unit.0);
+        }
+        self.buffer.push_str("],\"ff\":[");
+        for (i, (unit, damage)) in std::mem::take(&mut self.friendly).into_iter().enumerate() {
+            let comma = if i == 0 { "" } else { "," };
+            let _ = write!(self.buffer, "{comma}[{},{damage:.0}]", unit.0);
+        }
+        self.buffer.push_str("],\"xo\":[");
+        for (i, ((from, to), damage)) in std::mem::take(&mut self.exchange_out).into_iter().enumerate() {
+            let comma = if i == 0 { "" } else { "," };
+            let _ = write!(self.buffer, "{comma}[{from},{to},{damage:.0}]");
+        }
+        self.buffer.push_str("],\"xi\":[");
+        for (i, ((from, to), damage)) in std::mem::take(&mut self.exchange_in).into_iter().enumerate() {
+            let comma = if i == 0 { "" } else { "," };
+            let _ = write!(self.buffer, "{comma}[{from},{to},{damage:.0}]");
+        }
         let _ = write!(self.buffer, "],\"ms\":{:.2},\"late\":{}", std::mem::take(&mut self.slowest_decide_ms), std::mem::take(&mut self.latest_tick));
         let milling = std::mem::take(&mut self.milling);
         if milling.claims > 0 {
@@ -311,6 +373,7 @@ fn header(hello: &Hello, mode: &str, session: bool, pianist: bool) -> Value {
                 "death_blast": d.death_blast.map(|b| json!([b.radius, b.damage])),
                 "selfd_blast": d.self_destruct_blast.map(|b| json!([b.radius, b.damage])),
                 "selfd_seconds": d.self_destruct_seconds,
+                "reach": d.reach, "reload": d.reload,
                 "converter": d.converter.map(|c| json!([c.capacity, c.efficiency])),
                 "move": d.move_class.map(|m| json!([format!("{:?}", m.kind).to_lowercase(), m.max_slope, m.depth, m.slope_mod])),
             })

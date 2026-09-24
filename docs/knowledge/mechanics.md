@@ -317,3 +317,29 @@ headers (`run/matches/1789929416-replay-ben-vs-medium/*.sdfz`, `1790122851-repla
 **Would be wrong if.** A lobby wrote AI seats without a `team` or people without a `name`.
 **Used by.** H-PLAYER-SIDES; the record header's `seats`.
 
+
+### K-engine-a-shot-is-refused-across-a-friend
+**Claim.** Sight is terrain-only: the line-of-sight map is a ray cast over the heightmap from the unit's sight-emit
+height (BAR sets none, so every unit sees from 20 elmos), and units are not occluders. What blocks a ball of tanks is
+the shot: every weapon keeps the engine's default `avoidFriendly` (BAR overrides it in no unit file and no gamedata
+file), so before each shot the engine traces the ray, or the cannon's arc, against allied hulls and refuses to fire
+when one crosses it. A unit with its target in range and its shot refused stops and points at the target; it does
+not step aside (only 13 unit files set `strafeToAttack`: spiders, the Razorback, the Pyro, the Termite, none a tank).
+A shell already flying and any splash still land on a friend (`collideFriendly`), so friendly fire is possible while
+the refusal keeps most of it out. The AI interface reports shots (`EVENT_WEAPON_FIRED`, the firing unit's team) and
+hits on enemies (`EVENT_ENEMY_DAMAGED`, sent to the attacker's own team only, and only while the enemy is in sight
+or on radar), so "in reach and silent" is observable for our own units and not for a replay's spectator seat.
+**Status.** read from the engine and the game (2026-09-24), after experienced players told the user the balls "cannot
+see past each other's turrets"; the muzzled share and the friendly-fire share are the fire instrument's to show
+(`run/fire.py` over records from 2026-09-24 on).
+**Evidence.** `rts/Sim/Misc/LosMap.cpp` (raycasts against `mipHeightMap` only, `LOS_BONUS_HEIGHT` 5);
+`rts/Sim/Units/UnitDef.cpp` `losHeight` default 20; `rts/Sim/Weapons/WeaponDef.cpp` `avoidFriendly` default true;
+`rts/Sim/Weapons/Weapon.cpp` `HaveFreeLineOfFire` (`TraceRay`/`TestCone` with the avoid flags) and `Cannon.cpp`
+(`TestTrajectoryCone`); `rts/Sim/Units/CommandAI/MobileCAI.cpp` `ExecuteAttack` (`StopMove` and `KeepPointingTo`
+when `TryTargetRotate` holds; the strafe branch needs `strafeToAttack`); `grep -rl strafetoattack
+upstream/Beyond-All-Reason/units` (13 files); `rts/ExternalAI/EngineOutHandler.cpp` `UnitDamaged` and `WeaponFired`.
+**Would be wrong if.** BAR's gadgets set `avoidFriendly` false at load (none found in `gamedata/`), or the engine's
+cannon arc cleared every hull at the ranges tanks fight at (the instrument will say).
+**Used by.** The fire instrument (the record's `dealt`, `shots`, `ff`, `xo`, `xi`; `run/fire.py`); nothing in the
+brain models it yet (the focus rule counts every soldier with a target in reach as a shooter; H-MICRO-FAN opens
+lines only for the D-gun).

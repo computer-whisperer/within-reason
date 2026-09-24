@@ -265,6 +265,7 @@ impl Engine {
         let option_count = call!(self, UnitDef_getBuildOptions(id, std::ptr::null_mut(), 0));
         let mut options = vec![0; option_count.max(0) as usize];
         call!(self, UnitDef_getBuildOptions(id, options.as_mut_ptr(), option_count));
+        let (reach, reload) = self.longest_weapon(id);
         UnitDefInfo {
             id: UnitDefId(id),
             name: self.string(call!(self, UnitDef_getName(id))),
@@ -290,7 +291,26 @@ impl Engine {
             death_blast: self.blast(call!(self, UnitDef_getDeathExplosion(id))),
             self_destruct_blast: self.blast(call!(self, UnitDef_getSelfDExplosion(id))),
             self_destruct_seconds: call!(self, UnitDef_getSelfDCountdown(id)) as f32,
+            reach,
+            reload,
         }
+    }
+
+    /// The range and reload of a type's longest ordinary weapon: manual-fire weapons (the D-gun) left out.
+    fn longest_weapon(&mut self, id: c_int) -> (f32, f32) {
+        let mounts = call!(self, UnitDef_getWeaponMounts(id)).max(0);
+        let mut best = (0.0f32, 0.0f32);
+        for mount in 0..mounts {
+            let weapon = call!(self, UnitDef_WeaponMount_getWeaponDef(id, mount));
+            if weapon < 0 || call!(self, WeaponDef_isManualFire(weapon)) {
+                continue;
+            }
+            let range = call!(self, WeaponDef_getRange(weapon));
+            if range > best.0 {
+                best = (range, call!(self, WeaponDef_getReload(weapon)));
+            }
+        }
+        best
     }
 
     /// An explosion weapon's reach and its largest damage figure; None for no weapon or one that hurts nothing.

@@ -137,6 +137,8 @@ fn unit_table(header: &Value) -> Result<Units, String> {
             death_blast: blast(&d["death_blast"]),
             self_destruct_blast: blast(&d["selfd_blast"]),
             self_destruct_seconds: number(d, "selfd_seconds"),
+            reach: number(d, "reach"),
+            reload: number(d, "reload"),
         })
         .collect();
     Ok(Units::new(&defs))

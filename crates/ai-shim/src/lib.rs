@@ -250,6 +250,14 @@ impl Instance {
             sys::EVENT_ENEMY_DESTROYED => {
                 Event::EnemyDestroyed { enemy: UnitId(event!(SEnemyDestroyedEvent).enemy) }
             }
+            sys::EVENT_ENEMY_DAMAGED => {
+                let e = event!(SEnemyDamagedEvent);
+                Event::EnemyDamaged { enemy: UnitId(e.enemy), attacker: unit(e.attacker), damage: e.damage, weapon: self.engine.weapon(e.weaponDefId) }
+            }
+            sys::EVENT_WEAPON_FIRED => {
+                let e = event!(SWeaponFiredEvent);
+                Event::WeaponFired { unit: UnitId(e.unitId), weapon: self.engine.weapon(e.weaponDefId) }
+            }
             _ => return,
         };
         self.events.push(event);

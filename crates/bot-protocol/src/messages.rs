@@ -204,6 +204,12 @@ pub struct UnitDefInfo {
     pub self_destruct_blast: Option<Blast>,
     /// Seconds from the self-destruct order to the blast.
     pub self_destruct_seconds: f32,
+    /// The range of its longest ordinary weapon (the commander's D-gun and other manual-fire weapons left out); 0 unarmed.
+    #[serde(default)]
+    pub reach: f32,
+    /// Seconds between that weapon's shots; 0 unarmed.
+    #[serde(default)]
+    pub reload: f32,
 }
 
 /// An explosion: full `damage` at its centre, falling to nothing at `radius` elmos.
@@ -325,6 +331,12 @@ pub enum Event {
     /// no attacker (a collision, a crash).
     UnitDamaged { unit: UnitId, attacker: Option<UnitId>, damage: f32, #[serde(default)] from: Option<Vec3>, #[serde(default)] weapon: Option<Weapon> },
     UnitDestroyed { unit: UnitId, attacker: Option<UnitId> },
+    /// A unit of ours hit an enemy (the engine sends this to the attacker's team only, and only while the enemy is
+    /// in sight or on radar); `attacker` is ours, `None` when the engine names none.
+    EnemyDamaged { enemy: UnitId, attacker: Option<UnitId>, damage: f32, #[serde(default)] weapon: Option<Weapon> },
+    /// A unit of ours fired a weapon; with `EnemyDamaged` the record tells a soldier that shoots from one that stands
+    /// in reach with its line of fire blocked by a friend (the engine refuses the shot: `avoidFriendly`).
+    WeaponFired { unit: UnitId, #[serde(default)] weapon: Option<Weapon> },
     /// A chat line from a player in the game (the engine's message event), by player number.
     Chat { player: i32, text: String },
     EnemyEnterLos { enemy: UnitId },
