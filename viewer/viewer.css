@@ -158,3 +158,24 @@ body[data-wide="1"] #call { display: grid; grid-template-columns: minmax(0, 1fr)
 
 /* The replay download link in the header. */
 #top .replay { margin-left: 1em; white-space: nowrap; }
+
+/* The Unit tab (docs/design/2026-09-24-viewer-overhaul.md), the build-order strip and the map's hint line. */
+#tabs button[data-tab="unit"].active { background: var(--warning); border-color: var(--warning); }
+#unit .facts { display: grid; grid-template-columns: 110px 1fr; gap: 2px 8px; font-size: 12px; color: var(--ink-2); }
+#unit .facts .k { color: var(--muted); }
+#unit .picture div { font-size: 11.5px; color: var(--ink-2); white-space: pre-wrap; word-break: break-word; }
+#unit .meta { color: var(--muted); font-size: 11.5px; margin: 8px 0 4px; }
+#unit .hist { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 11.5px; }
+#unit .hist b { color: var(--jev); font-weight: 600; }
+#unit .history { list-style: none; margin: 4px 0 0; padding: 0; font-size: 11.5px; overflow-y: auto; }
+#unit .history li { border-left: 3px solid var(--line); padding: 1px 8px; margin-bottom: 2px; color: var(--ink-2); cursor: pointer; }
+#unit .history li.future { opacity: .45; }
+#unit .when { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 6px; }
+#unit button { margin: 6px 0; }
+#build-order-box { flex: none; border-top: 1px solid var(--line); }
+#build-order-box summary { color: var(--muted); cursor: pointer; font-size: 12px; padding: 3px 0; }
+#build-order { list-style: none; margin: 0; padding: 0; max-height: 200px; overflow-y: auto; font-size: 11.5px; color: var(--ink-2); }
+#build-order li { cursor: pointer; padding: 1px 4px; }
+#build-order li:hover { background: var(--surface-2); }
+#build-order .when { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 6px; }
+#map-tools .hint { color: var(--muted); font-size: 11px; padding: 2px 8px 4px; border-top: 1px solid var(--line); }

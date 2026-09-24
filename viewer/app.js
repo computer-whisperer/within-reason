@@ -13,7 +13,10 @@
   for (const name of ["surface", "surface-2", "line", "ink", "ink-2", "muted", "ours", "theirs", "good", "critical", "warning", "llm", "jev"]) COLOR[name] = css(`--${name}`);
   const OWN_ATTACKER = "#86b6ef";
   const ALLY = "#3fae8f";
-  const ORDER_COLOR = { build: COLOR.good, fight: COLOR.critical, move: COLOR.muted };
+  const ORDER_COLOR = { build: COLOR.good, fight: COLOR.critical, move: COLOR.muted, attack: COLOR.critical, guard: COLOR.jev, repair: COLOR.good, reclaim: COLOR.warning, reclaim_feature: COLOR.warning, resurrect: COLOR.warning };
+  /// Zoom from which buildings show their footprints and units their names; the map's zoom limit over the fitted scale.
+  const DETAIL_ZOOM = 4;
+  const MAX_ZOOM = 32;
   /// How long an order line and a death mark stay on the map, in frames.
   const ORDER_FRAMES = 3 * WR.FPS;
   const DEATH_FRAMES = 20 * WR.FPS;
@@ -26,6 +29,9 @@
     show: { heuristic: true, llm: true, event: false, jev: true, jevChangesOnly: true },
     /// The pianist's actor the decision list is narrowed to ("" for all), and the call drawn last.
     jevActor: "", callShown: null, tab: null,
+    /// The map's view: zoom over the fitted scale (1 to MAX_ZOOM) and the elmo at the pane's centre; the selected
+    /// unit; the game's icon table (viewer/icons.json).
+    zoom: 1, centre: null, selected: null, icons: null,
   };
   window.viewer = view;
 
@@ -118,6 +124,7 @@
       return status("No match loaded. Start with run/view_match.py <match dir>, or use Open files.");
     }
     open(first.texts, Number(params.get("t") || 0) * WR.FPS);
+    loadIcons();
     const bg = params.get("bg") || `maps/${encodeURIComponent(view.match.header.map.name)}.png`;
     loadBackground(bg);
     loadTerrain(live.base, view.match.header.terrain);
@@ -353,6 +360,66 @@
     entry("unknown", COLOR.theirs, "radar contact");
   }
 
+  // ---------------------------------------------------------------- icons
+
+  // The game's minimap icons (viewer/icons.json and viewer/icons/, exported by run/icons.py from BAR's
+  // gamedata/icontypes.lua): white shapes, tinted here by side as the game tints them by team.
+  const iconImages = new Map();
+  const tinted = new Map();
+  async function loadIcons() {
+    const text = await fetchText("icons.json");
+    if (!text) return;
+    try { view.icons = JSON.parse(text); } catch (_) { view.icons = null; }
+    drawMap();
+  }
+  function iconOf(name) {
+    const entry = view.icons && view.icons[name];
+    if (!entry) return null;
+    let image = iconImages.get(entry.file);
+    if (!image) {
+      image = new Image();
+      image.onload = () => { tinted.clear(); drawMap(); };
+      image.src = `icons/${entry.file}`;
+      iconImages.set(entry.file, image);
+    }
+    return image.complete && image.naturalWidth ? { image, size: entry.size } : null;
+  }
+  function tintedIcon(icon, color, px) {
+    const key = `${icon.image.src}|${color}|${px}`;
+    let canvas = tinted.get(key);
+    if (!canvas) {
+      canvas = document.createElement("canvas");
+      canvas.width = canvas.height = px;
+      const ctx = canvas.getContext("2d");
+      // As the engine draws them: the bitmap's colour times the team colour, its own alpha kept. The building icons
+      // are opaque squares whose shape is in the shading; the mobile ones carry theirs in the alpha.
+      ctx.drawImage(icon.image, 0, 0, px, px);
+      ctx.globalCompositeOperation = "multiply";
+      ctx.fillStyle = color;
+      ctx.fillRect(0, 0, px, px);
+      ctx.globalCompositeOperation = "destination-in";
+      ctx.drawImage(icon.image, 0, 0, px, px);
+      if (tinted.size > 400) tinted.clear();
+      tinted.set(key, canvas);
+    }
+    return canvas;
+  }
+  /// Pixels across for a unit's icon: the icon's own size, growing with the zoom, and for a building never wider
+  /// than its footprint on the ground.
+  function iconPixels(d, icon, box) {
+    let px = 11 * Math.max(0.8, icon.size) * Math.sqrt(box.zoom);
+    if (d.footprint && d.speed === 0) px = Math.min(px, Math.max(9, Math.max(d.footprint[0], d.footprint[1]) * 8 * box.scale * 1.1));
+    return Math.max(8, Math.round(Math.min(px, 96)));
+  }
+  /// A unit on the map: its icon tinted, or the class glyph while the icon is not there.
+  function drawUnit(ctx, u, x, y, color, box) {
+    const d = u.def >= 0 ? view.match.defs[u.def] : null;
+    const icon = d ? iconOf(d.name) : null;
+    if (!icon) return glyph(ctx, classOf(u.def), x, y, color);
+    const px = iconPixels(d, icon, box);
+    ctx.drawImage(tintedIcon(icon, color, px), x - px / 2, y - px / 2);
+  }
+
   // ---------------------------------------------------------------- map
 
   function classOf(def) {
@@ -371,8 +438,12 @@
     if (!match) return;
     const map = match.header.map;
     const margin = 18;
-    const scale = Math.min((w - 2 * margin) / map.width, (h - 2 * margin) / map.height);
-    const box = { x: (w - map.width * scale) / 2, y: (h - map.height * scale) / 2, w: map.width * scale, h: map.height * scale, scale };
+    const fit = Math.min((w - 2 * margin) / map.width, (h - 2 * margin) / map.height);
+    const scale = fit * view.zoom;
+    // Fitted, the map sits centred; zoomed, the pane's centre is `view.centre`, kept on the map.
+    if (!view.centre || view.zoom === 1) view.centre = [map.width / 2, map.height / 2];
+    view.centre = [Math.min(map.width, Math.max(0, view.centre[0])), Math.min(map.height, Math.max(0, view.centre[1]))];
+    const box = { x: w / 2 - view.centre[0] * scale, y: h / 2 - view.centre[1] * scale, w: map.width * scale, h: map.height * scale, scale, zoom: view.zoom, fit, paneW: w, paneH: h };
     view.mapBox = box;
     const px = (x) => box.x + x * scale;
     const pz = (z) => box.y + z * scale;
@@ -525,7 +596,7 @@
       ctx.font = "11px system-ui";
     }
 
-    if (view.layers.orders) {
+    if (view.layers.orders && view.zoom < DETAIL_ZOOM) {
       ctx.lineWidth = 1;
       ctx.globalAlpha = 0.6;
       for (const record of WR.range(match.commands, view.frame - ORDER_FRAMES, view.frame)) {
@@ -542,16 +613,18 @@
 
     // Buildings under mobile units, enemies over ours so a raid in the base stays visible.
     const mobileLast = (a, b) => (view.match.defs[a.def]?.speed > 0) - (view.match.defs[b.def]?.speed > 0);
-    // Allies first, under our own: the same glyphs in the allied colour. A team game recorded by one seat would
+    // Allies first, under our own: the same icons in the allied colour. A team game recorded by one seat would
     // otherwise show half our side's map as empty.
+    const detail = view.zoom >= DETAIL_ZOOM;
+    if (detail) drawFootprints(ctx, state, px, pz, box);
     for (const u of [...state.allies].sort(mobileLast)) {
       ctx.globalAlpha = u.flags & WR.FLAG.beingBuilt ? 0.4 : 1;
-      glyph(ctx, classOf(u.def), px(u.x), pz(u.z), ALLY);
+      drawUnit(ctx, u, px(u.x), pz(u.z), ALLY, box);
     }
     for (const u of [...state.own].sort(mobileLast)) {
       ctx.globalAlpha = u.flags & WR.FLAG.beingBuilt ? 0.4 : 1;
       const color = u.flags & WR.FLAG.attacker ? OWN_ATTACKER : u.flags & WR.FLAG.squad ? COLOR.llm : COLOR.ours;
-      glyph(ctx, classOf(u.def), px(u.x), pz(u.z), color);
+      drawUnit(ctx, u, px(u.x), pz(u.z), color, box);
       if (u.damage > 0) {
         ctx.globalAlpha = 1;
         ctx.strokeStyle = COLOR.critical;
@@ -559,7 +632,10 @@
       }
     }
     ctx.globalAlpha = 1;
-    for (const e of state.enemies) glyph(ctx, classOf(e.def), px(e.x), pz(e.z), COLOR.theirs);
+    for (const e of state.enemies) drawUnit(ctx, e, px(e.x), pz(e.z), COLOR.theirs, box);
+    if (detail) drawLabels(ctx, state, px, pz, box);
+    drawStandingOrders(ctx, state, byId, px, pz, box, detail);
+    drawSelection(ctx, state, px, pz, box);
 
     if (view.layers.deaths) {
       ctx.lineWidth = 2;
@@ -574,6 +650,147 @@
       }
       ctx.globalAlpha = 1;
     }
+  }
+
+  /// The footprint of every building at high zoom: `footprint` in engine squares of 8 elmos, turned by the
+  /// `finished` facing (an odd facing swaps the sides; enemies, whose facing is unknown, as built south); a
+  /// factory's front edge, where its units leave, drawn heavier.
+  function drawFootprints(ctx, state, px, pz, box) {
+    const facing = WR.facings(view.match);
+    const draw = (u, color) => {
+      const d = u.def >= 0 ? view.match.defs[u.def] : null;
+      if (!d || !d.footprint || d.speed > 0) return;
+      const f = facing.get(u.id) ?? 0;
+      const [fx, fz] = f % 2 ? [d.footprint[1], d.footprint[0]] : [d.footprint[0], d.footprint[1]];
+      const [wx, wz] = [fx * 8 * box.scale, fz * 8 * box.scale];
+      const [x, y] = [px(u.x) - wx / 2, pz(u.z) - wz / 2];
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.7;
+      ctx.strokeRect(x, y, wx, wz);
+      if (d.class === "factory") {
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        if (f === 0) { ctx.moveTo(x, y + wz); ctx.lineTo(x + wx, y + wz); }
+        else if (f === 1) { ctx.moveTo(x + wx, y); ctx.lineTo(x + wx, y + wz); }
+        else if (f === 2) { ctx.moveTo(x, y); ctx.lineTo(x + wx, y); }
+        else { ctx.moveTo(x, y); ctx.lineTo(x, y + wz); }
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      ctx.lineWidth = 1;
+    };
+    for (const u of state.own) draw(u, COLOR.ours);
+    for (const u of state.allies) draw(u, ALLY);
+    for (const u of state.enemies) draw(u, COLOR.theirs);
+  }
+
+  /// Names under the icons at high zoom, ids too from twice that.
+  function drawLabels(ctx, state, px, pz, box) {
+    ctx.font = "10px system-ui";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.globalAlpha = 0.9;
+    const label = (u, color) => {
+      const d = u.def >= 0 ? view.match.defs[u.def] : null;
+      const icon = d ? view.icons && view.icons[d.name] : null;
+      const half = d && icon ? iconPixels(d, icon, box) / 2 : 6;
+      ctx.fillStyle = color;
+      ctx.fillText(view.zoom >= 2 * DETAIL_ZOOM ? `${d ? d.name : "?"} #${u.id}` : d ? d.name : "?", px(u.x), pz(u.z) + half + 1);
+    };
+    for (const u of state.own) label(u, COLOR["ink-2"]);
+    for (const u of state.enemies) label(u, COLOR.theirs);
+    ctx.globalAlpha = 1;
+    ctx.textBaseline = "middle";
+  }
+
+  /// Every unit's standing order at high zoom, and the selected unit's at any zoom: a line to the point or the
+  /// target unit, and at a build site the footprint of what is to stand there. An idle unit has none.
+  function drawStandingOrders(ctx, state, byId, px, pz, box, all) {
+    if (!view.layers.orders && view.selected == null) return;
+    const orders = WR.ordersAt(view.match, view.frame);
+    ctx.lineWidth = 1.2;
+    for (const u of state.own) {
+      if (!(all && view.layers.orders) && u.id !== view.selected) continue;
+      if (u.flags & WR.FLAG.idle) continue;
+      const o = orders.get(u.id);
+      if (!o) continue;
+      let to = null;
+      if (o.x != null) to = [o.x, o.z];
+      else if (o.target != null) { const t = byId.get(o.target); if (t) to = [t.x, t.z]; }
+      if (!to) continue;
+      ctx.strokeStyle = ORDER_COLOR[o.kind] || COLOR.muted;
+      ctx.globalAlpha = u.id === view.selected ? 1 : 0.6;
+      ctx.setLineDash(o.kind === "move" ? [4, 3] : []);
+      ctx.beginPath(); ctx.moveTo(px(u.x), pz(u.z)); ctx.lineTo(px(to[0]), pz(to[1])); ctx.stroke();
+      ctx.setLineDash([]);
+      if (o.kind === "build" && o.def != null) {
+        const d = view.match.defs[o.def];
+        const side = d && d.footprint ? Math.max(d.footprint[0], d.footprint[1]) * 8 * box.scale : 6;
+        ctx.strokeRect(px(to[0]) - side / 2, pz(to[1]) - side / 2, side, side);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawSelection(ctx, state, px, pz, box) {
+    if (view.selected == null) return;
+    const u = state.own.find((v) => v.id === view.selected) || state.enemies.find((v) => v.id === view.selected);
+    if (!u) return;
+    ctx.strokeStyle = COLOR.ink;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(px(u.x), pz(u.z), Math.max(10, 8 * Math.sqrt(box.zoom)), 0, 7); ctx.stroke();
+  }
+
+  // The wheel zooms about the cursor, a drag pans, a double-click (or 0) resets; a click selects the nearest unit.
+  function pointOf(event) {
+    const box = view.mapBox;
+    const rect = $("map").getBoundingClientRect();
+    const [mx, my] = [event.clientX - rect.left, event.clientY - rect.top];
+    return { mx, my, x: (mx - box.x) / box.scale, z: (my - box.y) / box.scale };
+  }
+  function zoomAt(factor, mx, my) {
+    const box = view.mapBox;
+    if (!box) return;
+    const zoom = Math.min(MAX_ZOOM, Math.max(1, view.zoom * factor));
+    if (zoom === view.zoom) return;
+    const [x, z] = [(mx - box.x) / box.scale, (my - box.y) / box.scale];
+    const scale = box.fit * zoom;
+    // The elmo under the cursor stays under the cursor.
+    view.centre = [x - (mx - box.paneW / 2) / scale, z - (my - box.paneH / 2) / scale];
+    view.zoom = zoom;
+    drawMap();
+  }
+  function resetZoom() {
+    view.zoom = 1;
+    view.centre = null;
+    drawMap();
+  }
+  let drag = null;
+  function selectAt(event) {
+    if (!view.state || !view.mapBox) return;
+    const { x, z } = pointOf(event);
+    const box = view.mapBox;
+    let best = null;
+    // Within 12 px, or anywhere on the unit's drawn icon.
+    const consider = (u) => {
+      const def = u.def >= 0 ? view.match.defs[u.def] : null;
+      const icon = def ? iconOf(def.name) : null;
+      const reach = Math.max(12, def && icon ? iconPixels(def, icon, box) / 2 : 0) / box.scale;
+      const d = Math.hypot(u.x - x, u.z - z);
+      if (d < reach && (!best || d < best.d)) best = { d, u };
+    };
+    view.state.own.forEach(consider);
+    view.state.enemies.forEach(consider);
+    select(best ? best.u.id : null);
+  }
+  /// Selecting a unit opens the Unit tab on it; clearing the selection leaves the tab.
+  function select(id) {
+    view.selected = id;
+    $("tab-unit").hidden = id == null;
+    if (id != null) setTab("unit");
+    else if (view.tab === "unit") setTab(view.match && view.match.jev ? "pianist" : "decisions");
+    else renderAll();
   }
 
   function mapHover(event) {
@@ -1018,6 +1235,7 @@
   function renderPianist() {
     const jev = view.match.jev;
     if (!jev || view.tab !== "pianist") return;
+    renderBuildOrder();
     const i = WR.indexAt(jev.calls, view.frame);
     const call = i >= 0 ? jev.calls[i] : null;
     $("pianist-summary").textContent = call ? `call ${i + 1} of ${jev.calls.length} at ${WR.clock(call.f)}` : "before the first call";
@@ -1177,6 +1395,116 @@
     }
   }
 
+  /// The selected unit: what it is, its standing order, its part in the pianist's picture, and its history.
+  function renderUnit() {
+    if (view.tab !== "unit" || view.selected == null || !view.match) return;
+    const box = $("unit");
+    box.textContent = "";
+    const id = view.selected;
+    const state = view.state || WR.stateAt(view.match, view.frame);
+    const ours = state.own.find((u) => u.id === id);
+    const u = ours || state.enemies.find((v) => v.id === id);
+    const d = u && u.def >= 0 ? view.match.defs[u.def] : null;
+    const history = WR.unitHistory(view.match, id);
+    const born = history.events.find((e) => e.k === "created" && e.u === id);
+    const dead = history.events.find((e) => (e.k === "destroyed" || e.k === "enemy_destroyed") && e.u === id);
+    const title = el("h2", null, `${d ? d.name : "unit"} #${id} `);
+    title.append(el("span", "muted", ours ? "ours" : u ? "enemy" : dead && dead.f <= view.frame ? `gone at ${WR.clock(dead.f)}` : "not on the map at the playhead"));
+    box.append(title);
+    const facts = el("div", "facts");
+    const fact = (k, v) => facts.append(el("span", "k", k), el("span", "v", v));
+    if (d) fact("type", `${d.class}${d.metal ? `, ${d.metal} metal` : ""}${d.reach ? `, reach ${d.reach}` : ""}${d.footprint ? `, footprint ${d.footprint[0] * 8} x ${d.footprint[1] * 8}` : ""}`);
+    if (u) {
+      fact("at", `${WR.gridName(view.match, u.x, u.z)} (${Math.round(u.x)}, ${Math.round(u.z)})`);
+      fact("health", ours ? `${u.health}%` : String(u.health));
+      const flags = [];
+      if (u.flags & WR.FLAG.beingBuilt) flags.push("being built");
+      if (u.flags & WR.FLAG.idle) flags.push("idle");
+      if (u.flags & WR.FLAG.attacker) flags.push("attacker");
+      if (u.flags & WR.FLAG.squad) flags.push("commander's squad");
+      if (flags.length) fact("flags", flags.join(", "));
+      if (u.damage) fact("damage", `${u.damage} this second`);
+    }
+    if (born) fact("created", `${WR.clock(born.f)}${born.by != null ? ` by #${born.by}` : ""}`);
+    if (dead) fact("destroyed", `${WR.clock(dead.f)}${dead.by_d != null && dead.by_d >= 0 ? ` by a ${defName(dead.by_d)}` : ""}`);
+    if (ours) {
+      const order = WR.ordersAt(view.match, view.frame).get(id);
+      fact("standing order", u.flags & WR.FLAG.idle ? "none (idle)" : order ? orderWords(order) : "none recorded");
+    }
+    box.append(facts);
+    // Its part in the pianist's picture at the playhead: a builder or a plant by its actor name, a soldier by its group.
+    const jev = view.match.jev;
+    const call = jev && ours ? jev.calls[WR.indexAt(jev.calls, view.frame)] : null;
+    if (call) {
+      const actors = call.state.actors || {};
+      const own = d && d.class === "commander" ? "commander" : [`constructor_${id}`, `plant_${id}`, `lab_${id}`].find((n) => actors[n]);
+      const group = call.groups.find((g) => (g.members || []).includes(id));
+      const actor = own || (group && group.name);
+      if (actor) {
+        box.append(el("h2", "call-title", `in the picture at ${WR.clock(call.f)}: ${actor}`));
+        const entry = actors[actor] || {};
+        const picture = el("div", "picture");
+        for (const key of ["doing", "list", "at", "enemies_near", "under_fire", "losses"]) if (entry[key] != null && entry[key] !== "") picture.append(el("div", null, `${key}: ${typeof entry[key] === "string" ? entry[key] : JSON.stringify(entry[key])}`));
+        if (group) picture.append(el("div", null, `group of ${group.members.length}: ${group.task ? `${group.task.kind}${group.task.place ? ` ${group.task.place}` : ""}` : "hold"}`));
+        box.append(picture);
+        const hist = jev.actors.get(actor);
+        const at = hist ? WR.indexAt(hist.decisions, view.frame) : -1;
+        if (hist && at >= 0) {
+          box.append(el("div", "meta", "its decisions up to now, newest first:"));
+          for (const dec of hist.decisions.slice(Math.max(0, at - 7), at + 1).reverse()) {
+            const line = el("div", "hist");
+            line.append(`${WR.clock(dec.f)} `, el("b", null, dec.played), dec.did ? ` · ${dec.did}` : "");
+            box.append(line);
+          }
+        }
+        const open = el("button", null, "open in the Pianist tab");
+        open.addEventListener("click", () => { view.jevActor = actor; buildDecisionList(); setTab("pianist"); });
+        box.append(open);
+      }
+    }
+    // Its history: orders and events, newest first, click to seek there.
+    box.append(el("h2", "call-title", `history: ${history.commands.length} orders, ${history.events.length} events`));
+    const list = el("ol", "history");
+    const rows = [...history.commands.map((o) => ({ f: o.f, text: orderWords(o) })), ...history.events.map((e) => ({ f: e.f, text: eventWords(e, id) }))].sort((a, b) => b.f - a.f);
+    for (const r of rows.slice(0, 80)) {
+      const li = el("li", r.f > view.frame ? "future" : null);
+      li.append(el("span", "when", WR.clock(r.f)), r.text);
+      li.addEventListener("click", () => seek(r.f));
+      list.append(li);
+    }
+    box.append(list);
+  }
+  function orderWords(o) {
+    const at = o.x != null ? ` at ${WR.gridName(view.match, o.x, o.z)} (${Math.round(o.x)}, ${Math.round(o.z)})` : o.target != null ? ` #${o.target}` : o.feature != null ? ` feature ${o.feature}` : "";
+    return `${o.kind}${o.def != null ? ` ${defName(o.def)}` : ""}${at}${o.radius ? ` within ${o.radius}` : ""}`;
+  }
+  function eventWords(e, id) {
+    if (e.k === "created") return e.u === id ? `created${e.by != null ? ` by #${e.by}` : ""}` : `began a ${defName(e.d)} #${e.u} at ${WR.gridName(view.match, e.x, e.z)}`;
+    if (e.k === "finished") return e.u === id ? "finished" : `finished #${e.u}`;
+    if (e.k === "destroyed") return `destroyed${e.by_d != null && e.by_d >= 0 ? ` by a ${defName(e.by_d)}` : ""}`;
+    return e.k;
+  }
+
+  /// The opening as a list: every unit begun in the first eight minutes, by whom and where; click to seek and select.
+  function renderBuildOrder() {
+    const box = $("build-order");
+    const key = `${view.match.header.wall_start}:${view.match.events.length}`;
+    if (box.dataset.key === key) return;
+    box.dataset.key = key;
+    box.textContent = "";
+    for (const e of view.match.events) {
+      if (e.k !== "created") continue;
+      if (e.f > 8 * 60 * WR.FPS) break;
+      const by = e.by != null ? WR.stateAt(view.match, e.f).own.find((v) => v.id === e.by) : null;
+      const cls = by ? classOf(by.def) : null;
+      const who = !by ? "?" : cls === "commander" ? "commander" : cls === "factory" ? `plant_${by.id}` : `${cls}_${by.id}`;
+      const li = el("li");
+      li.append(el("span", "when", WR.clock(e.f)), `${who}: ${defName(e.d)} #${e.u} at ${WR.gridName(view.match, e.x, e.z)}`);
+      li.addEventListener("click", () => { seek(e.f + 1); select(e.u); });
+      box.append(li);
+    }
+  }
+
   function renderBotLog() {
     if (view.tab !== "rules") return;
     const lines = WR.range(view.match.botLog, view.frame - 60 * WR.FPS, view.frame).slice(-30);
@@ -1195,6 +1523,7 @@
     renderDecisions();
     renderBotLog();
     renderPianist();
+    renderUnit();
   }
 
   function seek(frame) {
@@ -1257,6 +1586,38 @@
   });
   $("map").addEventListener("mousemove", mapHover);
   $("map").addEventListener("mouseleave", () => ($("tooltip").hidden = true));
+  $("map").addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const { mx, my } = pointOf(e);
+    zoomAt(Math.exp(-e.deltaY * 0.0015), mx, my);
+  }, { passive: false });
+  $("map").addEventListener("mousedown", (e) => {
+    if (e.button !== 0 || !view.mapBox) return;
+    drag = { mx: e.clientX, my: e.clientY, centre: [...view.centre], moved: false };
+  });
+  window.addEventListener("mousemove", (e) => {
+    if (!drag || !view.mapBox) return;
+    const [dx, dy] = [e.clientX - drag.mx, e.clientY - drag.my];
+    if (!drag.moved && Math.hypot(dx, dy) < 3) return;
+    drag.moved = true;
+    view.centre = [drag.centre[0] - dx / view.mapBox.scale, drag.centre[1] - dy / view.mapBox.scale];
+    drawMap();
+  });
+  // A drag ends on the window (the cursor may leave the map); a click that did not drag selects.
+  let dragged = false;
+  window.addEventListener("mouseup", () => {
+    if (!drag) return;
+    dragged = drag.moved;
+    drag = null;
+  });
+  $("map").addEventListener("click", (e) => {
+    if (dragged) return void (dragged = false);
+    selectAt(e);
+  });
+  $("map").addEventListener("dblclick", (e) => {
+    e.preventDefault();
+    resetZoom();
+  });
   for (const box of document.querySelectorAll("#layers input")) {
     box.addEventListener("change", () => {
       view.layers[box.dataset.layer] = box.checked;
@@ -1270,6 +1631,10 @@
     else if (e.key === "ArrowRight") seek(view.frame + (e.shiftKey ? 60 : 10) * WR.FPS);
     else if (e.key === "w") return setWide(document.body.dataset.wide !== "1");
     else if (e.key === "c") return setCompact(document.body.dataset.compact !== "1");
+    else if (e.key === "+" || e.key === "=") return view.mapBox && zoomAt(1.5, view.mapBox.paneW / 2, view.mapBox.paneH / 2);
+    else if (e.key === "-") return view.mapBox && zoomAt(1 / 1.5, view.mapBox.paneW / 2, view.mapBox.paneH / 2);
+    else if (e.key === "0") return resetZoom();
+    else if (e.key === "Escape") return select(null);
     else return;
     leaveLive();
     e.preventDefault();

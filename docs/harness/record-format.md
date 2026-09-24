@@ -112,6 +112,19 @@ questions first); "pianist per minute" is calls, latency, tokens, questions, cha
 lanes for the pianist's builders, labs and army (a change of course solid, a continue faint); the map draws the named
 places, the parties and the groups with a line to where each is going (the `pianist` layer); the decision list takes
 "pianist" and "changes only" filters and an actor select, and shows at most 4,000 rows.
+The map (2026-09-24, docs/design/2026-09-24-viewer-overhaul.md): every unit is the game's own minimap icon
+(`viewer/icons.json` and `viewer/icons/`, exported unmodified from BAR's `gamedata/icontypes.lua` by `run/icons.py`;
+CC BY-NC-ND, tinted by side on the canvas as the engine tints them by team; a unit without an icon keeps its class
+glyph). The wheel zooms about the cursor (1x to 32x the fitted scale), a drag pans, a double-click or `0` resets,
+`+`/`-` step. From 4x buildings show their footprints (`footprint` x 8 elmos, turned by the `finished` facing, a
+factory's front edge heavier) and units their names, from 8x their ids, and every unit's standing order (the last
+command the bot sent it, ended by a `stop` or the idle flag: a line to the point or target, a square at a build
+site); below 4x the last 3 s of orders as before. A click selects a unit (ring; `Escape` clears) and opens the
+**Unit** tab: type, health, flags, place, created and destroyed by what, its standing order, its part in the
+pianist's picture at the playhead (its actor entry or its group and the group's task, its last decisions, a button
+to open it in the Pianist tab) and its history (orders and events, click to seek). The Pianist tab's **Build order**
+strip lists every unit begun in the first eight minutes with the clock, the builder and the place (click to seek and
+select). The model has `ordersAt(match, frame)`, `unitHistory(match, id)` and `facings(match)` for this.
 Tests: `node viewer/test/smoke.js <match dir>` (model, truncated file) and `node viewer/test/browser.js <url> [shot.png]`
 (the real page in headless Chromium: load, follow a live match if it is one, scrub, play, hover, toggles, the pianist's
 panels when the match has a log; fails on any page error; saves a screenshot when asked).

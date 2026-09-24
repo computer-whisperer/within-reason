@@ -35,6 +35,7 @@
       <label><input type="checkbox" data-layer="pianist" checked> pianist: groups, places, parties</label>
     </fieldset>
     <ul id="map-legend" class="legend"></ul>
+    <div class="hint">wheel zooms, drag pans, double-click or 0 resets; click a unit to inspect it, Esc clears</div>
     </details>
   </section>
 
@@ -42,6 +43,7 @@
     <div id="now" class="panel"></div>
     <nav id="tabs" class="panel">
       <button data-tab="pianist" hidden>Pianist</button>
+      <button data-tab="unit" id="tab-unit" hidden>Unit</button>
       <button data-tab="decisions">Decisions</button>
       <button data-tab="rules">Rules &amp; log</button>
       <button id="wide" title="give the side pane most of the window (w)">⟷ wide</button>
@@ -52,12 +54,19 @@
         <span class="muted">click an actor for its history and its entry in the picture</span>
       </div>
       <div id="pianist-actors"></div>
+      <details id="build-order-box">
+        <summary>Build order: the first eight minutes (click to seek and select)</summary>
+        <ol id="build-order"></ol>
+      </details>
       <h2 class="call-title">The call at the playhead <span id="call-summary" class="muted"></span></h2>
       <div id="call"></div>
       <details id="pianist-stats">
         <summary>Pianist per minute</summary>
         <table id="pianist-minutes"></table>
       </details>
+    </div>
+    <div class="tab panel" data-tab="unit" hidden>
+      <div id="unit"></div>
     </div>
     <div class="tab panel" data-tab="decisions" hidden>
       <div class="tab-head">

@@ -346,7 +346,58 @@ const WR = (() => {
     return String.fromCharCode(65 + cell(x, match.header.map.width, columns)) + (cell(z, match.header.map.height, rows) + 1);
   }
 
-  return { FPS, FLAG, parseRecord, parseStrategist, parseJev, jevMinutes, parseCensus, parseTruth, parseBotLog, squadPosts, indexAt, range, stateAt, rulesInMinute, lanes, clock, gridName };
+  // The standing order of every unit at `frame`: the last command the bot sent it, ended by a `stop` (the idle flag
+  // and the unit's death are the reader's to check). A cache on the match advances with the playhead and starts
+  // over when it goes back.
+  const ORDER_KINDS = new Set(["build", "move", "fight", "guard", "repair", "reclaim", "reclaim_feature", "resurrect", "attack", "stop"]);
+  function orderOf(c, f) {
+    const [kind, unit] = c;
+    const o = { kind, unit, f };
+    if (kind === "build") { o.def = c[2]; if (c.length >= 5) { o.x = c[3]; o.z = c[4]; } }
+    else if (kind === "move" || kind === "fight") { o.x = c[2]; o.z = c[3]; }
+    else if (kind === "guard" || kind === "repair" || kind === "attack") o.target = c[2];
+    else if (kind === "reclaim") { o.x = c[2]; o.z = c[3]; o.radius = c[4]; }
+    else if (kind === "reclaim_feature" || kind === "resurrect") o.feature = c[2];
+    return o;
+  }
+  function ordersAt(match, frame) {
+    let cache = match.orderCache;
+    if (!cache || cache.frame > frame) cache = match.orderCache = { frame: -1, index: 0, byUnit: new Map() };
+    const commands = match.commands;
+    while (cache.index < commands.length && commands[cache.index].f <= frame) {
+      const record = commands[cache.index++];
+      for (const c of record.c) {
+        if (!ORDER_KINDS.has(c[0])) continue;
+        if (c[0] === "stop") cache.byUnit.delete(c[1]);
+        else cache.byUnit.set(c[1], orderOf(c, record.f));
+      }
+    }
+    cache.frame = frame;
+    return cache.byUnit;
+  }
+
+  // Everything the record holds about one unit: its events (and what it began, as a builder), the commands sent to
+  // it (`stop` included), and the damage it took, as [frame, amount].
+  function unitHistory(match, id) {
+    const events = match.events.filter((e) => e.u === id || e.by === id);
+    const commands = [];
+    for (const r of match.commands) for (const c of r.c) if (c[1] === id && ORDER_KINDS.has(c[0])) commands.push(orderOf(c, r.f));
+    const damage = [];
+    for (const s of match.samples) for (const [u, amount] of s.dmg || []) if (u === id) damage.push([s.f, amount]);
+    return { events, commands, damage };
+  }
+
+  // The engine's facing of every finished building of ours (0 south, 1 east, 2 north, 3 west), by unit id.
+  function facings(match) {
+    if (!match.facingCache || match.facingCache.count !== match.events.length) {
+      const map = new Map();
+      for (const e of match.events) if (e.k === "finished" && e.facing != null) map.set(e.u, e.facing);
+      match.facingCache = { count: match.events.length, map };
+    }
+    return match.facingCache.map;
+  }
+
+  return { FPS, FLAG, parseRecord, parseStrategist, parseJev, jevMinutes, parseCensus, parseTruth, parseBotLog, squadPosts, indexAt, range, stateAt, rulesInMinute, lanes, clock, gridName, ordersAt, unitHistory, facings };
 })();
 
 if (typeof module !== "undefined") module.exports = WR;

@@ -41,12 +41,25 @@ assert.strictEqual(WR.gridName(match, match.header.map.width, match.header.map.h
 const cut = WR.parseRecord(text.slice(0, Math.floor(text.length / 2)));
 assert(cut.badLines <= 1 && cut.samples.length > 5 && cut.result === null, "truncated record loads");
 
+// Standing orders: the cache advances with the playhead and starts over when it goes back; a unit's history holds
+// its orders and events in frame order.
+const orders = WR.ordersAt(match, match.lastFrame);
+assert(orders instanceof Map, "orders");
+const early = WR.ordersAt(match, 60 * WR.FPS);
+assert(early instanceof Map && early.size <= match.commands.length, "orders at 1:00");
+const first = match.samples[20].own[0][0];
+const history = WR.unitHistory(match, first);
+assert(history.commands.every((o, i, all) => i === 0 || o.f >= all[i - 1].f), "history in order");
+assert(history.events.every((e) => e.u === first || e.by === first), "history is the unit's");
+assert(WR.facings(match) instanceof Map, "facings");
+
 const lanes = WR.lanes(match);
 const rules = WR.rulesInMinute(match, 5 * 60 * WR.FPS);
 const report = {
   record: recordName, samples: match.samples.length, events: match.events.length, decisions: match.decisions.length,
   lastClock: WR.clock(match.lastFrame), result: match.result && match.result.result.outcome,
   lanes: Object.fromEntries(Object.entries(lanes).map(([k, v]) => [k, v.length])), rulesInMinute5: rules.slice(0, 3),
+  standingOrdersAtEnd: orders.size, facings: WR.facings(match).size, firstUnitOrders: history.commands.length,
 };
 
 const engineLog = read("engine.log");

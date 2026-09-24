@@ -91,10 +91,37 @@ function run(socket) {
     report.playedFrames = Math.round(after - before);
 
     // Hover one of our units on the map.
-    const [ux, uy] = await evaluate("(() => { const u = viewer.state.own[0], b = viewer.mapBox, r = document.getElementById('map').getBoundingClientRect(); return [r.left + b.x + u.x * b.scale, r.top + b.y + u.z * b.scale]; })()");
+    let [ux, uy] = await evaluate("(() => { const u = viewer.state.own[0], b = viewer.mapBox, r = document.getElementById('map').getBoundingClientRect(); return [r.left + b.x + u.x * b.scale, r.top + b.y + u.z * b.scale]; })()");
     await mouse("mouseMoved", ux, uy);
     report.mapTooltip = await evaluate("document.getElementById('tooltip').textContent");
     if (!/ours: /.test(report.mapTooltip)) fail(`map tooltip: ${report.mapTooltip}`);
+
+    // Zoom about that unit with the wheel: the unit stays under the cursor, footprints and names appear from 4x;
+    // a click selects it and opens the Unit tab; Escape clears; a double-click resets the zoom. The protocol
+    // truncates event coordinates to whole pixels, so the cursor is put on whole pixels first (a real cursor is
+    // its own anchor; a fractional one here drifted 10 px over four steps).
+    await mouse("mouseMoved", Math.round(ux), Math.round(uy));
+    [ux, uy] = [Math.round(ux), Math.round(uy)];
+    for (let i = 0; i < 4; i++) await send("Input.dispatchMouseEvent", { type: "mouseWheel", x: ux, y: uy, deltaX: 0, deltaY: -400 });
+    await sleep(100);
+    const zoom = await evaluate("viewer.zoom");
+    if (!(zoom >= 4)) fail(`the wheel did not zoom (${zoom})`);
+    await mouse("mouseMoved", ux, uy);
+    const tipZoomed = await evaluate("document.getElementById('tooltip').textContent");
+    if (!/ours: /.test(tipZoomed)) fail(`the unit did not stay under the cursor after zooming: ${tipZoomed}`);
+    await mouse("mousePressed", ux, uy, 1);
+    await send("Input.dispatchMouseEvent", { type: "mouseReleased", x: ux, y: uy, button: "left", clickCount: 1 });
+    await sleep(100);
+    const unit = await evaluate("({ selected: viewer.selected, tab: viewer.tab, facts: document.querySelectorAll('#unit .facts .k').length, history: document.querySelectorAll('#unit .history li').length })");
+    if (unit.selected == null || unit.tab !== "unit" || !unit.facts) fail(`clicking a unit did not open the Unit tab: ${JSON.stringify(unit)}`);
+    report.zoom = { zoom, unit, icons: await evaluate("viewer.icons ? Object.keys(viewer.icons).length : 0") };
+    await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape" });
+    if ((await evaluate("viewer.selected")) != null) fail("Escape did not clear the selection");
+    await send("Input.dispatchMouseEvent", { type: "mousePressed", x: ux, y: uy, button: "left", clickCount: 2 });
+    await send("Input.dispatchMouseEvent", { type: "mouseReleased", x: ux, y: uy, button: "left", clickCount: 2 });
+    await sleep(100);
+    if ((await evaluate("viewer.zoom")) !== 1) fail("a double-click did not reset the zoom");
+    await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape" });
 
     await evaluate("document.querySelectorAll('#layers input').forEach((box) => box.click())");
     // The tabs: decisions with its filters, rules and the log, then the pianist's if the match has one.
@@ -114,6 +141,8 @@ function run(socket) {
       await sleep(200);
       const pianist = await evaluate("({ actors: document.querySelectorAll('#pianist-actors .actor').length, questions: document.querySelectorAll('#call .q').length, bars: document.querySelectorAll('#call .bar').length, played: document.querySelectorAll('#call .bar.played').length, minutes: document.querySelectorAll('#pianist-minutes tr').length - 1, summary: document.getElementById('call-summary').textContent })");
       if (!pianist.actors || !pianist.questions || !pianist.bars || !pianist.minutes) fail(`pianist panels empty: ${JSON.stringify(pianist)}`);
+      pianist.buildOrder = await evaluate("document.querySelectorAll('#build-order li').length");
+      if (!pianist.buildOrder) fail("the build order strip is empty");
       await evaluate("document.querySelector('#pianist-actors .actor').click()");
       pianist.opened = await evaluate("viewer.jevActor");
       pianist.history = await evaluate("document.querySelectorAll('#pianist-actors .actor.selected .more .hist').length");

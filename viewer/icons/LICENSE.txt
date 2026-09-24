@@ -1,0 +1,3 @@
+Minimap icons of Beyond All Reason (https://github.com/beyond-all-reason/Beyond-All-Reason, icons/),
+made by IceXuick, Floris and PtaQ, licensed CC BY-NC-ND (the game's license_icons.txt).
+Copied unmodified by run/icons.py; the viewer tints them on the canvas at draw time and ships no derivative.
