@@ -856,7 +856,6 @@ impl Brain {
     fn pianist_housekeeping(&mut self, tick: &Tick, kit: &Kit, commands: &mut Vec<Command>) {
         let own = &tick.snapshot.own_units;
         let frame = tick.frame;
-        let names: Vec<(UnitId, String, Vec3)> = own.iter().map(|u| (u.id, self.name(u.def).to_string(), u.pos)).collect();
         let mut notes: Vec<String> = Vec::new();
         // What did not happen, for the player's report as well as the picture.
         let mut done: Vec<String> = Vec::new();
@@ -915,12 +914,6 @@ impl Brain {
                                 pianist.tasks.remove(&builder);
                             }
                         }
-                    }
-                    if let Some((_, name, pos)) = names.iter().find(|(id, _, _)| *id == unit)
-                        && let Some(def) = own.iter().find(|u| u.id == unit).map(|u| u.def)
-                        && self.world.def(def).is_some_and(|d| d.speed == 0.0)
-                    {
-                        notes.push(format!("finished {name} at {}", self.world.grid(*pos)));
                     }
                 }
                 Event::UnitDestroyed { unit, attacker } => {

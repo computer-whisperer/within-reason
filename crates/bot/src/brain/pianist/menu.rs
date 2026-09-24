@@ -137,17 +137,21 @@ impl Brain {
         // A group's list is the places in play (H-HANDS-DIET, decision 2): every place of the map under every group
         // question was 23 % of the tokens of a 30-minute game, used in 8 % of the plays.
         let diet = pianist.diet.clone();
-        let where_question = |premise: &str, spots: &[(usize, f32)], only_spots: bool, from: Option<Vec3>, destination: Option<&str>| {
+        // `names_only`: the options carry no words of their own; the place's entry under `places` in the state is its
+        // description (docs.typesafe.ai: put the facts in named state fields and reference them). Five groups' `where`
+        // questions repeated the same 30 place lines each in one call (wake-1, 18:15: 20k of a 71k-character request).
+        let where_question = |premise: &str, spots: &[(usize, f32)], only_spots: bool, from: Option<Vec3>, destination: Option<&str>, names_only: bool| {
             let in_reach: Vec<String> = if only_spots { Vec::new() } else { self.places_in_reach(&diet, picture, from, destination).into_iter().map(|p| p.name.clone()).collect() };
             let criteria: BTreeMap<String, Value> = place_names
                 .iter()
                 .filter(|(n, _)| if only_spots { spots.iter().any(|(i, _)| format!("spot_{i}") == *n) } else { in_reach.contains(n) })
                 .map(|(n, d)| {
                     let walk = spots.iter().find(|(i, _)| format!("spot_{i}") == *n).map_or(String::new(), |(_, s)| format!("; {s:.0} s of walking for this builder"));
-                    (n.clone(), json!(format!("{d}{walk}")))
+                    (n.clone(), if names_only { Value::Null } else { json!(format!("{d}{walk}")) })
                 })
                 .collect();
-            Question::Choice { instructions: json!(premise.to_string()), criteria }
+            let instructions = if names_only { format!("{premise} Each option is a place; what stands there and who is near it is its entry under `places`.") } else { premise.to_string() };
+            Question::Choice { instructions: json!(instructions), criteria }
         };
         let energy_words = picture.state["economy"]["energy"].as_str().unwrap_or_default().to_string();
         let metal_words = picture.state["economy"]["metal"].as_str().unwrap_or_default().to_string();
@@ -353,10 +357,10 @@ impl Brain {
             });
             let mut questions = vec![
                 (format!("{name}.do"), Question::Choice { instructions, criteria }),
-                (format!("{name}.where"), where_question(&format!("Suppose {name} builds something that stands at a place (a defence, a radar, a tier-2 extractor over a spot), or walks somewhere: at which place? Choose the place the instructions and the situation call for."), &spots, false, Some(unit.pos), None)),
+                (format!("{name}.where"), where_question(&format!("Suppose {name} builds something that stands at a place (a defence, a radar, a tier-2 extractor over a spot), or walks somewhere: at which place? Choose the place the instructions and the situation call for."), &spots, false, Some(unit.pos), None, false)),
             ];
             if !spots.is_empty() {
-                questions.push((format!("{name}.where_extractor"), where_question(&format!("Suppose {name} builds a metal extractor next: at which of these free spots? Nearer is sooner; ground held by us is safer; enemies near a spot get the builder killed."), &spots, true, None, None)));
+                questions.push((format!("{name}.where_extractor"), where_question(&format!("Suppose {name} builds a metal extractor next: at which of these free spots? Nearer is sooner; ground held by us is safer; enemies near a spot get the builder killed."), &spots, true, None, None, false)));
             }
             pianist.last_asked.insert(name.clone(), frame);
             menus.push(Menu {
@@ -496,7 +500,6 @@ impl Brain {
             // what holding leaves to die (the replay: the cost on the hold option's own words moved the hands from 34
             // to 52 % right beside a base under attack, the party line alone hardly at all).
             let party_words = |p: &Party| format!("{} at {}, {} from this group ({:.0} away){}: {}", if p.has_commander { format!("THEIR COMMANDER, the unit whose death wins the game ({})", p.composition) } else { p.composition.clone() }, self.place_words(&picture.places, p.at), distance_words(p.at.dist2d(centre)), p.at.dist2d(centre), p.killing.as_ref().map_or(String::new(), |(what, metal)| format!(", killing {what} ({metal:.0} metal) now")), self.odds_words(&units, p, enemies));
-            let parties_words: Vec<String> = picture.parties.iter().map(|p| format!("{}: {}", p.name, party_words(p))).collect();
             // Only a killer within reach of an answer (hands-2: the sentence named a raider 5,000 away killing one
             // Blitz, and the group was asked to weigh that; within 1,200 it fought 63 asks of 85, beyond it held).
             let killers: Vec<&str> = picture.parties.iter().filter(|p| p.killing.is_some() && p.at.dist2d(centre) <= KILLER_REACH).map(|p| p.name.as_str()).collect();
@@ -508,7 +511,9 @@ impl Brain {
             offer("move_to", Pick::MoveTo { fight: false }, "Walk to the place in `where` without stopping to fight on the way (it runs from everything).".into());
             offer("fight_to", Pick::MoveTo { fight: true }, "Advance to the place in `where`, arriving together and fighting everything on the way and there, turrets included: it does not stop at a turret's reach, so it is the attack. What is known to stand at a place is in its entry in the picture; nothing here weighs it.".into());
             if !picture.parties.is_empty() {
-                offer("engage", Pick::Engage, format!("Attack the enemy party named in `whom` now and follow it. In sight: {}.", parties_words.join("; ")));
+                // The parties are under `enemy.in_sight`, and the odds against this group on its own `enemies_near` line;
+                // repeating them here doubled the option's words (the `whom` question carries them once more, by design).
+                offer("engage", Pick::Engage, "Attack the enemy party named in `whom` now and follow it: the parties in sight are under `enemy.in_sight`, and how this group weighs against the nearest is on its own `enemies_near` line.".into());
                 offer("attack_unit", Pick::AttackUnit, "Every soldier of this group attacks one unit of the party named in `whom`: its commander when it is there, else its dearest unit; they chase it until it dies or is lost, then hold. The order that kills a commander, and the only order by which aircraft pick their target.".into());
             }
             offer("retreat", Pick::Retreat, "Fall back to our base.".into());
@@ -533,10 +538,13 @@ impl Brain {
             if let Some((other, _, _)) = group_names.iter().filter(|(n, c, d)| *n != group.name && c.is_some() && *d == group.domain).min_by(|a, b| a.1.unwrap().dist2d(centre).total_cmp(&b.1.unwrap().dist2d(centre))) {
                 offer(&format!("join_group_{other}"), Pick::Join(other.clone()), format!("Merge into group_{other} and take its task."));
             }
-            let instructions = json!(format!("Given `actors.{name}`, `enemy` and the player's `instructions`, what should {name} do next?"));
+            // The precedence is said where the question is: Jev answers the question as written (docs.typesafe.ai,
+            // "literal reading"); at wake-1 11:23 it kept a packet's "keeps on it" over "it outweighs us, killing 8 of
+            // our Blitz now" (engage 0.45, fall_back 0.34).
+            let instructions = json!(format!("Given `actors.{name}`, `enemy`, `player` and the player's `instructions`, what should {name} do next? The instructions were written before this picture: when {name}'s own `enemies_near` line says the party outweighs it, or its `losses` line says it is losing this fight or being wiped out, that outranks an instruction to keep fighting and it falls back. A few losses, or a noticeable share, against a party it outweighs are the cost of fighting, even while that party is killing some of its soldiers: it keeps on."));
             let mut questions = vec![
                 (format!("{name}.do"), Question::Choice { instructions, criteria }),
-                (format!("{name}.where"), where_question(&format!("Suppose {name} advances, moves or sends a detachment: to which place? Choose where the instructions and the situation call for it to stand or fight."), &[], false, Some(centre), group.task.place())),
+                (format!("{name}.where"), where_question(&format!("Suppose {name} advances, moves or sends a detachment: to which place? Choose where the instructions and the situation call for it to stand or fight."), &[], false, Some(centre), group.task.place(), true)),
                 (format!("{name}.how_many"), Question::choice(format!("If {name} sends a detachment, how many soldiers go?"), [("1", "one: enough for a single scout car or Tick"), ("2", "two"), ("4", "four"), ("8", "eight"), ("half", "half of the group")])),
             ];
             if !picture.parties.is_empty() {

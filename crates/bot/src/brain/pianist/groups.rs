@@ -97,8 +97,8 @@ pub(crate) struct Group {
     /// sides, so the player sees an army in pieces as it happens (escalate-6: seven detachments died one by one).
     pub parent: Option<String>,
     pub born: i32,
-    /// Soldiers lost since the player's last orders (frame, type), and the turn frame they count from; whether the
-    /// player has been woken for them this turn (H-HANDS-LOSS-WAKE).
+    /// Soldiers lost in the last minute (frame, type); the turn frame the wake counts from, and whether the player has
+    /// been woken for them this turn (H-HANDS-LOSS-WAKE). The picture says the last 30 s.
     pub losses: Vec<(i32, UnitDefId)>,
     pub losses_since: i32,
     pub loss_warned: bool,
@@ -111,9 +111,10 @@ impl Group {
         Group { name, domain, members, task, held: HashSet::new(), last_order: frame, enemies_near: false, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None }
     }
 
-    /// The metal lost since the player's last orders.
-    pub(crate) fn lost_metal(&self, world: &crate::world::World) -> f32 {
-        self.losses.iter().filter_map(|(_, def)| world.def(*def)).map(|d| d.metal_cost).sum()
+    /// The soldiers lost since `since`, and their metal.
+    pub(crate) fn lost_since(&self, since: i32, world: &crate::world::World) -> (usize, f32) {
+        let lost: Vec<&(i32, UnitDefId)> = self.losses.iter().filter(|(f, _)| *f >= since).collect();
+        (lost.len(), lost.iter().filter_map(|(_, def)| world.def(*def)).map(|d| d.metal_cost).sum())
     }
 
     /// A group split from another.
@@ -187,8 +188,8 @@ impl Brain {
         for group in &mut pianist.groups {
             if group.losses_since != turn_frame {
                 (group.losses_since, group.loss_warned) = (turn_frame, false);
-                group.losses.clear();
             }
+            group.losses.retain(|(f, _)| frame - f <= 60 * FRAMES_PER_SECOND);
             for (f, id, def) in self.unit_losses.iter().rev().take_while(|(f, ..)| *f == frame) {
                 if group.members.contains(id) {
                     group.losses.push((*f, *def));
@@ -196,8 +197,8 @@ impl Brain {
             }
             group.members.retain(|id| soldiers.iter().any(|u| u.id == *id));
             let standing: f32 = group.units(own).iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
-            let lost = group.lost_metal(&self.world);
-            if !group.loss_warned && !group.members.is_empty() && (group.losses.len() >= LOSS_WAKE_COUNT || lost >= LOSS_WAKE_SHARE * (standing + lost)) {
+            let (count, lost) = group.lost_since(turn_frame, &self.world);
+            if !group.loss_warned && !group.members.is_empty() && (count >= LOSS_WAKE_COUNT || lost >= LOSS_WAKE_SHARE * (standing + lost)) {
                 group.loss_warned = true;
                 let doing = match &group.task {
                     GroupTask::Hold { .. } => "holding".to_string(),
@@ -207,8 +208,8 @@ impl Brain {
                 loss_wakes.push(format!(
                     "group_{} has lost {} of its {} soldiers ({lost:.0} metal) since your last orders, {doing} at {}",
                     group.name,
-                    group.losses.len(),
-                    group.members.len() + group.losses.len(),
+                    count,
+                    group.members.len() + count,
                     self.world.grid(centre_of(&group.units(own)).unwrap_or_default())
                 ));
             }

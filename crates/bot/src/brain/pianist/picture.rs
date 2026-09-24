@@ -19,7 +19,9 @@ const FREE_SPOTS: usize = 10;
 /// Enemy extractors known, nearest first.
 const ENEMY_SPOTS: usize = 6;
 /// How many never-looked and long-unseen spots the enemy evidence lists.
-const NEVER_LOOKED: usize = 24;
+/// Named spots per list in the enemy section: the scout's target is chosen in code (diet decision 1), and every
+/// name here kept its place entry in the block (wake-1: 29 never-looked names, 38 to 52 place entries a call).
+const NEVER_LOOKED: usize = 3;
 /// A spot last in sight longer ago than this is listed as long unseen.
 const LONG_UNSEEN: i32 = 5 * 60 * FRAMES_PER_SECOND;
 const PASSAGES: usize = 3;
@@ -825,8 +827,15 @@ impl Brain {
             if let Some(words) = self.footwork_of(&group.name).words() {
                 entry["lane"] = json!(words);
             }
-            if !group.losses.is_empty() {
-                entry["losses"] = json!(format!("lost {} soldiers ({:.0} metal) since the player's last orders, {} ago", group.losses.len(), group.lost_metal(&self.world), ago(group.losses_since)));
+            // The last 30 s, not "since the player's last orders": turns come every ten seconds now, and the line read
+            // "lost 1" while the ball had lost eleven in eleven seconds (wake-1, 18:14). A share in words beside the
+            // number: Jev is not a calculator (docs.typesafe.ai/model-jaggedness).
+            let lost_lately: Vec<&(i32, UnitDefId)> = group.losses.iter().filter(|(f, _)| frame - f <= 30 * FRAMES_PER_SECOND).collect();
+            if !lost_lately.is_empty() {
+                let lost_metal: f32 = lost_lately.iter().filter_map(|(_, def)| self.world.def(*def)).map(|d| d.metal_cost).sum();
+                let share = lost_metal / (lost_metal + metal).max(1.0);
+                let words = if share < 0.1 { "a few" } else if share < 0.25 { "a noticeable share" } else if share < 0.5 { "a large share: it is losing this fight" } else { "most of it: it is being wiped out" };
+                entry["losses"] = json!(format!("lost {} of its {} soldiers ({lost_metal:.0} metal, {words}) in the last 30 s", lost_lately.len(), units.len() + lost_lately.len()));
             }
             if let Some(seconds) = group.stalled_seconds(frame).filter(|s| *s >= 20) {
                 entry["progress"] = json!(format!("has not got nearer its goal for {seconds} s: stalled"));
@@ -862,8 +871,10 @@ impl Brain {
             if fleeing > 0 {
                 entry["footwork"] = json!(format!("{fleeing} of its {} soldiers are being held back by their own footwork this second: stepping out of a turret's reach they were not sent against, or out of a fight they would die in", units.len()));
             }
-            if let Some(words) = self.party_words(&parties, centre) {
-                entry["enemies_near"] = json!(words);
+            // The nearest party with the odds against this group and what it is killing: the words the `do` question
+            // weighs (they were only on the engage option's line before).
+            if let Some((d, p)) = parties.iter().map(|p| (p.at.dist2d(centre), p)).filter(|(d, _)| *d < NEAR).min_by(|a, b| a.0.total_cmp(&b.0)) {
+                entry["enemies_near"] = json!(format!("{} ({}) {d:.0} away: {}{}", p.name, p.composition, self.odds_words(&units, p, &snapshot.enemies), p.killing.as_ref().map_or(String::new(), |(what, metal)| format!("; killing {what} ({metal:.0} metal) now"))));
             }
             let threats = self.threats_words(&parties, &places, own, kit, centre);
             if !threats.is_empty() {
@@ -921,8 +932,8 @@ impl Brain {
             let turn = shared.last_turn_frame.load(std::sync::atomic::Ordering::Relaxed);
             let landing = shared.delayed.lock().unwrap().as_ref().map(|(at, _)| *at);
             state["player"] = json!(match landing {
-                Some(at) => format!("deciding: its orders from {} s ago reach you in {} s, and nothing new comes from it before then; the instructions are its last word", (frame - turn) / FRAMES_PER_SECOND, (at - frame).max(0) / FRAMES_PER_SECOND),
-                None if turn > 0 => format!("watching: its last orders reached you {} s ago; a group losing soldiers or meeting a party it does not outweigh, an extractor threatened or lost, wake it within a few seconds", (frame - turn) / FRAMES_PER_SECOND),
+                Some(at) => format!("deciding: its orders from {} s ago reach you in {} s; it has not seen what has happened since, so what the picture shows now outranks an instruction it contradicts", (frame - turn) / FRAMES_PER_SECOND, (at - frame).max(0) / FRAMES_PER_SECOND),
+                None if turn > 0 => format!("watching: its last orders reached you {} s ago; a group losing soldiers or meeting a party it does not outweigh, an extractor threatened or lost, wakes it within a few seconds", (frame - turn) / FRAMES_PER_SECOND),
                 None => "has not spoken yet".to_string(),
             });
         }

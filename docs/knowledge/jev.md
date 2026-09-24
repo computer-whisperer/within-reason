@@ -721,3 +721,37 @@ rule must be mechanical (a losing group with the player out falls back without a
 walk 3, fall_back 1 (`fall_back` was offered on 393 asks and chosen 9 times in the game). The words did not hold; the
 mechanical rule is the next step, for the user's decision.
 **Used by.** H-HANDS-FALL-BACK.
+
+### K-hands-the-bundle-at-the-wipe
+**Claim.** At the decisive Jev call of wake-1 (11:23, group C's wipe) the fight-relevant content was under a fifth of
+the bundle: of 12.6k characters of state, places were 6.3k (38 entries) and unasked actors 3.4k (15 of 16); the
+`where` question repeated the places (1.9k) and the engage option restated the parties (in a 2.0k `do` question).
+At 18:15 (28k tokens, 29 questions) seven `where` questions repeated the same place list, about 20k of 71k characters.
+The lean diet was on: its "places in play" kept every spot named anywhere in the state text, and the enemy section
+named 29 never-looked spots.
+**Status.** measured (2026-09-23, `run/matches/1790212198-wake-1`, the section sizes by script). The cuts (H-HANDS-DIET,
+2026-09-23) took the replayed in-flight moments from 9.8k to 8.0k tokens (an approximation of the cuts on recorded
+states; the real bundle is measured in wake-2).
+**Evidence.** the jev log's `state` and `questions` at frames 20370 and 32850.
+**Would be wrong if.** The cut state answered worse on the control moments: check wake-2's ordinary decisions against
+wake-1's with `run/jev_ab.py --control`.
+**Used by.** H-HANDS-DIET.
+
+### K-hands-precedence-wording
+**Claim.** Jev follows the packet over the picture unless the precedence is stated where the question is, and the
+statement needs its boundary: without one, it falls back from fights we are winning.
+**Status.** measured (2026-09-23, `run/jev_inflight_ab.py` on wake-1's 21 in-flight loss moments, three asks each):
+as recorded, 1 of 21 fell back (the packet's "keeps on it" over "it outweighs us, killing 8 of our Blitz now", engage
+0.45 to fall_back 0.34 at 11:23). With the precedence in the rules and the `do` question but no boundary, 18 of 21 fell
+back, among them a 24-group that outweighed its party and had lost one, and a 45-group that outweighed its party
+heavily and had lost five. With the boundary ("a few losses, or a noticeable share, against a party it outweighs are
+the cost of fighting, even while that party is killing some of them"), 9 of 21: the wipe at 11:23 (0.97), the losses
+to unseen fire at 13:44 (0.98) and 14:19 (0.47) fall back; the winning fights at 13:35, 15:04, 18:01 and 18:07 keep on;
+still over-corrected at 13:23 (outweighs heavily, lost 5 of 45, killing 11 of ours: fall_back 0.53) and 12:02 (0.37 to
+0.49), and at 18:15 the ball that had lost 16 of 39 fell back from their commander in sight, which the packet said to
+attack. With the state cuts the same 9 of 21 at 8.0k tokens against 9.9k.
+**Evidence.** the script's tables in this session; `docs/harness/jev.md`, the docs re-read ("literal reading").
+**Would be wrong if.** In the check game the hands fall back from fights the player meant them to press (the 18:15
+shape): then the packet needs a named way to override the rule ("even when losing a large share"), and the rules a
+sentence that honours it.
+**Used by.** H-HANDS-FALL-BACK.

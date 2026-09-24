@@ -62,3 +62,34 @@ The key lives in `~/.config/within-reason/jev.env` (mode 600), never in this rep
   minutes apart the wobble was a few hundredths (2026-09-19). Whatever the cause (the vendor's serving, or a wider
   spread than the first day showed), a decision layer needs hysteresis: the pianist holds a busy actor's course unless
   the winner beats "continue" by 0.15 (H-HANDS-SWITCH).
+
+## The live docs, read again (2026-09-23, before the prompt rework after wake-1)
+`docs.typesafe.ai` (`llms.txt` index; `concepts/state.md`, `how-to-build-with-system-one.md`, `primitives/choice.md`,
+`primitives/advanced.md`, `confidence.md`, `patterns/fan-out.md`, `model-jaggedness/jev-1.13.md`, `models.md`). The model
+is still jev-1.13.0 (`jev-latest` = `jev-preview`). What applies to the hands, and what was done with it:
+- **Context: 64k per request, of which 32k for the state plus the longest question.** Stricter than the 64k we had
+  noted; wake-1's largest call was 28k tokens. The question budget stays at 60k characters (lean); the state is what the
+  cuts below shrink.
+- **"Accuracy falls as the state grows with content unrelated to the decision"; "include only the context relevant to
+  the current questions"; "omit historical information".** The five cuts: a group's `where` options carry names only
+  (the place entry is the description), unasked actors are one line each, the never-looked and long-unseen spot lists
+  are three names (the scout's target is chosen in code anyway, and every name kept its place entry in the block),
+  building completions are no longer in `recent`, and the engage option no longer repeats the parties (they are under
+  `enemy.in_sight`, and the odds against the group are now on its own `enemies_near` line).
+- **Literal reading: "answers the question you wrote, not the one you meant ... when wrong answers require explanation,
+  that explanation belongs in the prompt".** The fall-back precedence is said in the group's `do` question itself and
+  in the rules, with its boundary (a few losses against a party we outweigh are the cost of fighting). The first
+  wording without the boundary flipped 18 of 21 replayed moments to fall back, fights we were winning included
+  (K-hands-precedence-wording).
+- **Numbers: "pass computed numbers or semantic categories instead of raw numeric values".** The `losses` line carries
+  the share in words (a few / a noticeable share / a large share: it is losing this fight / most of it: it is being
+  wiped out) beside the count and metal, as the odds lines already did.
+- **Contradictory instructions and criteria degrade answers; treat criteria as an extension of the instruction.** The
+  engage option's words no longer restate the parties with their odds while the instruction says the odds are on the
+  group's line. Structured criteria (`what` / `not_for` objects) for the confused group options (continue, engage,
+  fall_back, hold) are the documented next step when options are still confused; not done.
+- **Question IDs are not sent to the model**: every question names its actor in the text (they do).
+- **Reference nested state by backtick path** (`actors.group_C`, `enemy.in_sight`, `player`): done in the group
+  questions; the `where` question now says the places are described under `places`.
+- **Confidence thresholds are to be tuned on our own data**, and answers wobble by a few hundredths between calls: the
+  A/B script repeats each request three times (`run/jev_inflight_ab.py`).

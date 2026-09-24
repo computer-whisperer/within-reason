@@ -81,3 +81,8 @@ The ask latency after a loss stayed at 1.2-1.3 s. Left at lean: builder question
 characters), the places block 22 % (36 places a call), group questions 14 % (`where` lists 31 places, the
 instructions naming many). Next cuts, if wanted: the places block from the asked *groups'* reach and the spots the
 instructions and the asked entries name (not the enemy block's); a shorter unit line per builder option.
+
+**2026-09-23 evening, after wake-1 (K-hands-the-bundle-at-the-wipe).** The first of those next cuts is in, at every
+level: the enemy block's never-looked and long-unseen lists are three names each, so they no longer pull their spots
+into the places block; a group's `where` options are names only; unasked actors are one line; no building
+completions in `recent`; the engage option no longer repeats the parties. Measured in wake-2.

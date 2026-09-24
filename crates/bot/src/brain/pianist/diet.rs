@@ -202,9 +202,21 @@ impl Brain {
                 if asked.contains(name) || names(&instructions, name) {
                     continue;
                 }
+                // One line, not a four-field object (wake-1, 11:23: fifteen unasked actors were 3.4k of a 12.6k-character
+                // state as objects).
                 if let Some(full) = entry.as_object() {
-                    let brief: serde_json::Map<String, Value> = full.iter().filter(|(k, _)| matches!(k.as_str(), "at" | "doing" | "units" | "health")).map(|(k, v)| (k.clone(), v.clone())).collect();
-                    *entry = Value::Object(brief);
+                    let field = |k: &str| full.get(k).and_then(Value::as_str).map(str::to_string);
+                    let mut parts: Vec<String> = Vec::new();
+                    if let Some(units) = field("units") {
+                        parts.push(units);
+                    }
+                    if let Some(at) = field("at") {
+                        parts.push(format!("at {at}"));
+                    }
+                    if let Some(doing) = field("doing") {
+                        parts.push(doing);
+                    }
+                    *entry = Value::String(parts.join(", "));
                 }
             }
         }
