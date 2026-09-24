@@ -773,3 +773,22 @@ in 7 of 51 asks against 0 of 69 without the clause. The rest was mechanical: the
 hold clock kept, the group's line scoped to its own soldiers, an instruction after the last loss stands, the guide on
 rewrites. Next check: wake-4.
 **Used by.** H-HANDS-FALL-BACK.
+
+### K-hands-commander-odds-by-metal
+**Claim.** The force odds weigh a unit by its metal, and a commander's 2700 metal is the base it can build, not
+the fighter it is: by the square law (sqrt of damage a second times health) the Armada commander is worth about
+400 metal of tier-1 soldiers. So its own line read "against this unit alone, we outweigh it heavily" against two
+Stouts, three Warriors and a Hammer (1390 metal, every one outreaching its D-gun), and the hands, told by the player
+that it walks back from soldiers bigger than a raider, followed the line: an extractor toward the party at 98%,
+`attack party_108` at 50%, `retreat_home` at 10%, dead four seconds after the first hit. The same weight against
+five Pawns (270 metal, all inside its D-gun) reads the same words, and there they are true.
+**Status.** demonstrated (wake-4, 2026-09-24, one death that lost a game led 26k to 2.7k); the fix's effect is the
+replay's to show.
+**Evidence.** `run/matches/1790221479-wake-4/00/jev-0.jsonl` f=38175-38370 (the commander's entry and answers);
+`combat.rs` `power` before 2026-09-24 (metal times the matchup factor); `crates/bot/data/units.json` (armcom 187.5
+dps, 3700 health; armstump 80.8, 1800, 225 metal; armwar 183, 1590, 270).
+**Would be wrong if.** Jev had read the player's sentence over the line (it did not: 0.46 extractor, 0.01
+retreat_home) or the death had come from something the line could not show (it named the party and its distance
+for eight seconds).
+**Used by.** H-HANDS-COMMANDER-WORTH; H-HANDS-SCHEDULE (the builder alarm).
+

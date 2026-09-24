@@ -37,7 +37,14 @@ would brief a hard-working assistant who follows orders literally and never coun
   "a couple", "a group", "a real army", "far too many constructors"; the menu says how many we have beside each option.
 - The army by groups: where each stands, when it engages (the menu states the odds in words: "we outweigh it", "an even
   fight", "it outweighs us"), when it scouts, when it advances and to where, and when it retreats.
-- What to do about raids on the extractors, and about the commander when it is threatened.
+- What to do about raids on the extractors, and about the commander when it is threatened. The commander's odds
+  line weighs it as the fighter it is (about 400 metal of tier-1 soldiers, not its 2700), and says what of a party
+  must walk into its D-gun and what outreaches it. Early, with no army, it is the army: a handful of Pawns at the
+  base die to it, and losing the economy to them for want of it is the game. Later it is the one unit you cannot
+  lose: it does not go to the front, and never toward soldiers that outreach its D-gun or into ground you cannot see;
+  the hands walk it back from such a party on their own, and your packet should say where it works and where it
+  stays behind (wake-4: it died rebuilding the far north-east beside a party of Stouts and Warriors, 26k of army
+  against 3k, and the game with it).
 Every second each free actor is asked "what should X do next?" with your instructions on top of the picture; a busy
 actor is asked every ten seconds and keeps its course unless something is clearly better. The hands prefer what the
 instructions say, so an instruction that fits the situation is followed and one that does not fit is quietly ignored:

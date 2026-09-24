@@ -334,6 +334,46 @@ impl Brain {
         self.kit.map(|k| self.world.reachable_from(k.commander).contains(&def)).unwrap_or(false)
     }
 
+    /// For the commander's own line: which of a party must come inside its D-gun to hit it, and which outreach it
+    /// (a handful of Pawns die to the D-gun; a line of Stouts kills it from beyond it).
+    pub(super) fn commander_reach_words(&self, def: UnitDefId, party_ids: &[bot_protocol::UnitId], enemies: &[bot_protocol::EnemyUnit]) -> String {
+        let dgun = self.dgun_reach(def);
+        if dgun <= 0.0 {
+            return String::new();
+        }
+        let mut inside: Vec<(String, f32)> = Vec::new();
+        let mut beyond: Vec<(String, f32)> = Vec::new();
+        let mut unknown = 0;
+        for enemy in enemies.iter().filter(|e| party_ids.contains(&e.id)) {
+            let Some(their) = enemy.def else { unknown += 1; continue };
+            let Some((reach, dps, _)) = self.sim_stats(their) else { continue };
+            if dps <= 0.0 {
+                continue;
+            }
+            let name = self.short_words(their);
+            let list = if reach <= dgun + 20.0 { &mut inside } else { &mut beyond };
+            if !list.iter().any(|(n, _)| *n == name) {
+                list.push((name, reach));
+            }
+        }
+        let count = |list: &[(String, f32)], ids: &[bot_protocol::UnitId]| -> usize {
+            enemies.iter().filter(|e| ids.contains(&e.id) && e.def.is_some_and(|d| list.iter().any(|(n, _)| *n == self.short_words(d)))).count()
+        };
+        let mut words = String::new();
+        let n_in = count(&inside, party_ids);
+        let n_out = count(&beyond, party_ids);
+        if n_in > 0 {
+            words.push_str(&format!("; {n_in} of them must come inside its D-gun ({dgun:.0}) to hit it ({})", inside.iter().map(|(n, r)| format!("{n} {r:.0}")).collect::<Vec<_>>().join(", ")));
+        }
+        if n_out > 0 {
+            words.push_str(&format!("; {n_out} of them outreach its D-gun and it cannot answer them ({})", beyond.iter().map(|(n, r)| format!("{n} {r:.0}")).collect::<Vec<_>>().join(", ")));
+        }
+        if unknown > 0 {
+            words.push_str(&format!("; {unknown} of unknown type"));
+        }
+        words
+    }
+
     pub(super) fn odds_words(&self, units: &[&OwnUnit], party: &Party, enemies: &[EnemyUnit]) -> &'static str {
         let mut theirs = super::super::combat::Force::default();
         for enemy in enemies.iter().filter(|e| party.ids.contains(&e.id)) {
@@ -746,7 +786,13 @@ impl Brain {
                 entry["from_home"] = json!(format!("{} ({from_home:.0}); ground {}", distance_words(from_home), match self.ground(unit.pos) { Ground::Held => "held by us", Ground::Contested => "contested", Ground::Theirs => "theirs" }));
                 if let Some(party) = parties.iter().filter(|p| p.at.dist2d(unit.pos) < NEAR).min_by(|a, b| a.at.dist2d(unit.pos).total_cmp(&b.at.dist2d(unit.pos))) {
                     let alone: Vec<&OwnUnit> = vec![unit];
-                    entry["enemies_near"] = json!(format!("{} ({}) {:.0} away: against this unit alone, {}", party.name, party.composition, party.at.dist2d(unit.pos), self.odds_words(&alone, party, &snapshot.enemies)));
+                    let mut line = format!("{} ({}) {:.0} away: against this unit alone, {}", party.name, party.composition, party.at.dist2d(unit.pos), self.odds_words(&alone, party, &snapshot.enemies));
+                    // The commander's odds are its fighting worth (H-HANDS-COMMANDER-WORTH); the reach words say
+                    // why: what must walk into its D-gun and what shoots it from beyond.
+                    if unit.def == kit.commander {
+                        line.push_str(&self.commander_reach_words(unit.def, &party.ids, &snapshot.enemies));
+                    }
+                    entry["enemies_near"] = json!(line);
                 }
                 if let Some(by) = damaged_by.get(&unit.id) {
                     entry["under_fire"] = json!(format!("yes, hit this second by {}", by.join(", ")));

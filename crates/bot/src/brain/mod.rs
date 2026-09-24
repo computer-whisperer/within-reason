@@ -101,6 +101,8 @@ pub struct Brain {
     /// When something of ours last died on our side of the map; no wave leaves while that is fresh.
     last_loss_at_home_frame: i32,
     matchups: combat::Matchups,
+    /// The tier-1 square-law strength per metal (`combat.rs` `worth_scale`), computed once; 0 until then.
+    worth_scale: std::cell::Cell<f32>,
     army: army::Army,
     /// H-ARMY-CONTACT: the enemy parties on our ground and who answers each (`contact.rs`).
     contacts: contact::Contacts,
@@ -239,6 +241,7 @@ impl Brain {
             upgrade_claims: HashMap::new(),
             last_loss_at_home_frame: i32::MIN / 2,
             matchups: Default::default(),
+            worth_scale: std::cell::Cell::new(0.0),
             army: army::Army::default(),
             contacts: Default::default(),
             spots: scout::Spots::default(),

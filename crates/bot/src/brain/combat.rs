@@ -81,9 +81,51 @@ impl Brain {
         force.units.keys().any(|def| self.can_hit(*def, air)) || (if air { force.turret_metal_air } else { force.turret_metal }) > 0.0 || force.unidentified > 0
     }
 
+    /// The square-law strength per metal of a tier-1 soldier, `sqrt(damage a second x health) / metal`, the median
+    /// over the simulator's table: what a builder's fighting worth is measured against. Computed once.
+    fn worth_scale(&self) -> f32 {
+        let cached = self.worth_scale.get();
+        if cached > 0.0 {
+            return cached;
+        }
+        let scale = tier1_scale(&self.contacts.rules.units.list);
+        self.worth_scale.set(scale);
+        scale
+    }
+
+    /// What a unit that builds (the commander, a constructor) is worth in a fight, in the metal of tier-1 soldiers
+    /// of the same square-law strength (H-HANDS-COMMANDER-WORTH): sqrt(damage a second x health) over the tier-1
+    /// scale. A 2700-metal Armada commander comes to about 400: the fighter it is, not the base it can build. A
+    /// constructor without a weapon is worth nothing (wake-4: a commander walked into two Stouts and three Warriors
+    /// under "we outweigh it heavily", its metal against theirs).
+    pub(super) fn fighting_worth(&self, def: UnitDefId) -> f32 {
+        match self.contacts.sim_defs.get(&def).map(|i| &self.contacts.rules.units.list[*i]) {
+            Some(unit) => worth_of(unit, self.worth_scale()),
+            None => {
+                let strength = super::pianist::glossary::entry(self.name(def)).map_or(0.0, |e| e.dps.unwrap_or(0.0) * e.health);
+                if strength <= 0.0 { 0.0 } else { strength.sqrt() / self.worth_scale() }
+            }
+        }
+    }
+
+    /// A unit's weight in a force: its metal for a soldier, its fighting worth for a builder.
+    fn weight(&self, def: UnitDefId) -> f32 {
+        if self.world.def(def).is_some_and(|d| d.build_speed > 0.0) { self.fighting_worth(def) } else { self.world.def(def).map_or(0.0, |d| d.metal_cost) }
+    }
+
+    /// The reach of a type's D-gun (its `command_fire` weapon); 0 for anything but a commander.
+    pub(super) fn dgun_reach(&self, def: UnitDefId) -> f32 {
+        self.contacts
+            .sim_defs
+            .get(&def)
+            .map(|i| &self.contacts.rules.units.list[*i])
+            .map_or(0.0, |u| u.weapons.iter().filter(|w| w.command_fire && !w.paralyzer).map(|w| w.range).fold(0.0, f32::max))
+    }
+
     /// Fighting power of `force` against `other`, in metal-equivalents: only what can hit the other's domain counts.
+    /// A soldier weighs its metal; a builder its fighting worth (`fighting_worth`).
     fn power(&self, force: &Force, other: &Force) -> f32 {
-        let metal = |def: UnitDefId| self.world.def(def).map_or(0.0, |d| d.metal_cost);
+        let metal = |def: UnitDefId| self.weight(def);
         let other_air = self.all_air(other);
         let other_total: f32 = other.units.iter().map(|(def, n)| metal(*def) * *n as f32).sum();
         let soldiers: f32 = force
@@ -111,3 +153,50 @@ impl Brain {
         self.power(ours, theirs) / self.power(theirs, ours).max(1.0)
     }
 }
+
+/// The median square-law strength per metal, `sqrt(damage a second x health) / metal`, over the tier-1 mobile ground
+/// fighters of the simulator's table: what a builder's fighting worth is measured against (2.0 for an empty table).
+fn tier1_scale(units: &[combatsim::units::Unit]) -> f32 {
+    let mut ratios: Vec<f32> = units
+        .iter()
+        .filter(|u| u.mobile() && !u.builder && !u.air && u.tech == 1 && u.reach() > 0.0 && u.metal > 0.0 && u.dps() > 0.0)
+        .map(|u| (u.dps() * u.health).sqrt() / u.metal)
+        .collect();
+    ratios.sort_by(f32::total_cmp);
+    if ratios.is_empty() { 2.0 } else { ratios[ratios.len() / 2] }
+}
+
+/// A unit's fighting worth in tier-1 metal: its square-law strength over the scale; 0 for a unit that cannot fight.
+fn worth_of(unit: &combatsim::units::Unit, scale: f32) -> f32 {
+    let strength = unit.dps() * unit.health;
+    if strength <= 0.0 { 0.0 } else { strength.sqrt() / scale }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use combatsim::units::Units;
+
+    fn unit<'a>(units: &'a Units, name: &str) -> &'a combatsim::units::Unit {
+        let i = units.names.iter().position(|n| n == name).expect(name);
+        &units.list[i]
+    }
+
+    /// The commander weighs as the fighter it is: about two Stouts, not twelve (wake-4). Five Pawns still read as
+    /// prey; two Stouts and three Warriors as death.
+    #[test]
+    fn commander_worth_is_a_fighters() {
+        let units = Units::default();
+        let scale = tier1_scale(&units.list);
+        assert!(scale > 1.0 && scale < 4.0, "scale {scale}");
+        let com = worth_of(unit(&units, "armcom"), scale);
+        let stout = unit(&units, "armstump").metal;
+        assert!(com > stout && com < 3.0 * stout, "commander {com} against a Stout's {stout}");
+        let pawns = 5.0 * unit(&units, "armpw").metal;
+        let line = 2.0 * stout + 3.0 * unit(&units, "armwar").metal;
+        assert!(com / pawns >= 1.3, "five Pawns: {}", com / pawns);
+        assert!(com / line < 0.8, "two Stouts and three Warriors: {}", com / line);
+        assert_eq!(worth_of(unit(&units, "armck"), scale), 0.0, "an unarmed constructor fights nothing");
+    }
+}
+

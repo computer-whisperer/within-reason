@@ -40,11 +40,28 @@ impl Brain {
         for unit in &hit {
             pianist.hits.insert(*unit, frame);
         }
-        if hit.is_empty() && gone.is_empty() && seen.is_empty() {
+        let mut due: HashSet<String> = HashSet::new();
+        // A party entering a builder's alarm reach (the parties are the last picture's; their place is where their
+        // units stand now) asks the builder once, and again when it comes back after leaving.
+        let mut alarmed: HashSet<(UnitId, String)> = HashSet::new();
+        for unit in own.iter().filter(|u| !u.being_built && self.world.is_mobile_builder(u.def)) {
+            for party in &pianist.parties {
+                let units: Vec<&bot_protocol::EnemyUnit> = tick.snapshot.enemies.iter().filter(|e| party.ids.contains(&e.id)).collect();
+                let Some(at) = super::groups::centre_of_enemies(&units) else { continue };
+                if at.dist2d(unit.pos) < ALARM {
+                    let key = (unit.id, party.name.clone());
+                    if !pianist.alarmed.contains(&key) {
+                        due.insert(self.actor_name(unit.id));
+                    }
+                    alarmed.insert(key);
+                }
+            }
+        }
+        pianist.alarmed = alarmed;
+        if hit.is_empty() && gone.is_empty() && seen.is_empty() && due.is_empty() {
             self.pianist = Some(pianist);
             return;
         }
-        let mut due: HashSet<String> = HashSet::new();
         let seen_at: Vec<bot_protocol::Vec3> = seen.iter().filter_map(|id| tick.snapshot.enemies.iter().find(|e| e.id == *id)).map(|e| e.pos).collect();
         for group in &pianist.groups {
             let touched = group.members.iter().any(|m| hit.contains(m) || gone.contains(m));

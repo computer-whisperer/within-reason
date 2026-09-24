@@ -155,6 +155,9 @@ pub struct Pianist {
     pub(super) due_next: HashSet<String>,
     /// Our units hit since the last call, with the frame: the menus' under-fire set, across the ticks between calls.
     pub(super) hits: HashMap<UnitId, i32>,
+    /// (builder, party name) pairs with the party inside the builder's alarm reach: a party's arrival puts the
+    /// builder on the call once (H-HANDS-SCHEDULE; wake-4: the commander was asked only when hit).
+    pub(super) alarmed: HashSet<(UnitId, String)>,
     /// The token diet's level and knobs (H-HANDS-DIET).
     pub(super) diet: diet::Diet,
     /// A factory's last real answer, by actor name, replayed while its inputs change only in numbers.
@@ -296,6 +299,7 @@ impl Pianist {
             diet: diet::Diet::from_env(),
             replays: HashMap::new(),
             hits: HashMap::new(),
+            alarmed: HashSet::new(),
             places_seen: BTreeSet::new(),
             packet_seen: String::new(),
             produced: HashMap::new(),
