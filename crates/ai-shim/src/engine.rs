@@ -94,8 +94,27 @@ impl Engine {
         let float_count = call!(self, Map_getResourceMapSpotsPositions(self.metal, std::ptr::null_mut(), 0));
         let mut floats = vec![0f32; float_count.max(0) as usize];
         call!(self, Map_getResourceMapSpotsPositions(self.metal, floats.as_mut_ptr(), float_count));
-        let mut metal_spots: Vec<Vec3> =
-            floats.chunks_exact(3).map(|s| Vec3 { x: s[0], y: s[1], z: s[2] }).collect();
+        let engine_spots: Vec<Vec3> = floats.chunks_exact(3).map(|s| Vec3 { x: s[0], y: s[1], z: s[2] }).collect();
+        // The game's own spot list, when the game publishes one (BAR's api_resource_spot_finder sets the game rules
+        // params `mex_count`, `mex_x<i>`, `mex_z<i>`; the replay widget reads the same): the positions extractors
+        // snap to, and the numbers the replay cards use, so the brief, the picture and the cards name the same spots.
+        // The engine's list, snapped to the patch centroids below, has matched it index for index on Comet Catcher
+        // since 2026-09-23; it stays the fallback for a game without the params, and a difference is logged.
+        let game_spots: Vec<Vec3> = {
+            let count = call!(self, Game_getRulesParamFloat(c"mex_count".as_ptr(), 0.0)) as usize;
+            (1..=count)
+                .map_while(|i| {
+                    let (kx, kz) = (CString::new(format!("mex_x{i}")).unwrap_or_default(), CString::new(format!("mex_z{i}")).unwrap_or_default());
+                    let (x, z) = (call!(self, Game_getRulesParamFloat(kx.as_ptr(), f32::NAN)), call!(self, Game_getRulesParamFloat(kz.as_ptr(), f32::NAN)));
+                    (!x.is_nan() && !z.is_nan()).then(|| {
+                        let y = engine_spots.iter().min_by(|a, b| a.dist2d(Vec3 { x, y: 0.0, z }).total_cmp(&b.dist2d(Vec3 { x, y: 0.0, z }))).map_or(0.0, |s| s.y);
+                        Vec3 { x, y, z }
+                    })
+                })
+                .collect()
+        };
+        let from_game = !game_spots.is_empty();
+        let mut metal_spots: Vec<Vec3> = if from_game { game_spots } else { engine_spots.clone() };
         // The raw metal map: one value per 2x2 heightmap squares (16 elmos), index 0 top left. Each square with metal
         // belongs to the nearest spot within a patch's reach of it.
         const METAL_SQUARE: f32 = 2.0 * SQUARE_SIZE;
@@ -132,12 +151,22 @@ impl Engine {
         // (+40, +72) from every extractor BARb and people build (human-9, the escalate-7 truth file), and the site
         // asked at the corner spot was refused. The game and BARb snap to the metal-weighted centre of the patch,
         // so that is the spot we publish; the squares stay for placing anywhere the extractor radius allows.
-        for (spot, (sx, sz, sw)) in metal_spots.iter_mut().zip(&weighted) {
-            if *sw > 0.0 {
-                spot.x = (sx / sw) as f32;
-                spot.z = (sz / sw) as f32;
+        if !from_game {
+            for (spot, (sx, sz, sw)) in metal_spots.iter_mut().zip(&weighted) {
+                if *sw > 0.0 {
+                    spot.x = (sx / sw) as f32;
+                    spot.z = (sz / sw) as f32;
+                }
             }
         }
+        let differing = metal_spots.iter().filter(|g| engine_spots.iter().all(|e| e.dist2d(**g) > 130.0)).count();
+        eprintln!(
+            "[wreason ai={}] metal spots: {} from {} (the engine's list has {}, {differing} of ours nowhere within 130 of one of its)",
+            self.ai_id,
+            metal_spots.len(),
+            if from_game { "the game's rules params (mex_count, mex_x<i>, mex_z<i>)" } else { "the engine's resource map, snapped to the patch centroids" },
+            engine_spots.len()
+        );
         self.metal_spots = metal_spots.clone();
 
         let script = self.string(call!(self, Game_getSetupScript()));

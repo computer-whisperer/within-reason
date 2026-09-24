@@ -119,3 +119,15 @@ the spot's own), `first_enemy_seen` was 0:00 everywhere (removed), `factories` w
 15 s (a resign's self-destruct) are counted apart, every building has its cell, the first tier-2 unit is on the card.
 Still open: the spot-number bridge to the bot (the user's decision), the brief's Comet section citing the new claims,
 Quicksilver next.
+
+**2026-09-24, the spot-number bridge.** The 14:45 note above was wrong about the count: the shim's list has had 80
+spots on Comet Catcher all along, and since the centroid snapping (H-ECO-SPOT-CENTROID, records from pace-1 on) it has
+been identical to the game's list index for index (every position within 1 elmo, the same order; checked on pace-1,
+wake-1 and wake-3 against the replay records' `mex_x<i>`/`mex_z<i>`; comet-1 of 2026-09-22, before the snapping, had
+the same 80 at other positions). So the cards' spot numbers are the bot's already, and the brief's Comet spot names
+needed no renumbering (spot_28 and spot_30 at A4, spot_45, spot_50 and spot_43 at B5, the strip's thirteen with x
+under 1,400, as the brief has them). The bridge is now explicit: the shim reads the game's rules params (`mex_count`,
+`mex_x<i>`, `mex_z<i>`, the same the replay widget reads) and publishes that list when it exists, the engine's
+centroid-snapped list otherwise, and logs the source and any spot of ours with no engine spot within 130. Smoke games
+spots-comet and spots-quick (easy, four minutes, heuristic brain): 80 and 44 spots, 14 and 8 extractors finished, no
+refused site. Quicksilver's game list is checked the same way when a Quicksilver replay is carded.
