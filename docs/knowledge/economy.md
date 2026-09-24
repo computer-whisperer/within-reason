@@ -197,3 +197,18 @@ tell). The spend-then-bank shape contradicts K-open-comet-vehicle-list's "2,100 
 plant" as a habit to keep: the people's winners had under 500 banked at 10:00 in 15 of 22.
 **Used by.** (candidate: the bot's spend rule from 8:00; the plateau at 22-25 extractors)
 
+### K-eco-comet-pros-rez-bots
+**Claim.** On Comet Catcher, players at OS 25 and above collect wrecks with resurrection bots more than with
+constructors: 24 of 58 sides built them (11 winners, 13 losers), a median of ten a side, the first between minutes 4
+and 10 (winners: 3, 4, 4, 4, 5, 6, 8, 8, 10, 13, 15); the bots worked wrecks on their own ground, not the field a
+fight had just left (a bot within 400 of a death in the next 90 s after 22 of 2,730 deaths on the winners' side, 17 of
+3,403 on the losers'); a constructor stood within 250 of a fresh death within 60 s after 15 % of deaths (median side);
+income above the extractors' yield (2.1 a spot, 8.5 a moho, plus 8) in 12 % of the winners' minutes against 7 % of the
+losers'.
+**Status.** observed (2026-09-23, the replay survey's records, not its cards: the cards carry no wrecks or reclaim).
+**Evidence.** the 29 matches' `record-<team>.jsonl` (created events for armrectr/cornecro; own-unit positions in the
+samples against death events; resource samples against extractor counts), tallied in this session; to be a card
+field (rez bots built, first at, income above extractors).
+**Would be wrong if.** The replay records' income excluded reclaim (then the spike share says nothing), or a wider
+radius showed constructors on the battlefield after most fights.
+**Used by.** H-WAKE-WRECKS; H-REC-CREW under the pianist; the brief's economy section.

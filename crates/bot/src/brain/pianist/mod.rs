@@ -363,6 +363,16 @@ impl Brain {
     pub(super) fn run_pianist(&mut self, tick: &Tick, kit: &Kit, commands: &mut Vec<Command>) {
         self.pianist_housekeeping(tick, kit, commands);
         self.keep_groups(tick, kit, commands);
+        // H-REC-CREW under the pianist: resurrection bots are the player's to produce and the bot's to work. They build
+        // nothing, so the hands never ask them, and the economy loop that drives them does not run here (2026-09-24:
+        // a produced Lazarus would have idled all game).
+        for (bot, raised) in std::mem::take(&mut self.reclaim.to_mend) {
+            commands.push(Command::Repair { unit: bot, target: raised, queue: false });
+        }
+        let crew: Vec<bot_protocol::OwnUnit> = tick.snapshot.own_units.iter().filter(|u| !u.being_built && u.idle && kit.is_resurrector(u.def)).cloned().collect();
+        for unit in &crew {
+            self.work_wrecks(unit, tick, commands);
+        }
         // The growth history (the curves and the stagnation wake) and the field the player's report and wake
         // conditions read; the heuristic brain keeps them inside its army rules.
         self.track_growth(tick, kit);

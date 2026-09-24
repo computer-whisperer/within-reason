@@ -611,7 +611,7 @@ impl Brain {
         let count = |f: &dyn Fn(&OwnUnit) -> bool| own.iter().filter(|u| !u.being_built && f(u)).count();
         let soldiers: Vec<&OwnUnit> = own.iter().filter(|u| !u.being_built && self.is_army(u, kit)).collect();
         let army_metal: f32 = soldiers.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
-        let wreck_fields: Vec<String> = self
+        let mut wreck_fields: Vec<String> = self
             .reclaim
             .fields
             .iter()
@@ -619,6 +619,16 @@ impl Brain {
             .take(3)
             .map(|f| format!("{:.0} metal of wrecks at {}{}", f.metal, self.place_words(&places, f.at), if f.safe { "" } else { " (not safe)" }))
             .collect();
+        let (all_wrecks, safe_wrecks): (f32, f32) = self.reclaim.fields.iter().fold((0.0, 0.0), |(a, s), f| (a + f.metal, s + if f.safe { f.metal } else { 0.0 }));
+        if all_wrecks >= 100.0 {
+            wreck_fields.insert(0, format!("{all_wrecks:.0} metal of wrecks known, {safe_wrecks:.0} of it on ground we hold"));
+        }
+        let crew: Vec<&OwnUnit> = own.iter().filter(|u| !u.being_built && kit.is_resurrector(u.def)).collect();
+        let crew_words = if crew.is_empty() {
+            format!("none (`produce` {}: they raise wrecked soldiers and take the rest apart on their own)", self.name(kit.resurrector))
+        } else {
+            format!("{}, {} working a wreck field, {} idle", crew.len(), crew.iter().filter(|u| !u.idle).count(), crew.iter().filter(|u| u.idle).count())
+        };
         let extractors = count(&|u| self.world.is_extractor_def(u.def));
         let constructors = count(&|u| self.world.is_constructor_def(u.def));
         let ours = json!({
@@ -630,6 +640,7 @@ impl Brain {
             "generators": count(&|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0 && (d.energy_make > 0.0 || d.energy_upkeep < 0.0 || d.wind_cap > 0.0))),
             "soldiers": format!("{}: {} worth {:.0} metal ({})", soldier_words(soldiers.len(), army_metal), soldiers.len(), army_metal.max(0.0), self.composition_words(&soldiers)),
             "wrecks": wreck_fields,
+            "resurrection_bots": crew_words,
         });
 
         // The enemy.

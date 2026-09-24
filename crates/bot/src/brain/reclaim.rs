@@ -158,9 +158,11 @@ impl Brain {
     /// Orders for an idle resurrection bot.
     pub(super) fn work_wrecks(&mut self, unit: &OwnUnit, tick: &Tick, commands: &mut Vec<Command>) {
         let Some(index) = self.field_for(unit, f32::INFINITY) else {
-            // Nothing to do: wait with the army, where the next wrecks will be.
-            if unit.pos.dist2d(self.last_station) > 600.0 {
-                commands.push(Command::Move { unit: unit.id, to: self.last_station, queue: false });
+            // Nothing to do: wait with the army, where the next wrecks will be (under the pianist, at home: the
+            // station is the heuristic army's).
+            let station = if self.pianist.is_some() { self.home } else { self.last_station };
+            if unit.pos.dist2d(station) > 600.0 {
+                commands.push(Command::Move { unit: unit.id, to: station, queue: false });
             }
             return;
         };

@@ -65,6 +65,16 @@ Thug `corthud` 140/1100/45/380 line unit; Trasher `corcrash` anti-air only; Grav
   [K-units-laser-towers-need-energy]
 - Constructors die in the field walking alone to far spots. Expand in steps the army has already covered.
   [K-army-verdicts-v18]
+- Wrecks are income nobody is collecting. In the 29 Comet Catcher duels of the replay survey, 24 of 58 sides built
+  resurrection bots (11 winners, 13 losers), a median of ten a side, the first between minutes 4 and 10, and they worked
+  wrecks on their own ground rather than the field a fight just left (a bot within 400 of a death in the next 90 s in
+  22 of 2,730 deaths); a constructor stood within 250 of a fresh death within 60 s after only 15 % of deaths; the winners'
+  income ran above what their extractors give in 12 % of minutes against the losers' 7 %. What you have: the report's
+  `wrecks` line and a wake when 500 metal of wrecks lies on ground we hold; `produce` armrectr (they work the richest
+  held field on their own, raising soldiers worth 100 metal or more while energy is above half, and wait at home
+  between fields); a constructor's `reclaim` option when a field is within 1,800 of it; `remove` for buildings of
+  ours. Send constructors to wrecks on ground we hold, never onto a field the fight is still on.
+  [K-eco-comet-pros-rez-bots, K-army-dead-waves-are-resurrected]
 
 **Which map.** Two maps have sections here, Quicksilver Remake and Comet Catcher Remake. The `map` tool names the
 one you are on; read that map's section and its opening, and skip the other's.
@@ -177,6 +187,28 @@ K-maps-comet-barb-opens-bots, the tempo model]
   4:00 (comet-3), so the turret beside each pair matters more, and its commander D-guns a small group (comet-1), so the
   raids go at extractors and constructors, never at the commander. Say the plan you chose in a `note` on turn one and,
   at the end, what you would change; the next game's brief carries it.
+- **The replay survey: 29 duels of players at OS 25 and above on this map (2026-09-23; the claims in
+  docs/knowledge/maps.md under "Comet Catcher Remake 1.8: the replay survey", the map file
+  docs/knowledge/maps/comet_catcher_remake_1.8.md).** Spot numbers there are the game's 80-spot list, not yours: read
+  the grid cell beside each. What the winners did: (1) the turret opening, extractor, extractor, solar, a light turret
+  by 0:28, the third home extractor, the factory by 1:05 (18 of 29 winners had the turret before the factory; the
+  later plant with it won 18 of 29 sides against the 0:34 plant's 11, though the later-plant player was mostly the
+  higher OS) [K-map-comet-catcher-remake-1-8-two-openings, -turret-at-0-27]; (2) the commander takes the three home
+  spots and the next pair toward the middle, the constructors take the flank strips (the commander built a quarter of
+  the winners' extractors) [K-map-comet-catcher-remake-1-8-home-spots-then-flanks]; (3) from the A4 start the north
+  strip B3, B3, A2, A1, B1, B1, C1 by 6:15; from B5 the winners went south-east (C5, C6, C7, D7, D6 by 4:44) and the
+  losers took the back corner A6 first [-a4-expansion, -b5-winners-go-south-east]; (4) the game is decided between
+  8:00 and 12:00: winners stood at 18, 23, 28 extractors at 8:00, 10:00, 12:00 with 7 constructors by 10:00 and
+  9.5 by 12:00, losers at 15, 15.5, 14.5; from 8:00 to 12:00 winners added 11 extractors and losers 1
+  [-decided-by-the-8-to-12-gap, -extractor-curve]; (5) a second factory by about 8:30, a vehicle plant, before 10:00
+  [-second-factory]; (6) winners spent through the window: at 10:00, 15 of 22 losers had 500 or more metal banked
+  against 7 of 22 winners [K-eco-winner-pulls-away-8-to-12]; (7) raids were met with turrets, 9 by 8:00 against the
+  losers' 6, every side still lost an extractor (first at 4:18), and five or more scout cars by 3:00 in 38 of 45
+  vehicle sides [-raids-met-by-turrets, -first-extractor-lost]; (8) tier 2 in 4 of 58 sides only; Blitzes and
+  Incisors are the army through 12:00, line units under 3 % of the count [-tier-2-is-rare, K-army-comet-raiders-to-12];
+  (9) a radar by 3:00 and a nano turret by 5:42 in nearly every side, solars only, 16 by 8:00 [K-open-comet-radar-nano-solars-habits].
+  Against this opponent the Ticks and Pawns come earlier than the people's scout cars, so the turret at 0:27 and
+  the turret pairs on the outer spots matter more here, not less.
 - comet-1 (easy, WON at 17.5 min): the plan was two extractors, three solars, the plant by 0:40, `armcv:1` then
   Blitzes. The hands built the extractors at 0:03 and 0:11, solars at 0:18 and 0:28, then two more extractors and a
   solar, and the plant only at 1:40 with 890 metal banked: the plant's menu words warned that the store would empty,

@@ -49,7 +49,11 @@ the hands would have to compute.
 The menu's vocabulary (what an instruction can ask for): builders build an extractor at a free spot, any building of
 the roster (by default the usual ones: generators, the factories, light and heavy turrets, radar, storage, the tier-2
 lab and extractor, fusion; `produce` puts anything else on a builder's menu), a defence or a radar at a named place, help
-the lab, take wrecks apart, repair, walk to a place, go home. Labs, plants and other factories (`lab_N`, `plant_N`,
+the lab, take wrecks apart (a field within 1,800 of the builder), repair, walk to a place, go home. Resurrection bots
+(`produce` armrectr or cornecro; they build nothing) are never asked: they work the richest wreck field on ground we hold
+by themselves, raising soldiers worth 100 metal or more while stored energy is above half and taking the rest apart, and
+wait at home between fields; you are woken when 500 metal of wrecks lies on held ground, and the picture's `wrecks`
+and `resurrection_bots` lines carry the totals. Labs, plants and other factories (`lab_N`, `plant_N`,
 `factory_N`) build any unit of theirs or nothing. Your first report carries the whole roster, one line a unit by internal
 name; `units` gives any unit's full entry, ours or theirs. Groups hold, walk to a place (running
 from everything), advance to a place fighting (arriving together), engage a party in sight, retreat home, split a

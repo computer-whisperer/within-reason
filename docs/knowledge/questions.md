@@ -31,3 +31,7 @@ cannot answer is said so. Add questions here as play raises them; strike none.
     banked or spent.
 11. What people do that our brief does not say: standing habits (radar timing, turret pairs, nano counts, when the
     commander leaves home) worth a claim of their own.
+12. Wrecks: how much metal the fights leave on the ground and who collects it (constructors on the field, resurrection
+    bots, nobody); when the first resurrection bot comes and how many; whether the collectors work the battlefield or
+    their own ground. (The card needs: rez bots built and their first clock, income above the extractors' yield by
+    minute, collectors within reach of the fight cells.)
