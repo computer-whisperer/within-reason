@@ -125,6 +125,12 @@ pub struct Pianist {
     pub(super) queued: HashMap<UnitId, Task>,
     /// The player's lists of steps per builder (by actor name), done by the bot without asking (H-HANDS-SCRIPT).
     pub(super) scripts: HashMap<String, VecDeque<String>>,
+    /// What the hands have ordered each builder to build, in order, by unit name: a list arriving after the hands
+    /// began the opening (the player's first orders land 15 to 25 s in) skips the leading steps already ordered
+    /// (bank-1, 2v1-medium, 2v1-hard: the default had built two extractors and a solar by 0:25, the list's three
+    /// solars made four before the plant). The hands' own orders, not the engine's created events: keyed on those,
+    /// the skip never fired for the commander in 2v1-hard while its narration showed the three orders.
+    pub(super) ordered: HashMap<UnitId, Vec<String>>,
     /// The list step each builder is on (its words, and the clock of the task it became): diverted from that task
     /// by the hands, the builder gets the step back at the front of its list (pace-1: an extractor step at spot_7
     /// was lost to a "go home", and the list went on to the turret).
@@ -309,6 +315,7 @@ impl Pianist {
             next_party: std::cell::Cell::new(1),
             recent: VecDeque::new(),
             scripts: HashMap::new(),
+            ordered: HashMap::new(),
             list_steps: HashMap::new(),
             done: Vec::new(),
             log,
@@ -366,15 +373,11 @@ impl Brain {
     /// The pianist's whole turn of the brain: bookkeeping every think, a call to Jev when one is due.
     /// A timed list step `assist N` ends after N seconds: the task is dropped and the builder is put on the next call,
     /// where its list's next step plays (H-HANDS-SCRIPT). The engine keeps the guard until the next order replaces it.
-    fn end_timed_assists(&mut self, frame: i32) {
+    fn end_timed_assists(&mut self, frame: i32, commands: &mut Vec<Command>) {
         let pianist = self.pianist.as_mut().expect("pianist mode");
         let mut ended: Vec<UnitId> = Vec::new();
         for (unit, (step, _)) in &pianist.list_steps {
-            let mut words = step.split_whitespace();
-            if words.next() != Some("assist") {
-                continue;
-            }
-            let Some(seconds) = words.next().and_then(|w| w.parse::<i32>().ok()) else { continue };
+            let Some(seconds) = menu::timed_assist(step) else { continue };
             if let Some(Task::Assist { since, .. }) = pianist.tasks.get(unit)
                 && frame - since >= seconds * FRAMES_PER_SECOND
             {
@@ -390,13 +393,16 @@ impl Brain {
             pianist.tasks.remove(&unit);
             pianist.list_steps.remove(&unit);
             pianist.due_now.insert(name);
+            // The engine keeps a guard until another order: the stop makes the builder idle, and its list's next
+            // step plays at the call the `due_now` brings forward.
+            commands.push(Command::Stop { unit });
         }
     }
 
     pub(super) fn run_pianist(&mut self, tick: &Tick, kit: &Kit, commands: &mut Vec<Command>) {
         self.pianist_housekeeping(tick, kit, commands);
         self.keep_groups(tick, kit, commands);
-        self.end_timed_assists(tick.frame);
+        self.end_timed_assists(tick.frame, commands);
         // H-REC-CREW under the pianist: resurrection bots are the player's to produce and the bot's to work. They build
         // nothing, so the hands never ask them, and the economy loop that drives them does not run here (2026-09-24:
         // a produced Lazarus would have idled all game).
@@ -450,6 +456,29 @@ impl Brain {
                         let pianist = self.pianist.as_mut().expect("pianist mode");
                         pianist.tasks.remove(&unit);
                         pianist.done.push(format!("{} {name}: stopped what it was doing on your `stop`", picture::clock(tick.frame)));
+                    }
+                    if s.is_empty() {
+                        steps = None;
+                    }
+                }
+                // The first list of the game for a builder skips the leading steps the hands' default opening has
+                // already built (a step matches a build by kind: `extractor` the extractor, else the unit's name).
+                if let Some(s) = steps.as_mut()
+                    && !self.pianist.as_ref().expect("pianist mode").script_frame.contains_key(&name)
+                    && let Some(unit) = self.unit_by_handle(&name, &tick.snapshot.own_units).map(|u| u.id)
+                {
+                    let extractor = self.world.def(kit.extractor).map(|d| d.name.clone()).unwrap_or_default();
+                    let ordered = self.pianist.as_ref().expect("pianist mode").ordered.get(&unit).cloned().unwrap_or_default();
+                    let matches = |step: &String, name: &String| {
+                        let kind = step.split_whitespace().next().unwrap_or_default();
+                        (kind == "extractor" && *name == extractor) || kind == name
+                    };
+                    let k = s.iter().zip(ordered.iter()).take_while(|(step, name)| matches(step, name)).count();
+                    eprintln!("[ai {}] f={} first list for {name}: the hands had ordered [{}], its first {k} steps skipped", self.world.hello.ai_id, tick.frame, ordered.join(", "));
+                    if k > 0 {
+                        let skipped: Vec<String> = s.drain(..k).collect();
+                        let pianist = self.pianist.as_mut().expect("pianist mode");
+                        pianist.done.push(format!("{} {name}: its list arrived after the hands had built its first {k} steps ({}); it goes on from the next", picture::clock(tick.frame), skipped.join(", ")));
                     }
                     if s.is_empty() {
                         steps = None;

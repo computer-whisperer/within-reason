@@ -190,7 +190,14 @@ impl Brain {
                     _ => {}
                 }
                 if let Some(task) = task {
+                    let ordered = match &task {
+                        Task::Build { def, .. } => self.world.def(*def).map(|d| d.name.clone()),
+                        _ => None,
+                    };
                     let pianist = self.pianist.as_mut().expect("pianist mode");
+                    if let Some(name) = ordered {
+                        pianist.ordered.entry(id).or_default().push(name);
+                    }
                     if queue {
                         pianist.queued.insert(id, task);
                         did = did.map(|d| format!("next, queued: {d}"));

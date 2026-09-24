@@ -198,6 +198,12 @@ impl Brain {
                     // A build the engine has not started yet gives way to a list set after it was ordered
                     // (escalate-7: two constructors held a refused nano site through three new lists).
                     Some(Task::Build { ordered, .. }) => queue_ahead || list_frame > *ordered,
+                    // A timed `assist N` step keeps the builder at the factory for its N seconds (bank-1: the next
+                    // step fired the moment the plant stood and the guard lasted 0 s); `end_timed_assists` frees it.
+                    Some(Task::Assist { since, .. }) => match pianist.list_steps.get(&unit.id).and_then(|(step, _)| timed_assist(step)) {
+                        Some(seconds) => frame - since >= seconds * FRAMES_PER_SECOND,
+                        None => true,
+                    },
                     Some(_) => true,
                 };
                 if ready && let Some(menu) = self.scripted_step(unit, &name, &mut pianist, picture, own, frame, queue_ahead, task.is_some(), kit) {
@@ -686,7 +692,13 @@ impl Brain {
                     }
                 }
                 // `assist` or `assist N`: the seconds, when given, end the step (`run_pianist` ends the task and the
-                // list goes on); the step's words stay in `list_steps` so the timer can read them.
+                // list goes on); the step's words stay in `list_steps` so the timer can read them. A timed assist at
+                // an empty store is skipped: helping adds build power, and an empty store has nothing for it to
+                // spend (2v1-medium, 2v1-hard: 44 and 84 s of guarding at a store of 0 sped the plant up 1.0x
+                // against the pool's 1.5x; K-open-comet-our-plant-starves).
+                "assist" if timed_assist(&step).is_some() && picture.metal_stored < ASSIST_STORE_FLOOR => {
+                    Err(format!("the store holds {:.0} metal, and helping the plant adds nothing at an empty store; the list goes on", picture.metal_stored))
+                }
                 "assist" => match own.iter().filter(|u| self.world.is_factory_def(u.def)).min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos))) {
                     Some(factory) => Ok((Pick::AssistLab(factory.id), Vec::new(), None)),
                     None => {
@@ -836,3 +848,13 @@ pub(crate) fn nearest_of<'a>(units: &[&'a OwnUnit], to: Vec3, n: usize) -> Vec<&
     sorted.sort_by(|a, b| a.pos.dist2d(to).total_cmp(&b.pos.dist2d(to)));
     sorted.into_iter().take(n).collect()
 }
+
+/// The seconds of a timed list step `assist N`; None for any other step.
+/// A timed assist step is skipped while the metal store is under this (the pool's bank at 2:00 to 3:00 is 100 to 150).
+const ASSIST_STORE_FLOOR: f32 = 20.0;
+
+pub(super) fn timed_assist(step: &str) -> Option<i32> {
+    let mut words = step.split_whitespace();
+    (words.next() == Some("assist")).then(|| words.next().and_then(|n| n.parse::<i32>().ok())).flatten()
+}
+

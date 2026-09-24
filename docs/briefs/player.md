@@ -164,9 +164,16 @@ K-maps-comet-barb-opens-bots, the tempo model]
   spot_50 from B5), two or three solars, never a fourth before the plant, the plant at 0:43 to 0:58 (standing 1:05 to
   1:17). **Then it guards the plant**: the pros' commander stands at the plant from the second it is done and steps
   out only for one solar or one extractor at a time, back to the plant after each (thebluegecko 140 s of the first
-  240 guarding, the pool 50). Write it as the list: `armvp`, `assist 25`, `armsolar`, `assist 25`, `extractor
-  spot_36`, `assist 25`, `armsolar`, ... The plant's first units are Rovers (31 metal: half the pros' first eight
-  units), one constructor after a Rover or two, a second constructor near 2:00; not three constructors at once.
+  240 guarding, the pool 50). Write it as the list: `armvp`, `assist 25`, `extractor spot_36`, `assist 25`, `extractor
+  spot_28`, `assist 25`, ... with a solar only where the store will read over 100 and energy is not full (2v1-medium
+  and 2v1-hard put solars five and six at 1:38 and 2:20 with energy full and the store at 0: each was three
+  extractors' metal). Your first list lands at about 0:25, when the hands have already ordered two extractors and a
+  solar; the hands skip the steps of your list they have ordered already, so write the whole opening from its
+  start. The plant's first units are `armfav` scout cars (31 metal: half the pros' first eight units), one
+  constructor after two or three of them, a second constructor near 2:00, never three constructors at once: write
+  it as `produce {"plant_N": ["armfav:3", "armcv:1", "armfav:2", "armcv:1", "armflash"]}` (the pool has four
+  soldiers by 2:00; we had one). The `armfav` at speed 168 is also the only tier-1 vehicle that catches a Tick
+  (132): a Blitz (101) never does, and against two seats the Ticks come from 2:20.
   **The limit in the first four minutes is metal, not build power**: the store should read about 150 at 2:00 and
   100 at 3:00 and never 0; when it reads 0 the plant is starving and the commander's own build is the thing to
   drop. Check at 4:00: about eighteen units out of the plant (we had seven when the commander walked off to turrets
