@@ -798,3 +798,24 @@ for eight seconds).
 **Would be wrong if.** The line still fails to appear for the commander after the fix (another condition in the install chain).
 **Used by.** H-HANDS-SCRIPT (the first-list skip, `stop`); the `remove` tool and the `reclaim` step on the commander's handle.
 
+### K-hands-a-family-question-frees-the-course
+**Claim.** Asked the group's `do` as one flat choice, Jev keeps the recorded course at the moments the detectors flag
+(a party in sight while a building of ours dies beside the group; a raider at our extractor within 1,200): `continue`
+holds 0.5 to 0.9 outright and the fight options together hold 0.16 to 0.24, so no merging of synonyms could have won
+them (the family with the most mass was the right one in 0 to 10% of those moments). Asked in two levels in the same
+request, a `kind` question over families (stay, fight, go, back, the singletons as they are) and one refinement per
+family with the original options and words, the pick is a wanted option at 51 to 59% of the same moments (P(wanted)
+0.39 to 0.49), and 62% at the never-split moments (28% flat: the fight family's refinement prefers `engage` to a
+detachment). Putting the hold option's cost clause on `continue` in the flat layout moves almost nothing (9 to 11%):
+the structure does it, not the words. The cost: 18% of ordinary decisions (recorded at 0.6 or more, unflagged)
+change, ten of fourteen from `continue` to `engage`.
+**Status.** measured offline (2026-09-24, `run/jev_ab.py --variants base,continue_cost,two_level`, 40 moments a
+detector from six games and 40 controls, two repeats: `docs/studies/data/jev-ab-two-level-2026-09-24.jsonl`); not
+built in the hands, not tried live.
+**Evidence.** The ledger row jev-ab-two-level; ../jev_experiments battery F (a synonym takes half the leader's mass;
+flips only under a 0.75 lead) and battery D (batching is free), which made the one-request layout possible.
+**Would be wrong if.** The live composition (the family's mass, then its refinement) behaved differently from the
+offline replay, or the 18% of changed ordinary decisions cost more games than the freed moments win.
+**Used by.** Nothing yet; the candidate is the hands' menu builder (`pianist/menu.rs`) emitting the two-level
+questions and `hands.rs` composing the answer, with the switch margin taken against the stay family's mass.
+

@@ -215,7 +215,110 @@ def shooting_words(questions, moment, style="shooting", on_hold=False):
     return out
 
 
-# name -> (rules transform, questions transform or None)
+# The two-level layout (the user, 2026-09-24, on vote-splitting: "breaking down the option space into orthogonal
+# groups with subsequent refinement questions may help"): the group's `do` becomes a `kind` question over families
+# (stay, fight, go, back, and the singletons as they are) and one refinement question per family with the original
+# options and their words, all in the same request (batching is free: ../jev_experiments, battery D). The answer is
+# composed in code: the family with the most mass, then its refinement's argmax; option probabilities are the
+# family's mass times the refinement's share, so the scoring below reads them as before.
+FAMILIES = {
+    "stay": ("hold", "continue", "wait"),
+    "fight": ("engage", "send_against", "attack_unit"),
+    "go": ("move_to", "fight_to"),
+    "back": ("retreat", "fall_back"),
+}
+FAMILY_WORDS = {
+    "stay": "Stay: hold where it is, or carry on with what it is doing (which is asked apart). Nothing beyond its reach is protected by staying.",
+    "fight": "Fight: attack an enemy party now, with the whole group, a detachment, or every soldier on one unit (which is asked apart; the party is `whom`). How this group weighs against the nearest party is on its own `enemies_near` line.",
+    "go": "Go: walk or advance to the place in `where` (which way is asked apart).",
+    "back": "Back: retreat home, or fall back to a station away from the enemy (which is asked apart).",
+}
+FAMILY_ASK = {
+    "stay": "If {actor} stays, which way: standing where it is and fighting what comes within reach, or carrying on with what it is doing?",
+    "fight": "If {actor} fights, how: the whole group after the party in `whom`, a detachment of the soldiers nearest it, or every soldier on one unit of it?",
+    "go": "If {actor} goes to the place in `where`, how: walking without stopping to fight, or advancing and fighting everything on the way?",
+    "back": "If {actor} goes back, which way: home, or falling back to a station away from the enemy?",
+}
+
+
+def two_level_questions(questions, moment):
+    """The group's `do` as a `kind` question over families plus one refinement per family; other questions as they are."""
+    actor, qid = moment["actor"], moment["qid"]
+    if not qid.endswith(".do") or not actor.startswith("group_") or qid not in questions:
+        return questions
+    do = questions[qid]
+    crit = do.get("criteria") or {}
+    out = {k: v for k, v in questions.items() if k != qid}
+    kind = {}
+    for family, members in FAMILIES.items():
+        present = [m for m in members if m in crit]
+        if not present:
+            continue
+        words = FAMILY_WORDS[family]
+        # The hold option's cost clause (what holding leaves to die) belongs to the family.
+        if family == "stay" and "hold" in crit and "Holding now leaves" in str(crit["hold"]):
+            words += " " + str(crit["hold"])[str(crit["hold"]).index("Holding now leaves"):]
+        kind[family] = words
+        if len(present) > 1:
+            out[f"{actor}.{family}"] = {"type": "choice", "instructions": FAMILY_ASK[family].format(actor=actor), "criteria": {m: crit[m] for m in present}}
+    grouped = {m for members in FAMILIES.values() for m in members}
+    for option, words in crit.items():
+        if option not in grouped:
+            kind[option] = words
+    out[f"{actor}.kind"] = {"type": "choice", "instructions": do.get("instructions", ""), "criteria": kind}
+    return out
+
+
+def two_level_compose(answers, moment):
+    """The `do` answer from the `kind` answer and the refinements; the plain answer when the layout was not applied."""
+    actor, qid = moment["actor"], moment["qid"]
+    kind = (answers.get(f"{actor}.kind") or {}).get("probabilities")
+    if not kind:
+        a = answers.get(qid) or {}
+        return {"choice": a.get("choice"), "probabilities": a.get("probabilities") or {}}
+    probabilities, best_family, best_choice = {}, None, None
+    for family, mass in kind.items():
+        members = FAMILIES.get(family)
+        if members is None:
+            probabilities[family] = mass
+            continue
+        refinement = (answers.get(f"{actor}.{family}") or {}).get("probabilities") or {}
+        if not refinement:
+            # A family of one option offered: its whole mass.
+            present = [m for m in members if m in (moment["questions"].get(qid) or {}).get("criteria", {})]
+            refinement = {present[0]: 1.0} if present else {}
+        total = sum(refinement.values()) or 1.0
+        for option, share in refinement.items():
+            probabilities[option] = mass * share / total
+    for family, mass in sorted(kind.items(), key=lambda kv: -kv[1]):
+        members = FAMILIES.get(family)
+        if members is None:
+            best_family, best_choice = family, family
+        else:
+            inside = {o: p for o, p in probabilities.items() if o in members}
+            if not inside:
+                continue
+            best_family, best_choice = family, max(inside, key=inside.get)
+        break
+    return {"choice": best_choice, "probabilities": probabilities}
+
+
+def continue_cost(questions, moment):
+    """The flat layout with the hold option's cost clause on `continue` as well: what carrying on leaves to die. Tells
+    the two-level result's wording apart from its structure (`continue` alone held 0.5-0.9 at the flagged moments)."""
+    actor, qid = moment["actor"], moment["qid"]
+    if not qid.endswith(".do") or qid not in questions:
+        return questions
+    out = {k: (dict(v) if k == qid else v) for k, v in questions.items()}
+    crit = dict(out[qid].get("criteria") or {})
+    hold = str(crit.get("hold", ""))
+    if "continue" in crit and "Holding now leaves" in hold:
+        crit["continue"] = str(crit["continue"]) + " Carrying on now leaves" + hold[hold.index("Holding now leaves") + len("Holding now leaves"):]
+    out[qid]["criteria"] = crit
+    return out
+
+
+# name -> (rules transform, questions transform or None[, answer composer])
 VARIANTS = {
     "base": (lambda rules: rules, None),
     "never": (lambda rules: rules + NEVER_RULE, None),
@@ -234,6 +337,8 @@ VARIANTS = {
     "home2_killing": (lambda rules: rules + HOME_RULE_2, lambda q, mo: shooting_words(q, mo, "killing")),
     "hold_cost": (lambda rules: rules, lambda q, mo: shooting_words(q, mo, "killing", on_hold=True)),
     "home2_hold_cost": (lambda rules: rules + HOME_RULE_2, lambda q, mo: shooting_words(q, mo, "killing", on_hold=True)),
+    "two_level": (lambda rules: rules, two_level_questions, two_level_compose),
+    "continue_cost": (lambda rules: rules, continue_cost),
 }
 
 
@@ -246,6 +351,9 @@ def requests_of(m):
             packet = c["instructions"]
         if "rules" in c:
             rules = c["rules"]
+        # The log's error and policy lines carry no state (run/jev_commander_ab.py skips them the same way).
+        if not isinstance(c.get("state"), dict) or "questions" not in c:
+            continue
         state = dict(c["state"])
         state["instructions"] = packet
         state["rules"] = rules
@@ -337,7 +445,8 @@ def controls_of(m, n, rng):
 
 def replay(moment, variant, key, model, repeat):
     state = dict(moment["state"])
-    rules_fn, questions_fn = VARIANTS[variant]
+    rules_fn, questions_fn = VARIANTS[variant][0], VARIANTS[variant][1]
+    compose = VARIANTS[variant][2] if len(VARIANTS[variant]) > 2 else None
     state["rules"] = rules_fn(state.get("rules", ""))
     # Only this actor's questions (and the globals are left out): the answer to the moment's question is what counts.
     actor = moment["actor"]
@@ -347,7 +456,8 @@ def replay(moment, variant, key, model, repeat):
     runs = []
     for _ in range(repeat):
         response = ask(key, state, questions, model)
-        answer = (response or {}).get("answers", {}).get(moment["qid"]) or {}
+        answers = (response or {}).get("answers", {})
+        answer = compose(answers, moment) if compose else (answers.get(moment["qid"]) or {})
         runs.append({"choice": answer.get("choice"), "probabilities": answer.get("probabilities") or {}})
     return runs
 
