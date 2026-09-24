@@ -134,7 +134,10 @@ panels when the match has a log; fails on any page error; saves a screenshot whe
 The header's `terrain` object names a sibling binary file (`terrain-<ai_id>.bin`) and how to read it: `width` x `height`
 cells of `cell` elmos (the engine's slope-map resolution, 16), row-major from the north-west; first every height as a
 little-endian i16 (elmos; water level is 0, negative is under water), then every slope as a u8 (the engine's slope
-value, 1 - the ground normal's y, times 255). `move_classes` lists the distinct movement classes among the unit types
+value, 1 - the ground normal's y, times 255); then, when the header's `terrain.metal` is true (records from 2026-09-24
+evening on), every cell's raw metal as a u8 (the engine's metal map has the same cells; `terrain.metal_max` is the
+largest value), which the viewer draws as the "metal patches" layer beside the spots' extractor-radius circles.
+`move_classes` lists the distinct movement classes among the unit types
 (`kind` tank/bot/hover/ship, `max_slope` in the same slope units, `depth`: deepest water waded, or for ships the
 shallowest floated in; `units`: how many unit types use it), so a reader can work out where each kind cannot go. The
 viewer renders relief with water and the "bots cannot go" / "vehicles cannot go" layers from it.

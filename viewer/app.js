@@ -23,7 +23,7 @@
 
   const view = {
     match: null, lanes: null, posts: [], frame: 0, playing: false, speed: 10, lastTime: 0,
-    layers: { terrain: true, nobots: true, notanks: false, grid: true, spots: true, truth: true, census: true, orders: true, intent: true, deaths: true, pianist: true },
+    layers: { terrain: true, nobots: true, notanks: false, metal: true, grid: true, spots: true, truth: true, census: true, orders: true, intent: true, deaths: true, pianist: true },
     terrain: null,
     background: null, mapBox: null, hoverFrame: null, decisionItems: [], currentDecision: -2,
     show: { heuristic: true, llm: true, event: false, jev: true, jevChangesOnly: true },
@@ -164,6 +164,8 @@
     if (bytes.byteLength < cells * 3) return;
     const heights = new Int16Array(bytes, 0, cells);
     const slopes = new Uint8Array(bytes, cells * 2, cells);
+    // The raw metal map, from records of 2026-09-24 on: the patches the spots stand for.
+    const metalValues = terrain.metal && bytes.byteLength >= cells * 4 ? new Uint8Array(bytes, cells * 3, cells) : null;
     const canvasOf = (paint) => {
       const canvas = document.createElement("canvas");
       canvas.width = width;
@@ -205,7 +207,16 @@
         out[o] = rgb[0]; out[o + 1] = rgb[1]; out[o + 2] = rgb[2]; out[o + 3] = no ? 150 : 0;
       });
     };
-    view.terrain = { relief, nobots: blocked("bot", [200, 40, 40]), notanks: blocked("tank", [230, 140, 30]), heights, width, height, cell: terrain.cell };
+    let metal = null;
+    if (metalValues) {
+      let top = Math.max(1, terrain.metal_max || 0);
+      for (let i = 0; i < cells; i++) if (metalValues[i] > top) top = metalValues[i];
+      metal = canvasOf((i, out, o) => {
+        const v = metalValues[i];
+        out[o] = 255; out[o + 1] = 205; out[o + 2] = 60; out[o + 3] = v ? 90 + Math.round((165 * v) / top) : 0;
+      });
+    }
+    view.terrain = { relief, nobots: blocked("bot", [200, 40, 40]), notanks: blocked("tank", [230, 140, 30]), metal, metalValues, heights, width, height, cell: terrain.cell };
     drawMap();
   }
 
@@ -465,6 +476,12 @@
       if (view.layers.notanks && view.terrain.notanks) ctx.drawImage(view.terrain.notanks, box.x, box.y, box.w, box.h);
       if (view.layers.nobots && view.terrain.nobots) ctx.drawImage(view.terrain.nobots, box.x, box.y, box.w, box.h);
       ctx.globalAlpha = 1;
+      // The metal patches, sharp-edged cells: what an extractor at the spot draws from.
+      if (view.layers.metal && view.terrain.metal) {
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(view.terrain.metal, box.x, box.y, box.w, box.h);
+        ctx.imageSmoothingEnabled = true;
+      }
     }
 
     if (view.layers.grid) {
@@ -488,10 +505,21 @@
     }
 
     if (view.layers.spots) {
-      ctx.strokeStyle = COLOR.muted;
+      // Each spot: a ring, and the map's extractor radius around it (the game's own rule for a second extractor
+      // there) once that circle is wider than the ring.
       ctx.lineWidth = 1;
+      const radius = (map.extractor_radius || 0) * scale;
       for (const [x, z] of match.header.metal_spots) {
+        ctx.strokeStyle = COLOR.muted;
         ctx.beginPath(); ctx.arc(px(x), pz(z), 5, 0, 7); ctx.stroke();
+        if (radius > 7) {
+          ctx.strokeStyle = COLOR.warning;
+          ctx.globalAlpha = 0.5;
+          ctx.setLineDash([3, 3]);
+          ctx.beginPath(); ctx.arc(px(x), pz(z), radius, 0, 7); ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.globalAlpha = 1;
+        }
       }
     }
 
@@ -815,7 +843,8 @@
       const t = view.terrain;
       const cx = Math.min(t.width - 1, Math.max(0, Math.floor(x / t.cell))), cz = Math.min(t.height - 1, Math.max(0, Math.floor(z / t.cell)));
       const h = t.heights[cz * t.width + cx];
-      lines.push(h < 0 ? `water, ${-h} deep` : `height ${h}`);
+      const metal = t.metalValues ? t.metalValues[cz * t.width + cx] : 0;
+      lines.push(`${h < 0 ? `water, ${-h} deep` : `height ${h}`}${metal ? `, metal ${metal}` : ""}`);
     }
     if (best) {
       const { u, ours } = best;

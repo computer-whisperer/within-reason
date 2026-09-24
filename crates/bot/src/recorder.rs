@@ -330,12 +330,13 @@ fn terrain_file(hello: &Hello) -> String {
     format!("terrain-{}.bin", hello.ai_id)
 }
 
-/// The terrain grid as raw bytes beside the record: every height as a little-endian i16, then every slope as a u8.
-/// The record's header says how to read it.
+/// The terrain grid as raw bytes beside the record: every height as a little-endian i16, then every slope as a u8,
+/// then (when the shim gave it) every cell's metal as a u8. The record's header says how to read it.
 fn write_terrain(path: &Path, hello: &Hello) -> io::Result<()> {
     let terrain = &hello.terrain;
     let mut bytes: Vec<u8> = terrain.heights.iter().flat_map(|h| h.to_le_bytes()).collect();
     bytes.extend_from_slice(&terrain.slopes);
+    bytes.extend_from_slice(&terrain.metal);
     std::fs::write(path, bytes)
 }
 
@@ -399,7 +400,9 @@ fn header(hello: &Hello, mode: &str, session: bool, pianist: bool) -> Value {
         "metal_spots": spots,
         "terrain": {
             "file": terrain_file(hello), "cell": hello.terrain.cell, "width": hello.terrain.width, "height": hello.terrain.height,
-            "layout": "heights as little-endian i16 (elmos, water level 0), row-major north to south; then slopes as u8 (engine slope x 255)",
+            "layout": "heights as little-endian i16 (elmos, water level 0), row-major north to south; then slopes as u8 (engine slope x 255); then, when `metal` is true, the raw metal map as u8 per cell",
+            "metal": !hello.terrain.metal.is_empty(),
+            "metal_max": hello.terrain.metal.iter().copied().max().unwrap_or(0),
             "move_classes": move_classes(hello),
         },
         "unit_defs": defs,

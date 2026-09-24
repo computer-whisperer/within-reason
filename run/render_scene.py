@@ -40,7 +40,7 @@ def relief(match, header):
     width, height = terrain["width"], terrain["height"]
     raw = open(os.path.join(match, terrain["file"]), "rb").read()
     heights = np.frombuffer(raw[: width * height * 2], dtype="<i2").reshape(height, width).astype(np.float32)
-    slopes = np.frombuffer(raw[width * height * 2 :], dtype=np.uint8).reshape(height, width).astype(np.float32) / 255.0
+    slopes = np.frombuffer(raw[width * height * 2 : width * height * 3], dtype=np.uint8).reshape(height, width).astype(np.float32) / 255.0
     # The ordinary walking class: the one most unit types use among bots that cannot wade deep water.
     walkers = [c for c in terrain["move_classes"] if c["kind"] == "bot" and c["depth"] < 1000 and c["max_slope"] < 0.99]
     walker = max(walkers, key=lambda c: c["units"])

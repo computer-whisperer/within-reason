@@ -252,12 +252,19 @@ impl Engine {
             let at = |dx: usize, dz: usize| heights[(2 * z + dz) * squares_x + 2 * x + dx];
             ((at(0, 0) + at(1, 0) + at(0, 1) + at(1, 1)) / 4.0).round().clamp(i16::MIN as f32, i16::MAX as f32) as i16
         };
+        // The raw metal map has the slope map's resolution (one value per 2x2 height squares); the viewer draws the
+        // patches from it, beside the spots the bot publishes.
+        let raw_count = call!(self, Map_getResourceMapRaw(self.metal, std::ptr::null_mut(), 0));
+        let mut raw = vec![0i16; raw_count.max(0) as usize];
+        call!(self, Map_getResourceMapRaw(self.metal, raw.as_mut_ptr(), raw_count));
+        let metal = if raw.len() == width * height { raw.iter().map(|v| (*v).clamp(0, 255) as u8).collect() } else { Vec::new() };
         Terrain {
             cell: 2.0 * SQUARE_SIZE,
             width: width as u32,
             height: height as u32,
             heights: (0..height).flat_map(|z| (0..width).map(move |x| (x, z))).map(|(x, z)| cell_height(x, z)).collect(),
             slopes: slopes.iter().map(|s| (s * 255.0).round().clamp(0.0, 255.0) as u8).collect(),
+            metal,
         }
     }
 

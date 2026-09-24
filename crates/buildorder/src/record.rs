@@ -156,12 +156,14 @@ fn terrain(path: &str, header: &Value) -> Terrain {
     let cells = (width * height) as usize;
     let file = std::path::Path::new(path).with_file_name(t["file"].as_str().unwrap_or(""));
     match std::fs::read(file) {
-        Ok(bytes) if cells > 0 && bytes.len() == cells * 3 => Terrain {
+        // Three sections, or four with the metal map (records from 2026-09-24 evening on).
+        Ok(bytes) if cells > 0 && (bytes.len() == cells * 3 || bytes.len() == cells * 4) => Terrain {
             cell: t["cell"].as_f64().unwrap_or(0.0) as f32,
             width,
             height,
             heights: bytes[..cells * 2].chunks_exact(2).map(|b| i16::from_le_bytes([b[0], b[1]])).collect(),
-            slopes: bytes[cells * 2..].to_vec(),
+            slopes: bytes[cells * 2..cells * 3].to_vec(),
+            metal: bytes[cells * 3..].to_vec(),
         },
         _ => Terrain::default(),
     }

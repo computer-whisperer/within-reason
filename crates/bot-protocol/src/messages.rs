@@ -145,6 +145,10 @@ pub struct Terrain {
     /// The engine's slope value (1 - the ground normal's y; 0 is flat), scaled by 255. Comparable with
     /// [`MoveClass::max_slope`] after the same scaling.
     pub slopes: Vec<u8>,
+    /// The raw metal map at the same cells (the engine's metal map has this resolution), each value clamped to
+    /// 0..=255; empty from a shim that predates it.
+    #[serde(default)]
+    pub metal: Vec<u8>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]

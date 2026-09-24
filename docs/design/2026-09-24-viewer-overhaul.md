@@ -59,4 +59,10 @@ is in the shading; a source-in tint made them solid). Checked in headless Chromi
 zoom to 11x with the unit still under the cursor, a click opening the Unit tab with 5 facts and 80 history rows,
 Escape, a double-click reset, 85 build-order rows, 377 icons) on 2v1b-hard, and by eye at 20x on its base at 1:35.
 The DevTools protocol truncates event coordinates to whole pixels, so the test anchors its cursor on whole pixels.
+**Metal spot areas (the user, later the same evening):** the shim's `Terrain` gained the raw metal map at the same
+cells (`metal`, u8), the recorder writes it as a fourth section of the terrain file (`terrain.metal`, `metal_max` in
+the header; the other readers, `crates/buildorder` and `run/render_scene.py`, take three or four sections), and the
+viewer draws the patches as a "metal patches" layer (gold, alpha by value, sharp cells) with each spot's
+extractor-radius circle dashed around its ring; the hover names the metal under the cursor. A protocol change:
+lobby play needs `run/install_to_bar.sh` re-run (pending with the earlier ones).
 
