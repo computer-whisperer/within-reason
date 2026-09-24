@@ -221,7 +221,7 @@ impl Brain {
                 units,
                 composition: composition.into_iter().map(|(name, n)| (name.to_string(), n)).collect(),
                 distance_from_home: pos.dist2d(self.home) as i32,
-                killing: self.killing_words(&ids),
+                killing: self.killing_words(&ids, None),
             })
             .collect();
         let mut enemy_buildings_remembered: Vec<RememberedBuilding> = self

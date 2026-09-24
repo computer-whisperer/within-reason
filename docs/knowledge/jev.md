@@ -764,4 +764,12 @@ offered to a group already walking back, which alternated them every ask (group_
 Fixed (a station is 15 s of holding; the option only when a party within reach outweighs the group or a tenth of its
 metal went in 30 s, to a station farther from the party; nothing offered twice to a group already walking back): the
 prompt's own share of the over-correction is measured in wake-3.
+**Check (2026-09-23, wake-3, lost 20.8; the Opus review `docs/studies/2026-09-23-wake-3-jev-regressions.md`).** The
+prompt's own share: at the replayed in-flight moments the precedence matched 17 of 18 recorded choices, and the words
+"killing N of our Blitz" on a group's line (a party's kills anywhere) made groups that outweighed their party retreat
+in 7 of 51 asks against 0 of 69 without the clause. The rest was mechanical: the station clock restarted on every
+`hold` re-pick (fall_back offered on 2 of 724 asks, retreat taken instead, 73 of 724), and the player's packets
+(60 in 17 minutes) sent walking-back groups forward every ask while the rule sent them back (61 swings). Fixed: the
+hold clock kept, the group's line scoped to its own soldiers, an instruction after the last loss stands, the guide on
+rewrites. Next check: wake-4.
 **Used by.** H-HANDS-FALL-BACK.

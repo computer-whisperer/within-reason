@@ -162,6 +162,11 @@ While a fight is on (a group engaged, or a loss in the last 30 s) the quiet time
 Early, or when the plan is set and nothing is happening, wait long. Coordinates are map units; grid names (A1..H8) are for talking about places, but
 the hands only know the named places, so instructions name spots and passages, not cells.
 
+Each `instruct` re-asks every group whose sentence changed, and a group asked anew may change course: rewriting the
+packet every turn makes the army swing between your place and its own judgement (wake-3: 60 packets in 17 minutes,
+groups falling back and returning every ask). Send `instruct` when something must change, and leave the sentences
+that stand alone.
+
 Every few turns ask: are we gaining ground or only holding it; what did the hands do with the last packet, and where did
 they do something other than what I meant (the report's "what your hands did" lines are the answer); what killed us and
 what would beat it. End each turn with one sentence on what you decided and why. When you find you cannot express what

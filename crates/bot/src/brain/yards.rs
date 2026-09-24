@@ -94,6 +94,20 @@ impl Brain {
         let pending: Vec<Lane> = self.pending_factories().into_iter().filter_map(|(def, at)| self.lane_at(def, at, 0)).collect();
         self.lanes.extend(pending);
         self.stuck.retain(|id, s| own.iter().any(|u| u.id == *id && u.pos.dist2d(s.at) < STUCK_FREE));
+        // Mobile units standing still inside a standing factory's lane (a builder working from the pad blocks the plant
+        // as surely as a stuck unit; wake-3: nothing left the plant for three minutes and nobody was told).
+        let standing_lanes: Vec<(UnitId, Lane)> = own.iter().filter_map(|u| (!u.being_built).then(|| self.lane_of(u).map(|l| (u.id, l))).flatten()).collect();
+        let before = std::mem::take(&mut self.lane_standers);
+        for u in own.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed > 0.0)) {
+            if let Some((factory, _)) = standing_lanes.iter().find(|(_, l)| l.contains(u.pos)) {
+                let since = match before.get(&u.id) {
+                    Some((s, at, _)) if at.dist2d(u.pos) < 8.0 => *s,
+                    _ => tick.frame,
+                };
+                let at = before.get(&u.id).filter(|(_, at, _)| at.dist2d(u.pos) < 8.0).map_or(u.pos, |(_, at, _)| *at);
+                self.lane_standers.insert(u.id, (since, at, *factory));
+            }
+        }
         for event in &tick.events {
             let Event::UnitMoveFailed { unit } = event else { continue };
             if let Some(u) = own.iter().find(|u| u.id == *unit)
@@ -105,7 +119,9 @@ impl Brain {
         // A yard blocked for a while wakes the player once; a yard that frees itself may wake it again later.
         let factories: Vec<(UnitId, Lane)> = own.iter().filter_map(|u| self.lane_of(u).map(|l| (u.id, l))).collect();
         for (factory, lane) in factories {
-            let stuck = self.stuck_in_lane(&lane, own);
+            let mut stuck = self.stuck_in_lane(&lane, own);
+            let standers: Vec<(UnitId, i32)> = self.lane_standers.iter().filter(|(id, (since, _, f))| *f == factory && tick.frame - since >= YARD_WAKE_FRAMES && !stuck.iter().any(|(s, _)| s == *id)).map(|(id, (since, _, _))| (*id, *since)).collect();
+            stuck.extend(standers);
             let longest = stuck.iter().map(|(_, since)| tick.frame - since).max().unwrap_or(0);
             if longest < YARD_WAKE_FRAMES {
                 self.yard_warned.remove(&factory);
@@ -116,7 +132,7 @@ impl Brain {
                 let blockers = self.lane_blockers(&lane, own, factory);
                 let names: Vec<String> = stuck.iter().filter_map(|(id, _)| own.iter().find(|u| u.id == *id)).map(|u| self.handle(u)).collect();
                 let text = format!(
-                    "{name}'s exit lane is blocked: {} of ours ({}) have stood in it unable to move for {}{}",
+                    "{name}'s exit lane is blocked: {} of ours ({}) have stood in it for {} (stuck, or standing there working){}",
                     stuck.len(),
                     names.join(", "),
                     super::pianist::clock(longest),
@@ -125,6 +141,11 @@ impl Brain {
                 self.trigger("yard", tick.frame, text);
             }
         }
+    }
+
+    /// A mobile unit standing still in a factory's exit lane: since when, and which factory (H-ECO-YARD-LANE).
+    pub(super) fn lane_stander(&self, unit: UnitId, frame: i32) -> Option<(i32, UnitId)> {
+        self.lane_standers.get(&unit).filter(|(since, _, _)| frame - since >= 10 * super::FRAMES_PER_SECOND).map(|(since, _, f)| (*since, *f))
     }
 
     /// Our buildings whose centre lies in `lane`, the factory itself aside: what the player would remove.

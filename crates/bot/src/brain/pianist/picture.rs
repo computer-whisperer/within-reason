@@ -247,7 +247,7 @@ impl Brain {
             let composition = counts.iter().map(|(name, n)| format!("{n} {name}")).collect::<Vec<_>>().join(", ");
             let has_commander = members.iter().any(|i| mobile[*i].def.is_some_and(|d| self.world.is_commander_def(d)));
             let ids: Vec<bot_protocol::UnitId> = members.iter().map(|i| mobile[*i].id).collect();
-            let killing = self.killing_words(&ids);
+            let killing = self.killing_words(&ids, None);
             parties.push(Party { name: String::new(), ids, at, metal, composition, has_commander, killing });
         }
         parties.sort_by(|a, b| a.at.dist2d(self.home).total_cmp(&b.at.dist2d(self.home)));
@@ -276,9 +276,10 @@ impl Brain {
 
     /// What the units `ids` have hit in the last seconds, buildings first, one entry per kind with its count, and the
     /// metal of the victims; nothing when they have hit nothing of ours.
-    pub(crate) fn killing_words(&self, ids: &[bot_protocol::UnitId]) -> Option<(String, f32)> {
+    /// What the party `ids` is hitting now; `among`: only these victims (a group's own soldiers) count.
+    pub(crate) fn killing_words(&self, ids: &[bot_protocol::UnitId], among: Option<&[bot_protocol::UnitId]>) -> Option<(String, f32)> {
         let mut victims: Vec<(bot_protocol::UnitId, UnitDefId)> = Vec::new();
-        for h in self.hits.iter().filter(|h| ids.contains(&h.attacker)) {
+        for h in self.hits.iter().filter(|h| ids.contains(&h.attacker) && among.is_none_or(|a| a.contains(&h.victim))) {
             if !victims.iter().any(|(id, _)| *id == h.victim) {
                 victims.push((h.victim, h.victim_def));
             }
@@ -387,6 +388,11 @@ impl Brain {
         // "walking to build ... 951 to go" for four minutes wedged behind the first plant).
         if let Some(stuck) = self.stuck.get(&unit.id) {
             words.push_str(&format!("; stuck: it cannot move from {}, its moves have failed since {}", self.place_words(places, stuck.at), ago(stuck.since)));
+        }
+        // Standing in a factory's exit lane (a builder working from the pad): the factory's units cannot leave
+        // (wake-3: the plant made nothing from 4:47 to 7:45 behind a constructor building nano turrets on its pad).
+        if let Some((since, factory)) = self.lane_stander(unit.id, frame) {
+            words.push_str(&format!("; standing in {}'s exit lane since {}: its units cannot leave while it stands there", self.actor_name(factory), ago(since)));
         }
         words
     }
@@ -835,7 +841,8 @@ impl Brain {
                 let lost_metal: f32 = lost_lately.iter().filter_map(|(_, def)| self.world.def(*def)).map(|d| d.metal_cost).sum();
                 let share = lost_metal / (lost_metal + metal).max(1.0);
                 let words = if share < 0.1 { "a few" } else if share < 0.25 { "a noticeable share" } else if share < 0.5 { "a large share: it is losing this fight" } else { "most of it: it is being wiped out" };
-                entry["losses"] = json!(format!("lost {} of its {} soldiers ({lost_metal:.0} metal, {words}) in the last 30 s", lost_lately.len(), units.len() + lost_lately.len()));
+                let last = lost_lately.iter().map(|(f, _)| *f).max().unwrap_or(frame);
+                entry["losses"] = json!(format!("lost {} of its {} soldiers ({lost_metal:.0} metal, {words}) in the last 30 s, the last {} s ago", lost_lately.len(), units.len() + lost_lately.len(), (frame - last) / FRAMES_PER_SECOND));
             }
             if let Some(seconds) = group.stalled_seconds(frame).filter(|s| *s >= 20) {
                 entry["progress"] = json!(format!("has not got nearer its goal for {seconds} s: stalled"));
@@ -874,7 +881,16 @@ impl Brain {
             // The nearest party with the odds against this group and what it is killing: the words the `do` question
             // weighs (they were only on the engage option's line before).
             if let Some((d, p)) = parties.iter().map(|p| (p.at.dist2d(centre), p)).filter(|(d, _)| *d < NEAR).min_by(|a, b| a.0.total_cmp(&b.0)) {
-                entry["enemies_near"] = json!(format!("{} ({}) {d:.0} away: {}{}", p.name, p.composition, self.odds_words(&units, p, &snapshot.enemies), p.killing.as_ref().map_or(String::new(), |(what, metal)| format!("; killing {what} ({metal:.0} metal) now"))));
+                // Its own soldiers under fire, said as such; what the party kills elsewhere is not this group's loss
+                // (wake-3: "killing 3 of our Blitz" on a group's line read as its own, and it retreated from a party it
+                // outweighed in 7 of 51 such asks, 0 of 69 without the clause).
+                let own_ids: Vec<bot_protocol::UnitId> = units.iter().map(|u| u.id).collect();
+                let killing = match (self.killing_words(&p.ids, Some(&own_ids)), &p.killing) {
+                    (Some((what, metal)), _) => format!("; it is hitting this group now: {what} ({metal:.0} metal)"),
+                    (None, Some((what, metal))) => format!("; it is killing {what} ({metal:.0} metal) elsewhere, not this group"),
+                    (None, None) => String::new(),
+                };
+                entry["enemies_near"] = json!(format!("{} ({}) {d:.0} away: {}{killing}", p.name, p.composition, self.odds_words(&units, p, &snapshot.enemies)));
             }
             let threats = self.threats_words(&parties, &places, own, kit, centre);
             if !threats.is_empty() {

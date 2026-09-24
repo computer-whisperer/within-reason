@@ -278,11 +278,13 @@ impl Brain {
             Pick::Hold => {
                 // Orders only on entering the hold (H-HANDS-AIR-TARGET, decision 12): a holding group picked `hold`
                 // again gets none, where an air group used to get a move and a move state per member every ask.
+                // A holding group picked `hold` again keeps its clock (wake-3: the clock restarted every ask, so the
+                // 15 s station for `fall_back` almost never formed and the option was offered on 2 of 724 asks).
                 let group = &mut pianist.groups[index];
                 if group.task.busy() {
                     commands.extend(group.hold_orders(&units));
+                    group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
                 }
-                group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
                 did = Some("hold".into());
             }
             Pick::MoveTo { fight } => {

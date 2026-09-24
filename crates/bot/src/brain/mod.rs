@@ -136,6 +136,8 @@ pub struct Brain {
     /// factories whose blocked yard the player has been told of (`yards.rs`).
     lanes: Vec<bot_protocol::Lane>,
     stuck: HashMap<UnitId, yards::Stuck>,
+    /// Mobile units standing still in a standing factory's exit lane: since when, where they stood, which factory.
+    lane_standers: HashMap<UnitId, (i32, Vec3, UnitId)>,
     yard_warned: HashSet<UnitId>,
     /// Construction turrets told to guard a factory (H-ECO-NANO-GUARD).
     nano_guards: nanos::NanoGuards,
@@ -257,6 +259,7 @@ impl Brain {
             hits: Vec::new(),
             lanes: Vec::new(),
             stuck: HashMap::new(),
+            lane_standers: HashMap::new(),
             yard_warned: HashSet::new(),
             nano_guards: HashMap::new(),
             said: Vec::new(),
