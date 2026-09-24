@@ -1,0 +1,539 @@
+{
+ "format": "within-reason-scenario",
+ "version": 1,
+ "map": "Comet Catcher Remake 1.8",
+ "map_size": [
+  8192.0,
+  6144.0
+ ],
+ "centre": [
+  2166,
+  2186
+ ],
+ "source": {
+  "record": "/home/christian/workspace/playground/bar_bots/run/matches/1790257668-bank-1/00/record-0.jsonl",
+  "clock": "27:34",
+  "frame": 49620,
+  "radius": 1100.0,
+  "enemies": "truth",
+  "truth_frame": 49620,
+  "orders_window": 20.0,
+  "live": [
+   {
+    "seconds": 30.0,
+    "ours": 0.978,
+    "theirs": 0.967
+   },
+   {
+    "seconds": 60.0,
+    "ours": 0.445,
+    "theirs": 0.827
+   }
+  ]
+ },
+ "sides": [
+  {
+   "name": "ours",
+   "units": [
+    {
+     "type": "armllt",
+     "x": 1392,
+     "z": 1792,
+     "health": 0.57,
+     "source_id": 12080
+    },
+    {
+     "type": "armllt",
+     "x": 1152,
+     "z": 2384,
+     "health": 1.0,
+     "source_id": 6231
+    },
+    {
+     "type": "armllt",
+     "x": 1568,
+     "z": 2800,
+     "health": 1.0,
+     "source_id": 13152
+    },
+    {
+     "type": "armstump",
+     "x": 1434,
+     "z": 2016,
+     "health": 0.95,
+     "heading": [
+      -1.0,
+      -0.013
+     ],
+     "order": {
+      "kind": "move",
+      "x": 952,
+      "z": 2536
+     },
+     "source_id": 26320
+    },
+    {
+     "type": "armllt",
+     "x": 1312,
+     "z": 1792,
+     "health": 1.0,
+     "source_id": 23223
+    },
+    {
+     "type": "armstump",
+     "x": 1530,
+     "z": 2051,
+     "health": 0.5,
+     "heading": [
+      -0.997,
+      -0.081
+     ],
+     "order": {
+      "kind": "move",
+      "x": 952,
+      "z": 2536
+     },
+     "source_id": 21620
+    },
+    {
+     "type": "armstump",
+     "x": 1212,
+     "z": 2246,
+     "health": 0.42,
+     "heading": [
+      -0.495,
+      0.869
+     ],
+     "order": {
+      "kind": "move",
+      "x": 952,
+      "z": 2536
+     },
+     "source_id": 17572
+    },
+    {
+     "type": "armstump",
+     "x": 1836,
+     "z": 2001,
+     "health": 0.54,
+     "heading": [
+      1.0,
+      0.0
+     ],
+     "order": {
+      "kind": "move",
+      "x": 952,
+      "z": 2536
+     },
+     "source_id": 10619
+    },
+    {
+     "type": "armstump",
+     "x": 1573,
+     "z": 1992,
+     "health": 0.9,
+     "heading": [
+      -0.97,
+      0.243
+     ],
+     "order": {
+      "kind": "move",
+      "x": 952,
+      "z": 2536
+     },
+     "source_id": 21699
+    },
+    {
+     "type": "armstump",
+     "x": 1763,
+     "z": 1960,
+     "health": 0.96,
+     "order": {
+      "kind": "move",
+      "x": 952,
+      "z": 2536
+     },
+     "source_id": 15597
+    },
+    {
+     "type": "armstump",
+     "x": 1969,
+     "z": 2197,
+     "health": 1.0,
+     "heading": [
+      -0.154,
+      -0.988
+     ],
+     "order": {
+      "kind": "move",
+      "x": 952,
+      "z": 2536
+     },
+     "source_id": 9995
+    },
+    {
+     "type": "armllt",
+     "x": 1184,
+     "z": 2320,
+     "health": 1.0,
+     "source_id": 5885
+    },
+    {
+     "type": "armstump",
+     "x": 1827,
+     "z": 2071,
+     "health": 0.82,
+     "order": {
+      "kind": "move",
+      "x": 952,
+      "z": 2536
+     },
+     "source_id": 12528
+    },
+    {
+     "type": "armstump",
+     "x": 1342,
+     "z": 2049,
+     "health": 0.41,
+     "heading": [
+      -0.892,
+      0.453
+     ],
+     "order": {
+      "kind": "move",
+      "x": 952,
+      "z": 2536
+     },
+     "source_id": 11117
+    },
+    {
+     "type": "armstump",
+     "x": 1227,
+     "z": 2165,
+     "health": 0.54,
+     "heading": [
+      -0.447,
+      0.894
+     ],
+     "order": {
+      "kind": "move",
+      "x": 952,
+      "z": 2536
+     },
+     "source_id": 14058
+    },
+    {
+     "type": "armstump",
+     "x": 1182,
+     "z": 2273,
+     "health": 0.72,
+     "heading": [
+      -0.613,
+      0.79
+     ],
+     "order": {
+      "kind": "move",
+      "x": 952,
+      "z": 2536
+     },
+     "source_id": 10584
+    },
+    {
+     "type": "armstump",
+     "x": 1255,
+     "z": 2137,
+     "health": 0.81,
+     "heading": [
+      -0.693,
+      0.721
+     ],
+     "order": {
+      "kind": "move",
+      "x": 952,
+      "z": 2536
+     },
+     "source_id": 23002
+    },
+    {
+     "type": "armstump",
+     "x": 1779,
+     "z": 1920,
+     "health": 0.54,
+     "order": {
+      "kind": "move",
+      "x": 952,
+      "z": 2536
+     },
+     "source_id": 13285
+    },
+    {
+     "type": "armstump",
+     "x": 1811,
+     "z": 2034,
+     "health": 1.0,
+     "order": {
+      "kind": "move",
+      "x": 952,
+      "z": 2536
+     },
+     "source_id": 30842
+    },
+    {
+     "type": "armflash",
+     "x": 1231,
+     "z": 2198,
+     "health": 0.26,
+     "heading": [
+      -0.606,
+      0.795
+     ],
+     "order": {
+      "kind": "move",
+      "x": 952,
+      "z": 2536
+     },
+     "source_id": 11963
+    },
+    {
+     "type": "armstump",
+     "x": 1477,
+     "z": 2752,
+     "health": 1.0,
+     "heading": [
+      -1.0,
+      0.013
+     ],
+     "order": {
+      "kind": "move",
+      "x": 952,
+      "z": 2536
+     },
+     "source_id": 2042
+    },
+    {
+     "type": "armwar",
+     "x": 1825,
+     "z": 1917,
+     "health": 0.49,
+     "heading": [
+      -0.537,
+      0.844
+     ],
+     "order": {
+      "kind": "move",
+      "x": 952,
+      "z": 2536
+     },
+     "source_id": 8031
+    },
+    {
+     "type": "armflash",
+     "x": 1282,
+     "z": 2162,
+     "health": 0.03,
+     "heading": [
+      -0.591,
+      0.806
+     ],
+     "order": {
+      "kind": "move",
+      "x": 952,
+      "z": 2536
+     },
+     "source_id": 24241
+    },
+    {
+     "type": "armflash",
+     "x": 1213,
+     "z": 2552,
+     "health": 1.0,
+     "heading": [
+      1.0,
+      -0.028
+     ],
+     "order": {
+      "kind": "move",
+      "x": 1508,
+      "z": 2159
+     },
+     "source_id": 3229
+    },
+    {
+     "type": "armstump",
+     "x": 1550,
+     "z": 1461,
+     "health": 0.06,
+     "order": {
+      "kind": "move",
+      "x": 994,
+      "z": 2185
+     },
+     "source_id": 3633
+    }
+   ]
+  },
+  {
+   "name": "theirs",
+   "units": [
+    {
+     "type": "armpw",
+     "x": 2218,
+     "z": 1403,
+     "health": 1.0,
+     "heading": [
+      0.438,
+      0.899
+     ],
+     "source_id": 11366
+    },
+    {
+     "type": "armpw",
+     "x": 2351,
+     "z": 1699,
+     "health": 1.0,
+     "source_id": 10368
+    },
+    {
+     "type": "armpw",
+     "x": 2294,
+     "z": 1728,
+     "health": 1.0,
+     "source_id": 17303
+    },
+    {
+     "type": "armpw",
+     "x": 2370,
+     "z": 1714,
+     "health": 1.0,
+     "source_id": 3930
+    },
+    {
+     "type": "armham",
+     "x": 2152,
+     "z": 1576,
+     "health": 0.99,
+     "heading": [
+      -0.404,
+      -0.915
+     ],
+     "source_id": 27010
+    },
+    {
+     "type": "armflash",
+     "x": 2896,
+     "z": 2754,
+     "health": 1.0,
+     "source_id": 15333
+    },
+    {
+     "type": "armfboy",
+     "x": 2994,
+     "z": 2343,
+     "health": 1.0,
+     "source_id": 715
+    },
+    {
+     "type": "armflash",
+     "x": 2308,
+     "z": 1493,
+     "health": 1.0,
+     "heading": [
+      -0.865,
+      -0.502
+     ],
+     "source_id": 20561
+    },
+    {
+     "type": "armfboy",
+     "x": 3041,
+     "z": 2316,
+     "health": 1.0,
+     "source_id": 29459
+    },
+    {
+     "type": "armfboy",
+     "x": 2402,
+     "z": 2121,
+     "health": 0.99,
+     "heading": [
+      -0.514,
+      0.857
+     ],
+     "source_id": 6126
+    },
+    {
+     "type": "armflash",
+     "x": 2875,
+     "z": 2768,
+     "health": 1.0,
+     "source_id": 10254
+    },
+    {
+     "type": "armham",
+     "x": 2328,
+     "z": 1904,
+     "health": 0.77,
+     "heading": [
+      0.854,
+      -0.521
+     ],
+     "source_id": 17471
+    },
+    {
+     "type": "armfido",
+     "x": 2679,
+     "z": 2038,
+     "health": 1.0,
+     "heading": [
+      0.968,
+      0.251
+     ],
+     "source_id": 8745
+    },
+    {
+     "type": "armflash",
+     "x": 2917,
+     "z": 2743,
+     "health": 1.0,
+     "source_id": 16360
+    },
+    {
+     "type": "armfido",
+     "x": 2907,
+     "z": 2096,
+     "health": 1.0,
+     "source_id": 7306
+    },
+    {
+     "type": "armflash",
+     "x": 2892,
+     "z": 2730,
+     "health": 1.0,
+     "source_id": 6799
+    },
+    {
+     "type": "armflash",
+     "x": 2866,
+     "z": 2662,
+     "health": 1.0,
+     "heading": [
+      0.303,
+      0.953
+     ],
+     "source_id": 25880
+    },
+    {
+     "type": "armham",
+     "x": 3056,
+     "z": 1919,
+     "health": 1.0,
+     "heading": [
+      0.974,
+      -0.228
+     ],
+     "source_id": 27612
+    }
+   ]
+  }
+ ]
+}

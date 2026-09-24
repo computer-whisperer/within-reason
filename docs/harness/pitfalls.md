@@ -52,6 +52,14 @@ export hung the engine at the first spawn (watchdog stack trace through `Mutex::
 spawns and issues them after unlocking (`engine::Spawner`). Ordinary unit orders travel through the network layer and
 do not re-enter. Any future synchronous engine call (other cheats, Lua calls) needs the same treatment.
 
+## Hold fire keeps the target a weapon already has; units heal when left alone
+
+`Command::FireState` 0 (hold fire) only stops a weapon choosing a new target (`CWeapon::AllowWeaponAutoTarget`); a
+target it took in the frames after the unit appeared stays, and the unit keeps shooting it. Follow the hold with a
+`Stop`, which drops every weapon's target (`CCommandAI::ExecuteStop`). And a hurt unit left alone heals: a scenario's
+Stouts hurt at the start of a 90 s preparation were whole again when the fight began (K-engine-hold-fire-keeps-a-target,
+K-engine-a-unit-left-alone-heals).
+
 ## Mass self-destruct is cancelled twice per team
 
 See `duels.md`, "Clearing": BAR cancels self-destruct orders covering 95% of a team's units, two times per team per game.

@@ -385,6 +385,9 @@ pub enum Command {
     /// A line in the game chat, to everyone: the bot names itself at the start (the game gives AIs random names;
     /// `{name}` in the text becomes the one given to this AI).
     Say { text: String },
+    /// The engine's fire state: 0 hold fire, 1 return fire, 2 fire at will. A unit holding fire still carries out an
+    /// explicit `Attack`. The duel harness holds a scenario's units while it prepares them (`docs/harness/duels.md`).
+    FireState { unit: UnitId, state: i32 },
 }
 
 /// The shim resolves this to the closest legal build position, since only it can query the map.

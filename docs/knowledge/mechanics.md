@@ -348,3 +348,39 @@ cannon arc cleared every hull at the ranges tanks fight at (the instrument will 
 **Used by.** The fire instrument (the record's `dealt`, `shots`, `ff`, `xo`, `xi`; `run/fire.py`); nothing in the
 brain models it yet (the focus rule counts every soldier with a target in reach as a shooter; H-MICRO-FAN opens
 lines only for the D-gun).
+
+### K-engine-hold-fire-keeps-a-target
+**Claim.** Setting a unit to hold fire (fire state 0) stops its weapons choosing new targets but not shooting a target
+they already have: a weapon that took an enemy as its target in the frames after the unit appeared keeps firing at it.
+A stop order drops every weapon's target.
+**Status.** supported (2026-09-24)
+**Evidence.** `rts/Sim/Weapons/Weapon.cpp` `AllowWeaponAutoTarget` (the fire-state test only gates auto-targeting);
+`rts/Sim/Units/CommandAI/CommandAI.cpp` `ExecuteStop` (`DropCurrentTarget` on every weapon). In the engine (scenario
+smoke runs of `2v1b-hard-1510-truth`, 2026-09-24): with hold fire alone, 14 of the enemy's Pawns given beside Stouts
+held three frames after they appeared died in the next five seconds, the engine naming held Stouts as the killers;
+with a stop after the hold the held units fired 5 shots in all (the Rovers that still died, 8, died to Stouts that
+fired no shot: K-engine-a-pushed-tank-crushes-a-light-unit). How many of the 14 were shot rather than crushed was not
+counted.
+**Would be wrong if.** Held units with no target from before the hold fired at enemies that appeared later.
+**Used by.** H-DUEL-SCENARIO-PREP (harness only).
+
+### K-engine-a-unit-left-alone-heals
+**Claim.** A hurt unit that takes no damage for a while heals by itself, slowly: a Stout hurt to 95% of its health was
+whole again about 95 s later, one hurt to 88% had reached 97% after about 85 s.
+**Status.** conjectured (2026-09-24): measured on a handful of units in one smoke run; the rate and the delay before it
+starts are not read from the game's files.
+**Evidence.** Scenario smoke run of `2v1b-hard-1510-truth` (2026-09-24), each unit's health when its hurter stopped and
+when the fight began.
+**Would be wrong if.** A unit hurt and left alone for two minutes, with nothing near it, kept its health.
+**Used by.** H-DUEL-SCENARIO-PREP (the hurters keep their targets down until all are done, and go at once).
+
+### K-engine-a-pushed-tank-crushes-a-light-unit
+**Claim.** A light vehicle given beside tanks that were given close together (and push each other apart) is killed by
+them without a shot: the engine names the tank as its killer.
+**Status.** conjectured (2026-09-24): the mechanism (crushing) is inferred from the killer being a tank that fired no
+shot; not read from the engine.
+**Evidence.** Scenario smoke runs of `2v1b-hard-1510-truth` (2026-09-24): Rovers given 100-160 from Stouts in the same
+frame died within two seconds to Stouts with no `WeaponFired` event; given two seconds later, 45 clear of everybody,
+none died.
+**Would be wrong if.** A Rover given 20 from a standing Stout that nothing pushes is killed by it without a shot.
+**Used by.** H-DUEL-SCENARIO-PREP.

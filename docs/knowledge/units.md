@@ -214,8 +214,10 @@ ends are out of reach while the ball's front fires. So the 14-18% muzzled and 0.
 the Stouts in the live games (2v1b-hard, bank-1) come from something the flat mirror duel does not have, not from the
 ball's own hulls as such; in those games the share is highest for a soldier alone (26% in 2v1b-hard) and a clear line
 is the largest cause (46-56%).
-**Status.** supported for the duel setup (2026-09-24); what the live games add is open (phase 2 of
-`docs/design/2026-09-24-muzzle-project.md`, `docs/studies/2026-09-24-muzzled-ball.md`)
+**Status.** supported for the duel setup (2026-09-24; a rerun after the director's rework agreed, the line losing 15
+of 16 over both); what the live games add is open. Phase 2's replays of recorded engagements
+(`docs/studies/2026-09-24-muzzled-ball.md`) muzzle our side 2-3% in three of them and 23% in one: bank-1 27:34, out-ranged
+by Fatboys and Fidos, lost 0-8. The muzzling belongs to that matchup and ground, and that scenario is where to take it apart
 **Evidence.** Batch `muzzle-stout-shapes` (24 duels, Mithril Mountain v2.0.1, `run/matches/1790287202-duel-muzzle-stout-shapes`);
 `run/fire.py` over `1790261454-2v1b-hard/00` and `1790257668-bank-1/00`.
 **Would be wrong if.** The same duel on sloped ground, against a mixed enemy, or with the control lane's orders instead

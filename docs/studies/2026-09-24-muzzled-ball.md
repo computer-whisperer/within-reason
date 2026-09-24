@@ -46,5 +46,55 @@ The muzzled seconds are too few to read their causes (5, 12 and 25 seconds of 4,
   Flashes: 13% friendly fire in bank-1 against 0.1% here). Phase 2 replays recorded engagements in the engine so that
   these can be told apart.
 
+A rerun of the same batch after phase 2's rework of the director (`muzzle-stout-shapes-recheck`,
+`run/matches/1790288926-duel-muzzle-stout-shapes-recheck`) gave the same picture: the line against the ball -0.155
+(0-8), ranks against ranks -0.004, lines against lines +0.009; muzzled 0.0-0.5%; 0.79-0.84 shots per in-reach second.
+Over both batches the line lost 15 of 16.
+
 The claim is K-units-duel-a-stout-ball-is-not-muzzled-on-flat-ground (`docs/knowledge/units.md`); the formation knob is
 H-DUEL-FORMATION (`docs/heuristics.md`, harness only).
+
+## Phase 2: three recorded engagements fought again (2026-09-24)
+
+Cut with `run/engagement.py` from the main checkout's records (read-only) and fought with `duel --scenario FILE --reps 8
+--parallel 2` on Comet Catcher Remake 1.8 at the recorded place; the files are in `docs/data/scenarios-2026-09-24/`.
+Two of the three named clocks have no enemy in sight (13:50: radar contacts only; 27:34: the Fatboys fire from out
+of sight), so the enemies are cut from the opponent's ground truth (`--enemies truth`, the `truth-0.jsonl` both
+matches carry); 15:10 is also cut with the enemies in sight only, to show what that choice does. Radius 1,100 (1,300
+at 13:50, to take in the Janus group that was coming). Units: armed only, no commander. "Live" is how the same units
+stood 30 and 60 s after the clock in the game itself (the record and the truth file), scored the same way; it is not
+the same experiment (the live enemy kept its own orders, both sides were reinforced, units walked out of the circle).
+
+| Scenario | Ours / theirs (hurt) | Health error, ours / theirs | Engine W-L (8) | Value left, ours / theirs: mean [range] | Margin sd | Seconds [range] | Muzzled, ours / theirs | Friendly fire share, ours / theirs | Live value left at 30 s / 60 s, ours / theirs |
+|---|---|---|---|---|---|---|---|---|---|
+| 2v1b-hard 15:10, truth (the D6 fight) | 33 (30 Stouts, 3 LLT; 23) / 12 (7) | 0.015 / 0.012 | 8-0 | 0.80 [0.79-0.82] / 0 | 0.010 | 24 [22-26] | 2.7% / 0.6% | 0.1% / 0.3% | 0.73 / 0.58, 0.71 / 0.59 |
+| 2v1b-hard 15:10, sight | 29 (21) / 8 (8) | 0.018 / 0.018 | 8-0 | 0.86 [0.84-0.88] / 0 | 0.013 | 20 [18-21] | 3.3% / 3.0% | 0.0% / 0.2% | 0.72 / 0.56, 0.69 / 0.58 |
+| 2v1b-hard 13:50, truth (the trade) | 35 (0) / 16 (8) | 0.000 / 0.010 | 8-0 | 0.56 [0.53-0.63] / 0 | 0.035 | 47 [44-52] | 2.2% / 1.8% | 1.7% / 0.3% | 1.00 / 1.00, 0.86 / 0.93 |
+| bank-1 27:34, truth (Fatboy splash) | 25 (17) / 18 (3) | 0.058 / 0.003 | 0-8 | 0 / 0.62 [0.43-0.72] | 0.094 | 98 [82-132] | **23.0%** / 4.2% | 1.8% / **31.0%** | 0.98 / 0.97, 0.45 / 0.83 |
+
+Batches `scen-2v1b-hard-1510-truth`, `scen-2v1b-hard-1510-sight`, `scen-2v1b-hard-1350-truth`,
+`scen-bank-1-2734-truth` (`run/matches/1790288983-...` to `1790289044-...`). Every fight ended with one side wiped.
+
+**What it says.**
+- **The replay is repeatable.** Over 8 repetitions the margin's standard deviation is 0.01-0.04 for the three
+  2v1b-hard cuts and 0.09 for bank-1; nobody's result changed sign. An engagement cut from a record is a stable
+  engine measurement, so an A/B of a footwork rule on it (phase 4) needs few repetitions.
+- **The 15:10 fight is won as it was won**: our side keeps 0.80 of its value (live: 0.73 after 30 s) and the enemy
+  in the circle is wiped (live: 0.58 left, because the live enemy fell back and was reinforced). The cut with the enemies
+  in sight only (its contact point moves, and it holds 29 of ours against 8 instead of 33 against 12) leaves us 0.86.
+- **13:50 is not an engagement at the clock** (nothing had happened 30 s later, live): the replay makes both sides
+  attack-move at each other, which the live enemy did not, so its 0.56 is what a head-on fight would have cost, not
+  what the trade cost.
+- **bank-1 27:34 reproduces the loss and the muzzling.** Our 25 lose all 8 repetitions, leaving the enemy 0.62 of its
+  value (live, 60 s later: ours 0.45, theirs 0.83); our side sits muzzled 23% of its in-reach seconds (531 of 2,311:
+  a clear line 324, a friend on the line 153, the edge 54), against 0.6-3.3% for either side in every other scenario and under 0.5% in the
+  flat Stout duels. The enemy here out-ranges us (Fatboys 700, Fidos 650) and splashes its own side (31% of the damage
+  it does is to itself). So the muzzled share is a property of this matchup and ground, not of a Stout ball as such;
+  which of range, height, targets and splash makes it is the next question, and this scenario is where to ask it.
+
+**The simulator cannot take these files yet.** `combatsim` places units by group (a front, a facing, a spacing), which
+could express one unit per group, and covers every type in the four files, but it has no per-unit health (every unit
+starts whole: `sim.rs`, `hp: unit.health`), and 8 to 30 units of each file start hurt; no first orders beyond a
+group's intent (fight, raid, flee, guard: no move to a point, no attack on a named unit); no reader for the scenario
+file; and, as the design says, no hulls, no line-of-fire test, no refusal and no splash on friends, which is what the
+bank-1 replay measures. Those are phase 3's input; no simulator number stands beside the engine's here.

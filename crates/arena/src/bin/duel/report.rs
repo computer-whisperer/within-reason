@@ -11,15 +11,15 @@ use crate::director::DuelResult;
 pub const HEADER: &str = "match,site,sequence,x,y,rep,x_end,x_team,n_x,n_y,metal_x,metal_y,winner,reason,seconds,\
 contact_seconds,survivors_x,survivors_y,value_left_x,value_left_y,damage_taken_x,damage_taken_y,spread_x,spread_y,\
 form_x,form_y,reach_s_x,reach_s_y,shots_x,shots_y,muzzled_line_x,muzzled_line_y,muzzled_edge_x,muzzled_edge_y,\
-muzzled_clear_x,muzzled_clear_y,ff_x,ff_y,dealt_x,dealt_y";
+muzzled_clear_x,muzzled_clear_y,ff_x,ff_y,dealt_x,dealt_y,health_err_x,health_err_y";
 
 pub fn row(r: &DuelResult) -> String {
     let [fx, fy] = &r.fire;
     let fire = format!(
-        "{},{},{},{},{},{},{},{},{},{},{},{},{:.0},{:.0},{:.0},{:.0}",
+        "{},{},{},{},{},{},{},{},{},{},{},{},{:.0},{:.0},{:.0},{:.0},{:.3},{:.3}",
         r.formation[0], r.formation[1], fx.reach_seconds, fy.reach_seconds, fx.shots, fy.shots,
         fx.muzzled[0], fy.muzzled[0], fx.muzzled[1], fy.muzzled[1], fx.muzzled[2], fy.muzzled[2],
-        fx.friendly_fire, fy.friendly_fire, fx.dealt, fy.dealt,
+        fx.friendly_fire, fy.friendly_fire, fx.dealt, fy.dealt, r.health_error[0], r.health_error[1],
     );
     format!(
         "{},{},{},{},{},{},{},{},{},{},{:.0},{:.0},{},{},{:.1},{},{},{},{:.3},{:.3},{:.0},{:.0},{:.0},{:.0}",
