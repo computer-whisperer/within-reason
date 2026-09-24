@@ -298,7 +298,13 @@ solars among the five for winners and losers both; the one sequence that repeats
 Rover (8 of 66). So the user's high-OS friend's rule, "more than three solars in the early opening is a major
 mistake", is the pool's habit read strictly: nobody builds a fourth before the plant, and few a third; the plant at
 0:43 (median) comes on two, and the energy for it is built while it stands. Our brief's opening (three solars, the
-plant at 0:58, from the VAK-Artur game) is the minority line.
+plant at 0:58, from the VAK-Artur game) is the minority line, and it is thebluegecko's (OS 48.5, the strongest player
+in the pool): in 13 Comet duels against Hellontoast (40) and Artur91 (42-43), won 9, three solars before the plant at
+0:58 in 10 (two in 2; once a bot lab at 0:03 with none), then a constructor, a solar and Rovers, or Rovers straight (a
+Rover swarm: 13 Rovers at 4:00, 47 lost in an 8-minute win). Their opponents at 40-43 open on two with the plant at
+0:34 (Artur91, Hellontoast as Armada) or 1:03 (Hellontoast as Cortex). So two or three; with the strongest on three
+and the plant at 0:58, the count is not what separates them. With those 7 duels at 40+ added (40 games, 80 sides):
+two in 52, three in 12, four in none.
 **Status.** observed (2026-09-24, 33 games at OS 40+; the whole pool agrees); no result signal either way past the
 plant (the count by 2:00 does not separate winners from losers).
 **Evidence.** `run/replays/recheck.py --floors 25,40` (the solar rows and the five actions); the cards' `build_order`.

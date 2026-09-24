@@ -89,3 +89,23 @@ From `_inbox/replays-comet-catcher-2026-09-23.md`; "all 29" is every Comet Catch
 - `54e4af6a3c4bf99b59c7cf7a3f3ac1b3` 2026-09-20, Comet Catcher Remake 1.8: [MADO]Artur91 (43.4, Armada, B5) vs [APM]ieNemo (45.77, Cortex, H5); won [MADO]Artur91; 17:14
 - `9f1fb46a003ba6d25b3f0b414cf76090` 2026-09-23, Comet Catcher Remake 1.8: [APM]Hellontoast (41.15, Cortex, A4) vs AgentOG (44.02, Cortex, H5); won [APM]Hellontoast; 12:23
 - `8731b46ae98e2865b64e132b58fb86ac` 2026-09-23, Comet Catcher Remake 1.8: [APM]Hellontoast (41.15, Cortex, A4) vs [APM]HornetPro (40.14, Cortex, H5); won [APM]HornetPro; 15:47
+
+## thebluegecko's duels (17, carded 2026-09-24; the list paged back to late July and filed with `pick.py --id`: 13 on Comet Catcher, two on Full Metal Plate, one each on Gasbag Grabens and Comet against a 29)
+
+- `36e5786af5f9e2d0c4679506a897f3a8` 2026-08-09, Comet Catcher Remake 1.8: [APM]Hellontoast (39.72, Cortex, H5) vs [gecko]thebluegecko (48.49, Armada, A4); won [gecko]thebluegecko; 9:21
+- `d2e7786aa7a8e3fb48e396a67cf5fb46` 2026-08-09, Comet Catcher Remake 1.8: [APM]Hellontoast (39.72, Armada, G4) vs [gecko]thebluegecko (48.49, Armada, A4); won [APM]Hellontoast; 9:49
+- `c7ea786ae64ea8d0a5874175bb925dc5` 2026-08-09, Comet Catcher Remake 1.8: [APM]Hellontoast (39.72, Cortex, H5) vs [gecko]thebluegecko (48.49, Armada, A4); won [gecko]thebluegecko; 15:57
+- `0e16796a072560b412917c61cc89a32d` 2026-08-10, Comet Catcher Remake 1.8: [gecko]thebluegecko (48.49, Armada, A4) vs [MADO]Artur91 (41.92, Armada, H5); won [MADO]Artur91; 17:08
+- `a51a796ab6bf948a7c0ca76139b2c266` 2026-08-10, Comet Catcher Remake 1.8: [gecko]thebluegecko (48.49, Armada, A4) vs [APM]Hellontoast (39.72, Armada, G4); won [gecko]thebluegecko; 17:51
+- `36777a6a9cb2950bce964df59d02afb6` 2026-08-11, Comet Catcher Remake 1.8: [gecko]thebluegecko (48.49, Armada, H5) vs [MADO]Artur91 (41.8, Armada, B5); won [gecko]thebluegecko; 21:00
+- `6e5e8a6ad737775a8b748ced80fcde5a` 2026-08-23, Comet Catcher Remake 1.8: [APM]Hellontoast (39.72, Cortex, G4) vs [gecko]thebluegecko (48.52, Armada, A4); won [gecko]thebluegecko; 6:04
+- `58608a6ab4e90d67067fa0729487e991` 2026-08-23, Comet Catcher Remake 1.8: [APM]Hellontoast (39.72, Cortex, H5) vs [gecko]thebluegecko (48.52, Armada, A4); won [APM]Hellontoast; 18:58
+- `64708b6adced1df34d479a56f4736fc4` 2026-08-23, Comet Catcher Remake 1.8: [MADO]Artur91 (42.95, Armada, G4) vs [gecko]thebluegecko (48.52, Armada, A4); won [gecko]thebluegecko; 14:38
+- `32748b6a152033110f102e53c52e4110` 2026-08-23, Comet Catcher Remake 1.8: [MADO]Artur91 (42.95, Armada, H5) vs [gecko]thebluegecko (48.52, Armada, A4); won [MADO]Artur91; 8:39
+- `b83f9c6a29b7c911b10cd1eec022ecfb` 2026-09-05, Comet Catcher Remake 1.8: [gecko]thebluegecko (48.52, Armada, A4) vs [APM]Hellontoast (40.81, Cortex, H5); won [gecko]thebluegecko; 12:56
+- `6f439c6aaa27fa810932d14555309a3a` 2026-09-05, Comet Catcher Remake 1.8: [gecko]thebluegecko (48.52, Armada, B4) vs [APM]Hellontoast (40.81, Cortex, H5); won [gecko]thebluegecko; 8:01
+- `15469c6a183b7b6bd5559e0fbc61c4b4` 2026-09-05, Comet Catcher Remake 1.8: [gecko]thebluegecko (48.52, Armada, A4) vs [MADO]Artur91 (43.19, Armada, G4); won [gecko]thebluegecko; 7:32
+- `2dcaa56a3025256cccfdd7c22622190f` 2026-09-12, Full Metal Plate 1.7: [MADO]Artur91 (43.19, Armada, B4) vs [gecko]thebluegecko (48.52, Cortex, G6); won [gecko]thebluegecko; 30:38
+- `51d2a56ad4a0322bfc5192a02066b262` 2026-09-12, Full Metal Plate 1.7: [MADO]Artur91 (43.19, Armada, B5) vs [gecko]thebluegecko (48.52, Cortex, G2); won [MADO]Artur91; 16:27
+- `e4dea66ae18708f044c8cd86b15cace0` 2026-09-13, Comet Catcher Remake 1.8: [gecko]thebluegecko (48.52, Armada, A4) vs [JUDGES]IamRaider (29.36, Cortex, H1); won [gecko]thebluegecko; 8:41
+- `61e1a66a7b0707c7be1273ccd99faa79` 2026-09-13, Gasbag Grabens 1.1.1: [gecko]thebluegecko (48.52, Cortex, B4) vs [JUDGES]IamRaider (29.36, Cortex, G5); won [gecko]thebluegecko; 7:07
