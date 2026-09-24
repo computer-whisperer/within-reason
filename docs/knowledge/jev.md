@@ -791,3 +791,10 @@ retreat_home) or the death had come from something the line could not show (it n
 for eight seconds).
 **Used by.** H-HANDS-COMMANDER-WORTH; H-HANDS-SCHEDULE (the builder alarm).
 
+### K-hands-the-commander-was-never-found-by-its-handle
+**Claim.** `unit_by_handle` split the handle at its last underscore with `?` before matching the word `commander`, so every lookup of the commander by handle returned None (the constructors' `constructor_N` handles split fine): the first-list skip of the default's builds never ran for the commander (bank-1, 2v1-medium, 2v1-hard, 2v1-hard_aggressive: four solars before the plant each time, the list's three on the default's one), and a `stop` at the head of a commander list never stopped its build in progress or dropped its task.
+**Status.** measured (2026-09-24): in 2v1-hard_aggressive the install log line ("first list for ...: the hands had ordered [...]") appeared for five constructors and never for the commander, while its narration showed two extractors and a solar ordered before the list landed at 0:25. Fixed in `yards.rs` the same day; the check is the 2v1b round's first game (the line for the commander at about 0:25 with three orders and three steps skipped).
+**Evidence.** `run/matches/1790259885-2v1-hard_aggressive/00/bot.log` lines 67-93; the four openings in `docs/experiments.md`.
+**Would be wrong if.** The line still fails to appear for the commander after the fix (another condition in the install chain).
+**Used by.** H-HANDS-SCRIPT (the first-list skip, `stop`); the `remove` tool and the `reclaim` step on the commander's handle.
+

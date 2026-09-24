@@ -165,7 +165,9 @@ impl Brain {
 
     /// The unit of ours a handle names: `armsolar_31002`, or an actor's name (commander, constructor_N, plant_N).
     pub(super) fn unit_by_handle<'a>(&self, handle: &str, own: &'a [OwnUnit]) -> Option<&'a OwnUnit> {
-        let id = handle.rsplit_once('_')?.1.parse::<i32>().ok();
+        // `commander` has no underscore: the split must not end the lookup (2v1-hard_aggressive: every lookup of the
+        // commander by handle returned None, so its first list never skipped the default's builds and a `stop` for it did nothing).
+        let id = handle.rsplit_once('_').and_then(|(_, n)| n.parse::<i32>().ok());
         match (handle, id) {
             ("commander", _) => own.iter().find(|u| self.world.is_commander_def(u.def)),
             (_, Some(id)) => own.iter().find(|u| u.id.0 == id),
