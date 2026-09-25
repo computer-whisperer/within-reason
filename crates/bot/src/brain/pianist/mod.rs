@@ -119,6 +119,9 @@ pub struct Pianist {
     /// and the `standing` tool's; the executor's mode (`WITHIN_REASON_STANDING`: off, on, filter).
     pub(super) standing: Standing,
     pub(super) standing_mode: StandingMode,
+    /// A fixed packet from a file (`WITHIN_REASON_PACKET`, the arena's `--packet`): what the hands play from when no
+    /// player writes one, the arena instrument of the micro A/Bs (`docs/design/2026-09-25-one-decider.md`, §2).
+    pub(super) packet: Option<String>,
     /// A decompression request on the worker (realtime): its id and the packet's frame.
     pending_decompression: Option<(u64, i32)>,
     /// Realtime (`WITHIN_REASON_REALTIME`): the call runs on this thread and its answer is played on the tick it
@@ -300,10 +303,15 @@ impl Pianist {
             None => None,
         };
         let worker = if jev && crate::strategist::realtime() { jev::Client::from_env().ok().map(spawn_worker) } else { None };
+        let packet = match std::env::var_os("WITHIN_REASON_PACKET") {
+            Some(path) => Some(std::fs::read_to_string(&path).map_err(|e| format!("the packet file {} cannot be read: {e}", path.to_string_lossy()))?),
+            None => None,
+        };
         Ok(Pianist {
             client,
             standing: Standing::default(),
             standing_mode: StandingMode::from_env(),
+            packet,
             pending_decompression: None,
             worker,
             pending: None,

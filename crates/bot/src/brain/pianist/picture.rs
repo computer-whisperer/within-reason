@@ -509,11 +509,13 @@ impl Brain {
         // H-HANDS-NAMED-PLACES: every spot and passage the instructions name is a place, however far (pianist-player-5:
         // the player named spot_36 in the south for four turns and it was never on the menu, the list being the
         // nearest free spots and the nearest of theirs), and so is every place the player marked.
+        // The player's packet, else the fixed one from a file (`--packet`), else the hands' default opening.
         let instructions = self
             .strategist
             .as_ref()
             .map(|s| s.instructions.lock().unwrap().clone())
             .filter(|i| !i.trim().is_empty())
+            .or_else(|| self.pianist.as_ref().and_then(|p| p.packet.clone()))
             .unwrap_or_else(|| crate::texts::read(&crate::texts::HANDS_DEFAULT));
         for token in instructions.split(|c: char| !c.is_ascii_alphanumeric() && c != '_') {
             if let Some(i) = token.strip_prefix("spot_").and_then(|n| n.parse::<usize>().ok()) {

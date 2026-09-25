@@ -143,9 +143,10 @@ then carries `StartPosType=3` with `StartPosX/Z` per team; the opponent keeps th
 such match exists, the game places everyone (`StartPosType=2`) and the log says why. In a game with people the lobby
 places an AI, so the bot itself never chooses: it plans from where it stands (the user's ruling, 2026-09-20).
 
-**A plan from a file (`--opening-plan PATH`, since 2026-09-20 night).** The bot plays the plan text (the form the log
-prints: `com: mex mex win lab assist`, `fac0: ck pw pw`, `con0: mex mex`) instead of searching one. `run/replay_plan.py
-run/matches/<replay>/record-<team>.jsonl` transcribes a player's opening from a replayed game; `run/plans/` keeps them.
+**A packet from a file (`--packet PATH`, since 2026-09-25).** The pianist plays this text as the player's packet for the
+whole game when no player is attached (`run/packets/`, the bot's `WITHIN_REASON_PACKET`): the arena instrument for A/Bs
+of the hands and the micro lane at Jev's cents a game. (`--opening-plan` went with the bot's own planner the same day;
+`run/replay_plan.py` still transcribes a player's opening from a replay into `run/plans/`, as knowledge.)
 
 
 

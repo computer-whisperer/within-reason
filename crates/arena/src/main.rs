@@ -18,7 +18,7 @@
 //!              [--opponent-opening any|bots|vehicles]   (pins BARb's first factory by disabling the other; default any)
 //!              [--think-penalty X]   (the player's or commander's orders land X game seconds late per wall second it thought; 1 = as in a live game; default 1 with --player, else 0)
 //!              [--seed-base N]   (default 1; match i plays seed N+i, for the engine and for BARb: a fresh N is a fresh set of games)
-//!              [--opening-plan PATH]   (the bot plays this plan text instead of searching one; run/replay_plan.py writes one from a replay)
+//!              [--packet PATH]   (the pianist plays this packet text when no player writes one: the arena instrument of the A/Bs)
 //!              [--objective TEXT]   (a requirement for the player, appended to its role text: "kill the commander with Thunder bombers")
 //!              [--base-port N]   (default 9100; match i uses N+2i and N+2i+1, so a second arena needs another range)
 //!              [--commander-model ID] [--objective TEXT]   (the session's model instead of the role's usual one, e.g. claude-opus-5)
@@ -91,7 +91,8 @@ struct Options {
     claude_config_dir: Option<String>,
     seed_base: u32,
     /// `--opening-plan PATH`: the bot plays this plan (`buildorder::plan::Plan` text) instead of searching one.
-    opening_plan: Option<String>,
+    /// A fixed packet file for the pianist without a player (`WITHIN_REASON_PACKET`).
+    packet: Option<String>,
     /// `bots`, `vehicles` or `any` (BARb's own choice, about 70 % bots on Quicksilver).
     opponent_opening: String,
     effort: Option<String>,
@@ -164,7 +165,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("BARb {}", options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "standing": options.standing, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "commander_model": options.commander_model, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "seed_base": options.seed_base, "opening_plan": options.opening_plan, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "standing": options.standing, "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "commander_model": options.commander_model, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 
@@ -302,7 +303,7 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         .env("WITHIN_REASON_SOCKET", &socket)
         .env("WITHIN_REASON_LOG_DIR", &dir)
         .env("WITHIN_REASON_DISABLE", &disable)
-        .envs(options.opening_plan.as_ref().map(|path| ("WITHIN_REASON_OPENING_PLAN", path)))
+        .envs(options.packet.as_ref().map(|path| ("WITHIN_REASON_PACKET", path)))
         // Every match leaves a record for `run/view_match.py`: 0.1-0.3 MB per game minute (docs/harness/record-format.md).
         .env("WITHIN_REASON_RECORD", "1")
         .envs(options.claude_config_dir.as_ref().map(|dir| ("WITHIN_REASON_CLAUDE_CONFIG_DIR", dir)))
@@ -577,7 +578,7 @@ fn parse_args() -> Options {
         ab_disable: None,
         claude_config_dir: None,
         seed_base: 1,
-        opening_plan: None,
+        packet: None,
         opponent_opening: "any".into(),
         effort: None,
         hands_effort: None,
@@ -647,7 +648,7 @@ fn parse_args() -> Options {
                 }
             }
             "--seed-base" => options.seed_base = value().parse().unwrap_or_else(|_| usage("--seed-base")),
-            "--opening-plan" => options.opening_plan = Some(std::fs::canonicalize(value()).unwrap_or_else(|_| usage("--opening-plan")).to_string_lossy().into_owned()),
+            "--packet" => options.packet = Some(std::fs::canonicalize(value()).unwrap_or_else(|_| usage("--packet")).to_string_lossy().into_owned()),
             "--side" => {
                 options.side = Some(match value().to_lowercase().as_str() {
                     "armada" => "Armada",
