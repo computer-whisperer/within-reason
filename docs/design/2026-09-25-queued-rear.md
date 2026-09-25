@@ -81,3 +81,14 @@ of a live game read with `run/queued.py` beside the four games above.
 ## Status
 - 2026-09-25: written; the instrument built (`run/queued.py`, the harness columns); scenarios cut; the control and
   ball arms of the two scenarios running; no behaviour code.
+- 2026-09-25, built and judged (the ledger's q-* and q2-* rows; the claims K-form-a-fifth-of-an-engaged-unit-waits-behind-a-friend,
+  K-form-the-rear-at-the-ends-not-in-the-back). Answer 1 (H-MICRO-FORM-FLANK) is in: +0.15 and +0.06 over the ball
+  on the two scenarios, friendly fire 40% to 4% and 18% to 3%, the mixed force -0.18 to -0.07, the Stouts against
+  the bot mix -0.00 to +0.13, the Blitz pack and the Stout mirror unchanged; it is also the raider body's flank
+  slot. Answer 2 (ranks of twelve on the march) lost on one scenario and gained nothing on the other; the knob is
+  deleted. Answer 4 not built. **What the queue turned out to be:** the blocked share (a firing friend on the unit's
+  line) is 6-10% in every harness arm, the ball's included, and the pros' 8%; in the records nearly every blocked
+  second is a unit walking up behind the front in its first ten seconds of engagement (bank-1: 1,245 moving, 90
+  still), not a standing jam. The failure the user watched costs its friendly fire and its exchange, not its reach,
+  and the flank rule is the answer to that. Undone: an arena A/B (24 games) and a live reading with fights (form-7,
+  one medium game: blocked 6%, exchange 1.34).

@@ -828,7 +828,7 @@ impl Lane {
             } else {
                 form::anchor(centre, h, goal)
             };
-            let slots = form::slots(anchor, h, body.len(), form::SPACING, if flank { body.len() } else { form::files() });
+            let slots = form::slots(anchor, h, body.len(), form::SPACING, if flank { body.len() } else { form::FILES });
             let positions: Vec<Vec3> = body.iter().map(|m| m.pos).collect();
             let slot_of = form::assign(&positions, &slots, h);
             for (i, member) in body.iter().enumerate() {

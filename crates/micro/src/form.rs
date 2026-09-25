@@ -163,13 +163,6 @@ fn principal_axis(group: &[Member]) -> (f32, f32) {
     (-major.1, major.0)
 }
 
-/// Slots in a rank on the march: `FILES`, or `WITHIN_REASON_FORM_FILES` for a batch that tries another width
-/// (`docs/design/2026-09-25-queued-rear.md`, answer 2).
-pub fn files() -> usize {
-    static FILES_SET: std::sync::OnceLock<usize> = std::sync::OnceLock::new();
-    *FILES_SET.get_or_init(|| std::env::var("WITHIN_REASON_FORM_FILES").ok().and_then(|v| v.parse().ok()).filter(|n| *n > 0).unwrap_or(FILES))
-}
-
 /// `count` slots in ranks of `files` across `h`, `spacing` apart, the front rank centred on `anchor` and each further
 /// rank `RANK_GAP` behind it and offset half a spacing (a checkerboard, so a rear unit looks between two front
 /// ones); within a rank left to right (across ascending), front rank first.

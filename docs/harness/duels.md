@@ -99,6 +99,12 @@ batches from before the fire instrument too, leaving its columns empty (nan in `
   it. Columns `nn` (the median nearest-friend distance over both samples), `fol_in`, `fol_blocked` (counts, summed
   over both); `pairs.csv` gives `nearest_friend` (the mean of the duels' medians) and `friend_on_line` (the pooled
   share); `duel_ab.py` prints both and the friendly-fire share beside the exchange.
+- **The queue instrument** (2026-09-25; `fire.rs`, `run/queued.py`'s definitions: `docs/design/2026-09-25-queued-rear.md`).
+  Once a second: a soldier with an enemy within 700 is *engaged* (`engaged_s`); engaged with no enemy in reach while
+  a friend within 300, in reach and nearer its enemy, fired this second, it is *queued* (`queued_s`); queued with
+  that friend within 40 of its line to its nearest enemy, *blocked* (`blocked_s`): behind a firing front rather
+  than spread out with nothing to shoot. `duel_ab.py` prints both shares of engaged seconds. The pros' blocked
+  share is 8% (geometric), ours in the player games 11-22%.
 - **Clearing.** Survivors self-destruct. BAR's "Self-Destruct Resign" gadget (`luarules/gadgets/game_selfd_resign.lua`)
   cancels a team's first two attempts to destroy 95% of its units at once, which a large surviving army beside one
   commander is, so an order not carried out after 8 s is given again (never sooner: a second order while the 5 s

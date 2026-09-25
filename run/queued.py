@@ -8,9 +8,12 @@ the rest from reaching the enemy").
 Per once-a-second sample (`docs/harness/record-format.md`, the `s` line): a soldier of ours (class `army`, a reach,
 not being built) with no enemy within its reach + 20 is **queued** when a friendly soldier within `--body` of it has
 an enemy within its own reach + 20, stands nearer that enemy than the unit does, and fired this second (`shots`).
-The **geometric** count drops the shot condition (a friend in reach and nearer), which is what a replay record can
+**Blocked** is the queued unit whose firing friend stands within `HULL` (40, a hull with clearance) of its line to
+its nearest enemy: physically in the way, as against a unit spread out at the flank with nothing to shoot. The
+**geometric** count drops the shot condition (a friend in reach and nearer), which is what a replay record can
 show, so the pros (`--pros`, the carded games `run/replays/shapes.py` selects) are counted that way and ours both
-ways. **Engaged** soldier-seconds are those with `--fight` or more armed enemies within 700 (a fight, not a mop-up
+ways. Blocked seconds are split by whether the unit moved 10 elmos in the second (walking up behind the front) or
+stood (held behind it), and by how long it has been engaged. **Engaged** soldier-seconds are those with `--fight` or more armed enemies within 700 (a fight, not a mop-up
 of a scattered few: a body of 70 against eleven Rectifiers is "queued" by geometry and has nothing to reach); the
 shares are over them. Per game: the totals, by type, by how many friends stand within 120 (the ball), and the top
 `--top` ten-second windows by queued seconds with their clock and place, for `run/engagement.py`. `--repo` is where
@@ -24,6 +27,16 @@ sys.path.insert(0, os.path.join(HERE, "replays"))
 SLACK = 20.0
 ENGAGED = 700.0
 BALL = 120.0
+HULL = 40.0
+
+
+def near_segment(px, pz, ax, az, bx, bz):
+    dx, dz = bx - ax, bz - az
+    l2 = dx * dx + dz * dz
+    if l2 <= 0.0:
+        return math.hypot(px - ax, pz - az)
+    t = max(0.0, min(1.0, ((px - ax) * dx + (pz - az) * dz) / l2))
+    return math.hypot(px - (ax + t * dx), pz - (az + t * dz))
 
 
 def record_of(path):
@@ -37,10 +50,14 @@ def record_of(path):
 
 def count(seconds, body, top, with_shots, fight):
     """`seconds`: iterable of (t, soldiers [(id, type, x, z, reach, shots)], enemies [(x, z, armed)])."""
-    out = {"engaged": 0, "in_reach": 0, "queued": 0, "geo": 0, "by_type": collections.Counter(), "by_type_engaged": collections.Counter(),
+    out = {"engaged": 0, "in_reach": 0, "queued": 0, "blocked": 0, "geo": 0, "geo_blocked": 0, "by_type": collections.Counter(),
+           "blocked_split": collections.Counter(), "engaged_age": collections.Counter(), "by_type_engaged": collections.Counter(),
            "ball": collections.Counter(), "ball_engaged": collections.Counter(), "windows": collections.Counter(), "places": {}}
+    prev = {}
+    since, last = {}, {}
     for t, soldiers, enemies in seconds:
         if not enemies:
+            prev = {u[0]: (u[2], u[3]) for u in soldiers}
             continue
         near = []
         for u in soldiers:
@@ -54,6 +71,12 @@ def count(seconds, body, top, with_shots, fight):
                 continue
             out["engaged"] += 1
             out["by_type_engaged"][name] += 1
+            if last.get(uid) is None or t - last[uid] > 5:
+                since[uid] = t
+            last[uid] = t
+            age = t - since[uid]
+            age_bucket = "0-10s" if age < 10 else "10-30s" if age < 30 else "30s+"
+            out["engaged_age"][age_bucket] += 1
             friends = sum(1 for v, _, _, _ in near if v[0] != uid and (v[2] - x) ** 2 + (v[3] - z) ** 2 < BALL * BALL)
             bucket = "alone" if friends == 0 else "1-2" if friends <= 2 else "3-5" if friends <= 5 else "6+"
             out["ball_engaged"][bucket] += 1
@@ -61,7 +84,7 @@ def count(seconds, body, top, with_shots, fight):
             if d2 < r * r:
                 out["in_reach"] += 1
                 continue
-            geo = fired = False
+            geo = fired = geo_blocked = blocked = False
             for (v, vd2, (vx, vz), _) in near:
                 if v[0] == uid or (v[2] - x) ** 2 + (v[3] - z) ** 2 > body * body:
                     continue
@@ -72,11 +95,20 @@ def count(seconds, body, top, with_shots, fight):
                 if (x - vx) ** 2 + (z - vz) ** 2 <= vd2:
                     continue
                 geo = True
+                in_the_way = near_segment(v[2], v[3], x, z, ex, ez) < HULL
+                geo_blocked = geo_blocked or in_the_way
                 if v[5] > 0:
                     fired = True
-                    break
+                    blocked = blocked or in_the_way
             if geo:
                 out["geo"] += 1
+            if geo_blocked:
+                out["geo_blocked"] += 1
+            if (blocked if with_shots else geo_blocked):
+                out["blocked"] += 1
+                p = prev.get(uid)
+                moved = p is not None and math.hypot(x - p[0], z - p[1]) > 10
+                out["blocked_split"][(age_bucket, "moving" if moved else "still")] += 1
             if (fired if with_shots else geo):
                 out["queued"] += 1
                 out["by_type"][name] += 1
@@ -85,6 +117,7 @@ def count(seconds, body, top, with_shots, fight):
                 out["windows"][w] += 1
                 px, pz, n = out["places"].get(w, (0.0, 0.0, 0))
                 out["places"][w] = (px + x, pz + z, n + 1)
+        prev = {u[0]: (u[2], u[3]) for u in soldiers}
     return out
 
 
@@ -117,8 +150,10 @@ def pro_seconds(g, side):
 def report(label, r, top, shots):
     e = max(1, r["engaged"])
     print(f"== {label}: engaged {r['engaged']} soldier-s, in reach {r['in_reach']} ({100 * r['in_reach'] / e:.0f}%), "
-          f"queued {r['queued']} ({100 * r['queued'] / e:.0f}%){' [shots]' if shots else ' [geometry]'}, geometric {r['geo']} ({100 * r['geo'] / e:.0f}%)")
+          f"queued {r['queued']} ({100 * r['queued'] / e:.0f}%), blocked {r['blocked']} ({100 * r['blocked'] / e:.0f}%){' [shots]' if shots else ' [geometry]'}; "
+          f"geometric queued {r['geo']} ({100 * r['geo'] / e:.0f}%), blocked {r['geo_blocked']} ({100 * r['geo_blocked'] / e:.0f}%)")
     print("  queued by type: " + ", ".join(f"{t} {n} of {r['by_type_engaged'][t]} ({100 * n / max(1, r['by_type_engaged'][t]):.0f}%)" for t, n in r["by_type"].most_common(6)))
+    print("  blocked by engagement age, moving / still: " + ", ".join(f"{b} {r['blocked_split'][(b, 'moving')]} / {r['blocked_split'][(b, 'still')]} of {r['engaged_age'][b]} engaged" for b in ("0-10s", "10-30s", "30s+")))
     print("  queued share by friends within 120: " + ", ".join(f"{b} {100 * r['ball'][b] / max(1, r['ball_engaged'][b]):.0f}% of {r['ball_engaged'][b]}" for b in ("alone", "1-2", "3-5", "6+")))
     if top:
         print("  top windows (clock, queued s, place):")
@@ -161,9 +196,9 @@ def main():
                 if total is None:
                     total = r
                 else:
-                    for k in ("engaged", "in_reach", "queued", "geo"):
+                    for k in ("engaged", "in_reach", "queued", "blocked", "geo", "geo_blocked"):
                         total[k] += r[k]
-                    for k in ("by_type", "by_type_engaged", "ball", "ball_engaged"):
+                    for k in ("by_type", "by_type_engaged", "ball", "ball_engaged", "blocked_split", "engaged_age"):
                         total[k] += r[k]
         if total:
             report(f"pros on {a.pros} at OS {a.floor}+ ({len(games)} games)", total, 0, False)

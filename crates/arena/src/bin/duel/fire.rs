@@ -18,6 +18,8 @@ pub const QUIET_FLOOR: f32 = 3.0;
 pub const BODY: f32 = 300.0;
 /// A unit with an enemy this close is engaged.
 pub const ENGAGED: f32 = 700.0;
+/// A firing friend this close to a queued unit's line to its nearest enemy is in its way (a hull with clearance).
+pub const IN_THE_WAY: f32 = 40.0;
 
 /// Why a muzzled second was muzzled, in `run/fire.py`'s order of tests.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -49,6 +51,8 @@ pub struct Tally {
     /// of those, seconds with no enemy in reach while a friend within `BODY`, in reach and nearer its enemy, fired.
     pub engaged_seconds: u32,
     pub queued_seconds: u32,
+    /// Of the queued seconds, those with the firing friend within `IN_THE_WAY` of the line to the nearest enemy.
+    pub blocked_seconds: u32,
 }
 
 impl Tally {
@@ -152,8 +156,15 @@ impl Fire {
             }
             let Some(target) = nearest else {
                 self.quiet.insert(unit, 0);
-                if engaged && in_reach.iter().any(|&(f, fat, range, fired)| f != unit && fired && fat.dist2d(at) < BODY && fat.dist2d(at) > range) {
-                    self.tally.queued_seconds += 1;
+                if engaged {
+                    let mine = enemies.iter().copied().min_by(|a, b| a.dist2d(at).total_cmp(&b.dist2d(at)));
+                    let front: Vec<Vec3> = (in_reach.iter()).filter(|&&(f, fat, range, fired)| f != unit && fired && fat.dist2d(at) < BODY && fat.dist2d(at) > range).map(|f| f.1).collect();
+                    if !front.is_empty() {
+                        self.tally.queued_seconds += 1;
+                        if mine.is_some_and(|e| front.iter().any(|f| near_segment(*f, at, e) < IN_THE_WAY)) {
+                            self.tally.blocked_seconds += 1;
+                        }
+                    }
                 }
                 continue;
             };

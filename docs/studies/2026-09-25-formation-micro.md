@@ -178,3 +178,36 @@ the braking step, the chatter and the follow, not milling in circles.
 - **Method.** Two batches of the same `off` arm differ by 0.06 with standard errors of 0.05: read the between-batch
   spread as the noise. A null arm (the lane present, every rule off) is the check that the harness measures the
   rules and not the plumbing; it found the two-site contamination that voided the first day's lane arms.
+
+## The rear behind a firing front (2026-09-25, later)
+
+`docs/design/2026-09-25-queued-rear.md`; the instrument is `run/queued.py` and the harness's `engaged_s` /
+`queued_s` / `blocked_s`. The records: queued (behind a firing friend that can reach, the unit cannot) 25% / 15% /
+10% / 14% of engaged soldier-seconds in bank-1, 2v1b-hard, 2v1b-hard_aggressive, family-1 (geometric 37 / 24 / 23 /
+27%; the pros 20%); blocked (the friend within 40 of the unit's line to its enemy) 14 / 10 / 4 / 9% (geometric 22 /
+16 / 11 / 17%; the pros 8%); nearly all of it units walking up in their first ten seconds of engagement, a
+standing jam 1% or less. Two clash cuts (bank-1 13:50: 45 against 15; family-1 11:05: 37 against 13), 8 reps an
+arm, the lane on ours:
+
+| Cut, arm | Margin | Killed per lost | Friendly fire | Queued | Blocked | Nearest friend | Friend on line |
+|---|---|---|---|---|---|---|---|
+| bank-1 13:50, plain order | +0.693 +- 0.016 | 0.67 | 40.3% | 13% | 9% | 31 | 6% |
+| null (lane present, rules off) | +0.706 +- 0.012 | 0.71 | 39.9% | 14% | 9% | 31 | 3% |
+| formation, no flank | +0.804 +- 0.007 | 1.05 | 17.3% | 16% | 8% | 36 | 11% |
+| **formation with H-MICRO-FORM-FLANK** | **+0.840 +- 0.006** | **1.30** | **4.4%** | 21% | 10% | 38 | 5% |
+| family-1 11:05, plain order | +0.658 +- 0.016 | 1.17 | 18.2% | 11% | 8% | 26 | 77% |
+| formation, no flank | +0.578 +- 0.022 | 0.95 | 21.6% | 7% | 6% | 29 | 77% |
+| **with the flank** | **+0.713 +- 0.011** | **1.40** | **3.2%** | 17% | 10% | 32 | 62% |
+
+The other pairings with the flank against the plain order: Blitz pack +0.287 +- 0.035 (+0.154), Stout mirror
++0.023 +- 0.036 (+0.034), the mixed force -0.072 +- 0.066 (-0.182 +- 0.056; the Stouts' shells on the Blitzes 3,522 hp
+against 4,291), Stouts against the bot mix +0.132 +- 0.042 (-0.001 +- 0.050). Ranks of twelve on the march instead:
+bank-1 +0.799, family-1 -0.050; dropped. The live medium game form-7 (the flank on): 2,146 engaged soldier-seconds,
+queued 19%, blocked 6%, exchange 1.34, one game.
+
+What it says: the blocked share does not move in the harness (6-10% in every arm, the pros' 8%), because a body
+reaches the enemy within seconds whatever the rule; the front stopping costs the rear its line of fire, not its
+reach, and the rear's shells on the front were 40% of the damage done in the bank-1 cut. Filing the rear to the
+ends of the front's line takes that to 4% and the fight from +0.69 to +0.84. The raider body's flank slot (the
+Stouts on the Blitzes) is the same rule: the Stouts and Janus put 33,500 hp into the Blitzes in the plain cut and
+2,300 with the flank.
