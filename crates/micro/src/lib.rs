@@ -89,13 +89,16 @@ const FAN_STEP_MAX: f32 = 150.0;
 /// at 380 (form5-stoutmix-on, -0.08): the keep is the reach slack now.
 const STAND_INSIDE: f32 = 20.0;
 const STAND_KEEP: f32 = REACH_SLACK;
-/// A unit closing on an enemy stops this share of its reach from it (the pros' short-range units fight at 0.94 of
-/// their reach, ours at 0.86: K-form-pros-raiders-fight-at-reach).
-const CLOSE_TO: f32 = 0.92;
+/// A unit closing on an enemy is sent past it by its body's lead: an attack-move stops when a target is in range,
+/// so the goal need not be short of the enemy, and a goal short of it is within the unit's braking distance for
+/// the whole chase (standing-1's Rover trailing a Flea at 33-44% of its speed; chase-lane-fav-fixed: the lead fix
+/// alone took Rovers from 75% to 82% of their speed, the Close point at 0.92 of reach kept the rest).
 /// H-MICRO-FORM-FLANK: a unit this near its flank slot has reached it and closes on the enemy from there.
 const FLANK_ARRIVED: f32 = 48.0;
-/// A slot order is re-issued when the slot has moved this far from what was sent, and not within this many frames.
-const FORM_REORDER: f32 = 64.0;
+/// A slot order is re-issued when the slot has moved this share of the body's lead from what was sent (a goal
+/// re-issued every 64 elmos at a lead of 150 braked the fast units, see `form::LEAD`), and not within
+/// `FORM_FRAMES`.
+const FORM_REORDER_SHARE: f32 = 0.5;
 const FORM_FRAMES: i32 = 15;
 
 /// What a soldier's group was priced against, so the lane knows which threats its host meant it to face.
@@ -350,15 +353,16 @@ enum Stance {
     Close,
 }
 
-/// A form order for one unit this tick. A stand has no command: the unit keeps the order it has (a Fight at its
+/// A form order for one unit this tick (`reorder`: the distance the point may move before it is re-issued). A stand has no command: the unit keeps the order it has (a Fight at its
 /// slot, which it has reached, or an Attack on its order's target) and the engine's own attack-move fires at will
 /// from there; a Stop would drop the weapon's target, and every order costs shots (form6-stoutmix-dbg: standing
 /// Stouts re-stopped fired 0.58 a second in reach against 0.77 with the lane off).
 struct FormOrder {
     stance: Stance,
     command: Option<Command>,
-    /// Where the command sends the unit (for the re-issue test).
+    /// Where the command sends the unit (for the re-issue test), and how far that may move before a new order.
     at: Vec3,
+    reorder: f32,
 }
 
 /// What a tick of the lane produced.
@@ -813,6 +817,9 @@ impl Lane {
             // the front's back (queued: bank-1 13:50 replayed, 17% of engaged seconds behind a firing friend).
             let engaged_body = !walking && !armed_near.is_empty();
             let flank = engaged_body && view.enabled("H-MICRO-FORM-FLANK");
+            let fastest = body.iter().filter_map(|m| by_id.get(&m.id)).filter_map(|u| view.stats(u.def)).map(|s| s.speed).fold(0.0, f32::max);
+            let lead = form::lead_for(fastest);
+            let reorder = lead * FORM_REORDER_SHARE;
             let along = |p: Vec3| p.x * h.0 + p.z * h.1;
             let front_depth = body.iter().filter(|m| {
                 let reach = by_id.get(&m.id).and_then(|u| view.stats(u.def)).map_or(0.0, |s| s.reach);
@@ -826,7 +833,7 @@ impl Lane {
             } else if engaged_body {
                 centre
             } else {
-                form::anchor(centre, h, goal)
+                form::anchor(centre, h, goal, lead)
             };
             let slots = form::slots(anchor, h, body.len(), form::SPACING, if flank { body.len() } else { form::FILES });
             let positions: Vec<Vec3> = body.iter().map(|m| m.pos).collect();
@@ -838,15 +845,15 @@ impl Lane {
                 let distance = nearest.map_or(f32::INFINITY, |e| e.pos.dist2d(unit.pos));
                 let slot = view.snap(slots[slot_of[i]]);
                 let engaged = !walking && !armed_near.is_empty();
-                let toward = |e: &EnemyUnit, share: f32| -> Vec3 {
-                    let (dx, dz) = (unit.pos.x - e.pos.x, unit.pos.z - e.pos.z);
+                // The point `lead` beyond the enemy along the unit's line to it.
+                let past = |e: &EnemyUnit| -> Vec3 {
+                    let (dx, dz) = (e.pos.x - unit.pos.x, e.pos.z - unit.pos.z);
                     let len = dx.hypot(dz).max(1.0);
-                    let d = reach * share;
-                    view.snap(Vec3 { x: e.pos.x + dx / len * d, y: 0.0, z: e.pos.z + dz / len * d })
+                    view.snap(Vec3 { x: e.pos.x + dx / len * lead, y: 0.0, z: e.pos.z + dz / len * lead })
                 };
                 let standing = self.claims.get(&unit.id).is_some_and(|c| c.rule == Rule::Form && c.stance == Some(Stance::Stand));
                 let form_order = if walking || reach <= 0.0 {
-                    FormOrder { stance: Stance::Advance, command: Some(Command::Move { unit: unit.id, to: slot, queue: false }), at: slot }
+                    FormOrder { stance: Stance::Advance, command: Some(Command::Move { unit: unit.id, to: slot, queue: false }), at: slot, reorder }
                 } else if distance < reach - STAND_INSIDE || (standing && distance < reach + STAND_KEEP) {
                     // Standing: its order's target when that is what is in reach, else nothing: it fires at will
                     // where it is. (A sidestep for a unit with a friend on its line was tried and dropped: the step
@@ -855,17 +862,17 @@ impl Lane {
                         form::Order::Attack(target) if nearest.is_some_and(|e| e.id == target) => Some(Command::Attack { unit: unit.id, target, queue: false }),
                         _ => None,
                     };
-                    FormOrder { stance: Stance::Stand, command, at: unit.pos }
+                    FormOrder { stance: Stance::Stand, command, at: unit.pos, reorder }
                 } else if let Some(e) = nearest.filter(|_| engaged) {
                     // To the flank slot first; from there (or without the flank rule) on to 0.92 of reach.
-                    let at = if flank && unit.pos.dist2d(slot) > FLANK_ARRIVED { slot } else { toward(e, CLOSE_TO) };
-                    FormOrder { stance: Stance::Close, command: Some(Command::Fight { unit: unit.id, to: at, queue: false }), at }
+                    let at = if flank && unit.pos.dist2d(slot) > FLANK_ARRIVED { slot } else { past(e) };
+                    FormOrder { stance: Stance::Close, command: Some(Command::Fight { unit: unit.id, to: at, queue: false }), at, reorder }
                 } else {
                     let command = match order {
                         form::Order::Attack(_) => Command::Move { unit: unit.id, to: slot, queue: false },
                         _ => Command::Fight { unit: unit.id, to: slot, queue: false },
                     };
-                    FormOrder { stance: Stance::Advance, command: Some(command), at: slot }
+                    FormOrder { stance: Stance::Advance, command: Some(command), at: slot, reorder }
                 };
                 orders.insert(unit.id, form_order);
             }
@@ -885,7 +892,7 @@ impl Lane {
         let changed = changed && claim.is_none_or(|c| frame - c.frame >= FORM_FRAMES);
         let issue = match order.stance {
             Stance::Stand => fresh || changed,
-            Stance::Advance | Stance::Close => fresh || changed || claim.is_some_and(|c| c.sent_to.dist2d(order.at) > FORM_REORDER && frame - c.frame >= FORM_FRAMES),
+            Stance::Advance | Stance::Close => fresh || changed || claim.is_some_and(|c| c.sent_to.dist2d(order.at) > order.reorder && frame - c.frame >= FORM_FRAMES),
         };
         if fresh {
             fired.push(Rule::Form.id());

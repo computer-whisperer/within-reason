@@ -81,6 +81,10 @@ pub struct Batch {
     pub units: combatsim::units::Units,
     /// Fight this recorded engagement in every job instead of a pairing (`duel --scenario`).
     pub scenario: Option<Scenario>,
+    /// `duel --chase N`: the second army runs away (a Move, re-issued every 2 s) and the first is sent a Fight at
+    /// the runners' centre every N frames (0: only when idle), to measure a chaser's speed against the re-send
+    /// cadence (K-engine-a-short-move-order-brakes-the-unit on the follow rule).
+    pub chase: Option<i32>,
     pub on_result: Box<dyn Fn(&DuelResult) + Send + Sync>,
 }
 
@@ -118,6 +122,8 @@ pub struct DuelResult {
     pub shape: [fire::Shape; 2],
     /// How each army was driven (`LaneMode::label`).
     pub lane: [String; 2],
+    /// Each army's mean speed before the first damage, elmos a second per unit (the chase instrument; 0 without one).
+    pub speed: [f32; 2],
     /// A scenario's units' mean distance between the health they started the fight with and the file's (a share of
     /// full health); 0 in a duel.
     pub health_error: [f32; 2],
@@ -194,6 +200,13 @@ struct Army {
     lane_mode: LaneMode,
     /// The shape instrument's samples.
     shape: fire::Shape,
+    /// The chase instrument: where each unit stood at the last once-a-second sample, and the displacement summed
+    /// over unit-samples before the first damage.
+    last_sampled: HashMap<UnitId, Vec3>,
+    moved: f32,
+    moved_samples: u32,
+    /// The last frame this army was re-sent (a chase's runner or chaser).
+    resent: i32,
 }
 
 impl Army {
@@ -225,6 +238,10 @@ impl Army {
             lane: (lane_mode != LaneMode::Off).then(Lane::default),
             lane_mode,
             shape: fire::Shape::default(),
+            last_sampled: HashMap::new(),
+            moved: 0.0,
+            moved_samples: 0,
+            resent: -1,
         }
     }
 
@@ -389,6 +406,8 @@ impl Director {
                 terrain: &hello.terrain,
                 commanders: &self.commanders,
                 disabled: &self.disabled,
+                chase: self.batch.chase,
+                map: (hello.map.width, hello.map.height),
             };
             if let Some(result) = advance(duel, team, tick, &rules, &mut commands) {
                 let result = DuelResult { match_index: self.match_index, site: index, ..result };
@@ -606,6 +625,10 @@ struct Rules<'a> {
     commanders: &'a HashMap<i32, Vec3>,
     /// Lane rule IDs switched off (`WITHIN_REASON_DISABLE`).
     disabled: &'a [String],
+    /// `Batch::chase`.
+    chase: Option<i32>,
+    /// The map's size, to keep a runner's goal inside it.
+    map: (f32, f32),
 }
 
 /// What the lane reads of a duel: the game's definitions, the simulator's numbers, the map, and the other army.
@@ -966,7 +989,10 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 }
                 let settled = army.ordered_at.is_some_and(|at| !scenario || frame - at >= FPS);
                 if settled {
-                    send_idle(army, tick, enemy_centroid, commands);
+                    match rules.chase {
+                        Some(interval) if first_damage.is_none() => chase_orders(army, enemy, tick, side, interval, rules.map, frame, commands),
+                        _ => send_idle(army, tick, enemy_centroid, commands),
+                    }
                 }
             }
             // The lane over this army's orders: what the director sent this tick is the standing order.
@@ -989,6 +1015,9 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 } else if frame >= duel.next_sample {
                     duel.next_sample += FPS;
                     sample_fire(&mut duel.armies, frame);
+                    if first_damage.is_none() {
+                        sample_speed(&mut duel.armies);
+                    }
                 }
                 if let Some(t0) = first_damage
                     && duel.shape_due.is_empty()
@@ -1112,6 +1141,58 @@ fn first_orders(army: &Army, enemy: &Army, enemy_centroid: Vec3, commands: &mut 
     }
 }
 
+/// The chase instrument's orders: the second army runs from the first (a Move 1,500 along the line away from the
+/// chasers' centre, inside the map, re-issued every 2 s), the first is sent a Fight at the runners' centre every
+/// `interval` frames (0: only when idle, the plain duel's rule).
+#[allow(clippy::too_many_arguments)]
+fn chase_orders(army: &mut Army, enemy: &Army, tick: &Tick, side: usize, interval: i32, map: (f32, f32), frame: i32, commands: &mut Vec<Command>) {
+    let mobile = |u: &UnitId| army.spawn_of.get(u).is_some_and(|&i| army.spawns[i].mobile);
+    let mine: Vec<&bot_protocol::OwnUnit> = tick.snapshot.own_units.iter().filter(|u| army.units.contains(&u.id) && mobile(&u.id)).collect();
+    if mine.is_empty() {
+        return;
+    }
+    if side == 1 {
+        if army.resent >= 0 && frame - army.resent < 2 * FPS {
+            return;
+        }
+        army.resent = frame;
+        let (dx, dz) = (army.centroid.x - enemy.centroid.x, army.centroid.z - enemy.centroid.z);
+        let len = dx.hypot(dz).max(1.0);
+        let to = Vec3 {
+            x: (army.centroid.x + dx / len * 1500.0).clamp(100.0, map.0 - 100.0),
+            y: army.centroid.y,
+            z: (army.centroid.z + dz / len * 1500.0).clamp(100.0, map.1 - 100.0),
+        };
+        commands.extend(mine.iter().map(|u| Command::Move { unit: u.id, to, queue: false }));
+        return;
+    }
+    let due = if interval <= 0 { false } else { army.resent < 0 || frame - army.resent >= interval };
+    if due {
+        army.resent = frame;
+        commands.extend(mine.iter().map(|u| Command::Fight { unit: u.id, to: enemy.centroid, queue: false }));
+    } else {
+        commands.extend(mine.iter().filter(|u| u.idle).map(|u| Command::Fight { unit: u.id, to: enemy.centroid, queue: false }));
+    }
+}
+
+/// The chase instrument's sample: each army's units' displacement since the last sample, per unit-second.
+fn sample_speed(armies: &mut [Army; 2]) {
+    for army in armies.iter_mut() {
+        let mut now: HashMap<UnitId, Vec3> = HashMap::new();
+        for (&id, &at) in &army.seen_at {
+            if !army.alive.contains_key(&id) || !army.spawn_of.get(&id).is_some_and(|&i| army.spawns[i].mobile) {
+                continue;
+            }
+            if let Some(last) = army.last_sampled.get(&id) {
+                army.moved += last.dist2d(at);
+                army.moved_samples += 1;
+            }
+            now.insert(id, at);
+        }
+        army.last_sampled = now;
+    }
+}
+
 /// Attack-move at where the enemy is now for every idle unit (arrived, or never ordered), in the army's formation.
 /// A unit the lane holds is left to the lane: one standing at contact, or held out of a threat, is idle by design
 /// (a re-send throttle tried first cost the lane's arms 0.1 of margin by itself: form-stout-old-nolane).
@@ -1176,6 +1257,7 @@ fn conclude(duel: &mut Duel, started: i32, frame: i32, first_damage: Option<i32>
         fire: [Tally { dealt: y.taken_from_enemy, ..x.fire.tally.clone() }, Tally { dealt: x.taken_from_enemy, ..y.fire.tally.clone() }],
         shape: [x.shape.clone(), y.shape.clone()],
         lane: [x.lane_mode.label().to_string(), y.lane_mode.label().to_string()],
+        speed: [x.moved / x.moved_samples.max(1) as f32, y.moved / y.moved_samples.max(1) as f32],
         health_error: [health_error(x), health_error(y)],
     };
     duel.phase = Phase::Clearing { since: frame, sweep: Sweep::Survivors };

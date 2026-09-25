@@ -10,6 +10,7 @@ duel (--units a,b,c | --ours a,b --theirs c,d | --pairs a:b,c:d)
      [--sweep-waves 3] [--spacing 56] [--formation X[/Y],...] [--lane off|old|on[/...]] [--speed 50] [--map NAME]
      [--label TEXT] [--base-port 9500]
 duel --scenario FILE [--reps 8] [--parallel 2] [--time-limit 240] [--lane X[/Y]] [--speed 50] [--label TEXT] [--base-port 9500]
+duel --pairs chaser:runner --count N --chase FRAMES [--lane on] ...   the chase instrument (below)
 duel --report DIR [duels.csv ...]      rebuild the tables in DIR (from its own duels.csv, or merge the files named)
 run/engagement.py <match dir> <MM:SS> [--radius 900] [--at X,Z] [--enemies sight|known|truth] [--orders 20]
                   [--after 30,60] [--out FILE]     cut a scenario file from a live record
@@ -99,6 +100,14 @@ batches from before the fire instrument too, leaving its columns empty (nan in `
   it. Columns `nn` (the median nearest-friend distance over both samples), `fol_in`, `fol_blocked` (counts, summed
   over both); `pairs.csv` gives `nearest_friend` (the mean of the duels' medians) and `friend_on_line` (the pooled
   share); `duel_ab.py` prints both and the friendly-fire share beside the exchange.
+- **The chase instrument** (`--chase N`, 2026-09-25; `director.rs` `chase_orders`, `sample_speed`). The second army
+  runs from the first (a Move 1,500 along the line away from the chasers' centre, inside the map, re-issued every
+  2 s) and the first is sent a Fight at the runners' centre every N frames (0: only when a unit is idle, the plain
+  duel's rule); with `--lane on` the lane drives the chasers over that order instead. `speed_x` / `speed_y` are
+  each army's mean speed before the first damage, elmos a second per unit-second, to set beside the type's
+  maximum. Measured (chase-fav-*, chase-flash-*): a far goal re-sent every 10-60 frames costs a Rover nothing
+  (168 of 168) and a Blitz nothing (99 of 101); the lane's formation slot 150 ahead re-issued every 64 elmos cost
+  them 25% and 13% (K-engine-a-short-move-order-brakes-the-unit).
 - **The queue instrument** (2026-09-25; `fire.rs`, `run/queued.py`'s definitions: `docs/design/2026-09-25-queued-rear.md`).
   Once a second: a soldier with an enemy within 700 is *engaged* (`engaged_s`); engaged with no enemy in reach while
   a friend within 300, in reach and nearer its enemy, fired this second, it is *queued* (`queued_s`); queued with
