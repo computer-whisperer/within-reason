@@ -12,7 +12,7 @@ pub const HEADER: &str = "match,site,sequence,x,y,rep,x_end,x_team,n_x,n_y,metal
 contact_seconds,survivors_x,survivors_y,value_left_x,value_left_y,damage_taken_x,damage_taken_y,spread_x,spread_y,\
 form_x,form_y,reach_s_x,reach_s_y,shots_x,shots_y,muzzled_line_x,muzzled_line_y,muzzled_edge_x,muzzled_edge_y,\
 muzzled_clear_x,muzzled_clear_y,ff_x,ff_y,dealt_x,dealt_y,health_err_x,health_err_y,\
-lane_x,lane_y,nn_x,nn_y,fol_in_x,fol_in_y,fol_blocked_x,fol_blocked_y,xf_x,xf_y,engaged_s_x,engaged_s_y,queued_s_x,queued_s_y,blocked_s_x,blocked_s_y,speed_x,speed_y";
+lane_x,lane_y,nn_x,nn_y,fol_in_x,fol_in_y,fol_blocked_x,fol_blocked_y,xf_x,xf_y,engaged_s_x,engaged_s_y,queued_s_x,queued_s_y,blocked_s_x,blocked_s_y,speed_x,speed_y,extractors_lost,first_kill_s,hunters_lost,hunts";
 
 pub fn row(r: &DuelResult) -> String {
     let [fx, fy] = &r.fire;
@@ -27,7 +27,8 @@ pub fn row(r: &DuelResult) -> String {
         "{},{},{:.0},{:.0},{},{},{},{},{},{},{},{},{},{},{},{}",
         r.lane[0], r.lane[1], sx.median_nearest(), sy.median_nearest(), sx.in_reach, sy.in_reach, sx.blocked, sy.blocked, fx.victims_cell(), fy.victims_cell(),
         fx.engaged_seconds, fy.engaged_seconds, fx.queued_seconds, fy.queued_seconds, fx.blocked_seconds, fy.blocked_seconds
-    ) + &format!(",{:.1},{:.1}", r.speed[0], r.speed[1]);
+    ) + &format!(",{:.1},{:.1}", r.speed[0], r.speed[1])
+        + &format!(",{},{},{},{}", r.extractors_lost, r.first_kill_seconds.map_or(String::new(), |s| format!("{s:.1}")), r.hunters_lost, r.hunts);
     format!(
         "{},{},{},{},{},{},{},{},{},{},{:.0},{:.0},{},{},{:.1},{},{},{},{:.3},{:.3},{:.0},{:.0},{:.0},{:.0}",
         r.match_index, r.site, r.sequence, r.job.x, r.job.y, r.job.rep,

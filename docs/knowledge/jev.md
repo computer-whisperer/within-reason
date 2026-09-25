@@ -128,6 +128,11 @@ than decisively moving towards or away from a threat").
 **Status.** conjecture (2026-09-21); the milling counters (H-HANDS-LANE) are the instrument, a raw-against-laned
 batch the test.
 **Evidence.** The heuristics ledger's status column for the four lane rules; the user's observation.
+A second measurement (2026-09-25 late, hold-lane-on against hold-lane-off, the hold packet, 48 games an arm): every game
+past minute 11 and half past minute 20 either way (mean 18.9 against 19.8 minutes, 15 against 17 timeouts, bodies of
+34 against 27 soldiers at 20:00 in the games that got there), metal lost per killed 0.66 [0.57-0.76] against 0.68
+[0.59-0.77], soldiers lost 4,099 against 4,622 metal a game: the lane neither helps nor hurts the trade under the hands
+at 48 games (the floor is about 0.2 of ratio), and its costs in that regime are K-form-a-body-stationed-among-buildings-jams.
 **Would be wrong if.** A raw ball traded worse than a laned one in a batch, or the milling counters showed path
 close to net displacement under the flee.
 **Measured 2026-09-25 late (packet-lane-on / -off, the pianist alone on a fixed packet, 24 games an arm):** the

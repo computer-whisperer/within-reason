@@ -373,6 +373,28 @@ tower cases are few (0.4 deaths in reach a game by minute 10). The claim stands 
 margin at a tower); its "would be wrong if" no longer separates the lane from no lane here.
 **Used by.** H-MICRO-LANE, H-MICRO-FLEE.
 
+### K-micro-a-hunt-by-id-catches-a-raider
+**Claim.** A raider is caught by hunters faster than it when the order is an attack on its unit id re-issued every
+tick with no footwork over it (H-MICRO-HUNT), and not by a fight-to-point at its last place re-issued every two seconds
+(the hands' engage before 2026-09-26): the point is where the raider was, the attack is where it is.
+**Status.** measured (2026-09-26) in the duel harness's raid scenario (`duel --scenario raid`, `docs/harness/duels.md`):
+four Rovers and two Blitzes at a station in the middle of a strip of four extractors 600 apart, a Tick and a Pawn on a
+scripted route that runs from anything within 350; the picket answers by the standing raider rule (two pickets faster
+than the raider, at a raider within 250 of a building of ours and 1,200 of the station), the same ends judged either
+way (dead, out of sight 6 s, a 900 leash from where the hunt began, a third of health).
+**Evidence.** raid-on-8 and raid-on-8b (16 raids, the hunt): the first raider killed at a median 11.0 s from the first
+orders (11 s in ten of sixteen; 17-33 s in the rest, when the Rovers' first hunt on the Tick ended by the leash or both
+Rovers dropped hurt under the Pawn's gun), both raiders dead in 15 of 16 by 22-72 s, extractors lost 0.19 a raid (0 in
+14), hunters lost 1.3 (Rovers to the Pawn). raid-off-8 and raid-off-8b (16 raids, fight-to-point every 2 s): the first
+kill at a median 76 s (23.7-150.8), both raiders dead in 6 of 16, ten raids to the 180 s cap with a raider alive,
+extractors lost 1.25 a raid, hunters lost 1.3. The hunts' ends show the mechanism: with the hunt a run ends "dead" in
+1 s after the hunters reach the quarry; without it the runs end "leash" 6-15 s after they begin, eight to sixteen
+times a raid, the hunters running to where the raider was. The 900 leash from the hunters' start ends the first hunt
+on the far extractor (1,060 from the station) either way; the second hunt, from where they then stand, catches it.
+**Would be wrong if.** The fight-to-point arm reached the first kill as soon on the same raids, or the hunt arm lost
+more extractors.
+**Used by.** H-MICRO-HUNT; `docs/design/2026-09-26-threat-response.md` (ladder step 1).
+
 ### K-micro-a-unit-under-the-guns-shoots
 **Claim.** A soldier already inside the enemy's reach should stay and shoot even when their fire on it would kill it
 and its side is locally outgunned: a unit that walks does not fire, and their fire on a ball at contact is "lethal"

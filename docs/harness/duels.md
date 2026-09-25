@@ -11,6 +11,8 @@ duel (--units a,b,c | --ours a,b --theirs c,d | --pairs a:b,c:d)
      [--label TEXT] [--base-port 9500]
 duel --scenario FILE [--reps 8] [--parallel 2] [--time-limit 240] [--lane X[/Y]] [--speed 50] [--label TEXT] [--base-port 9500]
 duel --pairs chaser:runner --count N --chase FRAMES [--lane on] ...   the chase instrument (below)
+duel --scenario raid [--ours armfav*4+armflash*2] [--theirs armflea*1+armpw*1] [--reps 8] [--lane on|off] [--time-limit 180] ...
+                                       the raid scenario (below): a picket body against scripted raiders
 duel --report DIR [duels.csv ...]      rebuild the tables in DIR (from its own duels.csv, or merge the files named)
 run/engagement.py <match dir> <MM:SS> [--radius 900] [--at X,Z] [--enemies sight|known|truth] [--orders 20]
                   [--after 30,60] [--out FILE]     cut a scenario file from a live record
@@ -159,6 +161,31 @@ prepared is given again whole in step 3, and counts in that error. Measured on t
 the Pawn's sprayed gun hurt and killed its target's neighbours (mean error 0.15); held units kept firing at the
 hurters they had taken as targets; hurters given with their targets were crushed by the tanks pushed into them
 (killed by a Stout that never fired); and a unit left hurt for a minute and a half healed back to whole.
+
+## The raid scenario: a picket body against scripted raiders (2026-09-26)
+
+`duel --scenario raid` (`crates/arena/src/bin/duel/raid.rs`; `docs/design/2026-09-26-threat-response.md` §3) is the
+cheap loop for the hunt primitive and the raider rules: no BARb, no Jev, one flat site. Ours (`x`, `--ours`, default
+four Rovers and two Blitzes) stand at a station in the middle of a strip of four extractors 600 apart, a constructor
+guarding the far one; theirs (`y`, `--theirs`, default a Tick and a Pawn) appear 1,400 beyond the station past the
+far end and follow a director script: the constructor first, then the extractors far to near (a move to 120 short of
+the target with the attack queued, so it lands when the building is in sight), running 500 from any soldier of ours
+within 350 and coming back three seconds after the last one has gone. Three minutes (`--time-limit`), or every raider
+dead, or nothing of ours left on the strip (`raid_over`). The site is 2,600 by 400 of flat ground (Comet Catcher, the
+default map here, offers a handful; `sites::choose` finds them).
+
+The picket answers as the bot's standing raider rule does: a raider within 250 of a building of ours and within 1,200 of
+the station, with no hunt on it yet, gets the two nearest pickets faster than it (Rovers after a Tick, Blitzes or
+Rovers after a Pawn). **Lane on**: they go as a hunt, `micro::Commitment::Hunt { quarry, leash_from, leash: 900 }`
+set on the lane, which sends an attack by id every tick and reports the end (H-MICRO-HUNT); the leash is measured from
+where the hunters stood when the hunt began. **Lane off**: the hands' engage as it was before the hunt, a fight-to-point
+at the raider's place re-issued every two seconds, judged by the same ends in the director (the quarry dead, out of
+sight six seconds, a hunter past the leash, under a third of its health). Either way a hunter whose hunt ended walks
+back to its place at the station, and a raider still at a building starts the next hunt. `duels.csv` carries the
+score in its last four columns: `extractors_lost`, `first_kill_s` (seconds from the first orders to the first raider
+killed), `hunters_lost` (pickets dead), and `hunts` (each hunt's quarry, end and timing: `armflea:leash@3s+7s` began 3 s
+in and ended by the leash 7 s later; `open` never ended). The harness prints a `raid f=N: 2 hunters after ...` line at
+each hunt's start; `WITHIN_REASON_MICRO_DEBUG=1` adds the lane's claims, drops and ends.
 
 ## Checks made (2026-09-19)
 | Check | Batch | Result |

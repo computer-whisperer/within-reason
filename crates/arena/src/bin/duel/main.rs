@@ -14,6 +14,7 @@
 mod director;
 mod fire;
 mod plan;
+mod raid;
 mod report;
 mod scenario;
 mod script;
@@ -69,6 +70,8 @@ struct Options {
     scenario: Option<Scenario>,
     /// `--chase N`: the chase instrument (`director.rs` `chase_orders`).
     chase: Option<i32>,
+    /// `--scenario raid`: the raid scenario (`raid.rs`).
+    raid: bool,
     boxes: [script::StartBox; 2],
 }
 
@@ -100,7 +103,7 @@ fn main() -> io::Result<()> {
             "label": options.label, "commit": git_commit(&repo), "map": options.map, "pairings": options.pairs.len(),
             "reps": options.reps, "sizing": format!("{:?}", options.sizing), "time_limit": options.time_limit,
             "speed": options.speed, "sweep_waves": options.sweep_waves, "spacing": options.spacing, "formations": shapes, "lanes": [options.lanes[0].label(), options.lanes[1].label()], "sites": options.sites, "duels_per_match": options.duels_per_match,
-            "scenario": options.scenario.as_ref().map(|s| s.centre), "chase": options.chase,
+            "scenario": options.scenario.as_ref().map(|s| s.centre), "chase": options.chase, "raid": options.raid,
         }))?,
     )?;
 
@@ -120,6 +123,7 @@ fn main() -> io::Result<()> {
         units: combatsim::units::Units::default(),
         scenario: options.scenario.clone(),
         chase: options.chase,
+        raid: options.raid,
         on_result: Box::new(move |result| {
             // Written as they finish, so an interrupted batch keeps what it has.
             let _ = writeln!(csv.lock().unwrap(), "{}", report::row(result));
@@ -315,8 +319,11 @@ fn parse_args() -> io::Result<Options> {
         base_port: 9500,
         scenario: None,
         chase: None,
+        raid: false,
         boxes: script::DUEL_BOXES,
     };
+    let mut time_limit_given = false;
+    let mut map_given = false;
     let list = |text: String| text.split(',').map(str::to_string).collect::<Vec<_>>();
     let (mut ours, mut theirs) = (Vec::new(), Vec::new());
     let mut formations = String::from("ranks8");
@@ -348,7 +355,10 @@ fn parse_args() -> io::Result<Options> {
             "--parallel" => options.parallel = number(value()) as usize,
             "--sites" => options.sites = number(value()) as usize,
             "--duels-per-match" => options.duels_per_match = number(value()),
-            "--time-limit" => options.time_limit = number(value()) as i32,
+            "--time-limit" => {
+                options.time_limit = number(value()) as i32;
+                time_limit_given = true;
+            }
             "--sweep-waves" => options.sweep_waves = number(value()),
             "--spacing" => options.spacing = number(value()) as f32,
             "--formation" => formations = value(),
@@ -356,9 +366,17 @@ fn parse_args() -> io::Result<Options> {
             "--chase" => options.chase = Some(number(value()) as i32),
             "--speed" => options.speed = number(value()),
             "--base-port" => options.base_port = number(value()) as u16,
-            "--map" => options.map = value(),
+            "--map" => {
+                options.map = value();
+                map_given = true;
+            }
             "--scenario" => {
-                let scenario = Scenario::load(std::path::Path::new(&value())).unwrap_or_else(|e| usage(&e));
+                let what = value();
+                if what == "raid" {
+                    options.raid = true;
+                    continue;
+                }
+                let scenario = Scenario::load(std::path::Path::new(&what)).unwrap_or_else(|e| usage(&e));
                 let [x, z] = scenario.centre;
                 let [w, h] = scenario.map_size;
                 options.boxes = script::farthest_corners(x / w.max(1.0), z / h.max(1.0));
@@ -368,6 +386,22 @@ fn parse_args() -> io::Result<Options> {
             }
             "--label" => options.label = value(),
             _ => usage(&format!("unknown argument {flag}")),
+        }
+    }
+    if options.raid {
+        // The raid's default sides (`raid.rs`): four Rovers and two Blitzes at the station, a Tick and a Pawn raiding;
+        // three minutes on the flat map.
+        if ours.is_empty() {
+            ours = vec!["armfav*4+armflash*2".to_string()];
+        }
+        if theirs.is_empty() {
+            theirs = vec!["armflea*1+armpw*1".to_string()];
+        }
+        if !time_limit_given {
+            options.time_limit = 180;
+        }
+        if !map_given {
+            options.map = "Comet Catcher Remake 1.8".into();
         }
     }
     options.pairs.extend(plan::cross(&ours, &theirs));
