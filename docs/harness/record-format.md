@@ -76,6 +76,12 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   "f", "mode", "orders": {actor: {do, params, rule}}, "illegal", "continued", "played"}` each second the executor gave
   an order (mode `on` plays them: `played` entries carry source `standing`; mode `filter` puts a `<actor>.standing`
   question on the call and the `played` entry of that call carries the `verdict`; mode `off` only logs the orders).
+- From 2026-09-25 night the default mode is `worlds` (H-HANDS-WORLDS): the `standing` line then carries the builders'
+  orders and plays as `on`, and for the groups with rules `quiet` (the groups with one candidate, not asked), `groups`
+  ({group: [{kind keep|rule|fight|back, do, params, words}]}, the candidates), `worlds` ([[[group, candidate index]]],
+  world 1 first) and `lines` (each world's words, the `worlds.pick` question's criteria in order); with one world or no
+  Jev, `played_outright` names the groups played from world 1. The call that asks carries `worlds.pick` among its
+  questions and answers, and the `played` entries of the groups it decided carry source `worlds`.
 Size: 15-30 KB a call (3-6k tokens of state and questions), 20-60 calls a minute: 25 MB for a 20-minute game. Logs from
 the first morning (2026-09-21, before the header line) carry `instructions` and `rules` in every state and no `played`;
 the viewer reads those too, taking the decisions from the answers.

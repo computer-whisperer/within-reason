@@ -86,7 +86,10 @@ at spot_61", "a lone Tick at an extractor is met by two Blitzes (send_against 2)
 spot_50"); a hedged reading sets nothing and the menu decides as before. `standing` with no arguments shows what is
 in force, `set` puts a rule in directly (it outranks the packet's for that actor and rule until cleared), `clear`
 drops tool orders. The picture's `standing` line on each actor shows its orders, and the report says which fired and
-how many asks of Jev they saved. What the vocabulary cannot say (a boundary, a condition, a route) stays prose.
+how many asks of Jev they saved. A group with standing orders is decided by one question a second over the joined
+worlds of every such group (its rule's result, a fight at the nearest party, the way back, or its course): the rules
+are the first world, and the hands pick another only when the situation calls for it; a group with nothing to weigh
+is not asked at all. What the vocabulary cannot say (a boundary, a condition, a route) stays prose.
 `produce` restricts what a lab, or every lab, may build to a list of unit names: the lab is then offered those and
 nothing else, so the mix is exactly what you allow and the packet's words only order among them. A name with a count
 after a colon (`armck:1`) is allowed that many more times and then drops off the list by itself. It is the sure way
