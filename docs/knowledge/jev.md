@@ -108,6 +108,13 @@ batch the test.
 **Evidence.** The heuristics ledger's status column for the four lane rules; the user's observation.
 **Would be wrong if.** A raw ball traded worse than a laned one in a batch, or the milling counters showed path
 close to net displacement under the flee.
+**Measured 2026-09-25 late (packet-lane-on / -off, the pianist alone on a fixed packet, 24 games an arm):** the
+laned hands traded 1.04 [0.80-1.36] metal lost per killed against 1.16 [0.99-1.41] raw, lost 15.5 soldiers a game
+against 22.2, put 3.5% of their damage on their own side against 8.3%, stood 49 from the nearest friend at contact
+against 25 with 15% on the line of fire against 45%; the milling counters 2.0 path over net, 1.2 reversals a claim.
+Every game was lost either way at 13 minutes (the packet's play, not the lane's). The conjecture's raw-beats-laned
+half is refuted at this size; the turn-rate half (a re-stepped unit turns rather than walks) was measured in the
+chase and lead work (K-engine-a-short-move-order-brakes-the-unit) and the lane no longer re-steps.
 **Used by.** H-HANDS-LANE.
 **Amended 2026-09-25.** The four player games' shut-offs were read from the records (`docs/design/2026-09-25-formation-micro.md`):
 the milling was real but small (path over net 1.0-1.1 in the samples; two units zigzagging within 50 elmos at
