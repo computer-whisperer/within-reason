@@ -25,6 +25,12 @@ impl Brain {
                 self.play_one(tick, kit, picture, menu, answers, commands);
                 continue;
             };
+            if menu.name == "worlds" {
+                if let Some(Answer::Choice { choice, confidence, .. }) = answers.get("worlds.pick") {
+                    self.journal.note_from("jev", frame, "worlds", serde_json::Value::Null, json!({ "pick": choice, "confidence": confidence }));
+                }
+                continue;
+            }
             let outputs: BTreeMap<&str, f64> = menu.questions.iter().filter_map(|(id, _)| answers.get(id).map(|a| (id.as_str(), a.probability_of("yes")))).collect();
             self.journal.note_from("jev", frame, "global", serde_json::Value::Null, json!(outputs));
         }
@@ -51,7 +57,7 @@ impl Brain {
         if let Some((order, rule)) = &menu.standing
             && let Some(Answer::Choice { choice: v, .. }) = answers.get(&format!("{name}.standing"))
         {
-            verdict = Some(v.clone());
+            verdict = (rule != "worlds").then(|| v.clone());
             match v.as_str() {
                 "rule" => {
                     chosen = order.choice.clone();
@@ -277,7 +283,7 @@ impl Brain {
             pianist.stats.switches += 1;
         }
         if let Some(did) = &did {
-            let from = if scripted.is_some() { " (from its list)" } else if menu.standing_played { " (standing order)" } else { "" };
+            let from = if scripted.is_some() { " (from its list)" } else if menu.worlds_played { " (the picked world)" } else if menu.standing_played { " (standing order)" } else { "" };
             pianist.done.push(format!("{} {name}: {did}{from}", super::picture::clock(frame)));
         }
         let kind: &'static str = match menu.actor {
@@ -288,7 +294,7 @@ impl Brain {
         };
         let inputs = json!({ "actor": name, "options": menu.options.keys().collect::<Vec<_>>(), "busy": menu.busy });
         let outputs = json!({ "choice": choice, "played": chosen, "probability": p(&choice), "confidence": confidence, "scripted": scripted.is_some(), "where": where_, "where_extractor": where_extractor, "whom": whom, "how_many": how_many, "did": did });
-        let source = if menu.standing_played { "standing" } else if scripted.is_some() { "list" } else { "jev" };
+        let source = if menu.worlds_played { "worlds" } else if menu.standing_played { "standing" } else if scripted.is_some() { "list" } else { "jev" };
         let pianist = self.pianist.as_mut().expect("pianist mode");
         if let Some(v) = &verdict {
             *pianist.standing.verdicts.entry(v.clone()).or_insert(0) += 1;

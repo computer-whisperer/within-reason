@@ -120,6 +120,13 @@ pub(crate) struct Menu {
     pub standing: Option<(super::standing::Order, String)>,
     /// Played from a standing order at probability one (the record's source `standing`).
     pub standing_played: bool,
+    /// A group in the worlds question (`worlds.rs`): its candidates, and that its own questions are not asked.
+    pub worlds_candidates: Vec<super::worlds::Candidate>,
+    pub in_worlds: bool,
+    /// The worlds menu itself (name `worlds`): the worlds its one question is over.
+    pub worlds: Vec<super::worlds::World>,
+    /// Played from the picked world (the record's source `worlds`).
+    pub worlds_played: bool,
 }
 
 impl Brain {
@@ -391,7 +398,7 @@ impl Brain {
                 queue_ahead,
                 options,
                 spots: spots.iter().map(|(i, _)| *i).collect(),
-                scripted: None, replay: None, replay_key: None, standing: None, standing_played: false,
+                scripted: None, replay: None, replay_key: None, standing: None, standing_played: false, worlds_candidates: Vec::new(), in_worlds: false, worlds: Vec::new(), worlds_played: false,
             });
         }
 
@@ -465,7 +472,7 @@ impl Brain {
                 }
                 _ => None,
             };
-            menus.push(Menu { actor: Actor::Lab(unit.id), questions: vec![question], name, busy: queued > 0, queue_ahead: false, options, spots: Vec::new(), scripted: None, replay, replay_key: Some(key), standing: None, standing_played: false });
+            menus.push(Menu { actor: Actor::Lab(unit.id), questions: vec![question], name, busy: queued > 0, queue_ahead: false, options, spots: Vec::new(), scripted: None, replay, replay_key: Some(key), standing: None, standing_played: false, worlds_candidates: Vec::new(), in_worlds: false, worlds: Vec::new(), worlds_played: false });
         }
 
         // Groups.
@@ -603,7 +610,7 @@ impl Brain {
                 drop_places(q, &pianist.standing.never_places(&name));
             }
             pianist.last_asked.insert(name.clone(), frame);
-            menus.push(Menu { actor: Actor::Group(group.name.clone()), name, busy, queue_ahead: false, questions, options, spots: Vec::new(), scripted: None, replay: None, replay_key: None, standing: None, standing_played: false });
+            menus.push(Menu { actor: Actor::Group(group.name.clone()), name, busy, queue_ahead: false, questions, options, spots: Vec::new(), scripted: None, replay: None, replay_key: None, standing: None, standing_played: false, worlds_candidates: Vec::new(), in_worlds: false, worlds: Vec::new(), worlds_played: false });
         }
 
         // The call's size: Jev's window is 64k tokens and shell-1 sent two calls past it (46 questions, 135k characters
@@ -643,7 +650,7 @@ impl Brain {
                 ("global.base_in_danger".to_string(), Question::noul("Given `enemy` and `places`, is our base or our commander in danger right now?")),
                 ("global.attack_coming".to_string(), Question::noul("Given `enemy`, is a large enemy attack on us likely within the next minute or two?")),
             ];
-            menus.push(Menu { actor: Actor::Global, name: "global".into(), busy: false, queue_ahead: false, questions, options: BTreeMap::new(), spots: Vec::new(), scripted: None, replay: None, replay_key: None, standing: None, standing_played: false });
+            menus.push(Menu { actor: Actor::Global, name: "global".into(), busy: false, queue_ahead: false, questions, options: BTreeMap::new(), spots: Vec::new(), scripted: None, replay: None, replay_key: None, standing: None, standing_played: false, worlds_candidates: Vec::new(), in_worlds: false, worlds: Vec::new(), worlds_played: false });
         }
         pianist.due_now.clear();
         // The call after this one takes what was deferred (a packet's builders), and comes half a second on.
@@ -766,7 +773,7 @@ impl Brain {
                         questions: Vec::new(),
                         options: BTreeMap::from([(key.clone(), pick)]),
                         spots,
-                        scripted: Some((key, where_, step.clone())), replay: None, replay_key: None, standing: None, standing_played: false,
+                        scripted: Some((key, where_, step.clone())), replay: None, replay_key: None, standing: None, standing_played: false, worlds_candidates: Vec::new(), in_worlds: false, worlds: Vec::new(), worlds_played: false,
                     });
                 }
                 Err(why) => {
@@ -901,3 +908,59 @@ pub(super) fn timed_assist(step: &str) -> Option<i32> {
     (words.next() == Some("assist")).then(|| words.next().and_then(|n| n.parse::<i32>().ok())).flatten()
 }
 
+impl Menu {
+    /// The `worlds` menu: one question, no actor of its own.
+    pub(super) fn test_worlds_like() -> Menu {
+        Menu {
+            actor: Actor::Global,
+            name: "worlds".to_string(),
+            busy: false,
+            queue_ahead: false,
+            questions: Vec::new(),
+            options: BTreeMap::new(),
+            spots: Vec::new(),
+            scripted: None,
+            replay: None,
+            replay_key: None,
+            standing: None,
+            standing_played: false,
+            worlds_candidates: Vec::new(),
+            in_worlds: false,
+            worlds: Vec::new(),
+            worlds_played: false,
+        }
+    }
+}
+
+#[cfg(test)]
+impl Menu {
+    pub(super) fn test_group(name: &str, candidates: Vec<super::worlds::Candidate>) -> Menu {
+        Menu {
+            actor: Actor::Group(name.trim_start_matches("group_").to_string()),
+            name: name.to_string(),
+            busy: false,
+            queue_ahead: false,
+            questions: Vec::new(),
+            options: candidates.iter().map(|c| (c.order.choice.clone(), Pick::Hold)).collect(),
+            spots: Vec::new(),
+            scripted: None,
+            replay: None,
+            replay_key: None,
+            standing: None,
+            standing_played: false,
+            worlds_candidates: candidates,
+            in_worlds: true,
+            worlds: Vec::new(),
+            worlds_played: false,
+        }
+    }
+
+    pub(super) fn test_worlds(worlds: Vec<super::worlds::World>) -> Menu {
+        let mut menu = Menu::test_group("worlds", Vec::new());
+        menu.actor = Actor::Global;
+        menu.name = "worlds".to_string();
+        menu.in_worlds = false;
+        menu.worlds = worlds;
+        menu
+    }
+}

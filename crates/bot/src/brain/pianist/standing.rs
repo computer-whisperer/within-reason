@@ -28,7 +28,7 @@ pub(super) struct Order {
 /// A raider party this close to a structure of ours stands "at" it.
 const AT_STRUCTURE: f32 = 400.0;
 /// The raider rules reach this far from the group (the detectors' reach).
-const RAIDER_REACH: f32 = 1200.0;
+pub(super) const RAIDER_REACH: f32 = 1200.0;
 /// A group holding farther than this from its station walks there.
 const STATION_SLACK: f32 = 300.0;
 /// A turret this close to an extractor covers it.
@@ -74,6 +74,9 @@ pub(crate) enum Mode {
     /// The executor's order goes to Jev beside the actor's menu as a `standing` question (rule / near / other /
     /// panic), and plays only on `rule`.
     Filter,
+    /// The groups' rules generate candidates and one question over the joined worlds decides (`worlds.rs`,
+    /// `docs/design/2026-09-25-one-decider.md` §4); the builders' rules play as in `On`. The default.
+    Worlds,
 }
 
 impl Mode {
@@ -82,7 +85,8 @@ impl Mode {
         match std::env::var("WITHIN_REASON_STANDING").ok().as_deref() {
             Some("off") => Mode::Off,
             Some("filter") => Mode::Filter,
-            _ => Mode::On,
+            Some("on") => Mode::On,
+            _ => Mode::Worlds,
         }
     }
 
@@ -91,6 +95,7 @@ impl Mode {
             Mode::Off => "off",
             Mode::On => "on",
             Mode::Filter => "filter",
+            Mode::Worlds => "worlds",
         }
     }
 }
@@ -113,7 +118,14 @@ pub(crate) struct Standing {
     /// The unit types a group had when its tool orders were set, and whether the change was said: standing-1's
     /// `raiders ignore`, set for two Rovers, held the Blitzes that joined the group while five extractors died.
     pub tool_seen: BTreeMap<String, (BTreeSet<String>, bool)>,
+    /// When `retreat_when_enemy_near` last sent each builder home: for `RETREAT_HOLD` frames after, its building
+    /// rules (`turrets`, `job`, `solar`) do not fire (standing-2: a constructor sent home by the retreat rule was
+    /// sent back to the extractor by the turret rule the next second, 11 times).
+    pub retreated: BTreeMap<String, i32>,
 }
+
+/// A builder sent home by the retreat rule stays sent for this long.
+const RETREAT_HOLD: i32 = 30 * super::super::FRAMES_PER_SECOND;
 
 fn is_group(actor: &str) -> bool {
     actor.starts_with("group_")
@@ -482,7 +494,7 @@ fn order(choice: &str, params: &[(&str, &str)]) -> Order {
 }
 
 /// The `how_many` the hands understand, at or above `n`.
-fn how_many(n: usize) -> &'static str {
+pub(super) fn how_many(n: usize) -> &'static str {
     match n {
         0 | 1 => "1",
         2 => "2",
@@ -628,8 +640,12 @@ impl Brain {
                 if rules.get("attack_raiders").is_some_and(|v| v == "yes") && offered("attack") {
                     return Some((order("attack", &[]), "attack_raiders".into()));
                 }
-                // The rest only when the builder is free or on a filler, never over a build.
+                // The rest only when the builder is free or on a filler, never over a build, and not within the
+                // retreat rule's hold after it sent this builder home.
                 if matches!(task, Some(Task::Build { .. }) | Some(Task::Reclaim { .. }) | Some(Task::ReclaimUnit { .. }) | Some(Task::Repair { .. })) && !menu.queue_ahead {
+                    return None;
+                }
+                if pianist.standing.retreated.get(&menu.name).is_some_and(|f| tick.frame - f < RETREAT_HOLD) {
                     return None;
                 }
                 // 3. A solar when energy stalls.
@@ -650,6 +666,8 @@ impl Brain {
                             .iter()
                             .filter(|u| kit.is_extractor(u.def) && !u.being_built && u.pos.dist2d(unit.pos) < TURRET_REACH)
                             .filter(|u| !outer_only || u.pos.dist2d(self.home) > OUTER)
+                            // Not beside an extractor a party stands at: the builder would be sent home again.
+                            .filter(|u| !picture.parties.iter().any(|p| p.at.dist2d(u.pos) < ALARM))
                             .filter(|u| !own.iter().any(|t| t.def == kit.turret && t.pos.dist2d(u.pos) < TURRET_COVER) && !ordered_near(u.pos))
                             .min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)));
                         if let Some(extractor) = uncovered

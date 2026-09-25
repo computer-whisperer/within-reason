@@ -868,9 +868,14 @@ every one of 37 recorded collision calls) and answer a raider ignored by the per
 the worlds multiply (p(top) 0.63 under 8 worlds, 0.23 at 24 and more) because our worlds are near-equivalent, and the
 gain-only lines tilt toward fighting as battery I warned; a Score per world with keep-favouring level words tilts the
 other way (controls 77%, raiders 29%).
-**Status.** measured offline (2026-09-25, `run/worlds_ab.py`, 205 calls of three games, three forms); not built in
-the hands.
+**Status.** measured offline (2026-09-25, `run/worlds_ab.py`, 205 calls of three games, three forms); built in the
+hands the same night as the groups' one decider (H-HANDS-WORLDS, `pianist/worlds.rs`: world 1 the rules, the rest one
+group's deviation, capped at 8). worlds-smoke-1 (the pianist alone on standing-2's packet, easy): 80 questions of 2 to
+4 worlds, the rules' world picked 33 times and a deviation 47 (w2 41), no actor played by two deciders within 20 s
+(smoke-pianist-1 under the executor: 29 such flips), 80 asks saved on one-candidate groups, the game reached the
+20-minute cap where the executor's had lost at 17:07 (one game each: noise). The live test on the player's brief is
+worlds-1.
 **Evidence.** `docs/studies/2026-09-25-joint-worlds.md`; ledger row worlds-ab; ../jev_experiments battery J.
 **Would be wrong if.** Live, the world form's picks lost the packet's courses more than the two-level layout did, or
 its diffuse picks over many worlds played worse than the per-actor asks on the same moments.
-**Used by.** the outline `docs/design/2026-09-25-menus-from-scratch.md` (the `worlds` arm, not built).
+**Used by.** H-HANDS-WORLDS (`docs/design/2026-09-25-one-decider.md` §4).

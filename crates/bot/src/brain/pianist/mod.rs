@@ -15,6 +15,7 @@ mod remove;
 mod diet;
 mod schedule;
 mod standing;
+mod worlds;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 
@@ -580,7 +581,7 @@ impl Brain {
             }
         }
         // Every real question answered from a replay: nothing to ask; the replays play without a call.
-        if menus.iter().any(|m| m.replay.is_some()) && menus.iter().all(|m| m.replay.is_some() || m.questions.is_empty() || matches!(m.actor, menu::Actor::Global)) {
+        if menus.iter().any(|m| m.replay.is_some()) && menus.iter().all(|m| m.replay.is_some() || (m.questions.is_empty() && !m.in_worlds) || (matches!(m.actor, menu::Actor::Global) && m.name != "worlds")) {
             let answers = replayed_answers(&menus, &BTreeMap::new());
             self.pianist.as_mut().expect("pianist mode").stats.replayed += 1;
             self.play(tick, kit, &picture, menus, &answers, commands);
@@ -625,7 +626,8 @@ impl Brain {
                     pianist.stats.tokens += response.usage["input_tokens"].as_u64().unwrap_or(0);
                 }
                 self.announce_hands(&response, commands);
-                let answers = replayed_answers(&menus, &response.answers);
+                let mut answers = replayed_answers(&menus, &response.answers);
+                worlds::resolve(&mut menus, &mut answers);
                 let flat = flat_questions(&menus);
                 self.play(tick, kit, &picture, menus, &answers, commands);
                 self.publish_hands(&picture, &answers);
@@ -745,7 +747,7 @@ impl Brain {
                 orders.push((menu.name.clone(), order, rule));
             }
         }
-        if orders.is_empty() {
+        if orders.is_empty() && mode != StandingMode::Worlds {
             return;
         }
         let mut orders_json = serde_json::Map::new();
@@ -773,6 +775,33 @@ impl Brain {
                     menu.standing = Some((order, rule));
                 }
             }
+            StandingMode::Worlds => {
+                // The builders play as in `on`; the groups with rules go to the worlds question.
+                let (groups, builders): (Vec<_>, Vec<_>) = orders.into_iter().partition(|(a, _, _)| a.starts_with("group_"));
+                let plain: Vec<(String, standing::Order)> = builders.iter().map(|(a, o, _)| (a.clone(), o.clone())).collect();
+                let Applied { answers, taken, illegal, continued } = self.apply_orders(picture, menus, plain);
+                {
+                    let pianist = self.pianist.as_mut().expect("pianist mode");
+                    for (actor, _, rule) in &builders {
+                        if !illegal.iter().any(|i| i.starts_with(&format!("{actor}:"))) {
+                            *pianist.standing.fired.entry(format!("{actor} {rule}")).or_insert(0) += 1;
+                            if rule == "retreat_when_enemy_near" {
+                                pianist.standing.retreated.insert(actor.clone(), frame);
+                            }
+                        }
+                    }
+                    pianist.standing.saved += (taken.len() + continued.len()) as u32;
+                }
+                line["illegal"] = json!(illegal);
+                line["continued"] = json!(continued);
+                if !taken.is_empty() {
+                    self.pianist.as_mut().expect("pianist mode").played.clear();
+                    self.play(tick, kit, picture, taken, &answers, commands);
+                }
+                let rule_of: BTreeMap<String, standing::Order> = groups.iter().map(|(a, o, _)| (a.clone(), o.clone())).collect();
+                let rule_name: BTreeMap<String, String> = groups.into_iter().map(|(a, _, r)| (a, r)).collect();
+                self.worlds_pass(tick, kit, picture, menus, &rule_of, &rule_name, commands, &mut line);
+            }
             StandingMode::On => {
                 let plain: Vec<(String, standing::Order)> = orders.iter().map(|(a, o, _)| (a.clone(), o.clone())).collect();
                 let Applied { answers, taken, illegal, continued } = self.apply_orders(picture, menus, plain);
@@ -780,6 +809,9 @@ impl Brain {
                 for (actor, _, rule) in &orders {
                     if !illegal.iter().any(|i| i.starts_with(&format!("{actor}:"))) {
                         *pianist.standing.fired.entry(format!("{actor} {rule}")).or_insert(0) += 1;
+                        if rule == "retreat_when_enemy_near" {
+                            pianist.standing.retreated.insert(actor.clone(), frame);
+                        }
                     }
                 }
                 pianist.standing.saved += (taken.len() + continued.len()) as u32;
@@ -793,12 +825,93 @@ impl Brain {
             }
         }
         let pianist = self.pianist.as_mut().expect("pianist mode");
-        if mode == StandingMode::On {
+        if matches!(mode, StandingMode::On | StandingMode::Worlds) {
             line["played"] = json!(std::mem::take(&mut pianist.played));
         }
         if let Some(log) = &mut pianist.log {
             let _ = writeln!(log, "{line}");
         }
+    }
+
+    /// The worlds question (`worlds.rs`): every group with standing rules that is asked this second gets its
+    /// candidates; a group with one candidate keeps its course without an ask; the rest vary in one Choice over the
+    /// joined worlds, put beside the menus as the `worlds` menu (their own questions are not sent). With nothing
+    /// varying, or without Jev, world 1 (the rules) is played outright.
+    #[allow(clippy::too_many_arguments)]
+    fn worlds_pass(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, menus: &mut Vec<menu::Menu>, rule_of: &BTreeMap<String, standing::Order>, rule_name: &BTreeMap<String, String>, commands: &mut Vec<Command>, line: &mut serde_json::Value) {
+        let has_rules = |name: &str| self.pianist.as_ref().is_some_and(|p| p.standing.has_rules(name));
+        let mut cands: Vec<(String, Vec<worlds::Candidate>)> = Vec::new();
+        for menu in menus.iter() {
+            if !matches!(menu.actor, menu::Actor::Group(_)) || menu.scripted.is_some() || menu.replay.is_some() || !has_rules(&menu.name) {
+                continue;
+            }
+            let c = self.candidates(tick, picture, menu, rule_of.get(&menu.name));
+            if !c.is_empty() {
+                cands.push((menu.name.clone(), c));
+            }
+        }
+        // One candidate: its course stands, and the ask is saved.
+        let quiet: Vec<String> = cands.iter().filter(|(_, c)| c.len() < 2).map(|(g, _)| g.clone()).collect();
+        menus.retain(|m| !quiet.contains(&m.name));
+        cands.retain(|(_, c)| c.len() >= 2);
+        {
+            let pianist = self.pianist.as_mut().expect("pianist mode");
+            pianist.standing.saved += quiet.len() as u32;
+        }
+        line["quiet"] = json!(quiet);
+        if cands.is_empty() {
+            return;
+        }
+        let ws = worlds::worlds(&cands);
+        line["groups"] = worlds::log_candidates(&cands);
+        line["worlds"] = json!(ws);
+        let jev = self.pianist.as_ref().is_some_and(|p| p.client.is_some());
+        if ws.len() < 2 || !jev {
+            // World 1 outright: each group's rule where it has one.
+            let plain: Vec<(String, standing::Order)> = ws[0]
+                .iter()
+                .filter_map(|(g, ci)| cands.iter().find(|(n, _)| n == g).map(|(_, c)| &c[*ci]))
+                .zip(ws[0].iter())
+                .filter(|(c, _)| c.kind == worlds::Kind::Rule)
+                .map(|(c, (g, _))| (g.clone(), c.order.clone()))
+                .collect();
+            let Applied { answers, taken, illegal, continued } = self.apply_orders(picture, menus, plain);
+            {
+                let pianist = self.pianist.as_mut().expect("pianist mode");
+                for (actor, _) in taken.iter().map(|m| (m.name.clone(), ())).chain(continued.iter().map(|a| (a.clone(), ()))) {
+                    if let Some(rule) = rule_name.get(&actor) {
+                        *pianist.standing.fired.entry(format!("{actor} {rule}")).or_insert(0) += 1;
+                    }
+                }
+                pianist.standing.saved += (taken.len() + continued.len()) as u32;
+            }
+            line["played_outright"] = json!(taken.iter().map(|m| m.name.clone()).collect::<Vec<_>>());
+            line["illegal"] = json!(illegal);
+            if !taken.is_empty() {
+                self.play(tick, kit, picture, taken, &answers, commands);
+            }
+            return;
+        }
+        let own = &tick.snapshot.own_units;
+        let centres: Vec<(String, Vec3)> = {
+            let pianist = self.pianist.as_ref().expect("pianist mode");
+            cands.iter().filter_map(|(g, _)| pianist.groups.iter().find(|x| format!("group_{}", x.name) == *g).and_then(|x| super::pianist::groups::centre_of(&x.units(own))).map(|c| (g.clone(), c))).collect()
+        };
+        let lines: Vec<String> = ws.iter().map(|w| worlds::consequence(w, &cands, &picture.parties, &centres, &picture.places)).collect();
+        let names: Vec<String> = cands.iter().map(|(g, _)| g.clone()).collect();
+        let question = worlds::question(&names, &lines);
+        for menu in menus.iter_mut() {
+            if let Some((_, c)) = cands.iter().find(|(g, _)| *g == menu.name) {
+                menu.worlds_candidates = c.clone();
+                menu.in_worlds = true;
+                menu.questions.clear();
+            }
+        }
+        let mut worlds_menu = menu::Menu::test_worlds_like();
+        worlds_menu.questions = vec![("worlds.pick".to_string(), question)];
+        worlds_menu.worlds = ws;
+        menus.push(worlds_menu);
+        line["lines"] = json!(lines);
     }
 
     /// The packet, changed, goes to Jev once as extraction questions over the standing vocabulary; the answers
@@ -967,9 +1080,11 @@ impl Brain {
                     pianist.played.clear();
                 }
                 self.announce_hands(&response, commands);
-                let answers = replayed_answers(&pending.menus, &response.answers);
-                let flat = flat_questions(&pending.menus);
-                self.play(tick, kit, &pending.picture, pending.menus, &answers, commands);
+                let mut menus = pending.menus;
+                let mut answers = replayed_answers(&menus, &response.answers);
+                worlds::resolve(&mut menus, &mut answers);
+                let flat = flat_questions(&menus);
+                self.play(tick, kit, &pending.picture, menus, &answers, commands);
                 self.publish_hands(&pending.picture, &answers);
                 self.log_call(tick, &pending.request, &response, flat, &answers);
             }

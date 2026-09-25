@@ -14,7 +14,9 @@ tools." "Don't remove the player system. That's the most effective part of this.
 **Status.** §1 done 2026-09-25 evening in four commits (60b81a0 deciders, 17ae210 modes, 9669036 policy and family,
 3fe5a1f the registry and docs); §2 done (e49b9a7 `--packet`; smoke-pianist-1: the pianist alone played 17 minutes against
 easy for $0.07 in 87 s of wall time); §3 built the same night (the factory's own group, `produce` ... `group`, the `join`
-rule); the worlds question (§4) and the builders' question follow.
+rule); §4 built (H-HANDS-WORLDS, `pianist/worlds.rs`, the default mode; worlds-smoke-1: 80 questions of 2-4 worlds, no
+two deciders on one actor) with the builders' retreat hold; the builders' per-purpose `where` (§4 last paragraph) and
+the offline replay of `worlds` lines (§5) are not built; worlds-1 is the live test.
 
 ## 1. What is deleted
 
