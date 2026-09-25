@@ -75,7 +75,9 @@ pub(crate) enum Mode {
     /// panic), and plays only on `rule`.
     Filter,
     /// The groups' rules generate candidates and one question over the joined worlds decides (`worlds.rs`,
-    /// `docs/design/2026-09-25-one-decider.md` §4); the builders' rules play as in `On`. The default.
+    /// `docs/design/2026-09-25-one-decider.md` §4); the builders' rules play as in `On`. The default, and since the
+    /// groups' own questions were deleted (2026-09-25 night) the only mode in which a group is asked at all: under
+    /// `on`, `filter` and `off` a group plays its rules or keeps its course.
     Worlds,
 }
 
@@ -609,8 +611,11 @@ impl Brain {
                     let raids = picture.state["actors"][&menu.name]["enemies_at_our_extractors"].as_array().is_some_and(|a| !a.is_empty());
                     match &group.task {
                         GroupTask::Move { place, .. } if place == station => return Some((order(go, &[("where", station)]), "station".into())),
-                        GroupTask::Hold { committed: false, .. } if centre.dist2d(at) > STATION_SLACK && offered(go) => return Some((order(go, &[("where", station)]), "station".into())),
-                        GroupTask::Hold { .. } if nearest.is_none() && !raids && offered("hold") => return Some((order("hold", &[]), "station".into())),
+                        // Any hold away from the station walks, the committed hold an advance arrived in included
+                        // (worlds-1, 15:44-16:53: group_C held at spot_52 under station spot_24 for 70 s while this
+                        // arm asked for an uncommitted hold, and the next arm held it "at station").
+                        GroupTask::Hold { .. } if centre.dist2d(at) > STATION_SLACK && offered(go) => return Some((order(go, &[("where", station)]), "station".into())),
+                        GroupTask::Hold { .. } if centre.dist2d(at) <= STATION_SLACK && nearest.is_none() && !raids && offered("hold") => return Some((order("hold", &[]), "station".into())),
                         _ => {}
                     }
                 }

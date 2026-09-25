@@ -94,7 +94,8 @@ def scorecard(m):
         state = c.get("state") or {}
         if fac is None and isinstance((state.get("enemy") or {}).get("factories_seen"), list):
             fac = c["f"]
-        for g in c.get("groups") or []:
+        # A `standing` line's `groups` is the worlds question's candidates by name, not the call's group list.
+        for g in (c.get("groups") if isinstance(c.get("groups"), list) else []) or []:
             tasks[f"group_{g['name']}"] = (g.get("task") or {}).get("kind")
         for entry in (state.get("actors") or {}).values():
             if not isinstance(entry, dict):

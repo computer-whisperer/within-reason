@@ -15,8 +15,11 @@ tools." "Don't remove the player system. That's the most effective part of this.
 3fe5a1f the registry and docs); §2 done (e49b9a7 `--packet`; smoke-pianist-1: the pianist alone played 17 minutes against
 easy for $0.07 in 87 s of wall time); §3 built the same night (the factory's own group, `produce` ... `group`, the `join`
 rule); §4 built (H-HANDS-WORLDS, `pianist/worlds.rs`, the default mode; worlds-smoke-1: 80 questions of 2-4 worlds, no
-two deciders on one actor) with the builders' retreat hold; the builders' per-purpose `where` (§4 last paragraph) and
-the offline replay of `worlds` lines (§5) are not built; worlds-1 is the live test.
+two deciders on one actor) with the builders' retreat hold; then (the user, watching worlds-smoke-1: the old `where`
+questions were still asked for groups without rules) every group through the worlds question with walks to the named
+places as candidates and the groups' own questions deleted, and the builders' `where` split into `where_build` and
+`where_walk`; `run/worlds_replay.py` replays recorded worlds questions (§5). worlds-1 (the player, hard_aggressive)
+played on the build before the last two changes; worlds-2 is their live test.
 
 ## 1. What is deleted
 

@@ -85,7 +85,11 @@ impl Brain {
         let answered = |q: &str| answers.get(&format!("{name}.{q}")).and_then(|a| if let Answer::Choice { choice, .. } = a { Some(choice.clone()) } else { None });
         let listed = scripted.as_ref().and_then(|(_, place, _)| place.clone());
         let param = |k: &str| forced.as_ref().and_then(|o| o.params.get(k).cloned());
-        let where_ = param("where").or_else(|| listed.clone()).or_else(|| answered("where"));
+        // The place per purpose: a forced order's `where` (a standing rule, a picked world), a list step's, else the
+        // answer to the question for that purpose (a building's place and a walk's diverge: the user, 2026-09-25).
+        let where_build = param("where").or_else(|| listed.clone()).or_else(|| answered("where_build"));
+        let where_walk = param("where").or_else(|| listed.clone()).or_else(|| answered("where_walk"));
+        let where_ = param("where").or_else(|| listed.clone());
         let where_extractor = param("where_extractor").or(listed).or_else(|| answered("where_extractor"));
         let whom = param("whom").or_else(|| answers.get(&format!("{name}.whom")).and_then(|a| if let Answer::Choice { choice, .. } = a { Some(choice.clone()) } else { None }));
         let how_many = param("how_many").or_else(|| answers.get(&format!("{name}.how_many")).and_then(|a| if let Answer::Choice { choice, .. } = a { Some(choice.clone()) } else { None }));
@@ -168,7 +172,7 @@ impl Brain {
                         }
                     }
                     Pick::BuildingAt(def) => {
-                        let at = place(&where_).map_or(unit.pos, |p| p.at);
+                        let at = place(&where_build).map_or(unit.pos, |p| p.at);
                         did = build(Plan::Near(def, self.snap_for(self.walker_of(unit.def), at)), None);
                     }
                     Pick::AssistLab(lab) => {
@@ -198,7 +202,7 @@ impl Brain {
                         did = Some("repair".into());
                     }
                     Pick::WalkTo => {
-                        if let Some(p) = place(&where_) {
+                        if let Some(p) = place(&where_walk) {
                             let to = self.snap_for(self.walker_of(unit.def), p.at);
                             commands.push(Command::Move { unit: id, to, queue });
                             task = Some(Task::Walk { to, place: p.name.clone(), since: frame });
@@ -293,7 +297,7 @@ impl Brain {
             Actor::Global => "global",
         };
         let inputs = json!({ "actor": name, "options": menu.options.keys().collect::<Vec<_>>(), "busy": menu.busy });
-        let outputs = json!({ "choice": choice, "played": chosen, "probability": p(&choice), "confidence": confidence, "scripted": scripted.is_some(), "where": where_, "where_extractor": where_extractor, "whom": whom, "how_many": how_many, "did": did });
+        let outputs = json!({ "choice": choice, "played": chosen, "probability": p(&choice), "confidence": confidence, "scripted": scripted.is_some(), "where": where_.clone().or_else(|| where_build.clone()).or_else(|| where_walk.clone()), "where_extractor": where_extractor, "whom": whom, "how_many": how_many, "did": did });
         let source = if menu.worlds_played { "worlds" } else if menu.standing_played { "standing" } else if scripted.is_some() { "list" } else { "jev" };
         let pianist = self.pianist.as_mut().expect("pianist mode");
         if let Some(v) = &verdict {

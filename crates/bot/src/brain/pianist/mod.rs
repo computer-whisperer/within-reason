@@ -833,16 +833,15 @@ impl Brain {
         }
     }
 
-    /// The worlds question (`worlds.rs`): every group with standing rules that is asked this second gets its
-    /// candidates; a group with one candidate keeps its course without an ask; the rest vary in one Choice over the
-    /// joined worlds, put beside the menus as the `worlds` menu (their own questions are not sent). With nothing
-    /// varying, or without Jev, world 1 (the rules) is played outright.
+    /// The worlds question (`worlds.rs`): every group asked this second gets its candidates; a group with one
+    /// candidate keeps its course without an ask; the rest vary in one Choice over the joined worlds, put beside the
+    /// menus as the `worlds` menu (a group has no question of its own). With nothing varying, or without Jev, world 1
+    /// (the rules) is played outright.
     #[allow(clippy::too_many_arguments)]
     fn worlds_pass(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, menus: &mut Vec<menu::Menu>, rule_of: &BTreeMap<String, standing::Order>, rule_name: &BTreeMap<String, String>, commands: &mut Vec<Command>, line: &mut serde_json::Value) {
-        let has_rules = |name: &str| self.pianist.as_ref().is_some_and(|p| p.standing.has_rules(name));
         let mut cands: Vec<(String, Vec<worlds::Candidate>)> = Vec::new();
         for menu in menus.iter() {
-            if !matches!(menu.actor, menu::Actor::Group(_)) || menu.scripted.is_some() || menu.replay.is_some() || !has_rules(&menu.name) {
+            if !matches!(menu.actor, menu::Actor::Group(_)) || menu.scripted.is_some() || menu.replay.is_some() {
                 continue;
             }
             let c = self.candidates(tick, picture, menu, rule_of.get(&menu.name));
@@ -972,7 +971,10 @@ impl Brain {
             return;
         }
         let pianist = self.pianist.as_mut().expect("pianist mode");
-        let places: Vec<String> = pianist.places.iter().map(|p| p.name.clone()).collect();
+        // The marks too: a mark and a rule naming it come in one turn, before the picture has the mark (worlds-1,
+        // 14:15: "marks refused in standing").
+        let mut places: Vec<String> = pianist.places.iter().map(|p| p.name.clone()).collect();
+        places.extend(shared.marks.lock().unwrap().keys().cloned());
         let parties: Vec<String> = pianist.parties.iter().map(|p| p.name.clone()).collect();
         for change in changes {
             let said = match change {

@@ -22,13 +22,18 @@ pub(super) const CAP: usize = 8;
 /// A party this small needs one taker: a second group sent at it is pruned.
 const SMALL_PARTY: usize = 2;
 /// Candidates a group has at most: its course, its rule, a fight or two, the way back.
-const CANDIDATES: usize = 4;
+const CANDIDATES: usize = 5;
+/// A walk this long without progress makes the group ask.
+const STALLED_SECONDS: i32 = 45;
+/// Walk candidates at most: the nearest places the instructions name.
+const WALKS: usize = 2;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum Kind {
     Keep,
     Rule,
     Fight,
+    Walk,
     Back,
 }
 
@@ -85,7 +90,8 @@ fn odds_by_metal(ours: f32, theirs: f32) -> &'static str {
 
 impl Brain {
     /// A group's candidates this second: its course, its standing rule's result when it differs, a fight or two at
-    /// the nearest party within reach, the way back when the fight is against it. Empty for a group that is not asked.
+    /// the nearest party within reach, the walks to the nearest places the instructions name, the way back when the
+    /// fight is against it. Empty for a group that is not asked.
     pub(super) fn candidates(&self, tick: &Tick, picture: &Picture, menu: &Menu, rule: Option<&Order>) -> Vec<Candidate> {
         let Some(pianist) = self.pianist.as_ref() else { return Vec::new() };
         let Actor::Group(gname) = &menu.actor else { return Vec::new() };
@@ -106,6 +112,16 @@ impl Brain {
         };
         let keep = if offered("continue") { "continue" } else { "hold" };
         let mut out = vec![Candidate { kind: Kind::Keep, order: order(keep, &[]), words: course, party: None, metal: 0.0 }];
+        // A walk that has not got nearer for 45 s is not a quiet course: the group is asked, with stopping where it
+        // is as the other way (worlds-1, 14:00-14:48: group_C "walking to spot_28, 390 to go" for 100 s, skipped as
+        // quiet on every call until the give-up).
+        if group.stalled_seconds(tick.frame).is_some_and(|s| s >= STALLED_SECONDS) && offered("hold") {
+            let place = match &group.task {
+                GroupTask::Move { place, .. } => place.clone(),
+                _ => String::new(),
+            };
+            out.push(Candidate { kind: Kind::Back, order: order("hold", &[]), words: format!("stops where it is: its walk to {place} has not got nearer for {} s", group.stalled_seconds(tick.frame).unwrap_or(0)), party: None, metal: 0.0 });
+        }
         let standing: f32 = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
         let party_of = |name: &str| picture.parties.iter().find(|p| p.name == name);
         let leaves = |o: &Order| !matches!(o.choice.as_str(), "continue" | "hold");
@@ -150,6 +166,28 @@ impl Brain {
                 }
             }
         }
+        // The places the instructions name, nearest first: where the packet sends groups in prose the vocabulary
+        // has no rule for (a scout's route, "gather at spot_38"); not where it stands or already goes.
+        if offered("move_to") {
+            let instructions = picture.state["instructions"].as_str().unwrap_or_default();
+            let going = match &group.task {
+                GroupTask::Move { place, .. } => Some(place.as_str()),
+                _ => None,
+            };
+            let mut named: Vec<(f32, &super::picture::Place)> = picture
+                .places
+                .iter()
+                .filter(|p| super::diet::names(instructions, &p.name) && p.at.dist2d(centre) > 300.0 && going != Some(p.name.as_str()))
+                .map(|p| (p.at.dist2d(centre), p))
+                .collect();
+            named.sort_by(|a, b| a.0.total_cmp(&b.0));
+            for (d, p) in named.into_iter().take(WALKS) {
+                let o = order("move_to", &[("where", &p.name)]);
+                if out.len() < CANDIDATES && !out.iter().any(|c| c.order == o) {
+                    out.push(Candidate { kind: Kind::Walk, order: o, words: format!("walks to {} (named in the instructions, {d:.0} away){leave}", p.name), party: None, metal: 0.0 });
+                }
+            }
+        }
         // The way back when the fight is against it: a party within the alarm reach it does not outweigh, or a
         // tenth of its metal lost in 30 s.
         let against = picture.parties.iter().filter(|p| p.at.dist2d(centre) < ALARM).any(|p| {
@@ -174,7 +212,8 @@ impl Brain {
 }
 
 /// The worlds: world 1 is every group's rule (else its course); the rest change one group's move, fights first,
-/// then the ways back, then a course kept against its rule; a second taker of a small party is pruned; at most `CAP`.
+/// then the ways back, then the walks to named places, then a course kept against its rule; a second taker of a
+/// small party is pruned; at most `CAP`.
 pub(super) fn worlds(cands: &[(String, Vec<Candidate>)]) -> Vec<World> {
     let base: World = cands.iter().map(|(g, c)| (g.clone(), c.iter().position(|x| x.kind == Kind::Rule).unwrap_or(0))).collect();
     let taken = |world: &World, party: &str, except: usize| -> bool {
@@ -195,7 +234,8 @@ pub(super) fn worlds(cands: &[(String, Vec<Candidate>)]) -> Vec<World> {
             let priority = match cand.kind {
                 Kind::Fight | Kind::Rule => 0,
                 Kind::Back => 1,
-                Kind::Keep => 2,
+                Kind::Walk => 2,
+                Kind::Keep => 3,
             };
             let mut world = base.clone();
             world[gi].1 = ci;
@@ -225,15 +265,16 @@ pub(super) fn consequence(world: &World, cands: &[(String, Vec<Candidate>)], par
     let in_reach: Vec<&Party> = parties.iter().filter(|p| (1..=6).contains(&p.ids.len()) && centres.iter().any(|(_, c)| c.dist2d(p.at) <= RAIDER_REACH)).collect();
     let (mut met, mut unmet): (Vec<String>, Vec<String>) = (Vec::new(), Vec::new());
     for p in in_reach {
+        let composition = if p.has_commander { format!("THEIR COMMANDER, whose death wins the game, with {}", p.composition) } else { p.composition.clone() };
         let takers: Vec<(usize, usize)> = world.iter().enumerate().filter(|(gi, (_, ci))| cand(*gi, *ci).party.as_ref().is_some_and(|(n, _)| *n == p.name)).map(|(gi, (_, ci))| (gi, *ci)).collect();
         let place = places.iter().map(|pl| (pl.at.dist2d(p.at), pl)).min_by(|a, b| a.0.total_cmp(&b.0)).filter(|(d, _)| *d < 400.0).map_or("in sight".to_string(), |(_, pl)| format!("at {}", pl.name));
         if takers.is_empty() {
             let killing = p.killing.as_ref().map_or(String::new(), |(what, _)| format!(", killing {what}"));
-            unmet.push(format!("{} ({}, {place}{killing})", p.name, p.composition));
+            unmet.push(format!("{} ({composition}, {place}{killing})", p.name));
         } else {
             let metal: f32 = takers.iter().map(|(gi, ci)| cand(*gi, *ci).metal).sum();
             let nearest = takers.iter().filter_map(|(gi, _)| centres.iter().find(|(g, _)| *g == cands[*gi].0).map(|(_, c)| c.dist2d(p.at))).fold(f32::INFINITY, f32::min);
-            met.push(format!("{} ({}, {:.0} metal, {place}) met with {metal:.0} metal: {}, {nearest:.0} away", p.name, p.composition, p.metal, odds_by_metal(metal, p.metal)));
+            met.push(format!("{} ({composition}, {:.0} metal, {place}) met with {metal:.0} metal: {}, {nearest:.0} away", p.name, p.metal, odds_by_metal(metal, p.metal)));
         }
     }
     if !met.is_empty() {

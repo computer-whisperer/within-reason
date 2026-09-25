@@ -81,7 +81,11 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   ({group: [{kind keep|rule|fight|back, do, params, words}]}, the candidates), `worlds` ([[[group, candidate index]]],
   world 1 first) and `lines` (each world's words, the `worlds.pick` question's criteria in order); with one world or no
   Jev, `played_outright` names the groups played from world 1. The call that asks carries `worlds.pick` among its
-  questions and answers, and the `played` entries of the groups it decided carry source `worlds`.
+  questions and answers, and the `played` entries of the groups it decided carry source `worlds`. From the same
+  night a group has no `<group>.do`, `.where`, `.whom` or `.how_many` question (the offline detectors of
+  `run/jev_ab.py` that read a group's `do` see no group moments in these logs; the `standing` line's `groups` and
+  `lines` are the record to read), and a builder's place question is `where_build` or `where_walk` beside
+  `where_extractor`.
 Size: 15-30 KB a call (3-6k tokens of state and questions), 20-60 calls a minute: 25 MB for a 20-minute game. Logs from
 the first morning (2026-09-21, before the header line) carry `instructions` and `rules` in every state and no `played`;
 the viewer reads those too, taking the decisions from the answers.

@@ -370,7 +370,9 @@ impl Brain {
         for (index, to) in marches {
             let mut held = std::mem::take(&mut self.pianist.as_mut().expect("pianist mode").groups[index].held);
             let members = self.pianist.as_ref().expect("pianist mode").groups[index].members.clone();
-            let group: Vec<&OwnUnit> = own.iter().filter(|u| members.contains(&u.id)).collect();
+            // A straggler that cannot move (`yards.rs` `stuck`) holds nobody up (worlds-1, 16:14: the player turned
+            // the march off for group_C, held by a soldier stuck at B5).
+            let group: Vec<&OwnUnit> = own.iter().filter(|u| members.contains(&u.id) && !self.stuck.contains_key(&u.id)).collect();
             commands.extend(self.march(&mut held, &group, to, enemies.as_slice()));
             self.pianist.as_mut().expect("pianist mode").groups[index].held = held;
         }

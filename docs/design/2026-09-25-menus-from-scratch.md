@@ -1,5 +1,7 @@
 # The menus from scratch (outline for discussion, 2026-09-25)
 
+**Status (2026-09-25 night).** Superseded in part by `2026-09-25-one-decider.md`: the groups' menu is the worlds question (§9d's standing orders as its candidate generator), the builders' `where` is per purpose (`where_build`, `where_walk`, `where_extractor`), the two-level menu and the policy are deleted. The rest of this outline (a builder's `do` over families, the `forbid` tool) stands as ideas.
+
 The user, after family-1 and the `where` reading: "I think we should try a completely from-scratch menu set with what
 we know now." This is the outline, written before any code. Nothing here is built. The receipts are the Jev batteries
 (`../jev_experiments/REPORT.md` and `results/a-i.md`, about 4,500 calls), the K-jev and K-hands claims in
