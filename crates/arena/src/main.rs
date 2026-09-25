@@ -11,7 +11,7 @@
 //!              [--bot PATH]   (bot binary from another build, for A/B runs)
 //!              [--disable H-ID,H-ID]   (ablation: switch heuristics off by registry ID)
 //!              [--ab-disable H-ID,H-ID]   (interleaved A/B: arm B also switches these off; blocks of four matches)
-//!              [--claude-config-dir DIR]   (subscription for --strategist sessions; default ~/.claude2)
+//!              [--claude-config-dir DIR]   (subscription for the player's sessions; default ~/.claude2)
 //!              [--effort low|medium|high|xhigh|max]   (the LLM session's `claude --effort`; default high)
 //!              [--hands-effort lean|normal|full]      (the hands' Jev token diet; default lean, the bulk games' level)
 //!              [--standing off|on|filter] [--family on|off]  (the standing orders' executor and the two-level group menu; defaults on)
@@ -21,9 +21,6 @@
 //!              [--opening-plan PATH]   (the bot plays this plan text instead of searching one; run/replay_plan.py writes one from a replay)
 //!              [--objective TEXT]   (a requirement for the player, appended to its role text: "kill the commander with Thunder bombers")
 //!              [--base-port N]   (default 9100; match i uses N+2i and N+2i+1, so a second arena needs another range)
-//!              [--strategist]   (Claude Code strategist per match; use with --speed 2 and few matches)
-//!              [--commander]    (Sonnet field commander per match, one for all our seats; the game is held still during its turns, so any --speed)
-//!              [--commander-each]   (a commander of its own for every seat of ours)
 //!              [--commander-model ID] [--objective TEXT]   (the session's model instead of the role's usual one, e.g. claude-opus-5)
 //!              [--pianist]      (Jev plays every unit from a prose packet in place of the decision heuristics)
 //!              [--player]       (with --pianist or --policy: an Opus player writes the packet or the policy; turns hold the game as the commander's do)
@@ -69,10 +66,6 @@ struct Options {
     swap_corners: bool,
     /// End a game once it is settled (see [`Settled`]); `--play-out` turns it off.
     call_settled: bool,
-    strategist: bool,
-    commander: bool,
-    /// With `commander`: every seat of ours gets its own session instead of one for the team.
-    commander_each: bool,
     pianist: bool,
     /// With `pianist` or `policy`: the Opus player over it (`docs/design/2026-09-21-pianist.md`, "The player").
     player: bool,
@@ -175,7 +168,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("BARb {}", options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "standing": options.standing, "family": options.family, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "strategist": options.strategist, "commander": options.commander, "commander_each": options.commander_each, "pianist": options.pianist, "player": options.player, "policy": options.policy, "commander_model": options.commander_model, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "seed_base": options.seed_base, "opening_plan": options.opening_plan, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "standing": options.standing, "family": options.family, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "policy": options.policy, "commander_model": options.commander_model, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "seed_base": options.seed_base, "opening_plan": options.opening_plan, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 
@@ -306,8 +299,6 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         _ => options.disable.clone(),
     };
     let mut bot = Command::new(options.bot.clone().unwrap_or_else(|| repo.join("target/release/bot")))
-        .args(options.strategist.then_some("--strategist"))
-        .args(options.commander.then_some(if options.commander_each { "--commander-each" } else { "--commander" }))
         .args(options.pianist.then_some("--pianist"))
         .args(options.policy.then_some("--policy"))
         .args(options.player.then_some("--player"))
@@ -413,7 +404,7 @@ fn referee(
     let mut playing = false;
     let mut settled = Settled::default();
     // The game clock stands still during the commander's turns, and the log only shows it once a game minute.
-    let stall_allowance = if (options.commander || options.player) && !options.realtime { 10 * STALL_ALLOWANCE } else { STALL_ALLOWANCE };
+    let stall_allowance = if options.player && !options.realtime { 10 * STALL_ALLOWANCE } else { STALL_ALLOWANCE };
     let mut deadline = Instant::now() + LOAD_ALLOWANCE;
     let frame_limit = options.max_minutes * 60 * 30;
     let mut last_seen_frame = 0;
@@ -576,9 +567,6 @@ fn parse_args() -> Options {
         place: false,
         swap_corners: false,
         call_settled: true,
-        strategist: false,
-        commander: false,
-        commander_each: false,
         pianist: false,
         player: false,
         policy: false,
@@ -626,18 +614,6 @@ fn parse_args() -> Options {
             }
             "--swap-corners" => {
                 options.swap_corners = true;
-                continue;
-            }
-            "--commander" => {
-                options.commander = true;
-                continue;
-            }
-            "--commander-each" => {
-                (options.commander, options.commander_each) = (true, true);
-                continue;
-            }
-            "--strategist" => {
-                options.strategist = true;
                 continue;
             }
             "--pianist" => {

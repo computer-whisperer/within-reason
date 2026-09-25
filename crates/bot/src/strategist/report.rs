@@ -1,9 +1,9 @@
 //! The turn reports: terse text, and after the first only what changed. A full game of identical JSON dumps
 //! teaches a model to answer "no change" by rote; a report that is short when nothing happened keeps its attention
 //! on what did. The front of the report describes the game (the score, the trade, the economy, the ground, the
-//! opponent) and is the same for the commander and the player; the tail is what each one commands.
+//! opponent); the tail is the player's hands.
 
-use super::shared::{Briefing, Field, Hands, Place, SquadStatus, Side};
+use super::shared::{Briefing, Field, Hands, Place, Side};
 
 /// The hands' `did` lines a player's report carries at most.
 const DONE_LINES: usize = 40;
@@ -11,12 +11,7 @@ const DONE_LINES: usize = 40;
 /// What the last report showed, to say only what differs.
 #[derive(Default)]
 pub struct Seen {
-    squads: Vec<String>,
     extractors: Vec<String>,
-    turrets: usize,
-    pool: String,
-    production: String,
-    spot_plan: String,
     hands: Vec<String>,
 }
 
@@ -29,15 +24,6 @@ fn counted(items: &[(String, usize)]) -> String {
 
 fn clock(seconds: i32) -> String {
     format!("{}:{:02}", seconds / 60, seconds % 60)
-}
-
-fn squad_line(s: &SquadStatus) -> String {
-    let at = s.centre.as_ref().map_or("nowhere".to_string(), |c| format!("{} ({}, {})", c.grid, c.x, c.z));
-    let post = s.post.as_ref().map_or("no post".to_string(), |(p, r)| format!("post {} ({}, {}) r{r}", p.grid, p.x, p.z));
-    let wanted = if s.still_wanted.is_empty() { String::new() } else { format!(", still wants {}", counted(&s.still_wanted)) };
-    let engaged = if s.engaged { ", ENGAGED" } else { "" };
-    let remark = s.remark.as_ref().map_or(String::new(), |r| format!(" ({r})"));
-    format!("{} [{}] {}% at {at}, {post}{wanted}{engaged}{remark}", s.name, counted(&s.composition), s.health_percent)
 }
 
 /// The lines every report opens with, changed or not: what is not shown is not weighed.
@@ -71,9 +57,8 @@ fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
     ));
     let g = &field.ground;
     let listed = |places: &[Place]| if places.is_empty() { "none".to_string() } else { places.iter().map(|p| p.grid.clone()).collect::<Vec<_>>().join(", ") };
-    let posts = if g.posts.is_empty() { String::new() } else { format!(" | unclaimed soldiers stand at: {}", listed(&g.posts)) };
     lines.push(format!(
-        "ground: free spots on held ground {}, contested {}, theirs {} | our extractors on ground we do not hold: {}{posts} | raided lately: {}",
+        "ground: free spots on held ground {}, contested {}, theirs {} | our extractors on ground we do not hold: {}| raided lately: {}",
         g.free_spots.0, g.free_spots.1, g.free_spots.2, listed(&g.extractors_exposed),
         if g.raided.is_empty() { "nowhere".to_string() } else { g.raided.iter().map(|(p, metal)| format!("{} ({metal})", p.grid)).collect::<Vec<_>>().join(", ") }
     ));
@@ -128,10 +113,6 @@ fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
         in_box,
         if unseen.is_empty() { String::new() } else { format!("; its box's first, then nearest home first: {}", unseen.join(", ")) }
     ));
-    if !s.raid_targets.is_empty() {
-        let list: Vec<String> = s.raid_targets.iter().map(|(p, turrets)| format!("{} ({}, {}){}", p.grid, p.x, p.z, if *turrets > 0 { format!(" turrets {turrets}m") } else { " no turret seen".into() })).collect();
-        lines.push(format!("to raid: its extractors seen outside its base, nearest first: {}", list.join("; ")));
-    }
     if !s.trend.is_empty() {
         let then = |pick: &dyn Fn(&(i32, usize, f32, u32)) -> String| s.trend.iter().map(|t| format!("{} ({} min ago)", pick(t), t.0)).collect::<Vec<_>>().join(", ");
         lines.push(format!(
@@ -176,62 +157,6 @@ fn contact(briefing: &Briefing, field: &Field) -> Vec<String> {
         lines.push(format!("extractors under threat: {}", threatened.join("; ")));
     }
     lines
-}
-
-/// The commander's report: the front, then its squads, the pool, the extractors, the plan and the mix.
-pub fn report(seen: &mut Seen, briefing: &Briefing, field: &Field, fights: &[String], full: bool) -> String {
-    let mut lines = front(briefing, field, fights);
-    lines.extend(contact(briefing, field));
-
-    let pool = format!("{} around {}", counted(&field.unassigned), field.unassigned_centre.as_ref().map_or("-", |p| p.grid.as_str()));
-    if full || pool != seen.pool {
-        lines.push(format!(
-            "unassigned soldiers (the bot's): {pool}; home group {}",
-            briefing.home_group.size
-        ));
-    }
-    seen.pool = pool;
-
-    let squads: Vec<String> = field.squads.iter().map(squad_line).collect();
-    for line in &squads {
-        if full || !seen.squads.contains(line) {
-            lines.push(format!("squad {line}"));
-        }
-    }
-    let names = |lines: &[String]| lines.iter().map(|l| l.split(' ').next().unwrap_or_default().to_string()).collect::<Vec<_>>();
-    for gone in names(&seen.squads).iter().filter(|n| !names(&squads).contains(n)) {
-        lines.push(format!("squad {gone} is gone (wiped out or released)"));
-    }
-    seen.squads = squads;
-
-    extractor_lines(seen, field, full, &mut lines);
-    if !field.spot_plan.is_empty() && (full || field.spot_plan != seen.spot_plan) {
-        lines.push(format!("expansion plan: {}", field.spot_plan));
-    }
-    seen.spot_plan = field.spot_plan.clone();
-    if full || field.turrets.len() != seen.turrets {
-        let turrets: Vec<String> = field.turrets.iter().map(|t| format!("{} ({}, {})", t.grid, t.x, t.z)).collect();
-        lines.push(format!("turrets: {}; requests pending {}", if turrets.is_empty() { "none".into() } else { turrets.join("; ") }, field.turret_requests_pending));
-    }
-    seen.turrets = field.turrets.len();
-
-    let production = if field.production_weights.is_empty() {
-        "bot default (constructors while it wants them, then line units with one raider a batch)".to_string()
-    } else {
-        field.production_weights.iter().map(|(n, w)| format!("{n} {w}")).collect::<Vec<_>>().join(", ")
-    };
-    if full || production != seen.production {
-        lines.push(format!("production mix: {production}"));
-    }
-    seen.production = production;
-    if full {
-        let buildable: Vec<String> = field.buildable.iter().map(|(n, m)| format!("{n} {m}m")).collect();
-        lines.push(format!("factories can build: {}", buildable.join(", ")));
-        if !briefing.directives_in_force.is_empty() {
-            lines.push(format!("directives in force: {}", briefing.directives_in_force.join("; ")));
-        }
-    }
-    lines.join("\n")
 }
 
 /// Our extractors, in full at first and then as gains and losses.

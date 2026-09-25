@@ -4,16 +4,12 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use bot_protocol::Vec3;
 use serde_json::{Value, json};
 use tiny_http::{Header, Method, Response, Server};
 
-use super::Mode;
-use super::shared::{Allowance, Focus, OrderKind, OutpostTurrets, PlanContext, Post, Removal, Shared, Stance, Timed};
+use super::shared::{Allowance, PlanContext, Removal, Shared};
 use super::transcript::Transcript;
 
-const DEFAULT_TTL_SECONDS: i64 = 120;
-const MAX_TTL_SECONDS: i64 = 600;
 /// The player's packet at most: Jev reads it every second beside a picture of about 4k tokens, within 64k.
 const INSTRUCTIONS_LIMIT: usize = 8000;
 
@@ -24,7 +20,7 @@ pub struct McpServer {
 
 impl McpServer {
     /// Serves on a free localhost port until dropped.
-    pub fn start(shared: Arc<Shared>, transcript: Arc<Transcript>, mode: Mode) -> std::io::Result<Self> {
+    pub fn start(shared: Arc<Shared>, transcript: Arc<Transcript>) -> std::io::Result<Self> {
         let server = Server::http("127.0.0.1:0").map_err(std::io::Error::other)?;
         let port = server.server_addr().to_ip().map_or(0, |addr| addr.port());
         let stop = Arc::new(AtomicBool::new(false));
@@ -39,7 +35,7 @@ impl McpServer {
                 }
                 let mut body = String::new();
                 let _ = request.as_reader().read_to_string(&mut body);
-                let reply = serde_json::from_str::<Value>(&body).ok().and_then(|call| handle(&call, &shared, &transcript, mode));
+                let reply = serde_json::from_str::<Value>(&body).ok().and_then(|call| handle(&call, &shared, &transcript));
                 let _ = match reply {
                     Some(reply) => request.respond(
                         Response::from_string(reply.to_string())
@@ -60,7 +56,7 @@ impl Drop for McpServer {
     }
 }
 
-fn handle(call: &Value, shared: &Arc<Shared>, transcript: &Transcript, mode: Mode) -> Option<Value> {
+fn handle(call: &Value, shared: &Arc<Shared>, transcript: &Transcript) -> Option<Value> {
     let id = call.get("id")?.clone();
     let method = call["method"].as_str().unwrap_or_default();
     let result = match method {
@@ -69,16 +65,16 @@ fn handle(call: &Value, shared: &Arc<Shared>, transcript: &Transcript, mode: Mod
             "capabilities": { "tools": {} },
             "serverInfo": { "name": "within-reason", "version": env!("CARGO_PKG_VERSION") },
         })),
-        "tools/list" => Ok(json!({ "tools": tool_list(mode) })),
+        "tools/list" => Ok(json!({ "tools": tool_list() })),
         "tools/call" => {
             let name = call["params"]["name"].as_str().unwrap_or_default();
             let arguments = &call["params"]["arguments"];
             let outcome = if shared.turn_over.load(Ordering::Relaxed) {
                 Err("Your turn is over and the game is running. Stop now: call nothing more and write nothing more. You will be woken with a new report.".to_string())
             } else if name == "orders" {
-                orders(arguments, shared, mode)
+                orders(arguments, shared)
             } else {
-                call_tool(name, arguments, shared, mode)
+                call_tool(name, arguments, shared)
             };
             // Full results, briefings included: they are what the strategist decided on, and the
             // labelled state for evaluating faster models against its decisions.
@@ -100,9 +96,9 @@ fn handle(call: &Value, shared: &Arc<Shared>, transcript: &Transcript, mode: Mod
     })
 }
 
-/// The tools a mode offers. The commander's levers steer the heuristics; the player has none of them: its lever is
-/// `instruct`, and its `situation` is the picture its hands read.
-fn tool_list(mode: Mode) -> Value {
+/// The player's tools: its levers are the packet (`instruct`), the lists, the standing rules and the production
+/// whitelist; its `situation` is the picture its hands read.
+fn tool_list() -> Value {
     let overview = json!({ "name": "overview",
         "description": "Current state of the game as the bot sees it: time, economy, unit counts, our army groups, enemies in sight, remembered enemy buildings, recent events, and the directives in force.",
         "inputSchema": { "type": "object", "properties": {}, "additionalProperties": false } });
@@ -127,8 +123,7 @@ fn tool_list(mode: Mode) -> Value {
             "calls": { "type": "array", "minItems": 1, "items": { "type": "object", "additionalProperties": false, "required": ["tool"], "properties": {
                 "tool": { "type": "string", "enum": tools },
                 "arguments": { "type": "object", "description": "That tool's arguments, e.g. {\"text\": \"...\"} for note." } } } } } } });
-    match mode {
-        Mode::Player => json!([
+    json!([
             overview, map,
             { "name": "situation",
               "description": "The picture your hands read this second, exactly as Jev sees it (without your instructions and the standing rules): economy, ours, enemy, places by name, every actor with what it is doing, recent events. You are sent a summary of it at the start of every turn; call this to read the whole picture, or a place's entry by name.",
@@ -172,90 +167,16 @@ fn tool_list(mode: Mode) -> Value {
             orders(&["instruct", "queue", "standing", "policy", "lane", "mark", "produce", "remove", "say", "note", "wait"], "your instructions or policy, standing orders, build lists, footwork settings, marked places, what labs may build, removals, a chat line, a note and when to be woken"),
             wait("A group of ours starts fighting an enemy party.", "Woken when this many soldiers of each named unit type are alive, e.g. {\"armham\": 6}. {} clears it."),
             note,
-        ]),
-        Mode::Strategist | Mode::Commander => json!([
-            overview, map,
-            { "name": "set_directives",
-              "description": "Set standing orders for the bot's heuristics. Give only the fields you want to change. Every directive expires after ttl_seconds of game time (default 120, max 600) and the heuristic's own default takes over, so renew what should persist. Pass null for a field to clear it now.",
-              "inputSchema": { "type": "object", "additionalProperties": false, "properties": {
-                  "army_stance": { "enum": ["defend", "gather", "attack", null],
-                      "description": "defend: army stays home. gather: keep massing, launch nothing. attack: commit the home group now regardless of size." },
-                  "attack_target": { "type": ["object", "null"], "properties": { "x": { "type": "number" }, "z": { "type": "number" } },
-                      "required": ["x", "z"], "description": "Where attackers go, in map coordinates." },
-                  "wave_size": { "type": ["integer", "null"], "minimum": 1, "maximum": 200,
-                      "description": "Home-group size at which the bot launches a wave on its own." },
-                  "army_station": { "type": ["object", "null"], "properties": { "x": { "type": "number" }, "z": { "type": "number" } },
-                      "required": ["x", "z"], "description": "Where the home group waits and gathers. By default it stands just ahead of our most exposed extractors; it still turns on raiders near any of our extractors and on intruders at the base." },
-                  "min_constructors": { "type": ["integer", "null"], "minimum": 1, "maximum": 10,
-                      "description": "Factories keep at least this many constructors alive (the bot's own floor is 3)." },
-                  "min_converters": { "type": ["integer", "null"], "minimum": 0, "maximum": 40,
-                      "description": "Constructors build energy-to-metal converters up to this count before expanding further, energy permitting." },
-                  "max_converters": { "type": ["integer", "null"], "minimum": 0, "maximum": 40,
-                      "description": "No more converters than this, whatever energy is banked (each takes 70 energy a second to run and costs 1150 to build; the bot's own rule builds one only when energy income exceeds usage by that much and stops at 40). 0 stops them." },
-                  "base_turrets": { "type": ["integer", "null"], "minimum": 0, "maximum": 6,
-                      "description": "How many light turrets (85 metal each) the bot puts up on its own 450 forward of home: unset it builds 2 after the lab and up to 6 when constructors are idle; 0 stops them. Turrets are for Ticks: one at an extractor repels them where no army stands; Hammers and Pawns are the army's to counter." },
-                  "outpost_turrets": { "type": ["string", "array", "null"], "items": { "type": "integer", "minimum": 0 },
-                      "description": "Which of our extractors get a light turret of the bot's own accord: \"all\" (unset: one at every extractor more than 500 from home), \"none\" (only where request_turret asks), or a list of metal spot numbers n from the map (a turret at each of those extractors as they stand, none elsewhere). Give the spots your squads do not cover." },
-                  "expansion_radius": { "type": ["integer", "null"], "minimum": 500, "maximum": 20000,
-                      "description": "Constructors build extractors only on metal spots within this walking distance of home (see walk_from_home in the map). Use it to stop expansion into places you cannot defend." },
-                  "tier2": { "type": ["boolean", "null"],
-                      "description": "The advanced bot lab (2600 metal, then advanced constructors that upgrade our extractors to four times the yield, and tier-2 units). Unset, the bot starts it when metal income reaches 22 and energy income 450 with nothing dying at home. true starts it now; false holds it back." },
-                  "resurrect": { "type": ["boolean", "null"],
-                      "description": "Resurrection bots (the bot builds one per 600 metal of wrecks lying on held ground, at most 6) raise wrecked soldiers worth 100 metal or more when stored energy is above half and 100 metal is banked, and take everything else apart for its metal. false: they raise nothing and reclaim everything." },
-                  "commander_station": { "type": ["object", "null"], "properties": { "x": { "type": "number" }, "z": { "type": "number" } },
-                      "required": ["x", "z"], "description": "The commander walks here and builds only near here (it is a strong builder and fighter, and the game is lost if it dies). Without this it builds within 24 seconds of its own walking from home." },
-                  "economy_focus": { "enum": ["expand", "energy", "production", "defence", null],
-                      "description": "What constructors prefer once the opening is done." },
-                  "pressure": { "type": ["boolean", "null"],
-                      "description": "The early raider pressure: from the first Pawn the bot sends raiders at the opponent's extractors and base, priced by its fight simulator, retreating from the commander and turrets and harassing elsewhere. false keeps them home (they join the home group); unset or true lets it run." },
-                  "scout_at": { "type": ["object", "null"], "properties": { "x": { "type": "number" }, "z": { "type": "number" } },
-                      "required": ["x", "z"], "description": "Send the next scout (one raider, a route of metal spots) round this point first. The bot scouts by itself: the enemy base's spots when stale, the rest of its box, then the map." },
-                  "ttl_seconds": { "type": "integer", "minimum": 10, "maximum": MAX_TTL_SECONDS } } } },
-            { "name": "situation",
-              "description": "The field picture: unassigned soldiers by type, your squads (composition, health, where, post, whether engaged), every extractor with enemies near it and whether a turret covers it, turrets, what the factories can build with metal cost, the production mix in force. You are sent this at the start of every turn; call it only to look again mid-turn.",
-              "inputSchema": { "type": "object", "properties": {}, "additionalProperties": false } },
-            { "name": "squad",
-              "description": "Create or change a squad. Soldiers in a squad are yours; all others follow the bot's heuristics (home group, attack waves). take draws that many more of each unit type from the unassigned soldiers, nearest to `near` (else to the post); units not yet built are added as they appear. post is a standing defensive position: the squad stands there, engages any enemy that comes within radius of it, and returns. order is a one-off move or fight (attack-move) to a position and cancels the post. release hands the squad back to the heuristics.",
-              "inputSchema": { "type": "object", "additionalProperties": false, "required": ["name"], "properties": {
-                  "name": { "type": "string" },
-                  "take": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0, "maximum": 50 },
-                      "description": "Unit name to how many more to draw, e.g. {\"armpw\": 3, \"armham\": 2}." },
-                  "near": { "type": "object", "properties": { "x": { "type": "number" }, "z": { "type": "number" } }, "required": ["x", "z"] },
-                  "post": { "type": "object", "properties": { "x": { "type": "number" }, "z": { "type": "number" }, "radius": { "type": "number", "minimum": 100, "maximum": 1500 } },
-                      "required": ["x", "z", "radius"] },
-                  "order": { "type": "object", "properties": { "kind": { "enum": ["move", "fight"] }, "x": { "type": "number" }, "z": { "type": "number" } },
-                      "required": ["kind", "x", "z"] },
-                  "release": { "type": "boolean" } } } },
-            { "name": "set_production",
-              "description": "The unit mix the factories build, as unit name to weight (names from `buildable` in the situation). Factories build whichever type is furthest below its share of what is alive. The bot keeps its own floor of constructors. An empty object returns production to the bot's default batch.",
-              "inputSchema": { "type": "object", "additionalProperties": false, "required": ["weights"], "properties": {
-                  "weights": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 0, "maximum": 100 } } } } },
-            { "name": "request_turret",
-              "description": "Ask for a light defence turret at a position; the next free constructor builds it near there.",
-              "inputSchema": { "type": "object", "additionalProperties": false, "required": ["x", "z"],
-                  "properties": { "x": { "type": "number" }, "z": { "type": "number" } } } },
-            { "name": "expansion",
-              "description": "Which metal spots the constructors take. Spots are numbered as in the map's metal_spots list (`n`). `take_first`: spots taken before any other, in this order, wherever they lie and even if they were raided before (this is also how you order a lost extractor rebuilt, or leave it lost by not listing it). `leave_alone`: spots never taken, e.g. ones you cannot hold. Other spots follow the bot's rule (nearest first, within expansion_radius, skipping recently raided ones without cover). Each call replaces the whole plan; {} clears it.",
-              "inputSchema": { "type": "object", "additionalProperties": false, "properties": {
-                  "take_first": { "type": "array", "items": { "type": "integer", "minimum": 0 } },
-                  "leave_alone": { "type": "array", "items": { "type": "integer", "minimum": 0 } } } } },
-            orders(&["squad", "set_directives", "set_production", "request_turret", "expansion", "note", "wait"], "every order you want to give"),
-            wait("A posted squad starts fighting.", "Woken when this many of each named unit type stand unassigned, e.g. {\"armham\": 4}. {} clears it."),
-            note,
-        ]),
-    }
+    ])
 }
 
-/// What `orders` may batch in a mode.
-fn batchable(mode: Mode) -> &'static [&'static str] {
-    match mode {
-        Mode::Player => &["instruct", "queue", "policy", "lane", "mark", "produce", "remove", "say", "note", "wait"],
-        Mode::Strategist | Mode::Commander => &["squad", "set_directives", "set_production", "request_turret", "expansion", "note", "wait"],
-    }
+/// What `orders` may batch.
+fn batchable() -> &'static [&'static str] {
+    &["instruct", "queue", "standing", "policy", "lane", "mark", "produce", "remove", "say", "note", "wait"]
 }
 
 /// The `orders` tool: several tool calls in one request. `wait` goes last wherever it was listed, since it ends the turn.
-fn orders(arguments: &Value, shared: &Arc<Shared>, mode: Mode) -> Result<String, String> {
+fn orders(arguments: &Value, shared: &Arc<Shared>) -> Result<String, String> {
     let calls = arguments["calls"].as_array().ok_or("calls must be a list")?;
     let (mut waits, others): (Vec<&Value>, Vec<&Value>) = calls.iter().partition(|c| c["tool"] == "wait");
     // `orders` is the whole turn: with no `wait` listed the wake settings stand and the turn ends all the same. (In
@@ -272,7 +193,7 @@ fn orders(arguments: &Value, shared: &Arc<Shared>, mode: Mode) -> Result<String,
         // so the sessions that took over mid-game inherited blank notes).
         let tool = call["tool"].as_str().unwrap_or_default();
         let tool = tool.rsplit("__").next().unwrap_or(tool);
-        if !batchable(mode).contains(&tool) {
+        if !batchable().contains(&tool) {
             lines.push(format!("{tool}: not a tool that can be batched"));
             continue;
         }
@@ -282,7 +203,7 @@ fn orders(arguments: &Value, shared: &Arc<Shared>, mode: Mode) -> Result<String,
             fields.remove("arguments");
         }
         let arguments = call.get("arguments").filter(|a| a.is_object()).unwrap_or(if beside.as_object().is_some_and(|f| !f.is_empty()) { &beside } else { &empty });
-        match call_tool(tool, arguments, shared, mode) {
+        match call_tool(tool, arguments, shared) {
             Ok(text) => lines.push(format!("{tool}: {text}")),
             Err(problem) => lines.push(format!("{tool}: REFUSED: {problem}")),
         }
@@ -290,8 +211,8 @@ fn orders(arguments: &Value, shared: &Arc<Shared>, mode: Mode) -> Result<String,
     Ok(lines.join("\n"))
 }
 
-fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>, mode: Mode) -> Result<String, String> {
-    if !tool_list(mode).as_array().is_some_and(|tools| tools.iter().any(|t| t["name"] == name)) {
+fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<String, String> {
+    if !tool_list().as_array().is_some_and(|tools| tools.iter().any(|t| t["name"] == name)) {
         return Err(format!("{name} is not a tool in this mode"));
     }
     match name {
@@ -334,8 +255,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>, mode: Mode) ->
             shared.end_turn_at_wait();
             Ok(reply)
         }
-        "situation" if mode == Mode::Player => Ok(shared.hands.lock().unwrap().picture.to_string()),
-        "situation" => serde_json::to_string(&shared.field()).map_err(|e| e.to_string()),
+        "situation" => Ok(shared.hands.lock().unwrap().picture.to_string()),
         "instruct" => {
             let text = arguments["text"].as_str().map(str::trim).filter(|t| !t.is_empty()).ok_or("instruct needs the packet under \"text\"")?;
             if text.chars().count() > INSTRUCTIONS_LIMIT {
@@ -733,139 +653,8 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>, mode: Mode) ->
             }
             Ok(format!("{}; your hands carry it out from their next look", said.join("; ")))
         }
-        "squad" => squad(arguments, shared),
-        "set_production" => {
-            let weights = arguments["weights"].as_object().ok_or("weights must be an object")?;
-            let known: Vec<String> = shared.field().buildable.iter().map(|(name, _)| name.clone()).collect();
-            if let Some(unknown) = weights.keys().find(|name| !known.contains(name)) {
-                return Err(format!("{unknown} is not something our factories build; see `buildable`"));
-            }
-            let mix = weights.iter().map(|(name, w)| (name.clone(), w.as_u64().unwrap_or(0) as u32)).collect();
-            shared.field_orders.lock().unwrap().production = mix;
-            Ok("production mix set".into())
-        }
-        "request_turret" => {
-            let at = position(arguments, "request_turret")?.ok_or("needs x and z")?;
-            // Anywhere we already stand: a turret asked for on ground we hold nothing near is a constructor sent to die.
-            let field = shared.field();
-            let held = field.extractors.iter().map(|x| &x.at).chain(field.squads.iter().filter_map(|q| q.centre.as_ref())).chain(field.turrets.iter());
-            let near = held.map(|p| (p.x as f32 - at.x).hypot(p.z as f32 - at.z)).fold(f32::INFINITY, f32::min);
-            if near > 1000.0 {
-                return Err(format!("nothing of ours (extractor, turret or squad) within 1000 of there (nearest is {near:.0} away); a constructor would walk there alone. Move a squad there first"));
-            }
-            let mut orders = shared.field_orders.lock().unwrap();
-            orders.turret_requests.push(at);
-            Ok("turret requested".into())
-        }
-        "expansion" => {
-            let list = |key: &str| -> Vec<usize> {
-                arguments.get(key).and_then(Value::as_array).map(|a| a.iter().filter_map(Value::as_u64).map(|n| n as usize).collect()).unwrap_or_default()
-            };
-            let mut orders = shared.field_orders.lock().unwrap();
-            orders.spot_priority = list("take_first");
-            orders.spot_avoid = list("leave_alone");
-            Ok(format!("expansion plan set: {} to take first, {} left alone", orders.spot_priority.len(), orders.spot_avoid.len()))
-        }
-        "set_directives" => set_directives(arguments, shared),
         _ => Err(format!("unknown tool {name}")),
     }
-}
-
-fn squad(arguments: &Value, shared: &Shared) -> Result<String, String> {
-    let name = arguments["name"].as_str().filter(|n| !n.is_empty()).ok_or("squad needs a name")?;
-    let known: Vec<String> = shared.field().buildable.iter().map(|(name, _)| name.clone()).collect();
-    let mut orders = shared.field_orders.lock().unwrap();
-    let request = orders.squads.entry(name.to_string()).or_default();
-    if let Some(take) = arguments["take"].as_object() {
-        if let Some(unknown) = take.keys().find(|unit| !known.contains(unit)) {
-            return Err(format!("{unknown} is not a unit our factories build; see `buildable`"));
-        }
-        for (unit, count) in take {
-            *request.take.entry(unit.clone()).or_default() += count.as_u64().unwrap_or(0) as usize;
-        }
-    }
-    if let Some(near) = position(&arguments["near"], "near")? {
-        request.near = Some(near);
-    }
-    if let Some(at) = position(&arguments["post"], "post")? {
-        let radius = arguments["post"]["radius"].as_f64().ok_or("post needs a radius")? as f32;
-        request.post = Some(Post { at, radius: radius.clamp(100.0, 1500.0) });
-    }
-    if let Some(to) = position(&arguments["order"], "order")? {
-        let kind = parse::<OrderKind>(&arguments["order"]["kind"])?.ok_or("order needs a kind")?;
-        request.post = None;
-        request.order = Some((kind, to));
-        request.seen_by.clear();
-    }
-    if arguments["release"].as_bool() == Some(true) {
-        request.release = true;
-        request.seen_by.clear();
-    }
-    Ok(format!("squad {name} updated. The game is paused during your turn, so members are drawn and orders carried out when the turn ends; your next report shows the result"))
-}
-
-fn set_directives(arguments: &Value, shared: &Shared) -> Result<String, String> {
-    let frame = shared.briefing().frame;
-    let ttl = arguments["ttl_seconds"].as_i64().unwrap_or(DEFAULT_TTL_SECONDS).clamp(10, MAX_TTL_SECONDS);
-    let expires_frame = frame + ttl as i32 * 30;
-    let fields = arguments.as_object().ok_or("arguments must be an object")?;
-    let mut directives = shared.directives.lock().unwrap();
-    for (field, value) in fields {
-        match field.as_str() {
-            "ttl_seconds" => {}
-            "army_stance" => {
-                directives.army_stance = parse::<Stance>(value)?.map(|value| Timed { value, expires_frame });
-            }
-            "economy_focus" => {
-                directives.economy_focus = parse::<Focus>(value)?.map(|value| Timed { value, expires_frame });
-            }
-            "wave_size" => {
-                directives.wave_size = parse::<usize>(value)?.map(|value| Timed { value, expires_frame });
-            }
-            "min_constructors" => {
-                directives.min_constructors = parse::<usize>(value)?.map(|value| Timed { value, expires_frame });
-            }
-            "min_converters" => {
-                directives.min_converters = parse::<usize>(value)?.map(|value| Timed { value, expires_frame });
-            }
-            "max_converters" => {
-                directives.max_converters = parse::<usize>(value)?.map(|value| Timed { value, expires_frame });
-            }
-            "expansion_radius" => {
-                directives.expansion_radius = parse::<usize>(value)?.map(|value| Timed { value, expires_frame });
-            }
-            "base_turrets" => {
-                directives.base_turrets = parse::<usize>(value)?.map(|value| Timed { value, expires_frame });
-            }
-            "outpost_turrets" => {
-                directives.outpost_turrets = parse::<OutpostTurrets>(value).map_err(|e| format!("outpost_turrets is \"all\", \"none\" or a list of spot numbers: {e}"))?.map(|value| Timed { value, expires_frame });
-            }
-            "resurrect" => directives.resurrect = parse::<bool>(value)?.map(|value| Timed { value, expires_frame }),
-            "tier2" => directives.tier2 = parse::<bool>(value)?.map(|value| Timed { value, expires_frame }),
-            "commander_station" => directives.commander_station = position(value, field)?.map(|value| Timed { value, expires_frame }),
-            "pressure" => directives.pressure = parse::<bool>(value)?.map(|value| Timed { value, expires_frame }),
-            "scout_at" => directives.scout_at = position(value, field)?.map(|value| Timed { value, expires_frame }),
-            "attack_target" => directives.attack_target = position(value, field)?.map(|value| Timed { value, expires_frame }),
-            "army_station" => directives.army_station = position(value, field)?.map(|value| Timed { value, expires_frame }),
-            other => return Err(format!("unknown directive {other}")),
-        }
-    }
-    Ok(format!("in force: {}", directives.describe(frame).join("; ")))
-}
-
-fn position(value: &Value, field: &str) -> Result<Option<Vec3>, String> {
-    if value.is_null() {
-        return Ok(None);
-    }
-    let coordinate = |axis: &str| value[axis].as_f64().ok_or(format!("{field} needs a number {axis}"));
-    Ok(Some(Vec3 { x: coordinate("x")? as f32, y: 0.0, z: coordinate("z")? as f32 }))
-}
-
-fn parse<T: serde::de::DeserializeOwned>(value: &Value) -> Result<Option<T>, String> {
-    if value.is_null() {
-        return Ok(None);
-    }
-    serde_json::from_value(value.clone()).map(Some).map_err(|e| e.to_string())
 }
 
 #[cfg(test)]
@@ -886,13 +675,13 @@ mod tests {
     #[test]
     fn plan_simulates_the_players_words_and_search_answers_beside_the_game() {
         let shared = Arc::new(Shared::default());
-        assert!(call_tool("plan", &json!({ "queues": { "commander": ["extractor", "extractor", "armwin", "armlab"] } }), &shared, Mode::Player).is_err(), "no picture yet");
+        assert!(call_tool("plan", &json!({ "queues": { "commander": ["extractor", "extractor", "armwin", "armlab"] } }), &shared).is_err(), "no picture yet");
         *shared.plan_context.lock().unwrap() = Some(plan_context());
-        let planned = call_tool("plan", &json!({ "queues": { "commander": ["extractor", "extractor", "armwin", "armlab", "assist"], "next_factory_1": ["armck", "armpw"] }, "minutes": 4 }), &shared, Mode::Player).unwrap();
+        let planned = call_tool("plan", &json!({ "queues": { "commander": ["extractor", "extractor", "armwin", "armlab", "assist"], "next_factory_1": ["armck", "armpw"] }, "minutes": 4 }), &shared).unwrap();
         assert!(planned.contains("curves") && planned.contains("armlab at") && planned.contains("next_factory_1"), "{planned}");
-        assert!(call_tool("plan", &json!({ "queues": { "commander": ["armnothing"] } }), &shared, Mode::Player).unwrap_err().contains("not a unit"));
+        assert!(call_tool("plan", &json!({ "queues": { "commander": ["armnothing"] } }), &shared).unwrap_err().contains("not a unit"));
         // Beside the game: an answer at once, the result and a wake within the budget and a little.
-        let started = call_tool("search", &json!({ "objective": "income", "minutes": 3, "seconds": 1 }), &shared, Mode::Player).unwrap();
+        let started = call_tool("search", &json!({ "objective": "income", "minutes": 3, "seconds": 1 }), &shared).unwrap();
         assert!(started.starts_with("searching for 1 s beside the game"), "{started}");
         let mut waited = 0;
         while shared.search_results.lock().unwrap().is_empty() && waited < 100 {
@@ -904,19 +693,19 @@ mod tests {
         assert!(results[0].contains("score") && results[0].contains("curves"), "{}", results[0]);
         assert!(shared.triggers.lock().unwrap().iter().any(|t| t.contains("search has finished")));
         // Held: the answer now, within the mode's cap.
-        let held = call_tool("search", &json!({ "objective": "target armpw:4 by 2:30, armck by 3:00, income:5 by 3:00", "minutes": 3, "seconds": 1, "wait": true }), &shared, Mode::Player).unwrap();
+        let held = call_tool("search", &json!({ "objective": "target armpw:4 by 2:30, armck by 3:00, income:5 by 3:00", "minutes": 3, "seconds": 1, "wait": true }), &shared).unwrap();
         assert!(held.contains("score") && held.contains("armpw"), "{held}");
         assert!(held.contains("goals: income: 5 a second asked for by 3:00, ") && held.contains("; armpw: 4 asked, ") && held.contains("; armck: "), "each goal is answered: {held}");
-        assert!(call_tool("search", &json!({ "objective": "target income:40" }), &shared, Mode::Player).unwrap_err().contains("needs its time"));
-        assert!(call_tool("search", &json!({ "objective": "glory" }), &shared, Mode::Player).unwrap_err().contains("not an objective"));
-        assert!(call_tool("search", &json!({ "objective": "target armpw, glory" }), &shared, Mode::Player).unwrap_err().contains("no such unit"));
+        assert!(call_tool("search", &json!({ "objective": "target income:40" }), &shared).unwrap_err().contains("needs its time"));
+        assert!(call_tool("search", &json!({ "objective": "glory" }), &shared).unwrap_err().contains("not an objective"));
+        assert!(call_tool("search", &json!({ "objective": "target armpw, glory" }), &shared).unwrap_err().contains("no such unit"));
     }
 
     #[test]
     fn remove_names_the_blast_and_refuses_to_kill_our_own() {
         use super::super::shared::{Removal, UnitCard};
         let shared = Arc::new(Shared::default());
-        assert!(call_tool("remove", &json!({ "destruct": ["armsolar_7"] }), &shared, Mode::Player).unwrap_err().contains("not published"));
+        assert!(call_tool("remove", &json!({ "destruct": ["armsolar_7"] }), &shared).unwrap_err().contains("not published"));
         let card = |handle: &str, actor: Option<&str>, at: (f32, f32), health: f32, blast: Option<(f32, f32)>| UnitCard { handle: handle.into(), actor: actor.map(str::to_string), unit: handle.split('_').next().unwrap().into(), at, health, metal: 155.0, self_destruct: blast, self_destruct_seconds: 5.0 };
         *shared.own_cards.lock().unwrap() = vec![
             card("armsolar_7", None, (100.0, 100.0), 400.0, Some((120.0, 500.0))),
@@ -924,121 +713,116 @@ mod tests {
             card("armck_9", Some("constructor_9"), (160.0, 120.0), 300.0, None),
             card("armmex_4", None, (900.0, 900.0), 300.0, Some((50.0, 100.0))),
         ];
-        assert!(call_tool("remove", &json!({}), &shared, Mode::Player).unwrap_err().contains("remove takes"));
-        assert!(call_tool("remove", &json!({ "reclaim": ["armsolar_99"] }), &shared, Mode::Player).unwrap_err().contains("nothing of ours has that name"));
-        let refused = call_tool("remove", &json!({ "destruct": ["armsolar_7"] }), &shared, Mode::Player).unwrap_err();
+        assert!(call_tool("remove", &json!({}), &shared).unwrap_err().contains("remove takes"));
+        assert!(call_tool("remove", &json!({ "reclaim": ["armsolar_99"] }), &shared).unwrap_err().contains("nothing of ours has that name"));
+        let refused = call_tool("remove", &json!({ "destruct": ["armsolar_7"] }), &shared).unwrap_err();
         assert!(refused.contains("would kill 1 of ours: constructor_9 (300 health)") && refused.contains("accept_losses"), "{refused}");
         assert!(shared.removals.lock().unwrap().is_empty(), "a refused destruct orders nothing");
-        let done = call_tool("remove", &json!({ "destruct": ["armmex_4"], "reclaim": ["armsolar_7"], "by": "constructor_9" }), &shared, Mode::Player).unwrap();
+        let done = call_tool("remove", &json!({ "destruct": ["armmex_4"], "reclaim": ["armsolar_7"], "by": "constructor_9" }), &shared).unwrap();
         assert!(done.contains("armmex_4 self-destructs in 5 s: blast radius 50, damage 100; of ours within it: nothing") && done.contains("armsolar_7 (armsolar, 155 metal) is taken apart by constructor_9"), "{done}");
         let removals = shared.removals.lock().unwrap().clone();
         assert!(matches!(&removals[0], Removal::Destruct { targets } if targets == &["armmex_4".to_string()]));
         assert!(matches!(&removals[1], Removal::Reclaim { targets, by: Some(b) } if targets == &["armsolar_7".to_string()] && b == "constructor_9"));
-        let accepted = call_tool("remove", &json!({ "destruct": ["armsolar_7"], "accept_losses": true }), &shared, Mode::Player).unwrap();
+        let accepted = call_tool("remove", &json!({ "destruct": ["armsolar_7"], "accept_losses": true }), &shared).unwrap();
         assert!(accepted.contains("constructor_9 (300 health, dies)") && accepted.contains("plant_3 (3000 health)"), "{accepted}");
-        assert!(call_tool("remove", &json!({ "reclaim": ["armsolar_7"], "by": "constructor_77" }), &shared, Mode::Player).unwrap_err().contains("not a builder standing now"));
+        assert!(call_tool("remove", &json!({ "reclaim": ["armsolar_7"], "by": "constructor_77" }), &shared).unwrap_err().contains("not a builder standing now"));
     }
 
     #[test]
     fn the_player_has_its_lever_and_none_of_the_commanders() {
-        let names = |mode: Mode| tool_list(mode).as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap().to_string()).collect::<Vec<_>>();
-        let player = names(Mode::Player);
+        let player: Vec<String> = tool_list().as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap().to_string()).collect();
         assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "produce", "remove", "policy", "standing", "say", "orders", "wait", "note"]);
-        let commander = names(Mode::Commander);
-        assert!(commander.contains(&"squad".to_string()) && !commander.contains(&"instruct".to_string()));
-        for tool in batchable(Mode::Player) {
+        for tool in batchable() {
             assert!(player.contains(&tool.to_string()));
         }
         let shared = Arc::new(Shared::default());
-        assert!(call_tool("squad", &json!({ "name": "a" }), &shared, Mode::Player).is_err());
-        assert!(call_tool("instruct", &json!({ "text": "commander: build the lab first." }), &shared, Mode::Player).is_ok());
+        assert!(call_tool("instruct", &json!({ "text": "commander: build the lab first." }), &shared).is_ok());
         assert_eq!(*shared.instructions.lock().unwrap(), "commander: build the lab first.");
-        assert!(call_tool("instruct", &json!({ "text": "x".repeat(INSTRUCTIONS_LIMIT + 1) }), &shared, Mode::Player).is_err());
-        assert!(call_tool("queue", &json!({ "commander": ["extractor spot_45", "armsolar", "armvp", "assist"], "constructor_7": null }), &shared, Mode::Player).is_ok());
+        assert!(call_tool("instruct", &json!({ "text": "x".repeat(INSTRUCTIONS_LIMIT + 1) }), &shared).is_err());
+        assert!(call_tool("queue", &json!({ "commander": ["extractor spot_45", "armsolar", "armvp", "assist"], "constructor_7": null }), &shared).is_ok());
         assert_eq!(shared.queues.lock().unwrap().get("commander").cloned().flatten().map(|s| s.len()), Some(4));
         assert!(shared.queues.lock().unwrap().contains_key("constructor_7"));
         // `assist N` sits in the middle of a list; a bare `assist` only ends one.
-        assert!(call_tool("queue", &json!({ "commander": ["armvp", "assist 20", "armsolar", "assist 30", "extractor spot_36", "assist"] }), &shared, Mode::Player).is_ok());
-        assert!(call_tool("queue", &json!({ "commander": ["armvp", "assist", "armsolar"] }), &shared, Mode::Player).is_err());
-        assert!(call_tool("queue", &json!({ "commander": ["armvp", "assist 2", "armsolar"] }), &shared, Mode::Player).is_err());
+        assert!(call_tool("queue", &json!({ "commander": ["armvp", "assist 20", "armsolar", "assist 30", "extractor spot_36", "assist"] }), &shared).is_ok());
+        assert!(call_tool("queue", &json!({ "commander": ["armvp", "assist", "armsolar"] }), &shared).is_err());
+        assert!(call_tool("queue", &json!({ "commander": ["armvp", "assist 2", "armsolar"] }), &shared).is_err());
         // With a roster published, a step must be a unit of it; without one any word passes and the bot skips it.
         shared.publish_field(0, super::super::shared::Field { roster: vec![("armsolar".into(), 155), ("armllt".into(), 85)], ..Default::default() });
-        assert!(call_tool("queue", &json!({ "commander": ["turret spot_3"] }), &shared, Mode::Player).is_err());
-        assert!(call_tool("queue", &json!({ "commander": ["armllt spot_3", "armsolar"] }), &shared, Mode::Player).is_ok());
+        assert!(call_tool("queue", &json!({ "commander": ["turret spot_3"] }), &shared).is_err());
+        assert!(call_tool("queue", &json!({ "commander": ["armllt spot_3", "armsolar"] }), &shared).is_ok());
         // Every player tool but the readers and `orders` itself can be batched (comet-3: `queue` was refused by the
         // batch as "not a tool that can be batched" and the game ran without the list).
         for tool in ["instruct", "queue", "policy", "lane", "mark", "produce", "say", "note", "wait"] {
-            assert!(batchable(Mode::Player).contains(&tool), "{tool}");
+            assert!(batchable().contains(&tool), "{tool}");
         }
-        assert!(orders(&json!({ "calls": [{ "tool": "queue", "arguments": { "commander": ["armsolar"] } }] }), &shared, Mode::Player).unwrap().contains("1 steps"));
-        assert!(call_tool("queue", &json!({ "group_A": ["armsolar"] }), &shared, Mode::Player).is_err());
-        assert!(call_tool("queue", &json!({ "commander": ["windmill"] }), &shared, Mode::Player).is_err());
+        assert!(orders(&json!({ "calls": [{ "tool": "queue", "arguments": { "commander": ["armsolar"] } }] }), &shared).unwrap().contains("1 steps"));
+        assert!(call_tool("queue", &json!({ "group_A": ["armsolar"] }), &shared).is_err());
+        assert!(call_tool("queue", &json!({ "commander": ["windmill"] }), &shared).is_err());
         // The shapes the model actually sent to cancel or replace a list (comet-5).
         for form in [json!({ "commander": "null" }), json!({ "commander": [] }), json!({ "commander": null })] {
-            assert!(call_tool("queue", &form, &shared, Mode::Player).unwrap().contains("cancelled"), "{form}");
+            assert!(call_tool("queue", &form, &shared).unwrap().contains("cancelled"), "{form}");
             assert!(shared.queues.lock().unwrap().get("commander").cloned().flatten().is_none());
-            let said = call_tool("queue", &json!({ "constructor_7": "stop", "commander": ["stop", "armsolar"] }), &shared, Mode::Player).unwrap();
+            let said = call_tool("queue", &json!({ "constructor_7": "stop", "commander": ["stop", "armsolar"] }), &shared).unwrap();
             assert!(said.contains("constructor_7: list cancelled and its build in progress dropped") && said.contains("commander: its build in progress dropped, then 1 steps"), "{said}");
             assert_eq!(shared.queues.lock().unwrap().get("constructor_7").cloned().flatten(), Some(vec!["stop".to_string()]));
-            assert!(call_tool("queue", &json!({ "commander": ["armsolar", "stop"] }), &shared, Mode::Player).is_err());
+            assert!(call_tool("queue", &json!({ "commander": ["armsolar", "stop"] }), &shared).is_err());
         }
-        assert!(call_tool("queue", &json!({ "commander": "[\"assist\"]" }), &shared, Mode::Player).unwrap().contains("1 steps"));
-        assert!(call_tool("queue", &json!({ "commander": "assist" }), &shared, Mode::Player).unwrap().contains("1 steps"));
+        assert!(call_tool("queue", &json!({ "commander": "[\"assist\"]" }), &shared).unwrap().contains("1 steps"));
+        assert!(call_tool("queue", &json!({ "commander": "assist" }), &shared).unwrap().contains("1 steps"));
     }
 
     #[test]
     fn the_lane_tool_sets_footwork_by_group() {
         use super::super::shared::Footwork;
         let shared = Arc::new(Shared::default());
-        assert!(call_tool("lane", &json!({ "group_A": "raw", "all": ["fan", "form"] }), &shared, Mode::Player).is_ok());
+        assert!(call_tool("lane", &json!({ "group_A": "raw", "all": ["fan", "form"] }), &shared).is_ok());
         let lane = shared.lane.lock().unwrap().clone();
         assert_eq!(lane["group_A"], Footwork::raw());
         assert_eq!(lane["all"], Footwork { flee: false, fan: true, kite: false, form: true, march: false, follow: false });
-        assert!(call_tool("lane", &json!({ "group_A": ["dance"] }), &shared, Mode::Player).is_err());
-        assert!(call_tool("lane", &json!({ "raiders": "raw" }), &shared, Mode::Player).is_err());
-        assert!(call_tool("lane", &json!({}), &shared, Mode::Player).is_err());
-        assert!(call_tool("lane", &json!({ "group_A": "on" }), &shared, Mode::Player).is_ok());
+        assert!(call_tool("lane", &json!({ "group_A": ["dance"] }), &shared).is_err());
+        assert!(call_tool("lane", &json!({ "raiders": "raw" }), &shared).is_err());
+        assert!(call_tool("lane", &json!({}), &shared).is_err());
+        assert!(call_tool("lane", &json!({ "group_A": "on" }), &shared).is_ok());
         assert!(!shared.lane.lock().unwrap().contains_key("group_A"));
-        assert!(call_tool("lane", &json!({ "group_A": "raw" }), &shared, Mode::Commander).is_err());
     }
 
     #[test]
     fn marks_are_named_places_by_coordinates_or_cell() {
         let shared = Arc::new(Shared::default());
         *shared.map.lock().unwrap() = json!({ "width": 8000.0, "height": 8000.0 });
-        assert!(call_tool("mark", &json!({ "south_gate": [3600, 5400], "far_east": "H4" }), &shared, Mode::Player).is_ok());
+        assert!(call_tool("mark", &json!({ "south_gate": [3600, 5400], "far_east": "H4" }), &shared).is_ok());
         let marks = shared.marks.lock().unwrap().clone();
         assert_eq!(marks["south_gate"], (3600.0, 5400.0));
         assert_eq!(marks["far_east"], (7500.0, 3500.0));
-        assert!(call_tool("mark", &json!({ "spot_3": [1.0, 1.0] }), &shared, Mode::Player).is_err());
-        assert!(call_tool("mark", &json!({ "Gate": [1.0, 1.0] }), &shared, Mode::Player).is_err());
-        assert!(call_tool("mark", &json!({ "x": [9000.0, 1.0] }), &shared, Mode::Player).is_err());
-        assert!(call_tool("mark", &json!({ "x": "Z9" }), &shared, Mode::Player).is_err());
-        assert!(call_tool("mark", &json!({ "south_gate": null }), &shared, Mode::Player).is_ok());
+        assert!(call_tool("mark", &json!({ "spot_3": [1.0, 1.0] }), &shared).is_err());
+        assert!(call_tool("mark", &json!({ "Gate": [1.0, 1.0] }), &shared).is_err());
+        assert!(call_tool("mark", &json!({ "x": [9000.0, 1.0] }), &shared).is_err());
+        assert!(call_tool("mark", &json!({ "x": "Z9" }), &shared).is_err());
+        assert!(call_tool("mark", &json!({ "south_gate": null }), &shared).is_ok());
         assert!(!shared.marks.lock().unwrap().contains_key("south_gate"));
     }
 
     #[test]
     fn produce_whitelists_a_lab_or_all() {
         let shared = Arc::new(Shared::default());
-        assert!(call_tool("produce", &json!({ "all": ["armpw", "armham"], "lab_7": [] }), &shared, Mode::Player).is_ok());
+        assert!(call_tool("produce", &json!({ "all": ["armpw", "armham"], "lab_7": [] }), &shared).is_ok());
         let allowed = shared.allowed.lock().unwrap().clone();
         assert_eq!(allowed["all"].units, vec!["armpw".to_string(), "armham".to_string()]);
         assert!(allowed["lab_7"].units.is_empty());
-        assert!(call_tool("produce", &json!({ "all": ["armck:1", "armpw"] }), &shared, Mode::Player).is_ok());
-        assert!(call_tool("produce", &json!({ "all": ["armck:x"] }), &shared, Mode::Player).is_err());
+        assert!(call_tool("produce", &json!({ "all": ["armck:1", "armpw"] }), &shared).is_ok());
+        assert!(call_tool("produce", &json!({ "all": ["armck:x"] }), &shared).is_err());
         assert_eq!(crate::brain::pianist::allowance("armck:2"), ("armck", Some(2)));
         assert_eq!(crate::brain::pianist::allowance("armpw"), ("armpw", None));
-        assert!(call_tool("produce", &json!({ "group_A": ["armpw"] }), &shared, Mode::Player).is_err());
-        assert!(call_tool("produce", &json!({ "commander": ["armfus:1"], "all_builders": ["armllt", "armsolar"] }), &shared, Mode::Player).is_ok());
+        assert!(call_tool("produce", &json!({ "group_A": ["armpw"] }), &shared).is_err());
+        assert!(call_tool("produce", &json!({ "commander": ["armfus:1"], "all_builders": ["armllt", "armsolar"] }), &shared).is_ok());
         assert_eq!(shared.allowed.lock().unwrap()["all_builders"].units, vec!["armllt".to_string(), "armsolar".to_string()]);
         let first = shared.allowed.lock().unwrap()["all_builders"].call;
-        assert!(call_tool("produce", &json!({ "all_builders": ["armllt", "armsolar"] }), &shared, Mode::Player).is_ok());
+        assert!(call_tool("produce", &json!({ "all_builders": ["armllt", "armsolar"] }), &shared).is_ok());
         assert!(shared.allowed.lock().unwrap()["all_builders"].call > first, "the same list again is a fresh allowance");
-        assert!(call_tool("units", &json!({ "names": ["armpw"] }), &shared, Mode::Player).is_ok());
-        assert!(call_tool("units", &json!({}), &shared, Mode::Player).is_err());
-        assert!(call_tool("produce", &json!({ "all": "armpw" }), &shared, Mode::Player).is_err());
-        assert!(call_tool("produce", &json!({ "lab_7": null }), &shared, Mode::Player).is_ok());
+        assert!(call_tool("units", &json!({ "names": ["armpw"] }), &shared).is_ok());
+        assert!(call_tool("units", &json!({}), &shared).is_err());
+        assert!(call_tool("produce", &json!({ "all": "armpw" }), &shared).is_err());
+        assert!(call_tool("produce", &json!({ "lab_7": null }), &shared).is_ok());
         assert!(!shared.allowed.lock().unwrap().contains_key("lab_7"));
     }
 }

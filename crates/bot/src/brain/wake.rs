@@ -28,7 +28,6 @@ const WRECK_WAKE_STEP: f32 = 500.0;
 #[derive(Default)]
 pub struct WakeState {
     threatened_extractors: usize,
-    squads_engaged: usize,
     pool_met: bool,
     /// The most extractors we have held, and when we first held that many.
     pub(super) extractor_peak: usize,
@@ -124,11 +123,6 @@ impl Brain {
             reasons.push(format!("enemies within {THREAT_RADIUS:.0} of our extractors at {}", threatened.join(", ")));
         }
         self.wake.threatened_extractors = threatened.len();
-        let engaged: Vec<&str> = field.squads.iter().filter(|s| s.engaged).map(|s| s.name.as_str()).collect();
-        if wake.squad_engaged && engaged.len() > self.wake.squads_engaged {
-            reasons.push(format!("squad engaged: {}", engaged.join(", ")));
-        }
-        self.wake.squads_engaged = engaged.len();
         // The pianist's groups: an engagement is news when the hands begin it.
         let began: Vec<String> = std::mem::take(&mut shared.hands.lock().unwrap().engaged);
         if wake.squad_engaged && !began.is_empty() {
@@ -175,7 +169,6 @@ impl Brain {
         }
         let since = tick.frame - last_turn_frame;
         let hot = self.unit_losses.back().is_some_and(|(f, ..)| tick.frame - f <= HOT_LOSS_FRAMES)
-            || field.squads.iter().any(|s| s.engaged)
             || self.pianist.as_ref().is_some_and(|p| p.groups.iter().any(|g| matches!(g.task, GroupTask::Engage { .. })));
         let max_seconds = if hot { wake.max_seconds.min(HOT_MAX_SECONDS) } else { wake.max_seconds };
         if reasons.is_empty() && since >= max_seconds as i32 * FRAMES_PER_SECOND {

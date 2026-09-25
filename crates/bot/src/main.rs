@@ -13,32 +13,27 @@ use std::os::unix::net::{UnixListener, UnixStream};
 use bot_protocol::{Commands, FrameReader, ToBot, socket_path, write_frame};
 
 use brain::Brain;
-use strategist::{Mode, Strategist};
+use strategist::Strategist;
 use world::World;
 
-/// usage: bot [--strategist | --commander | --commander-each | --player] [--pianist]
-/// A Claude Code session beside the brains (see `DESIGN.md`): the Opus strategist with standing directives, the
-/// Sonnet field commander with squads and the unit mix, or the Opus player whose lever is the pianist's instructions.
-/// One session serves every seat we play on a team (`strategist/seats.rs`); `--commander-each` gives each seat a
-/// commander of its own. `--pianist`: Jev plays every unit from the player's instructions in place of the decision
-/// heuristics (`docs/design/2026-09-21-pianist.md`); `--player` needs it.
-/// Transcripts go to `$WITHIN_REASON_LOG_DIR`, else the current directory.
+/// usage: bot [--player] [--pianist] [--policy]
+/// `--pianist`: Jev plays every unit from the player's instructions (`docs/design/2026-09-21-pianist.md`).
+/// `--player`: a Claude Code session beside the brains (see `DESIGN.md`), the Opus player whose lever is the
+/// pianist's instructions; one session serves every seat we play on a team (`strategist/seats.rs`). `--policy`: the
+/// Lua policy runtime. Transcripts go to `$WITHIN_REASON_LOG_DIR`, else the current directory.
 fn main() -> io::Result<()> {
-    let mut mode = None;
+    let mut player = false;
     let mut pianist = false;
     let mut policy = false;
     for argument in std::env::args().skip(1) {
         match argument.as_str() {
-            "--strategist" => mode = Some((Mode::Strategist, false)),
-            "--commander" => mode = Some((Mode::Commander, false)),
-            "--commander-each" => mode = Some((Mode::Commander, true)),
-            "--player" => mode = Some((Mode::Player, false)),
+            "--player" => player = true,
             "--pianist" => pianist = true,
             "--policy" => policy = true,
-            other => return Err(io::Error::other(format!("unknown argument {other}; usage: bot [--strategist | --commander | --commander-each | --player] [--pianist] [--policy]"))),
+            other => return Err(io::Error::other(format!("unknown argument {other}; usage: bot [--player] [--pianist] [--policy]"))),
         }
     }
-    if mode.is_some_and(|(m, _)| m == Mode::Player) && !pianist && !policy {
+    if player && !pianist && !policy {
         return Err(io::Error::other("--player is the pianist's player: give --pianist (Jev) or --policy (the Lua runtime), or both"));
     }
     strategist::set_policy_mode(policy);
@@ -52,7 +47,7 @@ fn main() -> io::Result<()> {
     for stream in listener.incoming() {
         let stream = stream?;
         std::thread::spawn(move || {
-            if let Err(e) = session(stream, mode, pianist, policy) {
+            if let Err(e) = session(stream, player, pianist, policy) {
                 eprintln!("session ended: {e}");
             }
         });
@@ -64,8 +59,8 @@ fn log_dir() -> std::path::PathBuf {
     std::env::var_os("WITHIN_REASON_LOG_DIR").map_or_else(|| ".".into(), Into::into)
 }
 
-/// `mode`: the kind of LLM session, and whether each seat gets its own (else one per team).
-fn session(mut stream: UnixStream, mode: Option<(Mode, bool)>, pianist: bool, policy: bool) -> io::Result<()> {
+/// `player`: whether the Opus player's session is started (one per team, `strategist/seats.rs`).
+fn session(mut stream: UnixStream, player: bool, pianist: bool, policy: bool) -> io::Result<()> {
     let mut input = stream.try_clone()?;
     let mut reader = FrameReader::default();
     let mut next = move || reader.read::<ToBot>(&mut input).map(|m| m.expect("blocking socket"));
@@ -73,22 +68,17 @@ fn session(mut stream: UnixStream, mode: Option<(Mode, bool)>, pianist: bool, po
     let ToBot::Hello(hello) = next()? else {
         return Err(io::Error::other("expected Hello first"));
     };
-    // A strategist that fails to start is not fatal: the heuristics play alone.
+    // A player session that fails to start is not fatal: the hands play alone.
     let board = team::TeamBoard::of(&hello);
-    let strategist = mode
-        .map(|(mode, each)| {
-            let start = || Strategist::start(&log_dir(), hello.ai_id, mode).map(std::sync::Arc::new);
-            if each { start() } else { board.strategist(start) }
-        })
-        .and_then(|started| started.inspect_err(|e| eprintln!("strategist failed to start: {e}")).ok());
-    let mode_name = match (mode, pianist, policy) {
-        (Some((Mode::Player, _)), _, false) => "player",
-        (Some((Mode::Player, _)), _, true) => "policy-player",
-        (_, true, _) => "pianist",
-        (_, false, true) => "policy",
-        (None, _, _) => "heuristic",
-        (Some((Mode::Strategist, _)), _, _) => "strategist",
-        (Some((Mode::Commander, _)), _, _) => "commander",
+    let strategist = player
+        .then(|| board.strategist(|| Strategist::start(&log_dir(), hello.ai_id).map(std::sync::Arc::new)))
+        .and_then(|started| started.inspect_err(|e| eprintln!("the player's session failed to start: {e}")).ok());
+    let mode_name = match (player, pianist, policy) {
+        (true, _, false) => "player",
+        (true, _, true) => "policy-player",
+        (false, true, _) => "pianist",
+        (false, false, true) => "policy",
+        (false, false, false) => "none",
     };
     // No key, no pianist: the process says so and the seat is not played at all rather than by the heuristics,
     // which would pass for the pianist in the ledger.

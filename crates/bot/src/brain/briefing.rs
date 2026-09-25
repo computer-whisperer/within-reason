@@ -1,4 +1,4 @@
-//! The brain's side of the strategist link: directives in, briefing, events and triggers out.
+//! The brain's side of the player's session: the briefing, the field, events and triggers out.
 
 use std::collections::BTreeMap;
 
@@ -34,18 +34,6 @@ fn clock(frame: i32) -> String {
 }
 
 impl Brain {
-    pub(super) fn read_directives(&mut self, frame: i32) {
-        let Some(shared) = &self.strategist else { return };
-        let mut directives = shared.directives.lock().unwrap();
-        directives.expire(frame);
-        self.directives = directives.clone();
-        drop(directives);
-        // One commander may serve several seats: a place for "the commander" means the seat that lives nearest it.
-        if self.directives.commander_station.is_some_and(|station| shared.nearest_seat(station.value).is_some_and(|seat| seat != self.world.hello.team)) {
-            self.directives.commander_station = None;
-        }
-    }
-
     pub(super) fn place(&self, pos: Vec3) -> Place {
         Place { grid: self.world.grid(pos), x: pos.x as i32, z: pos.z as i32 }
     }
@@ -265,7 +253,6 @@ impl Brain {
             enemies_visible,
             enemy_buildings_remembered,
             recent_events: self.recent_events.iter().cloned().collect(),
-            directives_in_force: self.directives.describe(tick.frame),
         };
         shared.publish_briefing(self.world.hello.team, self.home, briefing);
     }
@@ -467,7 +454,6 @@ impl Brain {
                 .map(|(def, pos, _)| (self.name(*def).to_string(), self.place(*pos)))
                 .collect(),
             enemy_factories_gone: self.enemy_factories_gone.iter().map(|(_, pos, at)| (self.place(*pos), at / FRAMES_PER_SECOND)).collect(),
-            raid_targets: Vec::new(),
             enemy_commander: self.enemy_commander_seen.map(|(pos, seen)| (self.place(pos), (tick.frame - seen) / FRAMES_PER_SECOND)),
             enemy_commander_afloat: self.enemy_commander_seen.is_some_and(|(pos, _)| !self.reachable_on_foot(pos)),
             enemy_soldiers_seen: self.enemy_soldiers.values().filter(|(_, _, seen)| recent(seen)).count(),
@@ -480,7 +466,6 @@ impl Brain {
         let ground = crate::strategist::shared::GroundReport {
             free_spots: (count(Ground::Held), count(Ground::Contested), count(Ground::Theirs)),
             extractors_exposed: own.iter().filter(|u| kit.is_extractor(u.def) && self.ground(u.pos) != Ground::Held).map(|u| self.place(u.pos)).collect(),
-            posts: Vec::new(),
             raided: raided.into_iter().take(4).map(|(at, metal)| (self.place(at), metal as u32)).collect(),
         };
         if shared.lead().is_none_or(|lead| lead == self.world.hello.team) {
@@ -495,14 +480,10 @@ impl Brain {
             resurrection_bots: own.iter().filter(|u| kit.is_resurrector(u.def)).count(),
             unassigned: composition(&pool),
             unassigned_centre: centre_of_units(&pool).map(|c| self.place(c)),
-            squads: Vec::new(),
             extractors,
             turrets: turrets.iter().map(|t| self.place(*t)).collect(),
             buildable,
             roster,
-            production_weights: Vec::new(),
-            turret_requests_pending: 0,
-            spot_plan: String::new(),
         });
     }
 }

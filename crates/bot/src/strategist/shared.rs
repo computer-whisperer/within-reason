@@ -1,11 +1,11 @@
-//! What the brain and the strategist exchange: a briefing going up, directives coming down.
+//! What the brain and the player's session exchange: the briefing, the field and the hands going up, the turn's orders coming down.
 
 use std::collections::BTreeMap;
 use std::sync::atomic::AtomicU64;
 use std::sync::{Condvar, Mutex};
 
-use bot_protocol::{Resource, Vec3};
-use serde::{Deserialize, Serialize};
+use bot_protocol::{Resource};
+use serde::Serialize;
 
 /// The brain's summary of the game, published every tick for the strategist to read.
 #[derive(Clone, Debug, Default, Serialize)]
@@ -28,7 +28,6 @@ pub struct Briefing {
     pub enemy_buildings_remembered: Vec<RememberedBuilding>,
     /// Newest last.
     pub recent_events: Vec<String>,
-    pub directives_in_force: Vec<String>,
     /// Our seats in this game, one line each; filled by the merge (`seats.rs`).
     pub seats: Vec<super::seats::SeatLine>,
 }
@@ -79,227 +78,19 @@ pub struct RememberedBuilding {
     pub last_seen: String,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Stance {
-    /// Keep the whole army at home.
-    Defend,
-    /// Keep building the home group; launch nothing.
-    Gather,
-    /// Commit the home group now, whatever its size.
-    Attack,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Focus {
-    Expand,
-    Energy,
-    Production,
-    Defence,
-}
-
-/// A directive value that lapses, so a silent strategist hands control back to the heuristics.
-/// Which of our extractors get a light turret of the bot's own accord (H-ECO-OUTPOST-TURRET): the rule as it is
-/// (`"all"`: one per extractor beyond 500 from home), none (`"none"`: turrets only where `request_turret` asks), or
-/// the extractors on these numbered spots and no other.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum OutpostTurrets {
-    Rule(OutpostRule),
-    Spots(Vec<usize>),
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum OutpostRule {
-    All,
-    None,
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct Timed<T> {
-    pub value: T,
-    pub expires_frame: i32,
-}
-
-/// The strategist's standing orders. Every field is "directive, else the heuristic's default".
-#[derive(Clone, Debug, Default)]
-pub struct Directives {
-    pub army_stance: Option<Timed<Stance>>,
-    pub attack_target: Option<Timed<Vec3>>,
-    pub wave_size: Option<Timed<usize>>,
-    pub economy_focus: Option<Timed<Focus>>,
-    pub army_station: Option<Timed<Vec3>>,
-    pub min_constructors: Option<Timed<usize>>,
-    pub min_converters: Option<Timed<usize>>,
-    /// No more energy-to-metal converters than this, whatever the energy surplus (cmd-opus-low-2: fifteen were
-    /// built on four extractors and the commander asked for the lever).
-    pub max_converters: Option<Timed<usize>>,
-    /// Constructors take no metal spot farther than this from home, on foot.
-    pub expansion_radius: Option<Timed<usize>>,
-    /// The cap on the bot's own base turrets (H-ECO-BASE-TURRETS; its own numbers are 2, then 6); 0 stops them. The
-    /// user's ruling after cmd-opus-low-6: the commander dictates how many light turrets go up and where.
-    pub base_turrets: Option<Timed<usize>>,
-    /// Which extractors get a turret of the bot's own accord (H-ECO-OUTPOST-TURRET); unset means all beyond 500.
-    pub outpost_turrets: Option<Timed<OutpostTurrets>>,
-    /// Where the commander stands and builds, instead of roaming its leash around home.
-    pub commander_station: Option<Timed<Vec3>>,
-    /// Tier 2: `true` starts the advanced lab now whatever the economy, `false` holds it back.
-    pub tier2: Option<Timed<bool>>,
-    /// `false`: resurrection bots take every wreck apart and raise nothing.
-    pub resurrect: Option<Timed<bool>>,
-    /// `false`: the early raider pressure party (H-ARMY-PRESSURE) stays home.
-    pub pressure: Option<Timed<bool>>,
-    /// The next scout route starts round this point (H-SCOUT-ROUTE).
-    pub scout_at: Option<Timed<Vec3>>,
-}
-
-impl Directives {
-    pub fn expire(&mut self, frame: i32) {
-        fn lapse<T>(slot: &mut Option<Timed<T>>, frame: i32) {
-            if slot.as_ref().is_some_and(|t| t.expires_frame <= frame) {
-                *slot = None;
-            }
-        }
-        lapse(&mut self.army_stance, frame);
-        lapse(&mut self.attack_target, frame);
-        lapse(&mut self.wave_size, frame);
-        lapse(&mut self.economy_focus, frame);
-        lapse(&mut self.army_station, frame);
-        lapse(&mut self.min_constructors, frame);
-        lapse(&mut self.min_converters, frame);
-        lapse(&mut self.max_converters, frame);
-        lapse(&mut self.expansion_radius, frame);
-        lapse(&mut self.base_turrets, frame);
-        lapse(&mut self.outpost_turrets, frame);
-        lapse(&mut self.commander_station, frame);
-        lapse(&mut self.tier2, frame);
-        lapse(&mut self.resurrect, frame);
-        lapse(&mut self.pressure, frame);
-        lapse(&mut self.scout_at, frame);
-    }
-
-    pub fn describe(&self, frame: i32) -> Vec<String> {
-        let left = |expires: i32| format!("{}s left", (expires - frame).max(0) / 30);
-        let mut lines = Vec::new();
-        if let Some(t) = self.army_stance {
-            lines.push(format!("army_stance={:?} ({})", t.value, left(t.expires_frame)));
-        }
-        if let Some(t) = self.attack_target {
-            lines.push(format!("attack_target=({:.0}, {:.0}) ({})", t.value.x, t.value.z, left(t.expires_frame)));
-        }
-        if let Some(t) = self.wave_size {
-            lines.push(format!("wave_size={} ({})", t.value, left(t.expires_frame)));
-        }
-        if let Some(t) = self.economy_focus {
-            lines.push(format!("economy_focus={:?} ({})", t.value, left(t.expires_frame)));
-        }
-        if let Some(t) = self.army_station {
-            lines.push(format!("army_station=({:.0}, {:.0}) ({})", t.value.x, t.value.z, left(t.expires_frame)));
-        }
-        if let Some(t) = self.min_constructors {
-            lines.push(format!("min_constructors={} ({})", t.value, left(t.expires_frame)));
-        }
-        if let Some(t) = self.min_converters {
-            lines.push(format!("min_converters={} ({})", t.value, left(t.expires_frame)));
-        }
-        if let Some(t) = self.max_converters {
-            lines.push(format!("max_converters={} ({})", t.value, left(t.expires_frame)));
-        }
-        if let Some(t) = self.expansion_radius {
-            lines.push(format!("expansion_radius={} ({})", t.value, left(t.expires_frame)));
-        }
-        if let Some(t) = self.base_turrets {
-            lines.push(format!("base_turrets={} ({})", t.value, left(t.expires_frame)));
-        }
-        if let Some(t) = &self.outpost_turrets {
-            let value = match &t.value {
-                OutpostTurrets::Rule(OutpostRule::All) => "all".to_string(),
-                OutpostTurrets::Rule(OutpostRule::None) => "none".to_string(),
-                OutpostTurrets::Spots(spots) => format!("spots {}", spots.iter().map(|n| n.to_string()).collect::<Vec<_>>().join(",")),
-            };
-            lines.push(format!("outpost_turrets={value} ({})", left(t.expires_frame)));
-        }
-        if let Some(r) = self.resurrect {
-            lines.push(format!("resurrect={} ({})", r.value, left(r.expires_frame)));
-        }
-        if let Some(t) = self.tier2 {
-            lines.push(format!("tier2={} ({})", if t.value { "go" } else { "hold" }, left(t.expires_frame)));
-        }
-        if let Some(t) = self.commander_station {
-            lines.push(format!("commander_station=({:.0}, {:.0}) ({})", t.value.x, t.value.z, left(t.expires_frame)));
-        }
-        if let Some(t) = self.pressure {
-            lines.push(format!("pressure={} ({})", if t.value { "on" } else { "off" }, left(t.expires_frame)));
-        }
-        if let Some(t) = self.scout_at {
-            lines.push(format!("scout_at=({:.0}, {:.0}) ({})", t.value.x, t.value.z, left(t.expires_frame)));
-        }
-        lines
-    }
-}
-
-/// A standing defensive position: stand at `at`, engage what comes within `radius`, go back.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Post {
-    pub at: Vec3,
-    pub radius: f32,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum OrderKind {
-    Move,
-    Fight,
-}
-
-/// What the commander wants of one squad. The brain owns the membership; this is the request side.
-#[derive(Clone, Debug, Default)]
-pub struct SquadRequest {
-    /// Unit name to how many more to draw from the unassigned pool; emptied by the brain as it fills them.
-    pub take: BTreeMap<String, usize>,
-    /// Draw the units nearest to this point (else to the post, else to home).
-    pub near: Option<Vec3>,
-    pub post: Option<Post>,
-    /// A one-off order, carried out once by every seat (`seen_by` says which have) and then dropped.
-    pub order: Option<(OrderKind, Vec3)>,
-    /// Hand every member back to the heuristics and forget the squad, likewise once every seat has.
-    pub release: bool,
-    /// Seats (teams) that have carried out the order or release standing above.
-    pub seen_by: std::collections::BTreeSet<i32>,
-}
-
-/// The field commander's levers (see `DESIGN.md`, "Field commander").
-#[derive(Clone, Debug, Default)]
-pub struct FieldOrders {
-    pub squads: BTreeMap<String, SquadRequest>,
-    /// Unit name to weight. Empty: the heuristic batch.
-    pub production: BTreeMap<String, u32>,
-    pub turret_requests: Vec<Vec3>,
-    /// Metal spots by their number in the map's list: taken first and in this order (wherever they are, raided or
-    /// not), and never taken.
-    pub spot_priority: Vec<usize>,
-    pub spot_avoid: Vec<usize>,
-}
-
-/// What the commander is shown each turn, beyond the briefing.
+/// What the player is shown each turn beyond the briefing: the `situation` tool's answer, the roster and buildable
+/// checks, the wake conditions' field.
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct Field {
-    /// Soldiers no squad has claimed, by unit name; the heuristics command these.
+    /// Our soldiers by unit name, and their centre.
     pub unassigned: Vec<(String, usize)>,
     pub unassigned_centre: Option<Place>,
-    pub squads: Vec<SquadStatus>,
     pub extractors: Vec<ExtractorStatus>,
     pub turrets: Vec<Place>,
     /// What our standing builders and factories can build now, with metal cost.
     pub buildable: Vec<(String, u32)>,
     /// Every unit the commander reaches by build lists: the faction's whole roster, with metal cost.
     pub roster: Vec<(String, u32)>,
-    pub production_weights: Vec<(String, u32)>,
-    pub turret_requests_pending: usize,
-    /// The expansion plan in force, as spot numbers with their grid cells, for the report.
-    pub spot_plan: String,
     pub score: Score,
     pub ground: GroundReport,
     /// Wreck fields known: place, metal, whether it is safe to work (held ground, no enemy in sight near it).
@@ -315,8 +106,6 @@ pub struct GroundReport {
     pub free_spots: (usize, usize, usize),
     /// Our extractors standing on ground that is not held.
     pub extractors_exposed: Vec<Place>,
-    /// Where the unclaimed soldiers stand: the station first, then the detachments' posts.
-    pub posts: Vec<Place>,
     /// Where the opponent's soldiers were seen or ours died in the last three minutes, the heaviest first, in metal.
     pub raided: Vec<(Place, u32)>,
 }
@@ -366,21 +155,6 @@ pub struct Score {
     pub enemy_commander: Option<(Place, i32)>,
     /// Its last seen position is off ground our bots can walk to: in the sea, where only amphibians follow.
     pub enemy_commander_afloat: bool,
-    /// Its extractors seen outside its base, nearest to us first, each with the metal of turrets known within 500.
-    pub raid_targets: Vec<(Place, u32)>,
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub struct SquadStatus {
-    pub name: String,
-    pub composition: Vec<(String, usize)>,
-    pub health_percent: u32,
-    pub centre: Option<Place>,
-    pub post: Option<(Place, u32)>,
-    pub still_wanted: Vec<(String, usize)>,
-    pub engaged: bool,
-    /// What became of the last post or order: moved to walkable ground, or refused.
-    pub remark: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -421,8 +195,6 @@ pub use micro::Footwork;
 /// what the turn added, so nothing the brain already took is played twice.
 #[derive(Clone, Debug)]
 pub struct TurnOutputs {
-    pub directives: Directives,
-    pub field_orders: FieldOrders,
     pub wake: Wake,
     pub instructions: String,
     pub queues: BTreeMap<String, Option<Vec<String>>>,
@@ -563,14 +335,12 @@ pub struct Shared {
     pub seats: Mutex<BTreeMap<i32, super::seats::SeatView>>,
     /// When the commander's last turn began (team-wide: whichever seat leads asks for the next).
     pub last_turn_frame: std::sync::atomic::AtomicI32,
-    pub directives: Mutex<Directives>,
     /// Things worth waking the strategist for, drained by the driver.
     pub triggers: Mutex<Vec<String>>,
     /// Static map description, filled once at game start.
     pub map: Mutex<serde_json::Value>,
     /// The territory grid as text, redrawn by the lead seat: one character per 256-elmo cell.
     pub ground_sketch: Mutex<Vec<String>>,
-    pub field_orders: Mutex<FieldOrders>,
     /// Losses and kills since the commander last looked ("lost armpw to corak in our half" to count).
     pub fights: Mutex<BTreeMap<String, u32>>,
     /// The commander's own notes, carried across session restarts.
@@ -656,8 +426,6 @@ impl Shared {
     /// Everything a turn can change that the game reads.
     fn outputs(&self) -> TurnOutputs {
         TurnOutputs {
-            directives: self.directives.lock().unwrap().clone(),
-            field_orders: self.field_orders.lock().unwrap().clone(),
             wake: self.wake.lock().unwrap().clone(),
             instructions: self.instructions.lock().unwrap().clone(),
             queues: self.queues.lock().unwrap().clone(),
@@ -671,8 +439,6 @@ impl Shared {
     }
 
     fn restore(&self, o: TurnOutputs) {
-        *self.directives.lock().unwrap() = o.directives;
-        *self.field_orders.lock().unwrap() = o.field_orders;
         *self.wake.lock().unwrap() = o.wake;
         *self.instructions.lock().unwrap() = o.instructions;
         *self.queues.lock().unwrap() = o.queues;
@@ -703,8 +469,6 @@ impl Shared {
             Some((at, o)) if frame >= at => {
                 // The turn's outputs land: the whole-state fields are set, the consumed ones (lists, policy changes,
                 // removals) are added to what has come since.
-                *self.directives.lock().unwrap() = o.directives;
-                *self.field_orders.lock().unwrap() = o.field_orders;
                 *self.wake.lock().unwrap() = o.wake;
                 *self.instructions.lock().unwrap() = o.instructions;
                 *self.lane.lock().unwrap() = o.lane;
@@ -760,19 +524,6 @@ impl Shared {
         gate.closed = true;
         gate.in_progress = false;
         self.gate_changed.notify_all();
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn outpost_turrets_parse_as_a_word_or_a_list() {
-        assert_eq!(serde_json::from_str::<OutpostTurrets>("\"all\"").unwrap(), OutpostTurrets::Rule(OutpostRule::All));
-        assert_eq!(serde_json::from_str::<OutpostTurrets>("\"none\"").unwrap(), OutpostTurrets::Rule(OutpostRule::None));
-        assert_eq!(serde_json::from_str::<OutpostTurrets>("[5, 7]").unwrap(), OutpostTurrets::Spots(vec![5, 7]));
-        assert!(serde_json::from_str::<OutpostTurrets>("\"some\"").is_err());
     }
 }
 

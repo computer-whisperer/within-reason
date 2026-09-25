@@ -33,57 +33,28 @@ const DEFAULT_EFFORT: &str = "high";
 /// Sessions run on this subscription unless `WITHIN_REASON_CLAUDE_CONFIG_DIR` says otherwise: it has extra usage
 /// (paid credits) disabled, so it can be blocked but never charged (`docs/harness/claude-p.md`).
 const DEFAULT_CLAUDE_CONFIG_DIR: &str = ".claude2";
-/// Game time between the strategist's routine turns when nothing triggers one sooner.
-const ROUTINE_INTERVAL_FRAMES: i32 = 45 * 30;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Mode {
-    Strategist,
-    Commander,
-    Player,
+/// `WITHIN_REASON_MODEL` (the arena's `--commander-model`) overrides the player's usual model.
+fn model() -> String {
+    std::env::var("WITHIN_REASON_MODEL").ok().filter(|m| !m.is_empty()).unwrap_or_else(|| "claude-opus-5".into())
 }
 
-impl Mode {
-    /// `WITHIN_REASON_MODEL` (the arena's `--commander-model`) overrides the role's usual model.
-    fn model(self) -> String {
-        std::env::var("WITHIN_REASON_MODEL").ok().filter(|m| !m.is_empty()).unwrap_or_else(|| {
-            match self {
-                Mode::Strategist | Mode::Player => "claude-opus-5",
-                Mode::Commander => "claude-sonnet-5",
-            }
-            .into()
-        })
-    }
-
-    /// Read from the checkout at every session start (`crate::texts`): an edit needs no rebuild.
-    fn system_prompt(self) -> String {
-        use crate::texts::{read, COMMANDER_BRIEF, COMMANDER_PROMPT, PLAYER_BRIEF, PLAYER_PROMPT, POLICY_PROMPT, STRATEGIST_PROMPT};
-        match self {
-            Mode::Strategist => read(&STRATEGIST_PROMPT),
-            // The role, then what the project knows (`docs/README.md`: the brief is rewritten from the knowledge base).
-            Mode::Commander => read(&COMMANDER_PROMPT) + &read(&COMMANDER_BRIEF),
-            // The player's lever is the packet, or the Lua policy when the runtime is on (`bot --policy`).
-            Mode::Player if policy_mode() => read(&POLICY_PROMPT) + &read(&PLAYER_BRIEF) + &objective(),
-            Mode::Player => read(&PLAYER_PROMPT) + &read(&PLAYER_BRIEF) + &objective(),
-        }
-    }
-
-    /// Turns are taken with the game held still (the brain asks for them, `brain/wake.rs`).
-    fn lockstep(self) -> bool {
-        if realtime() {
-            return false;
-        }
-        matches!(self, Mode::Commander | Mode::Player)
-    }
-
-    /// Turns after which the session is replaced by a fresh one that is handed the notes, to bound its context.
-    fn turns_per_session(self) -> usize {
-        match self {
-            Mode::Strategist => usize::MAX,
-            Mode::Commander | Mode::Player => 40,
-        }
-    }
+/// Read from the checkout at every session start (`crate::texts`): an edit needs no rebuild. The role, then what the
+/// project knows (`docs/README.md`: the brief is rewritten from the knowledge base), then the game's objective. The
+/// player's lever is the packet, or the Lua policy when the runtime is on (`bot --policy`).
+fn system_prompt() -> String {
+    use crate::texts::{read, PLAYER_BRIEF, PLAYER_PROMPT, POLICY_PROMPT};
+    let role = if policy_mode() { read(&POLICY_PROMPT) } else { read(&PLAYER_PROMPT) };
+    role + &read(&PLAYER_BRIEF) + &objective()
 }
+
+/// Turns are taken with the game held still (the brain asks for them, `brain/wake.rs`), unless the game is realtime.
+fn lockstep() -> bool {
+    !realtime()
+}
+
+/// Turns after which the session is replaced by a fresh one that is handed the notes, to bound its context.
+const TURNS_PER_SESSION: usize = 40;
 
 /// A requirement the user set for this game (`arena --objective`, `WITHIN_REASON_OBJECTIVE`): "kill the commander
 /// with Thunder bombers", to prove a branch of the roster reachable. Appended to the player's role text.
@@ -105,7 +76,6 @@ pub struct Strategist {
 
 /// What it takes to start a session, kept so the driver can start the next one.
 struct Launch {
-    mode: Mode,
     cwd: PathBuf,
     config_dir: PathBuf,
     /// `claude --effort`: stated, never inherited, so a transcript can be compared with another.
@@ -154,14 +124,14 @@ struct Session {
 
 impl Strategist {
     /// Starts the MCP server and the Claude Code session. `dir` receives `strategist-N.jsonl`.
-    pub fn start(dir: &Path, ai_id: i32, mode: Mode) -> std::io::Result<Self> {
+    pub fn start(dir: &Path, ai_id: i32) -> std::io::Result<Self> {
         let shared = Arc::new(Shared::default());
-        shared.lockstep.store(mode.lockstep(), Ordering::Relaxed);
-        shared.gated.store(matches!(mode, Mode::Commander | Mode::Player), Ordering::Relaxed);
+        shared.lockstep.store(lockstep(), Ordering::Relaxed);
+        shared.gated.store(true, Ordering::Relaxed);
         // How late the commander's orders land, in game seconds per wall second of thought (arena `--think-penalty`).
         *shared.think_penalty.lock().unwrap() = std::env::var("WITHIN_REASON_THINK_PENALTY").ok().and_then(|v| v.parse().ok()).unwrap_or(0.0);
         let transcript = Arc::new(Transcript::create(&dir.join(format!("strategist-{ai_id}.jsonl")))?);
-        let server = McpServer::start(shared.clone(), transcript.clone(), mode)?;
+        let server = McpServer::start(shared.clone(), transcript.clone())?;
         // An empty working directory: nothing for the session to discover.
         let cwd = dir.join(format!("strategist-{ai_id}-cwd"));
         std::fs::create_dir_all(&cwd)?;
@@ -172,13 +142,13 @@ impl Strategist {
         );
         let effort = std::env::var("WITHIN_REASON_EFFORT").ok().filter(|e| !e.is_empty()).unwrap_or_else(|| DEFAULT_EFFORT.into());
         let mcp_url = format!("http://127.0.0.1:{}/mcp", server.port);
-        let launch = Launch { mode, cwd, config_dir, effort, mcp_config: mcp_config.to_string(), mcp_url, transcript };
+        let launch = Launch { cwd, config_dir, effort, mcp_config: mcp_config.to_string(), mcp_url, transcript };
         let session = launch.spawn()?;
         eprintln!(
-            "[ai {ai_id}] {mode:?} started ({}, effort {}, {}, MCP on port {})",
-            mode.model(),
+            "[ai {ai_id}] the player started ({}, effort {}, {}, MCP on port {})",
+            model(),
             launch.effort,
-            match Backend::for_model(&mode.model()) {
+            match Backend::for_model(&model()) {
                 Backend::Claude => format!("account {}", launch.config_dir.display()),
                 Backend::Codex => "the Codex CLI on its own login".to_string(),
             },
@@ -199,12 +169,12 @@ impl Drop for Strategist {
 
 impl Launch {
     fn spawn(&self) -> std::io::Result<Session> {
-        let prompt = self.mode.system_prompt();
-        if Backend::for_model(&self.mode.model()) == Backend::Codex {
+        let prompt = system_prompt();
+        if Backend::for_model(&model()) == Backend::Codex {
             std::fs::write(self.cwd.join("AGENTS.md"), &prompt)?;
             let (turn_done_tx, turn_done) = channel();
             let kind = SessionKind::Codex {
-                model: self.mode.model(),
+                model: model(),
                 effort: match self.effort.as_str() {
                     "xhigh" | "max" => "xhigh".to_string(),
                     other => other.to_string(),
@@ -221,7 +191,7 @@ impl Launch {
         let mut child = Command::new("claude")
             .current_dir(&self.cwd)
             .env("CLAUDE_CONFIG_DIR", &self.config_dir)
-            .args(["-p", "--model", &self.mode.model(), "--tools", "", "--strict-mcp-config", "--mcp-config"])
+            .args(["-p", "--model", &model(), "--tools", "", "--strict-mcp-config", "--mcp-config"])
             .arg(&self.mcp_config)
             .args(["--allowedTools", "mcp__wreason__*", "--permission-mode", "dontAsk", "--setting-sources", ""])
             .args(["--effort", &self.effort])
@@ -352,30 +322,14 @@ impl Session {
     }
 }
 
-/// Sends one turn at a time. The strategist is called on a timer and on triggers while the game runs on; the
-/// commander is called when the brain asks (its wake conditions), and the brain holds the game until the turn ends.
+/// Sends one turn at a time: the player is called when the brain asks (its wake conditions), and in lockstep the
+/// brain holds the game until the turn ends.
 fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBool, ai_id: i32) {
-    let mode = launch.mode;
-    let mut last_turn_frame = i32::MIN / 2;
     let mut turns_this_session = 0;
     let mut seen = report::Seen::default();
     let mut owed_result = false;
     while !stop.load(Ordering::Relaxed) {
-        let headline = match mode {
-            Mode::Commander | Mode::Player => match shared.next_turn_request(stop) {
-                Some(reason) => reason,
-                None => break,
-            },
-            Mode::Strategist => {
-                std::thread::sleep(Duration::from_millis(200));
-                let frame = shared.briefing().frame;
-                let triggers = std::mem::take(&mut *shared.triggers.lock().unwrap());
-                if frame == 0 || (triggers.is_empty() && frame - last_turn_frame < ROUTINE_INTERVAL_FRAMES) {
-                    continue;
-                }
-                if triggers.is_empty() { "Routine check.".to_string() } else { triggers.join(" ") }
-            }
-        };
+        let Some(headline) = shared.next_turn_request(stop) else { break };
         // The last turn ended at its `wait`; the session may still be writing its closing words, and takes no new
         // prompt until it has reported that response finished. Before the restart below, not after: the new session
         // owes nothing, and waiting on it held the game until the arena gave up (commander game 10b, turn 40).
@@ -395,16 +349,16 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
         }
         // A fresh session at the cap, and as soon as the prompt on disk has been edited (the user, 2026-09-22: text
         // updates without a rebuild); either way the new session is handed the notes.
-        let edited = crate::texts::digest(&mode.system_prompt()) != session.prompt;
+        let edited = crate::texts::digest(&system_prompt()) != session.prompt;
         if edited {
             eprintln!("[ai {ai_id}] the prompt on disk has changed: a fresh session reads it");
         }
-        if turns_this_session >= mode.turns_per_session() || edited {
+        if turns_this_session >= TURNS_PER_SESSION || edited {
             session.end();
             session = match launch.spawn() {
                 Ok(next) => next,
                 Err(e) => {
-                    eprintln!("[ai {ai_id}] could not restart the session: {e}; heuristics carry on alone");
+                    eprintln!("[ai {ai_id}] could not restart the session: {e}; the hands carry on alone");
                     shared.close_gate();
                     return;
                 }
@@ -415,12 +369,7 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
             let briefing = shared.briefing();
             (briefing.frame, briefing.game_time)
         };
-        let prompt = match mode {
-            Mode::Strategist => format!("Game time {game_time}. {headline}"),
-            Mode::Commander => commander_prompt(&game_time, &headline, shared, &mut seen, turns_this_session == 0),
-            Mode::Player => player_prompt(&game_time, &headline, shared, &mut seen, turns_this_session == 0),
-        };
-        last_turn_frame = frame;
+        let prompt = player_prompt(&game_time, &headline, shared, &mut seen, turns_this_session == 0);
         turns_this_session += 1;
         let started = Instant::now();
         launch.transcript.record(json!({ "kind": "turn", "frame": frame, "prompt": prompt }));
@@ -432,14 +381,14 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
                 match session.turn_done.recv_timeout(Duration::from_millis(50)) {
                     Ok(()) => break true,
                     // The commander called `wait`: the game is running again, the response's tail is owed.
-                    Err(RecvTimeoutError::Timeout) if mode.lockstep() && !shared.turn_in_progress() => {
+                    Err(RecvTimeoutError::Timeout) if lockstep() && !shared.turn_in_progress() => {
                         owed_result = true;
                         break true;
                     }
                     // A turn that has held the game this long is a hung session (pianist-player-10: the first turn
                     // never returned, and the engine's watchdog killed the game at three minutes): the game goes on
                     // and the session is replaced.
-                    Err(RecvTimeoutError::Timeout) if matches!(mode, Mode::Commander | Mode::Player) && started.elapsed() > turn_cap(mode) => {
+                    Err(RecvTimeoutError::Timeout) if started.elapsed() > turn_cap() => {
                         abandoned = true;
                         break true;
                     }
@@ -448,14 +397,14 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
                 }
             };
         if abandoned {
-            eprintln!("[ai {ai_id}] {mode:?} turn abandoned after {} s with no answer: the session is replaced", started.elapsed().as_secs());
+            eprintln!("[ai {ai_id}] turn abandoned after {} s with no answer: the session is replaced", started.elapsed().as_secs());
             launch.transcript.record(json!({ "kind": "turn_end", "wall_seconds": started.elapsed().as_secs_f32(), "ended_by": "abandoned" }));
             shared.end_turn();
             session.end();
             session = match launch.spawn() {
                 Ok(next) => next,
                 Err(e) => {
-                    eprintln!("[ai {ai_id}] could not restart the session: {e}; heuristics carry on alone");
+                    eprintln!("[ai {ai_id}] could not restart the session: {e}; the hands carry on alone");
                     shared.close_gate();
                     return;
                 }
@@ -468,7 +417,7 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
         shared.end_turn();
         if !finished {
             if !stop.load(Ordering::Relaxed) {
-                eprintln!("[ai {ai_id}] {mode:?} session ended; heuristics carry on alone");
+                eprintln!("[ai {ai_id}] the session ended; the hands carry on alone");
             }
             break;
         }
@@ -479,10 +428,10 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
 
 /// A turn is abandoned after this long with no answer: in lockstep 45 s (the engine's watchdog, HangTimeout, is 60 s by
 /// default and the arena raises it to 600; turns run 1 to 11 s), in real time 120 s (the game runs on meanwhile).
-fn turn_cap(mode: Mode) -> Duration {
+fn turn_cap() -> Duration {
     // A Codex turn is one process with a 3 s floor and 20-60 s of writing (docs/studies/policy-models.md): the
     // lockstep cap that catches a hung Claude session would discard most of them.
-    Duration::from_secs(if mode.lockstep() && Backend::for_model(&mode.model()) == Backend::Claude { 45 } else { 120 })
+    Duration::from_secs(if lockstep() && Backend::for_model(&model()) == Backend::Claude { 45 } else { 120 })
 }
 
 /// `WITHIN_REASON_REALTIME`: the game is never held for a turn or an answer (a game against people; the arena's
@@ -500,32 +449,6 @@ pub fn set_policy_mode(on: bool) {
 
 pub(crate) fn policy_mode() -> bool {
     POLICY_MODE.load(std::sync::atomic::Ordering::Relaxed)
-}
-
-/// The commander is shown the picture outright (a tool call to look would double its turn), in full at the start of
-/// a session and as changes afterwards.
-fn commander_prompt(game_time: &str, headline: &str, shared: &Shared, seen: &mut report::Seen, fresh_session: bool) -> String {
-    let briefing = shared.briefing();
-    let field = shared.field();
-    let fights: Vec<String> =
-        std::mem::take(&mut *shared.fights.lock().unwrap()).into_iter().map(|(what, n)| format!("{what} x{n}")).collect();
-    let mut prompt = String::new();
-    if fresh_session && realtime() {
-        prompt.push_str("This game runs in real time: it does not pause while you take a turn, and your orders land when the turn ends, five to ten seconds later. Decide from the report, write states that hold, and keep turns short.\n\n");
-    }
-    if fresh_session {
-        let notes = shared.notes.lock().unwrap();
-        if !notes.is_empty() {
-            prompt += &format!("You are taking over mid-game from an earlier session of yourself. Its notes:\n{}\n\n", notes.join("\n"));
-        }
-        prompt += &format!("Map: {}\n\n", shared.map.lock().unwrap());
-    }
-    let wake = serde_json::to_string(&*shared.wake.lock().unwrap()).unwrap_or_default();
-    prompt += &format!(
-        "[{game_time}] Woken because: {headline}\n{}\nwake conditions in force: {wake}",
-        report::report(seen, &briefing, &field, &fights, fresh_session)
-    );
-    prompt
 }
 
 /// The player is shown the game as the commander is, then its hands: what they did since the last turn, the actors

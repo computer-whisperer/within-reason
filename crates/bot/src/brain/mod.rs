@@ -31,7 +31,7 @@ const TICK_FRAMES_GUESS: i32 = 8;
 
 use bot_protocol::{Command, Event, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
 
-use crate::strategist::shared::{Directives, Shared};
+use crate::strategist::shared::Shared;
 use crate::world::World;
 use roster::{Kit, ROSTERS};
 
@@ -95,10 +95,8 @@ pub struct Brain {
     wake: wake::WakeState,
     /// How often each heuristic (docs/heuristics.md) acted since the last status line.
     fired: BTreeMap<&'static str, u32>,
-    /// Present when a strategist is attached; the brain publishes to it and reads directives from it.
+    /// Present when the player's session is attached; the brain publishes to it and reads its orders.
     strategist: Option<Arc<Shared>>,
-    /// This tick's unexpired directives; empty without a strategist.
-    directives: Directives,
     /// Enemy buildings seen and not known to be destroyed: definition, position, frame last seen.
     enemy_buildings: HashMap<UnitId, (UnitDefId, Vec3, i32)>,
     /// Hits from out of sight in the last twenty seconds (`shelling.rs`), and when the player was last woken for them.
@@ -205,7 +203,6 @@ impl Brain {
             wake: Default::default(),
             fired: BTreeMap::new(),
             strategist,
-            directives: Directives::default(),
             enemy_buildings: HashMap::new(),
             shelling: Vec::new(),
             shelling_warned: i32::MIN / 2,
@@ -298,7 +295,6 @@ impl Brain {
             self.adopt_faction(&tick.snapshot.own_units);
         }
         let Some(kit) = self.kit else { return Vec::new() };
-        self.read_directives(tick.frame);
         self.receive_spot_fields();
         self.note_allies(tick);
         self.track_enemy_buildings(tick);

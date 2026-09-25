@@ -145,7 +145,7 @@ impl Brain {
             return;
         };
         let energy = &tick.snapshot.energy;
-        let allowed = self.directives.resurrect.is_none_or(|d| d.value) && self.enabled("H-REC-RESURRECT");
+        let allowed = self.enabled("H-REC-RESURRECT");
         let can_raise = allowed && energy.current > RAISE_ENERGY * energy.storage;
         let field = &self.reclaim.fields[index];
         let mut wrecks: Vec<&Wreck> = field.wrecks.iter().filter_map(|id| self.reclaim.wrecks.get(id)).map(|(w, _)| w).collect();

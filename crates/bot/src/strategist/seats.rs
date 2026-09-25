@@ -1,4 +1,4 @@
-//! Several seats, one commander: every seat of ours publishes its own briefing and field, and what the commander is
+//! Several seats, one player: every seat of ours publishes its own briefing and field, and what the player is
 //! shown is the merge over the live ones. One seat merges to itself.
 
 use std::collections::BTreeMap;
@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 use bot_protocol::{Resource, Vec3};
 use serde::Serialize;
 
-use super::shared::{Briefing, Field, Group, Place, Shared, SquadStatus};
+use super::shared::{Briefing, Field, Group, Place, Shared};
 
 /// A seat that has not published for this long is dead or gone.
 const LIVE_FRAMES: i32 = 90;
@@ -57,15 +57,6 @@ impl Shared {
         self.live_seats().first().copied()
     }
 
-    pub fn seat_homes(&self) -> Vec<(i32, Vec3)> {
-        self.live().into_iter().map(|(team, seat)| (team, seat.home)).collect()
-    }
-
-    /// The live seat whose home is nearest `pos`: the one a place-bound request goes to.
-    pub fn nearest_seat(&self, pos: Vec3) -> Option<i32> {
-        nearest_seat(&self.seat_homes(), pos)
-    }
-
     pub fn briefing(&self) -> Briefing {
         let live = self.live();
         let Some((_, lead)) = live.first() else { return Briefing::default() };
@@ -114,12 +105,6 @@ impl Shared {
                 (biggest_pool, merged.unassigned_centre) = (pool, f.unassigned_centre.clone());
             }
             merged.unassigned = sum_by_name(&merged.unassigned, &f.unassigned);
-            for squad in &f.squads {
-                match merged.squads.iter_mut().find(|s| s.name == squad.name) {
-                    Some(have) => *have = join_squads(have, squad),
-                    None => merged.squads.push(squad.clone()),
-                }
-            }
             merged.extractors.extend(f.extractors.iter().cloned());
             merged.turrets.extend(f.turrets.iter().cloned());
             for item in &f.buildable {
@@ -127,9 +112,7 @@ impl Shared {
                     merged.buildable.push(item.clone());
                 }
             }
-            merged.turret_requests_pending += f.turret_requests_pending;
             merged.ground.extractors_exposed.extend(f.ground.extractors_exposed.iter().cloned());
-            merged.ground.posts.extend(f.ground.posts.iter().cloned());
             merged.resurrection_bots += f.resurrection_bots;
             for field in &f.wreck_fields {
                 if !merged.wreck_fields.iter().any(|have| have.0.grid == field.0.grid && have.1 == field.1) {
@@ -170,10 +153,6 @@ impl Shared {
     }
 }
 
-pub fn nearest_seat(homes: &[(i32, Vec3)], pos: Vec3) -> Option<i32> {
-    homes.iter().min_by(|a, b| a.1.dist2d(pos).total_cmp(&b.1.dist2d(pos))).map(|(team, _)| *team)
-}
-
 fn add(a: Resource, b: Resource) -> Resource {
     Resource { current: a.current + b.current, income: a.income + b.income, usage: a.usage + b.usage, storage: a.storage + b.storage }
 }
@@ -196,21 +175,6 @@ fn join(a: &Group, b: &Group) -> Group {
     }
 }
 
-fn join_squads(a: &SquadStatus, b: &SquadStatus) -> SquadStatus {
-    let size = |s: &SquadStatus| s.composition.iter().map(|(_, n)| n).sum::<usize>();
-    let (na, nb) = (size(a), size(b));
-    SquadStatus {
-        name: a.name.clone(),
-        composition: sum_by_name(&a.composition, &b.composition),
-        health_percent: if na + nb == 0 { 0 } else { ((a.health_percent as usize * na + b.health_percent as usize * nb) / (na + nb)) as u32 },
-        centre: if nb > na { b.centre.clone() } else { a.centre.clone().or(b.centre.clone()) },
-        post: a.post.clone().or(b.post.clone()),
-        still_wanted: a.still_wanted.clone(),
-        engaged: a.engaged || b.engaged,
-        remark: a.remark.clone().or(b.remark.clone()),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -230,7 +194,6 @@ mod tests {
         let merged = shared.briefing();
         assert_eq!((shared.lead(), merged.counts.army, merged.metal.income, merged.seats.len()), (Some(2), 12, 22.0, 2));
         assert_eq!(merged.home_group.composition, vec![("armpw".to_string(), 12)]);
-        assert_eq!(shared.nearest_seat(Vec3 { x: 900.0, y: 0.0, z: 0.0 }), Some(2));
         shared.publish_briefing(4, Vec3::default(), briefing(600, 5, 10.0));
         assert_eq!((shared.lead(), shared.briefing().counts.army), (Some(4), 5));
     }

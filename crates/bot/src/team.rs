@@ -52,7 +52,7 @@ pub struct Others {
     pub lead_target: Option<Vec3>,
     /// Every other seat's offered and committed soldiers.
     pub with_us: Vec<UnitDefId>,
-    /// The committed ones alone: out there with our attackers.
+    /// The committed ones alone: out there with a group of ours.
     pub attacking: Vec<UnitDefId>,
     /// The latest wave launch by another seat.
     pub launched: Option<i32>,
