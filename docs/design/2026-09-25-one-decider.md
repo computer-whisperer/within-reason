@@ -84,6 +84,8 @@ H-HANDS-GROUPS today merges every newcomer into the largest group within reach; 
 
 ## 4. The worlds question: one decider for the army
 
+**Superseded twice:** by `2026-09-26-threat-response.md` (threat-centred passes in place of per-group candidates) and then by `2026-09-26-one-pass.md` (one pre-pass and one pick over every actor, builders and labs included; the executor deleted). Kept as the record of why.
+
 The standing executor stops deciding for groups. It becomes the candidate generator, and one Jev question over the
 groups' joined worlds is the only decider. No group is ever played by two deciders in one second, so the flip pairs of
 standing-2 (Jev hold then the station walk, 26 times on group_I) cannot occur.
