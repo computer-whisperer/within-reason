@@ -1,5 +1,60 @@
 //! Which duels to run: pairings, repetitions, and how many units make a fair fight.
 
+/// A side of a pairing: one unit type (its count from the batch's sizing), or a mixed force written
+/// `name*count+name*count`, spawned as written in list order (the first type stands in the front rank).
+#[derive(Clone, Debug, PartialEq)]
+pub struct Force {
+    pub parts: Vec<(String, u32)>,
+}
+
+impl Force {
+    pub fn parse(spec: &str) -> Force {
+        let parts = spec
+            .split('+')
+            .map(|part| match part.split_once('*') {
+                Some((name, count)) => (name.trim().to_string(), count.trim().parse().unwrap_or(1)),
+                None => (part.trim().to_string(), 0),
+            })
+            .collect();
+        Force { parts }
+    }
+
+    /// One type without a count: the batch's sizing decides how many.
+    pub fn is_plain(&self) -> bool {
+        self.parts.len() == 1 && self.parts[0].1 == 0
+    }
+}
+
+/// Whether the control lane (`crates/micro`) drives an army's units over the director's orders (`--lane`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LaneMode {
+    /// The director's orders alone: the harness's behaviour before 2026-09-25.
+    Off,
+    /// The lane without H-MICRO-FORM: the bot's lane as it was before the formation behaviour.
+    Old,
+    /// The whole lane.
+    On,
+}
+
+impl LaneMode {
+    pub fn parse(text: &str) -> Option<LaneMode> {
+        match text {
+            "off" => Some(LaneMode::Off),
+            "old" => Some(LaneMode::Old),
+            "on" => Some(LaneMode::On),
+            _ => None,
+        }
+    }
+
+    pub fn label(self) -> &'static str {
+        match self {
+            LaneMode::Off => "off",
+            LaneMode::Old => "old",
+            LaneMode::On => "on",
+        }
+    }
+}
+
 /// One fight to run: `x` against `y`. The repetition number decides who stands where.
 #[derive(Clone, Debug)]
 pub struct Job {
@@ -100,5 +155,18 @@ impl Sizing {
                 best
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_force_is_plain_or_mixed() {
+        assert!(Force::parse("armstump").is_plain());
+        let mixed = Force::parse("armflash*8+armstump*6");
+        assert!(!mixed.is_plain());
+        assert_eq!(mixed.parts, vec![("armflash".to_string(), 8), ("armstump".to_string(), 6)]);
     }
 }

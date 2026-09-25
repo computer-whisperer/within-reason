@@ -10,6 +10,7 @@ bot-protocol = { path = "../bot-protocol" }
 terrain = { path = "../terrain" }
 buildorder = { path = "../buildorder" }
 combatsim = { path = "../combatsim" }
+micro = { path = "../micro" }
 jev = { path = "../jev" }
 mlua = { version = "0.12", features = ["lua54", "vendored", "serialize"] }
 serde = { version = "1", features = ["derive"] }

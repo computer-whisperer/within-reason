@@ -31,24 +31,7 @@ pub struct Intent {
     pub staging: Option<Vec3>,
 }
 
-/// What the control lane's claims did to the units they held (the milling instrument, `micro.rs`): claims ended,
-/// the path those units walked while held, their net displacement, and reversals of more than ninety degrees.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct Milling {
-    pub claims: u32,
-    pub path: f32,
-    pub net: f32,
-    pub reversals: u32,
-}
-
-impl std::ops::AddAssign for Milling {
-    fn add_assign(&mut self, other: Milling) {
-        self.claims += other.claims;
-        self.path += other.path;
-        self.net += other.net;
-        self.reversals += other.reversals;
-    }
-}
+pub use micro::Milling;
 
 #[derive(Default)]
 pub struct Journal {

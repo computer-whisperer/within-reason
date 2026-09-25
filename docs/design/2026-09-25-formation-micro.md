@@ -143,5 +143,28 @@ Not the lane's, said plainly: the fall-backs of small groups (Jev's rule and the
 - The follow leash is 900 (the engage/fight-in-sight horizon is 600; a party that has walked the group 900 from its
   start is running, not fighting).
 
+## What the harness taught while it was built (decisions reversed or added, with the evidence)
+- **Ranks of six, not one rank.** A body of 11 Blitzes in one rank was 700 wide and lost its ends to the Pawn
+  ball (form-blitz-on, -0.17 against the plain order); the pros' drawn lines are 279 wide (4-5 units). Slots are
+  now ranks of `FILES` = 6, 96 apart, offset half a spacing; a body over 12 still splits side by side.
+- **No raider step-back.** Stepping a raider back to 0.92 of its reach re-ordered it every few frames and an order
+  costs shots (form-smoke: 1.8 shots per in-reach second against 6.6 without the lane). A unit stands once (a Stop)
+  and keeps standing while anything is within reach + 100; closing goes to 0.92 of reach.
+- **The lethal flee is kept, amended** (K-micro-a-unit-under-the-guns-shoots): as written it fled won fights at
+  contact; with strength odds and an under-the-guns test it costs nothing measurable. (It was removed for a while on
+  numbers from the contaminated batches below, and restored.)
+- **H-MICRO-FOCUS is retired**: 0.21 of margin for the Blitz pack, nothing in the Stout mirror, on clean batches.
+- **One lane per army**, `View::mine`: with two sites in a match the team's snapshot holds both duels' units, and
+  the lane on one site took the other duel's units of its team for its own and fled them from everything. Every
+  lane arm before the fix was void (the ledger says which); a null arm (lane present, every rule off) is the check.
+- **A form claim survives a re-order** and the director leaves lane-held units out of its idle re-send: a standing
+  unit re-stopped every tick never fires (a Stop drops the weapon's target), and a re-send throttle tried instead cost
+  0.1 of margin by itself (form-stout-old-nolane).
+- **Each lane rule is gated by its ID** (`WITHIN_REASON_DISABLE`), in the bot and the harness; it was not before, so
+  no earlier single-rule ablation of the lane measured anything.
+
 ## Status
 - 2026-09-25: written; nothing built.
+- 2026-09-25, built: `crates/micro` (the lane behind `View`, H-MICRO-FORM in `form.rs`), the brain and the duel
+  director drive it; the defect fixes of section 3; `duel --lane`, mixed forces, the shape instrument and the
+  victim table; the reversals above. Batches and the live game: `docs/studies/2026-09-25-formation-micro.md`.

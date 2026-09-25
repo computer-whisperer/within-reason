@@ -2,7 +2,7 @@
 //! what it did to itself. The definitions are `run/fire.py`'s, which reads the same thing out of a live game's
 //! record (`docs/harness/record-format.md`, the `s` line), so a duel's numbers and a game's can be set side by side.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use bot_protocol::{UnitId, Vec3};
 
@@ -37,6 +37,8 @@ pub struct Tally {
     pub muzzled: [u32; 3],
     /// Hit points this army did to itself.
     pub friendly_fire: f32,
+    /// The same by (shooter's type, victim's type): the record's `xf`.
+    pub victims: BTreeMap<(String, String), f32>,
     /// Hit points this army did to the enemy army.
     pub dealt: f32,
 }
@@ -44,6 +46,56 @@ pub struct Tally {
 impl Tally {
     pub fn muzzled_seconds(&self) -> u32 {
         self.muzzled.iter().sum()
+    }
+
+    /// The victim table as one cell: `shooter>victim:damage;...`, largest first.
+    pub fn victims_cell(&self) -> String {
+        let mut pairs: Vec<(&(String, String), &f32)> = self.victims.iter().collect();
+        pairs.sort_by(|a, b| b.1.total_cmp(a.1));
+        pairs.iter().map(|((a, b), d)| format!("{a}>{b}:{d:.0}")).collect::<Vec<_>>().join(";")
+    }
+}
+
+/// An army's shape at contact, as `run/replays/shapes.py` measures the pros': every soldier's distance to its
+/// nearest friend, and of the soldiers with an enemy within reach + `SLACK`, how many have a friendly soldier
+/// within `HULL` of the segment to the nearest one and nearer than it. Sampled at first damage and ten seconds
+/// later, both pooled.
+#[derive(Clone, Debug, Default)]
+pub struct Shape {
+    pub samples: u32,
+    pub nearest: Vec<f32>,
+    pub in_reach: u32,
+    pub blocked: u32,
+}
+
+impl Shape {
+    pub fn sample(&mut self, own: &[(UnitId, Vec3, f32, f32)], enemies: &[Vec3]) {
+        self.samples += 1;
+        for &(unit, at, reach, _) in own {
+            if let Some(nearest) = own.iter().filter(|o| o.0 != unit).map(|o| o.1.dist2d(at)).min_by(f32::total_cmp) {
+                self.nearest.push(nearest);
+            }
+            if reach <= 0.0 {
+                continue;
+            }
+            let reach = reach + SLACK;
+            let Some(target) = enemies.iter().copied().filter(|e| e.dist2d(at) < reach).min_by(|a, b| a.dist2d(at).total_cmp(&b.dist2d(at))) else { continue };
+            self.in_reach += 1;
+            let range = at.dist2d(target);
+            if own.iter().any(|&(other, f, _, _)| other != unit && near_segment(f, at, target) < HULL && f.dist2d(at) < range) {
+                self.blocked += 1;
+            }
+        }
+    }
+
+    /// The median nearest-friend distance over the samples; NaN with none.
+    pub fn median_nearest(&self) -> f32 {
+        if self.nearest.is_empty() {
+            return f32::NAN;
+        }
+        let mut v = self.nearest.clone();
+        v.sort_by(f32::total_cmp);
+        v[v.len() / 2]
     }
 }
 
@@ -64,9 +116,11 @@ impl Fire {
 
     /// One second's sample: `own` are this army's living units with their type's reach and reload (`UnitDefInfo`),
     /// `enemies` where the other army's stand. An unarmed unit samples nothing, and blocks nobody's line either
-    /// (`run/fire.py` counts soldiers only).
-    pub fn sample(&mut self, own: &[(UnitId, Vec3, f32, f32)], enemies: &[Vec3]) {
+    /// (`run/fire.py` counts soldiers only). Returns the units muzzled this second with their cause and their range
+    /// to the nearest enemy in reach, for an instrument.
+    pub fn sample(&mut self, own: &[(UnitId, Vec3, f32, f32)], enemies: &[Vec3]) -> Vec<(UnitId, Cause, f32)> {
         let shots = std::mem::take(&mut self.shots);
+        let mut muzzled = Vec::new();
         for &(unit, at, reach, reload) in own {
             if reach <= 0.0 {
                 continue;
@@ -103,7 +157,9 @@ impl Fire {
                 Cause::Clear
             };
             self.tally.muzzled[cause as usize] += 1;
+            muzzled.push((unit, cause, range));
         }
+        muzzled
     }
 }
 
@@ -124,6 +180,17 @@ mod tests {
 
     fn at(x: f32, z: f32) -> Vec3 {
         Vec3 { x, y: 0.0, z }
+    }
+
+    #[test]
+    fn the_shape_sample_measures_spacing_and_friends_on_the_line() {
+        let mut shape = Shape::default();
+        // Three in a file toward the enemy: the two behind have a friend on the line; spacing 40.
+        let own = [(UnitId(1), at(0.0, 0.0), 350.0, 1.2), (UnitId(2), at(40.0, 0.0), 350.0, 1.2), (UnitId(3), at(80.0, 0.0), 350.0, 1.2)];
+        shape.sample(&own, &[at(300.0, 0.0)]);
+        assert_eq!(shape.in_reach, 3);
+        assert_eq!(shape.blocked, 2);
+        assert_eq!(shape.median_nearest(), 40.0);
     }
 
     #[test]

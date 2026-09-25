@@ -133,3 +133,13 @@ sample: the widget does not hook UnitDamaged. Damage in those records is the dro
 consecutive samples (`run/replays/shapes.py` does this for both sides), never the field. Shots, friendly fire and the
 exchange tables (`shots`, `ff`, `xo`, `xi`, `xf`) exist only in the bot's own records.
 
+## A stray sweep bomb can wipe the next duel (2026-09-25)
+`form-stout-on-nofocus` rep 3: the second army was wiped 4.9 s into a fight with 27,240 damage taken and 0 dealt by
+either side, on the site's second duel. A crawling bomb of the sweep before, outside the wreckage box (so not counted
+as standing) and set off late, went up among the new units. Rare (1 of ~200 duels this day); `run/duel_ab.py` drops a
+wipe under 15 s in which neither side dealt damage, and a study should say when a row was dropped.
+
+## The lane's rules are gated by `enabled` only since 2026-09-25
+Before that, `WITHIN_REASON_DISABLE=H-MICRO-FOCUS` (or -FLEE, -KITE, -FAN) switched nothing off: only H-MICRO-LANE
+as a whole was checked. An ablation of one lane rule from before that date ran the whole lane; the duel director
+honours the variable for the lane it runs too.

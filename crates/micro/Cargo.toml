@@ -1,0 +1,10 @@
+[package]
+name = "micro"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-2.0-or-later"
+description = "The control lane: per-unit footwork (flee, fan, focus, kite, formation slots) over a host's view of the game; run by the bot's brain and by the duel director"
+
+[dependencies]
+bot-protocol = { path = "../bot-protocol" }
+serde = { version = "1", features = ["derive"] }
