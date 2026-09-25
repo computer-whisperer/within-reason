@@ -54,7 +54,12 @@ def tally(rs):
         fol = sum(float(r["fol_blocked_x"]) for r in rs) / fol_in if fol_in else float("nan")
     else:
         nn = fol = float("nan")
-    return len(margin), statistics.mean(margin), error, killed, lost, spread, muzzled, ff, nn, fol
+    if all(r.get("engaged_s_x") for r in rs):
+        engaged = sum(float(r["engaged_s_x"]) for r in rs)
+        queued = sum(float(r["queued_s_x"]) for r in rs) / engaged if engaged else float("nan")
+    else:
+        queued = float("nan")
+    return len(margin), statistics.mean(margin), error, killed, lost, spread, muzzled, ff, nn, fol, queued
 
 
 def key(r):
@@ -86,20 +91,20 @@ def main(argv):
     else:
         groups = {label(k): [k] for k in keys}
     width = max([22] + [len(g) + 2 for g in groups])
-    print(f"{'pairing':<{width}}{'n':>4}{'margin off':>12}{'margin on':>12}{'gain':>9}{'k/l off':>9}{'k/l on':>8}{'spread off':>12}{'spread on':>11}{'muzzled off':>13}{'on':>6}{'ff off':>8}{'on':>6}{'nn off':>8}{'on':>6}{'fol off':>9}{'on':>6}")
+    print(f"{'pairing':<{width}}{'n':>4}{'margin off':>12}{'margin on':>12}{'gain':>9}{'k/l off':>9}{'k/l on':>8}{'spread off':>12}{'spread on':>11}{'muzzled off':>13}{'on':>6}{'ff off':>8}{'on':>6}{'nn off':>8}{'on':>6}{'fol off':>9}{'on':>6}{'queued off':>12}{'on':>6}")
     overall = [0.0, 0.0, 0.0, 0.0]
     for name, members in groups.items():
         a = [r for r in without if key(r) in members]
         b = [r for r in with_it if key(r) in members]
         if len(a) < floor or len(b) < floor:
             continue
-        na, ma, ea, ka, la, sa, za, fa, nna, fola = tally(a)
-        nb, mb, eb, kb, lb, sb, zb, fb, nnb, folb = tally(b)
+        na, ma, ea, ka, la, sa, za, fa, nna, fola, qa = tally(a)
+        nb, mb, eb, kb, lb, sb, zb, fb, nnb, folb, qb = tally(b)
         overall = [overall[0] + ka, overall[1] + la, overall[2] + kb, overall[3] + lb]
         print(
             f"{name:<{width}}{na:>4}{ma:>+9.3f}+-{ea:<4.3f}{mb:>+9.3f}+-{eb:<4.3f}{mb - ma:>+9.3f}"
             f"{ka / max(la, 1):>9.2f}{kb / max(lb, 1):>8.2f}{sa[0]:>9.0f}/{sa[1]:<3.0f}{sb[0]:>8.0f}/{sb[1]:<3.0f}"
-            f"{100 * za:>12.0f}%{100 * zb:>5.0f}%{100 * fa:>7.1f}%{100 * fb:>5.1f}%{nna:>8.0f}{nnb:>6.0f}{100 * fola:>8.0f}%{100 * folb:>5.0f}%"
+            f"{100 * za:>12.0f}%{100 * zb:>5.0f}%{100 * fa:>7.1f}%{100 * fb:>5.1f}%{nna:>8.0f}{nnb:>6.0f}{100 * fola:>8.0f}%{100 * folb:>5.0f}%{100 * qa:>11.0f}%{100 * qb:>5.0f}%"
         )
     print(
         f"\nover everything: metal killed per metal lost {overall[0] / max(overall[1], 1):.2f} without,"

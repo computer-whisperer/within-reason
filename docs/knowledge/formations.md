@@ -72,3 +72,19 @@ over 24+ games.
 reach + 100: short-range pros median 0.94 (86k), us 0.86 (2.9k). Line units 0.87 against 0.88.
 **Would be wrong if.** The difference vanished when counted only for Blitzes against the same enemy types.
 **Used by.** H-MICRO-FORM (a unit closes on the nearest enemy to 0.92 of its reach and stands there; the raider step-back tried first cost shots and was dropped, form-smoke).
+
+### K-form-a-fifth-of-an-engaged-unit-waits-behind-a-friend
+**Claim.** In a fight, a soldier with no enemy in reach stands behind a friend that has one and is shooting for
+about a fifth of its engaged time among the pros and a quarter to a third among us; the share grows with the ball
+(ours 10% alone to 29% with six or more friends within 120; the pros' 13% to 25%). The front stops when it has a
+target and the rest, sent to the same point, are held behind it.
+**Status.** measured (2026-09-25), `run/queued.py` (engaged: four or more armed enemies within 700; queued: no enemy
+within reach + 20, a friend within 300 in reach, nearer its enemy, and firing this second; geometric: without the
+shot). Ours, shots / geometry: bank-1 25% / 37% of 9,418 engaged soldier-seconds, 2v1b-hard 15% / 24% of 4,494,
+2v1b-hard_aggressive 10% / 23% of 1,293, family-1 14% / 27% of 4,797; the pros on Comet Catcher at OS 40+ (40
+games, both sides) 20% geometric of 243,795. Reproduced in the duel harness: the bank-1 13:50 cut (45 against 15)
+13% queued under the plain attack-move, 17% under H-MICRO-FORM's ranks of six (the rear rank's slot is out of
+reach behind a standing front); family-1 11:05 (37 against 13) 12% and 8%.
+**Would be wrong if.** A body whose rear filed to the ends of its front (H-MICRO-FORM-FLANK) still spent a fifth
+of its engaged time queued in the harness, or the pros' share on another map fell well under 20%.
+**Used by.** H-MICRO-FORM-FLANK; the harness's `engaged_s` / `queued_s` columns.

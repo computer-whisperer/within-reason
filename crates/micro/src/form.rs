@@ -163,12 +163,19 @@ fn principal_axis(group: &[Member]) -> (f32, f32) {
     (-major.1, major.0)
 }
 
-/// `count` slots in ranks of `FILES` across `h`, `spacing` apart, the front rank centred on `anchor` and each further
+/// Slots in a rank on the march: `FILES`, or `WITHIN_REASON_FORM_FILES` for a batch that tries another width
+/// (`docs/design/2026-09-25-queued-rear.md`, answer 2).
+pub fn files() -> usize {
+    static FILES_SET: std::sync::OnceLock<usize> = std::sync::OnceLock::new();
+    *FILES_SET.get_or_init(|| std::env::var("WITHIN_REASON_FORM_FILES").ok().and_then(|v| v.parse().ok()).filter(|n| *n > 0).unwrap_or(FILES))
+}
+
+/// `count` slots in ranks of `files` across `h`, `spacing` apart, the front rank centred on `anchor` and each further
 /// rank `RANK_GAP` behind it and offset half a spacing (a checkerboard, so a rear unit looks between two front
 /// ones); within a rank left to right (across ascending), front rank first.
-pub fn slots(anchor: Vec3, h: (f32, f32), count: usize, spacing: f32) -> Vec<Vec3> {
+pub fn slots(anchor: Vec3, h: (f32, f32), count: usize, spacing: f32, files: usize) -> Vec<Vec3> {
     let left = (-h.1, h.0);
-    let ranks = count.div_ceil(FILES).max(1);
+    let ranks = count.div_ceil(files.max(1)).max(1);
     let per_rank = count.div_ceil(ranks);
     let front = per_rank.min(count);
     let mut out = Vec::with_capacity(count);
@@ -274,7 +281,7 @@ mod tests {
     #[test]
     fn slots_lie_across_the_heading_two_hulls_apart_centred_on_the_anchor() {
         let h = heading(at(0.0, 0.0), at(1000.0, 0.0));
-        let s = slots(at(500.0, 500.0), h, 3, SPACING);
+        let s = slots(at(500.0, 500.0), h, 3, SPACING, FILES);
         assert_eq!(s.len(), 3);
         assert!((s[1].x - 500.0).abs() < 0.01 && (s[1].z - 500.0).abs() < 0.01);
         assert!((s[0].dist2d(s[1]) - SPACING).abs() < 0.01);
@@ -284,7 +291,7 @@ mod tests {
     #[test]
     fn a_body_over_six_stands_in_ranks_the_rear_offset_between_the_front() {
         let h = heading(at(0.0, 0.0), at(1000.0, 0.0));
-        let s = slots(at(500.0, 500.0), h, 11, SPACING);
+        let s = slots(at(500.0, 500.0), h, 11, SPACING, FILES);
         assert_eq!(s.len(), 11);
         let front: Vec<&Vec3> = s.iter().filter(|p| (p.x - 500.0).abs() < 0.01).collect();
         let rear: Vec<&Vec3> = s.iter().filter(|p| (p.x - (500.0 - RANK_GAP)).abs() < 0.01).collect();
@@ -309,7 +316,7 @@ mod tests {
     fn assignment_keeps_the_across_order_and_shortens_the_total() {
         let h = (1.0, 0.0);
         let units = [at(0.0, 0.0), at(0.0, 200.0), at(0.0, 100.0)];
-        let s = slots(at(150.0, 100.0), h, 3, SPACING);
+        let s = slots(at(150.0, 100.0), h, 3, SPACING, FILES);
         let slot_of = assign(&units, &s, h);
         // Across ascending is z ascending here (left of east is south... across = z for h = east).
         assert_eq!(slot_of, vec![0, 2, 1]);
@@ -324,7 +331,7 @@ mod tests {
         // impossible on a line; check the invariant instead: no pair would be better swapped.
         let h = (1.0, 0.0);
         let units = [at(0.0, 0.0), at(300.0, 64.0), at(0.0, 128.0), at(300.0, 192.0)];
-        let s = slots(at(400.0, 96.0), h, 4, SPACING);
+        let s = slots(at(400.0, 96.0), h, 4, SPACING, FILES);
         let slot_of = assign(&units, &s, h);
         for i in 0..4 {
             for j in i + 1..4 {
