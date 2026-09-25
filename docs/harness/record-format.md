@@ -69,8 +69,8 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   `parties` [{`name`, `ids`, `x`, `z`, `metal`, `composition`}] are what the picture named, so a reader can draw them.
 - `{"t":"error","f","error"}` for a call that failed (every actor kept its task).
 - From 2026-09-24 late, a group's `do` is asked in two levels (H-HANDS-TWO-LEVEL): `two_level: true` on the call,
-  `questions` still the flat layout as built, and `answers` the composed `<group>.do` beside the raw `<group>.kind`
-  and `<group>.<family>` answers it was composed from.
+  `questions` still the flat layout as built, `answers` the composed `<group>.do`, and `raw` the `<group>.kind` and
+  `<group>.<family>` answers it was composed from (family-1's log, the first, lacked `raw`: its family masses are gone).
 Size: 15-30 KB a call (3-6k tokens of state and questions), 20-60 calls a minute: 25 MB for a 20-minute game. Logs from
 the first morning (2026-09-21, before the header line) carry `instructions` and `rules` in every state and no `played`;
 the viewer reads those too, taking the decisions from the answers.

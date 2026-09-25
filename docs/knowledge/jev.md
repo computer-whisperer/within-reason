@@ -812,7 +812,16 @@ change, ten of fourteen from `continue` to `engage`.
 **Status.** measured offline (2026-09-24, `run/jev_ab.py --variants base,continue_cost,two_level`, 40 moments a
 detector from six games and 40 controls, two repeats: `docs/studies/data/jev-ab-two-level-2026-09-24.jsonl`); built
 in the hands the same night (H-HANDS-TWO-LEVEL, `pianist/family.rs`), the check game family-1 (hard_aggressive) is the
-live test: the detectors' rates on its log against the six games'.
+live test: the detectors' rates on its log against the six games'. Family-1 (2026-09-24 night, LOST at 31:17):
+raider_ignored 3.0% of group asks (46 of 1,529) against 16-29% in the six flat games, hold_beside_attack 0.2%
+against 1.6-3.7%, never_split 1.8% against 0-2.2%; a busy group kept its course at 7% of its asks (60 of 802)
+against 81-88% (fight 53% at a median composed probability of 0.55, go 30%, back 8%); the switch margin held 36
+picks. The freedom overshot: the player wrote at 16:29 that the hands pulled every group after Pawn raids whatever
+the packet said, and at 20:01 that the home groups splintered into ones and fours chasing Pawns. The game was
+lost to a Razorback that killed ~20 Stouts in the open at 27:52 after a 12.7k-against-2k army lead had sat at home
+(18:04). The claim's mechanism holds live; its cost in ordinary decisions is far above the offline 18%, because the
+controls were the confident picks and a live game asks every ten seconds under raids. The raw family masses were
+not logged (fixed: `raw` on the call), so the fight mass behind the picks is unmeasured.
 **Evidence.** The ledger row jev-ab-two-level; ../jev_experiments battery F (a synonym takes half the leader's mass;
 flips only under a 0.75 lead) and battery D (batching is free), which made the one-request layout possible.
 **Would be wrong if.** The live composition (the family's mass, then its refinement) behaved differently from the

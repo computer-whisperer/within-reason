@@ -937,11 +937,18 @@ impl Brain {
             pianist.logged_instructions = instructions.clone();
         }
         let parties: Vec<serde_json::Value> = pianist.parties.iter().map(|p| json!({ "name": p.name, "ids": p.ids.iter().map(|id| id.0).collect::<Vec<_>>(), "x": p.at.x as i32, "z": p.at.z as i32, "metal": p.metal as i32, "composition": p.composition })).collect();
+        let two_level = request.questions.keys().any(|k| k.ends_with(".kind"));
+        // The kind and refinement answers behind a composed `do` (H-HANDS-TWO-LEVEL): the readers take the flat layout,
+        // so they sit apart under `raw`.
+        let raw: BTreeMap<&String, &jev::Answer> = response.answers.iter().filter(|(k, _)| !questions.contains_key(*k)).collect();
         let mut line = json!({
             "t": "call", "f": tick.frame, "ms": (response.latency.as_secs_f32() * 1000.0) as u32, "model": response.model, "usage": response.usage,
-            "retries": response.retries, "state": state, "questions": questions, "answers": answers, "two_level": request.questions.keys().any(|k| k.ends_with(".kind")),
+            "retries": response.retries, "state": state, "questions": questions, "answers": answers, "two_level": two_level,
             "played": std::mem::take(&mut pianist.played), "groups": groups, "places": places, "parties": parties,
         });
+        if two_level {
+            line["raw"] = json!(raw);
+        }
         if rules_changed {
             line["rules"] = json!(rules);
         }
