@@ -5,3 +5,14 @@
 LLM session (`docs/design/2026-09-25-one-decider.md`, §2). A packet is the `instruct` text of a real player turn, so its
 place names are the map's and the strip's: `comet-west-standing-2.md` is the first packet Opus 5.5 wrote in standing-2
 (Comet Catcher Remake 1.8, the west strip, Armada, `--corner nw --mirror --place --side armada`).
+
+`comet-west-hold-1.md` (2026-09-25 late, written by the micro agent for the lane A/Bs, same settings) is a packet that
+holds the west strip against medium into the mid game: every count the packet keys on is a lookup table in the picture's
+own words (K-jev-a-lookup-table-counts), the commander opens by table (extractor, extractor, solar, plant at 0:23) and
+then helps the plant with a turret beside each extractor and a solar when STALLING, the constructors expand along the
+strip under `job expand` with the middle spots forbidden, the plant makes four constructors then Blitzes then Stouts,
+and group_A stands at spot_45 beside the commander with one-soldier pickets against lone Ticks. Check games hold-1 to
+hold-9 (16 games, `docs/experiments.md`): against medium it reaches minute 20 in about half the games, with a body of
+15-50 Stouts by minute 10-12 either way; the games end when medium's block of Maces and Rocketeers kills the commander at
+home.
+

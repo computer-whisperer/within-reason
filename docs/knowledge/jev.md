@@ -18,6 +18,28 @@ line units at 6:03. pianist-smoke-3, with the energy state in the generator opti
 **Would be wrong if.** A picture with the counts as numbers only produced the plan's switch at the right count.
 **Used by.** H-HANDS-MENU.
 
+### K-jev-a-lookup-table-counts
+**Claim.** Jev follows a table keyed on the picture's own count words ("With 0, 1, 2 or 3 constructors: a construction
+vehicle. With 4 or more constructors: a Stout") at 0.94-0.97 either side of the threshold, where the same cap as a
+sentence ("constructors until five of them stand, and never a sixth") sits at 0.5 on both sides and an ordered list
+("first X, then Y, then Z") loops on its first step at 1.00. The table's key must be the picture's word ("constructors",
+not "construction vehicles": 0.69 for the wrong word at six standing), and a paragraph that names another actor's count
+leaks into that actor's decompression (`paragraphs_about`: the plant's table naming "constructors" pulled the
+constructors' job to help_factory once).
+**Status.** supported (2026-09-25, offline against a recorded plant ask and a recorded commander ask, six pictures each)
+**Evidence.** hold-1/hold-2 (Comet Catcher, the pianist alone): "first two Rovers" gave 6-9 Rovers, "until we have four
+constructors" gave 18 and 46 constructors (armcv at 0.52-0.68 with "We have 5 constructors for 6 extractors" in the ask).
+Offline on the recorded ask with the counts edited: the sentence form 0.52 / 0.85 / 0.39 / 0.80 armcv at 7 / 3 / 5 / 2
+constructors; the table form 0.04 / 0.94 / 0.04 / 0.96; "NEVER with 5 or more" suppressed armcv at 2-3 constructors too
+(0.06-0.07). The commander's opening as an ordered list ("an extractor at spot_45, an extractor at spot_50, one solar,
+then the plant"): extractor at 1.00 with two, three and four extractors standing (hold-4: four extractors, the plant at
+1:45); as a table keyed on `ours.extractors` and "We have N solar collectors": armsolar 0.76 at two extractors, armvp 0.92
+at two extractors and one solar (hold-5 to hold-9: the plant standing at 0:23 every game).
+**Would be wrong if.** A table keyed on a count the picture states as a number produced the switch at the wrong count in
+a game, or the sentence form reached 0.9 on the same pictures.
+**Used by.** run/packets/comet-west-hold-1.md (the plant's and the commander's tables); K-jev-words-not-numbers (refined:
+numbers the packet enumerates are read; numbers compared to a threshold in prose are not).
+
 ### K-jev-split-vote
 **Claim.** A Choice with several near-equivalent options (one per free spot) spreads its probability over them, and a
 single alternative wins with a fraction of the total; the remedy is one option for the kind of action and a parallel
@@ -106,6 +128,11 @@ than decisively moving towards or away from a threat").
 **Status.** conjecture (2026-09-21); the milling counters (H-HANDS-LANE) are the instrument, a raw-against-laned
 batch the test.
 **Evidence.** The heuristics ledger's status column for the four lane rules; the user's observation.
+A second measurement (2026-09-25 late, hold-lane-on against hold-lane-off, the hold packet, 48 games an arm): every game
+past minute 11 and half past minute 20 either way (mean 18.9 against 19.8 minutes, 15 against 17 timeouts, bodies of
+34 against 27 soldiers at 20:00 in the games that got there), metal lost per killed 0.66 [0.57-0.76] against 0.68
+[0.59-0.77], soldiers lost 4,099 against 4,622 metal a game: the lane neither helps nor hurts the trade under the hands
+at 48 games (the floor is about 0.2 of ratio), and its costs in that regime are K-form-a-body-stationed-among-buildings-jams.
 **Would be wrong if.** A raw ball traded worse than a laned one in a batch, or the milling counters showed path
 close to net displacement under the flee.
 **Measured 2026-09-25 late (packet-lane-on / -off, the pianist alone on a fixed packet, 24 games an arm):** the

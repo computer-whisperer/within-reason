@@ -645,8 +645,10 @@ impl Brain {
                             .iter()
                             .filter(|u| kit.is_extractor(u.def) && !u.being_built && u.pos.dist2d(unit.pos) < TURRET_REACH)
                             .filter(|u| !outer_only || u.pos.dist2d(self.home) > OUTER)
-                            // Not beside an extractor a party stands at: the builder would be sent home again.
-                            .filter(|u| !picture.parties.iter().any(|p| p.at.dist2d(u.pos) < ALARM))
+                            // Not beside an extractor a party stands at: the builder would be sent home again. A lone
+                            // scout is not a party here either way: the turret is what kills the Tick (hold-2-comet-medium:
+                            // one Tick at spot_54 ate fifteen extractors in two minutes, rebuilt under it, no turret ever).
+                            .filter(|u| !picture.parties.iter().any(|p| p.at.dist2d(u.pos) < ALARM && !lone_scout(p)))
                             .filter(|u| !own.iter().any(|t| t.def == kit.turret && t.pos.dist2d(u.pos) < TURRET_COVER) && !ordered_near(u.pos))
                             .min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)));
                         if let Some(extractor) = uncovered

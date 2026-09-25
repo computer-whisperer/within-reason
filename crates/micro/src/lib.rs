@@ -106,6 +106,10 @@ const FORM_UP_LEAD: f32 = 300.0;
 const FLANK_ARRIVED: f32 = 48.0;
 /// A stance lasts at least this long: a change is an order, and an order costs shots.
 const FORM_FRAMES: i32 = 15;
+/// H-MICRO-HUNT: a quarry out of sight and radar this long ends the hunt.
+const HUNT_LOST_FRAMES: i32 = 6 * FRAMES_PER_SECOND;
+/// A hunter under this share of its health drops out of the hunt.
+const HUNT_DROP_HEALTH: f32 = 1.0 / 3.0;
 
 /// What a soldier's group was priced against, so the lane knows which threats its host meant it to face.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -117,13 +121,50 @@ pub enum Commitment {
     Priced { turrets: Vec<UnitId>, commander: bool },
     /// Everything (a committed wave, a commander's squad, a duel's army).
     All,
+    /// A hunter after one unit (H-MICRO-HUNT): it runs raw, under no footwork rule, and the lane's attack order
+    /// does the closing.
+    Hunt(Hunt),
+}
+
+/// One quarry for a set of hunters: the unit to kill, and the leash (from where the hunt began, or the group's
+/// station) beyond which the hunt ends.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Hunt {
+    pub quarry: UnitId,
+    pub leash_from: Vec3,
+    pub leash: f32,
+}
+
+/// What the lane reports of a hunt: `hunter` is `None` when the hunt on `quarry` ended (`why`: "dead", "lost" (out
+/// of sight and radar 6 s), "leash", "no hunters"), else that hunter dropped out ("hurt": under a third of its
+/// health; "slower": not faster than the quarry). Each is reported once; the host clears the commitments.
+#[derive(Clone, Debug, PartialEq)]
+pub struct HuntEvent {
+    pub quarry: UnitId,
+    pub hunter: Option<UnitId>,
+    pub why: &'static str,
+}
+
+/// The lane's memory of one hunt.
+struct HuntState {
+    started: i32,
+    /// The hunt's leash point: a commitment with another one is a new hunt on the same quarry (the raid's second
+    /// hunt after a leash end starts from where the hunters then stand).
+    leash_from: Vec3,
+    /// The quarry's last sighting (sight or radar): place, velocity, frame.
+    last_seen: Option<(Vec3, Vec3, i32)>,
+    quarry_def: Option<UnitDefId>,
+    ended: Option<&'static str>,
+    dropped: HashMap<UnitId, &'static str>,
+    /// The frame of the sighting each hunter was last sent to when the quarry was out of sight.
+    sent_to_sighting: HashMap<UnitId, i32>,
 }
 
 impl Commitment {
     fn covers(&self, source: &Source) -> bool {
         match self {
             Commitment::None => false,
-            Commitment::All => true,
+            Commitment::All | Commitment::Hunt(_) => true,
             Commitment::Priced { turrets, commander } => {
                 if source.commander {
                     *commander
@@ -276,6 +317,7 @@ enum Rule {
     Fan,
     Kite,
     Form,
+    Hunt,
 }
 
 impl Rule {
@@ -285,6 +327,7 @@ impl Rule {
             Rule::Fan => "H-MICRO-FAN",
             Rule::Kite => "H-MICRO-KITE",
             Rule::Form => "H-MICRO-FORM",
+            Rule::Hunt => "H-MICRO-HUNT",
         }
     }
 }
@@ -381,6 +424,8 @@ pub struct Output {
     /// Rule IDs that fired, once per firing.
     pub fired: Vec<&'static str>,
     pub milling: Milling,
+    /// Hunts that ended and hunters that dropped out this tick (H-MICRO-HUNT), each once.
+    pub hunts: Vec<HuntEvent>,
 }
 
 #[derive(Default)]
@@ -398,6 +443,8 @@ pub struct Lane {
     seen: HashMap<UnitId, (UnitDefId, Vec3, i32)>,
     /// Per minute, for the log: claims made, orders issued.
     counts: (u32, u32),
+    /// The hunts in progress, by quarry (H-MICRO-HUNT).
+    hunts: HashMap<UnitId, HuntState>,
 }
 
 /// The host gave the same order again (it re-issues standing orders every few seconds): no reason to let go.
@@ -430,6 +477,11 @@ impl Lane {
     /// Whether the lane has this soldier stepping out of a threat's reach, or holding at its edge, this tick (H-MICRO-FLEE).
     pub fn fleeing(&self, unit: UnitId) -> bool {
         self.claims.get(&unit).is_some_and(|c| c.rule == Rule::Flee)
+    }
+
+    /// The quarry this unit is hunting under the lane's orders this tick, if any (H-MICRO-HUNT).
+    pub fn hunting(&self, unit: UnitId) -> Option<UnitId> {
+        self.claims.get(&unit).filter(|c| c.rule == Rule::Hunt).and_then(|c| c.target)
     }
 
     /// What holds this unit, for an instrument and for a host's idle re-send: the rule's ID and, for a form
@@ -523,7 +575,13 @@ impl Lane {
         let commands = &mut out.commands;
         let fired = &mut out.fired;
 
-        let soldiers: Vec<&OwnUnit> = snapshot.own_units.iter().filter(|u| !u.being_built && view.mine(u.id) && view.def(u.def).is_some_and(is_soldier)).collect();
+        let mut soldiers: Vec<&OwnUnit> = snapshot.own_units.iter().filter(|u| !u.being_built && view.mine(u.id) && view.def(u.def).is_some_and(is_soldier)).collect();
+        // H-MICRO-HUNT first: a hunter is under no other rule and in no body.
+        let hunters: Vec<(&OwnUnit, Hunt)> = soldiers.iter().filter_map(|u| match self.commitment.get(&u.id) { Some(Commitment::Hunt(h)) => Some((*u, h.clone())), _ => None }).collect();
+        if !hunters.is_empty() || !self.hunts.is_empty() {
+            self.hunt(view, &hunters, snapshot.enemies.as_slice(), frame, commands, fired, &mut out.hunts, debug);
+            soldiers.retain(|u| !hunters.iter().any(|(h, _)| h.id == u.id));
+        }
         // Each soldier's footwork rules, and the rules the host has switched off by ID (an ablation).
         let footwork = self.footwork.clone();
         let gate = Footwork {
@@ -608,6 +666,124 @@ impl Lane {
             eprintln!("{} f={frame} micro this minute: {claims} units took over, {orders} orders", view.label());
         }
         out
+    }
+
+    /// H-MICRO-HUNT: every hunter is sent at its quarry by id every tick while the quarry is in sight or on radar,
+    /// and once to the last sighting (carried along its velocity) while it is not; the hunt ends when the quarry is
+    /// dead, out of sight and radar for six seconds, or any hunter has passed the leash, and a hunter drops out
+    /// under a third of its health or when it is not faster than the quarry. Each end and drop is reported once;
+    /// the host clears the commitments (worlds-2: four Rovers at 168 never closed on a Pawn at 87 in 28 s under
+    /// fight-to-point orders re-issued at the party's last place, the flank slots 400-500 short of it every tick).
+    #[allow(clippy::too_many_arguments)]
+    fn hunt(&mut self, view: &dyn View, hunters: &[(&OwnUnit, Hunt)], enemies: &[EnemyUnit], frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, events: &mut Vec<HuntEvent>, debug: bool) {
+        let quarries: Vec<UnitId> = hunters.iter().map(|(_, h)| h.quarry).collect();
+        self.hunts.retain(|q, _| quarries.contains(q));
+        let mut by_quarry: Vec<UnitId> = Vec::new();
+        for q in &quarries {
+            if !by_quarry.contains(q) {
+                by_quarry.push(*q);
+            }
+        }
+        for quarry in by_quarry {
+            let leash_from = hunters.iter().find(|(_, h)| h.quarry == quarry).map(|(_, h)| h.leash_from).unwrap_or_default();
+            let fresh_state = || HuntState { started: frame, leash_from, last_seen: None, quarry_def: None, ended: None, dropped: HashMap::new(), sent_to_sighting: HashMap::new() };
+            if self.hunts.get(&quarry).is_some_and(|s| s.ended.is_some() && s.leash_from.dist2d(leash_from) > 1.0) {
+                self.hunts.insert(quarry, fresh_state());
+            }
+            let state = self.hunts.entry(quarry).or_insert_with(fresh_state);
+            if state.ended.is_some() {
+                continue;
+            }
+            let seen = enemies.iter().find(|e| e.id == quarry);
+            if let Some(e) = seen {
+                state.last_seen = Some((e.pos, e.vel, frame));
+                state.quarry_def = e.def.or(state.quarry_def);
+            }
+            if state.quarry_def.is_none() {
+                state.quarry_def = self.seen.get(&quarry).map(|(d, _, _)| *d);
+            }
+            let quarry_speed = state.quarry_def.and_then(|d| view.stats(d)).map(|s| s.speed);
+            let mut ended: Option<&'static str> = None;
+            if seen.is_none() && !view.enemy_known(quarry) {
+                ended = Some("dead");
+            } else if seen.is_none() && state.last_seen.map_or(frame - state.started, |(_, _, f)| frame - f) >= HUNT_LOST_FRAMES {
+                ended = Some("lost");
+            }
+            let mut active: Vec<&OwnUnit> = Vec::new();
+            if ended.is_none() {
+                for (unit, hunt) in hunters.iter().filter(|(_, h)| h.quarry == quarry) {
+                    if state.dropped.contains_key(&unit.id) {
+                        continue;
+                    }
+                    if hunt.leash_from.dist2d(unit.pos) > hunt.leash {
+                        ended = Some("leash");
+                        break;
+                    }
+                    let drop = if unit.health < unit.max_health * HUNT_DROP_HEALTH {
+                        Some("hurt")
+                    } else if let (Some(mine), Some(theirs)) = (view.stats(unit.def).map(|s| s.speed), quarry_speed)
+                        && mine <= theirs
+                    {
+                        Some("slower")
+                    } else {
+                        None
+                    };
+                    if let Some(why) = drop {
+                        state.dropped.insert(unit.id, why);
+                        self.claims.remove(&unit.id);
+                        events.push(HuntEvent { quarry, hunter: Some(unit.id), why });
+                        if debug {
+                            eprintln!("{} f={frame} micro: unit {} drops out of the hunt on {} ({why})", view.label(), unit.id.0, quarry.0);
+                        }
+                        continue;
+                    }
+                    active.push(unit);
+                }
+                if ended.is_none() && active.is_empty() {
+                    ended = Some("no hunters");
+                }
+            }
+            if let Some(why) = ended {
+                state.ended = Some(why);
+                for (unit, _) in hunters.iter().filter(|(_, h)| h.quarry == quarry) {
+                    self.claims.remove(&unit.id);
+                }
+                events.push(HuntEvent { quarry, hunter: None, why });
+                if debug {
+                    eprintln!("{} f={frame} micro: the hunt on {} ends ({why}) after {} s", view.label(), quarry.0, (frame - state.started) / FRAMES_PER_SECOND);
+                }
+                continue;
+            }
+            for unit in active {
+                let fresh = !self.claims.get(&unit.id).is_some_and(|c| c.rule == Rule::Hunt && c.target == Some(quarry));
+                if fresh {
+                    fired.push(Rule::Hunt.id());
+                    self.counts.0 += 1;
+                    if debug {
+                        eprintln!("{} f={frame} micro: {}#{} hunts {}", view.label(), view.def(unit.def).map_or("?", |d| d.name.as_str()), unit.id.0, quarry.0);
+                    }
+                }
+                match (seen, state.last_seen) {
+                    (Some(e), _) => {
+                        self.claims.insert(unit.id, Claim { rule: Rule::Hunt, sent_to: e.pos, target: Some(quarry), frame, stance: None, kind: None });
+                        self.counts.1 += 1;
+                        commands.push(Command::Attack { unit: unit.id, target: quarry, queue: false });
+                    }
+                    (None, Some((pos, vel, at))) => {
+                        // Out of sight: once per sighting, to where it was heading.
+                        if state.sent_to_sighting.get(&unit.id) != Some(&at) {
+                            state.sent_to_sighting.insert(unit.id, at);
+                            let ahead = (frame - at) as f32;
+                            let to = view.snap(Vec3 { x: pos.x + vel.x * ahead, y: pos.y, z: pos.z + vel.z * ahead });
+                            self.claims.insert(unit.id, Claim { rule: Rule::Hunt, sent_to: to, target: Some(quarry), frame, stance: None, kind: None });
+                            self.counts.1 += 1;
+                            commands.push(Command::Move { unit: unit.id, to, queue: false });
+                        }
+                    }
+                    (None, None) => {}
+                }
+            }
+        }
     }
 
     /// H-MICRO-FLEE for one unit: `Some` when it owns the unit this tick (a step, or a hold at the edge). A threat

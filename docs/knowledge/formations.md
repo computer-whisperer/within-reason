@@ -144,3 +144,23 @@ shots (it does not: the damage is booked with the Rocketeer as attacker), or a c
 of the Hammers showed the same share.
 **Used by.** (none; a candidate for a slot rule that keeps the long-reach body's line clear of the line body, or
 for the unit mix)
+
+### K-form-a-body-stationed-among-buildings-jams
+**Claim.** A body under H-MICRO-FORM stationed beside a factory and its solars (the hold packet's group_A at spot_45,
+40-80 Stouts by the mid game) is held in slots on and between buildings: three times the engine's move failures and
+stuck seconds of the same packet with the lane off, with no gain in the trade. The transform snaps slots to reachable
+terrain, not to ground clear of buildings.
+**Status.** measured (2026-09-25 late), hold-lane-on against hold-lane-off, 48 games an arm.
+**Evidence.** Move failures 28 against 8.6 a game; stuck seconds (`run/floor.py` stuck_s) 573 against 163; metal lost
+per killed 0.66 [0.57-0.76] against 0.68 [0.59-0.77]; nearest friend at contact 41 against 40; friend on the line 31%
+against 41%; friendly fire 8.1% against 6.7% of damage (Stout on Stout 208k against 149k hp); muzzled 10.3% against 7.6%
+(by a friend 2,542 against 2,984 s, at the reach's edge 1,009 against 637, clear line 3,344 against 2,536); speed share
+over far-goal seconds 0.63 against 0.65 with 10% against 2% of soldier-seconds under two orders (speed 0.41 under two).
+The raids' regime (packet-lane-on/off, Blitz skirmishes in the open) had shown the opposite on friendly fire (3.5%
+against 8.3%) and spacing (49 against 25): the lane's shape effects belong to bodies in the open, not to a block parked
+on a base.
+**Would be wrong if.** The same body stationed in the open (spot_36) showed the same move failures and stuck seconds
+with the lane on.
+**Used by.** H-MICRO-FORM (a slot on a building is a defect to fix: clear-ground snapping, or a smaller footprint at a
+station).
+

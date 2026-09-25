@@ -14,6 +14,7 @@ use micro::{Commitment, Lane, Stats, View};
 
 use crate::fire::{self, Fire, Tally};
 use crate::plan::{Force, Job, LaneMode, Sizing};
+use crate::raid::{self, Raid};
 use crate::scenario::{self, Order, Scenario};
 use crate::sites::{self, Footprint, Formation, FormationKind, Site};
 
@@ -85,6 +86,8 @@ pub struct Batch {
     /// the runners' centre every N frames (0: only when idle), to measure a chaser's speed against the re-send
     /// cadence (K-engine-a-short-move-order-brakes-the-unit on the follow rule).
     pub chase: Option<i32>,
+    /// `duel --scenario raid`: every job is the raid scenario (`raid.rs`), `x` the picket body and `y` the raiders.
+    pub raid: bool,
     pub on_result: Box<dyn Fn(&DuelResult) + Send + Sync>,
 }
 
@@ -127,6 +130,12 @@ pub struct DuelResult {
     /// A scenario's units' mean distance between the health they started the fight with and the file's (a share of
     /// full health); 0 in a duel.
     pub health_error: [f32; 2],
+    /// The raid scenario's score (`raid.rs`): extractors of ours lost, seconds from the first orders to the first
+    /// raider killed, hunters lost, and each hunt's end ("armflea:dead@12s"); empty outside a raid.
+    pub extractors_lost: u32,
+    pub first_kill_seconds: Option<f32>,
+    pub hunters_lost: u32,
+    pub hunts: String,
 }
 
 /// One unit to give.
@@ -297,11 +306,14 @@ struct Duel {
     shape_due: Vec<i32>,
     /// Bounding box (min x, min z, max x, max z) of where units have died.
     wreckage: Option<[f32; 4]>,
+    /// The raid scenario's state (`raid.rs`), when this duel is one.
+    raid: Option<Raid>,
 }
 
 impl Duel {
+    /// A recorded engagement (`scenario.rs`): its units hurt and held before the fight. The raid is not one.
     fn is_scenario(&self) -> bool {
-        self.armies[0].formation.is_none()
+        self.armies[0].formation.is_none() && self.raid.is_none()
     }
 
     fn wreck_at(&mut self, at: Vec3) {
@@ -455,11 +467,25 @@ impl Director {
         }
         let queue = self.batch.queue.lock().unwrap();
         let mut max_slope = 1.0f32;
-        for name in queue.iter().flat_map(|job| [&job.x, &job.y]).flat_map(|spec| Force::parse(spec).parts).map(|(name, _)| name) {
+        let raid_defs: Vec<String> = if self.batch.raid { raid::BUILDINGS.iter().map(|s| s.to_string()).collect() } else { Vec::new() };
+        for name in queue.iter().flat_map(|job| [&job.x, &job.y]).flat_map(|spec| Force::parse(spec).parts).map(|(name, _)| name).chain(raid_defs) {
             match self.defs.get(&name) {
                 None => self.fatal = Some(format!("the game has no unit called {name}")),
                 Some(def) => max_slope = max_slope.min(def.move_class.map_or(1.0, |class| class.max_slope)),
             }
+        }
+        if self.batch.raid {
+            drop(queue);
+            let (length, width) = raid::Layout::footprint();
+            let commanders: Vec<Vec3> = self.commanders.values().copied().collect();
+            let sites = sites::choose(&hello.terrain, max_slope, &commanders, self.wanted_sites, Footprint { length, width });
+            if sites.is_empty() {
+                self.fatal = Some(format!("no flat site of {length:.0} x {width:.0} for the raid found on {}", hello.map.name));
+            }
+            let at: Vec<String> = sites.iter().map(|s| format!("({:.0},{:.0})", s.centre.x, s.centre.z)).collect();
+            eprintln!("match {}: raid site(s) at {}", self.match_index, at.join(" "));
+            self.fields = Some(sites.into_iter().map(|site| Field { site, duel: None, fought: 0, abandoned: false }).collect());
+            return;
         }
         // The ground must hold the largest army of the batch in its formation.
         let mut armies = Vec::new();
@@ -525,7 +551,29 @@ impl Director {
         };
         self.duel_budget -= 1;
         let teams = [job.x_team(), 1 - job.x_team()];
-        let armies = if let Some(scenario) = &self.batch.scenario {
+        let mut raid_state = None;
+        let armies = if self.batch.raid {
+            // The raid (`raid.rs`): `x` the pickets at the station with the strip's buildings, `y` the raiders
+            // beyond the far end. Its `x` is never sized against `y`.
+            let [force_x, force_y] = self.sized(&job)?;
+            let terrain = &self.hello.as_ref().expect("hello precedes ticks").terrain;
+            let centre = field.site.centre;
+            let expand = |force: &[(String, u32)]| -> Vec<&UnitDefInfo> { force.iter().flat_map(|(n, c)| std::iter::repeat_n(&self.defs[n], *c as usize)).collect() };
+            let (pickets, raiders) = (expand(&force_x), expand(&force_y));
+            let layout = raid::Layout::at(centre, pickets.len(), raiders.len());
+            let place = |at: Vec3| Vec3 { x: at.x, y: ground(terrain, at.x, at.z), z: at.z };
+            let mut spawns_x: Vec<Spawn> = pickets.iter().zip(&layout.pickets).map(|(def, at)| Self::spawn(def, place(*at), None)).collect();
+            let picket_indices: Vec<usize> = (0..spawns_x.len()).collect();
+            let extractor_def = &self.defs[raid::BUILDINGS[0]];
+            let constructor_def = &self.defs[raid::BUILDINGS[1]];
+            let extractor_indices: Vec<usize> = layout.extractors.iter().map(|at| { spawns_x.push(Self::spawn(extractor_def, place(*at), None)); spawns_x.len() - 1 }).collect();
+            spawns_x.push(Self::spawn(constructor_def, place(layout.constructor), None));
+            let constructor_index = spawns_x.len() - 1;
+            let spawns_y: Vec<Spawn> = raiders.iter().zip(&layout.raiders).map(|(def, at)| Self::spawn(def, place(*at), None)).collect();
+            let raider_indices: Vec<usize> = (0..spawns_y.len()).collect();
+            raid_state = Some(Raid::new(place(layout.station), extractor_indices, constructor_index, picket_indices, raider_indices));
+            [Army::new(teams[0], spawns_x, None, place(layout.station), self.batch.lanes[0]), Army::new(teams[1], spawns_y, None, place(layout.raiders[0]), self.batch.lanes[1])]
+        } else if let Some(scenario) = &self.batch.scenario {
             let terrain = &self.hello.as_ref().expect("hello precedes ticks").terrain;
             let centre = field.site.centre;
             [0, 1].map(|side| {
@@ -550,7 +598,7 @@ impl Director {
             ]
         };
         field.fought += 1;
-        Some(Duel { job, armies, phase: Phase::Spawning { since: -1, round: 1 }, sequence: field.fought, next_sample: 0, shape_due: Vec::new(), wreckage: None })
+        Some(Duel { job, armies, phase: Phase::Spawning { since: -1, round: 1 }, sequence: field.fought, next_sample: 0, shape_due: Vec::new(), wreckage: None, raid: raid_state })
     }
 }
 
@@ -783,6 +831,11 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 }
             }
         }
+        if fighting && side == 1 && !lost.is_empty()
+            && let Some(raid) = duel.raid.as_mut()
+        {
+            raid.first_kill.get_or_insert(frame);
+        }
         wrecks.extend(lost.into_iter().map(|(_, at)| at));
         for hurter in army.hurters.iter_mut().filter(|h| !h.gone) {
             if let Some(unit) = hurter.unit
@@ -979,6 +1032,7 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 army.spread_at_contact = Some(army.dispersion);
             }
             let from = commands.len();
+            let mut commitments: HashMap<UnitId, Commitment> = HashMap::new();
             if frame >= advance_at {
                 if army.ordered_at.is_none() {
                     army.ordered_at = Some(frame);
@@ -988,7 +1042,9 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                     }
                 }
                 let settled = army.ordered_at.is_some_and(|at| !scenario || frame - at >= FPS);
-                if settled {
+                if settled && let Some(raid) = duel.raid.as_mut() {
+                    raid_orders(raid, army, enemy, tick, side, rules, commands, &mut commitments);
+                } else if settled {
                     match rules.chase {
                         Some(interval) if first_damage.is_none() => chase_orders(army, enemy, tick, side, interval, rules.map, frame, commands),
                         _ => send_idle(army, tick, enemy_centroid, commands),
@@ -1000,11 +1056,19 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 let mut mine: Vec<Command> = commands.split_off(from);
                 let members = army.units.clone();
                 lane.note_standing_orders(&mine, frame, |u| members.contains(&u));
-                lane.set_commitments(members.iter().map(|u| (*u, Commitment::All)).collect(), HashMap::new());
-                let view = DuelView { rules, team, side, own: &members, enemy: &enemy.units, mode: army.lane_mode };
+                let mut all: HashMap<UnitId, Commitment> = members.iter().map(|u| (*u, Commitment::All)).collect();
+                all.extend(commitments);
+                lane.set_commitments(all, HashMap::new());
+                // What the lane believes alive of theirs: the other army's living units (a hunt ends "dead" when its
+                // quarry is gone from them; `enemy.units` keeps the dead).
+                let enemy_alive: HashSet<UnitId> = enemy.alive.keys().copied().collect();
+                let view = DuelView { rules, team, side, own: &members, enemy: &enemy_alive, mode: army.lane_mode };
                 let output = lane.tick(&view, tick, &mut mine, std::env::var_os("WITHIN_REASON_MICRO_DEBUG").is_some());
                 commands.extend(mine);
                 commands.extend(output.commands);
+                if let Some(raid) = duel.raid.as_mut() {
+                    raid.note_hunt_events(&output.hunts, frame, commands);
+                }
                 army.lane = Some(lane);
             }
             // Judge once both teams have reported this frame.
@@ -1030,11 +1094,17 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                     duel.shape_due.remove(0);
                     sample_shape(&mut duel.armies);
                 }
+                let raid_over = duel.raid.as_ref().is_some_and(|r| {
+                    let x = &duel.armies[0];
+                    r.nothing_left(|i| x.unit_of.get(&i).is_some_and(|u| x.alive.contains_key(u)))
+                });
                 let reason = if duel.armies.iter().any(|a| a.alive.is_empty()) {
                     Some("wiped")
+                } else if raid_over {
+                    Some("raid_over")
                 } else if frame - advance_at >= rules.time_limit * FPS {
                     Some("timeout")
-                } else if frame - last_damage >= STALEMATE {
+                } else if duel.raid.is_none() && frame - last_damage >= STALEMATE {
                     Some("stalemate")
                 } else {
                     None
@@ -1140,6 +1210,35 @@ fn first_orders(army: &Army, enemy: &Army, enemy_centroid: Vec3, commands: &mut 
         };
         commands.push(order);
     }
+}
+
+/// The raid scenario's orders for one side this tick (`raid.rs`): the raiders' script for side 1, the picket's
+/// standing raider rule for side 0, whose hunts go to the lane as commitments when the lane is on.
+#[allow(clippy::too_many_arguments)]
+fn raid_orders(raid: &mut Raid, army: &mut Army, enemy: &Army, tick: &Tick, side: usize, rules: &Rules, commands: &mut Vec<Command>, commitments: &mut HashMap<UnitId, Commitment>) {
+    let mobile = |a: &Army, i: usize| a.spawns[i].mobile;
+    if side == 1 {
+        let alive_x = |i: usize| enemy.unit_of.get(&i).filter(|u| enemy.alive.contains_key(u)).and_then(|u| Some((*u, *enemy.seen_at.get(u)?)));
+        let soldiers_x: Vec<Vec3> = raid.pickets.iter().filter_map(|&i| enemy.unit_of.get(&i)).filter(|u| enemy.alive.contains_key(u)).filter_map(|u| enemy.seen_at.get(u).copied()).collect();
+        raid.raider_orders(tick, &army.unit_of, &alive_x, &soldiers_x, rules.map, commands);
+        return;
+    }
+    for &i in &raid.pickets {
+        if let Some(&u) = army.unit_of.get(&i) {
+            raid.place_of.entry(u).or_insert(army.spawns[i].at);
+        }
+    }
+    let pickets: Vec<(&bot_protocol::OwnUnit, &UnitDefInfo)> = tick
+        .snapshot
+        .own_units
+        .iter()
+        .filter(|u| army.spawn_of.get(&u.id).is_some_and(|&i| mobile(army, i) && raid.pickets.contains(&i)))
+        .filter_map(|u| Some((u, rules.defs.get(&u.def)?)))
+        .collect();
+    let buildings: Vec<Vec3> = raid.extractors.iter().chain(std::iter::once(&raid.constructor)).filter_map(|i| army.unit_of.get(i)).filter(|u| army.alive.contains_key(u)).filter_map(|u| army.seen_at.get(u).copied()).collect();
+    let enemy_alive = |id: UnitId| enemy.alive.contains_key(&id);
+    let lane_on = army.lane.is_some();
+    commitments.extend(raid.picket_orders(tick, lane_on, &pickets, &buildings, tick.snapshot.enemies.as_slice(), rules.defs, &enemy_alive, commands));
 }
 
 /// The chase instrument's orders: the second army runs from the first (a Move 1,500 along the line away from the
@@ -1260,6 +1359,10 @@ fn conclude(duel: &mut Duel, started: i32, frame: i32, first_damage: Option<i32>
         lane: [x.lane_mode.label().to_string(), y.lane_mode.label().to_string()],
         speed: [x.moved / x.moved_samples.max(1) as f32, y.moved / y.moved_samples.max(1) as f32],
         health_error: [health_error(x), health_error(y)],
+        extractors_lost: duel.raid.as_ref().map_or(0, |r| r.extractors.iter().filter(|&&i| !x.unit_of.get(&i).is_some_and(|u| x.alive.contains_key(u))).count() as u32),
+        first_kill_seconds: duel.raid.as_ref().and_then(|r| r.first_kill).map(|f| (f - started) as f32 / FPS as f32),
+        hunters_lost: duel.raid.as_ref().map_or(0, |r| r.pickets.iter().filter(|&&i| !x.unit_of.get(&i).is_some_and(|u| x.alive.contains_key(u))).count() as u32),
+        hunts: duel.raid.as_ref().map_or(String::new(), |r| r.hunts_line(started)),
     };
     duel.phase = Phase::Clearing { since: frame, sweep: Sweep::Survivors };
     result
