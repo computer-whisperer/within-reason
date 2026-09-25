@@ -40,7 +40,11 @@ it: at contact pros 542 of 2,429 (22%), us 60 of 140 (43%); 10 s in 31% against 
 the trade: a third or more on the line traded 4.0 points better than less, interval -3.6 .. +11.5 (141 / 141 sides).
 **Would be wrong if.** A shots-based count (run/fire.py's muzzled seconds, our records) did not fall when our bodies
 were spaced and cut to the pros' size.
-**Used by.** H-MICRO-FORM (one rank, bodies of at most 12); the duel harness's shape instrument measures it (`fol_in`, `fol_blocked`).
+**Amended 2026-09-25 (lane-ab, 24 games an arm, the heuristic bot against medium on Comet Catcher).** It fell.
+With H-MICRO-FORM the friend-on-the-line share at contact is 23% of 1,900 units in reach (402 fight sides; the pros'
+22%) against 32-33% for the old lane and no lane; the nearest friend 51 against 40 (the pros 67-70); muzzled seconds
+by a friend on the line 737 of 51,475 in-reach seconds against 1,399 (old) and 3,143 (none). Supported, live.
+**Used by.** H-MICRO-FORM (ranks of six, bodies of at most 12); the duel harness's shape instrument measures it (`fol_in`, `fol_blocked`).
 
 ### K-form-pros-fight-with-pure-bodies
 **Claim.** The pros rarely fight with raiders and line units in one body, and when they do there is no fixed layering
@@ -111,4 +115,8 @@ without, +0.132 +- 0.042 with; the Blitz pack and the Stout mirror unchanged (+0
 formation alone; +0.023 against +0.034). Not measured in a live game with fights (form-7: exchange 1.34, one game).
 **Would be wrong if.** An arena A/B of H-MICRO-FORM-FLANK over 24 games traded no better, or a live game with the
 rule showed the ends of the line standing out of reach while the front lost (the wide line's known cost).
+**Amended 2026-09-25 (lane-ab).** The whole final lane (the flank in it) against the old lane and no lane, 24 games
+an arm: metal lost per metal killed 0.79 [0.65-0.95] against 0.84 [0.73-0.93] and 0.94 [0.83-1.05]; friendly fire
+3.6% against 4.6% and 4.6%; blocked 6% against 7% and 6%. The rule is not separated from the rest of the lane in
+the arena (the arms are whole binaries); the trade moved the way the harness said, within intervals that overlap.
 **Used by.** H-MICRO-FORM-FLANK.

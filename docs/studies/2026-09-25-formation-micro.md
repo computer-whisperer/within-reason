@@ -211,3 +211,38 @@ reach, and the rear's shells on the front were 40% of the damage done in the ban
 ends of the front's line takes that to 4% and the fight from +0.69 to +0.84. The raider body's flank slot (the
 Stouts on the Blitzes) is the same rule: the Stouts and Janus put 33,500 hp into the Blitzes in the plain cut and
 2,300 with the flank.
+
+## The arena A/B (2026-09-25, lane-ab)
+
+24 games an arm, the heuristic bot with no LLM, Armada mirrored against BARb medium on Comet Catcher Remake 1.8,
+corners alternating, the same seeds in every arm (`--seed-base 1`), 25 minutes, speed 50, six parallel. `new` is
+the tree at 3c83cde (H-MICRO-FORM and -FLANK, the flee, kite and follow fixes, focus gone); `old` is the bot built
+at 44dfd19 (the lane as it was on 2026-09-24) run through `--bot`, the shim and protocol being unchanged between
+them; `off` is `--disable H-MICRO-LANE`. Two of the old arm's matches aborted on a port collision and were replayed
+alone on their seeds and corners. `run/micro_ledger.py`, `run/fire.py`, `run/queued.py` and `run/replays/shapes.py`
+over every record (both corners).
+
+| | new | old | off | the pros |
+|---|---|---|---|---|
+| W-L-timeout | 1-13-10 | 0-13-11 | 0-14-10 | |
+| metal lost per metal killed by minute 25 [bootstrap 95%] | **0.79 [0.65-0.95]** | 0.84 [0.73-0.93] | 0.94 [0.83-1.05] | |
+| the same by minute 10 | 0.67 [0.40-1.09] | 0.62 [0.37-0.97] | 0.96 [0.68-1.43] | |
+| soldiers lost a game: to turrets or the commander / elsewhere | 6.2 / 36.2 | 5.4 / 37.5 | 5.2 / 45.1 | |
+| soldier-seconds under fire a game | 1,741 | 1,731 | 1,655 | |
+| in-reach seconds; shots per in-reach s | 51,475; 1.27 | 51,404; 1.23 | 55,688; 1.31 | |
+| muzzled (by a friend on the line) | 6.4% (737 s) | 6.1% (1,399) | 11.5% (3,143) | |
+| friendly fire | 3.6% | 4.6% | 4.6% | |
+| engaged s; queued; blocked | 61,514; 19%; 6% | 48,238; 17%; 7% | 56,272; 14%; 6% | 20%; 8% |
+| fight sides; nearest friend at contact | 402; **51** | 368; 40 | 429; 40 | 67-70 |
+| friend on the line at contact | **23%** of 1,900 | 32% of 1,676 | 33% of 2,038 | 22% |
+| body at contact, median | 7 | 7 | 6 | 6 |
+
+The noise floor: per game the metal lost has a standard deviation of 5,000-6,500 on a mean of 6,000, so 24 games
+resolve about 0.15 of the lost-per-killed ratio; the new and off intervals just touch, new and old overlap. Wins
+are one in 72: the heuristic bot does not beat medium on this map, whatever the lane does, and a claim about wins
+would need the player games. What moved, and in the direction the harness said: the trade (0.79 against 0.94), the
+deaths in unit fights (36 against 45), the muzzling by friends (737 against 3,143 s), the spacing and the line of
+fire at contact (the pros' numbers, reached live for the first time). What did not: deaths to turrets or the
+commander and the time under fire, the flee's own measures (K-micro-a-tick-is-a-tower-margin, amended); the
+blocked share (6-7% in every arm, the pros' 8%). Three quarters of the friendly fire in every arm is the
+Rocketeers' rockets landing on the Hammers and Warriors in front of them, which no rule here addresses.
