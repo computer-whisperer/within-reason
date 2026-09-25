@@ -10,9 +10,12 @@
 <header id="top">
   <h1 id="title">Within Reason match viewer</h1>
   <span id="subtitle"></span>
+  <a id="browse" class="replay" href="?" hidden title="Back to the list of matches">matches</a>
   <a id="replay" class="replay" hidden download title="Download the engine's replay (.sdfz) of this match; copy it into BAR's demos folder to watch it in the game">replay ⤓</a>
   <label class="open">Open files <input type="file" id="files" multiple></label>
 </header>
+
+<section id="browser" class="panel" hidden></section>
 
 <main>
   <section id="map-pane">
@@ -59,6 +62,8 @@
         <summary>Build order: the first eight minutes (click to seek and select)</summary>
         <ol id="build-order"></ol>
       </details>
+      <h2 class="call-title" id="pass-title" hidden>The pass at the playhead <span id="pass-summary" class="muted"></span></h2>
+      <div id="pass" hidden></div>
       <h2 class="call-title">The call at the playhead <span id="call-summary" class="muted"></span></h2>
       <div id="call"></div>
       <details id="pianist-stats">

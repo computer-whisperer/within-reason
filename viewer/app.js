@@ -117,7 +117,18 @@
 
   async function boot() {
     const params = new URLSearchParams(location.search);
-    const live = { base: params.get("match") || "match/", record: params.get("record") };
+    let base = params.get("match");
+    if (!base) {
+      // No match named: the server's listing decides. A single match served the old way opens itself; a batch or
+      // the matches directory opens the browser; no listing (another server) means the old address.
+      const listing = await fetchText("matches/index.json");
+      const index = listing ? JSON.parse(listing) : null;
+      if (index && index.kind !== "match") return renderBrowser(index);
+      base = index ? "match/" : "match/";
+    }
+    if (!base.endsWith("/")) base += "/";
+    $("browse").hidden = false;
+    const live = { base, record: params.get("record") };
     const first = await pullMatch(live);
     if (!first.texts) {
       if (first.files.length) return status(`No record-*.jsonl in the match directory (was it played with WITHIN_REASON_RECORD=1?). Files: ${first.files.join(", ")}`);
@@ -129,6 +140,52 @@
     loadBackground(bg);
     loadTerrain(live.base, view.match.header.terrain);
     if (!view.match.result) follow(live, !params.get("t"));
+  }
+
+  /// The match browser: every batch the server lists, newest first, each match a link into the viewer.
+  function renderBrowser(index) {
+    document.body.dataset.browser = "1";
+    const box = $("browser");
+    box.hidden = false;
+    box.textContent = "";
+    $("subtitle").textContent = `${index.root}: ${index.batches.length} ${index.kind === "batch" ? "batch" : "batches"}`;
+    const filter = el("input");
+    filter.type = "search";
+    filter.placeholder = "filter by label, opponent, map, commit";
+    const table = el("table", "batches");
+    const head = el("tr");
+    for (const h of ["started", "label", "opponent", "map", "commit", "hands", "matches"]) head.append(el("th", null, h));
+    table.append(head);
+    const rows = [];
+    for (const b of index.batches) {
+      const tr = el("tr");
+      const when = b.started ? new Date(b.started * 1000) : null;
+      tr.append(el("td", "when", when ? `${when.toISOString().slice(0, 10)} ${when.toTimeString().slice(0, 5)}` : ""));
+      tr.append(el("td", "label", b.label || b.batch));
+      tr.append(el("td", null, [b.opponent, b.max_minutes ? `${b.max_minutes} min cap` : null].filter(Boolean).join(", ")));
+      tr.append(el("td", null, b.map || ""));
+      tr.append(el("td", "mono", b.commit || ""));
+      tr.append(el("td", null, [b.player ? "player" : null, b.pianist ? "pianist" : null, b.packet ? `packet ${b.packet}` : null].filter(Boolean).join(", ")));
+      const cell = el("td", "matches");
+      for (const m of b.matches || []) {
+        const path = b.batch === "." ? `matches/${m.index ? `${m.index}/` : ""}` : `matches/${encodeURIComponent(b.batch)}/${m.index}/`;
+        const a = el("a", `match ${m.record ? "" : "norecord"} ${(m.outcome || "").toLowerCase()}`);
+        a.href = `?match=${path}`;
+        const words = m.outcome ? `${m.outcome}${m.minutes != null ? ` ${m.minutes.toFixed(1)} min` : ""}` : b.finished ? "no result" : "playing";
+        a.textContent = `${m.index || "match"}: ${words}${m.arm ? ` (${m.arm})` : ""}${m.record ? "" : " · no record"}`;
+        a.title = `${b.batch}/${m.index}`;
+        cell.append(a);
+      }
+      tr.append(cell);
+      table.append(tr);
+      rows.push({ tr, text: `${b.batch} ${b.label || ""} ${b.opponent || ""} ${b.map || ""} ${b.commit || ""} ${b.packet || ""}`.toLowerCase() });
+    }
+    filter.addEventListener("input", () => {
+      const q = filter.value.trim().toLowerCase();
+      for (const r of rows) r.tr.hidden = !!q && !r.text.includes(q);
+    });
+    box.append(el("h2", null, "Matches"), filter, table);
+    status("pick a match; a batch without a result is still being played");
   }
 
   /// Keeps a match that is still being played up to date, until its result line arrives.
@@ -304,7 +361,11 @@
     const notes = [`${samples.length} samples`];
     if (badLines) notes.push(`${badLines} unreadable line(s) skipped`);
     if (restarts.length) notes.push(`bot restarted at ${restarts.map(WR.clock).join(", ")}`);
-    if (view.match.jev) notes.push(`pianist: ${view.match.jev.calls.length} calls to ${view.match.jev.header?.model || view.match.jev.calls[0]?.model || "Jev"}${view.match.jev.errors.length ? `, ${view.match.jev.errors.length} failed` : ""}`);
+    if (view.match.jev) {
+      const j = view.match.jev;
+      const asks = j.passes.filter((p) => p.gate).length;
+      notes.push(`pianist: ${j.calls.length} calls to ${j.header?.model || j.calls[0]?.model || "Jev"}${j.errors.length ? `, ${j.errors.length} failed` : ""}${j.version >= 2 ? ` · one pass: ${j.passes.length} pass lines, ${asks} asked, ${j.plans.length} picks` : ""}`);
+    }
     notes.push(view.match.truth.length ? "opponent ground truth" : census.length ? `${census.length} census minutes` : "no census (play with WITHIN_REASON_OBSERVE=1 for the opponent's truth)");
     status(notes.join(" · "));
   }
@@ -1135,11 +1196,14 @@
       case "event": return String(o);
       case "turn": return d.inputs.wake ? `woken: ${d.inputs.wake}` : "turn";
       case "builder": case "lab": case "group": {
+        // The one pass's plays (sources rule, plan, list): the state or step and what it did.
+        if (o.played == null && (d.inputs?.state || d.inputs?.step)) return `${d.inputs.actor}: ${o.did || d.inputs.state || d.inputs.step}`;
         const kept = o.played !== o.choice;
         const params = [o.where_extractor && o.played === "extractor" ? o.where_extractor : null, o.where && /_to|_at|walk|split/.test(o.played) ? o.where : null, o.whom && o.played === "engage" ? o.whom : null, o.where_scout && o.played === "scout" ? o.where_scout : null].filter(Boolean);
         return `${d.inputs.actor}: ${o.played}${params.length ? ` ${params.join(" ")}` : ""}${kept ? ` (kept; it chose ${o.choice})` : ""}`;
       }
       case "global": return `global: ${Object.entries(o).map(([k, v]) => `${k.replace("global.", "")} ${Number(v).toFixed(2)}`).join(", ")}`;
+      case "worlds": return `plan: w${o.pick} at ${Number(o.confidence).toFixed(2)}${Array.isArray(o.changed) && o.changed.length ? `: ${o.changed.join("; ")}` : ", nothing changes"}`;
       default: return `${d.kind}: ${JSON.stringify(o)}`;
     }
   }
@@ -1170,7 +1234,7 @@
     view.currentDecision = -2;
     const filters = $("decision-filters");
     filters.textContent = "";
-    const hasJev = !!view.match.jev || view.match.decisions.some((d) => d.source === "jev");
+    const hasJev = !!view.match.jev || view.match.decisions.some((d) => WR.PIANIST_SOURCES.has(d.source));
     const keys = hasJev ? ["heuristic", "llm", "event", "jev", "jevChangesOnly"] : ["heuristic", "llm", "event"];
     const words = { event: "brain events", jev: "pianist", jevChangesOnly: "changes only" };
     for (const key of keys) {
@@ -1188,7 +1252,7 @@
     }
     if (hasJev) {
       const select = el("select");
-      const actors = [...new Set(view.match.decisions.filter((d) => d.source === "jev" && d.inputs?.actor).map((d) => d.inputs.actor))].sort();
+      const actors = [...new Set(view.match.decisions.filter((d) => WR.PIANIST_SOURCES.has(d.source) && d.inputs?.actor).map((d) => d.inputs.actor))].sort();
       select.append(new Option("every actor", ""));
       for (const a of actors) select.append(new Option(a, a));
       select.value = actors.includes(view.jevActor) ? view.jevActor : "";
@@ -1204,22 +1268,22 @@
     const LIMIT = 4000;
     for (const d of view.match.decisions) {
       if (d.kind === "rules") continue;
-      const jev = d.source === "jev";
+      const jev = WR.PIANIST_SOURCES.has(d.source);
       const group = jev ? "jev" : d.kind === "event" ? "event" : d.source.startsWith("llm") ? "llm" : "heuristic";
       if (!view.show[group]) continue;
       if (jev) {
         const o = d.outputs || {};
         if (d.kind === "global") continue;
         if (view.jevActor && d.inputs?.actor !== view.jevActor) continue;
-        if (view.show.jevChangesOnly && (o.played === "continue" || o.played === "nothing" || o.played === "wait")) continue;
+        if (view.show.jevChangesOnly && o.played != null && !WR.isChange(o)) continue;
       }
       if (++shown > LIMIT) break;
       const li = el("li", jev ? `jev${d.outputs?.played !== d.outputs?.choice ? " kept" : ""}` : d.source.startsWith("llm") ? "llm" : "heuristic");
       const head = el("div");
       head.append(el("span", "when", WR.clock(d.f)), el("span", d.kind === "turn" ? "wake" : null, decisionTitle(d)), el("span", "source", d.source));
       if (jev && d.outputs) {
-        head.append(el("span", "p", `p ${Number(d.outputs.probability).toFixed(2)} c ${Number(d.outputs.confidence).toFixed(2)}`));
-        if (d.outputs.did) head.append(el("div", "did", d.outputs.did));
+        if (d.outputs.probability != null) head.append(el("span", "p", `p ${Number(d.outputs.probability).toFixed(2)} c ${Number(d.outputs.confidence).toFixed(2)}`));
+        if (d.outputs.did && d.outputs.played != null) head.append(el("div", "did", d.outputs.did));
       }
       li.append(head);
       if (d.kind === "turn") {
@@ -1277,11 +1341,14 @@
       if (withClock) line.append(`${WR.clock(d.f)}  `);
       line.append(el("b", null, d.played));
       if (d.kept) line.append(el("span", "kept", ` kept (it chose ${d.choice})`));
-      line.append(` p ${Number(d.probability).toFixed(2)} c ${Number(d.confidence).toFixed(2)}`);
+      if (d.probability != null) line.append(` p ${Number(d.probability).toFixed(2)} c ${Number(d.confidence).toFixed(2)}`);
+      if (d.source && d.source !== "jev") line.append(el("span", "source", ` ${d.source}`));
       if (d.did) line.append(` · ${d.did}`);
       return line;
     };
-    for (const [name, entry] of Object.entries(actors)) {
+    for (const [name, raw] of Object.entries(actors)) {
+      // An actor not asked in the call is one line in the state (H-HANDS-DIET), not an object.
+      const entry = typeof raw === "string" ? { doing: raw } : raw;
       const selected = view.jevActor === name;
       const row = el("div", `actor${selected ? " selected" : ""}`);
       row.append(el("b", null, name), el("span", "doing", `${entry.doing || ""}${entry.enemies_near ? ` · ${entry.enemies_near}` : ""}${entry.under_fire ? " · UNDER FIRE" : ""}`));
@@ -1317,13 +1384,95 @@
       });
       box.append(row);
     }
+    renderPass();
     renderCall(call, i);
+  }
+
+  /// The pass at the playhead (logs of version 2): what was open, what the base world started, whether it asked
+  /// (the gate's nouls per state as bars) or stood quiet, the worlds composed with the pick's probabilities, and the
+  /// plan put in force.
+  function renderPass() {
+    const jev = view.match.jev;
+    const box = $("pass");
+    const title = $("pass-title");
+    if (!jev || jev.version < 2 || !jev.passes.length) {
+      box.hidden = title.hidden = true;
+      return;
+    }
+    box.hidden = title.hidden = false;
+    const at = WR.passAt(jev, view.frame);
+    if (!at) {
+      $("pass-summary").textContent = "before the first pass";
+      box.textContent = "";
+      return;
+    }
+    const { pass, index, gate, plan, pickCall } = at;
+    const key = `${index}:${view.jevActor}`;
+    $("pass-summary").textContent = `${WR.clock(pass.f)} · ${pass.gate ? `asked ${pass.gate.length} nouls` : pass.quiet ? "quiet" : (pass.open || []).length ? "nothing open to ask" : "nothing open"}${plan ? ` · picked w${plan.pick} at ${Number(plan.confidence).toFixed(2)}` : ""}`;
+    if (box.dataset.key === key) return;
+    box.dataset.key = key;
+    box.textContent = "";
+    const line = (label, items) => {
+      if (!items || !items.length) return;
+      const div = el("div", "pass-line");
+      div.append(el("b", null, `${label}: `), items.join("; "));
+      box.append(div);
+    };
+    line("open", pass.open);
+    line("events", pass.events);
+    line("the base world started", pass.plan);
+    line("hunts", pass.hunts);
+    if (pass.quiet) box.append(el("div", "pass-line muted", pass.quiet));
+    const flags = (gate && gate.flags) || {};
+    if (pass.slots) {
+      const slots = [...pass.slots].sort((a, b) => (b.name === view.jevActor) - (a.name === view.jevActor));
+      for (const slot of slots) {
+        const open = slot.states.some((st, i) => i !== slot.base && i !== 0 && !st.pair_only);
+        if (!open && !(slot.kind || "").startsWith("threat")) continue;
+        const block = el("div", `slot${slot.name === view.jevActor ? " selected" : ""}`);
+        block.append(el("div", "id", `${slot.name} · ${slot.kind}${slot.idle ? " · idle" : ""}`));
+        const answer = flags[`${slot.name}.answer`];
+        const change = flags[`${slot.name}.change`];
+        if (answer != null) block.append(bar("needs answering", answer, false, 1));
+        if (change != null) block.append(bar("should change course", change, false, 1));
+        slot.states.forEach((st, i) => {
+          const rated = flags[st.id];
+          const marks = [i === slot.base ? "base" : null, st.current ? "current" : null, st.default ? "default" : null, st.pair_only ? "pair only" : null].filter(Boolean);
+          const row = el("div", `state${i === slot.base ? " base" : ""}`);
+          const label = `${st.id.split(".").slice(1).join(".")}${marks.length ? ` (${marks.join(", ")})` : ""}`;
+          if (rated != null) row.append(bar(label, rated, false, 1));
+          else row.append(el("div", "ask", label));
+          row.append(el("div", "ask words", st.words));
+          block.append(row);
+        });
+        box.append(block);
+      }
+    }
+    if (gate && gate.worlds) {
+      const probs = pickCall ? (pickCall.answers["worlds.pick"] || {}).probabilities || {} : {};
+      const top = Math.max(1e-6, ...Object.values(probs));
+      const worlds = el("div", "worlds");
+      worlds.append(el("div", "meta", `${gate.worlds.length} worlds composed${pickCall ? ", the pick's probabilities" : ", no pick"}:`));
+      gate.lines.forEach((text, i) => {
+        const id = `w${i + 1}`;
+        const picked = plan && plan.pick === i + 1;
+        const row = el("div", `world${picked ? " picked" : ""}`);
+        if (id in probs) row.append(bar(id, probs[id], picked, top));
+        else row.append(el("div", "id", id));
+        row.append(el("div", "ask words", text));
+        worlds.append(row);
+      });
+      box.append(worlds);
+    } else if (gate) {
+      box.append(el("div", "pass-line muted", "the gate opened nothing: no second call"));
+    }
+    if (plan) line(`the plan (w${plan.pick}) changed`, plan.changed && plan.changed.length ? plan.changed : ["nothing"]);
   }
 
   /// The call at the playhead: what Jev was shown and what it answered; rebuilt when the call changes. With an actor
   /// selected, its questions come first.
   function renderCall(call, index) {
-    $("call-summary").textContent = `${WR.clock(call.f)} · ${call.ms} ms · ${call.tokens.toLocaleString()} tokens · ${Object.keys(call.questions).length} questions${call.retries ? ` · ${call.retries} retries` : ""}`;
+    $("call-summary").textContent = `${WR.clock(call.f)} · ${call.pick ? "the pick" : "the pre-pass"} · ${call.ms} ms · ${call.tokens.toLocaleString()} tokens · ${Object.keys(call.questions).length} questions${call.retries ? ` · ${call.retries} retries` : ""}`;
     const key = `${index}:${view.jevActor}`;
     if (view.callShown === key) return;
     view.callShown = key;
@@ -1377,11 +1526,14 @@
     const table = $("pianist-minutes");
     table.textContent = "";
     const head = el("tr");
-    for (const h of ["minute", "calls", "median ms", "max ms", "tokens", "questions", "changes", "kept", "failed"]) head.append(el("th", null, h));
+    const v2 = jev.version >= 2;
+    const columns = v2 ? ["minute", "calls", "median ms", "max ms", "tokens", "questions", "asked", "quiet", "picks", "w1", "rule", "plan", "list", "failed"] : ["minute", "calls", "median ms", "max ms", "tokens", "questions", "changes", "kept", "failed"];
+    for (const h of columns) head.append(el("th", null, h));
     table.append(head);
     for (const r of WR.jevMinutes(jev)) {
       const tr = el("tr");
-      for (const v of [r.minute, r.calls, r.medianMs, r.maxMs, r.tokens.toLocaleString(), r.questions, r.changes, r.kept, r.errors]) tr.append(el("td", null, String(v)));
+      const cells = v2 ? [r.minute, r.calls, r.medianMs, r.maxMs, r.tokens.toLocaleString(), r.questions, r.asks, r.quiet, r.picks, r.w1, r.rule, r.plan, r.list, r.errors] : [r.minute, r.calls, r.medianMs, r.maxMs, r.tokens.toLocaleString(), r.questions, r.changes, r.kept, r.errors];
+      for (const v of cells) tr.append(el("td", null, String(v)));
       table.append(tr);
     }
   }

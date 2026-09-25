@@ -76,25 +76,6 @@ pub(super) fn names(text: &str, place: &str) -> bool {
     false
 }
 
-/// The same text with every run of digits replaced by one mark: two pictures that differ only in their numbers (a
-/// clock, a store's level) compare equal.
-pub(super) fn without_numbers(text: &str) -> String {
-    let mut out = String::with_capacity(text.len());
-    let mut in_digits = false;
-    for c in text.chars() {
-        if c.is_ascii_digit() {
-            if !in_digits {
-                out.push('#');
-            }
-            in_digits = true;
-        } else {
-            in_digits = false;
-            out.push(c);
-        }
-    }
-    out
-}
-
 impl Brain {
     /// The request's state: the picture's, with the places block cut to the places in play and the entries of
     /// actors not asked cut to a line, as the diet says. `asked` is each asked actor and where it stands.
@@ -197,10 +178,5 @@ mod tests {
         assert!(names("go to spot_4 now", "spot_4"));
         assert!(!names("go to spot_45 now", "spot_4"));
         assert!(names("spot_45 and spot_4.", "spot_4"));
-    }
-
-    #[test]
-    fn numbers_are_one_mark() {
-        assert_eq!(without_numbers("340 of 500 stored at 12:03"), "# of # stored at #:#");
     }
 }

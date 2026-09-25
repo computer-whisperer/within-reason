@@ -56,10 +56,24 @@ function run(socket) {
     await send("Runtime.enable");
     await send("Page.enable");
     await send("Page.navigate", { url });
-    for (let i = 0; i < 100 && !(await evaluate("document.body.dataset.loaded")); i++) await sleep(100);
+    for (let i = 0; i < 100 && !(await evaluate("document.body.dataset.loaded || document.body.dataset.browser")); i++) await sleep(100);
+    const report = {};
+    // The match browser (the server given the matches directory): rows for every batch, a link per match; the first
+    // match with a record opens the viewer.
+    if (await evaluate("document.body.dataset.browser === '1'")) {
+      report.browser = await evaluate("({ rows: document.querySelectorAll('#browser table.batches tr').length - 1, links: document.querySelectorAll('#browser a.match').length })");
+      if (!report.browser.rows || !report.browser.links) fail(`the match browser is empty: ${JSON.stringify(report.browser)}`);
+      await evaluate("document.getElementById('browser').querySelector('input').value = 'zzz-no-such-batch'; document.getElementById('browser').querySelector('input').dispatchEvent(new Event('input'))");
+      report.browser.filtered = await evaluate("[...document.querySelectorAll('#browser table.batches tr')].filter((tr) => !tr.hidden).length - 1");
+      if (report.browser.filtered !== 0) fail("the browser's filter did not narrow the list");
+      const href = await evaluate("document.querySelector('#browser a.match:not(.norecord)').getAttribute('href')");
+      await send("Page.navigate", { url: new URL(href, url).href });
+      for (let i = 0; i < 100 && !(await evaluate("document.body.dataset.loaded")); i++) await sleep(100);
+    }
     const loaded = await evaluate("document.body.dataset.loaded");
     if (!loaded) fail(`the match did not load: ${await evaluate("document.getElementById('status').textContent")}; page errors: ${problems.join(" | ")}`);
-    const report = { loaded, subtitle: await evaluate("document.getElementById('subtitle').textContent") };
+    report.loaded = loaded;
+    report.subtitle = await evaluate("document.getElementById('subtitle').textContent");
 
     // Scrub: a click at 60 % of the timeline lands at about 60 % of the game.
     // A match still being played: the page follows it, and stops following once the reader scrubs.
@@ -141,6 +155,14 @@ function run(socket) {
       await sleep(200);
       const pianist = await evaluate("({ actors: document.querySelectorAll('#pianist-actors .actor').length, questions: document.querySelectorAll('#call .q').length, bars: document.querySelectorAll('#call .bar').length, played: document.querySelectorAll('#call .bar.played').length, minutes: document.querySelectorAll('#pianist-minutes tr').length - 1, summary: document.getElementById('call-summary').textContent })");
       if (!pianist.actors || !pianist.questions || !pianist.bars || !pianist.minutes) fail(`pianist panels empty: ${JSON.stringify(pianist)}`);
+      // The pass at the playhead (logs of version 2): the open slots' states with the gate's nouls, the worlds
+      // with the pick's probabilities, at an asking second.
+      if (await evaluate("viewer.match.jev.version >= 2")) {
+        await evaluate("(() => { const p = viewer.match.jev.passes.find((x) => x.gate && x.f > viewer.frame) || viewer.match.jev.passes.find((x) => x.gate); viewer.seek(p.f); })()");
+        await sleep(200);
+        pianist.pass = await evaluate("({ summary: document.getElementById('pass-summary').textContent, slots: document.querySelectorAll('#pass .slot').length, states: document.querySelectorAll('#pass .state').length, bars: document.querySelectorAll('#pass .bar').length, worlds: document.querySelectorAll('#pass .world').length, picked: document.querySelectorAll('#pass .world.picked').length })");
+        if (!pianist.pass.slots || !pianist.pass.states) fail(`the pass panel is empty: ${JSON.stringify(pianist.pass)}`);
+      }
       pianist.buildOrder = await evaluate("document.querySelectorAll('#build-order li').length");
       if (!pianist.buildOrder) fail("the build order strip is empty");
       await evaluate("document.querySelector('#pianist-actors .actor').click()");

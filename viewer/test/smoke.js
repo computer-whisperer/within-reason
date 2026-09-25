@@ -62,6 +62,29 @@ const report = {
   standingOrdersAtEnd: orders.size, facings: WR.facings(match).size, firstUnitOrders: history.commands.length,
 };
 
+// The pianist's log: calls, and from version 2 the pass, gate and plan lines; every play in an actor's history with
+// its source; the pass at a frame with what followed it.
+const jevName = fs.readdirSync(dir).find((f) => /^jev-.*\.jsonl$/.test(f));
+if (jevName) {
+  const jev = WR.parseJev(read(jevName));
+  assert(jev.header && jev.calls.length > 0, "jev calls");
+  assert(jev.calls.every((c, i, all) => i === 0 || c.f >= all[i - 1].f), "calls in frame order");
+  const decisions = [...jev.actors.values()].flatMap((a) => a.decisions);
+  assert(decisions.every((d) => d.actor && d.source && Number.isFinite(d.f)), "actor decisions carry actor, source, frame");
+  report.jev = { version: jev.version, calls: jev.calls.length, passes: jev.passes.length, gates: jev.gates.length, plans: jev.plans.length, actors: jev.actors.size, sources: [...new Set(decisions.map((d) => d.source))] };
+  if (jev.version >= 2) {
+    assert(jev.passes.length > 0 && jev.passes.some((p) => p.gate), "pass lines with an asking second");
+    const asked = jev.passes.find((p) => p.gate);
+    const at = WR.passAt(jev, asked.f);
+    assert(at && at.pass === asked, "passAt finds the asking second");
+    assert(!at.gate || Array.isArray(at.gate.lines), "the worlds_gate of an asking second");
+    assert(jev.plans.every((p) => p.pick >= 1), "picks are 1-based");
+    report.jev.passAt = { f: asked.f, gate: !!at.gate, plan: !!at.plan, pickCall: !!at.pickCall };
+  }
+  const minutes = WR.jevMinutes(jev);
+  assert(minutes.length > 0 && minutes.every((m) => m.calls >= 0 && Number.isFinite(m.medianMs)), "jev minutes");
+}
+
 const engineLog = read("engine.log");
 if (engineLog) {
   const census = WR.parseCensus(engineLog, match.classByName);
@@ -72,7 +95,7 @@ if (engineLog) {
     report.lastCensus = { f: last.f, enemyArmy: last.enemyArmy, enemyExtractors: last.enemyExtractors, unclassified: last.enemy.filter((g) => g.class === "other").map((g) => g.name) };
   }
 }
-const strategist = read((match.header.siblings.decision_logs || [])[0] || "strategist-0.jsonl");
+const strategist = read((match.header.siblings.decision_logs || []).find((f) => /^strategist/.test(f)) || "strategist-0.jsonl");
 if (strategist) {
   const turns = WR.parseStrategist(strategist, "llm:test");
   assert(turns.length > 0 && turns.every((t) => Number.isFinite(t.f) && Array.isArray(t.outputs.calls)), "turns");

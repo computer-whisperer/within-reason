@@ -169,40 +169,55 @@ const WR = (() => {
     return out.sort((a, b) => a.f - b.f);
   }
 
-  // The pianist's log, jev-<ai_id>.jsonl (docs/harness/record-format.md, "The pianist's log"): a header line, then one
-  // `call` line per request to Jev with the state, the questions, the answers, what the hands played, and the groups,
-  // places and parties by name; `error` lines for failed calls. Logs from before the header line (2026-09-21 morning)
-  // carry the instructions and rules in every state and are read the same way.
+  // The pianist's log, jev-<ai_id>.jsonl (docs/harness/record-format.md, "The pianist's log"): a header line, then
+  // `call` lines (one per request: the state, the questions, the answers, and the groups, places and parties by
+  // name), `error` lines, and from version 2 (2026-09-26, the one pass) a `pass` line per second the pass had
+  // anything to say (`open`, `plan`, `gate`/`quiet`, `events`, `hunts`, `slots` on an asking second, `played` with
+  // sources rule/list), `worlds_gate` lines (the pre-pass's `flags`, the composed `worlds`, their `lines`) and
+  // `plan` lines (the pick, its confidence, `changed`, `played` with source plan). Version-1 logs carried `played` on
+  // the calls and `standing` lines (the executor's plays); the first day's logs carried no `played` at all. Every
+  // play, from whichever line, lands in the actor's history with its source.
+  const PIANIST_SOURCES = new Set(["jev", "rule", "plan", "list", "standing", "policy", "gate"]);
+
   function parseJev(text) {
     const { values, bad } = parseLines(text);
-    const jev = { header: null, calls: [], errors: [], badLines: bad, actors: new Map() };
+    const jev = { header: null, calls: [], errors: [], passes: [], gates: [], plans: [], badLines: bad, actors: new Map() };
     let instructions = "";
+    const played = (rows, f, source) => {
+      for (const d of rows || []) {
+        const entry = { ...d, f, source: d.source || source };
+        if (!jev.actors.has(entry.actor)) jev.actors.set(entry.actor, { name: entry.actor, kind: entry.kind, decisions: [] });
+        jev.actors.get(entry.actor).decisions.push(entry);
+      }
+    };
     for (const r of values) {
-      if (r.t === "header") {
-        jev.header = r;
-        continue;
-      }
-      if (r.t === "error") {
-        jev.errors.push(r);
-        continue;
-      }
-      if (r.t && r.t !== "call") continue;
-      if (typeof r.instructions === "string") instructions = r.instructions;
-      else if (r.state && typeof r.state.instructions === "string") instructions = r.state.instructions;
-      const rules = (r.state && r.state.rules) || (jev.header && jev.header.rules) || "";
-      const call = {
-        f: r.f, ms: r.ms, model: r.model, tokens: r.usage ? r.usage.input_tokens || 0 : 0, retries: r.retries || 0,
-        instructions, rules, state: r.state || {}, questions: r.questions || {}, answers: r.answers || {},
-        played: r.played || playedFromAnswers(r), groups: r.groups || [], places: r.places || [], parties: r.parties || [],
-      };
-      jev.calls.push(call);
-      for (const d of call.played) {
-        d.f = call.f;
-        if (!jev.actors.has(d.actor)) jev.actors.set(d.actor, { name: d.actor, kind: d.kind, decisions: [] });
-        jev.actors.get(d.actor).decisions.push(d);
+      switch (r.t) {
+        case "header": jev.header = r; break;
+        case "error": jev.errors.push(r); break;
+        case "pass": jev.passes.push(r); played(r.played, r.f, "rule"); break;
+        case "standing": jev.passes.push({ ...r, open: Object.keys(r.orders || {}), legacy: true }); played(r.played, r.f, "standing"); break;
+        case "worlds_gate": jev.gates.push(r); break;
+        case "plan": jev.plans.push(r); played(r.played, r.f, "plan"); break;
+        case "decompress": break;
+        default: {
+          if (r.t && r.t !== "call") break;
+          if (typeof r.instructions === "string") instructions = r.instructions;
+          else if (r.state && typeof r.state.instructions === "string") instructions = r.state.instructions;
+          const rules = (r.state && r.state.rules) || (jev.header && jev.header.rules) || "";
+          const call = {
+            f: r.f, ms: r.ms, model: r.model, tokens: r.usage ? r.usage.input_tokens || 0 : 0, retries: r.retries || 0,
+            instructions, rules, state: r.state || {}, questions: r.questions || {}, answers: r.answers || {},
+            played: r.played || (jev.header && jev.header.version >= 2 ? [] : playedFromAnswers(r)), groups: r.groups || [], places: r.places || [], parties: r.parties || [],
+            pick: "worlds.pick" in (r.questions || {}),
+          };
+          jev.calls.push(call);
+          played(call.played, call.f, "jev");
+        }
       }
     }
-    jev.calls.sort((a, b) => a.f - b.f);
+    for (const list of [jev.calls, jev.passes, jev.gates, jev.plans]) list.sort((a, b) => a.f - b.f);
+    for (const actor of jev.actors.values()) actor.decisions.sort((a, b) => a.f - b.f);
+    jev.version = jev.header ? jev.header.version || 1 : 1;
     return jev;
   }
 
@@ -218,12 +233,32 @@ const WR = (() => {
     return out;
   }
 
-  // Calls per game minute: [{minute, calls, medianMs, maxMs, tokens, questions, changes, kept, errors}].
+  // A play that changed something (a "continue" or a "wait" of the menus' days did not).
+  function isChange(d) {
+    return d.played !== "continue" && d.played !== "nothing" && d.played !== "wait" && !d.kept;
+  }
+
+  // The pass at `frame` with what followed it: the gate's flags, the worlds and the pick. Null before the first pass.
+  function passAt(jev, frame) {
+    const i = indexAt(jev.passes, frame);
+    if (i < 0) return null;
+    const pass = jev.passes[i];
+    const at = (list) => {
+      const j = indexAt(list, pass.f);
+      return j >= 0 && list[j].f === pass.f ? list[j] : null;
+    };
+    const gate = pass.gate ? at(jev.gates) : null;
+    const plan = pass.gate ? at(jev.plans) : null;
+    const pickCall = pass.gate ? jev.calls.find((c) => c.f === pass.f && c.pick) : null;
+    return { pass, index: i, gate, plan, pickCall };
+  }
+
+  // Calls per game minute: [{minute, calls, medianMs, maxMs, tokens, questions, asks, quiet, picks, w1, rule, plan, list, changes, errors}].
   function jevMinutes(jev) {
     const rows = new Map();
     const row = (f) => {
       const minute = Math.floor(f / (60 * FPS));
-      if (!rows.has(minute)) rows.set(minute, { minute, calls: 0, ms: [], tokens: 0, questions: 0, changes: 0, kept: 0, errors: 0 });
+      if (!rows.has(minute)) rows.set(minute, { minute, calls: 0, ms: [], tokens: 0, questions: 0, asks: 0, quiet: 0, picks: 0, w1: 0, rule: 0, plan: 0, list: 0, changes: 0, kept: 0, errors: 0 });
       return rows.get(minute);
     };
     for (const c of jev.calls) {
@@ -234,8 +269,25 @@ const WR = (() => {
       r.questions += Object.keys(c.questions).length;
       for (const d of c.played) {
         if (d.kept) r.kept++;
-        else if (d.played !== "continue" && d.played !== "nothing" && d.played !== "wait") r.changes++;
+        else if (isChange(d)) r.changes++;
       }
+    }
+    for (const p of jev.passes) {
+      const r = row(p.f);
+      if (p.gate) r.asks++;
+      if (p.quiet) r.quiet++;
+      for (const d of p.played || []) {
+        if (d.source === "list") r.list++;
+        else r.rule++;
+        r.changes++;
+      }
+    }
+    for (const p of jev.plans) {
+      const r = row(p.f);
+      r.picks++;
+      if (p.pick === 1) r.w1++;
+      r.plan += (p.played || p.changed || []).length;
+      r.changes += (p.played || p.changed || []).length;
     }
     for (const e of jev.errors) row(e.f).errors++;
     return [...rows.values()].sort((a, b) => a.minute - b.minute).map((r) => {
@@ -324,9 +376,9 @@ const WR = (() => {
       if (d.kind === "wave" || d.kind === "recall" || d.kind === "assault") out.waves.push(d);
       if (d.kind === "turn") out.turns.push(d);
       // The pianist's decisions: a change of course is a solid mark, a "continue" (or a kept course) a faint one.
-      if (d.source === "jev") {
+      if (PIANIST_SOURCES.has(d.source)) {
         const o = d.outputs || {};
-        const change = o.played !== "continue" && o.played !== "nothing" && o.played !== "wait";
+        const change = o.played == null || isChange(o);
         const lane = d.kind === "builder" ? out.jevBuilders : d.kind === "lab" ? out.jevLabs : d.kind === "group" ? out.jevGroups : null;
         if (lane) lane.push({ ...d, faint: !change });
       }
@@ -397,7 +449,7 @@ const WR = (() => {
     return match.facingCache.map;
   }
 
-  return { FPS, FLAG, parseRecord, parseStrategist, parseJev, jevMinutes, parseCensus, parseTruth, parseBotLog, squadPosts, indexAt, range, stateAt, rulesInMinute, lanes, clock, gridName, ordersAt, unitHistory, facings };
+  return { FPS, FLAG, PIANIST_SOURCES, isChange, passAt, parseRecord, parseStrategist, parseJev, jevMinutes, parseCensus, parseTruth, parseBotLog, squadPosts, indexAt, range, stateAt, rulesInMinute, lanes, clock, gridName, ordersAt, unitHistory, facings };
 })();
 
 if (typeof module !== "undefined") module.exports = WR;
