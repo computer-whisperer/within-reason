@@ -102,5 +102,25 @@ move failures per game are a column of the judgement.
    speed-by-orders measure (the lane-tick orders per soldier-second should fall from 0.30 toward 0), the move
    failures per game, `run/micro_ledger.py`, the fire and shape instruments.
 
+## What building it taught (the ledger's t-*, u-*, v-* rows)
+- **Points at the destination alone** (build A) free the chaser (Rovers 146 of 168 at the follow's cadence, the
+  loop 126, the director alone 162) and keep the cuts (+0.83, +0.68), but contact en route meets the spawn's
+  spacing and the Blitz pack's, the Stouts-against-the-mix and the mixed force's gains go (+0.18 / -0.04 / -0.26).
+- **Form up first, then march** (build B: one queued pair per host order, a spaced rank three seconds ahead then the
+  destination points) brings the pack back (+0.26) but a `Close` at the nearest enemy folds the formed line into a
+  ball in the last 200 elmos (spacing 43-49 at contact, the Stout mirror -0.08).
+- **Close along the heading on the unit's own line** (build C, kept): nothing lost to the ball within the noise
+  (Blitz +0.24 against +0.15, Stout +0.04, Stouts-v-mix +0.02, the mixed force -0.11 against -0.18, the cuts +0.82
+  and +0.66), the chaser at the director's speed (156 / 98), the friend-on-the-line share at contact 9-30% against
+  the ball's 6-37%. The loop's Blitz +0.32 and Stouts-v-mix +0.13 are not reached, and the nearest-friend spacing
+  at first damage reads 41-45 where the loop read 57-62: the line forms (the line-of-fire share says so) but does
+  not read as spaced at first damage. Open; the suspect is the re-slotting of the rank on every host re-issue (a
+  unit crosses to a new slot each time the director re-sends the idle), which a stable assignment would remove.
+- The order stream: one Blitz duel under the transform issued 42 claims in 24 s (11 March once, then Flank, Close,
+  Stand once each) where the loop issued two a second.
+
 ## Status
 - 2026-09-25: written; nothing built.
+- 2026-09-25 late: built as build C (the design's sections 1-6; `Lane::tick` takes the host's commands mutably and
+  rewrites them). Judged in the harness (above). Not yet: the arena batch (section 5 of "Judged by"), the stable
+  slot assignment, a live reading.

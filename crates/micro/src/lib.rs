@@ -89,16 +89,22 @@ const FAN_STEP_MAX: f32 = 150.0;
 /// at 380 (form5-stoutmix-on, -0.08): the keep is the reach slack now.
 const STAND_INSIDE: f32 = 20.0;
 const STAND_KEEP: f32 = REACH_SLACK;
-/// A unit closing on an enemy is sent past it by its body's lead: an attack-move stops when a target is in range,
-/// so the goal need not be short of the enemy, and a goal short of it is within the unit's braking distance for
-/// the whole chase (standing-1's Rover trailing a Flea at 33-44% of its speed; chase-lane-fav-fixed: the lead fix
-/// alone took Rovers from 75% to 82% of their speed, the Close point at 0.92 of reach kept the rest).
+/// A unit closing is sent this many seconds of its own speed forward along its body's heading (at least
+/// `CLOSE_LEAD`), on its own line, not at its nearest enemy: an attack-move stops when a target is in range, a goal
+/// short of the enemy is within the unit's braking distance for the whole chase (standing-1's Rover at 33-44% of
+/// its speed), and a goal at the enemy folds a formed line into a ball in the last 200 elmos (u-blitz-on: spacing
+/// 43 at contact with every unit sent at its nearest enemy).
+const CLOSE_SECONDS: f32 = 3.0;
+const CLOSE_LEAD: f32 = 150.0;
+/// On the march a body forms its rank first, at a waypoint this many seconds of its fastest member's speed ahead
+/// (at least `FORM_UP_LEAD`), and walks from there to its points at the destination on parallel lines, both in
+/// one queued order: points at the destination alone spread the line only on arrival, and contact en route met
+/// a body still at its spawn spacing (t-blitz-on: nearest friend 45 at contact against the loop's 59).
+const FORM_UP_SECONDS: f32 = 3.0;
+const FORM_UP_LEAD: f32 = 300.0;
 /// H-MICRO-FORM-FLANK: a unit this near its flank slot has reached it and closes on the enemy from there.
 const FLANK_ARRIVED: f32 = 48.0;
-/// A slot order is re-issued when the slot has moved this share of the body's lead from what was sent (a goal
-/// re-issued every 64 elmos at a lead of 150 braked the fast units, see `form::LEAD`), and not within
-/// `FORM_FRAMES`.
-const FORM_REORDER_SHARE: f32 = 0.5;
+/// A stance lasts at least this long: a change is an order, and an order costs shots.
 const FORM_FRAMES: i32 = 15;
 
 /// What a soldier's group was priced against, so the lane knows which threats its host meant it to face.
@@ -345,24 +351,27 @@ fn kind_of(command: &Command) -> Option<Kind> {
 /// What H-MICRO-FORM has a unit doing.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Stance {
-    /// Walking to its slot.
-    Advance,
+    /// On the march: the host's order rewritten to the unit's own point at the destination.
+    March,
     /// An enemy in reach: standing where it is (or attacking its order's target).
     Stand,
-    /// Its body is engaged and it has nothing in reach: closing on the nearest enemy to its reach.
+    /// Its body is engaged and it has nothing in reach: walking to its place in the rank at the front's depth.
+    Flank,
+    /// At its place in the rank with nothing in reach: stepping forward along the body's heading on its own line.
     Close,
 }
 
-/// A form order for one unit this tick (`reorder`: the distance the point may move before it is re-issued). A stand has no command: the unit keeps the order it has (a Fight at its
+/// A form order for one unit this tick. A stand has no command: the unit keeps the order it has (a Fight at its
 /// slot, which it has reached, or an Attack on its order's target) and the engine's own attack-move fires at will
 /// from there; a Stop would drop the weapon's target, and every order costs shots (form6-stoutmix-dbg: standing
 /// Stouts re-stopped fired 0.58 a second in reach against 0.77 with the lane off).
 struct FormOrder {
     stance: Stance,
     command: Option<Command>,
-    /// Where the command sends the unit (for the re-issue test), and how far that may move before a new order.
+    /// A second order queued behind the first (the march's destination point behind its form-up point).
+    then: Option<Command>,
+    /// Where the command sends the unit.
     at: Vec3,
-    reorder: f32,
 }
 
 /// What a tick of the lane produced.
@@ -423,11 +432,14 @@ impl Lane {
         self.claims.get(&unit).is_some_and(|c| c.rule == Rule::Flee)
     }
 
-    /// What holds this unit, for an instrument: the rule's ID and, for a form claim, its stance.
+    /// What holds this unit, for an instrument and for a host's idle re-send: the rule's ID and, for a form
+    /// claim, its stance. A formed unit on the march or walking to its flank slot is not held: its order is the
+    /// host's, rewritten, and the host may re-send it as it re-sends any walking unit's.
     pub fn holding(&self, unit: UnitId) -> Option<String> {
-        self.claims.get(&unit).map(|c| match c.stance {
-            Some(stance) => format!("{} {stance:?}", c.rule.id()),
-            None => c.rule.id().to_string(),
+        self.claims.get(&unit).and_then(|c| match c.stance {
+            Some(Stance::March | Stance::Flank | Stance::Close) => None,
+            Some(stance) => Some(format!("{} {stance:?}", c.rule.id())),
+            None => Some(c.rule.id().to_string()),
         })
     }
 
@@ -493,8 +505,10 @@ impl Lane {
     }
 
     /// Every tick: the threat grid, then each soldier through the behaviours, in order: flee, fan, kite, the
-    /// formation slot, the standing order. `debug` prints each claim to stderr.
-    pub fn tick(&mut self, view: &dyn View, tick: &Tick, debug: bool) -> Output {
+    /// formation (a rewrite of the host's orders of this tick, `host`, into per-unit points), the standing order.
+    /// `debug` prints each claim to stderr. The host notes its orders as standing orders before this
+    /// (`note_standing_orders`) and appends the output's commands after its own.
+    pub fn tick(&mut self, view: &dyn View, tick: &Tick, host: &mut Vec<Command>, debug: bool) -> Output {
         let mut out = Output::default();
         if !view.enabled("H-MICRO-LANE") {
             return out;
@@ -524,8 +538,24 @@ impl Lane {
             let f = footwork.get(&id).copied().unwrap_or_default();
             Footwork { flee: f.flee && gate.flee, fan: f.fan && gate.fan, kite: f.kite && gate.kite, form: f.form && gate.form, march: f.march, follow: f.follow }
         };
-        // H-MICRO-FORM's orders for every unit in a body, decided first; the free units take them last.
+        // H-MICRO-FORM's orders for every unit in a body, decided first: the host's group orders of this tick are
+        // rewritten into them here (a standing unit's dropped), and the free units take them last.
         let form_orders = if gate.form { self.form(view, &soldiers, snapshot.enemies.as_slice(), &sources, &rules_of) } else { HashMap::new() };
+        let mut host_ordered: HashSet<UnitId> = HashSet::new();
+        let mut rewritten: Vec<Command> = Vec::with_capacity(host.len());
+        for command in host.drain(..) {
+            let unit = unit_of(&command);
+            let order = unit.filter(|_| matches!(command, Command::Fight { .. } | Command::Move { .. })).and_then(|u| form_orders.get(&u));
+            match (unit, order) {
+                (Some(unit), Some(order)) => {
+                    host_ordered.insert(unit);
+                    rewritten.extend(order.command.clone());
+                    rewritten.extend(order.then.clone());
+                }
+                _ => rewritten.push(command),
+            }
+        }
+        *host = rewritten;
         let mut free: Vec<&OwnUnit> = Vec::new();
         for unit in &soldiers {
             let near = sources.iter().any(|s| s.pos.dist2d(unit.pos) < HORIZON + s.reach);
@@ -566,7 +596,7 @@ impl Lane {
                 continue;
             }
             if let Some(order) = form_orders.get(&unit.id) {
-                self.take_slot(view, unit, order, frame, commands, fired, debug);
+                self.take_slot(view, unit, order, host_ordered.contains(&unit.id), frame, commands, fired, debug);
             } else if self.claims.get(&unit.id).is_some_and(|c| c.rule != Rule::Form && frame - c.frame < CLAIM_FRAMES) {
                 // A claim stands at least this long.
             } else {
@@ -773,10 +803,15 @@ impl Lane {
         true
     }
 
-    /// H-MICRO-FORM's orders for every soldier in a body this tick (`form.rs` for the geometry). A body walks to
-    /// its slots, one rank across its heading two hulls apart; at contact each unit stands where it has an enemy in
-    /// reach, and a unit with nothing in reach closes on the nearest enemy to 0.92 of its reach. A Move order has
-    /// no contact behaviour: a walking group walks.
+    /// H-MICRO-FORM's orders for every soldier in a body this tick (`form.rs` for the geometry;
+    /// `docs/design/2026-09-25-formation-as-a-transform.md`). On the march a body's units get their own points at
+    /// the destination, ranks of six across the approach two hulls apart, assigned by least travel: the host's
+    /// one point rewritten, nothing issued between the host's orders. At contact (armed enemies within 700 of the
+    /// body's centre) the rank is one line across the enemy's direction at the depth of the standing front
+    /// (H-MICRO-FORM-FLANK; ranks of six centred on the body without it): a unit with an enemy in reach stands
+    /// (no order), one with nothing in reach walks to its place in the rank, and from there closes on the nearest
+    /// enemy to a point past it. A Move order has no contact behaviour; an Attack on a unit is left to the engine
+    /// on the march.
     fn form(&self, view: &dyn View, soldiers: &[&OwnUnit], enemies: &[EnemyUnit], sources: &[Source], rules_of: &dyn Fn(UnitId) -> Footwork) -> HashMap<UnitId, FormOrder> {
         let mut orders = HashMap::new();
         let members: Vec<form::Member> = soldiers.iter().filter_map(|u| {
@@ -804,75 +839,79 @@ impl Lane {
             let walking = matches!(order, form::Order::Move(_));
             // Engaged: an armed enemy within the horizon of the body's centre; the rank then faces the enemy.
             let armed_near: Vec<&Source> = sources.iter().filter(|s| s.weight >= FAINT && s.pos.dist2d(centre) < HORIZON).collect();
+            let engaged = !walking && !armed_near.is_empty();
             let enemy_centre = form::centroid(armed_near.iter().map(|s| s.pos));
             let h = match (enemy_centre, goal) {
-                (Some(e), _) if !walking => form::heading(centre, e),
+                (Some(e), _) if engaged => form::heading(centre, e),
                 (_, Some(g)) => form::heading(centre, g),
                 _ => continue,
             };
-            // Engaged, the rank stops leading: slots are centred on the body, so a unit at its slot has nowhere to
-            // walk and stands (the pros' bodies close to 0.87-0.94 of reach and stop: K-form-pros-raiders-fight-at-reach).
-            // H-MICRO-FORM-FLANK (`docs/design/2026-09-25-queued-rear.md`): engaged, the body is one rank at the
-            // depth of its standing front, so a unit with nothing in reach files to the end of the line, not into
-            // the front's back (queued: bank-1 13:50 replayed, 17% of engaged seconds behind a firing friend).
-            let engaged_body = !walking && !armed_near.is_empty();
-            let flank = engaged_body && view.enabled("H-MICRO-FORM-FLANK");
-            let fastest = body.iter().filter_map(|m| by_id.get(&m.id)).filter_map(|u| view.stats(u.def)).map(|s| s.speed).fold(0.0, f32::max);
-            let lead = form::lead_for(fastest);
-            let reorder = lead * FORM_REORDER_SHARE;
+            let Some(goal) = goal else { continue };
+            if !engaged && matches!(order, form::Order::Attack(_)) {
+                continue;
+            }
+            let flank = engaged && view.enabled("H-MICRO-FORM-FLANK");
             let along = |p: Vec3| p.x * h.0 + p.z * h.1;
-            let front_depth = body.iter().filter(|m| {
-                let reach = by_id.get(&m.id).and_then(|u| view.stats(u.def)).map_or(0.0, |s| s.reach);
-                enemies.iter().any(|e| e.pos.dist2d(m.pos) < reach - STAND_INSIDE)
-            }).map(|m| along(m.pos)).fold(None, |acc: Option<(f32, usize)>, a| Some(acc.map_or((a, 1), |(sum, n)| (sum + a, n + 1))))
-                .map(|(sum, n)| sum / n as f32)
-                .unwrap_or_else(|| body.iter().map(|m| along(m.pos)).fold(f32::NEG_INFINITY, f32::max));
-            let anchor = if flank {
-                let shift = front_depth - along(centre);
+            let reach_of = |m: &form::Member| by_id.get(&m.id).and_then(|u| view.stats(u.def)).map_or(0.0, |s| s.reach);
+            // The rank's centre: the destination on the march; at contact the standing front's depth (the mean
+            // position along the heading of the units with an enemy inside their reach, the frontmost unit when
+            // none stands) with the flank rule, the body's centre without it.
+            let anchor = if !engaged {
+                goal
+            } else if flank {
+                let standing: Vec<f32> = body.iter().filter(|m| enemies.iter().any(|e| e.pos.dist2d(m.pos) < reach_of(m) - STAND_INSIDE)).map(|m| along(m.pos)).collect();
+                let depth = if standing.is_empty() { body.iter().map(|m| along(m.pos)).fold(f32::NEG_INFINITY, f32::max) } else { standing.iter().sum::<f32>() / standing.len() as f32 };
+                let shift = depth - along(centre);
                 Vec3 { x: centre.x + h.0 * shift, y: centre.y, z: centre.z + h.1 * shift }
-            } else if engaged_body {
-                centre
             } else {
-                form::anchor(centre, h, goal, lead)
+                centre
             };
             let slots = form::slots(anchor, h, body.len(), form::SPACING, if flank { body.len() } else { form::FILES });
             let positions: Vec<Vec3> = body.iter().map(|m| m.pos).collect();
             let slot_of = form::assign(&positions, &slots, h);
+            // The march's form-up rank: ahead of the body by seconds of its fastest member's speed, short of the
+            // goal; the same slot indices, so each unit walks a parallel line from its form-up point to its point
+            // at the destination.
+            let form_up: Option<Vec<Vec3>> = (!engaged).then(|| {
+                let fastest = body.iter().filter_map(|m| by_id.get(&m.id)).filter_map(|u| view.stats(u.def)).map(|s| s.speed).fold(0.0, f32::max);
+                let ahead = FORM_UP_LEAD.max(fastest * FORM_UP_SECONDS).min(goal.dist2d(centre) * 0.5);
+                let at = Vec3 { x: centre.x + h.0 * ahead, y: centre.y, z: centre.z + h.1 * ahead };
+                form::slots(at, h, body.len(), form::SPACING, form::FILES)
+            });
             for (i, member) in body.iter().enumerate() {
                 let Some(unit) = by_id.get(&member.id) else { continue };
-                let reach = view.stats(unit.def).map_or(0.0, |s| s.reach);
-                let nearest = enemies.iter().min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)));
-                let distance = nearest.map_or(f32::INFINITY, |e| e.pos.dist2d(unit.pos));
+                let (reach, speed) = view.stats(unit.def).map_or((0.0, 0.0), |s| (s.reach, s.speed));
                 let slot = view.snap(slots[slot_of[i]]);
-                let engaged = !walking && !armed_near.is_empty();
-                // The point `lead` beyond the enemy along the unit's line to it.
-                let past = |e: &EnemyUnit| -> Vec3 {
-                    let (dx, dz) = (e.pos.x - unit.pos.x, e.pos.z - unit.pos.z);
-                    let len = dx.hypot(dz).max(1.0);
-                    view.snap(Vec3 { x: e.pos.x + dx / len * lead, y: 0.0, z: e.pos.z + dz / len * lead })
-                };
-                let standing = self.claims.get(&unit.id).is_some_and(|c| c.rule == Rule::Form && c.stance == Some(Stance::Stand));
-                let form_order = if walking || reach <= 0.0 {
-                    FormOrder { stance: Stance::Advance, command: Some(Command::Move { unit: unit.id, to: slot, queue: false }), at: slot, reorder }
-                } else if distance < reach - STAND_INSIDE || (standing && distance < reach + STAND_KEEP) {
-                    // Standing: its order's target when that is what is in reach, else nothing: it fires at will
-                    // where it is. (A sidestep for a unit with a friend on its line was tried and dropped: the step
-                    // itself cost more shots than the refused ones, form7-stoutmix-dbg.)
-                    let command = match order {
-                        form::Order::Attack(target) if nearest.is_some_and(|e| e.id == target) => Some(Command::Attack { unit: unit.id, target, queue: false }),
-                        _ => None,
+                let form_order = if !engaged {
+                    let make = |to: Vec3, queue: bool| match order {
+                        form::Order::Move(_) => Command::Move { unit: unit.id, to, queue },
+                        _ => Command::Fight { unit: unit.id, to, queue },
                     };
-                    FormOrder { stance: Stance::Stand, command, at: unit.pos, reorder }
-                } else if let Some(e) = nearest.filter(|_| engaged) {
-                    // To the flank slot first; from there (or without the flank rule) on to 0.92 of reach.
-                    let at = if flank && unit.pos.dist2d(slot) > FLANK_ARRIVED { slot } else { past(e) };
-                    FormOrder { stance: Stance::Close, command: Some(Command::Fight { unit: unit.id, to: at, queue: false }), at, reorder }
+                    let first = form_up.as_ref().map(|f| view.snap(f[slot_of[i]])).filter(|f| f.dist2d(slot) > FLANK_ARRIVED && f.dist2d(unit.pos) > FLANK_ARRIVED);
+                    match first {
+                        Some(first) => FormOrder { stance: Stance::March, command: Some(make(first, false)), then: Some(make(slot, true)), at: slot },
+                        None => FormOrder { stance: Stance::March, command: Some(make(slot, false)), then: None, at: slot },
+                    }
                 } else {
-                    let command = match order {
-                        form::Order::Attack(_) => Command::Move { unit: unit.id, to: slot, queue: false },
-                        _ => Command::Fight { unit: unit.id, to: slot, queue: false },
-                    };
-                    FormOrder { stance: Stance::Advance, command: Some(command), at: slot, reorder }
+                    let nearest = enemies.iter().min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)));
+                    let distance = nearest.map_or(f32::INFINITY, |e| e.pos.dist2d(unit.pos));
+                    let standing = self.claims.get(&unit.id).is_some_and(|c| c.rule == Rule::Form && c.stance == Some(Stance::Stand));
+                    if reach > 0.0 && (distance < reach - STAND_INSIDE || (standing && distance < reach + STAND_KEEP)) {
+                        // Standing: its order's target when that is what is in reach, else nothing: it fires at
+                        // will where it is.
+                        let command = match order {
+                            form::Order::Attack(target) if nearest.is_some_and(|e| e.id == target) => Some(Command::Attack { unit: unit.id, target, queue: false }),
+                            _ => None,
+                        };
+                        FormOrder { stance: Stance::Stand, command, then: None, at: unit.pos }
+                    } else if unit.pos.dist2d(slot) > FLANK_ARRIVED {
+                        FormOrder { stance: Stance::Flank, command: Some(Command::Fight { unit: unit.id, to: slot, queue: false }), then: None, at: slot }
+                    } else {
+                        // Forward along the body's heading from where it stands, by seconds of its own speed.
+                        let lead = CLOSE_LEAD.max(speed * CLOSE_SECONDS);
+                        let at = view.snap(Vec3 { x: unit.pos.x + h.0 * lead, y: 0.0, z: unit.pos.z + h.1 * lead });
+                        FormOrder { stance: Stance::Close, command: Some(Command::Fight { unit: unit.id, to: at, queue: false }), then: None, at }
+                    }
                 };
                 orders.insert(unit.id, form_order);
             }
@@ -880,26 +919,23 @@ impl Lane {
         orders
     }
 
-    /// A free unit with a form order takes it: a fresh claim, a change of stance, or a slot that has moved is an
-    /// order; a standing unit is pinned back when it drifts.
+    /// A free unit with a form order takes it. An order goes out when the claim is fresh (the body just formed,
+    /// or the unit came back from a flee), when the stance or the order's kind changed, or when the host gave the
+    /// unit a group order this tick (`host_ordered`: the host's command was rewritten in place, so nothing is
+    /// pushed here). Never on a distance the point has moved: the formation is a transform of the host's order,
+    /// not a control loop (`docs/design/2026-09-25-formation-as-a-transform.md`).
     #[allow(clippy::too_many_arguments)]
-    fn take_slot(&mut self, view: &dyn View, unit: &OwnUnit, order: &FormOrder, frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, debug: bool) {
+    fn take_slot(&mut self, view: &dyn View, unit: &OwnUnit, order: &FormOrder, host_ordered: bool, frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, debug: bool) {
         let claim = self.claims.get(&unit.id);
         let fresh = claim.is_none_or(|c| c.rule != Rule::Form);
         let kind = order.command.as_ref().and_then(kind_of);
-        let changed = claim.is_some_and(|c| c.rule == Rule::Form && (c.stance != Some(order.stance) || c.kind != kind));
-        // A stance lasts half a second at least (a change is an order, and an order costs shots).
-        let changed = changed && claim.is_none_or(|c| frame - c.frame >= FORM_FRAMES);
-        let issue = match order.stance {
-            Stance::Stand => fresh || changed,
-            Stance::Advance | Stance::Close => fresh || changed || claim.is_some_and(|c| c.sent_to.dist2d(order.at) > order.reorder && frame - c.frame >= FORM_FRAMES),
-        };
+        let changed = claim.is_some_and(|c| c.rule == Rule::Form && (c.stance != Some(order.stance) || c.kind != kind) && frame - c.frame >= FORM_FRAMES);
+        if !(fresh || changed || host_ordered) {
+            return;
+        }
         if fresh {
             fired.push(Rule::Form.id());
             self.counts.0 += 1;
-        }
-        if !issue {
-            return;
         }
         if debug && (fresh || changed) {
             eprintln!(
@@ -908,9 +944,12 @@ impl Lane {
             );
         }
         self.claims.insert(unit.id, Claim { rule: Rule::Form, sent_to: order.at, target: None, frame, stance: Some(order.stance), kind });
-        if let Some(command) = &order.command {
+        if let Some(command) = &order.command
+            && !host_ordered
+        {
             self.counts.1 += 1;
             commands.push(command.clone());
+            commands.extend(order.then.clone());
         }
     }
 

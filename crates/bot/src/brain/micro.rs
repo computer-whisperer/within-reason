@@ -79,23 +79,24 @@ impl Brain {
         lane.get(&format!("group_{group}")).or_else(|| lane.get("all")).copied().unwrap_or_default()
     }
 
-    /// Every tick: the lane over the brain's view; its firings go to the journal.
-    pub(super) fn micro(&mut self, tick: &Tick) -> Vec<Command> {
+    /// Every tick: the lane over the brain's view, over the brain's own orders of this tick (`commands`, which
+    /// it may rewrite); its firings go to the journal; its own commands are appended.
+    pub(super) fn micro(&mut self, tick: &Tick, commands: &mut Vec<Command>) {
         if self.kit.is_none() {
-            return Vec::new();
+            return;
         }
         if self.contacts.sim_defs.is_empty() {
             self.survey_sim_defs();
         }
         let debug = std::env::var_os("WITHIN_REASON_MICRO_DEBUG").is_some();
         let mut lane = std::mem::take(&mut self.lane);
-        let output = lane.tick(&BrainView { brain: self }, tick, debug);
+        let output = lane.tick(&BrainView { brain: self }, tick, commands, debug);
         self.lane = lane;
         for rule in output.fired {
             self.fire(rule);
         }
         self.journal.milling += output.milling;
-        output.commands
+        commands.extend(output.commands);
     }
 
     /// A type's reach, damage a second and speed against ground: the simulator's table, else the glossary's numbers

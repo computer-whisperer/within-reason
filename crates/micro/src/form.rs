@@ -16,18 +16,6 @@ pub const FILES: usize = 6;
 pub const RANK_GAP: f32 = 96.0;
 /// A body of more than this splits into sub-bodies side by side (ours fight 13 at the median, the pros 6).
 pub const BODY_MAX: usize = 12;
-/// The rank is centred ahead of the body's centroid by `LEAD_SECONDS` of its fastest member's speed, at least
-/// this, so the body keeps walking and no unit's goal is ever within its braking distance; never beyond the goal.
-/// A lead of 150 re-issued every 64 elmos held Rovers (168 elmos/s) at 75% of their speed and Blitzes at 88%
-/// (chase-lane-*-prefix against the director's far-goal re-sends at 100%; standing-1's Rover trailing a Flea at
-/// 33-44%: K-engine-a-short-move-order-brakes-the-unit).
-pub const LEAD: f32 = 150.0;
-pub const LEAD_SECONDS: f32 = 3.0;
-
-/// The lead for a body whose fastest member moves `speed` elmos a second.
-pub fn lead_for(speed: f32) -> f32 {
-    LEAD.max(speed * LEAD_SECONDS)
-}
 /// Units under one order this close to each other are one body (chained).
 pub const BODY_LINK: f32 = 400.0;
 /// Two group orders whose points are this close are the same order.
@@ -196,12 +184,6 @@ pub fn slots(anchor: Vec3, h: (f32, f32), count: usize, spacing: f32, files: usi
     out
 }
 
-/// The rank's centre: `lead` ahead of the body's centroid along `h`, but never past the goal.
-pub fn anchor(centre: Vec3, h: (f32, f32), goal: Option<Vec3>, lead: f32) -> Vec3 {
-    let lead = goal.map_or(lead, |g| lead.min(g.dist2d(centre)));
-    Vec3 { x: centre.x + h.0 * lead, y: centre.y, z: centre.z + h.1 * lead }
-}
-
 /// Which slot each unit takes (index into `slots`, one per unit, a permutation): units in across order take slots
 /// in across order (nobody crosses anybody), then pairs are swapped while any swap shortens the total travel.
 pub fn assign(units: &[Vec3], slots: &[Vec3], h: (f32, f32)) -> Vec<usize> {
@@ -304,16 +286,6 @@ mod tests {
         for p in rear {
             assert!(front_z.iter().all(|z| (z - p.z).abs() > SPACING / 4.0), "rear slot {p:?} sits behind a front unit");
         }
-    }
-
-    #[test]
-    fn the_anchor_leads_the_centroid_but_stops_at_the_goal() {
-        let h = heading(at(0.0, 0.0), at(1000.0, 0.0));
-        let far = anchor(at(0.0, 0.0), h, Some(at(1000.0, 0.0)), LEAD);
-        assert!((far.x - LEAD).abs() < 0.01);
-        assert!((lead_for(168.0) - 504.0).abs() < 0.01 && lead_for(20.0) == LEAD);
-        let near = anchor(at(0.0, 0.0), h, Some(at(60.0, 0.0)), LEAD);
-        assert!((near.x - 60.0).abs() < 0.01);
     }
 
     #[test]
