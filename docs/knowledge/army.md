@@ -363,6 +363,14 @@ buildings killed by minute 10; micro-flee-debug (one game, the first lane): ever
 lane made or failed to make (`docs/design/2026-09-20-micro-lane.md`, status).
 **Would be wrong if.** The lane's A/B (`--ab-disable H-MICRO-LANE`, 24 games) showed no fall in soldiers lost to
 turrets and the commander, or in soldier-seconds under fire (`run/micro_ledger.py`).
+**Amended 2026-09-25 (lane-ab, 24 games an arm on Comet Catcher against medium, the heuristic bot).** By this
+claim's own test the lane no longer shows: deaths to turrets or the commander 6.2 a game with the final lane, 5.4
+with the old, 5.2 without; soldier-seconds under fire 1,741 / 1,731 / 1,655. What the lane shows instead is the
+trade: metal lost per metal killed 0.79 [0.65-0.95] against 0.94 [0.83-1.05] without, deaths elsewhere 36 against
+45, muzzled 6.4% against 11.5%, spacing at contact 51 against 40. The tower margin is what the flee was built on;
+on this map against medium the fights are unit fights (the raid's turret dives are Quicksilver's), and the flee's
+tower cases are few (0.4 deaths in reach a game by minute 10). The claim stands for what it measured (the 10 Hz
+margin at a tower); its "would be wrong if" no longer separates the lane from no lane here.
 **Used by.** H-MICRO-LANE, H-MICRO-FLEE.
 
 ### K-micro-a-unit-under-the-guns-shoots

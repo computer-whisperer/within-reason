@@ -143,3 +143,9 @@ wipe under 15 s in which neither side dealt damage, and a study should say when 
 Before that, `WITHIN_REASON_DISABLE=H-MICRO-FOCUS` (or -FLEE, -KITE, -FAN) switched nothing off: only H-MICRO-LANE
 as a whole was checked. An ablation of one lane rule from before that date ran the whole lane; the duel director
 honours the variable for the lane it runs too.
+
+## An arena's ports run to `base_port + 2 x matches` (2026-09-25)
+Each match takes two ports from `--base-port` upward by its index, not by its parallel slot: 24 matches span 48
+ports. Three arenas started 30 apart (9600, 9630, 9660) collided at indices 15-23 of the second with 0-8 of the
+third, and two matches aborted with "Address already in use" (lane-ab-old). Space concurrent arenas by
+`2 x matches`, and keep the last index inside the range you were given.
