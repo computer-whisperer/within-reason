@@ -274,7 +274,9 @@ impl Brain {
         }
         if tick.due() % BRAIN_FRAMES != 0 {
             self.carried_events.extend(tick.events.iter().cloned());
-            return self.micro(tick);
+            let mut commands = Vec::new();
+            self.micro(tick, &mut commands);
+            return commands;
         }
         let mut commands = if self.carried_events.is_empty() {
             self.think(tick)
@@ -286,7 +288,7 @@ impl Brain {
         };
         self.note_standing_orders(&commands, tick.frame);
         self.note_commitments();
-        commands.extend(self.micro(tick));
+        self.micro(tick, &mut commands);
         commands
     }
 

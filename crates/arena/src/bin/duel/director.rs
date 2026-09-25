@@ -997,12 +997,13 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
             }
             // The lane over this army's orders: what the director sent this tick is the standing order.
             if let Some(mut lane) = army.lane.take() {
-                let mine: Vec<Command> = commands[from..].to_vec();
+                let mut mine: Vec<Command> = commands.split_off(from);
                 let members = army.units.clone();
                 lane.note_standing_orders(&mine, frame, |u| members.contains(&u));
                 lane.set_commitments(members.iter().map(|u| (*u, Commitment::All)).collect(), HashMap::new());
                 let view = DuelView { rules, team, side, own: &members, enemy: &enemy.units, mode: army.lane_mode };
-                let output = lane.tick(&view, tick, std::env::var_os("WITHIN_REASON_MICRO_DEBUG").is_some());
+                let output = lane.tick(&view, tick, &mut mine, std::env::var_os("WITHIN_REASON_MICRO_DEBUG").is_some());
+                commands.extend(mine);
                 commands.extend(output.commands);
                 army.lane = Some(lane);
             }
