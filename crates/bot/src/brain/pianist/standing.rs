@@ -564,8 +564,11 @@ impl Brain {
                     && offered("hold")
                 {
                     let anchor = rules.get("station").and_then(|s| place_at(s)).or(group.last_hold).unwrap_or(self.home);
+                    // Only a quarry seen beyond reach ends the engagement: one out of sight for a moment is the task's
+                    // own business (threats-smoke-2, 5:03-5:12: the hold fired five times on a Tick that blinked out
+                    // of sight 600 from the station, and the plan re-engaged it each time).
                     let quarry = picture.parties.iter().find(|p| p.ids.iter().any(|id| party.contains(id)));
-                    if quarry.is_none_or(|p| p.at.dist2d(anchor) > RAIDER_REACH) {
+                    if quarry.is_some_and(|p| p.at.dist2d(anchor) > RAIDER_REACH) {
                         return Some((order("hold", &[]), "no_chase".into()));
                     }
                 }

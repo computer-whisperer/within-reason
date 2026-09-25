@@ -167,8 +167,14 @@ impl Brain {
                     continue;
                 }
                 let units = group.units(own);
-                let all_ids: Vec<UnitId> = units.iter().map(|u| u.id).collect();
                 let odds = self.odds_words(&units, party, enemies);
+                // `no_chase`: the whole group goes only after a party within reach of its station (else its last
+                // hold, else home); the executor's arm ends an engagement the quarry carries beyond it.
+                let anchor = rules.get("station").and_then(|s| picture.places.iter().find(|p| p.name == *s)).map(|p| p.at).or(group.last_hold).unwrap_or(home);
+                let chase_allowed = !rules.get("no_chase").is_some_and(|v| v == "yes") || party.at.dist2d(anchor) <= RAIDER_REACH;
+                // A group slower than the party can drive it off, not kill it: said in the line.
+                let group_speed = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.speed).fold(f32::INFINITY, f32::min);
+                let outrun = if group_speed < quarry_speed { format!(" (it outruns this group at {quarry_speed:.0} against {group_speed:.0}: a chase drives it off, a kill needs faster hunters)") } else { String::new() };
                 let standing: f32 = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
                 let hunting_it = group.hunt.as_ref().is_some_and(|h| party.ids.contains(&h.quarry));
                 let declined = group.declined.iter().any(|(p, f)| *p == party.name && tick.frame - f < super::groups::DECLINE_FRAMES);
@@ -208,13 +214,13 @@ impl Brain {
                     }
                 }
                 // The whole group.
-                if odds != "it outweighs us" && !odds.starts_with("we cannot hit") && !units.is_empty() {
+                if odds != "it outweighs us" && !odds.starts_with("we cannot hit") && !units.is_empty() && (chase_allowed || engaging_it) {
                     let current = engaging_it;
                     let default = !default_set && !declined && (raider_rule == "whole_group" || named);
                     states.push(State {
                         id: format!("{}.whole_{name}", party.name),
                         response: Response::Whole(name.clone()),
-                        words: format!("{name} attacks {} ({}{}) with the whole group, {distance:.0} away{leave}", party.name, party.composition, under(party)),
+                        words: format!("{name} attacks {} ({}{}) with the whole group, {distance:.0} away{leave}{outrun}", party.name, party.composition, under(party)),
                         metal: standing,
                         default,
                         current,
@@ -234,7 +240,6 @@ impl Brain {
                         current,
                     });
                 }
-                let _ = all_ids;
             }
             out.push(Threat { party: party.clone(), place, states });
         }

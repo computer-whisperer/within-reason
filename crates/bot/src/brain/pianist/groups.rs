@@ -72,7 +72,8 @@ pub(crate) struct Hunt {
 
 /// A hunt's quarry unseen this long is lost.
 const HUNT_LOST_FRAMES: i32 = 6 * FRAMES_PER_SECOND;
-/// A hunt this far from where it began ends (the group's station when it has one is the anchor instead).
+/// A hunt this far from where it began ends (threats-smoke-1: anchored on the group's station, a hunt begun 900
+/// from the station ended on its first tick, 12 of 16 hunts one order long).
 const HUNT_LEASH: f32 = 900.0;
 /// A hunter this hurt drops out of the hunt.
 const HUNT_DROP_HEALTH: f32 = 1.0 / 3.0;
@@ -509,7 +510,7 @@ impl Brain {
     }
 
     /// Starts a hunt of the party's nearest unit by these members of the group (the previous hunt, if any, ends).
-    pub(super) fn start_hunt(group: &mut Group, hunters: Vec<UnitId>, party: &Party, own: &[OwnUnit], enemies: &[bot_protocol::EnemyUnit], anchor: Option<Vec3>, frame: i32, commands: &mut Vec<Command>) -> String {
+    pub(super) fn start_hunt(group: &mut Group, hunters: Vec<UnitId>, party: &Party, own: &[OwnUnit], enemies: &[bot_protocol::EnemyUnit], frame: i32, commands: &mut Vec<Command>) -> String {
         let units: Vec<&OwnUnit> = own.iter().filter(|u| hunters.contains(&u.id)).collect();
         let centre = centre_of(&units).unwrap_or(party.at);
         let quarry = party
@@ -522,7 +523,7 @@ impl Brain {
         commands.extend(group.release_orders(&units));
         commands.extend(units.iter().map(|u| Command::Attack { unit: u.id, target: quarry.0, queue: false }));
         let n = units.len();
-        group.hunt = Some(Hunt { quarry: quarry.0, party: party.name.clone(), hunters, from: anchor.unwrap_or(centre), since: frame, last_seen: frame, last_order: frame, at: quarry.1 });
+        group.hunt = Some(Hunt { quarry: quarry.0, party: party.name.clone(), hunters, from: centre, since: frame, last_seen: frame, last_order: frame, at: quarry.1 });
         format!("{n} of group_{} hunt {} ({})", group.name, party.name, party.composition)
     }
 

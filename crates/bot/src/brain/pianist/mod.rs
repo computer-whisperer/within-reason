@@ -909,9 +909,8 @@ impl Brain {
                     }
                 }
                 threats::Response::Hunt(g, hunters) => {
-                    let anchor = pianist.standing.rules_for(g).get("station").and_then(|st| picture.places.iter().find(|p| p.name == *st)).map(|p| p.at);
                     if let Some(group) = pianist.groups.iter_mut().find(|x| format!("group_{}", x.name) == *g) {
-                        let text = Brain::start_hunt(group, hunters.clone(), &t.party, own, enemies, anchor, frame, commands);
+                        let text = Brain::start_hunt(group, hunters.clone(), &t.party, own, enemies, frame, commands);
                         done.push((g.clone(), text));
                     }
                 }
