@@ -59,6 +59,13 @@ const AT_STRUCTURE: f32 = 400.0;
 const STATION_SLACK: f32 = 300.0;
 /// A named place this far from a group is not a walk state.
 const WALK_REACH: f32 = 3000.0;
+/// A builder sent home from an enemy has no building default for this long after.
+const RETREAT_HOLD: i32 = 30 * FRAMES_PER_SECOND;
+/// A course set by a pick is not displaced by a rule default for this long.
+const PICK_HOLD: i32 = 60 * FRAMES_PER_SECOND;
+/// A deviation from a rule's default needs a state noul this high: the packet's word against a coin flip
+/// (onepass-hard-1: constructors picked off their `job expand` default to help a starving plant at 0.51-0.62).
+pub(super) const OVER_RULE: f64 = 0.7;
 
 /// What an actor does in a state.
 #[derive(Clone, Debug)]
@@ -440,7 +447,12 @@ impl Brain {
                 }
                 continue;
             }
-            let free = task.is_none() || queue;
+            // A rule's default fires when the builder is free, next to a queue-ahead build, or on a filler (helping,
+            // walking, wrecks, repairs): the packet's standing job outranks a filler, as the executor's did; not for
+            // `PICK_HOLD` after a pick set its course, and not for `RETREAT_HOLD` after it went home from an enemy.
+            let filler = matches!(task, Some(Task::Assist { .. }) | Some(Task::Walk { .. }) | Some(Task::Reclaim { .. }) | Some(Task::Repair { .. }));
+            let held = pianist.picked.get(&name).is_some_and(|f| frame - f < PICK_HOLD) || pianist.retreated.get(&unit.id).is_some_and(|f| frame - f < RETREAT_HOLD);
+            let free = (task.is_none() || queue || filler) && !held;
             // 3. Extractors: the nearest free spot, and the nearest one no enemy is near when the nearest has one.
             if can(kit.extractor) {
                 let mut spots = self.free_spots(unit, pianist, picture, own, frame, kit);
@@ -464,10 +476,11 @@ impl Brain {
                     }
                 }
                 let (standing, coming) = self.count_of(kit.extractor, own, pianist);
-                for (n, (i, seconds)) in offered.iter().enumerate() {
+                let default_spot = offered.iter().find(|(i, _)| enemies_near(*i).is_none()).map(|(i, _)| *i);
+                for (i, seconds) in offered.iter() {
                     let place = &picture.state["places"][format!("spot_{i}")];
                     let current = matches!(task, Some(Task::Build { spot: Some(s), .. }) if s == i);
-                    let default = n == 0 && free && rules.get("job").is_some_and(|j| j == "expand");
+                    let default = default_spot == Some(*i) && free && rules.get("job").is_some_and(|j| j == "expand");
                     push(
                         &format!("extractor_spot_{i}"),
                         Response::Extractor(*i),
@@ -918,8 +931,9 @@ pub(super) fn compose(slots: &[Slot], answers: &BTreeMap<String, Answer>, flags:
                     }
                     // Only a state the gate rated as the move (onepass-smoke-2: sixteen worlds of storage, radar
                     // and converter beside the Blitz rated 0.73 put 0.5 on "nobody changes course" and 0.2 on the
-                    // Blitz; the plant idled fourteen minutes with a full store).
-                    let Some(rated) = rated.filter(|r| *r >= FLAG) else { continue };
+                    // Blitz; the plant idled fourteen minutes with a full store); a clear call against a rule's default.
+                    let bar = if slot.states[base[si]].default && !slot.states[base[si]].current { OVER_RULE } else { FLAG };
+                    let Some(rated) = rated.filter(|r| *r >= bar) else { continue };
                     let rank = change * rated;
                     let mut w = base.clone();
                     w[si] = ti;

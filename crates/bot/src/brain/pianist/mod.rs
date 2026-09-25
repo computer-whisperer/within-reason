@@ -146,6 +146,11 @@ pub struct Pianist {
     pub(super) packet_frame: i32,
     /// Our units hit since the last call, with the frame: the pass's under-fire set, across the ticks between calls.
     pub(super) hits: HashMap<UnitId, i32>,
+    /// When each builder last went home from an enemy (any source): its building defaults hold off for
+    /// `RETREAT_HOLD` after (standing-2: sent home and back to the same extractor the next second, 11 times).
+    pub(super) retreated: HashMap<UnitId, i32>,
+    /// When each actor's course was last set by a pick: a rule default does not displace it for `PICK_HOLD`.
+    pub(super) picked: HashMap<String, i32>,
     /// (builder, party name) pairs with the party inside the builder's alarm reach: a party's arrival is an event once.
     pub(super) alarmed: HashSet<(UnitId, String)>,
     /// The token diet's level and knobs (H-HANDS-DIET).
@@ -299,6 +304,8 @@ impl Pianist {
             packet_frame: 0,
             diet: diet::Diet::from_env(),
             hits: HashMap::new(),
+            retreated: HashMap::new(),
+            picked: HashMap::new(),
             alarmed: HashSet::new(),
             places_seen: BTreeSet::new(),
             packet_seen: String::new(),
@@ -1005,6 +1012,13 @@ impl Brain {
                 }
                 _ => {}
             }
+        }
+        // A walker the engine has given up on (`yards.rs` `stuck`) for 20 s is not walking: its task goes, and the
+        // pass sees it free (onepass-medium-1: three constructors "walking to home" for six minutes wedged 440 from it).
+        let wedged: Vec<UnitId> = pianist.tasks.iter().filter(|(id, t)| matches!(t, Task::Walk { .. }) && self.stuck.get(id).is_some_and(|s| frame - s.since > 20 * FRAMES_PER_SECOND)).map(|(id, _)| *id).collect();
+        for id in wedged {
+            pianist.tasks.remove(&id);
+            commands.push(Command::Stop { unit: id });
         }
         for text in notes {
             pianist.note(frame, text);

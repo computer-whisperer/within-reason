@@ -64,6 +64,9 @@ impl Brain {
         }
         let pianist = self.pianist.as_mut().expect("pianist mode");
         for (actor, id, did) in &done {
+            if source == "plan" {
+                pianist.picked.insert(actor.clone(), frame);
+            }
             pianist.done.push(format!("{} {actor}: {did} ({source})", clock(frame)));
             pianist.played.push(json!({ "actor": actor, "kind": kind_of(actor), "played": id, "did": did, "source": source }));
             self.journal.note_from(source, frame, kind_of(actor), json!({ "actor": actor, "state": id }), json!({ "did": did }));
@@ -228,6 +231,9 @@ impl Brain {
             _ => {}
         }
         let pianist = self.pianist.as_mut().expect("pianist mode");
+        if matches!(response, Response::RetreatHome) {
+            pianist.retreated.insert(id, frame);
+        }
         if let Some(task) = task {
             if let Task::Build { def, .. } = &task {
                 if let Some(d) = self.world.def(*def) {
