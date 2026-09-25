@@ -43,16 +43,138 @@ formation's contact behaviour became one Stop, held while anything is within rea
 
 ## The batches (8 duels an arm, `--parallel 2 --sites 2`, Quicksilver Remake 1.24, speed 50)
 
-TABLES
+The first army is the lane's side; `off` arms were fought once (twice for the Blitz pack, the spread between the two
+is the noise floor). `old` is the lane as committed on 2026-09-25 before focus was retired (focus, the amended
+lethal flee, kite, fan); `on` is the final lane (H-MICRO-FORM, the amended flee, kite, fan; no focus). Batches
+form-blitz-off, form2-blitz-off, form4-blitz-old, form4-blitz-on, form4-blitz-on-nofocus, form8-blitz-on,
+form-stout-off, form4-stout-old, form4-stout-on, form4-stout-on-nofocus, form8-stout-on, form5-stoutmix-off/-old,
+form8-stoutmix-on, form5-mix-off/-old, form8-mix-on.
 
-## The two scenarios (Comet Catcher Remake 1.8, the recorded places, `--reps 8`)
+**Blitz pack: 11 Blitzes against 22 Pawns (1,200 metal a side)**
 
-SCENARIOS
+| Arm | Margin | W-L | Killed per lost | Shots per in-reach s | Muzzled | Friendly fire | Nearest friend | Friend on the line |
+|---|---|---|---|---|---|---|---|---|
+| off (twice) | +0.154 +- 0.047, +0.210 +- 0.050 | 7-1, 8-0 | 1.16, 1.24 | 6.6 | 0%, 1% | 10.7%, 9.0% | 43, 39 | 28%, 26% |
+| old (focus, lethal flee amended, kite, fan) | -0.001 +- 0.058 | 4-4 | 0.98 | | 1% | 10.8% | 41 | 28% |
+| old + H-MICRO-FORM (form4-blitz-on) | +0.098 +- 0.021 | 8-0 | 1.09 | | 0% | 11.2% | 58 | 26% |
+| the same without focus (form4-blitz-on-nofocus) | +0.308 +- 0.023 | 8-0 | 1.42 | | 0% | 10.7% | 59 | 28% |
+| **on**, final (form8-blitz-on) | **+0.322 +- 0.024** | 8-0 | **1.45** | 6.5 | 1% | 7.8% | 59 | 23% |
 
-## The live game (`form-1`)
+**Stout mirror: 12 against 12 (2,700 metal a side)**
 
-LIVE
+| Arm | Margin | W-L | Killed per lost | Shots per in-reach s (0.83 possible) | Muzzled | Friendly fire | Nearest friend | Friend on the line |
+|---|---|---|---|---|---|---|---|---|
+| off | +0.034 +- 0.057 | 5-3 | 1.04 | 0.83 | 0% | 0.1% | 40 | 24% |
+| old | -0.053 +- 0.058 | 3-5 | 0.94 | | 0% | 0.2% | 40 | 27% |
+| old + form (form4-stout-on) | -0.023 +- 0.046 | 4-4 | 0.98 | | 0% | 0.0% | 57 | 18% |
+| the same without focus | -0.071 +- 0.037 | 3-5 | 0.93 | | 1% | 0.0% | 58 | 22% |
+| **on**, final (form8-stout-on) | +0.040 +- 0.036 | 5-3 | 1.04 | 0.83 | 0% | 0.0% | **60** | **19%** |
+
+**Stout body against a Cortex bot mix: 12 Stouts against 20 Grunts and 13 Thuds (2,700 against 2,680)**
+
+| Arm | Margin | W-L | Killed per lost | Shots per in-reach s | Muzzled | Friendly fire | Nearest friend | Friend on the line |
+|---|---|---|---|---|---|---|---|---|
+| off | -0.001 +- 0.050 | 4-4 | 0.99 | 0.77 | 0% | 0.5% | 42 | 31% |
+| old | +0.052 +- 0.044 | 5-3 | 1.05 | | 0% | 0.2% | 40 | 31% |
+| on, a Stop at contact and a stand-keep of 100 (form5-stoutmix-on) | -0.086 +- 0.063 | 3-5 | 0.90 | 0.66 | 6% (line 52, edge 19, clear 76 s) | 0.8% | 62 | 25% |
+| **on**, final | +0.032 +- 0.044 | 5-3 | 1.03 | 0.78 | 0.4% | 0.6% | 61 | 23% |
+
+**The user's case: 8 Blitzes and 7 Stouts against 14 Pawns, 6 Stouts and 2 Janus (2,455 against 2,586)**
+
+| Arm | Margin | W-L | Killed per lost | Muzzled | Friendly fire | of it the Stouts' shells on the Blitzes | Nearest friend | Friend on the line |
+|---|---|---|---|---|---|---|---|---|
+| off | -0.182 +- 0.056 | 2-6 | 0.86 | 0% | 4.7% (5,110 hp) | 4,291 | 43 | 37% |
+| old | -0.193 +- 0.091 | 3-5 | 0.84 | 0% | 3.3% (3,536) | 3,015 | 45 | 34% |
+| on, final | -0.160 +- 0.038 | 2-6 | 0.88 | 0% | 6.0% (6,711) | 4,898 | 51 | 43% |
+
+The victim table names the user's observation exactly (the Stouts' shells on the Blitzes are 84-86% of the force's
+friendly fire in every arm) and the formation does not cure it: the raiders form their own body, but both bodies
+close on the same enemies and the faster Blitzes end in front of the Stouts anyway. Keeping the raider body out of
+the line body's arcs (a flank slot for it, or the Stouts holding while Blitzes are ahead) is not built.
+
+## The two scenarios (Comet Catcher Remake 1.8, the recorded places, `--reps 8 --parallel 2`)
+
+Side 0 is ours; the lane drives it. The units stand where the record left them, so the spacing at contact is the
+record's (42-43) unless the lane moves them.
+
+| Scenario, arm | Margin | W-L | Killed per lost | Shots per in-reach s | Muzzled (line / edge / clear s) | Nearest friend | Friend on the line |
+|---|---|---|---|---|---|---|---|
+| 2v1b-hard 15:10 (33 against 12, won live), off | +0.805 +- 0.005 | 8-0 | 1.79 | 0.68 | 2% (29 / 4 / 14 of 2,013) | 42 | 24% |
+| old | +0.758 +- 0.009 | 8-0 | 1.45 | 0.46 | 16% (52 / 39 / 311 of 2,536) | 42 | 21% |
+| on | +0.755 +- 0.012 | 8-0 | 1.45 | 0.42 | 19% (106 / 42 / 373 of 2,680) | 42 | 19% |
+| on, kite margin 80 (form9-scen1510-on) | **+0.803 +- 0.008** | 8-0 | 1.77 | 0.64 | 3% (15 / 10 / 37 of 2,156) | 42 | **13%** |
+| bank-1 27:34 (25 against 18 with two Fatboys at 700, lost live), off | -0.619 +- 0.019 | 0-8 | 0.68 | 0.41 | 29% (229 / 89 / 411 of 2,494) | 43 | - |
+| old | -0.620 +- 0.029 | 0-8 | 0.68 | 0.39 | 32% (247 / 50 / 435 of 2,272) | 42 | - |
+| on | -0.750 +- 0.012 | 0-8 | 0.45 | 0.25 | 49% (232 / 91 / 469 of 1,607) | 64 | 36% |
+
+The won fight stays won in every arm (8-0), but both lane arms fired less (0.42-0.46 shots per in-reach second
+against 0.68) and kept less (0.76 against 0.81): a debug repetition put 33 of 42 muzzled seconds under H-MICRO-KITE,
+Stouts (reach 350) kiting Warriors (325) on the rule's 20-elmo margin, stepping back every reload instead of
+firing. With the margin at 80 the fight is fought as the plain order fights it (+0.803, 1.77 killed per lost, 0.64
+shots a second, 3% muzzled) with the friend-on-the-line share at contact down from 24% to 13%. The out-ranged fight is lost in every arm, and the
+formation loses it worse: spaced and standing at 0.92 of a Stout's reach, our units are shelled from 700 while the
+plain ball at least charges in and trades 0.68 (the design's open case; a rule for an out-ranged body is not built).
+
+## The live games
+
+`target/release/arena --matches 1 --parallel 1 --speed 50 --map "Comet Catcher Remake 1.8" --corner nw --mirror
+--side armada --profile hard_aggressive --max-minutes 25 --label form-1` (and form-2 with the final binary): the
+heuristic bot with no LLM. Both were lost early, called by the referee at 10.8 and 14.6 game minutes, before the bot
+had an army: form-1 88 soldier-seconds with an enemy in reach (Rocketeers and Warriors), 2 deaths, 240 metal lost
+for 258 killed; form-2 228 soldier-seconds, 12 deaths, 2,314 lost for 1,264 killed (exchange 1.83), 49 lane claims,
+0 deaths to turrets or the commander. There were no fights to read the formation in: the heuristic bot against
+hard_aggressive on this map dies to Pawn and Flea raids at minute 10-15, whatever its footwork. Against bank-1 and
+the 2v1b games (25-33 minutes of the Opus player with Jev, 3,385-5,558 Stout in-reach seconds) these games are not
+comparable, and the muzzled shares (2-3% of 88-228 seconds) say nothing. Four medium games were run for fights:
+form-3-medium (the lane with the formation, before the kite margin) ran to the 25-minute timeout undecided with
+2,902 soldier-seconds in reach, exchange 1.10 (10,144 lost for 9,183 killed), 12% muzzled (Rocketeers 173 of 1,514 s,
+Hammers 139 of 736, Warriors 20 of 518; causes clear 56%, edge 25%, a friend on the line 19%), 71 soldiers lost, 5
+of them to turrets or the commander, 535 lane claims at 1.17 reversals each; form-4-medium (the final lane),
+form-5-medium-noform (`--disable H-MICRO-FORM`) and form-6-medium-nolane (`--disable H-MICRO-LANE`) were all lost
+at 11-12 minutes with 225, 138 and 2 soldier-seconds in reach. One game in four reached a fight; the heuristic bot on
+this map is decided by its opening and its outposts, not its footwork, and a live reading of the formation needs
+the player games (the pianist with Jev) that the brief left out. The step-speed table in form-3: Pawns after a
+lane step at a median of 0 elmos/s (n = 96) against 86 on a fight order, Warriors 26 against 44: after the fix the
+short Moves left are the formation's own slot orders to units already at their slot (a Move to where you stand),
+not flee steps; the flee's steps now go 250 and were too few to measure (46-49 claims a game).
+
+## Part C: why the players switched the lane off (from the records, not the notes)
+
+The `lane` calls and their clocks come from `strategist-0.jsonl`; what the lane did comes from the record's `cmd`
+rows (a Move within 130 of the unit is a lane step), its `rules` decision rows, the `lane` milling field, and the
+group tasks per second in `jev-0.jsonl`. The scratch scripts are not kept; the tables they printed are summarised.
+
+| Game, clock, setting | The player's reading | What the record shows | Verdict |
+|---|---|---|---|
+| 2v1-hard_aggressive 7:13, flee and kite off for all | "flee footwork pulled groups out of Pawn fights" | In the minute before, groups left fights by the hands' own `move_to->home` (five fall-back tasks, Jev's rule for an outweighed group); the lane fled 14 times, on single units and on group D, which stayed in its fight at 21-96 elmos from the Pawns. Two D units at 7:04-7:12 were re-stepped every 6-9 frames to points zigzagging within 50 elmos | Mostly the hands' fall_back. The lane's part: the chooser's zigzag (fixed: a cell within 1.2 of the least threat is kept) and the lethal flee judged by damage a second (fixed: strength, and never from inside the guns) |
+| 2v1-hard_aggressive 11:44, follow off for all | "suspect it re-sends groups after fleeing parties" | Right. Group F (11) followed a party 2,000 elmos east 9:21-9:46, a Fight at the party's new centre every 2 s with the party 300-600 ahead; K (4) followed one 3,500 elmos 11:04-11:32 and died to Warriors 11:33-11:44 | The lane's: no leash. Fixed: a group drawn 900 from where it engaged holds and says so (K-hands-follow-had-no-leash) |
+| 2v1b-hard 17:23, small groups to raw | "so they join instead of stepping back" | Groups of 1-3 (S, T, U, V, X) stepped back by the hands' fall_back (a party always outweighs a pair); the lane then fled them on their walk home, at half speed: after a lane step Stouts moved 28-30 elmos/s, Blitzes 25-40, against 48-55 after a far move and 67-100 after a fight (three games, n = 62-550 a cell) | The stepping back was Jev's. The lane's part: the braking step (fixed: the order goes 2.5x further than the cell, re-issued after 64 not 32; K-engine-a-short-move-order-brakes-the-unit) |
+| 2v1b-hard_aggressive 5:51, A and D raw | "groups only moved after lane raw" | The lane fired no rule and gave no order to A or D in the two minutes before; they held because Jev chose hold; the same turn's `engage` orders moved them at 5:52 | Misreading |
+| bank-1 8:53, I and J raw | (none) | J's six Blitzes at 44 elmos from Pawns were fled twelve times a second and taken back by focus the next tick; J never left its fight | The lane's: chatter between a fresh flee claim and focus (fixed: a claim stands its first second; focus retired) |
+| bank-1 14:13, L and Q raw | (none) | Q walked home under flee steps at 39 elmos/s (the braking step). L, holding (standing order Stop), got `Attack` then `Stop` from focus every second, the Stop cancelling the Attack in the same batch | The lane's (both fixed; focus retired) |
+| 2v1b-hard 10:09-10:29, 12:16, 18:26-18:36, 23:59; 2v1b-hard_aggressive 14:13; bank-1 3:46, 9:05, 20:46, 28:36 | various | Where the lane was active (2v1b-hard 12:16: 107 flee firings, 276 steps in a minute in which the hands flipped H between fall back and advance nine times), its part was the braking step under the hands' own reversals; at 5:51-type shut-offs (3:46, 9:05, 14:13) the lane had done nothing to the group in the minute before | Precautionary or misread; the braking step where active |
+
+The milling instrument's own numbers were small (path over net 1.0-1.1 in most samples): the lane's real costs were
+the braking step, the chatter and the follow, not milling in circles.
 
 ## What it says
 
-SAYS
+- **The formation does what the survey asked of it.** Spacing at contact goes from ours (40-43) to the pros' (57-64
+  against their 67-70), the friend-on-the-line share from 24-31% to 13-23% (the pros' 22%), in every pairing and in
+  the won scenario, without losing shots (0.83 per in-reach second for Stouts in both arms, 6.5 against 6.6 for
+  Blitzes).
+- **It wins where a ball loses its shots to its own hulls: the Blitz pack.** +0.32 against +0.15 / +0.21 over three
+  batches of the formation (+0.28, +0.31, +0.32) and two of the plain order; 1.45 metal killed per metal lost
+  against 1.16-1.24; friendly fire 7.8% against 9-10.7%. In the Stout mirror and the Stout body against the bot mix
+  it neither wins nor loses (within a sigma), and in the won scenario it keeps the fight as it was.
+- **It does not solve the user's case**, the Stouts' shells on the Blitzes in front: separate bodies do not keep the
+  faster raiders out of the line's arcs, and the mixed force trades the same (-0.16 against -0.18) with more
+  friendly fire (6.0% against 4.7%). And against artillery that out-ranges the body (bank-1 27:34) standing spaced
+  at reach is worse than the charging ball (-0.75 against -0.62).
+- **The old lane was costing fights, and the harness says exactly where.** Focus cost the Blitz pack 0.21 of margin;
+  the lethal flee as written fled won fights at contact (7-10 Blitzes at once); a 100-elmo step re-issued every 32
+  held units in the engine's braking zone at half speed; the kite's 20-elmo margin had Stouts stepping back from
+  Warriors every reload (0.46 shots a second against 0.68). Every order costs shots: a stand is now no order at all.
+- **Method.** Two batches of the same `off` arm differ by 0.06 with standard errors of 0.05: read the between-batch
+  spread as the noise. A null arm (the lane present, every rule off) is the check that the harness measures the
+  rules and not the plumbing; it found the two-site contamination that voided the first day's lane arms.

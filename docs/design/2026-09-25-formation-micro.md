@@ -170,4 +170,8 @@ Not the lane's, said plainly: the fall-backs of small groups (Jev's rule and the
 - 2026-09-25: written; nothing built.
 - 2026-09-25, built: `crates/micro` (the lane behind `View`, H-MICRO-FORM in `form.rs`), the brain and the duel
   director drive it; the defect fixes of section 3; `duel --lane`, mixed forces, the shape instrument and the
-  victim table; the reversals above. Batches and the live game: `docs/studies/2026-09-25-formation-micro.md`.
+  victim table; the reversals above. Batches and the live games: `docs/studies/2026-09-25-formation-micro.md`.
+  Judged: the spacing and friend-on-the-line goals met in every pairing; the Blitz pack +0.32 against +0.15 / +0.21;
+  the Stout fights unchanged; the user's mixed case and the out-ranged scenario not improved; the live check found
+  no fights (the heuristic bot loses to hard_aggressive at minute 10-15). Open: a flank slot for the raider body so
+  it stays out of the line's arcs; a rule for an out-ranged body; a live reading under the pianist.

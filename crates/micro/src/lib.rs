@@ -60,8 +60,10 @@ const EXPOSURE_SECONDS: f32 = 1.5;
 /// misjudged it: 22 Pawns out-shoot 11 Blitzes but not out-fight them (form-smoke-old: the Blitzes fled a fight
 /// they win with the lane off, 33% of their in-reach seconds muzzled, all under the flee).
 const ODDS_TO_STAY: f32 = 1.2;
-/// A unit kites what it out-reaches by this much or more.
-const KITE_MARGIN: f32 = 20.0;
+/// A unit kites what it out-reaches by this much or more: a Rocketeer (475) a Hammer (380), not a Stout (350) a
+/// Warrior (325), which stepped back every reload instead of firing (form8-scen1510: 33 of 42 muzzled seconds under
+/// the kite, 0.46 shots per in-reach second against 0.68 with the lane off).
+const KITE_MARGIN: f32 = 80.0;
 /// Where a kiting unit keeps its enemy: this far inside its reach.
 const KITE_EDGE: f32 = 15.0;
 /// How far a kiting unit steps back while reloading, beyond what restores the edge.
