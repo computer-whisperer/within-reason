@@ -26,6 +26,9 @@ The bot process never calls into the engine; everything it knows arrives in `Hel
 - `bot` — the bot binary. Listens on the socket; MVP heuristic brain.
 - `buildorder` — offline study tool, not part of the running system: a tier-1 economy simulator and a simulated-annealing
   build-order search over it (`docs/studies/build-order.md`). Depends on nothing else in the workspace.
+- `micro` — the control lane (2026-09-25): a `Lane` that turns a host's orders into per-unit footwork every tick
+  (flee, fan, focus, kite, formation slots) over a `View` of the host; the bot's brain and the duel director both
+  implement the view, so the harness fights with the bot's own footwork (`docs/design/2026-09-25-formation-micro.md`).
 
 ## Protocol (credit-based, so the shim never blocks the sim)
 1. shim → bot `Hello { ai_id, team, ally_team, game_id, teams, start_boxes, frame, map, unit_defs, metal_spots, terrain }` once per
@@ -39,7 +42,7 @@ The bot process never calls into the engine; everything it knows arrives in `Hel
    commanded), visible enemies with their team and velocity.
 4. Shim reads the socket non-blocking at each UPDATE and applies any `Commands` on the engine thread.
 
-The bot runs two passes on every tick (`brain/mod.rs` `decide`): the control lane (`brain/micro.rs`) every tick, and the
+The bot runs two passes on every tick (`brain/mod.rs` `decide`): the control lane (`crates/micro`, driven from `brain/micro.rs`) every tick, and the
 whole brain (`think`) on the ticks due at multiples of `BRAIN_FRAMES` (15, 2 Hz), fed every event since it last ran. The
 brain's schedule keys on the due frame (`Tick::due`), so a late tick is not a missed one.
 Design: `docs/design/2026-09-20-micro-lane.md`.

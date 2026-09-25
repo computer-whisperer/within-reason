@@ -109,6 +109,25 @@ batch the test.
 **Would be wrong if.** A raw ball traded worse than a laned one in a batch, or the milling counters showed path
 close to net displacement under the flee.
 **Used by.** H-HANDS-LANE.
+**Amended 2026-09-25.** The four player games' shut-offs were read from the records (`docs/design/2026-09-25-formation-micro.md`):
+the milling was real but small (path over net 1.0-1.1 in the samples; two units zigzagging within 50 elmos at
+2v1-hard_aggressive 7:04), and the lane's real costs were the braking step (K-engine-a-short-move-order-brakes-the-unit),
+focus taking fleeing units back the next tick, a Stop queued behind focus's Attack, and follow without a leash
+(K-hands-follow-had-no-leash); most of what the player called "stepping back" was the hands' own fall_back.
+
+### K-hands-follow-had-no-leash
+**Claim.** An engaging group re-sent after its party every 2 s while the party stays in sight follows a retreating
+party across the map into whatever waits there; the party must be leashed to where the engagement began.
+**Status.** measured (2026-09-25) in 2v1-hard_aggressive: group F (11 soldiers) followed a party 2,000 elmos east
+9:21-9:46 with the party 300-600 ahead the whole way; K (4) followed one 3,500 elmos 11:04-11:32 and died to Warriors
+at 11:33-11:44; the player switched follow off for all at 11:44 ("suspect it re-sends groups after fleeing parties"),
+rightly. Fixed: a ground group drawn more than 900 from where it engaged holds and the report says so
+(`pianist/groups.rs` `FOLLOW_LEASH`); untested in a game.
+**Evidence.** `run/matches/1790259885-2v1-hard_aggressive/00` (the main checkout): `jev-0.jsonl` group tasks and the
+record's `cmd` rows (a Fight to the party's new centre every 2 s).
+**Would be wrong if.** A leashed group let a party it outweighed escape a fight it was winning more often than it
+saved one from a chase; the leash is then the player's to set.
+**Used by.** H-HANDS-LANE (follow).
 
 ### K-hands-far-places-never-on-the-menu
 **Claim.** The picture's places were home, enemy_base, our spots, the ten nearest free spots, the six nearest of

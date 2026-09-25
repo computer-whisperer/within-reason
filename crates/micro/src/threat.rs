@@ -1,5 +1,5 @@
 //! The threat grid: how much damage a second the enemy can put on each cell of the map, rebuilt every tick for the
-//! control lane (`micro.rs`, `docs/design/2026-09-20-micro-lane.md`). Every armed enemy stamps its damage rate over
+//! control lane (`lib.rs`, `docs/design/2026-09-20-micro-lane.md`). Every armed enemy stamps its damage rate over
 //! its reach, full inside it and falling to nothing over a tail beyond, so that the grid slopes away from danger
 //! outside the range as well as in it.
 

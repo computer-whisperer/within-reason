@@ -384,3 +384,16 @@ frame died within two seconds to Stouts with no `WeaponFired` event; given two s
 none died.
 **Would be wrong if.** A Rover given 20 from a standing Stout that nothing pushes is killed by it without a shot.
 **Used by.** H-DUEL-SCENARIO-PREP.
+
+### K-engine-a-short-move-order-brakes-the-unit
+**Claim.** A ground unit given a move order to a point about 100 elmos away, re-issued every 32 elmos, moves at about
+half its speed: the engine slows a unit approaching its goal, and a goal always within its braking distance keeps it
+slow.
+**Status.** measured (2026-09-25) in three player games' records, the second after an order: after a lane step (a
+Move within 130 of the unit) Stouts moved 28-30 elmos/s (n = 62-550) against 48-55 after a far Move and 67-74 after a
+Fight; Blitzes 25-40 against 52 and 77-100 (2v1b-hard, 2v1-hard_aggressive; bank-1's Blitzes 58 against 56, its
+Stouts 38 against 40). The flee's step order now goes 2.5 times further than its cell (H-MICRO-FLEE).
+**Evidence.** The records of `run/matches/1790261454-2v1b-hard`, `1790259885-2v1-hard_aggressive`,
+`1790257668-bank-1` (the main checkout); the engine's `GroundMoveType` brakes toward the goal.
+**Would be wrong if.** The live game with the longer step showed the same speed after a step as before.
+**Used by.** H-MICRO-FLEE.

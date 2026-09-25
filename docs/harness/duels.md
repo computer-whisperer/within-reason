@@ -7,15 +7,18 @@ records who is left. It exists to fill the matchup table the brain and the LLM c
 ```
 duel (--units a,b,c | --ours a,b --theirs c,d | --pairs a:b,c:d)
      [--reps 4] [--budget 1200 | --count N] [--parallel 2] [--sites 3] [--duels-per-match 45] [--time-limit 240]
-     [--sweep-waves 3] [--spacing 56] [--formation X[/Y],...] [--spread 0] [--speed 50] [--map NAME] [--label TEXT]
-     [--base-port 9500]
-duel --scenario FILE [--reps 8] [--parallel 2] [--time-limit 240] [--speed 50] [--label TEXT] [--base-port 9500]
+     [--sweep-waves 3] [--spacing 56] [--formation X[/Y],...] [--lane off|old|on[/...]] [--speed 50] [--map NAME]
+     [--label TEXT] [--base-port 9500]
+duel --scenario FILE [--reps 8] [--parallel 2] [--time-limit 240] [--lane X[/Y]] [--speed 50] [--label TEXT] [--base-port 9500]
 duel --report DIR [duels.csv ...]      rebuild the tables in DIR (from its own duels.csv, or merge the files named)
 run/engagement.py <match dir> <MM:SS> [--radius 900] [--at X,Z] [--enemies sight|known|truth] [--orders 20]
                   [--after 30,60] [--out FILE]     cut a scenario file from a live record
 ```
 `--units` runs every pair from the list, each unit against itself included; `--ours/--theirs` the cross product;
-`--pairs` exactly those. Unit names are the game's internal ones (`armpw`). Two buildings are never paired.
+`--pairs` exactly those. Unit names are the game's internal ones (`armpw`). A side may also be a **mixed force**,
+`armflash*8+armstump*6` (2026-09-25): spawned as written, in list order, so the first type stands in the front
+rank; a plain name against a mixed force takes the count that matches its metal, two plain names take the batch's
+sizing. Two buildings are never paired.
 
 Output, in `run/matches/<stamp>-duel-<label>/`: `duels.csv` (one row per duel, appended as they finish), `pairs.csv`
 (per ordered pairing and pair of formations: counts, wins / losses / draws, mean margin, mean seconds, then the fire
@@ -57,12 +60,17 @@ batches from before the fire instrument too, leaving its columns empty (nan in `
   (26 Pawns against 10 Thugs). `--count N` gives N against N instead. Energy cost and build time are ignored.
 - **Order of play.** Repetition `r` of a pairing puts the first unit at the west end when `r` is even and gives it
   team 0 when `r / 2` is even, so four repetitions cover every combination. The plan is shuffled with a fixed seed.
-- **Micro.** `--spread N` changes the orders the **first** unit of each pairing is given: instead of one attack-move
-  at the enemy's centre, each of its units is sent to its own point in a block around the enemy, N elmos between
-  neighbours, files across the approach and ranks behind (`director.rs` `loose_block`, a copy of the bot's
-  `brain::micro::loose_block` — change both together). The second army always gets the plain blob order. Run a batch
-  with and without it and compare with `run/duel_ab.py <without> <with>`; this is how H-MICRO-SPREAD was measured
-  (`docs/studies/micro-combat.md`).
+- **The lane** (`--lane`, 2026-09-25). `X` or `X/Y`: whether the bot's control lane (`crates/micro`: flee, fan,
+  focus, kite and the formation slots of H-MICRO-FORM) drives the first army of each pairing, and the second
+  (default `off`): `off` is the director's orders alone (the harness before 2026-09-25), `old` the lane without
+  H-MICRO-FORM (the bot's lane as it was), `on` the whole lane. The director holds a `micro::Lane` per army, notes
+  its own Fight orders as the standing orders, commits everything (`Commitment::All`), and appends the lane's
+  commands after its own each tick; with the lane on, idle units are re-sent at the enemy's centre only every 2 s
+  and when the centre has moved 150 (as the pianist's follow does), since a unit standing at contact is idle by
+  design. `duels.csv` names the modes in `lane_x` / `lane_y`; `pairs.csv` splits by them. Run a batch in each mode
+  and compare with `run/duel_ab.py <without> <with>` (the lane is not part of its pairing key). This replaced
+  `--spread` (a copy of the retired H-MICRO-SPREAD's block, deleted 2026-09-25: the lane itself now runs here).
+  `WITHIN_REASON_MICRO_DEBUG=1` prints the lane's claims to the terminal.
 - **Scoring.** Decided when one army has nobody left (`wiped`), after `--time-limit` game seconds (`timeout`), or after
   60 s without damage to anyone (`stalemate`: anti-air against anti-air). `value_left` is the surviving share of an
   army's metal, each survivor weighted by its health. **Margin** = own `value_left` minus the enemy's: +1 is a flawless
@@ -81,8 +89,16 @@ batches from before the fire instrument too, leaving its columns empty (nan in `
   each `_x` and `_y`: `reach_s`, `shots`, `muzzled_line`, `muzzled_edge`, `muzzled_clear`, `ff`, `dealt` (hit points).
   `pairs.csv` adds `shots_per_reach_s`, `muzzled_share` (muzzled over in-reach seconds), the three causes' shares of
   the muzzled seconds, `ff_share` (ff over ff plus dealt) and `exchange` (dealt over dealt by the other). In a mirror
-  (same unit, same formation) both armies' fire counts in the one row. The progress line prints each army's muzzled
-  share.
+  (same unit, same formation, same lane) both armies' fire counts in the one row. The progress line prints each
+  army's muzzled share. `xf_x` / `xf_y` (2026-09-25) is the victim table, friendly fire by `shooter>victim:damage;...`,
+  the record's `xf`.
+- **The shape instrument** (2026-09-25; `fire.rs` `Shape`, the definitions of `run/replays/shapes.py` so the numbers
+  compare with the pro survey's, `docs/knowledge/formations.md`). At the first damage and ten seconds later, over
+  each army's living soldiers: every soldier's distance to its nearest friend, and of the soldiers with an enemy
+  within reach + 20, how many have a friendly soldier within 24 of the segment to the nearest one and nearer than
+  it. Columns `nn` (the median nearest-friend distance over both samples), `fol_in`, `fol_blocked` (counts, summed
+  over both); `pairs.csv` gives `nearest_friend` (the mean of the duels' medians) and `friend_on_line` (the pooled
+  share); `duel_ab.py` prints both and the friendly-fire share beside the exchange.
 - **Clearing.** Survivors self-destruct. BAR's "Self-Destruct Resign" gadget (`luarules/gadgets/game_selfd_resign.lua`)
   cancels a team's first two attempts to destroy 95% of its units at once, which a large surviving army beside one
   commander is, so an order not carried out after 8 s is given again (never sooner: a second order while the 5 s
@@ -152,6 +168,7 @@ An engine start is ~30 s. The full 23-unit table (2184 duels) took 568 s of wall
 with nine other engines busy on the machine: ~4 duels a second (a duel is ~25 game seconds plus ~10 of clearing). One engine uses ~3 GB and about two cores.
 
 ## What a duel is not
-No micro beyond `--spread` and the `line` formation (no kiting, no retreat, no focus fire beyond the engine's own targeting), no terrain, no mixed armies, no
-support (radar, repair, turrets behind the line), one army size. Both sides charge: a unit that would normally hold at
-its range and be approached is tested as an attacker too. See the caveats in K-units-duel-caveats.
+Without `--lane`, no micro beyond the `line` formation (no kiting, no retreat, no focus fire beyond the engine's own
+targeting); no terrain, no support (radar, repair, turrets behind the line), one army size. Both sides charge: a
+unit that would normally hold at its range and be approached is tested as an attacker too. See the caveats in
+K-units-duel-caveats.

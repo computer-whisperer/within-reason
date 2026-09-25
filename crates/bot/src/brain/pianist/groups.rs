@@ -23,6 +23,11 @@ const ARRIVED: f32 = 300.0;
 /// An engaged group is sent on when its party has moved this far, and no more often than this.
 const FOLLOW_DISTANCE: f32 = 150.0;
 const FOLLOW_FRAMES: i32 = 2 * FRAMES_PER_SECOND;
+/// A party that has drawn an engaging group this far from where the engagement began is running, not fighting:
+/// the group holds and the player is told (2v1-hard_aggressive 9:21-9:46 and 11:04-11:32: groups followed
+/// retreating parties 2,000 and 3,500 elmos across the map, re-sent every 2 s while the party stayed in sight
+/// 300-600 ahead, and died to what waited there; K-hands-follow-had-no-leash).
+const FOLLOW_LEASH: f32 = 900.0;
 /// A party nobody has seen for this long is gone; a ground group holds where it stands, an air group searches its
 /// target's last position once and holds only after `AIR_LOST_FRAMES` (H-HANDS-AIR-TARGET: evidence-1-bombers, where
 /// the hold after six seconds out of sight cancelled every strike).
@@ -55,8 +60,9 @@ pub(crate) enum GroupTask {
     Move { to: Vec3, place: String, fight: bool, since: i32 },
     /// `target`: one unit of the party every member attacks directly (`attack_unit`, and every air group's
     /// engagement): re-issued while it is seen, the group holds when it is lost or dead.
-    /// `searched`: an air group has been sent to its lost target's last position.
-    Engage { party: Vec<UnitId>, at: Vec3, since: i32, last_seen: i32, target: Option<UnitId>, searched: bool },
+    /// `searched`: an air group has been sent to its lost target's last position. `from`: where the group stood
+    /// when the engagement began, the follow leash's anchor.
+    Engage { party: Vec<UnitId>, at: Vec3, since: i32, last_seen: i32, target: Option<UnitId>, searched: bool, from: Vec3 },
 }
 
 impl GroupTask {
@@ -312,9 +318,16 @@ impl Brain {
                         }
                     }
                 }
-                GroupTask::Engage { party, at, last_seen, target, searched, .. } => {
+                GroupTask::Engage { party, at, last_seen, target, searched, from, .. } => {
                     let seen: Vec<&bot_protocol::EnemyUnit> = enemies.iter().filter(|e| party.contains(&e.id)).collect();
                     let air = group.domain == Domain::Air;
+                    // The leash: a ground group drawn this far from where it engaged holds where it is.
+                    if !air && footwork[index].follow && centre.dist2d(*from) > FOLLOW_LEASH {
+                        stalled.push(format!("group_{} was drawn {:.0} from where it engaged its party, which is running, not fighting: it holds where it is", group.name, centre.dist2d(*from)));
+                        commands.extend(group.hold_orders(&units));
+                        group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
+                        continue;
+                    }
                     // A named target: the attack stands while the target is seen. Lost, a ground group holds; an air
                     // group searches the last position once and holds only much later (H-HANDS-AIR-TARGET).
                     if let Some(t) = *target {

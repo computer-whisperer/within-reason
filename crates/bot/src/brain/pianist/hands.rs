@@ -329,7 +329,8 @@ impl Brain {
                             did = Some(format!("attack {} ({})", party.name, party.composition));
                         }
                     }
-                    group.set_task(GroupTask::Engage { party: party.ids.clone(), at: party.at, since: frame, last_seen: frame, target: target.map(|(t, _)| t), searched: false }, frame);
+                    let from = super::groups::centre_of(&units).unwrap_or(party.at);
+                    group.set_task(GroupTask::Engage { party: party.ids.clone(), at: party.at, since: frame, last_seen: frame, target: target.map(|(t, _)| t), searched: false, from }, frame);
                     group.last_order = frame;
                 }
             }
@@ -399,7 +400,8 @@ impl Brain {
                     pianist.last_asked.insert(format!("group_{name}"), frame);
                     did = Some(format!("send {} soldiers as group_{name} against {} ({})", detached.len(), party.name, party.composition));
                     let parent_name = pianist.groups[index].name.clone();
-                    pianist.groups.push(Group::new(name, domain, detached, GroupTask::Engage { party: party.ids.clone(), at: party.at, since: frame, last_seen: frame, target: target.map(|(t, _)| t), searched: false }, frame).split_from(&parent_name));
+                    let from = super::groups::centre_of(&units).unwrap_or(party.at);
+                    pianist.groups.push(Group::new(name, domain, detached, GroupTask::Engage { party: party.ids.clone(), at: party.at, since: frame, last_seen: frame, target: target.map(|(t, _)| t), searched: false, from }, frame).split_from(&parent_name));
                 }
             }
             Pick::Scout => {

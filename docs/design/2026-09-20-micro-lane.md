@@ -170,3 +170,6 @@ Each step is a commit.
   local odds at 1.2, untuned; constructors are outside the lane; the search and the simulator still run on the tick
   thread (`late` says nothing is late in lockstep; a human's game is unmeasured); target priority (Fight against
   Raid) stays with the pricing.
+- 2026-09-25: the lane moved into `crates/micro` behind a `View` trait so the duel director runs it too, and gained
+  H-MICRO-FORM (slots); the flee's step, odds and "inside" test, focus's queue and the fresh-claim rule were changed
+  after the player games' shut-offs were read: `docs/design/2026-09-25-formation-micro.md`.

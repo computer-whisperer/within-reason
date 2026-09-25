@@ -18,7 +18,7 @@ contact: pros one point per unit in 753 of 1,070 sides (70%), one shared point i
 At contact the pros' cores (3+) are line / blob / stream 27 / 57 / 16% of 731.
 **Would be wrong if.** The per-unit points came from something other than a drawn formation (a widget spreading plain
 clicks), which the record cannot tell; or the same count on another map or pool showed shared points as the norm.
-**Used by.** (none yet; motivates per-unit move targets spaced about 64 elmos in the micro engine's group orders)
+**Used by.** H-MICRO-FORM (one slot per unit, 64 apart, across the heading).
 
 ### K-form-pros-stand-two-hulls-apart
 **Claim.** The pros' soldiers stand about two hulls from their nearest friend at contact; ours stand at about one.
@@ -27,7 +27,7 @@ elmos, 37% within 48 (446 unit-snapshots), us 40, 79% (799); Blitz pros 67, 38% 
 Grunt 40, Brute 54, Pounder 115 for the pros.
 **Would be wrong if.** A rerun with our new records showed our spacing at 60+ without a spacing change in the bot (the
 three games being unrepresentative), or the pros' spacing on another map at one hull.
-**Used by.** (none yet)
+**Used by.** H-MICRO-FORM (the slot spacing).
 
 ### K-form-friend-on-the-line-twice-ours
 **Claim.** A friend stands on the line of fire of about twice as many of our units in reach as of the pros'; part of the
@@ -40,7 +40,7 @@ it: at contact pros 542 of 2,429 (22%), us 60 of 140 (43%); 10 s in 31% against 
 the trade: a third or more on the line traded 4.0 points better than less, interval -3.6 .. +11.5 (141 / 141 sides).
 **Would be wrong if.** A shots-based count (run/fire.py's muzzled seconds, our records) did not fall when our bodies
 were spaced and cut to the pros' size.
-**Used by.** (none yet; with K-engine-a-shot-is-refused-across-a-friend)
+**Used by.** H-MICRO-FORM (one rank, bodies of at most 12); the duel harness's shape instrument measures it (`fol_in`, `fol_blocked`).
 
 ### K-form-pros-fight-with-pure-bodies
 **Claim.** The pros rarely fight with raiders and line units in one body, and when they do there is no fixed layering
@@ -53,7 +53,7 @@ differently from pure ones: +3.4 points, interval -2.8 .. +8.0 (70 / 634 sides).
 (Incisor, Blitz, Grunt), so a Stout-and-Blitz army at 16+ is thinly sampled.
 **Would be wrong if.** A pool with more tier-1 line armies showed mixed bodies with the raiders consistently in front or
 behind.
-**Used by.** (none yet; motivates forming Blitz packs and Stout lines as separate groups rather than one ball)
+**Used by.** H-MICRO-FORM (raiders and line units under one order are two bodies).
 
 ### K-form-a-line-at-contact-trades-better
 **Claim.** Among the pros a force that meets the enemy as a line (across at least twice along) trades a few points better
@@ -64,11 +64,11 @@ eventual winners' lines traded 60% (102), the losers' 40% (90). Wider core than 
 pairs). Observational: a stream may be a chase or a retreat rather than a choice of shape.
 **Would be wrong if.** Our arena games with the micro engine forming lines at contact traded no better than its blobs
 over 24+ games.
-**Used by.** (none yet)
+**Used by.** H-MICRO-FORM (one rank across the heading).
 
 ### K-form-pros-raiders-fight-at-reach
 **Claim.** The pros' short-range units hold the edge of their reach in a fight; ours close in.
 **Status.** measured (2026-09-24). Distance to the nearest enemy combatant over own reach, unit-seconds with one within
 reach + 100: short-range pros median 0.94 (86k), us 0.86 (2.9k). Line units 0.87 against 0.88.
 **Would be wrong if.** The difference vanished when counted only for Blitzes against the same enemy types.
-**Used by.** (none yet)
+**Used by.** H-MICRO-FORM (a unit closes on the nearest enemy to 0.92 of its reach and stands there; the raider step-back tried first cost shots and was dropped, form-smoke).

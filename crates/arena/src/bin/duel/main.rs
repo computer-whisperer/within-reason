@@ -3,10 +3,12 @@
 //! This process is the bot for both teams: the shims connect to it instead of `bot`. See `docs/harness/duels.md`.
 //!
 //! usage: duel (--units a,b,c | --ours a,b --theirs c,d | --pairs a:b,c:d) [--reps N] [--budget METAL | --count N]
-//!             [--parallel N] [--sites N] [--duels-per-match N] [--time-limit SECONDS] [--sweep-waves N] [--spacing ELMOS] [--formation X[/Y],...] [--spread ELMOS] [--speed N] [--map NAME]
+//!             [--parallel N] [--sites N] [--duels-per-match N] [--time-limit SECONDS] [--sweep-waves N] [--spacing ELMOS] [--formation X[/Y],...] [--lane X[/Y]] [--speed N] [--map NAME]
 //!             [--label TEXT] [--base-port N]
-//!        duel --scenario FILE [--reps N] [--parallel N] [--time-limit SECONDS] [--speed N] [--label TEXT] [--base-port N]
+//!        duel --scenario FILE [--reps N] [--parallel N] [--time-limit SECONDS] [--lane X[/Y]] [--speed N] [--label TEXT] [--base-port N]
 //!             (a recorded engagement, `scenario.rs`, fought `--reps` times on its own map and place)
+//!        A side of a pairing is a unit name (the count from --budget/--count) or a mixed force `name*count+name*count`.
+//!        --lane off|old|on per side: whether the control lane (`crates/micro`) drives the army over the director's orders.
 //!        duel --report DIR [duels.csv ...]   (rebuild the tables in DIR, from its own duels.csv or the files named)
 
 mod director;
@@ -35,7 +37,7 @@ use arena::harness::{
 use bot_protocol::{Commands, FrameReader, ToBot, write_frame};
 
 use director::{Batch, Director};
-use plan::{Job, Sizing};
+use plan::{Job, LaneMode, Sizing};
 use scenario::Scenario;
 use sites::Formation;
 
@@ -57,8 +59,8 @@ struct Options {
     spacing: f32,
     /// How the two armies stand, one entry per shape the batch fights every pairing in (`--formation`).
     shapes: Vec<[Formation; 2]>,
-    /// H-MICRO-SPREAD for the first unit of each pairing: elmos between the points its units are sent to.
-    spread: f32,
+    /// Whether the control lane drives each side (`x`, `y`).
+    lanes: [LaneMode; 2],
     speed: u32,
     map: String,
     label: String,
@@ -95,7 +97,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": git_commit(&repo), "map": options.map, "pairings": options.pairs.len(),
             "reps": options.reps, "sizing": format!("{:?}", options.sizing), "time_limit": options.time_limit,
-            "speed": options.speed, "sweep_waves": options.sweep_waves, "spacing": options.spacing, "formations": shapes, "spread": options.spread, "sites": options.sites, "duels_per_match": options.duels_per_match,
+            "speed": options.speed, "sweep_waves": options.sweep_waves, "spacing": options.spacing, "formations": shapes, "lanes": [options.lanes[0].label(), options.lanes[1].label()], "sites": options.sites, "duels_per_match": options.duels_per_match,
             "scenario": options.scenario.as_ref().map(|s| s.centre),
         }))?,
     )?;
@@ -112,7 +114,8 @@ fn main() -> io::Result<()> {
         time_limit: options.time_limit,
         sweep_waves: options.sweep_waves,
         shapes: options.shapes.clone(),
-        spread: options.spread,
+        lanes: options.lanes,
+        units: combatsim::units::Units::default(),
         scenario: options.scenario.clone(),
         on_result: Box::new(move |result| {
             // Written as they finish, so an interrupted batch keeps what it has.
@@ -120,10 +123,10 @@ fn main() -> io::Result<()> {
             let n = done.fetch_add(1, Ordering::Relaxed) + 1;
             let muzzled = |i: usize| 100.0 * result.fire[i].muzzled_seconds() as f32 / result.fire[i].reach_seconds.max(1) as f32;
             println!(
-                "[{n}/{total}] {}x{} ({}) vs {}x{} ({}): {} ({}) {:.0}s, left {:.0}% / {:.0}%, muzzled {:.0}% / {:.0}%",
-                result.count[0], result.job.x, result.formation[0], result.count[1], result.job.y, result.formation[1],
+                "[{n}/{total}] {}x{} ({}, lane {}) vs {}x{} ({}, lane {}): {} ({}) {:.0}s, left {:.0}% / {:.0}%, muzzled {:.0}% / {:.0}%, nearest friend {:.0} / {:.0}",
+                result.count[0], result.job.x, result.formation[0], result.lane[0], result.count[1], result.job.y, result.formation[1], result.lane[1],
                 result.winner, result.reason, result.seconds, 100.0 * result.value_left[0], 100.0 * result.value_left[1],
-                muzzled(0), muzzled(1)
+                muzzled(0), muzzled(1), result.shape[0].median_nearest(), result.shape[1].median_nearest()
             );
         }),
     });
@@ -302,7 +305,7 @@ fn parse_args() -> io::Result<Options> {
         sweep_waves: 3,
         spacing: 56.0,
         shapes: Vec::new(),
-        spread: 0.0,
+        lanes: [LaneMode::Off; 2],
         speed: 50,
         map: "Quicksilver Remake 1.24".into(),
         label: "batch".into(),
@@ -313,6 +316,7 @@ fn parse_args() -> io::Result<Options> {
     let list = |text: String| text.split(',').map(str::to_string).collect::<Vec<_>>();
     let (mut ours, mut theirs) = (Vec::new(), Vec::new());
     let mut formations = String::from("ranks8");
+    let mut lanes = String::from("off");
     let mut args = std::env::args().skip(1);
     while let Some(flag) = args.next() {
         if flag == "--report" {
@@ -344,7 +348,7 @@ fn parse_args() -> io::Result<Options> {
             "--sweep-waves" => options.sweep_waves = number(value()),
             "--spacing" => options.spacing = number(value()) as f32,
             "--formation" => formations = value(),
-            "--spread" => options.spread = number(value()) as f32,
+            "--lane" => lanes = value(),
             "--speed" => options.speed = number(value()),
             "--base-port" => options.base_port = number(value()) as u16,
             "--map" => options.map = value(),
@@ -371,6 +375,10 @@ fn parse_args() -> io::Result<Options> {
         };
         options.shapes.push([parse(x), parse(y)]);
     }
+    // `X` or `X/Y`: the lane for the first army of each pairing, and for the second (default off).
+    let (lane_x, lane_y) = lanes.split_once('/').unwrap_or((lanes.as_str(), "off"));
+    let parse_lane = |text: &str| LaneMode::parse(text).unwrap_or_else(|| usage(&format!("--lane: {text} is not off, old or on")));
+    options.lanes = [parse_lane(lane_x), parse_lane(lane_y)];
     if options.pairs.is_empty() {
         usage("no pairings: give --units, --ours with --theirs, --pairs, or --scenario");
     }
@@ -381,7 +389,7 @@ fn parse_args() -> io::Result<Options> {
 }
 
 fn usage(problem: &str) -> ! {
-    eprintln!("{problem}\nusage: duel (--units a,b,c | --ours a,b --theirs c,d | --pairs a:b,c:d) [--reps N] [--budget METAL | --count N] [--parallel N] [--sites N] [--duels-per-match N] [--time-limit SECONDS] [--sweep-waves N] [--spacing ELMOS] [--formation X[/Y],...] [--spread ELMOS] [--speed N] [--map NAME] [--label TEXT] [--base-port N]\n       duel --scenario FILE [--reps N] [--parallel N] [--time-limit SECONDS] [--speed N] [--label TEXT] [--base-port N]
+    eprintln!("{problem}\nusage: duel (--units a,b,c | --ours a,b --theirs c,d | --pairs a:b,c:d) [--reps N] [--budget METAL | --count N] [--parallel N] [--sites N] [--duels-per-match N] [--time-limit SECONDS] [--sweep-waves N] [--spacing ELMOS] [--formation X[/Y],...] [--lane off|old|on[/...]] [--speed N] [--map NAME] [--label TEXT] [--base-port N]\n       duel --scenario FILE [--reps N] [--parallel N] [--time-limit SECONDS] [--lane X[/Y]] [--speed N] [--label TEXT] [--base-port N]
        duel --report DIR [duels.csv ...]");
     std::process::exit(2)
 }

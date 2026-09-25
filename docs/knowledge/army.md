@@ -299,6 +299,11 @@ business (`docs/design/2026-09-20-micro-lane.md`).
 **Would be wrong if.** A focus rule that avoided overkill (counting damage already in the air towards a target)
 priced out positive; the policy tested is the naive one.
 **Used by.** (nothing — it is a reason not to extend the protocol)
+**Amended 2026-09-25.** Measured directly in the duel harness (the lane driving one side, 8 duels an arm on the
+same sites): H-MICRO-FOCUS cost the Blitz pack against Pawns 0.21 of margin (+0.098 with it, +0.308 without, the
+plain order +0.154) and nothing in a 12-against-12 Stout mirror (`docs/studies/2026-09-25-formation-micro.md`); the
+rule is retired. The "cannot be ordered" half is stale (the protocol has `Command::Attack`); the "would not pay"
+half is supported.
 
 ### K-army-a-real-wave-is-not-a-blob
 **Claim.** Our waves already fight spread out, so a formation policy has nothing to fix. Measured over the 930
@@ -359,6 +364,24 @@ lane made or failed to make (`docs/design/2026-09-20-micro-lane.md`, status).
 **Would be wrong if.** The lane's A/B (`--ab-disable H-MICRO-LANE`, 24 games) showed no fall in soldiers lost to
 turrets and the commander, or in soldier-seconds under fire (`run/micro_ledger.py`).
 **Used by.** H-MICRO-LANE, H-MICRO-FLEE.
+
+### K-micro-a-unit-under-the-guns-shoots
+**Claim.** A soldier already inside the enemy's reach should stay and shoot even when their fire on it would kill it
+and its side is locally outgunned: a unit that walks does not fire, and their fire on a ball at contact is "lethal"
+for every unit in it at once. The lethal flee is for the unit on its way into a losing fight, judged by strength
+(damage a second times health), not by damage a second.
+**Status.** measured (2026-09-25) in the duel harness with the lane driving one side (`duel --lane old`, one site,
+`WITHIN_REASON_MICRO_DEBUG` naming what held each muzzled unit). 11 Blitzes against 22 Pawns: the lethal flee as
+written on 2026-09-20 (damage a second odds, no "inside" test) fled seven to ten Blitzes at contact in a fight the
+plain order wins (+0.26, 0% muzzled): 24-33% of the Blitzes' in-reach seconds muzzled, 21 of 36 muzzled seconds
+under the flee claim (form-smoke-old, -old3). With strength odds alone it still fled hurt units before contact
+(form-smoke-old3); with the inside test as well, 0% muzzled (form-smoke-old4), and over 8 duels the amended branch
+costs nothing measurable beside the formation (form4-blitz-on-nofocus +0.308 +- 0.023 with it, form3-blitz-on
++0.282 +- 0.018 without).
+**Evidence.** `docs/studies/2026-09-25-formation-micro.md`; the debug lines `muzzled: ... held by H-MICRO-FLEE`.
+**Would be wrong if.** An arena A/B with the inside test showed more soldiers lost to unit fights the side was losing
+than without it over 24 games.
+**Used by.** H-MICRO-FLEE.
 
 ### K-army-pickets-across-the-front
 **Claim.** Tick and scout-car raids on the outer extractors are standard and expected (BARb from about 5:00 on Comet
