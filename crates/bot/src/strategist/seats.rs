@@ -94,8 +94,6 @@ impl Shared {
             c.constructors += o.constructors;
             c.army += o.army;
             merged.home_group = join(&merged.home_group, &b.home_group);
-            merged.attackers = join(&merged.attackers, &b.attackers);
-            merged.waves_sent += b.waves_sent;
             merged.recent_events.extend(b.recent_events.iter().cloned());
         }
         // Events carry their game time in front ("12:34 ..."); what two seats both noted is said once.

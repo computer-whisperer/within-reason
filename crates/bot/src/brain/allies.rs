@@ -53,9 +53,4 @@ impl super::Brain {
         self.team_mates = if self.enabled("H-TEAM-BOARD") { self.board.exchange(self.world.hello.team, post) } else { Default::default() };
     }
 
-    /// The types of the allied soldiers within `radius` of `pos`.
-    pub(super) fn allied_soldiers_near(&self, pos: Vec3, radius: f32) -> Vec<UnitDefId> {
-        let soldier = |def: UnitDefId| self.world.def(def).is_some_and(|d| d.weapon_count > 0 && d.speed > 0.0 && d.build_speed == 0.0);
-        self.allies.iter().filter(|a| !a.being_built && a.pos.dist2d(pos) < radius && soldier(a.def)).map(|a| a.def).collect()
-    }
 }

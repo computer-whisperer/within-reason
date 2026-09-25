@@ -22,10 +22,6 @@ pub struct Briefing {
     pub counts: Counts,
     pub home: Place,
     pub home_group: Group,
-    pub attackers: Group,
-    pub waves_sent: usize,
-    /// Where the home group waits: ahead of our most exposed extractors unless a directive says otherwise.
-    pub army_station: Place,
     /// Enemies in sight or radar right now, grouped by map grid cell.
     pub enemies_visible: Vec<EnemyCluster>,
     /// Enemy buildings seen earlier and not known to be destroyed.
@@ -33,10 +29,6 @@ pub struct Briefing {
     /// Newest last.
     pub recent_events: Vec<String>,
     pub directives_in_force: Vec<String>,
-    /// H-ARMY-PRESSURE's party: size, where, what it is doing (`raid.rs`), one line.
-    pub pressure: String,
-    /// What has been looked at round the enemy base and in its box, and the scout out (`scout.rs`), one line.
-    pub scouting: String,
     /// Our seats in this game, one line each; filled by the merge (`seats.rs`).
     pub seats: Vec<super::seats::SeatLine>,
 }

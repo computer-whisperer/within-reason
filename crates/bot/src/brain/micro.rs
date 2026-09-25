@@ -3,9 +3,30 @@
 //! footwork rules of the pianist's groups) and what the lane reads of the brain (`BrainView`).
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use bot_protocol::{Command, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
+use combatsim::sim::Rules;
 pub use micro::{Commitment, Footwork, Lane, Stats, View};
+
+/// The enemy commander's D-gun is not in the simulator (nobody presses the button there) and it kills a Pawn a shot:
+/// a party smaller than this much metal does not fight within reach of the commander (rush-smoke2: four Pawns dead to
+/// it in six seconds); a second player's twelve Pawns killed BARb's.
+pub(super) const COMMANDER_PARTY_METAL: f32 = 450.0;
+
+/// The combat simulator's tables, and its unit type for each of the game's (filled on first use).
+pub(super) struct Sim {
+    pub(super) rules: Arc<Rules>,
+    pub(super) defs: HashMap<UnitDefId, usize>,
+}
+
+impl Default for Sim {
+    fn default() -> Self {
+        // Their commander presses its D-gun (K-barb-commander-dgun-beats-a-pawn-party); ours never does in a scene.
+        let tuning = combatsim::sim::Tuning { dgun: true, ..Default::default() };
+        Sim { rules: Arc::new(Rules::new(combatsim::units::Units::default(), tuning)), defs: HashMap::new() }
+    }
+}
 
 use super::Brain;
 use crate::world::Domain;
@@ -21,29 +42,9 @@ impl Brain {
         self.lane.note_standing_orders(commands, frame, soldier);
     }
 
-    /// What each soldier's group was priced against, from the raid, the contact answers, the waves and the squads.
+    /// What each soldier is priced against in the lane: the pianist's groups' commitments and footwork.
     pub(super) fn note_commitments(&mut self) {
         let mut commitment: HashMap<UnitId, Commitment> = HashMap::new();
-        if self.raid.going() {
-            let priced = Commitment::Priced { turrets: self.raid.turrets.clone(), commander: self.raid.fights_commander };
-            for id in &self.raid.members {
-                commitment.insert(*id, priced.clone());
-            }
-        }
-        // An answer fights the commander only when it is the raid's size for it (the D-gun is not in the simulator;
-        // micro-flee-debug: four Pawns answering the commander at our station walked into it and died in six seconds).
-        for (members, turrets) in self.response_commitments() {
-            let metal: f32 = members.iter().filter_map(|id| self.known_units.get(id)).filter_map(|(def, _)| self.world.def(*def)).map(|d| d.metal_cost).sum();
-            let commander = metal >= super::raid::COMMANDER_PARTY_METAL;
-            for id in members {
-                commitment.insert(id, Commitment::Priced { turrets: turrets.clone(), commander });
-            }
-        }
-        for (id, _) in self.known_units.iter() {
-            if self.army.is_attacker(*id) || self.squads.contains(*id) {
-                commitment.insert(*id, Commitment::All);
-            }
-        }
         // The pianist's groups (H-HANDS-GROUPS): one advancing (`fight_to`) is committed to everything, turrets and the
         // commander included, as a wave is: priced against no turret, a ball of eighty stood at the edge of the enemy
         // base's laser towers inside a Guardian's reach for five minutes while Jev said "continue" every ten seconds
@@ -59,7 +60,7 @@ impl Brain {
                 let commitment_of = match &group.task {
                     super::pianist::GroupTask::Hold { committed: true, .. } | super::pianist::GroupTask::Move { fight: true, .. } => Commitment::All,
                     super::pianist::GroupTask::Hold { .. } => Commitment::Priced { turrets: Vec::new(), commander: false },
-                    super::pianist::GroupTask::Engage { .. } => Commitment::Priced { turrets: Vec::new(), commander: metal >= super::raid::COMMANDER_PARTY_METAL },
+                    super::pianist::GroupTask::Engage { .. } => Commitment::Priced { turrets: Vec::new(), commander: metal >= COMMANDER_PARTY_METAL },
                     super::pianist::GroupTask::Move { fight: false, .. } => Commitment::None,
                 };
                 let rules = self.footwork_of(&group.name);
@@ -84,7 +85,7 @@ impl Brain {
         if self.kit.is_none() {
             return Vec::new();
         }
-        if self.contacts.sim_defs.is_empty() {
+        if self.sim.defs.is_empty() {
             self.survey_sim_defs();
         }
         let debug = std::env::var_os("WITHIN_REASON_MICRO_DEBUG").is_some();
@@ -98,11 +99,22 @@ impl Brain {
         output.commands
     }
 
+    pub(super) fn survey_sim_defs(&mut self) {
+        let rules = self.sim.rules.clone();
+        // Every definition the table has, aircraft included; a type it lacks gets the glossary's numbers from
+        // `sim_stats` rather than a stand-in by metal (docs/design/2026-09-22-domains.md, decision 7).
+        for def in &self.world.hello.unit_defs {
+            if let Some(index) = rules.units.index(&def.name) {
+                self.sim.defs.insert(def.id, index);
+            }
+        }
+    }
+
     /// A type's reach, damage a second and speed against ground: the simulator's table, else the glossary's numbers
     /// for a type the table lacks (never a stand-in by metal).
     pub(super) fn sim_stats(&self, def: UnitDefId) -> Option<(f32, f32, f32)> {
-        if let Some(i) = self.contacts.sim_defs.get(&def) {
-            let unit = &self.contacts.rules.units.list[*i];
+        if let Some(i) = self.sim.defs.get(&def) {
+            let unit = &self.sim.rules.units.list[*i];
             return Some((unit.reach(), unit.dps(), unit.speed));
         }
         let entry = super::pianist::glossary::entry(self.name(def))?;
@@ -122,9 +134,9 @@ impl View for BrainView<'_> {
 
     fn stats(&self, def: UnitDefId) -> Option<Stats> {
         let (reach, dps, speed) = self.brain.sim_stats(def)?;
-        let (health, dgun) = match self.brain.contacts.sim_defs.get(&def) {
+        let (health, dgun) = match self.brain.sim.defs.get(&def) {
             Some(i) => {
-                let unit = &self.brain.contacts.rules.units.list[*i];
+                let unit = &self.brain.sim.rules.units.list[*i];
                 (unit.health, unit.weapons.iter().filter(|w| w.command_fire && !w.paralyzer).map(|w| w.range).fold(0.0, f32::max))
             }
             None => (super::pianist::glossary::entry(self.brain.name(def)).map_or(0.0, |e| e.health), 0.0),

@@ -17,8 +17,6 @@ pub struct Seen {
     pool: String,
     production: String,
     spot_plan: String,
-    pressure: String,
-    scouting: String,
     hands: Vec<String>,
 }
 
@@ -183,21 +181,13 @@ fn contact(briefing: &Briefing, field: &Field) -> Vec<String> {
 /// The commander's report: the front, then its squads, the pool, the extractors, the plan and the mix.
 pub fn report(seen: &mut Seen, briefing: &Briefing, field: &Field, fights: &[String], full: bool) -> String {
     let mut lines = front(briefing, field, fights);
-    if full || briefing.pressure != seen.pressure {
-        lines.push(format!("pressure: {}", briefing.pressure));
-    }
-    seen.pressure = briefing.pressure.clone();
-    if full || briefing.scouting != seen.scouting {
-        lines.push(format!("scouted: {}", briefing.scouting));
-    }
-    seen.scouting = briefing.scouting.clone();
     lines.extend(contact(briefing, field));
 
     let pool = format!("{} around {}", counted(&field.unassigned), field.unassigned_centre.as_ref().map_or("-", |p| p.grid.as_str()));
     if full || pool != seen.pool {
         lines.push(format!(
-            "unassigned soldiers (the bot's): {pool}; home group {} attackers {}",
-            briefing.home_group.size, briefing.attackers.size
+            "unassigned soldiers (the bot's): {pool}; home group {}",
+            briefing.home_group.size
         ));
     }
     seen.pool = pool;

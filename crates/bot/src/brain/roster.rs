@@ -14,25 +14,18 @@ pub struct Roster {
     converter: &'static str,
     lab: &'static str,
     turret: &'static str,
-    nano: &'static str,
-    radar: &'static str,
     constructor: &'static str,
     /// The vehicle plant and its constructor: the factory for flat open maps (K-maps-factory-by-terrain).
     plant: &'static str,
     vehicle_constructor: &'static str,
     /// Tier 2 (docs/knowledge/tier2.md): the advanced bot lab, its constructor, the extractor that one builds over a
-    /// tier-1 extractor, and the two units the lab makes until a commander says otherwise.
+    /// tier-1 extractor.
     advanced_lab: &'static str,
     advanced_constructor: &'static str,
     advanced_extractor: &'static str,
-    advanced_line: &'static str,
-    advanced_second: &'static str,
     raider: &'static str,
-    skirmisher: &'static str,
-    artillery: &'static str,
-    /// The unit the line is made of, and a second one to go with it (K-units-duel-*).
+    /// The unit the line is made of (K-units-duel-*).
     line: &'static str,
-    second: &'static str,
     /// Raises wrecks and takes them apart (`reclaim.rs`).
     resurrector: &'static str,
 }
@@ -40,17 +33,17 @@ pub struct Roster {
 pub const ROSTERS: [Roster; 2] = [
     Roster {
         commander: "armcom", extractor: "armmex", solar: "armsolar", wind: "armwin", advanced_solar: "armadvsol",
-        converter: "armmakr", lab: "armlab", turret: "armllt", nano: "armnanotc", radar: "armrad", constructor: "armck",
+        converter: "armmakr", lab: "armlab", turret: "armllt", constructor: "armck",
         plant: "armvp", vehicle_constructor: "armcv",
-        advanced_lab: "armalab", advanced_constructor: "armack", advanced_extractor: "armmoho", advanced_line: "armzeus", advanced_second: "armfido",
-        raider: "armpw", skirmisher: "armrock", artillery: "armham", line: "armham", second: "armwar", resurrector: "armrectr",
+        advanced_lab: "armalab", advanced_constructor: "armack", advanced_extractor: "armmoho",
+        raider: "armpw", line: "armham", resurrector: "armrectr",
     },
     Roster {
         commander: "corcom", extractor: "cormex", solar: "corsolar", wind: "corwin", advanced_solar: "coradvsol",
-        converter: "cormakr", lab: "corlab", turret: "corllt", nano: "cornanotc", radar: "corrad", constructor: "corck",
+        converter: "cormakr", lab: "corlab", turret: "corllt", constructor: "corck",
         plant: "corvp", vehicle_constructor: "corcv",
-        advanced_lab: "coralab", advanced_constructor: "corack", advanced_extractor: "cormoho", advanced_line: "corcan", advanced_second: "corcan",
-        raider: "corak", skirmisher: "corstorm", artillery: "corthud", line: "corthud", second: "corstorm", resurrector: "cornecro",
+        advanced_lab: "coralab", advanced_constructor: "corack", advanced_extractor: "cormoho",
+        raider: "corak", line: "corthud", resurrector: "cornecro",
     },
 ];
 
@@ -89,9 +82,6 @@ pub struct Kit {
     pub converter: UnitDefId,
     pub lab: UnitDefId,
     pub turret: UnitDefId,
-    /// Construction turret: a fixed builder that adds its build power to a factory it stands beside.
-    pub nano: UnitDefId,
-    pub radar: UnitDefId,
     pub constructor: UnitDefId,
     /// The vehicle plant and the constructor it makes.
     pub plant: UnitDefId,
@@ -99,13 +89,8 @@ pub struct Kit {
     pub advanced_lab: UnitDefId,
     pub advanced_constructor: UnitDefId,
     pub advanced_extractor: UnitDefId,
-    pub advanced_line: UnitDefId,
-    pub advanced_second: UnitDefId,
     pub raider: UnitDefId,
-    pub skirmisher: UnitDefId,
-    pub artillery: UnitDefId,
     pub line: UnitDefId,
-    pub second: UnitDefId,
     pub resurrector: UnitDefId,
 }
 
@@ -120,10 +105,6 @@ impl Kit {
         def == self.lab || def == self.plant || def == self.advanced_lab
     }
 
-    /// Any constructor a factory makes: bot, vehicle, advanced bot.
-    pub fn is_constructor(&self, def: UnitDefId) -> bool {
-        def == self.constructor || def == self.vehicle_constructor || def == self.advanced_constructor
-    }
 }
 
 impl Roster {
@@ -139,21 +120,14 @@ impl Roster {
             converter: id(self.converter)?,
             lab: id(self.lab)?,
             turret: id(self.turret)?,
-            nano: id(self.nano)?,
-            radar: id(self.radar)?,
             constructor: id(self.constructor)?,
             plant: id(self.plant)?,
             vehicle_constructor: id(self.vehicle_constructor)?,
             advanced_lab: id(self.advanced_lab)?,
             advanced_constructor: id(self.advanced_constructor)?,
             advanced_extractor: id(self.advanced_extractor)?,
-            advanced_line: id(self.advanced_line)?,
-            advanced_second: id(self.advanced_second)?,
             raider: id(self.raider)?,
-            skirmisher: id(self.skirmisher)?,
-            artillery: id(self.artillery)?,
             line: id(self.line)?,
-            second: id(self.second)?,
             resurrector: id(self.resurrector)?,
         })
     }

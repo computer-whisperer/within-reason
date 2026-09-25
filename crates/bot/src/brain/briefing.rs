@@ -7,9 +7,24 @@ use serde_json::json;
 
 use super::roster::Kit;
 use super::{Brain, FRAMES_PER_SECOND};
-use crate::strategist::shared::{Briefing, Counts, EnemyCluster, Group, Place, RememberedBuilding};
+use super::territory::Ground;
+use crate::strategist::shared::{Briefing, Counts, EnemyCluster, ExtractorStatus, Field, Group, Place, RememberedBuilding, Score};
+
+/// The score's "soldiers near home" radius and how many free spots it names.
+const SCORE_AT_HOME: f32 = 800.0;
+const NEXT_FREE: usize = 5;
+
+fn centre_of_units(units: &[&&OwnUnit]) -> Option<Vec3> {
+    if units.is_empty() {
+        return None;
+    }
+    let n = units.len() as f32;
+    Some(units.iter().fold(Vec3::default(), |sum, u| Vec3 { x: sum.x + u.pos.x / n, y: 0.0, z: sum.z + u.pos.z / n }))
+}
 
 const MAX_RECENT_EVENTS: usize = 25;
+/// Within this of home a loss is "at home".
+const BASE_RADIUS: f32 = 1400.0;
 /// The same kind of trigger wakes the strategist at most this often.
 const TRIGGER_COOLDOWN_FRAMES: i32 = 60 * FRAMES_PER_SECOND;
 
@@ -104,11 +119,8 @@ impl Brain {
             {
                 *self.spot_losses.entry(index).or_default() += 1;
             }
-            if self.spot_is_ours(pos) {
-                self.last_loss_at_home_frame = tick.frame;
-            }
             let killer = attacker.and_then(|id| self.enemy_defs.get(&id)).map_or("unseen", |d| self.name(*d));
-            let place = if pos.dist2d(self.home) < super::army::BASE_RADIUS { "at home" } else if pos.dist2d(self.home) < pos.dist2d(self.world.mirrored(self.home)) { "in our half" } else { "in their half" };
+            let place = if pos.dist2d(self.home) < BASE_RADIUS { "at home" } else if pos.dist2d(self.home) < pos.dist2d(self.world.mirrored(self.home)) { "in our half" } else { "in their half" };
             let line = format!("lost {} to {killer} {place}", self.name(def));
             if let Some(shared) = &self.strategist {
                 *shared.fights.lock().unwrap().entry(line.clone()).or_default() += 1;
@@ -204,8 +216,6 @@ impl Brain {
         }
         let count = |def: UnitDefId| snapshot.own_units.iter().filter(|u| u.def == def).count();
         let soldiers: Vec<&OwnUnit> = snapshot.own_units.iter().filter(|u| !u.being_built && self.is_army(u, kit)).collect();
-        let (attackers, home_group): (Vec<&OwnUnit>, Vec<&OwnUnit>) =
-            soldiers.iter().partition(|u| self.army.is_attacker(u.id));
 
         let mut cells: BTreeMap<String, (Vec3, BTreeMap<&str, usize>, usize, Vec<UnitId>)> = BTreeMap::new();
         for enemy in &snapshot.enemies {
@@ -251,16 +261,11 @@ impl Brain {
                 army: soldiers.len(),
             },
             home: self.place(self.home),
-            home_group: self.group(&home_group),
-            attackers: self.group(&attackers),
-            waves_sent: self.army.waves_sent(),
-            army_station: self.place(self.last_station),
+            home_group: self.group(&soldiers),
             enemies_visible,
             enemy_buildings_remembered,
             recent_events: self.recent_events.iter().cloned().collect(),
             directives_in_force: self.directives.describe(tick.frame),
-            pressure: self.pressure_line(&soldiers),
-            scouting: self.scouting_line(tick.frame),
         };
         shared.publish_briefing(self.world.hello.team, self.home, briefing);
     }
@@ -322,24 +327,6 @@ impl Brain {
 }
 
 impl Brain {
-    /// The commander's `pressure` line: H-ARMY-PRESSURE's party and what it is doing.
-    fn pressure_line(&self, soldiers: &[&OwnUnit]) -> String {
-        if self.directives.pressure.is_some_and(|p| !p.value) {
-            return format!("off by your directive; {} sorties so far", self.raid.sorties);
-        }
-        let party: Vec<&OwnUnit> = soldiers.iter().copied().filter(|u| self.raid.contains(u.id)).collect();
-        if party.is_empty() {
-            return format!("no party out; {} sorties so far", self.raid.sorties);
-        }
-        let n = party.len() as f32;
-        let centre = party.iter().fold(Vec3::default(), |sum, u| Vec3 { x: sum.x + u.pos.x / n, y: 0.0, z: sum.z + u.pos.z / n });
-        let target = self.raid.target.map_or("nothing".to_string(), |t| self.world.grid(t));
-        let doing = if self.raid.waiting { "outmatched, waiting out of reach for more" } else if self.raid.outmatched { "outmatched, looking for another target" } else { "going for it" };
-        format!("party of {} raiders at {} after {target}: {doing}; {} sorties so far", party.len(), self.world.grid(centre), self.raid.sorties)
-    }
-}
-
-impl Brain {
     /// Every ally team of the game with its seats in words, ours first (from the start script's controllers).
     pub(super) fn sides(&self) -> Vec<crate::strategist::shared::Side> {
         use bot_protocol::Controller;
@@ -379,3 +366,143 @@ impl Brain {
     }
 }
 
+impl Brain {
+    /// The field the player reads (the `situation` tool, the roster and buildable checks) and the wake conditions watch.
+    pub(super) fn publish_field(&self, tick: &Tick, kit: &Kit, soldiers: &[&OwnUnit], shared: &crate::strategist::shared::Shared) {
+        let own = &tick.snapshot.own_units;
+        let composition = |units: &[&&OwnUnit]| {
+            let mut counts: BTreeMap<String, usize> = BTreeMap::new();
+            for u in units {
+                *counts.entry(self.name(u.def).to_string()).or_default() += 1;
+            }
+            counts.into_iter().collect::<Vec<_>>()
+        };
+        let pool: Vec<&&OwnUnit> = soldiers.iter().collect();
+        let turrets: Vec<Vec3> = own.iter().filter(|u| u.def == kit.turret).map(|u| u.pos).collect();
+        let extractors = own
+            .iter()
+            .filter(|u| kit.is_extractor(u.def))
+            .map(|x| ExtractorStatus {
+                at: self.place(x.pos),
+                spot: self.world.hello.metal_spots.iter().position(|s| s.dist2d(x.pos) < self.spot_occupied_radius()),
+                enemies_within_600: tick.snapshot.enemies.iter().filter(|e| e.pos.dist2d(x.pos) < 600.0).count(),
+                turret_within_300: turrets.iter().any(|t| t.dist2d(x.pos) < 300.0),
+            })
+            .collect();
+        // Everything a builder or factory of ours standing now can build (comet-1: the list was the bot lab's alone,
+        // and every `produce` naming a Blitz or a Mason was refused all game), and the whole roster the commander
+        // reaches by build lists (docs/design/2026-09-22-full-roster.md), each with its metal.
+        let mut buildable: Vec<(String, u32)> = own
+            .iter()
+            .filter(|u| !u.being_built)
+            .filter_map(|u| self.world.def(u.def))
+            .filter(|d| !d.build_options.is_empty())
+            .flat_map(|maker| maker.build_options.iter().filter_map(|id| self.world.def(*id)).map(|d| (d.name.clone(), d.metal_cost as u32)))
+            .collect();
+        buildable.sort();
+        buildable.dedup_by(|a, b| a.0 == b.0);
+        let roster: Vec<(String, u32)> = self.world.reachable_from(kit.commander).iter().filter_map(|id| self.world.def(*id)).map(|d| (d.name.clone(), d.metal_cost as u32)).collect();
+        let enemy_extractors: Vec<Vec3> = self
+            .enemy_buildings
+            .values()
+            .filter(|(def, _, _)| self.world.def(*def).is_some_and(|d| d.extracts_metal > 0.0))
+            .map(|(_, pos, _)| *pos)
+            .collect();
+        let our_extractors: Vec<Vec3> = own.iter().filter(|u| kit.is_extractor(u.def)).map(|u| u.pos).collect();
+        let held = |spot: Vec3, by: &[Vec3]| by.iter().any(|p| p.dist2d(spot) < self.spot_occupied_radius());
+        let free: Vec<Vec3> = self
+            .world
+            .hello
+            .metal_spots
+            .iter()
+            .filter(|s| self.reachable_on_foot(**s))
+            .filter(|s| !held(**s, &our_extractors) && !held(**s, &enemy_extractors) && !self.allied_extractor_on(**s))
+            .copied()
+            .collect();
+        let recent = |seen: &i32| tick.frame - seen < 3 * 60 * FRAMES_PER_SECOND;
+        let metal = |u: &&OwnUnit| self.world.def(u.def).map_or(0.0, |d| d.metal_cost);
+        let traded = |when: &dyn Fn(i32) -> bool| {
+            let sum = |pick: &dyn Fn(&(i32, f32, f32)) -> f32| self.trade_log.iter().filter(|t| when(t.0)).map(pick).sum::<f32>() as u32;
+            (sum(&|t| t.1), sum(&|t| t.2))
+        };
+        let score = Score {
+            extractors: own.iter().filter(|u| kit.is_extractor(u.def) && !u.being_built).count(),
+            extractor_peak: self.wake.extractor_peak,
+            seconds_since_growth: (tick.frame - self.wake.growth_frame) / FRAMES_PER_SECOND,
+            free_spots: free.len(),
+            next_free: {
+                let mut nearest: Vec<(usize, Vec3, f32)> = self
+                    .world
+                    .hello
+                    .metal_spots
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, s)| free.iter().any(|f| f.dist2d(**s) < 1.0))
+                    .map(|(n, s)| (n, *s, self.walk_from_home(*s)))
+                    .collect();
+                nearest.sort_by(|a, b| a.2.total_cmp(&b.2));
+                nearest.into_iter().take(NEXT_FREE).map(|(n, s, walk)| (n, self.place(s), walk as u32, self.ground(s).word())).collect()
+            },
+            soldiers: soldiers.len(),
+            army_metal: soldiers.iter().map(metal).sum::<f32>() as u32,
+            soldiers_near_home: soldiers.iter().filter(|u| u.pos.dist2d(self.home) < SCORE_AT_HOME).count(),
+            metal_income: tick.snapshot.metal.income,
+            trend: [3, 6].into_iter().filter_map(|m| self.minutes_ago(tick.frame, m).map(|(x, income, army)| (m, x, income, army))).collect(),
+            extractors_lost_3_min: self.wake.losses.len(),
+            traded_3_min: traded(&|frame| recent(&frame)),
+            traded: traded(&|_| true),
+            seconds_since_turn: Some(shared.last_turn_frame.load(std::sync::atomic::Ordering::Relaxed)).filter(|at| *at > 0).map(|at| (tick.frame - at) / FRAMES_PER_SECOND),
+            enemy_start_boxes: self.world.hello.start_boxes.iter().filter(|b| b.ally_team != self.world.hello.ally_team).map(|b| self.world.box_cells(b)).collect(),
+            never_looked: {
+                let boxes: Vec<&bot_protocol::StartBox> = self.world.hello.start_boxes.iter().filter(|b| b.ally_team != self.world.hello.ally_team).collect();
+                let mut never: Vec<(f32, usize)> = self.world.hello.metal_spots.iter().enumerate().filter(|(i, _)| self.spot_seen(*i).is_none()).map(|(i, s)| (s.dist2d(self.home), i)).collect();
+                never.sort_by(|a, b| a.0.total_cmp(&b.0));
+                never.into_iter().map(|(_, i)| { let s = self.world.hello.metal_spots[i]; (i, self.place(s), boxes.iter().any(|b| b.contains(s))) }).collect()
+            },
+            enemy_spots_seen: enemy_extractors.len(),
+            enemy_factories: self
+                .enemy_buildings
+                .values()
+                .filter(|(def, _, _)| self.world.def(*def).is_some_and(|d| !d.build_options.is_empty()))
+                .map(|(def, pos, _)| (self.name(*def).to_string(), self.place(*pos)))
+                .collect(),
+            enemy_factories_gone: self.enemy_factories_gone.iter().map(|(_, pos, at)| (self.place(*pos), at / FRAMES_PER_SECOND)).collect(),
+            raid_targets: Vec::new(),
+            enemy_commander: self.enemy_commander_seen.map(|(pos, seen)| (self.place(pos), (tick.frame - seen) / FRAMES_PER_SECOND)),
+            enemy_commander_afloat: self.enemy_commander_seen.is_some_and(|(pos, _)| !self.reachable_on_foot(pos)),
+            enemy_soldiers_seen: self.enemy_soldiers.values().filter(|(_, _, seen)| recent(seen)).count(),
+            enemy_soldiers_seen_metal: self.enemy_soldiers.values().filter(|(_, _, seen)| recent(seen)).map(|(def, _, _)| self.world.def(*def).map_or(0.0, |d| d.metal_cost)).sum::<f32>() as u32,
+        };
+        let count = |ground: Ground| free.iter().filter(|s| self.ground(**s) == ground).count();
+        let mut raided: Vec<(Vec3, f32)> = self.world.hello.metal_spots.iter().map(|s| (*s, self.territory.raided(*s))).filter(|(_, metal)| *metal >= 100.0).collect();
+        raided.sort_by(|a, b| b.1.total_cmp(&a.1));
+        raided.dedup_by(|a, b| self.world.grid(a.0) == self.world.grid(b.0));
+        let ground = crate::strategist::shared::GroundReport {
+            free_spots: (count(Ground::Held), count(Ground::Contested), count(Ground::Theirs)),
+            extractors_exposed: own.iter().filter(|u| kit.is_extractor(u.def) && self.ground(u.pos) != Ground::Held).map(|u| self.place(u.pos)).collect(),
+            posts: Vec::new(),
+            raided: raided.into_iter().take(4).map(|(at, metal)| (self.place(at), metal as u32)).collect(),
+        };
+        if shared.lead().is_none_or(|lead| lead == self.world.hello.team) {
+            *shared.ground_sketch.lock().unwrap() = self.territory.sketch();
+        }
+        let mut wreck_fields: Vec<(crate::strategist::shared::Place, u32, bool)> = self.reclaim.fields.iter().map(|f| (self.place(f.at), f.metal as u32, f.safe)).collect();
+        wreck_fields.sort_by_key(|f| std::cmp::Reverse(f.1));
+        shared.publish_field(self.world.hello.team, Field {
+            score,
+            ground,
+            wreck_fields,
+            resurrection_bots: own.iter().filter(|u| kit.is_resurrector(u.def)).count(),
+            unassigned: composition(&pool),
+            unassigned_centre: centre_of_units(&pool).map(|c| self.place(c)),
+            squads: Vec::new(),
+            extractors,
+            turrets: turrets.iter().map(|t| self.place(*t)).collect(),
+            buildable,
+            roster,
+            production_weights: Vec::new(),
+            turret_requests_pending: 0,
+            spot_plan: String::new(),
+        });
+    }
+}

@@ -1,28 +1,22 @@
-//! Heuristic brain. One instance per AI; `decide` runs once per tick.
-//!
-//! The game ends when a commander dies, so the commander builds the opening and then stays
-//! home; constructors do the expanding. Builders coordinate through `jobs` so that two of them
-//! never pick the same one-off building in the same breath.
+//! The brain: one instance per AI; `decide` runs once per tick. The world model (`territory`, `routes`, `bases`,
+//! `reclaim`, `shelling`, `yards`, the spot survey) is kept here each tick; the decisions are the pianist's
+//! (`pianist/`) and the control lane's (`micro.rs`). The heuristic deciders were deleted 2026-09-25
+//! (`docs/design/2026-09-25-one-decider.md`).
 
 mod allies;
-mod army;
 mod bases;
 mod briefing;
 mod combat;
-mod contact;
 mod economy;
 pub mod journal;
 mod march;
 mod micro;
 pub mod pianist;
 mod planner;
-mod raid;
 mod scout;
 mod reclaim;
 mod shelling;
-mod squads;
 mod territory;
-mod tier2;
 mod wake;
 mod roster;
 mod routes;
@@ -76,49 +70,29 @@ pub struct Brain {
     team_post: crate::team::Post,
     /// One per enemy seat: guessed, found or dead (`bases.rs`).
     enemy_bases: Vec<bases::EnemyBase>,
-    /// What each busy builder was last told to build, so others can plan around it.
-    jobs: HashMap<UnitId, UnitDefId>,
     /// Metal spot index to the frame it was claimed at.
     spot_claims: HashMap<usize, i32>,
     /// Walking distances over the terrain, once our faction (and so our movement class) is known.
     routes: Option<routes::Routes>,
     /// Wrecks seen, the fields they lie in and who works them (`reclaim.rs`).
     reclaim: reclaim::Reclaim,
-    /// The rolling economy plan (`planner.rs`), and whether planning is over for this game (the commander is gone).
-    planner: Option<planner::Planner>,
-    planner_off: bool,
     /// The simulator's view of this game and its ground, built once for the `plan` and `search` tools.
     plan_game: Option<(Arc<buildorder::game::Game>, Arc<dyn buildorder::game::Ground>)>,
-    /// The pianist (`pianist/`): Jev plays every actor from the player's instructions; no decision heuristic runs.
+    /// The pianist (`pianist/`): Jev plays every actor from the player's instructions. Always present since the
+    /// heuristic bot was deleted (2026-09-25); `Option` until the pianist's own state is folded in.
     pianist: Option<pianist::Pianist>,
     /// Whose ground is whose (`territory.rs`).
     territory: territory::Territory,
-    /// Units a constructor has been sent to repair, and when, so that one goes to each.
-    repair_claims: HashMap<UnitId, i32>,
-    /// H-T2-MOHO: the extractor each advanced constructor is upgrading.
-    upgrade_claims: HashMap<UnitId, Vec3>,
-    /// When something of ours last died on our side of the map; no wave leaves while that is fresh.
-    last_loss_at_home_frame: i32,
     matchups: combat::Matchups,
+    /// The combat simulator's tables and unit types (`micro.rs`).
+    sim: micro::Sim,
     /// The tier-1 square-law strength per metal (`combat.rs` `worth_scale`), computed once; 0 until then.
     worth_scale: std::cell::Cell<f32>,
-    army: army::Army,
-    /// H-ARMY-CONTACT: the enemy parties on our ground and who answers each (`contact.rs`).
-    contacts: contact::Contacts,
     /// What the bot says in the game chat at its first orders: commit and settings (`main.rs`), once.
     banner: Option<String>,
     /// When each metal spot was last in sight, and the raider out looking (`scout.rs`).
     spots: scout::Spots,
-    squads: squads::Squads,
     wake: wake::WakeState,
-    /// The commander's unit mix (unit name to weight); empty means the heuristic batch.
-    production_weights: std::collections::BTreeMap<String, u32>,
-    /// Turrets the commander asked for, oldest first.
-    raid: raid::Raid,
-    turret_requests: Vec<Vec3>,
-    /// D-EXPANSION-PLAN: the commander's spots to take first, in order, and spots to leave alone (indices into the map's list).
-    spot_priority: Vec<usize>,
-    spot_avoid: Vec<usize>,
     /// How often each heuristic (docs/heuristics.md) acted since the last status line.
     fired: BTreeMap<&'static str, u32>,
     /// Present when a strategist is attached; the brain publishes to it and reads directives from it.
@@ -182,20 +156,10 @@ pub struct Brain {
     /// Every unit of ours destroyed by the enemy in the last three minutes: frame, unit, type. The wakes read it (a
     /// group's losses since the player's last orders, losses while its orders were on their way, the wait floor).
     pub(crate) unit_losses: VecDeque<(i32, UnitId, UnitDefId)>,
-    last_station: Vec3,
-    /// Each builder's latest order: frame, what, and near where. For spotting orders that never start.
-    last_orders: HashMap<UnitId, (i32, UnitDefId, Vec3)>,
-    /// A plan step given to a busy builder as a queued build, until the engine starts it (its job then) or the builder
-    /// goes idle without it (wound back): what, near where, since when.
-    queued: HashMap<UnitId, (UnitDefId, Vec3, i32)>,
-    /// Per builder, the frame its current order produced a nanoframe: the queue pass waits for that, not for time.
-    job_started: HashMap<UnitId, i32>,
     /// Metal spots (by index) where an extractor offset toward the builder was refused: the exact centre from then on.
     centre_only: HashSet<usize>,
     dropped_orders: u32,
     move_failures: u32,
-    /// Places a builder failed to walk to, with the frame until which to avoid them.
-    unreachable: Vec<(Vec3, i32)>,
     /// Heuristic IDs switched off for an ablation run (`WITHIN_REASON_DISABLE=H-A,H-B`).
     disabled: Vec<String>,
     last_trigger_frame: HashMap<&'static str, i32>,
@@ -227,31 +191,18 @@ impl Brain {
             ally_starts: HashMap::new(),
             ally_spot_held: HashMap::new(),
             enemy_bases: Vec::new(),
-            jobs: HashMap::new(),
             spot_claims: HashMap::new(),
             routes: None,
             reclaim: Default::default(),
-            planner: None,
-            planner_off: false,
             plan_game: None,
             pianist,
             territory: Default::default(),
-            repair_claims: HashMap::new(),
-            upgrade_claims: HashMap::new(),
-            last_loss_at_home_frame: i32::MIN / 2,
             matchups: Default::default(),
+            sim: Default::default(),
             worth_scale: std::cell::Cell::new(0.0),
-            army: army::Army::default(),
-            contacts: Default::default(),
             spots: scout::Spots::default(),
             banner: Some(banner),
-            squads: Default::default(),
             wake: Default::default(),
-            production_weights: Default::default(),
-            raid: raid::Raid::default(),
-            turret_requests: Vec::new(),
-            spot_priority: Vec::new(),
-            spot_avoid: Vec::new(),
             fired: BTreeMap::new(),
             strategist,
             directives: Directives::default(),
@@ -281,14 +232,9 @@ impl Brain {
             stuck_cells: HashMap::new(),
             extractor_losses: VecDeque::new(),
             unit_losses: VecDeque::new(),
-            last_station: Vec3::default(),
-            last_orders: HashMap::new(),
-            queued: HashMap::new(),
-            job_started: HashMap::new(),
             centre_only: HashSet::new(),
             dropped_orders: 0,
             move_failures: 0,
-            unreachable: Vec::new(),
             disabled: std::env::var("WITHIN_REASON_DISABLE").map_or_else(|_| Vec::new(), |ids| ids.split(',').map(str::to_string).collect()),
             last_trigger_frame: HashMap::new(),
             journal: Default::default(),
@@ -376,17 +322,11 @@ impl Brain {
             self.said.push(tail.clone());
             commands.push(Command::Say { text: format!("{{name}}{tail}") });
         }
-        if self.pianist.is_some() {
-            self.track_shelling(tick);
-            self.track_hits(tick);
-            self.run_pianist(tick, &kit, &mut commands);
-            if tick.frame % planner::PLAN_CONTEXT_FRAMES < TICK_FRAMES_GUESS {
-                self.publish_plan_context(tick, &kit);
-            }
-        } else {
-            self.protect_commander(tick, &kit, &mut commands);
-            self.run_economy(tick, &kit, &mut commands);
-            self.run_army(tick, &kit, &mut commands);
+        self.track_shelling(tick);
+        self.track_hits(tick);
+        self.run_pianist(tick, &kit, &mut commands);
+        if tick.frame % planner::PLAN_CONTEXT_FRAMES < TICK_FRAMES_GUESS {
+            self.publish_plan_context(tick, &kit);
         }
         self.exchange_with_team(tick);
         self.journal_intent();
@@ -454,64 +394,6 @@ impl Brain {
             let Event::UnitDamaged { unit, attacker: Some(attacker), .. } = *event else { continue };
             if let Some(victim) = tick.snapshot.own_units.iter().find(|u| u.id == unit) {
                 self.hits.push(Hit { frame: tick.frame, victim: unit, victim_def: victim.def, attacker });
-            }
-        }
-    }
-
-    /// A hurt commander away from home walks back; losing it loses the game.
-    fn protect_commander(&mut self, tick: &Tick, kit: &Kit, commands: &mut Vec<Command>) {
-        const RETREAT_HEALTH: f32 = 0.7;
-        const SAFE_RADIUS: f32 = 350.0;
-        let damaged = |unit: UnitId| tick.events.iter().any(|e| matches!(e, Event::UnitDamaged { unit: u, .. } if *u == unit));
-        for commander in tick.snapshot.own_units.iter().filter(|u| u.def == kit.commander) {
-            // Who is hurting the commander: the one fact a lost game's log must hold.
-            for event in &tick.events {
-                let Event::UnitDamaged { unit, attacker, damage, .. } = *event else { continue };
-                if unit != commander.id {
-                    continue;
-                }
-                let enemy = attacker.and_then(|id| tick.snapshot.enemies.iter().find(|e| e.id == id));
-                let who = enemy.and_then(|e| e.def).map_or("unseen", |d| self.name(d));
-                let range = enemy.map_or(-1.0, |e| e.pos.dist2d(commander.pos));
-                eprintln!(
-                    "[ai {}] f={} commander hit for {damage:.0} by {who} from {range:.0} away, {:.0} health left",
-                    self.ai(), tick.frame, commander.health
-                );
-            }
-            // H-ECO-REPAIR: a badly hurt commander does not wait for a constructor to fall idle; the nearest one drops
-            // what it is doing.
-            let badly_hurt = commander.health < commander.max_health * 0.5;
-            if badly_hurt && self.enabled("H-ECO-REPAIR") && !self.repair_claims.contains_key(&commander.id) {
-                let medic = tick
-                    .snapshot
-                    .own_units
-                    .iter()
-                    .filter(|u| kit.is_constructor(u.def) && !u.being_built && u.pos.dist2d(commander.pos) < 1200.0)
-                    .min_by(|a, b| a.pos.dist2d(commander.pos).total_cmp(&b.pos.dist2d(commander.pos)));
-                if let Some(medic) = medic {
-                    self.fire("H-ECO-REPAIR");
-                    self.repair_claims.insert(commander.id, tick.frame);
-                    self.jobs.insert(medic.id, kit.commander);
-                    commands.push(Command::Repair { unit: medic.id, target: commander.id, queue: false });
-                }
-            }
-            let hurt = commander.health < commander.max_health * RETREAT_HEALTH;
-            if hurt && damaged(commander.id) && commander.pos.dist2d(self.home) > SAFE_RADIUS {
-                eprintln!("[ai {}] f={} commander retreats at {:.0} health", self.ai(), tick.frame, commander.health);
-                self.fire("H-COM-RETREAT");
-                let percent = commander.health / commander.max_health * 100.0;
-                self.trigger("commander", tick.frame, format!("Our commander is under fire away from home ({percent:.0}% health)."));
-                self.jobs.remove(&commander.id);
-                // Round known threats (routing design, the one waypoint case): the safe way's midpoint first when
-                // the safe way home parts from the straight one, home queued after it.
-                match self.commander_waypoint_home(commander.pos) {
-                    Some(waypoint) => {
-                        eprintln!("[ai {}] f={} commander retreats round known threats by ({:.0}, {:.0})", self.ai(), tick.frame, waypoint.x, waypoint.z);
-                        commands.push(Command::Move { unit: commander.id, to: waypoint, queue: false });
-                        commands.push(Command::Move { unit: commander.id, to: self.home, queue: true });
-                    }
-                    None => commands.push(Command::Move { unit: commander.id, to: self.home, queue: false }),
-                }
             }
         }
     }

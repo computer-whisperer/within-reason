@@ -9,10 +9,14 @@ use super::Brain;
 use super::roster::Kit;
 use terrain::Field;
 
+/// A turret has this much beyond its range for the approach: a unit walking past at the edge of its range is shot.
+const TURRET_MARGIN: f32 = 100.0;
+/// The enemy commander's ground: nothing of ours walks within this of where it was last seen unless priced to
+/// (its reach and a margin).
+const COMMANDER_GROUND: f32 = 1000.0;
+
 /// The enemy-side field is rebuilt when our estimate of where an enemy lives has moved this far.
 const ENEMY_MOVED: f32 = 600.0;
-/// A place this near a metal spot borrows the spot's field for its routes.
-const SPOT_PROXY: f32 = 400.0;
 
 /// How a unit gets about (docs/design/2026-09-22-domains.md, decision 8): aircraft go straight, everything else
 /// by the fields of its own movement class. The soldiers' default (the lab's raider's class) serves the picture's
@@ -44,8 +48,6 @@ pub struct Routes {
     /// Where each movement class we field can stand, and its distances from home: for snapping and reachability
     /// by class. Built at the survey for every class among the units the commander reaches.
     classes: HashMap<Walker, (Vec<bool>, Field)>,
-    /// Effective elmos from home for the commander (its own class and slopes), for its leash in seconds.
-    commander_from_home: Option<Field>,
     /// Distance from the nearest live enemy base.
     from_enemy: Option<Field>,
     enemy_origins: Vec<Vec3>,
@@ -98,8 +100,6 @@ impl Brain {
             spots.iter().filter(|s| from_home.distance(**s).is_none()).map(|s| format!("({:.0}, {:.0})", s.x, s.z)).collect();
         eprintln!("[ai {}] terrain: spots we cannot walk to: {}", self.ai(), cut_off.join(" "));
         let commander_class = self.world.def(kit.commander).and_then(|d| d.move_class);
-        let commander_costs = commander_class.map(|c| terrain::costs(terrain, c));
-        let commander_from_home = commander_costs.as_ref().and_then(|costs| Field::from_costs(terrain, costs, &[self.home]));
         // Every movement class among the units the commander reaches by build lists, the raider's included.
         let mut distinct: Vec<(Walker, MoveClass)> = Vec::new();
         for id in self.world.reachable_from(kit.commander) {
@@ -133,7 +133,7 @@ impl Brain {
         }
         self.routes = Some(Routes {
             soldiers: Walker::Class(ClassKey::of(class)),
-            from_home, classes, commander_from_home, from_enemy, enemy_origins, passable, spot_fields: HashMap::new(), spot_fields_pending: Some(receiver),
+            from_home, classes, from_enemy, enemy_origins, passable, spot_fields: HashMap::new(), spot_fields_pending: Some(receiver),
             commander_costs: commander_class.map(|c| terrain::costs(terrain, c)), safe_home: None, safe_home_pending: None, safe_home_against: (Vec::new(), None),
         });
         for p in self.passages() {
@@ -180,12 +180,12 @@ impl Brain {
     /// Rebuilds the commander's safe field home on the thread when the known armed buildings or their commander's
     /// place have changed since the last build, and none is in progress.
     fn refresh_safe_home(&mut self) {
-        let rules = self.contacts.rules.clone();
+        let rules = self.sim.rules.clone();
         let mut walls: Vec<(UnitId, Vec3, f32)> = self.enemy_buildings.iter().filter_map(|(id, (def, pos, _))| {
             let d = self.world.def(*def)?;
             (d.weapon_count > 0).then_some(())?;
-            let reach = rules.units.list[*self.contacts.sim_defs.get(def)?].reach();
-            Some((*id, *pos, reach + super::contact::TURRET_MARGIN))
+            let reach = rules.units.list[*self.sim.defs.get(def)?].reach();
+            Some((*id, *pos, reach + TURRET_MARGIN))
         }).collect();
         walls.sort_by_key(|(id, _, _)| *id);
         let commander = self.enemy_commander_seen.map(|(p, _)| (p.x as i32, p.z as i32));
@@ -200,7 +200,7 @@ impl Brain {
         let home = self.home;
         let mut zones: Vec<(Vec3, f32)> = walls.into_iter().map(|(_, pos, reach)| (pos, reach)).collect();
         if let Some((pos, _)) = self.enemy_commander_seen {
-            zones.push((pos, super::raid::COMMANDER_GROUND));
+            zones.push((pos, COMMANDER_GROUND));
         }
         let (sender, receiver) = std::sync::mpsc::channel();
         routes.safe_home_pending = Some(receiver);
@@ -292,48 +292,10 @@ impl Brain {
         self.routes.as_ref().and_then(|r| r.spot_fields.get(&walker)?.get(index)?.as_ref()?.distance(from)).unwrap_or_else(|| spot.dist2d(from))
     }
 
-    /// As our soldiers walk.
-    pub(super) fn walk_to_spot(&self, index: usize, from: Vec3) -> f32 {
-        self.walk_to_spot_as(self.soldiers_walker(), index, from)
-    }
-
     /// Seconds a unit of this type takes from `from` to the spot (its speed over the effective elmos).
     pub(super) fn seconds_to_spot(&self, def: UnitDefId, index: usize, from: Vec3) -> f32 {
         let speed = self.world.def(def).map_or(1.0, |d| d.speed.max(1.0));
         self.walk_to_spot_as(self.walker_of(def), index, from) / speed
-    }
-
-    /// The way our soldiers would walk from `from` to `to`, read off the field of the metal spot nearest `to` when
-    /// one lies within `SPOT_PROXY` of it (targets round a base are extractors, spots and ring points beside them);
-    /// `None` when there is no such field yet or `from` cannot reach it. Coarse, for accounting, never for orders
-    /// (the user, 2026-09-20).
-    pub(super) fn route_to(&self, from: Vec3, to: Vec3) -> Option<Vec<Vec3>> {
-        let (index, _) = self.world.hello.metal_spots.iter().enumerate().map(|(i, s)| (i, s.dist2d(to))).filter(|(_, d)| *d < SPOT_PROXY).min_by(|a, b| a.1.total_cmp(&b.1))?;
-        let field = self.routes.as_ref()?.spot_fields.get(&self.soldiers_walker())?.get(index)?.as_ref()?;
-        let route = field.route(from);
-        (!route.is_empty()).then_some(route)
-    }
-
-    /// Seconds a unit of this type takes from `from` to `site`: over the field of the metal spot at `site` when one
-    /// lies within 100 of it (extractors, radars and turrets at spots), else the straight line at its speed.
-    pub(super) fn seconds_to_site(&self, def: UnitDefId, from: Vec3, site: Vec3) -> f32 {
-        let speed = self.world.def(def).map_or(1.0, |d| d.speed.max(1.0));
-        match self.world.hello.metal_spots.iter().position(|s| s.dist2d(site) < self.spot_occupied_radius()) {
-            Some(index) => self.seconds_to_spot(def, index, from),
-            None => site.dist2d(from) / speed,
-        }
-    }
-
-    /// Seconds the commander takes from home to `pos`, on its own ground; the straight line without terrain.
-    pub(super) fn commander_seconds_from_home(&self, pos: Vec3) -> f32 {
-        let speed = self.kit.and_then(|k| self.world.def(k.commander)).map_or(1.0, |d| d.speed.max(1.0));
-        let effective = self.routes.as_ref().and_then(|r| r.commander_from_home.as_ref()?.distance(pos)).unwrap_or_else(|| pos.dist2d(self.home));
-        effective / speed
-    }
-
-    /// The index of the metal spot at `pos`, if one lies there.
-    pub(super) fn spot_index(&self, pos: Vec3) -> Option<usize> {
-        self.world.hello.metal_spots.iter().position(|s| s.dist2d(pos) < 1.0)
     }
 
     /// Whether our soldiers can walk from home to (next to) `pos`. True when we cannot tell.

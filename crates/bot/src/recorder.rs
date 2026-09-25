@@ -137,8 +137,7 @@ impl Recorder {
             let at = |p: Vec3| json!([p.x as i32, p.z as i32]);
             let i = journal.intent;
             self.line(&json!({
-                "t": "intent", "f": tick.frame, "home": at(i.home), "enemy_start": at(i.enemy_start), "station": at(i.station),
-                "target": i.target.map(at), "staging": i.staging.map(at),
+                "t": "intent", "f": tick.frame, "home": at(i.home), "enemy_start": at(i.enemy_start),
             }));
         }
         self.commands(tick.frame, commands);

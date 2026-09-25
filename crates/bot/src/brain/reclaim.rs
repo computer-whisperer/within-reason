@@ -23,9 +23,6 @@ const MEMORY_FRAMES: i32 = 2 * 60 * FRAMES_PER_SECOND;
 /// A wreck we stand this close to and are not told of is gone.
 const IN_PLAIN_SIGHT: f32 = 250.0;
 const ENEMY_NEAR: f32 = 700.0;
-/// H-REC-CREW: one resurrection bot per this much metal in safe fields, up to this many.
-const METAL_PER_BOT: f32 = 600.0;
-const MAX_CREW: usize = 6;
 /// A field takes one worker per this much metal (at least one).
 const METAL_PER_WORKER: f32 = 300.0;
 /// Wrecks queued in one order.
@@ -106,15 +103,6 @@ impl Brain {
         self.reclaim.workers.retain(|id, _| own.iter().any(|u| u.id == *id && !u.idle));
     }
 
-    /// H-REC-CREW: how many resurrection bots the metal on the ground is worth.
-    pub(super) fn wanted_crew(&self) -> usize {
-        if !self.enabled("H-REC-CREW") {
-            return 0;
-        }
-        let safe: f32 = self.reclaim.fields.iter().filter(|f| f.safe).map(|f| f.metal).sum();
-        ((safe / METAL_PER_BOT).ceil() as usize).min(MAX_CREW)
-    }
-
     /// The safe field most worth this unit's walk that still has room for a worker.
     fn field_for(&self, unit: &OwnUnit, within: f32) -> Option<usize> {
         let room = |field: &WreckField| {
@@ -145,22 +133,12 @@ impl Brain {
         wrecks.into_iter().take(QUEUE).map(|w| w.id).collect()
     }
 
-    /// H-ECO-RECLAIM: where a constructor short of metal goes to take wrecks apart.
-    pub(super) fn claim_wreck_field(&mut self, builder: &OwnUnit, within: f32, frame: i32) -> Option<Vec3> {
-        let at = self.reclaim.fields[self.field_for(builder, within)?].at;
-        if self.wrecks_to_take(at, builder).is_empty() {
-            return None;
-        }
-        self.reclaim.workers.insert(builder.id, (at, frame));
-        Some(at)
-    }
-
     /// Orders for an idle resurrection bot.
     pub(super) fn work_wrecks(&mut self, unit: &OwnUnit, tick: &Tick, commands: &mut Vec<Command>) {
         let Some(index) = self.field_for(unit, f32::INFINITY) else {
             // Nothing to do: wait with the army, where the next wrecks will be (under the pianist, at home: the
             // station is the heuristic army's).
-            let station = if self.pianist.is_some() { self.home } else { self.last_station };
+            let station = self.home;
             if unit.pos.dist2d(station) > 600.0 {
                 commands.push(Command::Move { unit: unit.id, to: station, queue: false });
             }

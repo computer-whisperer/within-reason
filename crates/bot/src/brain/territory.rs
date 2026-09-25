@@ -108,11 +108,6 @@ impl Territory {
         }
     }
 
-    /// The force the opponent can bring to `pos`, standing claim included: how exposed a thing standing there is.
-    pub fn threat(&self, pos: Vec3) -> f32 {
-        self.index(pos).map_or(0.0, |index| self.theirs[index])
-    }
-
     /// The part of the threat that comes from what was seen or lost lately, not from where the bases are.
     pub fn raided(&self, pos: Vec3) -> f32 {
         self.index(pos).map_or(0.0, |index| self.theirs[index] - self.claim_theirs[index])

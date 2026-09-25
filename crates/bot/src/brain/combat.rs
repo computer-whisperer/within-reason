@@ -70,7 +70,7 @@ impl Brain {
     /// Whether a unit of this type has a weapon for aircraft, or for the ground: from the simulator's table; a type
     /// the table lacks is taken to hit ground only.
     pub(super) fn can_hit(&self, def: UnitDefId, air: bool) -> bool {
-        match self.contacts.sim_defs.get(&def).map(|i| &self.contacts.rules.units.list[*i]) {
+        match self.sim.defs.get(&def).map(|i| &self.sim.rules.units.list[*i]) {
             Some(unit) => if air { unit.reach_air() > 0.0 } else { unit.reach() > 0.0 },
             None => !air && self.world.def(def).is_some_and(|d| d.weapon_count > 0),
         }
@@ -88,7 +88,7 @@ impl Brain {
         if cached > 0.0 {
             return cached;
         }
-        let scale = tier1_scale(&self.contacts.rules.units.list);
+        let scale = tier1_scale(&self.sim.rules.units.list);
         self.worth_scale.set(scale);
         scale
     }
@@ -99,7 +99,7 @@ impl Brain {
     /// constructor without a weapon is worth nothing (wake-4: a commander walked into two Stouts and three Warriors
     /// under "we outweigh it heavily", its metal against theirs).
     pub(super) fn fighting_worth(&self, def: UnitDefId) -> f32 {
-        match self.contacts.sim_defs.get(&def).map(|i| &self.contacts.rules.units.list[*i]) {
+        match self.sim.defs.get(&def).map(|i| &self.sim.rules.units.list[*i]) {
             Some(unit) => worth_of(unit, self.worth_scale()),
             None => {
                 let strength = super::pianist::glossary::entry(self.name(def)).map_or(0.0, |e| e.dps.unwrap_or(0.0) * e.health);
@@ -115,10 +115,10 @@ impl Brain {
 
     /// The reach of a type's D-gun (its `command_fire` weapon); 0 for anything but a commander.
     pub(super) fn dgun_reach(&self, def: UnitDefId) -> f32 {
-        self.contacts
-            .sim_defs
+        self.sim
+            .defs
             .get(&def)
-            .map(|i| &self.contacts.rules.units.list[*i])
+            .map(|i| &self.sim.rules.units.list[*i])
             .map_or(0.0, |u| u.weapons.iter().filter(|w| w.command_fire && !w.paralyzer).map(|w| w.range).fold(0.0, f32::max))
     }
 
@@ -200,3 +200,13 @@ mod tests {
     }
 }
 
+impl Brain {
+    /// The force these units of ours make.
+    pub(super) fn force_of(units: &[&bot_protocol::OwnUnit]) -> Force {
+        let mut force = Force::default();
+        for unit in units {
+            force.add(unit.def);
+        }
+        force
+    }
+}
