@@ -84,7 +84,8 @@ raiders near it or walks home from soldiers, when it builds solars and where tur
 second without asking Jev while they apply. Write the packet in those words and the reading is sure ("group_B stands
 at spot_61", "a lone Tick at an extractor is met by two Blitzes (send_against 2)", "never chases", "never goes to
 spot_50"); a hedged reading sets nothing and the menu decides as before. `standing` with no arguments shows what is
-in force, `set` puts a rule in directly (it outranks the packet's for that actor and rule until cleared), `clear`
+in force, `set` puts a rule in directly (it outranks the packet's for that actor and rule until cleared; the answer
+names an actor refused for an unknown place, party or rule, and the other actors' rules land when the turn ends), `clear`
 drops tool orders. The picture's `standing` line on each actor shows its orders, and the report says which fired and
 how many asks of Jev they saved. A group with standing orders is decided by one question a second over the joined
 worlds of every such group (its rule's result, a fight at the nearest party, the way back, or its course): the rules

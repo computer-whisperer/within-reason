@@ -19,7 +19,7 @@ two deciders on one actor) with the builders' retreat hold; then (the user, watc
 questions were still asked for groups without rules) every group through the worlds question with walks to the named
 places as candidates and the groups' own questions deleted, and the builders' `where` split into `where_build` and
 `where_walk`; `run/worlds_replay.py` replays recorded worlds questions (§5). worlds-1 (the player, hard_aggressive)
-played on the build before the last two changes; worlds-2 is their live test.
+played on the build before the last two changes; worlds-2 is their live test. worlds-2 (2026-09-26 morning, the same brief): LOST 31:01, 532 questions, every group play by the picked world; lost at the E3/F3 nest to a lone-unit fight whose line had no turrets, the player's ignore and never rules unread by the candidates, and 15 tool sets refused a turn late; the four fixes (turrets with a party in every odds line, the rules gating the fights and a chase ending at a never place, the tool's check in the turn with any walkable spot a place) are in before the noul-gate arm (nouls-1).
 
 ## 1. What is deleted
 
@@ -120,6 +120,17 @@ standing-2) is the number this is judged by, with `jev$`.
 
 **The filter arm** (`--standing filter`) survives as one extra option in the worlds question: `panic` (every varying
 group falls back and the player is woken). The `rule`/`near`/`other` verdicts go: the worlds are the near and other.
+
+**The noul gate** (mode `nouls`, the user's proposal after worlds-1: "a jev pass with a bunch of nouls asking which
+dimensions or partial action states are interesting, then pose the composed world combination in the follow-up").
+The first call carries, per varying group, one noul per live dimension over its first candidate of that kind ("should
+group_C do this now, rather than the course it is on? The move: group_C attacks party_3 ..."): `fight`, `walk`,
+`back`. A dimension at 0.5 or above stays; the group's candidates are cut to its course, its rule and the kinds kept;
+a group with one candidate left plays it now (its rule, or nothing). The second call, made at once in lockstep and
+through the worker in realtime, is the worlds question over the groups still varying. Two calls of 130-250 ms; the
+gate is the "keep everything" answer the fight-happy tilt lacked (worlds-1: a deviation picked 117 of 191 times, the
+first fight 110). Log: the `standing` line's `gate` (the question ids), a `worlds_gate` line (`flags` per group and
+dimension, `asked` the groups of the second call), and the second call's own `call` line.
 
 **Builders** are not in the worlds. A builder is played by its list (`queue`), else its standing rules, else one
 question of its own. The rules' precedence with hysteresis, the standing-2 fault: `retreat_when_enemy_near` holds

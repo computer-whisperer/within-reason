@@ -14,7 +14,7 @@
 //!              [--claude-config-dir DIR]   (subscription for the player's sessions; default ~/.claude2)
 //!              [--effort low|medium|high|xhigh|max]   (the LLM session's `claude --effort`; default high)
 //!              [--hands-effort lean|normal|full]      (the hands' Jev token diet; default lean, the bulk games' level)
-//!              [--standing off|on|filter]  (the standing orders' executor; defaults on)
+//!              [--standing worlds|nouls|on|filter|off]  (the groups' decider: the worlds question, its two-pass gate form, the executor; the standing orders' executor; defaults on)
 //!              [--opponent-opening any|bots|vehicles]   (pins BARb's first factory by disabling the other; default any)
 //!              [--think-penalty X]   (the player's or commander's orders land X game seconds late per wall second it thought; 1 = as in a live game; default 1 with --player, else 0)
 //!              [--seed-base N]   (default 1; match i plays seed N+i, for the engine and for BARb: a fresh N is a fresh set of games)

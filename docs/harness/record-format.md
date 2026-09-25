@@ -85,7 +85,13 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   night a group has no `<group>.do`, `.where`, `.whom` or `.how_many` question (the offline detectors of
   `run/jev_ab.py` that read a group's `do` see no group moments in these logs; the `standing` line's `groups` and
   `lines` are the record to read), and a builder's place question is `where_build` or `where_walk` beside
-  `where_extractor`.
+  `where_extractor`. Mode `nouls` (the two-pass form): the `standing` line carries `gate` (the noul ids of the first
+  call, `<group>.fight|walk|back`), a `worlds_gate` line follows the answers (`flags` {group: {dimension: p}},
+  `asked` the groups of the second call), and the second call is its own `call` line at the same frame with
+  `worlds.pick` alone. From 2026-09-26 morning a party the enemy's armed buildings cover reads "under 3 turrets: 1 armhlt,
+  2 armllt" in the candidates' words, the state's party lines and a group's `enemies_near`, the worlds line meets it "with
+  3 turrets (1800 metal)", and the `done` lines carry "group_C was chasing its party to spot_20, where it never goes: it
+  holds where it is" and the `standing` tool's own answer ("refused: group_C: shelling is not a place in the picture").
 Size: 15-30 KB a call (3-6k tokens of state and questions), 20-60 calls a minute: 25 MB for a 20-minute game. Logs from
 the first morning (2026-09-21, before the header line) carry `instructions` and `rules` in every state and no `played`;
 the viewer reads those too, taking the decisions from the answers.

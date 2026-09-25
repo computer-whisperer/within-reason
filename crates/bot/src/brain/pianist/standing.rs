@@ -29,6 +29,9 @@ pub(super) struct Order {
 const AT_STRUCTURE: f32 = 400.0;
 /// The raider rules reach this far from the group (the detectors' reach).
 pub(super) const RAIDER_REACH: f32 = 1200.0;
+/// A party this close to a place a group never goes stands at it: no fight is offered against it, and a chase that
+/// reaches it ends there.
+pub(super) const NEVER_REACH: f32 = 400.0;
 /// A group holding farther than this from its station walks there.
 const STATION_SLACK: f32 = 300.0;
 /// A turret this close to an extractor covers it.
@@ -79,6 +82,10 @@ pub(crate) enum Mode {
     /// groups' own questions were deleted (2026-09-25 night) the only mode in which a group is asked at all: under
     /// `on`, `filter` and `off` a group plays its rules or keeps its course.
     Worlds,
+    /// The user's two-pass form (2026-09-25 night): a first call of nouls per group asks which of its dimensions
+    /// (a fight, a walk, the way back) is live, and a second call composes the worlds over the live ones only;
+    /// nothing live plays world 1 outright. Two calls, still under half a second in lockstep.
+    Nouls,
 }
 
 impl Mode {
@@ -88,6 +95,7 @@ impl Mode {
             Some("off") => Mode::Off,
             Some("filter") => Mode::Filter,
             Some("on") => Mode::On,
+            Some("nouls") => Mode::Nouls,
             _ => Mode::Worlds,
         }
     }
@@ -98,6 +106,7 @@ impl Mode {
             Mode::On => "on",
             Mode::Filter => "filter",
             Mode::Worlds => "worlds",
+            Mode::Nouls => "nouls",
         }
     }
 }
@@ -164,6 +173,13 @@ impl Standing {
         !self.rules_for(actor).is_empty()
     }
 
+    /// Every word of the tool's rule values: the places and parties the player named through the tool, for the
+    /// picture to list (worlds-2: `station: spot_27` set by the tool was "not a place in the picture" fifteen times
+    /// over, the picture listing only the spots the instructions name).
+    pub(crate) fn tool_words(&self) -> Vec<String> {
+        self.tool.values().flat_map(|rules| rules.values()).flat_map(|v| v.split_whitespace().map(str::to_string)).collect()
+    }
+
     pub(crate) fn never_places(&self, actor: &str) -> Vec<String> {
         self.rules_for(actor).get("never").map(|v| v.split_whitespace().map(str::to_string).collect()).unwrap_or_default()
     }
@@ -205,6 +221,28 @@ impl Standing {
 
     /// Sets tool orders after checking each against the vocabulary and the picture's places and parties.
     pub(crate) fn set_tool(&mut self, actor: &str, rules: &Value, places: &[String], parties: &[String]) -> Result<usize, String> {
+        let checked = Self::check_tool(actor, rules, places, parties)?;
+        self.tool_seen.remove(actor);
+        let entry = self.tool.entry(actor.to_string()).or_default();
+        let n = checked.len();
+        for (rule, value) in checked {
+            if value.is_empty() {
+                entry.remove(&rule);
+            } else {
+                entry.insert(rule, value);
+            }
+        }
+        if entry.is_empty() {
+            self.tool.remove(actor);
+        }
+        Ok(n)
+    }
+
+    /// One actor's tool rules checked against the vocabulary and the picture's places and parties: the rules to set
+    /// (an empty value clears one), or why the actor's orders are refused whole. The `standing` tool runs this in
+    /// the player's turn so a refusal is answered at once (worlds-2, 17:07: "a set with an unknown place is refused
+    /// whole, silently in my view"); the hands run it again at their next second.
+    pub(crate) fn check_tool(actor: &str, rules: &Value, places: &[String], parties: &[String]) -> Result<Rules, String> {
         let Some(map) = rules.as_object() else { return Err(format!("{actor}: rules must be an object of rule to value")) };
         let vocabulary = if is_group(actor) { GROUP_RULES } else { BUILDER_RULES };
         let mut checked = Rules::new();
@@ -245,20 +283,7 @@ impl Standing {
             }
             checked.insert(rule.clone(), value);
         }
-        self.tool_seen.remove(actor);
-        let entry = self.tool.entry(actor.to_string()).or_default();
-        let n = checked.len();
-        for (rule, value) in checked {
-            if value.is_empty() {
-                entry.remove(&rule);
-            } else {
-                entry.insert(rule, value);
-            }
-        }
-        if entry.is_empty() {
-            self.tool.remove(actor);
-        }
-        Ok(n)
+        Ok(checked)
     }
 
     pub(crate) fn clear_tool(&mut self, actors: Option<&[String]>) -> usize {
@@ -759,6 +784,15 @@ mod tests {
         assert_eq!(b["no_chase"], "yes");
         assert_eq!(b["never"], "spot_38");
         assert!(!orders.contains_key("commander"));
+    }
+
+    #[test]
+    fn a_tool_check_names_the_unknown_place_and_passes_the_rest() {
+        let places = ["spot_61", "spot_9"].map(String::from);
+        let refused = Standing::check_tool("group_C", &json!({ "never": "shelling spot_9", "station": "spot_61" }), &places, &[]).unwrap_err();
+        assert_eq!(refused, "group_C: shelling is not a place in the picture");
+        let checked = Standing::check_tool("group_C", &json!({ "never": "spot_9", "station": "spot_61", "raiders_lone": null }), &places, &[]).unwrap();
+        assert_eq!(checked, Rules::from([("never".to_string(), "spot_9".to_string()), ("station".to_string(), "spot_61".to_string()), ("raiders_lone".to_string(), String::new())]));
     }
 
     #[test]

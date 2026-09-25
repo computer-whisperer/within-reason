@@ -27,6 +27,8 @@ const LONG_UNSEEN: i32 = 5 * 60 * FRAMES_PER_SECOND;
 const PASSAGES: usize = 3;
 /// Enemies this close together are one party.
 const PARTY_RADIUS: f32 = 400.0;
+/// A turret whose reach ends this short of a party's centre still covers its edge.
+const TURRET_MARGIN: f32 = 150.0;
 /// A party this near a place or an actor is "near" it.
 const NEAR: f32 = 800.0;
 /// The enemy's soldiers seen within this long count in what we know of its army.
@@ -51,6 +53,12 @@ pub(crate) struct Party {
     /// What it is shooting now, from the hits of the last seconds (H-HANDS-PARTY-KILLING): "our Vehicle Plant
     /// (armvp), 2 of our Solar Collector (armsolar)" and the metal of those units.
     pub killing: Option<(String, f32)>,
+    /// The enemy's armed buildings whose reach covers where it stands (a lone unit under a nest's turrets is not a
+    /// lone unit): the metal of those that hit ground, of those that hit air, and words ("3 turrets: 1 armhlt,
+    /// 2 armllt"; empty under none).
+    pub turret_metal: f32,
+    pub turret_metal_air: f32,
+    pub turrets: String,
 }
 
 pub(crate) struct Picture {
@@ -250,7 +258,8 @@ impl Brain {
             let has_commander = members.iter().any(|i| mobile[*i].def.is_some_and(|d| self.world.is_commander_def(d)));
             let ids: Vec<bot_protocol::UnitId> = members.iter().map(|i| mobile[*i].id).collect();
             let killing = self.killing_words(&ids, None);
-            parties.push(Party { name: String::new(), ids, at, metal, composition, has_commander, killing });
+            let (turret_metal, turret_metal_air, turrets) = self.turrets_covering(at);
+            parties.push(Party { name: String::new(), ids, at, metal, composition, has_commander, killing, turret_metal, turret_metal_air, turrets });
         }
         parties.sort_by(|a, b| a.at.dist2d(self.home).total_cmp(&b.at.dist2d(self.home)));
         // Names: the last picture's for a party sharing a member with one of them (the larger overlap wins a name
@@ -384,6 +393,11 @@ impl Brain {
                 None => theirs.unidentified += 1,
             }
         }
+        // The turrets covering it fight with it (worlds-2, 18:33: "party_99 (1 armsnipe, 1 armwar, at nest) met
+        // with 5310 metal: we outweigh it heavily", and the nest's Overwatch, beamer and light turrets killed 16
+        // Stouts in 15 s).
+        theirs.turret_metal += party.turret_metal;
+        theirs.turret_metal_air += party.turret_metal_air;
         let ours = Brain::force_of(units);
         let ratio = self.odds(&ours, &theirs);
         if units.is_empty() {
@@ -401,6 +415,31 @@ impl Brain {
         } else {
             "it outweighs us"
         }
+    }
+
+    /// The enemy's armed buildings whose reach covers `at`, with a margin for a party's spread: the metal of those
+    /// that hit ground, of those that hit air, and words for the lines. Standing buildings are remembered where
+    /// they were seen, so a nest counts before it is in sight again.
+    pub(super) fn turrets_covering(&self, at: Vec3) -> (f32, f32, String) {
+        let mut ground = 0.0;
+        let mut air = 0.0;
+        let mut counts: BTreeMap<&str, usize> = BTreeMap::new();
+        for (def, pos, _) in self.enemy_buildings.values() {
+            let Some(d) = self.world.def(*def) else { continue };
+            if d.weapon_count == 0 || d.reach <= 0.0 || pos.dist2d(at) > d.reach + TURRET_MARGIN {
+                continue;
+            }
+            if self.can_hit(*def, false) {
+                ground += d.metal_cost;
+            }
+            if self.can_hit(*def, true) {
+                air += d.metal_cost;
+            }
+            *counts.entry(self.name(*def)).or_default() += 1;
+        }
+        let n: usize = counts.values().sum();
+        let words = if n == 0 { String::new() } else { format!("{n} turret{}: {}", if n == 1 { "" } else { "s" }, counts.iter().map(|(k, v)| format!("{v} {k}")).collect::<Vec<_>>().join(", ")) };
+        (ground, air, words)
     }
 
     /// Enemy parties at our extractors, for a group's entry: which spot, how far from the group.
@@ -517,7 +556,8 @@ impl Brain {
             .filter(|i| !i.trim().is_empty())
             .or_else(|| self.pianist.as_ref().and_then(|p| p.packet.clone()))
             .unwrap_or_else(|| crate::texts::read(&crate::texts::HANDS_DEFAULT));
-        for token in instructions.split(|c: char| !c.is_ascii_alphanumeric() && c != '_') {
+        let tool_words = pianist.standing.tool_words();
+        for token in instructions.split(|c: char| !c.is_ascii_alphanumeric() && c != '_').chain(tool_words.iter().map(String::as_str)) {
             if let Some(i) = token.strip_prefix("spot_").and_then(|n| n.parse::<usize>().ok()) {
                 // An islet spot nobody can walk to is no place to send anyone (pianist-player-7: the ball stood 151 s
                 // short of spot_31 on the shore while the player named it).
@@ -702,7 +742,8 @@ impl Brain {
                     .filter(|(d, _)| *d < NEAR)
                     .min_by(|a, b| a.0.total_cmp(&b.0))
                     .map(|(d, u)| format!("; {d:.0} from our {}", self.name(u.def)));
-                format!("{}: {} worth {:.0} metal at {}, {} from home, {heading}{}{}", p.name, p.composition, p.metal, self.place_words(&places, p.at), distance_words(p.at.dist2d(self.home)), near_ours.unwrap_or_default(), p.killing.as_ref().map_or(String::new(), |(what, metal)| format!("; killing {what} ({metal:.0} metal) now")))
+                let under = if p.turrets.is_empty() { String::new() } else { format!(" under {} ({:.0} metal)", p.turrets, p.turret_metal) };
+                format!("{}: {} worth {:.0} metal at {}{under}, {} from home, {heading}{}{}", p.name, p.composition, p.metal, self.place_words(&places, p.at), distance_words(p.at.dist2d(self.home)), near_ours.unwrap_or_default(), p.killing.as_ref().map_or(String::new(), |(what, metal)| format!("; killing {what} ({metal:.0} metal) now")))
             })
             .collect();
         let known_soldiers: Vec<&(UnitDefId, Vec3, i32)> = self.enemy_soldiers.values().filter(|(_, _, seen)| frame - seen < ARMY_MEMORY).collect();
@@ -959,7 +1000,8 @@ impl Brain {
                     (None, Some((what, metal))) => format!("; it is killing {what} ({metal:.0} metal) elsewhere, not this group"),
                     (None, None) => String::new(),
                 };
-                entry["enemies_near"] = json!(format!("{} ({}) {d:.0} away: {}{killing}", p.name, p.composition, self.odds_words(&units, p, &snapshot.enemies)));
+                let under = if p.turrets.is_empty() { String::new() } else { format!(", under {}", p.turrets) };
+                entry["enemies_near"] = json!(format!("{} ({}{under}) {d:.0} away: {}{killing}", p.name, p.composition, self.odds_words(&units, p, &snapshot.enemies)));
             }
             let threats = self.threats_words(&parties, &places, own, kit, centre);
             if !threats.is_empty() {

@@ -14,7 +14,7 @@ mod picture;
 mod remove;
 mod diet;
 mod schedule;
-mod standing;
+pub(crate) mod standing;
 mod worlds;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
@@ -631,10 +631,14 @@ impl Brain {
                 self.announce_hands(&response, commands);
                 let mut answers = replayed_answers(&menus, &response.answers);
                 worlds::resolve(&mut menus, &mut answers);
+                let second = self.worlds_follow_up(tick, &picture, &mut menus, &mut answers);
                 let flat = flat_questions(&menus);
                 self.play(tick, kit, &picture, menus, &answers, commands);
                 self.publish_hands(&picture, &answers);
                 self.log_call(tick, &request, &response, flat, &answers);
+                if let Some(second) = second {
+                    self.second_call(tick, kit, picture, second, request.state.clone(), commands);
+                }
             }
             Err(e) => {
                 let pianist = self.pianist.as_mut().expect("pianist mode");
@@ -778,8 +782,8 @@ impl Brain {
                     menu.standing = Some((order, rule));
                 }
             }
-            StandingMode::Worlds => {
-                // The builders play as in `on`; the groups with rules go to the worlds question.
+            StandingMode::Worlds | StandingMode::Nouls => {
+                // The builders play as in `on`; the groups go to the worlds question (`nouls`: through its gate).
                 let (groups, builders): (Vec<_>, Vec<_>) = orders.into_iter().partition(|(a, _, _)| a.starts_with("group_"));
                 let plain: Vec<(String, standing::Order)> = builders.iter().map(|(a, o, _)| (a.clone(), o.clone())).collect();
                 let Applied { answers, taken, illegal, continued } = self.apply_orders(picture, menus, plain);
@@ -803,7 +807,7 @@ impl Brain {
                 }
                 let rule_of: BTreeMap<String, standing::Order> = groups.iter().map(|(a, o, _)| (a.clone(), o.clone())).collect();
                 let rule_name: BTreeMap<String, String> = groups.into_iter().map(|(a, _, r)| (a, r)).collect();
-                self.worlds_pass(tick, kit, picture, menus, &rule_of, &rule_name, commands, &mut line);
+                self.worlds_pass(tick, kit, picture, menus, &rule_of, &rule_name, commands, &mut line, mode);
             }
             StandingMode::On => {
                 let plain: Vec<(String, standing::Order)> = orders.iter().map(|(a, o, _)| (a.clone(), o.clone())).collect();
@@ -841,7 +845,7 @@ impl Brain {
     /// menus as the `worlds` menu (a group has no question of its own). With nothing varying, or without Jev, world 1
     /// (the rules) is played outright.
     #[allow(clippy::too_many_arguments)]
-    fn worlds_pass(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, menus: &mut Vec<menu::Menu>, rule_of: &BTreeMap<String, standing::Order>, rule_name: &BTreeMap<String, String>, commands: &mut Vec<Command>, line: &mut serde_json::Value) {
+    fn worlds_pass(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, menus: &mut Vec<menu::Menu>, rule_of: &BTreeMap<String, standing::Order>, rule_name: &BTreeMap<String, String>, commands: &mut Vec<Command>, line: &mut serde_json::Value, mode: StandingMode) {
         let mut cands: Vec<(String, Vec<worlds::Candidate>)> = Vec::new();
         for menu in menus.iter() {
             if !matches!(menu.actor, menu::Actor::Group(_)) || menu.scripted.is_some() || menu.replay.is_some() {
@@ -917,11 +921,93 @@ impl Brain {
                 menu.questions.clear();
             }
         }
+        if mode == StandingMode::Nouls {
+            // The gate: the nouls go with this call, the worlds question with the next (`worlds::follow_up`).
+            let mut gate = menu::Menu::test_worlds_like();
+            gate.name = "gate".to_string();
+            for (g, c) in &cands {
+                gate.questions.extend(worlds::gate_questions(g, c));
+            }
+            line["gate"] = json!(gate.questions.iter().map(|(id, _)| id.clone()).collect::<Vec<_>>());
+            menus.push(gate);
+            return;
+        }
         let mut worlds_menu = menu::Menu::test_worlds_like();
         worlds_menu.questions = vec![("worlds.pick".to_string(), question)];
         worlds_menu.worlds = ws;
         menus.push(worlds_menu);
         line["lines"] = json!(lines);
+    }
+
+    /// Mode `nouls`, after the gate's answers: the second call's menus (the varying groups and a `worlds` menu), or
+    /// nothing to ask. Logs what the gate said.
+    fn worlds_follow_up(&mut self, tick: &Tick, picture: &picture::Picture, menus: &mut Vec<menu::Menu>, answers: &mut BTreeMap<String, jev::Answer>) -> Option<Vec<menu::Menu>> {
+        if !menus.iter().any(|m| m.name == "gate") {
+            return None;
+        }
+        let own = &tick.snapshot.own_units;
+        let centres: Vec<(String, Vec3)> = {
+            let pianist = self.pianist.as_ref().expect("pianist mode");
+            menus.iter().filter(|m| m.in_worlds).filter_map(|m| pianist.groups.iter().find(|x| format!("group_{}", x.name) == m.name).and_then(|x| super::pianist::groups::centre_of(&x.units(own))).map(|c| (m.name.clone(), c))).collect()
+        };
+        let mut flags: BTreeMap<String, BTreeMap<String, f64>> = BTreeMap::new();
+        let second = worlds::follow_up(menus, answers, &picture.parties, &centres, &picture.places, &mut flags);
+        let pianist = self.pianist.as_mut().expect("pianist mode");
+        if let Some(log) = &mut pianist.log {
+            let asked: Vec<String> = second.as_ref().map(|s| s.iter().filter(|m| m.in_worlds).map(|m| m.name.clone()).collect()).unwrap_or_default();
+            let _ = writeln!(log, "{}", json!({ "t": "worlds_gate", "f": tick.frame, "flags": flags, "asked": asked }));
+        }
+        second
+    }
+
+    /// The second call of mode `nouls`: the worlds question alone over the same state. In lockstep it is made here;
+    /// in realtime it goes to the worker and lands with `collect_answer`.
+    fn second_call(&mut self, tick: &Tick, kit: &Kit, picture: picture::Picture, menus: Vec<menu::Menu>, state: serde_json::Value, commands: &mut Vec<Command>) {
+        let questions: BTreeMap<String, jev::Question> = menus.iter().filter(|m| m.name == "worlds").flat_map(|m| m.questions.iter().cloned()).collect();
+        let request = jev::Request { state, questions };
+        let ai = self.world.hello.ai_id;
+        {
+            let pianist = self.pianist.as_mut().expect("pianist mode");
+            pianist.stats.calls += 1;
+            pianist.stats.questions += request.questions.len() as u32;
+            if pianist.worker.is_some() {
+                let id = pianist.next_request;
+                pianist.next_request += 1;
+                if pianist.worker.as_ref().expect("checked").to.send((id, request.clone())).is_ok() {
+                    pianist.pending = Some(Pending { id, frame: tick.frame, picture, menus, request });
+                }
+                return;
+            }
+        }
+        let response = {
+            let pianist = self.pianist.as_mut().expect("pianist mode");
+            pianist.played.clear();
+            pianist.client.as_ref().expect("a second call needs Jev").ask(&request)
+        };
+        match response {
+            Ok(response) => {
+                {
+                    let pianist = self.pianist.as_mut().expect("pianist mode");
+                    pianist.stats.latencies_ms.push(response.latency.as_secs_f32() * 1000.0);
+                    pianist.stats.tokens += response.usage["input_tokens"].as_u64().unwrap_or(0);
+                }
+                let mut menus = menus;
+                let mut answers = replayed_answers(&menus, &response.answers);
+                worlds::resolve(&mut menus, &mut answers);
+                let flat = flat_questions(&menus);
+                self.play(tick, kit, &picture, menus, &answers, commands);
+                self.publish_hands(&picture, &answers);
+                self.log_call(tick, &request, &response, flat, &answers);
+            }
+            Err(e) => {
+                let pianist = self.pianist.as_mut().expect("pianist mode");
+                pianist.stats.errors += 1;
+                if let Some(log) = &mut pianist.log {
+                    let _ = writeln!(log, "{}", json!({ "t": "error", "f": tick.frame, "error": e.to_string() }));
+                }
+                eprintln!("[ai {ai}] f={} pianist: the second call failed: {e}; the groups keep their course", tick.frame);
+            }
+        }
     }
 
     /// The packet, changed, goes to Jev once as extraction questions over the standing vocabulary; the answers
@@ -981,11 +1067,14 @@ impl Brain {
         if changes.is_empty() {
             return;
         }
-        let pianist = self.pianist.as_mut().expect("pianist mode");
         // The marks too: a mark and a rule naming it come in one turn, before the picture has the mark (worlds-1,
-        // 14:15: "marks refused in standing").
-        let mut places: Vec<String> = pianist.places.iter().map(|p| p.name.clone()).collect();
+        // 14:15: "marks refused in standing"); and every spot our bots can walk to, listed in the picture or not
+        // (worlds-2: fifteen sets refused for a spot the picture's short list lacked; the picture lists the
+        // tool's places from then on).
+        let mut places: Vec<String> = self.pianist.as_ref().expect("pianist mode").places.iter().map(|p| p.name.clone()).collect();
         places.extend(shared.marks.lock().unwrap().keys().cloned());
+        places.extend(self.world.hello.metal_spots.iter().enumerate().filter(|(_, s)| self.reachable_on_foot(**s)).map(|(i, _)| format!("spot_{i}")));
+        let pianist = self.pianist.as_mut().expect("pianist mode");
         let parties: Vec<String> = pianist.parties.iter().map(|p| p.name.clone()).collect();
         for change in changes {
             let said = match change {
@@ -1096,10 +1185,14 @@ impl Brain {
                 let mut menus = pending.menus;
                 let mut answers = replayed_answers(&menus, &response.answers);
                 worlds::resolve(&mut menus, &mut answers);
+                let second = self.worlds_follow_up(tick, &pending.picture, &mut menus, &mut answers);
                 let flat = flat_questions(&menus);
                 self.play(tick, kit, &pending.picture, menus, &answers, commands);
                 self.publish_hands(&pending.picture, &answers);
                 self.log_call(tick, &pending.request, &response, flat, &answers);
+                if let Some(second) = second {
+                    self.second_call(tick, kit, pending.picture, second, pending.request.state.clone(), commands);
+                }
             }
             Err(e) => {
                 let pianist = self.pianist.as_mut().expect("pianist mode");

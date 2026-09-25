@@ -156,7 +156,7 @@ fn tool_list() -> Value {
               "description": "Take apart or blow up what we own: {\"reclaim\": [handles], \"by\": \"constructor_N\" (optional; else the nearest builder without a list)} puts `reclaim <handle>` steps at the front of that builder's list, and most of the metal comes back; {\"destruct\": [handles]} sends the engine's self-destruct, and nothing comes back. A handle is a unit's name and id as the picture writes it (armsolar_31002: a factory's `yard` entry names the buildings in its exit lane) or an actor's name (constructor_N, plant_N, commander). Every unit that self-destructs blows up: the answer says the blast's radius and damage and what of ours stands inside it, and a destruct that would kill something of ours is refused unless \"accept_losses\": true. The commander's blast is the game's largest; a reclaim is the safe way beside anything that matters.",
               "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "reclaim": { "type": "array", "items": { "type": "string" } }, "by": { "type": "string" }, "destruct": { "type": "array", "items": { "type": "string" } }, "accept_losses": { "type": "boolean" } } } },
             { "name": "standing",
-              "description": "Your standing orders, played by the bot itself every second without asking Jev while they apply (docs/design/2026-09-25-standing-orders.md). Your `instruct` packet is read into them once per turn by Jev (its own extraction, hedged readings dropped), and this tool sets them directly, outranking the packet's for the same actor and rule until cleared. {\"set\": {\"group_B\": {\"station\": \"spot_61\", \"raiders_lone\": \"detachment:2\", \"raiders_party\": \"whole_group\", \"no_chase\": \"yes\", \"never\": \"spot_50 spot_73\"}, \"constructors\": {\"job\": \"expand\", \"turrets\": \"beside_each_outer_extractor\"}}} sets rules (null clears one); {\"clear\": [\"group_B\"]} or {\"clear\": \"all\"} drops tool orders; no arguments shows what is in force. Group rules: station (a place), station_mode (walk|advance), raiders_lone and raiders_party (whole_group|detachment|detachment:1|2|4|8|half|ignore), no_chase, no_detachments, hold_line (never fall back while even or better), fall_back_to (a place), engage_party (a party name), never (places, space-separated). Builder rules (commander, constructors, constructor_N): job (help_factory|expand|follow_list), attack_raiders, retreat_when_enemy_near, solar (only_when_stalling|never|freely), turrets (beside_each_outer_extractor|beside_each_extractor|none), no_chase, never. Yes/no rules take \"yes\" or true. The picture shows each actor's orders on its `standing` line and the report says what fired.",
+              "description": "Your standing orders, played by the bot itself every second without asking Jev while they apply (docs/design/2026-09-25-standing-orders.md). Your `instruct` packet is read into them once per turn by Jev (its own extraction, hedged readings dropped), and this tool sets them directly, outranking the packet's for the same actor and rule until cleared. {\"set\": {\"group_B\": {\"station\": \"spot_61\", \"raiders_lone\": \"detachment:2\", \"raiders_party\": \"whole_group\", \"no_chase\": \"yes\", \"never\": \"spot_50 spot_73\"}, \"constructors\": {\"job\": \"expand\", \"turrets\": \"beside_each_outer_extractor\"}}} sets rules (null clears one): each actor's rules are checked at once against the vocabulary and the picture's places (this turn's marks included) and parties, the answer names an actor refused and why, and the others' rules land when the turn ends; {\"clear\": [\"group_B\"]} or {\"clear\": \"all\"} drops tool orders; no arguments shows what is in force. Group rules: station (a place), station_mode (walk|advance), raiders_lone and raiders_party (whole_group|detachment|detachment:1|2|4|8|half|ignore), no_chase, no_detachments, hold_line (never fall back while even or better), fall_back_to (a place), engage_party (a party name), never (places, space-separated). Builder rules (commander, constructors, constructor_N): job (help_factory|expand|follow_list), attack_raiders, retreat_when_enemy_near, solar (only_when_stalling|never|freely), turrets (beside_each_outer_extractor|beside_each_extractor|none), no_chase, never. Yes/no rules take \"yes\" or true. The picture shows each actor's orders on its `standing` line and the report says what fired.",
               "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "set": { "type": "object", "additionalProperties": { "type": "object", "additionalProperties": { "type": ["string", "boolean", "null"] } } }, "clear": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "string", "enum": ["all"] } ] } } } },
             { "name": "say",
               "description": "Say something in the game's chat, to everyone playing. Short lines. The report shows what people say to you; when an experienced player offers advice or asks what you are doing, answer, and ask them what they would do: their feedback is what this project learns from.",
@@ -399,8 +399,33 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                             return Err(format!("{actor}: rules must be an object of rule to value"));
                         }
                     }
-                    shared.standing.lock().unwrap().push(StandingChange::Set(map.iter().map(|(k, v)| (k.clone(), v.clone())).collect()));
-                    Ok(format!("standing orders for {} actors go to your hands, checked against the picture at their next second (a refused rule is said in the report's `done` lines)", map.len()))
+                    // Checked now, in the player's turn, so a refusal is answered at once and the other actors'
+                    // orders still go through (worlds-2, 17:07: "a set with an unknown place (never: shelling) is
+                    // refused whole, silently in my view", learned a turn later from the picture). The turn's marks
+                    // count as places; the hands check again against their own picture at the next second.
+                    let (places, parties) = {
+                        let hands = shared.hands.lock().unwrap();
+                        let mut places: Vec<String> = hands.picture["places"].as_object().map(|o| o.keys().cloned().collect()).unwrap_or_default();
+                        places.extend(shared.marks.lock().unwrap().keys().cloned());
+                        places.extend(shared.map.lock().unwrap()["metal_spots"].as_array().into_iter().flatten().filter(|s| !s["walk_from_home"].is_null()).filter_map(|s| s["n"].as_u64()).map(|n| format!("spot_{n}")));
+                        let parties: Vec<String> = hands.picture["enemy"]["in_sight"].as_array().map(|a| a.iter().filter_map(|v| v.as_str()).filter_map(|s| s.split(':').next()).map(str::to_string).collect()).unwrap_or_default();
+                        (places, parties)
+                    };
+                    let mut accepted: std::collections::BTreeMap<String, Value> = std::collections::BTreeMap::new();
+                    let mut said: Vec<String> = Vec::new();
+                    for (actor, rules) in map {
+                        match crate::brain::pianist::standing::Standing::check_tool(actor, rules, &places, &parties) {
+                            Ok(checked) => {
+                                said.push(format!("{actor}: {} rules set at the next second", checked.len()));
+                                accepted.insert(actor.clone(), rules.clone());
+                            }
+                            Err(e) => said.push(format!("refused: {e}")),
+                        }
+                    }
+                    if !accepted.is_empty() {
+                        shared.standing.lock().unwrap().push(StandingChange::Set(accepted));
+                    }
+                    Ok(said.join("; "))
                 }
                 (None, Some(Value::String(all))) if all == "all" => {
                     shared.standing.lock().unwrap().push(StandingChange::Clear(None));

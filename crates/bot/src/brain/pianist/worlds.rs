@@ -13,8 +13,8 @@ use serde_json::{Value, json};
 
 use super::groups::{GroupTask, centre_of};
 use super::menu::{ALARM, Actor, DETACH_PARTY_MAX, Menu};
-use super::picture::{Party, Picture};
-use super::standing::{Order, RAIDER_REACH};
+use super::picture::{Party, Picture, Place};
+use super::standing::{NEVER_REACH, Order, RAIDER_REACH};
 use super::{Brain, FRAMES_PER_SECOND};
 
 /// Worlds in one question at most: past eight the pick diffuses (p(top) 0.63 under 8, 0.36 at 8-15, 0.23 at 24).
@@ -109,7 +109,14 @@ impl Brain {
                 format!("keeps {} to {place} (the course it was given)", if *fight { "advancing" } else { "walking" }),
                 format!(", abandoning its {} to {place} (the course it was given)", if *fight { "advance" } else { "walk" }),
             ),
-            GroupTask::Engage { .. } => ("keeps attacking its party".to_string(), ", leaving the party it was attacking".to_string()),
+            GroupTask::Engage { party, .. } => {
+                let quarry = picture.parties.iter().find(|p| p.ids.iter().any(|id| party.contains(id)));
+                let words = match quarry {
+                    Some(p) => format!("keeps attacking {} ({}{}{})", p.name, p.composition, under(p), place_of(&picture.places, p.at).map_or(String::new(), |pl| format!(", at {pl}"))),
+                    None => "keeps attacking its party, now out of sight".to_string(),
+                };
+                (words, ", leaving the party it was attacking".to_string())
+            }
         };
         let keep = if offered("continue") { "continue" } else { "hold" };
         let mut out = vec![Candidate { kind: Kind::Keep, order: order(keep, &[]), words: course, party: None, metal: 0.0 }];
@@ -125,6 +132,14 @@ impl Brain {
         }
         let standing: f32 = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
         let party_of = |name: &str| picture.parties.iter().find(|p| p.name == name);
+        // The player's rules gate the fights: no candidate against a party the rules say to ignore, or one standing
+        // at a place this group never goes (worlds-2, 18:21-18:41: `raiders_lone: ignore` and `never: spot_20 ...`
+        // set, and group_C still offered and picking "attacks party_112 (1 armwar)" at spot_20, then party_99 at
+        // the nest: 16 Stouts lost in 15 s).
+        let rules = pianist.standing.rules_for(&menu.name);
+        let never = pianist.standing.never_places(&menu.name);
+        let ignored = |p: &Party| rules.get(if p.ids.len() == 1 { "raiders_lone" } else { "raiders_party" }).is_some_and(|v| v == "ignore");
+        let forbidden = |p: &Party| never.iter().any(|n| picture.places.iter().any(|pl| pl.name == *n && pl.at.dist2d(p.at) < NEVER_REACH));
         let leaves = |o: &Order| !matches!(o.choice.as_str(), "continue" | "hold");
         if let Some(rule) = rule
             && !self.same_as_current(menu, rule)
@@ -145,14 +160,14 @@ impl Brain {
         let nearest = picture
             .parties
             .iter()
-            .filter(|p| (1..=6).contains(&p.ids.len()) && p.at.dist2d(centre) <= RAIDER_REACH)
+            .filter(|p| (1..=6).contains(&p.ids.len()) && p.at.dist2d(centre) <= RAIDER_REACH && !ignored(p) && !forbidden(p))
             .min_by(|a, b| a.at.dist2d(centre).total_cmp(&b.at.dist2d(centre)));
         if let Some(party) = nearest {
             let odds = self.odds_words(&units, party, enemies);
             if offered("engage") && odds != "it outweighs us" && !odds.starts_with("we cannot hit") {
                 let o = order("engage", &[("whom", &party.name)]);
                 if !out.iter().any(|c| c.order == o) {
-                    let words = format!("attacks {} ({}) with the whole group{leave}", party.name, party.composition);
+                    let words = format!("attacks {} ({}{}) with the whole group{leave}", party.name, party.composition, under(party));
                     out.push(Candidate { kind: Kind::Fight, order: o, words, party: Some((party.name.clone(), party.ids.len())), metal: standing });
                 }
             }
@@ -161,7 +176,7 @@ impl Brain {
                 if n < units.len() {
                     let o = order("send_against", &[("whom", &party.name), ("how_many", super::standing::how_many(n))]);
                     if !out.iter().any(|c| c.order == o) {
-                        let words = format!("sends {n} soldiers against {} ({}), the rest {}", party.name, party.composition, out[0].words.replacen("keeps", "keeping", 1));
+                        let words = format!("sends {n} soldiers against {} ({}{}), the rest {}", party.name, party.composition, under(party), out[0].words.replacen("keeps", "keeping", 1));
                         out.push(Candidate { kind: Kind::Fight, order: o, words, party: Some((party.name.clone(), party.ids.len())), metal: n as f32 * standing / units.len() as f32 });
                     }
                 }
@@ -215,6 +230,16 @@ impl Brain {
         out.truncate(CANDIDATES);
         out
     }
+}
+
+/// ", under 3 turrets: 1 armhlt, 2 armllt" for a party the enemy's armed buildings cover; empty otherwise.
+fn under(p: &Party) -> String {
+    if p.turrets.is_empty() { String::new() } else { format!(", under {}", p.turrets) }
+}
+
+/// The named place a point stands at (within 400), if any.
+fn place_of(places: &[Place], at: bot_protocol::Vec3) -> Option<&str> {
+    places.iter().map(|pl| (pl.at.dist2d(at), pl)).min_by(|a, b| a.0.total_cmp(&b.0)).filter(|(d, _)| *d < 400.0).map(|(_, pl)| pl.name.as_str())
 }
 
 /// The worlds: world 1 is every group's rule (else its course); the rest change one group's move, fights first,
@@ -273,14 +298,17 @@ pub(super) fn consequence(world: &World, cands: &[(String, Vec<Candidate>)], par
     for p in in_reach {
         let composition = if p.has_commander { format!("THEIR COMMANDER, whose death wins the game, with {}", p.composition) } else { p.composition.clone() };
         let takers: Vec<(usize, usize)> = world.iter().enumerate().filter(|(gi, (_, ci))| cand(*gi, *ci).party.as_ref().is_some_and(|(n, _)| *n == p.name)).map(|(gi, (_, ci))| (gi, *ci)).collect();
-        let place = places.iter().map(|pl| (pl.at.dist2d(p.at), pl)).min_by(|a, b| a.0.total_cmp(&b.0)).filter(|(d, _)| *d < 400.0).map_or("in sight".to_string(), |(_, pl)| format!("at {}", pl.name));
+        let place = place_of(places, p.at).map_or("in sight".to_string(), |pl| format!("at {pl}"));
         if takers.is_empty() {
             let killing = p.killing.as_ref().map_or(String::new(), |(what, _)| format!(", killing {what}"));
-            unmet.push(format!("{} ({composition}, {place}{killing})", p.name));
+            unmet.push(format!("{} ({composition}, {place}{}{killing})", p.name, under(p)));
         } else {
             let metal: f32 = takers.iter().map(|(gi, ci)| cand(*gi, *ci).metal).sum();
             let nearest = takers.iter().filter_map(|(gi, _)| centres.iter().find(|(g, _)| *g == cands[*gi].0).map(|(_, c)| c.dist2d(p.at))).fold(f32::INFINITY, f32::min);
-            met.push(format!("{} ({composition}, {:.0} metal, {place}) met with {metal:.0} metal: {}, {nearest:.0} away", p.name, p.metal, odds_by_metal(metal, p.metal)));
+            // The turrets covering it are met too, at their metal (their worth in a fight is higher still).
+            let theirs = p.metal + p.turret_metal;
+            let with = if p.turrets.is_empty() { String::new() } else { format!(" with {} ({:.0} metal)", p.turrets, p.turret_metal) };
+            met.push(format!("{} ({composition}, {:.0} metal, {place}){with} met with {metal:.0} metal: {}, {nearest:.0} away", p.name, p.metal, odds_by_metal(metal, theirs)));
         }
     }
     if !met.is_empty() {
@@ -314,11 +342,7 @@ pub(super) fn resolve(menus: &mut [Menu], answers: &mut BTreeMap<String, Answer>
     for (g, ci) in world {
         let Some(menu) = menus.iter_mut().find(|m| m.name == g) else { continue };
         let Some(cand) = menu.worlds_candidates.get(ci).cloned() else { continue };
-        menu.standing = Some((cand.order.clone(), "worlds".to_string()));
-        menu.worlds_played = true;
-        let sure = |c: &str| Answer::Choice { choice: c.to_string(), probabilities: BTreeMap::from([(c.to_string(), 1.0)]), confidence };
-        answers.insert(format!("{g}.do"), sure(&cand.order.choice));
-        answers.insert(format!("{g}.standing"), sure("rule"));
+        force(menu, &cand, answers, confidence);
     }
     Some((index, confidence))
 }
@@ -326,6 +350,103 @@ pub(super) fn resolve(menus: &mut [Menu], answers: &mut BTreeMap<String, Answer>
 /// The log line's view of the candidates.
 pub(super) fn log_candidates(cands: &[(String, Vec<Candidate>)]) -> Value {
     json!(cands.iter().map(|(g, c)| (g.clone(), json!(c.iter().map(|x| json!({ "kind": format!("{:?}", x.kind).to_lowercase(), "do": x.order.choice, "params": x.order.params, "words": x.words })).collect::<Vec<_>>()))).collect::<BTreeMap<_, _>>())
+}
+
+/// The noul gate (mode `nouls`): one yes/no per live dimension of a group, over its first candidate of that kind.
+pub(super) fn gate_questions(name: &str, cands: &[Candidate]) -> Vec<(String, Question)> {
+    let course = cands.iter().find(|c| c.kind == Kind::Keep).map(|c| c.words.clone()).unwrap_or_else(|| "keeps its course".to_string());
+    let mut out = Vec::new();
+    for (kind, key) in [(Kind::Fight, "fight"), (Kind::Walk, "walk"), (Kind::Back, "back")] {
+        if let Some(c) = cands.iter().find(|c| c.kind == kind) {
+            out.push((
+                format!("{name}.{key}"),
+                Question::noul(json!(format!("Given `actors.{name}`, `enemy`, `player` and the player's `instructions`: should {name} do this now, rather than the course it is on ({course})? The move: {name} {}.", c.words))),
+            ));
+        }
+    }
+    out
+}
+
+/// The dimension a gate question's id names, and the candidate kind it gates.
+fn gated_kind(key: &str) -> Option<Kind> {
+    match key {
+        "fight" => Some(Kind::Fight),
+        "walk" => Some(Kind::Walk),
+        "back" => Some(Kind::Back),
+        _ => None,
+    }
+}
+
+/// After the gate's answers: each in-worlds group keeps its course and rule candidates and the kinds the gate said
+/// yes to (0.5 and up). A group with one candidate left is played from it now (its rule, or nothing); the groups with
+/// two or more come back as the menus of a second call, with a `worlds` menu over their worlds, or `None` when nothing
+/// varies. `flags` receives what the gate said, for the log.
+pub(super) fn follow_up(menus: &mut Vec<Menu>, answers: &mut BTreeMap<String, Answer>, parties: &[Party], centres: &[(String, bot_protocol::Vec3)], places: &[super::picture::Place], flags: &mut BTreeMap<String, BTreeMap<String, f64>>) -> Option<Vec<Menu>> {
+    let mut varying: Vec<(String, Vec<Candidate>)> = Vec::new();
+    for menu in menus.iter_mut().filter(|m| m.in_worlds) {
+        let name = menu.name.clone();
+        let mut live: Vec<Kind> = vec![Kind::Keep, Kind::Rule];
+        for key in ["fight", "walk", "back"] {
+            if let Some(Answer::Noul { noul }) = answers.get(&format!("{name}.{key}")) {
+                flags.entry(name.clone()).or_default().insert(key.to_string(), *noul);
+                if *noul >= 0.5
+                    && let Some(kind) = gated_kind(key)
+                {
+                    live.push(kind);
+                }
+            }
+        }
+        let kept: Vec<Candidate> = menu.worlds_candidates.iter().filter(|c| live.contains(&c.kind)).cloned().collect();
+        if kept.len() >= 2 {
+            varying.push((name, kept));
+        } else {
+            menu.in_worlds = false;
+            if let Some(rule) = kept.iter().find(|c| c.kind == Kind::Rule) {
+                force(menu, rule, answers, 1.0);
+            }
+        }
+    }
+    if varying.is_empty() {
+        return None;
+    }
+    let ws = worlds(&varying);
+    if ws.len() < 2 {
+        for (g, ci) in &ws[0] {
+            if let Some(menu) = menus.iter_mut().find(|m| m.name == *g)
+                && let Some(c) = varying.iter().find(|(n, _)| n == g).map(|(_, c)| &c[*ci])
+                && c.kind == Kind::Rule
+            {
+                force(menu, c, answers, 1.0);
+            }
+        }
+        for menu in menus.iter_mut() {
+            menu.in_worlds = false;
+        }
+        return None;
+    }
+    let lines: Vec<String> = ws.iter().map(|w| consequence(w, &varying, parties, centres, places)).collect();
+    let names: Vec<String> = varying.iter().map(|(g, _)| g.clone()).collect();
+    let mut second: Vec<Menu> = Vec::new();
+    for (g, c) in &varying {
+        if let Some(i) = menus.iter().position(|m| m.name == *g) {
+            let mut menu = menus.remove(i);
+            menu.worlds_candidates = c.clone();
+            second.push(menu);
+        }
+    }
+    let mut worlds_menu = Menu::test_worlds_like();
+    worlds_menu.questions = vec![("worlds.pick".to_string(), question(&names, &lines))];
+    worlds_menu.worlds = ws;
+    second.push(worlds_menu);
+    Some(second)
+}
+
+fn force(menu: &mut Menu, cand: &Candidate, answers: &mut BTreeMap<String, Answer>, confidence: f64) {
+    menu.standing = Some((cand.order.clone(), "worlds".to_string()));
+    menu.worlds_played = true;
+    let sure = |c: &str| Answer::Choice { choice: c.to_string(), probabilities: BTreeMap::from([(c.to_string(), 1.0)]), confidence };
+    answers.insert(format!("{}.do", menu.name), sure(&cand.order.choice));
+    answers.insert(format!("{}.standing", menu.name), sure("rule"));
 }
 
 #[cfg(test)]
