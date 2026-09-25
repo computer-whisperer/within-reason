@@ -117,6 +117,11 @@ pub(crate) struct Menu {
     pub replay: Option<(String, Answer)>,
     /// The key a real answer to this menu is stored under, for replay.
     pub replay_key: Option<String>,
+    /// The standing order the executor gave for this actor, asked beside the menu as a `standing` question (mode
+    /// `filter`): the order and the rule that gave it.
+    pub standing: Option<(super::policy::Order, String)>,
+    /// Played from a standing order at probability one (the record's source `standing`).
+    pub standing_played: bool,
 }
 
 impl Brain {
@@ -247,6 +252,9 @@ impl Brain {
             let mut spots: Vec<(usize, f32)> = Vec::new();
             if can(kit.extractor) {
                 spots = self.free_spots(unit, &pianist, picture, own, frame, kit);
+                // A standing `never` keeps its places off the builder's spots (H-HANDS-FORBID).
+                let never = pianist.standing.never_places(&name);
+                spots.retain(|(i, _)| !never.contains(&format!("spot_{i}")));
                 spots.truncate(NEAR_SPOTS);
                 if !spots.is_empty() {
                     // One option, the spot in `where`: six spot options split the vote and lost to any single
@@ -352,6 +360,11 @@ impl Brain {
                     offer("attack", Pick::Attack(party.at, party.name.clone()), format!("Attack {} ({}, {:.0} away, {why}) now and come back to what it was doing: against this unit alone, {odds}; its guns beside our soldiers turn an even trade. Raiders outrun it: a party farther off is not offered.", party.name, party.composition, party.at.dist2d(unit.pos)));
                 }
             }
+            // Standing removals (H-HANDS-FORBID): the generators under `solar never`, the turret under `turrets none`.
+            for key in pianist.standing.removals(&name, false, self.name(kit.solar), self.name(kit.turret)) {
+                options.remove(&key);
+                criteria.remove(&key);
+            }
             options.extend(off_menu);
             let instructions = json!(if let Some((what, share)) = started.as_ref().filter(|_| queue_ahead) {
                 format!(
@@ -368,6 +381,9 @@ impl Brain {
             if !spots.is_empty() {
                 questions.push((format!("{name}.where_extractor"), where_question(&format!("Suppose {name} builds a metal extractor next: at which of these free spots? Nearer is sooner; ground held by us is safer; enemies near a spot get the builder killed."), &spots, true, None, None, false)));
             }
+            for (_, q) in questions.iter_mut() {
+                drop_places(q, &pianist.standing.never_places(&name));
+            }
             pianist.last_asked.insert(name.clone(), frame);
             menus.push(Menu {
                 actor: Actor::Builder(unit.id),
@@ -377,7 +393,7 @@ impl Brain {
                 queue_ahead,
                 options,
                 spots: spots.iter().map(|(i, _)| *i).collect(),
-                scripted: None, policy: false, replay: None, replay_key: None,
+                scripted: None, policy: false, replay: None, replay_key: None, standing: None, standing_played: false,
             });
         }
 
@@ -451,7 +467,7 @@ impl Brain {
                 }
                 _ => None,
             };
-            menus.push(Menu { actor: Actor::Lab(unit.id), questions: vec![question], name, busy: queued > 0, queue_ahead: false, options, spots: Vec::new(), scripted: None, policy: false, replay, replay_key: Some(key) });
+            menus.push(Menu { actor: Actor::Lab(unit.id), questions: vec![question], name, busy: queued > 0, queue_ahead: false, options, spots: Vec::new(), scripted: None, policy: false, replay, replay_key: Some(key), standing: None, standing_played: false });
         }
 
         // Groups.
@@ -482,7 +498,10 @@ impl Brain {
             // A holding group with nothing within twice the alarm reach and no hit since the last call is quiet:
             // its review is the diet's (H-HANDS-DIET, decision 6; started-1: 17 % of the tokens asked only such groups).
             let quiet = !group.task.busy() && !picture.parties.iter().any(|p| p.at.dist2d(centre) < 2.0 * ALARM) && !group.members.iter().any(|m| pianist.hits.contains_key(m));
-            let review = if group.task.busy() { REVIEW_FRAMES } else if quiet { pianist.diet.quiet_hold_review } else { HOLD_REVIEW_FRAMES };
+            // A holding group with standing orders and nothing in the alarm reach is the executor's, not Jev's
+            // (`docs/design/2026-09-25-standing-orders.md` §3): its review is the quiet one.
+            let standing_quiet = pianist.standing_mode != super::StandingMode::Off && pianist.standing.has_rules(&name) && !group.task.busy() && !enemies_near && !group.members.iter().any(|m| pianist.hits.contains_key(m));
+            let review = if group.task.busy() { REVIEW_FRAMES } else if quiet || standing_quiet { pianist.diet.quiet_hold_review } else { HOLD_REVIEW_FRAMES };
             let forced = places_changed || pianist.due_now.contains(&name);
             if !(alarm || forced || frame - last >= review) {
                 continue;
@@ -563,6 +582,12 @@ impl Brain {
             if let Some((other, _, _)) = group_names.iter().filter(|(n, c, d)| *n != group.name && c.is_some() && *d == group.domain).min_by(|a, b| a.1.unwrap().dist2d(centre).total_cmp(&b.1.unwrap().dist2d(centre))) {
                 offer(&format!("join_group_{other}"), Pick::Join(other.clone()), format!("Merge into group_{other} and take its task."));
             }
+            // Standing removals (H-HANDS-FORBID): detachments under `no_detachments`, the ways back under `hold_line`
+            // while the odds are not against it.
+            for key in pianist.standing.removals(&name, odds_against, "", "") {
+                options.remove(&key);
+                criteria.remove(&key);
+            }
             // The precedence is said where the question is: Jev answers the question as written (docs.typesafe.ai,
             // "literal reading"); at wake-1 11:23 it kept a packet's "keeps on it" over "it outweighs us, killing 8 of
             // our Blitz now" (engage 0.45, fall_back 0.34).
@@ -576,8 +601,11 @@ impl Brain {
                 let criteria: BTreeMap<String, Value> = picture.parties.iter().map(|p| (p.name.clone(), json!(party_words(p)))).collect();
                 questions.push((format!("{name}.whom"), Question::Choice { instructions: json!(format!("If {name} attacks an enemy party, which one?")), criteria }));
             }
+            for (_, q) in questions.iter_mut() {
+                drop_places(q, &pianist.standing.never_places(&name));
+            }
             pianist.last_asked.insert(name.clone(), frame);
-            menus.push(Menu { actor: Actor::Group(group.name.clone()), name, busy, queue_ahead: false, questions, options, spots: Vec::new(), scripted: None, policy: false, replay: None, replay_key: None });
+            menus.push(Menu { actor: Actor::Group(group.name.clone()), name, busy, queue_ahead: false, questions, options, spots: Vec::new(), scripted: None, policy: false, replay: None, replay_key: None, standing: None, standing_played: false });
         }
 
         // The call's size: Jev's window is 64k tokens and shell-1 sent two calls past it (46 questions, 135k characters
@@ -617,7 +645,7 @@ impl Brain {
                 ("global.base_in_danger".to_string(), Question::noul("Given `enemy` and `places`, is our base or our commander in danger right now?")),
                 ("global.attack_coming".to_string(), Question::noul("Given `enemy`, is a large enemy attack on us likely within the next minute or two?")),
             ];
-            menus.push(Menu { actor: Actor::Global, name: "global".into(), busy: false, queue_ahead: false, questions, options: BTreeMap::new(), spots: Vec::new(), scripted: None, policy: false, replay: None, replay_key: None });
+            menus.push(Menu { actor: Actor::Global, name: "global".into(), busy: false, queue_ahead: false, questions, options: BTreeMap::new(), spots: Vec::new(), scripted: None, policy: false, replay: None, replay_key: None, standing: None, standing_played: false });
         }
         pianist.due_now.clear();
         // The call after this one takes what was deferred (a packet's builders), and comes half a second on.
@@ -733,7 +761,7 @@ impl Brain {
                         questions: Vec::new(),
                         options: BTreeMap::from([(key.clone(), pick)]),
                         spots,
-                        scripted: Some((key, where_, step.clone())), policy: false, replay: None, replay_key: None,
+                        scripted: Some((key, where_, step.clone())), policy: false, replay: None, replay_key: None, standing: None, standing_played: false,
                     });
                 }
                 Err(why) => {
@@ -839,6 +867,16 @@ impl Brain {
         } else {
             format!(" Building it takes this builder about {seconds:.0} s and {:.0} energy ({draw:.0} a second); the store runs out about {:.0} s before it is done and the build slows for that long.", d.energy_cost, (short / draw).min(seconds))
         }
+    }
+}
+
+/// A standing `never` takes its places off a place question's options (H-HANDS-FORBID).
+fn drop_places(question: &mut Question, never: &[String]) {
+    if never.is_empty() {
+        return;
+    }
+    if let Question::Choice { criteria, .. } = question {
+        criteria.retain(|place, _| !never.contains(place));
     }
 }
 

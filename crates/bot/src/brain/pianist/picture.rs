@@ -784,6 +784,9 @@ impl Brain {
                 if let Some(steps) = pianist.scripts.get(&name).filter(|s| !s.is_empty()) {
                     entry["list"] = json!(format!("the player's list, done by the bot without asking: {}", steps.iter().cloned().collect::<Vec<_>>().join(", ")));
                 }
+                if let Some(words) = pianist.standing.words(&name) {
+                    entry["standing"] = json!(format!("standing orders in force, played by the bot when they apply: {words}"));
+                }
                 let from_home = unit.pos.dist2d(self.home);
                 entry["from_home"] = json!(format!("{} ({from_home:.0}); ground {}", distance_words(from_home), match self.ground(unit.pos) { Ground::Held => "held by us", Ground::Contested => "contested", Ground::Theirs => "theirs" }));
                 if let Some(party) = parties.iter().filter(|p| p.at.dist2d(unit.pos) < NEAR).min_by(|a, b| a.at.dist2d(unit.pos).total_cmp(&b.at.dist2d(unit.pos))) {
@@ -891,6 +894,9 @@ impl Brain {
             });
             if let Some(words) = self.footwork_of(&group.name).words() {
                 entry["lane"] = json!(words);
+            }
+            if let Some(words) = pianist.standing.words(&format!("group_{}", group.name)) {
+                entry["standing"] = json!(format!("standing orders in force, played by the bot when they apply: {words}"));
             }
             // The last 30 s, not "since the player's last orders": turns come every ten seconds now, and the line read
             // "lost 1" while the ball had lost eleven in eleven seconds (wake-1, 18:14). A share in words beside the

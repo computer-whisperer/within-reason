@@ -439,6 +439,7 @@ pub struct TurnOutputs {
     pub marks: BTreeMap<String, (f32, f32)>,
     pub allowed: BTreeMap<String, Allowance>,
     pub removals: Vec<Removal>,
+    pub standing: Vec<StandingChange>,
 }
 
 impl TurnOutputs {
@@ -451,6 +452,9 @@ impl TurnOutputs {
         }
         if self.removals.len() >= before.removals.len() {
             self.removals.drain(..before.removals.len());
+        }
+        if self.standing.len() >= before.standing.len() {
+            self.standing.drain(..before.standing.len());
         }
         self
     }
@@ -473,6 +477,15 @@ pub struct Hands {
     pub policy_stats: crate::brain::pianist::PolicyStats,
     pub policy_text: String,
     pub policy_version: u32,
+    /// The standing orders (`brain/pianist/standing.rs`): what is in force, the executor's mode, the counts from
+    /// the packet and from the tool, and since the last turn (drained by the driver) what fired, the asks saved and
+    /// the filter's verdicts.
+    pub standing_text: String,
+    pub standing_mode: String,
+    pub standing_counts: (usize, usize),
+    pub standing_fired: BTreeMap<String, u32>,
+    pub standing_saved: u32,
+    pub standing_verdicts: BTreeMap<String, u32>,
 }
 
 /// A change to the policy from the `policy` tool, applied by the brain at its next ask.
@@ -480,6 +493,14 @@ pub struct Hands {
 pub enum PolicyChange {
     Set(String),
     Amend(String),
+}
+
+/// A change to the standing orders from the `standing` tool: rules per actor to set (checked by the brain against
+/// the vocabulary and the picture), or the actors whose tool orders to clear (None: all).
+#[derive(Clone, Debug)]
+pub enum StandingChange {
+    Set(BTreeMap<String, serde_json::Value>),
+    Clear(Option<Vec<String>>),
 }
 
 /// Lockstep turns: the brain asks for a turn and holds the game (its reply to the engine) until the turn is over.
@@ -571,6 +592,8 @@ pub struct Shared {
     pub hands: Mutex<Hands>,
     /// Scripts and amendments from the `policy` tool, oldest first; the brain drains this at each ask.
     pub policy: Mutex<Vec<PolicyChange>>,
+    /// The `standing` tool's changes, taken by the brain at its next ask.
+    pub standing: Mutex<Vec<StandingChange>>,
     /// The player's footwork settings by group name (`group_A`) or `all` (`lane` tool, H-HANDS-LANE).
     pub lane: Mutex<BTreeMap<String, Footwork>>,
     /// Places the player named (`mark` tool): name to (x, z). They join the picture's places (H-HANDS-NAMED-PLACES).
@@ -651,6 +674,7 @@ impl Shared {
             marks: self.marks.lock().unwrap().clone(),
             allowed: self.allowed.lock().unwrap().clone(),
             removals: self.removals.lock().unwrap().clone(),
+            standing: self.standing.lock().unwrap().clone(),
         }
     }
 
@@ -665,6 +689,7 @@ impl Shared {
         *self.marks.lock().unwrap() = o.marks;
         *self.allowed.lock().unwrap() = o.allowed;
         *self.removals.lock().unwrap() = o.removals;
+        *self.standing.lock().unwrap() = o.standing;
     }
 
     /// Brain side, realtime: ask for a turn and go on; the game does not wait (the user, 2026-09-22: "the main
@@ -696,6 +721,7 @@ impl Shared {
                 self.queues.lock().unwrap().extend(o.queues);
                 self.policy.lock().unwrap().extend(o.policy);
                 self.removals.lock().unwrap().extend(o.removals);
+                self.standing.lock().unwrap().extend(o.standing);
                 false
             }
             waiting => {

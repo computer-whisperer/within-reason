@@ -163,10 +163,13 @@ fn tool_list(mode: Mode) -> Value {
             { "name": "policy",
               "description": "Your Lua policy (with `bot --policy`): the script your hands run once a game second over the picture, in place of, or beside, Jev's reading of your packet. {\"set\": script} replaces the whole policy and starts a fresh Lua state; {\"amend\": chunk} runs the chunk in the living state, so each top-level function or table it defines replaces the one of that name in place and the rest stands (globals persist); {} returns the policy in force. A parse error is answered at once; runtime errors and the orders given come in your report. The script defines decide(S) and returns { [actor] = { [\"do\"] = option, where = place, whom = party, how_many = \"2\"|\"4\"|\"8\"|\"half\", where_scout = place } }; only an option in that actor's S.actors[name].options can be ordered; an actor left out keeps its course.",
               "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "set": { "type": "string" }, "amend": { "type": "string" } } } },
+            { "name": "standing",
+              "description": "Your standing orders, played by the bot itself every second without asking Jev while they apply (docs/design/2026-09-25-standing-orders.md). Your `instruct` packet is read into them once per turn by Jev (its own extraction, hedged readings dropped), and this tool sets them directly, outranking the packet's for the same actor and rule until cleared. {\"set\": {\"group_B\": {\"station\": \"spot_61\", \"raiders_lone\": \"detachment:2\", \"raiders_party\": \"whole_group\", \"no_chase\": \"yes\", \"never\": \"spot_50 spot_73\"}, \"constructors\": {\"job\": \"expand\", \"turrets\": \"beside_each_outer_extractor\"}}} sets rules (null clears one); {\"clear\": [\"group_B\"]} or {\"clear\": \"all\"} drops tool orders; no arguments shows what is in force. Group rules: station (a place), station_mode (walk|advance), raiders_lone and raiders_party (whole_group|detachment|detachment:1|2|4|8|half|ignore), no_chase, no_detachments, hold_line (never fall back while even or better), fall_back_to (a place), engage_party (a party name), never (places, space-separated). Builder rules (commander, constructors, constructor_N): job (help_factory|expand|follow_list), attack_raiders, retreat_when_enemy_near, solar (only_when_stalling|never|freely), turrets (beside_each_outer_extractor|beside_each_extractor|none), no_chase, never. Yes/no rules take \"yes\" or true. The picture shows each actor's orders on its `standing` line and the report says what fired.",
+              "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "set": { "type": "object", "additionalProperties": { "type": "object", "additionalProperties": { "type": ["string", "boolean", "null"] } } }, "clear": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "string", "enum": ["all"] } ] } } } },
             { "name": "say",
               "description": "Say something in the game's chat, to everyone playing. Short lines. The report shows what people say to you; when an experienced player offers advice or asks what you are doing, answer, and ask them what they would do: their feedback is what this project learns from.",
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "maxLength": 240 } } } },
-            orders(&["instruct", "queue", "policy", "lane", "mark", "produce", "remove", "say", "note", "wait"], "your instructions or policy, build lists, footwork settings, marked places, what labs may build, removals, a chat line, a note and when to be woken"),
+            orders(&["instruct", "queue", "standing", "policy", "lane", "mark", "produce", "remove", "say", "note", "wait"], "your instructions or policy, standing orders, build lists, footwork settings, marked places, what labs may build, removals, a chat line, a note and when to be woken"),
             wait("A group of ours starts fighting an enemy party.", "Woken when this many soldiers of each named unit type are alive, e.g. {\"armham\": 6}. {} clears it."),
             note,
         ]),
@@ -500,6 +503,39 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>, mode: Mode) ->
                 queues.insert(name, list);
             }
             Ok(said.join("; "))
+        }
+        "standing" => {
+            use super::shared::StandingChange;
+            let set = arguments.get("set").and_then(Value::as_object).filter(|o| !o.is_empty());
+            let clear = arguments.get("clear");
+            match (set, clear) {
+                (None, None) => {
+                    let hands = shared.hands.lock().unwrap();
+                    Ok(format!("standing orders ({}; {} from your packet, {} from this tool):\n{}", hands.standing_mode, hands.standing_counts.0, hands.standing_counts.1, hands.standing_text))
+                }
+                (Some(map), None) => {
+                    for (actor, rules) in map {
+                        if !(actor.starts_with("group_") || actor == "commander" || actor == "constructors" || actor.starts_with("constructor_")) {
+                            return Err(format!("{actor}: standing orders are for group_X, commander, constructors or constructor_N"));
+                        }
+                        if !rules.is_object() {
+                            return Err(format!("{actor}: rules must be an object of rule to value"));
+                        }
+                    }
+                    shared.standing.lock().unwrap().push(StandingChange::Set(map.iter().map(|(k, v)| (k.clone(), v.clone())).collect()));
+                    Ok(format!("standing orders for {} actors go to your hands, checked against the picture at their next second (a refused rule is said in the report's `done` lines)", map.len()))
+                }
+                (None, Some(Value::String(all))) if all == "all" => {
+                    shared.standing.lock().unwrap().push(StandingChange::Clear(None));
+                    Ok("every tool order is cleared at the next second; the packet's stay".into())
+                }
+                (None, Some(Value::Array(items))) => {
+                    let actors: Vec<String> = items.iter().filter_map(|v| v.as_str().map(str::to_string)).collect();
+                    shared.standing.lock().unwrap().push(StandingChange::Clear(Some(actors.clone())));
+                    Ok(format!("tool orders for {} cleared at the next second", actors.join(", ")))
+                }
+                _ => Err("standing takes {\"set\": {actor: {rule: value}}} or {\"clear\": [actors] | \"all\"}, not both".into()),
+            }
         }
         "lane" => {
             let settings = arguments.as_object().filter(|o| !o.is_empty()).ok_or("lane takes an object: group name (or \"all\") to \"raw\", \"on\" or a list of the rules to keep")?;
@@ -907,7 +943,7 @@ mod tests {
     fn the_player_has_its_lever_and_none_of_the_commanders() {
         let names = |mode: Mode| tool_list(mode).as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap().to_string()).collect::<Vec<_>>();
         let player = names(Mode::Player);
-        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "produce", "remove", "policy", "say", "orders", "wait", "note"]);
+        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "produce", "remove", "policy", "standing", "say", "orders", "wait", "note"]);
         let commander = names(Mode::Commander);
         assert!(commander.contains(&"squad".to_string()) && !commander.contains(&"instruct".to_string()));
         for tool in batchable(Mode::Player) {

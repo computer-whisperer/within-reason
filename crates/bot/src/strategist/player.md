@@ -77,6 +77,16 @@ shoots one target at a time with its neighbours (`focus`), steps back while relo
 all, which rules apply: `raw` is none, and the group's orders reach the engine exactly as your hands gave them. Use
 it when a group must go somewhere or fight something and the footwork is in the way; the group's entry shows the
 setting while it is not the default.
+`standing` is the bot's own reading of your packet: once a turn Jev reads the packet into standing orders from a
+fixed vocabulary (a group's station and how it answers a lone raider or a small party, whether it chases, splits,
+holds its line or falls back to a named place, the places it never goes; a builder's standing job, whether it attacks
+raiders near it or walks home from soldiers, when it builds solars and where turrets), and the bot plays those every
+second without asking Jev while they apply. Write the packet in those words and the reading is sure ("group_B stands
+at spot_61", "a lone Tick at an extractor is met by two Blitzes (send_against 2)", "never chases", "never goes to
+spot_50"); a hedged reading sets nothing and the menu decides as before. `standing` with no arguments shows what is
+in force, `set` puts a rule in directly (it outranks the packet's for that actor and rule until cleared), `clear`
+drops tool orders. The picture's `standing` line on each actor shows its orders, and the report says which fired and
+how many asks of Jev they saved. What the vocabulary cannot say (a boundary, a condition, a route) stays prose.
 `produce` restricts what a lab, or every lab, may build to a list of unit names: the lab is then offered those and
 nothing else, so the mix is exactly what you allow and the packet's words only order among them. A name with a count
 after a colon (`armck:1`) is allowed that many more times and then drops off the list by itself. It is the sure way

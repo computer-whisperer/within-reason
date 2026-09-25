@@ -12,6 +12,7 @@ use super::super::roster::Kit;
 use super::super::Brain;
 use super::family::{family_mass, family_of};
 use super::menu::{Actor, Menu, Pick, nearest_of};
+use super::policy::Order;
 use super::picture::Picture;
 use super::groups::LAST_HOLD;
 use super::{Group, GroupTask, SWITCH_MARGIN, Task};
@@ -44,11 +45,37 @@ impl Brain {
         };
         let mut chosen = choice.clone();
         let p = |option: &str| probabilities.get(option).copied().unwrap_or(0.0);
+        // The filter's verdict on a standing order asked beside the menu (`standing.rs`, mode `filter`): `rule`
+        // plays the order, `panic` the way back and wakes the player, `near` and `other` leave Jev's own pick.
+        let mut forced: Option<Order> = None;
+        let mut verdict: Option<String> = None;
+        if let Some((order, rule)) = &menu.standing
+            && let Some(Answer::Choice { choice: v, .. }) = answers.get(&format!("{name}.standing"))
+        {
+            verdict = Some(v.clone());
+            match v.as_str() {
+                "rule" => {
+                    chosen = order.choice.clone();
+                    forced = Some(order.clone());
+                }
+                "panic" => {
+                    let back = ["fall_back", "retreat", "retreat_home"].into_iter().find(|o| menu.options.contains_key(*o));
+                    if let Some(back) = back {
+                        chosen = back.to_string();
+                        forced = Some(Order { choice: back.to_string(), params: BTreeMap::new() });
+                    }
+                    if let Some(shared) = &self.strategist {
+                        shared.trigger(format!("{name}: the hands judge the standing order `{rule}` ({}) is going badly and pull it back", order.choice));
+                    }
+                }
+                _ => {}
+            }
+        }
         // H-HANDS-SWITCH: a busy actor changes course only for a clear winner. A group's answer is composed from
         // families (H-HANDS-TWO-LEVEL): its own family's mass against the stay family's, and a pick within the stay
         // family (hold over continue) is the refinement's to make, with no margin.
         let mut kept = false;
-        if scripted.is_none() && menu.busy && chosen != "continue" {
+        if scripted.is_none() && forced.is_none() && menu.busy && chosen != "continue" {
             let group = matches!(menu.actor, Actor::Group(_)) && probabilities.keys().any(|k| family_of(k).is_some());
             let (own, keep) = if group { (family_mass(&chosen, &probabilities), family_mass("continue", &probabilities)) } else { (p(&chosen), p("continue")) };
             if !(group && family_of(&chosen) == Some("stay")) && own - keep < SWITCH_MARGIN {
@@ -58,10 +85,11 @@ impl Brain {
         }
         let answered = |q: &str| answers.get(&format!("{name}.{q}")).and_then(|a| if let Answer::Choice { choice, .. } = a { Some(choice.clone()) } else { None });
         let listed = scripted.as_ref().and_then(|(_, place, _)| place.clone());
-        let where_ = listed.clone().or_else(|| answered("where"));
-        let where_extractor = listed.or_else(|| answered("where_extractor"));
-        let whom = answers.get(&format!("{name}.whom")).and_then(|a| if let Answer::Choice { choice, .. } = a { Some(choice.clone()) } else { None });
-        let how_many = answers.get(&format!("{name}.how_many")).and_then(|a| if let Answer::Choice { choice, .. } = a { Some(choice.clone()) } else { None });
+        let param = |k: &str| forced.as_ref().and_then(|o| o.params.get(k).cloned());
+        let where_ = param("where").or_else(|| listed.clone()).or_else(|| answered("where"));
+        let where_extractor = param("where_extractor").or(listed).or_else(|| answered("where_extractor"));
+        let whom = param("whom").or_else(|| answers.get(&format!("{name}.whom")).and_then(|a| if let Answer::Choice { choice, .. } = a { Some(choice.clone()) } else { None }));
+        let how_many = param("how_many").or_else(|| answers.get(&format!("{name}.how_many")).and_then(|a| if let Answer::Choice { choice, .. } = a { Some(choice.clone()) } else { None }));
         let place = |named: &Option<String>| named.as_ref().and_then(|n| picture.places.iter().find(|p| p.name == *n)).cloned();
         let Some(pick) = menu.options.get(&chosen).cloned() else { return };
         let mut did: Option<String> = None;
@@ -267,8 +295,15 @@ impl Brain {
         };
         let inputs = json!({ "actor": name, "options": menu.options.keys().collect::<Vec<_>>(), "busy": menu.busy });
         let outputs = json!({ "choice": choice, "played": chosen, "probability": p(&choice), "confidence": confidence, "scripted": scripted.is_some(), "where": where_, "where_extractor": where_extractor, "whom": whom, "how_many": how_many, "did": did });
-        let source = if menu.policy { "policy" } else if scripted.is_some() { "list" } else { "jev" };
-        self.pianist.as_mut().expect("pianist mode").played.push(json!({ "actor": inputs["actor"], "kind": kind, "busy": menu.busy, "options": inputs["options"], "choice": choice, "played": chosen, "kept": kept, "probability": p(&choice), "confidence": confidence, "did": did, "source": source }));
+        let source = if menu.standing_played { "standing" } else if menu.policy { "policy" } else if scripted.is_some() { "list" } else { "jev" };
+        let pianist = self.pianist.as_mut().expect("pianist mode");
+        if let Some(v) = &verdict {
+            *pianist.standing.verdicts.entry(v.clone()).or_insert(0) += 1;
+            if let Some((_, rule)) = &menu.standing {
+                *pianist.standing.fired.entry(format!("{name} {rule} ({v})")).or_insert(0) += 1;
+            }
+        }
+        pianist.played.push(json!({ "actor": inputs["actor"], "kind": kind, "busy": menu.busy, "options": inputs["options"], "choice": choice, "played": chosen, "kept": kept, "probability": p(&choice), "confidence": confidence, "did": did, "source": source, "verdict": verdict }));
         self.journal.note_from(source, frame, kind, inputs, outputs);
     }
 

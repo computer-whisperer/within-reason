@@ -315,7 +315,7 @@ pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, fights
             if let Some(health) = field("health").filter(|h| !h.starts_with("full")) {
                 parts.push(format!("health {health}"));
             }
-            for key in ["allowed", "lane", "progress", "stuck", "yard", "footwork", "enemies_near", "enemies_at_our_extractors", "under_fire", "scouts_out", "detachments_out", "split_from", "nanos"] {
+            for key in ["allowed", "lane", "standing", "progress", "stuck", "yard", "footwork", "enemies_near", "enemies_at_our_extractors", "under_fire", "scouts_out", "detachments_out", "split_from", "nanos"] {
                 match &entry[key] {
                     serde_json::Value::String(text) => parts.push(format!("{key}: {text}")),
                     serde_json::Value::Array(items) => parts.push(format!("{key}: {}", items.iter().filter_map(|i| i.as_str()).collect::<Vec<_>>().join("; "))),
@@ -336,6 +336,25 @@ pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, fights
         lines.push(format!("actors gone (dead, merged or split): {}", gone.join(", ")));
     }
     seen.hands = actors;
+    if !hands.standing_mode.is_empty() {
+        let (packet, tool) = hands.standing_counts;
+        let fired: u32 = hands.standing_fired.values().sum();
+        let mut line = format!("standing orders ({}): {packet} from your packet, {tool} from `standing`", hands.standing_mode);
+        if fired > 0 {
+            let mut items: Vec<(&String, &u32)> = hands.standing_fired.iter().collect();
+            items.sort_by(|a, b| b.1.cmp(a.1));
+            line += &format!("; fired {fired} times since your last turn ({}); {} asks of Jev saved", items.iter().take(8).map(|(k, v)| format!("{k} {v}")).collect::<Vec<_>>().join(", "), hands.standing_saved);
+        } else if packet + tool > 0 {
+            line += "; none fired since your last turn";
+        }
+        if !hands.standing_verdicts.is_empty() {
+            line += &format!("; the filter's verdicts: {}", hands.standing_verdicts.iter().map(|(k, v)| format!("{k} {v}")).collect::<Vec<_>>().join(", "));
+        }
+        lines.push(line);
+        if full && packet + tool > 0 {
+            lines.push(format!("standing orders in force:\n{}", hands.standing_text));
+        }
+    }
     if hands.policy_on {
         if hands.policy_text.is_empty() {
             lines.push("your policy: none is in force; every actor keeps its course until you set one (`policy`)".into());

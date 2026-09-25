@@ -71,6 +71,11 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
 - From 2026-09-24 late, a group's `do` is asked in two levels (H-HANDS-TWO-LEVEL): `two_level: true` on the call,
   `questions` still the flat layout as built, `answers` the composed `<group>.do`, and `raw` the `<group>.kind` and
   `<group>.<family>` answers it was composed from (family-1's log, the first, lacked `raw`: its family masses are gone).
+- From 2026-09-25 (H-HANDS-STANDING) two more line kinds: `{"t": "decompress", "f", "packet_frame", "ms", "usage",
+  "orders": {actor: {rule: value}}, "answers"}` when a packet was read into standing orders, and `{"t": "standing",
+  "f", "mode", "orders": {actor: {do, params, rule}}, "illegal", "continued", "played"}` each second the executor gave
+  an order (mode `on` plays them: `played` entries carry source `standing`; mode `filter` puts a `<actor>.standing`
+  question on the call and the `played` entry of that call carries the `verdict`; mode `off` only logs the orders).
 Size: 15-30 KB a call (3-6k tokens of state and questions), 20-60 calls a minute: 25 MB for a 20-minute game. Logs from
 the first morning (2026-09-21, before the header line) carry `instructions` and `rules` in every state and no `played`;
 the viewer reads those too, taking the decisions from the answers.
