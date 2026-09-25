@@ -66,6 +66,9 @@ const PICK_HOLD: i32 = 60 * FRAMES_PER_SECOND;
 /// A deviation from a rule's default needs a state noul this high: the packet's word against a coin flip
 /// (onepass-hard-1: constructors picked off their `job expand` default to help a starving plant at 0.51-0.62).
 pub(super) const OVER_RULE: f64 = 0.7;
+/// An idle actor with no state at the flag still puts its best state to the pick when it is rated this high
+/// (onepass-medium-2: the commander idled six minutes on an extractor rated 0.48).
+const IDLE_BAR: f64 = 0.3;
 
 /// What an actor does in a state.
 #[derive(Clone, Debug)]
@@ -921,6 +924,13 @@ pub(super) fn compose(slots: &[Slot], answers: &BTreeMap<String, Answer>, flags:
                     per_slot.push(mine);
                     continue;
                 }
+                // Only a state the gate rated as the move (onepass-smoke-2: sixteen worlds of storage, radar and
+                // converter beside the Blitz rated 0.73 put 0.5 on "nobody changes course" and 0.2 on the Blitz; the
+                // plant idled fourteen minutes with a full store); a clear call against a rule's default; an idle
+                // actor's best state at a low bar when none reaches the flag.
+                let bar = if slot.states[base[si]].default && !slot.states[base[si]].current { OVER_RULE } else { FLAG };
+                let best = slot.states.iter().enumerate().filter(|(ti, s)| *ti != base[si] && *ti != 0 && !s.pair_only).filter_map(|(_, s)| noul(&s.id)).fold(0.0, f64::max);
+                let bar = if slot.idle && base[si] == 0 && best < bar { IDLE_BAR } else { bar };
                 for (ti, s) in slot.states.iter().enumerate() {
                     if ti == base[si] || ti == 0 || s.pair_only {
                         continue;
@@ -929,10 +939,6 @@ pub(super) fn compose(slots: &[Slot], answers: &BTreeMap<String, Answer>, flags:
                     if let Some(p) = rated {
                         flags.insert(s.id.clone(), p);
                     }
-                    // Only a state the gate rated as the move (onepass-smoke-2: sixteen worlds of storage, radar
-                    // and converter beside the Blitz rated 0.73 put 0.5 on "nobody changes course" and 0.2 on the
-                    // Blitz; the plant idled fourteen minutes with a full store); a clear call against a rule's default.
-                    let bar = if slot.states[base[si]].default && !slot.states[base[si]].current { OVER_RULE } else { FLAG };
                     let Some(rated) = rated.filter(|r| *r >= bar) else { continue };
                     let rank = change * rated;
                     let mut w = base.clone();
@@ -996,13 +1002,17 @@ fn dear(words: &str) -> bool {
     words.split(|c: char| !c.is_ascii_digit()).filter_map(|n| n.parse::<f32>().ok()).any(|n| n >= PAIR_COST) && words.contains("metal")
 }
 
-/// A world's line: the moves, then what follows: which threats are met with what metal and odds (turrets counted),
-/// which are left to nobody, who stays idle.
-pub(super) fn consequence(world: &World, slots: &[Slot], store: &str) -> String {
+/// A world's line: its moves, then what follows: which threats are met with what metal and odds (turrets counted),
+/// which are left to nobody, who stays idle. World 1's line carries every course in force; every other world's
+/// says only what it changes from world 1 ("as w1, and ...") so the change is the option's own words
+/// (K-jev-hold-words-carry-the-cost; onepass-hard-2: the plant's Blitz rated 0.69 lost at 0.36 to a w1 whose line
+/// the deviation repeated in full, the change buried at its end).
+pub(super) fn consequence(world: &World, slots: &[Slot], store: &str, base: Option<&World>) -> String {
     let mut moves: Vec<String> = Vec::new();
     let (mut met, mut unmet, mut idle): (Vec<String>, Vec<String>, Vec<String>) = (Vec::new(), Vec::new(), Vec::new());
-    for (slot, si) in slots.iter().zip(world) {
+    for (k, (slot, si)) in slots.iter().zip(world).enumerate() {
         let s = &slot.states[*si];
+        let unchanged = base.is_some_and(|b| b[k] == *si);
         match &slot.kind {
             Kind::Threat(p, place) => {
                 let composition = if p.has_commander { format!("THEIR COMMANDER, whose death wins the game, with {}", p.composition) } else { p.composition.clone() };
@@ -1010,11 +1020,15 @@ pub(super) fn consequence(world: &World, slots: &[Slot], store: &str) -> String 
                 match &s.response {
                     Response::Leave => unmet.push(format!("{} ({composition}, {place}{}{killing})", p.name, under(p))),
                     Response::Back(..) => {
-                        moves.push(s.words.clone());
+                        if !unchanged {
+                            moves.push(s.words.clone());
+                        }
                         unmet.push(format!("{} ({composition}, {place}{}{killing})", p.name, under(p)));
                     }
                     _ => {
-                        moves.push(s.words.clone());
+                        if !unchanged {
+                            moves.push(s.words.clone());
+                        }
                         let theirs = p.metal + p.turret_metal;
                         let with = if p.turrets.is_empty() { String::new() } else { format!(" with {} ({:.0} metal)", p.turrets, p.turret_metal) };
                         met.push(format!("{} ({composition}, {:.0} metal, {place}){with} met with {:.0} metal: {}{killing}", p.name, p.metal, s.metal, odds_by_metal(s.metal, theirs)));
@@ -1026,14 +1040,18 @@ pub(super) fn consequence(world: &World, slots: &[Slot], store: &str) -> String 
                     if slot.idle {
                         idle.push(slot.name.clone());
                     }
-                } else {
+                } else if !unchanged {
                     moves.push(s.words.clone());
                 }
             }
         }
     }
     let mut parts: Vec<String> = Vec::new();
-    parts.push(if moves.is_empty() { "Nobody changes course".to_string() } else { moves.join("; ") });
+    parts.push(match (base.is_some(), moves.is_empty()) {
+        (false, true) => "Nobody changes course".to_string(),
+        (false, false) => format!("The courses in force: {}", moves.join("; ")),
+        (true, _) => format!("As w1, and: {}", moves.join("; ")),
+    });
     if !met.is_empty() {
         parts.push(format!("Met: {}", met.join("; ")));
     }
@@ -1051,7 +1069,7 @@ pub(super) fn consequence(world: &World, slots: &[Slot], store: &str) -> String 
 /// The one question of the second call: a Choice over the worlds' lines.
 pub(super) fn question(lines: &[String]) -> Question {
     let instructions = json!(
-        "Given `economy`, `ours`, `enemy`, `actors`, `player` and the player's `instructions`, which plan is best this second? Each option is one world: who changes course to do what, with what it costs and gives up, which enemy parties are met and which are left to nobody, who stays idle. w1 changes nothing: every actor keeps its course and the idle ones stay idle; every other world changes one actor's course (a pair, when two hands go to one build). An idle factory or builder with metal in the store is a cost, not a course, unless the instructions say to wait. The instructions were written before this picture: where they name a place, a party, a building, a unit or a rule, follow them; where the situation has changed, pick the world they would call for."
+        "Given `economy`, `ours`, `enemy`, `actors`, `player` and the player's `instructions`, which plan is best this second? Each option is one world: who changes course to do what, with what it costs and gives up, which enemy parties are met and which are left to nobody, who stays idle. w1 changes nothing: every actor keeps its course and the idle ones stay idle; every other world is w1 with one actor's course changed (a pair, when two hands go to one build), and its line says only that change. An idle factory or builder with metal in the store is a cost, not a course, unless the instructions say to wait. The instructions were written before this picture: where they name a place, a party, a building, a unit or a rule, follow them; where the situation has changed, pick the world they would call for."
     );
     Question::Choice { instructions, criteria: lines.iter().enumerate().map(|(i, l)| (format!("w{}", i + 1), json!(l))).collect() }
 }
@@ -1128,7 +1146,7 @@ mod tests {
         assert_eq!(worlds.len(), 3);
         assert_eq!(gate_questions(&slots).iter().filter(|(id, _)| id.starts_with("constructor_3")).count(), 2, "an idle actor is not asked whether to change, only which move");
         assert_eq!(flags["party_2.answer"], 0.9);
-        let line = consequence(&vec![1, 1, 0], &slots, "340 of 500 stored");
+        let line = consequence(&vec![1, 1, 0], &slots, "340 of 500 stored", Some(&worlds[0]));
         assert!(line.contains("Met: party_1") && line.contains("party_2 (") && line.contains("constructor_3 idle"), "{line}");
         assert_eq!(pick(&BTreeMap::from([("worlds.pick".to_string(), Answer::Choice { choice: "w2".into(), probabilities: BTreeMap::new(), confidence: 0.6 })]), &worlds), Some((1, 0.6)));
     }

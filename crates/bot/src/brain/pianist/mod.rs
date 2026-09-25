@@ -661,7 +661,7 @@ impl Brain {
         let mut flags: BTreeMap<String, f64> = BTreeMap::new();
         let worlds = plan::compose(&slots, answers, &mut flags, cap);
         let store = picture.state["economy"]["metal"].as_str().and_then(|m| m.split(';').next()).unwrap_or_default().to_string();
-        let lines: Vec<String> = worlds.as_ref().map(|ws| ws.iter().map(|w| plan::consequence(w, &slots, &store)).collect()).unwrap_or_default();
+        let lines: Vec<String> = worlds.as_ref().map(|ws| ws.iter().enumerate().map(|(i, w)| plan::consequence(w, &slots, &store, (i > 0).then_some(&ws[0]))).collect()).unwrap_or_default();
         let pianist = self.pianist.as_mut().expect("pianist mode");
         pianist.write_log(json!({ "t": "worlds_gate", "f": tick.frame, "flags": flags, "worlds": worlds, "lines": lines }));
         let Some(ws) = worlds else { return };
