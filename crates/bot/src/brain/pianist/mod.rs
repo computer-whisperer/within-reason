@@ -191,6 +191,8 @@ pub struct Pianist {
 const LOG_VERSION: u32 = 2;
 /// Realtime: an answer older than this judges a picture too old to play.
 const STALE_FRAMES: i32 = 3 * FRAMES_PER_SECOND;
+/// An event alone (a hit, a sighting, an alarm) asks again no oftener than this.
+const EVENT_GAP: i32 = 5 * FRAMES_PER_SECOND;
 
 /// The thread that talks to Jev in real time: requests in, answers out, each with the request's number.
 struct Worker {
@@ -557,12 +559,17 @@ impl Brain {
         let open: Vec<&str> = slots.iter().filter(|s| s.open()).map(|s| s.name.as_str()).collect();
         line["open"] = json!(open);
         let questions = plan::gate_questions(&slots);
-        let eco = format!("{}|{}", picture.state["economy"]["metal"].as_str().map(|m| m.split('(').nth(1).unwrap_or_default().split(')').next().unwrap_or_default().to_string()).unwrap_or_default(), picture.state["economy"]["energy"].as_str().is_some_and(|e| e.contains("STALLING")));
+        // The economy in the signature at its extremes only: the stock words' five buckets flapped at their edges
+        // (onepass-medium-3: 58 of 663 asks).
+        let eco = format!("{}|{}", if tick.snapshot.metal.current < 100.0 { "empty" } else if tick.snapshot.metal.current >= tick.snapshot.metal.storage - 1.0 { "full" } else { "" }, picture.state["economy"]["energy"].as_str().is_some_and(|e| e.contains("STALLING")));
         let sig = format!("{}|{eco}|{}", plan::signature(&slots), self.pianist.as_ref().expect("pianist mode").packet_frame);
         let jev = self.pianist.as_ref().is_some_and(|p| p.client.is_some());
         let pianist = self.pianist.as_mut().expect("pianist mode");
         let events: Vec<String> = pianist.events.iter().cloned().collect();
-        let changed = pianist.sig.as_ref().is_none_or(|(s, f)| *s != sig || frame - *f >= plan::RE_ASK) || !events.is_empty();
+        // An event alone asks again no oftener than `EVENT_GAP` (onepass-medium-3: a group under fire asked every
+        // second, 118 of 663 asks on "hit" alone).
+        let since_ask = pianist.sig.as_ref().map_or(i32::MAX, |(_, f)| frame - *f);
+        let changed = pianist.sig.as_ref().is_none_or(|(s, f)| *s != sig || frame - *f >= plan::RE_ASK) || (!events.is_empty() && since_ask >= EVENT_GAP);
         if questions.is_empty() || !jev {
             line["played"] = json!(std::mem::take(&mut pianist.played));
             pianist.write_log(line);

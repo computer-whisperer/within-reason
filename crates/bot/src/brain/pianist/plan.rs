@@ -1046,11 +1046,13 @@ pub(super) fn consequence(world: &World, slots: &[Slot], store: &str, base: Opti
             }
         }
     }
+    // World 1's own words are the cost of changing nothing and no more: the courses in force are in `actors`
+    // (K-jev-hold-words-carry-the-cost; onepass-hard-3: a w1 listing three helpers' courses took 0.45-0.49 against
+    // the plant's Blitz at 0.28-0.33, rated 0.7 by the pre-pass).
     let mut parts: Vec<String> = Vec::new();
-    parts.push(match (base.is_some(), moves.is_empty()) {
-        (false, true) => "Nobody changes course".to_string(),
-        (false, false) => format!("The courses in force: {}", moves.join("; ")),
-        (true, _) => format!("As w1, and: {}", moves.join("; ")),
+    parts.push(match base {
+        None => "Nothing changes: every actor keeps the course its entry under `actors` describes".to_string(),
+        Some(_) => format!("As w1, and: {}", moves.join("; ")),
     });
     if !met.is_empty() {
         parts.push(format!("Met: {}", met.join("; ")));
