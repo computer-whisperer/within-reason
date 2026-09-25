@@ -147,9 +147,12 @@ Not the lane's, said plainly: the fall-backs of small groups (Jev's rule and the
 - **Ranks of six, not one rank.** A body of 11 Blitzes in one rank was 700 wide and lost its ends to the Pawn
   ball (form-blitz-on, -0.17 against the plain order); the pros' drawn lines are 279 wide (4-5 units). Slots are
   now ranks of `FILES` = 6, 96 apart, offset half a spacing; a body over 12 still splits side by side.
-- **No raider step-back.** Stepping a raider back to 0.92 of its reach re-ordered it every few frames and an order
-  costs shots (form-smoke: 1.8 shots per in-reach second against 6.6 without the lane). A unit stands once (a Stop)
-  and keeps standing while anything is within reach + 100; closing goes to 0.92 of reach.
+- **No raider step-back, and a stand is no order.** Stepping a raider back to 0.92 of its reach re-ordered it every
+  few frames and an order costs shots (form-smoke: 1.8 shots per in-reach second against 6.6 without the lane); a
+  Stop at contact dropped the weapon's target (form6-stoutmix-dbg: 0.58 shots per in-reach second against 0.77). A
+  standing unit is given nothing: the rank stops leading when the body is engaged, so its slot is where it stands,
+  and the engine's attack-move fires at will; a stance lasts half a second at least. A sidestep for a unit with a
+  friend on its line was tried and dropped (form7-stoutmix-dbg: the step cost more shots than the refused ones).
 - **The lethal flee is kept, amended** (K-micro-a-unit-under-the-guns-shoots): as written it fled won fights at
   contact; with strength odds and an under-the-guns test it costs nothing measurable. (It was removed for a while on
   numbers from the contaminated batches below, and restored.)

@@ -81,19 +81,18 @@ const FAN_CLEAR: f32 = 64.0;
 const FAN_STEP_MAX: f32 = 150.0;
 /// H-MICRO-FORM: a unit stands when an enemy is inside its reach by this much (the engine's range test and ours
 /// disagree at the edge; the fire instrument calls the last 40 the edge), and keeps standing while one is within
-/// its reach plus `STAND_KEEP`: every change of stance is an order, and an order costs shots (form-smoke: Blitzes
-/// re-ordered between standing, stepping back and closing every few frames fired 1.8 a second in reach against
-/// 6.6 with the lane off).
+/// its reach plus `STAND_KEEP`, and for `FORM_FRAMES` at least: every change of stance is an order, and an order
+/// costs shots (form-smoke: Blitzes re-ordered between standing, stepping back and closing every few frames fired
+/// 1.8 a second in reach against 6.6 with the lane off). A keep of 100 held Stouts standing out of reach of Thuds
+/// at 380 (form5-stoutmix-on, -0.08): the keep is the reach slack now.
 const STAND_INSIDE: f32 = 20.0;
-const STAND_KEEP: f32 = 100.0;
+const STAND_KEEP: f32 = REACH_SLACK;
 /// A unit closing on an enemy stops this share of its reach from it (the pros' short-range units fight at 0.94 of
 /// their reach, ours at 0.86: K-form-pros-raiders-fight-at-reach).
 const CLOSE_TO: f32 = 0.92;
 /// A slot order is re-issued when the slot has moved this far from what was sent, and not within this many frames.
 const FORM_REORDER: f32 = 64.0;
 const FORM_FRAMES: i32 = 15;
-/// A standing unit is pinned back to where it stood when it has drifted this far.
-const STAND_DRIFT: f32 = 48.0;
 
 /// What a soldier's group was priced against, so the lane knows which threats its host meant it to face.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -325,7 +324,6 @@ enum Kind {
     Fight,
     Move,
     Attack(UnitId),
-    Stop,
 }
 
 fn kind_of(command: &Command) -> Option<Kind> {
@@ -333,7 +331,6 @@ fn kind_of(command: &Command) -> Option<Kind> {
         Command::Fight { .. } => Some(Kind::Fight),
         Command::Move { .. } => Some(Kind::Move),
         Command::Attack { target, .. } => Some(Kind::Attack(*target)),
-        Command::Stop { .. } => Some(Kind::Stop),
         _ => None,
     }
 }
@@ -349,10 +346,13 @@ enum Stance {
     Close,
 }
 
-/// A form order for one unit this tick.
+/// A form order for one unit this tick. A stand has no command: the unit keeps the order it has (a Fight at its
+/// slot, which it has reached, or an Attack on its order's target) and the engine's own attack-move fires at will
+/// from there; a Stop would drop the weapon's target, and every order costs shots (form6-stoutmix-dbg: standing
+/// Stouts re-stopped fired 0.58 a second in reach against 0.77 with the lane off).
 struct FormOrder {
     stance: Stance,
-    command: Command,
+    command: Option<Command>,
     /// Where the command sends the unit (for the re-issue test).
     at: Vec3,
 }
@@ -802,7 +802,10 @@ impl Lane {
                 (_, Some(g)) => form::heading(centre, g),
                 _ => continue,
             };
-            let anchor = form::anchor(centre, h, goal);
+            // Engaged, the rank stops leading: slots are centred on the body, so a unit at its slot has nowhere to
+            // walk and stands (the pros' bodies close to 0.87-0.94 of reach and stop: K-form-pros-raiders-fight-at-reach).
+            let engaged_body = !walking && !armed_near.is_empty();
+            let anchor = if engaged_body { centre } else { form::anchor(centre, h, goal) };
             let slots = form::slots(anchor, h, body.len(), form::SPACING);
             let positions: Vec<Vec3> = body.iter().map(|m| m.pos).collect();
             let slot_of = form::assign(&positions, &slots, h);
@@ -821,23 +824,25 @@ impl Lane {
                 };
                 let standing = self.claims.get(&unit.id).is_some_and(|c| c.rule == Rule::Form && c.stance == Some(Stance::Stand));
                 let form_order = if walking || reach <= 0.0 {
-                    FormOrder { stance: Stance::Advance, command: Command::Move { unit: unit.id, to: slot, queue: false }, at: slot }
+                    FormOrder { stance: Stance::Advance, command: Some(Command::Move { unit: unit.id, to: slot, queue: false }), at: slot }
                 } else if distance < reach - STAND_INSIDE || (standing && distance < reach + STAND_KEEP) {
-                    // Standing: its order's target when that is what is in reach, else fire at will from here.
+                    // Standing: its order's target when that is what is in reach, else nothing: it fires at will
+                    // where it is. (A sidestep for a unit with a friend on its line was tried and dropped: the step
+                    // itself cost more shots than the refused ones, form7-stoutmix-dbg.)
                     let command = match order {
-                        form::Order::Attack(target) if nearest.is_some_and(|e| e.id == target) => Command::Attack { unit: unit.id, target, queue: false },
-                        _ => Command::Stop { unit: unit.id },
+                        form::Order::Attack(target) if nearest.is_some_and(|e| e.id == target) => Some(Command::Attack { unit: unit.id, target, queue: false }),
+                        _ => None,
                     };
                     FormOrder { stance: Stance::Stand, command, at: unit.pos }
                 } else if let Some(e) = nearest.filter(|_| engaged) {
                     let at = toward(e, CLOSE_TO);
-                    FormOrder { stance: Stance::Close, command: Command::Fight { unit: unit.id, to: at, queue: false }, at }
+                    FormOrder { stance: Stance::Close, command: Some(Command::Fight { unit: unit.id, to: at, queue: false }), at }
                 } else {
                     let command = match order {
                         form::Order::Attack(_) => Command::Move { unit: unit.id, to: slot, queue: false },
                         _ => Command::Fight { unit: unit.id, to: slot, queue: false },
                     };
-                    FormOrder { stance: Stance::Advance, command, at: slot }
+                    FormOrder { stance: Stance::Advance, command: Some(command), at: slot }
                 };
                 orders.insert(unit.id, form_order);
             }
@@ -851,10 +856,12 @@ impl Lane {
     fn take_slot(&mut self, view: &dyn View, unit: &OwnUnit, order: &FormOrder, frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, debug: bool) {
         let claim = self.claims.get(&unit.id);
         let fresh = claim.is_none_or(|c| c.rule != Rule::Form);
-        let kind = kind_of(&order.command);
+        let kind = order.command.as_ref().and_then(kind_of);
         let changed = claim.is_some_and(|c| c.rule == Rule::Form && (c.stance != Some(order.stance) || c.kind != kind));
+        // A stance lasts half a second at least (a change is an order, and an order costs shots).
+        let changed = changed && claim.is_none_or(|c| frame - c.frame >= FORM_FRAMES);
         let issue = match order.stance {
-            Stance::Stand => fresh || changed || claim.is_some_and(|c| unit.pos.dist2d(c.sent_to) > STAND_DRIFT && frame - c.frame >= FORM_FRAMES),
+            Stance::Stand => fresh || changed,
             Stance::Advance | Stance::Close => fresh || changed || claim.is_some_and(|c| c.sent_to.dist2d(order.at) > FORM_REORDER && frame - c.frame >= FORM_FRAMES),
         };
         if fresh {
@@ -870,19 +877,11 @@ impl Lane {
                 view.label(), view.def(unit.def).map_or("?", |d| d.name.as_str()), unit.id.0, order.stance, unit.pos.x, unit.pos.z, order.at.x, order.at.z
             );
         }
-        self.counts.1 += 1;
-        // A standing unit's pin is where it stood when it first stood, not where it has drifted to.
-        let sent_to = match (order.stance, claim) {
-            (Stance::Stand, Some(c)) if c.rule == Rule::Form && c.stance == Some(Stance::Stand) => c.sent_to,
-            _ => order.at,
-        };
-        // A standing unit that drifted is walked back to its pin; a fresh stand is a stop where it is.
-        let command = match (&order.command, order.stance) {
-            (Command::Stop { unit }, Stance::Stand) if !fresh && !changed => Command::Fight { unit: *unit, to: sent_to, queue: false },
-            (c, _) => c.clone(),
-        };
-        self.claims.insert(unit.id, Claim { rule: Rule::Form, sent_to, target: None, frame, stance: Some(order.stance), kind });
-        commands.push(command);
+        self.claims.insert(unit.id, Claim { rule: Rule::Form, sent_to: order.at, target: None, frame, stance: Some(order.stance), kind });
+        if let Some(command) = &order.command {
+            self.counts.1 += 1;
+            commands.push(command.clone());
+        }
     }
 
     /// A claimed unit no behaviour wants any more gets its standing order back, once.
