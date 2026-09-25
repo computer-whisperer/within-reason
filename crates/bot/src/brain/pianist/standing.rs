@@ -7,13 +7,13 @@
 //! applies it through the hands as an answer at probability one.
 use std::collections::{BTreeMap, BTreeSet};
 
-use bot_protocol::{OwnUnit, Tick, Vec3};
+use bot_protocol::{Tick, Vec3};
 use jev::{Answer, Question};
 use serde_json::{Value, json};
 
 use super::super::Brain;
 use super::super::roster::Kit;
-use super::menu::{ALARM, Actor, DETACH_PARTY_MAX, Menu};
+use super::menu::{ALARM, Actor, Menu};
 use super::picture::{Party, Picture};
 use super::{GroupTask, Task};
 
@@ -77,15 +77,12 @@ pub(crate) enum Mode {
     /// The executor's order goes to Jev beside the actor's menu as a `standing` question (rule / near / other /
     /// panic), and plays only on `rule`.
     Filter,
-    /// The groups' rules generate candidates and one question over the joined worlds decides (`worlds.rs`,
-    /// `docs/design/2026-09-25-one-decider.md` §4); the builders' rules play as in `On`. The default, and since the
-    /// groups' own questions were deleted (2026-09-25 night) the only mode in which a group is asked at all: under
-    /// `on`, `filter` and `off` a group plays its rules or keeps its course.
+    /// The threat passes (`threats.rs`, `docs/design/2026-09-26-threat-response.md`): the groups' raids are
+    /// answered by a plan Jev composes in two calls when the threat picture changes, the standing orders pruning
+    /// and setting the plan's defaults; the builders' rules play as in `On`. The default, and the only mode in which
+    /// a group is asked at all: under `on` the plan is the defaults alone, under `filter` and `off` a group plays
+    /// its course rules or keeps its course.
     Worlds,
-    /// The user's two-pass form (2026-09-25 night): a first call of nouls per group asks which of its dimensions
-    /// (a fight, a walk, the way back) is live, and a second call composes the worlds over the live ones only;
-    /// nothing live plays world 1 outright. Two calls, still under half a second in lockstep.
-    Nouls,
 }
 
 impl Mode {
@@ -95,7 +92,6 @@ impl Mode {
             Some("off") => Mode::Off,
             Some("filter") => Mode::Filter,
             Some("on") => Mode::On,
-            Some("nouls") => Mode::Nouls,
             _ => Mode::Worlds,
         }
     }
@@ -106,7 +102,6 @@ impl Mode {
             Mode::On => "on",
             Mode::Filter => "filter",
             Mode::Worlds => "worlds",
-            Mode::Nouls => "nouls",
         }
     }
 }
@@ -190,7 +185,7 @@ impl Standing {
         let rules = self.rules_for(actor);
         let mut out = Vec::new();
         if rules.get("no_detachments").is_some_and(|v| v == "yes") {
-            out.extend(["send_against", "split", "scout"].map(String::from));
+            out.extend(["split", "scout"].map(String::from));
         }
         if rules.get("hold_line").is_some_and(|v| v == "yes") && !odds_against {
             out.extend(["retreat", "fall_back"].map(String::from));
@@ -520,15 +515,6 @@ fn order(choice: &str, params: &[(&str, &str)]) -> Order {
     Order { choice: choice.to_string(), params: params.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect() }
 }
 
-/// The `how_many` the hands understand, at or above `n`.
-pub(super) fn how_many(n: usize) -> &'static str {
-    match n {
-        0 | 1 => "1",
-        2 => "2",
-        3 | 4 => "4",
-        _ => "8",
-    }
-}
 
 impl Brain {
     /// The standing order for the actor of `menu` this second, with the rule that gave it; None asks Jev.
@@ -570,48 +556,8 @@ impl Brain {
                 {
                     return Some((order(&format!("join_{other}"), &[]), "join".into()));
                 }
-                // 3. A named party to kill.
-                if let Some(target) = rules.get("engage_party")
-                    && let Some(party) = picture.parties.iter().find(|p| p.name == *target)
-                    && offered("engage")
-                {
-                    return Some((order("engage", &[("whom", &party.name)]), "engage_party".into()));
-                }
-                // 3. Raiders at our structures.
-                let engaged: Vec<bot_protocol::UnitId> = pianist.groups.iter().filter_map(|g| if let GroupTask::Engage { party, .. } = &g.task { Some(party.clone()) } else { None }).flatten().collect();
-                let at_structure = |p: &Party| own.iter().any(|u| !u.being_built && u.pos.dist2d(p.at) < AT_STRUCTURE && (kit.is_extractor(u.def) || u.def == kit.turret || self.world.is_factory_def(u.def) || self.world.is_constructor_def(u.def)));
-                let mut raiders: Vec<&Party> = picture.parties.iter().filter(|p| p.at.dist2d(centre) < RAIDER_REACH && (1..=6).contains(&p.ids.len()) && at_structure(p)).collect();
-                raiders.sort_by(|a, b| a.at.dist2d(centre).total_cmp(&b.at.dist2d(centre)));
-                for party in raiders {
-                    let mine = matches!(&group.task, GroupTask::Engage { party: ids, .. } if ids.iter().any(|id| party.ids.contains(id)));
-                    if !mine && party.ids.iter().any(|id| engaged.contains(id)) {
-                        continue;
-                    }
-                    let rule = if party.ids.len() == 1 { "raiders_lone" } else { "raiders_party" };
-                    let Some(value) = rules.get(rule) else { continue };
-                    if mine {
-                        return Some((order("engage", &[("whom", &party.name)]), rule.into()));
-                    }
-                    let odds = self.odds_words(&units, party, enemies);
-                    let can_detach = offered("send_against") && party.ids.len() <= DETACH_PARTY_MAX;
-                    let choice = match value.as_str() {
-                        "ignore" => continue,
-                        "whole_group" => "engage",
-                        _ if can_detach => "send_against",
-                        _ => "engage",
-                    };
-                    if choice == "engage" {
-                        if !offered("engage") || odds == "it outweighs us" || odds.starts_with("we cannot hit") {
-                            continue;
-                        }
-                        return Some((order("engage", &[("whom", &party.name)]), rule.into()));
-                    }
-                    let n = match value.strip_prefix("detachment:") {
-                        Some(n) => n.to_string(),
-                        None => how_many(self.detachment_for(&units, party, enemies)).to_string(),
-                    };
-                    return Some((order("send_against", &[("whom", &party.name), ("how_many", &n)]), rule.into()));
-                }
+                // 3. The parties are the threat passes' (`threats.rs`): `engage_party`, `raiders_lone` and `raiders_party`
+                // are their defaults and pruning, not orders here.
                 // 4. No chasing: an engagement carried beyond reach of the station.
                 if rules.get("no_chase").is_some_and(|v| v == "yes")
                     && let GroupTask::Engage { party, .. } = &group.task
@@ -725,25 +671,6 @@ impl Brain {
         }
     }
 
-    /// The smallest detachment of the group's soldiers nearest the party that outweighs it (ratio 1.3), by the
-    /// combat table; the whole group when none does.
-    pub(super) fn detachment_for(&self, units: &[&OwnUnit], party: &Party, enemies: &[bot_protocol::EnemyUnit]) -> usize {
-        let mut theirs = super::super::combat::Force::default();
-        for enemy in enemies.iter().filter(|e| party.ids.contains(&e.id)) {
-            match enemy.def {
-                Some(def) => theirs.add(def),
-                None => theirs.unidentified += 1,
-            }
-        }
-        let mut sorted: Vec<&OwnUnit> = units.to_vec();
-        sorted.sort_by(|a, b| a.pos.dist2d(party.at).total_cmp(&b.pos.dist2d(party.at)));
-        for n in 1..=sorted.len() {
-            if self.odds(&Brain::force_of(&sorted[..n]), &theirs) >= 1.3 {
-                return n;
-            }
-        }
-        sorted.len()
-    }
 }
 
 #[cfg(test)]
@@ -814,10 +741,10 @@ mod tests {
         assert_eq!(s.rules_for("group_B")["station"], "spot_61");
         assert_eq!(s.removals("group_B", false, "armsolar", "armllt"), Vec::<String>::new());
         s.set_tool("group_B", &json!({ "no_detachments": true, "hold_line": "yes" }), &places, &[]).unwrap();
-        assert_eq!(s.removals("group_B", false, "armsolar", "armllt"), ["send_against", "split", "scout", "retreat", "fall_back"]);
+        assert_eq!(s.removals("group_B", false, "armsolar", "armllt"), ["split", "scout", "retreat", "fall_back"]);
         s.set_tool("group_B", &json!({ "hold_line": "no", "no_detachments": false }), &places, &[]).unwrap();
         assert!(s.removals("group_B", false, "armsolar", "armllt").is_empty());
         s.set_tool("group_B", &json!({ "no_detachments": true, "hold_line": "yes" }), &places, &[]).unwrap();
-        assert_eq!(s.removals("group_B", true, "armsolar", "armllt"), ["send_against", "split", "scout"]);
+        assert_eq!(s.removals("group_B", true, "armsolar", "armllt"), ["split", "scout"]);
     }
 }

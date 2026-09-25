@@ -64,9 +64,12 @@ impl Brain {
                     super::pianist::GroupTask::Move { fight: false, .. } => Commitment::None,
                 };
                 let rules = self.footwork_of(&group.name);
+                let hunting: Vec<bot_protocol::UnitId> = group.hunt.as_ref().map(|h| h.hunters.clone()).unwrap_or_default();
                 for id in &group.members {
-                    commitment.insert(*id, commitment_of.clone());
-                    footwork.insert(*id, rules);
+                    // A hunter runs raw: the attack by id does the closing (docs/design/2026-09-26-threat-response.md §1).
+                    let hunter = hunting.contains(id);
+                    commitment.insert(*id, if hunter { Commitment::None } else { commitment_of.clone() });
+                    footwork.insert(*id, if hunter { Footwork::raw() } else { rules });
                 }
             }
         }

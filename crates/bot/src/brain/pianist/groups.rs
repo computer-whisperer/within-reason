@@ -9,6 +9,7 @@ use bot_protocol::{Command, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
 
 use super::super::roster::Kit;
 use super::super::{Brain, FRAMES_PER_SECOND};
+use super::picture::Party;
 use super::standing::NEVER_REACH;
 use crate::world::Domain;
 
@@ -50,6 +51,33 @@ pub(super) const LAST_HOLD: &str = "where it last held,";
 /// A hold this long is a station worth falling back to (wake-2: a one-second pause at the front became "where it
 /// last held", and group_L fell back to where it stood, held, retreated, and fell back again, eleven times in 30 s).
 pub(super) const STATION_FRAMES: i32 = 15 * FRAMES_PER_SECOND;
+
+/// A hunt (`docs/design/2026-09-26-threat-response.md` §1-2): these members of the group attack one unit of a party by
+/// id, raw (no formation, no flee, no march), re-issued from the latest sighting, until the quarry dies, is out of
+/// sight and radar for `HUNT_LOST_FRAMES`, or the leash ends; a hunter under a third of its health drops out. The
+/// rest of the group keeps its task; the hunters rejoin it when the hunt ends. The micro engine's own primitive
+/// replaces the brain's re-issued attack when it lands.
+#[derive(Clone, Debug)]
+pub(crate) struct Hunt {
+    pub quarry: UnitId,
+    pub party: String,
+    pub hunters: Vec<UnitId>,
+    pub from: Vec3,
+    pub since: i32,
+    pub last_seen: i32,
+    pub last_order: i32,
+    /// Where the quarry was last seen: the attack goes there when it is on radar only.
+    pub at: Vec3,
+}
+
+/// A hunt's quarry unseen this long is lost.
+const HUNT_LOST_FRAMES: i32 = 6 * FRAMES_PER_SECOND;
+/// A hunt this far from where it began ends (the group's station when it has one is the anchor instead).
+const HUNT_LEASH: f32 = 900.0;
+/// A hunter this hurt drops out of the hunt.
+const HUNT_DROP_HEALTH: f32 = 1.0 / 3.0;
+/// A party a group was told to leave is not answered by its rule's default for this long.
+pub(super) const DECLINE_FRAMES: i32 = 30 * FRAMES_PER_SECOND;
 
 #[derive(Clone, Debug)]
 pub(crate) enum GroupTask {
@@ -111,11 +139,31 @@ pub(crate) struct Group {
     pub loss_warned: bool,
     /// Where the group last stood holding: the `fall_back` option's destination (H-HANDS-FALL-BACK).
     pub last_hold: Option<Vec3>,
+    /// The hunt some or all of its members are on (`docs/design/2026-09-26-threat-response.md` §1-2).
+    pub hunt: Option<Hunt>,
+    /// Parties this group was told to leave (a pick, or a hunt that ended at its leash), and when: no default and
+    /// no hunt against them for `DECLINE_FRAMES`, so a plan the pick ended is not restarted by the rule a second later.
+    pub declined: Vec<(String, i32)>,
 }
 
 impl Group {
     pub(crate) fn new(name: String, domain: Domain, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, enemies_near: false, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None }
+        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, enemies_near: false, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None, hunt: None, declined: Vec::new() }
+    }
+
+    /// The members not on a hunt: the ones the group's task orders.
+    pub(crate) fn free_units<'a>(&self, own: &'a [OwnUnit]) -> Vec<&'a OwnUnit> {
+        let hunting: Vec<UnitId> = self.hunt.as_ref().map(|h| h.hunters.clone()).unwrap_or_default();
+        self.units(own).into_iter().filter(|u| !hunting.contains(&u.id)).collect()
+    }
+
+    /// Orders for members rejoining the task: what the task would give them now.
+    pub(crate) fn rejoin_orders(&self, units: &[&OwnUnit]) -> Vec<Command> {
+        match &self.task {
+            GroupTask::Hold { .. } => self.hold_orders(units),
+            GroupTask::Move { to, fight, .. } => units.iter().map(|u| if *fight { Command::Fight { unit: u.id, to: *to, queue: false } } else { Command::Move { unit: u.id, to: *to, queue: false } }).collect(),
+            GroupTask::Engage { at, target, .. } => units.iter().map(|u| match target { Some(t) => Command::Attack { unit: u.id, target: *t, queue: false }, None => Command::Fight { unit: u.id, to: *at, queue: false } }).collect(),
+        }
     }
 
     /// The soldiers lost since `since`, and their metal.
@@ -283,8 +331,13 @@ impl Brain {
                 (g.name.clone(), places)
             })
             .collect();
+        let mut hunt_ends: Vec<String> = Vec::new();
         for (index, group) in pianist.groups.iter_mut().enumerate() {
-            let units = group.units(own);
+            // The hunt first: its members are not the task's this tick.
+            if let Some(end) = Brain::tick_hunt(group, own, enemies, frame, commands) {
+                hunt_ends.push(end);
+            }
+            let units = group.free_units(own);
             let Some(centre) = centre_of(&units) else { continue };
             match &mut group.task {
                 GroupTask::Hold { since, .. } => {
@@ -379,6 +432,10 @@ impl Brain {
             }
             let _ = home;
         }
+        for text in hunt_ends {
+            pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
+            pianist.hunt_events.push(text);
+        }
         for text in stalled {
             pianist.note(frame, text.clone());
             pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
@@ -397,6 +454,96 @@ impl Brain {
             self.pianist.as_mut().expect("pianist mode").groups[index].held = held;
         }
     }
+}
+
+impl Brain {
+    /// One tick of a group's hunt: the attack re-issued from the latest sighting every second or when the quarry
+    /// moved, hurt hunters dropped, and the end (the quarry dead or lost, the leash reached, no hunter left) with
+    /// the hunters given the task's orders again. Returns the end's words.
+    fn tick_hunt(group: &mut Group, own: &[OwnUnit], enemies: &[bot_protocol::EnemyUnit], frame: i32, commands: &mut Vec<Command>) -> Option<String> {
+        let hunt = group.hunt.as_mut()?;
+        let alive: Vec<&OwnUnit> = own.iter().filter(|u| hunt.hunters.contains(&u.id)).collect();
+        let fit: Vec<UnitId> = alive.iter().filter(|u| u.health >= HUNT_DROP_HEALTH * u.max_health).map(|u| u.id).collect();
+        let dropped: Vec<&OwnUnit> = alive.iter().copied().filter(|u| !fit.contains(&u.id)).collect();
+        if !dropped.is_empty() {
+            hunt.hunters.retain(|id| fit.contains(id));
+            let hunt_copy = hunt.clone();
+            let _ = hunt_copy;
+        }
+        let quarry = enemies.iter().find(|e| e.id == hunt.quarry);
+        if let Some(q) = quarry {
+            hunt.last_seen = frame;
+            hunt.at = q.pos;
+        }
+        let centre = centre_of(&alive);
+        let end = if hunt.hunters.is_empty() {
+            Some("every hunter hurt or dead".to_string())
+        } else if quarry.is_none() && frame - hunt.last_seen > HUNT_LOST_FRAMES {
+            Some(format!("{} out of sight for {} s", hunt.party, HUNT_LOST_FRAMES / FRAMES_PER_SECOND))
+        } else if centre.is_some_and(|c| c.dist2d(hunt.from) > HUNT_LEASH) {
+            Some(format!("the leash of {HUNT_LEASH:.0} from where it began reached"))
+        } else {
+            None
+        };
+        let party = hunt.party.clone();
+        let hunters = hunt.hunters.clone();
+        let since = hunt.since;
+        if let Some(why) = end {
+            group.hunt = None;
+            group.declined.retain(|(_, f)| frame - f < DECLINE_FRAMES);
+            group.declined.push((party.clone(), frame));
+            let rejoining: Vec<&OwnUnit> = own.iter().filter(|u| hunters.contains(&u.id) || dropped.iter().any(|d| d.id == u.id)).collect();
+            commands.extend(group.rejoin_orders(&rejoining));
+            return Some(format!("group_{}'s hunt of {party} ended after {} s: {why}; {} rejoin the group", group.name, (frame - since) / FRAMES_PER_SECOND, rejoining.len()));
+        }
+        if !dropped.is_empty() {
+            commands.extend(group.rejoin_orders(&dropped));
+        }
+        let hunt = group.hunt.as_mut()?;
+        if frame - hunt.last_order >= FRAMES_PER_SECOND {
+            hunt.last_order = frame;
+            let (quarry, at) = (hunt.quarry, hunt.at);
+            commands.extend(hunt.hunters.iter().map(|id| if quarry_seen(enemies, quarry) { Command::Attack { unit: *id, target: quarry, queue: false } } else { Command::Fight { unit: *id, to: at, queue: false } }));
+        }
+        None
+    }
+
+    /// Starts a hunt of the party's nearest unit by these members of the group (the previous hunt, if any, ends).
+    pub(super) fn start_hunt(group: &mut Group, hunters: Vec<UnitId>, party: &Party, own: &[OwnUnit], enemies: &[bot_protocol::EnemyUnit], anchor: Option<Vec3>, frame: i32, commands: &mut Vec<Command>) -> String {
+        let units: Vec<&OwnUnit> = own.iter().filter(|u| hunters.contains(&u.id)).collect();
+        let centre = centre_of(&units).unwrap_or(party.at);
+        let quarry = party
+            .ids
+            .iter()
+            .filter_map(|id| enemies.iter().find(|e| e.id == *id))
+            .min_by(|a, b| a.pos.dist2d(centre).total_cmp(&b.pos.dist2d(centre)))
+            .map(|e| (e.id, e.pos))
+            .unwrap_or((party.ids[0], party.at));
+        commands.extend(group.release_orders(&units));
+        commands.extend(units.iter().map(|u| Command::Attack { unit: u.id, target: quarry.0, queue: false }));
+        let n = units.len();
+        group.hunt = Some(Hunt { quarry: quarry.0, party: party.name.clone(), hunters, from: anchor.unwrap_or(centre), since: frame, last_seen: frame, last_order: frame, at: quarry.1 });
+        format!("{n} of group_{} hunt {} ({})", group.name, party.name, party.composition)
+    }
+
+    /// The whole group engages the party: released, sent to fight at it, its task the engagement.
+    pub(super) fn engage_group(group: &mut Group, party: &Party, own: &[OwnUnit], target: Option<UnitId>, frame: i32, commands: &mut Vec<Command>) -> String {
+        group.hunt = None;
+        let units = group.units(own);
+        commands.extend(group.release_orders(&units));
+        match target {
+            Some(t) => commands.extend(units.iter().map(|u| Command::Attack { unit: u.id, target: t, queue: false })),
+            None => commands.extend(units.iter().map(|u| Command::Fight { unit: u.id, to: party.at, queue: false })),
+        }
+        let from = centre_of(&units).unwrap_or(party.at);
+        group.set_task(GroupTask::Engage { party: party.ids.clone(), at: party.at, since: frame, last_seen: frame, target, searched: false, from }, frame);
+        group.last_order = frame;
+        format!("attack {} ({}) with the whole group", party.name, party.composition)
+    }
+}
+
+fn quarry_seen(enemies: &[bot_protocol::EnemyUnit], quarry: UnitId) -> bool {
+    enemies.iter().any(|e| e.id == quarry)
 }
 
 pub(crate) fn centre_of_enemies(units: &[&bot_protocol::EnemyUnit]) -> Option<Vec3> {

@@ -40,8 +40,6 @@ const ATTACK_REACH: f32 = 320.0;
 /// which the commander's guns then join (human-8, the user: it did not use its commander to improve the exchange
 /// rate; the Grunts died 380 to 525 from it).
 const ATTACK_JOIN: f32 = 500.0;
-/// A group this small is not offered a detachment (pianist-player-14: groups of one sent one soldier at a time).
-const DETACH_FROM: usize = 4;
 /// A party bigger than this is an attack, not a raider to be met by a detachment (human-1: two soldiers sent against
 /// eight Pawns four times, each pair back in the group a second later).
 pub(super) const DETACH_PARTY_MAX: usize = 3;
@@ -77,8 +75,6 @@ pub(crate) enum Pick {
     Split,
     /// Back to where the group last held, not fighting on the way (H-HANDS-FALL-BACK).
     FallBack,
-    /// `how_many` soldiers nearest the party in `whom` go and attack it as a new group; the rest carry on.
-    Detach,
     /// One soldier, a raider if there is one, walks to `where` and stands there.
     Scout,
     Join(String),
@@ -118,12 +114,8 @@ pub(crate) struct Menu {
     /// Played from a standing order at probability one (the record's source `standing`).
     pub standing_played: bool,
     /// A group in the worlds question (`worlds.rs`): its candidates, and that its own questions are not asked.
-    pub worlds_candidates: Vec<super::worlds::Candidate>,
-    pub in_worlds: bool,
     /// The worlds menu itself (name `worlds`): the worlds its one question is over.
-    pub worlds: Vec<super::worlds::World>,
-    /// Played from the picked world (the record's source `worlds`).
-    pub worlds_played: bool,
+    pub worlds: Vec<super::threats::World>,
 }
 
 impl Brain {
@@ -396,7 +388,7 @@ impl Brain {
                 queue_ahead,
                 options,
                 spots: spots.iter().map(|(i, _)| *i).collect(),
-                scripted: None, replay: None, replay_key: None, standing: None, standing_played: false, worlds_candidates: Vec::new(), in_worlds: false, worlds: Vec::new(), worlds_played: false,
+                scripted: None, replay: None, replay_key: None, standing: None, standing_played: false, worlds: Vec::new(),
             });
         }
 
@@ -470,16 +462,12 @@ impl Brain {
                 }
                 _ => None,
             };
-            menus.push(Menu { actor: Actor::Lab(unit.id), questions: vec![question], name, busy: queued > 0, queue_ahead: false, options, spots: Vec::new(), scripted: None, replay, replay_key: Some(key), standing: None, standing_played: false, worlds_candidates: Vec::new(), in_worlds: false, worlds: Vec::new(), worlds_played: false });
+            menus.push(Menu { actor: Actor::Lab(unit.id), questions: vec![question], name, busy: queued > 0, queue_ahead: false, options, spots: Vec::new(), scripted: None, replay, replay_key: Some(key), standing: None, standing_played: false, worlds: Vec::new() });
         }
 
         // Groups.
         let group_names: Vec<(String, Option<Vec3>, crate::world::Domain)> = pianist.groups.iter().map(|g| (g.name.clone(), super::groups::centre_of(&g.units(own)), g.domain)).collect();
         let scout_out = pianist.groups.iter().any(|g| g.members.len() == 1 && matches!(g.task, super::GroupTask::Move { fight: false, .. }));
-        // H-HANDS-DETACH: a party some group of ours already engages is not offered for a detachment; asked every
-        // five seconds, a group sent four soldiers after the same Flash squad eleven times in forty seconds and the
-        // detachments sent detachments (pianist-player-14: "we are feeding it four soldiers at a time").
-        let engaged: Vec<UnitId> = pianist.groups.iter().filter_map(|g| if let super::GroupTask::Engage { party, .. } = &g.task { Some(party.clone()) } else { None }).flatten().collect();
         for group in &mut pianist.groups {
             let name = format!("group_{}", group.name);
             let units = group.units(own);
@@ -557,12 +545,6 @@ impl Brain {
             }
             if units.len() >= 2 {
                 offer("split", Pick::Split, "Send a detachment, the number in `how_many` of the nearest soldiers, to advance to the place in `where`; the rest carry on as they were.".into());
-                let unengaged = picture.parties.iter().any(|p| p.ids.len() <= DETACH_PARTY_MAX && !p.ids.iter().any(|id| engaged.contains(id)));
-                if unengaged && units.len() >= DETACH_FROM {
-                    // H-HANDS-DETACH: a raider at a structure is met by a few soldiers, not the ball (realtime-2: 11 of
-                    // 18 engagements were the whole ball after one Fav, Stump or Beaver, while a Fav killed a lab at home).
-                    offer("send_against", Pick::Detach, "Send a detachment, the number in `how_many` of the soldiers nearest to the enemy party named in `whom`, to attack it and follow it; the rest carry on as they were. The answer to a raider at one of our extractors while this group stays: one soldier catches a single Tick or scout car, a few catch a small party, the whole group chasing one does not.".into());
-                }
                 // One scout out at a time (smoke-6: a raider every ten seconds to the enemy base, five dead by 5:00).
                 if !scout_out {
                     offer("scout", Pick::Scout, "Send one soldier (a raider if the group has one) to look at what we know least: the enemy base if nothing of ours has seen it for three minutes, else the nearest spot never looked at inside its start box; it stands there watching and the rest carry on. This is how the enemy base and its army get seen.".into());
@@ -581,7 +563,7 @@ impl Brain {
             // these options; the menu carries what may be played.
             let questions: Vec<(String, Question)> = Vec::new();
             pianist.last_asked.insert(name.clone(), frame);
-            menus.push(Menu { actor: Actor::Group(group.name.clone()), name, busy, queue_ahead: false, questions, options, spots: Vec::new(), scripted: None, replay: None, replay_key: None, standing: None, standing_played: false, worlds_candidates: Vec::new(), in_worlds: false, worlds: Vec::new(), worlds_played: false });
+            menus.push(Menu { actor: Actor::Group(group.name.clone()), name, busy, queue_ahead: false, questions, options, spots: Vec::new(), scripted: None, replay: None, replay_key: None, standing: None, standing_played: false, worlds: Vec::new() });
         }
 
         // The call's size: Jev's window is 64k tokens and shell-1 sent two calls past it (46 questions, 135k characters
@@ -621,7 +603,7 @@ impl Brain {
                 ("global.base_in_danger".to_string(), Question::noul("Given `enemy` and `places`, is our base or our commander in danger right now?")),
                 ("global.attack_coming".to_string(), Question::noul("Given `enemy`, is a large enemy attack on us likely within the next minute or two?")),
             ];
-            menus.push(Menu { actor: Actor::Global, name: "global".into(), busy: false, queue_ahead: false, questions, options: BTreeMap::new(), spots: Vec::new(), scripted: None, replay: None, replay_key: None, standing: None, standing_played: false, worlds_candidates: Vec::new(), in_worlds: false, worlds: Vec::new(), worlds_played: false });
+            menus.push(Menu { actor: Actor::Global, name: "global".into(), busy: false, queue_ahead: false, questions, options: BTreeMap::new(), spots: Vec::new(), scripted: None, replay: None, replay_key: None, standing: None, standing_played: false, worlds: Vec::new() });
         }
         pianist.due_now.clear();
         // The call after this one takes what was deferred (a packet's builders), and comes half a second on.
@@ -744,7 +726,7 @@ impl Brain {
                         questions: Vec::new(),
                         options: BTreeMap::from([(key.clone(), pick)]),
                         spots,
-                        scripted: Some((key, where_, step.clone())), replay: None, replay_key: None, standing: None, standing_played: false, worlds_candidates: Vec::new(), in_worlds: false, worlds: Vec::new(), worlds_played: false,
+                        scripted: Some((key, where_, step.clone())), replay: None, replay_key: None, standing: None, standing_played: false, worlds: Vec::new(),
                     });
                 }
                 Err(why) => {
@@ -881,10 +863,10 @@ pub(super) fn timed_assist(step: &str) -> Option<i32> {
 
 impl Menu {
     /// The `worlds` menu: one question, no actor of its own.
-    pub(super) fn test_worlds_like() -> Menu {
+    pub(super) fn carrier(name: &str) -> Menu {
         Menu {
             actor: Actor::Global,
-            name: "worlds".to_string(),
+            name: name.to_string(),
             busy: false,
             queue_ahead: false,
             questions: Vec::new(),
@@ -895,43 +877,8 @@ impl Menu {
             replay_key: None,
             standing: None,
             standing_played: false,
-            worlds_candidates: Vec::new(),
-            in_worlds: false,
             worlds: Vec::new(),
-            worlds_played: false,
         }
     }
 }
 
-#[cfg(test)]
-impl Menu {
-    pub(super) fn test_group(name: &str, candidates: Vec<super::worlds::Candidate>) -> Menu {
-        Menu {
-            actor: Actor::Group(name.trim_start_matches("group_").to_string()),
-            name: name.to_string(),
-            busy: false,
-            queue_ahead: false,
-            questions: Vec::new(),
-            options: candidates.iter().map(|c| (c.order.choice.clone(), Pick::Hold)).collect(),
-            spots: Vec::new(),
-            scripted: None,
-            replay: None,
-            replay_key: None,
-            standing: None,
-            standing_played: false,
-            worlds_candidates: candidates,
-            in_worlds: true,
-            worlds: Vec::new(),
-            worlds_played: false,
-        }
-    }
-
-    pub(super) fn test_worlds(worlds: Vec<super::worlds::World>) -> Menu {
-        let mut menu = Menu::test_group("worlds", Vec::new());
-        menu.actor = Actor::Global;
-        menu.name = "worlds".to_string();
-        menu.in_worlds = false;
-        menu.worlds = worlds;
-        menu
-    }
-}

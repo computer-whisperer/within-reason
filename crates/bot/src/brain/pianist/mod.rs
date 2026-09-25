@@ -15,7 +15,7 @@ mod remove;
 mod diet;
 mod schedule;
 pub(crate) mod standing;
-mod worlds;
+mod threats;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 
@@ -161,8 +161,13 @@ pub struct Pianist {
     /// Each factory's own group, by factory: the group its soldiers gather in unless `produce` names another; made
     /// on the first soldier and remade when it has died out.
     pub(super) rally: HashMap<UnitId, String>,
-    /// When each group was last offered walks to the named places in the worlds question (`worlds.rs`).
-    pub(super) walks_offered: HashMap<String, i32>,
+    /// The threat passes (`threats.rs`): the threats of the last ask, the worlds of its second call, and the threat
+    /// picture's signature and frame at the last ask (ask on change).
+    pub(super) threats: Vec<threats::Threat>,
+    pub(super) threat_worlds: Vec<threats::World>,
+    pub(super) threat_sig: Option<(String, i32)>,
+    /// The hunts' ends since the last standing line (`groups.rs` `tick_hunt`), for the log.
+    pub(super) hunt_events: Vec<String>,
     /// Spots where the engine refused an extractor, and until when they are left off the menus (H-HANDS-REFUSED).
     pub(super) refused_spots: HashMap<usize, i32>,
     /// Sites the engine refused for a building (the type, the point, until when): kept out of that type's site
@@ -335,7 +340,10 @@ impl Pianist {
             next_group: 0,
             produced_by: HashMap::new(),
             rally: HashMap::new(),
-            walks_offered: HashMap::new(),
+            threats: Vec::new(),
+            threat_worlds: Vec::new(),
+            threat_sig: None,
+            hunt_events: Vec::new(),
             refused_spots: HashMap::new(),
             refused_sites: Vec::new(),
             script_frame: HashMap::new(),
@@ -584,7 +592,7 @@ impl Brain {
             }
         }
         // Every real question answered from a replay: nothing to ask; the replays play without a call.
-        if menus.iter().any(|m| m.replay.is_some()) && menus.iter().all(|m| m.replay.is_some() || (m.questions.is_empty() && !m.in_worlds) || (matches!(m.actor, menu::Actor::Global) && m.name != "worlds")) {
+        if menus.iter().any(|m| m.replay.is_some()) && menus.iter().all(|m| m.replay.is_some() || m.questions.is_empty() || (matches!(m.actor, menu::Actor::Global) && m.name != "worlds")) {
             let answers = replayed_answers(&menus, &BTreeMap::new());
             self.pianist.as_mut().expect("pianist mode").stats.replayed += 1;
             self.play(tick, kit, &picture, menus, &answers, commands);
@@ -629,9 +637,9 @@ impl Brain {
                     pianist.stats.tokens += response.usage["input_tokens"].as_u64().unwrap_or(0);
                 }
                 self.announce_hands(&response, commands);
-                let mut answers = replayed_answers(&menus, &response.answers);
-                worlds::resolve(&mut menus, &mut answers);
-                let second = self.worlds_follow_up(tick, &picture, &mut menus, &mut answers);
+                let answers = replayed_answers(&menus, &response.answers);
+                self.threat_resolve(tick, &picture, &menus, &answers, commands);
+                let second = self.threat_follow_up(tick, &mut menus, &answers);
                 let flat = flat_questions(&menus);
                 self.play(tick, kit, &picture, menus, &answers, commands);
                 self.publish_hands(&picture, &answers);
@@ -754,7 +762,7 @@ impl Brain {
                 orders.push((menu.name.clone(), order, rule));
             }
         }
-        if orders.is_empty() && mode != StandingMode::Worlds {
+        if orders.is_empty() && !matches!(mode, StandingMode::Worlds | StandingMode::On) {
             return;
         }
         let mut orders_json = serde_json::Map::new();
@@ -762,6 +770,12 @@ impl Brain {
             orders_json.insert(actor.clone(), json!({ "do": order.choice, "params": order.params, "rule": rule }));
         }
         let mut line = json!({ "t": "standing", "f": frame, "mode": mode.name(), "orders": orders_json });
+        {
+            let pianist = self.pianist.as_mut().expect("pianist mode");
+            if !pianist.hunt_events.is_empty() {
+                line["hunts"] = json!(std::mem::take(&mut pianist.hunt_events));
+            }
+        }
         match mode {
             StandingMode::Off => {}
             StandingMode::Filter => {
@@ -782,34 +796,7 @@ impl Brain {
                     menu.standing = Some((order, rule));
                 }
             }
-            StandingMode::Worlds | StandingMode::Nouls => {
-                // The builders play as in `on`; the groups go to the worlds question (`nouls`: through its gate).
-                let (groups, builders): (Vec<_>, Vec<_>) = orders.into_iter().partition(|(a, _, _)| a.starts_with("group_"));
-                let plain: Vec<(String, standing::Order)> = builders.iter().map(|(a, o, _)| (a.clone(), o.clone())).collect();
-                let Applied { answers, taken, illegal, continued } = self.apply_orders(picture, menus, plain);
-                {
-                    let pianist = self.pianist.as_mut().expect("pianist mode");
-                    for (actor, _, rule) in &builders {
-                        if !illegal.iter().any(|i| i.starts_with(&format!("{actor}:"))) {
-                            *pianist.standing.fired.entry(format!("{actor} {rule}")).or_insert(0) += 1;
-                            if rule == "retreat_when_enemy_near" {
-                                pianist.standing.retreated.insert(actor.clone(), frame);
-                            }
-                        }
-                    }
-                    pianist.standing.saved += (taken.len() + continued.len()) as u32;
-                }
-                line["illegal"] = json!(illegal);
-                line["continued"] = json!(continued);
-                if !taken.is_empty() {
-                    self.pianist.as_mut().expect("pianist mode").played.clear();
-                    self.play(tick, kit, picture, taken, &answers, commands);
-                }
-                let rule_of: BTreeMap<String, standing::Order> = groups.iter().map(|(a, o, _)| (a.clone(), o.clone())).collect();
-                let rule_name: BTreeMap<String, String> = groups.into_iter().map(|(a, _, r)| (a, r)).collect();
-                self.worlds_pass(tick, kit, picture, menus, &rule_of, &rule_name, commands, &mut line, mode);
-            }
-            StandingMode::On => {
+            StandingMode::On | StandingMode::Worlds => {
                 let plain: Vec<(String, standing::Order)> = orders.iter().map(|(a, o, _)| (a.clone(), o.clone())).collect();
                 let Applied { answers, taken, illegal, continued } = self.apply_orders(picture, menus, plain);
                 let pianist = self.pianist.as_mut().expect("pianist mode");
@@ -829,6 +816,8 @@ impl Brain {
                     self.pianist.as_mut().expect("pianist mode").played.clear();
                     self.play(tick, kit, picture, taken, &answers, commands);
                 }
+                // The threats (`threats.rs`): the plan's base put in force, the gate's nouls asked on change.
+                self.threat_pass(tick, picture, menus, commands, &mut line, mode);
             }
         }
         let pianist = self.pianist.as_mut().expect("pianist mode");
@@ -840,127 +829,156 @@ impl Brain {
         }
     }
 
-    /// The worlds question (`worlds.rs`): every group asked this second gets its candidates; a group with one
-    /// candidate keeps its course without an ask; the rest vary in one Choice over the joined worlds, put beside the
-    /// menus as the `worlds` menu (a group has no question of its own). With nothing varying, or without Jev, world 1
-    /// (the rules) is played outright.
-    #[allow(clippy::too_many_arguments)]
-    fn worlds_pass(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, menus: &mut Vec<menu::Menu>, rule_of: &BTreeMap<String, standing::Order>, rule_name: &BTreeMap<String, String>, commands: &mut Vec<Command>, line: &mut serde_json::Value, mode: StandingMode) {
-        let mut cands: Vec<(String, Vec<worlds::Candidate>)> = Vec::new();
-        for menu in menus.iter() {
-            if !matches!(menu.actor, menu::Actor::Group(_)) || menu.scripted.is_some() || menu.replay.is_some() {
-                continue;
-            }
-            let c = self.candidates(tick, picture, menu, rule_of.get(&menu.name));
-            if !c.is_empty() {
-                cands.push((menu.name.clone(), c));
-            }
-        }
-        // One candidate: its course stands, and the ask is saved.
-        let quiet: Vec<String> = cands.iter().filter(|(_, c)| c.len() < 2).map(|(g, _)| g.clone()).collect();
-        menus.retain(|m| !quiet.contains(&m.name));
-        cands.retain(|(_, c)| c.len() >= 2);
-        {
-            let pianist = self.pianist.as_mut().expect("pianist mode");
-            pianist.standing.saved += quiet.len() as u32;
-        }
-        line["quiet"] = json!(quiet);
-        if cands.is_empty() {
+    /// The threat passes (`threats.rs`, `docs/design/2026-09-26-threat-response.md` §4-6): the threats and the
+    /// states against each this second; the plan's base (the states in force, the rules' defaults) put in force at
+    /// once; when something is open and the threat picture changed since the last ask (or `RE_ASK` passed), the
+    /// gate's nouls go with this call and the worlds question with the next (`threat_follow_up`). Under `on`, or
+    /// without Jev, the base is the plan.
+    fn threat_pass(&mut self, tick: &Tick, picture: &picture::Picture, menus: &mut Vec<menu::Menu>, commands: &mut Vec<Command>, line: &mut serde_json::Value, mode: StandingMode) {
+        let threats = self.threats(tick, picture);
+        if threats.is_empty() {
             return;
         }
-        let ws = worlds::worlds(&cands);
-        line["groups"] = worlds::log_candidates(&cands);
-        line["worlds"] = json!(ws);
+        let base: threats::World = threats.iter().map(threats::Threat::base).collect();
+        let started = self.apply_plan(tick, picture, &threats, &base, "rule", commands);
+        line["threats"] = threats::log_threats(&threats);
+        if !started.is_empty() {
+            line["plan"] = json!(started);
+        }
+        let questions = threats::gate_questions(&threats);
+        let sig = threats::signature(&threats);
         let jev = self.pianist.as_ref().is_some_and(|p| p.client.is_some());
-        if ws.len() < 2 || !jev {
-            // World 1 outright: each group's rule where it has one.
-            let plain: Vec<(String, standing::Order)> = ws[0]
-                .iter()
-                .filter_map(|(g, ci)| cands.iter().find(|(n, _)| n == g).map(|(_, c)| &c[*ci]))
-                .zip(ws[0].iter())
-                .filter(|(c, _)| c.kind == worlds::Kind::Rule)
-                .map(|(c, (g, _))| (g.clone(), c.order.clone()))
-                .collect();
-            let Applied { answers, taken, illegal, continued } = self.apply_orders(picture, menus, plain);
-            {
-                let pianist = self.pianist.as_mut().expect("pianist mode");
-                for (actor, _) in taken.iter().map(|m| (m.name.clone(), ())).chain(continued.iter().map(|a| (a.clone(), ()))) {
-                    if let Some(rule) = rule_name.get(&actor) {
-                        *pianist.standing.fired.entry(format!("{actor} {rule}")).or_insert(0) += 1;
-                    }
-                }
-                pianist.standing.saved += (taken.len() + continued.len()) as u32;
-            }
-            line["played_outright"] = json!(taken.iter().map(|m| m.name.clone()).collect::<Vec<_>>());
-            line["illegal"] = json!(illegal);
-            if !taken.is_empty() {
-                self.play(tick, kit, picture, taken, &answers, commands);
-            }
+        let pianist = self.pianist.as_mut().expect("pianist mode");
+        let changed = pianist.threat_sig.as_ref().is_none_or(|(s, f)| *s != sig || tick.frame - *f >= threats::RE_ASK);
+        if questions.is_empty() || mode != StandingMode::Worlds || !jev {
             return;
         }
-        let own = &tick.snapshot.own_units;
-        let centres: Vec<(String, Vec3)> = {
-            let pianist = self.pianist.as_ref().expect("pianist mode");
-            cands.iter().filter_map(|(g, _)| pianist.groups.iter().find(|x| format!("group_{}", x.name) == *g).and_then(|x| super::pianist::groups::centre_of(&x.units(own))).map(|c| (g.clone(), c))).collect()
-        };
-        let lines: Vec<String> = ws.iter().map(|w| worlds::consequence(w, &cands, &picture.parties, &centres, &picture.places)).collect();
-        let names: Vec<String> = cands.iter().map(|(g, _)| g.clone()).collect();
-        let question = worlds::question(&names, &lines);
-        {
-            let pianist = self.pianist.as_mut().expect("pianist mode");
-            for (g, c) in &cands {
-                if c.iter().any(|x| x.kind == worlds::Kind::Walk) {
-                    pianist.walks_offered.insert(g.clone(), tick.frame);
-                }
-            }
-        }
-        for menu in menus.iter_mut() {
-            if let Some((_, c)) = cands.iter().find(|(g, _)| *g == menu.name) {
-                menu.worlds_candidates = c.clone();
-                menu.in_worlds = true;
-                menu.questions.clear();
-            }
-        }
-        if mode == StandingMode::Nouls {
-            // The gate: the nouls go with this call, the worlds question with the next (`worlds::follow_up`).
-            let mut gate = menu::Menu::test_worlds_like();
-            gate.name = "gate".to_string();
-            for (g, c) in &cands {
-                gate.questions.extend(worlds::gate_questions(g, c));
-            }
-            line["gate"] = json!(gate.questions.iter().map(|(id, _)| id.clone()).collect::<Vec<_>>());
-            menus.push(gate);
+        if !changed {
+            line["quiet"] = json!("the threat picture is as at the last ask: the plan stands");
+            pianist.standing.saved += 1;
             return;
         }
-        let mut worlds_menu = menu::Menu::test_worlds_like();
-        worlds_menu.questions = vec![("worlds.pick".to_string(), question)];
-        worlds_menu.worlds = ws;
-        menus.push(worlds_menu);
-        line["lines"] = json!(lines);
+        pianist.threat_sig = Some((sig, tick.frame));
+        pianist.threats = threats;
+        pianist.threat_worlds.clear();
+        let mut gate = menu::Menu::carrier("gate");
+        gate.questions = questions;
+        line["gate"] = json!(gate.questions.iter().map(|(id, _)| id.clone()).collect::<Vec<_>>());
+        menus.push(gate);
     }
 
-    /// Mode `nouls`, after the gate's answers: the second call's menus (the varying groups and a `worlds` menu), or
-    /// nothing to ask. Logs what the gate said.
-    fn worlds_follow_up(&mut self, tick: &Tick, picture: &picture::Picture, menus: &mut Vec<menu::Menu>, answers: &mut BTreeMap<String, jev::Answer>) -> Option<Vec<menu::Menu>> {
+    /// Puts a world's states in force: a state already current stands; Whole starts the engagement, Hunt the hunt,
+    /// Back the walk; Leave ends a current hunt or engagement of that party and declines it for a while. Returns
+    /// what changed, for the log and the `done` lines.
+    fn apply_plan(&mut self, tick: &Tick, picture: &picture::Picture, threats: &[threats::Threat], world: &threats::World, source: &str, commands: &mut Vec<Command>) -> Vec<String> {
+        let own = &tick.snapshot.own_units;
+        let enemies = tick.snapshot.enemies.as_slice();
+        let frame = tick.frame;
+        let mut done: Vec<(String, String)> = Vec::new();
+        let Some(mut pianist) = self.pianist.take() else { return Vec::new() };
+        for (t, si) in threats.iter().zip(world) {
+            let s = &t.states[*si];
+            if s.current {
+                continue;
+            }
+            match &s.response {
+                threats::Response::Leave => {
+                    for group in pianist.groups.iter_mut() {
+                        if group.hunt.as_ref().is_some_and(|h| t.party.ids.contains(&h.quarry)) {
+                            let hunters: Vec<UnitId> = group.hunt.as_ref().map(|h| h.hunters.clone()).unwrap_or_default();
+                            group.hunt = None;
+                            group.declined.push((t.party.name.clone(), frame));
+                            let units: Vec<&bot_protocol::OwnUnit> = own.iter().filter(|u| hunters.contains(&u.id)).collect();
+                            commands.extend(group.rejoin_orders(&units));
+                            done.push((format!("group_{}", group.name), format!("its hunt of {} called off", t.party.name)));
+                        }
+                        if matches!(&group.task, GroupTask::Engage { party, .. } if party.iter().any(|id| t.party.ids.contains(id))) {
+                            let units = group.units(own);
+                            commands.extend(group.hold_orders(&units));
+                            group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
+                            group.declined.push((t.party.name.clone(), frame));
+                            done.push((format!("group_{}", group.name), format!("leaves {} and holds", t.party.name)));
+                        }
+                    }
+                }
+                threats::Response::Whole(g) => {
+                    let air_target = pianist.groups.iter().find(|x| format!("group_{}", x.name) == *g).filter(|x| x.domain == crate::world::Domain::Air).and_then(|_| self.party_target(&t.party, enemies)).map(|(id, _)| id);
+                    if let Some(group) = pianist.groups.iter_mut().find(|x| format!("group_{}", x.name) == *g) {
+                        let text = Brain::engage_group(group, &t.party, own, air_target, frame, commands);
+                        done.push((g.clone(), text));
+                    }
+                }
+                threats::Response::Hunt(g, hunters) => {
+                    let anchor = pianist.standing.rules_for(g).get("station").and_then(|st| picture.places.iter().find(|p| p.name == *st)).map(|p| p.at);
+                    if let Some(group) = pianist.groups.iter_mut().find(|x| format!("group_{}", x.name) == *g) {
+                        let text = Brain::start_hunt(group, hunters.clone(), &t.party, own, enemies, anchor, frame, commands);
+                        done.push((g.clone(), text));
+                    }
+                }
+                threats::Response::Back(g, place) => {
+                    if let Some(group) = pianist.groups.iter_mut().find(|x| format!("group_{}", x.name) == *g)
+                        && let Some(p) = picture.places.iter().find(|x| x.name == *place)
+                    {
+                        let units = group.units(own);
+                        let to = p.at;
+                        commands.extend(group.release_orders(&units));
+                        commands.extend(units.iter().map(|u| Command::Move { unit: u.id, to, queue: false }));
+                        group.set_task(GroupTask::Move { to, place: place.clone(), fight: false, since: frame }, frame);
+                        group.last_order = frame;
+                        done.push((g.clone(), format!("falls back to {place} from {}", t.party.name)));
+                    }
+                }
+            }
+        }
+        for (actor, text) in &done {
+            pianist.done.push(format!("{} {actor}: {text} ({source})", picture::clock(frame)));
+            pianist.played.push(json!({ "actor": actor, "kind": "group", "played": text, "source": source }));
+        }
+        self.pianist = Some(pianist);
+        done.into_iter().map(|(a, t)| format!("{a}: {t}")).collect()
+    }
+
+    /// After the gate's answers: the worlds over the flagged states as the second call's `worlds` menu, or nothing
+    /// to ask. Logs what the gate said and the worlds' lines.
+    fn threat_follow_up(&mut self, tick: &Tick, menus: &mut [menu::Menu], answers: &BTreeMap<String, jev::Answer>) -> Option<Vec<menu::Menu>> {
         if !menus.iter().any(|m| m.name == "gate") {
             return None;
         }
-        let own = &tick.snapshot.own_units;
-        let centres: Vec<(String, Vec3)> = {
-            let pianist = self.pianist.as_ref().expect("pianist mode");
-            menus.iter().filter(|m| m.in_worlds).filter_map(|m| pianist.groups.iter().find(|x| format!("group_{}", x.name) == m.name).and_then(|x| super::pianist::groups::centre_of(&x.units(own))).map(|c| (m.name.clone(), c))).collect()
-        };
-        let mut flags: BTreeMap<String, BTreeMap<String, f64>> = BTreeMap::new();
-        let second = worlds::follow_up(menus, answers, &picture.parties, &centres, &picture.places, &mut flags);
+        let threats = self.pianist.as_ref().expect("pianist mode").threats.clone();
+        let mut flags: BTreeMap<String, f64> = BTreeMap::new();
+        let worlds = threats::compose(&threats, answers, &mut flags);
+        let lines: Vec<String> = worlds.as_ref().map(|ws| ws.iter().map(|w| threats::consequence(w, &threats)).collect()).unwrap_or_default();
         let pianist = self.pianist.as_mut().expect("pianist mode");
         if let Some(log) = &mut pianist.log {
-            let asked: Vec<String> = second.as_ref().map(|s| s.iter().filter(|m| m.in_worlds).map(|m| m.name.clone()).collect()).unwrap_or_default();
-            let _ = writeln!(log, "{}", json!({ "t": "worlds_gate", "f": tick.frame, "flags": flags, "asked": asked }));
+            let _ = writeln!(log, "{}", json!({ "t": "worlds_gate", "f": tick.frame, "flags": flags, "worlds": worlds, "lines": lines }));
         }
-        second
+        let ws = worlds?;
+        let mut carrier = menu::Menu::carrier("worlds");
+        carrier.questions = vec![("worlds.pick".to_string(), threats::question(&lines))];
+        carrier.worlds = ws.clone();
+        pianist.threat_worlds = ws;
+        Some(vec![carrier])
     }
 
-    /// The second call of mode `nouls`: the worlds question alone over the same state. In lockstep it is made here;
+    /// The second call's pick put in force, and logged as a `plan` line.
+    fn threat_resolve(&mut self, tick: &Tick, picture: &picture::Picture, menus: &[menu::Menu], answers: &BTreeMap<String, jev::Answer>, commands: &mut Vec<Command>) {
+        if !menus.iter().any(|m| m.name == "worlds") {
+            return;
+        }
+        let (threats, worlds) = {
+            let pianist = self.pianist.as_ref().expect("pianist mode");
+            (pianist.threats.clone(), pianist.threat_worlds.clone())
+        };
+        let Some((wi, confidence)) = threats::pick(answers, &worlds) else { return };
+        let changed = self.apply_plan(tick, picture, &threats, &worlds[wi], "plan", commands);
+        let pianist = self.pianist.as_mut().expect("pianist mode");
+        if let Some(log) = &mut pianist.log {
+            let _ = writeln!(log, "{}", json!({ "t": "plan", "f": tick.frame, "pick": wi + 1, "confidence": confidence, "changed": changed }));
+        }
+        self.journal.note_from("plan", tick.frame, "group", json!({ "worlds": worlds.len() }), json!({ "pick": wi + 1, "confidence": confidence, "changed": changed }));
+    }
+
+    /// The second call of the threat passes: the worlds question alone over the same state. In lockstep it is made here;
     /// in realtime it goes to the worker and lands with `collect_answer`.
     fn second_call(&mut self, tick: &Tick, kit: &Kit, picture: picture::Picture, menus: Vec<menu::Menu>, state: serde_json::Value, commands: &mut Vec<Command>) {
         let questions: BTreeMap<String, jev::Question> = menus.iter().filter(|m| m.name == "worlds").flat_map(|m| m.questions.iter().cloned()).collect();
@@ -991,9 +1009,9 @@ impl Brain {
                     pianist.stats.latencies_ms.push(response.latency.as_secs_f32() * 1000.0);
                     pianist.stats.tokens += response.usage["input_tokens"].as_u64().unwrap_or(0);
                 }
-                let mut menus = menus;
-                let mut answers = replayed_answers(&menus, &response.answers);
-                worlds::resolve(&mut menus, &mut answers);
+                let menus = menus;
+                let answers = replayed_answers(&menus, &response.answers);
+                self.threat_resolve(tick, &picture, &menus, &answers, commands);
                 let flat = flat_questions(&menus);
                 self.play(tick, kit, &picture, menus, &answers, commands);
                 self.publish_hands(&picture, &answers);
@@ -1183,9 +1201,9 @@ impl Brain {
                 }
                 self.announce_hands(&response, commands);
                 let mut menus = pending.menus;
-                let mut answers = replayed_answers(&menus, &response.answers);
-                worlds::resolve(&mut menus, &mut answers);
-                let second = self.worlds_follow_up(tick, &pending.picture, &mut menus, &mut answers);
+                let answers = replayed_answers(&menus, &response.answers);
+                self.threat_resolve(tick, &pending.picture, &menus, &answers, commands);
+                let second = self.threat_follow_up(tick, &mut menus, &answers);
                 let flat = flat_questions(&menus);
                 self.play(tick, kit, &pending.picture, menus, &answers, commands);
                 self.publish_hands(&pending.picture, &answers);

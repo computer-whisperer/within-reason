@@ -164,7 +164,7 @@ impl Brain {
         let own = &tick.snapshot.own_units;
         let mut asked: BTreeSet<String> = BTreeSet::new();
         let mut positions: Vec<Vec3> = Vec::new();
-        for m in menus.iter().filter(|m| (!m.questions.is_empty() || m.in_worlds) && m.replay.is_none()) {
+        for m in menus.iter().filter(|m| !m.questions.is_empty() && m.replay.is_none()) {
             asked.insert(m.name.clone());
             match &m.actor {
                 Actor::Builder(id) | Actor::Lab(id) => positions.extend(own.iter().find(|u| u.id == *id).map(|u| u.pos)),

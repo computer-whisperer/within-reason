@@ -287,7 +287,7 @@ impl Brain {
             pianist.stats.switches += 1;
         }
         if let Some(did) = &did {
-            let from = if scripted.is_some() { " (from its list)" } else if menu.worlds_played { " (the picked world)" } else if menu.standing_played { " (standing order)" } else { "" };
+            let from = if scripted.is_some() { " (from its list)" } else if menu.standing_played { " (standing order)" } else { "" };
             pianist.done.push(format!("{} {name}: {did}{from}", super::picture::clock(frame)));
         }
         let kind: &'static str = match menu.actor {
@@ -298,7 +298,7 @@ impl Brain {
         };
         let inputs = json!({ "actor": name, "options": menu.options.keys().collect::<Vec<_>>(), "busy": menu.busy });
         let outputs = json!({ "choice": choice, "played": chosen, "probability": p(&choice), "confidence": confidence, "scripted": scripted.is_some(), "where": where_.clone().or_else(|| where_build.clone()).or_else(|| where_walk.clone()), "where_extractor": where_extractor, "whom": whom, "how_many": how_many, "did": did });
-        let source = if menu.worlds_played { "worlds" } else if menu.standing_played { "standing" } else if scripted.is_some() { "list" } else { "jev" };
+        let source = if menu.standing_played { "standing" } else if scripted.is_some() { "list" } else { "jev" };
         let pianist = self.pianist.as_mut().expect("pianist mode");
         if let Some(v) = &verdict {
             *pianist.standing.verdicts.entry(v.clone()).or_insert(0) += 1;
@@ -353,23 +353,15 @@ impl Brain {
             Pick::Engage | Pick::AttackUnit => {
                 if let Some(party) = whom.as_ref().and_then(|n| picture.parties.iter().find(|p| p.name == *n)) {
                     let group = &mut pianist.groups[index];
-                    commands.extend(group.release_orders(&units));
                     // A named target: `attack_unit` always, and every air group's engagement (a fight order makes a
                     // bomber bomb the nearest thing on its line, not the party).
                     let target = if matches!(pick, Pick::AttackUnit) || group.domain == crate::world::Domain::Air { self.party_target(party, &tick.snapshot.enemies) } else { None };
-                    match target {
-                        Some((t, what)) => {
-                            commands.extend(ids.iter().map(|id| Command::Attack { unit: *id, target: t, queue: false }));
-                            did = Some(format!("attack the {what} of {} ({})", party.name, party.composition));
-                        }
-                        None => {
-                            commands.extend(ids.iter().map(|id| Command::Fight { unit: *id, to: party.at, queue: false }));
-                            did = Some(format!("attack {} ({})", party.name, party.composition));
-                        }
-                    }
-                    let from = super::groups::centre_of(&units).unwrap_or(party.at);
-                    group.set_task(GroupTask::Engage { party: party.ids.clone(), at: party.at, since: frame, last_seen: frame, target: target.map(|(t, _)| t), searched: false, from }, frame);
-                    group.last_order = frame;
+                    let what = target.map(|(_, what)| what);
+                    let text = Brain::engage_group(group, party, own, target.map(|(t, _)| t), frame, commands);
+                    did = Some(match what {
+                        Some(what) => format!("attack the {what} of {} ({})", party.name, party.composition),
+                        None => text,
+                    });
                 }
             }
             Pick::Retreat => {
@@ -411,49 +403,6 @@ impl Brain {
                     did = Some(format!("send {} soldiers as group_{name} to {}", detached.len(), p.name));
                     let parent_name = pianist.groups[index].name.clone();
                     pianist.groups.push(Group::new(name, domain, detached, GroupTask::Move { to, place: p.name.clone(), fight: true, since: frame }, frame).split_from(&parent_name));
-                }
-            }
-            Pick::Detach => {
-                // The party in `whom` unless a group already engages it; then the nearest party nobody engages.
-                let engaged: Vec<UnitId> = pianist.groups.iter().filter_map(|g| if let GroupTask::Engage { party, .. } = &g.task { Some(party.clone()) } else { None }).flatten().collect();
-                let free = |p: &&super::picture::Party| p.ids.len() <= super::menu::DETACH_PARTY_MAX && !p.ids.iter().any(|id| engaged.contains(id));
-                let party = whom.as_ref().and_then(|n| picture.parties.iter().find(|p| p.name == *n)).filter(free).or_else(|| {
-                    picture.parties.iter().filter(free).min_by(|a, b| centre.map_or(0.0, |c| a.at.dist2d(c)).total_cmp(&centre.map_or(0.0, |c| b.at.dist2d(c))))
-                });
-                if let Some(party) = party {
-                    let asked = match how_many.as_deref() {
-                        Some("1") => 1,
-                        Some("2") => 2,
-                        Some("4") => 4,
-                        Some("8") => 8,
-                        _ => units.len() / 2,
-                    };
-                    // A detachment must outweigh its party by the combat table: the asked number, raised to the
-                    // smallest that does; when none of the group's soldiers alone or together does, the whole group
-                    // goes as an engagement (standing-1, 3:18: `send_against 2` from a group of two Rovers became
-                    // one Rover against a Pawn, "an even fight", and it died at 3:33; the odds line was the group's).
-                    let enough = self.detachment_for(&units, party, &tick.snapshot.enemies);
-                    if enough >= units.len() {
-                        commands.extend(pianist.groups[index].release_orders(&units));
-                        commands.extend(ids.iter().map(|id| Command::Fight { unit: *id, to: party.at, queue: false }));
-                        pianist.groups[index].set_task(GroupTask::Engage { party: party.ids.clone(), at: party.at, since: frame, last_seen: frame, target: None, searched: false, from: centre.unwrap_or(party.at) }, frame);
-                        pianist.groups[index].last_order = frame;
-                        did = Some(format!("attack {} ({}) with the whole group: no detachment of it outweighs the party", party.name, party.composition));
-                        self.pianist = Some(pianist);
-                        return did;
-                    }
-                    let n = asked.max(enough).clamp(1, units.len().saturating_sub(1).max(1));
-                    let domain = pianist.groups[index].domain;
-                    let detached: Vec<UnitId> = nearest_of(&units, party.at, n).iter().map(|u| u.id).collect();
-                    pianist.groups[index].members.retain(|id| !detached.contains(id));
-                    let target = if domain == crate::world::Domain::Air { self.party_target(party, &tick.snapshot.enemies) } else { None };
-                    commands.extend(detached.iter().flat_map(|id| [Command::MoveState { unit: *id, state: 1 }].into_iter().filter(|_| domain == crate::world::Domain::Air).chain([match target { Some((t, _)) => Command::Attack { unit: *id, target: t, queue: false }, None => Command::Fight { unit: *id, to: party.at, queue: false } }])));
-                    let name = pianist.new_group_name();
-                    pianist.last_asked.insert(format!("group_{name}"), frame);
-                    did = Some(format!("send {} soldiers as group_{name} against {} ({})", detached.len(), party.name, party.composition));
-                    let parent_name = pianist.groups[index].name.clone();
-                    let from = super::groups::centre_of(&units).unwrap_or(party.at);
-                    pianist.groups.push(Group::new(name, domain, detached, GroupTask::Engage { party: party.ids.clone(), at: party.at, since: frame, last_seen: frame, target: target.map(|(t, _)| t), searched: false, from }, frame).split_from(&parent_name));
                 }
             }
             Pick::Scout => {

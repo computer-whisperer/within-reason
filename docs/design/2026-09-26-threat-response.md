@@ -4,7 +4,7 @@
 proceed") on the order: the hunt primitive and the raid scenario first (the micro agent), then the threat-centred
 pre-pass and post-pass replacing the per-group candidate generator (the main thread), then ask-on-change, then the
 validation ladder. nouls-1 (the player under the gate mode as built) was running when this was written and tests
-none of it.
+none of it (LOST 22:01). Built 2026-09-26 morning in the brain: §2 (`Hunt` on the group, `declined`), §4-6 (`threats.rs`, `threat_pass`, `apply_plan`, the two calls, ask on change) with the per-group generator deleted; §1's engine primitive and §3 are with the micro agent, the brain's re-issued attack standing in meanwhile; threats-smoke-1 the smoke.
 
 ## The ruling
 

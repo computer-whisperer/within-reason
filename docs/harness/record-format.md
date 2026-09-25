@@ -76,22 +76,21 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   "f", "mode", "orders": {actor: {do, params, rule}}, "illegal", "continued", "played"}` each second the executor gave
   an order (mode `on` plays them: `played` entries carry source `standing`; mode `filter` puts a `<actor>.standing`
   question on the call and the `played` entry of that call carries the `verdict`; mode `off` only logs the orders).
-- From 2026-09-25 night the default mode is `worlds` (H-HANDS-WORLDS): the `standing` line then carries the builders'
-  orders and plays as `on`, and for the groups with rules `quiet` (the groups with one candidate, not asked), `groups`
-  ({group: [{kind keep|rule|fight|back, do, params, words}]}, the candidates), `worlds` ([[[group, candidate index]]],
-  world 1 first) and `lines` (each world's words, the `worlds.pick` question's criteria in order); with one world or no
-  Jev, `played_outright` names the groups played from world 1. The call that asks carries `worlds.pick` among its
-  questions and answers, and the `played` entries of the groups it decided carry source `worlds`. From the same
-  night a group has no `<group>.do`, `.where`, `.whom` or `.how_many` question (the offline detectors of
-  `run/jev_ab.py` that read a group's `do` see no group moments in these logs; the `standing` line's `groups` and
-  `lines` are the record to read), and a builder's place question is `where_build` or `where_walk` beside
-  `where_extractor`. Mode `nouls` (the two-pass form): the `standing` line carries `gate` (the noul ids of the first
-  call, `<group>.fight|walk|back`), a `worlds_gate` line follows the answers (`flags` {group: {dimension: p}},
-  `asked` the groups of the second call), and the second call is its own `call` line at the same frame with
-  `worlds.pick` alone. From 2026-09-26 morning a party the enemy's armed buildings cover reads "under 3 turrets: 1 armhlt,
-  2 armllt" in the candidates' words, the state's party lines and a group's `enemies_near`, the worlds line meets it "with
-  3 turrets (1800 metal)", and the `done` lines carry "group_C was chasing its party to spot_20, where it never goes: it
-  holds where it is" and the `standing` tool's own answer ("refused: group_C: shelling is not a place in the picture").
+- From 2026-09-26 the default mode is `worlds` in its threat form (H-HANDS-THREATS): the `standing` line carries the
+  builders' and the groups' course orders (played as `on`), and `threats` ([{party, place, states: [{id, words, metal,
+  default, current}]}], the parties that want answering and the partial action states against each, index 0 the
+  `party_N.leave` state), `plan` (the base's starts this second, "group_A: 2 of group_A hunt party_9 (1 armflea)"),
+  `gate` (the noul ids of the first call: `party_N.answer` and `party_N.whole_group_X`, `party_N.hunt_group_X`,
+  `party_N.back_group_X`) or `quiet` (the threat picture as at the last ask: nothing asked). A `worlds_gate` line
+  follows the first call's answers (`flags` {noul id: p}, `worlds` [[state index per threat]] or null, `lines`); the
+  second call is its own `call` line with `worlds.pick` alone, and a `plan` line records its pick (`pick`,
+  `confidence`, `changed`: what was put in force). The `played` entries of the groups carry source `rule` (the base)
+  or `plan` (a pick). A group has no question of its own; a party's line reads "under 3 turrets: 1 armhlt, 2
+  armllt" when the enemy's armed buildings cover it, and the `done` lines carry the hunts' ends ("group_A's hunt of
+  party_9 ended after 12 s: party_9 out of sight for 6 s; 2 rejoin the group"), the chase stopped at a never place,
+  and the `standing` tool's own answer ("refused: group_C: shelling is not a place in the picture"). Logs from
+  2026-09-25 night to 2026-09-26 morning (worlds-smoke-1 to nouls-1) carry the retired H-HANDS-WORLDS lines instead:
+  `quiet`, `groups`, `worlds`, `lines`, `played_outright`, `gate` per group, and `worlds_gate` with `flags` per group.
 Size: 15-30 KB a call (3-6k tokens of state and questions), 20-60 calls a minute: 25 MB for a 20-minute game. Logs from
 the first morning (2026-09-21, before the header line) carry `instructions` and `rules` in every state and no `played`;
 the viewer reads those too, taking the decisions from the answers.
