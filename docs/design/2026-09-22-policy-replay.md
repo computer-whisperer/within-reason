@@ -1,5 +1,9 @@
 # Opus writes the policy: an offline replay of game five (2026-09-22)
 
+**Superseded 2026-09-25.** The Lua runtime, the `policy` tool and `run/policy_replay.py` were deleted with the heuristic
+bot (`docs/design/2026-09-25-one-decider.md`): Opus shouted orders cheaper than it wrote Lua, and the standing orders
+(`2026-09-25-standing-orders.md`) took the role of code that runs between turns. Kept as the record of what was tried.
+
 The user's idea (2026-09-22, after `docs/studies/jev-comet-series.md`): "having opus write lua scripts on the fly,
 to be executed repeatedly realtime until opus's next turn. It's possible this should be added as an additional tool
 alongside the current system, but we should test how reliably opus can emit instructions with enough nuance while

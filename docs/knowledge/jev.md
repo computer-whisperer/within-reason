@@ -828,7 +828,7 @@ family with the original options and words, the pick is a wanted option at 51 to
 detachment). Putting the hold option's cost clause on `continue` in the flat layout moves almost nothing (9 to 11%):
 the structure does it, not the words. The cost: 18% of ordinary decisions (recorded at 0.6 or more, unflagged)
 change, ten of fourteen from `continue` to `engage`.
-**Status.** measured offline (2026-09-24, `run/jev_ab.py --variants base,continue_cost,two_level`, 40 moments a
+**Status.** retired 2026-09-25 (the two-level menu deleted with the heuristic bot, `docs/design/2026-09-25-one-decider.md`: it freed the course too far in family-1 and was never measured better). Before: measured offline (2026-09-24, `run/jev_ab.py --variants base,continue_cost,two_level`, 40 moments a
 detector from six games and 40 controls, two repeats: `docs/studies/data/jev-ab-two-level-2026-09-24.jsonl`); built
 in the hands the same night (H-HANDS-TWO-LEVEL, `pianist/family.rs`), the check game family-1 (hard_aggressive) is the
 live test: the detectors' rates on its log against the six games'. Family-1 (2026-09-24 night, LOST at 31:17):

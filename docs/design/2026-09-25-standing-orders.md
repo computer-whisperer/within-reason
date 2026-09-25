@@ -1,5 +1,9 @@
 # Standing orders: the executor, the `standing` tool, and the variants (target design, 2026-09-25)
 
+**Status (2026-09-25 evening).** Built (770bebd) and played twice (standing-1, standing-2: both lost, the ledger has the
+reading). The `family` arm and the Lua policy are gone (`2026-09-25-one-decider.md`); the executor stays as the candidate
+generator of the worlds question, which becomes the groups' one decider. The rules and the tool below stand.
+
 The user (2026-09-25): "Build the executor and the standing tool. I now have several close favorite concepts out of
 what we discussed, and we should probably try multiple variations on actual games ... something that uses jev to
 decompress opus's prose, then applies a post filter to 'what should we do: a: the literal rule result, b: something

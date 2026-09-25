@@ -62,8 +62,9 @@ BARb (and we, without `--place`) spawn diagonally, SW (1286, 5421) against NE (6
 allied BARb plays the other faction. One bot process serves all our seats of a match, one session each, joined by the
 team board (`crates/bot/src/team.rs`); each seat writes its own `record-<ai>.jsonl`. A human ally cannot be scripted
 headless; an allied BARb is the same code path for us. The referee's balance line counts our whole ally team against every enemy.
-`--commander` gives our seats one LLM session between them (transcript `strategist-<first seat's ai>.jsonl`), `--commander-each`
-one each; `--commander-model claude-opus-5` replaces the role's usual model (Sonnet for the commander).
+`--player` gives our seats one LLM session between them (transcript `strategist-<first seat's ai>.jsonl`);
+`--commander-model claude-opus-5-5` replaces the player's usual model. (The commander and strategist modes were deleted
+2026-09-25, `docs/design/2026-09-25-one-decider.md`.)
 
 ## Post-game analysis
 
