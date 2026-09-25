@@ -122,5 +122,12 @@ move failures per game are a column of the judgement.
 ## Status
 - 2026-09-25: written; nothing built.
 - 2026-09-25 late: built as build C (the design's sections 1-6; `Lane::tick` takes the host's commands mutably and
-  rewrites them). Judged in the harness (above). Not yet: the arena batch (section 5 of "Judged by"), the stable
-  slot assignment, a live reading.
+  rewrites them). Judged in the harness (above).
+- 2026-09-25, the arena (transform-ab-new, 24 games on lane-ab's seeds against the last build and no lane): the
+  lane's order stream 0.097 a soldier-second (the loop 0.337), 84% of far-goal seconds without an order (53%),
+  speed share 0.87 (0.78), move failures 35 a game (50); nearest friend at contact **71** (58; the pros 67-70),
+  friend on the line 14% (21%; the pros 22%); trade 0.76 [0.62-0.91] against 0.76 [0.64-0.93] and no lane's 0.94.
+  The harness's spacing question (41-45 at first damage in the duels) does not show live: the duel's first damage
+  comes as the rank is still forming from a spawn 56 apart, the live bodies form up on the march. The stable slot
+  assignment is worth doing after this reading, not before: nothing in the arena asks for it, and the duel's
+  number is a harness artefact of first-damage timing until shown otherwise.
