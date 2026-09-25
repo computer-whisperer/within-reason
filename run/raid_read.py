@@ -14,7 +14,7 @@ for batch in sys.argv[1:]:
     kills = [float(r["first_kill_s"]) for r in rows if r["first_kill_s"]]
     ends = collections.Counter()
     for r in rows:
-        for hunt in r["hunts"].split():
+        for hunt in r["hunts"].replace("no hunters", "no_hunters").split():
             quarry, rest = hunt.split(":", 1)
             ends[(quarry, rest.split("@")[0])] += 1
     lane = rows[0].get("lane_x", "?")

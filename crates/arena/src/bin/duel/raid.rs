@@ -135,7 +135,7 @@ impl Raid {
         self.hunts
             .iter()
             .map(|h| match &h.ended {
-                Some((f, why)) => format!("{}:{why}@{:.0}s+{:.0}s", h.quarry_name, (h.started - started_at) as f32 / FPS as f32, (f - h.started) as f32 / FPS as f32),
+                Some((f, why)) => format!("{}:{}@{:.0}s+{:.0}s", h.quarry_name, why.replace(' ', "_"), (h.started - started_at) as f32 / FPS as f32, (f - h.started) as f32 / FPS as f32),
                 None => format!("{}:open@{:.0}s", h.quarry_name, (h.started - started_at) as f32 / FPS as f32),
             })
             .collect::<Vec<_>>()
