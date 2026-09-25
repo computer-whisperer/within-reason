@@ -94,8 +94,10 @@ def scorecard(m):
         state = c.get("state") or {}
         if fac is None and isinstance((state.get("enemy") or {}).get("factories_seen"), list):
             fac = c["f"]
+        # A `call` line's `groups` is the list of groups; a `standing` line's is the worlds candidates by group.
         for g in c.get("groups") or []:
-            tasks[f"group_{g['name']}"] = (g.get("task") or {}).get("kind")
+            if isinstance(g, dict):
+                tasks[f"group_{g['name']}"] = (g.get("task") or {}).get("kind")
         for entry in (state.get("actors") or {}).values():
             if not isinstance(entry, dict):
                 continue  # an unasked actor is one line since 2026-09-23

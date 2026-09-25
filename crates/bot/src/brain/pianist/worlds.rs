@@ -124,11 +124,13 @@ impl Brain {
             let words = format!("{} (its standing rule){}", order_words(rule), if leaves(rule) { leave.as_str() } else { "" });
             out.push(Candidate { kind: Kind::Rule, order: rule.clone(), words, party, metal });
         }
-        // The nearest party within reach: the whole group at it, or a detachment that outweighs it.
+        // The nearest party within reach, of any size: the whole group at it, or a detachment that outweighs it. A
+        // block is a party too (hold-1-comet-easy, 21:40: 32 Blitzes and 5 Stouts at our plant, 680 from a group of
+        // 90 Stouts that walked back to its station under their fire, because parties over six were not candidates).
         let nearest = picture
             .parties
             .iter()
-            .filter(|p| (1..=6).contains(&p.ids.len()) && p.at.dist2d(centre) <= RAIDER_REACH)
+            .filter(|p| !p.ids.is_empty() && p.at.dist2d(centre) <= RAIDER_REACH)
             .min_by(|a, b| a.at.dist2d(centre).total_cmp(&b.at.dist2d(centre)));
         if let Some(party) = nearest {
             let odds = self.odds_words(&units, party, enemies);
@@ -222,7 +224,7 @@ pub(super) fn consequence(world: &World, cands: &[(String, Vec<Candidate>)], par
     if !keeps.is_empty() {
         parts.push(format!("{} keep{} {} course", keeps.join(", "), if keeps.len() == 1 { "s" } else { "" }, if keeps.len() == 1 { "its" } else { "their" }));
     }
-    let in_reach: Vec<&Party> = parties.iter().filter(|p| (1..=6).contains(&p.ids.len()) && centres.iter().any(|(_, c)| c.dist2d(p.at) <= RAIDER_REACH)).collect();
+    let in_reach: Vec<&Party> = parties.iter().filter(|p| !p.ids.is_empty() && centres.iter().any(|(_, c)| c.dist2d(p.at) <= RAIDER_REACH)).collect();
     let (mut met, mut unmet): (Vec<String>, Vec<String>) = (Vec::new(), Vec::new());
     for p in in_reach {
         let takers: Vec<(usize, usize)> = world.iter().enumerate().filter(|(gi, (_, ci))| cand(*gi, *ci).party.as_ref().is_some_and(|(n, _)| *n == p.name)).map(|(gi, (_, ci))| (gi, *ci)).collect();
