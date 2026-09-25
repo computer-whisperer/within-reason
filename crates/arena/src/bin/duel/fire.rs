@@ -14,6 +14,12 @@ pub const HULL: f32 = 24.0;
 pub const EDGE: f32 = 40.0;
 /// Seconds in reach without a shot before a soldier counts muzzled, or twice its reload when that is longer.
 pub const QUIET_FLOOR: f32 = 3.0;
+/// A friend this close is in the unit's body, for the queue instrument (`run/queued.py`).
+pub const BODY: f32 = 300.0;
+/// A unit with an enemy this close is engaged.
+pub const ENGAGED: f32 = 700.0;
+/// A firing friend this close to a queued unit's line to its nearest enemy is in its way (a hull with clearance).
+pub const IN_THE_WAY: f32 = 40.0;
 
 /// Why a muzzled second was muzzled, in `run/fire.py`'s order of tests.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -41,6 +47,12 @@ pub struct Tally {
     pub victims: BTreeMap<(String, String), f32>,
     /// Hit points this army did to the enemy army.
     pub dealt: f32,
+    /// The queue instrument (`run/queued.py`'s definitions): soldier-seconds with an enemy within `ENGAGED`, and
+    /// of those, seconds with no enemy in reach while a friend within `BODY`, in reach and nearer its enemy, fired.
+    pub engaged_seconds: u32,
+    pub queued_seconds: u32,
+    /// Of the queued seconds, those with the firing friend within `IN_THE_WAY` of the line to the nearest enemy.
+    pub blocked_seconds: u32,
 }
 
 impl Tally {
@@ -121,6 +133,14 @@ impl Fire {
     pub fn sample(&mut self, own: &[(UnitId, Vec3, f32, f32)], enemies: &[Vec3]) -> Vec<(UnitId, Cause, f32)> {
         let shots = std::mem::take(&mut self.shots);
         let mut muzzled = Vec::new();
+        // Who has an enemy in reach and how far it is, for the queue test below.
+        let in_reach: Vec<(UnitId, Vec3, f32, bool)> = (own.iter())
+            .filter(|&&(_, _, reach, _)| reach > 0.0)
+            .filter_map(|&(unit, at, reach, _)| {
+                let range = enemies.iter().map(|e| e.dist2d(at)).fold(f32::INFINITY, f32::min);
+                (range < reach + SLACK).then(|| (unit, at, range, shots.get(&unit).copied().unwrap_or(0) > 0))
+            })
+            .collect();
         for &(unit, at, reach, reload) in own {
             if reach <= 0.0 {
                 continue;
@@ -130,8 +150,22 @@ impl Fire {
             let nearest = (enemies.iter().copied())
                 .filter(|e| e.dist2d(at) < reach)
                 .min_by(|a, b| a.dist2d(at).total_cmp(&b.dist2d(at)));
+            let engaged = enemies.iter().any(|e| e.dist2d(at) < ENGAGED);
+            if engaged {
+                self.tally.engaged_seconds += 1;
+            }
             let Some(target) = nearest else {
                 self.quiet.insert(unit, 0);
+                if engaged {
+                    let mine = enemies.iter().copied().min_by(|a, b| a.dist2d(at).total_cmp(&b.dist2d(at)));
+                    let front: Vec<Vec3> = (in_reach.iter()).filter(|&&(f, fat, range, fired)| f != unit && fired && fat.dist2d(at) < BODY && fat.dist2d(at) > range).map(|f| f.1).collect();
+                    if !front.is_empty() {
+                        self.tally.queued_seconds += 1;
+                        if mine.is_some_and(|e| front.iter().any(|f| near_segment(*f, at, e) < IN_THE_WAY)) {
+                            self.tally.blocked_seconds += 1;
+                        }
+                    }
+                }
                 continue;
             };
             self.tally.reach_seconds += 1;

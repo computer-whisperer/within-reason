@@ -92,6 +92,8 @@ const STAND_KEEP: f32 = REACH_SLACK;
 /// A unit closing on an enemy stops this share of its reach from it (the pros' short-range units fight at 0.94 of
 /// their reach, ours at 0.86: K-form-pros-raiders-fight-at-reach).
 const CLOSE_TO: f32 = 0.92;
+/// H-MICRO-FORM-FLANK: a unit this near its flank slot has reached it and closes on the enemy from there.
+const FLANK_ARRIVED: f32 = 48.0;
 /// A slot order is re-issued when the slot has moved this far from what was sent, and not within this many frames.
 const FORM_REORDER: f32 = 64.0;
 const FORM_FRAMES: i32 = 15;
@@ -806,9 +808,27 @@ impl Lane {
             };
             // Engaged, the rank stops leading: slots are centred on the body, so a unit at its slot has nowhere to
             // walk and stands (the pros' bodies close to 0.87-0.94 of reach and stop: K-form-pros-raiders-fight-at-reach).
+            // H-MICRO-FORM-FLANK (`docs/design/2026-09-25-queued-rear.md`): engaged, the body is one rank at the
+            // depth of its standing front, so a unit with nothing in reach files to the end of the line, not into
+            // the front's back (queued: bank-1 13:50 replayed, 17% of engaged seconds behind a firing friend).
             let engaged_body = !walking && !armed_near.is_empty();
-            let anchor = if engaged_body { centre } else { form::anchor(centre, h, goal) };
-            let slots = form::slots(anchor, h, body.len(), form::SPACING);
+            let flank = engaged_body && view.enabled("H-MICRO-FORM-FLANK");
+            let along = |p: Vec3| p.x * h.0 + p.z * h.1;
+            let front_depth = body.iter().filter(|m| {
+                let reach = by_id.get(&m.id).and_then(|u| view.stats(u.def)).map_or(0.0, |s| s.reach);
+                enemies.iter().any(|e| e.pos.dist2d(m.pos) < reach - STAND_INSIDE)
+            }).map(|m| along(m.pos)).fold(None, |acc: Option<(f32, usize)>, a| Some(acc.map_or((a, 1), |(sum, n)| (sum + a, n + 1))))
+                .map(|(sum, n)| sum / n as f32)
+                .unwrap_or_else(|| body.iter().map(|m| along(m.pos)).fold(f32::NEG_INFINITY, f32::max));
+            let anchor = if flank {
+                let shift = front_depth - along(centre);
+                Vec3 { x: centre.x + h.0 * shift, y: centre.y, z: centre.z + h.1 * shift }
+            } else if engaged_body {
+                centre
+            } else {
+                form::anchor(centre, h, goal)
+            };
+            let slots = form::slots(anchor, h, body.len(), form::SPACING, if flank { body.len() } else { form::FILES });
             let positions: Vec<Vec3> = body.iter().map(|m| m.pos).collect();
             let slot_of = form::assign(&positions, &slots, h);
             for (i, member) in body.iter().enumerate() {
@@ -837,7 +857,8 @@ impl Lane {
                     };
                     FormOrder { stance: Stance::Stand, command, at: unit.pos }
                 } else if let Some(e) = nearest.filter(|_| engaged) {
-                    let at = toward(e, CLOSE_TO);
+                    // To the flank slot first; from there (or without the flank rule) on to 0.92 of reach.
+                    let at = if flank && unit.pos.dist2d(slot) > FLANK_ARRIVED { slot } else { toward(e, CLOSE_TO) };
                     FormOrder { stance: Stance::Close, command: Some(Command::Fight { unit: unit.id, to: at, queue: false }), at }
                 } else {
                     let command = match order {

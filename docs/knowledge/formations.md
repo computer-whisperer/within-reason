@@ -72,3 +72,43 @@ over 24+ games.
 reach + 100: short-range pros median 0.94 (86k), us 0.86 (2.9k). Line units 0.87 against 0.88.
 **Would be wrong if.** The difference vanished when counted only for Blitzes against the same enemy types.
 **Used by.** H-MICRO-FORM (a unit closes on the nearest enemy to 0.92 of its reach and stands there; the raider step-back tried first cost shots and was dropped, form-smoke).
+
+### K-form-a-fifth-of-an-engaged-unit-waits-behind-a-friend
+**Claim.** In a fight, a soldier with no enemy in reach stands behind a friend that has one and is shooting for
+about a fifth of its engaged time among the pros and a quarter to a third among us; the share grows with the ball
+(ours 10% alone to 29% with six or more friends within 120; the pros' 13% to 25%). The front stops when it has a
+target and the rest, sent to the same point, are held behind it.
+**Status.** measured (2026-09-25), `run/queued.py` (engaged: four or more armed enemies within 700; queued: no enemy
+within reach + 20, a friend within 300 in reach, nearer its enemy, and firing this second; geometric: without the
+shot). Ours, shots / geometry: bank-1 25% / 37% of 9,418 engaged soldier-seconds, 2v1b-hard 15% / 24% of 4,494,
+2v1b-hard_aggressive 10% / 23% of 1,293, family-1 14% / 27% of 4,797; the pros on Comet Catcher at OS 40+ (40
+games, both sides) 20% geometric of 243,795. Reproduced in the duel harness: the bank-1 13:50 cut (45 against 15)
+13% queued under the plain attack-move, 17% under H-MICRO-FORM's ranks of six (the rear rank's slot is out of
+reach behind a standing front); family-1 11:05 (37 against 13) 12% and 8%.
+**Would be wrong if.** A body whose rear filed to the ends of its front (H-MICRO-FORM-FLANK) still spent a fifth
+of its engaged time queued in the harness, or the pros' share on another map fell well under 20%.
+**Amended the same day (the blocked refinement).** Queued with the firing friend within 40 of the unit's line to
+its nearest enemy (physically in the way) is *blocked*: the pros 8% geometric; ours 22% / 16% / 11% / 17%
+geometric (bank-1, 2v1b-hard, 2v1b-hard_aggressive, family-1), 14% / 10% / 4% / 9% with the shot. Nearly all of
+our blocked seconds are units *moving* (bank-1: 1,245 of 1,335; family-1 403 of 409), most in the first ten seconds
+of their engagement: the walk-up of the rear behind a front that has stopped, not a standing jam (90 still seconds of
+9,418 engaged in bank-1). In the harness the blocked share is 6-10% in every arm, the ball's included (the bodies
+reach the enemy within seconds), and the live medium game form-7 6%. The cost of the walk-up is friendly fire, the
+rear firing into the front: 37-40% of the damage done in the bank-1 13:50 cut under the plain order, 18% in
+family-1 11:05; H-MICRO-FORM-FLANK takes those to 4% and 3% and the fight from +0.69 to +0.84 and +0.66 to +0.71.
+**Used by.** H-MICRO-FORM-FLANK; the harness's `engaged_s` / `queued_s` / `blocked_s` columns.
+
+### K-form-the-rear-at-the-ends-not-in-the-back
+**Claim.** When a body's front stops with targets in reach, the units behind it should file to the ends of the
+front's line rather than close on the same point: the walk into the front's back costs the fight its friendly fire
+(the rear's shells land on the front) and its exchange, and the ends of the line are where the rear can reach.
+**Status.** measured (2026-09-25) in the duel harness, 8 repetitions an arm on the same sites and seeds, with a null
+arm: bank-1 13:50 (45 against 15) plain +0.693 +- 0.016, the formation without the rule +0.804, with it
++0.840 +- 0.006, killed per lost 0.67 / 1.05 / 1.30, friendly fire 40% / 17% / 4%; family-1 11:05 (37 against 13)
++0.658 / +0.578 / +0.713, friendly fire 18% / 22% / 3%; the user's mixed force (8 Blitz, 7 Stout against 14 Pawn,
+6 Stout, 2 Janus) -0.182 +- 0.056 without, -0.072 +- 0.066 with; 12 Stouts against 20 Grunts and 13 Thuds -0.001
+without, +0.132 +- 0.042 with; the Blitz pack and the Stout mirror unchanged (+0.287 against +0.154 / +0.32 with the
+formation alone; +0.023 against +0.034). Not measured in a live game with fights (form-7: exchange 1.34, one game).
+**Would be wrong if.** An arena A/B of H-MICRO-FORM-FLANK over 24 games traded no better, or a live game with the
+rule showed the ends of the line standing out of reach while the front lost (the wide line's known cost).
+**Used by.** H-MICRO-FORM-FLANK.
