@@ -43,6 +43,11 @@ impl Brain {
             if state.current {
                 continue;
             }
+            // A pick's world changes some slots from the base; the base itself was put in force when the gate was
+            // asked (onepass-smoke-2: a constructor's extractor ordered twice in one second, by the rule and by w1).
+            if source == "plan" && *si == slot.base() {
+                continue;
+            }
             match (&slot.kind, &state.response) {
                 (Kind::Threat(party, _), Response::Leave) => {
                     for (actor, did) in self.leave_party(party, &tick.snapshot.own_units, frame, commands) {

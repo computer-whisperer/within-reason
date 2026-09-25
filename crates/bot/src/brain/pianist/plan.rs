@@ -21,8 +21,10 @@ use crate::strategist::shared::Allowance;
 /// with sharp consequences; the offline study's diffusion past 8 was over near-equivalent worlds; onepass-smoke-1
 /// at 8: one actor's seven states filled every deviation and the others were starved (the round-robin fill below).
 pub(super) const CAP: usize = 16;
-/// A noul at or above this flags its actor, dimension or threat for the second call.
+/// A noul at or above this flags its actor, state or threat for the second call.
 pub(super) const FLAG: f64 = 0.5;
+/// A slot's deviations in the second call at most: its best states by the gate.
+const DEPTH: usize = 2;
 /// A standing plan is asked again this long after its last ask even when nothing changed.
 pub(super) const RE_ASK: i32 = 20 * FRAMES_PER_SECOND;
 /// An enemy party this close to a group or a builder is news.
@@ -48,7 +50,7 @@ const HELP_REACH: f32 = 900.0;
 const PAIR_COST: f32 = 300.0;
 /// A turret this close to an extractor covers it; an extractor beyond `OUTER` from home is an outer one; the turret
 /// states reach this far from the builder.
-const TURRET_COVER: f32 = 200.0;
+const TURRET_COVER: f32 = 350.0;
 const OUTER: f32 = 500.0;
 const TURRET_REACH: f32 = 1200.0;
 /// A place this close to a structure stands at it.
@@ -541,13 +543,16 @@ impl Brain {
                     // A turret beside each extractor of ours within reach that none covers (nearest two); the rule's
                     // default at the nearest (outer only under `beside_each_outer_extractor`). Not beside an
                     // extractor a party stands at (a lone scout is what the turret is for).
-                    let ordered_near = |pos: Vec3| pianist.tasks.values().chain(pianist.queued.values()).any(|t| matches!(t, Task::Build { def: td, near, .. } if *td == def && near.dist2d(pos) < TURRET_COVER));
+                    // Any armed building standing, started or ordered within the cover covers it (onepass-smoke-3: 54
+                    // turrets for 16 extractors, the frames placed past a cover of 200 and each one read as none).
+                    let armed = |d: UnitDefId| self.world.def(d).is_some_and(|x| x.speed == 0.0 && x.weapon_count > 0);
+                    let ordered_near = |pos: Vec3| pianist.tasks.values().chain(pianist.queued.values()).any(|t| matches!(t, Task::Build { def: td, near, .. } if armed(*td) && near.dist2d(pos) < TURRET_COVER));
                     let outer_only = turret_rule == Some("beside_each_outer_extractor");
                     let mut uncovered: Vec<&OwnUnit> = own
                         .iter()
                         .filter(|u| kit.is_extractor(u.def) && !u.being_built && u.pos.dist2d(unit.pos) < TURRET_REACH)
                         .filter(|u| !picture.parties.iter().any(|p| p.at.dist2d(u.pos) < ALARM && !lone_scout(p)))
-                        .filter(|u| !own.iter().any(|t| t.def == def && t.pos.dist2d(u.pos) < TURRET_COVER) && !ordered_near(u.pos))
+                        .filter(|u| !own.iter().any(|t| armed(t.def) && t.pos.dist2d(u.pos) < TURRET_COVER) && !ordered_near(u.pos))
                         .collect();
                     uncovered.sort_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)));
                     let mut n = 0;
@@ -719,7 +724,9 @@ impl Brain {
                 let away = centre.dist2d(st.at) > STATION_SLACK;
                 let current = matches!(&group.task, GroupTask::Move { place, fight, .. } if *place == st.name && *fight == advance);
                 let default = away && !engaging && !hunting && !odds_against;
-                push(&format!("station_{}", st.name), Response::Walk { place: st.name.clone(), fight: advance }, format!("{name} {} to its station {} ({} away){}", if advance { "advances" } else { "walks" }, st.name, distance_words(centre.dist2d(st.at)), if engaging { ", leaving the party it was attacking" } else { "" }), default, current);
+                if away || current {
+                    push(&format!("station_{}", st.name), Response::Walk { place: st.name.clone(), fight: advance }, format!("{name} {} to its station {} ({} away){}", if advance { "advances" } else { "walks" }, st.name, distance_words(centre.dist2d(st.at)), if engaging { ", leaving the party it was attacking" } else { "" }), default, current);
+                }
                 if rules.get("no_chase").is_some_and(|v| v == "yes")
                     && let GroupTask::Engage { party, .. } = &group.task
                 {
@@ -740,7 +747,7 @@ impl Brain {
             // while it is not.
             let hold_line = rules.get("hold_line").is_some_and(|v| v == "yes") && !odds_against;
             if !hold_line {
-                if let Some(to) = rules.get("fall_back_to").and_then(|s| picture.places.iter().find(|p| p.name == *s)) {
+                if let Some(to) = rules.get("fall_back_to").and_then(|s| picture.places.iter().find(|p| p.name == *s)).filter(|p| p.at.dist2d(centre) > STATION_SLACK) {
                     let current = matches!(&group.task, GroupTask::Move { place, fight: false, .. } if *place == to.name);
                     let default = (odds_against || losing) && !walking_back;
                     push(&format!("fall_back_{}", to.name), Response::Walk { place: to.name.clone(), fight: false }, format!("{name} falls back to {} ({} away){}", to.name, distance_words(centre.dist2d(to.at)), nearest_party.map_or(String::new(), |p| format!(" from {} ({}), which outweighs it", p.name, p.composition))), default, current);
@@ -816,14 +823,19 @@ pub(super) fn gate_questions(slots: &[Slot]) -> Vec<(String, Question)> {
     out
 }
 
-/// What the picture looks like for ask-on-change: the threats, and every actor's course, idleness and open states,
-/// numbers struck. A change asks; the same picture does not.
+/// What the picture looks like for ask-on-change: the threats, and every actor's course by kind and its idleness.
+/// A change asks; the same picture does not. The kind, not the state: a constructor moving from one spot to the
+/// next by its `job expand` default is on the same course (onepass-smoke-2: 309 asking seconds of 880, most of
+/// them a constructor's base state changing spot or its slot coming and going with each build).
 pub(super) fn signature(slots: &[Slot]) -> String {
     slots
         .iter()
         .map(|s| match &s.kind {
             Kind::Threat(p, place) => format!("{}@{place}:{}{}{}", p.name, p.ids.len(), if p.killing.is_some() { "!" } else { "" }, s.states.iter().filter(|st| st.current).map(|st| format!("[{}]", st.id)).collect::<String>()),
-            _ => format!("{}:{}{}:{}", s.name, super::diet::without_numbers(&s.states[s.base()].id), if s.idle { "idle" } else { "" }, s.states.len()),
+            _ => {
+                let base = &s.states[s.base()];
+                format!("{}:{}{}", s.name, if s.base() == 0 { "keep" } else { base.dim }, if s.idle { ":idle" } else { "" })
+            }
         })
         .collect::<Vec<_>>()
         .join(" ")
@@ -904,7 +916,11 @@ pub(super) fn compose(slots: &[Slot], answers: &BTreeMap<String, Answer>, flags:
                     if let Some(p) = rated {
                         flags.insert(s.id.clone(), p);
                     }
-                    let rank = change * rated.unwrap_or(0.0).max(0.01);
+                    // Only a state the gate rated as the move (onepass-smoke-2: sixteen worlds of storage, radar
+                    // and converter beside the Blitz rated 0.73 put 0.5 on "nobody changes course" and 0.2 on the
+                    // Blitz; the plant idled fourteen minutes with a full store).
+                    let Some(rated) = rated.filter(|r| *r >= FLAG) else { continue };
+                    let rank = change * rated;
                     let mut w = base.clone();
                     w[si] = ti;
                     mine.push((rank, w.clone()));
@@ -931,6 +947,7 @@ pub(super) fn compose(slots: &[Slot], answers: &BTreeMap<String, Answer>, flags:
             }
         }
         mine.sort_by(|a, b| b.0.total_cmp(&a.0));
+        mine.truncate(DEPTH);
         per_slot.push(mine);
     }
     if per_slot.iter().all(Vec::is_empty) {
@@ -967,7 +984,7 @@ fn dear(words: &str) -> bool {
 
 /// A world's line: the moves, then what follows: which threats are met with what metal and odds (turrets counted),
 /// which are left to nobody, who stays idle.
-pub(super) fn consequence(world: &World, slots: &[Slot]) -> String {
+pub(super) fn consequence(world: &World, slots: &[Slot], store: &str) -> String {
     let mut moves: Vec<String> = Vec::new();
     let (mut met, mut unmet, mut idle): (Vec<String>, Vec<String>, Vec<String>) = (Vec::new(), Vec::new(), Vec::new());
     for (slot, si) in slots.iter().zip(world) {
@@ -1010,7 +1027,9 @@ pub(super) fn consequence(world: &World, slots: &[Slot]) -> String {
         parts.push(format!("Left to nobody: {}", unmet.join("; ")));
     }
     if !idle.is_empty() {
-        parts.push(format!("Idle: {}", idle.join(", ")));
+        // The cost on the option's own words (K-jev-hold-words-carry-the-cost; onepass-smoke-3: "Idle: plant" beside
+        // a full store lost to the Blitz rated 0.68 at 0.65 against 0.35).
+        parts.push(format!("{} idle, doing nothing{}", idle.join(" and "), if store.is_empty() { String::new() } else { format!(", while the metal store reads {store}") }));
     }
     format!("{}.", parts.join(". "))
 }
@@ -1018,7 +1037,7 @@ pub(super) fn consequence(world: &World, slots: &[Slot]) -> String {
 /// The one question of the second call: a Choice over the worlds' lines.
 pub(super) fn question(lines: &[String]) -> Question {
     let instructions = json!(
-        "Given `economy`, `ours`, `enemy`, `actors`, `player` and the player's `instructions`, which plan is best this second? Each option is one world: who changes course to do what, with what it costs and gives up, which enemy parties are met and which are left to nobody, who stays idle. w1 is what stands now (the courses in force and the player's standing rules); every other world changes one actor's course (a pair, when two hands go to one build). The instructions were written before this picture: where they name a place, a party, a building or a rule, follow them; where the situation has changed, pick the world they would call for."
+        "Given `economy`, `ours`, `enemy`, `actors`, `player` and the player's `instructions`, which plan is best this second? Each option is one world: who changes course to do what, with what it costs and gives up, which enemy parties are met and which are left to nobody, who stays idle. w1 changes nothing: every actor keeps its course and the idle ones stay idle; every other world changes one actor's course (a pair, when two hands go to one build). An idle factory or builder with metal in the store is a cost, not a course, unless the instructions say to wait. The instructions were written before this picture: where they name a place, a party, a building, a unit or a rule, follow them; where the situation has changed, pick the world they would call for."
     );
     Question::Choice { instructions, criteria: lines.iter().enumerate().map(|(i, l)| (format!("w{}", i + 1), json!(l))).collect() }
 }
@@ -1095,8 +1114,8 @@ mod tests {
         assert_eq!(worlds.len(), 3);
         assert_eq!(gate_questions(&slots).iter().filter(|(id, _)| id.starts_with("constructor_3")).count(), 2, "an idle actor is not asked whether to change, only which move");
         assert_eq!(flags["party_2.answer"], 0.9);
-        let line = consequence(&vec![1, 1, 0], &slots);
-        assert!(line.contains("Met: party_1") && line.contains("party_2 (") && line.contains("Idle: constructor_3"), "{line}");
+        let line = consequence(&vec![1, 1, 0], &slots, "340 of 500 stored");
+        assert!(line.contains("Met: party_1") && line.contains("party_2 (") && line.contains("constructor_3 idle"), "{line}");
         assert_eq!(pick(&BTreeMap::from([("worlds.pick".to_string(), Answer::Choice { choice: "w2".into(), probabilities: BTreeMap::new(), confidence: 0.6 })]), &worlds), Some((1, 0.6)));
     }
 
