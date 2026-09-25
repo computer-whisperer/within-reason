@@ -94,6 +94,9 @@ pub struct Pianist {
     pub(super) packet: Option<String>,
     /// A decompression request on the worker (realtime): its id and the packet's frame.
     pending_decompression: Option<(u64, i32)>,
+    /// Whether the packet is decompressed into standing rules at all (`WITHIN_REASON_RULES=off`, the arena's
+    /// `--no-rules`, leaves it prose only: no defaults, no pruning; every response is the pick's).
+    rules: bool,
     /// Realtime (`WITHIN_REASON_REALTIME`): the call runs on this thread and its answer is played on the tick it
     /// arrives, so the game and the control lane never wait on Jev; in lockstep the call is made in place.
     worker: Option<Worker>,
@@ -277,11 +280,13 @@ impl Pianist {
             None => None,
         };
         let cap = std::env::var("WITHIN_REASON_WORLDS").ok().and_then(|v| v.parse::<usize>().ok()).filter(|n| *n >= 2).unwrap_or(plan::CAP);
+        let rules = !std::env::var("WITHIN_REASON_RULES").ok().is_some_and(|v| matches!(v.trim().to_ascii_lowercase().as_str(), "off" | "0" | "no" | "false"));
         Ok(Pianist {
             client,
             standing: Standing::default(),
             packet,
             pending_decompression: None,
+            rules,
             worker,
             pending: None,
             next_request: 0,
@@ -337,7 +342,7 @@ impl Pianist {
         if let Some(log) = &mut self.log {
             let line = json!({
                 "t": "header", "format": "within-reason-jev", "version": LOG_VERSION, "ai_id": ai_id, "model": model,
-                "interval_frames": self.interval_frames, "rules": rules, "hands_effort": self.diet.level_name(), "worlds_cap": self.cap,
+                "interval_frames": self.interval_frames, "rules": rules, "packet_rules": self.rules, "hands_effort": self.diet.level_name(), "worlds_cap": self.cap,
             });
             let _ = writeln!(log, "{line}");
         }
@@ -539,6 +544,13 @@ impl Brain {
         let mut line = json!({ "t": "pass", "f": frame });
         {
             let pianist = self.pianist.as_mut().expect("pianist mode");
+            // A party with a threat slot this second and none last second: said among the events, so the log
+            // shows what opened the ask (onepass-hard-4, 5:04: the reader could not tell why group_A moved).
+            let threat = |slots: &[plan::Slot]| -> BTreeSet<String> { slots.iter().filter_map(|s| match &s.kind { plan::Kind::Threat(p, _) => Some(p.name.clone()), _ => None }).collect() };
+            let before = threat(&pianist.slots);
+            for name in threat(&slots).difference(&before) {
+                pianist.events.insert(format!("{name} appeared"));
+            }
             if !pianist.hunt_events.is_empty() {
                 line["hunts"] = json!(std::mem::take(&mut pianist.hunt_events));
             }
@@ -698,6 +710,12 @@ impl Brain {
         let places: Vec<String> = picture.places.iter().map(|p| p.name.clone()).collect();
         let questions = standing::extraction_questions(&text, &places);
         let pianist = self.pianist.as_mut().expect("pianist mode");
+        if !pianist.rules {
+            pianist.standing.set_packet(BTreeMap::new(), tick.frame);
+            pianist.done.push(format!("{} the packet stands as prose: no standing orders read from it", picture::clock(tick.frame)));
+            pianist.write_log(json!({ "t": "decompress", "f": tick.frame, "packet_frame": tick.frame, "skipped": "rules off" }));
+            return;
+        }
         if questions.is_empty() || pianist.client.is_none() {
             pianist.standing.set_packet(BTreeMap::new(), tick.frame);
             return;

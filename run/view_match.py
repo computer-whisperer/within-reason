@@ -69,7 +69,7 @@ def batch_entry(root, name):
     return {
         "batch": name, "started": started, "label": options.get("label"), "commit": options.get("commit"),
         "opponent": options.get("opponent"), "map": options.get("map"), "profile": options.get("profile"),
-        "pianist": options.get("pianist"), "player": options.get("player"), "packet": os.path.basename(options["packet"]) if options.get("packet") else None,
+        "pianist": options.get("pianist"), "player": options.get("player"), "rules": options.get("rules"), "packet": os.path.basename(options["packet"]) if options.get("packet") else None,
         "max_minutes": options.get("max_minutes"), "matches": matches, "finished": bool(results),
     }
 

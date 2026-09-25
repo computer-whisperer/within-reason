@@ -18,6 +18,7 @@
 //!              [--think-penalty X]   (the player's or commander's orders land X game seconds late per wall second it thought; 1 = as in a live game; default 1 with --player, else 0)
 //!              [--seed-base N]   (default 1; match i plays seed N+i, for the engine and for BARb: a fresh N is a fresh set of games)
 //!              [--packet PATH]   (the pianist plays this packet text when no player writes one: the arena instrument of the A/Bs)
+//!              [--no-rules]     (the pianist reads no standing rules from the packet: no defaults, no pruning; every response is the pick's)
 //!              [--objective TEXT]   (a requirement for the player, appended to its role text: "kill the commander with Thunder bombers")
 //!              [--base-port N]   (default 9100; match i uses N+2i and N+2i+1, so a second arena needs another range)
 //!              [--commander-model ID] [--objective TEXT]   (the session's model instead of the role's usual one, e.g. claude-opus-5)
@@ -89,7 +90,6 @@ struct Options {
     /// Claude Code config dir for strategist sessions (which subscription they run on).
     claude_config_dir: Option<String>,
     seed_base: u32,
-    /// `--opening-plan PATH`: the bot plays this plan (`buildorder::plan::Plan` text) instead of searching one.
     /// A fixed packet file for the pianist without a player (`WITHIN_REASON_PACKET`).
     packet: Option<String>,
     /// `bots`, `vehicles` or `any` (BARb's own choice, about 70 % bots on Quicksilver).
@@ -97,8 +97,10 @@ struct Options {
     effort: Option<String>,
     /// The hands' token diet: lean (the default here), normal or full (`WITHIN_REASON_HANDS_EFFORT`).
     hands_effort: Option<String>,
-    /// A group's `do` as families (on, the default) or flat (off) (`WITHIN_REASON_FAMILY`).
+    /// `--think-penalty X`: the player's orders land X game seconds late per wall second it thought (`WITHIN_REASON_THINK_PENALTY`).
     think_penalty: Option<String>,
+    /// `--no-rules`: the pianist reads no standing rules from the packet (`WITHIN_REASON_RULES=off`); every response is the pick's.
+    rules: bool,
     /// First of the UDP ports the matches use (two each); a second arena on the same machine needs its own range.
     base_port: u16,
 }
@@ -162,7 +164,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("BARb {}", options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "commander_model": options.commander_model, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "commander_model": options.commander_model, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "rules": options.rules, "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 
@@ -301,6 +303,7 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         .env("WITHIN_REASON_LOG_DIR", &dir)
         .env("WITHIN_REASON_DISABLE", &disable)
         .envs(options.packet.as_ref().map(|path| ("WITHIN_REASON_PACKET", path)))
+        .envs((!options.rules).then_some(("WITHIN_REASON_RULES", "off")))
         // Every match leaves a record for `run/view_match.py`: 0.1-0.3 MB per game minute (docs/harness/record-format.md).
         .env("WITHIN_REASON_RECORD", "1")
         .envs(options.claude_config_dir.as_ref().map(|dir| ("WITHIN_REASON_CLAUDE_CONFIG_DIR", dir)))
@@ -579,6 +582,7 @@ fn parse_args() -> Options {
         effort: None,
         hands_effort: None,
         think_penalty: None,
+        rules: true,
         base_port: BASE_PORT,
     };
     let mut args = std::env::args().skip(1);
@@ -594,6 +598,10 @@ fn parse_args() -> Options {
             }
             "--play-out" => {
                 options.call_settled = false;
+                continue;
+            }
+            "--no-rules" => {
+                options.rules = false;
                 continue;
             }
             "--ffa" => {
@@ -686,7 +694,7 @@ fn parse_args() -> Options {
 }
 
 fn usage(problem: &str) -> ! {
-    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--label TEXT] [--mirror] [--place] [--swap-corners] [--play-out] [--strategist | --commander | --commander-each] [--pianist] [--policy] [--player] [--realtime] [--commander-model ID] [--objective TEXT] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--opponent-opening any|bots|vehicles] [--seed-base N] [--opening-plan PATH] [--base-port N]");
+    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--label TEXT] [--mirror] [--place] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--no-rules] [--realtime] [--commander-model ID] [--objective TEXT] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N]");
     std::process::exit(2)
 }
 

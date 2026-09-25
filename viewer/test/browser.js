@@ -158,10 +158,13 @@ function run(socket) {
       // The pass at the playhead (logs of version 2): the open slots' states with the gate's nouls, the worlds
       // with the pick's probabilities, at an asking second.
       if (await evaluate("viewer.match.jev.version >= 2")) {
-        await evaluate("(() => { const p = viewer.match.jev.passes.find((x) => x.gate && x.f > viewer.frame) || viewer.match.jev.passes.find((x) => x.gate); viewer.seek(p.f); })()");
+        // The page may be playing: pause it, or the playhead runs past the asking second before the panel is read.
+        const askedAt = await evaluate("(() => { viewer.playing = false; const p = viewer.match.jev.passes.find((x) => x.gate && x.f > viewer.frame) || viewer.match.jev.passes.find((x) => x.gate); viewer.seek(p.f); return p.f; })()");
         await sleep(200);
-        pianist.pass = await evaluate("({ summary: document.getElementById('pass-summary').textContent, slots: document.querySelectorAll('#pass .slot').length, states: document.querySelectorAll('#pass .state').length, bars: document.querySelectorAll('#pass .bar').length, worlds: document.querySelectorAll('#pass .world').length, picked: document.querySelectorAll('#pass .world.picked').length })");
-        if (!pianist.pass.slots || !pianist.pass.states) fail(`the pass panel is empty: ${JSON.stringify(pianist.pass)}`);
+        pianist.pass = await evaluate("({ summary: document.getElementById('pass-summary').textContent, steps: document.querySelectorAll('#pass .step').length, slots: document.querySelectorAll('#pass .slot').length, states: document.querySelectorAll('#pass .state').length, bars: document.querySelectorAll('#pass .bar').length, worlds: document.querySelectorAll('#pass .world').length, picked: document.querySelectorAll('#pass .world.picked').length })");
+        const clock = (f) => `${Math.floor(f / 1800)}:${String(Math.floor(f / 30) % 60).padStart(2, "0")}`;
+        if (!pianist.pass.summary.startsWith(clock(askedAt))) fail(`the pass panel shows another second than the one sought (${clock(askedAt)}): ${pianist.pass.summary}`);
+        if (pianist.pass.steps < 3 || !pianist.pass.slots || !pianist.pass.states) fail(`the pass panel is empty: ${JSON.stringify(pianist.pass)}`);
       }
       pianist.buildOrder = await evaluate("document.querySelectorAll('#build-order li').length");
       if (!pianist.buildOrder) fail("the build order strip is empty");

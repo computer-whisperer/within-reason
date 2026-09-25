@@ -34,6 +34,7 @@
     zoom: 1, centre: null, selected: null, icons: null,
   };
   window.viewer = view;
+  view.seek = (frame) => seek(frame); // for the tests (viewer/test/browser.js), which drive the page from outside
 
   // ---------------------------------------------------------------- loading
 
@@ -165,7 +166,7 @@
       tr.append(el("td", null, [b.opponent, b.max_minutes ? `${b.max_minutes} min cap` : null].filter(Boolean).join(", ")));
       tr.append(el("td", null, b.map || ""));
       tr.append(el("td", "mono", b.commit || ""));
-      tr.append(el("td", null, [b.player ? "player" : null, b.pianist ? "pianist" : null, b.packet ? `packet ${b.packet}` : null].filter(Boolean).join(", ")));
+      tr.append(el("td", null, [b.player ? "player" : null, b.pianist ? "pianist" : null, b.packet ? `packet ${b.packet}` : null, b.rules === false ? "no rules" : null].filter(Boolean).join(", ")));
       const cell = el("td", "matches");
       for (const m of b.matches || []) {
         const path = b.batch === "." ? `matches/${m.index ? `${m.index}/` : ""}` : `matches/${encodeURIComponent(b.batch)}/${m.index}/`;
@@ -935,7 +936,7 @@
 
   // ---------------------------------------------------------------- timeline
 
-  const GUTTER = 112;
+  const GUTTER = 230; // room for the pianist lanes' counts ("pianist: builders (42 picked, 0 by code)")
   const LANE_H = 14;
   const CHART_H = 38;
   const LANES = [
@@ -970,11 +971,14 @@
       if ((key === "turns" || key.startsWith("jev")) && !items.length) continue;
       ctx.fillStyle = COLOR["ink-2"];
       ctx.textAlign = "right";
-      ctx.fillText(`${label} (${items.length})`, GUTTER - 8, y + LANE_H / 2);
+      // The pianist's lanes count the pick's plays apart from code's (rule and list): who moved the actor.
+      const jevLane = key.startsWith("jev");
+      const picked = jevLane ? items.filter((d) => d.source === "plan" || d.source === "jev").length : 0;
+      ctx.fillText(jevLane ? `${label} (${picked} picked, ${items.length - picked} by code)` : `${label} (${items.length})`, GUTTER - 8, y + LANE_H / 2);
       ctx.fillStyle = COLOR["surface-2"];
       ctx.fillRect(g.x0, y + 1, g.x1 - g.x0, LANE_H - 2);
-      ctx.fillStyle = COLOR[color];
       for (const item of items) {
+        ctx.fillStyle = jevLane && !(item.source === "plan" || item.source === "jev") ? COLOR["ink-2"] : COLOR[color];
         ctx.globalAlpha = item.faint ? 0.25 : 1;
         ctx.fillRect(Math.round(g.fx(item.f)) - 1, y + 2, 2, LANE_H - 4);
       }
@@ -1099,6 +1103,9 @@
     const killed = near(view.lanes.kills);
     if (killed.length) lines.push(`killed: ${summarise(killed.map((e) => defName(e.d)))}`);
     for (const d of near(view.lanes.waves)) lines.push(decisionTitle(d));
+    const plays = near(view.lanes.jevBuilders).concat(near(view.lanes.jevLabs), near(view.lanes.jevGroups)).sort((a, b) => a.f - b.f);
+    for (const d of plays.slice(0, 8)) lines.push(`${WR.clock(d.f)} ${d.source}: ${decisionTitle(d)}`);
+    if (plays.length > 8) lines.push(`... ${plays.length - 8} more plays`);
     const tip = $("chart-tooltip");
     tip.textContent = lines.join("\n");
     tip.hidden = false;
@@ -1408,21 +1415,47 @@
     }
     const { pass, index, gate, plan, pickCall } = at;
     const key = `${index}:${view.jevActor}`;
-    $("pass-summary").textContent = `${WR.clock(pass.f)} · ${pass.gate ? `asked ${pass.gate.length} nouls` : pass.quiet ? "quiet" : (pass.open || []).length ? "nothing open to ask" : "nothing open"}${plan ? ` · picked w${plan.pick} at ${Number(plan.confidence).toFixed(2)}` : ""}`;
+    const before = pass.played || [];
+    const after = plan ? plan.played || [] : [];
+    const summary = [WR.clock(pass.f)];
+    if (before.length) summary.push(`${before.length} by ${[...new Set(before.map((d) => d.source))].join("/")} before the ask`);
+    summary.push(pass.gate ? `asked ${pass.gate.length} nouls` : pass.quiet ? "quiet" : (pass.open || []).length ? "nothing open to ask" : "nothing open");
+    if (plan) summary.push(`picked w${plan.pick} at ${Number(plan.confidence).toFixed(2)}${after.length ? `, ${after.length} started` : ", nothing changed"}`);
+    $("pass-summary").textContent = summary.join(" · ");
     if (box.dataset.key === key) return;
     box.dataset.key = key;
     box.textContent = "";
-    const line = (label, items) => {
-      if (!items || !items.length) return;
-      const div = el("div", "pass-line");
-      div.append(el("b", null, `${label}: `), items.join("; "));
+    // The second in the order it ran: what happened, what code started before asking, what the gate asked, the
+    // worlds and the pick, what the pick started. Numbered so the order reads at a glance (onepass-hard-4, 5:04:
+    // a hunt started by rule before the ask read as the pick's "nothing changes").
+    let step = 0;
+    const section = (label, cls) => {
+      const div = el("div", `step${cls ? ` ${cls}` : ""}`);
+      div.append(el("div", "step-title", `${++step} · ${label}`));
       box.append(div);
+      return div;
     };
-    line("open", pass.open);
-    line("events", pass.events);
-    line("the base world started", pass.plan);
-    line("hunts", pass.hunts);
-    if (pass.quiet) box.append(el("div", "pass-line muted", pass.quiet));
+    const plays = (parent, rows, none) => {
+      if (!rows.length) {
+        parent.append(el("div", "pass-line muted", none));
+        return;
+      }
+      for (const d of rows) {
+        const row = el("div", "pass-line play");
+        row.append(el("span", "source", d.source), ` ${d.actor}: ${d.did || d.played}`);
+        parent.append(row);
+      }
+    };
+    const happened = section("this second");
+    const facts = [];
+    if (pass.events && pass.events.length) facts.push(`events: ${pass.events.join("; ")}`);
+    if (pass.hunts && pass.hunts.length) facts.push(`hunts: ${pass.hunts.join("; ")}`);
+    facts.push(`open: ${(pass.open || []).length ? pass.open.join(", ") : "nothing"}`);
+    for (const f of facts) happened.append(el("div", "pass-line", f));
+    const base = section("code started, before any ask (the rules' defaults, the lists' steps)", "base");
+    plays(base, before, "nothing new: every actor keeps its course");
+    const asked = section(pass.gate ? `the gate asked ${pass.gate.length} nouls` : pass.quiet ? "no ask" : "no ask: nothing open", "gate");
+    if (pass.quiet) asked.append(el("div", "pass-line muted", pass.quiet));
     const flags = (gate && gate.flags) || {};
     if (pass.slots) {
       const slots = [...pass.slots].sort((a, b) => (b.name === view.jevActor) - (a.name === view.jevActor));
@@ -1445,28 +1478,29 @@
           row.append(el("div", "ask words", st.words));
           block.append(row);
         });
-        box.append(block);
+        asked.append(block);
       }
     }
-    if (gate && gate.worlds) {
-      const probs = pickCall ? (pickCall.answers["worlds.pick"] || {}).probabilities || {} : {};
-      const top = Math.max(1e-6, ...Object.values(probs));
-      const worlds = el("div", "worlds");
-      worlds.append(el("div", "meta", `${gate.worlds.length} worlds composed${pickCall ? ", the pick's probabilities" : ", no pick"}:`));
-      gate.lines.forEach((text, i) => {
-        const id = `w${i + 1}`;
-        const picked = plan && plan.pick === i + 1;
-        const row = el("div", `world${picked ? " picked" : ""}`);
-        if (id in probs) row.append(bar(id, probs[id], picked, top));
-        else row.append(el("div", "id", id));
-        row.append(el("div", "ask words", text));
-        worlds.append(row);
-      });
-      box.append(worlds);
-    } else if (gate) {
-      box.append(el("div", "pass-line muted", "the gate opened nothing: no second call"));
+    if (pass.gate) {
+      const worlds = section(gate && gate.worlds ? `${gate.worlds.length} worlds${pickCall ? ", the pick's probabilities" : ", no pick"}` : "the gate opened nothing: no second call", "worlds");
+      if (gate && gate.worlds) {
+        const probs = pickCall ? (pickCall.answers["worlds.pick"] || {}).probabilities || {} : {};
+        const top = Math.max(1e-6, ...Object.values(probs));
+        gate.lines.forEach((text, i) => {
+          const id = `w${i + 1}`;
+          const picked = plan && plan.pick === i + 1;
+          const row = el("div", `world${picked ? " picked" : ""}`);
+          if (id in probs) row.append(bar(id, probs[id], picked, top));
+          else row.append(el("div", "id", id));
+          row.append(el("div", "ask words", text));
+          // World 1 keeps what code started this second: said, so "nothing changes" reads right.
+          if (i === 0 && before.length) row.append(el("div", "pass-line muted", `w1 keeps what code started this second: ${before.map((d) => `${d.actor} ${d.did || d.played}`).join("; ")}`));
+          worlds.append(row);
+        });
+      }
+      const picked = section(plan ? `the pick took w${plan.pick} at ${Number(plan.confidence).toFixed(2)}` : "no pick", "plan");
+      if (plan) plays(picked, after, "nothing changed: the plan is world 1's courses");
     }
-    if (plan) line(`the plan (w${plan.pick}) changed`, plan.changed && plan.changed.length ? plan.changed : ["nothing"]);
   }
 
   /// The call at the playhead: what Jev was shown and what it answered; rebuilt when the call changes. With an actor

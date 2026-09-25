@@ -88,7 +88,9 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   {noul id: p}, `worlds` [[state index per slot]] or null, `lines`); the second call is its own `call` line with
   `worlds.pick` alone, and a `plan` line records its pick (`pick`, `confidence`, `changed`, `played` with source
   `plan`). `call` lines carry no `played`: every play is on a `pass` or `plan` line. The header carries
-  `worlds_cap`. Logs from 2026-09-26 morning (threats-smoke-1 to -5) carry the `standing` line in its threat form
+  `worlds_cap` and `packet_rules` (false when the packet was left as prose, `WITHIN_REASON_RULES=off`; the
+  `decompress` line then carries `skipped`). Among the `events`, `party_N appeared` says a party got a threat slot
+  this second (2026-09-27). Logs from 2026-09-26 morning (threats-smoke-1 to -5) carry the `standing` line in its threat form
   (`threats`, `plan`, `gate`/`quiet`, `hunts`, `played` with source `rule`/`plan`) and logs from 2026-09-25 night to
   2026-09-26 morning (worlds-smoke-1 to nouls-1) the retired H-HANDS-WORLDS lines (`quiet`, `groups`, `worlds`,
   `lines`, `played_outright`, `gate` per group, and `worlds_gate` with `flags` per group).
@@ -138,10 +140,13 @@ The Pianist tab: "each actor now" lists every actor of the call at the playhead 
 decision (its source beside it: `rule` the base world, `plan` a pick, `list` the player's list, `jev` a menu answer of
 the older logs; a kept course said in amber); click one to open its entry in the picture and its last twelve decisions,
 and to narrow the Decisions tab to it. "The pass at the playhead" (logs of version 2, the one pass) is the `pass` line
-at or before the playhead: what was open, what the base world started, the events that asked, the hunts' ends, or the
-quiet; on an asking second every open slot with its states (the gate's noul per state as a bar, the base, current and
-default states marked, each state's words) and the worlds composed with the pick's probabilities and the picked one
-marked, then what the plan changed. "The call at the playhead" is every question with its answer as bars (the played
+at or before the playhead, as numbered steps in the order the second ran: what happened (events, hunts' ends, what
+was open); what code started before any ask (the rules' defaults and the lists' steps, each with its source); what the
+gate asked, every open slot with its states (the gate's noul per state as a bar, the base, current and default states
+marked, each state's words) or the quiet; the worlds composed with the pick's probabilities and the picked one marked
+(world 1's row says what code started this second, since "nothing changes" keeps that too); what the pick started. The
+pianist lanes of the timeline count the pick's plays apart from code's and draw code's in grey; the timeline's hover
+lists the plays within five seconds with their sources. "The call at the playhead" is every question with its answer as bars (the played
 option marked), the options as worded, and beside it the picture by section (in the wide mode side by side; the
 selected actor's questions first); "pianist per minute" is calls, latency, tokens, questions, and for version 2 the
 asking and quiet seconds, the picks and how many took w1, the plays by source (rule, plan, list), and failures. The

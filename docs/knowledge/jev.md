@@ -952,3 +952,22 @@ instructions' table against the counts and ranks (the threat form's state nouls,
 constructor before any soldier?") came back sharp; battery J's dimension nouls (`j5_dimensions.py`, 20/20) asked
 whether an attribute affected the answer, a different question.
 **Used by.** H-HANDS-ONE-PASS (the pre-pass asks a noul per open state, none per kind).
+
+### K-jev-rule-defaults-answered-before-the-pick
+**Claim.** Under the one pass as built on 2026-09-26, the packet's standing sentences ("a raider at one of our
+extractors is met by a small detachment") were read into rules once, at 0:02, and fired as world 1's defaults the
+second a party appeared, before the pre-pass asked anything; the pick then saw a hunt already under way and kept it.
+So the pianist-alone games measured the rules' defence, not Jev's: the pick never chose a response. Put the question
+to Jev with no defaults (`--no-rules`), a lone Pawn met by nobody opens nothing when no group exists and the
+commander's attack state is not offered beyond 320; a Flea killing an extractor 1,000 from a group of Blitzes opens
+the whole-group attack at 0.56-0.80, worded "it outruns this group: a chase drives it off, a kill needs faster
+hunters", and the pick keeps world 1 every time (nine of nine).
+**Status.** observed (2026-09-27, onepass-hard-4 read against its log: the 5:04 hunt was the rule default at frame
+9120, the gate rated the party 0.43; onepass-norules-hard-1: plays by pick 54, by rule 0, group plays 0, 12 threat
+asks, 9 opened).
+**Evidence.** `run/matches/1790322526-onepass-hard-4` (the `pass` lines' `played` with source `rule`),
+`run/matches/1790347711-onepass-norules-hard-1`; the ledger rows; the H-HANDS-ONE-PASS row.
+**Would be wrong if.** A threat state opened for a party the group can catch (a Pawn against Blitzes) were kept at
+world 1 too: not yet seen without rules, since no group existed when the Pawns came.
+**Used by.** H-HANDS-ONE-PASS (the user's ruling, 2026-09-27: a response is a decision, not a default; what Jev
+decides wrongly is prompt work, not a rule).
