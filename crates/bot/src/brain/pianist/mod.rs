@@ -911,6 +911,8 @@ impl Brain {
                 line["illegal"] = json!(illegal);
                 line["continued"] = json!(continued);
                 if !taken.is_empty() {
+                    // Plays of a replayed lab answer since the last call would otherwise sit in this line's list.
+                    self.pianist.as_mut().expect("pianist mode").played.clear();
                     self.play(tick, kit, picture, taken, &answers, commands);
                 }
             }
@@ -937,7 +939,7 @@ impl Brain {
             pianist.standing.set_packet(BTreeMap::new(), tick.frame);
             return;
         }
-        let request = jev::Request { state: json!({ "packet": text }), questions };
+        let request = jev::Request { state: standing::extraction_state(&text), questions };
         if let Some(worker) = &pianist.worker {
             let id = pianist.next_request;
             pianist.next_request += 1;

@@ -854,8 +854,23 @@ paragraphs give identical rules 94% of the time) and literally: a question in th
 0.97-0.99, one off it hedges (0.33-0.44 with the words present), and a disjunctive question is answered for its
 false part. At two thirds of the recorded moments where the hands held while a raider stood at our extractor, the
 packet in force had a raider order the vocabulary caught.
-**Status.** measured offline (2026-09-25, `run/decompress.py`, 293 packets of four games); nothing runs them yet.
+**Status.** measured offline (2026-09-25, `run/decompress.py`, 293 packets of four games); built and run live in standing-1 (ledger row: the bill $0.17 against $0.59, 49% of plays by the executor, raider_ignored 3 moments, and the faults the player's notes name, three fixed after).
 **Evidence.** `docs/studies/2026-09-25-decompression.md`; ledger row decompress-1.
 **Would be wrong if.** The same rules executed in code answered those moments no better than the per-ask Jev read,
 or the player's packets drifted off the vocabulary's idiom so that the hedged share grew past a third.
 **Used by.** the design `docs/design/2026-09-25-menus-from-scratch.md` §9d (not built).
+
+### K-jev-one-question-over-joined-worlds-coordinates
+**Claim.** The groups asked in one call, put to Jev as one Choice over the worlds their candidate actions make, each
+world with its computed consequence line, never send two groups after one lone raider (the per-actor form did in
+every one of 37 recorded collision calls) and answer a raider ignored by the per-actor form 60-71% of the time
+(0% recorded, 51-59% under the two-level layout), from one question in place of four per group. The pick diffuses as
+the worlds multiply (p(top) 0.63 under 8 worlds, 0.23 at 24 and more) because our worlds are near-equivalent, and the
+gain-only lines tilt toward fighting as battery I warned; a Score per world with keep-favouring level words tilts the
+other way (controls 77%, raiders 29%).
+**Status.** measured offline (2026-09-25, `run/worlds_ab.py`, 205 calls of three games, three forms); not built in
+the hands.
+**Evidence.** `docs/studies/2026-09-25-joint-worlds.md`; ledger row worlds-ab; ../jev_experiments battery J.
+**Would be wrong if.** Live, the world form's picks lost the packet's courses more than the two-level layout did, or
+its diffuse picks over many worlds played worse than the per-actor asks on the same moments.
+**Used by.** the outline `docs/design/2026-09-25-menus-from-scratch.md` (the `worlds` arm, not built).

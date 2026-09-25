@@ -187,8 +187,14 @@ impl Standing {
             let Some((_, allowed)) = vocabulary.iter().find(|(r, _)| r == rule) else {
                 return Err(format!("{actor}: {rule} is not a rule ({})", vocabulary.iter().map(|(r, _)| *r).collect::<Vec<_>>().join(", ")));
             };
+            // null, false and "no" clear the rule (standing-1: the player wrote `retreat_when_enemy_near: "no"`
+            // three turns running and was refused each time).
             let value = match value {
-                Value::Null => {
+                Value::Null | Value::Bool(false) => {
+                    checked.insert(rule.clone(), String::new());
+                    continue;
+                }
+                Value::String(s) if allowed == &["yes"] && matches!(s.trim(), "no" | "off" | "false") => {
                     checked.insert(rule.clone(), String::new());
                     continue;
                 }
@@ -299,8 +305,24 @@ fn parties_in(text: &str) -> Vec<String> {
     out
 }
 
+/// The state the extraction questions read: each actor's own paragraphs under `paragraphs`, since a question over
+/// the whole packet took another actor's rule (standing-1: the constructors' turrets given to the commander at 0.91).
+pub(crate) fn extraction_state(packet: &str) -> Value {
+    let mut paragraphs = serde_json::Map::new();
+    for g in group_names(packet) {
+        paragraphs.insert(g.clone(), json!(paragraphs_about(packet, &g)));
+    }
+    for b in ["commander", "constructors"] {
+        let paras = paragraphs_about(packet, b);
+        if !paras.is_empty() {
+            paragraphs.insert(b.to_string(), json!(paras));
+        }
+    }
+    json!({ "paragraphs": paragraphs })
+}
+
 /// One extraction question per (actor, rule) for the packet; `places` are the picture's place names (spots,
-/// passages, home, the player's marks).
+/// passages, home, the player's marks). Each question reads its actor's field of `extraction_state`.
 pub(crate) fn extraction_questions(packet: &str, places: &[String]) -> BTreeMap<String, Question> {
     let mut qs: BTreeMap<String, Question> = BTreeMap::new();
     let place_options = |names: &[String]| -> Vec<(String, Value)> { names.iter().map(|p| (p.clone(), json!(format!("the place {p}")))).collect() };
@@ -309,33 +331,33 @@ pub(crate) fn extraction_questions(packet: &str, places: &[String]) -> BTreeMap<
         let named = places_in(&paras, places);
         let mut station = place_options(&named);
         station.push(("none".into(), json!(format!("the packet names no place for {g} to stand"))));
-        qs.insert(format!("{g}.station"), Question::choice(format!("Read `packet`. Where does it tell {g} to stand, gather, hold or be stationed? `none` when it names no such place for {g}."), station));
-        qs.insert(format!("{g}.station_mode"), Question::choice(format!("Read `packet`. When {g} goes to its place, does it advance fighting on the way (fight_to, attack), or walk?"), [("advance", "advances, fighting on the way"), ("walk", "walks"), ("not_said", "not said, or it is not sent anywhere")]));
+        qs.insert(format!("{g}.station"), Question::choice(format!("Read `paragraphs.{g}`, the packet's lines about {g}. Where do they tell {g} to stand, gather, hold or be stationed? `none` when they name no such place for {g}."), station));
+        qs.insert(format!("{g}.station_mode"), Question::choice(format!("Read `paragraphs.{g}`. When {g} goes to its place, does it advance fighting on the way (fight_to, attack), or walk?"), [("advance", "advances, fighting on the way"), ("walk", "walks"), ("not_said", "not said, or it is not sent anywhere")]));
         for (rule, what) in [("raiders_lone", "a single enemy raider (one scout car, Tick or Pawn)"), ("raiders_party", "a small enemy raider party (two to six)")] {
             qs.insert(
                 format!("{g}.{rule}"),
                 Question::choice(
-                    format!("Read `packet`. When {what} appears at one of our extractors, turrets or constructors near {g}, what does the packet tell {g} to do?"),
+                    format!("Read `paragraphs.{g}`. When {what} appears at one of our extractors, turrets or constructors near {g}, what do they tell {g} to do?"),
                     [("whole_group", format!("{g} attacks it (engages, kills it on sight) as a group")), ("detachment", format!("{g} sends a detachment (send_against, a few soldiers, one soldier) and the rest stay")), ("ignore", format!("the packet tells {g} not to answer it (hold, keep its walk, never chase)")), ("not_said", format!("the packet says nothing about this for {g}"))],
                 ),
             );
         }
-        qs.insert(format!("{g}.detachment_size"), Question::choice(format!("Read `packet`. If it tells {g} to send a detachment against a raider, how many soldiers does it say go?"), [("1", "one soldier"), ("2", "two"), ("4", "four"), ("half", "half the group"), ("not_said", "no size is said, or no detachment is ordered")]));
-        qs.insert(format!("{g}.no_chase"), Question::noul(format!("Read `packet`. Does it say {g} never chases raiders far, or never leaves its place after them?")));
-        qs.insert(format!("{g}.no_detachments"), Question::noul(format!("Read `packet`. Does it say {g} sends no detachments, or never splits?")));
-        qs.insert(format!("{g}.hold_line"), Question::noul(format!("Read `packet`. Does it tell {g} not to fall back or retreat while the fight is even or we outweigh the enemy?")));
+        qs.insert(format!("{g}.detachment_size"), Question::choice(format!("Read `paragraphs.{g}`. When {g} sends a detachment (send_against) against a raider, how many soldiers do they say go with it?"), [("1", "one soldier (send_against 1)"), ("2", "two soldiers (send_against 2)"), ("4", "four soldiers (send_against 4)"), ("8", "eight soldiers (send_against 8)"), ("half", "half the group"), ("not_said", "no number is given, or no detachment is ordered")]));
+        qs.insert(format!("{g}.no_chase"), Question::noul(format!("Read `paragraphs.{g}`. Do they say {g} never chases raiders far, or never leaves its place after them?")));
+        qs.insert(format!("{g}.no_detachments"), Question::noul(format!("Read `paragraphs.{g}`. Do they say {g} sends no detachments, or never splits?")));
+        qs.insert(format!("{g}.hold_line"), Question::noul(format!("Read `paragraphs.{g}`. Do they tell {g} not to fall back or retreat while the fight is even or we outweigh the enemy?")));
         let mut back = place_options(&named);
         back.push(("home".into(), json!("home")));
         back.push(("not_said".into(), json!("not said")));
-        qs.insert(format!("{g}.fall_back_to"), Question::choice(format!("Read `packet`. Where does it tell {g} to fall back to when a party outweighs it, if it says?"), back));
+        qs.insert(format!("{g}.fall_back_to"), Question::choice(format!("Read `paragraphs.{g}`. Where do they tell {g} to fall back to when a party outweighs it, if they say?"), back));
         let parties = parties_in(&paras);
         if !parties.is_empty() {
             let mut opts: Vec<(String, Value)> = parties.iter().map(|p| (p.clone(), json!(format!("the enemy party {p}")))).collect();
             opts.push(("none".into(), json!("no party is named for it to attack")));
-            qs.insert(format!("{g}.engage_party"), Question::choice(format!("Read `packet`. Which enemy party, if any, is {g} told to engage, attack or kill?"), opts));
+            qs.insert(format!("{g}.engage_party"), Question::choice(format!("Read `paragraphs.{g}`. Which enemy party, if any, is {g} told to engage, attack or kill?"), opts));
         }
         for p in &named {
-            qs.insert(format!("{g}.never_{p}"), Question::noul(format!("Read `packet`. Does it say {g} never goes to, stands at or advances to {p}, or that no soldier stands at {p}?")));
+            qs.insert(format!("{g}.never_{p}"), Question::noul(format!("Read `paragraphs.{g}`. Do they say {g} never goes to, stands at or advances to {p}, or that no soldier stands at {p}?")));
         }
     }
     for b in ["commander", "constructors"] {
@@ -345,14 +367,14 @@ pub(crate) fn extraction_questions(packet: &str, places: &[String]) -> BTreeMap<
         }
         let who = if b == "commander" { "the commander" } else { "a constructor" };
         let named = places_in(&paras, places);
-        qs.insert(format!("{b}.job"), Question::choice(format!("Read `packet`. What is {who}'s standing job when it has nothing else to do?"), [("help_factory", "help (assist, guard) the factory or plant"), ("follow_list", "follow its build list from the player"), ("expand", "take free metal spots, build extractors"), ("not_said", "the packet does not say")]));
-        qs.insert(format!("{b}.attack_raiders"), Question::noul(format!("Read `packet`. Does it tell {who} to attack a raider party at one of our buildings near it?")));
-        qs.insert(format!("{b}.no_chase"), Question::noul(format!("Read `packet`. Does it say {who} never chases scout cars or Ticks?")));
-        qs.insert(format!("{b}.solar"), Question::choice(format!("Read `packet`. When may {who} build a solar collector or generator?"), [("only_when_stalling", "only when energy reads STALLING or is low"), ("never", "never, no more solars"), ("freely", "as it sees fit, or a number of them"), ("not_said", "the packet does not say")]));
-        qs.insert(format!("{b}.turrets"), Question::choice(format!("Read `packet`. Where does it tell {who} to build light turrets?"), [("beside_each_outer_extractor", "beside each outer or far extractor, or each pair"), ("beside_each_extractor", "beside every extractor"), ("none", "no turrets, or it forbids them"), ("not_said", "the packet does not say")]));
-        qs.insert(format!("{b}.retreat_when_enemy_near"), Question::noul(format!("Read `packet`. Does it tell {who} to walk back toward home or the commander when enemy soldiers are near?")));
+        qs.insert(format!("{b}.job"), Question::choice(format!("Read `paragraphs.{b}`, the packet's lines about {who}. What is {who}'s standing job when it has nothing else to do?"), [("help_factory", "help (assist, guard) the factory or plant"), ("follow_list", "follow its build list from the player"), ("expand", "take free metal spots, build extractors"), ("not_said", "the packet does not say")]));
+        qs.insert(format!("{b}.attack_raiders"), Question::noul(format!("Read `paragraphs.{b}`. Do they tell {who} to attack a raider party at one of our buildings near it?")));
+        qs.insert(format!("{b}.no_chase"), Question::noul(format!("Read `paragraphs.{b}`. Do they say {who} never chases scout cars or Ticks?")));
+        qs.insert(format!("{b}.solar"), Question::choice(format!("Read `paragraphs.{b}`. When may {who} build a solar collector or generator?"), [("only_when_stalling", "only when energy reads STALLING or is low"), ("never", "never, no more solars"), ("freely", "as it sees fit, or a number of them"), ("not_said", "the packet does not say")]));
+        qs.insert(format!("{b}.turrets"), Question::choice(format!("Read `paragraphs.{b}`. Where do they tell {who} to build light turrets?"), [("beside_each_outer_extractor", "beside each outer or far extractor, or each pair"), ("beside_each_extractor", "beside every extractor"), ("none", "no turrets, or it forbids them"), ("not_said", "the packet does not say")]));
+        qs.insert(format!("{b}.retreat_when_enemy_near"), Question::noul(format!("Read `paragraphs.{b}`. Do they tell {who} to walk back toward home or the commander when enemy soldiers are near?")));
         for p in &named {
-            qs.insert(format!("{b}.never_{p}"), Question::noul(format!("Read `packet`. Does it say {who} never goes to, walks past or builds at {p}?")));
+            qs.insert(format!("{b}.never_{p}"), Question::noul(format!("Read `paragraphs.{b}`. Do they say {who} never goes to, walks past or builds at {p}?")));
         }
     }
     qs
@@ -514,18 +536,21 @@ impl Brain {
                         return Some((order("hold", &[]), "no_chase".into()));
                     }
                 }
-                // 5. The station: walk there when holding away from it; at it, hold without asking while nothing
-                // is within the alarm reach.
+                // 5. The station: walk there when holding away from it; at it, hold without asking while nothing is
+                // within the alarm reach and no raider stands at a structure of ours (standing-1, 11:10: "group_A sat
+                // at spot_38 while parties raided north": the hold fired and Jev was never asked about the raids
+                // beyond the raider rules' reach).
                 if let Some(station) = rules.get("station")
                     && let Some(at) = place_at(station)
                     && !never.iter().any(|p| p == station)
                 {
                     let advance = rules.get("station_mode").is_some_and(|m| m == "advance");
                     let go = if advance { "fight_to" } else { "move_to" };
+                    let raids = picture.state["actors"][&menu.name]["enemies_at_our_extractors"].as_array().is_some_and(|a| !a.is_empty());
                     match &group.task {
                         GroupTask::Move { place, .. } if place == station => return Some((order(go, &[("where", station)]), "station".into())),
                         GroupTask::Hold { committed: false, .. } if centre.dist2d(at) > STATION_SLACK && offered(go) => return Some((order(go, &[("where", station)]), "station".into())),
-                        GroupTask::Hold { .. } if nearest.is_none() && offered("hold") => return Some((order("hold", &[]), "station".into())),
+                        GroupTask::Hold { .. } if nearest.is_none() && !raids && offered("hold") => return Some((order("hold", &[]), "station".into())),
                         _ => {}
                     }
                 }
@@ -535,9 +560,12 @@ impl Brain {
                 let unit = own.iter().find(|u| u.id == *id)?;
                 let task = pianist.tasks.get(id);
                 let nearest = picture.parties.iter().map(|p| (p.at.dist2d(unit.pos), p)).filter(|(d, _)| *d < ALARM).min_by(|a, b| a.0.total_cmp(&b.0)).map(|(_, p)| p);
-                // 1. Away from enemy soldiers it does not outweigh.
+                // 1. Away from enemy soldiers it does not outweigh; a lone scout (a Tick, a scout car) is not one
+                // (standing-1, 9:59: "a lone Tick was sending three constructors home, which stalls expansion").
+                let lone_scout = |p: &Party| p.ids.len() == 1 && enemies.iter().any(|e| e.id == p.ids[0] && e.def.is_some_and(|d| super::glossary::entry(self.name(d)).is_some_and(|g| g.class.contains("scout"))));
                 if rules.get("retreat_when_enemy_near").is_some_and(|v| v == "yes")
                     && let Some(party) = nearest
+                    && !lone_scout(party)
                     && !self.odds_words(&[unit], party, enemies).starts_with("we outweigh")
                     && !matches!(task, Some(Task::Walk { place, .. }) if place == "home")
                 {
@@ -682,6 +710,9 @@ mod tests {
         assert_eq!(s.removals("group_B", false, "armsolar", "armllt"), Vec::<String>::new());
         s.set_tool("group_B", &json!({ "no_detachments": true, "hold_line": "yes" }), &places, &[]).unwrap();
         assert_eq!(s.removals("group_B", false, "armsolar", "armllt"), ["send_against", "split", "scout", "retreat", "fall_back"]);
+        s.set_tool("group_B", &json!({ "hold_line": "no", "no_detachments": false }), &places, &[]).unwrap();
+        assert!(s.removals("group_B", false, "armsolar", "armllt").is_empty());
+        s.set_tool("group_B", &json!({ "no_detachments": true, "hold_line": "yes" }), &places, &[]).unwrap();
         assert_eq!(s.removals("group_B", true, "armsolar", "armllt"), ["send_against", "split", "scout"]);
     }
 }

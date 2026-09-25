@@ -94,38 +94,38 @@ def questions_for(packet):
         paras = paragraphs_about(text, g)
         places = places_in(" ".join(paras), marks)
         place_opts = {p: f"the place {p}" for p in places}
-        qs[f"{g}.station"] = choice(f"Read `packet`. Where does it tell {g} to stand, gather, hold or be stationed? `none` when it names no such place for {g}.", {**place_opts, "none": f"the packet names no place for {g} to stand"})
+        qs[f"{g}.station"] = choice(f"Read `paragraphs.{g}`. Where does it tell {g} to stand, gather, hold or be stationed? `none` when it names no such place for {g}.", {**place_opts, "none": f"the packet names no place for {g} to stand"})
         qs[f"{g}.raiders"] = choice(
-            f"Read `packet`. When an enemy raider party (a scout car, Tick, Pawn or the like) appears at one of our extractors, turrets or constructors near {g}, what does the packet tell {g} to do?",
+            f"Read `paragraphs.{g}`. When an enemy raider party (a scout car, Tick, Pawn or the like) appears at one of our extractors, turrets or constructors near {g}, what does the packet tell {g} to do?",
             {"whole_group": f"{g} attacks it (engages, attacks on sight) as a group", "detachment": f"{g} sends a detachment (send_against, a few soldiers) against it and the rest stay", "forbidden": f"the packet tells {g} not to answer raiders (it holds, keeps its walk, or never chases them)", "not_said": f"the packet says nothing about raiders for {g}"},
         )
-        qs[f"{g}.detachment_size"] = choice(f"Read `packet`. If it tells {g} to send a detachment against a raider, how many soldiers does it say go?", {"1": "one soldier", "2": "two", "4": "four", "half": "half the group", "not_said": "no size is said, or no detachment is ordered"})
-        qs[f"{g}.no_chase"] = noul(f"Read `packet`. Does it forbid {g} to chase raiders far, or tell it never to leave its place after them?")
-        qs[f"{g}.no_detachments"] = noul(f"Read `packet`. Does it forbid {g} to send detachments or to split?")
-        qs[f"{g}.fall_back"] = choice(f"Read `packet`. When does it let or tell {g} to fall back or retreat?", {"outweighed": f"when a party outweighs {g}", "never_while_even_or_better": f"it tells {g} not to fall back while the fight is even or better", "not_said": "the packet does not say"})
-        qs[f"{g}.fall_back_to"] = choice(f"Read `packet`. Where does it tell {g} to fall back to, if it says?", {**place_opts, "home": "home", "not_said": "not said"})
+        qs[f"{g}.detachment_size"] = choice(f"Read `paragraphs.{g}`. When {g} sends a detachment (send_against) against a raider, how many soldiers do they say go with it?", {"1": "one soldier (send_against 1)", "2": "two soldiers (send_against 2)", "4": "four soldiers (send_against 4)", "8": "eight soldiers (send_against 8)", "half": "half the group", "not_said": "no number is given, or no detachment is ordered"})
+        qs[f"{g}.no_chase"] = noul(f"Read `paragraphs.{g}`. Does it forbid {g} to chase raiders far, or tell it never to leave its place after them?")
+        qs[f"{g}.no_detachments"] = noul(f"Read `paragraphs.{g}`. Does it forbid {g} to send detachments or to split?")
+        qs[f"{g}.fall_back"] = choice(f"Read `paragraphs.{g}`. When does it let or tell {g} to fall back or retreat?", {"outweighed": f"when a party outweighs {g}", "never_while_even_or_better": f"it tells {g} not to fall back while the fight is even or better", "not_said": "the packet does not say"})
+        qs[f"{g}.fall_back_to"] = choice(f"Read `paragraphs.{g}`. Where does it tell {g} to fall back to, if it says?", {**place_opts, "home": "home", "not_said": "not said"})
         qs[f"{g}.move"] = choice(
-            f"Read `packet`. What movement, if any, does it give {g} now?",
+            f"Read `paragraphs.{g}`. What movement, if any, does it give {g} now?",
             {"advance_and_fight": f"{g} advances to a place fighting on the way (fight_to, attacks a place)", "walk": f"{g} walks to a place without fighting (move_to, runs)", "engage_party": f"{g} engages a named enemy party", "hold": f"{g} stands where it is", "scout_route": f"{g} walks a route of places to look (a scout)", "not_said": f"no movement is given to {g}"},
         )
-        qs[f"{g}.move_to"] = choice(f"Read `packet`. To which place is {g} sent first, if it is sent anywhere?", {**place_opts, "not_said": "not sent anywhere, or no place named"})
+        qs[f"{g}.move_to"] = choice(f"Read `paragraphs.{g}`. To which place is {g} sent first, if it is sent anywhere?", {**place_opts, "not_said": "not sent anywhere, or no place named"})
         for p in places:
-            qs[f"{g}.never_{p}"] = noul(f"Read `packet`. Does it forbid {g} to go to, stand at or advance to {p} (never, no soldier stands at, does not go)?")
+            qs[f"{g}.never_{p}"] = noul(f"Read `paragraphs.{g}`. Does it forbid {g} to go to, stand at or advance to {p} (never, no soldier stands at, does not go)?")
     for b in BUILDERS:
         paras = paragraphs_about(text, b)
         if not paras:
             continue
         who = "the commander" if b == "commander" else "a constructor"
         places = places_in(" ".join(paras), marks)
-        qs[f"{b}.job"] = choice(f"Read `packet`. What is {who}'s standing job when it has nothing else to do?", {"help_factory": "help (assist, guard) the factory or plant", "follow_list": "follow its build list from the player", "expand": "take free metal spots, build extractors", "not_said": "the packet does not say"})
-        qs[f"{b}.attack_raiders"] = noul(f"Read `packet`. Does it tell {who} to attack a raider party at one of our buildings near it (one it outweighs)?")
-        qs[f"{b}.no_chase"] = noul(f"Read `packet`. Does it tell {who} never to chase scout cars, Ticks or raiders?")
-        qs[f"{b}.solar"] = choice(f"Read `packet`. When may {who} build a solar collector or generator?", {"only_when_stalling": "only when energy reads STALLING or is low", "never": "never, no more solars", "freely": "as it sees fit, or a number of them", "not_said": "the packet does not say"})
-        qs[f"{b}.turrets"] = choice(f"Read `packet`. Where does it tell {who} to build light turrets?", {"beside_each_outer_extractor": "beside each outer or far extractor, or each pair", "beside_each_extractor": "beside every extractor", "none": "no turrets, or it forbids them", "not_said": "the packet does not say"})
-        qs[f"{b}.rebuild_lost"] = noul(f"Read `packet`. Does it tell {who} to rebuild lost extractors?")
-        qs[f"{b}.retreat_when_enemy_near"] = noul(f"Read `packet`. Does it tell {who} to walk back toward home or the commander when enemy soldiers are near?")
+        qs[f"{b}.job"] = choice(f"Read `paragraphs.{b}`. What is {who}'s standing job when it has nothing else to do?", {"help_factory": "help (assist, guard) the factory or plant", "follow_list": "follow its build list from the player", "expand": "take free metal spots, build extractors", "not_said": "the packet does not say"})
+        qs[f"{b}.attack_raiders"] = noul(f"Read `paragraphs.{b}`. Does it tell {who} to attack a raider party at one of our buildings near it (one it outweighs)?")
+        qs[f"{b}.no_chase"] = noul(f"Read `paragraphs.{b}`. Does it tell {who} never to chase scout cars, Ticks or raiders?")
+        qs[f"{b}.solar"] = choice(f"Read `paragraphs.{b}`. When may {who} build a solar collector or generator?", {"only_when_stalling": "only when energy reads STALLING or is low", "never": "never, no more solars", "freely": "as it sees fit, or a number of them", "not_said": "the packet does not say"})
+        qs[f"{b}.turrets"] = choice(f"Read `paragraphs.{b}`. Where does it tell {who} to build light turrets?", {"beside_each_outer_extractor": "beside each outer or far extractor, or each pair", "beside_each_extractor": "beside every extractor", "none": "no turrets, or it forbids them", "not_said": "the packet does not say"})
+        qs[f"{b}.rebuild_lost"] = noul(f"Read `paragraphs.{b}`. Does it tell {who} to rebuild lost extractors?")
+        qs[f"{b}.retreat_when_enemy_near"] = noul(f"Read `paragraphs.{b}`. Does it tell {who} to walk back toward home or the commander when enemy soldiers are near?")
         for p in places:
-            qs[f"{b}.never_{p}"] = noul(f"Read `packet`. Does it forbid {who} to go to, walk past or build at {p}?")
+            qs[f"{b}.never_{p}"] = noul(f"Read `paragraphs.{b}`. Does it forbid {who} to go to, walk past or build at {p}?")
     return qs
 
 
@@ -146,7 +146,10 @@ def extract(match_dir, key, model, limit):
         qs = questions_for(packet)
         if not qs:
             continue
-        response = ask(key, {"packet": packet["text"]}, qs, model)
+        # Each actor's own paragraphs in the state (standing-1: over the whole packet the commander took the
+        # constructors' turret rule at 0.91 and a constructor's job leaked to help_factory).
+        paragraphs = {a: "\n\n".join(paragraphs_about(packet["text"], a)) for a in {q.split(".")[0] for q in qs}}
+        response = ask(key, {"paragraphs": paragraphs}, qs, model)
         answers = response.get("answers") or {}
         rules = {qid: top(a) for qid, a in answers.items()}
         rows.append({"match": label, "frame": packet["frame"], "clock": clock(packet["frame"]), "text": packet["text"], "n_questions": len(qs), "rules": rules, "usage": response.get("usage")})
