@@ -64,12 +64,19 @@ impl Brain {
                     super::pianist::GroupTask::Move { fight: false, .. } => Commitment::None,
                 };
                 let rules = self.footwork_of(&group.name);
-                let hunting: Vec<bot_protocol::UnitId> = group.hunt.as_ref().map(|h| h.hunters.clone()).unwrap_or_default();
                 for id in &group.members {
-                    // A hunter runs raw: the attack by id does the closing (docs/design/2026-09-26-threat-response.md §1).
-                    let hunter = hunting.contains(id);
-                    commitment.insert(*id, if hunter { Commitment::None } else { commitment_of.clone() });
-                    footwork.insert(*id, if hunter { Footwork::raw() } else { rules });
+                    // A hunter is the engine's (H-MICRO-HUNT): attack by id every tick, raw, until the quarry is dead or
+                    // lost or the leash ends (docs/design/2026-09-26-threat-response.md §1).
+                    match group.hunt.as_ref().filter(|h| h.hunters.contains(id)) {
+                        Some(h) => {
+                            commitment.insert(*id, Commitment::Hunt(micro::Hunt { quarry: h.quarry, leash_from: h.from, leash: super::pianist::groups::HUNT_LEASH }));
+                            footwork.insert(*id, Footwork::raw());
+                        }
+                        None => {
+                            commitment.insert(*id, commitment_of.clone());
+                            footwork.insert(*id, rules);
+                        }
+                    }
                 }
             }
         }
@@ -101,6 +108,20 @@ impl Brain {
         }
         self.journal.milling += output.milling;
         commands.extend(output.commands);
+        // The hunts' word from the engine: a hunter dropped, or a hunt ended (`groups.rs` `hunt_event`).
+        if !output.hunts.is_empty()
+            && let Some(pianist) = self.pianist.as_mut()
+        {
+            let own = &tick.snapshot.own_units;
+            for event in &output.hunts {
+                for group in pianist.groups.iter_mut() {
+                    if let Some(text) = Brain::hunt_event(group, event, own, tick.frame, commands) {
+                        pianist.done.push(format!("{} {text}", super::pianist::picture::clock(tick.frame)));
+                        pianist.hunt_events.push(text);
+                    }
+                }
+            }
+        }
     }
 
     pub(super) fn survey_sim_defs(&mut self) {

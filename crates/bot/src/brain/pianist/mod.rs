@@ -7,10 +7,10 @@
 //! late tick a second. The call fails safe: every actor keeps its task until the next answer.
 
 pub mod glossary;
-mod groups;
+pub(super) mod groups;
 mod hands;
 mod menu;
-mod picture;
+pub(super) mod picture;
 mod remove;
 mod diet;
 mod schedule;

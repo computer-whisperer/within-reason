@@ -65,18 +65,13 @@ pub(crate) struct Hunt {
     pub from: Vec3,
     pub since: i32,
     pub last_seen: i32,
-    pub last_order: i32,
     /// Where the quarry was last seen: the attack goes there when it is on radar only.
     pub at: Vec3,
 }
 
-/// A hunt's quarry unseen this long is lost.
-const HUNT_LOST_FRAMES: i32 = 6 * FRAMES_PER_SECOND;
 /// A hunt this far from where it began ends (threats-smoke-1: anchored on the group's station, a hunt begun 900
-/// from the station ended on its first tick, 12 of 16 hunts one order long).
-const HUNT_LEASH: f32 = 900.0;
-/// A hunter this hurt drops out of the hunt.
-const HUNT_DROP_HEALTH: f32 = 1.0 / 3.0;
+/// from the station ended on its first tick, 12 of 16 hunts one order long). The engine judges it (H-MICRO-HUNT).
+pub(crate) const HUNT_LEASH: f32 = 900.0;
 /// A party a group was told to leave is not answered by its rule's default for this long.
 pub(super) const DECLINE_FRAMES: i32 = 30 * FRAMES_PER_SECOND;
 
@@ -458,55 +453,54 @@ impl Brain {
 }
 
 impl Brain {
-    /// One tick of a group's hunt: the attack re-issued from the latest sighting every second or when the quarry
-    /// moved, hurt hunters dropped, and the end (the quarry dead or lost, the leash reached, no hunter left) with
-    /// the hunters given the task's orders again. Returns the end's words.
+    /// One tick of a group's hunt: the book kept (the quarry's last sighting for the words), hunters that died
+    /// dropped, and the hunt ended when none is left. The chasing and the other ends are the micro engine's
+    /// (H-MICRO-HUNT: `Commitment::Hunt` set in `micro.rs` `note_commitments`, the ends read from its output in
+    /// `micro.rs` `micro`). Returns the end's words.
     fn tick_hunt(group: &mut Group, own: &[OwnUnit], enemies: &[bot_protocol::EnemyUnit], frame: i32, commands: &mut Vec<Command>) -> Option<String> {
         let hunt = group.hunt.as_mut()?;
-        let alive: Vec<&OwnUnit> = own.iter().filter(|u| hunt.hunters.contains(&u.id)).collect();
-        let fit: Vec<UnitId> = alive.iter().filter(|u| u.health >= HUNT_DROP_HEALTH * u.max_health).map(|u| u.id).collect();
-        let dropped: Vec<&OwnUnit> = alive.iter().copied().filter(|u| !fit.contains(&u.id)).collect();
-        if !dropped.is_empty() {
-            hunt.hunters.retain(|id| fit.contains(id));
-            let hunt_copy = hunt.clone();
-            let _ = hunt_copy;
-        }
-        let quarry = enemies.iter().find(|e| e.id == hunt.quarry);
-        if let Some(q) = quarry {
+        hunt.hunters.retain(|id| own.iter().any(|u| u.id == *id));
+        if let Some(q) = enemies.iter().find(|e| e.id == hunt.quarry) {
             hunt.last_seen = frame;
             hunt.at = q.pos;
         }
-        let centre = centre_of(&alive);
-        let end = if hunt.hunters.is_empty() {
-            Some("every hunter hurt or dead".to_string())
-        } else if quarry.is_none() && frame - hunt.last_seen > HUNT_LOST_FRAMES {
-            Some(format!("{} out of sight for {} s", hunt.party, HUNT_LOST_FRAMES / FRAMES_PER_SECOND))
-        } else if centre.is_some_and(|c| c.dist2d(hunt.from) > HUNT_LEASH) {
-            Some(format!("the leash of {HUNT_LEASH:.0} from where it began reached"))
-        } else {
-            None
-        };
-        let party = hunt.party.clone();
-        let hunters = hunt.hunters.clone();
-        let since = hunt.since;
-        if let Some(why) = end {
-            group.hunt = None;
-            group.declined.retain(|(_, f)| frame - f < DECLINE_FRAMES);
-            group.declined.push((party.clone(), frame));
-            let rejoining: Vec<&OwnUnit> = own.iter().filter(|u| hunters.contains(&u.id) || dropped.iter().any(|d| d.id == u.id)).collect();
-            commands.extend(group.rejoin_orders(&rejoining));
-            return Some(format!("group_{}'s hunt of {party} ended after {} s: {why}; {} rejoin the group", group.name, (frame - since) / FRAMES_PER_SECOND, rejoining.len()));
+        if !hunt.hunters.is_empty() {
+            return None;
         }
-        if !dropped.is_empty() {
-            commands.extend(group.rejoin_orders(&dropped));
+        let (party, since) = (hunt.party.clone(), hunt.since);
+        group.hunt = None;
+        let _ = commands;
+        Some(format!("group_{}'s hunt of {party} ended after {} s: every hunter dead", group.name, (frame - since) / FRAMES_PER_SECOND))
+    }
+
+    /// The micro engine's word on a hunt (`micro::HuntEvent`): a hunter dropped (hurt, or slower than the quarry)
+    /// rejoins the group's task; the hunt's end (the quarry dead or lost, the leash reached, no hunter left) releases
+    /// every hunter and declines the party for `DECLINE_FRAMES`. Returns the end's words.
+    pub(crate) fn hunt_event(group: &mut Group, event: &micro::HuntEvent, own: &[OwnUnit], frame: i32, commands: &mut Vec<Command>) -> Option<String> {
+        let hunt = group.hunt.as_mut().filter(|h| h.quarry == event.quarry)?;
+        match event.hunter {
+            Some(hunter) => {
+                hunt.hunters.retain(|id| *id != hunter);
+                let dropped: Vec<&OwnUnit> = own.iter().filter(|u| u.id == hunter).collect();
+                commands.extend(group.rejoin_orders(&dropped));
+                None
+            }
+            None => {
+                let (party, since, hunters) = (hunt.party.clone(), hunt.since, hunt.hunters.clone());
+                group.hunt = None;
+                group.declined.retain(|(_, f)| frame - f < DECLINE_FRAMES);
+                group.declined.push((party.clone(), frame));
+                let rejoining: Vec<&OwnUnit> = own.iter().filter(|u| hunters.contains(&u.id)).collect();
+                commands.extend(group.rejoin_orders(&rejoining));
+                let why = match event.why {
+                    "dead" => "the quarry is dead".to_string(),
+                    "lost" => format!("{party} out of sight for 6 s"),
+                    "leash" => format!("the leash of {HUNT_LEASH:.0} from where it began reached"),
+                    other => other.to_string(),
+                };
+                Some(format!("group_{}'s hunt of {party} ended after {} s: {why}; {} rejoin the group", group.name, (frame - since) / FRAMES_PER_SECOND, rejoining.len()))
+            }
         }
-        let hunt = group.hunt.as_mut()?;
-        if frame - hunt.last_order >= FRAMES_PER_SECOND {
-            hunt.last_order = frame;
-            let (quarry, at) = (hunt.quarry, hunt.at);
-            commands.extend(hunt.hunters.iter().map(|id| if quarry_seen(enemies, quarry) { Command::Attack { unit: *id, target: quarry, queue: false } } else { Command::Fight { unit: *id, to: at, queue: false } }));
-        }
-        None
     }
 
     /// Starts a hunt of the party's nearest unit by these members of the group (the previous hunt, if any, ends).
@@ -520,10 +514,10 @@ impl Brain {
             .min_by(|a, b| a.pos.dist2d(centre).total_cmp(&b.pos.dist2d(centre)))
             .map(|e| (e.id, e.pos))
             .unwrap_or((party.ids[0], party.at));
+        // Released; the engine's hunt commitment (set at the next `note_commitments`) does the chasing.
         commands.extend(group.release_orders(&units));
-        commands.extend(units.iter().map(|u| Command::Attack { unit: u.id, target: quarry.0, queue: false }));
         let n = units.len();
-        group.hunt = Some(Hunt { quarry: quarry.0, party: party.name.clone(), hunters, from: centre, since: frame, last_seen: frame, last_order: frame, at: quarry.1 });
+        group.hunt = Some(Hunt { quarry: quarry.0, party: party.name.clone(), hunters, from: centre, since: frame, last_seen: frame, at: quarry.1 });
         format!("{n} of group_{} hunt {} ({})", group.name, party.name, party.composition)
     }
 
@@ -541,10 +535,6 @@ impl Brain {
         group.last_order = frame;
         format!("attack {} ({}) with the whole group", party.name, party.composition)
     }
-}
-
-fn quarry_seen(enemies: &[bot_protocol::EnemyUnit], quarry: UnitId) -> bool {
-    enemies.iter().any(|e| e.id == quarry)
 }
 
 pub(crate) fn centre_of_enemies(units: &[&bot_protocol::EnemyUnit]) -> Option<Vec3> {
