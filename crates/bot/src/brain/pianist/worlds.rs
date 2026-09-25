@@ -25,8 +25,9 @@ const SMALL_PARTY: usize = 2;
 const CANDIDATES: usize = 5;
 /// A walk this long without progress makes the group ask.
 const STALLED_SECONDS: i32 = 45;
-/// Walk candidates at most: the nearest places the instructions name.
+/// Walk candidates at most: the nearest places the instructions name; offered again no sooner than this.
 const WALKS: usize = 2;
+const WALK_OFFER_GAP: i32 = 60 * FRAMES_PER_SECOND;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum Kind {
@@ -168,7 +169,12 @@ impl Brain {
         }
         // The places the instructions name, nearest first: where the packet sends groups in prose the vocabulary
         // has no rule for (a scout's route, "gather at spot_38"); not where it stands or already goes.
-        if offered("move_to") {
+        // Only for a group that has held a while with no station of its own, and not again within a minute of the
+        // last offer it declined: offered on every ask, the walks made every holding group vary every second
+        // (worlds-smoke-2: 184 walk candidates in 94 questions, the course kept 85 times, no ask saved).
+        let held_long = matches!(&group.task, GroupTask::Hold { since, .. } if tick.frame - since >= super::groups::STATION_FRAMES);
+        let declined_lately = pianist.walks_offered.get(&menu.name).is_some_and(|f| tick.frame - f < WALK_OFFER_GAP);
+        if offered("move_to") && held_long && rule.is_none() && !pianist.standing.rules_for(&menu.name).contains_key("station") && !declined_lately {
             let instructions = picture.state["instructions"].as_str().unwrap_or_default();
             let going = match &group.task {
                 GroupTask::Move { place, .. } => Some(place.as_str()),

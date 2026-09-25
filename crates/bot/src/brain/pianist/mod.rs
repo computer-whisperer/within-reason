@@ -161,6 +161,8 @@ pub struct Pianist {
     /// Each factory's own group, by factory: the group its soldiers gather in unless `produce` names another; made
     /// on the first soldier and remade when it has died out.
     pub(super) rally: HashMap<UnitId, String>,
+    /// When each group was last offered walks to the named places in the worlds question (`worlds.rs`).
+    pub(super) walks_offered: HashMap<String, i32>,
     /// Spots where the engine refused an extractor, and until when they are left off the menus (H-HANDS-REFUSED).
     pub(super) refused_spots: HashMap<usize, i32>,
     /// Sites the engine refused for a building (the type, the point, until when): kept out of that type's site
@@ -333,6 +335,7 @@ impl Pianist {
             next_group: 0,
             produced_by: HashMap::new(),
             rally: HashMap::new(),
+            walks_offered: HashMap::new(),
             refused_spots: HashMap::new(),
             refused_sites: Vec::new(),
             script_frame: HashMap::new(),
@@ -899,6 +902,14 @@ impl Brain {
         let lines: Vec<String> = ws.iter().map(|w| worlds::consequence(w, &cands, &picture.parties, &centres, &picture.places)).collect();
         let names: Vec<String> = cands.iter().map(|(g, _)| g.clone()).collect();
         let question = worlds::question(&names, &lines);
+        {
+            let pianist = self.pianist.as_mut().expect("pianist mode");
+            for (g, c) in &cands {
+                if c.iter().any(|x| x.kind == worlds::Kind::Walk) {
+                    pianist.walks_offered.insert(g.clone(), tick.frame);
+                }
+            }
+        }
         for menu in menus.iter_mut() {
             if let Some((_, c)) = cands.iter().find(|(g, _)| *g == menu.name) {
                 menu.worlds_candidates = c.clone();
