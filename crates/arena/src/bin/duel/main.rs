@@ -67,6 +67,8 @@ struct Options {
     base_port: u16,
     /// `--scenario`: this engagement instead of pairings, and the start boxes that keep the commanders away from it.
     scenario: Option<Scenario>,
+    /// `--chase N`: the chase instrument (`director.rs` `chase_orders`).
+    chase: Option<i32>,
     boxes: [script::StartBox; 2],
 }
 
@@ -98,7 +100,7 @@ fn main() -> io::Result<()> {
             "label": options.label, "commit": git_commit(&repo), "map": options.map, "pairings": options.pairs.len(),
             "reps": options.reps, "sizing": format!("{:?}", options.sizing), "time_limit": options.time_limit,
             "speed": options.speed, "sweep_waves": options.sweep_waves, "spacing": options.spacing, "formations": shapes, "lanes": [options.lanes[0].label(), options.lanes[1].label()], "sites": options.sites, "duels_per_match": options.duels_per_match,
-            "scenario": options.scenario.as_ref().map(|s| s.centre),
+            "scenario": options.scenario.as_ref().map(|s| s.centre), "chase": options.chase,
         }))?,
     )?;
 
@@ -117,6 +119,7 @@ fn main() -> io::Result<()> {
         lanes: options.lanes,
         units: combatsim::units::Units::default(),
         scenario: options.scenario.clone(),
+        chase: options.chase,
         on_result: Box::new(move |result| {
             // Written as they finish, so an interrupted batch keeps what it has.
             let _ = writeln!(csv.lock().unwrap(), "{}", report::row(result));
@@ -311,6 +314,7 @@ fn parse_args() -> io::Result<Options> {
         label: "batch".into(),
         base_port: 9500,
         scenario: None,
+        chase: None,
         boxes: script::DUEL_BOXES,
     };
     let list = |text: String| text.split(',').map(str::to_string).collect::<Vec<_>>();
@@ -349,6 +353,7 @@ fn parse_args() -> io::Result<Options> {
             "--spacing" => options.spacing = number(value()) as f32,
             "--formation" => formations = value(),
             "--lane" => lanes = value(),
+            "--chase" => options.chase = Some(number(value()) as i32),
             "--speed" => options.speed = number(value()),
             "--base-port" => options.base_port = number(value()) as u16,
             "--map" => options.map = value(),

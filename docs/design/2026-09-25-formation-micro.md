@@ -175,3 +175,12 @@ Not the lane's, said plainly: the fall-backs of small groups (Jev's rule and the
   the Stout fights unchanged; the user's mixed case and the out-ranged scenario not improved; the live check found
   no fights (the heuristic bot loses to hard_aggressive at minute 10-15). Open: a flank slot for the raider body so
   it stays out of the line's arcs; a rule for an out-ranged body; a live reading under the pianist.
+- 2026-09-25, later (the user's lead from standing-1: a Rover trailing a Flea at 33-44% of its speed under two to
+  three fight orders a second). The orders were H-MICRO-FORM's own slot advance (150 ahead, re-issued every 64
+  elmos), not the follow rule. Measured with a chase instrument (`duel --chase`): a far goal re-sent every 10-60
+  frames costs nothing (Rover 168 of 168, Blitz 99 of 101); the lane's near goal cost Rovers 25% and Blitzes 13%
+  of their speed. Changed: the lead is three seconds of the body's fastest speed (re-issued at half of it) and the
+  Close point lies one lead past the enemy. In the harness chase Rovers 126 -> 138 of 168, Blitzes unchanged; in
+  the arena (lead-ab, 24 games x 3 arms) the speed shares do not move (0.79 overall in every arm; the think pass's
+  far re-orders dominate and do not brake) and the trade is within the noise. The ledger's chase-* and lead-ab-*
+  rows; K-engine-a-short-move-order-brakes-the-unit amended.

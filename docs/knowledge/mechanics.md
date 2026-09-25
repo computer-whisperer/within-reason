@@ -396,4 +396,14 @@ Stouts 38 against 40). The flee's step order now goes 2.5 times further than its
 **Evidence.** The records of `run/matches/1790261454-2v1b-hard`, `1790259885-2v1-hard_aggressive`,
 `1790257668-bank-1` (the main checkout); the engine's `GroundMoveType` brakes toward the goal.
 **Would be wrong if.** The live game with the longer step showed the same speed after a step as before.
-**Used by.** H-MICRO-FLEE.
+**Amended 2026-09-25 (the chase instrument, `duel --chase`; the user's lead from standing-1).** It is the goal's
+distance, not the order's frequency: a Fight at a goal 300-1,100 away re-sent every 10, 15, 30 or 60 frames leaves a
+Rover at 168 of 168 elmos/s and a Blitz at 98-100 of 101 (chase-fav-*, chase-flash-*), while H-MICRO-FORM's slot
+150 ahead re-issued every 64 elmos held Rovers at 126 (75%) and Blitzes at 87 (86%) over the same chase
+(chase-lane-*-prefix), and standing-1's Rover trailing a Flea at 300-370 for half a minute moved at 33-44% of its
+speed under those orders (two to three a second, points 64-66 apart). Over the live records (120,000 soldier-seconds
+with a goal over 300 away) the speed share by orders received in the second is 0.99 / 0.91 / 0.83 / 0.63 / 0.59 for
+0 / 1 / 2 / 3 / 4+, the fast types worst (Rovers 0.87 / 0.44 / 0.33): each order to a goal within the unit's braking
+distance restarts the approach. The lead a slot sends a unit to should be seconds of its speed, not a fixed 150
+(`form::lead_for`), and a chase's goal should lie past the enemy, not short of it.
+**Used by.** H-MICRO-FLEE, H-MICRO-FORM (the lead and the Close point).
