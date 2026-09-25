@@ -154,6 +154,12 @@ pub struct Pianist {
     pub(super) lab_queue: HashMap<UnitId, Vec<(UnitDefId, i32)>>,
     pub(super) groups: Vec<Group>,
     next_group: usize,
+    /// Which factory made each soldier (the engine's creation events), while it lives: a newcomer joins its
+    /// factory's group (H-HANDS-GROUPS: groups are the player's, nothing merges by proximity).
+    pub(super) produced_by: HashMap<UnitId, UnitId>,
+    /// Each factory's own group, by factory: the group its soldiers gather in unless `produce` names another; made
+    /// on the first soldier and remade when it has died out.
+    pub(super) rally: HashMap<UnitId, String>,
     /// Spots where the engine refused an extractor, and until when they are left off the menus (H-HANDS-REFUSED).
     pub(super) refused_spots: HashMap<usize, i32>,
     /// Sites the engine refused for a building (the type, the point, until when): kept out of that type's site
@@ -324,6 +330,8 @@ impl Pianist {
             lab_queue: HashMap::new(),
             groups: Vec::new(),
             next_group: 0,
+            produced_by: HashMap::new(),
+            rally: HashMap::new(),
             refused_spots: HashMap::new(),
             refused_sites: Vec::new(),
             script_frame: HashMap::new(),
@@ -1031,11 +1039,15 @@ impl Brain {
         let mut refused: Vec<(UnitId, UnitDefId, Vec3)> = Vec::new();
         let Some(mut pianist) = self.pianist.take() else { return };
         pianist.tasks.retain(|id, _| own.iter().any(|u| u.id == *id));
+        pianist.produced_by.retain(|id, _| own.iter().any(|u| u.id == *id));
         pianist.queued.retain(|id, _| own.iter().any(|u| u.id == *id));
         pianist.lab_queue.retain(|id, _| own.iter().any(|u| u.id == *id));
         for event in &tick.events {
             match *event {
                 Event::UnitCreated { unit, builder: Some(builder) } => {
+                    if own.iter().any(|u| u.id == builder && self.world.is_factory_def(u.def)) {
+                        pianist.produced_by.insert(unit, builder);
+                    }
                     // A frame appearing while the task is a started build is the queued build beginning (the
                     // finished event promoted it already, unless the frame in progress died): promote now.
                     if matches!(pianist.tasks.get(&builder), Some(Task::Build { started: true, .. })) {

@@ -1,6 +1,7 @@
-//! Soldier groups: the pianist's unit of command. A new soldier joins the group standing nearest it or forms one of
-//! its own; a group carries one task at a time; between calls the standing orders are kept up (a march arrives
-//! together, an engagement follows its party, an arrival becomes a hold).
+//! Soldier groups: the pianist's unit of command. A new soldier joins the group the player named for its factory's
+//! output, else its factory's own group; nothing merges by proximity (H-HANDS-GROUPS, since 2026-09-25: groups are
+//! the player's, `docs/design/2026-09-25-one-decider.md` §3). A group carries one task at a time; between calls the
+//! standing orders are kept up (a march arrives together, an engagement follows its party, an arrival becomes a hold).
 
 use std::collections::HashSet;
 
@@ -10,14 +11,10 @@ use super::super::roster::Kit;
 use super::super::{Brain, FRAMES_PER_SECOND};
 use crate::world::Domain;
 
-/// H-HANDS-GROUPS: a new soldier joins the largest group whose centre is this close, else forms a new one; two holding
-/// groups whose centres are this close merge, the smaller into the larger (smoke-5: forty one-unit groups round home).
+/// H-HANDS-GROUPS: a newcomer whose group stands farther than this walks to it (fresh Grunts at the lab formed groups of
+/// one and two while the ball held 400 to 2,700 away, and died in ones and twos: human-8, eight Grunts lost by 3:14,
+/// every one in a group of five or fewer, 380 to 1,231 from the commander).
 const ADOPT_RADIUS: f32 = 400.0;
-/// Farther than that, a newcomer joins the largest group within this that stands in our half, walking to it: fresh
-/// Grunts at the lab formed groups of one and two while the ball held 400 to 2,700 away, and died in ones and twos
-/// (human-8: eight Grunts lost by 3:14, every one in a group of five or fewer, 380 to 1,231 from the commander).
-const ADOPT_FAR: f32 = 1500.0;
-const MERGE_RADIUS: f32 = 300.0;
 /// A moving group has arrived when its centre is this close to its destination.
 const ARRIVED: f32 = 300.0;
 /// An engaged group is sent on when its party has moved this far, and no more often than this.
@@ -229,50 +226,45 @@ impl Brain {
                 shared.trigger(text);
             }
         }
-        // H-HANDS-GROUPS: newcomers.
+        // H-HANDS-GROUPS: a newcomer joins the group the player named for its factory (`produce` ... `group`), else its
+        // factory's own group (made on its first soldier, remade when it has died out); a soldier of no factory (the
+        // start, a resurrection) forms a group of its own. Nothing merges by proximity: a merge is the player's order
+        // (`join_group_X`, the standing rule `join`). Standing-2: 22 groups lived a median 1.3 minutes under the old
+        // adoption and merge, and the tool's rules died with them.
         let mut loose: Vec<&OwnUnit> = soldiers.iter().copied().filter(|u| !pianist.groups.iter().any(|g| g.members.contains(&u.id))).collect();
         loose.sort_by_key(|u| u.id.0);
-        let far_side = self.world.mirrored(home);
         for unit in loose {
             let domain = self.world.domain_of(unit.def);
-            let candidates: Vec<(f32, Vec3, usize)> = pianist.groups.iter().enumerate().filter(|(_, g)| g.domain == domain).filter_map(|(i, g)| centre_of(&g.units(own)).map(|c| (c.dist2d(unit.pos), c, i))).collect();
-            let near = candidates.iter().filter(|(d, _, _)| *d < ADOPT_RADIUS).max_by(|a, b| pianist.groups[a.2].members.len().cmp(&pianist.groups[b.2].members.len()).then(b.0.total_cmp(&a.0)));
-            let far = candidates
-                .iter()
-                .filter(|(d, c, _)| *d < ADOPT_FAR && c.dist2d(home) < c.dist2d(far_side))
-                .max_by(|a, b| pianist.groups[a.2].members.len().cmp(&pianist.groups[b.2].members.len()).then(b.0.total_cmp(&a.0)));
-            match (near, far) {
-                (Some((_, _, i)), _) => pianist.groups[*i].members.push(unit.id),
-                (None, Some((_, c, i))) => {
-                    pianist.groups[*i].members.push(unit.id);
-                    commands.push(Command::Move { unit: unit.id, to: *c, queue: false });
+            let factory = pianist.produced_by.get(&unit.id).copied();
+            let named = factory.and_then(|f| self.allowed_units(&self.actor_name(f))).and_then(|a| a.group);
+            let wanted = group_for_newcomer(named.as_deref(), factory.and_then(|f| pianist.rally.get(&f)).map(String::as_str));
+            let target = wanted.and_then(|name| pianist.groups.iter().position(|g| g.name == name && g.domain == domain));
+            match target {
+                Some(i) => {
+                    let centre = centre_of(&pianist.groups[i].units(own));
+                    pianist.groups[i].members.push(unit.id);
+                    if let Some(c) = centre
+                        && c.dist2d(unit.pos) > ADOPT_RADIUS
+                    {
+                        commands.push(Command::Move { unit: unit.id, to: c, queue: false });
+                    }
                 }
-                (None, None) => {
+                None => {
                     let name = pianist.new_group_name();
+                    if let Some(f) = factory {
+                        pianist.rally.insert(f, name.clone());
+                        // `new` asked for one fresh group, not one per soldier: from now the factory's own.
+                        if named.as_deref() == Some("new")
+                            && let Some(shared) = &self.strategist
+                            && let Some(a) = shared.allowed.lock().unwrap().get_mut(&self.actor_name(f))
+                        {
+                            a.group = None;
+                        }
+                    }
                     let group = Group::new(name, domain, vec![unit.id], GroupTask::Hold { since: frame, committed: false }, frame);
                     commands.extend(group.hold_orders(&[unit]));
                     pianist.groups.push(group);
                 }
-            }
-        }
-        // Holding groups standing together are one group.
-        let mut merged = true;
-        while merged {
-            merged = false;
-            let centres: Vec<Option<Vec3>> = pianist.groups.iter().map(|g| centre_of(&g.units(own))).collect();
-            let pair = (0..pianist.groups.len()).flat_map(|a| (0..pianist.groups.len()).map(move |b| (a, b))).find(|(a, b)| {
-                a != b
-                    && pianist.groups[*a].domain == pianist.groups[*b].domain
-                    && !pianist.groups[*a].task.busy()
-                    && !pianist.groups[*b].task.busy()
-                    && pianist.groups[*a].members.len() <= pianist.groups[*b].members.len()
-                    && matches!((centres[*a], centres[*b]), (Some(x), Some(y)) if x.dist2d(y) < MERGE_RADIUS)
-            });
-            if let Some((small, large)) = pair {
-                let members = std::mem::take(&mut pianist.groups[small].members);
-                pianist.groups[large].members.extend(members);
-                pianist.groups.remove(small);
-                merged = true;
             }
         }
         // Standing orders, under each group's footwork rules (H-HANDS-LANE).
@@ -391,4 +383,27 @@ pub(crate) fn centre_of_enemies(units: &[&bot_protocol::EnemyUnit]) -> Option<Ve
     }
     let n = units.len() as f32;
     Some(units.iter().fold(Vec3::default(), |sum, u| Vec3 { x: sum.x + u.pos.x / n, y: 0.0, z: sum.z + u.pos.z / n }))
+}
+
+/// The group a newcomer wants (H-HANDS-GROUPS): the one the player named for its factory, none for `new` (a fresh
+/// group), else the factory's own; a soldier of no factory forms its own.
+fn group_for_newcomer(named: Option<&str>, factory_group: Option<&str>) -> Option<String> {
+    match named {
+        Some("new") => None,
+        Some(name) => Some(name.trim_start_matches("group_").to_string()),
+        None => factory_group.map(str::to_string),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::group_for_newcomer;
+
+    #[test]
+    fn a_newcomer_joins_the_named_group_else_its_factorys_own_and_new_starts_a_fresh_one() {
+        assert_eq!(group_for_newcomer(Some("group_A"), Some("B")), Some("A".to_string()));
+        assert_eq!(group_for_newcomer(None, Some("B")), Some("B".to_string()));
+        assert_eq!(group_for_newcomer(Some("new"), Some("B")), None);
+        assert_eq!(group_for_newcomer(None, None), None);
+    }
 }

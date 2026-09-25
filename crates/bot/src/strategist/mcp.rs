@@ -150,7 +150,7 @@ fn tool_list() -> Value {
               "description": "Name a place of your own for your hands: an object of name to [x, z] map coordinates or a grid cell (\"E7\": its centre), or null to forget it. A marked place joins the picture's places at once, so instructions can send groups and builders there (\"group_B: advance to south_gate\"), and its entry says whose ground it is and what enemy is near. Names are lower-case words with underscores; home, spot_N, passage_N and group_N are taken. Any spot or passage you name in the packet is on your hands' menu already, however far; mark is for places that are not spots.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }, { "type": "string" }, { "type": "null" } ] }, "description": "Place name to [x, z], a grid cell, or null." } },
             { "name": "produce",
-              "description": "What each factory or builder may build: an object of actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" (every commander and constructor) or \"all\" (everyone) to a list of unit names (as the roster writes them: armpw, armham, armck, armfus), or null to lift the restriction. A name with a count after a colon (armck:1) is allowed that many more times from now and then drops off the list by itself; saying the same list again restarts the count: the way to say 'one constructor, then raiders' to hands that cannot count. A lab with a list is offered only those units and nothing else, every time it is asked; your instructions still say which of them and when. A builder without a list is offered the usual buildings (generators, factories, light and heavy turrets, radar, storage, the tier-2 lab and extractor, fusion); a list replaces that, so a fusion reactor, an aircraft plant or a jammer from a constructor is asked for here. Use it when the packet's words are not getting the mix you want. A list naming nothing the actor can build leaves it unrestricted; the actor's entry in the picture shows its list. Your policy is not bound by lists: it may order anything a builder can build.",
+              "description": "What each factory or builder may build, and for a factory which group its new soldiers join ({\"plant_7\": {\"units\": [\"armflash\"], \"group\": \"group_A\"}}, or \"new\" for a fresh group of that factory's own; by default a factory's soldiers gather in one group of its own and nothing merges by itself): an object of actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" (every commander and constructor) or \"all\" (everyone) to a list of unit names (as the roster writes them: armpw, armham, armck, armfus), or null to lift the restriction. A name with a count after a colon (armck:1) is allowed that many more times from now and then drops off the list by itself; saying the same list again restarts the count: the way to say 'one constructor, then raiders' to hands that cannot count. A lab with a list is offered only those units and nothing else, every time it is asked; your instructions still say which of them and when. A builder without a list is offered the usual buildings (generators, factories, light and heavy turrets, radar, storage, the tier-2 lab and extractor, fusion); a list replaces that, so a fusion reactor, an aircraft plant or a jammer from a constructor is asked for here. Use it when the packet's words are not getting the mix you want. A list naming nothing the actor can build leaves it unrestricted; the actor's entry in the picture shows its list. Your policy is not bound by lists: it may order anything a builder can build.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "null" } ] }, "description": "Actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" or \"all\" to unit names, or null." } },
             { "name": "remove",
               "description": "Take apart or blow up what we own: {\"reclaim\": [handles], \"by\": \"constructor_N\" (optional; else the nearest builder without a list)} puts `reclaim <handle>` steps at the front of that builder's list, and most of the metal comes back; {\"destruct\": [handles]} sends the engine's self-destruct, and nothing comes back. A handle is a unit's name and id as the picture writes it (armsolar_31002: a factory's `yard` entry names the buildings in its exit lane) or an actor's name (constructor_N, plant_N, commander). Every unit that self-destructs blows up: the answer says the blast's radius and damage and what of ours stands inside it, and a destruct that would kill something of ours is refused unless \"accept_losses\": true. The commander's blast is the game's largest; a reclaim is the safe way beside anything that matters.",
@@ -500,46 +500,93 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             Ok(format!("said: {text}"))
         }
         "produce" => {
-            let lists = arguments.as_object().filter(|o| !o.is_empty()).ok_or("produce takes an object: factory name (lab_N or plant_N) or \"all\" to a list of unit names (a name with :N caps it at N more), or null to lift it")?;
+            let lists = arguments.as_object().filter(|o| !o.is_empty()).ok_or("produce takes an object: factory name (lab_N or plant_N) or \"all\" to a list of unit names, or to {\"units\": [...], \"group\": \"group_A\" | \"new\"} for a factory")?;
             let known: Vec<String> = shared.field().roster.iter().map(|(name, _)| name.clone()).collect();
-            let mut parsed: Vec<(String, Option<Vec<String>>)> = Vec::new();
+            let groups: Vec<String> = shared.hands.lock().unwrap().picture["actors"].as_object().map(|a| a.keys().filter(|k| k.starts_with("group_")).cloned().collect()).unwrap_or_default();
+            let check_units = |name: &str, items: &[Value]| -> Result<Vec<String>, String> {
+                let units: Vec<String> = items.iter().map(|v| v.as_str().map(str::to_string).ok_or_else(|| format!("{name}: unit names are strings"))).collect::<Result<_, _>>()?;
+                // "corck:1": at most one of it from now, then the rest of the list (human-7: told "one
+                // constructor first, then raiders", the hands, who cannot count, made three).
+                for unit in &units {
+                    let (unit_name, cap) = crate::brain::pianist::allowance(unit);
+                    if !known.is_empty() && !known.contains(&unit_name.to_string()) {
+                        return Err(format!("{unit_name} is not a unit of our roster (internal names as the roster lists them)"));
+                    }
+                    if unit.contains(':') && cap.is_none() {
+                        return Err(format!("{unit}: a count after the colon is a whole number of one or more (corck:1)"));
+                    }
+                }
+                Ok(units)
+            };
+            // (actor, units or None to clear, the group its soldiers join: Some(Some(name)) sets, Some(None) clears, None leaves)
+            let mut parsed: Vec<(String, Option<Option<Vec<String>>>, Option<Option<String>>)> = Vec::new();
             for (name, value) in lists {
-                if !matches!(name.as_str(), "all" | "all_builders" | "commander") && !["lab_", "plant_", "factory_", "constructor_"].iter().any(|p| name.starts_with(p)) {
+                let factory = ["lab_", "plant_", "factory_"].iter().any(|p| name.starts_with(p));
+                if !matches!(name.as_str(), "all" | "all_builders" | "commander") && !factory && !name.starts_with("constructor_") {
                     return Err(format!("{name}: lists are by actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" or \"all\""));
                 }
-                let list = match value {
-                    Value::Null => None,
-                    Value::Array(items) => {
-                        let units: Vec<String> = items.iter().map(|v| v.as_str().map(str::to_string).ok_or_else(|| format!("{name}: unit names are strings"))).collect::<Result<_, _>>()?;
-                        // "corck:1": at most one of it from now, then the rest of the list (human-7: told "one
-                        // constructor first, then raiders", the hands, who cannot count, made three).
-                        for unit in &units {
-                            let (unit_name, cap) = crate::brain::pianist::allowance(unit);
-                            if !known.is_empty() && !known.contains(&unit_name.to_string()) {
-                                return Err(format!("{unit_name} is not a unit of our roster (internal names as the roster lists them)"));
-                            }
-                            if unit.contains(':') && cap.is_none() {
-                                return Err(format!("{unit}: a count after the colon is a whole number of one or more (corck:1)"));
-                            }
+                match value {
+                    Value::Null => parsed.push((name.clone(), Some(None), None)),
+                    Value::Array(items) => parsed.push((name.clone(), Some(Some(check_units(name, items)?)), None)),
+                    Value::Object(fields) => {
+                        if !factory {
+                            return Err(format!("{name}: the object form (units and group) is for a factory"));
                         }
-                        Some(units)
+                        let units = match fields.get("units") {
+                            None => None,
+                            Some(Value::Array(items)) => Some(Some(check_units(name, items)?)),
+                            Some(Value::Null) => Some(None),
+                            Some(_) => return Err(format!("{name}: units is a list of unit names")),
+                        };
+                        let group = match fields.get("group") {
+                            None => None,
+                            Some(Value::Null) => Some(None),
+                            Some(Value::String(g)) if g == "new" => Some(Some("new".to_string())),
+                            Some(Value::String(g)) if groups.contains(g) => Some(Some(g.clone())),
+                            Some(Value::String(g)) => return Err(format!("{name}: {g} is not a group in the picture ({}); \"new\" makes one", if groups.is_empty() { "none yet".to_string() } else { groups.join(", ") })),
+                            Some(_) => return Err(format!("{name}: group is a group name or \"new\"")),
+                        };
+                        if units.is_none() && group.is_none() {
+                            return Err(format!("{name}: the object form takes units and/or group"));
+                        }
+                        parsed.push((name.clone(), units, group));
                     }
-                    _ => return Err(format!("{name}: a list of unit names, or null")),
-                };
-                parsed.push((name.clone(), list));
+                    _ => return Err(format!("{name}: a list of unit names, null, or {{\"units\": [...], \"group\": ...}}")),
+                }
             }
             let mut allowed = shared.allowed.lock().unwrap();
             let call = shared.produce_calls.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
             let mut said: Vec<String> = Vec::new();
-            for (name, list) in parsed {
-                match list {
-                    Some(units) => {
+            for (name, units, group) in parsed {
+                let before = allowed.get(&name).cloned();
+                let units_now = match units {
+                    Some(Some(units)) => {
                         said.push(format!("{name} may build only {}", if units.is_empty() { "nothing".to_string() } else { units.join(", ") }));
-                        allowed.insert(name, Allowance { call, units });
+                        Some(units)
                     }
-                    None => {
-                        allowed.remove(&name);
+                    Some(None) => {
                         said.push(format!("{name} may build anything"));
+                        None
+                    }
+                    None => before.as_ref().map(|a| a.units.clone()),
+                };
+                let group_now = match group {
+                    Some(Some(g)) => {
+                        said.push(if g == "new" { format!("{name}'s new soldiers form a group of their own from now") } else { format!("{name}'s new soldiers join {g}") });
+                        Some(g)
+                    }
+                    Some(None) => {
+                        said.push(format!("{name}'s new soldiers gather in its own group again"));
+                        None
+                    }
+                    None => before.as_ref().and_then(|a| a.group.clone()),
+                };
+                match (units_now, group_now) {
+                    (None, None) => {
+                        allowed.remove(&name);
+                    }
+                    (units, group) => {
+                        allowed.insert(name, Allowance { call: if units.is_some() { call } else { before.map_or(call, |a| a.call) }, units: units.unwrap_or_default(), group });
                     }
                 }
             }

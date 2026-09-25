@@ -52,6 +52,7 @@ pub(crate) const GROUP_RULES: &[(&str, &[&str])] = &[
     ("hold_line", &["yes"]),
     ("fall_back_to", &["place"]),
     ("engage_party", &["party"]),
+    ("join", &["group"]),
     ("never", &["places"]),
 ];
 pub(crate) const BUILDER_RULES: &[(&str, &[&str])] = &[
@@ -120,7 +121,7 @@ fn is_group(actor: &str) -> bool {
 
 fn valid_value(rule: &str, value: &str, allowed: &[&str]) -> bool {
     allowed.iter().any(|a| match *a {
-        "place" | "places" | "party" => !value.is_empty(),
+        "place" | "places" | "party" | "group" => !value.is_empty(),
         "detachment:N" => value.strip_prefix("detachment:").is_some_and(|n| matches!(n, "1" | "2" | "4" | "8" | "half")),
         other => other == value,
     }) || (rule == "never" && !value.is_empty())
@@ -224,6 +225,9 @@ impl Standing {
             }
             if allowed.contains(&"party") && !parties.iter().any(|p| *p == value) {
                 return Err(format!("{actor}: {value} is not a party in the picture"));
+            }
+            if allowed.contains(&"group") && (!value.starts_with("group_") || value == actor) {
+                return Err(format!("{actor}: {rule} takes another group's name (group_X), not {value}"));
             }
             checked.insert(rule.clone(), value);
         }
@@ -521,7 +525,13 @@ impl Brain {
                 {
                     return Some((order("move_to", &[("where", to)]), "fall_back_to".into()));
                 }
-                // 2. A named party to kill.
+                // 2. A merge the player ordered: into the named group, when it stands and the menu offers it.
+                if let Some(other) = rules.get("join")
+                    && offered(&format!("join_{other}"))
+                {
+                    return Some((order(&format!("join_{other}"), &[]), "join".into()));
+                }
+                // 3. A named party to kill.
                 if let Some(target) = rules.get("engage_party")
                     && let Some(party) = picture.parties.iter().find(|p| p.name == *target)
                     && offered("engage")

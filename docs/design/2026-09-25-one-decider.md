@@ -11,9 +11,10 @@ On the two questions asked: the Sonnet commander modes go with the deciders, and
 the arena instrument for the micro agent's A/Bs at cents a game. "Keep the build order search as one of the player's
 tools." "Don't remove the player system. That's the most effective part of this."
 
-**Status.** §1 done 2026-09-25 evening in four commits (60b81a0 deciders, 17ae210 modes, 9669036 policy and family, the
-registry and docs after); the arena instrument (§2), the groups (§3), the worlds question (§4) and the builders' question
-follow.
+**Status.** §1 done 2026-09-25 evening in four commits (60b81a0 deciders, 17ae210 modes, 9669036 policy and family,
+3fe5a1f the registry and docs); §2 done (e49b9a7 `--packet`; smoke-pianist-1: the pianist alone played 17 minutes against
+easy for $0.07 in 87 s of wall time); §3 built the same night (the factory's own group, `produce` ... `group`, the `join`
+rule); the worlds question (§4) and the builders' question follow.
 
 ## 1. What is deleted
 

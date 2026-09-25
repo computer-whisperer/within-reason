@@ -511,6 +511,9 @@ impl Shared {
 pub struct Allowance {
     pub call: u64,
     pub units: Vec<String>,
+    /// For a factory: the group its new soldiers join (`group_X`), or `new` for a fresh group of this factory's own
+    /// (H-HANDS-GROUPS: groups are the player's, nothing merges by proximity).
+    pub group: Option<String>,
 }
 
 /// One ally team as the player is told of it: ours or not, and its seats in words ("keithphw (a person, lobby skill

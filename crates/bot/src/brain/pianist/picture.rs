@@ -849,6 +849,14 @@ impl Brain {
                         .collect();
                     entry["allowed"] = json!(if words.is_empty() { "the player allows nothing this lab can build: it builds anything".to_string() } else { format!("the player allows only: {}", words.join(", ")) });
                 }
+                let named = self.allowed_units(&name).and_then(|a| a.group);
+                let rally = pianist.rally.get(&unit.id).map(|g| format!("group_{g}"));
+                entry["output_joins"] = json!(match (named.as_deref(), rally) {
+                    (Some("new"), _) => "a fresh group of this factory's own from the next soldier (`produce` ... group)".to_string(),
+                    (Some(g), _) => format!("{g}, by your `produce` order"),
+                    (None, Some(g)) => format!("{g}, this factory's own group (name another in `produce`, or `new`)"),
+                    (None, None) => "a group of this factory's own, made on its first soldier (name one in `produce`)".to_string(),
+                });
                 entry["health"] = json!(health_words(unit.health / unit.max_health));
             }
             if let Some((_, energy, metal)) = draws.iter().find(|(who, _, _)| *who == name) {

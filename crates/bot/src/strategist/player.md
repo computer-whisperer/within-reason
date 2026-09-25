@@ -91,7 +91,10 @@ how many asks of Jev they saved. What the vocabulary cannot say (a boundary, a c
 nothing else, so the mix is exactly what you allow and the packet's words only order among them. A name with a count
 after a colon (`armck:1`) is allowed that many more times and then drops off the list by itself. It is the sure way
 to get a unit built (raiders against raiders, constructors after losses) and the only way to get a count: the hands
-cannot count, and "one constructor first, then raiders" got three constructors (human-7).
+cannot count, and "one constructor first, then raiders" got three constructors (human-7). A factory's new soldiers
+gather in a group of that factory's own, and nothing merges by itself: `{"plant_7": {"units": ["armflash"], "group":
+"group_A"}}` sends its soldiers into group_A instead, `"group": "new"` starts a fresh group of its own, and a merge is
+your order (`join` in `standing`, or the hands' `join_group_X`).
 `remove` takes apart or blows up what we own. A factory's units leave through its front, and a building in that lane
 seals it: in hands-2 five Bulls stood behind a solar collector for six minutes while the plant built nothing with
 metal full. The bot now keeps new buildings out of every factory's exit lane, and a factory whose lane is blocked says
