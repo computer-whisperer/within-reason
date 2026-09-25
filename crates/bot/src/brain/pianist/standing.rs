@@ -102,6 +102,9 @@ pub(crate) struct Standing {
     pub saved: u32,
     /// The filter's verdicts since the last report: rule / near / other / panic.
     pub verdicts: BTreeMap<String, u32>,
+    /// The unit types a group had when its tool orders were set, and whether the change was said: standing-1's
+    /// `raiders ignore`, set for two Rovers, held the Blitzes that joined the group while five extractors died.
+    pub tool_seen: BTreeMap<String, (BTreeSet<String>, bool)>,
 }
 
 fn is_group(actor: &str) -> bool {
@@ -217,6 +220,7 @@ impl Standing {
             }
             checked.insert(rule.clone(), value);
         }
+        self.tool_seen.remove(actor);
         let entry = self.tool.entry(actor.to_string()).or_default();
         let n = checked.len();
         for (rule, value) in checked {
@@ -234,8 +238,35 @@ impl Standing {
 
     pub(crate) fn clear_tool(&mut self, actors: Option<&[String]>) -> usize {
         match actors {
-            None => std::mem::take(&mut self.tool).len(),
-            Some(list) => list.iter().filter(|a| self.tool.remove(*a).is_some()).count(),
+            None => {
+                self.tool_seen.clear();
+                std::mem::take(&mut self.tool).len()
+            }
+            Some(list) => list.iter().filter(|a| {
+                self.tool_seen.remove(*a);
+                self.tool.remove(*a).is_some()
+            }).count(),
+        }
+    }
+
+    /// A group with tool orders whose unit types have changed since they were set: said once, as a line for the
+    /// player's report (None when nothing changed or it was said already).
+    pub(crate) fn composition_changed(&mut self, actor: &str, types: BTreeSet<String>) -> Option<String> {
+        if !self.tool.contains_key(actor) {
+            return None;
+        }
+        match self.tool_seen.get_mut(actor) {
+            None => {
+                self.tool_seen.insert(actor.to_string(), (types, false));
+                None
+            }
+            Some((then, warned)) => {
+                if *warned || *then == types || then.is_empty() {
+                    return None;
+                }
+                *warned = true;
+                Some(format!("{actor}'s tool orders were set when it was {}; it is {} now: clear or reset them if they were meant for what it was", then.iter().cloned().collect::<Vec<_>>().join(", "), types.iter().cloned().collect::<Vec<_>>().join(", ")))
+            }
         }
     }
 
@@ -631,7 +662,7 @@ impl Brain {
 
     /// The smallest detachment of the group's soldiers nearest the party that outweighs it (ratio 1.3), by the
     /// combat table; the whole group when none does.
-    fn detachment_for(&self, units: &[&OwnUnit], party: &Party, enemies: &[bot_protocol::EnemyUnit]) -> usize {
+    pub(super) fn detachment_for(&self, units: &[&OwnUnit], party: &Party, enemies: &[bot_protocol::EnemyUnit]) -> usize {
         let mut theirs = super::super::combat::Force::default();
         for enemy in enemies.iter().filter(|e| party.ids.contains(&e.id)) {
             match enemy.def {

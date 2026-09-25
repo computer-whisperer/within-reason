@@ -862,6 +862,17 @@ impl Brain {
             return;
         }
         let mut orders: Vec<(String, policy::Order, String)> = Vec::new();
+        // A group whose unit types changed since its tool orders were set is said once (standing-1, 4:26).
+        {
+            let own = &tick.snapshot.own_units;
+            let changed: Vec<(String, BTreeSet<String>)> = self.pianist.as_ref().expect("pianist mode").groups.iter().map(|g| (format!("group_{}", g.name), g.units(own).iter().map(|u| self.name(u.def).to_string()).collect::<BTreeSet<_>>())).collect();
+            let pianist = self.pianist.as_mut().expect("pianist mode");
+            for (name, types) in changed {
+                if let Some(text) = pianist.standing.composition_changed(&name, types) {
+                    pianist.done.push(format!("{} standing: {text}", picture::clock(frame)));
+                }
+            }
+        }
         for menu in menus.iter() {
             if matches!(menu.actor, menu::Actor::Global) || menu.scripted.is_some() || menu.replay.is_some() {
                 continue;

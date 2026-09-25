@@ -744,6 +744,13 @@ impl Brain {
                 // Any unit by its internal name; one that stands at a place (a defence, a radar) needs the place, and any
                 // other building takes one when given (escalate-1-easy: `armvp home` from a constructor at the strip's
                 // north end put the plant there, the place word read and dropped).
+                // A defence at a spot whose extractor the engine refused lately waits with its extractor: the list's
+                // "extractor spot_22, armllt spot_22" built the turret at a bare spot (standing-1, 8:48).
+                other if self.world.def_named(other).is_some_and(|def| self.placed_at_place(def) && self.world.def(def).is_some_and(|d| d.weapon_count > 0))
+                    && place.as_deref().and_then(|p| p.strip_prefix("spot_")).and_then(|n| n.parse::<usize>().ok()).is_some_and(|i| pianist.refused_spots.get(&i).is_some_and(|until| *until > frame)) =>
+                {
+                    Err(format!("the extractor at {} was refused lately; a defence there waits for it", place.as_deref().unwrap_or("?")))
+                }
                 other => match self.world.def_named(other) {
                     Some(def) if self.placed_at_place(def) || place.is_some() => at_place(def),
                     Some(def) => building(def),

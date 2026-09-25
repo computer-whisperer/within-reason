@@ -418,14 +418,28 @@ impl Brain {
                     picture.parties.iter().filter(free).min_by(|a, b| centre.map_or(0.0, |c| a.at.dist2d(c)).total_cmp(&centre.map_or(0.0, |c| b.at.dist2d(c))))
                 });
                 if let Some(party) = party {
-                    let n = match how_many.as_deref() {
+                    let asked = match how_many.as_deref() {
                         Some("1") => 1,
                         Some("2") => 2,
                         Some("4") => 4,
                         Some("8") => 8,
                         _ => units.len() / 2,
+                    };
+                    // A detachment must outweigh its party by the combat table: the asked number, raised to the
+                    // smallest that does; when none of the group's soldiers alone or together does, the whole group
+                    // goes as an engagement (standing-1, 3:18: `send_against 2` from a group of two Rovers became
+                    // one Rover against a Pawn, "an even fight", and it died at 3:33; the odds line was the group's).
+                    let enough = self.detachment_for(&units, party, &tick.snapshot.enemies);
+                    if enough >= units.len() {
+                        commands.extend(pianist.groups[index].release_orders(&units));
+                        commands.extend(ids.iter().map(|id| Command::Fight { unit: *id, to: party.at, queue: false }));
+                        pianist.groups[index].set_task(GroupTask::Engage { party: party.ids.clone(), at: party.at, since: frame, last_seen: frame, target: None, searched: false, from: centre.unwrap_or(party.at) }, frame);
+                        pianist.groups[index].last_order = frame;
+                        did = Some(format!("attack {} ({}) with the whole group: no detachment of it outweighs the party", party.name, party.composition));
+                        self.pianist = Some(pianist);
+                        return did;
                     }
-                    .clamp(1, units.len().saturating_sub(1).max(1));
+                    let n = asked.max(enough).clamp(1, units.len().saturating_sub(1).max(1));
                     let domain = pianist.groups[index].domain;
                     let detached: Vec<UnitId> = nearest_of(&units, party.at, n).iter().map(|u| u.id).collect();
                     pianist.groups[index].members.retain(|id| !detached.contains(id));
