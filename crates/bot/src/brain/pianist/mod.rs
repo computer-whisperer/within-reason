@@ -1045,6 +1045,37 @@ impl Brain {
             pianist.tasks.remove(&id);
             commands.push(Command::Stop { unit: id });
         }
+        // A builder attacking a party follows it: the fight order is to where the party stood when the pick was made,
+        // and a raider moves (the state stays current, so the pass does not re-issue it).
+        let moved: Vec<(UnitId, Vec3)> = pianist
+            .tasks
+            .iter()
+            .filter_map(|(id, t)| match t {
+                Task::Walk { to, place, .. } if place.starts_with("party_") => pianist.parties.iter().find(|p| p.name == *place).filter(|p| p.at.dist2d(*to) > 150.0).map(|p| (*id, p.at)),
+                _ => None,
+            })
+            .collect();
+        for (id, at) in moved {
+            if let Some(Task::Walk { to, .. }) = pianist.tasks.get_mut(&id) {
+                *to = at;
+            }
+            commands.push(Command::Fight { unit: id, to: at, queue: false });
+        }
+        // A party that is gone (dead or out of sight) ends the attack at once: the builder stops where it is and
+        // the pass sees it free this second, instead of walking to where the party was and idling there
+        // (onepass-norules-hard-3, 2:55: the Flea died the second the pick sent the commander, which walked 18 s to
+        // the spot and stood 16 s).
+        let gone: Vec<UnitId> = pianist
+            .tasks
+            .iter()
+            .filter(|(_, t)| matches!(t, Task::Walk { place, .. } if place.starts_with("party_") && !pianist.parties.iter().any(|p| p.name == *place)))
+            .map(|(id, _)| *id)
+            .collect();
+        for id in gone {
+            pianist.tasks.remove(&id);
+            commands.push(Command::Stop { unit: id });
+            done.push(format!("{} {}: its attack ends, the party is gone", picture::clock(frame), self.actor_name(id)));
+        }
         for text in notes {
             pianist.note(frame, text);
         }

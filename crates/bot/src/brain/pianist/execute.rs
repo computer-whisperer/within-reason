@@ -104,8 +104,13 @@ impl Brain {
             Kind::Lab(id) => self.execute_lab(tick, *id, &state.response, commands),
             Kind::Group(name) => self.execute_group(tick, picture, name, &state.response, None, commands),
             Kind::Threat(party, _) => {
-                let name = state.actor.strip_prefix("group_")?.to_string();
-                self.execute_group(tick, picture, &name, &state.response, Some(party), commands)
+                if let Some(name) = state.actor.strip_prefix("group_") {
+                    let name = name.to_string();
+                    return self.execute_group(tick, picture, &name, &state.response, Some(party), commands);
+                }
+                // A builder's attack: the state's actor names the unit.
+                let id = tick.snapshot.own_units.iter().find(|u| self.actor_name(u.id) == state.actor)?.id;
+                self.execute_builder(tick, kit, picture, id, &state.response, false, None, commands)
             }
         }
     }

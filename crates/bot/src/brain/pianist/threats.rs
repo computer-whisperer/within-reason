@@ -13,7 +13,7 @@ use serde_json::json;
 
 use super::groups::GroupTask;
 use super::picture::{Party, Picture, Place};
-use super::plan::{ALARM, DETACH_PARTY_MAX, Kind, Response, Slot, State, under};
+use super::plan::{ALARM, ATTACK_JOIN, ATTACK_REACH, DETACH_PARTY_MAX, Kind, Response, Slot, State, under};
 use super::standing::{NEVER_REACH, RAIDER_REACH};
 use super::Brain;
 
@@ -158,6 +158,42 @@ impl Brain {
                         current,
                     ));
                 }
+            }
+            // An armed builder that outweighs the party alone attacks it: within ATTACK_REACH on its own, within
+            // ATTACK_JOIN when the party is busy at a building of ours or fought by our soldiers, within the alarm reach
+            // when it is killing something of ours (onepass-norules-hard-1, 2:44: a Pawn 550 from the commander killed a
+            // Sentry and an extractor for a quarter minute and the attack was never a question; the user: chase off or
+            // kill intrusions fast, the raider getting away alive is the lesser issue). The words say the walk and,
+            // for a raider that outruns it, that this drives it off rather than kills it.
+            let busy = own.iter().any(|u| u.pos.dist2d(party.at) < 150.0 && self.world.def(u.def).is_some_and(|d| d.speed == 0.0)) || pianist.groups.iter().any(|g| matches!(&g.task, GroupTask::Engage { party: ids, .. } if ids.iter().any(|id| party.ids.contains(id))));
+            for unit in own.iter().filter(|u| !u.being_built && self.world.is_mobile_builder(u.def) && self.world.def(u.def).is_some_and(|d| d.weapon_count > 0)) {
+                let distance = party.at.dist2d(unit.pos);
+                if !(distance < ATTACK_REACH || (distance < ATTACK_JOIN && busy) || (distance < ALARM && party.killing.is_some())) {
+                    continue;
+                }
+                let odds = self.odds_words(&[unit], party, enemies);
+                if !odds.starts_with("we outweigh") {
+                    continue;
+                }
+                let name = self.actor_name(unit.id);
+                let rules = pianist.standing.rules_for(&name);
+                let current = matches!(pianist.tasks.get(&unit.id), Some(super::Task::Walk { place, .. }) if *place == party.name);
+                let default = !default_set && rules.get("attack_raiders").is_some_and(|v| v == "yes");
+                let speed = self.world.def(unit.def).map_or(0.0, |d| d.speed);
+                let walk = if speed > 0.0 { format!(", {:.0} s of walking", distance / speed) } else { String::new() };
+                let killing = party.killing.as_ref().map_or(String::new(), |(what, metal)| format!(", killing {what} ({metal:.0} metal) now"));
+                let chase = if quarry_speed > speed { format!("; it outruns {name} at {quarry_speed:.0} against {speed:.0}: this drives it off if it stays, and kills it only if it stands and fights") } else { String::new() };
+                let doing = pianist.tasks.get(&unit.id).map_or(String::new(), |t| format!(", leaving {}", self.task_course(Some(t), unit, &picture.places, tick.frame)));
+                states.push(state(
+                    format!("{}.attack_{name}", party.name),
+                    name.clone(),
+                    Response::Attack(party.name.clone()),
+                    format!("{name} attacks {} ({}{}, {distance:.0} away{walk}{killing}) and comes back to what it was doing: against it alone, {odds}{chase}{doing}", party.name, party.composition, under(party)),
+                    self.world.def(unit.def).map_or(0.0, |d| d.metal_cost),
+                    default,
+                    current,
+                ));
+                default_set |= default;
             }
             out.push(Slot { name: party.name.clone(), kind: Kind::Threat(party.clone(), place), states, queue_ahead: false, idle: false });
         }

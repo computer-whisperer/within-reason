@@ -971,3 +971,20 @@ asks, 9 opened).
 world 1 too: not yet seen without rules, since no group existed when the Pawns came.
 **Used by.** H-HANDS-ONE-PASS (the user's ruling, 2026-09-27: a response is a decision, not a default; what Jev
 decides wrongly is prompt work, not a rule).
+
+### K-jev-a-response-opens-by-the-party-noul-not-its-own
+**Claim.** Whether Jev sends a builder at a raider depends on which question opens the move. Asked as the builder's
+own state ("is this what the commander should do now, rather than building a solar? The move: commander attacks
+party_1 (1 Pawn, 446 away, 12 s of walking, killing our extractor now) ...") the noul sits at 0.31-0.43, under the
+0.5 flag, and the pick never sees the world. Asked as a state of the party's threat slot, the party's noul ("does
+party_2 need answering this second by someone other than what stands? Yes when it is killing something of ours that
+nothing there can stop") opens every response at 0.71-0.80 whatever the state's own noul (0.32), and the pick then
+takes the attack at 0.49 and a one-Blitz hunt at 0.50 over world 1. The move is the same; the actor-centred question
+weighs it against the builder's course, the party-centred one against the loss.
+**Status.** observed (2026-09-27, onepass-norules-hard-2: five offers as a builder state, none opened;
+onepass-norules-hard-3: two threat-slot offers, both opened and picked).
+**Evidence.** `run/matches/1790348526-onepass-norules-hard-2` and `run/matches/1790348777-onepass-norules-hard-3`,
+the `worlds_gate` lines' `flags` and the `plan` lines; the ledger rows.
+**Would be wrong if.** A party-centred opening sent builders at every passing scout: in -3 two Pawns passing 400-650
+from the commander and killing nothing rated 0.24-0.44 and opened nothing.
+**Used by.** H-HANDS-COMMANDER-FIGHTS, H-HANDS-ONE-PASS (the builder's attack lives in the threat slot).

@@ -38,10 +38,14 @@ const RECLAIM_WITHIN: f32 = 1800.0;
 const REPAIR_WITHIN: f32 = 1200.0;
 /// A builder farther than this from home has the way home.
 const AWAY: f32 = 400.0;
-/// A builder attacks a party only this close: raiders outrun a commander (human-6) ...
-const ATTACK_REACH: f32 = 320.0;
-/// ... or this close when the party is busy at a building of ours or fought by our soldiers (human-8).
-const ATTACK_JOIN: f32 = 500.0;
+/// A builder's attack on a party it outweighs is a state within this on its own (raiders outrun a commander, human-6,
+/// so the words say when a chase only drives it off) ...
+pub(super) const ATTACK_REACH: f32 = 320.0;
+/// ... within this when the party is busy at a building of ours or fought by our soldiers (human-8), and within the
+/// alarm reach when it is killing something of ours (onepass-norules-hard-1, 2:44: a Pawn 550 from the commander
+/// killed a Sentry and an extractor for a quarter minute and the attack was never a question; the user: chase off or
+/// kill intrusions fast, the raider getting away alive is the lesser issue).
+pub(super) const ATTACK_JOIN: f32 = 500.0;
 /// A party bigger than this is an attack, not a raider to be met by a detachment (human-1).
 pub(super) const DETACH_PARTY_MAX: usize = 3;
 /// A builder helps another builder's build within this.
@@ -375,10 +379,6 @@ impl Brain {
         under_fire.extend(pianist.hits.keys().copied());
         let stalling = picture.state["economy"]["energy"].as_str().is_some_and(|e| e.contains("STALLING"));
         let lone_scout = |p: &Party| p.ids.len() == 1 && enemies.iter().any(|e| e.id == p.ids[0] && e.def.is_some_and(|d| super::glossary::entry(self.name(d)).is_some_and(|g| g.class.contains("scout"))));
-        let busy_party = |p: &Party| {
-            own.iter().any(|u| u.pos.dist2d(p.at) < 150.0 && self.world.def(u.def).is_some_and(|d| d.speed == 0.0))
-                || pianist.groups.iter().any(|g| matches!(&g.task, GroupTask::Engage { party, .. } if party.iter().any(|id| p.ids.contains(id))))
-        };
         // The player's marks: the places that are neither spots nor the map's own (home, the passages, `shelling`).
         let marks: Vec<&super::Place> = picture.places.iter().filter(|p| p.spot.is_none() && p.name != "home" && p.name != "shelling" && !p.name.starts_with("passage_")).collect();
 
@@ -432,16 +432,9 @@ impl Brain {
                 let why = party.map_or(String::new(), |p| format!(" from {} ({}), which it does not outweigh", p.name, p.composition));
                 push("retreat_home", Response::RetreatHome, format!("{then}{name} goes home{why} ({} away){leaves}", distance_words(unit.pos.dist2d(self.home))), default, walking_home, false);
             }
-            // 2. The attack on a party it outweighs alone (H-HANDS-COMMANDER-FIGHTS); `attack_raiders` makes it the default.
-            let armed = self.world.def(unit.def).is_some_and(|d| d.weapon_count > 0);
-            if let Some(party) = picture.parties.iter().filter(|_| armed).filter(|p| p.at.dist2d(unit.pos) < ATTACK_REACH || (p.at.dist2d(unit.pos) < ATTACK_JOIN && busy_party(p))).min_by(|a, b| a.at.dist2d(unit.pos).total_cmp(&b.at.dist2d(unit.pos))) {
-                let odds = self.odds_words(&[unit], party, enemies);
-                if odds.starts_with("we outweigh") {
-                    let current = matches!(task, Some(Task::Walk { place, .. }) if *place == party.name);
-                    let default = rules.get("attack_raiders").is_some_and(|v| v == "yes") && !queue;
-                    push(&format!("attack_{}", party.name), Response::Attack(party.name.clone()), format!("{then}{name} attacks {} ({}, {:.0} away{}) and comes back to what it was doing: against it alone, {odds}{leaves}", party.name, party.composition, party.at.dist2d(unit.pos), under(party)), default, current, false);
-                }
-            }
+            // 2. The attack on a party it outweighs alone is a state of the party's threat slot (`threats.rs`), opened by
+            // the party's own "needs answering" noul: as a builder state its noul sat at 0.31-0.43 under the flag while a
+            // Pawn killed an extractor 450 from the commander (onepass-norules-hard-2, 2:47-2:51).
             // The rest only when free or on a filler, never over a build it has not started, unless queued behind it.
             let over_a_build = matches!(task, Some(Task::Build { .. }) | Some(Task::Reclaim { .. }) | Some(Task::ReclaimUnit { .. }) | Some(Task::Repair { .. })) && !queue;
             if over_a_build {
@@ -857,6 +850,18 @@ pub(super) fn signature(slots: &[Slot]) -> String {
         .join(" ")
 }
 
+/// An actor a threat state sends against a party keeps its own slot: its course or build slot goes to keep in that
+/// world, so one second never carries two orders for one actor (onepass-player-1, 3:17: "2 of group_A hunt party_5"
+/// and "walk to spot_43" in one pass, 13 such seconds, 90 walk/attack flips on group_A).
+fn resolve(slots: &[Slot], world: &mut World) {
+    let sent: Vec<String> = slots.iter().zip(world.iter()).filter(|(s, i)| matches!(s.kind, Kind::Threat(..)) && **i != 0).map(|(s, i)| s.states[*i].actor.clone()).collect();
+    for (sj, slot) in slots.iter().enumerate() {
+        if !matches!(slot.kind, Kind::Threat(..)) && sent.contains(&slot.name) {
+            world[sj] = 0;
+        }
+    }
+}
+
 /// The worlds after the pre-pass: world 1 is every slot's base; a threat the gate says needs answering opens every
 /// state against it, ranked by its state noul; an actor the gate says should change (an idle one always) opens its
 /// states ranked by their nouls; a dear build of one builder with a flagged neighbour's help makes a pair world; a
@@ -868,7 +873,8 @@ pub(super) fn compose(slots: &[Slot], answers: &BTreeMap<String, Answer>, flags:
         Some(Answer::Noul { noul }) => Some(*noul),
         _ => None,
     };
-    let base: World = slots.iter().map(Slot::base).collect();
+    let mut base: World = slots.iter().map(Slot::base).collect();
+    resolve(slots, &mut base);
     // Actors world 1 sends against a threat.
     let taken: BTreeSet<&str> = slots.iter().zip(&base).filter(|(s, b)| matches!(s.kind, Kind::Threat(..)) && **b != 0).map(|(s, b)| s.states[*b].actor.as_str()).collect();
     // Per slot, its deviations best first: (rank, world).
@@ -908,6 +914,7 @@ pub(super) fn compose(slots: &[Slot], answers: &BTreeMap<String, Answer>, flags:
                     }
                     let mut w = base.clone();
                     w[si] = ti;
+                    resolve(slots, &mut w);
                     mine.push((answer.unwrap_or(1.0) * rated.max(0.01), w));
                 }
             }

@@ -144,10 +144,15 @@ impl Group {
         self.units(own).into_iter().filter(|u| !hunting.contains(&u.id)).collect()
     }
 
-    /// Orders for members rejoining the task: what the task would give them now.
+    /// Orders for members rejoining the task: what the task would give them now. A holding group's members walk back
+    /// to where it holds (onepass-norules-hard-3, 4:47: a hunter released 850 from its holding group was told to
+    /// stand where it was, and stood there for the rest of the game).
     pub(crate) fn rejoin_orders(&self, units: &[&OwnUnit]) -> Vec<Command> {
         match &self.task {
-            GroupTask::Hold { .. } => self.hold_orders(units),
+            GroupTask::Hold { .. } => match self.last_hold {
+                Some(to) => units.iter().map(|u| Command::Move { unit: u.id, to, queue: false }).collect(),
+                None => self.hold_orders(units),
+            },
             GroupTask::Move { to, fight, .. } => units.iter().map(|u| if *fight { Command::Fight { unit: u.id, to: *to, queue: false } } else { Command::Move { unit: u.id, to: *to, queue: false } }).collect(),
             GroupTask::Engage { at, target, .. } => units.iter().map(|u| match target { Some(t) => Command::Attack { unit: u.id, target: *t, queue: false }, None => Command::Fight { unit: u.id, to: *at, queue: false } }).collect(),
         }
