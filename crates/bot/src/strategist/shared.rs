@@ -229,17 +229,10 @@ pub struct Hands {
     /// "m:ss actor: what", oldest first; drained by the driver at each turn.
     pub done: Vec<String>,
     pub engaged: Vec<String>,
-    /// Question id (without `global.`) to the yes-probability of the last call.
-    pub globals: BTreeMap<String, f64>,
-    /// The standing orders (`brain/pianist/standing.rs`): what is in force, the executor's mode, the counts from
-    /// the packet and from the tool, and since the last turn (drained by the driver) what fired, the asks saved and
-    /// the filter's verdicts.
+    /// The standing orders (`brain/pianist/standing.rs`): what is in force, and the counts from the packet and
+    /// from the tool.
     pub standing_text: String,
-    pub standing_mode: String,
     pub standing_counts: (usize, usize),
-    pub standing_fired: BTreeMap<String, u32>,
-    pub standing_saved: u32,
-    pub standing_verdicts: BTreeMap<String, u32>,
 }
 
 /// A change to the standing orders from the `standing` tool: rules per actor to set (checked by the brain against

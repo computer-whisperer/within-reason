@@ -61,6 +61,7 @@ pub(crate) struct Party {
     pub turrets: String,
 }
 
+#[derive(Clone)]
 pub(crate) struct Picture {
     pub state: Value,
     pub places: Vec<Place>,
@@ -478,7 +479,7 @@ impl Brain {
         words
     }
 
-    fn task_course(&self, task: Option<&Task>, unit: &OwnUnit, places: &[Place], frame: i32) -> String {
+    pub(super) fn task_course(&self, task: Option<&Task>, unit: &OwnUnit, places: &[Place], frame: i32) -> String {
         let ago = |since: i32| format!("{} s ago", (frame - since) / FRAMES_PER_SECOND);
         match task {
             None if unit.idle => "idle, waiting for an order".into(),

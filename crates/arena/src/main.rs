@@ -14,7 +14,6 @@
 //!              [--claude-config-dir DIR]   (subscription for the player's sessions; default ~/.claude2)
 //!              [--effort low|medium|high|xhigh|max]   (the LLM session's `claude --effort`; default high)
 //!              [--hands-effort lean|normal|full]      (the hands' Jev token diet; default lean, the bulk games' level)
-//!              [--standing worlds|on|filter|off]  (the groups' decider: the threat passes, the rules' defaults alone, the executor filtered by Jev, or off)
 //!              [--opponent-opening any|bots|vehicles]   (pins BARb's first factory by disabling the other; default any)
 //!              [--think-penalty X]   (the player's or commander's orders land X game seconds late per wall second it thought; 1 = as in a live game; default 1 with --player, else 0)
 //!              [--seed-base N]   (default 1; match i plays seed N+i, for the engine and for BARb: a fresh N is a fresh set of games)
@@ -98,8 +97,6 @@ struct Options {
     effort: Option<String>,
     /// The hands' token diet: lean (the default here), normal or full (`WITHIN_REASON_HANDS_EFFORT`).
     hands_effort: Option<String>,
-    /// The standing orders' executor: off, on (the default) or filter (`WITHIN_REASON_STANDING`).
-    standing: Option<String>,
     /// A group's `do` as families (on, the default) or flat (off) (`WITHIN_REASON_FAMILY`).
     think_penalty: Option<String>,
     /// First of the UDP ports the matches use (two each); a second arena on the same machine needs its own range.
@@ -165,7 +162,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("BARb {}", options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "standing": options.standing, "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "commander_model": options.commander_model, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "commander_model": options.commander_model, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 
@@ -309,7 +306,6 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         .envs(options.claude_config_dir.as_ref().map(|dir| ("WITHIN_REASON_CLAUDE_CONFIG_DIR", dir)))
         .envs(options.effort.as_ref().map(|effort| ("WITHIN_REASON_EFFORT", effort)))
         .env("WITHIN_REASON_HANDS_EFFORT", options.hands_effort.as_deref().unwrap_or("lean"))
-        .envs(options.standing.as_ref().map(|s| ("WITHIN_REASON_STANDING", s)))
         .envs(options.commander_model.as_ref().map(|model| ("WITHIN_REASON_MODEL", model)))
         .envs(options.objective.as_ref().map(|text| ("WITHIN_REASON_OBJECTIVE", text)))
         // A player game is played as a live one unless told otherwise: its orders land as late as it thought.
@@ -582,7 +578,6 @@ fn parse_args() -> Options {
         opponent_opening: "any".into(),
         effort: None,
         hands_effort: None,
-        standing: None,
         think_penalty: None,
         base_port: BASE_PORT,
     };
@@ -637,7 +632,6 @@ fn parse_args() -> Options {
             "--claude-config-dir" => options.claude_config_dir = Some(value()),
             "--effort" => options.effort = Some(value()),
             "--hands-effort" => options.hands_effort = Some(value()),
-            "--standing" => options.standing = Some(value()),
             "--commander-model" => options.commander_model = Some(value()),
             "--objective" => options.objective = Some(value()),
             "--think-penalty" => options.think_penalty = Some(value()),

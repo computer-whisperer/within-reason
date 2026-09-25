@@ -449,9 +449,6 @@ fn player_prompt(game_time: &str, headline: &str, shared: &Shared, seen: &mut re
         let mut hands = shared.hands.lock().unwrap();
         let snapshot = hands.clone();
         hands.done.clear();
-        hands.standing_fired.clear();
-        hands.standing_saved = 0;
-        hands.standing_verdicts.clear();
         snapshot
     };
     let mut prompt = String::new();

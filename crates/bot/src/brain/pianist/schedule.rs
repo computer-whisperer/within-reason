@@ -1,27 +1,19 @@
-//! The ask scheduler (H-HANDS-SCHEDULE). Jev is asked about an actor on a review period, ten seconds for a group with a
-//! task, five for one holding, and out of turn for what has changed: a new packet from the player, a place marked or
-//! renamed, a member of a group hit or killed, an enemy come into sight within a group's alarm reach, a builder under
-//! fire. Before 2026-09-23 only the review periods and a party newly within 600 could put an actor on a call, and the
-//! events of the ticks between calls were not seen at all (fixes-1: the player's retreat reached the group six seconds
-//! after it was written; the user: "RTS actions on the front line and on scouting units need to be frequently
-//! second-scale"). Withholding an actor saves about 800 Jev tokens a question on a 4,600-token picture, so the
-//! scheduler stays for the cost, and is made to know what changed.
+//! Events that ask the pass again out of turn (H-HANDS-SCHEDULE's events, feeding the one pass's ask-on-change:
+//! `docs/design/2026-09-26-one-pass.md` §5): a member of a group hit or killed, an enemy come into sight within a
+//! group's alarm reach, a builder under fire, a party entering a builder's alarm reach. The events of the ticks
+//! between calls are kept until the next ask (fixes-1: the player's retreat reached the group six seconds after it
+//! was written; the user: "RTS actions on the front line and on scouting units need to be frequently second-scale").
 
 use std::collections::HashSet;
 
 use bot_protocol::{Event, Tick, UnitId};
 
-use super::super::{Brain, FRAMES_PER_SECOND};
-use super::menu::ALARM;
-
-/// An actor is put on a call for an event no oftener than this.
-pub(super) const EVENT_ASK_GAP: i32 = 2 * FRAMES_PER_SECOND;
-/// The least time between two calls when an event asks for one (the interval otherwise).
-pub(super) const EVENT_CALL_GAP: i32 = FRAMES_PER_SECOND / 2;
+use super::super::Brain;
+use super::plan::ALARM;
 
 impl Brain {
-    /// Every tick, before the cadence is decided: remembers this tick's hits (the menus read them at the next call,
-    /// whatever tick that is) and marks the actors whose situation the tick's events changed as due.
+    /// Every tick: remembers this tick's hits (the pass reads them at the next call, whatever tick that is) and
+    /// names the actors whose situation the tick's events changed.
     pub(super) fn schedule_asks(&mut self, tick: &Tick) {
         let Some(mut pianist) = self.pianist.take() else { return };
         let frame = tick.frame;
@@ -40,9 +32,8 @@ impl Brain {
         for unit in &hit {
             pianist.hits.insert(*unit, frame);
         }
-        let mut due: HashSet<String> = HashSet::new();
         // A party entering a builder's alarm reach (the parties are the last picture's; their place is where their
-        // units stand now) asks the builder once, and again when it comes back after leaving.
+        // units stand now) is an event once, and again when it comes back after leaving.
         let mut alarmed: HashSet<(UnitId, String)> = HashSet::new();
         for unit in own.iter().filter(|u| !u.being_built && self.world.is_mobile_builder(u.def)) {
             for party in &pianist.parties {
@@ -51,14 +42,14 @@ impl Brain {
                 if at.dist2d(unit.pos) < ALARM {
                     let key = (unit.id, party.name.clone());
                     if !pianist.alarmed.contains(&key) {
-                        due.insert(self.actor_name(unit.id));
+                        pianist.events.insert(format!("{} alarmed by {}", self.actor_name(unit.id), party.name));
                     }
                     alarmed.insert(key);
                 }
             }
         }
         pianist.alarmed = alarmed;
-        if hit.is_empty() && gone.is_empty() && seen.is_empty() && due.is_empty() {
+        if hit.is_empty() && gone.is_empty() && seen.is_empty() {
             self.pianist = Some(pianist);
             return;
         }
@@ -69,34 +60,15 @@ impl Brain {
                 let units = group.units(own);
                 super::groups::centre_of(&units).is_some_and(|c| seen_at.iter().any(|p| p.dist2d(c) < ALARM))
             };
-            if touched || alarmed {
-                due.insert(format!("group_{}", group.name));
+            if touched {
+                pianist.events.insert(format!("group_{} hit", group.name));
+            }
+            if alarmed {
+                pianist.events.insert(format!("group_{} sighted a party", group.name));
             }
         }
         for unit in own.iter().filter(|u| hit.contains(&u.id) && !u.being_built && self.world.is_mobile_builder(u.def)) {
-            due.insert(self.actor_name(unit.id));
-        }
-        for name in due {
-            let last = pianist.last_asked.get(&name).copied().unwrap_or(i32::MIN / 2);
-            if frame - last >= EVENT_ASK_GAP {
-                pianist.due_now.insert(name);
-            }
-        }
-        self.pianist = Some(pianist);
-    }
-
-    /// A new packet: every group is asked at the next call and every builder not on a list at the one after it, half
-    /// a second later (the player's words are for now, not for the next review period; two calls so that neither
-    /// carries every actor: schedule-1's packet calls reached 41 questions and 47k of the 64k tokens).
-    pub(super) fn schedule_all_for_packet(&mut self, tick: &Tick) {
-        let Some(mut pianist) = self.pianist.take() else { return };
-        let names: Vec<String> = pianist.groups.iter().map(|g| format!("group_{}", g.name)).collect();
-        pianist.due_now.extend(names);
-        for unit in tick.snapshot.own_units.iter().filter(|u| !u.being_built && self.world.is_mobile_builder(u.def)) {
-            let name = self.actor_name(unit.id);
-            if !pianist.scripts.get(&name).is_some_and(|s| !s.is_empty()) {
-                pianist.due_next.insert(name);
-            }
+            pianist.events.insert(format!("{} hit", self.actor_name(unit.id)));
         }
         self.pianist = Some(pianist);
     }

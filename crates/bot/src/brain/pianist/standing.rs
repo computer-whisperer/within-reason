@@ -3,43 +3,18 @@
 //! fires. They come from two places: the player's packet, decompressed by Jev once per packet into the vocabulary
 //! here (K-jev-a-packet-decompresses-to-standing-orders, `run/decompress.py` is the offline twin of the questions),
 //! and the player's `standing` tool, which sets them directly and outranks the packet for the same (actor, rule).
-//! The executor (`Brain::standing_order`) gives at most one order per actor per second; `standing_pass` in `mod.rs`
-//! applies it through the hands as an answer at probability one.
+//! In the pass (`plan.rs`, `threats.rs`) a rule prunes states or makes one the default; nothing here orders
+//! (`docs/design/2026-09-26-one-pass.md` §6).
 use std::collections::{BTreeMap, BTreeSet};
 
-use bot_protocol::{Tick, Vec3};
 use jev::{Answer, Question};
 use serde_json::{Value, json};
 
-use super::super::Brain;
-use super::super::roster::Kit;
-use super::menu::{ALARM, Actor, Menu};
-use super::picture::{Party, Picture};
-use super::{GroupTask, Task};
-
-/// One actor's order for this second, from a standing rule: the option and its parameters (`where`, `whom`,
-/// `how_many`, `where_scout`, `where_extractor`).
-#[derive(Clone, Debug, PartialEq)]
-pub(super) struct Order {
-    pub choice: String,
-    pub params: BTreeMap<String, String>,
-}
-
-/// A raider party this close to a structure of ours stands "at" it.
-const AT_STRUCTURE: f32 = 400.0;
-/// The raider rules reach this far from the group (the detectors' reach).
+/// The raider rules and the threat states reach this far from the group (the detectors' reach).
 pub(super) const RAIDER_REACH: f32 = 1200.0;
-/// A party this close to a place a group never goes stands at it: no fight is offered against it, and a chase that
+/// A party this close to a place a group never goes stands at it: no state is offered against it, and a chase that
 /// reaches it ends there.
 pub(super) const NEVER_REACH: f32 = 400.0;
-/// A group holding farther than this from its station walks there.
-const STATION_SLACK: f32 = 300.0;
-/// A turret this close to an extractor covers it.
-const TURRET_COVER: f32 = 200.0;
-/// An extractor beyond this from home is an outer one.
-const OUTER: f32 = 500.0;
-/// A builder's turret rule reaches this far.
-const TURRET_REACH: f32 = 1200.0;
 /// A hedged extraction answer (p_top under this) sets nothing.
 const SURE: f64 = 0.6;
 
@@ -68,44 +43,6 @@ pub(crate) const BUILDER_RULES: &[(&str, &[&str])] = &[
     ("never", &["places"]),
 ];
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum Mode {
-    /// The orders are kept and logged; the executor never plays them.
-    Off,
-    /// The executor takes the actors it decides for.
-    On,
-    /// The executor's order goes to Jev beside the actor's menu as a `standing` question (rule / near / other /
-    /// panic), and plays only on `rule`.
-    Filter,
-    /// The threat passes (`threats.rs`, `docs/design/2026-09-26-threat-response.md`): the groups' raids are
-    /// answered by a plan Jev composes in two calls when the threat picture changes, the standing orders pruning
-    /// and setting the plan's defaults; the builders' rules play as in `On`. The default, and the only mode in which
-    /// a group is asked at all: under `on` the plan is the defaults alone, under `filter` and `off` a group plays
-    /// its course rules or keeps its course.
-    Worlds,
-}
-
-impl Mode {
-    /// `WITHIN_REASON_STANDING`: off, on (the default) or filter.
-    pub(crate) fn from_env() -> Mode {
-        match std::env::var("WITHIN_REASON_STANDING").ok().as_deref() {
-            Some("off") => Mode::Off,
-            Some("filter") => Mode::Filter,
-            Some("on") => Mode::On,
-            _ => Mode::Worlds,
-        }
-    }
-
-    pub(crate) fn name(self) -> &'static str {
-        match self {
-            Mode::Off => "off",
-            Mode::On => "on",
-            Mode::Filter => "filter",
-            Mode::Worlds => "worlds",
-        }
-    }
-}
-
 pub(crate) type Rules = BTreeMap<String, String>;
 
 #[derive(Default)]
@@ -116,22 +53,10 @@ pub(crate) struct Standing {
     tool: BTreeMap<String, Rules>,
     /// The frame of the packet the packet orders came from.
     pub packet_frame: i32,
-    /// Since the last report: "actor rule" to how many times it fired, and the asks it saved.
-    pub fired: BTreeMap<String, u32>,
-    pub saved: u32,
-    /// The filter's verdicts since the last report: rule / near / other / panic.
-    pub verdicts: BTreeMap<String, u32>,
     /// The unit types a group had when its tool orders were set, and whether the change was said: standing-1's
     /// `raiders ignore`, set for two Rovers, held the Blitzes that joined the group while five extractors died.
     pub tool_seen: BTreeMap<String, (BTreeSet<String>, bool)>,
-    /// When `retreat_when_enemy_near` last sent each builder home: for `RETREAT_HOLD` frames after, its building
-    /// rules (`turrets`, `job`, `solar`) do not fire (standing-2: a constructor sent home by the retreat rule was
-    /// sent back to the extractor by the turret rule the next second, 11 times).
-    pub retreated: BTreeMap<String, i32>,
 }
-
-/// A builder sent home by the retreat rule stays sent for this long.
-const RETREAT_HOLD: i32 = 30 * super::super::FRAMES_PER_SECOND;
 
 fn is_group(actor: &str) -> bool {
     actor.starts_with("group_")
@@ -164,10 +89,6 @@ impl Standing {
         out
     }
 
-    pub(crate) fn has_rules(&self, actor: &str) -> bool {
-        !self.rules_for(actor).is_empty()
-    }
-
     /// Every word of the tool's rule values: the places and parties the player named through the tool, for the
     /// picture to list (worlds-2: `station: spot_27` set by the tool was "not a place in the picture" fifteen times
     /// over, the picture listing only the spots the instructions name).
@@ -177,26 +98,6 @@ impl Standing {
 
     pub(crate) fn never_places(&self, actor: &str) -> Vec<String> {
         self.rules_for(actor).get("never").map(|v| v.split_whitespace().map(str::to_string).collect()).unwrap_or_default()
-    }
-
-    /// The options a rule takes off the actor's menu (H-HANDS-FORBID): `no_detachments`, `hold_line` while the
-    /// odds are not against it, `solar=never`, `turrets=none`.
-    pub(crate) fn removals(&self, actor: &str, odds_against: bool, solar: &str, turret: &str) -> Vec<String> {
-        let rules = self.rules_for(actor);
-        let mut out = Vec::new();
-        if rules.get("no_detachments").is_some_and(|v| v == "yes") {
-            out.extend(["split", "scout"].map(String::from));
-        }
-        if rules.get("hold_line").is_some_and(|v| v == "yes") && !odds_against {
-            out.extend(["retreat", "fall_back"].map(String::from));
-        }
-        if rules.get("solar").is_some_and(|v| v == "never") {
-            out.push(solar.to_string());
-        }
-        if rules.get("turrets").is_some_and(|v| v == "none") {
-            out.push(turret.to_string());
-        }
-        out
     }
 
     /// The `standing` line of an actor's picture entry.
@@ -509,175 +410,6 @@ pub(crate) fn orders_from(answers: &BTreeMap<String, Answer>) -> BTreeMap<String
     out
 }
 
-// The executor.
-
-fn order(choice: &str, params: &[(&str, &str)]) -> Order {
-    Order { choice: choice.to_string(), params: params.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect() }
-}
-
-
-impl Brain {
-    /// The standing order for the actor of `menu` this second, with the rule that gave it; None asks Jev.
-    pub(super) fn standing_order(&self, tick: &Tick, kit: &Kit, picture: &Picture, menu: &Menu) -> Option<(Order, String)> {
-        let pianist = self.pianist.as_ref()?;
-        let rules = pianist.standing.rules_for(&menu.name);
-        if rules.is_empty() || menu.scripted.is_some() {
-            return None;
-        }
-        let own = &tick.snapshot.own_units;
-        let enemies = tick.snapshot.enemies.as_slice();
-        let offered = |o: &str| menu.options.contains_key(o);
-        let place_at = |name: &str| picture.places.iter().find(|p| p.name == name).map(|p| p.at);
-        let never = pianist.standing.never_places(&menu.name);
-        match &menu.actor {
-            Actor::Group(gname) => {
-                let group = pianist.groups.iter().find(|g| g.name == *gname)?;
-                let units = group.units(own);
-                let centre = super::groups::centre_of(&units)?;
-                let nearest = picture.parties.iter().map(|p| (p.at.dist2d(centre), p)).filter(|(d, _)| *d < ALARM).min_by(|a, b| a.0.total_cmp(&b.0)).map(|(_, p)| p);
-                let odds_against = nearest.is_some_and(|p| self.odds_words(&units, p, enemies) == "it outweighs us");
-                let standing: f32 = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
-                let (_, lost) = group.lost_since(tick.frame - 30 * super::super::FRAMES_PER_SECOND, &self.world);
-                let losing = lost >= 0.25 * (lost + standing);
-                let walking_back = matches!(&group.task, GroupTask::Move { fight: false, place, .. } if place == "home" || place.starts_with(super::groups::LAST_HOLD));
-                // 1. Falling back to the named place when the fight is against it.
-                if let Some(to) = rules.get("fall_back_to")
-                    && (odds_against || losing)
-                    && !walking_back
-                    && offered("move_to")
-                    && place_at(to).is_some()
-                    && !matches!(&group.task, GroupTask::Move { place, .. } if place == to)
-                {
-                    return Some((order("move_to", &[("where", to)]), "fall_back_to".into()));
-                }
-                // 2. A merge the player ordered: into the named group, when it stands and the menu offers it.
-                if let Some(other) = rules.get("join")
-                    && offered(&format!("join_{other}"))
-                {
-                    return Some((order(&format!("join_{other}"), &[]), "join".into()));
-                }
-                // 3. The parties are the threat passes' (`threats.rs`): `engage_party`, `raiders_lone` and `raiders_party`
-                // are their defaults and pruning, not orders here.
-                // 4. No chasing: an engagement carried beyond reach of the station.
-                if rules.get("no_chase").is_some_and(|v| v == "yes")
-                    && let GroupTask::Engage { party, .. } = &group.task
-                    && offered("hold")
-                {
-                    let anchor = rules.get("station").and_then(|s| place_at(s)).or(group.last_hold).unwrap_or(self.home);
-                    // Only a quarry seen beyond reach ends the engagement: one out of sight for a moment is the task's
-                    // own business (threats-smoke-2, 5:03-5:12: the hold fired five times on a Tick that blinked out
-                    // of sight 600 from the station, and the plan re-engaged it each time).
-                    let quarry = picture.parties.iter().find(|p| p.ids.iter().any(|id| party.contains(id)));
-                    if quarry.is_some_and(|p| p.at.dist2d(anchor) > RAIDER_REACH) {
-                        return Some((order("hold", &[]), "no_chase".into()));
-                    }
-                }
-                // 5. The station: walk there when holding away from it; at it, hold without asking while nothing is
-                // within the alarm reach and no raider stands at a structure of ours (standing-1, 11:10: "group_A sat
-                // at spot_38 while parties raided north": the hold fired and Jev was never asked about the raids
-                // beyond the raider rules' reach).
-                if let Some(station) = rules.get("station")
-                    && let Some(at) = place_at(station)
-                    && !never.iter().any(|p| p == station)
-                {
-                    let advance = rules.get("station_mode").is_some_and(|m| m == "advance");
-                    let go = if advance { "fight_to" } else { "move_to" };
-                    let raids = picture.state["actors"][&menu.name]["enemies_at_our_extractors"].as_array().is_some_and(|a| !a.is_empty());
-                    match &group.task {
-                        GroupTask::Move { place, .. } if place == station => return Some((order(go, &[("where", station)]), "station".into())),
-                        // Any hold away from the station walks, the committed hold an advance arrived in included
-                        // (worlds-1, 15:44-16:53: group_C held at spot_52 under station spot_24 for 70 s while this
-                        // arm asked for an uncommitted hold, and the next arm held it "at station").
-                        GroupTask::Hold { .. } if centre.dist2d(at) > STATION_SLACK && offered(go) => return Some((order(go, &[("where", station)]), "station".into())),
-                        GroupTask::Hold { .. } if centre.dist2d(at) <= STATION_SLACK && nearest.is_none() && !raids && offered("hold") => return Some((order("hold", &[]), "station".into())),
-                        _ => {}
-                    }
-                }
-                None
-            }
-            Actor::Builder(id) => {
-                let unit = own.iter().find(|u| u.id == *id)?;
-                let task = pianist.tasks.get(id);
-                let nearest = picture.parties.iter().map(|p| (p.at.dist2d(unit.pos), p)).filter(|(d, _)| *d < ALARM).min_by(|a, b| a.0.total_cmp(&b.0)).map(|(_, p)| p);
-                // 1. Away from enemy soldiers it does not outweigh; a lone scout (a Tick, a scout car) is not one
-                // (standing-1, 9:59: "a lone Tick was sending three constructors home, which stalls expansion").
-                let lone_scout = |p: &Party| p.ids.len() == 1 && enemies.iter().any(|e| e.id == p.ids[0] && e.def.is_some_and(|d| super::glossary::entry(self.name(d)).is_some_and(|g| g.class.contains("scout"))));
-                if rules.get("retreat_when_enemy_near").is_some_and(|v| v == "yes")
-                    && let Some(party) = nearest
-                    && !lone_scout(party)
-                    && !self.odds_words(&[unit], party, enemies).starts_with("we outweigh")
-                    && !matches!(task, Some(Task::Walk { place, .. }) if place == "home")
-                {
-                    if offered("retreat_home") {
-                        return Some((order("retreat_home", &[]), "retreat_when_enemy_near".into()));
-                    }
-                    if offered("walk_to") {
-                        return Some((order("walk_to", &[("where", "home")]), "retreat_when_enemy_near".into()));
-                    }
-                }
-                // 2. The attack the menu offers (a party it outweighs within reach).
-                if rules.get("attack_raiders").is_some_and(|v| v == "yes") && offered("attack") {
-                    return Some((order("attack", &[]), "attack_raiders".into()));
-                }
-                // The rest only when the builder is free or on a filler, never over a build, and not within the
-                // retreat rule's hold after it sent this builder home.
-                if matches!(task, Some(Task::Build { .. }) | Some(Task::Reclaim { .. }) | Some(Task::ReclaimUnit { .. }) | Some(Task::Repair { .. })) && !menu.queue_ahead {
-                    return None;
-                }
-                if pianist.standing.retreated.get(&menu.name).is_some_and(|f| tick.frame - f < RETREAT_HOLD) {
-                    return None;
-                }
-                // 3. A solar when energy stalls.
-                if rules.get("solar").is_some_and(|v| v == "only_when_stalling") {
-                    let solar = self.name(kit.solar).to_string();
-                    let stalling = picture.state["economy"]["energy"].as_str().is_some_and(|e| e.contains("STALLING"));
-                    if stalling && offered(&solar) && !own.iter().any(|u| u.being_built && u.def == kit.solar) {
-                        return Some((order(&solar, &[]), "solar".into()));
-                    }
-                }
-                // 4. A turret beside an uncovered extractor.
-                if let Some(which) = rules.get("turrets").filter(|v| v.as_str() != "none") {
-                    let turret = self.name(kit.turret).to_string();
-                    if offered(&turret) {
-                        let outer_only = which == "beside_each_outer_extractor";
-                        let ordered_near = |pos: Vec3| pianist.tasks.values().chain(pianist.queued.values()).any(|t| matches!(t, Task::Build { def, near, .. } if *def == kit.turret && near.dist2d(pos) < TURRET_COVER));
-                        let uncovered = own
-                            .iter()
-                            .filter(|u| kit.is_extractor(u.def) && !u.being_built && u.pos.dist2d(unit.pos) < TURRET_REACH)
-                            .filter(|u| !outer_only || u.pos.dist2d(self.home) > OUTER)
-                            // Not beside an extractor a party stands at: the builder would be sent home again. A lone
-                            // scout is not a party here either way: the turret is what kills the Tick (hold-2-comet-medium:
-                            // one Tick at spot_54 ate fifteen extractors in two minutes, rebuilt under it, no turret ever).
-                            .filter(|u| !picture.parties.iter().any(|p| p.at.dist2d(u.pos) < ALARM && !lone_scout(p)))
-                            .filter(|u| !own.iter().any(|t| t.def == kit.turret && t.pos.dist2d(u.pos) < TURRET_COVER) && !ordered_near(u.pos))
-                            .min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)));
-                        if let Some(extractor) = uncovered
-                            && let Some(place) = picture.places.iter().filter(|p| p.at.dist2d(extractor.pos) < AT_STRUCTURE).min_by(|a, b| a.at.dist2d(extractor.pos).total_cmp(&b.at.dist2d(extractor.pos)))
-                            && !never.contains(&place.name)
-                        {
-                            return Some((order(&turret, &[("where", &place.name)]), "turrets".into()));
-                        }
-                    }
-                }
-                // 5. The standing job.
-                match rules.get("job").map(String::as_str) {
-                    Some("help_factory") if offered("assist_lab") => return Some((order("assist_lab", &[]), "job".into())),
-                    Some("expand") if offered("extractor") => {
-                        let spot = menu.spots.iter().map(|i| format!("spot_{i}")).find(|s| !never.contains(s));
-                        if let Some(spot) = spot {
-                            return Some((order("extractor", &[("where_extractor", &spot)]), "job".into()));
-                        }
-                    }
-                    _ => {}
-                }
-                None
-            }
-            _ => None,
-        }
-    }
-
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -744,12 +476,9 @@ mod tests {
         assert_eq!(s.rules_for("constructor_4")["job"], "expand");
         assert_eq!(s.clear_tool(Some(&["group_B".to_string()])), 1);
         assert_eq!(s.rules_for("group_B")["station"], "spot_61");
-        assert_eq!(s.removals("group_B", false, "armsolar", "armllt"), Vec::<String>::new());
         s.set_tool("group_B", &json!({ "no_detachments": true, "hold_line": "yes" }), &places, &[]).unwrap();
-        assert_eq!(s.removals("group_B", false, "armsolar", "armllt"), ["split", "scout", "retreat", "fall_back"]);
+        assert_eq!(s.rules_for("group_B")["hold_line"], "yes");
         s.set_tool("group_B", &json!({ "hold_line": "no", "no_detachments": false }), &places, &[]).unwrap();
-        assert!(s.removals("group_B", false, "armsolar", "armllt").is_empty());
-        s.set_tool("group_B", &json!({ "no_detachments": true, "hold_line": "yes" }), &places, &[]).unwrap();
-        assert_eq!(s.removals("group_B", true, "armsolar", "armllt"), ["split", "scout"]);
+        assert!(!s.rules_for("group_B").contains_key("hold_line"));
     }
 }

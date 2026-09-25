@@ -99,13 +99,6 @@ impl GroupTask {
             _ => None,
         }
     }
-
-    /// The frame the task was set.
-    pub(crate) fn since(&self) -> i32 {
-        match self {
-            GroupTask::Hold { since, .. } | GroupTask::Move { since, .. } | GroupTask::Engage { since, .. } => *since,
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -118,8 +111,6 @@ pub(crate) struct Group {
     /// H-ARMY-MARCH's memory: who is waiting for the body.
     pub held: HashSet<UnitId>,
     pub last_order: i32,
-    /// Whether an enemy party stood within reach at the last look: a new one is a reason to ask at once.
-    pub enemies_near: bool,
     /// The nearest the centre has been to a moving task's goal, and when it last got nearer (H-HANDS-STALL).
     pub best_to_go: f32,
     pub progressed: i32,
@@ -144,7 +135,7 @@ pub(crate) struct Group {
 
 impl Group {
     pub(crate) fn new(name: String, domain: Domain, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, enemies_near: false, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None, hunt: None, declined: Vec::new() }
+        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None, hunt: None, declined: Vec::new() }
     }
 
     /// The members not on a hunt: the ones the group's task orders.

@@ -16,8 +16,8 @@ Columns (lower is better unless said):
   react s    median seconds from a party first seen at one of our extractors to the first order against it
   unanswered raider episodes with no order against the party within 60 s
   never      orders contradicting a "never splits" / "never advances to shelling" clause of the packet in force
-  noop%      group asks answering hold on a group already holding (the hands' wasted asks)
-  standing%  plays by the standing orders' executor (H-HANDS-STANDING) over its plays plus Jev's
+  noop%      quiet seconds (something open, the picture as at the last ask, nothing asked) over the seconds with something open
+  rule%      plays by the rules' defaults (the base world) over the base's plus the picks' (H-HANDS-ONE-PASS)
   jev$       the Jev bill from the log's usage (input tokens at $0.042 a million)
   illegal    policy orders refused (option not offered, place unknown, actor on a list)
   stuck s    unit-seconds our mobile units could not move: from a move failure until the unit has moved 80 elmos
@@ -117,9 +117,11 @@ def scorecard(m):
                 never += 1
             if packet and NEVER_SHELLING.search(packet) and p["played"] in ("fight_to", "move_to") and "shelling" in did:
                 never += 1
-    # policy and standing lines (the runtimes' own log), and the Jev bill from every call's usage
+    # pass lines (the runtime's own log): the base's plays against the picks', the quiet seconds; the Jev bill
+    # from every call's usage. Logs before 2026-09-26 carry `standing` lines with the executor's plays instead.
     standing_plays = 0
     jev_plays = sum(1 for c in m.calls for p in c.get("played") or [] if p.get("source", "jev") == "jev")
+    quiet_s = open_s = 0
     tokens = 0
     for line in open(next(os.path.join(m.dir, f) for f in os.listdir(m.dir) if f.startswith("jev-"))):
         try:
@@ -130,7 +132,15 @@ def scorecard(m):
             illegal += len(r.get("illegal") or [])
         if r.get("t") == "standing":
             illegal += len(r.get("illegal") or [])
-            standing_plays += sum(1 for p in r.get("played") or [] if p.get("source") == "standing") + len(r.get("continued") or [])
+            standing_plays += sum(1 for p in r.get("played") or [] if p.get("source") in ("standing", "rule")) + len(r.get("continued") or [])
+            jev_plays += sum(1 for p in r.get("played") or [] if p.get("source") == "plan")
+        if r.get("t") == "pass":
+            standing_plays += sum(1 for p in r.get("played") or [] if p.get("source") == "rule")
+            if r.get("open"):
+                open_s += 1
+                quiet_s += 1 if r.get("quiet") else 0
+        if r.get("t") == "plan":
+            jev_plays += len(r.get("played") or r.get("changed") or [])
         if r.get("t") in ("call", "decompress"):
             tokens += (r.get("usage") or {}).get("input_tokens", 0)
     delays = [(answered[k] - episodes[k]) / frames for k in answered]
@@ -156,9 +166,9 @@ def scorecard(m):
         "react_s": round(med(delays, 0), 0) if delays else None,
         "unanswered": unanswered, "episodes": len(episodes),
         "never": never,
-        "noop%": round(100 * holds / group_asks, 0) if group_asks else None,
+        "noop%": round(100 * quiet_s / open_s, 0) if open_s else (round(100 * holds / group_asks, 0) if group_asks else None),
         "illegal": illegal,
-        "standing%": round(100 * standing_plays / (standing_plays + jev_plays)) if standing_plays + jev_plays else None,
+        "rule%": round(100 * standing_plays / (standing_plays + jev_plays)) if standing_plays + jev_plays else None,
         "jev$": round(tokens * 0.042 / 1e6, 2),
         "stuck_s": round(stuck_frames / frames),
         "yard_min": yard_min,
@@ -184,7 +194,7 @@ def opening(m):
     return {"fac4": row["fac_units"], "stall4": row["stalled"], "assist4": row["assist_s"]}
 
 
-COLUMNS = ["result", "minutes", "idle%", "e0%", "mfull%", "react_s", "unanswered", "never", "noop%", "illegal", "standing%", "jev$", "stuck_s", "yard_min", "known%", "fac_min", "look_min", "turn_s", "fac4", "stall4", "assist4"]
+COLUMNS = ["result", "minutes", "idle%", "e0%", "mfull%", "react_s", "unanswered", "never", "noop%", "illegal", "rule%", "jev$", "stuck_s", "yard_min", "known%", "fac_min", "look_min", "turn_s", "fac4", "stall4", "assist4"]
 
 
 STUCK_FREE = 80.0

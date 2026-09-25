@@ -251,28 +251,14 @@ pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, fights
         lines.push(format!("actors gone (dead, merged or split): {}", gone.join(", ")));
     }
     seen.hands = actors;
-    if !hands.standing_mode.is_empty() {
+    {
         let (packet, tool) = hands.standing_counts;
-        let fired: u32 = hands.standing_fired.values().sum();
-        let mut line = format!("standing orders ({}): {packet} from your packet, {tool} from `standing`", hands.standing_mode);
-        if fired > 0 {
-            let mut items: Vec<(&String, &u32)> = hands.standing_fired.iter().collect();
-            items.sort_by(|a, b| b.1.cmp(a.1));
-            line += &format!("; fired {fired} times since your last turn ({}); {} asks of Jev saved", items.iter().take(8).map(|(k, v)| format!("{k} {v}")).collect::<Vec<_>>().join(", "), hands.standing_saved);
-        } else if packet + tool > 0 {
-            line += "; none fired since your last turn";
+        if packet + tool > 0 {
+            lines.push(format!("standing orders: {packet} from your packet, {tool} from `standing`; they prune your hands' choices and set their defaults"));
+            if full {
+                lines.push(format!("standing orders in force:\n{}", hands.standing_text));
+            }
         }
-        if !hands.standing_verdicts.is_empty() {
-            line += &format!("; the filter's verdicts: {}", hands.standing_verdicts.iter().map(|(k, v)| format!("{k} {v}")).collect::<Vec<_>>().join(", "));
-        }
-        lines.push(line);
-        if full && packet + tool > 0 {
-            lines.push(format!("standing orders in force:\n{}", hands.standing_text));
-        }
-    }
-    let high: Vec<String> = hands.globals.iter().filter(|(_, p)| **p >= 0.5).map(|(q, p)| format!("{q} {p:.2}")).collect();
-    if !high.is_empty() {
-        lines.push(format!("your hands judge (yes-probability): {}", high.join(", ")));
     }
     if !chat.is_empty() {
         lines.push("chat since your last turn (people in the game; `say` answers them):".to_string());

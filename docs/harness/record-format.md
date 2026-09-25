@@ -58,7 +58,7 @@ should write through the same journal with its own `source` (`Note::source`; `Jo
 ## The pianist's log
 `jev-<ai_id>.jsonl` beside the record, written when the bot runs `--pianist` with `WITHIN_REASON_JEV_LOG=1` (the arena
 sets it); the record header names it under `siblings.decision_logs`. JSON Lines; readers skip a torn last line.
-- `{"t":"header","format":"within-reason-jev","version":1,"ai_id","model","interval_frames","rules"}` first: `rules` is
+- `{"t":"header","format":"within-reason-jev","version":1|2,"ai_id","model","interval_frames","rules"}` first: `rules` is
   the standing text every call's picture carried (it is left out of the calls).
 - `{"t":"call","f","ms","model","usage":{input_tokens,...},"retries","state","questions","answers","played","groups","places","parties"}`
   per request: `state` is the picture without `instructions` and `rules`; `instructions` (the player's packet) is a
@@ -76,21 +76,22 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   "f", "mode", "orders": {actor: {do, params, rule}}, "illegal", "continued", "played"}` each second the executor gave
   an order (mode `on` plays them: `played` entries carry source `standing`; mode `filter` puts a `<actor>.standing`
   question on the call and the `played` entry of that call carries the `verdict`; mode `off` only logs the orders).
-- From 2026-09-26 the default mode is `worlds` in its threat form (H-HANDS-THREATS): the `standing` line carries the
-  builders' and the groups' course orders (played as `on`), and `threats` ([{party, place, states: [{id, words, metal,
-  default, current}]}], the parties that want answering and the partial action states against each, index 0 the
-  `party_N.leave` state), `plan` (the base's starts this second, "group_A: 2 of group_A hunt party_9 (1 armflea)"),
-  `gate` (the noul ids of the first call: `party_N.answer` and `party_N.whole_group_X`, `party_N.hunt_group_X`,
-  `party_N.back_group_X`) or `quiet` (the threat picture as at the last ask: nothing asked). A `worlds_gate` line
-  follows the first call's answers (`flags` {noul id: p}, `worlds` [[state index per threat]] or null, `lines`); the
-  second call is its own `call` line with `worlds.pick` alone, and a `plan` line records its pick (`pick`,
-  `confidence`, `changed`: what was put in force). The `played` entries of the groups carry source `rule` (the base)
-  or `plan` (a pick). A group has no question of its own; a party's line reads "under 3 turrets: 1 armhlt, 2
-  armllt" when the enemy's armed buildings cover it, and the `done` lines carry the hunts' ends ("group_A's hunt of
-  party_9 ended after 12 s: party_9 out of sight for 6 s; 2 rejoin the group"), the chase stopped at a never place,
-  and the `standing` tool's own answer ("refused: group_C: shelling is not a place in the picture"). Logs from
-  2026-09-25 night to 2026-09-26 morning (worlds-smoke-1 to nouls-1) carry the retired H-HANDS-WORLDS lines instead:
-  `quiet`, `groups`, `worlds`, `lines`, `played_outright`, `gate` per group, and `worlds_gate` with `flags` per group.
+- From 2026-09-26 midday (version 2, H-HANDS-ONE-PASS, `docs/design/2026-09-26-one-pass.md`) the executor's
+  `standing` line is gone and a `pass` line stands each second the pass had anything to say: `{"t": "pass", "f",
+  "open": [slot names with a state to consider], "plan": ["actor: what the base world started"], "hunts": [ends],
+  "played": [{actor, kind, played: state id, did, source: rule|list}]}`; on a second that asks it also carries
+  `slots` ([{name, kind: "threat at spot_N"|builder|lab|group, base, idle, states: [{id, actor, words, dim, metal,
+  default, current, pair_only}]}], index 0 the `party_N.leave` or `<actor>.keep` state), `gate` (the noul ids of the
+  first call: `party_N.answer` and one per threat state, `<actor>.change` per actor with an open state, `dim.<kind>`
+  per kind of action among them) and `events` (what made it ask out of turn); a second with something open and the
+  picture as at the last ask carries `quiet` instead. A `worlds_gate` line follows the first call's answers (`flags`
+  {noul id: p}, `worlds` [[state index per slot]] or null, `lines`); the second call is its own `call` line with
+  `worlds.pick` alone, and a `plan` line records its pick (`pick`, `confidence`, `changed`, `played` with source
+  `plan`). `call` lines carry no `played`: every play is on a `pass` or `plan` line. The header carries
+  `worlds_cap`. Logs from 2026-09-26 morning (threats-smoke-1 to -5) carry the `standing` line in its threat form
+  (`threats`, `plan`, `gate`/`quiet`, `hunts`, `played` with source `rule`/`plan`) and logs from 2026-09-25 night to
+  2026-09-26 morning (worlds-smoke-1 to nouls-1) the retired H-HANDS-WORLDS lines (`quiet`, `groups`, `worlds`,
+  `lines`, `played_outright`, `gate` per group, and `worlds_gate` with `flags` per group).
 Size: 15-30 KB a call (3-6k tokens of state and questions), 20-60 calls a minute: 25 MB for a 20-minute game. Logs from
 the first morning (2026-09-21, before the header line) carry `instructions` and `rules` in every state and no `played`;
 the viewer reads those too, taking the decisions from the answers.

@@ -934,3 +934,18 @@ worlds-1.
 **Would be wrong if.** Live, the world form's picks lost the packet's courses more than the two-level layout did, or
 its diffuse picks over many worlds played worse than the per-actor asks on the same moments.
 **Used by.** H-HANDS-WORLDS (`docs/design/2026-09-25-one-decider.md` §4).
+
+### K-jev-a-noul-per-kind-of-action-is-a-coin-flip
+**Claim.** Asked, beside the picture and the player's instructions, whether a kind of action ("a metal extractor at a
+free spot", "a factory making a constructor", "a radar") is something to put hands or metal into this second, Jev
+answers 0.44-0.60 for every kind every time: the noul carries no signal, and used as a gate at 0.5 it prunes the one
+state the instructions ask for as readily as any other. A noul over a concrete state ("is this what plant_4919
+should do now, rather than standing idle? The move: plant_4919 makes a Construction Vehicle ...") reads the
+instructions' table against the counts and ranks (the threat form's state nouls, threats-smoke-1..5).
+**Status.** observed (2026-09-26, onepass-smoke-1: 292 kind nouls, mean 0.50, 158 at or above 0.5, with
+`dim.constructor` at 0.49 and 0.44 while the packet's table said "with 0 constructors: a construction vehicle").
+**Evidence.** `run/matches/1790320258-onepass-smoke-1`, the `worlds_gate` lines' `flags`; the ledger row.
+**Would be wrong if.** Kind nouls worded as facts about the instructions ("do the instructions call for a
+constructor before any soldier?") came back sharp; battery J's dimension nouls (`j5_dimensions.py`, 20/20) asked
+whether an attribute affected the answer, a different question.
+**Used by.** H-HANDS-ONE-PASS (the pre-pass asks a noul per open state, none per kind).

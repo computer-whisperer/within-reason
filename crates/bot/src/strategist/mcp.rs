@@ -388,7 +388,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             match (set, clear) {
                 (None, None) => {
                     let hands = shared.hands.lock().unwrap();
-                    Ok(format!("standing orders ({}; {} from your packet, {} from this tool):\n{}", hands.standing_mode, hands.standing_counts.0, hands.standing_counts.1, hands.standing_text))
+                    Ok(format!("standing orders ({} from your packet, {} from this tool):\n{}", hands.standing_counts.0, hands.standing_counts.1, hands.standing_text))
                 }
                 (Some(map), None) => {
                     for (actor, rules) in map {
