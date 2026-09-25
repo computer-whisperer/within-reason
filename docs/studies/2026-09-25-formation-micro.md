@@ -246,3 +246,34 @@ fire at contact (the pros' numbers, reached live for the first time). What did n
 commander and the time under fire, the flee's own measures (K-micro-a-tick-is-a-tower-margin, amended); the
 blocked share (6-7% in every arm, the pros' 8%). Three quarters of the friendly fire in every arm is the
 Rocketeers' rockets landing on the Hammers and Warriors in front of them, which no rule here addresses.
+
+## The flank alone (2026-09-25, flank-ab), and the Rocketeers' friendly fire
+
+`--ab-disable H-MICRO-FORM-FLANK`, 48 matches interleaved in blocks of four, the settings of lane-ab, every seed
+and corner in both arms.
+
+| | with the flank (A) | without (B) |
+|---|---|---|
+| W-L-timeout | 0-17-7 | 0-16-8 |
+| metal lost per killed by minute 25 [bootstrap 95%] | **0.79 [0.68-0.91]** | 0.87 [0.74-1.04] |
+| by minute 10 | 0.57 [0.34-0.88] | 0.52 [0.35-0.71] |
+| lost / killed a game | 4,896 / 6,232 | 4,073 / 4,684 |
+| deaths a game: turrets+commander / elsewhere | 4.9 / 29.5 | 2.9 / 25.1 |
+| muzzled (by a friend on the line, s) | 6.1% (736) | 7.8% (1,336) |
+| friendly fire | 4.0% | 4.3% |
+| queued / blocked | 18% / 6% | 15% / 6% |
+| nearest friend at contact (fight sides) | 55 (308) | 54 (304) |
+| friend on the line at contact | **26%** of 1,528 | 31% of 1,485 |
+
+Noise: per-game sd 4,000-8,000 on means of 4,000-6,000; 24 games resolve about 0.15 of ratio and the intervals
+overlap. What the rule alone shows in the arena is the line of fire at contact (26% against 31%, the pros' 22%)
+and the muzzling by friends (halved); the trade moved its way within the noise; wins none in 48.
+
+**The Rocketeers' friendly fire** (K-form-rocketeers-hit-the-friends-in-front): three quarters of all friendly fire
+in every lane-ab arm is Rocketeer rockets on Hammers, Warriors and Rocketeers. At the 258-324 friendly-fire
+unit-seconds an arm the Rocketeer's nearest enemy is at 404-431 (its reach 475; the front's 325-380), a friend
+stands within 40 of its line in 563-1,035 friend-events and within 60 of the enemy in 3-13: the rocket meets the
+front on its path; it is not splash. The cut lane-ab-new 05 21:10 (24 Rocketeers, 33 Hammers, 17 Warriors against
+21) replays it: friendly fire 8.7% of damage done with the lane off, 9.8% on, the same victims both ways, the fight
+won 8-0 either way (+0.76 / +0.74). No fix built; the shape says the long-reach body needs its own line of fire
+past the line body (a slot beside, not behind), or the mix fewer Rocketeers behind Hammers.

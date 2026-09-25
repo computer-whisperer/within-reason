@@ -119,4 +119,28 @@ rule showed the ends of the line standing out of reach while the front lost (the
 an arm: metal lost per metal killed 0.79 [0.65-0.95] against 0.84 [0.73-0.93] and 0.94 [0.83-1.05]; friendly fire
 3.6% against 4.6% and 4.6%; blocked 6% against 7% and 6%. The rule is not separated from the rest of the lane in
 the arena (the arms are whole binaries); the trade moved the way the harness said, within intervals that overlap.
+**Amended 2026-09-25 (flank-ab, the rule alone).** `--ab-disable H-MICRO-FORM-FLANK`, 24 games an arm on the same
+seeds and corners: with the flank 0.79 [0.68-0.91] lost per killed, without 0.87 [0.74-1.04]; friend on the line
+at contact 26% against 31% (the pros' 22%); muzzled by a friend on the line 736 against 1,336 s; friendly fire 4.0%
+against 4.3%; blocked 6% in both; wins none. Supported on the line of fire and the muzzling; the trade within the
+noise (about 0.15 of ratio at 24 games).
 **Used by.** H-MICRO-FORM-FLANK.
+
+### K-form-rocketeers-hit-the-friends-in-front
+**Claim.** Three quarters of our friendly fire in heuristic games on Comet Catcher is the Rocketeers' rockets on
+the Hammers, Warriors and other Rocketeers in front of them: the Rocketeer (reach 475) fires from behind the
+front at the enemy the front (Hammers 380, Warriors 325) is fighting, and the rocket meets a friend on its low path.
+It is not splash at the target, and the formation does not change it.
+**Status.** measured (2026-09-25). lane-ab (72 games): the Rocketeer's share of friendly fire 74-76% in every arm
+(new 50,475 of 60,000 hp; off 67,956 of 84,000), its victims Warriors 16,807 / Hammers 16,326 / Rocketeers 7,616
+(new). At the 258-324 friendly-fire unit-seconds an arm: the nearest enemy at a median 404-431 elmos; a friend
+within 40 of the line to it and nearer in 563-1,035 friend-events (Hammers 233-411, Rocketeers 186-430, Warriors
+128-193); a friend within 60 of the enemy in 3-13. The cut lane-ab-new 05 21:10 (74 against 21) replayed 8 times:
+friendly fire 8.7% of damage done with the lane off, 9.8% with it on, the same victim table both ways.
+**Evidence.** `run/fire.py`'s `xf` over `run/matches/1790299846-lane-ab-new`, `-old`, `-off`;
+`docs/data/scenarios-2026-09-25/lane-ab-new-05-2110-truth.json`; batches rock-2110-off/-on.
+**Would be wrong if.** The engine's `avoidFriendly` test for the Rocketeer's missile were shown to refuse these
+shots (it does not: the damage is booked with the Rocketeer as attacker), or a cut with the Rocketeers in front
+of the Hammers showed the same share.
+**Used by.** (none; a candidate for a slot rule that keeps the long-reach body's line clear of the line body, or
+for the unit mix)
