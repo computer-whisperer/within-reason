@@ -14,7 +14,7 @@
 //!              [--claude-config-dir DIR]   (subscription for the player's sessions; default ~/.claude2)
 //!              [--effort low|medium|high|xhigh|max]   (the LLM session's `claude --effort`; default high)
 //!              [--hands-effort lean|normal|full]      (the hands' Jev token diet; default lean, the bulk games' level)
-//!              [--standing off|on|filter] [--family on|off]  (the standing orders' executor and the two-level group menu; defaults on)
+//!              [--standing off|on|filter]  (the standing orders' executor; defaults on)
 //!              [--opponent-opening any|bots|vehicles]   (pins BARb's first factory by disabling the other; default any)
 //!              [--think-penalty X]   (the player's or commander's orders land X game seconds late per wall second it thought; 1 = as in a live game; default 1 with --player, else 0)
 //!              [--seed-base N]   (default 1; match i plays seed N+i, for the engine and for BARb: a fresh N is a fresh set of games)
@@ -23,8 +23,7 @@
 //!              [--base-port N]   (default 9100; match i uses N+2i and N+2i+1, so a second arena needs another range)
 //!              [--commander-model ID] [--objective TEXT]   (the session's model instead of the role's usual one, e.g. claude-opus-5)
 //!              [--pianist]      (Jev plays every unit from a prose packet in place of the decision heuristics)
-//!              [--player]       (with --pianist or --policy: an Opus player writes the packet or the policy; turns hold the game as the commander's do)
-//!              [--policy]       (the player's Lua policy runs every unit; with --pianist too, Jev plays the actors the policy leaves out)
+//!              [--player]       (with --pianist: an Opus player writes the packet; turns hold the game still unless --realtime)
 
 mod place;
 mod record;
@@ -67,10 +66,8 @@ struct Options {
     /// End a game once it is settled (see [`Settled`]); `--play-out` turns it off.
     call_settled: bool,
     pianist: bool,
-    /// With `pianist` or `policy`: the Opus player over it (`docs/design/2026-09-21-pianist.md`, "The player").
+    /// With `pianist`: the Opus player over it (`docs/design/2026-09-21-pianist.md`, "The player").
     player: bool,
-    /// The Lua policy runtime (`docs/design/2026-09-22-policy-replay.md`, "The runtime").
-    policy: bool,
     commander_model: Option<String>,
     /// A requirement for the player, appended to its role text (`WITHIN_REASON_OBJECTIVE`).
     objective: Option<String>,
@@ -103,7 +100,6 @@ struct Options {
     /// The standing orders' executor: off, on (the default) or filter (`WITHIN_REASON_STANDING`).
     standing: Option<String>,
     /// A group's `do` as families (on, the default) or flat (off) (`WITHIN_REASON_FAMILY`).
-    family: Option<String>,
     think_penalty: Option<String>,
     /// First of the UDP ports the matches use (two each); a second arena on the same machine needs its own range.
     base_port: u16,
@@ -168,7 +164,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("BARb {}", options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "standing": options.standing, "family": options.family, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "policy": options.policy, "commander_model": options.commander_model, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "seed_base": options.seed_base, "opening_plan": options.opening_plan, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "standing": options.standing, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "commander_model": options.commander_model, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "seed_base": options.seed_base, "opening_plan": options.opening_plan, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 
@@ -300,10 +296,9 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
     };
     let mut bot = Command::new(options.bot.clone().unwrap_or_else(|| repo.join("target/release/bot")))
         .args(options.pianist.then_some("--pianist"))
-        .args(options.policy.then_some("--policy"))
         .args(options.player.then_some("--player"))
         // The pianist's every request and answer, for study (`docs/design/2026-09-21-pianist.md`).
-        .envs((options.pianist || options.policy).then_some(("WITHIN_REASON_JEV_LOG", "1")))
+        .envs(options.pianist.then_some(("WITHIN_REASON_JEV_LOG", "1")))
         .env("WITHIN_REASON_SOCKET", &socket)
         .env("WITHIN_REASON_LOG_DIR", &dir)
         .env("WITHIN_REASON_DISABLE", &disable)
@@ -314,7 +309,6 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         .envs(options.effort.as_ref().map(|effort| ("WITHIN_REASON_EFFORT", effort)))
         .env("WITHIN_REASON_HANDS_EFFORT", options.hands_effort.as_deref().unwrap_or("lean"))
         .envs(options.standing.as_ref().map(|s| ("WITHIN_REASON_STANDING", s)))
-        .envs(options.family.as_ref().map(|s| ("WITHIN_REASON_FAMILY", s)))
         .envs(options.commander_model.as_ref().map(|model| ("WITHIN_REASON_MODEL", model)))
         .envs(options.objective.as_ref().map(|text| ("WITHIN_REASON_OBJECTIVE", text)))
         // A player game is played as a live one unless told otherwise: its orders land as late as it thought.
@@ -569,7 +563,6 @@ fn parse_args() -> Options {
         call_settled: true,
         pianist: false,
         player: false,
-        policy: false,
         commander_model: None,
         objective: None,
         side: None,
@@ -589,7 +582,6 @@ fn parse_args() -> Options {
         effort: None,
         hands_effort: None,
         standing: None,
-        family: None,
         think_penalty: None,
         base_port: BASE_PORT,
     };
@@ -624,10 +616,6 @@ fn parse_args() -> Options {
                 options.player = true;
                 continue;
             }
-            "--policy" => {
-                options.policy = true;
-                continue;
-            }
             "--realtime" => {
                 (options.realtime, options.speed) = (true, 1);
                 continue;
@@ -649,7 +637,6 @@ fn parse_args() -> Options {
             "--effort" => options.effort = Some(value()),
             "--hands-effort" => options.hands_effort = Some(value()),
             "--standing" => options.standing = Some(value()),
-            "--family" => options.family = Some(value()),
             "--commander-model" => options.commander_model = Some(value()),
             "--objective" => options.objective = Some(value()),
             "--think-penalty" => options.think_penalty = Some(value()),
@@ -696,8 +683,8 @@ fn parse_args() -> Options {
     if options.boxes.rects(&options.map, ally_teams).is_none() {
         usage(&format!("no start boxes for {ally_teams} ally teams on {} with --boxes {:?}: the lobby has none saved for that count, or the layout has no room (--ffa takes at most 3 enemies, with corners)", options.map, options.boxes));
     }
-    // `--player` alone is the pianist's player, as before; with `--policy` the policy is the hands unless Jev is asked for too.
-    if options.player && !options.policy {
+    // `--player` is the pianist's player.
+    if options.player {
         options.pianist = true;
     }
     options

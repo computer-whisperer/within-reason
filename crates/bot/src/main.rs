@@ -16,27 +16,24 @@ use brain::Brain;
 use strategist::Strategist;
 use world::World;
 
-/// usage: bot [--player] [--pianist] [--policy]
+/// usage: bot [--player] [--pianist]
 /// `--pianist`: Jev plays every unit from the player's instructions (`docs/design/2026-09-21-pianist.md`).
 /// `--player`: a Claude Code session beside the brains (see `DESIGN.md`), the Opus player whose lever is the
-/// pianist's instructions; one session serves every seat we play on a team (`strategist/seats.rs`). `--policy`: the
-/// Lua policy runtime. Transcripts go to `$WITHIN_REASON_LOG_DIR`, else the current directory.
+/// pianist's instructions; one session serves every seat we play on a team (`strategist/seats.rs`).
+/// Transcripts go to `$WITHIN_REASON_LOG_DIR`, else the current directory.
 fn main() -> io::Result<()> {
     let mut player = false;
     let mut pianist = false;
-    let mut policy = false;
     for argument in std::env::args().skip(1) {
         match argument.as_str() {
             "--player" => player = true,
             "--pianist" => pianist = true,
-            "--policy" => policy = true,
-            other => return Err(io::Error::other(format!("unknown argument {other}; usage: bot [--player] [--pianist] [--policy]"))),
+            other => return Err(io::Error::other(format!("unknown argument {other}; usage: bot [--player] [--pianist]"))),
         }
     }
-    if player && !pianist && !policy {
-        return Err(io::Error::other("--player is the pianist's player: give --pianist (Jev) or --policy (the Lua runtime), or both"));
+    if player && !pianist {
+        return Err(io::Error::other("--player is the pianist's player: give --pianist too"));
     }
-    strategist::set_policy_mode(policy);
     let path = socket_path();
     // A previous run may have left its socket file behind; nothing can be listening on it.
     if UnixStream::connect(&path).is_err() {
@@ -47,7 +44,7 @@ fn main() -> io::Result<()> {
     for stream in listener.incoming() {
         let stream = stream?;
         std::thread::spawn(move || {
-            if let Err(e) = session(stream, player, pianist, policy) {
+            if let Err(e) = session(stream, player, pianist) {
                 eprintln!("session ended: {e}");
             }
         });
@@ -60,7 +57,7 @@ fn log_dir() -> std::path::PathBuf {
 }
 
 /// `player`: whether the Opus player's session is started (one per team, `strategist/seats.rs`).
-fn session(mut stream: UnixStream, player: bool, pianist: bool, policy: bool) -> io::Result<()> {
+fn session(mut stream: UnixStream, player: bool, pianist: bool) -> io::Result<()> {
     let mut input = stream.try_clone()?;
     let mut reader = FrameReader::default();
     let mut next = move || reader.read::<ToBot>(&mut input).map(|m| m.expect("blocking socket"));
@@ -73,20 +70,18 @@ fn session(mut stream: UnixStream, player: bool, pianist: bool, policy: bool) ->
     let strategist = player
         .then(|| board.strategist(|| Strategist::start(&log_dir(), hello.ai_id).map(std::sync::Arc::new)))
         .and_then(|started| started.inspect_err(|e| eprintln!("the player's session failed to start: {e}")).ok());
-    let mode_name = match (player, pianist, policy) {
-        (true, _, false) => "player",
-        (true, _, true) => "policy-player",
-        (false, true, _) => "pianist",
-        (false, false, true) => "policy",
-        (false, false, false) => "none",
+    let mode_name = match (player, pianist) {
+        (true, _) => "player",
+        (false, true) => "pianist",
+        (false, false) => "none",
     };
     // No key, no pianist: the process says so and the seat is not played at all rather than by the heuristics,
     // which would pass for the pianist in the ledger.
-    let pianist = match (pianist, policy) {
-        (false, false) => None,
-        (jev, policy) => match brain::pianist::Pianist::new(jev, policy, &log_dir(), hello.ai_id) {
+    let pianist = match pianist {
+        false => None,
+        true => match brain::pianist::Pianist::new(true, &log_dir(), hello.ai_id) {
             Ok(pianist) => {
-                eprintln!("[ai {}] pianist: {} plays from the player's {}", hello.ai_id, pianist.model(), if policy && jev { "policy and instructions" } else if policy { "policy" } else { "instructions" });
+                eprintln!("[ai {}] pianist: {} plays from the player's instructions", hello.ai_id, pianist.model());
                 Some(pianist)
             }
             Err(e) => return Err(io::Error::other(format!("pianist mode asked for but {e}"))),
@@ -104,10 +99,6 @@ fn session(mut stream: UnixStream, player: bool, pianist: bool, policy: bool) ->
     }
     if pianist.is_some() {
         banner += &format!(" | hands: {}", pianist.as_ref().map_or(String::new(), |p| p.model()));
-    }
-    // The player's first turn comes before the hands' first ask: the report and the `policy` tool must know the runtime is on.
-    if let Some(strategist) = &strategist {
-        strategist.shared.hands.lock().unwrap().policy_on = policy;
     }
     let mut brain = Brain::new(World::new(hello), strategist.as_ref().map(|s| s.shared.clone()), board, banner, pianist);
     write_frame(&mut stream, &Commands::default())?;

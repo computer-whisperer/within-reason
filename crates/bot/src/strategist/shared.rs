@@ -191,14 +191,13 @@ impl Default for Wake {
 pub use micro::Footwork;
 
 /// What one turn changed, held back by the think penalty (`hold_for_turn`) and put into force by `apply_delayed`.
-/// Whole-state fields carry the turn's final value; the consumed ones (`queues`, `policy`, `removals`) carry only
+/// Whole-state fields carry the turn's final value; the consumed ones (`queues`, `removals`, `standing`) carry only
 /// what the turn added, so nothing the brain already took is played twice.
 #[derive(Clone, Debug)]
 pub struct TurnOutputs {
     pub wake: Wake,
     pub instructions: String,
     pub queues: BTreeMap<String, Option<Vec<String>>>,
-    pub policy: Vec<PolicyChange>,
     pub lane: BTreeMap<String, Footwork>,
     pub marks: BTreeMap<String, (f32, f32)>,
     pub allowed: BTreeMap<String, Allowance>,
@@ -210,10 +209,7 @@ impl TurnOutputs {
     /// This state with the consumed fields cut to what `before` did not have.
     fn delta_from(mut self, before: &TurnOutputs) -> TurnOutputs {
         self.queues.retain(|k, v| before.queues.get(k) != Some(v));
-        // Policy changes and removals are appended during a turn and never reordered: the tail is the turn's.
-        if self.policy.len() >= before.policy.len() {
-            self.policy.drain(..before.policy.len());
-        }
+        // Removals and standing changes are appended during a turn and never reordered: the tail is the turn's.
         if self.removals.len() >= before.removals.len() {
             self.removals.drain(..before.removals.len());
         }
@@ -235,12 +231,6 @@ pub struct Hands {
     pub engaged: Vec<String>,
     /// Question id (without `global.`) to the yes-probability of the last call.
     pub globals: BTreeMap<String, f64>,
-    /// The player's policy (`brain/pianist/policy.rs`): what it did since the last turn (drained by the driver), the
-    /// script in force and its version; `policy_on` when the runtime is on at all.
-    pub policy_on: bool,
-    pub policy_stats: crate::brain::pianist::PolicyStats,
-    pub policy_text: String,
-    pub policy_version: u32,
     /// The standing orders (`brain/pianist/standing.rs`): what is in force, the executor's mode, the counts from
     /// the packet and from the tool, and since the last turn (drained by the driver) what fired, the asks saved and
     /// the filter's verdicts.
@@ -250,13 +240,6 @@ pub struct Hands {
     pub standing_fired: BTreeMap<String, u32>,
     pub standing_saved: u32,
     pub standing_verdicts: BTreeMap<String, u32>,
-}
-
-/// A change to the policy from the `policy` tool, applied by the brain at its next ask.
-#[derive(Clone, Debug)]
-pub enum PolicyChange {
-    Set(String),
-    Amend(String),
 }
 
 /// A change to the standing orders from the `standing` tool: rules per actor to set (checked by the brain against
@@ -352,8 +335,6 @@ pub struct Shared {
     pub queues: Mutex<BTreeMap<String, Option<Vec<String>>>>,
     /// What the pianist publishes for the player (`brain/pianist`), read into its turn report.
     pub hands: Mutex<Hands>,
-    /// Scripts and amendments from the `policy` tool, oldest first; the brain drains this at each ask.
-    pub policy: Mutex<Vec<PolicyChange>>,
     /// The `standing` tool's changes, taken by the brain at its next ask.
     pub standing: Mutex<Vec<StandingChange>>,
     /// The player's footwork settings by group name (`group_A`) or `all` (`lane` tool, H-HANDS-LANE).
@@ -429,7 +410,6 @@ impl Shared {
             wake: self.wake.lock().unwrap().clone(),
             instructions: self.instructions.lock().unwrap().clone(),
             queues: self.queues.lock().unwrap().clone(),
-            policy: self.policy.lock().unwrap().clone(),
             lane: self.lane.lock().unwrap().clone(),
             marks: self.marks.lock().unwrap().clone(),
             allowed: self.allowed.lock().unwrap().clone(),
@@ -442,7 +422,6 @@ impl Shared {
         *self.wake.lock().unwrap() = o.wake;
         *self.instructions.lock().unwrap() = o.instructions;
         *self.queues.lock().unwrap() = o.queues;
-        *self.policy.lock().unwrap() = o.policy;
         *self.lane.lock().unwrap() = o.lane;
         *self.marks.lock().unwrap() = o.marks;
         *self.allowed.lock().unwrap() = o.allowed;
@@ -467,15 +446,14 @@ impl Shared {
         let mut delayed = self.delayed.lock().unwrap();
         match delayed.take() {
             Some((at, o)) if frame >= at => {
-                // The turn's outputs land: the whole-state fields are set, the consumed ones (lists, policy changes,
-                // removals) are added to what has come since.
+                // The turn's outputs land: the whole-state fields are set, the consumed ones (lists, removals,
+                // standing changes) are added to what has come since.
                 *self.wake.lock().unwrap() = o.wake;
                 *self.instructions.lock().unwrap() = o.instructions;
                 *self.lane.lock().unwrap() = o.lane;
                 *self.marks.lock().unwrap() = o.marks;
                 *self.allowed.lock().unwrap() = o.allowed;
                 self.queues.lock().unwrap().extend(o.queues);
-                self.policy.lock().unwrap().extend(o.policy);
                 self.removals.lock().unwrap().extend(o.removals);
                 self.standing.lock().unwrap().extend(o.standing);
                 false

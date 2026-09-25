@@ -40,12 +40,10 @@ fn model() -> String {
 }
 
 /// Read from the checkout at every session start (`crate::texts`): an edit needs no rebuild. The role, then what the
-/// project knows (`docs/README.md`: the brief is rewritten from the knowledge base), then the game's objective. The
-/// player's lever is the packet, or the Lua policy when the runtime is on (`bot --policy`).
+/// project knows (`docs/README.md`: the brief is rewritten from the knowledge base), then the game's objective.
 fn system_prompt() -> String {
-    use crate::texts::{read, PLAYER_BRIEF, PLAYER_PROMPT, POLICY_PROMPT};
-    let role = if policy_mode() { read(&POLICY_PROMPT) } else { read(&PLAYER_PROMPT) };
-    role + &read(&PLAYER_BRIEF) + &objective()
+    use crate::texts::{read, PLAYER_BRIEF, PLAYER_PROMPT};
+    read(&PLAYER_PROMPT) + &read(&PLAYER_BRIEF) + &objective()
 }
 
 /// Turns are taken with the game held still (the brain asks for them, `brain/wake.rs`), unless the game is realtime.
@@ -440,17 +438,6 @@ pub(crate) fn realtime() -> bool {
     std::env::var_os("WITHIN_REASON_REALTIME").is_some()
 }
 
-/// `bot --policy`: the player's lever is a Lua policy (its role text, its tool); set once at start.
-static POLICY_MODE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-
-pub fn set_policy_mode(on: bool) {
-    POLICY_MODE.store(on, std::sync::atomic::Ordering::Relaxed);
-}
-
-pub(crate) fn policy_mode() -> bool {
-    POLICY_MODE.load(std::sync::atomic::Ordering::Relaxed)
-}
-
 /// The player is shown the game as the commander is, then its hands: what they did since the last turn, the actors
 /// as the picture has them. A fresh session is handed the notes and the instructions in force as well as the map.
 fn player_prompt(game_time: &str, headline: &str, shared: &Shared, seen: &mut report::Seen, fresh_session: bool) -> String {
@@ -462,7 +449,6 @@ fn player_prompt(game_time: &str, headline: &str, shared: &Shared, seen: &mut re
         let mut hands = shared.hands.lock().unwrap();
         let snapshot = hands.clone();
         hands.done.clear();
-        hands.policy_stats = Default::default();
         hands.standing_fired.clear();
         hands.standing_saved = 0;
         hands.standing_verdicts.clear();

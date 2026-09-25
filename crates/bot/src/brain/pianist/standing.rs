@@ -4,7 +4,7 @@
 //! here (K-jev-a-packet-decompresses-to-standing-orders, `run/decompress.py` is the offline twin of the questions),
 //! and the player's `standing` tool, which sets them directly and outranks the packet for the same (actor, rule).
 //! The executor (`Brain::standing_order`) gives at most one order per actor per second; `standing_pass` in `mod.rs`
-//! applies it as a policy order is applied.
+//! applies it through the hands as an answer at probability one.
 use std::collections::{BTreeMap, BTreeSet};
 
 use bot_protocol::{OwnUnit, Tick, Vec3};
@@ -15,8 +15,15 @@ use super::super::Brain;
 use super::super::roster::Kit;
 use super::menu::{ALARM, Actor, DETACH_PARTY_MAX, Menu};
 use super::picture::{Party, Picture};
-use super::policy::Order;
 use super::{GroupTask, Task};
+
+/// One actor's order for this second, from a standing rule: the option and its parameters (`where`, `whom`,
+/// `how_many`, `where_scout`, `where_extractor`).
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct Order {
+    pub choice: String,
+    pub params: BTreeMap<String, String>,
+}
 
 /// A raider party this close to a structure of ours stands "at" it.
 const AT_STRUCTURE: f32 = 400.0;

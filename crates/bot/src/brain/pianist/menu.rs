@@ -110,8 +110,6 @@ pub(crate) struct Menu {
     /// A step from the player's list (H-HANDS-SCRIPT): the option to play without asking, its place, if any, and
     /// the step's own words (put back at the list's front if the hands divert the builder from it).
     pub scripted: Option<(String, Option<String>, String)>,
-    /// Ordered by the player's policy (`policy.rs`), not by Jev.
-    pub policy: bool,
     /// Answered without asking, from the actor's last real answer (H-HANDS-DIET, decision 7): the question id and
     /// the answer; the menu's questions are not sent.
     pub replay: Option<(String, Answer)>,
@@ -119,7 +117,7 @@ pub(crate) struct Menu {
     pub replay_key: Option<String>,
     /// The standing order the executor gave for this actor, asked beside the menu as a `standing` question (mode
     /// `filter`): the order and the rule that gave it.
-    pub standing: Option<(super::policy::Order, String)>,
+    pub standing: Option<(super::standing::Order, String)>,
     /// Played from a standing order at probability one (the record's source `standing`).
     pub standing_played: bool,
 }
@@ -275,8 +273,8 @@ impl Brain {
             }
             // Every building the player allows for this builder, else the faction's usual list, keyed by the game's
             // internal name and worded from the definition and the glossary (docs/design/2026-09-22-full-roster.md).
-            // The whole build list goes into `options` for the policy, which may order anything the builder can
-            // build; Jev is asked only what is offered, so the vote is not split over forty options.
+            // The whole build list goes into `options` for the standing orders, which may name anything the builder
+            // can build; Jev is asked only what is offered, so the vote is not split over forty options.
             let build_list: Vec<UnitDefId> = self.world.def(unit.def).map(|d| d.build_options.clone()).unwrap_or_default();
             let allowed = self.allowed_units(&name);
             // A changed allowance restarts the builder's counts against its caps ("armllt:2": two more, then off).
@@ -393,7 +391,7 @@ impl Brain {
                 queue_ahead,
                 options,
                 spots: spots.iter().map(|(i, _)| *i).collect(),
-                scripted: None, policy: false, replay: None, replay_key: None, standing: None, standing_played: false,
+                scripted: None, replay: None, replay_key: None, standing: None, standing_played: false,
             });
         }
 
@@ -467,7 +465,7 @@ impl Brain {
                 }
                 _ => None,
             };
-            menus.push(Menu { actor: Actor::Lab(unit.id), questions: vec![question], name, busy: queued > 0, queue_ahead: false, options, spots: Vec::new(), scripted: None, policy: false, replay, replay_key: Some(key), standing: None, standing_played: false });
+            menus.push(Menu { actor: Actor::Lab(unit.id), questions: vec![question], name, busy: queued > 0, queue_ahead: false, options, spots: Vec::new(), scripted: None, replay, replay_key: Some(key), standing: None, standing_played: false });
         }
 
         // Groups.
@@ -605,7 +603,7 @@ impl Brain {
                 drop_places(q, &pianist.standing.never_places(&name));
             }
             pianist.last_asked.insert(name.clone(), frame);
-            menus.push(Menu { actor: Actor::Group(group.name.clone()), name, busy, queue_ahead: false, questions, options, spots: Vec::new(), scripted: None, policy: false, replay: None, replay_key: None, standing: None, standing_played: false });
+            menus.push(Menu { actor: Actor::Group(group.name.clone()), name, busy, queue_ahead: false, questions, options, spots: Vec::new(), scripted: None, replay: None, replay_key: None, standing: None, standing_played: false });
         }
 
         // The call's size: Jev's window is 64k tokens and shell-1 sent two calls past it (46 questions, 135k characters
@@ -645,7 +643,7 @@ impl Brain {
                 ("global.base_in_danger".to_string(), Question::noul("Given `enemy` and `places`, is our base or our commander in danger right now?")),
                 ("global.attack_coming".to_string(), Question::noul("Given `enemy`, is a large enemy attack on us likely within the next minute or two?")),
             ];
-            menus.push(Menu { actor: Actor::Global, name: "global".into(), busy: false, queue_ahead: false, questions, options: BTreeMap::new(), spots: Vec::new(), scripted: None, policy: false, replay: None, replay_key: None, standing: None, standing_played: false });
+            menus.push(Menu { actor: Actor::Global, name: "global".into(), busy: false, queue_ahead: false, questions, options: BTreeMap::new(), spots: Vec::new(), scripted: None, replay: None, replay_key: None, standing: None, standing_played: false });
         }
         pianist.due_now.clear();
         // The call after this one takes what was deferred (a packet's builders), and comes half a second on.
@@ -768,7 +766,7 @@ impl Brain {
                         questions: Vec::new(),
                         options: BTreeMap::from([(key.clone(), pick)]),
                         spots,
-                        scripted: Some((key, where_, step.clone())), policy: false, replay: None, replay_key: None, standing: None, standing_played: false,
+                        scripted: Some((key, where_, step.clone())), replay: None, replay_key: None, standing: None, standing_played: false,
                     });
                 }
                 Err(why) => {

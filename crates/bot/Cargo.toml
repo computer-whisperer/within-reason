@@ -12,7 +12,6 @@ buildorder = { path = "../buildorder" }
 combatsim = { path = "../combatsim" }
 micro = { path = "../micro" }
 jev = { path = "../jev" }
-mlua = { version = "0.12", features = ["lua54", "vendored", "serialize"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tiny_http = "0.12"

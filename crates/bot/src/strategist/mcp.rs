@@ -155,16 +155,13 @@ fn tool_list() -> Value {
             { "name": "remove",
               "description": "Take apart or blow up what we own: {\"reclaim\": [handles], \"by\": \"constructor_N\" (optional; else the nearest builder without a list)} puts `reclaim <handle>` steps at the front of that builder's list, and most of the metal comes back; {\"destruct\": [handles]} sends the engine's self-destruct, and nothing comes back. A handle is a unit's name and id as the picture writes it (armsolar_31002: a factory's `yard` entry names the buildings in its exit lane) or an actor's name (constructor_N, plant_N, commander). Every unit that self-destructs blows up: the answer says the blast's radius and damage and what of ours stands inside it, and a destruct that would kill something of ours is refused unless \"accept_losses\": true. The commander's blast is the game's largest; a reclaim is the safe way beside anything that matters.",
               "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "reclaim": { "type": "array", "items": { "type": "string" } }, "by": { "type": "string" }, "destruct": { "type": "array", "items": { "type": "string" } }, "accept_losses": { "type": "boolean" } } } },
-            { "name": "policy",
-              "description": "Your Lua policy (with `bot --policy`): the script your hands run once a game second over the picture, in place of, or beside, Jev's reading of your packet. {\"set\": script} replaces the whole policy and starts a fresh Lua state; {\"amend\": chunk} runs the chunk in the living state, so each top-level function or table it defines replaces the one of that name in place and the rest stands (globals persist); {} returns the policy in force. A parse error is answered at once; runtime errors and the orders given come in your report. The script defines decide(S) and returns { [actor] = { [\"do\"] = option, where = place, whom = party, how_many = \"2\"|\"4\"|\"8\"|\"half\", where_scout = place } }; only an option in that actor's S.actors[name].options can be ordered; an actor left out keeps its course.",
-              "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "set": { "type": "string" }, "amend": { "type": "string" } } } },
             { "name": "standing",
               "description": "Your standing orders, played by the bot itself every second without asking Jev while they apply (docs/design/2026-09-25-standing-orders.md). Your `instruct` packet is read into them once per turn by Jev (its own extraction, hedged readings dropped), and this tool sets them directly, outranking the packet's for the same actor and rule until cleared. {\"set\": {\"group_B\": {\"station\": \"spot_61\", \"raiders_lone\": \"detachment:2\", \"raiders_party\": \"whole_group\", \"no_chase\": \"yes\", \"never\": \"spot_50 spot_73\"}, \"constructors\": {\"job\": \"expand\", \"turrets\": \"beside_each_outer_extractor\"}}} sets rules (null clears one); {\"clear\": [\"group_B\"]} or {\"clear\": \"all\"} drops tool orders; no arguments shows what is in force. Group rules: station (a place), station_mode (walk|advance), raiders_lone and raiders_party (whole_group|detachment|detachment:1|2|4|8|half|ignore), no_chase, no_detachments, hold_line (never fall back while even or better), fall_back_to (a place), engage_party (a party name), never (places, space-separated). Builder rules (commander, constructors, constructor_N): job (help_factory|expand|follow_list), attack_raiders, retreat_when_enemy_near, solar (only_when_stalling|never|freely), turrets (beside_each_outer_extractor|beside_each_extractor|none), no_chase, never. Yes/no rules take \"yes\" or true. The picture shows each actor's orders on its `standing` line and the report says what fired.",
               "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "set": { "type": "object", "additionalProperties": { "type": "object", "additionalProperties": { "type": ["string", "boolean", "null"] } } }, "clear": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "string", "enum": ["all"] } ] } } } },
             { "name": "say",
               "description": "Say something in the game's chat, to everyone playing. Short lines. The report shows what people say to you; when an experienced player offers advice or asks what you are doing, answer, and ask them what they would do: their feedback is what this project learns from.",
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "maxLength": 240 } } } },
-            orders(&["instruct", "queue", "standing", "policy", "lane", "mark", "produce", "remove", "say", "note", "wait"], "your instructions or policy, standing orders, build lists, footwork settings, marked places, what labs may build, removals, a chat line, a note and when to be woken"),
+            orders(&["instruct", "queue", "standing", "lane", "mark", "produce", "remove", "say", "note", "wait"], "your instructions or policy, standing orders, build lists, footwork settings, marked places, what labs may build, removals, a chat line, a note and when to be woken"),
             wait("A group of ours starts fighting an enemy party.", "Woken when this many soldiers of each named unit type are alive, e.g. {\"armham\": 6}. {} clears it."),
             note,
     ])
@@ -172,7 +169,7 @@ fn tool_list() -> Value {
 
 /// What `orders` may batch.
 fn batchable() -> &'static [&'static str] {
-    &["instruct", "queue", "standing", "policy", "lane", "mark", "produce", "remove", "say", "note", "wait"]
+    &["instruct", "queue", "standing", "lane", "mark", "produce", "remove", "say", "note", "wait"]
 }
 
 /// The `orders` tool: several tool calls in one request. `wait` goes last wherever it was listed, since it ends the turn.
@@ -263,46 +260,6 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             }
             *shared.instructions.lock().unwrap() = text.to_string();
             Ok(format!("instructions replaced ({} characters); your hands read them from their next look, once your turn ends", text.chars().count()))
-        }
-        "policy" => {
-            use super::shared::PolicyChange;
-            let set = arguments["set"].as_str().map(str::trim).filter(|t| !t.is_empty());
-            let amend = arguments["amend"].as_str().map(str::trim).filter(|t| !t.is_empty());
-            match (set, amend) {
-                (Some(_), Some(_)) => Err("policy takes \"set\" or \"amend\", not both".into()),
-                (None, None) => {
-                    let hands = shared.hands.lock().unwrap();
-                    if !hands.policy_on {
-                        return Err("the policy runtime is off in this game (bot --policy); your lever is `instruct`".into());
-                    }
-                    Ok(if hands.policy_text.is_empty() { "no policy is in force".to_string() } else { format!("policy in force (version {}):\n{}", hands.policy_version, hands.policy_text) })
-                }
-                (Some(script), None) => {
-                    if !shared.hands.lock().unwrap().policy_on {
-                        return Err("the policy runtime is off in this game (bot --policy); your lever is `instruct`".into());
-                    }
-                    crate::brain::pianist::Policy::check(script).map_err(|e| format!("the script does not parse: {e}"))?;
-                    if !script.contains("function decide") && !script.contains("decide =") {
-                        return Err("the script defines no `decide` function".into());
-                    }
-                    shared.policy.lock().unwrap().push(PolicyChange::Set(script.to_string()));
-                    Ok(format!("policy replaced ({} lines): it runs from the next game second, once your turn ends", script.lines().count()))
-                }
-                (None, Some(chunk)) => {
-                    if !shared.hands.lock().unwrap().policy_on {
-                        return Err("the policy runtime is off in this game (bot --policy); your lever is `instruct`".into());
-                    }
-                    if chunk.trim() == "-- unchanged" {
-                        return Ok("policy unchanged".into());
-                    }
-                    if shared.hands.lock().unwrap().policy_text.is_empty() && shared.policy.lock().unwrap().iter().all(|c| !matches!(c, PolicyChange::Set(_))) {
-                        return Err("no policy is in force to amend: set one first".into());
-                    }
-                    crate::brain::pianist::Policy::check(chunk).map_err(|e| format!("the amendment does not parse: {e}"))?;
-                    shared.policy.lock().unwrap().push(PolicyChange::Amend(chunk.to_string()));
-                    Ok(format!("amendment accepted ({} lines): what it defines replaces the same names in place from the next game second", chunk.lines().count()))
-                }
-            }
         }
         "plan" => {
             let context = shared.plan_context.lock().unwrap().clone().ok_or("the simulator has no picture of the game yet: try again in a few seconds")?;
@@ -731,7 +688,7 @@ mod tests {
     #[test]
     fn the_player_has_its_lever_and_none_of_the_commanders() {
         let player: Vec<String> = tool_list().as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap().to_string()).collect();
-        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "produce", "remove", "policy", "standing", "say", "orders", "wait", "note"]);
+        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "produce", "remove", "standing", "say", "orders", "wait", "note"]);
         for tool in batchable() {
             assert!(player.contains(&tool.to_string()));
         }
@@ -752,7 +709,7 @@ mod tests {
         assert!(call_tool("queue", &json!({ "commander": ["armllt spot_3", "armsolar"] }), &shared).is_ok());
         // Every player tool but the readers and `orders` itself can be batched (comet-3: `queue` was refused by the
         // batch as "not a tool that can be batched" and the game ran without the list).
-        for tool in ["instruct", "queue", "policy", "lane", "mark", "produce", "say", "note", "wait"] {
+        for tool in ["instruct", "queue", "standing", "lane", "mark", "produce", "say", "note", "wait"] {
             assert!(batchable().contains(&tool), "{tool}");
         }
         assert!(orders(&json!({ "calls": [{ "tool": "queue", "arguments": { "commander": ["armsolar"] } }] }), &shared).unwrap().contains("1 steps"));
