@@ -847,3 +847,15 @@ flips only under a 0.75 lead) and battery D (batching is free), which made the o
 offline replay, or the 18% of changed ordinary decisions cost more games than the freed moments win.
 **Used by.** H-HANDS-TWO-LEVEL (the request in `mod.rs`, the composition in `family.rs`, the margin in `hands.rs`).
 
+### K-jev-a-packet-decompresses-to-standing-orders
+**Claim.** Put to Jev once with one extraction question per (actor, rule) over a fixed vocabulary, the player's
+prose packet comes back as standing orders cheaply (three hundredths of a cent a packet), stably (identical
+paragraphs give identical rules 94% of the time) and literally: a question in the packet's own idiom is answered at
+0.97-0.99, one off it hedges (0.33-0.44 with the words present), and a disjunctive question is answered for its
+false part. At two thirds of the recorded moments where the hands held while a raider stood at our extractor, the
+packet in force had a raider order the vocabulary caught.
+**Status.** measured offline (2026-09-25, `run/decompress.py`, 293 packets of four games); nothing runs them yet.
+**Evidence.** `docs/studies/2026-09-25-decompression.md`; ledger row decompress-1.
+**Would be wrong if.** The same rules executed in code answered those moments no better than the per-ask Jev read,
+or the player's packets drifted off the vocabulary's idiom so that the hedged share grew past a third.
+**Used by.** the design `docs/design/2026-09-25-menus-from-scratch.md` §9d (not built).
