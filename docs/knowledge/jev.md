@@ -1054,3 +1054,20 @@ how long unit y takes to drive unit x off. Built 2026-09-27, untested in a game.
 **Would be wrong if.** Jev still took the commander over a Blitz whose words say it drives the Tick off sooner, or
 sent slow chasers after every raider so that the group melted into detachments: the next player game is the check.
 **Used by.** H-HANDS-THREATS, H-HANDS-COMMANDER-FIGHTS, `crates/bot/src/brain/pianist/rules.md`.
+
+### K-hands-extractors-stop-at-the-named-spots
+**Claim.** Under the prose pipeline the extractor count stops where the player's naming stops, not where Jev's
+judgment does: the hands offer a builder the free spots the instructions name and an unnamed spot only when none is
+named, and a builder on a `queue` list gets no extractor state at all while the list runs. Jev takes a named free
+spot when it is on the gate.
+**Evidence.** `run/matches/1790397807-onepass-player-3`: 40 spots on our half; the constructors' instructions named
+the strip's 12 and the home 3 and said "never build east of spot_38 or spot_43"; 16 held at 14:00 and 20:00; from
+16:00 to 24:00 the constructors' slots offered an extractor state in 133 of 703 slot-seconds, always spot_36, taken;
+constructor time went 33% turrets, 13% assisting, 11% solars (all from lists), 24% extractors (17 points from the
+pick, 7 from lists). `run/matches/1790430054-onepass-player-4`: 17 at 10:00 and 15-17 to 16:00 with 7-8
+constructors on solar/assist/turret lists; 22-25 from 18:00 once the player set `job: expand` (8:40). The games that
+reached 25-30 by 9:00-10:00 (penalty-4-lua-low, held-1-hard-aggressive) had the bot's own economy engine taking every
+free spot; the strong players' median is 23 at 12:00 (`run/replays/recheck.py --floors 40`).
+**Would be wrong if.** A player naming 25 spots in order, with `job: expand` or short lists, still stalled at 16-17
+with free named spots on the gate declined: then the pick, not the naming, is the cap.
+**Used by.** H-PLAYER-EXPANSION-PACE (the prompt teaches the player; the user's ruling that the count is the player's).

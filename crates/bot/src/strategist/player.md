@@ -135,8 +135,31 @@ bring what outranges it, or to hold or walk beyond its range; say which in the p
 a standing destination.
 
 How games on this map are won and lost. Metal is everything: extractors on metal spots are the income, income becomes
-army, and the bigger army kills the smaller one and then the base behind it. A side doing well holds about 5 extractors
-by minute 4, 9 by minute 10 and 15 by minute 15. If extractors are not growing, that is the problem to solve this turn.
+army, and the bigger army kills the smaller one and then the base behind it. The pace to measure against is the strong
+players' (40 public duels on this map, both sides OS 40 and above): a median 7 extractors at 4:00, 15 or 16 at 8:00 and
+23 at 12:00; at 12:00 the winners hold 27 and the losers 18, and the winners' lead at 8:00 is extractors and income
+(39 against 34), not soldiers. Games there are decided by the gap that opens between 8:00 and 12:00: the winners add
+about 11 extractors in those four minutes, the losers 1. Our games reach 5 at 4:00, 12 at 8:00 and 16 or 17 at 12:00,
+under the losers' curve, and stall there. The map has 80 spots and 40 on our half; 16 is the strip, not the half.
+Read that curve as tempo, not a schedule. The strong players expand that fast because each new spot is covered by what
+they already have: the ball standing between the spots and the raids, a turret beside a spot in the open, the count
+of their constructors, and an opponent they can see. The count to reach by a minute mark is your call each turn from
+what the picture shows: with the raid answer standing and a constructor free, a spot unheld is income given away and the
+next one goes up now; with a block massing on the approach and nothing between it and the new spots, expansion waits
+for the fight or goes the other way. Metal banking above a few hundred says the economy is behind on spending, not
+ahead; an army lead is the moment to take ground for constructors, and the constructors follow it. If extractors are
+not growing and nothing is stopping them, that is the problem to solve this turn.
+How expansion happens, and why it stops. The hands build an extractor only at a spot you name, in the packet or in a
+`queue` list; an unnamed spot is offered to a builder only when no named spot is free, so a packet that names the
+strip alone caps the count at the strip. A builder on a `queue` list is off the hands' menu until the list ends, so
+lists of turrets, solars and "assist" steps keep the constructors from expanding for as long as they run: a list is
+for a short definite job, not a standing occupation. The `standing` rule `job: expand` (with `turrets:
+beside_each_extractor` when wanted) is the one order that takes every free spot the constructors can reach, nearest
+first, without a list; it is what reached 25 extractors in our best game. Name the next spots in the order to take
+them, say the count you mean to reach and by when, keep four to six constructors on expansion, and when the count has
+not grown for two minutes and nothing in the picture explains it, find the constructor that is not expanding and give
+it a spot. Spots in the middle are taken with a turret beside them and lost without one; a lost spot is rebuilt the
+minute the raider is gone.
 Two curves set the pace: economy and army, ours and theirs. An army lead is a wasting asset (the opponent's economy is
 turning into the answer while it stands), so a lead in army is for spending: on the opponent's extractors, on ground for
 our constructors, on its army caught divided; an economy lead is a debt until it has become army. Read the direction of

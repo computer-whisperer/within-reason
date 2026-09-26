@@ -26,6 +26,9 @@ Columns (lower is better unless said):
   fac min    minute the picture first listed a factory of theirs seen (- if never)
   look min   minute one of our units first stood within 1,500 of the enemy commander's true start, from the truth file (- if never)
   turn s     the player's wall seconds a turn, median
+  aband      structures of ours started and then abandoned: an unfinished frame destroyed by nobody (it decayed
+             after its builder left, or an unseen enemy finished it); aband m is the metal put into them (the frame's
+             last sampled build share times its cost), the user 2026-09-27: "it eats a lot of resources whenever it happens"
 """
 import json
 import os
@@ -55,6 +58,7 @@ def scorecard(m):
     e0 = mfull = total = 0
     look = None
     positions = {}
+    built_share = {}
     first_truth = min(m.truth) if m.truth else None
     enemy_start = next(((u[2], u[3]) for u in m.truth[first_truth] if u[1].endswith("com")), None) if first_truth is not None else None
     for line in open(next(os.path.join(m.dir, f) for f in os.listdir(m.dir) if f.startswith("record-"))):
@@ -73,6 +77,8 @@ def scorecard(m):
             mfull += 1
         for u in r["own"]:
             positions.setdefault(u[0], []).append((r["f"], u[2], u[3]))
+            if u[5] & 1:
+                built_share[u[0]] = u[4] / 100.0
             if u[1] in builders and not (u[5] & 1):
                 alive += 1
                 if u[5] & 2:
@@ -157,6 +163,7 @@ def scorecard(m):
             if true > 0:
                 known.append(100 * int(mk.group(2)) / true)
     walls = [t["wall"] or 0 for t in m.turns]
+    abandoned, abandoned_metal = abandoned_builds(m, defs, built_share)
     r = m.result or {}
     return {
         "match": m.label, "result": r.get("outcome"), "minutes": round(r.get("game_minutes", 0), 1),
@@ -176,6 +183,7 @@ def scorecard(m):
         "fac_min": round(fac / frames / 60, 1) if fac else None,
         "look_min": round(look / frames / 60, 1) if look else None,
         "turn_s": round(med(walls, 0), 1) if walls else None,
+        "aband": abandoned, "aband_m": round(abandoned_metal),
         # The opening against the pros' (run/replays/assist.py; the OS 40+ pool on Comet Catcher: 19 factory units by
         # 4:00, the metal store below 20 in 9% of the seconds from 1:00 to 4:00, the commander guarding the plant 50 s).
         **opening(m),
@@ -194,7 +202,26 @@ def opening(m):
     return {"fac4": row["fac_units"], "stall4": row["stalled"], "assist4": row["assist_s"]}
 
 
-COLUMNS = ["result", "minutes", "idle%", "e0%", "mfull%", "react_s", "unanswered", "never", "noop%", "illegal", "rule%", "jev$", "stuck_s", "yard_min", "known%", "fac_min", "look_min", "turn_s", "fac4", "stall4", "assist4"]
+COLUMNS = ["result", "minutes", "idle%", "e0%", "mfull%", "react_s", "unanswered", "never", "noop%", "illegal", "rule%", "jev$", "stuck_s", "yard_min", "known%", "fac_min", "look_min", "turn_s", "aband", "aband_m", "fac4", "stall4", "assist4"]
+
+
+def abandoned_builds(m, defs, built_share):
+    """Structures of ours started (`created`) and never `finished`, then `destroyed` with no attacker: the frame decayed
+    after its builder left it (or an unseen enemy finished it; the bot's own accounting, `briefing.rs`, has the same
+    blind spot). The count, and the metal put in: the frame's last sampled build share times its metal cost."""
+    unfinished = {}
+    count = 0
+    metal = 0.0
+    for e in m.events:
+        d = defs.get(e.get("d"), {})
+        if e["k"] == "created" and d.get("speed", 0) <= 0 and d.get("metal"):
+            unfinished[e["u"]] = d["metal"]
+        elif e["k"] == "finished":
+            unfinished.pop(e["u"], None)
+        elif e["k"] == "destroyed" and e["u"] in unfinished and e.get("by") is None:
+            count += 1
+            metal += unfinished.pop(e["u"]) * built_share.get(e["u"], 0.0)
+    return count, metal
 
 
 STUCK_FREE = 80.0
