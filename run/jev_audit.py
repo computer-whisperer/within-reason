@@ -137,7 +137,7 @@ def sec_summary(m, out):
     tokens = sum((c.get("usage") or {}).get("input_tokens", 0) or (c.get("usage") or {}).get("prompt_tokens", 0) for c in m.calls)
     minutes = r.get("game_minutes", 0)
     played = sum(len(c.get("played", [])) for c in m.calls)
-    scripted = sum(1 for c in m.calls for p in c["played"] if m.scripted(c["f"], p["actor"]))
+    scripted = sum(1 for c in m.calls for p in (c.get("played") or []) if m.scripted(c["f"], p["actor"]))
     packets = sum(1 for c in m.calls if "instructions" in c)
     out(f"{m.label}: {r.get('outcome')} in {minutes:.1f} min vs {r.get('opponent')}; {len(m.calls)} calls "
         f"({len(m.calls) / max(minutes, 0.1):.1f}/min), {played} menus answered ({scripted} scripted), {packets} packets; "
@@ -149,7 +149,7 @@ def sec_kinds(m, out):
     by = collections.defaultdict(lambda: collections.Counter())
     conf = collections.defaultdict(list)
     for c in m.calls:
-        for p in c["played"]:
+        for p in (c.get("played") or []):
             k = p["kind"]
             by[k]["asks"] += 1
             if m.scripted(c["f"], p["actor"]):
@@ -176,7 +176,7 @@ def option_table(matches):
     table = collections.defaultdict(lambda: {"offered": 0, "chosen": 0, "played": 0, "p": 0.0, "pmax": 0.0})
     for m in matches:
         for c in m.calls:
-            for p in c["played"]:
+            for p in (c.get("played") or []):
                 if m.scripted(c["f"], p["actor"]):
                     continue
                 a = (c.get("answers") or {}).get(f"{p['actor']}.next" if p["kind"] == "lab" else f"{p['actor']}.do") or {}
@@ -217,14 +217,14 @@ def sec_noop(m, out):
     for c in m.calls:
         for g in c.get("groups", []):
             tasks[f"group_{g['name']}"] = (g.get("task") or {}).get("kind")
-        for p in c["played"]:
+        for p in (c.get("played") or []):
             if p["kind"] != "group":
                 continue
             group_asks += 1
             if p["played"] == "hold" and tasks.get(p["actor"]) == "hold":
                 hold_on_hold += 1
-    kept = sum(1 for c in m.calls for p in c["played"] if p["kept"])
-    cont = sum(1 for c in m.calls for p in c["played"] if p["played"] == "continue" and not p["kept"])
+    kept = sum(1 for c in m.calls for p in (c.get("played") or []) if p["kept"])
+    cont = sum(1 for c in m.calls for p in (c.get("played") or []) if p["played"] == "continue" and not p["kept"])
     out(f"  group asks {group_asks}: hold answered on a group already holding {hold_on_hold} ({100 * hold_on_hold / max(group_asks, 1):.0f}%); "
         f"all kinds: continue chosen outright {cont}, continue held by the switch margin {kept}")
 
@@ -236,7 +236,7 @@ def sec_flips(m, out, top):
     """A, B, A within three consecutive unscripted asks of one actor: the hands changing their mind and back."""
     seq = collections.defaultdict(list)
     for c in m.calls:
-        for p in c["played"]:
+        for p in (c.get("played") or []):
             if m.scripted(c["f"], p["actor"]):
                 continue
             seq[p["actor"]].append((c["f"], p["played"], p["probability"]))
@@ -259,7 +259,7 @@ def sec_detach(m, out, top):
     born = {}
     folded = []
     for c in m.calls:
-        for p in c["played"]:
+        for p in (c.get("played") or []):
             did = p.get("did") or ""
             mm = re.search(r"as (group_\w+) ", did)
             if p["played"] in ("send_against", "split") and mm:
@@ -267,7 +267,7 @@ def sec_detach(m, out, top):
             elif p["played"].startswith("join_") and p["actor"] in born:
                 f0, parent, did0 = born.pop(p["actor"])
                 folded.append((f0, p["actor"], parent, (c["f"] - f0) / 30, did0, p["played"]))
-    sent = sum(1 for c in m.calls for p in c["played"] if p["played"] in ("send_against", "split"))
+    sent = sum(1 for c in m.calls for p in (c.get("played") or []) if p["played"] in ("send_against", "split"))
     quick = [x for x in folded if x[3] <= 30]
     out(f"  {sent} detachments sent; {len(folded)} later joined a group, {len(quick)} of them within 30 s")
     for f0, g, parent, secs, did0, join in sorted(folded, key=lambda x: x[3])[:top]:
@@ -279,7 +279,7 @@ def sec_didnot(m, out, top):
     c2 = collections.Counter()
     tot = collections.Counter()
     for c in m.calls:
-        for p in c["played"]:
+        for p in (c.get("played") or []):
             if m.scripted(c["f"], p["actor"]) or p["played"] == "continue":
                 continue
             tot[(p["kind"], p["played"])] += 1
@@ -292,7 +292,7 @@ def sec_unsure(m, out, top):
     low = []
     diffuse = []
     for c in m.calls:
-        for p in c["played"]:
+        for p in (c.get("played") or []):
             if m.scripted(c["f"], p["actor"]):
                 continue
             if p["confidence"] < 0.4:
@@ -302,10 +302,10 @@ def sec_unsure(m, out, top):
                 continue
             probs = a.get("probabilities") or {}
             actor = qid.rsplit(".", 1)[0]
-            played = next((p["played"] for p in c["played"] if p["actor"] == actor), None)
+            played = next((p["played"] for p in (c.get("played") or []) if p["actor"] == actor), None)
             if probs and max(probs.values()) < 0.35 and played in ("fight_to", "move_to", "split", "extractor", "turret_at", "radar_at", "walk_to", "send_against", "scout"):
                 diffuse.append((c["f"], qid, a["choice"], max(probs.values()), len(probs), played))
-    asks = sum(1 for c in m.calls for p in c["played"] if not m.scripted(c["f"], p["actor"]))
+    asks = sum(1 for c in m.calls for p in (c.get("played") or []) if not m.scripted(c["f"], p["actor"]))
     out(f"  {len(low)} of {asks} unscripted menu answers below confidence 0.4; {len(diffuse)} place/target answers with no option above 0.35 that were then played")
     for f, actor, ch, pr, cf, n in low[:top]:
         out(f"    {clock(f)} {actor}: {ch} p={pr:.2f} conf={cf:.2f} of {n} options")
@@ -357,7 +357,7 @@ def sec_packets(m, out, top):
         for c in m.calls:
             if not (f <= c["f"] < end):
                 continue
-            for p in c["played"]:
+            for p in (c.get("played") or []):
                 if p["kind"] == "group":
                     hist[p["played"]] += 1
         words = len(text.split())

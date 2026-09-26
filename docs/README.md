@@ -29,3 +29,12 @@ Six kinds of knowledge with different lifetimes. Put a fact where its lifetime s
 Rules of the road: a heuristic without a registered claim is a guess — register the guess as `conjectured`. A batch without a
 ledger line did not happen. Results that contradict a `supported` claim reopen it; say so in the entry rather than quietly
 tuning around it.
+
+**Reviewing a game** (step 1 of the loop, one match at a time): the `bar-review` skill (`.claude/skills/bar-review/SKILL.md`,
+a subagent given a match directory) reads the record, the pianist's log, the transcript and the truth file through the
+`run/` tools, holds the game against the high-OS replay baselines (`.claude/skills/bar-review/baselines.md`) and writes
+`review.md` (findings ranked by cost, each with its clock, its evidence and the baseline it falls short of; what a
+stronger player would have done; the player, the hands, the harness) and `verdict.json` (`harness/verdicts.md`, the
+shape `run/tally_verdicts.py` adds up) into the match directory. The checklist grows with every packet of feedback
+from experienced players (the skill's last section; the notes themselves go to `knowledge/_inbox/player-notes.md`).
+The study behind it: `studies/2026-09-27-review-skill.md`.

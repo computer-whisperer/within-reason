@@ -526,6 +526,12 @@ median of 2 extractors (67 and 71 rebuilds in all).
 **Would be wrong if.** The raid clock differed by more than a minute between the mirrored starts in more games (G4 3:22
 against B5 5:10 over 8 and 12 sides is the only start difference here).
 **Used by.** (candidate: the bot's first-turret timing: a raid on an extractor from 2:00)
+**Update 2026-09-27 (40 games at OS 40+, `docs/studies/2026-09-27-review-skill.md`, section 3).** A side loses 19.5
+extractors a game (median; p75 36), 1.85 a game-minute, and re-takes 7.5 spots (a spot taken again after it was lost,
+the cards' `spots_taken`); Armada from B5/G4 loses its first at 3:26 (p25-p75 2:26-4:40). Ours (`run/raid_ledger.py`):
+0.6-1.1 a minute in the wins, 1.9-2.3 in the losses, so the pros' rate is between our wins and our losses; what
+separates ours is the cover (undefended losses 2 of 9 in escalate-7 against 14 of 19 in onepass-player-fable-1) and the
+rebuild (6 of 19 there against the pros' 7.5 re-takes a game).
 
 ### K-map-comet-catcher-remake-1-8-raids-met-by-turrets
 **Claim.** Raids are met by turrets and a scouting swarm, not by holding the army home: light turrets by 8:00 median 9
@@ -585,6 +591,23 @@ Three winners closed while behind or level on extractors (02bd 13 against 16, 70
 resign" cannot be told apart here (see Card defects), and the claim is only that the loser's base went in the last
 minute. K-open-comet-flash-raids-take-the-resign had a resign by self-destruct at 6:45.
 **Used by.** (candidate: when the bot should expect the other side to fold)
+
+### K-map-comet-catcher-remake-1-8-winners-close-within-four-minutes-of-twice-the-army
+**Claim.** At OS 40 and above the eventual winner first holds twice the loser's army metal at minute 7 (median over the
+27 of 40 games where it happens at all; p25-p75 6.5-13) and the game ends 3.4 minutes later (median; p25-p75 1.2-5.4;
+over six minutes in 5 of 27). The extractor lead reaches five at minute 7 (33 games). Games last 12:39 (p25-p75
+9:17-16:07); at the end the winner holds 27 extractors to 14.5 and 1.8 times the army. Our Opus player games hold
+twice the truth's army for five to twenty minutes before the enemy's factories are attacked (onepass-player-8: from
+13:00, six times it at 16:00, lost at 32:31; onepass-player-6: from 6:00, the push at 11:32, won at 20:18), which is the
+largest difference between the pros' games and ours (`docs/studies/2026-09-27-review-skill.md`, section 5).
+**Status.** observed (2026-09-27, 40 games at OS 40+; the cards' `curves` per team, `army_metal` by minute).
+**Evidence.** `docs/studies/2026-09-27-review-skill.md` (the closing table; the computation over
+`run/data/replays/manifest.jsonl` and each card's `curves`); ours from `run/analyze_match.py`'s curves.
+**Would be wrong if.** The 13 games where the winner never reached twice the army were the longer ones (they are not:
+the pool's long games are the ones with the late 2x), or the cards' army metal counted units being built (it does; the
+count is the same for both sides).
+**Used by.** `.claude/skills/bar-review/SKILL.md` (item F1, the costliest finding); candidate: the player's brief (when
+the army is twice what the picture shows of theirs, the whole army goes at their factories now).
 
 ### K-map-comet-catcher-remake-1-8-higher-os-differences
 **Claim.** The higher-OS player won 22 of 29. Paired within a game, the higher-OS side: started a second factory earlier

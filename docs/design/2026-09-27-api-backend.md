@@ -31,8 +31,8 @@ a 400 naming it makes the session drop the parameter for good.
 80k tokens): whole turns are dropped oldest first, the system prompt kept. The session is replaced at
 `TURNS_PER_SESSION` and on a prompt edit as the others are, the notes handed over by the fresh session's report.
 
-**Transcript.** The same lines as the CLI backends so `run/floor.py`, `player_read` and the bundle reader work
-unchanged: `turn`, `assistant` (`message.message.content` with `text` and `tool_use` blocks), `tool_call`,
+**Transcript.** The same lines as the CLI backends so `run/floor.py`, `run/commander_turns.py` and `run/batch_read.py`
+(the scratchpad's `player_read` and bundle reader, brought into the tree on 2026-09-27) work unchanged: `turn`, `assistant` (`message.message.content` with `text` and `tool_use` blocks), `tool_call`,
 `turn_end` (`ended_by` wait/response/abandoned), `result` (`usage.input_tokens`, `usage.output_tokens`,
 `usage.cache_read_input_tokens` when the endpoint reports it, `duration_api_ms` summed over the turn's calls,
 `num_turns` = calls in the turn, `modelUsage`). The turn cap is the 120 s one (not Claude's 45 s).
