@@ -76,8 +76,8 @@ Thug `corthud` 140/1100/45/380 line unit; Trasher `corcrash` anti-air only; Grav
   ours. Send constructors to wrecks on ground we hold, never onto a field the fight is still on.
   [K-eco-comet-pros-rez-bots, K-army-dead-waves-are-resurrected]
 
-**Which map.** Two maps have sections here, Quicksilver Remake and Comet Catcher Remake. The `map` tool names the
-one you are on; read that map's section and its opening, and skip the other's.
+**Which map.** Three maps have sections here, Quicksilver Remake, Comet Catcher Remake and Great Divide V1. The `map` tool names the
+one you are on; read that map's section and its opening, and skip the others'.
 
 **This map, Quicksilver Remake, from the north-west corner start (the games so far: `--corner nw`, mirrored).**
 [K-maps-terrain-not-straight-lines, the terrain picture in the `map` tool]
@@ -387,6 +387,48 @@ K-maps-comet-barb-opens-bots, the tempo model]
   `plant_1` that did nothing because the plant is `plant_5440` once it stands (three Rovers came). Open in the hands:
   lists given to constructors mid-walk at 8:19-8:42 were not taken; a plant's engine queue keeps units already
   queued when the allowance changes; the `shelling` place still leads a group under an unseen beamer.
+
+**This map, Great Divide V1 (the games with people from 2026-09-27: two seats of ours under you, the north box A1-H2
+against the south A7-H8, realtime; the opponent a person who, we are told, will fortify the pass and try to win from
+there).** [K-map-great-divide-v1-one-pass, K-map-great-divide-v1-the-choke-is-the-plan,
+K-map-great-divide-v1-reach-over-the-divide, K-map-great-divide-v1-not-air-only, K-map-great-divide-v1-our-team-games-stayed-home]
+- 3072 wide by 4096 tall: a tall map played north against south. Rows 1-3 and 6-8 are open; rows 4-5 are the divide,
+  cliff from edge to edge with one walkable pass at E5 (1570, 2085), 644 wide, 63% of the way from our start to
+  theirs. Nothing walks round it: every raid, every army and every constructor of theirs comes through that pass, and
+  every one of ours goes through it. No water. Wind 0 to 20: solars, and wind generators only while the readout says
+  it blows. 22 spots, eleven a side, so the ground economy is even and the pass decides nothing by itself.
+- Our eleven, by walking distance from the north-west start (a seat placed in the east of the box has the east ones at
+  its door): home spot_3 B1, spot_2 A1, spot_0 B1 (under 350), then spot_7 C2 (920) and spot_9 B3 (1,200); the middle
+  spot_6 E2 and spot_10 E3 (1,700); the east spot_1 G1, spot_8 F2, spot_5 G1 (2,200-2,260) and spot_4 H1 (2,540). The
+  twelfth, spot_11 E5, sits at the pass's south mouth, inside whatever they build there: not ours until the camp is
+  gone. Theirs are the mirror in rows 6-8 (spot_12 to spot_21), their start most often at the south box's west end
+  (about (500, 3700)) or its east end (about (2600, 3750)) in the public duels.
+- **Two seats.** The report's `seats:` line names both; each has its own economy and builders. From the first turn:
+  the west seat takes spot_3, 2, 0, 7, 9 then 6; the east seat spot_1, 5, 4, 8 then 10; every extractor stands by 6:00.
+  One radar and two light turrets at the pass's north mouth (E4, about (1570, 1750)) by 4:00 cover every extractor we
+  own, because raiders have one way in: the rest of the north needs no turrets, and a constructor's `never` holds
+  everything south of the pass until the camp is broken. Our three team games here (2026-09-20, the old bot) sat at
+  home on five extractors for 35 minutes and never named the pass: name it, and the spots, in the packet.
+- **Their plan, and the trap in it.** A camp at the pass: light turrets by 3:00, heavy by 6:00, then Pit Bulls or
+  Gauntlets with artillery and Dragon's Claws behind, and their army waiting behind the guns for ours to walk in. The
+  reach that decides it: light turret 430, Beamer 490, heavy turret 620, Pit Bull 730, Gauntlet 1,220, Cortex Punisher
+  1,245. A ball advancing into the pass against standing turrets is the Comet Catcher nest again (16k lost for 6k,
+  then 10k for 1k, two games running): it does not happen. The ball holds at the north mouth, out of the camp's reach,
+  as the screen for the artillery and the threat that keeps their army home.
+- **How the game is won.** Three things in this order. (1) Economy: two seats against one; tier 2 and mohos on both
+  seats by about 10:00, twice their income by 12:00, the bank spent. (2) Fire over the camp: Shellshockers (armart,
+  710) from a Stout screen at the north mouth outrange light and heavy turrets and kill the early camp for nothing;
+  once Pit Bulls or Gauntlets stand, Pillagers (armmerl, 1,300, from the advanced vehicle plant) outrange them from
+  the same ground, a dozen at a time with the screen in front. Artillery, not the ball, breaks a camp. (3) Air over
+  the divide: an air plant (armap) on one seat by about 8:00, a scout plane first (see the camp before planning
+  against it: the report's "known to hold" is only what our units have seen), then bombers (Phoenix, Thunder) in one
+  wave at one target, their artillery and the nano-turrets behind the camp, or their extractors in rows 7-8; expect
+  flak (850) and Ferrets (950), so a wave, never a trickle. Never air alone: an experienced player's word is that an
+  all-air side loses (the answers are cheap, and nothing holds the pass or the spots); air is a lever over the ground
+  army and the artillery, not a replacement. (4) When the camp's guns are dead, cross with everything at once
+  (`fight_to` onto their base, both seats' groups as one), leaving the north to its turrets: their base is rows 7-8.
+- Our seats are Armada (vehicles: the ground through the pass is walkable for bots and vehicles alike); the person
+  may be Cortex or Legion, whose twins have the same ranges within a few percent (Wolverine 710, Tremor 1,470).
 
 **What your hands did alone (pianist-smoke-1 to -6, pianist-easy-1, pianist-audit-1: four wins, four losses and a
 timeout against easy from the default packet, `docs/experiments.md`).** [docs/knowledge/jev.md]
