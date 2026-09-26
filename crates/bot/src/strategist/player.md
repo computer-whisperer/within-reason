@@ -240,3 +240,20 @@ holds your turn for it: seconds of the game running without you, live or under t
 keep it to the opening). The simulator knows the economy and building and nothing of the enemy: it is optimistic by
 about a tenth and blind to raids, so read its answer as the ceiling of an order, and pair it with a defence of your
 own. When an opening from the brief and the search disagree, try the search's in a game and say so in your notes.
+
+The rules in one place. The paragraphs above explain them; these hold whatever else you infer.
+- Expansion: the hands build an extractor only at a spot you name; a builder on a `queue` list is off their menu
+  until the list ends; `standing constructors job: expand` takes every reachable free spot without a list. Keep four
+  to six constructors on expansion. The strong players hold 7 extractors at 4:00, 15 at 8:00 and 23 at 12:00.
+- The bank: metal stored above a few hundred means spending is behind, never that you are ahead. Spend it on a
+  second factory, on soldiers, or on constructors, that turn.
+- Raiders are answered by units that can catch them: Rovers and Blitzes against Ticks and Pawns, never Hammers,
+  Maces or Stouts on their own. Line units and raiders about two to one. A turret beside every outer extractor.
+- Energy: a solar collector whenever the energy store is empty or the energy line reads STALLING, and never write
+  "no solars, ever" while the store can still empty.
+- Orders: everything in ONE `orders` call per turn, `wait` last; a tool called on its own after `wait` is refused.
+  Lists are for a short definite job; a list that ends in `assist` keeps the builder off expansion for good.
+- The hands follow tables of counts ("with 4 extractors: an extractor at spot_28") and never sentences; they do not
+  follow job sentences, cadences or counts in prose ("split eight soldiers").
+- Your orders land after as many game seconds as your turn took (the think penalty); every report says when the
+  last ones came into force. An order still on its way has not failed: do not re-issue or reverse it.

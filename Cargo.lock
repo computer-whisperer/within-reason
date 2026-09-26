@@ -98,6 +98,7 @@ dependencies = [
  "serde_json",
  "terrain",
  "tiny_http",
+ "ureq",
 ]
 
 [[package]]

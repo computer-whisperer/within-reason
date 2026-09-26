@@ -1083,7 +1083,27 @@ Pawn" at about 0.15 (the Opus reviewer's reading of the worlds question, verifie
 5-8. Opus games do not show it: their packets say "Blitzes, without pause".
 **Would be wrong if.** A sentence in the hands' fixed rules ("a full store overrides a condition on production unless
 production is forbidden outright") did not open the lab's state: then the noul, not the reading, is the cap.
-**Used by.** (candidate: the full-store sentence in `crates/bot/src/brain/pianist/rules.md`.)
+**Used by.** H-HANDS-RULES (the full-store sentence, 2026-09-27). The rerun added a case the sentence does not cover: models-medium2-opus55-low's packet made production unconditional ("Stouts continuously. Never idle") and four plants still stood idle under a full store from 21:00, see K-hands-the-pick-dilutes-over-single-change-worlds.
+
+### K-hands-the-pick-dilutes-over-single-change-worlds
+**Claim.** The one pass offers the pick a base world and one world per deviation ("as w1, and: X"), so with many idle
+actors the question carries ten or more worlds each changing one thing, and "nothing changes" wins most seconds on
+a plurality even when every deviation is wanted: an idle lab under a full store, its state rated 0.8 in the pre-pass
+and the packet saying "never idle", gets a build in one second of ten.
+**Evidence.** `run/matches/1790447448-models-medium2-opus55-low` (the lab's states never default: a lab builds only
+by the pick): from 21:00 four plants idle, the store full 26% of the game; a lab world stood in 512 full-store
+questions of a median 11 worlds and was picked 45 times; the pick's median for w1 0.31, for the best lab world
+0.17, with the lab states' own nouls at 0.79-0.85 (22:02: w1 0.37 against w4 0.16, the rest under 0.08). The
+dilution follows the count of worlds: models-medium2-sonnet5-nothink, a median 4 worlds, a lab world picked in 81
+of 154 full-store questions; onepass-player-5, 6 worlds, 26 of 201; models-medium2-gpt6-astra, 6 worlds, 28 of 103
+(`scratchpad lab_pick.py`, kept in the session; the method: the questions whose lines hold "As w1, and: plant_N makes",
+the store at 95% of capacity from the record's samples, the answer's choice).
+**Would be wrong if.** The full-store sentence in the rules (H-HANDS-RULES, 2026-09-27) lifted the lab world's share
+above w1's in questions of ten worlds: then the reading, not the question's shape, was the cap. Or if a base that
+takes a lab's best-rated state when the lab is idle and the store full (a default made from the pre-pass noul, no
+pick needed) did not empty the store: then the labs are idle for a reason the pick sees and the pass does not.
+**Used by.** (candidate: an idle lab under a full store takes its best pre-pass state in the base, the pick free to
+change it; or the pick asked per actor kind so labs are not weighed against group courses.)
 
 ### K-player-other-models-read-the-prompt-literally
 **Claim.** The player prompt (4,700 words of doctrine whose counters, constructor counts and the meaning of a full
@@ -1097,4 +1117,4 @@ wrote counts for the hands ("with twenty or more Maces, split eight"); Terra, Op
 read an order still in flight under the think penalty as an order that failed, and re-issued or reversed it.
 **Would be wrong if.** A shorter rule-shaped section (the counters, the constructor count, the bank, the landing of
 orders, as flat statements) did not move these models' play: then the models, not the prose, are the cap.
-**Used by.** (candidate: a rules section of `player.md`; the report's landing line.)
+**Used by.** H-PLAYER-RULES-SECTION (2026-09-27); the report's landing line (H-HANDS-PLAYER-WAKE). The rerun on 158e488 (models-medium2-*, before either) showed the same shapes: Luna 35 soldiers and 0 extractors at 12:00, Terra's energy empty 58% of the game, astra all Maces against raiders, Sonnet 5 calling the small tools one by one.
