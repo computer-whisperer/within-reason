@@ -416,7 +416,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                     for (actor, rules) in map {
                         match crate::brain::pianist::standing::Standing::check_tool(actor, rules, &places, &parties) {
                             Ok(checked) => {
-                                said.push(format!("{actor}: {} rules set at the next second", checked.len()));
+                                said.push(format!("{actor}: {} rules set when this turn's orders land", checked.len()));
                                 accepted.insert(actor.clone(), rules.clone());
                             }
                             Err(e) => said.push(format!("refused: {e}")),
@@ -429,12 +429,12 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 }
                 (None, Some(Value::String(all))) if all == "all" => {
                     shared.standing.lock().unwrap().push(StandingChange::Clear(None));
-                    Ok("every tool order is cleared at the next second; the packet's stay".into())
+                    Ok("every tool order is cleared when this turn's orders land; the packet's stay".into())
                 }
                 (None, Some(Value::Array(items))) => {
                     let actors: Vec<String> = items.iter().filter_map(|v| v.as_str().map(str::to_string)).collect();
                     shared.standing.lock().unwrap().push(StandingChange::Clear(Some(actors.clone())));
-                    Ok(format!("tool orders for {} cleared at the next second", actors.join(", ")))
+                    Ok(format!("tool orders for {} cleared when this turn's orders land", actors.join(", ")))
                 }
                 _ => Err("standing takes {\"set\": {actor: {rule: value}}} or {\"clear\": [actors] | \"all\"}, not both".into()),
             }

@@ -47,14 +47,6 @@ const NAMED_SPOTS: usize = 8;
 /// "helping the plant" as the constructors' job too (0.41 mean); opened at 0.25 it sent every constructor to the
 /// plant and none to the strip (onepass-norules-hard-6: two extractors all game, 1,000 metal unspent).
 const TOLD_BAR: f64 = 0.25;
-/// A builder's attack on a party it outweighs is a state within this on its own (raiders outrun a commander, human-6,
-/// so the words say when a chase only drives it off) ...
-pub(super) const ATTACK_REACH: f32 = 320.0;
-/// ... within this when the party is busy at a building of ours or fought by our soldiers (human-8), and within the
-/// alarm reach when it is killing something of ours (onepass-norules-hard-1, 2:44: a Pawn 550 from the commander
-/// killed a Sentry and an extractor for a quarter minute and the attack was never a question; the user: chase off or
-/// kill intrusions fast, the raider getting away alive is the lesser issue).
-pub(super) const ATTACK_JOIN: f32 = 500.0;
 /// A party bigger than this is an attack, not a raider to be met by a detachment (human-1).
 pub(super) const DETACH_PARTY_MAX: usize = 3;
 /// A builder helps another builder's build within this.
@@ -767,7 +759,10 @@ impl Brain {
                 let advance = rules.get("station_mode").is_some_and(|m| m == "advance");
                 let away = centre.dist2d(st.at) > STATION_SLACK;
                 let current = matches!(&group.task, GroupTask::Move { place, fight, .. } if *place == st.name && *fight == advance);
-                let default = away && !engaging && !hunting && !odds_against;
+                // Not the default while the group walks back: a walk back the pick chose stood one second before the
+                // station's default re-advanced it, every second, into the fight it was leaving (onepass-player-3,
+                // 20:12-20:34: "fall back to where it last held" and "advance to spot_1" in turn, 26 of 31 lost).
+                let default = away && !engaging && !hunting && !odds_against && !walking_back;
                 if away || current {
                     push(&format!("station_{}", st.name), Response::Walk { place: st.name.clone(), fight: advance }, format!("{name} {} to its station {} ({} away){}", if advance { "advances" } else { "walks" }, st.name, distance_words(centre.dist2d(st.at)), if engaging { ", leaving the party it was attacking" } else { "" }), default, current);
                 }
@@ -796,8 +791,17 @@ impl Brain {
                     let default = (odds_against || losing) && !walking_back;
                     push(&format!("fall_back_{}", to.name), Response::Walk { place: to.name.clone(), fight: false }, format!("{name} falls back to {} ({} away){}", to.name, distance_words(centre.dist2d(to.at)), nearest_party.map_or(String::new(), |p| format!(" from {} ({}), which outweighs it", p.name, p.composition))), default, current);
                 }
-                if !walking_back && centre.dist2d(self.home) > STATION_SLACK {
-                    push("retreat", Response::Retreat, format!("{name} falls back to our base ({} away){leave}", distance_words(centre.dist2d(self.home))), false, false);
+                // A walk back in progress is the slot's current state, so the base world keeps it until the pick
+                // changes it or the group arrives.
+                let retreating = matches!(&group.task, GroupTask::Move { fight: false, place, .. } if place == "home");
+                if retreating || (!walking_back && centre.dist2d(self.home) > STATION_SLACK) {
+                    let words = if retreating { format!("{name} keeps falling back to our base ({} away)", distance_words(centre.dist2d(self.home))) } else { format!("{name} falls back to our base ({} away){leave}", distance_words(centre.dist2d(self.home))) };
+                    push("retreat", Response::Retreat, words, false, retreating);
+                }
+                if let GroupTask::Move { fight: false, place, to, .. } = &group.task
+                    && place.starts_with(super::groups::LAST_HOLD)
+                {
+                    push("fall_back", Response::FallBack, format!("{name} keeps falling back to where it last held ({}, {} away) without fighting on the way", self.place_words(&picture.places, *to), distance_words(to.dist2d(centre))), false, true);
                 }
                 if !walking_back
                     && group.task.busy()

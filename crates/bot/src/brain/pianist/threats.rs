@@ -13,17 +13,12 @@ use serde_json::json;
 
 use super::groups::GroupTask;
 use super::picture::{Party, Picture, Place};
-use super::plan::{ALARM, ATTACK_JOIN, ATTACK_REACH, DETACH_PARTY_MAX, Kind, Response, Slot, State, under};
+use super::plan::{ALARM, DETACH_PARTY_MAX, Kind, Response, Slot, State, under};
 use super::standing::{NEVER_REACH, RAIDER_REACH};
 use super::Brain;
 
 /// A party this large is met whole, never hunted by a detachment.
 const HUNT_PARTY_MAX: usize = 2 * DETACH_PARTY_MAX;
-/// A hunt (a detachment after a raider) is a local reflex: offered within this of the party. The whole-group attack
-/// and the way back have no reach: the walk is in the words and the pick weighs it (onepass-player-2: the ball 1,380
-/// and 1,475 from a block killing our plant and then our commander had no state against it under a flat 1,200; the
-/// user: "a flat 1200 limit seems wrong").
-const HUNT_REACH: f32 = RAIDER_REACH;
 /// Groups offered against one party at most, nearest first: the question count stays bounded on a map of many groups.
 const GROUPS_PER_PARTY: usize = 3;
 /// The speed an unidentified contact is taken to have when a hunt is sized against it (a Pawn's).
@@ -75,7 +70,6 @@ impl Brain {
             let mut groups: Vec<(f32, &super::groups::Group)> = pianist.groups.iter().filter_map(|g| super::groups::centre_of(&g.units(own)).map(|c| (c.dist2d(party.at), g))).collect();
             groups.sort_by(|a, b| a.0.total_cmp(&b.0));
             for (distance, group) in groups.into_iter().take(GROUPS_PER_PARTY) {
-                let far = distance > HUNT_REACH;
                 let name = format!("group_{}", group.name);
                 let rules = pianist.standing.rules_for(&name);
                 let never = pianist.standing.never_places(&name);
@@ -106,7 +100,7 @@ impl Brain {
                     GroupTask::Engage { .. } => ", leaving the party it was attacking".to_string(),
                 };
                 // The hunt: the fastest members that outrun the party, the fewest that outweigh it.
-                if !far && party.ids.len() <= HUNT_PARTY_MAX && group.domain != crate::world::Domain::Air && !rules.get("no_detachments").is_some_and(|v| v == "yes") && (!declined || hunting_it) {
+                if party.ids.len() <= HUNT_PARTY_MAX && group.domain != crate::world::Domain::Air && !rules.get("no_detachments").is_some_and(|v| v == "yes") && (!declined || hunting_it) {
                     let mut fast: Vec<&OwnUnit> = units.iter().copied().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed > quarry_speed)).collect();
                     fast.sort_by(|a, b| a.pos.dist2d(party.at).total_cmp(&b.pos.dist2d(party.at)));
                     let wanted = raider_rule.strip_prefix("detachment:").and_then(|n| n.parse::<usize>().ok()).unwrap_or(0);
@@ -115,6 +109,7 @@ impl Brain {
                         let hunters: Vec<UnitId> = fast[..k].iter().map(|u| u.id).collect();
                         let default = !default_set && !declined && raider_rule.starts_with("detachment");
                         let speed = fast[..k].iter().filter_map(|u| self.world.def(u.def)).map(|d| d.speed).fold(f32::INFINITY, f32::min);
+                        let drive = if speed.is_finite() && speed > 0.0 { format!(", {:.0} s of driving", distance / speed) } else { String::new() };
                         let what: BTreeMap<&str, usize> = fast[..k].iter().fold(BTreeMap::new(), |mut m, u| {
                             *m.entry(self.name(u.def)).or_default() += 1;
                             m
@@ -125,7 +120,7 @@ impl Brain {
                             format!("{}.hunt_{name}", party.name),
                             name.clone(),
                             Response::Hunt(hunters),
-                            format!("{who} of {name} hunt {} ({}{}) at {speed:.0} against its {quarry_speed:.0}, {distance:.0} away{rest}", party.name, party.composition, under(party)),
+                            format!("{who} of {name} hunt {} ({}{}) at {speed:.0} against its {quarry_speed:.0}, {distance:.0} away{drive}{killing}{rest}", party.name, party.composition, under(party)),
                             fast[..k].iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum(),
                             default,
                             hunting_it,
@@ -137,11 +132,14 @@ impl Brain {
                 if odds != "it outweighs us" && !odds.starts_with("we cannot hit") && !units.is_empty() && (chase_allowed || engaging_it) {
                     let default = !default_set && !declined && (raider_rule == "whole_group" || named);
                     let walk = if group_speed.is_finite() && group_speed > 0.0 { format!(", {:.0} s of walking", distance / group_speed) } else { String::new() };
+                    // A radar contact is priced as a Pawn (`combat.rs`): at minute 14 a column of 23 blips said 2,530
+                    // metal against our 4,820 and cost ten Blitzes (onepass-player-3), so the words call it a floor.
+                    let theirs = if party.composition.contains("unidentified") { format!("its {:.0} at least, the unidentified contacts priced as Pawns", party.metal) } else { format!("its {:.0}", party.metal) };
                     states.push(state(
                         format!("{}.whole_{name}", party.name),
                         name.clone(),
                         Response::Whole,
-                        format!("{name} attacks {} ({}{}) with the whole group ({standing:.0} metal against its {:.0}), {distance:.0} away{walk}{leave}{outrun}", party.name, party.composition, under(party), party.metal),
+                        format!("{name} attacks {} ({}{}) with the whole group ({standing:.0} metal against {theirs}), {distance:.0} away{walk}{leave}{outrun}", party.name, party.composition, under(party)),
                         standing,
                         default,
                         engaging_it,
@@ -163,16 +161,16 @@ impl Brain {
                     ));
                 }
             }
-            // An armed builder that outweighs the party alone attacks it: within ATTACK_REACH on its own, within
-            // ATTACK_JOIN when the party is busy at a building of ours or fought by our soldiers, within the alarm reach
-            // when it is killing something of ours (onepass-norules-hard-1, 2:44: a Pawn 550 from the commander killed a
-            // Sentry and an extractor for a quarter minute and the attack was never a question; the user: chase off or
-            // kill intrusions fast, the raider getting away alive is the lesser issue). The words say the walk and,
-            // for a raider that outruns it, that this drives it off rather than kills it.
-            let busy = own.iter().any(|u| u.pos.dist2d(party.at) < 150.0 && self.world.def(u.def).is_some_and(|d| d.speed == 0.0)) || pianist.groups.iter().any(|g| matches!(&g.task, GroupTask::Engage { party: ids, .. } if ids.iter().any(|id| party.ids.contains(id))));
+            // An armed builder that outweighs the party alone attacks it: a state for any party within the raider reach,
+            // the walk in the words, the pick weighing it. Fixed reaches hid the answer: a Pawn 550 from the commander
+            // killed a Sentry and an extractor for a quarter minute (onepass-norules-hard-1, 2:44), and a Pawn 1,000
+            // from it hit a constructor at spot_45 for half a minute (onepass-player-3, 2:36-3:04) with the attack never
+            // a question; the user: chase off or kill intrusions fast, the raider getting away alive is the lesser
+            // issue. The words say the walk and, for a raider that outruns it, that this drives it off rather than
+            // kills it.
             for unit in own.iter().filter(|u| !u.being_built && self.world.is_mobile_builder(u.def) && self.world.def(u.def).is_some_and(|d| d.weapon_count > 0)) {
                 let distance = party.at.dist2d(unit.pos);
-                if !(distance < ATTACK_REACH || (distance < ATTACK_JOIN && busy) || (distance < ALARM && party.killing.is_some())) {
+                if distance > RAIDER_REACH {
                     continue;
                 }
                 let odds = self.odds_words(&[unit], party, enemies);
@@ -187,12 +185,17 @@ impl Brain {
                 let walk = if speed > 0.0 { format!(", {:.0} s of walking", distance / speed) } else { String::new() };
                 let killing = party.killing.as_ref().map_or(String::new(), |(what, metal)| format!(", killing {what} ({metal:.0} metal) now"));
                 let chase = if quarry_speed > speed { format!("; it outruns {name} at {quarry_speed:.0} against {speed:.0}: this drives it off if it stays, and kills it only if it stands and fights") } else { String::new() };
+                // A skirmisher outranges a commander (onepass-player-3, 22:14: it walked at a Hound, 650 against 300,
+                // that backed off shooting; the player's packet keeps it home against anything that outranges it).
+                let reach = self.world.def(unit.def).map_or(0.0, |d| d.reach);
+                let their_reach = party.ids.iter().filter_map(|id| enemies.iter().find(|e| e.id == *id).and_then(|e| e.def)).filter_map(|d| self.world.def(d)).map(|d| d.reach).fold(0.0, f32::max);
+                let range = if their_reach > reach { format!("; it outranges {name} ({their_reach:.0} against {reach:.0}): it is hit on the way in and lands nothing unless the party stands") } else { String::new() };
                 let doing = pianist.tasks.get(&unit.id).map_or(String::new(), |t| format!(", leaving {}", self.task_course(Some(t), unit, &picture.places, tick.frame)));
                 states.push(state(
                     format!("{}.attack_{name}", party.name),
                     name.clone(),
                     Response::Attack(party.name.clone()),
-                    format!("{name} attacks {} ({}{}, {distance:.0} away{walk}{killing}) and comes back to what it was doing: against it alone, {odds}{chase}{doing}", party.name, party.composition, under(party)),
+                    format!("{name} attacks {} ({}{}, {distance:.0} away{walk}{killing}) and comes back to what it was doing: against it alone, {odds}{chase}{range}{doing}", party.name, party.composition, under(party)),
                     self.world.def(unit.def).map_or(0.0, |d| d.metal_cost),
                     default,
                     current,

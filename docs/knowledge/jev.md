@@ -1017,3 +1017,21 @@ commander built seven solars at "spending faster than it comes in"; the construc
 **Used by.** H-HANDS-ONE-PASS (`WITHIN_REASON_TOLD` off by default); the user's split of 2026-09-27: the player
 owns the build order, Jev follows instructions and answers reflexively; what the player has to write: tables of
 counts, each row naming its case and the other case.
+
+### K-hands-a-fixed-reach-hides-the-question
+**Claim.** A fixed reach on a threat state (offer the hunt within 1,200 of the group, the builder's attack within 320,
+500 or 600 of the builder) hides the response the user wants rather than sparing Jev a bad one: each game's worst
+loss came at a party just outside the reach, with no state against it on the gate. The distance belongs in the words
+(the walk or drive in seconds, what the party is killing, the metal sent against the party's) and the pick weighs it.
+**Evidence.** onepass-player-2 (the ball 1,380 and 1,475 from the block that killed the plant and the commander, no
+whole-group state under the 1,200 reach; the user: "a flat 1200 limit seems wrong"); onepass-norules-hard-1 (a Pawn
+550 from the commander killed a Sentry and an extractor for a quarter minute, attack never offered);
+`run/matches/1790397807-onepass-player-3` (a Pawn 1,000 from the commander hit a constructor at spot_45 from 2:36 to
+3:04 with no attack state until a Tick came within 300, then offered 0.38 and taken 0.41; the Blitz ball stationed
+at spot_38 had no hunt state against the Ticks 2,400 north eating six extractors 4:51-6:55, only the whole-group
+state at 0.09-0.19, declined). 2026-09-27: the whole-group attack and the way back lost their reach after player-2,
+the hunt and the builder's attack after player-3 (the builder's within the raider reach, 1,200).
+**Would be wrong if.** Jev took far states indiscriminately once offered (the whole ball walking 2,400 after every
+Tick, the commander leaving the plant for every Pawn on the strip): the next player game is the check, the hunt's
+drive in seconds and "killing extractor" in its words the lever if it declines them all.
+**Used by.** H-HANDS-THREATS, H-HANDS-COMMANDER-FIGHTS.
