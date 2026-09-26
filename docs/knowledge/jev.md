@@ -1097,7 +1097,10 @@ questions of a median 11 worlds and was picked 45 times; the pick's median for w
 dilution follows the count of worlds: models-medium2-sonnet5-nothink, a median 4 worlds, a lab world picked in 81
 of 154 full-store questions; onepass-player-5, 6 worlds, 26 of 201; models-medium2-gpt6-astra, 6 worlds, 28 of 103
 (`scratchpad lab_pick.py`, kept in the session; the method: the questions whose lines hold "As w1, and: plant_N makes",
-the store at 95% of capacity from the record's samples, the answer's choice).
+the store at 95% of capacity from the record's samples, the answer's choice). With the full-store sentence in the
+rules (onepass-player-7, 398a80a): plant_22773 was picked 13 times a minute until 17:29 and 0 times in minutes 17:30
+to 19:00 while offered 35 and 30 times, the store full from 18:20; a lab world was picked in 7 of 174 full-store
+questions of a median 5 worlds. The sentence did not lift the lab world's share.
 **Would be wrong if.** The full-store sentence in the rules (H-HANDS-RULES, 2026-09-27) lifted the lab world's share
 above w1's in questions of ten worlds: then the reading, not the question's shape, was the cap. Or if a base that
 takes a lab's best-rated state when the lab is idle and the store full (a default made from the pre-pass noul, no

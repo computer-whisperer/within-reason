@@ -284,9 +284,18 @@ fn arguments_of(call: &Value) -> Value {
 }
 
 /// Drops whole turns, oldest first, until the list fits the budget; the system prompt and the newest turn stay.
+/// Over the budget, the list is cut back to this share of it, so the prefix then stands for many calls and the
+/// endpoint's cache keeps hitting; a cut to just under the budget changes the prefix every call (fw-deepseek-v41-flash-2:
+/// cache reads fell from 90k to 0 tokens a call once the list reached the budget, and a turn went from 0.3 to 4 cents).
+const TRIM_TO: f64 = 0.6;
+
 fn trim(messages: &mut Vec<Value>, budget: usize) {
     let size = |m: &Value| m.to_string().len();
-    while messages.iter().map(size).sum::<usize>() > budget {
+    if messages.iter().map(size).sum::<usize>() <= budget {
+        return;
+    }
+    let target = (budget as f64 * TRIM_TO) as usize;
+    while messages.iter().map(size).sum::<usize>() > target {
         let users: Vec<usize> = messages.iter().enumerate().filter(|(_, m)| m["role"] == "user").map(|(i, _)| i).collect();
         if users.len() < 2 {
             return;
@@ -341,13 +350,15 @@ mod tests {
             json!({ "role": "assistant", "content": "done" }),
             json!({ "role": "user", "content": "c".repeat(100) }),
         ];
+        trim(&mut list, 800);
+        assert_eq!(list.len(), 7, "under the budget nothing moves");
+        // 400 is over: cut back to 240, which the two newer turns (about 290) still exceed, so both older turns go.
         trim(&mut list, 400);
-        assert_eq!(list.len(), 4, "the oldest turn went, the two newer stayed");
+        assert_eq!(list.len(), 2, "over the budget the list is cut well under it, oldest turns first");
         assert_eq!(list[0]["role"], "system");
-        assert!(list[1]["content"].as_str().unwrap().starts_with('b'));
+        assert!(list[1]["content"].as_str().unwrap().starts_with('c'), "the newest turn stays whatever the budget");
         trim(&mut list, 10);
-        assert_eq!(list.len(), 2, "the newest turn stays whatever the budget");
-        assert!(list[1]["content"].as_str().unwrap().starts_with('c'));
+        assert_eq!(list.len(), 2);
     }
 
     #[test]

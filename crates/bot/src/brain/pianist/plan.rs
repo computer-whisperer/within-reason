@@ -530,7 +530,10 @@ impl Brain {
             }
             // 4. Every building the allowance permits, else the faction's usual list.
             let build_list: Vec<UnitDefId> = self.world.def(unit.def).map(|d| d.build_options.clone()).unwrap_or_default();
-            let allowed = self.allowed_units(&name);
+            // An allowance with no units is no restriction: `produce` keeps an entry for the group alone after a null
+            // list (onepass-player-7: three plants with `group: new` had their lists lifted at 18:48 and were offered
+            // nothing until 21:20, the picture saying "it builds anything").
+            let allowed = self.allowed_units(&name).filter(|a| !a.units.is_empty());
             let permits = |list: &[String], b: UnitDefId| {
                 let unit_name = self.name(b).to_string();
                 list.iter().map(|e| super::allowance(e)).any(|(n, cap)| n == unit_name && cap.is_none_or(|cap| pianist.produced.get(&(unit.id, unit_name.clone())).copied().unwrap_or(0) < cap))
@@ -693,7 +696,10 @@ impl Brain {
             };
             let then = if on_pad.is_some() { "then " } else { "" };
             let mut states = vec![State { id: format!("{name}.keep"), actor: name.clone(), response: Response::Keep, words: keep_words, metal: 0.0, dim: "threat", default: false, current: false, pair_only: false }];
-            let allowed = self.allowed_units(&name);
+            // An allowance with no units is no restriction: `produce` keeps an entry for the group alone after a null
+            // list (onepass-player-7: three plants with `group: new` had their lists lifted at 18:48 and were offered
+            // nothing until 21:20, the picture saying "it builds anything").
+            let allowed = self.allowed_units(&name).filter(|a| !a.units.is_empty());
             let permits = |list: &[String], b: UnitDefId| {
                 let unit_name = self.name(b).to_string();
                 list.iter().map(|e| super::allowance(e)).any(|(n, cap)| n == unit_name && cap.is_none_or(|cap| pianist.produced.get(&(unit.id, unit_name.clone())).copied().unwrap_or(0) < cap))
