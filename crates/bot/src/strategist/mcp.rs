@@ -133,7 +133,7 @@ fn tool_list() -> Value {
             "pool_reaches": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 1 }, "description": pool },
             "chat": { "type": "boolean", "description": "A person in the game says something (default on)." } } } });
     let orders = |tools: &[&str], what: &str| json!({ "name": "orders",
-        "description": format!("Your whole turn in one call, and it ENDS the turn: {what}, carried out in the order listed, then the game resumes. Each entry names one of the other tools and its arguments, exactly as you would call it alone. Include a `wait` entry to change when you are next woken; without one the wake settings in force stand. Call nothing and write nothing after it."),
+        "description": format!("Your whole turn in one call, and it ENDS the turn: {what}, carried out in the order listed, then the game resumes. Each entry names one of the other tools and its arguments, exactly as you would call it alone. Include a `wait` entry, LAST, to change when you are next woken; without one the wake settings in force stand. Never call the other tools on their own beside this one: anything sent after the turn ends is refused. Call nothing and write nothing after it."),
         "inputSchema": { "type": "object", "additionalProperties": false, "required": ["calls"], "properties": {
             "calls": { "type": "array", "minItems": 1, "items": { "type": "object", "additionalProperties": false, "required": ["tool"], "properties": {
                 "tool": { "type": "string", "enum": tools },
@@ -560,11 +560,26 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             };
             // (actor, units or None to clear, the group its soldiers join: Some(Some(name)) sets, Some(None) clears, None leaves)
             let mut parsed: Vec<(String, Option<Option<Vec<String>>>, Option<Option<String>>)> = Vec::new();
+            let factories: Vec<String> = shared.hands.lock().unwrap().picture["actors"].as_object().map(|a| a.keys().filter(|k| ["lab_", "plant_", "factory_"].iter().any(|p| k.starts_with(p))).cloned().collect()).unwrap_or_default();
             for (name, value) in lists {
                 let factory = ["lab_", "plant_", "factory_"].iter().any(|p| name.starts_with(p));
                 if !matches!(name.as_str(), "all" | "all_builders" | "commander") && !factory && !name.starts_with("constructor_") {
                     return Err(format!("{name}: lists are by actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" or \"all\""));
                 }
+                // A factory the picture does not name gets nothing (models-medium-gpt56-terra: five lists for "lab_1",
+                // a name the player made up, accepted and never reaching a lab).
+                if factory && !factories.contains(name) {
+                    return Err(format!("{name}: not a factory in the picture ({}); use its name as the report gives it, or \"all\"", if factories.is_empty() { "none named yet".to_string() } else { factories.join(", ") }));
+                }
+                // A list written as a JSON string, as `queue` takes it (models-medium-sonnet5: eight refusals).
+                let unpacked;
+                let value = match value {
+                    Value::String(s) => {
+                        unpacked = serde_json::from_str::<Value>(s).ok().filter(Value::is_array).unwrap_or_else(|| Value::Array(s.split(',').map(|u| Value::String(u.trim().to_string())).filter(|u| u != "").collect()));
+                        &unpacked
+                    }
+                    other => other,
+                };
                 match value {
                     Value::Null => parsed.push((name.clone(), Some(None), None)),
                     Value::Array(items) => parsed.push((name.clone(), Some(Some(check_units(name, items)?)), None)),
@@ -849,6 +864,9 @@ mod tests {
     #[test]
     fn produce_whitelists_a_lab_or_all() {
         let shared = Arc::new(Shared::default());
+        shared.hands.lock().unwrap().picture = json!({ "actors": { "lab_7": {} } });
+        // A factory the picture does not name is refused, with the names it does (models-medium-gpt56-terra: "lab_1").
+        assert!(call_tool("produce", &json!({ "lab_1": ["armpw"] }), &shared).unwrap_err().contains("lab_7"));
         assert!(call_tool("produce", &json!({ "all": ["armpw", "armham"], "lab_7": [] }), &shared).is_ok());
         let allowed = shared.allowed.lock().unwrap().clone();
         assert_eq!(allowed["all"].units, vec!["armpw".to_string(), "armham".to_string()]);
@@ -865,7 +883,11 @@ mod tests {
         assert!(shared.allowed.lock().unwrap()["all_builders"].call > first, "the same list again is a fresh allowance");
         assert!(call_tool("units", &json!({ "names": ["armpw"] }), &shared).is_ok());
         assert!(call_tool("units", &json!({}), &shared).is_err());
-        assert!(call_tool("produce", &json!({ "all": "armpw" }), &shared).is_err());
+        // A list as a string, JSON or comma-separated, is read as the list (models-medium-sonnet5: eight refusals).
+        assert!(call_tool("produce", &json!({ "all": "armpw" }), &shared).is_ok());
+        assert_eq!(shared.allowed.lock().unwrap()["all"].units, vec!["armpw".to_string()]);
+        assert!(call_tool("produce", &json!({ "all": "[\"armpw\", \"armham:2\"]" }), &shared).is_ok());
+        assert_eq!(shared.allowed.lock().unwrap()["all"].units, vec!["armpw".to_string(), "armham:2".to_string()]);
         assert!(call_tool("produce", &json!({ "lab_7": null }), &shared).is_ok());
         assert!(!shared.allowed.lock().unwrap().contains_key("lab_7"));
     }

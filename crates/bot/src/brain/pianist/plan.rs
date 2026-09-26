@@ -536,9 +536,12 @@ impl Brain {
                 list.iter().map(|e| super::allowance(e)).any(|(n, cap)| n == unit_name && cap.is_none_or(|cap| pianist.produced.get(&(unit.id, unit_name.clone())).copied().unwrap_or(0) < cap))
             };
             let usual = super::super::roster::usual_menu(self.name(unit.def));
+            // An allowance whose every count is used up permits nothing, not everything (models-medium-gpt6-astra:
+            // `armrectr:1` ran out and the lab made three more Lazarus under the usual menu; the player: "exhausted-only
+            // production caps cannot be trusted").
             let offered: Vec<UnitDefId> = match &allowed {
-                Some(Allowance { units: list, .. }) if build_list.iter().any(|b| permits(list, *b)) => build_list.iter().copied().filter(|b| permits(list, *b)).collect(),
-                _ => build_list.iter().copied().filter(|b| usual.contains(&self.name(*b))).collect(),
+                Some(Allowance { units: list, .. }) => build_list.iter().copied().filter(|b| permits(list, *b)).collect(),
+                None => build_list.iter().copied().filter(|b| usual.contains(&self.name(*b))).collect(),
             };
             let reach = self.world.def(unit.def).map_or(100.0, |d| d.build_distance) + 300.0;
             let solar_rule = rules.get("solar").map(String::as_str);
@@ -695,9 +698,11 @@ impl Brain {
                 let unit_name = self.name(b).to_string();
                 list.iter().map(|e| super::allowance(e)).any(|(n, cap)| n == unit_name && cap.is_none_or(|cap| pianist.produced.get(&(unit.id, unit_name.clone())).copied().unwrap_or(0) < cap))
             };
+            // An allowance whose every count is used up permits nothing, not everything (models-medium-gpt6-astra:
+            // `armrectr:1` ran out and the lab made three more Lazarus under the whole menu).
             let buildables: Vec<UnitDefId> = match &allowed {
-                Some(Allowance { units: list, .. }) if def.build_options.iter().any(|b| permits(list, *b)) => def.build_options.iter().copied().filter(|b| permits(list, *b)).collect(),
-                _ => def.build_options.clone(),
+                Some(Allowance { units: list, .. }) => def.build_options.iter().copied().filter(|b| permits(list, *b)).collect(),
+                None => def.build_options.clone(),
             };
             let coming = own.iter().filter(|u| u.being_built && self.world.is_constructor_def(u.def)).count();
             for buildable in buildables {

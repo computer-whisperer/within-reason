@@ -313,6 +313,8 @@ pub struct Shared {
     pub seats: Mutex<BTreeMap<i32, super::seats::SeatView>>,
     /// When the commander's last turn began (team-wide: whichever seat leads asks for the next).
     pub last_turn_frame: std::sync::atomic::AtomicI32,
+    /// The frame the last turn's orders came into force (at once without a penalty), for the report's landing line.
+    pub last_landing: std::sync::atomic::AtomicI32,
     /// Things worth waking the strategist for, drained by the driver.
     pub triggers: Mutex<Vec<String>>,
     /// Static map description, filled once at game start.
@@ -396,6 +398,8 @@ impl Shared {
             let after = self.outputs();
             self.restore(before.clone());
             *self.delayed.lock().unwrap() = Some((frame + delay, after.delta_from(&before)));
+        } else {
+            self.last_landing.store(frame, std::sync::atomic::Ordering::Relaxed);
         }
     }
 
@@ -443,6 +447,7 @@ impl Shared {
             Some((at, o)) if frame >= at => {
                 // The turn's outputs land: the whole-state fields are set, the consumed ones (lists, removals,
                 // standing changes) are added to what has come since.
+                self.last_landing.store(frame, std::sync::atomic::Ordering::Relaxed);
                 *self.wake.lock().unwrap() = o.wake;
                 *self.instructions.lock().unwrap() = o.instructions;
                 *self.lane.lock().unwrap() = o.lane;

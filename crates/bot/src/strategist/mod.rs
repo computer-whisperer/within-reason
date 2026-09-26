@@ -492,8 +492,23 @@ fn player_prompt(game_time: &str, headline: &str, shared: &Shared, seen: &mut re
     if !searches.is_empty() {
         prompt += &format!("Your search finished (the simulator's answer, from the game as it stood when you asked):\n{}\n\n", searches.join("\n"));
     }
+    // When the last turn's orders came into force, so an order still on its way is never read as one that failed
+    // (models-medium: Terra three times, Opus 5, astra in 25 notes, Opus 5.5 low once).
+    let landing = {
+        let turn = shared.last_turn_frame.load(Ordering::Relaxed);
+        let landed = shared.last_landing.load(Ordering::Relaxed);
+        let frame = briefing.frame;
+        let clock = |f: i32| format!("{}:{:02}", f / 30 / 60, f / 30 % 60);
+        if turn == 0 || fresh_session {
+            String::new()
+        } else if landed >= turn {
+            format!("Your orders of {} came into force at {}, {} s before this report; what follows shows the game after them.\n", clock(turn), clock(landed), (frame - landed).max(0) / 30)
+        } else {
+            format!("Your orders of {} are still on their way (the think penalty): what follows shows the game before them.\n", clock(turn))
+        }
+    };
     prompt += &format!(
-        "[{game_time}] Woken because: {headline}\n{}\nwake conditions in force: {wake}",
+        "[{game_time}] Woken because: {headline}\n{landing}{}\nwake conditions in force: {wake}",
         report::player_report(seen, &briefing, &field, &fights, &hands, &chat, fresh_session)
     );
     prompt

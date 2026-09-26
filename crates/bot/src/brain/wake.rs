@@ -13,6 +13,10 @@ use super::{Brain, FRAMES_PER_SECOND};
 
 /// Turns are at least this far apart in game time, however many conditions fire.
 const MIN_GAP_FRAMES: i32 = 5 * FRAMES_PER_SECOND;
+/// After delayed orders land, the hands get this long to act on them before the next turn: the flight-review wake
+/// fired the moment they landed and the report showed the state from before them, which four of six models read
+/// as orders that had failed and re-issued or reversed (the models-medium reviews, 2026-09-27).
+const LANDING_GRACE: i32 = 3 * FRAMES_PER_SECOND;
 const THREAT_RADIUS: f32 = 600.0;
 /// The commander is woken when our extractor count has made no new high for this long, and again this long after.
 const STAGNATION_FRAMES: i32 = 4 * 60 * FRAMES_PER_SECOND;
@@ -41,6 +45,8 @@ pub struct WakeState {
     pending: Vec<String>,
     /// The turn whose orders are on their way (the think penalty), while they are (H-WAKE-FLIGHT-REVIEW).
     in_flight: Option<i32>,
+    /// The frame the last orders in flight landed: no turn until the hands have acted on them (`LANDING_GRACE`).
+    landed: Option<i32>,
     /// The safe wreck metal the player was last woken for (H-WAKE-WRECKS).
     wreck_wake_level: f32,
 }
@@ -97,6 +103,7 @@ impl Brain {
             (true, None) => self.wake.in_flight = Some(last_turn_frame),
             (false, Some(turn)) => {
                 self.wake.in_flight = None;
+                self.wake.landed = Some(tick.frame);
                 let mut kinds: BTreeMap<&str, usize> = BTreeMap::new();
                 let mut metal = 0.0;
                 for (_, _, def) in self.unit_losses.iter().filter(|(f, ..)| *f >= turn) {
@@ -186,7 +193,8 @@ impl Brain {
         if first_turn {
             reasons.push(if opens { "the game begins: the opening is yours" } else { "our first factory is up" }.into());
         }
-        let too_soon = if last_turn_frame == 0 { !first_turn } else { since < MIN_GAP_FRAMES };
+        let settling = self.wake.landed.is_some_and(|f| tick.frame - f < LANDING_GRACE);
+        let too_soon = if last_turn_frame == 0 { !first_turn } else { since < MIN_GAP_FRAMES || settling };
         if reasons.is_empty() || too_soon || busy {
             // Keep the newest word on each subject: "enemies within ... at C3" then "... at C3, C4" is one piece of news.
             let subject = |r: &String| r.split(|c: char| c == ':' || c.is_ascii_digit()).next().unwrap_or_default().to_string();
