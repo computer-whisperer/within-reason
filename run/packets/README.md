@@ -16,3 +16,9 @@ hold-9 (16 games, `docs/experiments.md`): against medium it reaches minute 20 in
 15-50 Stouts by minute 10-12 either way; the games end when medium's block of Maces and Rocketeers kills the commander at
 home.
 
+
+`comet-west-hold-table-1.md` (2026-09-27) is `comet-west-hold-1.md` with the constructors' paragraph rewritten as a table
+keyed on our extractor count, the way the plant's paragraph is ("with 4 extractors: an extractor at spot_28"), with rows
+for a lost spot, the turret, the solar (STALLING only) and no converters: the test of whether a job written as a table is
+followed with no standing rules where the job sentence was not (K-jev-a-job-sentence-is-not-a-per-second-signal).
+onepass-norules-hard-7: it is, in the table's order, 10 extractors at 8:00 against 2-4 with the sentence.

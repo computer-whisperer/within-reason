@@ -1006,7 +1006,14 @@ three runs each: `told_battery`, results in the ledger rows). Open beside it: th
 to 0.3 from every replay of the same request (same model, state, questions, instructions): unexplained.
 **Evidence.** `run/matches/1790392527-onepass-norules-hard-5`, `run/matches/1790392915-onepass-norules-hard-6`
 (the `worlds_gate` lines' `.told` flags), the ledger rows.
-**Would be wrong if.** The constructors' job written as a table of counts ("with 2 extractors on the strip: an
-extractor at spot_28") were followed as the plant's is: not yet tried.
+**Would be wrong if.** The job sentence were followed after all under some wording of the state or the question:
+four wordings tried. The table form is the counter-case, not the refutation: written as a table of counts ("with 4
+extractors: an extractor at spot_28", `run/packets/comet-west-hold-table-1.md`) the same job is followed in the
+table's order with no rules (onepass-norules-hard-7: 10 extractors at 8:00, as hard-4 had with rules; the strip
+extractor's move noul 0.23 mean, 22 of 694 above 0.5, enough because each row names a count the state's words
+carry). A condition stated positively only ("one solar when the energy line reads STALLING") still fails: the
+commander built seven solars at "spending faster than it comes in"; the constructors' row that names the other case
+("with energy banking or in balance: no solar, ever") got none.
 **Used by.** H-HANDS-ONE-PASS (`WITHIN_REASON_TOLD` off by default); the user's split of 2026-09-27: the player
-owns the build order, Jev follows instructions and answers reflexively.
+owns the build order, Jev follows instructions and answers reflexively; what the player has to write: tables of
+counts, each row naming its case and the other case.
