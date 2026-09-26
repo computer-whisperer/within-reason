@@ -38,6 +38,15 @@ const RECLAIM_WITHIN: f32 = 1800.0;
 const REPAIR_WITHIN: f32 = 1200.0;
 /// A builder farther than this from home has the way home.
 const AWAY: f32 = 400.0;
+/// Free spots the instructions name offered to a builder at most, nearest first.
+const NAMED_SPOTS: usize = 8;
+/// With `WITHIN_REASON_TOLD=1`, a builder's state is asked a second noul (is this the step the instructions name
+/// next) and opens when it reaches this. Off by default: the told noul sits at 0.4-0.7 for the instructions' next
+/// spot when the builder is idle and near, 0.2-0.35 when it is busy or far, 0.03-0.07 for a forbidden spot, under
+/// every wording tried (onepass-norules-hard-5 replayed four ways, three times each), and reads the commander's
+/// "helping the plant" as the constructors' job too (0.41 mean); opened at 0.25 it sent every constructor to the
+/// plant and none to the strip (onepass-norules-hard-6: two extractors all game, 1,000 metal unspent).
+const TOLD_BAR: f64 = 0.25;
 /// A builder's attack on a party it outweighs is a state within this on its own (raiders outrun a commander, human-6,
 /// so the words say when a chase only drives it off) ...
 pub(super) const ATTACK_REACH: f32 = 320.0;
@@ -454,21 +463,20 @@ impl Brain {
                 let mut spots = self.free_spots(unit, pianist, picture, own, frame, kit);
                 spots.retain(|(i, _)| !never.contains(&format!("spot_{i}")));
                 let enemies_near = |i: usize| picture.state["places"][format!("spot_{i}")]["enemies_near"].as_str().map(str::to_string);
-                let mut offered: Vec<(usize, f32)> = Vec::new();
-                if let Some(first) = spots.first().copied() {
+                // Every free spot the instructions name, nearest first (onepass-smoke-1: the packet said spot_45 and
+                // the commander was offered the nearest only, spot_28; onepass-norules-hard-1: the nearest three named
+                // were the middle spots the packet names as never, and the strip it names as the job was cut off).
+                // The nearest spot, and a safe one, only when the instructions name none.
+                let instructions = picture.state["instructions"].as_str().unwrap_or_default();
+                let mut offered: Vec<(usize, f32)> = spots.iter().copied().filter(|(i, _)| super::diet::names(instructions, &format!("spot_{i}"))).take(NAMED_SPOTS).collect();
+                if offered.is_empty()
+                    && let Some(first) = spots.first().copied()
+                {
                     offered.push(first);
                     if enemies_near(first.0).is_some()
                         && let Some(safe) = spots.iter().copied().find(|(i, _)| enemies_near(*i).is_none())
                     {
                         offered.push(safe);
-                    }
-                }
-                // The free spots the instructions name, nearest first (onepass-smoke-1: the packet said spot_45 and
-                // the commander was offered the nearest only, spot_28).
-                let instructions = picture.state["instructions"].as_str().unwrap_or_default();
-                for spot in spots.iter().copied().filter(|(i, _)| super::diet::names(instructions, &format!("spot_{i}"))).take(3) {
-                    if !offered.iter().any(|(i, _)| *i == spot.0) {
-                        offered.push(spot);
                     }
                 }
                 let (standing, coming) = self.count_of(kit.extractor, own, pianist);
@@ -801,7 +809,7 @@ impl Brain {
 /// state whether it should change course (an idle actor is always open), and one per open state whether it is the
 /// move. onepass-smoke-1 asked a noul per kind of action instead and they came back at 0.44-0.60 everywhere, coin
 /// flips that pruned the one state the packet asked for.
-pub(super) fn gate_questions(slots: &[Slot]) -> Vec<(String, Question)> {
+pub(super) fn gate_questions(slots: &[Slot], told: bool) -> Vec<(String, Question)> {
     let mut out = Vec::new();
     for slot in slots {
         match &slot.kind {
@@ -824,6 +832,12 @@ pub(super) fn gate_questions(slots: &[Slot]) -> Vec<(String, Question)> {
                 for (i, s) in slot.states.iter().enumerate() {
                     if i != base && i != 0 && !s.pair_only {
                         out.push((s.id.clone(), Question::noul(json!(format!("Given `actors.{}`, `economy`, `ours` and the player's `instructions`: is this what {} should do now, rather than {standing}? The move: {}.", slot.name, slot.name, s.words)))));
+                        // A builder's state asked again as a fact about the instructions (K-jev-a-response-opens-by-
+                        // the-party-noul-not-its-own: the move noul weighs a state against the builder's course and
+                        // rated the packet's strip extractor 0.23-0.32 under the flag in every no-rules game).
+                        if told && matches!(slot.kind, Kind::Builder(_)) {
+                            out.push((format!("{}.told", s.id), Question::noul(json!(format!("Read the player's `instructions` alone, with `actors.{}` and `ours` for what stands: do the instructions make this {}'s next step now? The step: {}. Yes only when a sentence about {} or about its kind of unit calls for exactly this given what stands now; no when the instructions say never or not to, name a condition that does not hold now, or say nothing about it.", slot.name, slot.name, s.words, slot.name)))));
+                        }
                     }
                 }
             }
@@ -923,6 +937,14 @@ pub(super) fn compose(slots: &[Slot], answers: &BTreeMap<String, Answer>, flags:
                 if let Some(p) = change.filter(|_| !slot.idle) {
                     flags.insert(format!("{}.change", slot.name), p);
                 }
+                // The told nouls of a builder's states: recorded, and the best of them opens the slot as a change would.
+                let told_of = |s: &State| noul(&format!("{}.told", s.id));
+                let best_of = |a: Option<f64>, b: Option<f64>| match (a, b) {
+                    (Some(a), Some(b)) => Some(a.max(b)),
+                    (a, b) => a.or(b),
+                };
+                let told_best = slot.states.iter().enumerate().filter(|(ti, s)| *ti != base[si] && *ti != 0 && !s.pair_only).filter_map(|(_, s)| told_of(s)).fold(0.0, f64::max);
+                let change = change.map(|c| if told_best >= TOLD_BAR { c.max(1.0) } else { c });
                 let Some(change) = change.filter(|c| *c >= FLAG) else {
                     per_slot.push(mine);
                     continue;
@@ -936,7 +958,7 @@ pub(super) fn compose(slots: &[Slot], answers: &BTreeMap<String, Answer>, flags:
                 // plant idled fourteen minutes with a full store); a clear call against a rule's default; an idle
                 // actor's best state at a low bar when none reaches the flag.
                 let bar = if slot.states[base[si]].default && !slot.states[base[si]].current { OVER_RULE } else { FLAG };
-                let best = slot.states.iter().enumerate().filter(|(ti, s)| *ti != base[si] && *ti != 0 && !s.pair_only).filter_map(|(_, s)| noul(&s.id)).fold(0.0, f64::max);
+                let best = slot.states.iter().enumerate().filter(|(ti, s)| *ti != base[si] && *ti != 0 && !s.pair_only).filter_map(|(_, s)| best_of(noul(&s.id), told_of(s))).fold(0.0, f64::max);
                 let bar = if slot.idle && base[si] == 0 && best < bar { IDLE_BAR } else { bar };
                 for (ti, s) in slot.states.iter().enumerate() {
                     if ti == base[si] || ti == 0 || s.pair_only {
@@ -946,7 +968,15 @@ pub(super) fn compose(slots: &[Slot], answers: &BTreeMap<String, Answer>, flags:
                     if let Some(p) = rated {
                         flags.insert(s.id.clone(), p);
                     }
-                    let Some(rated) = rated.filter(|r| *r >= bar) else { continue };
+                    let told = told_of(s);
+                    if let Some(p) = told {
+                        flags.insert(format!("{}.told", s.id), p);
+                    }
+                    let opened = rated.is_some_and(|r| r >= bar) || told.is_some_and(|t| t >= TOLD_BAR);
+                    if !opened {
+                        continue;
+                    }
+                    let rated = best_of(rated, told).unwrap_or(0.0);
                     let rank = change * rated;
                     let mut w = base.clone();
                     w[si] = ti;
@@ -1153,7 +1183,7 @@ mod tests {
         assert!(!worlds.contains(&vec![1, 2, 0]));
         assert!(!worlds.contains(&vec![1, 0, 2]));
         assert_eq!(worlds.len(), 3);
-        assert_eq!(gate_questions(&slots).iter().filter(|(id, _)| id.starts_with("constructor_3")).count(), 2, "an idle actor is not asked whether to change, only which move");
+        assert_eq!(gate_questions(&slots, true).iter().filter(|(id, _)| id.starts_with("constructor_3")).count(), 4, "an idle actor is not asked whether to change, only which move: two states, each as the move and as a fact about the instructions");
         assert_eq!(flags["party_2.answer"], 0.9);
         let line = consequence(&vec![1, 1, 0], &slots, "340 of 500 stored", Some(&worlds[0]));
         assert!(line.contains("Met: party_1") && line.contains("party_2 (") && line.contains("constructor_3 idle"), "{line}");
@@ -1170,6 +1200,8 @@ mod tests {
         let mut flags = BTreeMap::new();
         let worlds = compose(&slots, &answers, &mut flags, 8).unwrap();
         assert_eq!(worlds, vec![vec![0, 0], vec![1, 0], vec![1, 1]]);
-        assert_eq!(gate_questions(&slots).iter().map(|(id, _)| id.as_str()).collect::<Vec<_>>(), ["commander.armvp"]);
+        // A builder's state is asked twice: as the move, and as a fact about the instructions.
+        assert_eq!(gate_questions(&slots, true).iter().map(|(id, _)| id.as_str()).collect::<Vec<_>>(), ["commander.armvp", "commander.armvp.told"]);
+        assert_eq!(gate_questions(&slots, false).iter().map(|(id, _)| id.as_str()).collect::<Vec<_>>(), ["commander.armvp"]);
     }
 }

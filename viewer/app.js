@@ -1475,6 +1475,8 @@
           const label = `${st.id.split(".").slice(1).join(".")}${marks.length ? ` (${marks.join(", ")})` : ""}`;
           if (rated != null) row.append(bar(label, rated, false, 1));
           else row.append(el("div", "ask", label));
+          const told = flags[`${st.id}.told`];
+          if (told != null) row.append(bar("told by the instructions", told, false, 1));
           row.append(el("div", "ask words", st.words));
           block.append(row);
         });

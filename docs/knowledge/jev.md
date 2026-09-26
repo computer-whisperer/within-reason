@@ -988,3 +988,25 @@ the `worlds_gate` lines' `flags` and the `plan` lines; the ledger rows.
 **Would be wrong if.** A party-centred opening sent builders at every passing scout: in -3 two Pawns passing 400-650
 from the commander and killing nothing rated 0.24-0.44 and opened nothing.
 **Used by.** H-HANDS-COMMANDER-FIGHTS, H-HANDS-ONE-PASS (the builder's attack lives in the threat slot).
+
+### K-jev-a-job-sentence-is-not-a-per-second-signal
+**Claim.** A standing-job sentence in the packet ("constructors: their standing job is taking free metal spots on
+our strip, nearest home first (spot_36, spot_54, spot_28, ...)") does not reach the pass as a per-second signal the
+way the plant's table does. Asked as the move ("is this what constructor_X should do now, rather than idle? The
+move: builds a metal extractor at spot_28 (14 s of walking): our 5th") the noul sits at 0.2-0.35; asked as a fact
+about the instructions ("do the instructions make this its next step now?") it sits at 0.4-0.7 for an idle
+constructor near the spot, 0.2-0.35 for a busy or distant one, and reads the commander's "standing job is helping
+the plant" as the constructors' job too (0.41 mean, 40 of 97 above 0.5); the forbidden spots read 0.03-0.07 under
+every wording. And when the instructed spot is in the pick, the pick declines it: 120 of 120 worlds at a mean
+probability of 0.06 with 400-1,000 metal in store and two extractors (onepass-norules-hard-6). The plant's table
+("with 0, 1, 2 or 3 constructors: a construction vehicle; with 4 or more, while our soldiers are a handful: a Blitz")
+is followed every game because each row is a count the state's words carry.
+**Status.** observed (2026-09-27, onepass-norules-hard-5 and -6; the offline replay of -5's moments, four wordings,
+three runs each: `told_battery`, results in the ledger rows). Open beside it: the game's noul on a request sits up
+to 0.3 from every replay of the same request (same model, state, questions, instructions): unexplained.
+**Evidence.** `run/matches/1790392527-onepass-norules-hard-5`, `run/matches/1790392915-onepass-norules-hard-6`
+(the `worlds_gate` lines' `.told` flags), the ledger rows.
+**Would be wrong if.** The constructors' job written as a table of counts ("with 2 extractors on the strip: an
+extractor at spot_28") were followed as the plant's is: not yet tried.
+**Used by.** H-HANDS-ONE-PASS (`WITHIN_REASON_TOLD` off by default); the user's split of 2026-09-27: the player
+owns the build order, Jev follows instructions and answers reflexively.

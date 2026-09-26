@@ -106,6 +106,8 @@ pub struct Pianist {
     last_ask_frame: i32,
     /// Worlds in the second call at most (`WITHIN_REASON_WORLDS`).
     cap: usize,
+    /// The told noul beside each builder state's move noul (`WITHIN_REASON_TOLD=1`; `plan::TOLD_BAR`).
+    told: bool,
     /// Builders' and labs' tasks, by unit.
     pub(super) tasks: HashMap<UnitId, Task>,
     /// A builder's next task, already ordered behind the one in progress (H-HANDS-QUEUE): it becomes the task when
@@ -281,6 +283,7 @@ impl Pianist {
         };
         let cap = std::env::var("WITHIN_REASON_WORLDS").ok().and_then(|v| v.parse::<usize>().ok()).filter(|n| *n >= 2).unwrap_or(plan::CAP);
         let rules = !std::env::var("WITHIN_REASON_RULES").ok().is_some_and(|v| matches!(v.trim().to_ascii_lowercase().as_str(), "off" | "0" | "no" | "false"));
+        let told = std::env::var("WITHIN_REASON_TOLD").ok().is_some_and(|v| matches!(v.trim(), "1" | "on" | "yes"));
         Ok(Pianist {
             client,
             standing: Standing::default(),
@@ -293,6 +296,7 @@ impl Pianist {
             interval_frames: ((seconds * FRAMES_PER_SECOND as f32) as i32).max(super::BRAIN_FRAMES),
             last_ask_frame: i32::MIN / 2,
             cap,
+            told,
             tasks: HashMap::new(),
             queued: HashMap::new(),
             lab_queue: HashMap::new(),
@@ -570,7 +574,7 @@ impl Brain {
         }
         let open: Vec<&str> = slots.iter().filter(|s| s.open()).map(|s| s.name.as_str()).collect();
         line["open"] = json!(open);
-        let questions = plan::gate_questions(&slots);
+        let questions = plan::gate_questions(&slots, self.pianist.as_ref().is_some_and(|p| p.told));
         // The economy in the signature at its extremes only: the stock words' five buckets flapped at their edges
         // (onepass-medium-3: 58 of 663 asks).
         let eco = format!("{}|{}", if tick.snapshot.metal.current < 100.0 { "empty" } else if tick.snapshot.metal.current >= tick.snapshot.metal.storage - 1.0 { "full" } else { "" }, picture.state["economy"]["energy"].as_str().is_some_and(|e| e.contains("STALLING")));
