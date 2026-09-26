@@ -208,7 +208,8 @@ extractors 7.0 / 7.4 / 7.8 at minutes 5 / 7 / 11 against 5.0 / 6.2 / 6.9, soldie
 Mithril Mountain 12.2 / 14.6 extractors at minutes 11 / 15 against 8.4 / 8.1 (v33, 16 games) and 4-2-2 against 5-10-1.
 Wins north-west did not move (1-7-0 against 0-6-2; that corner has won 10-25 % for days, as it does for BARb).
 **Evidence.** `run/matches/*terr-2-*`, `*terr-1-nw-base`; curves from the per-minute lines of bot.log.
-**Used by.** H-MAP-TERRITORY.
+**Used by.** Nothing since 2026-09-27: H-MAP-TERRITORY retired (the grid deleted at the user's ruling); the claim stands as
+knowledge for whoever next decides where constructors may go.
 
 ### K-map-presence-is-not-memory
 **Claim.** "May a constructor go there" and "where do raids come from" need different memories. With every enemy soldier
@@ -217,7 +218,7 @@ nothing was rebuilt; an extractor pays for itself in about half a minute, so onl
 **Status.** observed (2026-09-20), terr-1-nw: 31-41 of 44 spots classed theirs from minute 8, extractors 4-5 from minute
 7 against 6-7 without the grid; with the class forgetting in 60 s (terr-2) the curve went above the old rules'.
 **Evidence.** `run/matches/1789915396-terr-1-nw/*/bot.log`, the `ground:` lines.
-**Used by.** H-MAP-TERRITORY.
+**Used by.** Nothing since 2026-09-27: H-MAP-TERRITORY retired (the grid deleted at the user's ruling).
 
 ### K-maps-quicksilver-corner-decides-both-economies
 **Claim.** The Quicksilver corner asymmetry is a property of the ground, not of our play: whoever holds the south-east

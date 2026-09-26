@@ -90,7 +90,7 @@ traded with no enemy within 1,800 of home before 6:04 (the truth file); the play
 raider and ordered anti-air. Fixed the same day: `Brain::abandoned` (a destroyed unit that was being built at the
 last look, with no attacker) is accounted as abandoned everywhere.
 **Would be wrong if.** The engine reported an attacker for decayed frames, or never destroyed them.
-**Used by.** `brain/briefing.rs` `track_losses`, `territory.rs`, `pianist/mod.rs`.
+**Used by.** `brain/briefing.rs` `track_losses`, `pianist/mod.rs` (and `territory.rs` until it was deleted 2026-09-27).
 
 ### K-hands-advance-stopped-at-turret-reach
 **Claim.** Under the pianist a group advancing with `fight_to` was committed to no turret, so the control lane stepped
@@ -1100,7 +1100,11 @@ of 154 full-store questions; onepass-player-5, 6 worlds, 26 of 201; models-mediu
 the store at 95% of capacity from the record's samples, the answer's choice). With the full-store sentence in the
 rules (onepass-player-7, 398a80a): plant_22773 was picked 13 times a minute until 17:29 and 0 times in minutes 17:30
 to 19:00 while offered 35 and 30 times, the store full from 18:20; a lab world was picked in 7 of 174 full-store
-questions of a median 5 worlds. The sentence did not lift the lab world's share.
+questions of a median 5 worlds. The sentence did not lift the lab world's share. Each unit on a lab's list is its
+own world, so a list multiplies the dilution: onepass-player-8 (cap 7), 28:00-29:40, four plants with two units each
+put eight lab worlds in every question (78 questions, a median 9 worlds, w1's median 0.32 against the best lab
+world's 0.15) and a lab world was picked 9 times in 100 s with 2,000-2,300 metal banked; the player narrowed each
+plant to one unit at 29:25 and noted at 29:35 "plants started building after single-unit lists".
 **Would be wrong if.** The full-store sentence in the rules (H-HANDS-RULES, 2026-09-27) lifted the lab world's share
 above w1's in questions of ten worlds: then the reading, not the question's shape, was the cap. Or if a base that
 takes a lab's best-rated state when the lab is idle and the store full (a default made from the pre-pass noul, no

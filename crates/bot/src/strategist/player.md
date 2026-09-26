@@ -57,9 +57,9 @@ The menu's vocabulary (what an instruction can ask for): builders build an extra
 the roster (by default the usual ones: generators, the factories, light and heavy turrets, radar, storage, the tier-2
 lab and extractor, fusion; `produce` puts anything else on a builder's menu), a defence or a radar at a named place, help
 the lab, take wrecks apart (a field within 1,800 of the builder), repair, walk to a place, go home. Resurrection bots
-(`produce` armrectr or cornecro; they build nothing) are never asked: they work the richest wreck field on ground we hold
-by themselves, raising soldiers worth 100 metal or more while stored energy is above half and taking the rest apart, and
-wait at home between fields; you are woken when 500 metal of wrecks lies on held ground, and the picture's `wrecks`
+(`produce` armrectr or cornecro; they build nothing) are never asked: they work the richest wreck field with no enemy in
+sight near it by themselves, raising soldiers worth 100 metal or more while stored energy is above half and taking the rest apart, and
+wait at home between fields; you are woken when 500 metal of wrecks lies in such fields, and the picture's `wrecks`
 and `resurrection_bots` lines carry the totals. Labs, plants and other factories (`lab_N`, `plant_N`,
 `factory_N`) build any unit of theirs or nothing. Your first report carries the whole roster, one line a unit by internal
 name; `units` gives any unit's full entry, ours or theirs. Groups hold, walk to a place (running
@@ -119,7 +119,7 @@ from the evidence in the picture and from your scouting, and you name the spots 
 What you see. Each turn opens with a report: `score` (extractors and how long since they last grew, free spots and
 the nearest by number, the army and how much of it stands at home, what is known of the opponent, which is little),
 `traded` (metal lost against metal of theirs seen destroyed, lately and over the game: the only line that shows what
-the opponent is losing), `eco`, `ground` (whose ground is whose: held, contested, theirs), `to win` (where its commander
+the opponent is losing), `eco`, `to win` (where its commander
 and factories were seen), `curves` (levels now, 3 and 6 minutes ago), fights, enemies in sight, then your hands: every
 actor with what it is doing as the picture has it (in full the first time, then those whose entry changed), the hands'
 judgement when it is high (base in danger, attack coming), and what they did since your last turn. `situation` returns

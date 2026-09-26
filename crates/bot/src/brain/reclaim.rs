@@ -1,7 +1,7 @@
 //! Wrecks: metal lying on the ground, and units that can be raised again.
 //!
-//! H-REC-FIELDS: wrecks in sight are remembered and grouped into fields; a field is safe when it lies on ground we hold
-//! (`territory.rs`) with no enemy soldier in sight near it. H-REC-CREW: resurrection bots are built in proportion to the
+//! H-REC-FIELDS: wrecks in sight are remembered and grouped into fields; a field is safe with no enemy soldier in sight
+//! near it and a way to walk there. H-REC-CREW: resurrection bots are built in proportion to the
 //! metal lying in safe fields and work the richest field for the walk. H-REC-RESURRECT: a wreck of a soldier worth
 //! having is raised when energy is plentiful; everything else is taken apart. Constructors short of metal go to the
 //! same fields (H-ECO-RECLAIM) and, while we have a resurrection bot, leave it the wrecks worth raising.
@@ -11,7 +11,6 @@ use std::collections::HashMap;
 use bot_protocol::{Command, FeatureId, OwnUnit, Tick, UnitId, Vec3, Wreck};
 
 use super::roster::Kit;
-use super::territory::Ground;
 use super::{Brain, FRAMES_PER_SECOND};
 
 /// Wrecks this close together are one field.
@@ -88,7 +87,7 @@ impl Brain {
             }
             let at = inside.iter().fold(Vec3::default(), |sum, w| Vec3 { x: sum.x + w.pos.x * w.metal / metal, y: 0.0, z: sum.z + w.pos.z * w.metal / metal });
             let enemy_near = tick.snapshot.enemies.iter().any(|e| e.pos.dist2d(at) < ENEMY_NEAR);
-            let safe = self.ground(at) == Ground::Held && !enemy_near && self.reachable_on_foot(at);
+            let safe = !enemy_near && self.reachable_on_foot(at);
             fields.push(WreckField { at, metal, safe, wrecks: inside.iter().map(|w| w.id).collect() });
         }
         self.reclaim.fields = fields;

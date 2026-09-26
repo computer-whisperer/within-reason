@@ -112,7 +112,6 @@ impl Shared {
                     merged.buildable.push(item.clone());
                 }
             }
-            merged.ground.extractors_exposed.extend(f.ground.extractors_exposed.iter().cloned());
             merged.resurrection_bots += f.resurrection_bots;
             for field in &f.wreck_fields {
                 if !merged.wreck_fields.iter().any(|have| have.0.grid == field.0.grid && have.1 == field.1) {
@@ -125,13 +124,13 @@ impl Shared {
             s.seconds_since_growth = s.seconds_since_growth.min(o.seconds_since_growth);
             s.free_spots = s.free_spots.min(o.free_spots);
             // Each free spot with its walk from the nearest of our homes.
-            for (n, place, walk, ground) in &o.next_free {
+            for (n, place, walk) in &o.next_free {
                 match s.next_free.iter_mut().find(|(have, ..)| have == n) {
                     Some(have) => have.2 = have.2.min(*walk),
-                    None => s.next_free.push((*n, place.clone(), *walk, *ground)),
+                    None => s.next_free.push((*n, place.clone(), *walk)),
                 }
             }
-            s.next_free.sort_by_key(|(_, _, walk, _)| *walk);
+            s.next_free.sort_by_key(|(_, _, walk)| *walk);
             s.next_free.truncate(lead.field.score.next_free.len().max(o.next_free.len()));
             s.enemy_spots_seen = s.enemy_spots_seen.max(o.enemy_spots_seen);
             s.soldiers += o.soldiers;

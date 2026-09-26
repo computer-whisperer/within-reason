@@ -2,8 +2,8 @@
 //!
 //! H-TEAM-ALLIED-SPOTS: an allied extractor holds its spot. H-TEAM-ALLY-GROUND: metal nearer to an ally's start than
 //! to ours is theirs to take first; we build there only once it has stood empty for [`ALLY_GROUND_FRAMES`] (an ally
-//! expands where it likes, and we do not race it at its own door). H-TEAM-ALLIED-COVER: allied soldiers and turrets
-//! hold ground as ours do (`territory.rs`), and allied soldiers in a fight are counted into its odds.
+//! expands where it likes, and we do not race it at its own door). H-TEAM-ALLIED-COVER: allied soldiers in a fight
+//! are counted into its odds.
 //!
 //! Seats of ours also talk through the team board (`crate::team`): H-TEAM-BOARD pools spot claims and enemy buildings,
 //! H-TEAM-WAVES makes them attack one target and weigh a wave with the others' soldiers beside it.

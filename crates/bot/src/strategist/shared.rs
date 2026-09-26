@@ -92,22 +92,9 @@ pub struct Field {
     /// Every unit the commander reaches by build lists: the faction's whole roster, with metal cost.
     pub roster: Vec<(String, u32)>,
     pub score: Score,
-    pub ground: GroundReport,
-    /// Wreck fields known: place, metal, whether it is safe to work (held ground, no enemy in sight near it).
+    /// Wreck fields known: place, metal, whether it is safe to work (no enemy in sight near it, a way to walk there).
     pub wreck_fields: Vec<(Place, u32, bool)>,
     pub resurrection_bots: usize,
-}
-
-/// Whose ground is whose, as the bot's territory grid has it (`brain/territory.rs`): held (we can answer there sooner
-/// and harder than the opponent can arrive), contested, theirs.
-#[derive(Clone, Debug, Default, Serialize)]
-pub struct GroundReport {
-    /// Free metal spots we can walk to, by the ground they lie on: held, contested, theirs.
-    pub free_spots: (usize, usize, usize),
-    /// Our extractors standing on ground that is not held.
-    pub extractors_exposed: Vec<Place>,
-    /// Where the opponent's soldiers were seen or ours died in the last three minutes, the heaviest first, in metal.
-    pub raided: Vec<(Place, u32)>,
 }
 
 /// How the game stands, in every report: a commander shown only threats plays only defence.
@@ -121,7 +108,7 @@ pub struct Score {
     /// number in the map's list and walking distance. (A count of those "within 2500" read 0 from minute 6 of commander
     /// game 9 while 18 lay at 2700-5400, and the commander made no expansion call for ten minutes.)
     pub free_spots: usize,
-    pub next_free: Vec<(usize, Place, u32, &'static str)>,
+    pub next_free: Vec<(usize, Place, u32)>,
     /// Spots the opponent is known to hold (its extractors seen and not seen dead).
     pub enemy_spots_seen: usize,
     pub soldiers: usize,
@@ -323,8 +310,6 @@ pub struct Shared {
     pub triggers: Mutex<Vec<String>>,
     /// Static map description, filled once at game start.
     pub map: Mutex<serde_json::Value>,
-    /// The territory grid as text, redrawn by the lead seat: one character per 256-elmo cell.
-    pub ground_sketch: Mutex<Vec<String>>,
     /// Losses and kills since the commander last looked ("lost armpw to corak in our half" to count).
     pub fights: Mutex<BTreeMap<String, u32>>,
     /// The commander's own notes, carried across session restarts.

@@ -3,7 +3,7 @@
 //! on what did. The front of the report describes the game (the score, the trade, the economy, the ground, the
 //! opponent); the tail is the player's hands.
 
-use super::shared::{Briefing, Field, Hands, Place, Side};
+use super::shared::{Briefing, Field, Hands, Side};
 
 /// The hands' `did` lines a player's report carries at most.
 const DONE_LINES: usize = 40;
@@ -37,7 +37,7 @@ fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
         s.extractor_peak,
         clock(s.seconds_since_growth),
         s.free_spots,
-        if s.next_free.is_empty() { "none".to_string() } else { s.next_free.iter().map(|(n, p, walk, ground)| format!("#{n} {} {walk} {ground}", p.grid)).collect::<Vec<_>>().join(", ") },
+        if s.next_free.is_empty() { "none".to_string() } else { s.next_free.iter().map(|(n, p, walk)| format!("#{n} {} {walk}", p.grid)).collect::<Vec<_>>().join(", ") },
         s.enemy_spots_seen,
         s.soldiers,
         s.army_metal,
@@ -54,13 +54,6 @@ fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
         "eco: metal {:.0} ({:+.1}/-{:.1}), energy {:.0}/{:.0} ({:+.0}), wind now {:.0} of this map's {:.0} to {:.0} | extractors {} constructors {} labs {} turrets {} converters {}",
         briefing.metal.current, briefing.metal.income, briefing.metal.usage, briefing.energy.current, briefing.energy.storage,
         briefing.energy.income - briefing.energy.usage, briefing.wind, briefing.wind_range.0, briefing.wind_range.1, c.extractors, c.constructors, c.labs, c.turrets, c.converters
-    ));
-    let g = &field.ground;
-    let listed = |places: &[Place]| if places.is_empty() { "none".to_string() } else { places.iter().map(|p| p.grid.clone()).collect::<Vec<_>>().join(", ") };
-    lines.push(format!(
-        "ground: free spots on held ground {}, contested {}, theirs {} | our extractors on ground we do not hold: {}| raided lately: {}",
-        g.free_spots.0, g.free_spots.1, g.free_spots.2, listed(&g.extractors_exposed),
-        if g.raided.is_empty() { "nowhere".to_string() } else { g.raided.iter().map(|(p, metal)| format!("{} ({metal})", p.grid)).collect::<Vec<_>>().join(", ") }
     ));
     if !field.wreck_fields.is_empty() || field.resurrection_bots > 0 {
         let fields: Vec<String> = field.wreck_fields.iter().take(5).map(|(at, metal, safe)| format!("{} {metal} metal{}", at.grid, if *safe { "" } else { " (not safe)" })).collect();

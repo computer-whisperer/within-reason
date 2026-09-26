@@ -1,4 +1,4 @@
-//! The brain: one instance per AI; `decide` runs once per tick. The world model (`territory`, `routes`, `bases`,
+//! The brain: one instance per AI; `decide` runs once per tick. The world model (`routes`, `bases`,
 //! `reclaim`, `shelling`, `yards`, the spot survey) is kept here each tick; the decisions are the pianist's
 //! (`pianist/`) and the control lane's (`micro.rs`). The heuristic deciders were deleted 2026-09-25
 //! (`docs/design/2026-09-25-one-decider.md`).
@@ -16,7 +16,6 @@ mod planner;
 mod scout;
 mod reclaim;
 mod shelling;
-mod territory;
 mod wake;
 mod roster;
 mod routes;
@@ -81,8 +80,6 @@ pub struct Brain {
     /// The pianist (`pianist/`): Jev plays every actor from the player's instructions. Always present since the
     /// heuristic bot was deleted (2026-09-25); `Option` until the pianist's own state is folded in.
     pianist: Option<pianist::Pianist>,
-    /// Whose ground is whose (`territory.rs`).
-    territory: territory::Territory,
     matchups: combat::Matchups,
     /// The combat simulator's tables and unit types (`micro.rs`).
     sim: micro::Sim,
@@ -194,7 +191,6 @@ impl Brain {
             reclaim: Default::default(),
             plan_game: None,
             pianist,
-            territory: Default::default(),
             matchups: Default::default(),
             sim: Default::default(),
             worth_scale: std::cell::Cell::new(0.0),
@@ -302,7 +298,6 @@ impl Brain {
         self.track_enemy_buildings(tick);
         self.survey_spots(tick);
         self.track_enemy_bases(tick);
-        self.update_territory(tick, &kit);
         self.track_wrecks(tick);
         self.track_losses(tick, &kit);
         self.track_yards(tick);

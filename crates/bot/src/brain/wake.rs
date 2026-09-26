@@ -25,7 +25,7 @@ const STAGNATION_FRAMES: i32 = 4 * 60 * FRAMES_PER_SECOND;
 /// and its next turn had nine losses on the way and seven in the one after).
 const HOT_MAX_SECONDS: u32 = 10;
 const HOT_LOSS_FRAMES: i32 = 30 * FRAMES_PER_SECOND;
-/// H-WAKE-WRECKS: metal lying in wreck fields on ground we hold wakes the player at this much, and again each time it
+/// H-WAKE-WRECKS: metal lying in wreck fields with no enemy in sight wakes the player at this much, and again each time it
 /// has grown by this much since (the replay survey: resurrection bots in 24 of 58 sides, a median of ten a side).
 const WRECK_WAKE_STEP: f32 = 500.0;
 
@@ -169,7 +169,7 @@ impl Brain {
             self.wake.wreck_wake_level = (safe_wrecks / WRECK_WAKE_STEP).floor() * WRECK_WAKE_STEP;
             let fields: Vec<String> = self.reclaim.fields.iter().filter(|f| f.safe && f.metal >= 100.0).map(|f| format!("{:.0} at {}", f.metal, self.world.grid(f.at))).collect();
             reasons.push(format!(
-                "wrecks worth {safe_wrecks:.0} metal lie on ground we hold ({}): constructors take them apart (the reclaim option, within 1,800 of a field), resurrection bots (`produce` {}) raise the soldiers among them and take the rest apart on their own",
+                "wrecks worth {safe_wrecks:.0} metal lie where no enemy is in sight ({}): constructors take them apart (the reclaim option, within 1,800 of a field), resurrection bots (`produce` {}) raise the soldiers among them and take the rest apart on their own",
                 fields.join(", "),
                 self.name(kit.resurrector)
             ));

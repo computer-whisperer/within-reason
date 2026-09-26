@@ -25,8 +25,9 @@ waves 2.4 against 3.3 a game south-east). Was H-ARMY-GATE-ALL-SEEN.
 **Claim.** Sending constructors where we can answer sooner and harder than the opponent can arrive (a 256-elmo grid
 of what each side brings to a cell within 20 s) holds more extractors than a radius from home.
 **Status.** supported (terr-2: north-west extractors 7.0/7.4/7.8 at minutes 5/7/11 against 5.0/6.2/6.9 on the same
-seeds; Mithril 12-15 from minute 11 against 8-9). The grid stays (`territory.rs`, H-MAP-TERRITORY) and the picture's
-ground words come from it; the constructors' rule went.
+seeds; Mithril 12-15 from minute 11 against 8-9). The constructors' rule went with the heuristic bot (2026-09-25) and
+the grid itself on 2026-09-27 (H-MAP-TERRITORY retired: its words in the player's report measured reach of force, not
+ownership, and read as an extractor count they misled). The claim is knowledge for the next spot-choosing rule.
 **Would be wrong if.** A player told the ground words expanded no better than one told a radius.
 
 ### K-bot-the-base-layout-halves-nothing-but-move-failures

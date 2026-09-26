@@ -10,7 +10,6 @@ use serde_json::{Value, json};
 
 use super::super::roster::Kit;
 use super::glossary;
-use super::super::territory::Ground;
 use super::super::{Brain, FRAMES_PER_SECOND};
 use super::{GroupTask, Pianist, Task};
 
@@ -592,11 +591,6 @@ impl Brain {
             let mut entry = json!({ "grid": self.world.grid(place.at) });
             let walk = self.walk_from_home(place.at);
             entry["from_home"] = json!(format!("{} ({walk:.0} on foot)", distance_words(walk)));
-            entry["ground"] = json!(match self.ground(place.at) {
-                Ground::Held => "held by us",
-                Ground::Contested => "contested",
-                Ground::Theirs => "theirs",
-            });
             let what = match place.spot {
                 Some(i) => {
                     let spot = spots[i];
@@ -826,7 +820,7 @@ impl Brain {
                     entry["standing"] = json!(format!("standing orders in force, played by the bot when they apply: {words}"));
                 }
                 let from_home = unit.pos.dist2d(self.home);
-                entry["from_home"] = json!(format!("{} ({from_home:.0}); ground {}", distance_words(from_home), match self.ground(unit.pos) { Ground::Held => "held by us", Ground::Contested => "contested", Ground::Theirs => "theirs" }));
+                entry["from_home"] = json!(format!("{} ({from_home:.0})", distance_words(from_home)));
                 if let Some(party) = parties.iter().filter(|p| p.at.dist2d(unit.pos) < NEAR).min_by(|a, b| a.at.dist2d(unit.pos).total_cmp(&b.at.dist2d(unit.pos))) {
                     let alone: Vec<&OwnUnit> = vec![unit];
                     let mut line = format!("{} ({}) {:.0} away: against this unit alone, {}", party.name, party.composition, party.at.dist2d(unit.pos), self.odds_words(&alone, party, &snapshot.enemies));

@@ -7,7 +7,6 @@ use serde_json::json;
 
 use super::roster::Kit;
 use super::{Brain, FRAMES_PER_SECOND};
-use super::territory::Ground;
 use crate::strategist::shared::{Briefing, Counts, EnemyCluster, ExtractorStatus, Field, Group, Place, RememberedBuilding, Score};
 
 /// The score's "soldiers near home" radius and how many free spots it names.
@@ -428,7 +427,7 @@ impl Brain {
                     .map(|(n, s)| (n, *s, self.walk_from_home(*s)))
                     .collect();
                 nearest.sort_by(|a, b| a.2.total_cmp(&b.2));
-                nearest.into_iter().take(NEXT_FREE).map(|(n, s, walk)| (n, self.place(s), walk as u32, self.ground(s).word())).collect()
+                nearest.into_iter().take(NEXT_FREE).map(|(n, s, walk)| (n, self.place(s), walk as u32)).collect()
             },
             soldiers: soldiers.len(),
             army_metal: soldiers.iter().map(metal).sum::<f32>() as u32,
@@ -459,23 +458,10 @@ impl Brain {
             enemy_soldiers_seen: self.enemy_soldiers.values().filter(|(_, _, seen)| recent(seen)).count(),
             enemy_soldiers_seen_metal: self.enemy_soldiers.values().filter(|(_, _, seen)| recent(seen)).map(|(def, _, _)| self.world.def(*def).map_or(0.0, |d| d.metal_cost)).sum::<f32>() as u32,
         };
-        let count = |ground: Ground| free.iter().filter(|s| self.ground(**s) == ground).count();
-        let mut raided: Vec<(Vec3, f32)> = self.world.hello.metal_spots.iter().map(|s| (*s, self.territory.raided(*s))).filter(|(_, metal)| *metal >= 100.0).collect();
-        raided.sort_by(|a, b| b.1.total_cmp(&a.1));
-        raided.dedup_by(|a, b| self.world.grid(a.0) == self.world.grid(b.0));
-        let ground = crate::strategist::shared::GroundReport {
-            free_spots: (count(Ground::Held), count(Ground::Contested), count(Ground::Theirs)),
-            extractors_exposed: own.iter().filter(|u| kit.is_extractor(u.def) && self.ground(u.pos) != Ground::Held).map(|u| self.place(u.pos)).collect(),
-            raided: raided.into_iter().take(4).map(|(at, metal)| (self.place(at), metal as u32)).collect(),
-        };
-        if shared.lead().is_none_or(|lead| lead == self.world.hello.team) {
-            *shared.ground_sketch.lock().unwrap() = self.territory.sketch();
-        }
         let mut wreck_fields: Vec<(crate::strategist::shared::Place, u32, bool)> = self.reclaim.fields.iter().map(|f| (self.place(f.at), f.metal as u32, f.safe)).collect();
         wreck_fields.sort_by_key(|f| std::cmp::Reverse(f.1));
         shared.publish_field(self.world.hello.team, Field {
             score,
-            ground,
             wreck_fields,
             resurrection_bots: own.iter().filter(|u| kit.is_resurrector(u.def)).count(),
             unassigned: composition(&pool),
