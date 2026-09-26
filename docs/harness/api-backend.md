@@ -5,9 +5,20 @@ Design: `docs/design/2026-09-27-api-backend.md`. Code: `crates/bot/src/strategis
 Put the key in `~/.config/within-reason/fireworks.env` (`chmod 600`):
 
     FIREWORKS_API_KEY=fw_...
+    # the model's serverless prices, USD per million tokens (required: the cap below is kept from them)
+    FIREWORKS_PRICE_INPUT=0.30
+    FIREWORKS_PRICE_OUTPUT=1.20
     # optional
+    FIREWORKS_PRICE_CACHED=0.006
+    FIREWORKS_COST_CAP=1
     FIREWORKS_BASE_URL=https://api.fireworks.ai/inference/v1
     FIREWORKS_MAX_TOKENS=8192
+
+The prices are per model, so change them with the model. **The cost cap** (`FIREWORKS_COST_CAP` / `API_COST_CAP`,
+USD a game, default 1): every call's usage is priced and summed across the game's sessions; the call that reaches
+the cap still lands its tool calls, then the player is silent for the rest of the game and the hands carry on under
+its last packet (the bot log: "cost cap reached: $X of $Y spent"; the transcript: a `cost_cap` line, and the turn's
+`result` line carries `total_cost_usd`, `spent_usd` and `cap_usd`). Without both prices the session does not start.
 
 Then, for example:
 

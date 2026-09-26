@@ -42,12 +42,25 @@ def api_config(model):
     key = get("API_KEY") if prefix == "fw" else get("KEY")
     if not key or not base:
         raise RuntimeError(f"no key or base url for {prefix}: put them in {path}")
-    return base.rstrip("/"), key, name, int(get("MAX_TOKENS", 8192))
+    price = lambda k: float(get(k)) if get(k) is not None else None
+    prices = {"input": price("PRICE_INPUT"), "output": price("PRICE_OUTPUT"), "cached": price("PRICE_CACHED")}
+    if prices["cached"] is None:
+        prices["cached"] = prices["input"]
+    return base.rstrip("/"), key, name, int(get("MAX_TOKENS", 8192)), prices
+
+
+def api_cost(prices, usage):
+    """USD for one call from its usage, at the config's prices (USD per million tokens); None without prices."""
+    if prices["input"] is None or prices["output"] is None:
+        return None
+    prompt, out = usage.get("prompt_tokens") or 0, usage.get("completion_tokens") or 0
+    cached = min((usage.get("prompt_tokens_details") or {}).get("cached_tokens") or 0, prompt)
+    return ((prompt - cached) * prices["input"] + cached * prices["cached"] + out * prices["output"]) / 1e6
 
 
 def ask_api(system, user, model, effort, timeout):
     import urllib.request
-    base, key, name, max_tokens = api_config(model)
+    base, key, name, max_tokens, prices = api_config(model)
     body = {"model": name, "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}], "max_tokens": max_tokens}
     if effort and effort != "medium":
         body["reasoning_effort"] = effort
@@ -63,7 +76,7 @@ def ask_api(system, user, model, effort, timeout):
     wall = time.time() - t0
     u = data.get("usage") or {}
     text = ((data.get("choices") or [{}])[0].get("message") or {}).get("content") or ""
-    return {"text": text, "wall": wall, "api_s": wall, "usage": {"input_tokens": u.get("prompt_tokens"), "output_tokens": u.get("completion_tokens")}, "cost_usd": None, "error": ""}
+    return {"text": text, "wall": wall, "api_s": wall, "usage": {"input_tokens": u.get("prompt_tokens"), "output_tokens": u.get("completion_tokens")}, "cost_usd": api_cost(prices, u), "error": ""}
 
 
 def ask(system, user, model, effort="low", config_dir=CLAUDE_CONFIG_DIR, timeout=900, thinking=None):

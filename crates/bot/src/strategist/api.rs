@@ -20,6 +20,8 @@ use super::transcript::Transcript;
 const CONFIG_DIR: &str = ".config/within-reason";
 const FIREWORKS_BASE_URL: &str = "https://api.fireworks.ai/inference/v1";
 const DEFAULT_MAX_TOKENS: u64 = 8192;
+/// A game's spend cap in USD, unless the config file says otherwise (the user, 2026-09-27: one dollar a game to start).
+const DEFAULT_COST_CAP: f64 = 1.0;
 /// The message list is trimmed to this many characters before each call, oldest turns first (about 80k tokens).
 const CONTEXT_CHARS_VAR: &str = "API_CONTEXT_CHARS";
 const DEFAULT_CONTEXT_CHARS: usize = 320_000;
@@ -35,6 +37,12 @@ pub(super) struct Endpoint {
     key: String,
     pub model: String,
     max_tokens: u64,
+    /// USD per million tokens: fresh input, cached input, output.
+    price_input: f64,
+    price_cached: f64,
+    price_output: f64,
+    /// USD a game may spend; the player falls silent when it is reached.
+    pub cost_cap: f64,
 }
 
 impl Endpoint {
@@ -43,8 +51,11 @@ impl Endpoint {
     }
 
     /// `fw:<model>` reads `fireworks.env` (`FIREWORKS_API_KEY`, `FIREWORKS_BASE_URL`, `FIREWORKS_MAX_TOKENS`);
-    /// `api:<model>` reads `api.env` (`API_KEY`, `API_BASE_URL`, `API_MAX_TOKENS`). An environment variable of the
-    /// same name overrides the file.
+    /// `api:<model>` reads `api.env` (`API_KEY`, `API_BASE_URL`, `API_MAX_TOKENS`). Both need the model's prices,
+    /// `<VAR>_PRICE_INPUT` and `<VAR>_PRICE_OUTPUT` in USD per million tokens (`<VAR>_PRICE_CACHED` for cached input,
+    /// else the input price), because the game's spend is capped at `<VAR>_COST_CAP` USD (default 1): without a price
+    /// the cap cannot be kept and the session does not start. An environment variable of the same name overrides the
+    /// file.
     pub fn for_model(model: &str) -> std::io::Result<Endpoint> {
         let (prefix, name) = model.split_once(':').ok_or_else(|| std::io::Error::other(format!("{model}: not an API model")))?;
         let (var, file, default_base) = match prefix {
@@ -68,11 +79,23 @@ impl Endpoint {
         let key = if prefix == "fw" { get("API_KEY") } else { get("KEY") }.ok_or_else(|| std::io::Error::other(format!("no key for {prefix}: put {var}_{}KEY in {}", if prefix == "fw" { "API_" } else { "" }, path.display())))?;
         let base_url = get("BASE_URL").or_else(|| default_base.map(String::from)).ok_or_else(|| std::io::Error::other(format!("no {var}_BASE_URL in {}", path.display())))?;
         let max_tokens = get("MAX_TOKENS").and_then(|v| v.parse().ok()).unwrap_or(DEFAULT_MAX_TOKENS);
-        Ok(Endpoint { base_url: base_url.trim_end_matches('/').to_string(), key, model: name.to_string(), max_tokens })
+        let price = |k: &str| get(k).and_then(|v| v.parse::<f64>().ok()).filter(|p| p.is_finite() && *p >= 0.0);
+        let (Some(price_input), Some(price_output)) = (price("PRICE_INPUT"), price("PRICE_OUTPUT")) else {
+            return Err(std::io::Error::other(format!("no {var}_PRICE_INPUT and {var}_PRICE_OUTPUT (USD per million tokens) in {}: the cost cap cannot be kept without the model's prices", path.display())));
+        };
+        let price_cached = price("PRICE_CACHED").unwrap_or(price_input);
+        let cost_cap = price("COST_CAP").unwrap_or(DEFAULT_COST_CAP);
+        Ok(Endpoint { base_url: base_url.trim_end_matches('/').to_string(), key, model: name.to_string(), max_tokens, price_input, price_cached, price_output, cost_cap })
+    }
+
+    /// What a call cost, from the usage it reported (`prompt_tokens` counts the cached tokens too).
+    pub fn cost(&self, prompt_tokens: u64, cached_tokens: u64, completion_tokens: u64) -> f64 {
+        let cached = cached_tokens.min(prompt_tokens);
+        ((prompt_tokens - cached) as f64 * self.price_input + cached as f64 * self.price_cached + completion_tokens as f64 * self.price_output) / 1e6
     }
 
     pub fn describe(&self) -> String {
-        format!("the API at {} ({})", self.base_url, self.model)
+        format!("the API at {} ({}; ${}/${} per million tokens in/out, the cap ${} a game)", self.base_url, self.model, self.price_input, self.price_output, self.cost_cap)
     }
 }
 
@@ -113,6 +136,9 @@ impl ApiSession {
     /// One turn: the report as a user message, then calls until the model's `orders` carried its `wait` (the turn is
     /// over: no closing request) or it answered without a tool call. The transcript gets the CLI backends' lines.
     pub fn send(&self, prompt: &str) -> bool {
+        if self.shared.cost_capped.load(Ordering::Relaxed) {
+            return false;
+        }
         self.messages.lock().unwrap().push(json!({ "role": "user", "content": prompt }));
         let (endpoint, effort, tools, messages, reasoning, agent, shared, transcript, done) = (
             self.endpoint.clone(),
@@ -129,6 +155,8 @@ impl ApiSession {
         std::thread::spawn(move || {
             let (mut api_ms, mut calls, mut input, mut output, mut cached) = (0u128, 0u32, 0u64, 0u64, 0u64);
             let mut ended_by = "response";
+            let mut turn_cost = 0.0;
+            let mut spent = shared.spent_micro_usd.load(Ordering::Relaxed) as f64 / 1e6;
             loop {
                 let body = {
                     let mut list = messages.lock().unwrap();
@@ -152,9 +180,20 @@ impl ApiSession {
                 api_ms += t0.elapsed().as_millis();
                 calls += 1;
                 let usage = &response["usage"];
-                input += usage["prompt_tokens"].as_u64().unwrap_or(0);
-                output += usage["completion_tokens"].as_u64().unwrap_or(0);
-                cached += usage["prompt_tokens_details"]["cached_tokens"].as_u64().unwrap_or(0);
+                let (call_in, call_out, call_cached) = (usage["prompt_tokens"].as_u64().unwrap_or(0), usage["completion_tokens"].as_u64().unwrap_or(0), usage["prompt_tokens_details"]["cached_tokens"].as_u64().unwrap_or(0));
+                input += call_in;
+                output += call_out;
+                cached += call_cached;
+                let call_cost = endpoint.cost(call_in, call_cached, call_out);
+                turn_cost += call_cost;
+                spent = (shared.spent_micro_usd.fetch_add((call_cost * 1e6).round() as u64, Ordering::Relaxed) as f64 + call_cost * 1e6) / 1e6;
+                // The cap: this response's tool calls still land (orders written are orders sent), then the player
+                // is silent for the rest of the game and the hands carry on under its last packet.
+                let capped = spent >= endpoint.cost_cap;
+                if capped && !shared.cost_capped.swap(true, Ordering::Relaxed) {
+                    eprintln!("[player] cost cap reached: ${spent:.2} of ${:.2} spent on {}; the player is silent from here and the hands carry on under its last orders", endpoint.cost_cap, endpoint.model);
+                    transcript.record(json!({ "kind": "cost_cap", "spent_usd": spent, "cap_usd": endpoint.cost_cap }));
+                }
                 let message = response["choices"][0]["message"].clone();
                 let text = message["content"].as_str().unwrap_or_default().to_string();
                 let tool_calls: Vec<Value> = message["tool_calls"].as_array().cloned().unwrap_or_default();
@@ -172,6 +211,9 @@ impl ApiSession {
                 }
                 messages.lock().unwrap().push(assistant);
                 if tool_calls.is_empty() {
+                    if capped {
+                        ended_by = "cost_cap";
+                    }
                     break;
                 }
                 let mut over = false;
@@ -185,6 +227,10 @@ impl ApiSession {
                     messages.lock().unwrap().push(json!({ "role": "tool", "tool_call_id": call["id"], "content": result }));
                     over |= shared.turn_over.load(Ordering::Relaxed);
                 }
+                if capped {
+                    ended_by = "cost_cap";
+                    break;
+                }
                 if over {
                     ended_by = "wait";
                     break;
@@ -192,6 +238,7 @@ impl ApiSession {
             }
             transcript.record(json!({ "kind": "result", "message": {
                 "type": "result", "duration_api_ms": api_ms, "num_turns": calls, "ended_by": ended_by,
+                "total_cost_usd": turn_cost, "spent_usd": spent, "cap_usd": endpoint.cost_cap,
                 "usage": { "input_tokens": input, "output_tokens": output, "cache_read_input_tokens": cached },
                 "modelUsage": { endpoint.model.clone(): { "inputTokens": input, "outputTokens": output } },
             } }));
@@ -274,6 +321,15 @@ mod tests {
         trim(&mut list, 10);
         assert_eq!(list.len(), 2, "the newest turn stays whatever the budget");
         assert!(list[1]["content"].as_str().unwrap().starts_with('c'));
+    }
+
+    #[test]
+    fn a_call_is_priced_by_fresh_cached_and_output_tokens() {
+        let e = Endpoint { base_url: String::new(), key: String::new(), model: String::new(), max_tokens: 1, price_input: 1.0, price_cached: 0.25, price_output: 4.0, cost_cap: 1.0 };
+        // 1,000,000 prompt tokens of which 400,000 cached, 100,000 output: 0.6 + 0.1 + 0.4.
+        assert!((e.cost(1_000_000, 400_000, 100_000) - 1.1).abs() < 1e-9);
+        // Cached tokens never exceed the prompt.
+        assert!((e.cost(10, 20, 0) - 10.0 * 0.25 / 1e6).abs() < 1e-12);
     }
 
     #[test]

@@ -315,6 +315,10 @@ pub struct Shared {
     pub last_turn_frame: std::sync::atomic::AtomicI32,
     /// The frame the last turn's orders came into force (at once without a penalty), for the report's landing line.
     pub last_landing: std::sync::atomic::AtomicI32,
+    /// What the API backend has spent this game, in millionths of a dollar, across session restarts; and whether it
+    /// reached the cap (the player is silent from then on).
+    pub spent_micro_usd: std::sync::atomic::AtomicU64,
+    pub cost_capped: std::sync::atomic::AtomicBool,
     /// Things worth waking the strategist for, drained by the driver.
     pub triggers: Mutex<Vec<String>>,
     /// Static map description, filled once at game start.
