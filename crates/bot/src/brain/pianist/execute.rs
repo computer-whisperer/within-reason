@@ -35,17 +35,21 @@ impl Brain {
     /// Puts a world's states in force: a state already current stands; `Leave` ends a current hunt or engagement
     /// of that party and declines it for a while; every other state is executed. Returns what changed, for the
     /// log and the `done` lines.
-    pub(super) fn apply_plan(&mut self, tick: &Tick, kit: &Kit, picture: &Picture, slots: &[Slot], world: &World, source: &'static str, commands: &mut Vec<Command>) -> Vec<String> {
+    /// `held` marks the slots this world does not touch: the pass holds every open slot when a question goes out,
+    /// and the pick then plays those in full, base state included.
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn apply_plan(&mut self, tick: &Tick, kit: &Kit, picture: &Picture, slots: &[Slot], world: &World, source: &'static str, held: &[bool], commands: &mut Vec<Command>) -> Vec<String> {
         let frame = tick.frame;
         let mut done: Vec<(String, String, String)> = Vec::new();
-        for (slot, si) in slots.iter().zip(world) {
+        for (i, (slot, si)) in slots.iter().zip(world).enumerate() {
             let state = &slot.states[*si];
-            if state.current {
+            if state.current || held.get(i).copied().unwrap_or(false) {
                 continue;
             }
-            // A pick's world changes some slots from the base; the base itself was put in force when the gate was
-            // asked (onepass-smoke-2: a constructor's extractor ordered twice in one second, by the rule and by w1).
-            if source == "plan" && *si == slot.base() {
+            // A slot with nothing to decide had its base put in force by the rule when the gate was asked; the
+            // pick does not order it twice (onepass-smoke-2: a constructor's extractor ordered twice in one second,
+            // by the rule and by w1). An open slot was held for the pick and is played here whatever it chose.
+            if source == "plan" && !slot.open() && *si == slot.base() {
                 continue;
             }
             match (&slot.kind, &state.response) {

@@ -570,10 +570,6 @@ impl Brain {
         let mut base: plan::World = slots.iter().map(plan::Slot::base).collect();
         plan::hold_current(&slots, &mut base);
         plan::resolve(&slots, &mut base);
-        let started = self.apply_plan(tick, kit, picture, &slots, &base, "rule", commands);
-        if !started.is_empty() {
-            line["plan"] = json!(started);
-        }
         let open: Vec<&str> = slots.iter().filter(|s| s.open()).map(|s| s.name.as_str()).collect();
         line["open"] = json!(open);
         let questions = plan::gate_questions(&slots, self.pianist.as_ref().is_some_and(|p| p.told));
@@ -590,12 +586,27 @@ impl Brain {
         let eco = format!("{}|{}|{}", if tick.snapshot.metal.current < 100.0 { "empty" } else if tick.snapshot.metal.current >= tick.snapshot.metal.storage - 1.0 { "full" } else { "" }, picture.state["economy"]["energy"].as_str().is_some_and(|e| e.contains("STALLING")), idle_lab_afford);
         let sig = format!("{}|{eco}|{}", plan::signature(&slots), self.pianist.as_ref().expect("pianist mode").packet_frame);
         let jev = self.pianist.as_ref().is_some_and(|p| p.client.is_some());
+        let (events, changed) = {
+            let pianist = self.pianist.as_ref().expect("pianist mode");
+            let events: Vec<String> = pianist.events.iter().cloned().collect();
+            // An event alone asks again no oftener than `EVENT_GAP` (onepass-medium-3: a group under fire asked every
+            // second, 118 of 663 asks on "hit" alone).
+            let since_ask = pianist.sig.as_ref().map_or(i32::MAX, |(_, f)| frame - *f);
+            let changed = pianist.sig.as_ref().is_none_or(|(s, f)| *s != sig || frame - *f >= plan::RE_ASK) || (!events.is_empty() && since_ask >= EVENT_GAP);
+            (events, changed)
+        };
+        // The base world goes in force now only where there is nothing to decide. A slot with a real alternative
+        // waits for the pick when a question goes out this second (the user, 2026-09-27: "I never meant for things
+        // to fire before jev calls it"; onepass-player-8 7:13-7:38, the rule's whole-group attack fired the second
+        // the party appeared, the pick's hunt stacked on it, and the group flipped between the two). Without Jev, or
+        // when the picture is as at the last ask, the base is the plan and stands.
+        let asking = jev && !questions.is_empty() && changed;
+        let held: Vec<bool> = slots.iter().map(|s| asking && s.open()).collect();
+        let started = self.apply_plan(tick, kit, picture, &slots, &base, "rule", &held, commands);
+        if !started.is_empty() {
+            line["plan"] = json!(started);
+        }
         let pianist = self.pianist.as_mut().expect("pianist mode");
-        let events: Vec<String> = pianist.events.iter().cloned().collect();
-        // An event alone asks again no oftener than `EVENT_GAP` (onepass-medium-3: a group under fire asked every
-        // second, 118 of 663 asks on "hit" alone).
-        let since_ask = pianist.sig.as_ref().map_or(i32::MAX, |(_, f)| frame - *f);
-        let changed = pianist.sig.as_ref().is_none_or(|(s, f)| *s != sig || frame - *f >= plan::RE_ASK) || (!events.is_empty() && since_ask >= EVENT_GAP);
         if questions.is_empty() || !jev {
             line["played"] = json!(std::mem::take(&mut pianist.played));
             pianist.write_log(line);
@@ -708,7 +719,7 @@ impl Brain {
     #[allow(clippy::too_many_arguments)]
     fn after_pick(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, slots: &[plan::Slot], worlds: &[plan::World], answers: &BTreeMap<String, jev::Answer>, commands: &mut Vec<Command>) {
         let Some((wi, confidence)) = plan::pick(answers, worlds) else { return };
-        let changed = self.apply_plan(tick, kit, picture, slots, &worlds[wi], "plan", commands);
+        let changed = self.apply_plan(tick, kit, picture, slots, &worlds[wi], "plan", &[], commands);
         let pianist = self.pianist.as_mut().expect("pianist mode");
         let played = std::mem::take(&mut pianist.played);
         pianist.write_log(json!({ "t": "plan", "f": tick.frame, "pick": wi + 1, "confidence": confidence, "changed": changed, "played": played }));

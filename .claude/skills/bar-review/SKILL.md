@@ -217,7 +217,9 @@ found clean in one line at the end of the findings.
   plant before 2:00, D-gun energy at 0 (player-8 30:00). `hands_window <match> <from> <to> commander`. The commander
   as the answer to a Pawn it cannot catch [packet 2026-09-27: the user, "losing structures to a pawn near our starting
   location while a rover sits nearby"; player-8 6:29-7:11]: `attack party_13` for 42 s while the Pawn killed three
-  extractors and both construction turrets, the Rover (group_E) falling back home under "runs from anything that shoots".
+  extractors and both construction turrets. The Rover part was retracted the same night (an experienced player: a
+  Rover cannot repel a Pawn, and the threat pass rightly never offered it); the finding is the army's stationing, item
+  H8, not the answer. A commander chasing for 42 s with nothing else within reach is still worth a line.
 - **H4 constructors** [floor's idle%, aband, aband_m; onepass-player-5 (the list-step fault)]. Idle share, abandoned
   frames and their metal, walks under fire, lists refused by the engine (`no_site`, `rejected` events in the record).
 - **H5 groups that do not move** [onepass-player-6 19:28-20:06, onepass-player-8 16:43-19:04; floor's stuck_s, yard_min].

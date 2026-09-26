@@ -1125,3 +1125,23 @@ read an order still in flight under the think penalty as an order that failed, a
 **Would be wrong if.** A shorter rule-shaped section (the counters, the constructor count, the bank, the landing of
 orders, as flat statements) did not move these models' play: then the models, not the prose, are the cap.
 **Used by.** H-PLAYER-RULES-SECTION (2026-09-27); the report's landing line (H-HANDS-PLAYER-WAKE). The rerun on 158e488 (models-medium2-*, before either) showed the same shapes: Luna 35 soldiers and 0 extractors at 12:00, Terra's energy empty 58% of the game, astra all Maces against raiders, Sonnet 5 calling the small tools one by one.
+
+### K-hands-the-base-fired-ahead-of-the-pick
+**Claim.** Under the one pass as first built, a standing rule's default went in force the second its slot appeared,
+before the question was asked, and the pick landed on top of it in the same tick (lockstep: the ask and the pick have
+the same frame, 1,237 of 1,237 picks in onepass-player-8). A picked state that did not replace the default (a hunt
+over an engagement of the same party) left two current states in one slot; the base took the first, fell back to the
+other when the hunters died, and the group was ordered both ways in turn without any pick choosing the second.
+**Status.** observed (2026-09-27), onepass-player-8 7:13-7:38: party_22 (6 Pawns) appeared 7:13; `raiders_party
+whole_group` made the whole-group attack the default and it fired by rule the same second (fight orders 7:16, 7:18);
+the pick took the four-Blitz hunt at 7:22 (0.28 against 0.23); from 7:23 the slot held `hunt_group_A` and
+`whole_group_A` both current; 7:31 the hunt state gone, base the engagement; 7:32 the party split, nothing current,
+the default fired again at 7:35 and the pick split four off again at 7:35 and 7:38. The user (viewer): "some of the
+tanks hesitate and turn back, leaving the one tank that actually completed the initial attack movement to die alone."
+The calls themselves: gate 278 ms median (p90 316) over ~53 KB and 50 questions, pick 238 ms (p90 274) over ~33 KB.
+**Evidence.** `run/matches/1790454920-onepass-player-8/00/jev-0.jsonl` (the `pass` lines' slots with `current`
+flags, the `plan` lines, the `call` lines' `ms`), `record-0.jsonl` (the `cmd` lines 7:13-7:38).
+**Would be wrong if.** The engagement's task were cleared by the hunt in the code (it was not: `start_hunt` set the
+hunt and left the task), or the picks had chosen the whole-group state on the seconds it re-fired (they chose w1).
+**Used by.** H-HANDS-ONE-PASS (the pass holds open slots for the pick, 2026-09-27; a hunt ends the engagement it
+overrides); the bar-review skill, item H7.

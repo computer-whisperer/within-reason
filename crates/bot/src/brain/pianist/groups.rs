@@ -513,8 +513,18 @@ impl Brain {
         // Released; the engine's hunt commitment (set at the next `note_commitments`) does the chasing.
         commands.extend(group.release_orders(&units));
         let n = units.len();
+        // A hunt picked over the group's engagement of the same party replaces it: the rest hold where they are.
+        // Left standing, the engagement kept the slot's whole-group state current beside the hunt, the base fell
+        // back to it the second the hunters died, and the doing line said "attacking" throughout (onepass-player-8
+        // 7:22-7:38).
+        let engaged = matches!(&group.task, GroupTask::Engage { party: ids, .. } if ids.iter().any(|id| party.ids.contains(id)));
+        if engaged {
+            let rest: Vec<&OwnUnit> = own.iter().filter(|u| group.members.contains(&u.id) && !hunters.contains(&u.id)).collect();
+            commands.extend(group.hold_orders(&rest));
+            group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
+        }
         group.hunt = Some(Hunt { quarry: quarry.0, party: party.name.clone(), hunters, from: centre, since: frame, last_seen: frame, at: quarry.1 });
-        format!("{n} of group_{} hunt {} ({})", group.name, party.name, party.composition)
+        format!("{n} of group_{} hunt {} ({}){}", group.name, party.name, party.composition, if engaged { ", the rest holding" } else { "" })
     }
 
     /// The whole group engages the party: released, sent to fight at it, its task the engagement.

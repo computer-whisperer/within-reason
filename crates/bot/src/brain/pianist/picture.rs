@@ -936,6 +936,12 @@ impl Brain {
                     format!("attacking {name}{} at {}, for {}", if target.is_some() { " (one named unit of it, until it dies)" } else { "" }, self.place_words(&places, *at), ago(*since))
                 }
             };
+            // A hunt out is the group's doing too: the entry said "attacking party_22, for 15 s" while four of its
+            // eight hunted and the rest had no order (onepass-player-8 7:22-7:31).
+            let doing = match &group.hunt {
+                Some(hunt) => format!("{} of its soldiers hunting {} since {} ago; the rest {doing}", hunt.hunters.len(), hunt.party, ago(hunt.since)),
+                None => doing,
+            };
             let mut entry = json!({
                 "units": format!("{}: {} ({} soldiers worth {metal:.0} metal{})", soldier_words(units.len(), metal), self.composition_words(&units), units.len(), if group.domain == crate::world::Domain::Ground { String::new() } else { format!("; an {} group", group.domain.word()) }),
                 "at": self.place_words(&places, centre),

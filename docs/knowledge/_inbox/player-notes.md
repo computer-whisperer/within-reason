@@ -34,7 +34,10 @@
   party_13 (one Pawn) killed spot_36 6:32, spot_45 6:50, spot_50 6:57 and both construction turrets 7:07-7:11; the
   answer from 6:29 to 7:11 was `commander: attack party_13; its list step waits` (the player's instruction; the rule
   that a slower chaser still drives a raider off); the Rover was group_E under the player's "runs from anything that
-  shoots" and fell back home from the Pawn at 6:42.
+  shoots" and fell back home from the Pawn at 6:42. The Rover was never offered as an answer: the threat pass
+  excludes a unit the party outweighs (31 metal against 54). **Retracted by the user the same night:** "I am told by
+  an experienced player that the rover cannot repel the pawn, so that call was correct. I retract that issue and the
+  correct response was better army stationing." The Rover was also stuck at home for 1:30 (the entry said so).
 - **7:07 "our army is in a poor position. A 5-pawn detachment is visible in radar towards the north while our army
   either chases the one pawn near our starting point or sits idle in the middle."** Measured: party_17 (6 Pawns) at
   (3308,2226) at 7:00 with group_G told "attack party_17 with the whole group" [rule]; party_22 (6 Pawns) appeared
