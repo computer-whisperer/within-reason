@@ -404,7 +404,11 @@ impl Brain {
             // list's last step has an empty list and a step in progress: still listed (onepass-player-4, 27:50-28:05:
             // treated as free, the `expand` rule's default walked it off its solar every second and the list took it
             // back the next, twenty times over, until every constructor died walking).
-            let listed = pianist.scripts.get(&name).is_some_and(|s| !s.is_empty()) || pianist.list_steps.contains_key(&unit.id);
+            // ... a step in progress is one whose task still stands: the register keeps the step until a play
+            // diverts the builder, so after the last step finished on its own the builder was listed for good, out of
+            // the pass and idle (onepass-player-5 and the models-medium bundle on 92d59cc: builders idle 22-30%,
+            // the metal store full 15-45% of the game).
+            let listed = pianist.scripts.get(&name).is_some_and(|s| !s.is_empty()) || (pianist.list_steps.contains_key(&unit.id) && task.is_some());
             if !status.threatened && listed {
                 continue;
             }
