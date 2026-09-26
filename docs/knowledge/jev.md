@@ -1035,3 +1035,17 @@ the hunt and the builder's attack after player-3 (the builder's within the raide
 Tick, the commander leaving the plant for every Pawn on the strip): the next player game is the check, the hunt's
 drive in seconds and "killing extractor" in its words the lever if it declines them all.
 **Used by.** H-HANDS-THREATS, H-HANDS-COMMANDER-FIGHTS.
+
+### K-hands-a-raider-answer-is-its-drive-off-time
+**Claim.** The measure that ranks the answers to a raider is the time until the raider is driven off: the seconds
+each answer takes to reach it, from its position and speed. A slower chaser still drives it off (the raider leaves
+when the chaser arrives or stands and dies), so the chasers are not only those that outrun it. The words carry that
+time for every answer and the fixed rules say the soonest wins, the commander last.
+**Evidence.** `run/matches/1790430054-onepass-player-4`, 5:30-6:24: one Tick at spot_54 killing an extractor; the
+hunt filter took only members faster than 132, so the two Rovers (168) were the hunters offered (0.16-0.33) and the
+seven Blitzes (101) never; the commander's attack (1,163 away, 31 s of walking) was taken at 0.30 and it chased the
+Tick round the base. The user, watching: the Blitz should definitely be offered as a chaser; the math to present is
+how long unit y takes to drive unit x off. Built 2026-09-27, untested in a game.
+**Would be wrong if.** Jev still took the commander over a Blitz whose words say it drives the Tick off sooner, or
+sent slow chasers after every raider so that the group melted into detachments: the next player game is the check.
+**Used by.** H-HANDS-THREATS, H-HANDS-COMMANDER-FIGHTS, `crates/bot/src/brain/pianist/rules.md`.

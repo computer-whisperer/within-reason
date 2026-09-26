@@ -99,9 +99,18 @@ impl Brain {
                     GroupTask::Move { place, .. } => format!(", abandoning its way to {place}"),
                     GroupTask::Engage { .. } => ", leaving the party it was attacking".to_string(),
                 };
-                // The hunt: the fastest members that outrun the party, the fewest that outweigh it.
+                // The hunt: the armed members that outrun the party, else the group's fastest armed members (a
+                // Blitz at 101 never outruns a Tick at 132, so no Blitz was ever offered against one and the pick
+                // sent the commander on a 31 s walk instead, onepass-player-4 5:59; the user: the Blitz would have
+                // had the Tick out of our base sooner, and that time is what to present); the fewest that outweigh
+                // it. The words say in how many seconds the hunters drive it off and whether they can catch it.
                 if party.ids.len() <= HUNT_PARTY_MAX && group.domain != crate::world::Domain::Air && !rules.get("no_detachments").is_some_and(|v| v == "yes") && (!declined || hunting_it) {
-                    let mut fast: Vec<&OwnUnit> = units.iter().copied().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed > quarry_speed)).collect();
+                    let armed = |u: &&OwnUnit| self.world.def(u.def).is_some_and(|d| d.weapon_count > 0 && d.speed > 0.0);
+                    let mut fast: Vec<&OwnUnit> = units.iter().copied().filter(armed).filter(|u| self.world.def(u.def).is_some_and(|d| d.speed > quarry_speed)).collect();
+                    if fast.is_empty() {
+                        let top = units.iter().copied().filter(armed).filter_map(|u| self.world.def(u.def)).map(|d| d.speed).fold(0.0, f32::max);
+                        fast = units.iter().copied().filter(armed).filter(|u| self.world.def(u.def).is_some_and(|d| d.speed >= top - 1.0)).collect();
+                    }
                     fast.sort_by(|a, b| a.pos.dist2d(party.at).total_cmp(&b.pos.dist2d(party.at)));
                     let wanted = raider_rule.strip_prefix("detachment:").and_then(|n| n.parse::<usize>().ok()).unwrap_or(0);
                     if let Some(k) = self.hunters_for(&fast, party, enemies) {
@@ -109,7 +118,9 @@ impl Brain {
                         let hunters: Vec<UnitId> = fast[..k].iter().map(|u| u.id).collect();
                         let default = !default_set && !declined && raider_rule.starts_with("detachment");
                         let speed = fast[..k].iter().filter_map(|u| self.world.def(u.def)).map(|d| d.speed).fold(f32::INFINITY, f32::min);
-                        let drive = if speed.is_finite() && speed > 0.0 { format!(", {:.0} s of driving", distance / speed) } else { String::new() };
+                        let nearest = fast[..k].iter().map(|u| u.pos.dist2d(party.at)).fold(f32::INFINITY, f32::min);
+                        let drive = if speed.is_finite() && speed > 0.0 { format!(": they drive it off in {:.0} s from {nearest:.0} away", nearest / speed) } else { String::new() };
+                        let catching = if speed > quarry_speed { format!(" and can catch it ({speed:.0} against its {quarry_speed:.0})") } else { format!(" without catching it ({speed:.0} against its {quarry_speed:.0}): it leaves when they arrive, or stands and dies") };
                         let what: BTreeMap<&str, usize> = fast[..k].iter().fold(BTreeMap::new(), |mut m, u| {
                             *m.entry(self.name(u.def)).or_default() += 1;
                             m
@@ -120,7 +131,7 @@ impl Brain {
                             format!("{}.hunt_{name}", party.name),
                             name.clone(),
                             Response::Hunt(hunters),
-                            format!("{who} of {name} hunt {} ({}{}) at {speed:.0} against its {quarry_speed:.0}, {distance:.0} away{drive}{killing}{rest}", party.name, party.composition, under(party)),
+                            format!("{who} of {name} hunt {} ({}{}{killing}){drive}{catching}{rest}", party.name, party.composition, under(party)),
                             fast[..k].iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum(),
                             default,
                             hunting_it,
@@ -182,7 +193,7 @@ impl Brain {
                 let current = matches!(pianist.tasks.get(&unit.id), Some(super::Task::Walk { place, .. }) if *place == party.name);
                 let default = !default_set && rules.get("attack_raiders").is_some_and(|v| v == "yes");
                 let speed = self.world.def(unit.def).map_or(0.0, |d| d.speed);
-                let walk = if speed > 0.0 { format!(", {:.0} s of walking", distance / speed) } else { String::new() };
+                let walk = if speed > 0.0 { format!(": it drives it off in {:.0} s of walking", distance / speed) } else { String::new() };
                 let killing = party.killing.as_ref().map_or(String::new(), |(what, metal)| format!(", killing {what} ({metal:.0} metal) now"));
                 let chase = if quarry_speed > speed { format!("; it outruns {name} at {quarry_speed:.0} against {speed:.0}: this drives it off if it stays, and kills it only if it stands and fights") } else { String::new() };
                 // A skirmisher outranges a commander (onepass-player-3, 22:14: it walked at a Hound, 650 against 300,
@@ -195,7 +206,7 @@ impl Brain {
                     format!("{}.attack_{name}", party.name),
                     name.clone(),
                     Response::Attack(party.name.clone()),
-                    format!("{name} attacks {} ({}{}, {distance:.0} away{walk}{killing}) and comes back to what it was doing: against it alone, {odds}{chase}{range}{doing}", party.name, party.composition, under(party)),
+                    format!("{name} attacks {} ({}{}, {distance:.0} away{killing}) and comes back to what it was doing{walk}; against it alone, {odds}{chase}{range}{doing}", party.name, party.composition, under(party)),
                     self.world.def(unit.def).map_or(0.0, |d| d.metal_cost),
                     default,
                     current,
