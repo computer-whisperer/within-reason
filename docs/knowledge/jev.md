@@ -1071,3 +1071,30 @@ free spot; the strong players' median is 23 at 12:00 (`run/replays/recheck.py --
 **Would be wrong if.** A player naming 25 spots in order, with `job: expand` or short lists, still stalled at 16-17
 with free named spots on the gate declined: then the pick, not the naming, is the cap.
 **Used by.** H-PLAYER-EXPANSION-PACE (the prompt teaches the player; the user's ruling that the count is the player's).
+
+### K-hands-an-idle-lab-under-a-full-store-is-declined
+**Claim.** When the instructions make production conditional in prose ("Maces while the exit lane is clear and energy
+is in balance", "Pawns only as a raider response"), the pick reads the condition as unmet and leaves the lab idle
+with the metal store full, for minutes: the lab's build state stays on the gate and is not taken.
+**Evidence.** `run/matches/1790445610-models-medium-sonnet5`: from 7:00 to 15:00 the lab slot was open in all 481
+seconds, the store full in 374, five lab plays; the pick took "nothing changes" at 0.4-0.7 over "lab_28531 makes a
+Pawn" at about 0.15 (the Opus reviewer's reading of the worlds question, verified on the plays and the store).
+`run/matches/1790445701-models-medium-gpt56-terra`: 4:29-8:31, 241 seconds open, 190 full, no lab play in minutes
+5-8. Opus games do not show it: their packets say "Blitzes, without pause".
+**Would be wrong if.** A sentence in the hands' fixed rules ("a full store overrides a condition on production unless
+production is forbidden outright") did not open the lab's state: then the noul, not the reading, is the cap.
+**Used by.** (candidate: the full-store sentence in `crates/bot/src/brain/pianist/rules.md`.)
+
+### K-player-other-models-read-the-prompt-literally
+**Claim.** The player prompt (4,700 words of doctrine whose counters, constructor counts and the meaning of a full
+bank are carried by case handles and inference) is followed by Opus 5.5 and Opus 5 and read literally by the others:
+they keep the rules they can quote and miss the strategy behind them.
+**Evidence.** Seven Opus reviews of the models-medium bundle (2026-09-27), each verified on the record: Luna and
+GPT-6 astra built only Hammers (speed 46) against Blitzes (101) and killed three enemy units in a game ("raiders
+against raiders" not acted on); Luna and Terra kept three constructors against "four to six"; Terra read a banking
+store as being ahead; Sonnet 5 called the small tools one by one for four turns against "one `orders` call"; astra
+wrote counts for the hands ("with twenty or more Maces, split eight"); Terra, Opus 5, astra and Opus 5.5 low each
+read an order still in flight under the think penalty as an order that failed, and re-issued or reversed it.
+**Would be wrong if.** A shorter rule-shaped section (the counters, the constructor count, the bank, the landing of
+orders, as flat statements) did not move these models' play: then the models, not the prose, are the cap.
+**Used by.** (candidate: a rules section of `player.md`; the report's landing line.)
