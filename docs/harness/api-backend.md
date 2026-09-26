@@ -34,6 +34,12 @@ Any OpenAI-compatible endpoint: `api:<model>` with `~/.config/within-reason/api.
 `API_BASE_URL` (and `API_MAX_TOKENS`). The environment variable of the same name overrides the file. The key is never
 printed or written by the bot or the checker: the repository is public.
 
+**Reasoning.** `--effort` is sent as `reasoning_effort`; Fireworks takes `low`, `medium`, `high`, `xhigh`, `max` and
+`none`. DeepSeek V4.1 Flash at `low` reasoned for the whole 8,192-token output budget on a real report (255 s, no
+tool call; fw-deepseek-v41-flash-1's turns overran the 120 s cap) and at `none` answered the same report in 4.5 s
+with tool calls, so its games run with `--effort none`. A session replaced after a turn passed the cap drops the
+answer that comes later (a `late` transcript line) instead of playing it in the next session's turn.
+
 What differs from the CLI backends: the session keeps its own message list (trimmed to `API_CONTEXT_CHARS`, default
 320,000 characters, oldest turns first); the turn ends at the `orders` call's `wait` with no closing request; the
 turn cap is 120 s; `reasoning_effort` is sent from `--effort` and dropped for the session if the endpoint refuses it.

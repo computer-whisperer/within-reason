@@ -107,6 +107,11 @@ pub(super) struct ApiSession {
     messages: Arc<Mutex<Vec<Value>>>,
     /// `reasoning_effort` is sent until the endpoint refuses it.
     reasoning: Arc<AtomicBool>,
+    /// Cleared by `end`: a call still in flight then drops its answer instead of playing it. The driver replaces a
+    /// session whose turn passed the cap, and the replaced session's thread keeps waiting on the endpoint; its late
+    /// `orders` would otherwise land in the next session's turn and its `wait` end that turn (fw-deepseek-v41-flash-1:
+    /// the second turn recorded as over at 29 s while its own call ran 165 s).
+    alive: Arc<AtomicBool>,
     agent: ureq::Agent,
     shared: Arc<Shared>,
     transcript: Arc<Transcript>,
@@ -126,6 +131,7 @@ impl ApiSession {
             tools: Arc::new(tools),
             messages: Arc::new(Mutex::new(vec![json!({ "role": "system", "content": system_prompt })])),
             reasoning: Arc::new(AtomicBool::new(true)),
+            alive: Arc::new(AtomicBool::new(true)),
             agent: ureq::Agent::new_with_config(config),
             shared,
             transcript,
@@ -135,17 +141,23 @@ impl ApiSession {
 
     /// One turn: the report as a user message, then calls until the model's `orders` carried its `wait` (the turn is
     /// over: no closing request) or it answered without a tool call. The transcript gets the CLI backends' lines.
+    /// The session is over: whatever its thread is still waiting for is dropped when it comes.
+    pub fn end(&self) {
+        self.alive.store(false, Ordering::Relaxed);
+    }
+
     pub fn send(&self, prompt: &str) -> bool {
         if self.shared.cost_capped.load(Ordering::Relaxed) {
             return false;
         }
         self.messages.lock().unwrap().push(json!({ "role": "user", "content": prompt }));
-        let (endpoint, effort, tools, messages, reasoning, agent, shared, transcript, done) = (
+        let (endpoint, effort, tools, messages, reasoning, alive, agent, shared, transcript, done) = (
             self.endpoint.clone(),
             self.effort.clone(),
             self.tools.clone(),
             self.messages.clone(),
             self.reasoning.clone(),
+            self.alive.clone(),
             self.agent.clone(),
             self.shared.clone(),
             self.transcript.clone(),
@@ -179,6 +191,11 @@ impl ApiSession {
                 };
                 api_ms += t0.elapsed().as_millis();
                 calls += 1;
+                if !alive.load(Ordering::Relaxed) {
+                    // The driver gave up on this turn and replaced the session: the answer is not played.
+                    transcript.record(json!({ "kind": "late", "message": format!("the endpoint answered after the session was replaced ({} s): dropped", api_ms / 1000) }));
+                    return;
+                }
                 let usage = &response["usage"];
                 let (call_in, call_out, call_cached) = (usage["prompt_tokens"].as_u64().unwrap_or(0), usage["completion_tokens"].as_u64().unwrap_or(0), usage["prompt_tokens_details"]["cached_tokens"].as_u64().unwrap_or(0));
                 input += call_in;

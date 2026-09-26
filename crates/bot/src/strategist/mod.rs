@@ -335,7 +335,7 @@ impl Session {
                     let _ = c.wait();
                 }
             }
-            SessionKind::Api(_) => {}
+            SessionKind::Api(session) => session.end(),
         }
     }
 }
