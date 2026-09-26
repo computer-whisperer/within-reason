@@ -73,7 +73,7 @@ const STATION_SLACK: f32 = 300.0;
 /// A named place this far from a group is not a walk state.
 const WALK_REACH: f32 = 3000.0;
 /// A builder sent home from an enemy has no building default for this long after.
-const RETREAT_HOLD: i32 = 30 * FRAMES_PER_SECOND;
+pub(super) const RETREAT_HOLD: i32 = 30 * FRAMES_PER_SECOND;
 /// A course set by a pick is not displaced by a rule default for this long.
 const PICK_HOLD: i32 = 60 * FRAMES_PER_SECOND;
 /// A deviation from a rule's default needs a state noul this high: the packet's word against a coin flip
@@ -440,6 +440,33 @@ impl Brain {
                 let default = rules.get("retreat_when_enemy_near").is_some_and(|v| v == "yes") && party.is_some() && !walking_home && !queue;
                 let why = party.map_or(String::new(), |p| format!(" from {} ({}), which it does not outweigh", p.name, p.composition));
                 push("retreat_home", Response::RetreatHome, format!("{then}{name} goes home{why} ({} away){leaves}", distance_words(unit.pos.dist2d(self.home))), default, walking_home, false);
+            } else if let Some(party) = nearest_party.filter(|p| !lone_scout(p) && !self.odds_words(&[unit], p, enemies).starts_with("we outweigh")) {
+                // 1b. At home with a party it does not outweigh in the alarm reach: the way home is no way out, so a
+                // step to the nearest place of ours out of the party's reach (onepass-player-2, 12:03-12:40: the
+                // commander helped the plant at home while the block walked in from 671 to 250 and killed it; the
+                // packet said "walks away west or south" and no state could).
+                let away: Option<&super::Place> = picture
+                    .places
+                    .iter()
+                    .filter(|pl| pl.name != "home" && pl.at.dist2d(party.at) > ALARM + 200.0 && pl.at.dist2d(party.at) > unit.pos.dist2d(party.at) + 300.0)
+                    .filter(|pl| picture.state["places"][&pl.name]["what"].as_str().is_some_and(|w| w.starts_with("our ")) || pl.spot.is_none())
+                    .filter(|pl| self.reachable_for(self.walker_of(unit.def), pl.at))
+                    .min_by(|a, b| a.at.dist2d(unit.pos).total_cmp(&b.at.dist2d(unit.pos)));
+                if let Some(pl) = away {
+                    let current = matches!(task, Some(Task::Walk { place, .. }) if *place == pl.name);
+                    let default = rules.get("retreat_when_enemy_near").is_some_and(|v| v == "yes") && !queue;
+                    push(&format!("step_away_{}", pl.name), Response::WalkTo(pl.name.clone()), format!("{then}{name} steps away from {} ({}, {:.0} away, which it does not outweigh) to {} ({} away), out of its reach{leaves}", party.name, party.composition, party.at.dist2d(unit.pos), pl.name, distance_words(unit.pos.dist2d(pl.at))), default, current, false);
+                }
+            }
+            // A builder on the player's list is in the pass only while threatened, and then with the ways out of
+            // the threat alone: the list is the player's order and the pick keeps off it (onepass-player-1: 117
+            // picks on listed builders; onepass-player-2: a constructor sent home from a Pawn never got its list
+            // back, the pick built it a turret and an extractor elsewhere for two minutes).
+            if pianist.scripts.get(&name).is_some_and(|s| !s.is_empty()) {
+                if states.len() > 1 {
+                    slots.push(Slot { name, kind: Kind::Builder(unit.id), states, queue_ahead: queue, idle });
+                }
+                continue;
             }
             // 2. The attack on a party it outweighs alone is a state of the party's threat slot (`threats.rs`), opened by
             // the party's own "needs answering" noul: as a builder state its noul sat at 0.31-0.43 under the flag while a

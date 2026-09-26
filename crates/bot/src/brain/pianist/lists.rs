@@ -36,7 +36,10 @@ impl Brain {
                 continue;
             }
             let status = self.builder_status(&pianist, unit, picture, &under_fire, own);
-            if status.threatened {
+            // A list plays under threat too: it is the player's order (onepass-player-2, 12:23: the commander's list
+            // to spot_68 away from the block never started, the block being within 800). Not in the hold after the
+            // pass sent the builder home: the way out first.
+            if pianist.retreated.get(&unit.id).is_some_and(|f| frame - f < super::plan::RETREAT_HOLD) {
                 continue;
             }
             let task = pianist.tasks.get(&unit.id).cloned();

@@ -19,8 +19,13 @@ use super::Brain;
 
 /// A party this large is met whole, never hunted by a detachment.
 const HUNT_PARTY_MAX: usize = 2 * DETACH_PARTY_MAX;
-/// A group this far from a party has no state against it.
-const RESPONSE_REACH: f32 = RAIDER_REACH;
+/// A hunt (a detachment after a raider) is a local reflex: offered within this of the party. The whole-group attack
+/// and the way back have no reach: the walk is in the words and the pick weighs it (onepass-player-2: the ball 1,380
+/// and 1,475 from a block killing our plant and then our commander had no state against it under a flat 1,200; the
+/// user: "a flat 1200 limit seems wrong").
+const HUNT_REACH: f32 = RAIDER_REACH;
+/// Groups offered against one party at most, nearest first: the question count stays bounded on a map of many groups.
+const GROUPS_PER_PARTY: usize = 3;
 /// The speed an unidentified contact is taken to have when a hunt is sized against it (a Pawn's).
 const UNIDENTIFIED_SPEED: f32 = 87.0;
 
@@ -69,10 +74,8 @@ impl Brain {
             let mut default_set = false;
             let mut groups: Vec<(f32, &super::groups::Group)> = pianist.groups.iter().filter_map(|g| super::groups::centre_of(&g.units(own)).map(|c| (c.dist2d(party.at), g))).collect();
             groups.sort_by(|a, b| a.0.total_cmp(&b.0));
-            for (distance, group) in groups {
-                if distance > RESPONSE_REACH {
-                    continue;
-                }
+            for (distance, group) in groups.into_iter().take(GROUPS_PER_PARTY) {
+                let far = distance > HUNT_REACH;
                 let name = format!("group_{}", group.name);
                 let rules = pianist.standing.rules_for(&name);
                 let never = pianist.standing.never_places(&name);
@@ -103,7 +106,7 @@ impl Brain {
                     GroupTask::Engage { .. } => ", leaving the party it was attacking".to_string(),
                 };
                 // The hunt: the fastest members that outrun the party, the fewest that outweigh it.
-                if party.ids.len() <= HUNT_PARTY_MAX && group.domain != crate::world::Domain::Air && !rules.get("no_detachments").is_some_and(|v| v == "yes") && (!declined || hunting_it) {
+                if !far && party.ids.len() <= HUNT_PARTY_MAX && group.domain != crate::world::Domain::Air && !rules.get("no_detachments").is_some_and(|v| v == "yes") && (!declined || hunting_it) {
                     let mut fast: Vec<&OwnUnit> = units.iter().copied().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed > quarry_speed)).collect();
                     fast.sort_by(|a, b| a.pos.dist2d(party.at).total_cmp(&b.pos.dist2d(party.at)));
                     let wanted = raider_rule.strip_prefix("detachment:").and_then(|n| n.parse::<usize>().ok()).unwrap_or(0);
@@ -133,11 +136,12 @@ impl Brain {
                 // The whole group.
                 if odds != "it outweighs us" && !odds.starts_with("we cannot hit") && !units.is_empty() && (chase_allowed || engaging_it) {
                     let default = !default_set && !declined && (raider_rule == "whole_group" || named);
+                    let walk = if group_speed.is_finite() && group_speed > 0.0 { format!(", {:.0} s of walking", distance / group_speed) } else { String::new() };
                     states.push(state(
                         format!("{}.whole_{name}", party.name),
                         name.clone(),
                         Response::Whole,
-                        format!("{name} attacks {} ({}{}) with the whole group, {distance:.0} away{leave}{outrun}", party.name, party.composition, under(party)),
+                        format!("{name} attacks {} ({}{}) with the whole group ({standing:.0} metal against its {:.0}), {distance:.0} away{walk}{leave}{outrun}", party.name, party.composition, under(party), party.metal),
                         standing,
                         default,
                         engaging_it,

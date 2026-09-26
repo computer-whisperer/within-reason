@@ -577,7 +577,15 @@ impl Brain {
         let questions = plan::gate_questions(&slots, self.pianist.as_ref().is_some_and(|p| p.told));
         // The economy in the signature at its extremes only: the stock words' five buckets flapped at their edges
         // (onepass-medium-3: 58 of 663 asks).
-        let eco = format!("{}|{}", if tick.snapshot.metal.current < 100.0 { "empty" } else if tick.snapshot.metal.current >= tick.snapshot.metal.storage - 1.0 { "full" } else { "" }, picture.state["economy"]["energy"].as_str().is_some_and(|e| e.contains("STALLING")));
+        // ... and whether the store now covers the cheapest unit an idle lab could make: the store crossing that cost
+        // is what an idle lab waits for (onepass-norules-hard-4: each Stout cycle ran 5 s of building and 21 s of
+        // waiting, the pick having kept w1 at 138 metal and the pass staying quiet for the 20 s re-ask).
+        let idle_lab_afford = slots.iter().any(|s| {
+            matches!(s.kind, plan::Kind::Lab(_))
+                && s.base() == 0
+                && s.states.iter().filter_map(|st| if let plan::Response::Next(def) = &st.response { self.world.def(*def).map(|d| d.metal_cost) } else { None }).fold(f32::INFINITY, f32::min) <= tick.snapshot.metal.current
+        });
+        let eco = format!("{}|{}|{}", if tick.snapshot.metal.current < 100.0 { "empty" } else if tick.snapshot.metal.current >= tick.snapshot.metal.storage - 1.0 { "full" } else { "" }, picture.state["economy"]["energy"].as_str().is_some_and(|e| e.contains("STALLING")), idle_lab_afford);
         let sig = format!("{}|{eco}|{}", plan::signature(&slots), self.pianist.as_ref().expect("pianist mode").packet_frame);
         let jev = self.pianist.as_ref().is_some_and(|p| p.client.is_some());
         let pianist = self.pianist.as_mut().expect("pianist mode");
