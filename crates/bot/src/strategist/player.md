@@ -77,20 +77,21 @@ shoots one target at a time with its neighbours (`focus`), steps back while relo
 all, which rules apply: `raw` is none, and the group's orders reach the engine exactly as your hands gave them. Use
 it when a group must go somewhere or fight something and the footwork is in the way; the group's entry shows the
 setting while it is not the default.
-`standing` is the bot's own reading of your packet: once a turn Jev reads the packet into standing orders from a
-fixed vocabulary (a group's station and how it answers a lone raider or a small party, whether it chases, splits,
-holds its line or falls back to a named place, the places it never goes; a builder's standing job, whether it attacks
-raiders near it or walks home from soldiers, when it builds solars and where turrets), and the bot plays those every
-second without asking Jev while they apply. Write the packet in those words and the reading is sure ("group_B stands
-at spot_61", "a lone Tick at an extractor is met by two Blitzes (send_against 2)", "never chases", "never goes to
-spot_50"); a hedged reading sets nothing and the menu decides as before. `standing` with no arguments shows what is
-in force, `set` puts a rule in directly (it outranks the packet's for that actor and rule until cleared; the answer
-names an actor refused for an unknown place, party or rule, and the other actors' rules land when the turn ends), `clear`
-drops tool orders. The picture's `standing` line on each actor shows its orders, and the report says which fired and
-how many asks of Jev they saved. A group with standing orders is decided by one question a second over the joined
-worlds of every such group (its rule's result, a fight at the nearest party, the way back, or its course): the rules
-are the first world, and the hands pick another only when the situation calls for it; a group with nothing to weigh
-is not asked at all. What the vocabulary cannot say (a boundary, a condition, a route) stays prose.
+How the hands read your packet: every game second Jev is shown the whole packet beside the picture and rates, for
+each unit, each of the moves the bot can execute (a builder's extractor at a spot the packet names, each building,
+help, a retreat, an attack on a raider; a lab's next unit; a group's answer to a party, its station, a walk, a fall
+back, a scout), then picks one plan for the second from the rated moves. Nothing is read out of the packet once and
+played by rule: the packet is prose to Jev every second, so what it follows is what it can check against the counts
+in the picture. It follows a table of counts surely ("with 0, 1, 2 or 3 constructors: a construction vehicle; with 4
+or more, while our soldiers are a handful: a Blitz"; "with 4 extractors: an extractor at spot_28, with 5: spot_30";
+the state's own words carry the count: "our 5th", "we have 4 constructors"). It does not follow a standing-job
+sentence ("their job is taking free spots on our strip, nearest home first") or a cadence ("one Blitz after every
+four Stouts"). A condition holds only when its row names both cases ("with the energy line reading STALLING: one
+solar; banking or in balance: no solar, ever"); a positive condition alone is read loosely. A never sentence holds
+("never at spot_43"). The `standing` tool still sets rules the bot plays every second without asking (a group's
+station, its answer to a lone raider or a party, no_chase, never places, fall_back_to; a builder's job, attack_raiders,
+solar, turrets): `set` puts one in, `standing` with no arguments shows what is in force, `clear` drops them. Use it
+for what must be reflexive and sure; the packet for everything a table can say.
 `produce` restricts what a lab, or every lab, may build to a list of unit names: the lab is then offered those and
 nothing else, so the mix is exactly what you allow and the packet's words only order among them. A name with a count
 after a colon (`armck:1`) is allowed that many more times and then drops off the list by itself. It is the sure way

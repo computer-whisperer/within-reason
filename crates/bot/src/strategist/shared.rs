@@ -233,6 +233,8 @@ pub struct Hands {
     /// from the tool.
     pub standing_text: String,
     pub standing_counts: (usize, usize),
+    /// Whether the packet is read into standing orders at all (`WITHIN_REASON_RULES`); false: prose every second.
+    pub packet_rules: bool,
 }
 
 /// A change to the standing orders from the `standing` tool: rules per actor to set (checked by the brain against

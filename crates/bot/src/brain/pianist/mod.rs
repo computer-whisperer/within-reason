@@ -1127,6 +1127,7 @@ impl Brain {
         hands.done.append(&mut pianist.done);
         hands.standing_text = pianist.standing.in_force();
         hands.standing_counts = pianist.standing.counts();
+        hands.packet_rules = pianist.rules;
         hands.engaged = pianist.played.iter().filter(|p| p["did"].as_str().is_some_and(|d| d.starts_with("attack "))).filter_map(|p| p["actor"].as_str().map(str::to_string)).collect();
     }
 
