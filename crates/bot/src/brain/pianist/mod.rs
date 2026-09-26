@@ -567,7 +567,9 @@ impl Brain {
             }
             return;
         }
-        let base: plan::World = slots.iter().map(plan::Slot::base).collect();
+        let mut base: plan::World = slots.iter().map(plan::Slot::base).collect();
+        plan::hold_current(&slots, &mut base);
+        plan::resolve(&slots, &mut base);
         let started = self.apply_plan(tick, kit, picture, &slots, &base, "rule", commands);
         if !started.is_empty() {
             line["plan"] = json!(started);

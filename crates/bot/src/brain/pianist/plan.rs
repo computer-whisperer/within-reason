@@ -400,8 +400,12 @@ impl Brain {
             let name = self.actor_name(unit.id);
             let task = pianist.tasks.get(&unit.id);
             let status = self.builder_status(pianist, unit, picture, &under_fire, own);
-            // On a list (H-HANDS-SCRIPT): not in the pass while it runs; a threatened builder is.
-            if !status.threatened && pianist.scripts.get(&name).is_some_and(|s| !s.is_empty()) {
+            // On a list (H-HANDS-SCRIPT): not in the pass while it runs; a threatened builder is. A builder on its
+            // list's last step has an empty list and a step in progress: still listed (onepass-player-4, 27:50-28:05:
+            // treated as free, the `expand` rule's default walked it off its solar every second and the list took it
+            // back the next, twenty times over, until every constructor died walking).
+            let listed = pianist.scripts.get(&name).is_some_and(|s| !s.is_empty()) || pianist.list_steps.contains_key(&unit.id);
+            if !status.threatened && listed {
                 continue;
             }
             // A started build under the queue mark, unthreatened: nothing but the build (H-HANDS-STARTED).
@@ -454,7 +458,7 @@ impl Brain {
             // the threat alone: the list is the player's order and the pick keeps off it (onepass-player-1: 117
             // picks on listed builders; onepass-player-2: a constructor sent home from a Pawn never got its list
             // back, the pick built it a turret and an extractor elsewhere for two minutes).
-            if pianist.scripts.get(&name).is_some_and(|s| !s.is_empty()) {
+            if listed {
                 if states.len() > 1 {
                     slots.push(Slot { name, kind: Kind::Builder(unit.id), states, queue_ahead: queue, idle });
                 }
@@ -898,7 +902,22 @@ pub(super) fn signature(slots: &[Slot]) -> String {
 /// An actor a threat state sends against a party keeps its own slot: its course or build slot goes to keep in that
 /// world, so one second never carries two orders for one actor (onepass-player-1, 3:17: "2 of group_A hunt party_5"
 /// and "walk to spot_43" in one pass, 13 such seconds, 90 walk/attack flips on group_A).
-fn resolve(slots: &[Slot], world: &mut World) {
+/// An actor doing what one of its slots calls current holds: the defaults of its other slots are set to keep. Two
+/// rule defaults on one actor otherwise fire in turn every second (onepass-player-4, 24:30-24:50: the player's
+/// `raiders_party: whole_group` on the threat slot and `fall_back_to: spot_38` on the course slot, each the default
+/// while the group did the other's state; the player: "flipping every second between attacking their 18-unit
+/// block and walking back"). The pick still changes a current state; the base never contradicts it.
+pub(super) fn hold_current(slots: &[Slot], world: &mut World) {
+    let holding: Vec<&str> = slots.iter().zip(world.iter()).filter(|(s, i)| s.states[**i].current).map(|(s, i)| s.states[*i].actor.as_str()).collect();
+    for (sj, slot) in slots.iter().enumerate() {
+        let state = &slot.states[world[sj]];
+        if !state.current && state.default && holding.contains(&state.actor.as_str()) {
+            world[sj] = 0;
+        }
+    }
+}
+
+pub(super) fn resolve(slots: &[Slot], world: &mut World) {
     let sent: Vec<String> = slots.iter().zip(world.iter()).filter(|(s, i)| matches!(s.kind, Kind::Threat(..)) && **i != 0).map(|(s, i)| s.states[*i].actor.clone()).collect();
     for (sj, slot) in slots.iter().enumerate() {
         if !matches!(slot.kind, Kind::Threat(..)) && sent.contains(&slot.name) {
@@ -919,6 +938,7 @@ pub(super) fn compose(slots: &[Slot], answers: &BTreeMap<String, Answer>, flags:
         _ => None,
     };
     let mut base: World = slots.iter().map(Slot::base).collect();
+    hold_current(slots, &mut base);
     resolve(slots, &mut base);
     // Actors world 1 sends against a threat.
     let taken: BTreeSet<&str> = slots.iter().zip(&base).filter(|(s, b)| matches!(s.kind, Kind::Threat(..)) && **b != 0).map(|(s, b)| s.states[*b].actor.as_str()).collect();

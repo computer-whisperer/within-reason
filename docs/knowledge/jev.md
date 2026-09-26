@@ -1034,6 +1034,11 @@ the hunt and the builder's attack after player-3 (the builder's within the raide
 **Would be wrong if.** Jev took far states indiscriminately once offered (the whole ball walking 2,400 after every
 Tick, the commander leaving the plant for every Pawn on the strip): the next player game is the check, the hunt's
 drive in seconds and "killing extractor" in its words the lever if it declines them all.
+**Checked (onepass-player-4, `run/matches/1790430054-onepass-player-4`).** Not indiscriminate: the commander's
+attack was on the gate 518 times at 600-1,200 away and 197 within 600, taken 7 times (4:50, 4:55, 5:59 against lone
+Ticks, 26:25-28:31 in the last stand); hunts were offered 1,186 times beyond 1,200 and 422 within, taken 54 times (41
+by the player's detachment rules, 13 by the pick). No walk back was re-advanced (0 fall-back-then-advance pairs
+within 3 s, against every fourth second in player-3).
 **Used by.** H-HANDS-THREATS, H-HANDS-COMMANDER-FIGHTS.
 
 ### K-hands-a-raider-answer-is-its-drive-off-time
