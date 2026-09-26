@@ -19,13 +19,59 @@ CODEX_PREAMBLE = ("Answer directly in your final message. Do not run commands, r
 
 
 def backend_of(model):
+    if model.startswith(("fw:", "api:")):
+        return "api"
     return "codex" if model.startswith(("gpt", "o1", "o3", "o4", "codex")) else "claude"
+
+
+def api_config(model):
+    """The endpoint, key and model id for `fw:<model>` (Fireworks, `~/.config/within-reason/fireworks.env`) or
+    `api:<model>` (`api.env`): the environment variable of each name overrides the file. Never printed."""
+    prefix, name = model.split(":", 1)
+    var = "FIREWORKS" if prefix == "fw" else "API"
+    path = os.path.join(os.path.expanduser("~"), ".config", "within-reason", "fireworks.env" if prefix == "fw" else "api.env")
+    values = {}
+    if os.path.exists(path):
+        for line in open(path):
+            line = line.strip()
+            if "=" in line and not line.startswith("#"):
+                k, v = line.split("=", 1)
+                values[k.strip()] = v.strip().strip('"').strip("'")
+    get = lambda k, default=None: os.environ.get(f"{var}_{k}") or values.get(f"{var}_{k}") or default
+    base = get("BASE_URL", "https://api.fireworks.ai/inference/v1" if prefix == "fw" else None)
+    key = get("API_KEY") if prefix == "fw" else get("KEY")
+    if not key or not base:
+        raise RuntimeError(f"no key or base url for {prefix}: put them in {path}")
+    return base.rstrip("/"), key, name, int(get("MAX_TOKENS", 8192))
+
+
+def ask_api(system, user, model, effort, timeout):
+    import urllib.request
+    base, key, name, max_tokens = api_config(model)
+    body = {"model": name, "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}], "max_tokens": max_tokens}
+    if effort and effort != "medium":
+        body["reasoning_effort"] = effort
+    req = urllib.request.Request(base + "/chat/completions", data=json.dumps(body).encode(), headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"})
+    t0 = time.time()
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            data = json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        return {"text": "", "wall": time.time() - t0, "api_s": None, "usage": {}, "cost_usd": None, "error": f"HTTP {e.code}: {e.read()[:300].decode(errors='replace')}"}
+    except Exception as e:  # noqa: BLE001
+        return {"text": "", "wall": time.time() - t0, "api_s": None, "usage": {}, "cost_usd": None, "error": str(e)[:300]}
+    wall = time.time() - t0
+    u = data.get("usage") or {}
+    text = ((data.get("choices") or [{}])[0].get("message") or {}).get("content") or ""
+    return {"text": text, "wall": wall, "api_s": wall, "usage": {"input_tokens": u.get("prompt_tokens"), "output_tokens": u.get("completion_tokens")}, "cost_usd": None, "error": ""}
 
 
 def ask(system, user, model, effort="low", config_dir=CLAUDE_CONFIG_DIR, timeout=900, thinking=None):
     """`effort` is the CLI's reasoning setting (claude --effort low..max; codex model_reasoning_effort none/low/...,
     what each model accepts differs). `thinking` (claude only) caps the thinking tokens; 0 turns thinking off, which
     `--effort low` does not do for haiku."""
+    if backend_of(model) == "api":
+        return ask_api(system, user, model, effort, timeout)
     if backend_of(model) == "codex":
         return ask_codex(system, user, model, effort, timeout)
     return ask_claude(system, user, model, effort, config_dir, timeout, thinking)

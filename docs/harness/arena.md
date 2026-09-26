@@ -64,7 +64,7 @@ team board (`crates/bot/src/team.rs`); each seat writes its own `record-<ai>.jso
 headless; an allied BARb is the same code path for us. The referee's balance line counts our whole ally team against every enemy.
 `--player` gives our seats one LLM session between them (transcript `strategist-<first seat's ai>.jsonl`);
 `--commander-model claude-opus-5-5` replaces the player's usual model. (The commander and strategist modes were deleted
-2026-09-25, `docs/design/2026-09-25-one-decider.md`.)
+2026-09-25, `docs/design/2026-09-25-one-decider.md`.) `fw:<model id>` runs the player on Fireworks.ai and `api:<model>` on any OpenAI-compatible endpoint through the bot's own API client (`docs/harness/api-backend.md`: the key file, the turn shape, the transcript).
 
 ## Post-game analysis
 

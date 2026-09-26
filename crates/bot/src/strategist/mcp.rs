@@ -69,20 +69,7 @@ fn handle(call: &Value, shared: &Arc<Shared>, transcript: &Transcript) -> Option
         "tools/call" => {
             let name = call["params"]["name"].as_str().unwrap_or_default();
             let arguments = &call["params"]["arguments"];
-            let outcome = if shared.turn_over.load(Ordering::Relaxed) {
-                Err("Your turn is over and the game is running. Stop now: call nothing more and write nothing more. You will be woken with a new report.".to_string())
-            } else if name == "orders" {
-                orders(arguments, shared)
-            } else {
-                call_tool(name, arguments, shared)
-            };
-            // Full results, briefings included: they are what the strategist decided on, and the
-            // labelled state for evaluating faster models against its decisions.
-            let recorded = outcome.as_ref().map_or_else(
-                |problem| Value::String(problem.clone()),
-                |text| serde_json::from_str(text).unwrap_or_else(|_| Value::String(text.clone())),
-            );
-            transcript.record(json!({ "kind": "tool_call", "tool": name, "arguments": arguments, "result": recorded }));
+            let outcome = call_recorded(name, arguments, shared, transcript);
             Ok(match outcome {
                 Ok(text) => json!({ "content": [{ "type": "text", "text": text }] }),
                 Err(problem) => json!({ "content": [{ "type": "text", "text": problem }], "isError": true }),
@@ -94,6 +81,34 @@ fn handle(call: &Value, shared: &Arc<Shared>, transcript: &Transcript) -> Option
         Ok(result) => json!({ "jsonrpc": "2.0", "id": id, "result": result }),
         Err(error) => json!({ "jsonrpc": "2.0", "id": id, "error": error }),
     })
+}
+
+/// One tool call from the player, by the MCP server or the API backend (`api.rs`): refused once the turn's `wait`
+/// has passed, the `orders` batch or a single tool, and recorded in the transcript in full (results, briefings
+/// included: they are what the strategist decided on, and the labelled state for evaluating faster models against
+/// its decisions).
+pub(super) fn call_recorded(name: &str, arguments: &Value, shared: &Arc<Shared>, transcript: &Transcript) -> Result<String, String> {
+    let outcome = if shared.turn_over.load(Ordering::Relaxed) {
+        Err("Your turn is over and the game is running. Stop now: call nothing more and write nothing more. You will be woken with a new report.".to_string())
+    } else if name == "orders" {
+        orders(arguments, shared)
+    } else {
+        call_tool(name, arguments, shared)
+    };
+    let recorded = outcome.as_ref().map_or_else(
+        |problem| Value::String(problem.clone()),
+        |text| serde_json::from_str(text).unwrap_or_else(|_| Value::String(text.clone())),
+    );
+    transcript.record(json!({ "kind": "tool_call", "tool": name, "arguments": arguments, "result": recorded }));
+    outcome
+}
+
+/// The same tools in OpenAI's shape for the API backend: `function` with the MCP `inputSchema` as `parameters`.
+pub(super) fn openai_tools() -> Vec<Value> {
+    tool_list()
+        .as_array()
+        .map(|tools| tools.iter().map(|t| json!({ "type": "function", "function": { "name": t["name"], "description": t["description"], "parameters": t["inputSchema"] } })).collect())
+        .unwrap_or_default()
 }
 
 /// The player's tools: its levers are the packet (`instruct`), the lists, the standing rules and the production

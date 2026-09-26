@@ -6,6 +6,7 @@
 //! - **Player**: Opus over the pianist (`docs/design/2026-09-21-pianist.md`): turns when woken, the game held
 //!   still meanwhile, and one lever, the standing instructions in prose that Jev reads every second.
 
+mod api;
 mod mcp;
 mod report;
 pub mod seats;
@@ -81,21 +82,30 @@ struct Launch {
     mcp_config: String,
     mcp_url: String,
     transcript: Arc<Transcript>,
+    shared: Arc<Shared>,
 }
 
-/// Which CLI runs the model: Claude Code for Claude models, the Codex CLI for OpenAI ones (`gpt-*`), chosen by the
-/// model's name. Codex has no long-lived session over stdin: every turn is one `codex exec`, resumed on the thread the
+/// What runs the model, chosen by the model's name: Claude Code for Claude models, the Codex CLI for OpenAI ones
+/// (`gpt-*`), the API client (`api.rs`) for `fw:<model>` on Fireworks and `api:<model>` on any OpenAI-compatible
+/// endpoint. Codex has no long-lived session over stdin: every turn is one `codex exec`, resumed on the thread the
 /// first one started, with the role text as `AGENTS.md` in the working directory and the bot's MCP server attached by
-/// URL.
+/// URL. The API session owns its message list and calls the tools in-process.
 #[derive(Clone, Copy, PartialEq, Debug)]
 enum Backend {
     Claude,
     Codex,
+    Api,
 }
 
 impl Backend {
     fn for_model(model: &str) -> Backend {
-        if model.starts_with("gpt-") || model.starts_with("o3") || model.starts_with("o4") { Backend::Codex } else { Backend::Claude }
+        if api::Endpoint::is_api_model(model) {
+            Backend::Api
+        } else if model.starts_with("gpt-") || model.starts_with("o3") || model.starts_with("o4") {
+            Backend::Codex
+        } else {
+            Backend::Claude
+        }
     }
 }
 
@@ -111,6 +121,7 @@ enum SessionKind {
         child: Arc<std::sync::Mutex<Option<Child>>>,
         turn_done_tx: std::sync::mpsc::Sender<()>,
     },
+    Api(api::ApiSession),
 }
 
 struct Session {
@@ -140,7 +151,7 @@ impl Strategist {
         );
         let effort = std::env::var("WITHIN_REASON_EFFORT").ok().filter(|e| !e.is_empty()).unwrap_or_else(|| DEFAULT_EFFORT.into());
         let mcp_url = format!("http://127.0.0.1:{}/mcp", server.port);
-        let launch = Launch { cwd, config_dir, effort, mcp_config: mcp_config.to_string(), mcp_url, transcript };
+        let launch = Launch { cwd, config_dir, effort, mcp_config: mcp_config.to_string(), mcp_url, transcript, shared: shared.clone() };
         let session = launch.spawn()?;
         eprintln!(
             "[ai {ai_id}] the player started ({}, effort {}, {}, MCP on port {})",
@@ -149,6 +160,7 @@ impl Strategist {
             match Backend::for_model(&model()) {
                 Backend::Claude => format!("account {}", launch.config_dir.display()),
                 Backend::Codex => "the Codex CLI on its own login".to_string(),
+                Backend::Api => api::Endpoint::for_model(&model()).map_or_else(|e| e.to_string(), |e| e.describe()),
             },
             server.port
         );
@@ -168,6 +180,12 @@ impl Drop for Strategist {
 impl Launch {
     fn spawn(&self) -> std::io::Result<Session> {
         let prompt = system_prompt();
+        if Backend::for_model(&model()) == Backend::Api {
+            let endpoint = api::Endpoint::for_model(&model())?;
+            let (turn_done_tx, turn_done) = channel();
+            let session = api::ApiSession::start(endpoint, &self.effort, &prompt, mcp::openai_tools(), self.shared.clone(), self.transcript.clone(), turn_done_tx);
+            return Ok(Session { kind: SessionKind::Api(session), turn_done, prompt: crate::texts::digest(&prompt) });
+        }
         if Backend::for_model(&model()) == Backend::Codex {
             std::fs::write(self.cwd.join("AGENTS.md"), &prompt)?;
             let (turn_done_tx, turn_done) = channel();
@@ -237,6 +255,7 @@ impl Session {
     /// (Codex), whose events go to the transcript in the same shape and whose exit is the turn's result.
     fn send(&mut self, prompt: &str) -> bool {
         match &mut self.kind {
+            SessionKind::Api(session) => session.send(prompt),
             SessionKind::Claude { stdin, .. } => {
                 let line = json!({ "type": "user", "message": { "role": "user", "content": prompt } });
                 writeln!(stdin, "{line}").and_then(|()| stdin.flush()).is_ok()
@@ -316,6 +335,7 @@ impl Session {
                     let _ = c.wait();
                 }
             }
+            SessionKind::Api(_) => {}
         }
     }
 }
