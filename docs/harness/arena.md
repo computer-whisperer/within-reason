@@ -1,7 +1,7 @@
 # Arena — batch evaluation
 
 `target/release/arena [--matches N] [--parallel N] [--speed N] [--realtime] [--profile easy|medium|hard|hard_aggressive] [--map NAME]
-[--max-minutes N] [--label TEXT] [--base-port N]`
+[--max-minutes N] [--label TEXT] [--base-port N] [--think-cap S] [--turn-limit S]`
 
 Per match: a directory `run/matches/<unix-stamp>-<label>/NN/` holding `script.txt`, `engine.log`, `bot.log`, the match record
 `record-<ai_id>.jsonl` (`record-format.md`; open it with `run/view_match.py`, which browses every batch, or `run/view_match.py <match dir>`), the replay under `demos/`, and the engine's write-dir litter; `results.jsonl` per batch. The arena rebuilds and reinstalls the AI first
@@ -126,6 +126,12 @@ mode's directives, field orders and wake) are held back X game seconds per wall 
 standing meanwhile, and the hands act inside the gap as they would live. So a batch is compressed (speed 50, the
 game held) but representative of a real-time game. Every player game before 2026-09-23 15:00 ran without it
 (docs/harness/pitfalls.md); pass `--think-penalty 0` to turn it off on purpose, and say so in the ledger row.
+**The cap on it (`--think-cap S`, default 7 with `--player`, 0 = none; since 2026-09-27):** a turn's delay is at most S
+game seconds, so a provider's slow week does not decide the game while the arena iterates (the user: Opus 5.5's
+turns went from 3-6 s to 20 s and back within days). A game before the cap ran uncapped; `batch.json` records
+`think_cap`. **The turn limit (`--turn-limit S`, default none):** when the median of the player's last five turns
+exceeds S wall seconds the bot writes the match's `stop` file and the arena ends it, undecided and `called`, with the
+reason in `results.jsonl` (`reason`) and a `turn_limit` transcript line; one slow turn is not a pattern, five are.
 
 **Tick rate (since 2026-09-20 evening).** The shim sends a tick every 3 frames (10 Hz) for the control lane; the whole
 brain still runs every 15. In lockstep that is five times the round trips, each paid in wall time (measured: see the

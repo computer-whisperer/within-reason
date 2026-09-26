@@ -11,6 +11,8 @@ Put the key in `~/.config/within-reason/fireworks.env` (`chmod 600`):
     # optional
     FIREWORKS_PRICE_CACHED=0.006
     FIREWORKS_COST_CAP=1
+    # Fireworks' service tier: priority (stronger admission under congestion, about 1.5x the price, applied to the cap's arithmetic)
+    FIREWORKS_SERVICE_TIER=priority
     FIREWORKS_BASE_URL=https://api.fireworks.ai/inference/v1
     FIREWORKS_MAX_TOKENS=8192
 

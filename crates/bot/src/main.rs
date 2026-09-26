@@ -52,7 +52,7 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn log_dir() -> std::path::PathBuf {
+pub(crate) fn log_dir() -> std::path::PathBuf {
     std::env::var_os("WITHIN_REASON_LOG_DIR").map_or_else(|| ".".into(), Into::into)
 }
 

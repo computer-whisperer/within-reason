@@ -16,6 +16,8 @@
 //!              [--hands-effort lean|normal|full]      (the hands' Jev token diet; default lean, the bulk games' level)
 //!              [--opponent-opening any|bots|vehicles]   (pins BARb's first factory by disabling the other; default any)
 //!              [--think-penalty X]   (the player's or commander's orders land X game seconds late per wall second it thought; 1 = as in a live game; default 1 with --player, else 0)
+//!              [--think-cap S]   (the penalty's delay is at most S game seconds a turn, so a slow provider does not decide the game; default 7 with --player, 0 = no cap)
+//!              [--turn-limit S]   (the match ends, undecided and called, when the median of the player's last five turns exceeds S wall seconds; default none)
 //!              [--seed-base N]   (default 1; match i plays seed N+i, for the engine and for BARb: a fresh N is a fresh set of games)
 //!              [--packet PATH]   (the pianist plays this packet text when no player writes one: the arena instrument of the A/Bs)
 //!              [--no-rules]     (the pianist reads no standing rules from the packet: no defaults, no pruning; every response is the pick's)
@@ -99,6 +101,10 @@ struct Options {
     hands_effort: Option<String>,
     /// `--think-penalty X`: the player's orders land X game seconds late per wall second it thought (`WITHIN_REASON_THINK_PENALTY`).
     think_penalty: Option<String>,
+    /// `--think-cap S`: the penalty's delay is at most S game seconds a turn (`WITHIN_REASON_THINK_CAP`; default 7 with `--player`).
+    think_cap: Option<String>,
+    /// `--turn-limit S`: the bot ends the match when the median of its last five turns exceeds S wall seconds (`WITHIN_REASON_TURN_LIMIT`).
+    turn_limit: Option<String>,
     /// `--no-rules`: the pianist reads no standing rules from the packet (`WITHIN_REASON_RULES=off`); every response is the pick's.
     rules: bool,
     /// First of the UDP ports the matches use (two each); a second arena on the same machine needs its own range.
@@ -131,6 +137,8 @@ struct MatchResult {
     seed: u32,
     /// The opponent's first factory, from its ground truth (`WITHIN_REASON_OBSERVE=1`), else empty.
     opponent_first_factory: String,
+    /// Why a called match was called by hand or by the bot (the `stop` file's lines after the outcome), else empty.
+    reason: String,
 }
 
 fn main() -> io::Result<()> {
@@ -164,7 +172,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("BARb {}", options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "commander_model": options.commander_model, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "rules": options.rules, "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "commander_model": options.commander_model, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "rules": options.rules, "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 
@@ -180,7 +188,7 @@ fn main() -> io::Result<()> {
                     let Some(index) = queue.lock().unwrap().pop() else { break };
                     let result = run_match(&repo, &batch_dir, &options, index).unwrap_or_else(|e| {
                         eprintln!("match {index}: {e}");
-                        MatchResult { index, arm: "", outcome: Outcome::Aborted, our_side: "?", our_corner: "?".into(), game_minutes: 0.0, wall_seconds: 0.0, called: false, seed: 0, opponent_first_factory: String::new() }
+                        MatchResult { index, arm: "", outcome: Outcome::Aborted, our_side: "?", our_corner: "?".into(), game_minutes: 0.0, wall_seconds: 0.0, called: false, seed: 0, opponent_first_factory: String::new(), reason: String::new() }
                     });
                     println!(
                         "match {:>2}: {:<7} {} {} {:>5.1} game-min in {:>4.0}s",
@@ -313,6 +321,9 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         .envs(options.objective.as_ref().map(|text| ("WITHIN_REASON_OBJECTIVE", text)))
         // A player game is played as a live one unless told otherwise: its orders land as late as it thought.
         .envs(options.think_penalty.as_deref().or(options.player.then_some("1")).map(|penalty| ("WITHIN_REASON_THINK_PENALTY", penalty.to_string())))
+        // The user, 2026-09-27: a cap on the penalty keeps the arena stable while the providers' speed fluctuates.
+        .envs(options.think_cap.as_deref().or(options.player.then_some("7")).map(|cap| ("WITHIN_REASON_THINK_CAP", cap.to_string())))
+        .envs(options.turn_limit.as_ref().map(|limit| ("WITHIN_REASON_TURN_LIMIT", limit)))
         .envs(options.realtime.then_some(("WITHIN_REASON_REALTIME", "1")))
         .stderr(File::create(dir.join("bot.log"))?)
         .spawn()?;
@@ -365,6 +376,7 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         called,
         seed: setup.seed,
         opponent_first_factory: first_factory(&dir),
+        reason: fs::read_to_string(dir.join("stop")).map(|t| t.lines().skip(1).collect::<Vec<_>>().join(" ").trim().to_string()).unwrap_or_default(),
     };
     if let Err(e) = record::finish(&dir, &result, &options.profile) {
         eprintln!("match {index}: could not close the match record: {e}");
@@ -425,7 +437,7 @@ fn referee(
             // The hand-operated kill switch (`run/stop_match.py`): a file `stop` in the match directory ends the match
             // the way every other match ends, the engine told to quit and given time to write its replay.
             if let Ok(verdict) = fs::read_to_string(engine_log.with_file_name("stop")) {
-                let outcome = match verdict.trim() {
+                let outcome = match verdict.lines().next().unwrap_or("").trim() {
                     "win" => Outcome::Win,
                     "loss" => Outcome::Loss,
                     _ => Outcome::Timeout,
@@ -582,6 +594,8 @@ fn parse_args() -> Options {
         effort: None,
         hands_effort: None,
         think_penalty: None,
+        think_cap: None,
+        turn_limit: None,
         rules: true,
         base_port: BASE_PORT,
     };
@@ -643,6 +657,8 @@ fn parse_args() -> Options {
             "--commander-model" => options.commander_model = Some(value()),
             "--objective" => options.objective = Some(value()),
             "--think-penalty" => options.think_penalty = Some(value()),
+            "--think-cap" => options.think_cap = Some(value()),
+            "--turn-limit" => options.turn_limit = Some(value()),
             "--opponent-opening" => {
                 options.opponent_opening = value();
                 if !["any", "bots", "vehicles"].contains(&options.opponent_opening.as_str()) {
@@ -694,7 +710,7 @@ fn parse_args() -> Options {
 }
 
 fn usage(problem: &str) -> ! {
-    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--label TEXT] [--mirror] [--place] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--no-rules] [--realtime] [--commander-model ID] [--objective TEXT] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N]");
+    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--label TEXT] [--mirror] [--place] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--no-rules] [--realtime] [--commander-model ID] [--objective TEXT] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N]");
     std::process::exit(2)
 }
 

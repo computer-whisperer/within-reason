@@ -139,6 +139,7 @@ impl Strategist {
         shared.gated.store(true, Ordering::Relaxed);
         // How late the commander's orders land, in game seconds per wall second of thought (arena `--think-penalty`).
         *shared.think_penalty.lock().unwrap() = std::env::var("WITHIN_REASON_THINK_PENALTY").ok().and_then(|v| v.parse().ok()).unwrap_or(0.0);
+        *shared.think_cap.lock().unwrap() = std::env::var("WITHIN_REASON_THINK_CAP").ok().and_then(|v| v.parse().ok()).unwrap_or(0.0);
         let transcript = Arc::new(Transcript::create(&dir.join(format!("strategist-{ai_id}.jsonl")))?);
         let server = McpServer::start(shared.clone(), transcript.clone())?;
         // An empty working directory: nothing for the session to discover.
@@ -346,6 +347,8 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
     let mut turns_this_session = 0;
     let mut seen = report::Seen::default();
     let mut owed_result = false;
+    let turn_limit: f32 = std::env::var("WITHIN_REASON_TURN_LIMIT").ok().and_then(|v| v.parse().ok()).unwrap_or(0.0);
+    let mut walls: Vec<f32> = Vec::new();
     while !stop.load(Ordering::Relaxed) {
         let Some(headline) = shared.next_turn_request(stop) else { break };
         // The last turn ended at its `wait`; the session may still be writing its closing words, and takes no new
@@ -414,6 +417,21 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
                     Err(_) => break false,
                 }
             };
+        walls.push(started.elapsed().as_secs_f32());
+        if over_turn_limit(&walls, turn_limit) {
+            // The user, 2026-09-27: turns over 20 s are a non-starter; the arena ends such a match instead of playing it out.
+            let recent = median_of_last(&walls, TURN_LIMIT_WINDOW);
+            let reason = format!("turn limit: the median of the last {TURN_LIMIT_WINDOW} turns is {recent:.0} s, over {turn_limit:.0} s");
+            eprintln!("[ai {ai_id}] {reason}: the match is called");
+            launch.transcript.record(json!({ "kind": "turn_limit", "message": reason }));
+            if let Err(e) = std::fs::write(crate::log_dir().join("stop"), format!("\n{reason}\n")) {
+                eprintln!("[ai {ai_id}] could not write the stop file: {e}");
+            }
+            shared.end_turn();
+            shared.close_gate();
+            session.end();
+            return;
+        }
         if abandoned {
             eprintln!("[ai {ai_id}] turn abandoned after {} s with no answer: the session is replaced", started.elapsed().as_secs());
             launch.transcript.record(json!({ "kind": "turn_end", "wall_seconds": started.elapsed().as_secs_f32(), "ended_by": "abandoned" }));
@@ -442,6 +460,20 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
     }
     shared.close_gate();
     session.end();
+}
+
+/// `--turn-limit`: the match is called when the median of this many latest turns' wall seconds exceeds the limit;
+/// one slow turn (the first reads the map; a provider hiccup) is not a pattern, five are.
+const TURN_LIMIT_WINDOW: usize = 5;
+
+fn median_of_last(walls: &[f32], n: usize) -> f32 {
+    let mut last: Vec<f32> = walls.iter().rev().take(n).copied().collect();
+    last.sort_by(|a, b| a.total_cmp(b));
+    last[last.len() / 2]
+}
+
+fn over_turn_limit(walls: &[f32], limit: f32) -> bool {
+    limit > 0.0 && walls.len() >= TURN_LIMIT_WINDOW && median_of_last(walls, TURN_LIMIT_WINDOW) > limit
 }
 
 /// A turn is abandoned after this long with no answer: in lockstep 45 s (the engine's watchdog, HangTimeout, is 60 s by

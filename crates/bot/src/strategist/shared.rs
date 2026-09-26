@@ -369,6 +369,9 @@ pub struct Shared {
     /// WITHIN_REASON_THINK_PENALTY: the commander's orders take effect this many game seconds late per wall second
     /// it thought (1 = as if the game had kept running while it thought; 0 = at once). Set once at start.
     pub think_penalty: Mutex<f32>,
+    /// The most game seconds a turn's outputs wait under the penalty (`WITHIN_REASON_THINK_CAP`; 0 = no cap). The user,
+    /// 2026-09-27: a provider's slow week should not decide the game while the arena iterates.
+    pub think_cap: Mutex<f32>,
     /// A turn's orders waiting out their delay: the frame they take effect, and what then becomes live.
     pub delayed: Mutex<Option<(i32, TurnOutputs)>>,
 }
@@ -398,7 +401,9 @@ impl Shared {
         // want to compress arena games to get through them faster, but otherwise be representative of realtime games").
         let penalty = *self.think_penalty.lock().unwrap();
         if penalty > 0.0 {
-            let delay = (started.elapsed().as_secs_f32() * penalty * 30.0) as i32;
+            let cap = *self.think_cap.lock().unwrap();
+            let seconds = started.elapsed().as_secs_f32() * penalty;
+            let delay = (if cap > 0.0 { seconds.min(cap) } else { seconds } * 30.0) as i32;
             let after = self.outputs();
             self.restore(before.clone());
             *self.delayed.lock().unwrap() = Some((frame + delay, after.delta_from(&before)));

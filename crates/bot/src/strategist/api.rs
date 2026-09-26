@@ -22,6 +22,8 @@ const FIREWORKS_BASE_URL: &str = "https://api.fireworks.ai/inference/v1";
 const DEFAULT_MAX_TOKENS: u64 = 8192;
 /// A game's spend cap in USD, unless the config file says otherwise (the user, 2026-09-27: one dollar a game to start).
 const DEFAULT_COST_CAP: f64 = 1.0;
+/// Fireworks' priority tier costs about this much more than standard (docs.fireworks.ai/serverless/priority-and-fast).
+const PRIORITY_PRICE_FACTOR: f64 = 1.5;
 /// The message list is trimmed to this many characters before each call, oldest turns first (about 80k tokens).
 const CONTEXT_CHARS_VAR: &str = "API_CONTEXT_CHARS";
 const DEFAULT_CONTEXT_CHARS: usize = 320_000;
@@ -43,6 +45,9 @@ pub(super) struct Endpoint {
     price_output: f64,
     /// USD a game may spend; the player falls silent when it is reached.
     pub cost_cap: f64,
+    /// Fireworks' `service_tier` (`priority`: stronger admission under congestion at about 1.5x the price, which the
+    /// prices here carry; `<VAR>_SERVICE_TIER`), sent with every call when set.
+    service_tier: Option<String>,
 }
 
 impl Endpoint {
@@ -85,7 +90,9 @@ impl Endpoint {
         };
         let price_cached = price("PRICE_CACHED").unwrap_or(price_input);
         let cost_cap = price("COST_CAP").unwrap_or(DEFAULT_COST_CAP);
-        Ok(Endpoint { base_url: base_url.trim_end_matches('/').to_string(), key, model: name.to_string(), max_tokens, price_input, price_cached, price_output, cost_cap })
+        let service_tier = get("SERVICE_TIER").filter(|s| s != "default");
+        let tier_factor = if service_tier.as_deref() == Some("priority") { PRIORITY_PRICE_FACTOR } else { 1.0 };
+        Ok(Endpoint { base_url: base_url.trim_end_matches('/').to_string(), key, model: name.to_string(), max_tokens, price_input: price_input * tier_factor, price_cached: price_cached * tier_factor, price_output: price_output * tier_factor, cost_cap, service_tier })
     }
 
     /// What a call cost, from the usage it reported (`prompt_tokens` counts the cached tokens too).
@@ -95,7 +102,7 @@ impl Endpoint {
     }
 
     pub fn describe(&self) -> String {
-        format!("the API at {} ({}; ${}/${} per million tokens in/out, the cap ${} a game)", self.base_url, self.model, self.price_input, self.price_output, self.cost_cap)
+        format!("the API at {} ({}; ${:.3}/${:.3} per million tokens in/out{}, the cap ${} a game)", self.base_url, self.model, self.price_input, self.price_output, self.service_tier.as_ref().map(|t| format!(", service tier {t}")).unwrap_or_default(), self.cost_cap)
     }
 }
 
@@ -174,6 +181,9 @@ impl ApiSession {
                     let mut list = messages.lock().unwrap();
                     trim(&mut list, budget);
                     let mut body = json!({ "model": endpoint.model, "messages": *list, "tools": *tools, "tool_choice": "auto", "max_tokens": endpoint.max_tokens });
+                    if let Some(tier) = &endpoint.service_tier {
+                        body["service_tier"] = json!(tier);
+                    }
                     if reasoning.load(Ordering::Relaxed) && !effort.is_empty() {
                         body["reasoning_effort"] = json!(effort);
                     }
@@ -342,7 +352,7 @@ mod tests {
 
     #[test]
     fn a_call_is_priced_by_fresh_cached_and_output_tokens() {
-        let e = Endpoint { base_url: String::new(), key: String::new(), model: String::new(), max_tokens: 1, price_input: 1.0, price_cached: 0.25, price_output: 4.0, cost_cap: 1.0 };
+        let e = Endpoint { base_url: String::new(), key: String::new(), model: String::new(), max_tokens: 1, price_input: 1.0, price_cached: 0.25, price_output: 4.0, cost_cap: 1.0, service_tier: None };
         // 1,000,000 prompt tokens of which 400,000 cached, 100,000 output: 0.6 + 0.1 + 0.4.
         assert!((e.cost(1_000_000, 400_000, 100_000) - 1.1).abs() < 1e-9);
         // Cached tokens never exceed the prompt.
