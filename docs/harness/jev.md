@@ -93,3 +93,10 @@ is still jev-1.13.0 (`jev-latest` = `jev-preview`). What applies to the hands, a
   questions; the `where` question now says the places are described under `places`.
 - **Confidence thresholds are to be tuned on our own data**, and answers wobble by a few hundredths between calls: the
   A/B script repeats each request three times (`run/jev_inflight_ab.py`).
+
+**2026-09-27, the two calls as fast as they can be made (the user).** Measured in onepass-player-8: the gate 278 ms
+median (p90 316) over ~25 KB of state and 50 questions, the pick 238 ms (p90 274) over the same state resent with one
+Choice; `places` was 10 KB of it. Now the pick's state is cut to what the worlds name (`plan::pick_state`: actors no
+world sends are one line, places nothing names are dropped), and in realtime the worker composes the worlds and makes
+the pick the instant the gate answers instead of waiting for the next think, and answers are polled every tick (3
+frames) rather than every think (15). In lockstep the calls take no game time; the saving there is wall time.

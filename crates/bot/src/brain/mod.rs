@@ -271,6 +271,9 @@ impl Brain {
         if tick.due() % BRAIN_FRAMES != 0 {
             self.carried_events.extend(tick.events.iter().cloned());
             let mut commands = Vec::new();
+            if self.pianist.is_some() {
+                self.poll_hands(tick, &mut commands);
+            }
             self.micro(tick, &mut commands);
             return commands;
         }

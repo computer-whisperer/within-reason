@@ -199,10 +199,28 @@ const STALE_FRAMES: i32 = 3 * FRAMES_PER_SECOND;
 /// An event alone (a hit, a sighting, an alarm) asks again no oftener than this.
 const EVENT_GAP: i32 = 5 * FRAMES_PER_SECOND;
 
-/// The thread that talks to Jev in real time: requests in, answers out, each with the request's number.
+/// The thread that talks to Jev in real time: requests in, answers out, each with the request's number. A gate
+/// request carries what the worker needs to compose the worlds and make the pick the instant the gate answers
+/// (the user, 2026-09-27: the two calls as fast as they can be made), so the pick is not held for the next tick.
 struct Worker {
-    to: std::sync::mpsc::Sender<(u64, jev::Request)>,
-    from: std::sync::mpsc::Receiver<(u64, Result<jev::Response, jev::Error>)>,
+    to: std::sync::mpsc::Sender<(u64, jev::Request, Option<Follow>)>,
+    from: std::sync::mpsc::Receiver<(u64, Result<jev::Response, jev::Error>, Option<Followed>)>,
+}
+
+/// What composing the worlds after a gate takes, sent along with the gate request.
+struct Follow {
+    slots: Vec<plan::Slot>,
+    store: String,
+    cap: usize,
+}
+
+/// The worker's follow-up to a gate: what the gate flagged, the worlds and their lines (None when nothing opened),
+/// and the pick's request with its answer.
+struct Followed {
+    flags: BTreeMap<String, f64>,
+    worlds: Option<Vec<plan::World>>,
+    lines: Vec<String>,
+    pick: Option<(jev::Request, Result<jev::Response, jev::Error>)>,
 }
 
 /// A request in flight: what it was built from, so its answer can be played when it comes. `worlds` is None for
@@ -217,16 +235,31 @@ struct Pending {
 }
 
 fn spawn_worker(client: jev::Client) -> Worker {
-    let (to, requests) = std::sync::mpsc::channel::<(u64, jev::Request)>();
+    let (to, requests) = std::sync::mpsc::channel::<(u64, jev::Request, Option<Follow>)>();
     let (answers, from) = std::sync::mpsc::channel();
     std::thread::spawn(move || {
-        while let Ok((mut id, mut request)) = requests.recv() {
+        while let Ok((mut id, mut request, mut follow)) = requests.recv() {
             // Behind by a slow call, the worker answers the newest request only: answered in order, a burst of
             // one-second calls made every later answer stale (human-1, second game: three of 35 dropped).
-            while let Ok((newer_id, newer)) = requests.try_recv() {
-                (id, request) = (newer_id, newer);
+            while let Ok((newer_id, newer, newer_follow)) = requests.try_recv() {
+                (id, request, follow) = (newer_id, newer, newer_follow);
             }
-            if answers.send((id, client.ask(&request))).is_err() {
+            let result = client.ask(&request);
+            let followed = match (&result, follow) {
+                (Ok(response), Some(f)) => {
+                    let (flags, next) = plan::follow_up(&f.slots, &response.answers, &f.store, f.cap, &request.state);
+                    let (worlds, lines, pick) = match next {
+                        Some((worlds, lines, second)) => {
+                            let answer = client.ask(&second);
+                            (Some(worlds), lines, Some((second, answer)))
+                        }
+                        None => (None, Vec::new(), None),
+                    };
+                    Some(Followed { flags, worlds, lines, pick })
+                }
+                _ => None,
+            };
+            if answers.send((id, result, followed)).is_err() {
                 break;
             }
         }
@@ -650,29 +683,36 @@ impl Brain {
             let rules = picture.state["rules"].as_str().unwrap_or_default().to_string();
             self.pianist.as_mut().expect("pianist mode").log_header(self.world.hello.ai_id, &rules);
         }
-        self.call(tick, kit, picture.clone(), slots, None, request, commands);
+        let follow = self.pianist.as_ref().is_some_and(|p| p.worker.is_some()).then(|| Follow { slots: slots.clone(), store: Self::store_words(picture), cap: self.pianist.as_ref().expect("pianist mode").cap });
+        self.call(tick, kit, picture.clone(), slots, None, request, follow, commands);
+    }
+
+    /// The store's words for the worlds' lines ("340 of 500 stored").
+    fn store_words(picture: &picture::Picture) -> String {
+        picture.state["economy"]["metal"].as_str().and_then(|m| m.split(';').next()).unwrap_or_default().to_string()
     }
 
     /// A call to Jev: through the worker in realtime (its answer lands in `collect_answer`), in place in lockstep.
-    fn call(&mut self, tick: &Tick, kit: &Kit, picture: picture::Picture, slots: Vec<plan::Slot>, worlds: Option<Vec<plan::World>>, request: jev::Request, commands: &mut Vec<Command>) {
+    #[allow(clippy::too_many_arguments)]
+    fn call(&mut self, tick: &Tick, kit: &Kit, picture: picture::Picture, slots: Vec<plan::Slot>, worlds: Option<Vec<plan::World>>, request: jev::Request, follow: Option<Follow>, commands: &mut Vec<Command>) {
         let pianist = self.pianist.as_mut().expect("pianist mode");
         pianist.stats.calls += 1;
         pianist.stats.questions += request.questions.len() as u32;
         if pianist.worker.is_some() {
             let id = pianist.next_request;
             pianist.next_request += 1;
-            if pianist.worker.as_ref().expect("checked").to.send((id, request.clone())).is_ok() {
+            if pianist.worker.as_ref().expect("checked").to.send((id, request.clone(), follow)).is_ok() {
                 pianist.pending = Some(Pending { id, frame: tick.frame, picture, slots, worlds, request });
             }
             return;
         }
         let result = pianist.client.as_ref().expect("a call needs Jev").ask(&request);
-        self.answered(tick, kit, &picture, slots, worlds, &request, result, commands);
+        self.answered(tick, kit, &picture, slots, worlds, &request, result, None, commands);
     }
 
     /// A call's answer: the pre-pass's composes the worlds and makes the second call; the pick's puts the plan in force.
     #[allow(clippy::too_many_arguments)]
-    fn answered(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, slots: Vec<plan::Slot>, worlds: Option<Vec<plan::World>>, request: &jev::Request, result: Result<jev::Response, jev::Error>, commands: &mut Vec<Command>) {
+    fn answered(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, slots: Vec<plan::Slot>, worlds: Option<Vec<plan::World>>, request: &jev::Request, result: Result<jev::Response, jev::Error>, followed: Option<Followed>, commands: &mut Vec<Command>) {
         let ai = self.world.hello.ai_id;
         match result {
             Ok(response) => {
@@ -684,7 +724,7 @@ impl Brain {
                 self.announce_hands(&response, commands);
                 self.log_call(tick, request, &response);
                 match worlds {
-                    None => self.after_gate(tick, kit, picture, slots, request, &response.answers, commands),
+                    None => self.after_gate(tick, kit, picture, slots, request, &response.answers, followed, commands),
                     Some(ws) => self.after_pick(tick, kit, picture, &slots, &ws, &response.answers, commands),
                 }
             }
@@ -700,19 +740,31 @@ impl Brain {
     /// After the pre-pass: the worlds over the flagged states as the second call, or nothing to ask. Logs what the
     /// gate said and the worlds' lines.
     #[allow(clippy::too_many_arguments)]
-    fn after_gate(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, slots: Vec<plan::Slot>, request: &jev::Request, answers: &BTreeMap<String, jev::Answer>, commands: &mut Vec<Command>) {
+    fn after_gate(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, slots: Vec<plan::Slot>, request: &jev::Request, answers: &BTreeMap<String, jev::Answer>, followed: Option<Followed>, commands: &mut Vec<Command>) {
         let cap = self.pianist.as_ref().expect("pianist mode").cap;
-        let mut flags: BTreeMap<String, f64> = BTreeMap::new();
-        let worlds = plan::compose(&slots, answers, &mut flags, cap);
-        let store = picture.state["economy"]["metal"].as_str().and_then(|m| m.split(';').next()).unwrap_or_default().to_string();
-        let lines: Vec<String> = worlds.as_ref().map(|ws| ws.iter().enumerate().map(|(i, w)| plan::consequence(w, &slots, &store, (i > 0).then_some(&ws[0]))).collect()).unwrap_or_default();
+        // Realtime: the worker composed the worlds and made the pick as soon as the gate answered; lockstep: here.
+        let (flags, composed) = match followed {
+            Some(f) => (
+                f.flags,
+                match (f.worlds, f.pick) {
+                    (Some(worlds), Some((second, answer))) => Some((worlds, f.lines, second, Some(answer))),
+                    _ => None,
+                },
+            ),
+            None => {
+                let (flags, next) = plan::follow_up(&slots, answers, &Self::store_words(picture), cap, &request.state);
+                (flags, next.map(|(worlds, lines, second)| (worlds, lines, second, None)))
+            }
+        };
         let pianist = self.pianist.as_mut().expect("pianist mode");
-        pianist.write_log(json!({ "t": "worlds_gate", "f": tick.frame, "flags": flags, "worlds": worlds, "lines": lines }));
-        let Some(ws) = worlds else { return };
+        pianist.write_log(json!({ "t": "worlds_gate", "f": tick.frame, "flags": flags, "worlds": composed.as_ref().map(|c| c.0.clone()), "lines": composed.as_ref().map(|c| c.1.clone()).unwrap_or_default() }));
+        let Some((ws, _, second, answer)) = composed else { return };
         pianist.worlds = ws.clone();
         pianist.slots = slots.clone();
-        let second = jev::Request { state: request.state.clone(), questions: BTreeMap::from([("worlds.pick".to_string(), plan::question(&lines))]) };
-        self.call(tick, kit, picture.clone(), slots, Some(ws), second, commands);
+        match answer {
+            Some(result) => self.answered(tick, kit, picture, slots, Some(ws), &second, result, None, commands),
+            None => self.call(tick, kit, picture.clone(), slots, Some(ws), second, None, commands),
+        }
     }
 
     /// The second call's pick put in force, and logged as a `plan` line.
@@ -749,7 +801,7 @@ impl Brain {
         if let Some(worker) = &pianist.worker {
             let id = pianist.next_request;
             pianist.next_request += 1;
-            if worker.to.send((id, request)).is_ok() {
+            if worker.to.send((id, request, None)).is_ok() {
                 pianist.pending_decompression = Some((id, tick.frame));
             }
             return;
@@ -858,7 +910,7 @@ impl Brain {
             let pianist = self.pianist.as_mut().expect("pianist mode");
             let Some(worker) = &pianist.worker else { return };
             let mut got = None;
-            while let Ok((id, result)) = worker.from.try_recv() {
+            while let Ok((id, result, followed)) = worker.from.try_recv() {
                 if let Some((did, dframe)) = pianist.pending_decompression
                     && did == id
                 {
@@ -868,11 +920,11 @@ impl Brain {
                 }
                 // An answer to a request already dropped is not played.
                 if pianist.pending.as_ref().is_some_and(|p| p.id == id) {
-                    got = Some(result);
+                    got = Some((result, followed));
                 }
             }
             match got {
-                Some(result) => Some((pianist.pending.take().expect("a matched request is pending"), result)),
+                Some((result, followed)) => Some((pianist.pending.take().expect("a matched request is pending"), result, followed)),
                 None => {
                     if let Some(p) = &pianist.pending
                         && tick.frame - p.frame > STALE_FRAMES
@@ -888,13 +940,23 @@ impl Brain {
         if let Some((dframe, result)) = decompressed {
             self.take_decompression(tick.frame, dframe, result, ai);
         }
-        let Some((pending, result)) = arrived else { return };
+        let Some((pending, result, followed)) = arrived else { return };
         {
             let pianist = self.pianist.as_mut().expect("pianist mode");
             pianist.places = pending.picture.places.clone();
             pianist.parties = pending.picture.parties.clone();
         }
-        self.answered(tick, kit, &pending.picture, pending.slots, pending.worlds, &pending.request, result, commands);
+        self.answered(tick, kit, &pending.picture, pending.slots, pending.worlds, &pending.request, result, followed, commands);
+    }
+
+    /// Every tick between thinks: an answer that has come is played now rather than at the next think (the user,
+    /// 2026-09-27: the two calls as fast as they can be made; a think is every 15 frames, a tick every 3).
+    pub(super) fn poll_hands(&mut self, tick: &Tick, commands: &mut Vec<Command>) {
+        let Some(kit) = self.kit else { return };
+        if tick.frame < FIRST_ORDER_FRAME || self.pianist.as_ref().is_none_or(|p| p.worker.is_none()) {
+            return;
+        }
+        self.collect_answer(tick, &kit, commands);
     }
 
     /// One line of the log per call: the request (the instructions and the rules only when they changed; the rules

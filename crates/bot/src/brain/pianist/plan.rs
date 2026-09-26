@@ -1187,6 +1187,40 @@ pub(super) fn pick(answers: &BTreeMap<String, Answer>, worlds: &[World]) -> Opti
     }
 }
 
+/// After the gate: the worlds over what it flagged, their lines, and the pick's request over a state cut to what
+/// the worlds name (`pick_state`). Pure, so the realtime worker runs it the instant the gate answers.
+pub(super) fn follow_up(slots: &[Slot], answers: &BTreeMap<String, Answer>, store: &str, cap: usize, state: &Value) -> (BTreeMap<String, f64>, Option<(Vec<World>, Vec<String>, jev::Request)>) {
+    let mut flags: BTreeMap<String, f64> = BTreeMap::new();
+    let Some(worlds) = compose(slots, answers, &mut flags, cap) else { return (flags, None) };
+    let lines: Vec<String> = worlds.iter().enumerate().map(|(i, w)| consequence(w, slots, store, (i > 0).then_some(&worlds[0]))).collect();
+    let request = jev::Request { state: pick_state(state, slots, &worlds, &lines), questions: BTreeMap::from([("worlds.pick".to_string(), question(&lines))]) };
+    (flags, Some((worlds, lines, request)))
+}
+
+/// The pick's state: the gate's, with every actor no world sends anywhere cut to one line and every place the
+/// worlds' lines, the instructions and the kept actors do not name dropped. The gate's state carried every open
+/// actor and every place near one (onepass-player-8: 25 KB a pick, `places` 10 KB of it, 238 ms a call); the pick
+/// judges the lines, which say what each world does and to whom.
+pub(super) fn pick_state(state: &Value, slots: &[Slot], worlds: &[World], lines: &[String]) -> Value {
+    let mut state = state.clone();
+    let sent: BTreeSet<&str> = worlds.iter().flat_map(|w| slots.iter().zip(w).filter(|(_, i)| **i != 0).map(|(s, i)| s.states[*i].actor.as_str())).collect();
+    let mut text = lines.join("\n");
+    text.push_str(state["instructions"].as_str().unwrap_or_default());
+    if let Some(actors) = state["actors"].as_object_mut() {
+        for (name, entry) in actors.iter_mut() {
+            if sent.contains(name.as_str()) || super::diet::names(&text, name) {
+                text.push_str(&entry.to_string());
+            } else {
+                super::diet::brief(entry);
+            }
+        }
+    }
+    if let Some(places) = state["places"].as_object_mut() {
+        places.retain(|name, _| super::diet::names(&text, name));
+    }
+    state
+}
+
 /// The slots for the log.
 pub(super) fn log_slots(slots: &[Slot]) -> Value {
     json!(slots
@@ -1254,6 +1288,31 @@ mod tests {
         let line = consequence(&vec![1, 1, 0], &slots, "340 of 500 stored", Some(&worlds[0]));
         assert!(line.contains("Met: party_1") && line.contains("party_2 (") && line.contains("constructor_3 idle"), "{line}");
         assert_eq!(pick(&BTreeMap::from([("worlds.pick".to_string(), Answer::Choice { choice: "w2".into(), probabilities: BTreeMap::new(), confidence: 0.6 })]), &worlds), Some((1, 0.6)));
+    }
+
+    #[test]
+    fn the_picks_state_keeps_what_the_worlds_name_and_briefs_the_rest() {
+        let slots = vec![
+            threat("party_1", vec![state("party_1.leave", "", Response::Leave, "threat", false, false), state("party_1.hunt_group_A", "group_A", Response::Hunt(vec![UnitId(9)]), "threat", false, false)]),
+            builder("constructor_3", 3, vec![state("constructor_3.keep", "constructor_3", Response::Keep, "threat", false, false), state("constructor_3.extractor_spot_4", "constructor_3", Response::Extractor(4), "extractor", false, false)]),
+        ];
+        let worlds: Vec<World> = vec![vec![0, 0], vec![1, 0]];
+        let lines = vec!["Nothing changes.".to_string(), "As w1, and: 1 Blitz of group_A hunt party_1 at spot_4".to_string()];
+        let state = json!({
+            "instructions": "group_B stands at south_yard",
+            "actors": {
+                "group_A": { "units": "8 Blitz", "at": "spot_4", "doing": "holding", "standing": "station spot_4" },
+                "constructor_3": { "units": "a constructor", "at": "home", "doing": "idle", "standing": "expand" },
+                "group_B": { "units": "2 Stout", "at": "spot_9", "doing": "holding", "standing": "none" }
+            },
+            "places": { "spot_4": { "what": "free" }, "spot_9": { "what": "free" }, "south_yard": { "what": "a mark" }, "spot_77": { "what": "theirs" } }
+        });
+        let cut = pick_state(&state, &slots, &worlds, &lines);
+        assert!(cut["actors"]["group_A"].is_object(), "an actor a world sends keeps its entry");
+        assert!(cut["actors"]["group_B"].is_object(), "an actor the instructions name keeps its entry");
+        assert_eq!(cut["actors"]["constructor_3"], json!("a constructor, at home, idle"), "an actor no world touches is one line");
+        assert!(cut["places"].get("spot_4").is_some() && cut["places"].get("south_yard").is_some() && cut["places"].get("spot_9").is_some(), "{}", cut["places"]);
+        assert!(cut["places"].get("spot_77").is_none(), "a place nothing names is dropped");
     }
 
     #[test]

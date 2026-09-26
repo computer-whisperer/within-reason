@@ -115,22 +115,7 @@ impl Brain {
                 if names_asked.contains(name.as_str()) || names(&instructions, name) {
                     continue;
                 }
-                // One line, not a four-field object (wake-1, 11:23: fifteen unasked actors were 3.4k of a 12.6k-character
-                // state as objects).
-                if let Some(full) = entry.as_object() {
-                    let field = |k: &str| full.get(k).and_then(Value::as_str).map(str::to_string);
-                    let mut parts: Vec<String> = Vec::new();
-                    if let Some(units) = field("units") {
-                        parts.push(units);
-                    }
-                    if let Some(at) = field("at") {
-                        parts.push(format!("at {at}"));
-                    }
-                    if let Some(doing) = field("doing") {
-                        parts.push(doing);
-                    }
-                    *entry = Value::String(parts.join(", "));
-                }
+                brief(entry);
             }
         }
         state
@@ -178,5 +163,24 @@ mod tests {
         assert!(names("go to spot_4 now", "spot_4"));
         assert!(!names("go to spot_45 now", "spot_4"));
         assert!(names("spot_45 and spot_4.", "spot_4"));
+    }
+}
+
+/// An actor's entry cut to one line, not a four-field object (wake-1, 11:23: fifteen unasked actors were 3.4k of a
+/// 12.6k-character state as objects).
+pub(super) fn brief(entry: &mut Value) {
+    if let Some(full) = entry.as_object() {
+        let field = |k: &str| full.get(k).and_then(Value::as_str).map(str::to_string);
+        let mut parts: Vec<String> = Vec::new();
+        if let Some(units) = field("units") {
+            parts.push(units);
+        }
+        if let Some(at) = field("at") {
+            parts.push(format!("at {at}"));
+        }
+        if let Some(doing) = field("doing") {
+            parts.push(doing);
+        }
+        *entry = Value::String(parts.join(", "));
     }
 }
