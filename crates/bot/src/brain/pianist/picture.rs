@@ -33,6 +33,8 @@ const TURRET_MARGIN: f32 = 150.0;
 const OUTRANGE_MARGIN: f32 = 60.0;
 /// A party this near a place or an actor is "near" it.
 const NEAR: f32 = 800.0;
+/// A group's own shooter estimate this far from the side's gets its own place, `shelling_<group>`.
+const SHOOTER_APART: f32 = 300.0;
 /// The enemy's soldiers seen within this long count in what we know of its army.
 const ARMY_MEMORY: i32 = 3 * 60 * FRAMES_PER_SECOND;
 
@@ -790,10 +792,24 @@ impl Brain {
                 places.push(Place { name: name.clone(), at: Vec3 { x: *x, y: 0.0, z: *z }, spot: None });
             }
         }
-        // H-HANDS-SHELLED: where fire from out of sight likeliest comes from, while it lasts.
+        // H-HANDS-SHELLED: where fire from out of sight likeliest comes from, while it lasts: the side's estimate as
+        // `shelling`, and a group's own (from the hits on its members) as `shelling_<group>` when it stands apart
+        // from the side's (player-9 21:15: one estimate, a Beamer at E4, was said to every group on the map).
         let shelling = self.shelling();
         if let Some(s) = &shelling {
             places.push(Place { name: "shelling".into(), at: s.at, spot: None });
+        }
+        let mut group_shelling: BTreeMap<String, (super::super::shelling::Shelling, String)> = BTreeMap::new();
+        if let Some(p) = self.pianist.as_ref() {
+            for g in &p.groups {
+                let Some(own_shelling) = self.shelling_for(&g.members) else { continue };
+                let apart = shelling.as_ref().is_none_or(|s| s.at.dist2d(own_shelling.at) > SHOOTER_APART);
+                let place_name = if apart { format!("shelling_{}", g.name) } else { "shelling".to_string() };
+                if apart {
+                    places.push(Place { name: place_name.clone(), at: own_shelling.at, spot: None });
+                }
+                group_shelling.insert(g.name.clone(), (own_shelling, place_name));
+            }
         }
         let parties = match self.pianist.as_ref() {
             Some(p) => self.enemy_parties(&snapshot.enemies, &p.parties, &p.next_party),
@@ -843,13 +859,16 @@ impl Brain {
                     }
                 }
                 None if place.name == "home" => "our start: the lab and the base stand here".into(),
-                None if place.name == "shelling" => {
-                    let s = shelling.as_ref().expect("a shelling place has a shelling");
+                None if place.name.starts_with("shelling") => {
+                    let (s, whom) = match place.name.strip_prefix("shelling_") {
+                        Some(g) => (&group_shelling.get(g).expect("a group's shelling place has its shelling").0, format!("group_{g}")),
+                        None => (shelling.as_ref().expect("a shelling place has a shelling"), "us".to_string()),
+                    };
                     // An estimate, said as one: the old words ("advancing a group onto it kills it") sent groups under blind
                     // fire toward a moving point for two minutes at a time (escalate-5 12:29, escalate-7 12:29, fixes-1 15:33).
                     match &s.attributed {
-                        Some(a) => format!("where the {} whose fire hits us from out of our sight was last seen, {} s ago (not a sighting now: it may have moved); its range is {:.0}, {} hits on us in the last {} s, the last {} s ago; anything of ours within {:.0} of it is in its reach; what sees it or outranges it decides, as the instructions say", a.name, (frame - a.seen) / super::super::FRAMES_PER_SECOND, s.range, s.hits, super::super::shelling::SHELL_MEMORY / super::super::FRAMES_PER_SECOND, (frame - s.last) / super::super::FRAMES_PER_SECOND, s.range),
-                        None => format!("an estimate, not a sighting: where the {} shelling us from out of our sight likeliest stands, four fifths of its range along the hits' direction (it moves with each hit); its range is {:.0}, {} hits on us in the last {} s from the {}, the last {} s ago; anything of ours within {:.0} of it is in its reach and cannot see it; what sees it (a scout, a radar) or outranges it decides, as the instructions say", self.weapon_words(&s.weapon), s.range, s.hits, super::super::shelling::SHELL_MEMORY / super::super::FRAMES_PER_SECOND, super::super::shelling::compass(s.dir), (frame - s.last) / super::super::FRAMES_PER_SECOND, s.range),
+                        Some(a) => format!("where the {} whose fire hits {whom} from out of our sight was last seen, {} s ago (not a sighting now: it may have moved); its range is {:.0}, {} hits on {whom} in the last {} s, the last {} s ago; anything of ours within {:.0} of it is in its reach; what sees it or outranges it decides, as the instructions say", a.name, (frame - a.seen) / super::super::FRAMES_PER_SECOND, s.range, s.hits, super::super::shelling::SHELL_MEMORY / super::super::FRAMES_PER_SECOND, (frame - s.last) / super::super::FRAMES_PER_SECOND, s.range),
+                        None => format!("an estimate, not a sighting: where the {} shelling {whom} from out of our sight likeliest stands, four fifths of its range along the hits' direction (it moves with each hit); its range is {:.0}, {} hits on {whom} in the last {} s from the {}, the last {} s ago; anything of ours within {:.0} of it is in its reach and cannot see it; what sees it (a scout, a radar) or outranges it decides, as the instructions say", self.weapon_words(&s.weapon), s.range, s.hits, super::super::shelling::SHELL_MEMORY / super::super::FRAMES_PER_SECOND, super::super::shelling::compass(s.dir), (frame - s.last) / super::super::FRAMES_PER_SECOND, s.range),
                     }
                 }
                 None if marks.contains_key(&place.name) => {
@@ -1199,6 +1218,7 @@ impl Brain {
             .collect();
         for group in &pianist.groups {
             let units = group.units(own);
+            let own_shelling = group_shelling.get(&group.name);
             // The group as a body (H-HANDS-GROUP-BODY): its front toward its goal, else toward the nearest party
             // any member is near; the tail; who is still on the way to join.
             let goal = match &group.task {
@@ -1360,20 +1380,20 @@ impl Brain {
                         if *who != "something unseen" {
                             return format!("{who} ({n} hits)");
                         }
-                        match &shelling {
-                            Some(s) => match &s.attributed {
-                                Some(a) => format!("something out of our sight, {n} hits: a {} with range {:.0}, likely the {} seen {} s ago at {} (the place `shelling`)", self.weapon_words(&s.weapon), s.range, a.name, (frame - a.seen) / super::super::FRAMES_PER_SECOND, self.place_words(&places, s.at)),
-                                None => format!("something out of our sight, {n} hits: a {} with range {:.0} from the {}; its likeliest place is `shelling` at {}", self.weapon_words(&s.weapon), s.range, super::super::shelling::compass(s.dir), self.place_words(&places, s.at)),
+                        match &own_shelling {
+                            Some((s, place_name)) => match &s.attributed {
+                                Some(a) => format!("something out of our sight, {n} hits: a {} with range {:.0}, likely the {} seen {} s ago at {} (the place `{place_name}`)", self.weapon_words(&s.weapon), s.range, a.name, (frame - a.seen) / super::super::FRAMES_PER_SECOND, self.place_words(&places, s.at)),
+                                None => format!("something out of our sight, {n} hits: a {} with range {:.0} from the {}; its likeliest place is `{place_name}` at {}", self.weapon_words(&s.weapon), s.range, super::super::shelling::compass(s.dir), self.place_words(&places, s.at)),
                             },
                             None => format!("something out of our sight, {n} hits: a turret or artillery that outranges us"),
                         }
                     })
                     .collect();
                 entry["under_fire"] = json!(format!("yes, this second, by {}", words.join(", ")));
-                if let Some(s) = &shelling
+                if let Some((s, place_name)) = &own_shelling
                     && kinds.contains_key("something unseen")
                 {
-                    entry["unseen_shooter"] = json!(format!("the shooter out of sight, likeliest at `shelling` ({}), {}", self.place_words(&places, s.at), self.unseen_shooter_words(&units, s)));
+                    entry["unseen_shooter"] = json!(format!("the shooter out of sight, likeliest at `{place_name}` ({}), {}", self.place_words(&places, s.at), self.unseen_shooter_words(&units, s)));
                 }
             }
             actors.insert(format!("group_{}", group.name), entry);

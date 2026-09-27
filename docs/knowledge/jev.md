@@ -1240,3 +1240,17 @@ the Bulls' path (game 9); `raiders_lone ignore` stopped eleven Stouts under a Bu
 `run/matches/1790471259-bluegecko-3v1-comet-catcher-3/00/decompression-review.md`.
 **Status.** fixed 2026-09-27 evening by [[H-HANDS-GROUP-STATES]] (the check: the raid, sweep and gather states
 picked in the next arena games, and what they cost).
+
+### K-hands-one-shooter-for-the-side
+**Claim.** Until 2026-09-28 the fire from out of sight was one estimate for the whole side: the weapon with most hits
+in the last 90 s and one likeliest place, said to every group as its `unseen_shooter` and used by every group's
+`pull_out` and `close_on_shooter` states. A Beamer's laser hits many times for little, so it won the vote over a
+Gauntlet's few heavy shells; at player-9 21:15 four groups across the map, group_M at B2 included, were offered
+"pulls out of the shooter's reach (490)" from a Beamer at E4, while group_G at D4 stood 1,105-1,231 from a Gauntlet
+its own party line named with its 1,220 reach, and its pick flipped on 13 seconds between a 42-elmo pull-out and its
+station from 21:17 to 21:34 (about 1,300 metal at D4).
+**Evidence.** `run/matches/1790513490-player-9-posing/00/review.md` (findings 5 and 6), the `jev-0.jsonl` states
+21:15-21:26 (`pull_out_*` words for group_C, group_G, group_M, group_T all with reach 490), the record's `destroyed`
+events 21:14-21:26 against the Gauntlet at (4320, 1712).
+**Status.** fixed 2026-09-28 by [[H-HANDS-SHELLED]] (amended: per-group estimates from the hits on the group's own
+members, the weapon by damage); the check is the next game's `unseen_shooter` and `pull_out` words under a Gauntlet.

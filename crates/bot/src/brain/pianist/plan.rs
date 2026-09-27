@@ -410,8 +410,8 @@ impl Brain {
         let draws = self.production_draws(own, pianist);
         let stalling = picture.state["economy"]["energy"].as_str().is_some_and(|e| e.contains("STALLING"));
         let lone_scout = |p: &Party| p.ids.len() == 1 && enemies.iter().any(|e| e.id == p.ids[0] && e.def.is_some_and(|d| super::glossary::entry(self.name(d)).is_some_and(|g| g.class.contains("scout"))));
-        // The player's marks: the places that are neither spots nor the map's own (home, the passages, `shelling`).
-        let marks: Vec<&super::Place> = picture.places.iter().filter(|p| p.spot.is_none() && p.name != "home" && p.name != "shelling" && !p.name.starts_with("passage_")).collect();
+        // The player's marks: the places that are neither spots nor the map's own (home, the passages, `shelling*`).
+        let marks: Vec<&super::Place> = picture.places.iter().filter(|p| p.spot.is_none() && p.name != "home" && !p.name.starts_with("shelling") && !p.name.starts_with("passage_")).collect();
 
         // Builders.
         let builders: Vec<&OwnUnit> = own.iter().filter(|u| !u.being_built && self.world.is_mobile_builder(u.def)).collect();
@@ -869,7 +869,6 @@ impl Brain {
         let instructions = picture.state["instructions"].as_str().unwrap_or_default().to_string();
         let extractors_ours = own.iter().filter(|u| !u.being_built && self.world.is_extractor_def(u.def)).count();
         let income_ours = tick.snapshot.metal.income;
-        let shelling = self.shelling();
         for group in &pianist.groups {
             let name = format!("group_{}", group.name);
             let units = group.units(own);
@@ -944,7 +943,7 @@ impl Brain {
             // the player advanced the station by hand every 30-40 s, game 10).
             // `shelling` is an estimate, never a walk (10.4): the shooter is answered by the states below.
             let named_spot = |p: &super::Place| p.spot.is_some() && super::diet::names(&instructions, &p.name);
-            let mut named: Vec<&super::Place> = picture.places.iter().filter(|p| p.name != "shelling" && (p.name == "home" || p.spot.is_none() || named_spot(p)) && !never.contains(&p.name) && (p.at.dist2d(centre) < WALK_REACH || named_spot(p)) && p.at.dist2d(centre) > STATION_SLACK && station.is_none_or(|s| s.name != p.name)).collect();
+            let mut named: Vec<&super::Place> = picture.places.iter().filter(|p| !p.name.starts_with("shelling") && (p.name == "home" || p.spot.is_none() || named_spot(p)) && !never.contains(&p.name) && (p.at.dist2d(centre) < WALK_REACH || named_spot(p)) && p.at.dist2d(centre) > STATION_SLACK && station.is_none_or(|s| s.name != p.name)).collect();
             named.sort_by(|a, b| a.at.dist2d(centre).total_cmp(&b.at.dist2d(centre)));
             for place in named.iter().take(3) {
                 let current = matches!(&group.task, GroupTask::Move { place: p, fight: false, .. } if *p == place.name);
@@ -959,7 +958,7 @@ impl Brain {
             let speed = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.speed).filter(|s| *s > 0.0).fold(f32::INFINITY, f32::min);
             let walk_words = |d: f32| if speed.is_finite() && speed > 0.0 { format!("{d:.0} away, {:.0} s of walking", d / speed) } else { format!("{d:.0} away") };
             let mut raids: Vec<(f32, &super::Place, String)> = Vec::new();
-            for place in picture.places.iter().filter(|p| p.name != "home" && p.name != "shelling" && !never.contains(&p.name) && self.reachable_for(walker, p.at)) {
+            for place in picture.places.iter().filter(|p| p.name != "home" && !p.name.starts_with("shelling") && !never.contains(&p.name) && self.reachable_for(walker, p.at)) {
                 let theirs: Vec<(UnitDefId, i32)> = self.enemy_buildings.values().filter(|(_, pos, _)| pos.dist2d(place.at) < 500.0).map(|(def, _, seen)| (*def, *seen)).collect();
                 if theirs.is_empty() {
                     continue;
@@ -997,21 +996,27 @@ impl Brain {
             }
             // The gather: a strung-out group holds at the place nearest its front until its tail is up.
             if body.strung_out() && group.task.busy() {
-                if let Some(at) = picture.places.iter().filter(|p| p.name != "shelling" && !never.contains(&p.name)).min_by(|a, b| a.at.dist2d(body.front).total_cmp(&b.at.dist2d(body.front))) {
+                if let Some(at) = picture.places.iter().filter(|p| !p.name.starts_with("shelling") && !never.contains(&p.name)).min_by(|a, b| a.at.dist2d(body.front).total_cmp(&b.at.dist2d(body.front))) {
                     let tail_seconds = if speed.is_finite() && speed > 0.0 { format!("{:.0} s", body.length / speed) } else { "a while".to_string() };
                     push(&format!("gather_{}", at.name), Response::Gather(at.name.clone()), format!("{name} gathers at {} ({} from its front): the front holds there until the tail is up ({} of {} arrived, the tail {:.0} behind, about {tail_seconds}), then goes on where told{leave}", at.name, distance_words(body.front.dist2d(at.at)), body.arrived, body.core.len(), body.length), false, group.gathering);
                 }
             }
-            // The shooter out of sight: close on it as one body when the estimate says we outweigh it, or pull out
-            // of its reach to the nearest place beyond it (game 3 19:30: a group under Bull fire had neither).
-            if let Some(s) = &shelling
+            // The shooter out of sight, read from the hits on this group's own members: close on it as one body when
+            // the estimate says we outweigh it, or pull out of its reach to the nearest place beyond it (game 3 19:30:
+            // a group under Bull fire had neither). Its place is the picture's `shelling_<group>` when the group's
+            // shooter stands apart from the side's, else `shelling`.
+            if let Some(s) = self.shelling_for(&group.members)
                 && units.iter().any(|u| under_fire.contains(&u.id))
             {
-                let verdict = self.unseen_shooter_words(&units, s);
-                if verdict.contains("we outweigh") && self.reachable_for(walker, s.at) {
-                    push("close_on_shooter", Response::Walk { place: "shelling".into(), fight: true }, format!("{name} closes on the shooter out of sight as one body, toward `shelling` ({}, {}): {verdict}{leave}", self.place_words(&picture.places, s.at), walk_words(body.front.dist2d(s.at))), false, false);
+                let verdict = self.unseen_shooter_words(&units, &s);
+                let shooter_place = picture.places.iter().find(|p| p.name == format!("shelling_{}", group.name)).or_else(|| picture.places.iter().find(|p| p.name == "shelling"));
+                if let Some(sp) = shooter_place
+                    && verdict.contains("we outweigh")
+                    && self.reachable_for(walker, s.at)
+                {
+                    push("close_on_shooter", Response::Walk { place: sp.name.clone(), fight: true }, format!("{name} closes on the shooter out of sight as one body, toward `{}` ({}, {}): {verdict}{leave}", sp.name, self.place_words(&picture.places, s.at), walk_words(body.front.dist2d(s.at))), false, false);
                 }
-                if let Some(out) = picture.places.iter().filter(|p| p.name != "shelling" && !never.contains(&p.name) && p.at.dist2d(s.at) > s.range + 150.0 && self.reachable_for(walker, p.at)).min_by(|a, b| a.at.dist2d(centre).total_cmp(&b.at.dist2d(centre))) {
+                if let Some(out) = picture.places.iter().filter(|p| !p.name.starts_with("shelling") && !never.contains(&p.name) && p.at.dist2d(s.at) > s.range + 150.0 && self.reachable_for(walker, p.at)).min_by(|a, b| a.at.dist2d(centre).total_cmp(&b.at.dist2d(centre))) {
                     push(&format!("pull_out_{}", out.name), Response::Walk { place: out.name.clone(), fight: false }, format!("{name} pulls out of the shooter's reach ({:.0}) to {} ({}), without fighting on the way{leave}", s.range, out.name, walk_words(centre.dist2d(out.at))), false, false);
                 }
             }

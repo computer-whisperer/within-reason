@@ -104,7 +104,8 @@ but a starting store holds 1,000 of its 2,700, so spend as it comes. Say in chat
 second and never forced: `raid` on his buildings known within reach (the words say what stands there, when seen, the
 turrets among them and the income it takes), `sweep` of the spots nothing of ours has looked at, `gather` when the
 group is strung out (the front holds until the tail is up), `close_on_shooter` or `pull_out` when fire comes from out
-of sight, `shell` from a standoff when it has long-reach soldiers, and against a moving raider `next_extractor`
+of sight (each group reads its own shooter from the hits on its own soldiers: the place `shelling_<group>` when it
+stands apart from the side's `shelling`), `shell` from a standoff when it has long-reach soldiers, and against a moving raider `next_extractor`
 (stand at the next extractor of ours on its heading). A group is a body: its entry says the front, the tail, who is
 arrived and who is on the way from the plant, and the odds are priced on the part in the fight. `standing`'s
 `station` takes a list (`"spot_9 spot_2 spot_7"`) walked in order, each done when reached, so a raid route is one

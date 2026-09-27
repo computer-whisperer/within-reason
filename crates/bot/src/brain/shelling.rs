@@ -3,6 +3,10 @@
 //! it, how far that weapon reaches and which way it stands. The likeliest source goes into the picture as a place the
 //! hands can advance on, and the player is woken when a group stands under it (the user, watching pianist-player-6:
 //! the army "is getting shelled from just out of frame but has no way to push out to try and kill it").
+//! Each group reads the estimate from the hits on its own members (`shelling_for`), and the weapon is the one that did
+//! the most damage, not the one that hit most often: player-9 21:15, the one side-wide estimate, voted by hit count,
+//! named a Beamer at E4 (490) to every group on the map, group_M at B2 included, while group_G stood inside a seen
+//! Gauntlet's 1,220 and was offered a pull-out of 42 elmos.
 
 use std::collections::BTreeMap;
 
@@ -33,6 +37,7 @@ pub(super) struct Shell {
     pub dir: Vec3,
     pub range: f32,
     pub weapon: String,
+    pub damage: f32,
     pub unit: UnitId,
     pub frame: i32,
 }
@@ -96,7 +101,7 @@ impl Brain {
             self.shelling.clear();
         }
         for event in &tick.events {
-            let Event::UnitDamaged { unit, attacker: None, from: Some(dir), weapon: Some(weapon), .. } = event else { continue };
+            let Event::UnitDamaged { unit, attacker: None, damage, from: Some(dir), weapon: Some(weapon) } = event else { continue };
             if weapon.range <= 0.0 {
                 continue;
             }
@@ -105,7 +110,7 @@ impl Brain {
             if len < 0.1 {
                 continue;
             }
-            self.shelling.push(Shell { at: hit.pos, dir: Vec3 { x: dir.x / len, y: 0.0, z: dir.z / len }, range: weapon.range, weapon: weapon.name.clone(), unit: *unit, frame });
+            self.shelling.push(Shell { at: hit.pos, dir: Vec3 { x: dir.x / len, y: 0.0, z: dir.z / len }, range: weapon.range, weapon: weapon.name.clone(), damage: *damage, unit: *unit, frame });
         }
         let Some(shared) = &self.strategist else { return };
         let Some(s) = self.shelling() else { return };
@@ -128,18 +133,28 @@ impl Brain {
         ));
     }
 
-    /// The recent hits from out of sight, read together: the weapon that hit most, and its likeliest place: the point
-    /// nearest every hit's ray when two or more rays cross, else four fifths of the range along the one direction.
+    /// The recent hits from out of sight on the whole side, read together (the wake and the picture's `shelling` place).
     pub(super) fn shelling(&self) -> Option<Shelling> {
-        if self.shelling.is_empty() {
+        self.shelling_over(&self.shelling.iter().collect::<Vec<_>>())
+    }
+
+    /// The recent hits on these units alone: a group's own shooter, which is not the side's.
+    pub(super) fn shelling_for(&self, members: &[UnitId]) -> Option<Shelling> {
+        self.shelling_over(&self.shelling.iter().filter(|s| members.contains(&s.unit)).collect::<Vec<_>>())
+    }
+
+    /// Hits read together: the weapon that did the most damage, and its likeliest place: the point nearest every
+    /// hit's ray when two or more rays cross, else four fifths of the range along the one direction.
+    fn shelling_over(&self, all: &[&Shell]) -> Option<Shelling> {
+        if all.is_empty() {
             return None;
         }
-        let mut counts: BTreeMap<&str, usize> = BTreeMap::new();
-        for s in &self.shelling {
-            *counts.entry(s.weapon.as_str()).or_default() += 1;
+        let mut damage: BTreeMap<&str, f32> = BTreeMap::new();
+        for s in all {
+            *damage.entry(s.weapon.as_str()).or_default() += s.damage;
         }
-        let weapon = counts.iter().max_by_key(|(_, n)| **n).map(|(w, _)| w.to_string())?;
-        let shells: Vec<&Shell> = self.shelling.iter().filter(|s| s.weapon == weapon).collect();
+        let weapon = damage.iter().max_by(|a, b| a.1.total_cmp(b.1)).map(|(w, _)| w.to_string())?;
+        let shells: Vec<&Shell> = all.iter().copied().filter(|s| s.weapon == weapon).collect();
         let n = shells.len() as f32;
         let range = shells.iter().map(|s| s.range).fold(0.0, f32::max);
         let origin = shells.iter().fold(Vec3::default(), |sum, s| Vec3 { x: sum.x + s.at.x / n, y: 0.0, z: sum.z + s.at.z / n });
