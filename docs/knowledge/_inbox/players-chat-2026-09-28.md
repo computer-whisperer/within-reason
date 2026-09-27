@@ -36,3 +36,9 @@ one Opus 5.5 player (build 1281d6e+). From `run/matches/1790530604-bluegecko-3v1
   you want 1-3 of them with other units in front. Same with t1 artillery -- it shouldn't be the primary unit body."
   (Mangonel: `cormh`, the Cortex artillery hovercraft, range 700, 200 metal; our seat 0 had 13 of its 65 units as
   Mangonels at 13:00 in game 11, its line hovers 4.)
+
+## SailAway 2, 3v1 against thebluegecko (game 12, resigned 14:47; the directory is labelled comet-catcher-12)
+Build b6e5819+ (tidal, the boxes, the under-water words). From `run/matches/1790532515-bluegecko-3v1-comet-catcher-12/00/record-0.jsonl`.
+- 14:38 the host: "now might be a good time to resign"
+- 14:47 the player: "Agreed, gg and well played. Your Riptides + subs outranged our Dolphins/Ellysaws and the Cutlasses
+  finished the base. What should our navy have been?" (no answer in the record).

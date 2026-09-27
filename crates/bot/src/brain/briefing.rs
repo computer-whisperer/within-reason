@@ -265,7 +265,7 @@ impl Brain {
             // By what a definition is, not by the kit's tier-1 land names: on SailAway 2 the line read "constructors 0
             // labs 0" all game beside twenty hover constructors and two hover platforms.
             counts: Counts {
-                extractors: count(kit.extractor) + count(kit.advanced_extractor),
+                extractors: snapshot.own_units.iter().filter(|u| self.world.is_extractor_def(u.def)).count(),
                 generators: snapshot.own_units.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0 && (d.energy_make > 0.0 || d.energy_upkeep < 0.0 || d.wind_cap > 0.0 || d.tidal_make > 0.0))).count(),
                 converters: count(kit.converter),
                 labs: snapshot.own_units.iter().filter(|u| self.world.is_factory_def(u.def)).count(),

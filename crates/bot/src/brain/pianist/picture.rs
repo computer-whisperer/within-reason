@@ -877,8 +877,14 @@ impl Brain {
                         .map(|u| format!("our {}{}", self.short_words(u.def), if u.being_built { " (being built)" } else { "" }))
                         .collect();
                     let mut beside_words = if beside.is_empty() { String::new() } else { format!(" (beside it: {})", beside.join(", ")) };
+                    // Under the water and off our ground are different jobs: game 12 on SailAway 2 sent construction
+                    // ships for islet spots that read "under water or off our ground".
                     if !self.reachable_on_foot(spot) {
-                        beside_words.push_str("; under water or off our ground: our soldiers and ordinary constructors cannot get there, an amphibious or hover constructor or a construction ship can");
+                        beside_words.push_str(if self.world.under_water(spot) {
+                            "; under water: an amphibious or hover constructor, or a construction ship, can take it; ordinary constructors cannot"
+                        } else {
+                            "; on ground our walkers cannot reach (an islet, a cliff top): a hover or amphibious constructor gets there; a construction ship only to its shore"
+                        });
                     }
                     if let Some(seen) = their_spot(spot) {
                         let turrets = self.enemy_buildings.values().filter(|(def, pos, _)| pos.dist2d(spot) < 500.0 && self.world.def(*def).is_some_and(|d| d.weapon_count > 0)).count();

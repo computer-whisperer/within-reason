@@ -124,7 +124,6 @@ fn unit_table(header: &Value) -> Result<Units, String> {
             wind_cap: number(d, "wind_cap"),
             tidal_make: number(d, "tidal_make"),
             sonar_range: number(d, "sonar_range"),
-            submerges: false,
             hits_submerged: false,
             water_only: false,
             metal_storage: number(d, "metal_storage"),

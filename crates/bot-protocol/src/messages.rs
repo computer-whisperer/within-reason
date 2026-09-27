@@ -218,9 +218,6 @@ pub struct UnitDefInfo {
     /// Sonar coverage it gives, in elmos; 0 for none: what sees submerged units (records and shims from 2026-09-28).
     #[serde(default)]
     pub sonar_range: f32,
-    /// Whether the type can go under the surface (`UnitDef_isAbleToSubmerge`); a submarine, an amphibious walker.
-    #[serde(default)]
-    pub submerges: bool,
     /// Whether any of its weapons is a water weapon (a torpedo, a depth charge): the only kind that hits a submerged target.
     #[serde(default)]
     pub hits_submerged: bool,

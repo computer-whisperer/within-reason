@@ -397,7 +397,7 @@ fn header(hello: &Hello, mode: &str, session: bool, pianist: bool) -> Value {
             json!({
                 "id": d.id.0, "name": d.name, "class": class(d), "metal": d.metal_cost, "energy": d.energy_cost,
                 "speed": d.speed, "weapons": d.weapon_count,
-                "tidal_make": d.tidal_make, "sonar_range": d.sonar_range, "submerges": d.submerges, "hits_submerged": d.hits_submerged, "water_only": d.water_only,
+                "tidal_make": d.tidal_make, "sonar_range": d.sonar_range, "hits_submerged": d.hits_submerged, "water_only": d.water_only,
                 "build_time": d.build_time, "build_speed": d.build_speed, "build_distance": d.build_distance,
                 "builds": d.build_options.iter().map(|o| o.0).collect::<Vec<_>>(),
                 "extracts_metal": d.extracts_metal, "metal_make": d.metal_make, "energy_make": d.energy_make,

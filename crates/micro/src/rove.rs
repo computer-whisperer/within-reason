@@ -424,7 +424,6 @@ mod tests {
             wind_cap: 0.0,
             tidal_make: 0.0,
             sonar_range: 0.0,
-            submerges: false,
             hits_submerged: false,
             water_only: false,
             metal_storage: 0.0,

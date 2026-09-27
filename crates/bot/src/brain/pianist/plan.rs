@@ -387,7 +387,9 @@ impl Brain {
             parts.push(format!("sees {:.0} around it", d.radar_range));
         }
         if d.sonar_range > 0.0 {
-            parts.push(format!("its sonar sees {:.0} under the water: a submarine, a ship's hull or a commander walking the seabed is seen by sonar only, never by eyes or radar", d.sonar_range));
+            // Short: the option is offered to every builder every second (game 12: the long sentence stood 2,900
+            // times in one seat's log); the rule itself is in the brief.
+            parts.push(format!("its sonar sees {:.0} under the water, where eyes and radar see nothing", d.sonar_range));
         }
         if let Some(b) = self.world.def(unit.def)
             && d.build_time > 0.0

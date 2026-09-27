@@ -133,6 +133,16 @@ impl World {
         seen
     }
 
+    /// Whether the ground at `pos` lies under the water's surface (the terrain's height there below zero).
+    pub fn under_water(&self, pos: Vec3) -> bool {
+        let t = &self.hello.terrain;
+        if t.cell <= 0.0 || t.heights.is_empty() {
+            return false;
+        }
+        let (col, row) = (((pos.x / t.cell) as i64).clamp(0, i64::from(t.width) - 1), ((pos.z / t.cell) as i64).clamp(0, i64::from(t.height) - 1));
+        t.heights.get((row * i64::from(t.width) + col) as usize).is_some_and(|h| *h < 0)
+    }
+
     /// Whether ground under water lies within `radius` of `pos`: where a sea building can stand.
     pub fn water_within(&self, pos: Vec3, radius: f32) -> bool {
         self.nearest_water(pos, radius).is_some()

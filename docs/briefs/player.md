@@ -734,7 +734,18 @@ thebluegecko: "it is better than barbs at water. barbs are bad at water"; the ho
 generically"): the sea is won by a navy, a shipyard (`corsy`/`armsy`) by 4:00 on the seat with the coast, its first
 units a construction ship, then subs and Corals (`corfhlt`, a floating defence, 630) at the approaches, frigates
 after; hovers are a raid and a landing party, not the army, and a hover artillery (Mangonel) or any tier-1 artillery
-is one to three behind a body of line units, never the body.
+is one to three behind a body of line units, never the body. From game 12 there (resigned 14:47; the navy came,
+shipyards on every seat by 1:09, and lost anyway): reach decides at sea as on land. The Riptide frigate (`corpship`,
+480) outranges the Dolphin (`armdecade`, 280) and the Supporter (`coresupp`), and the report said so from 5:25
+("it outranges everything here (480 against our 280)") while every yard was held to Dolphins and Supporters by a
+4:09 `produce` never lifted; the first Ellysaw (`armpship`, 500) came at 10:05, after the fleet was gone. From the
+first Riptide seen, the yards make Ellysaws (or Riptides of our own on a Cortex seat) and the raider ships stop; a
+sea push counts reach, not weight, and goes as one fleet, not three groups an islet apart. The sonar tower by 3:00 was
+this section's rule and was ordered at 12:40; his seaplane platform (`corplat`, an air factory) was seen at 9:05 and
+the first Naval Nettle stood at 14:05: an air factory of his in sight means anti-air at every seat within two minutes,
+at sea as on land. A spot's line now says "under water" for a spot under the surface (a construction ship or an
+amphibious constructor takes it) and "on ground our walkers cannot reach" for an islet (a hover or amphibious
+constructor; a construction ship only to its shore): read which before sending a ship.
 
 **This map, Great Divide V1 (the games with people from 2026-09-27: two seats of ours under you, the north box A1-H2
 against the south A7-H8, realtime; the opponent a person who, we are told, will fortify the pass and try to win from

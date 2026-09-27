@@ -301,7 +301,6 @@ impl Engine {
             energy_storage: call!(self, UnitDef_getStorage(id, self.energy)),
             radar_range: call!(self, UnitDef_getRadarRadius(id)) as f32,
             sonar_range: call!(self, UnitDef_getSonarRadius(id)) as f32,
-            submerges: call!(self, UnitDef_isAbleToSubmerge(id)),
             hits_submerged: water_weapons.0,
             water_only: water_weapons.1,
             converter: self.converter(id),
