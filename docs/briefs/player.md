@@ -423,7 +423,16 @@ K-maps-comet-barb-opens-bots, the tempo model]
   Rover on its own tour, and they came home having killed one extractor); one Rover on `rove` ahead of the body
   finds his lab on the way. The body never goes inside 300 of his commander (the D-gun) or at a turret, steps off
   from Pawns, and every Rover out of the plant after that walks to it; two Rovers stay home from 2:30 against
-  Ticks (BARb's first at 2:08). Your first list lands at about 0:25, when the hands have already ordered two
+  Ticks (BARb's first at 2:08). **His minutes 4 to 8** (the same tool over his records and player-14's): the
+  extractor curves match to 6:00 (3 at 3:00, 5 at 4:00, 7 at 5:00, 9 to 10 at 6:00) and then his goes 12, 16, 16 to
+  20 at 7:00, 8:00, 9:00 with income 30, 39, 39 to 58, while player-14's fell to 5 at 7:00 with 13 extractors lost
+  by 7:25, nine to single Pawns. The difference is where the metal went from 4:00: his turrets are 3 by 4:00, 5 to
+  6 by 6:00 and 7 to 12 by 7:00, one at each outer pair as the extractor goes up, and his bank sits at 170 to 400;
+  player-14 had no turret until 7:00 (the standing order for them stood from 2:40 with the bank at 0 from 4:00 to
+  7:00, so nothing could pay for one) and an army of 2,132 at 7:00 against his 840 to 1,424, standing at home.
+  So from 4:00: the plant's list turns to constructors and Blitzes (his by 4:00: two to four constructors, up to
+  five Blitzes), the sixteen Rovers are spent at his base, and the constructors' metal goes to the outer pairs
+  and their turrets before anything else. Your first list lands at about 0:25, when the hands have already ordered two
   extractors and a solar; the hands skip the steps of your list they have ordered already, so write the whole
   opening from its start. The `armfav` at speed 168 is also the only tier-1 vehicle that catches a Tick (132): a
   Blitz (101) never does, and against two seats the Ticks come from 2:20.
