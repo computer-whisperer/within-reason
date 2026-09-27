@@ -13,7 +13,7 @@ directories (logs, records, transcripts) to that network; `--bind 127.0.0.1` kee
 A match still being played can be watched: the viewer asks for each file's new bytes (`?from=<byte offset>`) every few
 seconds and follows the newest sample. The browser lists a batch without a results line as still being played.
 """
-import argparse, http.server, json, os, socket, sys, webbrowser
+import argparse, http.server, json, os, socket, sys, time, webbrowser
 
 VIEWER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "viewer")
 
@@ -66,11 +66,22 @@ def batch_entry(root, name):
         started = os.path.getmtime(os.path.join(path, "batch.json")) if options else os.path.getmtime(path)
     except OSError:
         started = 0
+    # A game with people has no results.jsonl (the arena writes that) and no result line (the engine drops the
+    # connection at the end): its records go quiet. Quiet for three minutes is ended, and shown as "no result".
+    newest_write = 0
+    for sub in matches:
+        for name in os.listdir(os.path.join(path, sub["index"])) if sub["record"] else []:
+            if name.startswith("record-") and name.endswith(".jsonl"):
+                try:
+                    newest_write = max(newest_write, os.path.getmtime(os.path.join(path, sub["index"], name)))
+                except OSError:
+                    pass
+    quiet = newest_write > 0 and time.time() - newest_write > 180
     return {
         "batch": name, "started": started, "label": options.get("label"), "commit": options.get("commit"),
         "opponent": options.get("opponent"), "map": options.get("map"), "profile": options.get("profile"),
         "pianist": options.get("pianist"), "player": options.get("player"), "rules": options.get("rules"), "packet": os.path.basename(options["packet"]) if options.get("packet") else None,
-        "max_minutes": options.get("max_minutes"), "matches": matches, "finished": bool(results),
+        "max_minutes": options.get("max_minutes"), "matches": matches, "finished": bool(results) or quiet,
     }
 
 
