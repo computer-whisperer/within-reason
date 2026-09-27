@@ -726,6 +726,32 @@ impl Brain {
                 None => def.build_options.clone(),
             };
             let coming = own.iter().filter(|u| u.being_built && self.world.is_constructor_def(u.def)).count();
+            // An idle factory's default is its next unit, not standing idle: a queued unit only slows while metal is
+            // short, an idle plant wastes its build power, and the pick kept the plants idle whenever the store was
+            // low (bluegecko-3v1-comet-catcher-5 to 5:07: each plant idle in half the samples, the store under 150
+            // in nine of ten of them; the user: waiting for the bank is wrong). The unit: the allowance's first
+            // permitted entry, else what this plant has made most, else its cheapest armed mobile unit.
+            let default_unit: Option<UnitDefId> = match &allowed {
+                Some(Allowance { units: list, .. }) => list.iter().find_map(|e| {
+                    let (n, _) = super::allowance(e);
+                    buildables.iter().copied().find(|b| self.name(*b) == n)
+                }),
+                None => None,
+            }
+            .or_else(|| {
+                buildables
+                    .iter()
+                    .copied()
+                    .filter(|b| pianist.produced.get(&(unit.id, self.name(*b).to_string())).copied().unwrap_or(0) > 0)
+                    .max_by_key(|b| pianist.produced.get(&(unit.id, self.name(*b).to_string())).copied().unwrap_or(0))
+            })
+            .or_else(|| {
+                buildables
+                    .iter()
+                    .copied()
+                    .filter(|b| self.world.def(*b).is_some_and(|d| d.weapon_count > 0 && d.speed > 0.0))
+                    .min_by(|a, b| self.world.def(*a).map_or(0.0, |d| d.metal_cost).total_cmp(&self.world.def(*b).map_or(0.0, |d| d.metal_cost)))
+            });
             for buildable in buildables {
                 let (standing, being_made) = self.count_of(buildable, own, pianist);
                 let have = if self.world.is_constructor_def(buildable) {
@@ -737,14 +763,15 @@ impl Brain {
                 };
                 let key = self.name(buildable).to_string();
                 let cost = self.world.def(buildable).map_or(0.0, |d| d.metal_cost);
+                let default = idle && default_unit == Some(buildable);
                 states.push(State {
                     id: format!("{name}.{key}"),
                     actor: name.clone(),
                     response: Response::Next(buildable),
-                    words: format!("{then}{name} makes a {} ({cost:.0} metal; we have {standing}{}): {have}", self.unit_words(buildable), if being_made > 0 { format!(" and {being_made} being made") } else { String::new() }),
+                    words: format!("{then}{name} makes a {} ({cost:.0} metal; we have {standing}{}): {have}{}", self.unit_words(buildable), if being_made > 0 { format!(" and {being_made} being made") } else { String::new() }, if default { "; what it makes unless told otherwise, whatever the store holds (an idle plant wastes its build power)" } else { "" }),
                     metal: 0.0,
                     dim: self.dim_of(&Response::Next(buildable)),
-                    default: false,
+                    default,
                     current: false,
                     pair_only: false,
                 });

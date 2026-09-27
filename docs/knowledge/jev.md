@@ -1161,3 +1161,15 @@ kept fleeing unarmed enemy air constructors").
 **Would be wrong if.** The commander at 15:41 had a way out the rule could not see (it did: the player's own list sent
 it south to build turrets, and it walked).
 **Used by.** H-HANDS-STEP-AWAY (amended 2026-09-27).
+
+### K-hands-idle-plants-wait-for-the-store
+**Claim.** A factory's only default state was standing idle, and the hands' rules told Jev an idle factory "builds
+now" only while the store is full, so with the store low the plants stood idle and the income went to the builders:
+in bluegecko-3v1-comet-catcher-5 to 5:07 each of the three vehicle plants was idle in about half of the samples
+(117 of 236, 101 of 233, 126 of 239), the store under 150 metal in nine of ten of those, and every lab play was
+the pick's (14, 17, 14 in five minutes). In the game a queued unit only slows while metal is short; an idle plant
+wastes its build power and the metal a unit would have drawn goes to whatever else is building. The user,
+2026-09-27: waiting for the bank is wrong.
+**Evidence.** `run/matches/1790475073-bluegecko-3v1-comet-catcher-5/00` records (`own` idle flags of the plants
+against `m[0]`) and jev logs (`played` entries of kind lab, all source plan).
+**Status.** Fixed in code 2026-09-27 (H-HANDS-LAB-DEFAULT), unmeasured. Exploited by [[H-HANDS-LAB-DEFAULT]].
