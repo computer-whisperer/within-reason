@@ -3,7 +3,7 @@
 //! and the decision goes into the record with its source (`rule` for the base world, `plan` for a pick, `list` for
 //! a step of the player's list).
 
-use bot_protocol::{Command, OwnUnit, Tick, UnitId};
+use bot_protocol::{Command, OwnUnit, Tick, UnitId, Vec3};
 use serde_json::json;
 
 use super::super::economy::Plan;
@@ -406,6 +406,44 @@ impl Brain {
                         let parent_name = pianist.groups[index].name.clone();
                         pianist.groups.push(Group::new(name, domain, vec![scout.id], GroupTask::Move { to, place: p.name.clone(), fight: false, since: frame }, frame).split_from(&parent_name));
                     }
+                }
+            }
+            Response::Gather(place_name) => {
+                if let Some(p) = place(place_name) {
+                    let to = self.snap_for(self.group_walker(&pianist.groups[index], own), p.at);
+                    let group = &mut pianist.groups[index];
+                    group.hunt = None;
+                    commands.extend(group.release_orders(&units));
+                    commands.extend(ids.iter().map(|id| Command::Move { unit: *id, to, queue: false }));
+                    group.set_task(GroupTask::Move { to, place: p.name.clone(), fight: false, since: frame }, frame);
+                    group.gathering = true;
+                    group.last_order = frame;
+                    did = Some(format!("gather at {}", p.name));
+                }
+            }
+            Response::Shell(party_name) => {
+                if let Some(party) = party.filter(|p| p.name == *party_name).or_else(|| picture.parties.iter().find(|p| p.name == *party_name)) {
+                    let group = &mut pianist.groups[index];
+                    let reach_of = |u: &&OwnUnit| self.world.def(u.def).map_or(0.0, |d| d.reach);
+                    let long: Vec<&OwnUnit> = units.iter().copied().filter(|u| reach_of(u) >= 600.0).collect();
+                    let reach = long.iter().map(reach_of).fold(0.0, f32::max);
+                    let from = centre.unwrap_or(party.at);
+                    let dx = from.x - party.at.x;
+                    let dz = from.z - party.at.z;
+                    let len = dx.hypot(dz).max(1.0);
+                    let point = |dist: f32| Vec3 { x: party.at.x + dx / len * dist, y: 0.0, z: party.at.z + dz / len * dist };
+                    let standoff = self.snap_for(self.group_walker(group, own), point(reach * 0.85));
+                    let screen = self.snap_for(self.group_walker(group, own), point(reach * 0.55));
+                    group.hunt = None;
+                    commands.extend(group.release_orders(&units));
+                    for u in &units {
+                        let to = if reach_of(u) >= 600.0 { standoff } else { screen };
+                        commands.push(Command::Fight { unit: u.id, to, queue: false });
+                    }
+                    group.set_task(GroupTask::Move { to: standoff, place: format!("standoff from {}", party.name), fight: true, since: frame }, frame);
+                    group.shelling = true;
+                    group.last_order = frame;
+                    did = Some(format!("shell {} from {:.0} short of it with {} long-reach soldiers, {} between", party.name, reach * 0.85, long.len(), units.len() - long.len()));
                 }
             }
             Response::Join(other) => {

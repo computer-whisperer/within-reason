@@ -64,6 +64,11 @@ const AT_STRUCTURE: f32 = 400.0;
 const STATION_SLACK: f32 = 300.0;
 /// A named place this far from a group is not a walk state.
 const WALK_REACH: f32 = 3000.0;
+/// His buildings known this far from a group's front are raid states, the nearest few.
+const RAID_REACH: f32 = 4000.0;
+const RAID_STATES: usize = 3;
+/// A soldier with this reach or more is artillery: it shells from a standoff.
+const ARTILLERY_REACH: f32 = 600.0;
 /// A builder sent home from an enemy has no building default for this long after.
 pub(super) const RETREAT_HOLD: i32 = 30 * FRAMES_PER_SECOND;
 /// A course set by a pick is not displaced by a rule default for this long.
@@ -116,6 +121,10 @@ pub(crate) enum Response {
     Scout,
     Split(usize, String),
     Join(String),
+    /// Walk to the place and hold there until the tail is up (H-HANDS-GROUP-STATES).
+    Gather(String),
+    /// The long-reach members shell the named party from a standoff, the rest between.
+    Shell(String),
 }
 
 /// One executable state of one actor.
@@ -233,6 +242,8 @@ impl Brain {
             Response::Scout => "scout",
             Response::Split(..) => "split",
             Response::Join(_) => "join",
+            Response::Gather(_) => "move",
+            Response::Shell(_) => "fight",
         }
     }
 
@@ -805,6 +816,9 @@ impl Brain {
         let group_names: Vec<(String, Option<Vec3>, crate::world::Domain)> = pianist.groups.iter().map(|g| (g.name.clone(), super::groups::centre_of(&g.units(own)), g.domain)).collect();
         let scout_out = pianist.groups.iter().any(|g| g.members.len() == 1 && matches!(g.task, GroupTask::Move { fight: false, .. }));
         let instructions = picture.state["instructions"].as_str().unwrap_or_default().to_string();
+        let extractors_ours = own.iter().filter(|u| !u.being_built && self.world.is_extractor_def(u.def)).count();
+        let income_ours = tick.snapshot.metal.income;
+        let shelling = self.shelling();
         for group in &pianist.groups {
             let name = format!("group_{}", group.name);
             let units = group.units(own);
@@ -846,7 +860,13 @@ impl Brain {
                 _ => String::new(),
             };
             // 1. The station (`station`, `station_mode`): the default walk there when away; no chase beyond its reach.
-            let station = rules.get("station").filter(|s| !never.contains(s)).and_then(|s| picture.places.iter().find(|p| p.name == *s));
+            // A list of places ("spot_9 spot_2 spot_7") is walked in order, each done when reached (`stations_done`,
+            // kept in `keep_groups`): the raid route the player wrote as "spot_9, then spot_2, spot_7, spot_14" and
+            // advanced by hand every 30-40 s (game 10).
+            let station_list: Vec<&str> = rules.get("station").map(|s| s.split_whitespace().collect()).unwrap_or_default();
+            let station_name = station_list.iter().copied().find(|s| !group.stations_done.iter().any(|d| d == s)).or(station_list.last().copied());
+            let station = station_name.filter(|s| !never.contains(&s.to_string())).and_then(|s| picture.places.iter().find(|p| p.name == s));
+            let station_rest: Vec<&str> = station_list.iter().copied().skip_while(|s| Some(*s) != station_name).skip(1).collect();
             if let Some(st) = station {
                 let advance = rules.get("station_mode").is_some_and(|m| m == "advance");
                 let away = centre.dist2d(st.at) > STATION_SLACK;
@@ -856,7 +876,7 @@ impl Brain {
                 // 20:12-20:34: "fall back to where it last held" and "advance to spot_1" in turn, 26 of 31 lost).
                 let default = away && !engaging && !hunting && !odds_against && !walking_back;
                 if away || current {
-                    push(&format!("station_{}", st.name), Response::Walk { place: st.name.clone(), fight: advance }, format!("{name} {} to its station {} ({} away){}", if advance { "advances" } else { "walks" }, st.name, distance_words(centre.dist2d(st.at)), if engaging { ", leaving the party it was attacking" } else { "" }), default, current);
+                    push(&format!("station_{}", st.name), Response::Walk { place: st.name.clone(), fight: advance }, format!("{name} {} to its station {} ({} away){}{}", if advance { "advances" } else { "walks" }, st.name, distance_words(centre.dist2d(st.at)), if station_rest.is_empty() { String::new() } else { format!(", then on to {}", station_rest.join(", ")) }, if engaging { ", leaving the party it was attacking" } else { "" }), default, current);
                 }
                 if rules.get("no_chase").is_some_and(|v| v == "yes")
                     && let GroupTask::Engage { party, .. } = &group.task
@@ -871,27 +891,110 @@ impl Brain {
             // names, however far (the `instruct` tool promises it; a group's walks went to home and non-spot places
             // only, so "raids his north corner (spot_9, then spot_2, spot_7, spot_14)" put nothing on the menu and
             // the player advanced the station by hand every 30-40 s, game 10).
+            // `shelling` is an estimate, never a walk (10.4): the shooter is answered by the states below.
             let named_spot = |p: &super::Place| p.spot.is_some() && super::diet::names(&instructions, &p.name);
-            let mut named: Vec<&super::Place> = picture.places.iter().filter(|p| (p.name == "home" || p.spot.is_none() || named_spot(p)) && !never.contains(&p.name) && (p.at.dist2d(centre) < WALK_REACH || named_spot(p)) && p.at.dist2d(centre) > STATION_SLACK && station.is_none_or(|s| s.name != p.name)).collect();
+            let mut named: Vec<&super::Place> = picture.places.iter().filter(|p| p.name != "shelling" && (p.name == "home" || p.spot.is_none() || named_spot(p)) && !never.contains(&p.name) && (p.at.dist2d(centre) < WALK_REACH || named_spot(p)) && p.at.dist2d(centre) > STATION_SLACK && station.is_none_or(|s| s.name != p.name)).collect();
             named.sort_by(|a, b| a.at.dist2d(centre).total_cmp(&b.at.dist2d(centre)));
             for place in named.iter().take(3) {
                 let current = matches!(&group.task, GroupTask::Move { place: p, fight: false, .. } if *p == place.name);
                 push(&format!("walk_{}", place.name), Response::Walk { place: place.name.clone(), fight: false }, format!("{name} walks to {} ({} away) without stopping to fight on the way{leave}", place.name, distance_words(centre.dist2d(place.at))), false, current);
             }
+            // 2b. The group's own initiative (H-HANDS-GROUP-STATES): a raid on his buildings known within reach, a
+            // sweep of the spots nothing of ours has looked at, a gather when strung out, the answers to a shooter
+            // out of sight, and the artillery's standoff. Offered, never a default: the missing piece was the option
+            // (the user, game 10 at 5:58: two groups in position with 22-27 unguarded buildings within 3,000 held
+            // their stations for minutes; the packet's raid route had no state to land in).
+            let walker = self.group_walker(group, own);
+            let speed = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.speed).filter(|s| *s > 0.0).fold(f32::INFINITY, f32::min);
+            let walk_words = |d: f32| if speed.is_finite() && speed > 0.0 { format!("{d:.0} away, {:.0} s of walking", d / speed) } else { format!("{d:.0} away") };
+            let mut raids: Vec<(f32, &super::Place, String)> = Vec::new();
+            for place in picture.places.iter().filter(|p| p.name != "home" && p.name != "shelling" && !never.contains(&p.name) && self.reachable_for(walker, p.at)) {
+                let theirs: Vec<(UnitDefId, i32)> = self.enemy_buildings.values().filter(|(_, pos, _)| pos.dist2d(place.at) < 500.0).map(|(def, _, seen)| (*def, *seen)).collect();
+                if theirs.is_empty() {
+                    continue;
+                }
+                let d = body.front.dist2d(place.at);
+                if d > RAID_REACH || d < STATION_SLACK {
+                    continue;
+                }
+                let turrets: Vec<&UnitDefId> = theirs.iter().map(|(def, _)| def).filter(|def| self.world.def(**def).is_some_and(|d| d.weapon_count > 0 && d.reach > 0.0)).collect();
+                let mut counts: BTreeMap<String, usize> = BTreeMap::new();
+                for (def, _) in &theirs {
+                    *counts.entry(self.short_words(*def)).or_default() += 1;
+                }
+                let oldest = theirs.iter().map(|(_, seen)| *seen).min().unwrap_or(frame);
+                let extractors = theirs.iter().filter(|(def, _)| self.world.def(*def).is_some_and(|d| d.extracts_metal > 0.0)).count();
+                let income = if extractors > 0 && extractors_ours > 0 { format!("; about {:.1} a second of his income", extractors as f32 * income_ours / extractors_ours as f32) } else { String::new() };
+                let guard = if turrets.is_empty() { "no turret within 500".to_string() } else { format!("under {} turret{} ({})", turrets.len(), if turrets.len() == 1 { "" } else { "s" }, turrets.iter().map(|d| self.short_words(**d)).collect::<Vec<_>>().join(", ")) };
+                let words = format!("{name} raids {} and kills his {} there (seen {} ago; {guard}{income}): {}, fighting on the way{leave}", place.name, counts.iter().map(|(n, k)| format!("{k} {n}")).collect::<Vec<_>>().join(", "), super::picture::clock(frame - oldest), walk_words(d));
+                raids.push((d, place, words));
+            }
+            raids.sort_by(|a, b| a.0.total_cmp(&b.0));
+            for (_, place, words) in raids.iter().take(RAID_STATES) {
+                let current = matches!(&group.task, GroupTask::Move { place: p, fight: true, .. } if *p == place.name);
+                push(&format!("raid_{}", place.name), Response::Walk { place: place.name.clone(), fight: true }, words.clone(), false, current);
+            }
+            // The sweep: the nearest spot nothing of ours has looked at that this group reaches, on our side of the
+            // midline first, then any; the group advances to it as a body and the state is offered again from there.
+            let never_looked: Vec<&super::Place> = picture.places.iter().filter(|p| p.spot.is_some_and(|i| self.spot_seen(i).is_none()) && !never.contains(&p.name) && self.reachable_for(walker, p.at) && p.at.dist2d(centre) > STATION_SLACK).collect();
+            if let Some(next) = never_looked.iter().copied().min_by(|a, b| a.at.dist2d(body.front).total_cmp(&b.at.dist2d(body.front))) {
+                let mut then: Vec<(f32, String)> = never_looked.iter().filter(|p| p.name != next.name).map(|p| (p.at.dist2d(next.at), p.name.clone())).collect();
+                then.sort_by(|a, b| a.0.total_cmp(&b.0));
+                let then: Vec<String> = then.into_iter().map(|(_, n)| n).take(3).collect();
+                let current = matches!(&group.task, GroupTask::Move { place: p, fight: true, .. } if *p == next.name);
+                push("sweep", Response::Walk { place: next.name.clone(), fight: true }, format!("{name} sweeps the spots nothing of ours has looked at ({} of {}): {} first ({}), as one body fighting on the way{}{leave}", never_looked.len(), self.world.hello.metal_spots.len(), next.name, walk_words(body.front.dist2d(next.at)), if then.is_empty() { String::new() } else { format!(", then {}", then.join(", ")) }), false, current);
+            }
+            // The gather: a strung-out group holds at the place nearest its front until its tail is up.
+            if body.strung_out() && group.task.busy() {
+                if let Some(at) = picture.places.iter().filter(|p| p.name != "shelling" && !never.contains(&p.name)).min_by(|a, b| a.at.dist2d(body.front).total_cmp(&b.at.dist2d(body.front))) {
+                    let tail_seconds = if speed.is_finite() && speed > 0.0 { format!("{:.0} s", body.length / speed) } else { "a while".to_string() };
+                    push(&format!("gather_{}", at.name), Response::Gather(at.name.clone()), format!("{name} gathers at {} ({} from its front): the front holds there until the tail is up ({} of {} arrived, the tail {:.0} behind, about {tail_seconds}), then goes on where told{leave}", at.name, distance_words(body.front.dist2d(at.at)), body.arrived, body.core.len(), body.length), false, group.gathering);
+                }
+            }
+            // The shooter out of sight: close on it as one body when the estimate says we outweigh it, or pull out
+            // of its reach to the nearest place beyond it (game 3 19:30: a group under Bull fire had neither).
+            if let Some(s) = &shelling
+                && units.iter().any(|u| under_fire.contains(&u.id))
+            {
+                let verdict = self.unseen_shooter_words(&units, s);
+                if verdict.contains("we outweigh") && self.reachable_for(walker, s.at) {
+                    push("close_on_shooter", Response::Walk { place: "shelling".into(), fight: true }, format!("{name} closes on the shooter out of sight as one body, toward `shelling` ({}, {}): {verdict}{leave}", self.place_words(&picture.places, s.at), walk_words(body.front.dist2d(s.at))), false, false);
+                }
+                if let Some(out) = picture.places.iter().filter(|p| p.name != "shelling" && !never.contains(&p.name) && p.at.dist2d(s.at) > s.range + 150.0 && self.reachable_for(walker, p.at)).min_by(|a, b| a.at.dist2d(centre).total_cmp(&b.at.dist2d(centre))) {
+                    push(&format!("pull_out_{}", out.name), Response::Walk { place: out.name.clone(), fight: false }, format!("{name} pulls out of the shooter's reach ({:.0}) to {} ({}), without fighting on the way{leave}", s.range, out.name, walk_words(centre.dist2d(out.at))), false, false);
+                }
+            }
+            // The artillery: long-reach members shell the nearest party from a standoff, the rest standing between
+            // (game 9: four Shellshockers never used in the nest fight).
+            let long_reach: Vec<&OwnUnit> = units.iter().copied().filter(|u| self.world.def(u.def).is_some_and(|d| d.reach >= ARTILLERY_REACH && d.speed > 0.0)).collect();
+            if !long_reach.is_empty()
+                && let Some(p) = nearest_party
+            {
+                let reach = long_reach.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.reach).fold(0.0, f32::max);
+                let arty: BTreeMap<&str, usize> = long_reach.iter().fold(BTreeMap::new(), |mut m, u| { *m.entry(self.name(u.def)).or_default() += 1; m });
+                let current = group.shelling && matches!(&group.task, GroupTask::Move { place, .. } if *place == format!("standoff from {}", p.name));
+                push(&format!("shell_{}", p.name), Response::Shell(p.name.clone()), format!("{name} shells {} ({}{}) with its {} (reach {reach:.0}) from {:.0} short of it, the other {} soldiers standing between as the screen; {}", p.name, p.composition, under(p), arty.iter().map(|(n, k)| format!("{k} {n}")).collect::<Vec<_>>().join(", "), reach * 0.85, units.len() - long_reach.len(), self.group_odds(&body, p, enemies, &tick.snapshot.allies).1), false, current);
+            }
             // 3. The ways back: `fall_back_to` the default when the fight is against it; `hold_line` prunes them
             // while it is not.
             let hold_line = rules.get("hold_line").is_some_and(|v| v == "yes") && !odds_against;
             if !hold_line {
+                // What stands at the fall-back point is said, never pruned (6.5): "fall back to spot_10" was picked
+                // five times with the Bulls entering spot_10 (game 9).
+                let at_point = |at: Vec3| -> String {
+                    let near: Vec<String> = picture.parties.iter().filter(|p| p.at.dist2d(at) < ALARM).map(|p| format!("{} ({}) is {:.0} from it", p.name, p.composition, p.at.dist2d(at))).collect();
+                    if near.is_empty() { String::new() } else { format!("; into fire: {}", near.join(", ")) }
+                };
                 if let Some(to) = rules.get("fall_back_to").and_then(|s| picture.places.iter().find(|p| p.name == *s)).filter(|p| p.at.dist2d(centre) > STATION_SLACK) {
                     let current = matches!(&group.task, GroupTask::Move { place, fight: false, .. } if *place == to.name);
                     let default = (odds_against || losing) && !walking_back;
-                    push(&format!("fall_back_{}", to.name), Response::Walk { place: to.name.clone(), fight: false }, format!("{name} falls back to {} ({} away){}", to.name, distance_words(centre.dist2d(to.at)), nearest_party.map_or(String::new(), |p| format!(" from {} ({}), which outweighs it", p.name, p.composition))), default, current);
+                    push(&format!("fall_back_{}", to.name), Response::Walk { place: to.name.clone(), fight: false }, format!("{name} falls back to {} ({} away){}{}", to.name, distance_words(centre.dist2d(to.at)), nearest_party.map_or(String::new(), |p| format!(" from {} ({}), which outweighs it", p.name, p.composition)), at_point(to.at)), default, current);
                 }
                 // A walk back in progress is the slot's current state, so the base world keeps it until the pick
                 // changes it or the group arrives.
                 let retreating = matches!(&group.task, GroupTask::Move { fight: false, place, .. } if place == "home");
                 if retreating || (!walking_back && centre.dist2d(self.home) > STATION_SLACK) {
-                    let words = if retreating { format!("{name} keeps falling back to our base ({} away)", distance_words(centre.dist2d(self.home))) } else { format!("{name} falls back to our base ({} away){leave}", distance_words(centre.dist2d(self.home))) };
+                    let words = if retreating { format!("{name} keeps falling back to our base ({} away){}", distance_words(centre.dist2d(self.home)), at_point(self.home)) } else { format!("{name} falls back to our base ({} away){}{leave}", distance_words(centre.dist2d(self.home)), at_point(self.home)) };
                     push("retreat", Response::Retreat, words, false, retreating);
                 }
                 if let GroupTask::Move { fight: false, place, to, .. } = &group.task
@@ -906,7 +1009,7 @@ impl Brain {
                     && back.dist2d(centre) > 300.0
                     && nearest_party.is_none_or(|p| p.at.dist2d(back) > p.at.dist2d(centre) + 300.0)
                 {
-                    push("fall_back", Response::FallBack, format!("{name} falls back to where it last held ({}, {} away) without fighting on the way; less far than the base", self.place_words(&picture.places, back), distance_words(back.dist2d(centre))), false, false);
+                    push("fall_back", Response::FallBack, format!("{name} falls back to where it last held ({}, {} away) without fighting on the way; less far than the base{}", self.place_words(&picture.places, back), distance_words(back.dist2d(centre)), at_point(back)), false, false);
                 }
             }
             // 4. Detachments: a scout (one out at a time) and a detachment to a marked place; `no_detachments` prunes.

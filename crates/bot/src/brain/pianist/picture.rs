@@ -964,11 +964,19 @@ impl Brain {
         let biggest = memory.iter().max_by(|a, b| a.metal.total_cmp(&b.metal)).map(|m| format!("{} ({}, {:.0} metal), {} at {}", m.name, m.composition, m.metal, if parties.iter().any(|p| p.name == m.name) { "in sight now".to_string() } else { format!("last seen {} ago", clock(frame - m.seen)) }, self.place_words(&places, m.at)));
         let known_soldiers: Vec<&(UnitDefId, Vec3, i32)> = self.enemy_soldiers.values().filter(|(_, _, seen)| frame - seen < ARMY_MEMORY).collect();
         let known_metal: f32 = known_soldiers.iter().filter_map(|(def, _, _)| self.world.def(*def)).map(|d| d.metal_cost).sum();
-        let mut remembered: BTreeMap<String, BTreeMap<&str, usize>> = BTreeMap::new();
-        for (def, pos, _) in self.enemy_buildings.values() {
-            *remembered.entry(self.world.grid(*pos)).or_default().entry(self.name(*def)).or_default() += 1;
+        // His buildings by place, with when seen and what guards them (6.6 (d)): "B3: 1 armllt, 1 armmex" per cell
+        // gave a group nothing to go and kill.
+        let mut remembered: BTreeMap<String, (BTreeMap<&str, usize>, i32, usize)> = BTreeMap::new();
+        for (def, pos, seen) in self.enemy_buildings.values() {
+            let key = super::threats::place_of(&places, *pos).map_or_else(|| format!("{} (no named place)", self.world.grid(*pos)), |p| format!("{p} ({})", self.world.grid(*pos)));
+            let entry = remembered.entry(key).or_insert((BTreeMap::new(), frame, 0));
+            *entry.0.entry(self.name(*def)).or_default() += 1;
+            entry.1 = entry.1.min(*seen);
+            if self.world.def(*def).is_some_and(|d| d.weapon_count > 0 && d.reach > 0.0) {
+                entry.2 += 1;
+            }
         }
-        let remembered: Vec<String> = remembered.iter().map(|(grid, kinds)| format!("{grid}: {}", kinds.iter().map(|(n, k)| format!("{k} {n}")).collect::<Vec<_>>().join(", "))).collect();
+        let remembered: Vec<String> = remembered.iter().map(|(place, (kinds, seen, turrets))| format!("{place}: {}; seen {} ago; {}", kinds.iter().map(|(n, k)| format!("{k} {n}")).collect::<Vec<_>>().join(", "), clock(frame - seen), if *turrets == 0 { "no turret among them".to_string() } else { format!("{turrets} armed") })).collect();
         // Evidence, not a base: where its factories were seen, its start box, and where nobody of ours has looked
         // (docs/design/2026-09-22-enemy-evidence.md).
         let mut factories: Vec<(i32, String)> = self
@@ -1173,6 +1181,7 @@ impl Brain {
                 }
             };
             let doing = match &group.task {
+                GroupTask::Hold { since, .. } if group.gathering => format!("gathering here for {}: the front holds until the tail is up ({} of {} within {:.0}; the tail {:.0} behind)", ago(*since), body.core.iter().filter(|u| u.pos.dist2d(body.front) <= super::groups::STRUNG_OUT).count(), body.core.len(), super::groups::STRUNG_OUT, body.length),
                 GroupTask::Hold { since, committed } => format!("holding for {}{}", ago(*since), if *committed { ", fighting everything here, turrets included, since it arrived by advancing" } else { "" }),
                 GroupTask::Move { to, place, fight, since } => format!("{} to {place}: {}, for {}", if *fight { "advancing" } else { "walking" }, shape(*to), ago(*since)),
                 GroupTask::Engage { party, at, since, target, .. } => {

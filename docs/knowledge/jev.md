@@ -1227,3 +1227,16 @@ a group under fire from out of sight read "we outweigh it heavily" of the blips 
 **Evidence.** `docs/studies/2026-09-27-jev-posing/README.md` (I4); the games' `posing-review.md`.
 **Status.** fixed 2026-09-27 evening by [[H-HANDS-ODDS-WHAT-SHOOTS]]; what stays open is the matchup table's
 tier-2 and turret rows (the metal verdict itself is still tier-1-trained).
+
+### K-hands-no-state-named-a-building
+**Claim.** Until 2026-09-27 evening a group could be offered only keep, walks to passages and marks, splits, its
+station, fall back, retreat, join, a one-soldier scout, and hunts or attacks on mobile parties: no state named a
+building or an unlooked spot, so a group at its station with nothing mobile in sight held for minutes with 22-27
+of his unguarded buildings within 3,000 (game 10, 6:00-9:00, his truth file), the packet's raid route landed
+nowhere, and four Shellshockers were never used in the nest fight (game 9); a group under fire from out of sight
+could neither close on the shooter nor step out of its reach (game 3 19:30); the fall-back point was pruned into
+the Bulls' path (game 9); `raiders_lone ignore` stopped eleven Stouts under a Bull (comet-catcher-3 21:52).
+**Evidence.** `docs/studies/2026-09-27-jev-posing/README.md` (A1, A2, X2, X5; the user's 5:58 read of game 10);
+`run/matches/1790471259-bluegecko-3v1-comet-catcher-3/00/decompression-review.md`.
+**Status.** fixed 2026-09-27 evening by [[H-HANDS-GROUP-STATES]] (the check: the raid, sweep and gather states
+picked in the next arena games, and what they cost).

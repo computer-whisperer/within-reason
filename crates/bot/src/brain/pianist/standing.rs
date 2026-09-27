@@ -20,7 +20,7 @@ pub(super) const NEVER_REACH: f32 = 400.0;
 /// The vocabulary: rule name to the values it takes (`place`, `places`, `party` and `size` are checked against the
 /// picture or the number grammar).
 pub(crate) const GROUP_RULES: &[(&str, &[&str])] = &[
-    ("station", &["place"]),
+    ("station", &["places"]),
     ("station_mode", &["walk", "advance"]),
     ("raiders_lone", &["whole_group", "detachment", "detachment:N", "ignore"]),
     ("raiders_party", &["whole_group", "detachment", "detachment:N", "ignore"]),
@@ -173,7 +173,7 @@ impl Standing {
             if allowed.contains(&"place") && !places.iter().any(|p| *p == value) {
                 return Err(format!("{actor}: {value} is not a place in the picture"));
             }
-            if rule == "never" && let Some(bad) = value.split_whitespace().find(|p| !places.iter().any(|q| q == p)) {
+            if (rule == "never" || rule == "station") && let Some(bad) = value.split_whitespace().find(|p| !places.iter().any(|q| q == p)) {
                 return Err(format!("{actor}: {bad} is not a place in the picture"));
             }
             if allowed.contains(&"party") && !parties.iter().any(|p| *p == value) {

@@ -134,6 +134,15 @@ pub(crate) struct Group {
     /// Members still on their way to join (a plant's output walking to the body): not the front, not the tail,
     /// not counted as arrived; said in the picture as reinforcements on the way (H-HANDS-GROUP-BODY).
     pub joining: HashSet<UnitId>,
+    /// Gathering: holding where it arrived until its tail is up (the `gather` state, H-HANDS-GROUP-STATES).
+    pub gathering: bool,
+    /// Shelling a party from a standoff: the long-reach members at the standoff, the rest between (`shell`).
+    pub shelling: bool,
+    /// The stations of a station list already reached (the `station` rule with several places): the next unreached
+    /// one is the station now.
+    pub stations_done: Vec<String>,
+    /// Hunts by this group that ended without a kill: the party and when, said when the hunt is offered again.
+    pub hunts_failed: Vec<(String, i32, String)>,
 }
 
 /// A group's shape on the ground this second (H-HANDS-GROUP-BODY): the core (members not still joining), its front
@@ -174,7 +183,7 @@ pub(crate) const STRUNG_OUT: f32 = 600.0;
 
 impl Group {
     pub(crate) fn new(name: String, domain: Domain, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None, hunt: None, declined: Vec::new(), joining: HashSet::new() }
+        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None, hunt: None, declined: Vec::new(), joining: HashSet::new(), gathering: false, shelling: false, stations_done: Vec::new(), hunts_failed: Vec::new() }
     }
 
     /// The group's body toward `toward` (the goal of a walk, the nearest enemy, or nothing: then the front is the
@@ -267,6 +276,8 @@ impl Group {
         self.best_to_go = f32::INFINITY;
         self.progressed = frame;
         self.stall_warned = false;
+        self.gathering = false;
+        self.shelling = false;
     }
 }
 
@@ -409,6 +420,29 @@ impl Brain {
                 }
             }
             let Some(centre) = centre_of(&units) else { continue };
+            // A station list: the station reached is done, the next is the station (H-HANDS-GROUP-STATES).
+            if let Some(list) = pianist.standing.rules_for(&format!("group_{}", group.name)).get("station") {
+                let stations: Vec<&str> = list.split_whitespace().collect();
+                if stations.len() > 1 {
+                    group.stations_done.retain(|d| stations.contains(&d.as_str()));
+                    if let Some(next) = stations.iter().find(|s| !group.stations_done.iter().any(|d| d == *s))
+                        && let Some(at) = pianist.places.iter().find(|p| p.name == *next).map(|p| p.at)
+                        && let Some(body) = group.body(own, Some(at))
+                        && body.at.dist2d(at) < ARRIVED
+                    {
+                        group.stations_done.push(next.to_string());
+                    }
+                } else {
+                    group.stations_done.clear();
+                }
+            }
+            // A gather ends when the tail is up: the group is a body again and holds where it gathered.
+            if group.gathering
+                && let Some(body) = group.body(own, None)
+                && !body.strung_out()
+            {
+                group.gathering = false;
+            }
             match &mut group.task {
                 GroupTask::Hold { since, .. } => {
                     if frame - *since >= STATION_FRAMES {
@@ -431,8 +465,12 @@ impl Brain {
                     let forgotten = is_mark_name(place) && !marks.contains(place);
                     let given_up = frame - group.progressed >= GIVE_UP_FRAMES;
                     if to_go < ARRIVED {
-                        group.task = GroupTask::Hold { since: frame, committed: *fight };
+                        let gathering = group.gathering;
+                        let shelling = group.shelling;
+                        group.task = GroupTask::Hold { since: frame, committed: *fight || shelling };
                         group.held.clear();
+                        group.gathering = gathering;
+                        group.shelling = shelling;
                     } else if forgotten || given_up {
                         stalled.push(if forgotten {
                             format!("group_{} was walking to {place}, which is no longer a marked place: it holds where it is", group.name)
@@ -580,6 +618,10 @@ impl Brain {
                     "leash" => format!("the leash of {HUNT_LEASH:.0} from where it began reached"),
                     other => other.to_string(),
                 };
+                if event.why != "dead" {
+                    group.hunts_failed.retain(|(_, f, _)| frame - f < 3 * 60 * FRAMES_PER_SECOND);
+                    group.hunts_failed.push((party.clone(), frame, why.clone()));
+                }
                 Some(format!("group_{}'s hunt of {party} ended after {} s: {why}; {} rejoin the group", group.name, (frame - since) / FRAMES_PER_SECOND, rejoining.len()))
             }
         }

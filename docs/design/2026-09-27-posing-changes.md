@@ -82,7 +82,7 @@ entry at all).
 at 17:02"), in the report's front and as a wake reason.
 5.4 **The resurrection of our wrecks** said when his rez bots are seen near a wreck field (game 4).
 
-## 6. The states: what a group can do (A1, A2)
+## 6. The states: what a group can do (A1, A2) — APPLIED 2026-09-27 evening (H-HANDS-GROUP-STATES: 6.1-6.6 (a)-(e), with 9b.7, 10.4, 10.5, 12.1 and 13b (i))
 
 6.1 **Against a raid: "stand at the next extractor on its heading"** as a state, with the raid's heading in the
 party line ("heading south-east along F6-G6, next extractor spot_48 in 40 s"), beside the chase and the leave.
