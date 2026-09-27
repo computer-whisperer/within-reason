@@ -20,7 +20,7 @@ pub struct Spots {
 
 impl Brain {
     /// Sight of a unit type: the simulator's table, else a default.
-    fn sight_of(&self, def: UnitDefId) -> f32 {
+    pub(super) fn sight_of(&self, def: UnitDefId) -> f32 {
         self.sim.defs.get(&def).map_or(DEFAULT_SIGHT, |&index| self.sim.rules.units.list[index].sight)
     }
 

@@ -139,6 +139,8 @@ pub struct Pianist {
     pub(super) events: BTreeSet<String>,
     /// The hunts' ends since the last pass line (`groups.rs` `tick_hunt`), for the log.
     pub(super) hunt_events: Vec<String>,
+    /// The rovers' events since the last pass line (`groups.rs` `rove_events`), for the log.
+    pub(super) rove_events: Vec<String>,
     /// Spots where the engine refused an extractor, and until when they are left off (H-HANDS-REFUSED).
     pub(super) refused_spots: HashMap<usize, i32>,
     /// Sites the engine refused for a building (the type, the point, until when): kept out of that type's site
@@ -343,6 +345,7 @@ impl Pianist {
             sig: None,
             events: BTreeSet::new(),
             hunt_events: Vec::new(),
+            rove_events: Vec::new(),
             refused_spots: HashMap::new(),
             refused_sites: Vec::new(),
             script_frame: HashMap::new(),
@@ -610,11 +613,14 @@ impl Brain {
             if !pianist.hunt_events.is_empty() {
                 line["hunts"] = json!(std::mem::take(&mut pianist.hunt_events));
             }
+            if !pianist.rove_events.is_empty() {
+                line["rove"] = json!(std::mem::take(&mut pianist.rove_events));
+            }
         }
         if slots.is_empty() {
             let pianist = self.pianist.as_mut().expect("pianist mode");
             line["played"] = json!(std::mem::take(&mut pianist.played));
-            if !line["played"].as_array().is_some_and(Vec::is_empty) || line.get("hunts").is_some() {
+            if !line["played"].as_array().is_some_and(Vec::is_empty) || line.get("hunts").is_some() || line.get("rove").is_some() {
                 pianist.write_log(line);
             }
             return;

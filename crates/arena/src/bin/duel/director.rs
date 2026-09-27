@@ -698,7 +698,7 @@ impl View for DuelView<'_> {
         let name = &self.rules.defs.get(&def)?.name;
         let unit = &self.rules.units.list[self.rules.units.index(name)?];
         let dgun = unit.weapons.iter().filter(|w| w.command_fire && !w.paralyzer).map(|w| w.range).fold(0.0, f32::max);
-        Some(Stats { reach: unit.reach(), dps: unit.dps(), speed: unit.speed, health: unit.health, dgun })
+        Some(Stats { reach: unit.reach(), dps: unit.dps(), speed: unit.speed, health: unit.health, dgun, sight: unit.sight })
     }
 
     fn grid_spec(&self) -> (f32, usize, usize) {

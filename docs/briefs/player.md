@@ -121,6 +121,17 @@ has a D-gun state against any party whose nearest unit is inside its reach. Ever
 the nearest free spots beside the ones you name. A `standing` set applies what checks and names what it refused.
 Nothing of this plays without a pick or your rule: say in the packet what you want done and the hands weigh it.
 
+**Scouting and raiding with fast units: `rove` (2026-09-27).** `lane` with `{"group_R": "rove"}` hands a group of
+fast units (Rovers, Ticks, scout cars; name a plant's output into it with `produce`) to code that runs each of them ten
+times a second: it drives to look at what we know least (his start box and base first, then spots nobody has seen,
+then the stalest), attacks what it finds unguarded (a constructor, an extractor, a radar with nothing armed in reach),
+and never stands inside the reach of anything that can shoot it: a Rover outruns a Pawn and steps off before it is in
+reach. Your hands never move a roving group (no hunt, retreat or join), which is what killed the scouts before: in
+player-9 three scouts went at his base and none arrived (one turned home by the hands at the first sight of his
+commander, one into two Pawns, one onto a hunt). The group's entry says what each rover is doing and what it has
+found (`rove`); `"on"` takes it back. Your hands' `scout` state now makes a rover of a group's fastest soldier.
+[K-micro-a-rover-outruns-what-it-cannot-fight]
+
 **Which map.** Three maps have sections here, Quicksilver Remake, Comet Catcher Remake and Great Divide V1. The `map` tool names the
 one you are on; read that map's section and its opening, and skip the others'.
 

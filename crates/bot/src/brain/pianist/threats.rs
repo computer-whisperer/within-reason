@@ -101,8 +101,8 @@ impl Brain {
             let state = |id: String, actor: String, response: Response, words: String, metal: f32, default: bool, current: bool| State { id, actor, response, words, metal, dim: "threat", default, current, pair_only: false };
             let mut states = vec![state(format!("{}.leave", party.name), String::new(), Response::Leave, format!("nobody moves for {} ({}, {place}{}{killing}{heading_words})", party.name, party.composition, under(party)), 0.0, false, false)];
             // By the nearest member, not the centre (H-HANDS-GROUP-BODY): the odds on the part in the fight, the
-            // tail said when the group is strung out.
-            let mut groups: Vec<(f32, super::groups::Body, &super::groups::Group)> = pianist.groups.iter().filter_map(|g| g.body(own, Some(party.at)).map(|b| (b.front.dist2d(party.at), b, g))).collect();
+            // tail said when the group is strung out. A roving group is never sent (H-MICRO-ROVE).
+            let mut groups: Vec<(f32, super::groups::Body, &super::groups::Group)> = pianist.groups.iter().filter(|g| !g.roving).filter_map(|g| g.body(own, Some(party.at)).map(|b| (b.front.dist2d(party.at), b, g))).collect();
             groups.sort_by(|a, b| a.0.total_cmp(&b.0));
             for (distance, body, group) in groups.into_iter().take(GROUPS_PER_PARTY) {
                 let name = format!("group_{}", group.name);

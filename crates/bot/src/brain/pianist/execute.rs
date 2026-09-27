@@ -41,9 +41,14 @@ impl Brain {
     pub(super) fn apply_plan(&mut self, tick: &Tick, kit: &Kit, picture: &Picture, slots: &[Slot], world: &World, source: &'static str, held: &[bool], commands: &mut Vec<Command>) -> Vec<String> {
         let frame = tick.frame;
         let mut done: Vec<(String, String, String)> = Vec::new();
+        // A pick answered after its group began to rove is not played on it, nor merges anyone into it (H-MICRO-ROVE).
+        let roving: Vec<String> = self.pianist.as_ref().map(|p| p.groups.iter().filter(|g| g.roving).map(|g| format!("group_{}", g.name)).collect()).unwrap_or_default();
         for (i, (slot, si)) in slots.iter().zip(world).enumerate() {
             let state = &slot.states[*si];
             if state.current || held.get(i).copied().unwrap_or(false) {
+                continue;
+            }
+            if roving.contains(&state.actor) || matches!(&state.response, Response::Join(other) if roving.contains(&format!("group_{other}"))) {
                 continue;
             }
             // A slot with nothing to decide had its base put in force by the rule when the gate was asked; the
@@ -397,25 +402,23 @@ impl Brain {
                 }
             }
             Response::Scout => {
-                // A scout to where the group stands looks at nothing.
-                if let Some(p) = centre.and_then(|c| self.scout_target(c, picture, frame)).filter(|p| centre.is_none_or(|c| c.dist2d(p.at) > 600.0)) {
+                // The group's fastest soldier becomes a group of its own that roves (H-MICRO-ROVE): the lane picks
+                // where it looks from the next tick, and no state of the hands' moves it (player-9-posing: three
+                // scouts walked at his base by the hands' Moves, pulled home, into two Pawns, onto a hunt).
+                let free: Vec<&OwnUnit> = pianist.groups[index].free_units(own);
+                let speed = |u: &OwnUnit| self.world.def(u.def).map_or(0.0, |d| d.speed);
+                if let Some(scout) = free.iter().copied().max_by(|a, b| speed(a).total_cmp(&speed(b)))
+                    && free.len() >= 2
+                {
                     let domain = pianist.groups[index].domain;
-                    let to = self.snap_for(self.group_walker(&pianist.groups[index], own), p.at);
-                    // The fastest soldier of the group goes: a raider by the glossary's class when there is one.
-                    let raider = |u: &&OwnUnit| super::glossary::entry(self.name(u.def)).is_some_and(|e| e.class.contains("raider") || e.class.contains("scout"));
-                    let free: Vec<&OwnUnit> = pianist.groups[index].free_units(own);
-                    let scout = free.iter().copied().filter(raider).min_by(|a, b| a.pos.dist2d(to).total_cmp(&b.pos.dist2d(to))).or_else(|| nearest_of(&free, to, 1).first().copied());
-                    if let Some(scout) = scout {
-                        pianist.groups[index].members.retain(|id| *id != scout.id);
-                        if domain == crate::world::Domain::Air {
-                            commands.push(Command::MoveState { unit: scout.id, state: 1 });
-                        }
-                        commands.push(Command::Move { unit: scout.id, to, queue: false });
-                        let name = pianist.new_group_name();
-                        did = Some(format!("send a {} as group_{name} to look at {}", self.name(scout.def), p.name));
-                        let parent_name = pianist.groups[index].name.clone();
-                        pianist.groups.push(Group::new(name, domain, vec![scout.id], GroupTask::Move { to, place: p.name.clone(), fight: false, since: frame }, frame).split_from(&parent_name));
-                    }
+                    pianist.groups[index].members.retain(|id| *id != scout.id);
+                    let name = pianist.new_group_name();
+                    did = Some(format!("send a {} as group_{name} to rove", self.name(scout.def)));
+                    let parent_name = pianist.groups[index].name.clone();
+                    let mut group = Group::new(name, domain, vec![scout.id], GroupTask::Hold { since: frame, committed: false }, frame).split_from(&parent_name);
+                    // Roving from its first tick: no slot for it in the pass meanwhile, no second scout offered.
+                    (group.scout, group.roving) = (true, true);
+                    pianist.groups.push(group);
                 }
             }
             Response::Gather(place_name) => {
