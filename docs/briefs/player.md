@@ -417,9 +417,13 @@ K-maps-comet-barb-opens-bots, the tempo model]
   (the hands build the list's entries in order, each to its count, so `armcv:2` first is two constructors back
   to back under the assist and the energy store gone: player-12). The first constructor's list: the near spots
   outward, a light turret at home the moment the first Tick or Pawn is in the picture (his at 3:02), then the strip.
-  The Rovers: at 2:20, with eight out, group_A goes as one body for his outer extractors and constructors by a
-  route through the spots of his strip nearest us, and the route is the packet's prose with a station at the far
-  end, not `lane rove` (player-14 put the whole group on `rove` at 2:40: the lane is the scouting footwork, each
+  The Rovers: at 2:20, with eight out, group_A goes as one body to **his start's end of the strip** (his home spots
+  and the ones beside them: from B8 that is G1-G2, spot_6, spot_11, spot_18, spot_16; the mirror of our own home,
+  where the boxes put him and where his base was every time it was looked for), for his outer extractors and
+  constructors, by a route that ends in a station there, not `lane rove` and not the near end of his strip
+  (player-15 sent the body "along the south route into his strip" from B8, found G8 to G5 empty at 4:33 and had his
+  base in the picture only at 6:14; thebluegecko's first Rover is within 1,500 of the enemy start at 1:54). The
+  route is the packet's prose with the station at the far end (player-14 put the whole group on `rove` at 2:40: the lane is the scouting footwork, each
   Rover on its own tour, and they came home having killed one extractor); one Rover on `rove` ahead of the body
   finds his lab on the way. The body never goes inside 300 of his commander (the D-gun) or at a turret, steps off
   from Pawns, and every Rover out of the plant after that walks to it; two Rovers stay home from 2:30 against
