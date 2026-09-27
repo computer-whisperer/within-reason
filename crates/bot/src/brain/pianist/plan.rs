@@ -640,7 +640,8 @@ impl Brain {
             let allowed = self.allowed_units(&name).filter(|a| !a.units.is_empty());
             let permits = |list: &[String], b: UnitDefId| {
                 let unit_name = self.name(b).to_string();
-                list.iter().map(|e| super::allowance(e)).any(|(n, cap)| n == unit_name && cap.is_none_or(|cap| pianist.produced.get(&(unit.id, unit_name.clone())).copied().unwrap_or(0) < cap))
+                let made = pianist.produced.get(&(unit.id, unit_name.clone())).copied().unwrap_or(0);
+                (0..list.len()).any(|k| super::allowance(&list[k]).0 == unit_name && super::entry_permits(list, k, made))
             };
             let usual = super::super::roster::usual_menu(self.name(unit.def));
             // An allowance whose every count is used up permits nothing, not everything (models-medium-gpt6-astra:
@@ -820,7 +821,8 @@ impl Brain {
             let allowed = self.allowed_units(&name).filter(|a| !a.units.is_empty());
             let permits = |list: &[String], b: UnitDefId| {
                 let unit_name = self.name(b).to_string();
-                list.iter().map(|e| super::allowance(e)).any(|(n, cap)| n == unit_name && cap.is_none_or(|cap| pianist.produced.get(&(unit.id, unit_name.clone())).copied().unwrap_or(0) < cap))
+                let made = pianist.produced.get(&(unit.id, unit_name.clone())).copied().unwrap_or(0);
+                (0..list.len()).any(|k| super::allowance(&list[k]).0 == unit_name && super::entry_permits(list, k, made))
             };
             // An allowance whose every count is used up permits nothing, not everything (models-medium-gpt6-astra:
             // `armrectr:1` ran out and the lab made three more Lazarus under the whole menu).
@@ -835,9 +837,12 @@ impl Brain {
             // in nine of ten of them; the user: waiting for the bank is wrong). The unit: the allowance's first
             // permitted entry, else what this plant has made most, else its cheapest armed mobile unit.
             let default_unit: Option<UnitDefId> = match &allowed {
-                Some(Allowance { units: list, .. }) => list.iter().find_map(|e| {
-                    let (n, _) = super::allowance(e);
-                    buildables.iter().copied().find(|b| self.name(*b) == n)
+                // The first entry, in the list's order, that still permits its unit: a list naming a unit twice is a
+                // sequence (`entry_cap`).
+                Some(Allowance { units: list, .. }) => (0..list.len()).find_map(|k| {
+                    let (n, _) = super::allowance(&list[k]);
+                    let made = pianist.produced.get(&(unit.id, n.to_string())).copied().unwrap_or(0);
+                    if super::entry_permits(list, k, made) { buildables.iter().copied().find(|b| self.name(*b) == n) } else { None }
                 }),
                 None => None,
             }

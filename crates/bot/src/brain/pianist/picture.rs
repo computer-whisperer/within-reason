@@ -1202,22 +1202,23 @@ impl Brain {
                     // Only what this lab builds: an advanced plant's line said "allows only: Stout" when the list was
                     // the whole army's (onepass-player-8), and the player took it for the plant's own list.
                     let can_build: &[UnitDefId] = self.world.def(unit.def).map(|d| d.build_options.as_slice()).unwrap_or(&[]);
-                    let words: Vec<String> = list
-                        .iter()
-                        .filter_map(|e| {
-                            let (n, cap) = super::allowance(e);
+                    // Each entry's count is cumulative over the earlier entries of the same name (`entry_cap`): the
+                    // second "armfav:10" after "armfav:5" reads "10 more allowed" at five made, "no more" at fifteen.
+                    let words: Vec<String> = (0..list.len())
+                        .filter_map(|k| {
+                            let (n, _) = super::allowance(&list[k]);
                             let def = self.world.def_named(n).filter(|d| can_build.contains(d))?;
                             let made = pianist.produced.get(&(unit.id, n.to_string())).copied().unwrap_or(0);
-                            Some(match cap {
-                                Some(cap) if made >= cap => format!("{} (all {cap} allowed made: no more)", self.short_words(def)),
+                            Some(match super::entry_cap(&list, k) {
+                                Some(cap) if made >= cap => format!("{} (all {} allowed made: no more)", self.short_words(def), super::allowance(&list[k]).1.unwrap_or(cap)),
                                 Some(cap) => format!("{} ({} more allowed)", self.short_words(def), cap - made),
                                 None => self.short_words(def),
                             })
                         })
                         .collect();
-                    let used_up = list.iter().filter(|e| self.world.def_named(super::allowance(e).0).is_some_and(|d| can_build.contains(&d))).all(|e| {
-                        let (n, cap) = super::allowance(e);
-                        cap.is_some_and(|cap| pianist.produced.get(&(unit.id, n.to_string())).copied().unwrap_or(0) >= cap)
+                    let used_up = (0..list.len()).filter(|k| self.world.def_named(super::allowance(&list[*k]).0).is_some_and(|d| can_build.contains(&d))).all(|k| {
+                        let (n, _) = super::allowance(&list[k]);
+                        !super::entry_permits(&list, k, pianist.produced.get(&(unit.id, n.to_string())).copied().unwrap_or(0))
                     });
                     entry["allowed"] = json!(if words.is_empty() {
                         "the player's list names nothing this lab can build: it builds nothing until a new `produce` list".to_string()

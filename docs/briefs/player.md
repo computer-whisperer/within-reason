@@ -408,7 +408,9 @@ K-maps-comet-barb-opens-bots, the tempo model]
   metal touches 0 in 6; he answers it with the one solar the list already holds, never more (player-12 answered
   its stall with four solars, 620 metal at an income of 8, and stood on three extractors at 3:00). Write it, from B8:
   `queue {"commander": ["extractor spot_67", "extractor spot_74", "extractor spot_73", "armsolar", "armsolar",
-  "armsolar", "armvp", "assist 45", "armsolar", "assist 60", "extractor spot_68", "assist 60", "armsolar", "assist"]}`
+  "armsolar", "armvp", "assist 20", "armsolar", "assist 60", "extractor spot_68", "assist 60", "armsolar", "assist"]}`
+  (the plant stands at about 1:25 and `assist 20` puts the fourth solar at his 1:45; `assist 45` put it at 2:14 in
+  player-14)
   (a timed `assist N` that begins with the metal store under 20 is skipped by the hands and the next step runs, so
   the step after every timed assist is an extractor or the open `assist`, never a solar) and
   `produce {"plant_N": {"group": "group_A", "units": ["armflash:1", "armfav:5", "armcv:1", "armfav:10", "armcv:1", "armfav"]}}`
@@ -416,9 +418,11 @@ K-maps-comet-barb-opens-bots, the tempo model]
   to back under the assist and the energy store gone: player-12). The first constructor's list: the near spots
   outward, a light turret at home the moment the first Tick or Pawn is in the picture (his at 3:02), then the strip.
   The Rovers: at 2:20, with eight out, group_A goes as one body for his outer extractors and constructors by a
-  route through the spots of his strip nearest us (the first Rover ahead of it finds his lab on the way: `rove` for
-  one, the body for the rest), never inside 300 of his commander (the D-gun), never at a turret, stepping off from
-  Pawns, and every Rover out of the plant after that walks to the body; two Rovers stay home from 2:30 against
+  route through the spots of his strip nearest us, and the route is the packet's prose with a station at the far
+  end, not `lane rove` (player-14 put the whole group on `rove` at 2:40: the lane is the scouting footwork, each
+  Rover on its own tour, and they came home having killed one extractor); one Rover on `rove` ahead of the body
+  finds his lab on the way. The body never goes inside 300 of his commander (the D-gun) or at a turret, steps off
+  from Pawns, and every Rover out of the plant after that walks to it; two Rovers stay home from 2:30 against
   Ticks (BARb's first at 2:08). Your first list lands at about 0:25, when the hands have already ordered two
   extractors and a solar; the hands skip the steps of your list they have ordered already, so write the whole
   opening from its start. The `armfav` at speed 168 is also the only tier-1 vehicle that catches a Tick (132): a

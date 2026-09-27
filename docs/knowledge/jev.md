@@ -1325,3 +1325,18 @@ crates/bot/src/strategist/player.md`; `getconf ARG_MAX` is the total, MAX_ARG_ST
 `AGENTS.md`. A second lesson under it: a game whose player never started runs at full speed and is called in
 minutes, and the hands without a packet make constructors without end (H-HANDS-LAB-DEFAULT with no allowance).
 
+### K-hands-a-produce-list-naming-a-unit-twice
+**Claim.** A `produce` list that names a unit twice (`armflash:1, armfav:5, armcv:1, armfav:10, armcv:1, armfav`,
+the brief's Rover-mass line) was read per name: the count made was held per (builder, name), each entry's cap was
+compared with it alone, and the plant's default was the first entry whose unit any entry still permitted. So at five
+Rovers made the second Rover entry still permitted Rovers ("5 more allowed" in the picture beside "all 5 allowed
+made: no more"), the default stayed on the first entry, and player-14's plant made nine Rovers (1:39 to 2:23) and no
+constructor until the player replaced the list at 2:15 ("con late (plant skipped armcv)"); the constructor came at
+2:32 against thebluegecko's 1:40 and the fourth extractor at 3:10.
+**Evidence.** `run/matches/1790550188-player-14-gecko-opening/00/record-0.jsonl` (the plant's created events),
+`jev-0.jsonl` at 1:58 to 2:00 (the plant's `allowed` words), `run/hands_window.py ... 1:40 2:20 plant_13472` (the
+rule playing armfav each time with Jev's armcv at 0.53 to 0.65 against the base).
+**Status.** fixed 2026-09-28: an entry's cap is cumulative over the earlier capped entries of the same name
+(`entry_cap`, `entry_permits` in `pianist/mod.rs`; the plan's `permits` and default, the picture's words), with a
+test. Exploited by [[H-HANDS-LAB-DEFAULT]].
+

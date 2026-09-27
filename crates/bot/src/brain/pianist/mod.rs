@@ -286,6 +286,43 @@ pub fn allowance(entry: &str) -> (&str, Option<usize>) {
     }
 }
 
+/// The cap on the k-th entry of a `produce` list, counted with every earlier capped entry of the same name: the list
+/// is a sequence, so in `armfav:5, armcv:1, armfav:10, armcv:1, armfav` the second Rover entry is used up at fifteen
+/// made, not ten, and the last is never used up. Counted per name alone, the second entry read "5 more allowed" the
+/// moment the first was used up, and the plant's default (the first entry whose unit is permitted) stayed on Rovers
+/// past the constructor: player-14 made nine Rovers on a cap of five and no constructor until the player rewrote
+/// the list at 2:15. None for an uncapped entry.
+pub fn entry_cap(list: &[String], k: usize) -> Option<usize> {
+    let (name, cap) = allowance(&list[k]);
+    let cap = cap?;
+    Some(cap + list[..k].iter().filter_map(|e| { let (n, c) = allowance(e); if n == name { c } else { None } }).sum::<usize>())
+}
+
+/// Whether the k-th entry of a `produce` list still permits its unit, `made` being how many of that unit the builder
+/// has made.
+pub fn entry_permits(list: &[String], k: usize, made: usize) -> bool {
+    entry_cap(list, k).is_none_or(|cap| made < cap)
+}
+
+#[cfg(test)]
+mod allowance_tests {
+    use super::*;
+    #[test]
+    fn a_list_naming_a_unit_twice_is_a_sequence() {
+        let list: Vec<String> = ["armflash:1", "armfav:5", "armcv:1", "armfav:10", "armcv:1", "armfav"].iter().map(|s| s.to_string()).collect();
+        assert_eq!(entry_cap(&list, 1), Some(5));
+        assert_eq!(entry_cap(&list, 3), Some(15));
+        assert_eq!(entry_cap(&list, 4), Some(2));
+        assert_eq!(entry_cap(&list, 5), None);
+        // Five Rovers made: the first Rover entry is used up, the second still permits, and the first entry that
+        // permits its unit is the constructor.
+        assert!(!entry_permits(&list, 1, 5));
+        assert!(entry_permits(&list, 3, 5));
+        let first = (0..list.len()).find(|k| entry_permits(&list, *k, match allowance(&list[*k]).0 { "armfav" => 5, "armflash" => 1, _ => 0 }));
+        assert_eq!(first, Some(2));
+    }
+}
+
 impl Pianist {
     /// The builder's queued task becomes its task, its clock starting now. Helping the lab is the one task the engine
     /// could not hold queued (the guard order has no queue flag), so it is ordered here, as the build finishes.
