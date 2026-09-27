@@ -176,7 +176,27 @@ its own and say so; the report's seats line shows each seat's store so the playe
 front), the advanced plant's seat fed by the others, a dead seat's plants and constructors given to a live one,
 and a person's own habit (Irishstud14, game 5: "orange and red both need nanos", said of seats by colour).
 12b.4 **Caps**: the receiver's storage caps metal (the gadget), so a transfer says what arrived; a tax option, when
-set, is read from the mod options and said in the report.
+set, is read from the mod options and said in the report. A transfer larger than the receiver's free storage is
+sent in chunks as the receiver spends, the hands' task keeping the remainder ("1,800 of 2,600 sent; the rest as
+t1's store empties").
+12b.5 **Tier 2 for all seats from one plant** (the user: "one seat getting to t2 can allow all three seats to gain a
+t2 build unit"). The advanced plant's seat makes an advanced constructor per seat and gives them (`transfer
+{"units": ["constructor_N"], "to": "t3"}`); the received constructor joins the seat's builders with the tier-2
+menu, and the brief says the arrangement as the team play it is: one seat teches, the others feed it metal from
+12:00 and get their tier-2 builder back.
+12b.6 **Eating a commander** (the user: "many multiplayer matches start by one player eating their own commander to
+use the metal on something"). The `remove` tool already takes `commander_tN` as a reclaim handle (by another builder;
+a builder cannot take itself apart), so the action exists; what is missing is the bank: a starting seat's store
+(1,000) cannot hold a commander's 2,700, so the reclaim is done in chunks (the user: "take a chunk of it, cancel the
+resource recovery long enough for the bank to empty, then continue"). The reclaim task pauses when the store is
+within a margin of full and resumes as it drains, or the surplus is sent to another seat as it comes (12b.4), and
+the picture says "reclaiming commander_t2: 900 of 2,700 taken, paused for the store" so the player sees the pace.
+The brief carries the team pattern: which seat eats its commander (the one whose start is safest), what the metal
+buys (a second plant and constructors at once), and that the seat then plays without a D-gun and with its other
+builders as its only commander.
+12b.7 **Sharing as the answer to a dead seat**: when a seat's commander dies its plants, constructors and groups are
+given to the nearest live seat before the game's own ending rules take them (the report says what a dead seat
+still holds and offers the transfer).
 
 ## 13. The expansion (the expansion study, pending)
 
