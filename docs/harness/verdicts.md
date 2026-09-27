@@ -41,6 +41,10 @@ sufficient cause: do not blame the final base fight for a game that was lost ten
 ## Tags (use `other` with a note rather than stretching one)
 - `lead_not_converted`: we held twice the opponent's army value (and the extractors) for six minutes or more without
   its factories under attack; the pros close 3.4 minutes after that moment (`.claude/skills/bar-review/baselines.md`).
+- `lead_spent_in_our_half`: a run of minutes at 1.5x the opponent's army or more, before 8:00 and before its factory was
+  in the picture, ended with our army's mass never over 30% in its half (`run/minutes.py` WINDOWS); the lead went on
+  a loop of our own spots, builders, or a hold, and was gone within three minutes (player-9 3:00-7:00). Earlier than,
+  and outranking, `lead_not_converted` when both fit.
 - `blind_wave_into_defence`: an attack wave walked into a force or turret line worth clearly more than itself.
 - `expansion_raided_undefended`: extractors and constructors lost to raiders with no defenders or turrets in place.
 - `defenders_out_of_position`: defenders existed but were elsewhere, arrived late or arrived strung out.

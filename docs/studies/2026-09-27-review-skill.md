@@ -266,3 +266,41 @@ each with its `verdict.json`) were tallied with `run/tally_verdicts.py` to check
   print zeros where the older menu logs would have had counts. The menu sections are of the retired menu era; `view`
   and `turns` are what the skill cites.
 - `run/army_use.py` has no docstring and reads batches by glob; not touched, not cited.
+
+## 2026-09-28: cause before symptom (the second iteration)
+
+**The fault.** The user, after player-9's review (2026-09-28): the review feedback from the models "is still rather
+poor in BAR"; "in many cases the visible symptom of a lost fight is a consequence of many things minutes ago"; a text
+reader can "struggle to see spatial and temporal patterns unless they are called out"; "trust the feedback the humans
+give you over the feedback opus gives you." Player-9's review had opened on the 2x lead held from 12:00 and his base
+never found. The user's read, reached only after "look even earlier -- 6:00": the game left the winning path at
+3:00-7:00, when a 2.3-3.0x lead was walked round our own half (the 5:59 raid loop through six of our own spots), the
+plant made constructors, and the one scout to reach his side died 1,085 short of his lab at 5:37; his tier-2 lab
+(10:32, never seen) was the window a duel is won in, not a cue to match him.
+
+**The change.** `run/minutes.py`: the game minute by minute (both armies' mass by cell and the share of ours in his
+half, what of his was in sight, what the plants made, the player's tools, the losses and where, what he started
+building from the truth file), then WINDOWS (every run of minutes at 1.5x his army or more, where our mass stood
+through it, how it ended), HIS TIER 2 (his advanced lab's start, its first unit, the six minutes after), HIS BASE IN
+THE PICTURE, and UNITS OF OURS SENT TO HIS SIDE (how near his start each got, whether it turned back, what killed it).
+It is step 2 of the skill and is read before any checklist item; the reviewer writes down the first minute the game
+left the winning path before opening anything else. The skill's preamble carries the ruling; findings are ranked by
+root (the earliest moment still avoidable) with a chain to the symptom, not by the symptom's size, and only among
+findings on the chain to the result; each says whether its "because" comes from a person or the reviewer; a source
+tag naming a person outranks one naming our games. Items: E8 (the early lead spent in our half) new; F1, F6 and F7
+rewritten around the tool (F7: his tier 2 is our window, with the user's calculus by scenario). Verdict: `root_minute`,
+per-finding `root`, `chain`, `because_from`; tag `lead_spent_in_our_half`. `analyze_match.py` no longer counts an
+abandoned frame decaying to nothing as a death in a fight (player-9's engagement #8, 2,910 "lost to Pawns" at 13:56).
+
+**The test.** An Opus 5.5 reviewer given a copy of the revised skill with every player-9 number removed from its
+worked examples (the repository's copy carries them), told not to open the earlier `review.md`, reran player-9
+(`00/review-2.md`, `00/verdict-2.json`). Its opener: "You were at three times his army at 5:00 and had his base's
+doorstep in sight at 5:37. Then at 5:59 you sent the twelve Blitzes on a loop of your own middle spots and back, and
+filled the plant with constructors. By 8:00 he had the bigger army." `root_minute` 5, `primary_cause`
+`lead_spent_in_our_half`; his tier-2 lab at 10:32 ranked as the missed window; the 12:00-24:00 lead as the same
+mistake a second time. Checked against the record: the 5:59 orders (`station "spot_49 spot_46 spot_40 spot_55 spot_58
+spot_64"`, `armcv:2`), the Rover's death at 5:37, the lab at 10:32, and the decayed advanced-plant frame it flagged as
+a tool fault all hold. Caveat: it read the ledger row, which carried the first review's summary. The first review,
+same model and game, had ranked the opening eighth and the 12:00 lead first. One rule it exposed: ranking by root put
+the opening (root 0:00, which the game recovered from: 2.6x at 3:00) at rank 1; the skill now ranks by root only
+among findings on the chain to the result.

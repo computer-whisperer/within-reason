@@ -11,7 +11,7 @@ usage:
   run/analyze_match.py MATCH --engagement N      scene reports before, during and after engagement N of the report
   run/analyze_match.py MATCH --json              the report's numbers as JSON
 """
-import glob, json, math, os, struct, sys
+import bisect, glob, json, math, os, struct, sys
 from collections import Counter, defaultdict
 
 FPS = 30
@@ -127,13 +127,21 @@ class Match:
         s = min(self.samples, key=lambda s: abs(s["f"] - frame)) if self.samples else {"en": []}
         return [(u[0], self.defs[u[1]]["name"] if u[1] >= 0 else "?", u[2], u[3], 100, 0) for u in s.get("en", [])]
 
+    def was_being_built(self, frames, frame, unit):
+        """Whether `unit` was still under construction in the last sample at or before `frame`."""
+        i = bisect.bisect_right(frames, frame) - 1
+        return i >= 0 and any(u[0] == unit and (u[5] & 1) for u in self.samples[i]["own"])
+
     def deaths(self):
         """Every unit death on both sides: (frame, side, name, x, z, metal, killer name or None)."""
         out = []
+        frames = [s["f"] for s in self.samples]
         for e in self.events:
             if e["k"] == "destroyed" and e.get("d") is not None and e["d"] >= 0:
                 name = self.defs[e["d"]]["name"]
                 killer = self.defs[e["by_d"]]["name"] if e.get("by_d") is not None and e["by_d"] >= 0 else None
+                if killer is None and e.get("by") is None and self.was_being_built(frames, e["f"], e["u"]):
+                    continue  # an abandoned frame decaying to nothing (player-9 12:43-13:56: an advanced plant at 8%), not a loss in a fight
                 out.append((e["f"], "ours", name, e["x"], e["z"], self.metal(name), killer))
         if self.truth:
             previous = {}
