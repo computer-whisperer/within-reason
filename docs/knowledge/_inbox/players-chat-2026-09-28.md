@@ -42,3 +42,10 @@ Build b6e5819+ (tidal, the boxes, the under-water words). From `run/matches/1790
 - 14:38 the host: "now might be a good time to resign"
 - 14:47 the player: "Agreed, gg and well played. Your Riptides + subs outranged our Dolphins/Ellysaws and the Cutlasses
   finished the base. What should our navy have been?" (no answer in the record).
+- The user, after game 12: "One problem with that match was lack of coordination. Each seat built both a shipyard and
+  a hover lab before beginning to expand, slowing down initial mex capture significantly. One player could have
+  built a hover lab and two could have built shipyards, gifting hover constructors to the other two that need them.
+  The shipyard should build constructors and expand with mexes like normal, and that didn't happen last game."
+  (The records: every seat's shipyard by 1:06 and hover platform by 3:01; 14 extractors at 8:00 against game 11's 51;
+  the ten construction ships built tidal generators, floating converters and torpedo launchers, and three extractors
+  between them.)

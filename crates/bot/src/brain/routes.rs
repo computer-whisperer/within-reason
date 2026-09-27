@@ -116,11 +116,15 @@ impl Brain {
                 }
             }
         }
+        // Each class's field starts from the nearest ground that class stands on: seeded at our start itself, a ship's
+        // field from a start on land was never made, the ship fell back to the soldiers' reach, and the construction
+        // ships of game 12 on SailAway 2 were offered no spot all game (K-hands-a-ships-field-from-a-land-start).
         let classes: HashMap<Walker, (Vec<bool>, Field)> = distinct
             .iter()
             .filter_map(|(key, mc)| {
                 let passable = terrain::passable(terrain, *mc);
-                Field::from(terrain, &passable, self.home).map(|f| (*key, (passable, f)))
+                let origin = nearest_passable(terrain, &passable, self.home, 2500.0)?;
+                Field::from(terrain, &passable, origin).map(|f| (*key, (passable, f)))
             })
             .collect();
         eprintln!("[ai {}] terrain: fields for {} movement classes", self.ai(), classes.len());

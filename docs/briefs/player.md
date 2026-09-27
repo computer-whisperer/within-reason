@@ -745,7 +745,15 @@ this section's rule and was ordered at 12:40; his seaplane platform (`corplat`, 
 the first Naval Nettle stood at 14:05: an air factory of his in sight means anti-air at every seat within two minutes,
 at sea as on land. A spot's line now says "under water" for a spot under the surface (a construction ship or an
 amphibious constructor takes it) and "on ground our walkers cannot reach" for an islet (a hover or amphibious
-constructor; a construction ship only to its shore): read which before sending a ship.
+constructor; a construction ship only to its shore): read which before sending a ship. The seats divide the work
+(the user, after game 12: "One problem with that match was lack of coordination. Each seat built both a shipyard and
+a hover lab before beginning to expand, slowing down initial mex capture significantly": every seat had a shipyard
+by 1:06 and a hover platform by 3:01, and the side stood at 14 extractors at 8:00 against 51 the game before): one
+seat builds the hover platform and gives hover constructors to the other two with `transfer` (`{"units": [...],
+"to": "t2"}`), two seats build shipyards, and every shipyard's first units are construction ships that expand the
+under-water spots exactly as a constructor does on land, with a `queue` list of those spots by name; the ten
+construction ships of game 12 built tidal generators, floating converters and torpedo launchers and three extractors
+between them. Tidal generators are the commander's and the hover constructors' work at home; the ships take spots.
 
 **This map, Great Divide V1 (the games with people from 2026-09-27: two seats of ours under you, the north box A1-H2
 against the south A7-H8, realtime; the opponent a person who, we are told, will fortify the pass and try to win from

@@ -458,3 +458,16 @@ tower by 13:00.
 **Would be wrong if.** BAR set `requireSonarUnderWater` off (then sight would see submerged units), or its commanders
 could not walk under water.
 **Used by.** [[H-HANDS-UNDER-WATER]], [[H-ECO-TIDAL]].
+
+### K-hands-a-ships-field-from-a-land-start
+**Claim.** The distance field of a movement class was seeded at our start; for a ship class from a start on land the
+seed is impassable, the field was never made, the class fell back to the soldiers' reach on foot, and a construction
+ship was offered no metal spot at all: game 12 on SailAway 2, the ten construction ships' states over the whole game
+held factories, tidal generators, torpedo launchers and reclaim, never `extractor_spot_N`, and they built three
+extractors between them (from the player's lists) while the side stood at 14 extractors at 8:00.
+**Status.** demonstrated (2026-09-28, `run/matches/1790532515-bluegecko-3v1-comet-catcher-12`, the Jev log's state ids
+for `constructor_2328` and `constructor_8612`); fixed the same night (the seed is the nearest cell the class stands on).
+**Evidence.** `crates/bot/src/brain/routes.rs` `survey` (the classes map) before the fix; the user: "The shipyard should
+build constructors and expand with mexes like normal, and that didn't happen last game."
+**Would be wrong if.** The ships had been offered spots and declined them; they were not offered any.
+**Used by.** [[H-HANDS-WATER-START]] (amended).

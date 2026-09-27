@@ -656,3 +656,18 @@ per minute against the losses of that seat's fights.
 **Would be wrong if.** A mass of artillery held a line on its own in a recorded game, or the 1-3 with a body in front
 lost to the same fleet.
 **Used by.** the brief's unit-mix case and water-map paragraph (2026-09-28).
+
+### K-team-one-hover-lab-two-shipyards-and-the-ships-expand
+**Claim.** On a water map with several seats, every seat building both a shipyard and a hover platform before it
+expands halves the early extractor count; the division of labour is one seat with the hover platform giving hover
+constructors to the others by `transfer`, two seats with shipyards, and every shipyard's first units construction
+ships that expand the under-water spots as a constructor does on land.
+**Status.** supported (the user, 2026-09-28, after game 12 on SailAway 2: "One problem with that match was lack of
+coordination ... One player could have built a hover lab and two could have built shipyards, gifting hover
+constructors to the other two that need them. The shipyard should build constructors and expand with mexes like
+normal"); measured on one game: shipyards by 1:06 and hover platforms by 3:01 on all three seats, 14 extractors at
+8:00 against game 11's 51, ten construction ships that built three extractors between them.
+**Evidence.** `docs/knowledge/_inbox/players-chat-2026-09-28.md`; `run/matches/1790532515-bluegecko-3v1-comet-catcher-12`.
+**Would be wrong if.** A seat without its own hover platform could not get hover constructors in time by transfer, or
+construction ships could not take the under-water spots the hands offer them.
+**Used by.** the brief's water-map paragraph (2026-09-28).
