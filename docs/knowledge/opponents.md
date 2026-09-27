@@ -31,3 +31,41 @@ basic bots raiders, and every BARb fighter carries ANTI_STAT (targets buildings,
 army to the outermost extractors. In v5-easy-confirm, extractors at minute 10: wins 8-15, losses 1-12 (overlapping, so
 extractor survival is a strong factor on easy, not the whole story).
 **Used by.** (none)
+
+### K-opp-thebluegecko-one-ball-behind-turrets-then-tier-2
+**Claim.** [gecko]thebluegecko (lobby skill 34, OS 48 in the duel list) plays the same game whatever the odds: the
+whole side's spots by 5:00-9:00 with three or four constructors and no outposts, two turrets at home and
+turrets at whatever narrows the way in, one unit type massed into one ball that sits on its own turrets and never
+splits, tier 2 at 10:00-11:00, and one push at 15:00-18:00 with the tier-2 army that ends the game. Against
+several opponents the same, and the raids come first: scout cars and Blitzes from 2:30 into every seat's outer
+extractors while the ball grows.
+- Great Divide V1 alone against six BARb hard_aggressive (2026-09-26, 19:45, won): Armada north; 2 spots by 0:30,
+  the lab at 1:11, three Beamers and two rocket AA at the pass's north mouth by 5:10 and nothing else forward, 2 to
+  7 Pawns and 2 Warriors the whole first ten minutes, 11 of the 11 northern spots between 6:39 and 9:02 with about
+  25 wind generators, three nanos, the advanced bot lab at 10:09 (first tier-2 unit 11:01), then Fidos, Zeus,
+  Sharpshooters and Archangels: 5.9k of army at 16:00, 9.6k at 18:00, and the sweep through all six seats from
+  15:00 (the fighting cells: D5 at 5 and 7 with 26 of theirs dead and none of his, then F7, G7, C7, D7, F8 at 15-18).
+- Altair Crossing alone against two BARb hard_aggressive (2026-09-26, 20:42, won): Cortex; 16 Grunts at 4:00 to
+  take and hold the west strip's spots, then Thugs only: 13 at 8:00, 20 at 10:00, 32 at 16:00, 36 at 18:00, with
+  radars and a light turret at each outer spot; 10 spots at 12:00, 15 at 20:00; one push at 18:00 into both
+  bases (H2, H4, H5: 3/21, 4/15, 0/16) that ended it. No tier 2 at all.
+- Great Divide V1 against two seats of ours (bluegecko-2v1-great-divide, 15:34, won): all 11 northern spots by
+  5:25 with three constructors; two light turrets at home by 0:58, two rocket AA by 6:26, radars, a nano at 7:13;
+  Warriors only (8 at 8:00, 12 at 12:00) that met our Hammers and Thugs at the pass's south mouth (D7, E7) from
+  5:00 as they arrived one group at a time: 42 Thugs, 37 Hammers and 16 Storms of ours for 16 Warriors of his; the
+  advanced bot lab at 11:16, Zeus and a Fatboy by 14:00.
+- Comet Catcher against three seats of ours (three games, 2026-09-26/27, all won): scout cars and Blitzes at every
+  seat's outer extractors from 2:30 (17, 45 and about 30 extractors of ours lost per game), Stouts and Janus in
+  blocks of ten from 10:00 into one seat at a time, Banshee gunships in a wave of twenty at 14:00 in the third game,
+  a Mauser shelling from out of sight at 16:00, Bulls from 18:30, thirty Falcons by 21:00, and each of our
+  commanders killed at its plant by the block. He never met our ball: it fought his raids and blocks in pieces.
+**What it means for us.** He wins the trade by never fighting our whole army: our seats meet him one at a time.
+What beats his way is the same way, held together: the whole side's spots early, one army on turrets between the
+seats, tier 2 by 12:00 (he brings Bulls, Mausers and gunships at 14:00-18:00 and we have nothing that reaches
+a Mauser or outguns a Bull), flak at each home by 14:00, and a ball that goes at his plants only as one body when
+it outweighs what stands there.
+**Evidence.** Cards: `run/matches/1790471170-replay-gecko-gd-1v6-barb/card.md`,
+`run/matches/1790471255-replay-gecko-altair-1v2-barb/card.md`, `run/matches/1790471126-replay-human-gd-2/card.md`
+(his side is team 0 in each); the three Comet games' records and reviews (`run/matches/1790467496-*`,
+`1790469236-*`, `1790471259-*`); his 17 public duels in replays.md (13 on Comet Catcher, 12 of 17 won).
+**Status.** supported (2026-09-27, six games). Exploited by [[H-PLAYER-SEATS-VS-A-PERSON]].
