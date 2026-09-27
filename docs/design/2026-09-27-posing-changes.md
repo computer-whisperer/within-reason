@@ -129,6 +129,34 @@ as a sea unit, never offered to tanks to chase.
 9.3 **"Not free" says why**: unreachable for this builder, held by the enemy, covered by wrecks, claimed by
 constructor_N.
 
+## 9b. Distance is walking distance, and reach is by class (the user, 2026-09-27, on Cape Violet: "movement was nonsensical due to the topology of the map. There are a couple of alcoves with mexes that are in the middle of things by euclidean measure, but not in terms of connectivity. Armies huddled off in odd places while the main fight was elsewhere, and on several occasions spent many seconds trying to reach terrain that was not traversable by that unit type")
+
+Today the picture and the states measure almost everything by the straight line (`dist2d` in about 120 places in
+`plan.rs` alone; the walking fields are used for spots and home only: `walk_from_home`, `seconds_to_spot`), and a
+walk state is offered to a group whatever its class can reach: the routes' fields exist per movement class from
+home and per spot, not from where a group stands, and `snap_for` moves an unreachable target to the nearest ground
+the class reaches without saying so. Not yet measured; the measurement to make on Cape Violet's records: the
+seconds each group spent with a move target its class could not reach, or whose walk was over twice its straight
+line, and the places it gathered at against where the fight was.
+9b.1 **Every distance a decider sees is a walk for that actor's class**: "N away" and "N to go" in the picture, the
+"K s of walking" in the states, the ordering of "nearest" places and spots, the raid answers' "reaches it in N s",
+the fall-back and gather choices. A walk that is more than twice the straight line says so ("1,900 on foot, 700
+across the water: an alcove that opens from the north"). Files: `pianist/picture.rs`, `plan.rs` (the walk words),
+`routes.rs` (fields from a group's position: a coarse region graph per class, built at the survey, with the
+region-to-region walk precomputed, so a distance from anywhere costs a lookup; the fine fields stay for spots).
+9b.2 **A place a class cannot reach is never a state for it**, and the place's entry says which classes reach it
+("ground from the north only; hover and amphibious from the water"). A group told to go where it cannot is told
+so in the report ("group_A_t1 cannot reach spot_20: deep water; the nearest ground it reaches is X"), instead of
+walking to the shore and standing (the picture's stalls of Cape Violet).
+9b.3 **Gather points are chosen on the ways**: a gather or station for several groups is the place with the least
+total walk for all of them by their classes, on the way to the objective, never the straight-line centre or the
+nearest place to one group's centroid ("armies huddled off in odd places while the main fight was elsewhere").
+9b.4 **The map tool says the topology**: the passages as now, plus the alcoves and pockets (regions with one way
+in), which spots lie in them and from which side they open, and the wadeable fords apart from deep water (9.1),
+so the player's read of "the middle" is by connectivity.
+9b.5 **Mixed groups**: a group's reach is its slowest and least capable member's; a group with hovers and tanks says
+"the tanks stop at the shore" and the hover part is offered as its own detachment across the water.
+
 ## 10. The words (W)
 
 10.1 "Outruns this group ... a chase drives it off" only of a party that is moving; of one holding ground:
