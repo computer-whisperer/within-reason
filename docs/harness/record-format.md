@@ -78,7 +78,7 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   question on the call and the `played` entry of that call carries the `verdict`; mode `off` only logs the orders).
 - From 2026-09-26 midday (version 2, H-HANDS-ONE-PASS, `docs/design/2026-09-26-one-pass.md`) the executor's
   `standing` line is gone and a `pass` line stands each second the pass had anything to say: `{"t": "pass", "f",
-  "open": [slot names with a state to consider], "plan": ["actor: what the base world started"], "hunts": [ends],
+  "open": [slot names with a state to consider], "plan": ["actor: what the base world started"], "hunts": [ends], "rove": ["group_X <clock> what a rover found, attacked, ran from or gave up"] (from 2026-09-27, H-MICRO-ROVE),
   "played": [{actor, kind, played: state id, did, source: rule|list}]}`; on a second that asks it also carries
   `slots` ([{name, kind: "threat at spot_N"|builder|lab|group, base, idle, states: [{id, actor, words, dim, metal,
   default, current, pair_only}]}], index 0 the `party_N.leave` or `<actor>.keep` state), `gate` (the noul ids of the

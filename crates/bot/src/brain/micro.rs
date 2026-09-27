@@ -64,6 +64,11 @@ impl Brain {
                     super::pianist::GroupTask::Move { fight: false, .. } => Commitment::None,
                 };
                 let rules = self.footwork_of(&group.name);
+                if group.roving {
+                    commitment.extend(group.members.iter().map(|id| (*id, Commitment::Rove)));
+                    footwork.extend(group.members.iter().map(|id| (*id, Footwork::raw())));
+                    continue;
+                }
                 for id in &group.members {
                     // A hunter is the engine's (H-MICRO-HUNT): attack by id every tick, raw, until the quarry is dead or
                     // lost or the leash ends (docs/design/2026-09-26-threat-response.md §1).
@@ -88,6 +93,13 @@ impl Brain {
         let Some(shared) = &self.strategist else { return Footwork::default() };
         let lane = shared.lane.lock().unwrap();
         lane.get(&format!("group_{group}")).or_else(|| lane.get("all")).copied().unwrap_or_default()
+    }
+
+    /// Whether a group roves (H-MICRO-ROVE): the player's `lane` setting for it when there is one, else whether the
+    /// hands made it as a scout. Never an air group: the lane's steps are ground cells.
+    pub(super) fn roves(&self, group: &super::pianist::Group) -> bool {
+        let set = self.strategist.as_ref().and_then(|s| s.lane.lock().unwrap().get(&format!("group_{}", group.name)).copied());
+        group.domain != Domain::Air && set.map_or(group.scout, |f| f.rove)
     }
 
     /// Every tick: the lane over the brain's view, over the brain's own orders of this tick (`commands`, which
@@ -121,6 +133,9 @@ impl Brain {
                     }
                 }
             }
+        }
+        if !output.rove.is_empty() {
+            self.rove_events(&output.rove, tick.frame);
         }
     }
 
@@ -166,7 +181,7 @@ impl View for BrainView<'_> {
             }
             None => (super::pianist::glossary::entry(self.brain.name(def)).map_or(0.0, |e| e.health), 0.0),
         };
-        Some(Stats { reach, dps, speed, health, dgun })
+        Some(Stats { reach, dps, speed, health, dgun, sight: self.brain.sight_of(def) })
     }
 
     fn grid_spec(&self) -> (f32, usize, usize) {
@@ -221,4 +236,25 @@ impl View for BrainView<'_> {
     fn label(&self) -> String {
         format!("[ai {}]", self.brain.ai())
     }
+
+    /// Every metal spot a unit of this type can reach from home, with when it was last within sight of ours
+    /// (H-SCOUT-SPOTS), his when it lies in another ally team's start box or within 600 of his base; and his base
+    /// when one has been found, last seen when the freshest spot round it was.
+    fn rove_goals(&self, def: UnitDefId) -> Vec<micro::RoveGoal> {
+        let brain = self.brain;
+        let walker = brain.walker_of(def);
+        let ours = brain.world.hello.ally_team;
+        let base = brain.found_enemy_base();
+        let theirs = |at: Vec3| brain.world.hello.start_boxes.iter().any(|b| b.ally_team != ours && b.contains(at)) || base.is_some_and(|b| b.dist2d(at) < BASE_RADIUS);
+        let spots = &brain.world.hello.metal_spots;
+        let mut goals: Vec<micro::RoveGoal> = spots.iter().enumerate().filter(|(_, at)| brain.reachable_for(walker, **at)).map(|(i, at)| micro::RoveGoal { name: format!("spot_{i}"), at: *at, seen: brain.spot_seen(i), theirs: theirs(*at) }).collect();
+        if let Some(at) = base.filter(|b| brain.reachable_for(walker, *b)) {
+            let seen = (0..spots.len()).filter(|i| spots[*i].dist2d(at) < BASE_RADIUS).filter_map(|i| brain.spot_seen(i)).max();
+            goals.push(micro::RoveGoal { name: "his base".to_string(), at, seen, theirs: true });
+        }
+        goals
+    }
 }
+
+/// A spot this close to his found base is his; the base counts as seen when one of them was.
+const BASE_RADIUS: f32 = 600.0;

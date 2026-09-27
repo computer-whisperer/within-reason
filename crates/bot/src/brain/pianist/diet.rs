@@ -162,30 +162,6 @@ impl Brain {
         }
         state
     }
-
-    /// Where a scout goes: the enemy's base when one is known and nothing of ours has looked at it for three
-    /// minutes, else the nearest never-looked spot inside the enemy's start box, else the spot longest out of sight.
-    pub(super) fn scout_target(&self, from: Vec3, picture: &Picture, frame: i32) -> Option<Place> {
-        const LOOKED_LATELY: i32 = 3 * 60 * super::super::FRAMES_PER_SECOND;
-        let spots = &self.world.hello.metal_spots;
-        // A place a scout of ours is already walking to is spoken for (diet-1: three scouts to spot_10 in 90 s).
-        let bound_for: Vec<String> = self.pianist.as_ref().map(|p| p.groups.iter().filter_map(|g| g.task.place().map(str::to_string)).collect()).unwrap_or_default();
-        let free = |p: &Place| !bound_for.contains(&p.name);
-        if let Some(base) = self.found_enemy_base() {
-            let looked = (0..spots.len()).filter(|i| spots[*i].dist2d(base) < 600.0).filter_map(|i| self.spot_seen(i)).max();
-            if looked.is_none_or(|f| frame - f > LOOKED_LATELY) {
-                let name = picture.places.iter().filter(|p| p.at.dist2d(base) < 300.0).min_by(|a, b| a.at.dist2d(base).total_cmp(&b.at.dist2d(base))).map_or_else(|| "enemy base".to_string(), |p| p.name.clone());
-                return Some(Place { name, at: base, spot: None });
-            }
-        }
-        let ours = self.world.hello.ally_team;
-        let in_their_box = |at: Vec3| self.world.hello.start_boxes.iter().any(|b| b.ally_team != ours && b.contains(at));
-        let never: Option<&Place> = picture.places.iter().filter(|p| p.spot.is_some_and(|i| self.spot_seen(i).is_none()) && in_their_box(p.at) && free(p)).min_by(|a, b| a.at.dist2d(from).total_cmp(&b.at.dist2d(from)));
-        if let Some(p) = never {
-            return Some(p.clone());
-        }
-        picture.places.iter().filter(|p| p.spot.is_some() && free(p)).min_by_key(|p| p.spot.and_then(|i| self.spot_seen(i)).unwrap_or(i32::MIN)).cloned()
-    }
 }
 
 #[cfg(test)]

@@ -226,6 +226,30 @@ impl Brain {
         allowed.get(actor).or_else(|| if builder { allowed.get("all_builders") } else { None }).or_else(|| allowed.get("all")).cloned()
     }
 
+    /// What each rover of a roving group is doing this second, from the lane (H-MICRO-ROVE).
+    pub(super) fn rover_words(&self, group: &super::Group, own: &[OwnUnit], enemies: &[bot_protocol::EnemyUnit], places: &[Place]) -> String {
+        let words: Vec<String> = group
+            .units(own)
+            .iter()
+            .map(|u| {
+                let who = format!("its {} at {}", self.short_words(u.def), self.place_words(places, u.pos));
+                let Some(r) = self.lane.roving(u.id) else { return format!("{who} is starting") };
+                let what = match r.doing {
+                    "evading" => "is stepping out of the reach of something that can shoot it".to_string(),
+                    "attacking" => match r.target.and_then(|t| enemies.iter().find(|e| e.id == t)) {
+                        Some(e) => format!("is attacking his unguarded {} at {}", e.def.map_or("unit".to_string(), |d| self.short_words(d)), self.place_words(places, e.pos)),
+                        None => "is attacking an unguarded unit of his".to_string(),
+                    },
+                    "looking" => r.goal.map_or_else(String::new, |(name, look)| format!("is on its way to look at {name}, {:.0} to go", u.pos.dist2d(look))),
+                    _ => "waits where it is safe: every way to a place worth a look passes the reach of something that can shoot it".to_string(),
+                };
+                let evaded = if r.evasions > 0 { format!(" ({} evasion{} so far)", r.evasions, if r.evasions == 1 { "" } else { "s" }) } else { String::new() };
+                format!("{who} {what}{evaded}")
+            })
+            .collect();
+        words.join("; ")
+    }
+
     /// The named place nearest `pos`, with its grid cell, or the grid cell alone.
     pub(super) fn place_words(&self, places: &[Place], pos: Vec3) -> String {
         let grid = self.world.grid(pos);
@@ -1204,18 +1228,7 @@ impl Brain {
             }
             actors.insert(name, entry);
         }
-        let scouts: Vec<String> = pianist
-            .groups
-            .iter()
-            .filter(|g| g.members.len() == 1)
-            .filter_map(|g| match &g.task {
-                GroupTask::Move { place, to, fight: false, .. } => {
-                    let unit = g.units(own).first().copied()?;
-                    Some(format!("group_{} ({}) walking to look at {place}, {:.0} to go", g.name, self.name(unit.def), unit.pos.dist2d(*to)))
-                }
-                _ => None,
-            })
-            .collect();
+        let scouts: Vec<String> = pianist.groups.iter().filter(|g| g.scout && g.roving).map(|g| format!("group_{} roving: {}", g.name, self.rover_words(g, own, &snapshot.enemies, &places))).collect();
         for group in &pianist.groups {
             let units = group.units(own);
             let own_shelling = group_shelling.get(&group.name);
@@ -1254,6 +1267,7 @@ impl Brain {
             // eight hunted and the rest had no order (onepass-player-8 7:22-7:31).
             let doing = match &group.hunt {
                 Some(hunt) => format!("{} of its soldiers hunting {} since {} ago; the rest {doing}", hunt.hunters.len(), hunt.party, ago(hunt.since)),
+                None if group.roving => format!("roving, in code, beyond your hands' reach: {}", self.rover_words(group, own, &snapshot.enemies, &places)),
                 None => doing,
             };
             // Health as a distribution, not an average (game 9: "full on average" at 22 of 39 lost), with the
@@ -1293,8 +1307,15 @@ impl Brain {
             if !group.held.is_empty() {
                 entry["ranks"] = json!(format!("{} of its soldiers stand waiting for the body to come up (the march keeps the group together); they are not stalled", group.held.len()));
             }
-            if let Some(words) = self.footwork_of(&group.name).words() {
+            // The lane as it plays: a hands' scout roves without a setting; an air group never roves (H-MICRO-ROVE).
+            let footwork = if group.roving { crate::strategist::shared::Footwork::rove() } else { self.footwork_of(&group.name) };
+            if footwork.rove && !group.roving {
+                entry["lane"] = json!("set to rove, but an air group cannot rove: your hands play it as any other group");
+            } else if let Some(words) = footwork.words() {
                 entry["lane"] = json!(words);
+            }
+            if group.roving && !group.rove_log.is_empty() {
+                entry["rove"] = json!(group.rove_log.iter().map(|(_, line)| line.as_str()).collect::<Vec<_>>());
             }
             if let Some(words) = pianist.standing.words(&format!("group_{}", group.name)) {
                 entry["standing"] = json!(format!("standing orders in force, played by the bot when they apply: {words}"));

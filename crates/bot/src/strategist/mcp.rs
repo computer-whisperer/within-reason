@@ -159,8 +159,8 @@ fn tool_list() -> Value {
               "description": "A builder's build list, done exactly and in order by the bot itself without asking your hands: an object of builder name (commander, constructor_N) to a list of steps, or null (or an empty list) to cancel its list; null leaves a build in progress to finish, a list whose first step is \"stop\" (or the bare word \"stop\") drops that build first, its frame decaying, and the rest of the list follows. Steps: \"extractor spot_N\" (or \"extractor\" for the nearest free spot), any building by its internal name as the roster lists it (\"armsolar\", \"armvp\", \"armnanotc\", \"armfus\"), one that stands at a place with the place after it (\"armllt spot_3\", \"armrad home\", \"armmoho spot_3\" over our extractor there); any other building may take a place too (\"armvp spot_39\", \"armnanotc home\") and without one a factory stands beside its builder toward the yard, a generator beside the builder, a construction turret beside the nearest factory (it guards that factory once it stands), \"assist N\" (help the nearest factory for N seconds, then the next step: the pros guard the plant between their own builds), \"assist\" (help the nearest factory, standing or being built: the last step of a list, and only the last; the tool refuses steps after it). Each step is ordered when the one before is 60% built, so nothing idles; a new list takes over a builder that is helping a factory, walking, reclaiming or repairing at once; a step that cannot be done (the spot taken, a place unknown, a building this builder cannot make) is skipped and said in the hands' report. While a list runs the builder is off your hands' menu unless an enemy is on it; your instructions take over when the list is done. This is how an opening is made to happen as written: the hands do not follow a sequence (comet-1, comet-2: 'three solars, then the plant' got extractors and the plant at 1:45).",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "null" }, { "type": "string", "enum": ["stop"] } ] }, "description": "Builder name to steps, null, or \"stop\"." } },
             { "name": "lane",
-              "description": "Which footwork rules your hands' code applies to a group's soldiers between your hands' orders, per group name or for \"all\": \"raw\" (none: the group's orders reach the engine exactly as given), \"on\" (all of them, the default), or a list of the rules to keep. The rules: flee (a soldier steps out of the reach of a turret or a fight it was not sent against, or one it would die in), fan (spreads out under a commander's D-gun), kite (a soldier that outranges its enemy steps back while reloading), form (a group's soldiers walk to their own slots in ranks of six across the group's heading, two hulls apart, and stand at contact), march (an advancing group waits for its stragglers so it arrives together), follow (an engaging group is re-sent after its party as it moves). A setting stands until you change it; the group's picture entry shows it when it is not the default.",
-              "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "string", "enum": ["raw", "on"] }, { "type": "array", "items": { "type": "string", "enum": ["flee", "fan", "kite", "form", "march", "follow"] } } ] }, "description": "Group name (group_A) or \"all\" to its setting." } },
+              "description": "Which footwork rules your hands' code applies to a group's soldiers between your hands' orders, per group name or for \"all\": \"raw\" (none: the group's orders reach the engine exactly as given), \"on\" (all of them, the default), or a list of the rules to keep. The rules: flee (a soldier steps out of the reach of a turret or a fight it was not sent against, or one it would die in), fan (spreads out under a commander's D-gun), kite (a soldier that outranges its enemy steps back while reloading), form (a group's soldiers walk to their own slots in ranks of six across the group's heading, two hulls apart, and stand at contact), march (an advancing group waits for its stragglers so it arrives together), follow (an engaging group is re-sent after its party as it moves). \"rove\" (a group, never \"all\") hands the group's soldiers to the code whole, ten times a second, for fast units (Rover, Tick, Blitz, scout cars): each drives to look at what we know least (his start box and base first, then spots never seen, then the stalest), kills what it finds unguarded (a constructor, an extractor, a radar: nothing armed within reach of it), and never stands inside the reach of anything that can shoot it, stepping off before it is; your hands never move a roving group (no hunt, retreat, join or fall-back) and its new soldiers rove too. The group's entry says what each rover is doing and what it has found (`rove`); \"on\" or any other setting takes it back, holding where each soldier stands. A setting stands until you change it; the group's picture entry shows it when it is not the default.",
+              "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "string", "enum": ["raw", "on", "rove"] }, { "type": "array", "items": { "type": "string", "enum": ["flee", "fan", "kite", "form", "march", "follow"] } } ] }, "description": "Group name (group_A) or \"all\" to its setting." } },
             { "name": "mark",
               "description": "Name a place of your own for your hands: an object of name to [x, z] map coordinates or a grid cell (\"E7\": its centre), or null to forget it. A marked place joins the picture's places at once, so instructions can send groups and builders there (\"group_B: advance to south_gate\"), and its entry says what enemy is near. Names are lower-case words with underscores; home, spot_N, passage_N and group_N are taken. Any spot or passage you name in the packet is on your hands' menu already, however far; mark is for places that are not spots.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }, { "type": "string" }, { "type": "null" } ] }, "description": "Place name to [x, z], a grid cell, or null." } },
@@ -465,11 +465,13 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 let footwork = match value {
                     Value::String(s) if s == "raw" => super::shared::Footwork::raw(),
                     Value::String(s) if s == "on" => super::shared::Footwork::default(),
+                    Value::String(s) if s == "rove" && name == "all" => return Err("rove is per group (group_A): a whole army that roves has nobody left to fight".into()),
+                    Value::String(s) if s == "rove" => super::shared::Footwork::rove(),
                     Value::Array(items) => {
                         let names: Vec<String> = items.iter().map(|v| v.as_str().map(str::to_string).ok_or_else(|| format!("{name}: rule names are strings"))).collect::<Result<_, _>>()?;
                         super::shared::Footwork::keeping(&names)?
                     }
-                    _ => return Err(format!("{name}: \"raw\", \"on\" or a list of rules to keep")),
+                    _ => return Err(format!("{name}: \"raw\", \"on\", \"rove\" or a list of rules to keep")),
                 };
                 parsed.push((name.clone(), footwork));
             }
@@ -477,11 +479,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             let mut said: Vec<String> = Vec::new();
             for (name, footwork) in parsed {
                 said.push(format!("{name}: {}", footwork.words().unwrap_or_else(|| "all footwork rules (the default)".to_string())));
-                if footwork == super::shared::Footwork::default() && name != "all" {
-                    lane.remove(&name);
-                } else {
-                    lane.insert(name, footwork);
-                }
+                lane.insert(name, footwork);
             }
             Ok(format!("footwork set; {}", said.join("; ")))
         }
@@ -891,12 +889,17 @@ mod tests {
         assert!(call_tool("lane", &json!({ "group_A": "raw", "all": ["fan", "form"] }), &shared).is_ok());
         let lane = shared.lane.lock().unwrap().clone();
         assert_eq!(lane["group_A"], Footwork::raw());
-        assert_eq!(lane["all"], Footwork { flee: false, fan: true, kite: false, form: true, march: false, follow: false });
+        assert_eq!(lane["all"], Footwork { flee: false, fan: true, kite: false, form: true, march: false, follow: false, rove: false });
         assert!(call_tool("lane", &json!({ "group_A": ["dance"] }), &shared).is_err());
         assert!(call_tool("lane", &json!({ "raiders": "raw" }), &shared).is_err());
         assert!(call_tool("lane", &json!({}), &shared).is_err());
+        // "on" for a group is said explicitly: it takes a hands' scout off roving too.
         assert!(call_tool("lane", &json!({ "group_A": "on" }), &shared).is_ok());
-        assert!(!shared.lane.lock().unwrap().contains_key("group_A"));
+        assert_eq!(shared.lane.lock().unwrap()["group_A"], Footwork::default());
+        // Roving is per group, never for all.
+        assert!(call_tool("lane", &json!({ "group_B": "rove" }), &shared).unwrap().contains("roving"));
+        assert_eq!(shared.lane.lock().unwrap()["group_B"], Footwork::rove());
+        assert!(call_tool("lane", &json!({ "all": "rove" }), &shared).is_err());
     }
 
     #[test]

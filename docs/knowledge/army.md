@@ -395,6 +395,26 @@ on the far extractor (1,060 from the station) either way; the second hunt, from 
 more extractors.
 **Used by.** H-MICRO-HUNT; `docs/design/2026-09-26-threat-response.md` (ladder step 1).
 
+### K-micro-a-rover-outruns-what-it-cannot-fight
+**Claim.** A fast unit (a Rover at 168 a second, a Tick at 132) run by code ten times a second, kept at every shooter's
+reach plus 1.5 s of that shooter's speed (at least 80; 60 beyond a building's) and sent only along ways that pass no
+such margin, gets to see his start box and base and kills the unguarded economy it finds there without dying to
+anything it had in sight: seen is harmless, only reach kills, and a Rover gains 81 a second on a Pawn. The hands'
+scouts, walked on Moves under the one-second pick, do not: in player-9-posing (lost 36:32, his base at G1-G2 never
+found) three scouts went at it and none arrived: a Rover at 3:27 on an eight-spot route was turned home at 3:58 by the
+pick ("falls back to our base", 0.58) the second it sighted his commander, four stations short; a second Rover on a
+north route at 4:22 drove into two Pawns beside his lab (party_6, two armpw at (6138, 1016) at 5:36) and died at 5:38,
+500 from the lab; the hands' own Blitz scout at 7:05 was put on a Pawn hunt at 7:18 and died at 7:31, 1,300 short.
+**Status.** conjectured (2026-09-27). Built as H-MICRO-ROVE; unit tests only: in a straight-line kinematic model a
+Rover chased for a minute by a Pawn came no nearer than 257 (the Pawn's reach 180) and kept looking at places.
+**Evidence.** `run/matches/1790513490-player-9-posing/00` (`run/hands_window.py ... 3:50 4:02 group_B`: the pick at
+3:58, `retreat=0.58`; 5:30-5:40: party_6 at group_B); `crates/micro/src/rove.rs` tests.
+**Would be wrong if.** In games with a roving group, rovers die to shooters that were in their sight or remembered
+(the lane's sources) more often than once in ten minutes of roving, or his base and start-box spots are still unseen
+at 6:00 with a rover out from 3:00; or the engine's turning and pathing carry a rover into reach through the half
+second of lookahead (deaths with the evasion firing in the seconds before).
+**Used by.** H-MICRO-ROVE.
+
 ### K-micro-a-unit-under-the-guns-shoots
 **Claim.** A soldier already inside the enemy's reach should stay and shoot even when their fire on it would kill it
 and its side is locally outgunned: a unit that walks does not fire, and their fire on a ball at contact is "lethal"

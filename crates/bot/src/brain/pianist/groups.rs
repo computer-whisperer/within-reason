@@ -72,6 +72,8 @@ pub(crate) struct Hunt {
 /// A hunt this far from where it began ends (threats-smoke-1: anchored on the group's station, a hunt begun 900
 /// from the station ended on its first tick, 12 of 16 hunts one order long). The engine judges it (H-MICRO-HUNT).
 pub(crate) const HUNT_LEASH: f32 = 900.0;
+/// A roving group's log keeps this many lines.
+const ROVE_LOG: usize = 10;
 /// A party a group was told to leave is not answered by its rule's default for this long.
 pub(super) const DECLINE_FRAMES: i32 = 30 * FRAMES_PER_SECOND;
 
@@ -90,14 +92,6 @@ pub(crate) enum GroupTask {
 impl GroupTask {
     pub(crate) fn busy(&self) -> bool {
         !matches!(self, GroupTask::Hold { .. })
-    }
-
-    /// The place a walk is bound for, by name.
-    pub(crate) fn place(&self) -> Option<&str> {
-        match self {
-            GroupTask::Move { place, .. } => Some(place.as_str()),
-            _ => None,
-        }
     }
 }
 
@@ -146,6 +140,12 @@ pub(crate) struct Group {
     /// The station this group's current walk was sent to by its `station` rule, if that is what the walk is: a
     /// change of station ends it (12.4).
     pub station_walk: Option<String>,
+    /// Made by the hands' `scout` state: it roves unless the player's `lane` says otherwise for it (H-MICRO-ROVE).
+    pub scout: bool,
+    /// Roving as of the last look (`keep_groups`): a change hands the group to the lane or takes it back.
+    pub roving: bool,
+    /// What its rovers found, attacked, ran from and gave up, newest last, for the picture: (frame, words).
+    pub rove_log: Vec<(i32, String)>,
 }
 
 /// A group's shape on the ground this second (H-HANDS-GROUP-BODY): the core (members not still joining), its front
@@ -186,7 +186,7 @@ pub(crate) const STRUNG_OUT: f32 = 600.0;
 
 impl Group {
     pub(crate) fn new(name: String, domain: Domain, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None, hunt: None, declined: Vec::new(), joining: HashSet::new(), gathering: false, shelling: false, stations_done: Vec::new(), hunts_failed: Vec::new(), station_walk: None }
+        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None, hunt: None, declined: Vec::new(), joining: HashSet::new(), gathering: false, shelling: false, stations_done: Vec::new(), hunts_failed: Vec::new(), station_walk: None, scout: false, roving: false, rove_log: Vec::new() }
     }
 
     /// The group's body toward `toward` (the goal of a walk, the nearest enemy, or nothing: then the front is the
@@ -294,13 +294,11 @@ pub(crate) fn centre_of(units: &[&OwnUnit]) -> Option<Vec3> {
 
 impl Brain {
     /// Every think: membership against what stands, new soldiers adopted, standing orders kept up.
-    pub(super) fn keep_groups(&mut self, tick: &Tick, _kit: &Kit, commands: &mut Vec<Command>) {
-        let Some(kit) = self.kit else { return };
+    pub(super) fn keep_groups(&mut self, tick: &Tick, kit: &Kit, commands: &mut Vec<Command>) {
         let own = &tick.snapshot.own_units;
-        let soldiers: Vec<&OwnUnit> = own.iter().filter(|u| !u.being_built && self.is_army(u, &kit)).collect();
+        let soldiers: Vec<&OwnUnit> = own.iter().filter(|u| !u.being_built && self.is_army(u, kit)).collect();
         let enemies = &tick.snapshot.enemies;
         let frame = tick.frame;
-        let home = self.home;
         let Some(mut pianist) = self.pianist.take() else { return };
         // Losses since the player's last orders, per group; enough of them wake the player (H-HANDS-LOSS-WAKE).
         let turn_frame = self.strategist.as_ref().map_or(0, |s| s.last_turn_frame.load(std::sync::atomic::Ordering::Relaxed));
@@ -321,6 +319,7 @@ impl Brain {
             if !group.loss_warned && !group.members.is_empty() && (count >= LOSS_WAKE_COUNT || lost >= LOSS_WAKE_SHARE * (standing + lost)) {
                 group.loss_warned = true;
                 let doing = match &group.task {
+                    _ if group.roving => "roving".to_string(),
                     GroupTask::Hold { .. } => "holding".to_string(),
                     GroupTask::Move { place, fight, .. } => format!("{} to {place}", if *fight { "advancing" } else { "walking" }),
                     GroupTask::Engage { .. } => "attacking a party".to_string(),
@@ -423,7 +422,27 @@ impl Brain {
             })
             .collect();
         let mut hunt_ends: Vec<String> = Vec::new();
+        let roving: Vec<bool> = pianist.groups.iter().map(|g| self.roves(g)).collect();
+        let mut rove_changes: Vec<String> = Vec::new();
         for (index, group) in pianist.groups.iter_mut().enumerate() {
+            // A roving group is the lane's (H-MICRO-ROVE): no task, no hunt, no orders kept up. Switched either way,
+            // it starts from a hold; switched off, its soldiers hold where each stands.
+            if roving[index] != group.roving {
+                group.roving = roving[index];
+                (group.hunt, group.gathering, group.shelling, group.station_walk) = (None, false, false, None);
+                group.joining.clear();
+                group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
+                if group.roving {
+                    rove_changes.push(format!("group_{} roves: its soldiers look at what we know least, kill what they find unguarded and keep out of every reach, in code, until the lane is set otherwise", group.name));
+                } else {
+                    commands.extend(group.hold_orders(&group.units(own)));
+                    rove_changes.push(format!("group_{} stops roving and holds where each of its soldiers stands", group.name));
+                }
+            }
+            if group.roving {
+                group.joining.clear();
+                continue;
+            }
             // The hunt first: its members are not the task's this tick.
             if let Some(end) = Brain::tick_hunt(group, own, enemies, frame, commands) {
                 hunt_ends.push(end);
@@ -582,7 +601,9 @@ impl Brain {
                     }
                 }
             }
-            let _ = home;
+        }
+        for text in rove_changes {
+            pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
         }
         for text in hunt_ends {
             pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
@@ -627,6 +648,52 @@ impl Brain {
         group.hunt = None;
         let _ = commands;
         Some(format!("group_{}'s hunt of {party} ended after {} s: every hunter dead", group.name, (frame - since) / FRAMES_PER_SECOND))
+    }
+
+    /// The lane's word from the rovers (H-MICRO-ROVE), into their groups' logs (the picture's `rove` entry), one
+    /// line a rover, a tick and a kind: what it found, by place; what it attacks; what it ran from; what it gave up.
+    /// A building or commander of his found, and every attack, is also what the hands did for the player's report.
+    pub(crate) fn rove_events(&mut self, events: &[micro::RoveEvent], frame: i32) {
+        let Some(mut pianist) = self.pianist.take() else { return };
+        let clock = super::picture::clock(frame);
+        for group in pianist.groups.iter_mut() {
+            let mine: Vec<&micro::RoveEvent> = events.iter().filter(|e| group.members.contains(&e.rover)).collect();
+            if mine.is_empty() {
+                continue;
+            }
+            let mut found: BTreeMap<String, BTreeMap<String, usize>> = BTreeMap::new();
+            let mut news = false;
+            for event in &mine {
+                let line = match &event.what {
+                    micro::RoveWhat::Found { def, at, .. } => {
+                        let d = self.world.def(*def);
+                        news |= d.is_some_and(|d| d.speed == 0.0 || (d.build_speed > 0.0 && d.weapon_count > 0));
+                        *found.entry(self.place_words(&pianist.places, *at)).or_default().entry(self.short_words(*def)).or_default() += 1;
+                        continue;
+                    }
+                    micro::RoveWhat::Attacks { def, at, .. } => {
+                        let text = format!("{clock} group_{}'s rover attacks his unguarded {} at {}", group.name, self.short_words(*def), self.place_words(&pianist.places, *at));
+                        pianist.done.push(text.clone());
+                        text
+                    }
+                    micro::RoveWhat::Evades { from, at } => format!("{clock} ran from {} at {}", from.map_or("a radar contact".to_string(), |d| format!("his {}", self.short_words(d))), self.place_words(&pianist.places, *at)),
+                    micro::RoveWhat::GivesUp { goal, why } => format!("{clock} gave up looking at {goal}: {why}"),
+                };
+                pianist.rove_events.push(format!("group_{} {line}", group.name));
+                group.rove_log.push((frame, line));
+            }
+            for (place, kinds) in found {
+                let line = format!("{clock} found his {} at {place}", kinds.iter().map(|(k, n)| if *n == 1 { k.clone() } else { format!("{n} {k}") }).collect::<Vec<_>>().join(", "));
+                if news {
+                    pianist.done.push(format!("{clock} group_{}'s rover {}", group.name, line.trim_start_matches(&clock).trim_start()));
+                }
+                pianist.rove_events.push(format!("group_{} {line}", group.name));
+                group.rove_log.push((frame, line));
+            }
+            let excess = group.rove_log.len().saturating_sub(ROVE_LOG);
+            group.rove_log.drain(..excess);
+        }
+        self.pianist = Some(pianist);
     }
 
     /// The micro engine's word on a hunt (`micro::HuntEvent`): a hunter dropped (hurt, or slower than the quarry)

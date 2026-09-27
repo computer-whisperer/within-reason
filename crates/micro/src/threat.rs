@@ -59,6 +59,12 @@ impl ThreatGrid {
     /// The centre of the cell within `radius` of `pos` with the least threat, among those our units can stand on
     /// (`passable`, one flag a cell in the grid's order, or none known); ties go to the cell nearest `prefer`.
     pub fn lowest_within(&self, pos: Vec3, radius: f32, passable: Option<&[bool]>, prefer: Vec3) -> Option<Vec3> {
+        self.lowest_within_by(pos, radius, passable, prefer, &|_| 0.0)
+    }
+
+    /// As `lowest_within`, each cell's threat raised by `extra` at its centre (the rover's price on standing in a
+    /// reach's margin, where the grid's tail has already run out: `rove.rs`).
+    pub fn lowest_within_by(&self, pos: Vec3, radius: f32, passable: Option<&[bool]>, prefer: Vec3, extra: &dyn Fn(Vec3) -> f32) -> Option<Vec3> {
         let (cx, cz) = ((pos.x / self.cell) as i32, (pos.z / self.cell) as i32);
         let r = (radius / self.cell).ceil() as i32;
         let mut best: Option<(f32, f32, Vec3)> = None;
@@ -72,7 +78,7 @@ impl ThreatGrid {
                 if passable.is_some_and(|p| !p[i]) {
                     continue;
                 }
-                let key = (self.cost[i], centre.dist2d(prefer));
+                let key = (self.cost[i] + extra(centre), centre.dist2d(prefer));
                 if best.is_none_or(|(c, d, _)| key.0 < c || (key.0 == c && key.1 < d)) {
                     best = Some((key.0, key.1, centre));
                 }

@@ -863,13 +863,14 @@ impl Brain {
             }
         }
 
-        // Groups: their course, beside the threat slots.
-        let group_names: Vec<(String, Option<Vec3>, crate::world::Domain)> = pianist.groups.iter().map(|g| (g.name.clone(), super::groups::centre_of(&g.units(own)), g.domain)).collect();
-        let scout_out = pianist.groups.iter().any(|g| g.members.len() == 1 && matches!(g.task, GroupTask::Move { fight: false, .. }));
+        // Groups: their course, beside the threat slots. A roving group has none: it is the lane's (H-MICRO-ROVE), and
+        // nothing merges into it.
+        let group_names: Vec<(String, Option<Vec3>, crate::world::Domain)> = pianist.groups.iter().filter(|g| !g.roving).map(|g| (g.name.clone(), super::groups::centre_of(&g.units(own)), g.domain)).collect();
+        let scout_out = pianist.groups.iter().any(|g| g.scout && g.roving);
         let instructions = picture.state["instructions"].as_str().unwrap_or_default().to_string();
         let extractors_ours = own.iter().filter(|u| !u.being_built && self.world.is_extractor_def(u.def)).count();
         let income_ours = tick.snapshot.metal.income;
-        for group in &pianist.groups {
+        for group in pianist.groups.iter().filter(|g| !g.roving) {
             let name = format!("group_{}", group.name);
             let units = group.units(own);
             // The group as a body (H-HANDS-GROUP-BODY): distances from where the body stands, the nearest party by
@@ -1070,8 +1071,12 @@ impl Brain {
             }
             // 4. Detachments: a scout (one out at a time) and a detachment to a marked place; `no_detachments` prunes.
             if units.len() >= 2 && !rules.get("no_detachments").is_some_and(|v| v == "yes") {
-                if !scout_out {
-                    push("scout", Response::Scout, format!("{name} sends one soldier (a raider if it has one) to look at what we know least: the enemy base if nothing of ours has seen it for three minutes, else the nearest spot never looked at in its start box; the rest carry on"), false, false);
+                // The scout roves (H-MICRO-ROVE): the group's fastest soldier, run in code with no orders from the hands.
+                if !scout_out
+                    && group.domain != crate::world::Domain::Air
+                    && let Some(fastest) = units.iter().filter_map(|u| self.world.def(u.def)).max_by(|a, b| a.speed.total_cmp(&b.speed))
+                {
+                    push("scout", Response::Scout, format!("{name} sends its fastest soldier (a {}, {:.0} a second) to rove on its own: it looks at what we know least, his start box first, kills what it finds unguarded and keeps out of the reach of anything that can shoot it; the rest carry on", self.short_words(fastest.id), fastest.speed), false, false);
                 }
                 for place in named.iter().filter(|p| p.name != "home").take(2) {
                     let n = (units.len() / 2).max(1);

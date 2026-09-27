@@ -2,13 +2,18 @@
 //! (`docs/design/2026-09-20-micro-lane.md`, `docs/design/2026-09-25-formation-micro.md`). The host (the bot's brain,
 //! or the duel director) decides intent and gives orders; the lane may override a unit's order for as long as a
 //! behaviour claims it, and gives the order back when none does. It never chooses a party's target and never
-//! re-prices a fight: it spends a unit's order on staying alive, shooting well and standing in its slot.
+//! re-prices a fight: it spends a unit's order on staying alive, shooting well and standing in its slot. The one
+//! exception is a rover (`rove.rs`, H-MICRO-ROVE): a unit the host hands over whole, which chooses where to look and
+//! what to kill itself.
 //!
 //! The host is a [`View`]: unit definitions, each type's fighting numbers, the ground, and what it remembers of the
 //! enemy. H-MICRO-LANE switches the whole lane off; each behaviour has its own ID under it.
 
 pub mod form;
+mod rove;
 pub mod threat;
+
+pub use rove::{RoveEvent, RoveGoal, RoveReport, RoveWhat};
 
 use std::collections::{HashMap, HashSet};
 
@@ -124,6 +129,8 @@ pub enum Commitment {
     /// A hunter after one unit (H-MICRO-HUNT): it runs raw, under no footwork rule, and the lane's attack order
     /// does the closing.
     Hunt(Hunt),
+    /// A rover (H-MICRO-ROVE): the lane runs it whole, and the host's orders to it are dropped.
+    Rove,
 }
 
 /// One quarry for a set of hunters: the unit to kill, and the leash (from where the hunt began, or the group's
@@ -164,7 +171,7 @@ impl Commitment {
     fn covers(&self, source: &Source) -> bool {
         match self {
             Commitment::None => false,
-            Commitment::All | Commitment::Hunt(_) => true,
+            Commitment::All | Commitment::Hunt(_) | Commitment::Rove => true,
             Commitment::Priced { turrets, commander } => {
                 if source.commander {
                     *commander
@@ -180,7 +187,8 @@ impl Commitment {
 
 /// Which footwork rules apply to a group's soldiers (H-HANDS-LANE): the lane's five, the march that keeps an
 /// advancing group together, and the re-sending of an engaging group after its party. All on by default; `raw` is
-/// none, and the group's orders reach the engine as the host gave them.
+/// none, and the group's orders reach the engine as the host gave them. `rove` is the other mode (H-MICRO-ROVE): no
+/// rule and no order of the host's, the lane runs the group's soldiers whole.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Footwork {
     pub flee: bool,
@@ -190,6 +198,8 @@ pub struct Footwork {
     pub form: bool,
     pub march: bool,
     pub follow: bool,
+    #[serde(default)]
+    pub rove: bool,
 }
 
 fn yes() -> bool {
@@ -198,7 +208,7 @@ fn yes() -> bool {
 
 impl Default for Footwork {
     fn default() -> Footwork {
-        Footwork { flee: true, fan: true, kite: true, form: true, march: true, follow: true }
+        Footwork { flee: true, fan: true, kite: true, form: true, march: true, follow: true, rove: false }
     }
 }
 
@@ -206,7 +216,12 @@ impl Footwork {
     pub const RULES: [&'static str; 6] = ["flee", "fan", "kite", "form", "march", "follow"];
 
     pub fn raw() -> Footwork {
-        Footwork { flee: false, fan: false, kite: false, form: false, march: false, follow: false }
+        Footwork { flee: false, fan: false, kite: false, form: false, march: false, follow: false, rove: false }
+    }
+
+    /// The rover's setting: none of the rules, the lane runs the soldiers itself (H-MICRO-ROVE).
+    pub fn rove() -> Footwork {
+        Footwork { rove: true, ..Footwork::raw() }
     }
 
     /// The rules kept, by name.
@@ -222,9 +237,6 @@ impl Footwork {
             match name.as_str() {
                 "flee" => footwork.flee = true,
                 "fan" => footwork.fan = true,
-                // `focus` was a rule until 2026-09-25 (H-MICRO-FOCUS, retired); an old setting naming it is read
-                // as nothing kept for it.
-                "focus" => {}
                 "kite" => footwork.kite = true,
                 "form" => footwork.form = true,
                 "march" => footwork.march = true,
@@ -240,13 +252,16 @@ impl Footwork {
         if *self == Footwork::default() {
             return None;
         }
+        if self.rove {
+            return Some("roving: its soldiers run on their own in code, ten times a second, and take no orders from your hands: each looks at the places nothing of ours has seen (his start box first), kills what it finds unguarded (extractors, radars, lone constructors) and keeps out of the reach of anything that can shoot it".to_string());
+        }
         let kept = self.kept();
         Some(if kept.is_empty() { "raw: no footwork rules; its orders go to the engine as given".to_string() } else { format!("footwork rules {} only", kept.join(", ")) })
     }
 }
 
-/// A type's fighting numbers against ground: reach, damage a second, speed (elmos a second), hit points, and the
-/// reach of its D-gun (a `command_fire` weapon; 0 for everything but a commander).
+/// A type's fighting numbers against ground: reach, damage a second, speed (elmos a second), hit points, the reach of
+/// its D-gun (a `command_fire` weapon; 0 for everything but a commander), and its sight.
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Stats {
     pub reach: f32,
@@ -254,6 +269,7 @@ pub struct Stats {
     pub speed: f32,
     pub health: f32,
     pub dgun: f32,
+    pub sight: f32,
 }
 
 /// What the lane reads of its host.
@@ -284,6 +300,12 @@ pub trait View {
     fn mine(&self, unit: UnitId) -> bool;
     /// What the debug lines are prefixed with.
     fn label(&self) -> String;
+    /// The places a rover of this type may go and look at, each with when it was last within sight of anything of
+    /// ours (H-MICRO-ROVE): the metal spots it can reach, and his base when one is known. None by default (a host
+    /// without rovers).
+    fn rove_goals(&self, _def: UnitDefId) -> Vec<RoveGoal> {
+        Vec::new()
+    }
 }
 
 /// A soldier the lane commands: armed, mobile, no builder, on the ground (aircraft are out: its steps are ground
@@ -309,6 +331,9 @@ struct Source {
     commander: bool,
     /// The reach of its D-gun; 0 for everything but a commander.
     dgun: f32,
+    /// Elmos a second; 0 for a building.
+    speed: f32,
+    def: Option<UnitDefId>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -426,6 +451,8 @@ pub struct Output {
     pub milling: Milling,
     /// Hunts that ended and hunters that dropped out this tick (H-MICRO-HUNT), each once.
     pub hunts: Vec<HuntEvent>,
+    /// What the rovers found, attacked, ran from and gave up this tick (H-MICRO-ROVE).
+    pub rove: Vec<RoveEvent>,
 }
 
 #[derive(Default)]
@@ -445,6 +472,10 @@ pub struct Lane {
     counts: (u32, u32),
     /// The hunts in progress, by quarry (H-MICRO-HUNT).
     hunts: HashMap<UnitId, HuntState>,
+    /// Each rover's memory (H-MICRO-ROVE).
+    rovers: HashMap<UnitId, rove::Rover>,
+    /// Enemy units some rover has already reported finding.
+    rove_found: HashSet<UnitId>,
 }
 
 /// The host gave the same order again (it re-issues standing orders every few seconds): no reason to let go.
@@ -576,6 +607,18 @@ impl Lane {
         let fired = &mut out.fired;
 
         let mut soldiers: Vec<&OwnUnit> = snapshot.own_units.iter().filter(|u| !u.being_built && view.mine(u.id) && view.def(u.def).is_some_and(is_soldier)).collect();
+        // H-MICRO-ROVE before everything: a rover is the lane's alone, and nothing the host said to it this tick
+        // reaches the engine.
+        let rovers: Vec<&OwnUnit> = soldiers.iter().copied().filter(|u| matches!(self.commitment.get(&u.id), Some(Commitment::Rove))).collect();
+        self.rovers.retain(|id, _| rovers.iter().any(|u| u.id == *id));
+        if !rovers.is_empty() {
+            host.retain(|c| unit_of(c).is_none_or(|u| !rovers.iter().any(|r| r.id == u)));
+            for unit in &rovers {
+                self.claims.remove(&unit.id);
+            }
+            self.rove(view, &rovers, snapshot.enemies.as_slice(), &sources, frame, commands, fired, &mut out.rove, debug);
+            soldiers.retain(|u| !rovers.iter().any(|r| r.id == u.id));
+        }
         // H-MICRO-HUNT first: a hunter is under no other rule and in no body.
         let hunters: Vec<(&OwnUnit, Hunt)> = soldiers.iter().filter_map(|u| match self.commitment.get(&u.id) { Some(Commitment::Hunt(h)) => Some((*u, h.clone())), _ => None }).collect();
         if !hunters.is_empty() || !self.hunts.is_empty() {
@@ -591,10 +634,11 @@ impl Lane {
             form: view.enabled(Rule::Form.id()),
             march: true,
             follow: true,
+            rove: false,
         };
         let rules_of = |id: UnitId| {
             let f = footwork.get(&id).copied().unwrap_or_default();
-            Footwork { flee: f.flee && gate.flee, fan: f.fan && gate.fan, kite: f.kite && gate.kite, form: f.form && gate.form, march: f.march, follow: f.follow }
+            Footwork { flee: f.flee && gate.flee, fan: f.fan && gate.fan, kite: f.kite && gate.kite, form: f.form && gate.form, march: f.march, follow: f.follow, rove: false }
         };
         // H-MICRO-FORM's orders for every unit in a body, decided first: the host's group orders of this tick are
         // rewritten into them here (a standing unit's dropped), and the free units take them last.
@@ -630,8 +674,6 @@ impl Lane {
                 free.push(unit);
                 continue;
             }
-            // A fresh flee claim stands its second: the tick after a step, the unit's predicted place is out of
-            // the threat and focus would take it straight back (bank-1 8:53).
             // Our strength round the unit, this one's included (damage a second times health): what a unit fight
             // there is worth staying in.
             let friends: f32 = soldiers.iter().filter(|f| f.pos.dist2d(unit.pos) < GROUP_RADIUS).filter_map(|f| Some(view.stats(f.def)?.dps * f.health)).sum();
@@ -1169,14 +1211,14 @@ impl Lane {
                 self.seen.insert(enemy.id, (def, enemy.pos, frame));
             }
             let health = if enemy.health > 0.0 { enemy.health } else { s.health };
-            sources.push(Source { id: enemy.id, pos: enemy.pos, reach: s.reach, weight: s.dps, health, mobile, commander: is_commander(d), dgun: s.dgun });
+            sources.push(Source { id: enemy.id, pos: enemy.pos, reach: s.reach, weight: s.dps, health, mobile, commander: is_commander(d), dgun: s.dgun, speed: s.speed, def: enemy.def });
         }
         for (id, def, pos) in view.remembered_buildings() {
             if sources.iter().any(|s| s.id == id) {
                 continue;
             }
             let Some(s) = stats(def) else { continue };
-            sources.push(Source { id, pos, reach: s.reach, weight: s.dps, health: s.health, mobile: false, commander: false, dgun: 0.0 });
+            sources.push(Source { id, pos, reach: s.reach, weight: s.dps, health: s.health, mobile: false, commander: false, dgun: 0.0, speed: 0.0, def: Some(def) });
         }
         self.seen.retain(|id, (_, _, at)| frame - *at < MEMORY_FRAMES && view.enemy_known(*id));
         for (id, (def, pos, at)) in &self.seen {
@@ -1186,7 +1228,7 @@ impl Lane {
             let Some(s) = stats(*def) else { continue };
             let fade = 1.0 - (frame - at) as f32 / MEMORY_FRAMES as f32;
             let commander = view.def(*def).is_some_and(is_commander);
-            sources.push(Source { id: *id, pos: *pos, reach: s.reach, weight: s.dps * fade, health: s.health, mobile: true, commander, dgun: s.dgun });
+            sources.push(Source { id: *id, pos: *pos, reach: s.reach, weight: s.dps * fade, health: s.health, mobile: true, commander, dgun: s.dgun, speed: s.speed, def: Some(*def) });
         }
         sources
     }
