@@ -460,12 +460,17 @@ impl Brain {
             // could not be moved from eleven enemies at its home).
             // 1. Home from enemy soldiers it does not outweigh (a lone scout is not one); the rule's default.
             let threat = nearest_party.filter(|p| !lone_scout(p) && !self.odds_words(&[unit], p, enemies).starts_with("we outweigh"));
-            if unit.pos.dist2d(self.home) > AWAY && !threat.is_some_and(home_unsafe) {
+            // Home is unsafe from any armed party at it, not only the one at the builder: the last commander of
+            // bluegecko-3v1-comet-catcher-9 (19:58) stood 630 from home with four Bulls at home, no party within its
+            // own alarm reach, and the pick chose "go home" over the player's escape list with home banned.
+            let home_party = picture.parties.iter().filter(armed).filter(|p| !lone_scout(p)).filter(|p| home_unsafe(p)).min_by(|a, b| a.at.dist2d(self.home).total_cmp(&b.at.dist2d(self.home)));
+            let home_banned = never.contains(&"home".to_string());
+            if unit.pos.dist2d(self.home) > AWAY && !threat.is_some_and(home_unsafe) && home_party.is_none() && !home_banned {
                 let party = threat;
                 let default = rules.get("retreat_when_enemy_near").is_some_and(|v| v == "yes") && party.is_some() && !walking_home;
                 let why = party.map_or(String::new(), |p| format!(" from {} ({}), which it does not outweigh", p.name, p.composition));
                 push("retreat_home", Response::RetreatHome, format!("{name} goes home{why} ({} away){}", distance_words(unit.pos.dist2d(self.home)), self.leaves_words(task, &status.started)), default, walking_home, false);
-            } else if let Some(party) = threat {
+            } else if let Some(party) = threat.or(home_party) {
                 // 1b. At home with a party it does not outweigh in the alarm reach: the way home is no way out, so a
                 // step to the nearest place of ours out of the party's reach (onepass-player-2, 12:03-12:40: the
                 // commander helped the plant at home while the block walked in from 671 to 250 and killed it; the
@@ -473,7 +478,7 @@ impl Brain {
                 let away: Option<&super::Place> = picture
                     .places
                     .iter()
-                    .filter(|pl| pl.name != "home" && pl.at.dist2d(party.at) > ALARM + 200.0 && pl.at.dist2d(party.at) > unit.pos.dist2d(party.at) + 300.0)
+                    .filter(|pl| pl.name != "home" && !never.contains(&pl.name) && pl.at.dist2d(unit.pos) > 100.0 && pl.at.dist2d(party.at) > ALARM + 200.0 && pl.at.dist2d(party.at) > unit.pos.dist2d(party.at) + 300.0)
                     .filter(|pl| picture.state["places"][&pl.name]["what"].as_str().is_some_and(|w| w.starts_with("our ")) || pl.spot.is_none())
                     .filter(|pl| self.reachable_for(self.walker_of(unit.def), pl.at))
                     .min_by(|a, b| a.at.dist2d(unit.pos).total_cmp(&b.at.dist2d(unit.pos)));
@@ -595,8 +600,13 @@ impl Brain {
                 let key = self.name(def).to_string();
                 let current_def = matches!(task, Some(Task::Build { def: td, .. }) if *td == def);
                 if !self.placed_at_place(def) {
-                    // A solar the moment energy stalls is the rule's default (`only_when_stalling`); one under way is not another.
-                    let default = free && energy_maker(d) && solar_rule == Some("only_when_stalling") && stalling && !own.iter().any(|u| u.being_built && energy_maker(self.world.def(u.def).unwrap_or(d)));
+                    // A solar the moment energy stalls is the rule's default (`only_when_stalling`); one under way is not
+                    // another. And a solar from a free builder whenever the store is under a quarter and draining,
+                    // whatever the packet says short of `solar never`: energy ran dry behind three plants at 7:35 in
+                    // three games running (bluegecko-3v1-comet-catcher-7, -8, -9) while the player was on the front.
+                    let draining = tick.snapshot.energy.storage > 0.0 && tick.snapshot.energy.current < 0.25 * tick.snapshot.energy.storage && tick.snapshot.energy.usage > tick.snapshot.energy.income;
+                    let none_coming = !own.iter().any(|u| u.being_built && energy_maker(self.world.def(u.def).unwrap_or(d)));
+                    let default = free && energy_maker(d) && none_coming && ((solar_rule == Some("only_when_stalling") && stalling) || (def == kit.solar && solar_rule != Some("never") && (stalling || draining)));
                     let words = format!("{then}{name} builds a {} beside itself: {}{leaves}", self.unit_words(def), self.build_words(pianist, unit, def, None, tick, own));
                     push(&key, Response::Building(def), words, default, current_def, false);
                     continue;
