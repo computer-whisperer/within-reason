@@ -131,8 +131,8 @@ constructor_N.
 
 ## 9b. Distance is walking distance, and reach is by class (the user, 2026-09-27, on Cape Violet: "movement was nonsensical due to the topology of the map. There are a couple of alcoves with mexes that are in the middle of things by euclidean measure, but not in terms of connectivity. Armies huddled off in odd places while the main fight was elsewhere, and on several occasions spent many seconds trying to reach terrain that was not traversable by that unit type")
 
-Today the picture and the states measure almost everything by the straight line (`dist2d` in about 120 places in
-`plan.rs` alone; the walking fields are used for spots and home only: `walk_from_home`, `seconds_to_spot`), and a
+Today the picture and the states measure almost everything by the straight line (`dist2d` in 56 places in `plan.rs`
+alone against one use of the walking fields; those fields serve spots and home only: `walk_from_home`, `seconds_to_spot`), and a
 walk state is offered to a group whatever its class can reach: the routes' fields exist per movement class from
 home and per spot, not from where a group stands, and `snap_for` moves an unreachable target to the nearest ground
 the class reaches without saying so. Not yet measured; the measurement to make on Cape Violet's records: the
