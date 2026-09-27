@@ -353,10 +353,53 @@ the realtime, record, log and model variables and not `WITHIN_REASON_RULES`, so 
 stage the arena target does without. To settle: three Opus reviewers are auditing every decompression of the
 eleven games (per game `decompression-review.md`: each extraction against the packet's text, the packet rules that
 were in force and the rule-source plays they caused, their harm, and the counterfactual of dropping it).
-Pending their answer, the change is: drop the stage (`human_game.sh` passes `WITHIN_REASON_RULES=off`, then the
-code and its questions are deleted, the packet standing as prose for the per-second pass and the `standing` tool
-the only source of rules), unless the audit finds a class of packet rule that helped and that the tool did not
-carry. The user's second ruling, firm: 6.6 (e), a group's walk states include the spots the packet names for it.
+**The audit's answer (three Opus reviewers over the eleven games, per game `decompression-review.md`; their
+costliest claims re-checked in the logs): drop it.** Where it helped, in all eleven games: two commander kills
+of raiders in game 10 (141 metal; the sentence "a commander attacks raiders at our own buildings within its short
+walk", correctly read; Jev's gate had declined the raiders in 4 of 5 cases), t3's constructors going home from
+the 14:43-15:26 raid in game 4 (8 rule plays, no damage taken), `job expand` extractors in games 2 and 5 (an
+extractor was rated 0.48-0.51 the second before anyway), turrets in game 6, one commander help in game 4. Every one
+of these is a rule the `standing` tool carries, and in every case but game 4's retreat the player set the same
+rule by the tool in the same or the next turn; the packet only bridged the gap. Of 218 rule plays in games 9-11,
+7 came from packet rules and 211 from the tool.
+Where it hurt: (1) **switch-offs that cannot work**: the tool's null, false and "no" clear only a tool rule
+(`set_tool`, standing.rs), so a packet rule of the same name stays in force: 8 cases in games 4, 6, 7 and two in
+game 10; in game 4 commander_t3's attack rule, from a paragraph naming only commander_t1 and commander_t2,
+stayed on after the player's "no", Jev picked the attack at 19:10 and 19:11, the commander died at 19:18 and its
+blast took three constructors, an advanced solar and a turret (record-2). (2) **Pruning read from another
+actor's sentence or with its condition dropped**: in game 4 (comet-catcher-3) `raiders_lone ignore` from "Never
+chase single units" spread to every group; at 21:52 and 21:57 the rule played "leaves party_217_t1 and holds" over
+Jev's own picks of the hunt and the whole-group attack at 21:50, 21:51 and 21:53, `stop` went to all 11 Stouts
+twice, and four to five Stouts died to that Bull between 21:55 and 22:07 (jev-0, record-0); `no_detachments` from
+"never in ones and twos" or "never split" removed the hunt from 239 small-party slots in game 4 and 572 in Cape
+Violet, silencing the player's `raiders_lone detachment` tool rule for minutes; "while enemies stand in E3/E4,
+don't go to X" became a permanent `never` (8 of 10 wrong constructor rules, game 3); "No energy converters; a
+solar only when energy reads STALLING" became `solar never` for up to 6 minutes (game 4, three decompressions).
+(3) **A one-seat packet read into every seat**: game 1's `station spot_12`, written for the south-east seat,
+walked the west army toward it for two minutes, and a station read from "when the enemy commander is dead,
+gather at spot_15" with the condition dropped walked the east group into three Thug deaths after the player had
+cleared it by the tool; a `commander:` paragraph naming particular commanders becomes every seat's rule
+(`rules_for`). (4) **The re-read bug**: the "packet" event is cleared only on a second that asks (mod.rs:680, after
+the quiet return), so a quiet seat decompresses the same packet every second: 53-60 calls per seat for five
+packets in game 10, 470 on seat 0 in game 2 (403 of one unchanged packet, 88 different order sets, 4.6M tokens,
+15 % of the game's Jev tokens), rules flickering between reads and the three seats disagreeing on most reads.
+What the vocabulary could not take at all: routes, conditions, "attack the enemy commander", "never west of the
+middle", "every group", ranges ("spot_0 to spot_11" read as its endpoints), the commanders' "never chases" missed
+in nearly every packet, and 18 "keep away from enemy soldiers" sentences never read as `retreat_when_enemy_near`.
+Readings graded against the text: game 1 138 correct, 11 wrong, 52 missing; game 4 314, 68, 129.
+**The change**: `run/human_game.sh` passes `WITHIN_REASON_RULES=off` now; then `decompress_packet`,
+`take_decompression`, `extraction_questions`, `extraction_state`, `orders_from`, `set_packet`, the `packet` side of
+`Standing` and the `rules`/`packet_rules` flag are deleted with the arena's `--no-rules` (the only mode); the
+packet stands as prose in the picture for the per-second pass; the `standing` tool is the one source of rules.
+What the audit exposed that outlives the stage, for the tool's rules: (i) `raiders_lone ignore` removes every
+option against a lone raider, including one attacking the group: the ignore must not prune an attack on a party
+that is hitting the group (6.x), and a rule is never played over a pick of the same second; (ii) class rules
+(`constructors`, `commander`) are not marked "(tool)" in the standing line (`words` checks the actor's own entry
+only): mark them; (iii) the tool's refusal is all-or-nothing (one unknown place refuses the actor's whole set):
+apply what checks and name what was refused (7.2 already); (iv) `no_chase` and `job follow_list` are read by
+nothing: delete them from the vocabulary; (v) the only way a group reaches a spot is a station rule, so 6.6 (e)
+is what keeps the player's spot walks possible once the packet's stations go. The user's second ruling, firm:
+6.6 (e), a group's walk states include the spots the packet names for it.
 
 ## 14. Tool debt (the analysis tools, not the bot)
 

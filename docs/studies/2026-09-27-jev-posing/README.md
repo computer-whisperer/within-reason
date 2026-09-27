@@ -294,6 +294,13 @@ other's scratch files. The games with people have no truth file, so every enemy 
   sea parties, slots on cliffs, and arrival judged by the centre, more than in the straight-line words. Four
   pocket spots and two islands named. Folded into the changes doc as the measured note under 9b and 9b.6-9b.8.
 
+### The decompression audit (three Opus reviewers, per game `decompression-review.md` in every human game's directory) — verified: the re-read bug in code (the "packet" event cleared only after a pass asks) and in game 10's logs (53/60/46 decompressions per seat, one per second, for five packets); the tool's null/false/"no" clears only a tool rule (`check_tool`); the two commander kills of game 10 (record-0 5:04, record-2 6:24 with the commander's `dealt`); game 4's commander_t3 attack picks at 19:10-19:11 and its 19:18 death blast taking three constructors, an advanced solar and a turret; "No energy converters; a solar only when STALLING" read as `solar never` three times; comet-catcher-3's `raiders_lone ignore` playing "leaves and holds" over Jev's hunt and attack picks at 21:50-21:57 with `stop` to all 11 Stouts and four Stouts lost to the Bull by 22:01
+- Verdict across eleven games: the stage helped in a handful of plays, all rules the `standing` tool carries and
+  that the player set by the tool in the same or next turn; it hurt through switch-offs that cannot work, pruning
+  lifted from other actors' sentences or with conditions dropped, one-seat packets read into every seat, and a
+  re-read bug costing up to 15 % of a game's Jev tokens. It was on only because run/human_game.sh omits
+  `WITHIN_REASON_RULES=off`. Decision recorded in the changes doc 13b: drop it.
+
 ### The expansion study (`expansion.md`) — verified in code: `Brain.spot_claims` is read but never filled and `team_mates` is written but never read (the team board shares no spot claims while H-TEAM-BOARD says it does); `free_spots` counts only our own seat's extractors and orders; a list step popped by `next_list_step` is lost without a note when `execute_builder` returns None (lists.rs)
 - The hypothesis measured: constructors going home is real but small (retreat and step-away 2 % of constructor
   time, 77 plays in 24 seat-games, nearly all under raids 3:20-5:56; home between consecutive extractors in 9 of 69
