@@ -194,7 +194,10 @@ impl Brain {
         // With several seats of ours the first turn waits until every seat has published, else the report shows
         // one seat and the player takes itself for that seat alone (bluegecko-2v1-great-divide, turn 1 at frame 1:
         // "south-east seat here, Cortex", a Cortex opening for the Armada seat too). 15 s at most.
-        let seats_in = shared.live_seats().len() >= self.seats_of_ours() || tick.frame >= SEATS_WAIT_FRAMES;
+        // ... and its field (roster, faction): bluegecko-3v1-comet-catcher-7's first turn came at frame 1 with the
+        // other seats' faction "chosen at start", the player wrote both factions' names in one list, and the
+        // whole list was refused.
+        let seats_in = (shared.live_seats().len() >= self.seats_of_ours() && shared.field().factions.len() >= self.seats_of_ours()) || tick.frame >= SEATS_WAIT_FRAMES;
         let first_turn = last_turn_frame == 0 && seats_in && (opens || tick.snapshot.own_units.iter().any(|u| kit.is_factory(u.def)));
         if first_turn {
             reasons.push(if opens { "the game begins: the opening is yours" } else { "our first factory is up" }.into());

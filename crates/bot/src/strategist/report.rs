@@ -77,7 +77,10 @@ fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
         let seats: Vec<String> = briefing
             .seats
             .iter()
-            .map(|s| format!("team {} at {}{}: metal {:.0} ({:+.1}), {} extractors, {} soldiers", s.team, s.home.grid, if s.colour.is_empty() { String::new() } else { format!(" ({} to the people in the game)", s.colour) }, s.metal_stored, s.metal_income, s.extractors, s.soldiers))
+            .map(|s| {
+                let faction = field.factions.iter().find(|(team, _)| *team == s.team).map(|(_, f)| f.as_str()).unwrap_or("faction not yet known");
+                format!("team {} at {} ({}{}): metal {:.0} ({:+.1}), {} extractors, {} soldiers", s.team, s.home.grid, faction, if s.colour.is_empty() { String::new() } else { format!(", {} to the people in the game", s.colour) }, s.metal_stored, s.metal_income, s.extractors, s.soldiers)
+            })
             .collect();
         lines.push(format!("seats: you command {} seats, each with its own economy (people in the game know a seat by its lobby colour, so say \"our {} seat\" in chat, never t{}) | {}", seats.len(), briefing.seats[0].colour, briefing.seats[0].team, seats.join(" | ")));
     }

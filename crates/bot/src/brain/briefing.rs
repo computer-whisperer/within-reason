@@ -364,7 +364,7 @@ impl Brain {
                         let side = if t.team == hello.team {
                             self.faction()
                         } else if t.side.eq_ignore_ascii_case("random") {
-                            "faction chosen at start (Random in the lobby)".to_string()
+                            if t.ally_team == hello.ally_team { "faction in the seats line".to_string() } else { "faction chosen at start (Random in the lobby)".to_string() }
                         } else {
                             let mut side = t.side.chars();
                             side.next().map(|c| c.to_ascii_uppercase().to_string() + side.as_str()).unwrap_or_default()
