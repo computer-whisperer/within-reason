@@ -158,7 +158,12 @@ made; the code, the rules and the brief stand as they were at commit 6151a89 unt
   side: every Comet game with people had us east and no earlier game sent a constructor west (all nine records
   scanned). (b) The commander's solar of 0:19 (Jev's pick, f585) was re-issued by the list's `corsolar` step landing
   at f600, before the first had started; the fresh order took a fresh site 96 elmos away and the first nanoframe
-  decayed at f909. Both in the changes doc, 7.5 and 11.3.
+  decayed at f909. Both in the changes doc, 7.5 and 11.3. (c) At 5:58 the north and middle groups took no
+  initiative against his unguarded buildings: a group has no state that names a building or sweeps the unseen
+  (all group slots of the game listed: walks, splits, station, fall back, retreat, join, one-soldier scout, party
+  hunts and attacks); the north group held at spot_9 with 27 of his buildings unguarded within 3,000 (truth-1 of
+  the replay) until the player moved its station by hand; the packet's raid route "spot_9, then spot_2, spot_7,
+  spot_14" became one station. Changes doc 6.6.
 
 ### Cape Violet (thebluegecko, lost 18:18) — verified in code: the water note's `amphibious_of_ours` filters our units by the lobby side's first three letters, so a seat on side Random ("ran") lists none, and the note's text is stale ("only the bot lab and the advanced bot lab can be built; the plants that make amphibians are not offered") from before the full roster
 - MISSING INFORMATION: the sea was a wall both ways: the E3-E5 ford (6.4 % of the map within 20 below water, the only
@@ -282,6 +287,12 @@ game; with the tag the counts are 10/15, 12/17, 22/24 by seat in game 4); `analy
 `raid_ledger.py`, `floor.py` and `fire.py` read the first `record-*`/`jev-*` file only; `hands_window.py` prints no
 state words; `commander_turns.py --told` prints headers only; the reviewers shared one scratchpad and overwrote each
 other's scratch files. The games with people have no truth file, so every enemy number is a floor.
+
+### The topology review of Cape Violet (`run/matches/1790481450-bluegecko-3v1-cape-violet/00/topology-review.md`) — verified: the 11:17 whole-group attack on a floating radar "938 away, 13 s of walking" with 10 Welders at spot_25 left to nobody (jev-2 f20310-20355, played by plan); group_A_t1 "walking to spot_19, 655-763 to go" for 46-106 s at 10:00-11:00 with station_spot_23/25 shown as the default 59 times and never played (jev-0 f17400-20300); the Welder is bot class, depth 20 (record-0 unit_defs), a wader, not amphibious as the map note said
+- The observation holds (12 unit-minutes short of unreachable targets, 12 on unstandable cells, a 98 s and a 90 s
+  huddle while the third seat fought alone), but the cost sits in newcomers sent to the group's centre, attacks at
+  sea parties, slots on cliffs, and arrival judged by the centre, more than in the straight-line words. Four
+  pocket spots and two islands named. Folded into the changes doc as the measured note under 9b and 9b.6-9b.8.
 
 ### The expansion study (`expansion.md`) — verified in code: `Brain.spot_claims` is read but never filled and `team_mates` is written but never read (the team board shares no spot claims while H-TEAM-BOARD says it does); `free_spots` counts only our own seat's extractors and orders; a list step popped by `next_list_step` is lost without a note when `execute_builder` returns None (lists.rs)
 - The hypothesis measured: constructors going home is real but small (retreat and step-away 2 % of constructor

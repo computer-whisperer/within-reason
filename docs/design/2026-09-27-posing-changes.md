@@ -96,6 +96,26 @@ from Y" with the screen standing between (game 9's four Shellshockers never used
 6.5 **The fall-back point is never where the group stands, never `shelling`, never a place a party is entering**;
 when none qualifies, the state says "no way back that is not into fire" and offers the gather instead (games 3,
 6, 9).
+6.6 **A group can be sent at buildings, and can sweep** (the user, game 10 at 5:58: "both top and middle seats
+have sizable army groups in position and could have a field day with undefended structures but put no effort
+into exploring ... why nothing takes the initiative with those groups"). Verified: over the whole game a group
+was offered only keep, walks to passages/home/named places, splits, station, fall back, retreat, join, the
+one-soldier scout, and through the party slots hunts and attacks on parties (all three jev logs, every group slot).
+No state names a building: his buildings enter the picture only as `buildings_seen` per cell ("B3: 1 armllt, 1
+armmex") and as "under N turrets" on a party. At 6:00 the north group (15 Incisors, 1,800 metal) was walking to
+its station spot_9 with 22 of his buildings unguarded within 3,000 (his truth: 36 standing, 4 turrets); at 6:30 it
+arrived and held, "fighting everything here, turrets included", for a minute with 27 unguarded within 3,000 and
+the nearest an extractor 1,184 away; it killed nothing until the player moved its station by hand (spot_2 at
+7:20, spot_4 at 8:00, spot_9 at 9:00). The player had asked at 4:30 for "group_A_t1 raids his north corner
+(spot_9, then spot_2, spot_7, spot_14)"; the decompression kept the first place as a station and dropped the
+rest. The scout state was played 5 times all game. Changes: (a) a `raid` state per group, on the nearest of his
+buildings that are known (seen, or the extractor implied by a spot he holds), worded with the walk, the turrets
+within reach of it and the metal it yields ("kill his extractor at spot_7, 1,184 away, 23 s, no turret within
+450: 50 metal of his income"), and the base world for a group at its station with nothing in sight and a known
+unguarded building within its leash; (b) a `sweep` state: the group walks the never-looked spots nearest it in
+order, as a body, with the fight on the way, and says which; (c) a route in the packet ("spot_9, then spot_2,
+spot_7, spot_14") decompresses to a station list the hands advance through as each is reached or found empty;
+(d) the enemy section lists his buildings by place with when seen and what guards them, not by cell.
 
 ## 7. The packet and the standing orders (A3)
 
@@ -173,6 +193,31 @@ in), which spots lie in them and from which side they open, and the wadeable for
 so the player's read of "the middle" is by connectivity.
 9b.5 **Mixed groups**: a group's reach is its slowest and least capable member's; a group with hovers and tanks says
 "the tanks stop at the shore" and the hover part is offered as its own detachment across the water.
+
+Measured (the Opus review `run/matches/1790481450-bluegecko-3v1-cape-violet/00/topology-review.md`, its two headline
+claims re-checked against jev-2 f20310-20355 and jev-0 f17400-20300): the observation holds, but most of the cost
+is not where 9b.1 puts it. Every walk or advance target a group was given sat on ground its class reaches; the
+unreachable orders came from newcomers sent to the group's raw average position (in deep water when the group
+was split between the spot_19 plateau and the shore below), from attack orders at parties in the sea (11:17: the
+whole group_A_t3, 26 soldiers, sent at a floating radar "938 away, 13 s of walking" while 10 Welders killed our
+Sentry at spot_25 "left to nobody" in the same list), and from formation or gate slots on cliffs: 726 unit-seconds
+short of unreachable targets and 742 on cells too deep or steep. The two-minute huddle on the spot_19 plateau
+(9:40-11:17, 1.8k and 1.6k of soldiers idle while seat t2 fought the Welders alone and lost 3,246 for 1,400) came
+from arrival judged by the group's centre (a group split by a cliff never gets within 300 of its goal), so the
+fall-back walk in progress stayed the base world and the player's stations spot_25 (8:47) and spot_23 (10:01) were
+shown as the default 59 seconds and never played; and from "at spot_29 (E3)" said of a group standing on the
+plateau, on which the player stationed everyone at spot_29 "(where they are)", 2,930 on foot through the fight.
+Four spots sit in pockets with one way in: spot_19 (E2 plateau, opens west; the gather point the player chose
+twice as "east of the bridge"), spot_18 (G2, opens east; 6,838 on foot from spot_29 against 1,605 straight),
+spot_52 (D7, east), spot_53 (B7, west); spot_12 and spot_59 are islands. Ranked by cost: 9b.4 and 9b.3 first, then
+9b.2, then 9b.1; 9b.5 had no case (every group one class). Added:
+9b.6 **A newcomer joins its group at the nearest member on reachable ground, never at the arithmetic centre**;
+**arrival and "N to go" are judged by the members, not the centre** ("16 of 21 arrived; 5 below the cliff"), and a
+walk whose members have arrived ends, so the next default can play.
+9b.7 **An attack on a party the class cannot reach is not offered**; it says "at sea, out of our reach; N of ours
+outrange it from the shore at X" when some can.
+9b.8 **Formation and gate slots are on reachable, standable cells** (the ford's own depth is the tank limit, so
+slots at -18 to -24 along its edge jammed the group).
 
 ## 10. The words (W)
 
