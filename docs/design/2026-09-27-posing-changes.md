@@ -132,8 +132,8 @@ the packet), and then advanced the station by hand at 7:10 (spot_2), 7:35 (spot_
 (spot_13): the packet's "then" list was played by the player, one turn per step, 30-40 s apart, and at each
 station the group held with nothing to hold against. Changes (c) and (a) above are the answer: a route in the
 packet becomes a station list the hands advance, and a group at a station with a known unguarded building in
-reach has the raid as its base world; add (e): a group's walk states include the spots the packet names for it,
-however far, as the tool's description already promises.
+reach has the raid as its base world; add (e), ruled firm by the user ("definitely something to fix"): a group's
+walk states include the spots the packet names for it, however far, as the tool's description already promises.
 
 ## 7. The packet and the standing orders (A3)
 
@@ -341,6 +341,22 @@ over an extractor is not the default answer of an idle constructor.
 13.7 **The first constructor's first order**: with no list yet, the rule sends a new constructor to the nearest
 free spot on our side, never toward the enemy's base (two first constructors walked 108 s toward the person in
 game 9).
+
+## 13b. The decompression stage (the user, 2026-09-27: "is there anywhere the decompression stage actually helped in those games? I am inclined to drop it, and hadn't intended for it to be active there")
+
+The stage: a changed packet goes to Jev once as extraction questions over the standing vocabulary, and the answers
+become the packet's standing rules (docs/design/2026-09-25-standing-orders.md; `decompress_packet` in
+pianist/mod.rs). It is off under `WITHIN_REASON_RULES=off`, the arena's `--no-rules`, which the arena target has run
+since onepass-player-8; the flag gates only the packet's rules (mod.rs:814), so the `standing` tool's rules, their
+defaults and their pruning stay with it off. **Why it was on in the games with people:** `run/human_game.sh` sets
+the realtime, record, log and model variables and not `WITHIN_REASON_RULES`, so every human game ran with the
+stage the arena target does without. To settle: three Opus reviewers are auditing every decompression of the
+eleven games (per game `decompression-review.md`: each extraction against the packet's text, the packet rules that
+were in force and the rule-source plays they caused, their harm, and the counterfactual of dropping it).
+Pending their answer, the change is: drop the stage (`human_game.sh` passes `WITHIN_REASON_RULES=off`, then the
+code and its questions are deleted, the packet standing as prose for the per-second pass and the `standing` tool
+the only source of rules), unless the audit finds a class of packet rule that helped and that the tool did not
+carry. The user's second ruling, firm: 6.6 (e), a group's walk states include the spots the packet names for it.
 
 ## 14. Tool debt (the analysis tools, not the bot)
 
