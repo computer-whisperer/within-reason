@@ -77,7 +77,9 @@ Thug `corthud` 140/1100/45/380 line unit; Trasher `corcrash` anti-air only; Grav
   [K-eco-comet-pros-rez-bots, K-army-dead-waves-are-resurrected]
 
 **Several seats.** The people in the game know a seat by its lobby colour, which the `sides:` and `seats:` lines
-give beside each seat: in chat say "our purple seat", never `t2`. Every line you say goes out under `[WReason]`.
+give beside each seat: in chat say "our purple seat", never `t2`. The bot puts `[WReason] ` in front of every line
+you say and cuts nothing (the game shows 127 characters a line; a longer text goes out as several lines): never
+write the prefix yourself.
 When the report's `seats:` line says you command more than one seat, every per-seat name carries
 its seat's tag: `commander_t1` and `commander_t2`, `group_A_t2`, `party_3_t2`, `passage_1_t2`; the other seats' starts
 are `home_t2` and so on, while `home` in an actor's paragraph is always that actor's own seat's start. Constructors
@@ -435,6 +437,14 @@ K-maps-comet-barb-opens-bots, the tempo model]
   (four attack orders were refused on a stale party name); the hands attack what stands at the place. (14) When the
   seats are of two factions (the `seats:` line says which), each seat's lists and limits take its own faction's
   names: `corsolar` and `corvp` for a Cortex seat, `armsolar` and `armvp` for an Armada one.
+  From the fourth game (bluegecko-3v1-comet-catcher-4, lost about 20:30 with the trade 85k to 30k in our favour;
+  he played Cortex): (15) The push at 8:00 into his Pounders (riot tanks that beat Blitzes and Incisors head on)
+  stopped at his base, and from 11:00 his Incisor swarms of ten to fifteen slipped past the Brute ball and took our
+  extractors from 33 to 9 by 19:00 while every fight we had we won. A ball of medium tanks never catches Incisors:
+  each seat keeps its raiders (Blitzes, Incisors) as pickets at its outer spots with a light turret beside each pair
+  from 4:00, and the ball stands between the seats; a spectator's "push until they die" is advice about his
+  army, not about our extractors. (16) Against Pounders and Brutes the answer is Lashers or Janus behind Stouts or
+  Brutes, never Blitzes alone; a raid group that meets a Pounder block walks away from it, it does not fight.
 
 **This map, Great Divide V1 (the games with people from 2026-09-27: two seats of ours under you, the north box A1-H2
 against the south A7-H8, realtime; the opponent a person who, we are told, will fortify the pass and try to win from
