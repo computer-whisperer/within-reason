@@ -149,6 +149,16 @@ made; the code, the rules and the brief stand as they were at commit 6151a89 unt
   player's orders ran a median 12.6 s behind the picture, in flight 84 % of the time. The queue call "corsolar
   spot_25" was accepted silently for a place not in the picture.
 - The Pounders took 38,780 damage from Bulls and had an enemy in their own reach for 160 soldier-seconds all game.
+- The user's own read of the replay (2026-09-27, after the reviews), verified in the records: (a) the first
+  constructors of the north and middle seats drove west at 1:29-1:37 to spot_2, spot_36 and spot_45 (the person's
+  start), 107-115 s of walking, because the hands offer the free spots the packet names and the packet wrote the
+  seats' spots in the brief's shorthand ("spot_10, 5, 6, 12, ...", so only spot_10/34/72 matched, all three the
+  commanders' list steps) while the scouting sentence named "spot_36, spot_19, spot_45, spot_2" in full; the `job
+  expand` default took the nearest named by rule (jev-0 f2880-2910, jev-2 f2640-2850). Nothing is hardcoded to a
+  side: every Comet game with people had us east and no earlier game sent a constructor west (all nine records
+  scanned). (b) The commander's solar of 0:19 (Jev's pick, f585) was re-issued by the list's `corsolar` step landing
+  at f600, before the first had started; the fresh order took a fresh site 96 elmos away and the first nanoframe
+  decayed at f909. Both in the changes doc, 7.5 and 11.3.
 
 ### Cape Violet (thebluegecko, lost 18:18) — verified in code: the water note's `amphibious_of_ours` filters our units by the lobby side's first three letters, so a seat on side Random ("ran") lists none, and the note's text is stale ("only the bot lab and the advanced bot lab can be built; the plants that make amphibians are not offered") from before the full roster
 - MISSING INFORMATION: the sea was a wall both ways: the E3-E5 ford (6.4 % of the map within 20 below water, the only
@@ -260,7 +270,11 @@ from us" of Bulls at spot_33; "the quarry is dead" of a live commander.
    actor's other three rules with it (game 6); a whole `produce` call refused for one plant going up (games 6, 8;
    fixed since); a place accepted silently that was not in the picture (game 9).
 5. Lists and rules: builders on a list never offered a solar through 120 s of STALLING (game 7); a gate walk re-issued
-   after the station changed (Cape Violet); a hunt ending "after 0 s: the leash of 900 reached" (game 6).
+   after the station changed (Cape Violet); a hunt ending "after 0 s: the leash of 900 reached" (game 6); a list step
+   re-issuing the build a pick had ordered 15 frames before, the first nanoframe left to decay (game 9, 0:19).
+6. The packet's words read for what they are not: every `spot_N` token in the packet is an extractor candidate,
+   whatever the sentence was about, so a scouting sentence sent two seats' first constructors across the map while
+   the seats' own spots, written in the brief's shorthand, matched nothing (game 9, 1:29-1:37).
 
 ### Tool debt found by the reviewers (analysis tools, not the bot)
 `run/raid_ledger.py`'s answer regex `party_\d+` drops the `_t<team>` tag (answered 0 on every row of every three-seat

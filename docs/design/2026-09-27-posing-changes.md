@@ -107,6 +107,23 @@ refused (game 6 16:42).
 7.3 **A rename never refuses an order**: a party name from the last report resolves to the party those units are
 in now (2.2 makes the names stable; until then, the tool resolves by member ids).
 7.4 **A place accepted is a place** ("corsolar spot_25" accepted for a spot not in the picture, game 9).
+7.5 **A spot named in the packet is an extractor candidate only where the packet names it for building** (the
+user, game 10, watching the replay: "2:00 we send the first constructor out of the plant to a very far away mex
+location on the wrong side of the map ... across all seats"). Verified: nothing is hardcoded to a side; every
+Comet game with people had us in the east strip and the player's first packet named the east spots. The hands'
+extractor states offer "every free spot the instructions name, nearest first" (`plan.rs`, `diet::names` on the
+whole packet text), and game 10's packet wrote the seats' spots as "spot_10, 5, 6, 12, 17, 11, 3, 16, 18" (the
+brief's own shorthand, docs/briefs/player.md "spot_2, 7, 14, 19, ...") so only `spot_10`, `spot_34` and `spot_72`
+matched, all three already the commanders' list steps; the only other tokens were the scouting sentence's
+"spot_36, spot_19, spot_45, spot_2". So the north constructor's slot at 1:36 held spot_2 (107 s of walking) and
+spot_19 (115 s) and nothing nearer, the `job expand` default took spot_2 by rule at 1:37 (jev-0 f2880-2910), and
+the middle seat's took spot_36 at 1:29 and spot_45, the person's start, at 1:35 (jev-2 f2640-2850). Game 9's packet
+named the same four scouting spots but wrote the seats' spots in full, so the nearest named were near, and no
+Comet game before 10 sent a constructor west (all nine records scanned). Changes: the offer always carries the
+nearest free spot beside the named ones, nearest first, and the default is the nearest unless the packet names a
+spot for that constructor or for constructors; a spot named in a sentence about scouts, groups or the enemy is
+not a build candidate (the decompression, which already reads the packet into per-actor rules, marks which
+sentences are about builders); and the brief writes spot names in full and says why.
 
 ## 8. The commander (A4)
 
@@ -172,6 +189,15 @@ picture says "the player's order of 16:07 is in force" on the group's line (four
 11.2 **The player is told what the hands did with each order in the next report** ("your advance of 16:07 stood
 1 s; fall back picked at 16:08 on losses"), so a standing station shown as set is not read as being played
 (game 6 9:52).
+11.3 **A list step that repeats the build the actor was just given adopts it** (the user, game 10: "0:23 we start
+a solar collector, then abandon it to build one immediately adjacent"). Verified in record-0: Jev's pick at f585
+(19.5 s, "build a corsolar at home", 0.72) ordered the solar; the player's first turn landed its commander list at
+f600 and its `corsolar` step re-issued the build 15 frames later; the executor skips a step only when the started
+build's type matches (`started_def`, execute.rs), and nothing had started yet, so the fresh order planned a fresh
+site 96 elmos away: the first nanoframe (18150, 1 % built) stood until it decayed at f909 ("abandoned an
+unfinished corsolar", bot.log f1800). Change: a step naming the type of the actor's current order, started or not,
+keeps that order (the list takes it over, as a started one is); a step with a site adopts a nanoframe of its type
+within the placement radius.
 
 ## 12. Defaults that stack (X2, X5)
 
