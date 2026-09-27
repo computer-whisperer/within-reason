@@ -50,6 +50,13 @@ Design: `docs/design/2026-09-20-micro-lane.md`.
 If the bot is absent or dies, the shim keeps the game running and retries the connection about once a second, re-sending `Hello`.
 Socket path: `$WITHIN_REASON_SOCKET`, else `$XDG_RUNTIME_DIR/within-reason.sock`.
 
+### Transfers between seats and the D-gun (2026-09-27)
+`Command::SendResources { metal, energy, to_team }` and `Command::SendUnits { units, to_team }` are the AI interface's
+`COMMAND_SEND_RESOURCES` and `COMMAND_SEND_UNITS` (the game allows both between allies, capping a resource transfer at the
+receiver's store); the engine answers with `Event::UnitGiven` to the new owner and `Event::UnitTaken` to the old.
+`Command::DGun { unit, target }` is `COMMAND_UNIT_D_GUN`, the commander's manual-fire weapon at one unit. All three are
+the player's `transfer` tool and the hands' D-gun state (`docs/design/2026-09-27-posing-changes.md` §12b, §8.1).
+
 ### The banner (2026-09-20)
 The game names every AI at random (`ai_namer.lua`: donor and contributor names) and takes nothing from the AI, so at
 its first orders (frame 60) the bot says a chat line: `<its given name> is Within Reason <commit, "+" when the tree

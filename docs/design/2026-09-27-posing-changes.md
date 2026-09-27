@@ -43,7 +43,7 @@ File: `strategist/mcp.rs` (the standing branch reads `hands_merged` parties, not
 
 3.1 **One count of enemy deaths across seats**: the merged `traded` and `traded_3_min` dedupe by unit id (the
 seats' `enemy_destroyed` events name the id), so the trade line is true. Every ledger row's trade figure of
-tonight is re-derived from the records and corrected (a separate cleanup).
+tonight is re-derived from the records and corrected (done 2026-09-27 evening: each row carries the deduplicated "destroyed" figure, 4.4k to 44.7k against the summed 30k to 110k).
 3.2 **An income estimate for the opponent** from what of his we have seen die and what stands ("he has lost 37k by
 13:24: an income of about 46 a second, about 18 extractors"), beside "known to hold N" with the age of the count.
 3.3 **The score and eco extractor counts agree** (one source), and the seats line carries each seat's count so "no
@@ -155,7 +155,7 @@ nearest free spots beside the named ones, each with its walking time, nearest fi
 brief writes spot names in full and says why. The sentence classification ("a spot named in a sentence about
 scouts is not a build candidate") is ~~STRUCK~~ (2026-09-27, the user: empower Jev and the player; no rigid rule where another change resolves the cause): it needs a reader of prose that 13b deletes.
 
-## 8. The commander (A4) — 8.2, 8.3 APPLIED 2026-09-27 evening (H-HANDS-BUILDER-WORDS); 8.1 waits for a D-gun command in the shim (a protocol change)
+## 8. The commander (A4) — 8.1-8.3 APPLIED 2026-09-27 evening (H-HANDS-DGUN, H-HANDS-BUILDER-WORDS)
 
 8.1 **The D-gun as a state**: "D-gun party_N (within 262, energy 1,415)" with the energy said.
 8.2 **Time-to-contact in every builder threat line and on every step-away place** ("Brutes at 87 against its 38: contact in 9 s if it walks
@@ -259,7 +259,7 @@ default, not one per threat slot. 12.2 `hold_line yes` reads the front's odds (1
 offered the solar default when the store drains (game 7 8:00-10:00). 12.4 A station change ends a walk to the old
 station (Cape Violet 8:05). 12.5 (the hunt's leash from where the hunt began) ~~STRUCK~~ (2026-09-27, the user: empower Jev and the player; no rigid rule where another change resolves the cause): marginal, no cost named.
 
-## 12b. Transfers between seats (the user, 2026-09-27: "units and resources can be transferred between seats when humans are playing; not sure if we can do that, but we should check")
+## 12b. Transfers between seats — 12b.1-12b.3, 12b.5, 12b.7 APPLIED 2026-09-27 evening (H-PLAYER-TRANSFER; the chunked sends of 12b.4 and the paused reclaim of 12b.6 are not built: the tool sends once and says what the receiver's store caps) (the user, 2026-09-27: "units and resources can be transferred between seats when humans are playing; not sure if we can do that, but we should check")
 
 Checked, and we can. The AI interface has both commands: `COMMAND_SEND_RESOURCES` (`SSendResourcesCommand`:
 resource, amount, receiving team; capped to the sender's store; "LuaRules might not allow resource transfers, AI's
@@ -318,10 +318,10 @@ the extractor state's words say what the spot returns and who else is near it.
 spots is echoed back as read.
 13.3 **A list step never vanishes**: a step `execute_builder` cannot play is put back or reported skipped with the
 reason, never popped silently (39 of 139 lists lost extractor steps).
-13.4 **Constructors per seat as the pace**: brief text and allowance defaults only (a constructor a minute from each plant to
+13.4 (brief text written 2026-09-27 evening) **Constructors per seat as the pace**: brief text and allowance defaults only (a constructor a minute from each plant to
 four by 4:00 and eight by 8:00, his count; `armcv` not capped at one or two), and the
 report's seats line says each seat's constructors beside its extractors with the pool's count. Nothing the hands enforce.
-13.5 **The midline is not a wall**: the free spots west of the middle are named with their walk and their risk
+13.5 (brief text written 2026-09-27 evening; the walk and risk words are the raid and extractor states') **The midline is not a wall**: the free spots west of the middle are named with their walk and their risk
 (the nearest enemy party, the nearest turret of his), and the `expand` job takes them by walk, nearest first; the brief's "never go to the enemy's strip" says
 where the strip is, not the middle. The turret cadence ("a turret every one or two spots") is ~~STRUCK~~ (2026-09-27, the user: empower Jev and the player; no rigid rule where another change resolves the cause): brief advice, not the job's.
 13.6 **"Help the plant" says what it is worth**: the assist state's words carry the plant's draw against the store

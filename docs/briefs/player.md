@@ -88,10 +88,31 @@ are `home_t2` and so on, while `home` in an actor's paragraph is always that act
 and factories are unique by number as ever, and `spot_N` and your marks are the same for every seat. A list, a
 `produce` entry, a standing paragraph or a removal goes to the seat that owns the name; a paragraph headed
 `constructors:` or `commander:` applies to every seat's constructors or commanders, a `commander_t2:` paragraph to
-that seat's over it. Parties are named as each seat sees them: the party a `_t3` group fights is `party_N_t3`, and
-the same enemy units may be `party_M_t1` to another seat; name the party by the group's own seat. Each seat has its own economy, and its own map picture: a
-`_t2` actor sent to `passage_1_t2` goes to its own seat's first passage. Write the opening for each seat's commander
-by its tagged name, and give each seat its own spots.
+that seat's over it. An enemy party has one name for the whole side (`party_N`, the same in every seat's picture and
+in `standing`'s `engage_party`). Each seat's picture carries the other seats' groups under `allies` (theirs to order,
+but their odds count with ours when they stand within reach of the same party), and every seat has its own economy
+and its own map picture: a `_t2` actor sent to `passage_1_t2` goes to its own seat's first passage. Write the opening
+for each seat's commander by its tagged name, and give each seat its own spots, written in full (`spot_10, spot_5`;
+the hands also read a run like `spot_10, 5, 6`, but not past a word). The `transfer` tool moves metal and energy
+between seats (the receiver's store caps it) and gives units, groups, builders or plants to a seat: the team's ways
+are one army under the seat nearest the front, the advanced plant's seat fed metal by the others from about 12:00,
+one tier-2 constructor made and given to each seat, and a dead seat's plants and constructors given to a live one
+before the game's ending rules take them; a commander can be reclaimed by another builder for its metal (`remove`),
+but a starting store holds 1,000 of its 2,700, so spend as it comes. Say in chat which seat is which by colour.
+
+**What your hands can do on their own (2026-09-27 evening).** A group's menu carries its own initiative, offered every
+second and never forced: `raid` on his buildings known within reach (the words say what stands there, when seen, the
+turrets among them and the income it takes), `sweep` of the spots nothing of ours has looked at, `gather` when the
+group is strung out (the front holds until the tail is up), `close_on_shooter` or `pull_out` when fire comes from out
+of sight, `shell` from a standoff when it has long-reach soldiers, and against a moving raider `next_extractor`
+(stand at the next extractor of ours on its heading). A group is a body: its entry says the front, the tail, who is
+arrived and who is on the way from the plant, and the odds are priced on the part in the fight. `standing`'s
+`station` takes a list (`"spot_9 spot_2 spot_7"`) walked in order, each done when reached, so a raid route is one
+call. The enemy section lists his buildings by place with their guards, the parties that left sight with where and
+when, his biggest party known, and the first of each tier-2 or air type of his the moment it is seen. The commander
+has a D-gun state against any party whose nearest unit is inside its reach. Every constructor's extractor menu holds
+the nearest free spots beside the ones you name. A `standing` set applies what checks and names what it refused.
+Nothing of this plays without a pick or your rule: say in the packet what you want done and the hands weigh it.
 
 **Which map.** Three maps have sections here, Quicksilver Remake, Comet Catcher Remake and Great Divide V1. The `map` tool names the
 one you are on; read that map's section and its opening, and skip the others'.
@@ -151,12 +172,19 @@ the exception while energy is low.
 against this opponent from easy up to hard_aggressive).** [K-maps-factory-by-terrain, K-units-vehicles-vs-bots,
 K-maps-comet-barb-opens-bots, the tempo model]
 - 8192 by 6144, flat and open, no water, no passages: a vehicles map. Played west against east in full-height strips a
-  fifth of the map wide. 80 spots: 14 in our strip (spot_2, 7, 14, 19, 28, 30, 36, 45, 50, 54, 62, 67, 68, 74, north
-  to south, at x 540 to 1370), 14 in theirs (spot_5, 10, 12, 17, 25, 29, 34, 42, 48, 51, 60, 65, 72, 77), 52 in the
-  open middle. Our start is placed within reach of two spots. The opponent's strip is 5,500 to 6,500 elmos east; the
+  fifth of the map wide. 80 spots: 14 in the west strip (spot_2, spot_7, spot_14, spot_19, spot_28, spot_30, spot_36,
+  spot_45, spot_50, spot_54, spot_62, spot_67, spot_68, spot_74, north to south, at x 540 to 1370), 14 in the east
+  strip (spot_5, spot_10, spot_12, spot_17, spot_25, spot_29, spot_34, spot_42, spot_48, spot_51, spot_60, spot_65,
+  spot_72, spot_77), 52 in the open middle; which strip is ours the `map` tool says (the arena's `--corner nw` games
+  were west, every game with people so far east). Write spot names in full in the packet, as here. Our start is placed within reach of two spots. The opponent's strip is 5,500 to 6,500 elmos east; the
   game puts the AI at an end of its strip (the north-east (6899, 681) or the south-west (1286, 5421), diagonal from
   ours, not straight across), so scout the strip, not the mirror point. Each extractor gives about 2.6 metal a
   second here.
+- Constructors are the pace: a constructor a minute from each plant to four a seat by 4:00 and eight by 8:00 (the
+  person's count), the allowances written so (`armcv` never capped at one or two); the report's `seats:` line
+  carries each seat's constructors beside its extractors. The midline is not a wall: the free spots past it are
+  named with their walk and their risk (the nearest party of his, the nearest turret), and the expand job takes
+  them by walk, nearest first; "never go to the enemy's strip" means his strip, not the middle of the map.
 - Wind is dead: 1 to 4. Solar collectors only (155 metal, a steady 20 energy a second each, no energy to build). A
   factory draws about 80 energy a second while it is being built, and vehicles cost eight to fourteen energy per
   metal (Blitz 900 for 110, Stout 2100 for 225, Mason 1950 for 135), so a plant running steadily wants about eight
