@@ -11,6 +11,7 @@ use serde_json::{Value, json};
 use super::super::roster::Kit;
 use super::glossary;
 use super::super::{Brain, FRAMES_PER_SECOND};
+use super::groups::Body;
 use super::{GroupTask, Pianist, Task};
 
 /// Free spots the picture lists, nearest home on foot first.
@@ -443,6 +444,29 @@ impl Brain {
         } else {
             format!("it outweighs us{reach_words}")
         }
+    }
+
+    /// A group's odds against a party, priced on the part of it that is in the fight when the group is strung out
+    /// (H-HANDS-GROUP-BODY): the core members within `NEAR` of the party, with words saying how many that is and
+    /// where the rest are. A compact group is priced whole. Game 3, 8:35: 17 of 48 Blitzes were in B3 under two
+    /// Beamers and five Welders while the odds were priced on all 48; game 9: 11-13 Pounders inside Bull reach while
+    /// "we outweigh it heavily" was said of the centre.
+    /// Returns the verdict of the priced part (as `odds_words` gives it, for the checks) and the full words.
+    pub(super) fn group_odds(&self, body: &Body, party: &Party, enemies: &[EnemyUnit]) -> (String, String) {
+        if !body.strung_out() {
+            let v = self.odds_words(&body.core, party, enemies);
+            return (v.clone(), v);
+        }
+        let in_fight = body.within(party.at, NEAR);
+        if in_fight.is_empty() || in_fight.len() == body.core.len() {
+            let v = self.odds_words(&body.core, party, enemies);
+            return (v.clone(), v);
+        }
+        let behind = body.core.len() - in_fight.len();
+        let farthest = body.core.iter().map(|u| u.pos.dist2d(party.at)).fold(0.0, f32::max);
+        let verdict = self.odds_words(&in_fight, party, enemies);
+        let words = format!("for the {} of its {} soldiers in the fight, {verdict}; the other {behind} are {:.0}-{farthest:.0} behind and not in it yet", in_fight.len(), body.core.len(), NEAR);
+        (verdict, words)
     }
 
     /// The enemy's armed buildings whose reach covers `at`, with a margin for a party's spread: the metal of those
@@ -958,13 +982,31 @@ impl Brain {
             .collect();
         for group in &pianist.groups {
             let units = group.units(own);
-            let Some(centre) = super::groups::centre_of(&units) else { continue };
+            // The group as a body (H-HANDS-GROUP-BODY): its front toward its goal, else toward the nearest party
+            // any member is near; the tail; who is still on the way to join.
+            let goal = match &group.task {
+                GroupTask::Move { to, .. } => Some(*to),
+                GroupTask::Engage { at, .. } => Some(*at),
+                GroupTask::Hold { .. } => None,
+            };
+            let nearest_to_any = |p: &Party| units.iter().map(|u| u.pos.dist2d(p.at)).fold(f32::INFINITY, f32::min);
+            let toward = goal.or_else(|| parties.iter().map(|p| (nearest_to_any(p), p)).filter(|(d, _)| *d < NEAR).min_by(|a, b| a.0.total_cmp(&b.0)).map(|(_, p)| p.at));
+            let Some(body) = group.body(own, toward) else { continue };
+            let centre = body.at;
             let metal: f32 = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
-            let health: f32 = units.iter().map(|u| u.health / u.max_health).sum::<f32>() / units.len().max(1) as f32;
             let ago = |since: i32| format!("{} s", (frame - since) / FRAMES_PER_SECOND);
+            let shape = |to: Vec3| {
+                let n = body.core.len();
+                let tail_short = body.tail.dist2d(to);
+                if body.strung_out() {
+                    format!("its front {:.0} to go, {} of {n} arrived, its tail {tail_short:.0} short", body.front.dist2d(to), body.arrived)
+                } else {
+                    format!("{:.0} to go, {} of {n} arrived", body.at.dist2d(to), body.arrived)
+                }
+            };
             let doing = match &group.task {
                 GroupTask::Hold { since, committed } => format!("holding for {}{}", ago(*since), if *committed { ", fighting everything here, turrets included, since it arrived by advancing" } else { "" }),
-                GroupTask::Move { to, place, fight, since } => format!("{} to {place}, {:.0} to go, for {}", if *fight { "advancing" } else { "walking" }, centre.dist2d(*to), ago(*since)),
+                GroupTask::Move { to, place, fight, since } => format!("{} to {place}: {}, for {}", if *fight { "advancing" } else { "walking" }, shape(*to), ago(*since)),
                 GroupTask::Engage { party, at, since, target, .. } => {
                     let name = parties.iter().find(|p| p.ids.iter().any(|id| party.contains(id))).map_or("a party now out of sight".to_string(), |p| p.name.clone());
                     format!("attacking {name}{} at {}, for {}", if target.is_some() { " (one named unit of it, until it dies)" } else { "" }, self.place_words(&places, *at), ago(*since))
@@ -976,12 +1018,43 @@ impl Brain {
                 Some(hunt) => format!("{} of its soldiers hunting {} since {} ago; the rest {doing}", hunt.hunters.len(), hunt.party, ago(hunt.since)),
                 None => doing,
             };
+            // Health as a distribution, not an average (game 9: "full on average" at 22 of 39 lost), with the
+            // losses since the player's last orders, which is what it asked about.
+            let full = units.iter().filter(|u| u.health >= 0.95 * u.max_health).count();
+            let under_half = units.iter().filter(|u| u.health < 0.5 * u.max_health).count();
+            let (lost_since_orders, lost_metal_since) = group.lost_since(group.losses_since, &self.world);
+            let health = format!(
+                "{full} of {} at full, {under_half} under half{}",
+                units.len(),
+                if lost_since_orders > 0 { format!(", {lost_since_orders} lost ({lost_metal_since:.0} metal) since the player's last orders") } else { String::new() }
+            );
+            let at = if body.strung_out() {
+                format!("front at {}; its tail is {:.0} behind at {}", self.place_words(&places, body.front), body.length, self.place_words(&places, body.tail))
+            } else {
+                self.place_words(&places, centre)
+            };
             let mut entry = json!({
                 "units": format!("{}: {} ({} soldiers worth {metal:.0} metal{})", soldier_words(units.len(), metal), self.composition_words(&units), units.len(), if group.domain == crate::world::Domain::Ground { String::new() } else { format!("; an {} group", group.domain.word()) }),
-                "at": self.place_words(&places, centre),
-                "health": format!("{} on average", health_words(health)),
+                "at": at,
+                "health": health,
                 "doing": doing,
             });
+            if !body.joining.is_empty() {
+                let farthest = body.joining.iter().map(|u| u.pos.dist2d(body.at)).fold(0.0, f32::max);
+                let from: BTreeMap<String, usize> = body.joining.iter().fold(BTreeMap::new(), |mut m, u| {
+                    let plant = pianist.produced_by.get(&u.id).map_or("elsewhere".to_string(), |f| self.actor_name(*f));
+                    *m.entry(plant).or_default() += 1;
+                    m
+                });
+                entry["reinforcements"] = json!(format!(
+                    "{} of its soldiers are on the way to join the body, the farthest {farthest:.0} behind (from {}); they are not in its fights yet",
+                    body.joining.len(),
+                    from.iter().map(|(p, n)| format!("{n} from {p}")).collect::<Vec<_>>().join(", ")
+                ));
+            }
+            if !group.held.is_empty() {
+                entry["ranks"] = json!(format!("{} of its soldiers stand waiting for the body to come up (the march keeps the group together); they are not stalled", group.held.len()));
+            }
             if let Some(words) = self.footwork_of(&group.name).words() {
                 entry["lane"] = json!(words);
             }
@@ -1000,7 +1073,7 @@ impl Brain {
                 entry["losses"] = json!(format!("lost {} of its {} soldiers ({lost_metal:.0} metal, {words}) in the last 30 s, the last {} s ago", lost_lately.len(), units.len() + lost_lately.len(), (frame - last) / FRAMES_PER_SECOND));
             }
             if let Some(seconds) = group.stalled_seconds(frame).filter(|s| *s >= 20) {
-                entry["progress"] = json!(format!("has not got nearer its goal for {seconds} s: stalled"));
+                entry["progress"] = json!(format!("its body has not got nearer its goal for {seconds} s: stalled{}", if group.held.is_empty() { "" } else { " (part of it waits in ranks)" }));
             }
             // The army in pieces, said on both sides (escalate-6: 19 detachments and 15 splits in ten minutes, five to
             // nine groups alive, dying one by one; nothing in the picture counted them).
@@ -1034,8 +1107,9 @@ impl Brain {
                 entry["footwork"] = json!(format!("{fleeing} of its {} soldiers are being held back by their own footwork this second: stepping out of a turret's reach they were not sent against, or out of a fight they would die in", units.len()));
             }
             // The nearest party with the odds against this group and what it is killing: the words the `do` question
-            // weighs (they were only on the engage option's line before).
-            if let Some((d, p)) = parties.iter().map(|p| (p.at.dist2d(centre), p)).filter(|(d, _)| *d < NEAR).min_by(|a, b| a.0.total_cmp(&b.0)) {
+            // weighs (they were only on the engage option's line before). Near any member, not the centre: the
+            // Pounder ball had no line while Bulls stood 669 from its nearest Pounder (game 9, 15:44-16:05).
+            if let Some((d, p)) = parties.iter().map(|p| (nearest_to_any(p), p)).filter(|(d, _)| *d < NEAR).min_by(|a, b| a.0.total_cmp(&b.0)) {
                 // Its own soldiers under fire, said as such; what the party kills elsewhere is not this group's loss
                 // (wake-3: "killing 3 of our Blitz" on a group's line read as its own, and it retreated from a party it
                 // outweighed in 7 of 51 such asks, 0 of 69 without the clause).
@@ -1046,7 +1120,8 @@ impl Brain {
                     (None, None) => String::new(),
                 };
                 let under = if p.turrets.is_empty() { String::new() } else { format!(", under {}", p.turrets) };
-                entry["enemies_near"] = json!(format!("{} ({}{under}) {d:.0} away: {}{killing}", p.name, p.composition, self.odds_words(&units, p, &snapshot.enemies)));
+                let touching = body.within(p.at, NEAR).len();
+                entry["enemies_near"] = json!(format!("{} ({}{under}) {d:.0} from its nearest soldier, within {NEAR:.0} of {touching} of its {}: {}{killing}", p.name, p.composition, body.core.len(), self.group_odds(&body, p, &snapshot.enemies).1));
             }
             let threats = self.threats_words(&parties, &places, own, kit, centre);
             if !threats.is_empty() {

@@ -8,7 +8,7 @@ brief stand at 6151a89. Each change names the finding it answers (the study's nu
 A = missing action, W = misleading words, X = unfortunate interaction) and the games it was seen in. The user's
 frame: the answers are information and offered actions, not hard limits or enforcement.
 
-## 1. The picture: what a group is (I1, the costliest mechanism, seen in every game)
+## 1. The picture: what a group is (I1, the costliest mechanism, seen in every game) — APPLIED 2026-09-27 evening (H-HANDS-GROUP-BODY), with 9b.6 and 6.6 (e)
 
 1.1 **A group is a body with a front and a tail, not a point.** Every group entry says where its front is (the
 member nearest the nearest enemy), where its tail is, how long it is, and how many of its members are in contact

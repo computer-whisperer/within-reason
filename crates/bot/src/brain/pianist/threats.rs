@@ -67,9 +67,11 @@ impl Brain {
             let mut states = vec![state(format!("{}.leave", party.name), String::new(), Response::Leave, format!("nobody moves for {} ({}, {place}{}{killing})", party.name, party.composition, under(party)), 0.0, false, false)];
             // The nearest group with a raider rule sets the default.
             let mut default_set = false;
-            let mut groups: Vec<(f32, &super::groups::Group)> = pianist.groups.iter().filter_map(|g| super::groups::centre_of(&g.units(own)).map(|c| (c.dist2d(party.at), g))).collect();
+            // By the nearest member, not the centre (H-HANDS-GROUP-BODY): the odds on the part in the fight, the
+            // tail said when the group is strung out.
+            let mut groups: Vec<(f32, super::groups::Body, &super::groups::Group)> = pianist.groups.iter().filter_map(|g| g.body(own, Some(party.at)).map(|b| (b.front.dist2d(party.at), b, g))).collect();
             groups.sort_by(|a, b| a.0.total_cmp(&b.0));
-            for (distance, group) in groups.into_iter().take(GROUPS_PER_PARTY) {
+            for (distance, body, group) in groups.into_iter().take(GROUPS_PER_PARTY) {
                 let name = format!("group_{}", group.name);
                 let rules = pianist.standing.rules_for(&name);
                 let never = pianist.standing.never_places(&name);
@@ -82,7 +84,8 @@ impl Brain {
                     continue;
                 }
                 let units = group.units(own);
-                let odds = self.odds_words(&units, party, enemies);
+                let (odds, odds_words) = self.group_odds(&body, party, enemies);
+                let tail = if body.strung_out() { format!(", its tail {:.0} behind its front", body.length) } else { String::new() };
                 // `no_chase`: the whole group goes only after a party within reach of its station (else its last
                 // hold, else home); the course slot's hold ends an engagement the quarry carries beyond it.
                 let anchor = rules.get("station").and_then(|s| picture.places.iter().find(|p| p.name == *s)).map(|p| p.at).or(group.last_hold).unwrap_or(home);
@@ -150,7 +153,7 @@ impl Brain {
                         format!("{}.whole_{name}", party.name),
                         name.clone(),
                         Response::Whole,
-                        format!("{name} attacks {} ({}{}) with the whole group ({standing:.0} metal against {theirs}), {distance:.0} away{walk}{leave}{outrun}", party.name, party.composition, under(party)),
+                        format!("{name} attacks {} ({}{}) with the whole group ({standing:.0} metal against {theirs}: {odds_words}), {distance:.0} from its front{tail}{walk}{leave}{outrun}", party.name, party.composition, under(party)),
                         standing,
                         default,
                         engaging_it,
@@ -165,7 +168,7 @@ impl Brain {
                         format!("{}.back_{name}", party.name),
                         name.clone(),
                         Response::Back(to.clone()),
-                        format!("{name} falls back to {to} from {} ({}{}), which outweighs it, {distance:.0} away", party.name, party.composition, under(party)),
+                        format!("{name} falls back to {to} from {} ({}{}), which outweighs it ({odds_words}), {distance:.0} from its front{tail}", party.name, party.composition, under(party)),
                         0.0,
                         false,
                         current,

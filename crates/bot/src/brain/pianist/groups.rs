@@ -131,11 +131,70 @@ pub(crate) struct Group {
     /// Parties this group was told to leave (a pick, or a hunt that ended at its leash), and when: no default and
     /// no hunt against them for `DECLINE_FRAMES`, so a plan the pick ended is not restarted by the rule a second later.
     pub declined: Vec<(String, i32)>,
+    /// Members still on their way to join (a plant's output walking to the body): not the front, not the tail,
+    /// not counted as arrived; said in the picture as reinforcements on the way (H-HANDS-GROUP-BODY).
+    pub joining: HashSet<UnitId>,
 }
+
+/// A group's shape on the ground this second (H-HANDS-GROUP-BODY): the core (members not still joining), its front
+/// (the member nearest `toward`: the goal, else the nearest enemy) and tail (the farthest), the body's position
+/// (the `BODY_SHARE`-th nearest member, as the march measures it), and how many of the core stand within `ARRIVED`
+/// of the goal. A group was a point before: its centroid stood in deep water when the group straddled a cliff
+/// (Cape Violet 9:40-11:17), "advancing, 934 to go" was said of a column strung 2,000-2,900 long whose head was
+/// already dying under turrets (game 3 8:35), and the odds were priced on all 48 when 17 were in the fight.
+pub(crate) struct Body<'a> {
+    pub core: Vec<&'a OwnUnit>,
+    pub joining: Vec<&'a OwnUnit>,
+    pub front: Vec3,
+    pub tail: Vec3,
+    /// From the front to the tail.
+    pub length: f32,
+    /// Where the body stands: the `BODY_SHARE`-th member from the front.
+    pub at: Vec3,
+    pub arrived: usize,
+}
+
+/// The body is measured at this share of the core, counted from the front (the march's own measure).
+const BODY_SHARE: f32 = 0.6;
+
+impl Body<'_> {
+    /// The core members within `reach` of `at`: the part of the group that is in a fight there.
+    pub(crate) fn within(&self, at: Vec3, reach: f32) -> Vec<&OwnUnit> {
+        self.core.iter().copied().filter(|u| u.pos.dist2d(at) <= reach).collect()
+    }
+
+    /// Strung out: the tail is farther behind the front than a group fights across.
+    pub(crate) fn strung_out(&self) -> bool {
+        self.length > STRUNG_OUT
+    }
+}
+
+/// A group longer than this from front to tail fights in pieces: the words and the odds say which piece.
+pub(crate) const STRUNG_OUT: f32 = 600.0;
 
 impl Group {
     pub(crate) fn new(name: String, domain: Domain, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None, hunt: None, declined: Vec::new() }
+        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None, hunt: None, declined: Vec::new(), joining: HashSet::new() }
+    }
+
+    /// The group's body toward `toward` (the goal of a walk, the nearest enemy, or nothing: then the front is the
+    /// centre and the tail the member farthest from it). `None` when no member stands.
+    pub(crate) fn body<'a>(&self, own: &'a [OwnUnit], toward: Option<Vec3>) -> Option<Body<'a>> {
+        let units = self.free_units(own);
+        let (joining, mut core): (Vec<&OwnUnit>, Vec<&OwnUnit>) = units.iter().copied().partition(|u| self.joining.contains(&u.id));
+        if core.is_empty() {
+            // Everybody is still on the way: the body is wherever they are.
+            core = joining.clone();
+        }
+        let centre = centre_of(&core)?;
+        let toward = toward.unwrap_or(centre);
+        core.sort_by(|a, b| a.pos.dist2d(toward).total_cmp(&b.pos.dist2d(toward)));
+        let front = core.first().map_or(centre, |u| u.pos);
+        let tail = core.last().map_or(centre, |u| u.pos);
+        let at = core.get(((core.len() as f32 * BODY_SHARE) as usize).min(core.len() - 1)).map_or(centre, |u| u.pos);
+        let arrived = core.iter().filter(|u| u.pos.dist2d(toward) < ARRIVED).count();
+        let joining: Vec<&OwnUnit> = joining.into_iter().filter(|u| !core.iter().any(|c| c.id == u.id)).collect();
+        Some(Body { length: front.dist2d(tail), core, joining, front, tail, at, arrived })
     }
 
     /// The members not on a hunt: the ones the group's task orders.
@@ -282,12 +341,17 @@ impl Brain {
             let target = wanted.and_then(|name| pianist.groups.iter().position(|g| g.name == name && g.domain == domain));
             match target {
                 Some(i) => {
-                    let centre = centre_of(&pianist.groups[i].units(own));
+                    // To the nearest member standing, on ground the newcomer reaches, never the arithmetic centre
+                    // (Cape Violet: the centre of a group split between a plateau and the shore below lay in deep
+                    // water, and every newcomer was sent into it).
+                    let nearest = pianist.groups[i].units(own).iter().filter(|m| !pianist.groups[i].joining.contains(&m.id)).map(|m| m.pos).min_by(|a, b| a.dist2d(unit.pos).total_cmp(&b.dist2d(unit.pos)));
                     pianist.groups[i].members.push(unit.id);
-                    if let Some(c) = centre
-                        && c.dist2d(unit.pos) > ADOPT_RADIUS
+                    if let Some(to) = nearest
+                        && to.dist2d(unit.pos) > ADOPT_RADIUS
                     {
-                        commands.push(Command::Move { unit: unit.id, to: c, queue: false });
+                        let to = self.snap_for(self.walker_of(unit.def), to);
+                        pianist.groups[i].joining.insert(unit.id);
+                        commands.push(Command::Move { unit: unit.id, to, queue: false });
                     }
                 }
                 None => {
@@ -330,6 +394,20 @@ impl Brain {
                 hunt_ends.push(end);
             }
             let units = group.free_units(own);
+            group.joining.retain(|id| group.members.contains(id));
+            // A newcomer that has reached the body is of it (or was sent nowhere: nothing stands to reach).
+            let goal = match &group.task { GroupTask::Move { to, .. } => Some(*to), GroupTask::Engage { at, .. } => Some(*at), GroupTask::Hold { .. } => None };
+            if let Some(body) = group.body(own, goal) {
+                let core_at = body.at;
+                let joined: Vec<UnitId> = body.joining.iter().filter(|u| u.pos.dist2d(core_at) <= ADOPT_RADIUS || self.stuck.contains_key(&u.id)).map(|u| u.id).collect();
+                for id in joined {
+                    group.joining.remove(&id);
+                    // Onto the task with the rest.
+                    if let Some(u) = units.iter().find(|u| u.id == id) {
+                        commands.extend(group.rejoin_orders(&[u]));
+                    }
+                }
+            }
             let Some(centre) = centre_of(&units) else { continue };
             match &mut group.task {
                 GroupTask::Hold { since, .. } => {
@@ -338,7 +416,15 @@ impl Brain {
                     }
                 }
                 GroupTask::Move { to, fight, place, .. } => {
-                    let to_go = centre.dist2d(*to);
+                    // Arrival and "to go" by the members, not the centre: a group split by a cliff never got its
+                    // centre within 300 of its goal, so a fall-back walk stayed the base world for two minutes and
+                    // the player's new stations were shown as the default and never played (Cape Violet 9:40-11:17).
+                    let joining = group.joining.clone();
+                    let moving: Vec<&OwnUnit> = units.iter().copied().filter(|u| !joining.contains(&u.id) && !self.stuck.contains_key(&u.id)).collect();
+                    let core = if moving.is_empty() { units.clone() } else { moving };
+                    let mut distances: Vec<f32> = core.iter().map(|u| u.pos.dist2d(*to)).collect();
+                    distances.sort_by(f32::total_cmp);
+                    let to_go = distances.get(((core.len() as f32 * BODY_SHARE) as usize).min(core.len().saturating_sub(1))).copied().unwrap_or(0.0);
                     if to_go < group.best_to_go - PROGRESS_STEP {
                         (group.best_to_go, group.progressed) = (to_go, frame);
                     }

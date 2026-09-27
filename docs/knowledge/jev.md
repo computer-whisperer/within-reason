@@ -1189,3 +1189,22 @@ whenever energy banked (5:52), which the OS-48 players say a metal-heavy map has
 list; the unit cards carry nanoframes so `produce` knows a factory going up; converters out of the usual menu, by
 name in a list only). Exploited by [[H-HANDS-LISTS]].
 
+
+### K-hands-a-group-was-a-point-to-the-deciders
+**Claim.** Until 2026-09-27 evening a group was its members' centroid to Jev and the player: "at", "N to go",
+"stalled", `enemies_near` and the odds were all measured or priced from that point. On a column strung 2,000-2,900
+long, the head was already in B3 under two Beamers and five Welders while the line read "advancing to spot_26,
+1953 to go" with no enemies near (game 3, 8:35); the Pounder ball had no `enemies_near` line while Bulls stood
+669-936 from its nearest Pounder (game 9, 15:44-16:05), and 11-13 Pounders stood inside Bull reach under "we
+outweigh it heavily"; "health: full on average" was said at 22 of 39 lost; a group split between the spot_19
+plateau and the shore below never got its centre within 300 of its goal, so its fall-back walk stayed the base
+world for two minutes and the player's stations were shown as the default 59 times and never played, and every
+newcomer was sent to the centre, in deep water (Cape Violet 9:40-11:17, `topology-review.md`). A group's walk
+states went to home and non-spot places only, so a raid route named in the packet put nothing on the menu
+(game 10, 4:30-9:02).
+**Evidence.** `docs/studies/2026-09-27-jev-posing/README.md` (I1, the costliest mechanism, in every game);
+`run/matches/1790481450-bluegecko-3v1-cape-violet/00/topology-review.md`; `run/matches/1790479031-bluegecko-3v1-comet-catcher-8/00/posing-review.md`.
+**Status.** observed in eleven games with people; fixed 2026-09-27 evening by [[H-HANDS-GROUP-BODY]] (the check:
+the next arena games' pictures at the moments of contact).
+**Would be wrong if.** The pictures on the new code still price a strung-out group whole, or a body's arrival by
+its members lets a group hold with its tail under fire more often than the centre did.

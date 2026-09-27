@@ -804,10 +804,21 @@ impl Brain {
         // Groups: their course, beside the threat slots.
         let group_names: Vec<(String, Option<Vec3>, crate::world::Domain)> = pianist.groups.iter().map(|g| (g.name.clone(), super::groups::centre_of(&g.units(own)), g.domain)).collect();
         let scout_out = pianist.groups.iter().any(|g| g.members.len() == 1 && matches!(g.task, GroupTask::Move { fight: false, .. }));
+        let instructions = picture.state["instructions"].as_str().unwrap_or_default().to_string();
         for group in &pianist.groups {
             let name = format!("group_{}", group.name);
             let units = group.units(own);
-            let Some(centre) = super::groups::centre_of(&units) else { continue };
+            // The group as a body (H-HANDS-GROUP-BODY): distances from where the body stands, the nearest party by
+            // its nearest member, the odds on the part in the fight.
+            let goal = match &group.task {
+                GroupTask::Move { to, .. } => Some(*to),
+                GroupTask::Engage { at, .. } => Some(*at),
+                GroupTask::Hold { .. } => None,
+            };
+            let nearest_to_any = |p: &super::Party| units.iter().map(|u| u.pos.dist2d(p.at)).fold(f32::INFINITY, f32::min);
+            let toward = goal.or_else(|| picture.parties.iter().map(|p| (nearest_to_any(p), p)).filter(|(d, _)| *d < ALARM).min_by(|a, b| a.0.total_cmp(&b.0)).map(|(_, p)| p.at));
+            let Some(body) = group.body(own, toward) else { continue };
+            let centre = body.at;
             let rules = pianist.standing.rules_for(&name);
             let never = pianist.standing.never_places(&name);
             let doing = picture.state["actors"][&name]["doing"].as_str().unwrap_or("holds").to_string();
@@ -818,9 +829,9 @@ impl Brain {
                 let dim = self.dim_of(&response);
                 states.push(State { id: format!("{name}.{key}"), actor: name.clone(), response, words, metal: 0.0, dim, default, current, pair_only: false });
             };
-            let nearest_party = picture.parties.iter().map(|p| (p.at.dist2d(centre), p)).filter(|(d, _)| *d < ALARM).min_by(|a, b| a.0.total_cmp(&b.0)).map(|(_, p)| p);
+            let nearest_party = picture.parties.iter().map(|p| (nearest_to_any(p), p)).filter(|(d, _)| *d < ALARM).min_by(|a, b| a.0.total_cmp(&b.0)).map(|(_, p)| p);
             let odds_against = nearest_party.is_some_and(|p| {
-                let odds = self.odds_words(&units, p, enemies);
+                let (odds, _) = self.group_odds(&body, p, enemies);
                 !odds.starts_with("we outweigh") && !odds.starts_with("it cannot hit us")
             });
             let standing: f32 = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
@@ -856,8 +867,12 @@ impl Brain {
                     }
                 }
             }
-            // 2. Walks to named places: home and the player's marks within reach.
-            let mut named: Vec<&super::Place> = picture.places.iter().filter(|p| (p.name == "home" || p.spot.is_none()) && !never.contains(&p.name) && p.at.dist2d(centre) < WALK_REACH && p.at.dist2d(centre) > STATION_SLACK && station.is_none_or(|s| s.name != p.name)).collect();
+            // 2. Walks to named places: home, the player's marks and passages within reach, and every spot the packet
+            // names, however far (the `instruct` tool promises it; a group's walks went to home and non-spot places
+            // only, so "raids his north corner (spot_9, then spot_2, spot_7, spot_14)" put nothing on the menu and
+            // the player advanced the station by hand every 30-40 s, game 10).
+            let named_spot = |p: &super::Place| p.spot.is_some() && super::diet::names(&instructions, &p.name);
+            let mut named: Vec<&super::Place> = picture.places.iter().filter(|p| (p.name == "home" || p.spot.is_none() || named_spot(p)) && !never.contains(&p.name) && (p.at.dist2d(centre) < WALK_REACH || named_spot(p)) && p.at.dist2d(centre) > STATION_SLACK && station.is_none_or(|s| s.name != p.name)).collect();
             named.sort_by(|a, b| a.at.dist2d(centre).total_cmp(&b.at.dist2d(centre)));
             for place in named.iter().take(3) {
                 let current = matches!(&group.task, GroupTask::Move { place: p, fight: false, .. } if *p == place.name);
