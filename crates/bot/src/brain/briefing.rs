@@ -225,7 +225,7 @@ impl Brain {
         if tick.frame <= super::TICK_FRAMES_HINT {
             *shared.map.lock().unwrap() = self.map_description();
         }
-        let count = |def: UnitDefId| snapshot.own_units.iter().filter(|u| u.def == def).count();
+        let count = |def: UnitDefId| snapshot.own_units.iter().filter(|u| u.def == def && !u.being_built).count();
         let soldiers: Vec<&OwnUnit> = snapshot.own_units.iter().filter(|u| !u.being_built && self.is_army(u, kit)).collect();
 
         let mut cells: BTreeMap<String, (Vec3, BTreeMap<&str, usize>, usize, Vec<UnitId>)> = BTreeMap::new();
@@ -253,6 +253,7 @@ impl Brain {
         enemy_buildings_remembered.sort_by(|a, b| a.at.grid.cmp(&b.at.grid).then(a.name.cmp(&b.name)));
 
         let sides = self.sides();
+        let standing: Vec<&bot_protocol::OwnUnit> = snapshot.own_units.iter().filter(|u| !u.being_built).collect();
         let briefing = Briefing {
             sides,
             seats: Vec::new(),
@@ -263,14 +264,16 @@ impl Brain {
             wind: snapshot.wind,
             wind_range: (self.world.hello.map.wind_min, self.world.hello.map.wind_max),
             // By what a definition is, not by the kit's tier-1 land names: on SailAway 2 the line read "constructors 0
-            // labs 0" all game beside twenty hover constructors and two hover platforms.
+            // labs 0" all game beside twenty hover constructors and two hover platforms. Standing units only: the
+            // score line's "extractors 2" stood beside the eco line's "extractors 3" while a frame was up (player-12
+            // 1:45), and "labs 1" was said at 1:00 of a plant standing at 1:12.
             counts: Counts {
-                extractors: snapshot.own_units.iter().filter(|u| self.world.is_extractor_def(u.def)).count(),
-                generators: snapshot.own_units.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0 && (d.energy_make > 0.0 || d.energy_upkeep < 0.0 || d.wind_cap > 0.0 || d.tidal_make > 0.0))).count(),
+                extractors: standing.iter().filter(|u| self.world.is_extractor_def(u.def)).count(),
+                generators: standing.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0 && (d.energy_make > 0.0 || d.energy_upkeep < 0.0 || d.wind_cap > 0.0 || d.tidal_make > 0.0))).count(),
                 converters: count(kit.converter),
-                labs: snapshot.own_units.iter().filter(|u| self.world.is_factory_def(u.def)).count(),
-                turrets: snapshot.own_units.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0 && d.weapon_count > 0)).count(),
-                constructors: snapshot.own_units.iter().filter(|u| self.world.is_constructor_def(u.def)).count(),
+                labs: standing.iter().filter(|u| self.world.is_factory_def(u.def)).count(),
+                turrets: standing.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0 && d.weapon_count > 0)).count(),
+                constructors: standing.iter().filter(|u| self.world.is_constructor_def(u.def)).count(),
                 army: soldiers.len(),
             },
             home: self.place(self.home),

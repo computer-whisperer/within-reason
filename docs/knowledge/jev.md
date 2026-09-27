@@ -1295,3 +1295,20 @@ bluegecko-3v1-comet-catcher-9 and -10 (`docs/experiments.md`); the user's discus
 the longer brief cost more in turn time than the cases gained; the kill test is the recorded turns at the cases'
 moments (player-9 6:00 and 12:00, player-10 3:58) replayed under both briefs.
 **Used by.** [[H-PLAYER-CASES-ACROSS-MAPS]].
+
+### K-player-the-eco-line-never-said-stalling
+**Claim.** The player's prompt keyed its solar rule on a word its own report never carried: "a solar collector
+whenever the energy store is empty or the energy line reads STALLING" (`crates/bot/src/strategist/player.md`), while
+the report's eco line gave energy as store, capacity and a net figure only ("energy 1/1300 (+0)": the engine caps
+spending at income once the store is empty, so a stall reads as balance). STALLING lived in the hands' picture
+(`picture.rs` `flow_words`). In player-12-post-human the 1:45 turn read "energy 1/1300 (+0)" behind an assisted
+constructor and ordered four solars; the stall ended at 1:46 when the constructor rolled out and the metal those
+solars took (620 at an income of 8) kept the store at 0 to 3:10. The score line and the eco line also disagreed on
+the counts (extractors 2 against 3 at 1:45, "labs 1" at 1:00 of a plant standing at 1:12): the eco counts took
+frames as standing.
+**Evidence.** `run/matches/1790535786-player-12-post-human/00/strategist-0.jsonl` (the 1:45 turn), the record's
+samples, `00/review.md` (Z3, the candidate harness note).
+**Status.** observed 2026-09-28; fixed the same day: the eco line says "STALLING: the energy store is empty and
+everything that needs it builds slowly" under the hands' condition (store under 5% with usage at 90% of income or
+more), and its counts are of standing units. Exploited by [[H-PLAYER-ECO-WORDS]].
+

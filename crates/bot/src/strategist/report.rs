@@ -64,10 +64,15 @@ fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
             if ours_per_extractor > 0.0 { format!(", about {:.0} extractors' worth at our {ours_per_extractor:.1} an extractor", per_second / ours_per_extractor) } else { String::new() }
         ));
     }
+    // The energy stall is said in the word the player's prompt keys its solar rule on (player-12 1:45: the line read
+    // "energy 1/1300 (+0)" behind an assisted constructor, the prompt's "the energy line reads STALLING" never
+    // appearing in the report; the engine caps spending at income once the store is empty, so the net figure reads 0).
+    let e = &briefing.energy;
+    let stalling = e.storage > 0.0 && e.current / e.storage < 0.05 && e.usage >= e.income * 0.9;
     lines.push(format!(
-        "eco: metal {:.0} ({:+.1}/-{:.1}), energy {:.0}/{:.0} ({:+.0}), wind now {:.0} of this map's {:.0} to {:.0} | extractors {} constructors {} labs {} turrets {} converters {}",
-        briefing.metal.current, briefing.metal.income, briefing.metal.usage, briefing.energy.current, briefing.energy.storage,
-        briefing.energy.income - briefing.energy.usage, briefing.wind, briefing.wind_range.0, briefing.wind_range.1, c.extractors, c.constructors, c.labs, c.turrets, c.converters
+        "eco: metal {:.0} ({:+.1}/-{:.1}), energy {:.0}/{:.0} ({:+.0}){}, wind now {:.0} of this map's {:.0} to {:.0} | extractors {} constructors {} labs {} turrets {} converters {}",
+        briefing.metal.current, briefing.metal.income, briefing.metal.usage, e.current, e.storage,
+        e.income - e.usage, if stalling { " STALLING: the energy store is empty and everything that needs it builds slowly" } else { "" }, briefing.wind, briefing.wind_range.0, briefing.wind_range.1, c.extractors, c.constructors, c.labs, c.turrets, c.converters
     ));
     if !field.wreck_fields.is_empty() || field.resurrection_bots > 0 {
         let fields: Vec<String> = field.wreck_fields.iter().take(5).map(|(at, metal, safe)| format!("{} {metal} metal{}", at.grid, if *safe { "" } else { " (not safe)" })).collect();

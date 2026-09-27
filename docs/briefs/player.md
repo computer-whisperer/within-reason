@@ -113,7 +113,20 @@ have the same shape and opposite answers, the difference between them is the thi
   the lab when it first comes up). (4) human-5, Quicksilver: a second constructor at 1:15 put the first Pawn at 1:40,
   thirty seconds behind Matt. (5) Until 2026-09-28 the list's `assist 25` after the plant ended within a second (a
   harness fault, fixed): write `assist 40` after the plant and check at 2:00 that the commander is still there and
-  the store reads about 150. The energy source is the map's (wind on Quicksilver, solar on Comet, solar with wind on
+  the store reads about 150. (6) player-12, Comet vs BARb hard_aggressive, lost 26:28 with the root at 1:45: the
+  first game in which the assist held, and `produce` written as `armcv:2, armfav:3` put two constructors out back to
+  back under it. A constructor is 1,950 energy over a 4,050 build time: the plant alone draws 48 a second, the plant
+  with the commander on it about 220, and three solars with the commander make 90. The start's 1,240 of energy is one
+  assisted constructor's worth and no more; the second emptied the store at 1:30 (drain 223 against 90) and it stayed
+  at 0 to 1:46, when that constructor rolled out. The answer given at 1:45 was four solars (620 metal at an income of
+  6 to 8), so the metal store sat at 0 from 2:04 to 3:10 while the energy store was full again from 2:15; three
+  extractors stood at 3:00 (six the game before, on the same seed), two at 4:00 after single raiders ate four at home
+  with no turret affordable, nine at 8:00 against his fifteen, and his army led ours from 8:00 to the end. The rule
+  that follows: one constructor under the assist, then Rovers (370 energy each: the assisted plant makes one every
+  3 s on 90 income), the second constructor near 2:00 as (4) says; an energy dip behind an assisted constructor ends
+  when it rolls out and is never a reason for a solar; when the metal store reads 0 in the first three minutes the
+  commander's own build is the thing to drop, and a solar with the energy line not STALLING is three extractors
+  spent on nothing. The energy source is the map's (wind on Quicksilver, solar on Comet, solar with wind on
   Cape Violet); the bound in the first four minutes is metal, never build power.
 
 - **Static defence is out-ranged or bypassed, never walked into.** Cases: (1) comet-4: 22 Blitzes onto four light
@@ -704,7 +717,12 @@ K-maps-comet-barb-opens-bots, the tempo model]
   its 25 s once the plant stands (until 2026-09-28 a queued timed assist ended within a second, a harness fault,
   so the plant's second unit came 25 s after its first with the store at 0); write `assist 40` after the plant and
   a second `assist 30` after the next extractor, and keep the commander at the plant until the first constructor
-  and the first two soldiers are out.
+  and the first two soldiers are out. The condition on it (player-12, the first game the assist held): the assisted
+  plant draws about 220 energy a second on a constructor against three solars' 90, and the start's store covers one
+  such constructor; so the plant's list is one constructor, then Rovers, then the second constructor
+  (`armcv:1, armfav:3, armcv:1`, never `armcv:2`), and an empty energy store at 1:30 to 1:45 behind that first
+  constructor is the assist working, over when the constructor rolls out, not a call for solars (player-12 answered
+  it with four, 620 metal at an income of 8, and stood on three extractors at 3:00).
 
 **This map, Cape Violet V1 (one game with a person, 2026-09-27, three seats of ours on the east strip at H2, H4
 and H6 against thebluegecko in the west; lost at 18:18).** [K-map-cape-violet-v1-a-water-map-with-a-third-of-the-spots-under-water]

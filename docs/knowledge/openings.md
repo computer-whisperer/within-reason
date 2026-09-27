@@ -520,4 +520,14 @@ went three solars and then scout cars, the constructor third or fourth, and walk
 **Evidence.** `docs/knowledge/_inbox/players-chat-2026-09-27.md`; the seats' lists in
 `run/matches/1790475073-bluegecko-3v1-comet-catcher-5/00/strategist-0.jsonl` (turn 1).
 **Status.** supported by two OS-48 players' words (2026-09-27), unmeasured in a game. Exploited by
-[[H-PLAYER-PLAYERS-ADVICE]].
+[[H-PLAYER-PLAYERS-ADVICE]]. Measured 2026-09-28 in player-12-post-human (the first game in which the timed `assist`
+held, `K-hands-a-queued-timed-assist-never-held` fixed): the arithmetic behind the third solar. A constructor vehicle
+is 1,950 energy over a 4,050 build time; the plant (build power 100) draws 48 a second on it, the plant with the
+commander (300) about 220; three solars and the commander make 90. The start's energy store (1,240 at 1:15) is one
+assisted constructor's worth: the record's samples show 1,240 at 1:15, 779 at 1:20, 125 at 1:25 and 0 from 1:30 to
+1:46 (drain 223 to 248 against 90 to 100) while the plant made two constructors back to back (1:14-1:25, 1:26-1:46)
+under `assist 40` (guard 1:13-1:53) on a `produce` of `armcv:2, armfav:3, armflash`. The store was full again at 2:15.
+So the third solar buys exactly one fast constructor; a second constructor under the assist stalls, and Rovers (370
+energy) between them do not. The player's answer to the stall, four solars at 1:45 (620 metal at an income of 6 to
+8), is the fault the pros' curve names: the metal store sat at 0 from 2:04 to 3:10 and three extractors stood at 3:00
+against player-11's six on the same seed. Used by the brief's opening case (6) and its item (r).
