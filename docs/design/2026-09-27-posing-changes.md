@@ -259,6 +259,12 @@ game 9).
 and `fire.py` take a seat argument or read every seat; `hands_window.py` prints the states' words; the reviewers
 get their own scratch folders in the brief.
 
+`run/jev_audit.py` is broken on the worlds-era log (2026-09-27, on the Cape Violet game: its summary line reads
+"None in 0.0 min vs None", and `--section kinds` dies with `KeyError: 'busy'` because a `played` entry no longer
+carries `busy`), and it reads the first seat's `jev-` file only. No audit summary was produced for any of the
+human games; the reviewers read the jsonl directly. Either rewrite it for the worlds log (calls, worlds, picks,
+the states' words, per seat and pooled) or delete it and let `hands_window.py` be the audit.
+
 ## Order of application (proposed)
 
 First the picture and the report (1, 2, 3, 5), because every other change is judged by what the deciders were
