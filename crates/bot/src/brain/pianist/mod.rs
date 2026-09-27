@@ -22,6 +22,8 @@ mod threats;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 
+use super::HandleOwner;
+
 use crate::strategist::shared::Allowance;
 use std::fs::File;
 use std::io::Write as _;
@@ -125,6 +127,8 @@ pub struct Pianist {
     pub(super) lab_queue: HashMap<UnitId, Vec<(UnitDefId, i32)>>,
     pub(super) groups: Vec<Group>,
     next_group: usize,
+    /// The seat's name tag (`Brain::seat_tag`), on every group name this seat makes.
+    pub(super) seat_tag: String,
     /// Which factory made each soldier (the engine's creation events), while it lives: a newcomer joins its
     /// factory's group (H-HANDS-GROUPS: groups are the player's, nothing merges by proximity).
     pub(super) produced_by: HashMap<UnitId, UnitId>,
@@ -335,6 +339,7 @@ impl Pianist {
             lab_queue: HashMap::new(),
             groups: Vec::new(),
             next_group: 0,
+            seat_tag: String::new(),
             produced_by: HashMap::new(),
             rally: HashMap::new(),
             slots: Vec::new(),
@@ -409,7 +414,8 @@ impl Pianist {
         let n = self.next_group;
         self.next_group += 1;
         let letter = (b'A' + (n % 26) as u8) as char;
-        if n < 26 { letter.to_string() } else { format!("{letter}{}", n / 26) }
+        let base = if n < 26 { letter.to_string() } else { format!("{letter}{}", n / 26) };
+        format!("{base}{}", self.seat_tag)
     }
 
     fn write_log(&mut self, line: serde_json::Value) {
@@ -518,7 +524,22 @@ impl Brain {
     fn take_lists(&mut self, tick: &Tick, kit: &Kit, commands: &mut Vec<Command>) {
         let Some(shared) = &self.strategist else { return };
         let lists = std::mem::take(&mut *shared.queues.lock().unwrap());
+        let mut others: BTreeMap<String, Option<Vec<String>>> = BTreeMap::new();
         for (name, list) in lists {
+            // A list is for the seat that owns the builder: another seat's stays for it (bluegecko-2v1-great-divide:
+            // the Cortex list went to the Armada seat, which could build none of it, and the Cortex seat got nothing).
+            match self.handle_owner(&name, &tick.snapshot.own_units) {
+                HandleOwner::Ours => {}
+                HandleOwner::AnotherSeat => {
+                    others.insert(name, list);
+                    continue;
+                }
+                HandleOwner::Nobody => {
+                    let pianist = self.pianist.as_mut().expect("pianist mode");
+                    pianist.done.push(format!("{} {name}: no builder of ours by that name stands; its list is dropped", picture::clock(tick.frame)));
+                    continue;
+                }
+            }
             // A list beginning with `stop` (or the bare word) drops what the builder is doing now: the build in
             // progress is abandoned and its frame decays. `null` cancels the list and lets that build finish.
             let mut steps = list;
@@ -569,6 +590,9 @@ impl Brain {
                 }
             }
             pianist.events.insert("lists".to_string());
+        }
+        if !others.is_empty() {
+            shared.queues.lock().unwrap().extend(others);
         }
     }
 
@@ -1205,7 +1229,8 @@ impl Brain {
             fields.remove("instructions");
             fields.remove("rules");
         }
-        let mut hands = shared.hands.lock().unwrap();
+        let mut all = shared.hands.lock().unwrap();
+        let hands = all.entry(self.world.hello.team).or_default();
         hands.picture = state;
         hands.done.append(&mut pianist.done);
         hands.standing_text = pianist.standing.in_force();

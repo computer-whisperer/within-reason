@@ -24,6 +24,8 @@ const STAGNATION_FRAMES: i32 = 4 * 60 * FRAMES_PER_SECOND;
 /// the quiet time the commander set is capped at this (upgrade-2: the player set 40 s during the collapse, slept 35 s,
 /// and its next turn had nine losses on the way and seven in the one after).
 const HOT_MAX_SECONDS: u32 = 10;
+/// The first turn waits this long at most for every seat of ours to publish.
+const SEATS_WAIT_FRAMES: i32 = 15 * FRAMES_PER_SECOND;
 const HOT_LOSS_FRAMES: i32 = 30 * FRAMES_PER_SECOND;
 /// H-WAKE-WRECKS: metal lying in wreck fields with no enemy in sight wakes the player at this much, and again each time it
 /// has grown by this much since (the replay survey: resurrection bots in 24 of 58 sides, a median of ten a side).
@@ -131,7 +133,7 @@ impl Brain {
         }
         self.wake.threatened_extractors = threatened.len();
         // The pianist's groups: an engagement is news when the hands begin it.
-        let began: Vec<String> = std::mem::take(&mut shared.hands.lock().unwrap().engaged);
+        let began: Vec<String> = std::mem::take(&mut shared.hands.lock().unwrap().entry(self.world.hello.team).or_default().engaged);
         if wake.squad_engaged && !began.is_empty() {
             reasons.push(format!("your hands sent {} to attack an enemy party", began.join(", ")));
         }
@@ -189,7 +191,11 @@ impl Brain {
         // bot lab under the default text before the player's first turn, on a vehicles map). The field commander
         // still comes in when the first factory stands.
         let opens = self.pianist.is_some();
-        let first_turn = last_turn_frame == 0 && (opens || tick.snapshot.own_units.iter().any(|u| kit.is_factory(u.def)));
+        // With several seats of ours the first turn waits until every seat has published, else the report shows
+        // one seat and the player takes itself for that seat alone (bluegecko-2v1-great-divide, turn 1 at frame 1:
+        // "south-east seat here, Cortex", a Cortex opening for the Armada seat too). 15 s at most.
+        let seats_in = shared.live_seats().len() >= self.seats_of_ours() || tick.frame >= SEATS_WAIT_FRAMES;
+        let first_turn = last_turn_frame == 0 && seats_in && (opens || tick.snapshot.own_units.iter().any(|u| kit.is_factory(u.def)));
         if first_turn {
             reasons.push(if opens { "the game begins: the opening is yours" } else { "our first factory is up" }.into());
         }

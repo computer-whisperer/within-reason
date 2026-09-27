@@ -3,6 +3,8 @@
 
 use std::collections::BTreeMap;
 
+use super::shared::Hands;
+
 use bot_protocol::{Resource, Vec3};
 use serde::Serialize;
 
@@ -31,6 +33,46 @@ pub struct SeatLine {
 }
 
 impl Shared {
+    /// The hands over every live seat: the lead's picture with the other seats' actors added (their names carry
+    /// the seat tag) and their homes as `home_t<team>`, every seat's `done` lines and engagements, the lead's
+    /// standing text (the packet is one for all seats). `drain` empties each seat's `done`, as a turn does.
+    pub fn hands_merged(&self, drain: bool) -> Hands {
+        let mut hands = self.hands.lock().unwrap();
+        let mut live = self.live_seats();
+        if live.is_empty() {
+            live = hands.keys().copied().collect();
+        }
+        let Some(lead) = live.first() else { return Hands::default() };
+        let mut merged = hands.get(lead).cloned().unwrap_or_default();
+        if drain && let Some(h) = hands.get_mut(lead) {
+            h.done.clear();
+        }
+        for team in live.iter().skip(1) {
+            let Some(other) = hands.get_mut(team) else { continue };
+            if let (Some(into), Some(from)) = (merged.picture["actors"].as_object_mut(), other.picture["actors"].as_object()) {
+                for (name, entry) in from {
+                    into.insert(name.clone(), entry.clone());
+                }
+            }
+            if let (Some(into), Some(from)) = (merged.picture["places"].as_object_mut(), other.picture["places"].as_object()) {
+                for (name, entry) in from {
+                    if name == "home" {
+                        into.insert(format!("home_t{team}"), entry.clone());
+                    } else if !into.contains_key(name) {
+                        into.insert(name.clone(), entry.clone());
+                    }
+                }
+            }
+            merged.done.extend(other.done.iter().cloned());
+            merged.engaged.extend(other.engaged.iter().cloned());
+            if drain {
+                other.done.clear();
+            }
+        }
+        merged.done.sort();
+        merged
+    }
+
     pub fn publish_briefing(&self, team: i32, home: Vec3, briefing: Briefing) {
         let mut seats = self.seats.lock().unwrap();
         let seat = seats.entry(team).or_default();
@@ -177,6 +219,31 @@ fn join(a: &Group, b: &Group) -> Group {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_hands_merge_every_seats_actors_and_tag_the_other_homes() {
+        let shared = Shared::default();
+        {
+            let mut hands = shared.hands.lock().unwrap();
+            let lead = hands.entry(1).or_default();
+            lead.picture = serde_json::json!({ "actors": { "commander_t1": { "at": "home" } }, "places": { "home": { "what": "ours" }, "spot_3": {} } });
+            lead.done.push("0:10 commander_t1: built".into());
+            let other = hands.entry(2).or_default();
+            other.picture = serde_json::json!({ "actors": { "commander_t2": { "at": "home" }, "group_A_t2": {} }, "places": { "home": { "what": "theirs" }, "spot_3": {}, "passage_1_t2": {} } });
+            other.done.push("0:05 commander_t2: built".into());
+            other.engaged.push("group_A_t2".into());
+        }
+        let merged = shared.hands_merged(true);
+        let actors = merged.picture["actors"].as_object().unwrap();
+        assert!(actors.contains_key("commander_t1") && actors.contains_key("commander_t2") && actors.contains_key("group_A_t2"));
+        let places = merged.picture["places"].as_object().unwrap();
+        assert_eq!(places["home"]["what"], "ours");
+        assert_eq!(places["home_t2"]["what"], "theirs");
+        assert!(places.contains_key("passage_1_t2"));
+        assert_eq!(merged.done, vec!["0:05 commander_t2: built".to_string(), "0:10 commander_t1: built".to_string()]);
+        assert_eq!(merged.engaged, vec!["group_A_t2".to_string()]);
+        assert!(shared.hands.lock().unwrap().values().all(|h| h.done.is_empty()), "a turn drains every seat's done lines");
+    }
 
     #[test]
     fn two_seats_merge_and_a_silent_one_drops_out() {

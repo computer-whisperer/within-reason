@@ -273,7 +273,16 @@ fn parties_in(text: &str) -> Vec<String> {
     for (i, _) in text.match_indices("party_") {
         let digits: String = text[i + 6..].chars().take_while(char::is_ascii_digit).collect();
         if !digits.is_empty() {
-            let name = format!("party_{digits}");
+            // A seat's tag stays on the name (`party_3_t2` in a game with several seats of ours).
+            let rest = &text[i + 6 + digits.len()..];
+            let tag: String = match rest.strip_prefix("_t") {
+                Some(after) => {
+                    let n: String = after.chars().take_while(char::is_ascii_digit).collect();
+                    if n.is_empty() { String::new() } else { format!("_t{n}") }
+                }
+                None => String::new(),
+            };
+            let name = format!("party_{digits}{tag}");
             if !out.contains(&name) {
                 out.push(name);
             }
@@ -342,7 +351,7 @@ pub(crate) fn extraction_questions(packet: &str, places: &[String]) -> BTreeMap<
         if paras.is_empty() {
             continue;
         }
-        let who = if b == "commander" { "the commander" } else { "a constructor" };
+        let who = if b.starts_with("commander") { "the commander" } else { "a constructor" };
         let named = places_in(&paras, places);
         qs.insert(format!("{b}.job"), Question::choice(format!("Read `paragraphs.{b}`, the packet's lines about {who}. What is {who}'s standing job when it has nothing else to do?"), [("help_factory", "help (assist, guard) the factory or plant"), ("follow_list", "follow its build list from the player"), ("expand", "take free metal spots, build extractors"), ("not_said", "the packet does not say")]));
         qs.insert(format!("{b}.attack_raiders"), Question::noul(format!("Read `paragraphs.{b}`. Do they tell {who} to attack a raider party at one of our buildings near it?")));
@@ -413,6 +422,11 @@ pub(crate) fn orders_from(answers: &BTreeMap<String, Answer>) -> BTreeMap<String
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn party_names_keep_their_seat_tag() {
+        assert_eq!(parties_in("engage party_3 and party_12_t2, not party_3_t2 again"), vec!["party_3".to_string(), "party_12_t2".to_string(), "party_3_t2".to_string()]);
+    }
 
     const PACKET: &str = "commander: helps the plant; it never chases scout cars or Ticks. It never goes to spot_38.\n\ngroup_B: stands at spot_61. A lone Tick at an extractor is met by two Blitzes (send_against 2). It never sends detachments elsewhere.\n\ngroup_C: kills party_12 at spot_24.";
 

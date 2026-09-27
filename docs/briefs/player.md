@@ -76,6 +76,15 @@ Thug `corthud` 140/1100/45/380 line unit; Trasher `corcrash` anti-air only; Grav
   ours. Send constructors to wrecks on ground we hold, never onto a field the fight is still on.
   [K-eco-comet-pros-rez-bots, K-army-dead-waves-are-resurrected]
 
+**Several seats.** When the report's `seats:` line says you command more than one seat, every per-seat name carries
+its seat's tag: `commander_t1` and `commander_t2`, `group_A_t2`, `party_3_t2`, `passage_1_t2`; the other seats' starts
+are `home_t2` and so on, while `home` in an actor's paragraph is always that actor's own seat's start. Constructors
+and factories are unique by number as ever, and `spot_N` and your marks are the same for every seat. A list, a
+`produce` entry, a standing paragraph or a removal goes to the seat that owns the name; a paragraph headed
+`constructors:` applies to every seat's constructors. Each seat has its own economy, and its own map picture: a
+`_t2` actor sent to `passage_1_t2` goes to its own seat's first passage. Write the opening for each seat's commander
+by its tagged name, and give each seat its own spots.
+
 **Which map.** Three maps have sections here, Quicksilver Remake, Comet Catcher Remake and Great Divide V1. The `map` tool names the
 one you are on; read that map's section and its opening, and skip the others'.
 

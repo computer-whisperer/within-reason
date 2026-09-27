@@ -5,17 +5,18 @@
 # game. The match's record, transcripts and Jev log land in run/matches/<unix time>-<label>/00, which
 # run/view_match.py and run/debrief.py read like an arena match. The sessions run on ~/.claude2 (weekly allotment
 # only) unless WITHIN_REASON_CLAUDE_CONFIG_DIR says otherwise; a usage snapshot is taken first for `--since`.
-# usage: run/human_game.sh [label] [effort] [hands-effort]     (defaults: human, low, normal; hands-effort is the Jev
+# usage: run/human_game.sh [label] [effort] [hands-effort] [model]     (defaults: human, low, normal, claude-opus-5-5; hands-effort is the Jev
 # token diet, lean | normal | full: a match worth every token takes full)
 set -eu
 root=$(cd "$(dirname "$0")/.." && pwd)
 label=${1:-human}
 effort=${2:-low}
 hands=${3:-normal}
+model=${4:-claude-opus-5-5}
 dir="$root/run/matches/$(date +%s)-$label/00"
 mkdir -p "$dir"
 python3 "$root/run/claude_usage.py" --snapshot "$root/run/usage-before-$label.json" >/dev/null 2>&1 || true
 echo "match dir $dir; usage snapshot run/usage-before-$label.json; socket ${XDG_RUNTIME_DIR:-/tmp}/within-reason.sock"
 cd "$dir"
-exec env WITHIN_REASON_REALTIME=1 WITHIN_REASON_RECORD=1 WITHIN_REASON_JEV_LOG=1 WITHIN_REASON_LOG_DIR="$dir" WITHIN_REASON_EFFORT="$effort" WITHIN_REASON_HANDS_EFFORT="$hands" \
+exec env WITHIN_REASON_REALTIME=1 WITHIN_REASON_RECORD=1 WITHIN_REASON_JEV_LOG=1 WITHIN_REASON_LOG_DIR="$dir" WITHIN_REASON_EFFORT="$effort" WITHIN_REASON_HANDS_EFFORT="$hands" WITHIN_REASON_MODEL="$model" \
     "$root/target/release/bot" --pianist --player 2>&1 | tee "$dir/bot.log"

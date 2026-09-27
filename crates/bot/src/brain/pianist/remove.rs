@@ -49,6 +49,26 @@ impl Brain {
             return;
         }
         let own = &tick.snapshot.own_units;
+        // Another seat's units are left for that seat (the handles are unit ids, unique across the game).
+        let mut others: Vec<Removal> = Vec::new();
+        let removals: Vec<Removal> = removals
+            .into_iter()
+            .filter_map(|removal| {
+                let targets = match &removal {
+                    Removal::Destruct { targets } | Removal::Reclaim { targets, .. } => targets,
+                };
+                let theirs = !targets.is_empty() && targets.iter().all(|h| self.handle_owner(h, own) == super::super::HandleOwner::AnotherSeat);
+                if theirs {
+                    others.push(removal);
+                    None
+                } else {
+                    Some(removal)
+                }
+            })
+            .collect();
+        if !others.is_empty() {
+            shared.removals.lock().unwrap().extend(others);
+        }
         let frame = tick.frame;
         let mut notes: Vec<String> = Vec::new();
         let mut steps: Vec<(String, String)> = Vec::new();

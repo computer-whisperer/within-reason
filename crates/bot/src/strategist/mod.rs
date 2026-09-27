@@ -37,7 +37,7 @@ const DEFAULT_CLAUDE_CONFIG_DIR: &str = ".claude2";
 
 /// `WITHIN_REASON_MODEL` (the arena's `--commander-model`) overrides the player's usual model.
 fn model() -> String {
-    std::env::var("WITHIN_REASON_MODEL").ok().filter(|m| !m.is_empty()).unwrap_or_else(|| "claude-opus-5".into())
+    std::env::var("WITHIN_REASON_MODEL").ok().filter(|m| !m.is_empty()).unwrap_or_else(|| "claude-opus-5-5".into())
 }
 
 /// Read from the checkout at every session start (`crate::texts`): an edit needs no rebuild. The role, then what the
@@ -497,12 +497,7 @@ fn player_prompt(game_time: &str, headline: &str, shared: &Shared, seen: &mut re
     let field = shared.field();
     let fights: Vec<String> =
         std::mem::take(&mut *shared.fights.lock().unwrap()).into_iter().map(|(what, n)| format!("{what} x{n}")).collect();
-    let hands = {
-        let mut hands = shared.hands.lock().unwrap();
-        let snapshot = hands.clone();
-        hands.done.clear();
-        snapshot
-    };
+    let hands = shared.hands_merged(true);
     let mut prompt = String::new();
     if fresh_session && realtime() {
         prompt.push_str("This game runs in real time: it does not pause while you take a turn, and your orders land when the turn ends, five to ten seconds later. Decide from the report, write states that hold, and keep turns short.\n\n");

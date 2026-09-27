@@ -206,7 +206,7 @@ impl Brain {
     pub(super) fn allowed_units(&self, actor: &str) -> Option<Allowance> {
         let shared = self.strategist.as_ref()?;
         let allowed = shared.allowed.lock().unwrap();
-        let builder = actor == "commander" || actor.starts_with("constructor_");
+        let builder = actor.starts_with("commander") || actor.starts_with("constructor_");
         allowed.get(actor).or_else(|| if builder { allowed.get("all_builders") } else { None }).or_else(|| allowed.get("all")).cloned()
     }
 
@@ -279,7 +279,7 @@ impl Brain {
             }
         }
         for party in parties.iter_mut().filter(|p| p.name.is_empty()) {
-            party.name = format!("party_{}", next_name.get());
+            party.name = format!("party_{}{}", next_name.get(), self.seat_tag());
             next_name.set(next_name.get() + 1);
         }
         parties
@@ -543,7 +543,7 @@ impl Brain {
         }
         let passages = self.passages();
         for (n, passage) in passages.iter().take(PASSAGES).enumerate() {
-            places.push(Place { name: format!("passage_{}", n + 1), at: passage.at, spot: None });
+            places.push(Place { name: format!("passage_{}{}", n + 1, self.seat_tag()), at: passage.at, spot: None });
         }
         // H-HANDS-NAMED-PLACES: every spot and passage the instructions name is a place, however far (pianist-player-5:
         // the player named spot_36 in the south for four turns and it was never on the menu, the list being the
@@ -566,7 +566,7 @@ impl Brain {
                 }
             } else if let Some(n) = token.strip_prefix("passage_").and_then(|n| n.parse::<usize>().ok()) {
                 if n > PASSAGES && n <= passages.len() && !places.iter().any(|p| p.name == *token) {
-                    places.push(Place { name: format!("passage_{n}"), at: passages[n - 1].at, spot: None });
+                    places.push(Place { name: format!("passage_{n}{}", self.seat_tag()), at: passages[n - 1].at, spot: None });
                 }
             }
         }
@@ -1082,7 +1082,7 @@ impl Brain {
     pub(crate) fn actor_name(&self, unit: bot_protocol::UnitId) -> String {
         // By what the definition is, not by the Kit: a captured factory of the other faction is played like ours.
         match self.known_units.get(&unit).map(|(def, _)| *def) {
-            Some(def) if self.world.is_commander_def(def) => "commander".into(),
+            Some(def) if self.world.is_commander_def(def) => self.commander_handle(),
             Some(def) if self.world.is_factory_def(def) && self.name(def).ends_with("vp") => format!("plant_{}", unit.0),
             Some(def) if self.world.is_factory_def(def) && self.name(def).contains("lab") => format!("lab_{}", unit.0),
             Some(def) if self.world.is_factory_def(def) => format!("factory_{}", unit.0),

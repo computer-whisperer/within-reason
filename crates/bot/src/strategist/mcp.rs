@@ -260,7 +260,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             shared.end_turn_at_wait();
             Ok(reply)
         }
-        "situation" => Ok(shared.hands.lock().unwrap().picture.to_string()),
+        "situation" => Ok(shared.hands_merged(false).picture.to_string()),
         "instruct" => {
             let text = arguments["text"].as_str().map(str::trim).filter(|t| !t.is_empty()).ok_or("instruct needs the packet under \"text\"")?;
             if text.chars().count() > INSTRUCTIONS_LIMIT {
@@ -334,8 +334,8 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             let lists = arguments.as_object().filter(|o| !o.is_empty()).ok_or("queue takes an object: builder name (commander or constructor_N) to a list of steps, or null to cancel")?;
             let mut parsed: Vec<(String, Option<Vec<String>>)> = Vec::new();
             for (name, value) in lists {
-                if name != "commander" && !name.starts_with("constructor_") {
-                    return Err(format!("{name}: lists are by builder name (commander or constructor_N)"));
+                if !name.starts_with("commander") && !name.starts_with("constructor_") {
+                    return Err(format!("{name}: lists are by builder name (commander, or commander_tN beside other seats of ours, or constructor_N)"));
                 }
                 // As the model writes them (comet-5, 24:11: "cannot cancel the commander's old solar list, the queue
                 // tool rejects every form I try"): the list as a JSON string, "null" as a string, one step as a bare
@@ -395,12 +395,12 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             let clear = arguments.get("clear");
             match (set, clear) {
                 (None, None) => {
-                    let hands = shared.hands.lock().unwrap();
+                    let hands = shared.hands_merged(false);
                     Ok(format!("standing orders ({} from your packet, {} from this tool):\n{}", hands.standing_counts.0, hands.standing_counts.1, hands.standing_text))
                 }
                 (Some(map), None) => {
                     for (actor, rules) in map {
-                        if !(actor.starts_with("group_") || actor == "commander" || actor == "constructors" || actor.starts_with("constructor_")) {
+                        if !(actor.starts_with("group_") || actor.starts_with("commander") || actor == "constructors" || actor.starts_with("constructor_")) {
                             return Err(format!("{actor}: standing orders are for group_X, commander, constructors or constructor_N"));
                         }
                         if !rules.is_object() {
@@ -412,7 +412,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                     // refused whole, silently in my view", learned a turn later from the picture). The turn's marks
                     // count as places; the hands check again against their own picture at the next second.
                     let (places, parties) = {
-                        let hands = shared.hands.lock().unwrap();
+                        let hands = shared.hands_merged(false);
                         let mut places: Vec<String> = hands.picture["places"].as_object().map(|o| o.keys().cloned().collect()).unwrap_or_default();
                         places.extend(shared.marks.lock().unwrap().keys().cloned());
                         places.extend(shared.map.lock().unwrap()["metal_spots"].as_array().into_iter().flatten().filter(|s| !s["walk_from_home"].is_null()).filter_map(|s| s["n"].as_u64()).map(|n| format!("spot_{n}")));
@@ -535,7 +535,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
         "produce" => {
             let lists = arguments.as_object().filter(|o| !o.is_empty()).ok_or("produce takes an object: factory name (lab_N or plant_N) or \"all\" to a list of unit names, or to {\"units\": [...], \"group\": \"group_A\" | \"new\"} for a factory")?;
             let known: Vec<String> = shared.field().roster.iter().map(|(name, _)| name.clone()).collect();
-            let groups: Vec<String> = shared.hands.lock().unwrap().picture["actors"].as_object().map(|a| a.keys().filter(|k| k.starts_with("group_")).cloned().collect()).unwrap_or_default();
+            let groups: Vec<String> = shared.hands_merged(false).picture["actors"].as_object().map(|a| a.keys().filter(|k| k.starts_with("group_")).cloned().collect()).unwrap_or_default();
             let check_units = |name: &str, items: &[Value]| -> Result<Vec<String>, String> {
                 let units: Vec<String> = items.iter().map(|v| v.as_str().map(str::to_string).ok_or_else(|| format!("{name}: unit names are strings"))).collect::<Result<_, _>>()?;
                 // "corck:1": at most one of it from now, then the rest of the list (human-7: told "one
@@ -553,7 +553,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             };
             // (actor, units or None to clear, the group its soldiers join: Some(Some(name)) sets, Some(None) clears, None leaves)
             let mut parsed: Vec<(String, Option<Option<Vec<String>>>, Option<Option<String>>)> = Vec::new();
-            let factories: Vec<String> = shared.hands.lock().unwrap().picture["actors"].as_object().map(|a| a.keys().filter(|k| ["lab_", "plant_", "factory_"].iter().any(|p| k.starts_with(p))).cloned().collect()).unwrap_or_default();
+            let factories: Vec<String> = shared.hands_merged(false).picture["actors"].as_object().map(|a| a.keys().filter(|k| ["lab_", "plant_", "factory_"].iter().any(|p| k.starts_with(p))).cloned().collect()).unwrap_or_default();
             for (name, value) in lists {
                 let factory = ["lab_", "plant_", "factory_"].iter().any(|p| name.starts_with(p));
                 if !matches!(name.as_str(), "all" | "all_builders" | "commander") && !factory && !name.starts_with("constructor_") {
@@ -857,7 +857,7 @@ mod tests {
     #[test]
     fn produce_whitelists_a_lab_or_all() {
         let shared = Arc::new(Shared::default());
-        shared.hands.lock().unwrap().picture = json!({ "actors": { "lab_7": {} } });
+        shared.hands.lock().unwrap().entry(0).or_default().picture = json!({ "actors": { "lab_7": {} } });
         // A factory the picture does not name is refused, with the names it does (models-medium-gpt56-terra: "lab_1").
         assert!(call_tool("produce", &json!({ "lab_1": ["armpw"] }), &shared).unwrap_err().contains("lab_7"));
         assert!(call_tool("produce", &json!({ "all": ["armpw", "armham"], "lab_7": [] }), &shared).is_ok());

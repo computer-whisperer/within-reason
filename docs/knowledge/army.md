@@ -460,3 +460,17 @@ opening. What beats what cannot be read from the cards: kills and losses are who
 composition (the types dying on each side in each fight cell) would answer it.
 **Used by.** (candidate: the unit-mix lever in the brief)
 
+### K-team-one-name-for-two-seats-loses-a-seat
+**Claim.** With two seats of ours under one player and one name space, the player cannot steer the second seat: both
+commanders were "commander", lists keyed by name were drained by whichever seat ticked first, and the report's hands
+section showed the lead seat's actors only. In bluegecko-2v1-great-divide (2026-09-27, a person in the north box
+against two seats of ours in the south, realtime) the first turn fired at frame 1 with one seat published, the player
+took itself for the south-east Cortex seat alone and wrote a Cortex opening, the Armada seat drained that list and
+could build none of it, the Cortex seat got nothing, and neither seat played one list step in the first three minutes;
+both ran the hands' default opening (a bot lab each at 0:39 and 0:40) on a map whose brief section asked for a
+vehicle plant.
+**Status.** observed (2026-09-27), one game.
+**Evidence.** `run/matches/1790465811-bluegecko-2v1-great-divide/00` (`strategist-0.jsonl` turns 1 and 2, `jev-0.jsonl`
+and `jev-1.jsonl` with no `list` plays, `bot.log`).
+**Would be wrong if.** The lists had reached the Cortex seat and its hands had refused them for another reason.
+**Used by.** H-PLAYER-SEAT-NAMES.

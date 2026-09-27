@@ -319,8 +319,9 @@ pub struct Shared {
     /// Builders' lists from the `queue` tool, by actor name: `Some` replaces the list, `None` cancels it; the brain drains
     /// this at each ask (H-HANDS-SCRIPT).
     pub queues: Mutex<BTreeMap<String, Option<Vec<String>>>>,
-    /// What the pianist publishes for the player (`brain/pianist`), read into its turn report.
-    pub hands: Mutex<Hands>,
+    /// What each seat's pianist publishes for the player (`brain/pianist`), by team; the report reads the merge
+    /// (`seats.rs` `hands_merged`).
+    pub hands: Mutex<BTreeMap<i32, Hands>>,
     /// The `standing` tool's changes, taken by the brain at its next ask.
     pub standing: Mutex<Vec<StandingChange>>,
     /// The player's footwork settings by group name (`group_A`) or `all` (`lane` tool, H-HANDS-LANE).

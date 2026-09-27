@@ -60,6 +60,10 @@ pub struct Brain {
     /// This tick's allied units, where each allied team's commander was first seen, and when each metal spot last
     /// held an allied extractor (`allies.rs`).
     allies: Vec<bot_protocol::AllyUnit>,
+    /// `_t<team>` when we play more than one seat of this game, else empty: the suffix on every per-seat name the
+    /// player sees (commander, group_A, party_N, passage_N), so two seats' names never collide in one report
+    /// (bluegecko-2v1-great-divide: both commanders were "commander", the Cortex list went to the Armada seat).
+    seat_tag: String,
     ally_starts: HashMap<i32, Vec3>,
     ally_spot_held: HashMap<usize, i32>,
     /// Shared with the other seats of ours in this game (`team.rs`), and what they posted last tick.
@@ -175,6 +179,11 @@ impl Brain {
             "[ai {}] team {} on {} ({}x{}), {} unit defs, {} metal spots",
             h.ai_id, h.team, h.map.name, h.map.width, h.map.height, h.unit_defs.len(), h.metal_spots.len()
         );
+        let tag = seat_tag(h);
+        let mut pianist = pianist;
+        if let Some(p) = pianist.as_mut() {
+            p.seat_tag = tag.clone();
+        }
         Brain {
             world,
             kit: None,
@@ -183,6 +192,7 @@ impl Brain {
             team_mates: Default::default(),
             team_post: Default::default(),
             allies: Vec::new(),
+            seat_tag: tag,
             ally_starts: HashMap::new(),
             ally_spot_held: HashMap::new(),
             enemy_bases: Vec::new(),
@@ -449,5 +459,60 @@ impl Brain {
 
     fn name(&self, def: UnitDefId) -> &str {
         self.world.def(def).map_or("?", |d| d.name.as_str())
+    }
+}
+
+/// The seat's name tag: `_t<team>` in a game where we play more than one seat, else nothing (one-seat games keep
+/// their plain names).
+fn seat_tag(hello: &bot_protocol::Hello) -> String {
+    let ours = hello.teams.iter().filter(|t| t.ally_team == hello.ally_team && matches!(&t.controller, bot_protocol::Controller::Ai { short_name, .. } if short_name == "WReason")).count();
+    if ours > 1 { format!("_t{}", hello.team) } else { String::new() }
+}
+
+impl Brain {
+    /// The suffix on this seat's per-seat names (`seat_tag`).
+    pub(crate) fn seat_tag(&self) -> &str {
+        &self.seat_tag
+    }
+
+    /// How the player names this seat's commander: `commander`, or `commander_t2` beside other seats of ours.
+    pub(crate) fn commander_handle(&self) -> String {
+        format!("commander{}", self.seat_tag)
+    }
+
+    /// How many seats of ours the start script lists on our side.
+    pub(crate) fn seats_of_ours(&self) -> usize {
+        let h = &self.world.hello;
+        h.teams.iter().filter(|t| t.ally_team == h.ally_team && matches!(&t.controller, bot_protocol::Controller::Ai { short_name, .. } if short_name == "WReason")).count()
+    }
+}
+
+/// Whose a handle from the player is, for the orders that are consumed (lists, removals).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum HandleOwner {
+    Ours,
+    AnotherSeat,
+    Nobody,
+}
+
+impl Brain {
+    /// Ours when the handle names a unit of this seat; another seat's when it carries a different seat's tag or names
+    /// an allied unit by id; nobody's otherwise (dead, or never a unit).
+    pub(crate) fn handle_owner(&self, handle: &str, own: &[bot_protocol::OwnUnit]) -> HandleOwner {
+        if self.unit_by_handle(handle, own).is_some() {
+            return HandleOwner::Ours;
+        }
+        if let Some(rest) = handle.strip_prefix("commander") {
+            let theirs = rest.strip_prefix("_t").and_then(|n| n.parse::<i32>().ok());
+            return match theirs {
+                Some(team) if team != self.world.hello.team && self.world.hello.teams.iter().any(|t| t.team == team && t.ally_team == self.world.hello.ally_team) => HandleOwner::AnotherSeat,
+                _ => HandleOwner::Nobody,
+            };
+        }
+        let id = handle.rsplit_once('_').and_then(|(_, n)| n.parse::<i32>().ok());
+        match id {
+            Some(id) if self.allies.iter().any(|a| a.id.0 == id) => HandleOwner::AnotherSeat,
+            _ => HandleOwner::Nobody,
+        }
     }
 }
