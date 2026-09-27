@@ -347,6 +347,27 @@ impl Brain {
         // adoption and merge, and the tool's rules died with them.
         let mut loose: Vec<&OwnUnit> = soldiers.iter().copied().filter(|u| !pianist.groups.iter().any(|g| g.members.contains(&u.id))).collect();
         loose.sort_by_key(|u| u.id.0);
+        // Soldiers given by another seat this tick form one group of their own (the `transfer` tool), by domain.
+        let given: Vec<&OwnUnit> = Brain::given_soldiers(tick, &loose);
+        if !given.is_empty() {
+            let mut by_domain: Vec<(Domain, Vec<UnitId>)> = Vec::new();
+            for u in &given {
+                let domain = self.world.domain_of(u.def);
+                match by_domain.iter_mut().find(|(d, _)| *d == domain) {
+                    Some((_, members)) => members.push(u.id),
+                    None => by_domain.push((domain, vec![u.id])),
+                }
+            }
+            for (domain, members) in by_domain {
+                let name = pianist.new_group_name();
+                let units: Vec<&OwnUnit> = given.iter().copied().filter(|u| members.contains(&u.id)).collect();
+                let group = Group::new(name.clone(), domain, members, GroupTask::Hold { since: frame, committed: false }, frame);
+                commands.extend(group.hold_orders(&units));
+                pianist.groups.push(group);
+                pianist.done.push(format!("{} group_{name} formed from the {} soldiers given to this seat", super::picture::clock(frame), units.len()));
+            }
+            loose.retain(|u| !given.iter().any(|g| g.id == u.id));
+        }
         for unit in loose {
             let domain = self.world.domain_of(unit.def);
             let factory = pianist.produced_by.get(&unit.id).copied();

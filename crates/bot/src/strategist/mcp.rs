@@ -167,6 +167,9 @@ fn tool_list() -> Value {
             { "name": "produce",
               "description": "What each factory or builder may build, and for a factory which group its new soldiers join ({\"plant_7\": {\"units\": [\"armflash\"], \"group\": \"group_A\"}}, or \"new\" for a fresh group of that factory's own; by default a factory's soldiers gather in one group of its own and nothing merges by itself): an object of actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" (every commander and constructor) or \"all\" (everyone) to a list of unit names (as the roster writes them: armpw, armham, armck, armfus), or null to lift the restriction. A name with a count after a colon (armck:1) is allowed that many more times from now and then drops off the list by itself; saying the same list again restarts the count: the way to say 'one constructor, then raiders' to hands that cannot count. A lab with a list is offered only those units and nothing else, every time it is asked; your instructions still say which of them and when. A builder without a list is offered the usual buildings (generators, factories, light and heavy turrets, radar, storage, the tier-2 lab and extractor, fusion); a list replaces that, so a fusion reactor, an aircraft plant or a jammer from a constructor is asked for here. Use it when the packet's words are not getting the mix you want. A list naming nothing the actor can build leaves it unrestricted; the actor's entry in the picture shows its list. Your policy is not bound by lists: it may order anything a builder can build.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "null" } ] }, "description": "Actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" or \"all\" to unit names, or null." } },
+            { "name": "transfer",
+              "description": "Move metal, energy or units between seats of ours (a game with several seats: the `seats:` line): {\"metal\": 800, \"energy\": 0, \"from\": \"t2\", \"to\": \"t1\"} sends what the receiving seat's store can hold (the game caps it there; what does not fit stays), or {\"units\": [\"group_A_t2\", \"constructor_31002\", \"plant_4410\"], \"to\": \"t1\"} gives those units (a group's members, a builder, a plant, by actor name or <unit>_<id> handle) to that seat, whose hands take them into a group of their own and whose builders they become. What it makes possible: one army under one seat, the advanced plant's seat fed metal by the others, a tier-2 constructor made by one seat and given to each, a dead seat's plants and constructors given to a live one. Your hands carry it out from their next look and say what went.",
+              "inputSchema": { "type": "object", "properties": { "metal": { "type": "number" }, "energy": { "type": "number" }, "units": { "type": "array", "items": { "type": "string" } }, "from": { "type": "string" }, "to": { "type": "string" } }, "required": ["to"] } },
             { "name": "remove",
               "description": "Take apart or blow up what we own: {\"reclaim\": [handles], \"by\": \"constructor_N\" (optional; else the nearest builder without a list)} puts `reclaim <handle>` steps at the front of that builder's list, and most of the metal comes back; {\"destruct\": [handles]} sends the engine's self-destruct, and nothing comes back. A handle is a unit's name and id as the picture writes it (armsolar_31002: a factory's `yard` entry names the buildings in its exit lane) or an actor's name (constructor_N, plant_N, commander). Every unit that self-destructs blows up: the answer says the blast's radius and damage and what of ours stands inside it, and a destruct that would kill something of ours is refused unless \"accept_losses\": true. The commander's blast is the game's largest; a reclaim is the safe way beside anything that matters.",
               "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "reclaim": { "type": "array", "items": { "type": "string" } }, "by": { "type": "string" }, "destruct": { "type": "array", "items": { "type": "string" } }, "accept_losses": { "type": "boolean" } } } },
@@ -176,7 +179,7 @@ fn tool_list() -> Value {
             { "name": "say",
               "description": "Say something in the game's chat, to everyone playing. Short lines: the game shows 127 characters a line, the bot prefixes `[WReason] ` to each (never write it yourself) and splits a longer text into lines that fit. The report shows what people say to you; when an experienced player offers advice or asks what you are doing, answer, and ask them what they would do: their feedback is what this project learns from.",
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "maxLength": 240 } } } },
-            orders(&["instruct", "queue", "standing", "lane", "mark", "produce", "remove", "say", "note", "wait"], "your instructions or policy, standing orders, build lists, footwork settings, marked places, what labs may build, removals, a chat line, a note and when to be woken"),
+            orders(&["instruct", "queue", "standing", "lane", "mark", "produce", "remove", "transfer", "say", "note", "wait"], "your instructions or policy, standing orders, build lists, footwork settings, marked places, what labs may build, removals, a chat line, a note and when to be woken"),
             wait("A group of ours starts fighting an enemy party.", "Woken when this many soldiers of each named unit type are alive, e.g. {\"armham\": 6}. {} clears it."),
             note,
     ])
@@ -184,7 +187,7 @@ fn tool_list() -> Value {
 
 /// What `orders` may batch.
 fn batchable() -> &'static [&'static str] {
-    &["instruct", "queue", "standing", "lane", "mark", "produce", "remove", "say", "note", "wait"]
+    &["instruct", "queue", "standing", "lane", "mark", "produce", "remove", "transfer", "say", "note", "wait"]
 }
 
 /// The `orders` tool: several tool calls in one request. `wait` goes last wherever it was listed, since it ends the turn.
@@ -655,6 +658,49 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             }
             Ok(format!("{}; they see it from their next look", said.join("; ")))
         }
+        "transfer" => {
+            use super::shared::Transfer;
+            let team_of = |v: &Value| -> Result<i32, String> {
+                let text = v.as_str().ok_or("from and to are seat tags such as \"t2\"")?;
+                text.trim().trim_start_matches('t').parse::<i32>().map_err(|_| format!("{text}: a seat tag is t<team>, as the seats line writes it"))
+            };
+            let to = team_of(&arguments["to"])?;
+            let live = shared.live_seats();
+            if !live.contains(&to) {
+                return Err(format!("t{to} is not a seat of ours in this game (ours: {})", live.iter().map(|t| format!("t{t}")).collect::<Vec<_>>().join(", ")));
+            }
+            let metal = arguments["metal"].as_f64().unwrap_or(0.0) as f32;
+            let energy = arguments["energy"].as_f64().unwrap_or(0.0) as f32;
+            let units: Vec<String> = arguments["units"].as_array().map(|a| a.iter().filter_map(|v| v.as_str().map(|s| s.trim().to_string())).collect()).unwrap_or_default();
+            if metal <= 0.0 && energy <= 0.0 && units.is_empty() {
+                return Err("transfer takes metal and/or energy with from and to, or units with to".into());
+            }
+            let mut said: Vec<String> = Vec::new();
+            if metal > 0.0 || energy > 0.0 {
+                let from = team_of(&arguments["from"])?;
+                if from == to {
+                    return Err("from and to are the same seat".into());
+                }
+                if !live.contains(&from) {
+                    return Err(format!("t{from} is not a seat of ours in this game"));
+                }
+                shared.transfers.lock().unwrap().push(Transfer::Resources { from_team: from, to_team: to, metal, energy });
+                said.push(format!("t{from} sends {metal:.0} metal and {energy:.0} energy to t{to}; what t{to}'s store cannot hold stays with t{from}"));
+            }
+            if !units.is_empty() {
+                let cards: Vec<super::shared::UnitCard> = shared.own_cards.lock().unwrap().values().flatten().cloned().collect();
+                let hands = shared.hands_merged(false);
+                let groups: Vec<String> = hands.picture["actors"].as_object().map(|o| o.keys().filter(|k| k.starts_with("group_")).cloned().collect()).unwrap_or_default();
+                for h in &units {
+                    if !groups.contains(h) && !cards.iter().any(|c| c.handle == *h || c.actor.as_deref() == Some(h.as_str())) {
+                        return Err(format!("{h}: nothing of ours has that name (a group_X, an actor name, or a <unit>_<id> handle as the picture writes it)"));
+                    }
+                }
+                shared.transfers.lock().unwrap().push(Transfer::Units { handles: units.clone(), to_team: to });
+                said.push(format!("{} go to t{to}: its hands take them into a group of their own, its builders as its own", units.join(", ")));
+            }
+            Ok(format!("{}; your hands carry it out from their next look", said.join("; ")))
+        }
         "remove" => {
             let cards: Vec<super::shared::UnitCard> = shared.own_cards.lock().unwrap().values().flatten().cloned().collect();
             if cards.is_empty() {
@@ -798,7 +844,7 @@ mod tests {
     #[test]
     fn the_player_has_its_lever_and_none_of_the_commanders() {
         let player: Vec<String> = tool_list().as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap().to_string()).collect();
-        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "produce", "remove", "standing", "say", "orders", "wait", "note"]);
+        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "produce", "transfer", "remove", "standing", "say", "orders", "wait", "note"]);
         for tool in batchable() {
             assert!(player.contains(&tool.to_string()));
         }

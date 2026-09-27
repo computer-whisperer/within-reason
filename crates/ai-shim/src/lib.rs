@@ -251,6 +251,15 @@ impl Instance {
             sys::EVENT_ENEMY_DESTROYED => {
                 Event::EnemyDestroyed { enemy: UnitId(event!(SEnemyDestroyedEvent).enemy) }
             }
+            // The engine tells the new owner (and its allies not allied with the old) `given`, the old owner `captured`.
+            sys::EVENT_UNIT_GIVEN => {
+                let e = event!(SUnitGivenEvent);
+                Event::UnitGiven { unit: UnitId(e.unitId), from_team: e.oldTeamId, to_team: e.newTeamId }
+            }
+            sys::EVENT_UNIT_CAPTURED => {
+                let e = event!(SUnitCapturedEvent);
+                Event::UnitTaken { unit: UnitId(e.unitId), from_team: e.oldTeamId, to_team: e.newTeamId }
+            }
             sys::EVENT_ENEMY_DAMAGED => {
                 let e = event!(SEnemyDamagedEvent);
                 Event::EnemyDamaged { enemy: UnitId(e.enemy), attacker: unit(e.attacker), damage: e.damage, weapon: self.engine.weapon(e.weaponDefId) }

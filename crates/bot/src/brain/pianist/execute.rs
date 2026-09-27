@@ -223,6 +223,14 @@ impl Brain {
                 task = Some(Task::Repair { target: *target, since: frame });
                 did = Some("repair".into());
             }
+            Response::DGun(party_name) => {
+                if let Some(party) = picture.parties.iter().find(|p| p.name == *party_name)
+                    && let Some(target) = party.ids.iter().filter_map(|id| tick.snapshot.enemies.iter().find(|e| e.id == *id)).min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)))
+                {
+                    commands.push(Command::DGun { unit: id, target: target.id });
+                    did = Some(format!("D-gun {}'s nearest unit", party.name));
+                }
+            }
             Response::WalkTo(place_name) => {
                 if let Some(p) = place(place_name) {
                     let to = self.snap_for(self.walker_of(unit.def), p.at);

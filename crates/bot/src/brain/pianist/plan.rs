@@ -104,6 +104,8 @@ pub(crate) enum Response {
     RetreatHome,
     /// Attack the named party (a builder that outweighs it alone).
     Attack(String),
+    /// The commander's D-gun at the named party's nearest unit (8.1).
+    DGun(String),
     // Labs.
     Next(UnitDefId),
     // Groups, against a threat.
@@ -236,7 +238,7 @@ impl Brain {
             Response::Reclaim(_) | Response::ReclaimUnit(_) => "reclaim",
             Response::Repair(_) => "repair",
             Response::WalkTo(_) | Response::RetreatHome => "walk",
-            Response::Attack(_) => "fight",
+            Response::Attack(_) | Response::DGun(_) => "fight",
             Response::Next(def) => {
                 if self.world.is_constructor_def(*def) { "constructor" } else { "soldier" }
             }

@@ -255,6 +255,25 @@ impl Brain {
                 if distance > RAIDER_REACH {
                     continue;
                 }
+                // The D-gun as a state (8.1): the nearest unit of a party inside the commander's D-gun reach, with the
+                // energy said (one shot kills; it fires only when told).
+                let dgun = self.dgun_reach(unit.def);
+                if dgun > 0.0
+                    && let Some(d) = party.ids.iter().filter_map(|id| enemies.iter().find(|e| e.id == *id)).map(|e| e.pos.dist2d(unit.pos)).min_by(f32::total_cmp)
+                    && d <= dgun + 100.0
+                {
+                    let name = self.actor_name(unit.id);
+                    let inside = party.ids.iter().filter_map(|id| enemies.iter().find(|e| e.id == *id)).filter(|e| e.pos.dist2d(unit.pos) <= dgun).count();
+                    states.push(state(
+                        format!("{}.dgun_{name}", party.name),
+                        name.clone(),
+                        Response::DGun(party.name.clone()),
+                        format!("{name} D-guns {}'s nearest unit ({d:.0} away; {inside} of its {} inside the D-gun's {dgun:.0}; one shot kills, {:.0} energy stored){}", party.name, party.ids.len(), tick.snapshot.energy.current, if d > dgun { ": it steps in to reach it" } else { "" }),
+                        0.0,
+                        false,
+                        false,
+                    ));
+                }
                 let odds = self.odds_words(&[unit], party, enemies);
                 if !odds.starts_with("we outweigh") {
                     continue;

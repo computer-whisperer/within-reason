@@ -764,6 +764,32 @@ impl Engine {
             }),
             // Creating a unit makes the engine call back into `handleEvent` before it returns, so it cannot be
             // issued from inside an export that holds the instance table; see `Spawner`.
+            Command::SendResources { metal, energy, to_team } => {
+                let mut result = Ok(());
+                for (resource, amount) in [(self.metal, metal), (self.energy, energy)] {
+                    if amount > 0.0 && resource >= 0 {
+                        let mut c = sys::SSendResourcesCommand { resourceId: resource, amount, receivingTeamId: to_team, ret_isExecuted: false };
+                        let r = self.handle(sys::COMMAND_SEND_RESOURCES, &mut c);
+                        if r.is_err() || !c.ret_isExecuted {
+                            result = Err(r.err().unwrap_or(-2));
+                        }
+                    }
+                }
+                result
+            }
+            Command::SendUnits { ref units, to_team } => {
+                let mut ids: Vec<c_int> = units.iter().map(|u| u.0).collect();
+                let mut c = sys::SSendUnitsCommand { unitIds: ids.as_mut_ptr(), unitIds_size: ids.len() as c_int, receivingTeamId: to_team, ret_sentUnits: 0 };
+                let r = self.handle(sys::COMMAND_SEND_UNITS, &mut c);
+                if r.is_ok() && c.ret_sentUnits as usize != ids.len() { Err(-3) } else { r }
+            }
+            Command::DGun { unit, target } => self.handle(sys::COMMAND_UNIT_D_GUN, &mut sys::SDGunUnitCommand {
+                unitId: unit.0,
+                groupId: NO_GROUP,
+                options: 0,
+                timeOut: NO_TIMEOUT,
+                toAttackUnitId: target.0,
+            }),
             Command::GiveUnit { .. } => Err(-1),
             Command::SelfDestruct { unit } => {
                 self.handle(sys::COMMAND_UNIT_SELF_DESTROY, &mut sys::SSelfDestroyUnitCommand {

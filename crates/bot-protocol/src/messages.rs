@@ -354,6 +354,10 @@ pub enum Event {
     BuildSiteNotFound { unit: UnitId, def: UnitDefId },
     /// The engine rejected a command.
     CommandRejected { unit: UnitId, code: i32 },
+    /// A unit became ours from another team (a transfer between seats, a capture).
+    UnitGiven { unit: UnitId, from_team: i32, to_team: i32 },
+    /// A unit of ours went to another team.
+    UnitTaken { unit: UnitId, from_team: i32, to_team: i32 },
 }
 
 /// The bot's reply to a tick; also the credit that lets the shim send the next one.
@@ -396,6 +400,13 @@ pub enum Command {
     /// The engine's fire state: 0 hold fire, 1 return fire, 2 fire at will. A unit holding fire still carries out an
     /// explicit `Attack`. The duel harness holds a scenario's units while it prepares them (`docs/harness/duels.md`).
     FireState { unit: UnitId, state: i32 },
+    /// Give metal and energy to an allied team (the game caps it to what the receiver can hold; a tax option, when
+    /// set, takes its share). Between seats of ours in a game with people (docs/design/2026-09-27-posing-changes.md §12b).
+    SendResources { metal: f32, energy: f32, to_team: i32 },
+    /// Give these units of ours to an allied team; the engine sends `UnitTaken` to us and `UnitGiven` to them.
+    SendUnits { units: Vec<UnitId>, to_team: i32 },
+    /// The commander's D-gun at one unit (a manual-fire weapon: never fired on its own).
+    DGun { unit: UnitId, target: UnitId },
 }
 
 /// The shim resolves this to the closest legal build position, since only it can query the map.

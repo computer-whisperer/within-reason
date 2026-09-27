@@ -304,6 +304,15 @@ pub enum Removal {
     Destruct { targets: Vec<String> },
 }
 
+/// A transfer between seats of ours from the `transfer` tool (docs/design/2026-09-27-posing-changes.md §12b):
+/// metal and energy from one seat to another, or units (by handle or actor name) to a seat. Each seat's brain takes
+/// the ones that are its to give.
+#[derive(Clone, Debug)]
+pub enum Transfer {
+    Resources { from_team: i32, to_team: i32, metal: f32, energy: f32 },
+    Units { handles: Vec<String>, to_team: i32 },
+}
+
 /// State shared between the brain's thread, the MCP server and the strategist driver.
 #[derive(Default)]
 pub struct Shared {
@@ -369,6 +378,8 @@ pub struct Shared {
     pub blasts: Mutex<BTreeMap<String, (Option<(f32, f32)>, Option<(f32, f32)>, f32)>>,
     /// The `remove` tool's orders, taken by the pianist.
     pub removals: Mutex<Vec<Removal>>,
+    /// The `transfer` tool's orders, taken by the seat that owns what is sent.
+    pub transfers: Mutex<Vec<Transfer>>,
     pub wake: Mutex<Wake>,
     /// Chat from people in the game, unread by the player: (frame, player number, text).
     pub chat_in: Mutex<Vec<(i32, i32, String)>>,

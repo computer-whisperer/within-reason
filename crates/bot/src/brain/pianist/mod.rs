@@ -14,6 +14,7 @@ mod execute;
 mod lists;
 pub(super) mod picture;
 mod remove;
+mod transfer;
 mod diet;
 mod plan;
 mod schedule;
@@ -467,6 +468,7 @@ impl Brain {
             self.publish_field(tick, kit, &soldiers, &shared);
             self.publish_cards(tick, &shared);
             self.take_removals(tick, commands, &shared);
+            self.take_transfers(tick, commands, &shared);
         }
         if tick.frame < FIRST_ORDER_FRAME {
             return;

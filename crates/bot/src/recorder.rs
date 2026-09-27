@@ -222,6 +222,19 @@ impl Recorder {
                 self.known.remove(&enemy);
                 r
             }
+            Event::UnitGiven { unit, from_team, to_team } => {
+                let mut r = about(self, "given", unit);
+                r["from_team"] = json!(from_team);
+                r["to_team"] = json!(to_team);
+                r
+            }
+            Event::UnitTaken { unit, from_team, to_team } => {
+                let mut r = about(self, "taken", unit);
+                r["from_team"] = json!(from_team);
+                r["to_team"] = json!(to_team);
+                self.own.remove(&unit);
+                r
+            }
             Event::BuildSiteNotFound { unit, def } => {
                 let mut r = about(self, "no_site", unit);
                 r["what"] = json!(self.def(Some(def)));
@@ -262,6 +275,9 @@ impl Recorder {
                 Command::SelfDestruct { unit } => json!(["selfdestruct", unit.0]),
                 Command::MoveState { unit, state } => json!(["movestate", unit.0, state]),
                 Command::FireState { unit, state } => json!(["firestate", unit.0, state]),
+                Command::SendResources { metal, energy, to_team } => json!(["send_resources", metal as i32, energy as i32, to_team]),
+                Command::SendUnits { ref units, to_team } => json!(["send_units", units.iter().map(|u| u.0).collect::<Vec<_>>(), to_team]),
+                Command::DGun { unit, target } => json!(["dgun", unit.0, target.0]),
             })
             .collect();
         self.line(&json!({ "t": "cmd", "f": frame, "c": list }));
