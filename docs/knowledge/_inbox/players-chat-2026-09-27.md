@@ -74,3 +74,7 @@ bot logs, with the game clock. The claims drawn from them are in openings.md, ec
 - 7:36 Infern8: "defensive structures (like the beamer in the north) are generally stronger per metal than mobile
   units"; 7:51 "attacking them effectively requires either long-range units or overwhelming firepower".
 
+## Comet 3v1 against thebluegecko again (game 9, lost about 20:16)
+- 19:39 thebluegecko, asked what lost it: "by that time the game was over I think, not enough metal"; 19:43 "need to
+  hold more of the map".
+

@@ -482,7 +482,13 @@ K-maps-comet-barb-opens-bots, the tempo model]
   stops is written whole (spot after spot, a `mark` for each if needed), never one stop at a time. (m) When the
   store rises, build power: constructors first, nanos where the energy allows (they draw a lot). (n) When a seat's
   advanced plant comes online, that seat's other plants pause (`produce` them an empty list) so its income goes
-  into tier 2: one constructor, then tanks.
+  into tier 2: one constructor, then tanks. From game 9 (thebluegecko, lost 20:16 after leading three to one at
+  13:07; the user: dozens of bad trades by the wrong unit in the wrong place): (o) Bulls (reach 460) and beamer
+  nests (490) outrange every tier-1 tank; a group that goes at them pays the approach under their fire, so it goes
+  in only as one body that outweighs them, never in ones and twos, and never chases into ground it cannot see
+  (94 tier-1 tanks died to Bulls for 15 Bulls, 73 more to shooters out of sight). What answers Bulls is our own
+  Bulls, Mausers and bombers, or a turret of ours where they must come; against a nest, artillery or the whole
+  ball at once. The `enemies_near` line now says when a party or its turrets outrange the group.
 
 **This map, Great Divide V1 (the games with people from 2026-09-27: two seats of ours under you, the north box A1-H2
 against the south A7-H8, realtime; the opponent a person who, we are told, will fortify the pass and try to win from

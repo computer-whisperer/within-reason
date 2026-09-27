@@ -210,3 +210,21 @@ impl Brain {
         force
     }
 }
+
+#[cfg(test)]
+mod worth_probe {
+    /// `cargo test -p bot -- --ignored worth_probe --nocapture`: the square-law worth of named types.
+    #[test]
+    #[ignore]
+    fn worth_of_named_types() {
+        let units = combatsim::units::Units::default();
+        let scale = super::tier1_scale(&units.list);
+        for name in ["armflash", "armstump", "corlevlr", "armjanus", "corgator", "armbull", "armmart", "armbeamer", "armllt", "armhlt", "armlatnk", "armpw", "armrock", "armcom", "corcom"] {
+            if let Some(u) = units.names.iter().position(|n| n == name).map(|i| &units.list[i]) {
+                println!("{name:10} metal {:6.0} hp {:6.0} dps {:6.1} reach {:4.0} tech {} worth {:6.0} (x{:.2} of metal)", u.metal, u.health, u.dps(), u.reach(), u.tech, super::worth_of(u, scale), super::worth_of(u, scale) / u.metal.max(1.0));
+            } else {
+                println!("{name}: not in the table");
+            }
+        }
+    }
+}

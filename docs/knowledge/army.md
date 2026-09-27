@@ -545,3 +545,19 @@ needed to prevent irish gaining a large metal lead").
 **Evidence.** `docs/knowledge/_inbox/players-chat-2026-09-27.md`; games 3, 4 and 5.
 **Status.** supported (2026-09-27; game 5 is the one game where it was done). Exploited by
 [[H-PLAYER-PLAYERS-ADVICE]].
+
+### K-army-tier-1-trickled-into-bulls-and-turrets-is-the-loss
+**Claim.** Against thebluegecko in bluegecko-3v1-comet-catcher-9 (lost about 20:16 after leading three to one at
+13:07) the loss was dozens of trades by the wrong unit in the wrong place (the user): our army losses were 61.5k
+against 54.7k of his seen, and the killers were his Bulls (94 of ours: 32 Pounders, 26 Stouts, 23 Janus, 13
+Blitzes, for 15 Bulls), shooters out of sight (73: Bulls and Mausers beyond our sight, beamers), beamers (24
+Stouts and Blitzes) and his Janus and Stouts (27 Blitzes). Pounders (reach 315) and Stouts (350) walked at Bulls
+(460) and beamers (490) in ones and twos and died on the approach; the odds called it "we outweigh it" because the
+matchup table has no rows for tier 2 or turrets and the square law counts no reach (a Bull's damage times health
+is worth about 670 tier-1 metal against its 950). A turret that outranges a group is no bar to pushing in and
+killing it (the user): the cost is paid on the approach, once, by a group that goes in as one body.
+**Evidence.** `run/matches/1790479031-bluegecko-3v1-comet-catcher-8/00` records (the `destroyed` events by killer
+type); the worth probe `cargo test -p bot -- --ignored worth_probe --nocapture`.
+**Status.** supported (2026-09-27, one game with the numbers). Exploited by [[H-HANDS-ODDS-REACH]],
+[[H-PLAYER-PLAYERS-ADVICE]].
+

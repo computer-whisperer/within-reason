@@ -28,6 +28,8 @@ const PASSAGES: usize = 3;
 const PARTY_RADIUS: f32 = 400.0;
 /// A turret whose reach ends this short of a party's centre still covers its edge.
 const TURRET_MARGIN: f32 = 150.0;
+/// A party whose reach beats the group's longest by this much kills it on the approach (a Bull's 460 or a beamer's 490 against a Stout's 350).
+const OUTRANGE_MARGIN: f32 = 60.0;
 /// A party this near a place or an actor is "near" it.
 const NEAR: f32 = 800.0;
 /// The enemy's soldiers seen within this long count in what we know of its army.
@@ -385,7 +387,7 @@ impl Brain {
         words
     }
 
-    pub(super) fn odds_words(&self, units: &[&OwnUnit], party: &Party, enemies: &[EnemyUnit]) -> &'static str {
+    pub(super) fn odds_words(&self, units: &[&OwnUnit], party: &Party, enemies: &[EnemyUnit]) -> String {
         let mut theirs = super::super::combat::Force::default();
         for enemy in enemies.iter().filter(|e| party.ids.contains(&e.id)) {
             match enemy.def {
@@ -400,20 +402,46 @@ impl Brain {
         theirs.turret_metal_air += party.turret_metal_air;
         let ours = Brain::force_of(units);
         let ratio = self.odds(&ours, &theirs);
-        if units.is_empty() {
-            "we have nobody to send"
-        } else if !self.force_can_hit(&ours, self.all_air(&theirs)) {
-            "we cannot hit it: nothing in this group shoots at what it is"
-        } else if !self.force_can_hit(&theirs, self.all_air(&ours)) {
-            "it cannot hit us: nothing there shoots at what this group is"
-        } else if ratio >= 2.5 {
-            "we outweigh it heavily"
-        } else if ratio >= 1.3 {
-            "we outweigh it"
-        } else if ratio >= 0.8 {
-            "an even fight"
+        // Reach: a party that outranges everything in the group, or turrets covering it that do, kills the group on
+        // its approach before it shoots, whatever the metal says (bluegecko-3v1-comet-catcher-9: 94 tier-1 tanks
+        // of reach 315-350 died to Bulls of 460 and 24 to beamers of 490, most of them to shooters out of sight,
+        // under "we outweigh it"; the user: dozens of bad trades by the wrong unit in the wrong place).
+        let reach_of = |def: UnitDefId| self.world.def(def).map_or(0.0, |d| d.reach);
+        let our_reach = units.iter().map(|u| reach_of(u.def)).fold(0.0, f32::max);
+        let party_reach = enemies.iter().filter(|e| party.ids.contains(&e.id)).filter_map(|e| e.def).map(reach_of).fold(0.0, f32::max);
+        let turret_reach = self
+            .enemy_buildings
+            .values()
+            .filter_map(|(def, pos, _)| self.world.def(*def).filter(|d| d.weapon_count > 0 && d.reach > 0.0 && pos.dist2d(party.at) <= d.reach + TURRET_MARGIN && self.can_hit(*def, self.all_air(&ours))).map(|d| d.reach))
+            .fold(0.0, f32::max);
+        let their_reach = party_reach.max(turret_reach);
+        let outranged = our_reach > 0.0 && their_reach > our_reach + OUTRANGE_MARGIN;
+        // The reach is said beside the metal, never over it: a turret that outranges a group is no bar to pushing in
+        // and killing it (the user, 2026-09-27), it is a cost paid on the approach that a group pays as one body.
+        let reach_words = if outranged {
+            format!(
+                ", and it outranges us ({} to our {:.0}{}): the approach is paid under its fire, so the group goes in as one body or not at all",
+                if turret_reach > party_reach { format!("turrets covering it reach {turret_reach:.0}") } else { format!("it reaches {party_reach:.0}") },
+                our_reach,
+                if turret_reach > party_reach && party_reach > 0.0 { format!(", the party itself {party_reach:.0}") } else { String::new() }
+            )
         } else {
-            "it outweighs us"
+            String::new()
+        };
+        if units.is_empty() {
+            "we have nobody to send".to_string()
+        } else if !self.force_can_hit(&ours, self.all_air(&theirs)) {
+            "we cannot hit it: nothing in this group shoots at what it is".to_string()
+        } else if !self.force_can_hit(&theirs, self.all_air(&ours)) {
+            "it cannot hit us: nothing there shoots at what this group is".to_string()
+        } else if ratio >= 2.5 {
+            format!("we outweigh it heavily{reach_words}")
+        } else if ratio >= 1.3 {
+            format!("we outweigh it{reach_words}")
+        } else if ratio >= 0.8 {
+            format!("an even fight{reach_words}")
+        } else {
+            format!("it outweighs us{reach_words}")
         }
     }
 
