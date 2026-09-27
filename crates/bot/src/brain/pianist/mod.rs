@@ -628,10 +628,12 @@ impl Brain {
         // A group walking a leg of its route (routes-in-prose §4.4) is asked on an event that names it, on a packet
         // or rules change, and at the re-ask, not every second: the per-second re-decision against fall-back,
         // pull-out and gather flipped group_G 13 times in 53 s at E3 (player-9 18:32-19:25) and never past the edge.
+        // Not on a `places` change: a mark or a new shelling place opened 22% of the walkers' seconds in player-10
+        // (258 of 1,667 passes); a mark the packet names comes with a packet event.
         {
             let pianist = self.pianist.as_ref().expect("pianist mode");
             let re_ask_due = pianist.sig.as_ref().is_none_or(|(_, f)| tick.frame - *f >= plan::RE_ASK);
-            let orders = ["packet", "places", "rules", "lists"].iter().any(|e| pianist.events.contains(*e));
+            let orders = ["packet", "rules", "lists"].iter().any(|e| pianist.events.contains(*e));
             for s in slots.iter_mut() {
                 if s.on_route && !re_ask_due && !orders && !pianist.events.iter().any(|e| e.starts_with(&format!("{} ", s.name))) {
                     s.quiet = true;
@@ -718,7 +720,11 @@ impl Brain {
             })
             .collect();
         let diet = pianist.diet.clone();
-        let state = self.trim_state(&diet, picture, &asked);
+        let mut state = self.trim_state(&diet, picture, &asked);
+        let shed = diet::shed(&mut state, diet::STATE_CHARS);
+        if !shed.is_empty() {
+            self.pianist.as_mut().expect("pianist mode").write_log(json!({ "t": "shed", "f": tick.frame, "shed": shed }));
+        }
         let request = jev::Request { state, questions: questions.into_iter().collect() };
         if self.pianist.as_ref().expect("pianist mode").stats.calls == 0 && self.pianist.as_ref().expect("pianist mode").logged_instructions.is_empty() {
             let rules = picture.state["rules"].as_str().unwrap_or_default().to_string();

@@ -145,6 +145,10 @@ pub(crate) struct Group {
     pub reached: Vec<(String, i32)>,
     /// The first enemies in sight near the body since the last place reached: the frame and the words.
     pub met: Option<(i32, String)>,
+    /// The places its paragraph names, in the packet's order, as of the last look: the route `reached` and `met`
+    /// are the facts of. A different set of places is a new route and the facts begin again (player-10 18:20: a
+    /// group's `route_seen` listed every arrival since 3:09 and none of the route it was on).
+    pub route: Vec<String>,
     /// Made by the hands' `scout` state: it roves unless the player's `lane` says otherwise for it (H-MICRO-ROVE).
     pub scout: bool,
     /// Roving as of the last look (`keep_groups`): a change hands the group to the lane or takes it back.
@@ -191,7 +195,7 @@ pub(crate) const STRUNG_OUT: f32 = 600.0;
 
 impl Group {
     pub(crate) fn new(name: String, domain: Domain, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None, hunt: None, declined: Vec::new(), joining: HashSet::new(), gathering: false, shelling: false, hunts_failed: Vec::new(), reached: Vec::new(), met: None, scout: false, roving: false, rove_log: Vec::new() }
+        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None, hunt: None, declined: Vec::new(), joining: HashSet::new(), gathering: false, shelling: false, hunts_failed: Vec::new(), reached: Vec::new(), met: None, route: Vec::new(), scout: false, roving: false, rove_log: Vec::new() }
     }
 
     /// The group's body toward `toward` (the goal of a walk, the nearest enemy, or nothing: then the front is the
@@ -384,9 +388,13 @@ impl Brain {
                     // (Cape Violet: the centre of a group split between a plateau and the shore below lay in deep
                     // water, and every newcomer was sent into it).
                     let nearest = pianist.groups[i].units(own).iter().filter(|m| !pianist.groups[i].joining.contains(&m.id)).map(|m| m.pos).min_by(|a, b| a.dist2d(unit.pos).total_cmp(&b.dist2d(unit.pos)));
+                    // Of the body when it stands within the adopt radius of the body's place, else a reinforcement
+                    // on its way: by the nearest member a plant's stream at the yard adopted itself one unit at a
+                    // time and the body's tail never left home (player-10 18:20: "its tail is 4649 behind at yard2").
+                    let body_at = pianist.groups[i].body(own, None).map(|b| b.at);
                     pianist.groups[i].members.push(unit.id);
                     if let Some(to) = nearest
-                        && to.dist2d(unit.pos) > ADOPT_RADIUS
+                        && body_at.is_none_or(|at| at.dist2d(unit.pos) > ADOPT_RADIUS)
                     {
                         let to = self.snap_for(self.walker_of(unit.def), to);
                         pianist.groups[i].joining.insert(unit.id);
@@ -468,11 +476,20 @@ impl Brain {
                     }
                 }
             }
-            let Some(centre) = centre_of(&units) else { continue };
+            // The body's place, not the centre of every member: the stream still joining from the plants would drag
+            // the centre home (player-10 18:20: a front at spot_40 with 34 waiting at the yard read "0 of 59 arrived").
+            let Some(centre) = group.body(own, goal).map(|b| b.at) else { continue };
             // The route's facts (routes-in-prose §4.2-4.3): a place the packet names for this group that the body
             // comes within `ARRIVED` of is reached, said in `recent` and asked about at once; the first enemies in
-            // sight since the last stop are kept until the next. Code records; Jev picks the next leg.
+            // sight since the last stop are kept until the next. Code records; Jev picks the next leg. The facts
+            // are the current route's: a paragraph naming a different set of places begins them again.
             let text = super::diet::paragraph(&pianist.packet_seen, &format!("group_{}", group.name)).unwrap_or(&pianist.packet_seen);
+            let route: Vec<String> = super::diet::named_in_order(text, pianist.places.iter().map(|p| p.name.as_str()).filter(|n| *n != "home")).into_iter().map(str::to_string).collect();
+            if route != group.route {
+                group.route = route;
+                group.reached.clear();
+                group.met = None;
+            }
             let here = pianist.places.iter().find(|p| p.name != "home" && super::diet::names(text, &p.name) && p.at.dist2d(centre) < ARRIVED).map(|p| p.name.clone());
             if let Some(place) = here
                 && group.reached.last().is_none_or(|(last, _)| *last != place)

@@ -185,9 +185,100 @@ impl Brain {
     }
 }
 
+/// The characters of state a call keeps under. Player-10-routes: the largest call answered was 65,587 tokens in
+/// (19:26, 22 actors in the picture), and from 19:33 to 26:31 thirty calls came back `max_tokens_exceeded` while the
+/// F4 push fell apart on the hands' last course; about 3.7 characters a token there, so this is some 43,000 tokens,
+/// leaving the questions and the answer room under the model's limit.
+pub(super) const STATE_CHARS: usize = 160_000;
+
+/// Cuts `state` toward `budget` characters, least useful first: `recent` to its last six lines, then the places the
+/// instructions do not name, then the largest actors' entries to a line one by one. Returns what was cut, for the
+/// log; empty when nothing was.
+pub(super) fn shed(state: &mut Value, budget: usize) -> Vec<String> {
+    let size = |s: &Value| s.to_string().len();
+    let mut shed = Vec::new();
+    if size(state) <= budget {
+        return shed;
+    }
+    if let Some(recent) = state["recent"].as_array_mut()
+        && recent.len() > 6
+    {
+        let n = recent.len();
+        recent.drain(..n - 6);
+        shed.push(format!("recent cut to the last 6 of {n}"));
+    }
+    if size(state) <= budget {
+        return shed;
+    }
+    let instructions = state["instructions"].as_str().unwrap_or_default().to_string();
+    if let Some(places) = state["places"].as_object_mut() {
+        let before = places.len();
+        places.retain(|name, _| names(&instructions, name));
+        if places.len() < before {
+            shed.push(format!("places cut to the {} the instructions name, of {before}", places.len()));
+        }
+    }
+    if size(state) <= budget {
+        return shed;
+    }
+    let rest = size(state) - size(&state["actors"]);
+    if let Some(actors) = state["actors"].as_object_mut() {
+        let mut by_size: Vec<(usize, String)> = actors.iter().filter(|(_, e)| e.is_object()).map(|(n, e)| (e.to_string().len(), n.clone())).collect();
+        by_size.sort_by(|a, b| b.cmp(a));
+        let mut cut = Vec::new();
+        for (_, name) in by_size {
+            if let Some(entry) = actors.get_mut(&name) {
+                // Units and place only: `brief` keeps `doing`, which is what a long entry is made of.
+                let field = |k: &str| entry[k].as_str().unwrap_or_default().to_string();
+                *entry = Value::String(format!("{}; at {}; its entry cut for room", field("units"), field("at")));
+                cut.push(name);
+            }
+            if rest + state_size(actors) <= budget {
+                break;
+            }
+        }
+        if !cut.is_empty() {
+            shed.push(format!("entries cut to a line: {}", cut.join(" ")));
+        }
+    }
+    let now = size(state);
+    if now > budget {
+        shed.push(format!("still {now} characters, over {budget}"));
+    }
+    shed
+}
+
+fn state_size(actors: &serde_json::Map<String, Value>) -> usize {
+    Value::Object(actors.clone()).to_string().len()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_state_over_budget_is_cut_least_useful_first() {
+        let mut state = serde_json::json!({
+            "instructions": "group_A: spot_1 then spot_2.",
+            "recent": (0..40).map(|i| format!("{i}:00 something happened at spot_{i} with many words in it to take room")).collect::<Vec<_>>(),
+            "places": (0..60).map(|i| (format!("spot_{i}"), serde_json::json!({"what": "x".repeat(200)}))).collect::<serde_json::Map<_, _>>(),
+            "actors": {
+                "group_A": {"units": "10 Blitz", "at": "spot_1", "doing": "y".repeat(3000), "route_seen": "reached spot_1"},
+                "group_B": {"units": "3 Stout", "at": "home", "doing": "z".repeat(5000)},
+                "commander": {"units": "commander", "at": "home", "doing": "w".repeat(100)}
+            }
+        });
+        let before = state.to_string().len();
+        let cut = shed(&mut state, 6_000);
+        assert!(state.to_string().len() < before);
+        assert_eq!(state["recent"].as_array().unwrap().len(), 6);
+        assert_eq!(state["places"].as_object().unwrap().len(), 2, "spot_1 and spot_2 are named");
+        assert!(cut.iter().any(|s| s.starts_with("recent cut")) && cut.iter().any(|s| s.starts_with("places cut")), "{cut:?}");
+        assert!(cut.iter().any(|s| s.starts_with("entries cut to a line: group_B")), "the largest entry goes first: {cut:?}");
+        assert!(state["actors"]["commander"].is_object(), "the smallest entry stays whole: {cut:?}");
+        let mut small = serde_json::json!({"instructions": "x", "recent": ["a"], "places": {}, "actors": {}});
+        assert!(shed(&mut small, 6_000).is_empty());
+    }
 
     #[test]
     fn the_level_is_read_from_the_setting_and_defaults_to_normal() {

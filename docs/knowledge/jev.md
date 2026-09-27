@@ -1268,3 +1268,13 @@ the station-list mechanic retreated it 2 of 4. The state Jev needs is words: the
 **Status.** supported offline (2026-09-28, seven moments, four repeats, one game); built the same day as
 [[H-HANDS-ROUTE-FACTS]] (`docs/design/2026-09-28-routes-in-prose.md` §4.1-4.3); the live check is the loop's halts,
 the E3 task changes per minute and the base found by minute N.
+
+### K-hands-call-over-65k-tokens-fails
+**Claim.** A Jev (jev-1.13.0) call whose state runs past about 65,000 input tokens is refused with HTTP 400
+`max_tokens_exceeded`, and the hands then keep their last course for the second: nothing is re-decided.
+**Status.** demonstrated (2026-09-28, player-10-routes)
+**Evidence.** `run/matches/1790523133-player-10-routes/00/jev-0.jsonl`: 30 `error` rows 19:33-26:31 (19 in minute 20),
+the largest answered call 65,587 tokens in and 7,820 out at 19:26 with 22 actors and 10 groups in the picture; 372 of
+2,407 calls were over 40,000 tokens in. The F4 push fell apart in those minutes with the hands answering nothing.
+**Would be wrong if.** The limit were on the answer alone, or the model's window grew.
+**Used by.** [[H-HANDS-CALL-BUDGET]] (`pianist/diet.rs` `shed`).

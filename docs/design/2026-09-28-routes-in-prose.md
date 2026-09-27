@@ -11,9 +11,10 @@ player-8 and -9); the one prose route (group_C's eight stops of 16:09) reached n
 counted the plant stream 5k behind it, its `route_seen` listed the whole game's arrivals and none of the route's, and
 its `met` stayed on a sighting from before the route; a group on a leg was quiet 59% of its seconds, the `places`
 event (a mark, a new shelling place) opening 22% of them; Jev answered `max_tokens_exceeded` on 30 calls at 19:33-26:31
-with 22 actors in the picture. Open from it: `reached` and `met` begin again when the group's paragraph changes; the
-`places` event does not open a walker; the body is the members that have joined, the stream is said apart; the call's
-size. §5 is the user's open idea, with one proposal, not a decision.
+with 22 actors in the picture. Fixed the same day (H-HANDS-ROUTE-FACTS, H-HANDS-GROUP-BODY and H-HANDS-CALL-BUDGET amended or added): `reached`
+and `met` begin again when the set of places the group's paragraph names changes; the arrival is measured from the
+body's place, not the centre of every member; a newcomer is of the body only within 400 of the body's place, else a
+reinforcement on its way; the `places` event does not open a walker; the call's state is shed to 160,000 characters. §5 is the user's open idea, with one proposal, not a decision.
 
 ## 1. The user's three changes
 
