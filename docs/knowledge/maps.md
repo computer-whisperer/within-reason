@@ -622,3 +622,18 @@ the result, not as habits). Paired by result instead: the winner had more solars
 in 19 of 25, more extractors at 4:00 in 16 (fewer in 4).
 **Used by.** (candidate: the brief's energy and second-factory lines)
 
+### K-map-cape-violet-v1-a-water-map-with-a-third-of-the-spots-under-water
+**Claim.** Cape Violet V1 is 10240 by 5120 (twice as wide as tall), played east against west, 40 % sea; 72 metal
+spots of which 28 lie under water (heights -70 to -131) and 44 are reachable on foot from the east strip; the land
+routes west run through two passages, D2 (about (4130, 860), 560-610 wide, 70 % of the way) and B3 ((2375, 1683),
+664 wide, 80 %), with a third at G6 ((8133, 3512), 760 wide) on our own side; the enemy start about 10,000 on foot
+against 9,000 straight. Wind 8 to 14. The under-water spots are taken only by amphibious constructors (the Beaver),
+hover constructors or construction ships; the person (thebluegecko, 2026-09-27) took them with construction ships
+and advanced construction subs, fought with Welders (amphibious) that came over the water into our strip, then
+Liche atomic bombers (one bomb kills a commander) with radar planes, and Longbow missile cruisers (range 1,550)
+shelling from the sea.
+**Evidence.** `run/matches/1790481450-bluegecko-3v1-cape-violet/00` (bot.log terrain lines, the record's terrain
+file, the turns at 17:07 and 17:49); `docs/knowledge/_inbox/players-chat-2026-09-27.md`.
+**Status.** observed (one game, 2026-09-27; the map is in the pool for replays). Exploited by
+[[H-PLAYER-CAPE-VIOLET-SECTION]].
+

@@ -78,3 +78,8 @@ bot logs, with the game clock. The claims drawn from them are in openings.md, ec
 - 19:39 thebluegecko, asked what lost it: "by that time the game was over I think, not enough metal"; 19:43 "need to
   hold more of the map".
 
+## Cape Violet 3v1 against thebluegecko (game 10, lost 18:18)
+- 0:46 the user (spectating): "Note: this is a water map. Check your map tool"; 1:08 "there are metal spots
+  underwater"; 6:00 "At least one seat should build naval units"; 10:08 "You haven't taken any underwater mexes at
+  all, and now thebluegecko has taken them".
+

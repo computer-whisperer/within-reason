@@ -490,6 +490,26 @@ K-maps-comet-barb-opens-bots, the tempo model]
   Bulls, Mausers and bombers, or a turret of ours where they must come; against a nest, artillery or the whole
   ball at once. The `enemies_near` line now says when a party or its turrets outrange the group.
 
+**This map, Cape Violet V1 (one game with a person, 2026-09-27, three seats of ours on the east strip at H2, H4
+and H6 against thebluegecko in the west; lost at 18:18).** [K-map-cape-violet-v1-a-water-map-with-a-third-of-the-spots-under-water]
+- 10240 wide by 5120 tall, east against west, 40 % sea. 72 spots: 44 reachable on foot from our strip, 28 under
+  water (the picture says which, "under water"). Wind 8 to 14: wind turbines alone starve three plants, solars
+  with them. The land ways west run through the D2 passage (about (4130, 860)) and the B3 passage ((2375, 1683));
+  the sea runs round both.
+- The sea is a third of the map's metal and the person's road: he took every under-water spot with construction
+  ships and advanced subs by 10:00 while we took none, brought Welders (amphibious tanks) over the water into our
+  strip from 12:00, killed two commanders with Liche atomic bombers at 17:07 (one bomb kills a commander) and
+  shelled from Longbow cruisers (range 1,550) at 17:49. What to do from the start: each seat's plant makes a Beaver
+  (`armbeaver`, amphibious constructor) as its second or third unit with a list of the under-water spots nearest
+  its home; one seat's commander builds a shipyard (`armsy`) at a water mark off its own coast by 4:00 (the site is
+  kept on the water; the builder walks to the shore), its first unit a construction ship (`armcs`) for the far
+  under-water spots, then Anemones (coastal torpedo launchers) at the spots facing open water and warships as the
+  metal allows; a flak turret and two Nettles at each home by 12:00 against the Liches, and a scout plane over the
+  sea by 8:00 so the cruisers and subs are seen before they fire.
+- The land army stands at the D2 passage side with a radar and two turrets and takes the Welders on our turrets
+  (they broke on 40 Stouts at spot_29 at 13:00); it does not walk into the B3 beamer camp, where 6,800 of Blitzes
+  died to Beamers and Welders at 8:45.
+
 **This map, Great Divide V1 (the games with people from 2026-09-27: two seats of ours under you, the north box A1-H2
 against the south A7-H8, realtime; the opponent a person who, we are told, will fortify the pass and try to win from
 there).** [K-map-great-divide-v1-one-pass, K-map-great-divide-v1-the-choke-is-the-plan,

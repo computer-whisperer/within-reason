@@ -113,7 +113,9 @@ impl Brain {
         // as surely as a stuck unit; wake-3: nothing left the plant for three minutes and nobody was told).
         let standing_lanes: Vec<(UnitId, Lane)> = own.iter().filter_map(|u| (!u.being_built).then(|| self.lane_of(u).map(|l| (u.id, l))).flatten()).collect();
         let before = std::mem::take(&mut self.lane_standers);
-        for u in own.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed > 0.0)) {
+        // A unit still being built on the pad is not standing in the lane (Cape Violet, 1:31: a constructor at 99 %
+        // woke the player as blocking its own plant).
+        for u in own.iter().filter(|u| !u.being_built && self.world.def(u.def).is_some_and(|d| d.speed > 0.0)) {
             if let Some((factory, _)) = standing_lanes.iter().find(|(_, l)| l.contains(u.pos)) {
                 let since = match before.get(&u.id) {
                     Some((s, at, _)) if at.dist2d(u.pos) < 8.0 => *s,
