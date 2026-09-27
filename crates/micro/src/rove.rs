@@ -141,9 +141,12 @@ fn keep_off(s: &Source) -> f32 {
     s.reach.max(s.dgun) + margin(s)
 }
 
-/// How deep `p` stands inside the kept-off distances, summed over the shooters.
-fn depth(danger: &[&Source], p: Vec3) -> f32 {
-    danger.iter().map(|s| (keep_off(s) - s.pos.dist2d(p)).max(0.0)).sum()
+/// How deep `p` stands inside the kept-off distances widened by `slack`, summed over the shooters. An evasion
+/// prices its cells with a slack of its step: with none, every cell beyond the margin tied, the tie went to the one
+/// nearest its goal or home, and the rover slid round the margin's rim while a Pawn closed on it (a chase test at
+/// 189 from a Pawn of reach 180).
+fn depth(danger: &[&Source], p: Vec3, slack: f32) -> f32 {
+    danger.iter().map(|s| (keep_off(s) + slack - s.pos.dist2d(p)).max(0.0)).sum()
 }
 
 /// Nothing that can shoot covers the way from `a` to `b`, `b` included.
@@ -201,9 +204,9 @@ impl Lane {
                 }
             };
             rover.blocked.retain(|(_, until)| *until > frame);
-            let give_up = |rover: &mut Rover, why: String, events: &mut Vec<RoveEvent>| {
+            let give_up = |rover: &mut Rover, why: String, block: i32, events: &mut Vec<RoveEvent>| {
                 if let Some(goal) = rover.goal.take() {
-                    rover.blocked.push((goal.name.clone(), frame + BLOCK_FRAMES));
+                    rover.blocked.push((goal.name.clone(), frame + block));
                     if debug {
                         eprintln!("{} f={frame} micro: {name}#{} gives up {} ({why})", view.label(), unit.id.0, goal.name);
                     }
@@ -229,7 +232,7 @@ impl Lane {
                 // From anything as fast as it, toward home; else round the threat toward where it was going.
                 let prefer = if s.mobile && s.speed >= stats.speed { view.home() } else { rover.goal.as_ref().map_or(view.home(), |g| g.look) };
                 let cell = match self.grid.as_ref() {
-                    Some(grid) => grid.lowest_within_by(unit.pos, STEP_RADIUS, view.passable(), prefer, &|c| depth(&danger, c)),
+                    Some(grid) => grid.lowest_within_by(unit.pos, STEP_RADIUS, view.passable(), prefer, &|c| depth(&danger, c, STEP_RADIUS)),
                     None => None,
                 }
                 .unwrap_or_else(|| {
@@ -246,9 +249,13 @@ impl Lane {
                         eprintln!("{} f={frame} micro: {name}#{} evades a shooter {:.0} away (keeps {:.0}) to ({:.0}, {:.0})", view.label(), unit.id.0, s.pos.dist2d(unit.pos), keep_off(s), cell.x, cell.z);
                     }
                 }
-                let reorder = rover.evading.is_none_or(|(sent, at)| sent.dist2d(cell) > REORDER_DISTANCE && frame - at >= REORDER_FRAMES);
+                // Again when the cell moved, or when it has got to where it was sent (a step not stretched ends there).
+                let arrived = rover.sent.is_some_and(|(o, _)| matches!(o, Order::Move(t) if t.dist2d(unit.pos) < SAME_MOVE));
+                let reorder = rover.evading.is_none_or(|(sent, at)| (sent.dist2d(cell) > REORDER_DISTANCE || arrived) && frame - at >= REORDER_FRAMES);
                 if reorder {
-                    let to = view.snap(Vec3 { x: unit.pos.x + (cell.x - unit.pos.x) * STEP_REACH, y: 0.0, z: unit.pos.z + (cell.z - unit.pos.z) * STEP_REACH });
+                    // Stretched past the cell so the engine does not brake short of it, unless that runs into a margin.
+                    let far = view.snap(Vec3 { x: unit.pos.x + (cell.x - unit.pos.x) * STEP_REACH, y: 0.0, z: unit.pos.z + (cell.z - unit.pos.z) * STEP_REACH });
+                    let to = if depth(&danger, far, 0.0) > depth(&danger, cell, 0.0) { cell } else { far };
                     rover.evading = Some((cell, frame));
                     rover.sent = Some((Order::Move(to), frame));
                     self.counts.1 += 1;
@@ -258,15 +265,16 @@ impl Lane {
                 continue;
             }
             let after_evading = rover.evading.take().is_some();
-            if hit_unseen {
-                // Something out of sight is shooting it where it goes: that place is not worth it.
-                rover.target = None;
-                give_up(&mut rover, "hit by something out of sight on the way".to_string(), events);
+            // Something out of sight is shooting it where it goes: that place is not worth it. Once per goal held
+            // `ARRIVED_FRAMES`: under steady fire it gave up a goal a tick and ran out of places in seconds.
+            if hit_unseen && rover.goal.as_ref().is_some_and(|g| frame - g.since >= ARRIVED_FRAMES) {
+                give_up(&mut rover, "hit by something out of sight on the way".to_string(), BLOCK_FRAMES, events);
             }
             let still = unit.vel.x.hypot(unit.vel.z) < STILL;
             let send = |lane: &mut Lane, rover: &mut Rover, order: Order, commands: &mut Vec<Command>| {
                 let same = rover.sent.is_some_and(|(o, _)| o.same(order));
-                let stale = still && rover.sent.is_none_or(|(_, at)| frame - at >= RESEND_FRAMES);
+                // Only a move is sent again for standing still: an attacker stands to shoot, a stopped rover stands.
+                let stale = matches!(order, Order::Move(_)) && still && rover.sent.is_none_or(|(_, at)| frame - at >= RESEND_FRAMES);
                 if !same || after_evading || stale {
                     rover.sent = Some((order, frame));
                     lane.counts.1 += 1;
@@ -322,11 +330,11 @@ impl Lane {
                 if looked {
                     rover.goal = None;
                 } else if frame - goal.since >= GOAL_FRAMES {
-                    give_up(&mut rover, format!("not reached in {} s", GOAL_FRAMES / FRAMES_PER_SECOND), events);
+                    give_up(&mut rover, format!("not reached in {} s", GOAL_FRAMES / FRAMES_PER_SECOND), BLOCK_FRAMES, events);
                 } else if arrived_blind {
-                    give_up(&mut rover, "reached, and it still does not count as seen".to_string(), events);
+                    give_up(&mut rover, "reached, and it still does not count as seen".to_string(), STALE_FRAMES, events);
                 } else if !clear_way(&danger, unit.pos, goal.look) {
-                    give_up(&mut rover, "its way passes the reach of something that can shoot it".to_string(), events);
+                    give_up(&mut rover, "its way passes the reach of something that can shoot it".to_string(), BLOCK_FRAMES, events);
                 }
             }
             if rover.goal.is_none() {
@@ -343,11 +351,17 @@ impl Lane {
                 let best = goals
                     .iter()
                     .filter(|g| !rover.blocked.iter().any(|(n, _)| *n == g.name))
+                    // In its sight now: being looked at already.
+                    .filter(|g| g.at.dist2d(unit.pos) > sight)
                     .map(|g| (g, look_at(g.at)))
                     .filter(|(_, look)| clear_way(&danger, unit.pos, *look))
                     .map(|(g, look)| {
-                        let staleness = if tier(g) == 2 { -(g.seen.map_or(0, |f| (frame - f) / STALE_STEP)) } else { 0 };
-                        ((taken.contains(g.name.as_str()), tier(g), staleness), unit.pos.dist2d(look), g, look)
+                        // By the minute, nearest first; a place seen this last minute after every other, the oldest of
+                        // those first (by the minute alone it tied with the place just looked at, the nearest).
+                        let age = g.seen.map_or(0, |f| frame - f);
+                        let recent = tier(g) == 2 && age < STALE_STEP;
+                        let staleness = if tier(g) != 2 { 0 } else if recent { -age } else { -(age / STALE_STEP) };
+                        ((taken.contains(g.name.as_str()), tier(g), recent, staleness), unit.pos.dist2d(look), g, look)
                     })
                     .min_by(|a, b| a.0.cmp(&b.0).then(a.1.total_cmp(&b.1)));
                 if let Some((_, _, g, look)) = best {
@@ -619,17 +633,18 @@ mod tests {
         assert_eq!(lane.roving(UnitId(10)).unwrap().goal.unwrap().0, "spot_3");
     }
 
-    /// A minute of a Rover (168 a second, turning at once) going for his box past a Pawn that chases it at 87: moved
-    /// each tick toward its last order, the Pawn straight at it. It never comes within the Pawn's reach, and it
-    /// looks at places the while.
+    /// A minute of a Rover (168 a second, turning at once) on a map of 25 spots 800 apart (the east two columns his),
+    /// chased by a Pawn at 87: moved each tick toward its last order, the Pawn straight at it. It never comes within
+    /// the Pawn's reach, and it goes on looking at places the while.
     #[test]
     fn a_chased_rover_is_never_in_reach_and_keeps_looking() {
-        let host = Host::new(vec![goal("spot_2", 3000.0, 1000.0, None, true), goal("spot_3", 3000.0, 3000.0, None, true), goal("spot_4", 1000.0, 3000.0, None, true), goal("spot_5", 3500.0, 2000.0, None, true)]);
+        let spots: Vec<RoveGoal> = (0..25).map(|i| goal(&format!("spot_{i}"), 400.0 + 800.0 * (i % 5) as f32, 400.0 + 800.0 * (i / 5) as f32, None, i % 5 >= 3)).collect();
+        let mut host = Host::new(spots);
         let mut lane = roving_lane(&[10]);
         let (mut me, mut pawn) = (rover(10, 1000.0, 1000.0), enemy(50, PAWN, 1700.0, 1100.0));
         let mut heading_to = me.pos;
         let mut closest = f32::INFINITY;
-        let mut evasions = 0;
+        let (mut evasions, mut waiting) = (0, 0);
         for step in 0..600 {
             let frame = 30 + step * 3;
             let out = lane.tick(&host, &tick(frame, vec![me.clone()], vec![pawn.clone()]), &mut Vec::new(), false);
@@ -646,10 +661,19 @@ mod tests {
             me.vel = at((me.pos.x - was.x) / 3.0, (me.pos.z - was.z) / 3.0);
             pawn.pos = go(pawn.pos, me.pos, 87.0 / 10.0);
             closest = closest.min(me.pos.dist2d(pawn.pos));
+            // The host counts a place seen when the rover has it within its sight, as the survey does.
+            waiting += usize::from(lane.roving(UnitId(10)).is_some_and(|r| r.doing == "waiting"));
+            for g in host.goals.iter_mut().filter(|g| g.at.dist2d(me.pos) <= 635.0) {
+                g.seen = Some(frame);
+            }
         }
         assert!(closest > 180.0 + 40.0, "came within {closest:.0} of the Pawn");
         assert!(evasions >= 1);
-        assert_eq!(lane.roving(UnitId(10)).map(|r| r.doing), Some("looking"));
+        assert!(waiting < 60, "waited {waiting} ticks of 600");
+        let looked = host.goals.iter().filter(|g| g.seen.is_some()).count();
+        assert!(looked >= 15, "looked at {looked} of 25");
+        // His two columns first: all ten looked at.
+        assert!(host.goals.iter().filter(|g| g.theirs).all(|g| g.seen.is_some()));
     }
 
     #[test]
@@ -659,7 +683,7 @@ mod tests {
         lane.tick(&host, &tick(30, vec![rover(10, 2500.0, 2500.0)], Vec::new()), &mut Vec::new(), false);
         let mut hurt = rover(10, 2550.0, 2550.0);
         hurt.health = 80.0;
-        let out = lane.tick(&host, &tick(33, vec![hurt], Vec::new()), &mut Vec::new(), false);
+        let out = lane.tick(&host, &tick(120, vec![hurt], Vec::new()), &mut Vec::new(), false);
         assert!(out.rove.iter().any(|e| matches!(&e.what, RoveWhat::GivesUp { goal, .. } if goal == "spot_2")));
         assert_eq!(lane.roving(UnitId(10)).unwrap().goal.unwrap().0, "spot_3");
     }

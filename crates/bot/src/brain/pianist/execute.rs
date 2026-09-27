@@ -41,9 +41,14 @@ impl Brain {
     pub(super) fn apply_plan(&mut self, tick: &Tick, kit: &Kit, picture: &Picture, slots: &[Slot], world: &World, source: &'static str, held: &[bool], commands: &mut Vec<Command>) -> Vec<String> {
         let frame = tick.frame;
         let mut done: Vec<(String, String, String)> = Vec::new();
+        // A pick answered after its group began to rove is not played on it, nor merges anyone into it (H-MICRO-ROVE).
+        let roving: Vec<String> = self.pianist.as_ref().map(|p| p.groups.iter().filter(|g| g.roving).map(|g| format!("group_{}", g.name)).collect()).unwrap_or_default();
         for (i, (slot, si)) in slots.iter().zip(world).enumerate() {
             let state = &slot.states[*si];
             if state.current || held.get(i).copied().unwrap_or(false) {
+                continue;
+            }
+            if roving.contains(&state.actor) || matches!(&state.response, Response::Join(other) if roving.contains(&format!("group_{other}"))) {
                 continue;
             }
             // A slot with nothing to decide had its base put in force by the rule when the gate was asked; the

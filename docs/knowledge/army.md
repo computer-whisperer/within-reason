@@ -406,7 +406,8 @@ pick ("falls back to our base", 0.58) the second it sighted his commander, four 
 north route at 4:22 drove into two Pawns beside his lab (party_6, two armpw at (6138, 1016) at 5:36) and died at 5:38,
 500 from the lab; the hands' own Blitz scout at 7:05 was put on a Pawn hunt at 7:18 and died at 7:31, 1,300 short.
 **Status.** conjectured (2026-09-27). Built as H-MICRO-ROVE; unit tests only: in a straight-line kinematic model a
-Rover chased for a minute by a Pawn came no nearer than 257 (the Pawn's reach 180) and kept looking at places.
+Rover chased for a minute by a Pawn over a map of 25 spots came no nearer than 302 (the Pawn's reach 180) and
+looked at 19 of them, all ten of his among them.
 **Evidence.** `run/matches/1790513490-player-9-posing/00` (`run/hands_window.py ... 3:50 4:02 group_B`: the pick at
 3:58, `retreat=0.58`; 5:30-5:40: party_6 at group_B); `crates/micro/src/rove.rs` tests.
 **Would be wrong if.** In games with a roving group, rovers die to shooters that were in their sight or remembered
