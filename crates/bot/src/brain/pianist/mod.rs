@@ -489,7 +489,7 @@ impl Brain {
         }
         self.pianist.as_mut().expect("pianist mode").last_ask_frame = tick.frame;
         self.take_lists(tick, kit, commands);
-        self.apply_standing_changes(tick.frame);
+        self.apply_standing_changes(tick);
         let picture = self.picture(tick, kit);
         {
             // A changed packet is asked afresh: its frame is part of the signature.
@@ -856,9 +856,57 @@ impl Brain {
     }
 
     /// The player's `standing` calls since the last pass: orders set or cleared, checked against the picture.
-    fn apply_standing_changes(&mut self, frame: i32) {
+    fn apply_standing_changes(&mut self, tick: &Tick) {
+        let frame = tick.frame;
         let Some(shared) = &self.strategist else { return };
-        let changes = std::mem::take(&mut *shared.standing.lock().unwrap());
+        let team = self.world.hello.team;
+        // This seat's slice of the list, then the entries every seat has applied are dropped.
+        let changes: Vec<crate::strategist::shared::StandingChange> = {
+            let mut all = shared.standing.lock().unwrap();
+            let mut seen = shared.standing_seen.lock().unwrap();
+            let from = seen.get(&team).copied().unwrap_or(0).min(all.len());
+            let mine: Vec<_> = all[from..].to_vec();
+            seen.insert(team, all.len());
+            if seen.len() >= self.seats_of_ours() {
+                let done = seen.values().copied().min().unwrap_or(0).min(all.len());
+                if done > 0 {
+                    all.drain(..done);
+                    for c in seen.values_mut() {
+                        *c -= done.min(*c);
+                    }
+                }
+            }
+            mine
+        };
+        if changes.is_empty() {
+            return;
+        }
+        // Which actors of the change are this seat's: its commander (or a plain `commander` for every seat's),
+        // `constructors`, its own constructors and its own groups; another seat's are left to that seat.
+        let own_units = &tick.snapshot.own_units;
+        let commander = self.commander_handle();
+        let group_names: Vec<String> = self.pianist.as_ref().expect("pianist mode").groups.iter().map(|g| format!("group_{}", g.name)).collect();
+        let mine = |actor: &str| -> bool {
+            actor == commander
+                || actor == "commander"
+                || actor == "constructors"
+                || (actor.starts_with("group_") && (self.seat_tag().is_empty() || group_names.iter().any(|g| g == actor)))
+                || (!actor.starts_with("group_") && !actor.starts_with("commander") && self.unit_by_handle(actor, own_units).is_some())
+        };
+        let changes: Vec<crate::strategist::shared::StandingChange> = changes
+            .into_iter()
+            .filter_map(|change| match change {
+                crate::strategist::shared::StandingChange::Set(map) => {
+                    let map: BTreeMap<String, serde_json::Value> = map.into_iter().filter(|(a, _)| mine(a)).collect();
+                    (!map.is_empty()).then_some(crate::strategist::shared::StandingChange::Set(map))
+                }
+                crate::strategist::shared::StandingChange::Clear(Some(actors)) => {
+                    let actors: Vec<String> = actors.into_iter().filter(|a| mine(a)).collect();
+                    (!actors.is_empty()).then_some(crate::strategist::shared::StandingChange::Clear(Some(actors)))
+                }
+                all => Some(all),
+            })
+            .collect();
         if changes.is_empty() {
             return;
         }

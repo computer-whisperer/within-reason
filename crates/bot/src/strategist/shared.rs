@@ -322,8 +322,12 @@ pub struct Shared {
     /// What each seat's pianist publishes for the player (`brain/pianist`), by team; the report reads the merge
     /// (`seats.rs` `hands_merged`).
     pub hands: Mutex<BTreeMap<i32, Hands>>,
-    /// The `standing` tool's changes, taken by the brain at its next ask.
+    /// The `standing` tool's changes, applied by every seat's brain at its next ask: each seat keeps its own cursor
+    /// into the list (`standing_seen`) and takes the entries for its own actors, so one seat's read does not rob
+    /// another's (bluegecko-2v1-great-divide: `set station spot_16` at 9:31 and `clear` at 10:47 vanished into the
+    /// other seat, whose group_A they named).
     pub standing: Mutex<Vec<StandingChange>>,
+    pub standing_seen: Mutex<BTreeMap<i32, usize>>,
     /// The player's footwork settings by group name (`group_A`) or `all` (`lane` tool, H-HANDS-LANE).
     pub lane: Mutex<BTreeMap<String, Footwork>>,
     /// Places the player named (`mark` tool): name to (x, z). They join the picture's places (H-HANDS-NAMED-PLACES).
