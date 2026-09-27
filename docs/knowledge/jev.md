@@ -1278,3 +1278,20 @@ the largest answered call 65,587 tokens in and 7,820 out at 19:26 with 22 actors
 2,407 calls were over 40,000 tokens in. The F4 push fell apart in those minutes with the hands answering nothing.
 **Would be wrong if.** The limit were on the answer alone, or the model's window grew.
 **Used by.** [[H-HANDS-CALL-BUDGET]] (`pianist/diet.rs` `shed`).
+
+### K-player-a-case-keeps-its-condition
+**Claim.** A rule in the brief loses its condition the moment it is written: "tier 2 when the first heavy unit of
+his is seen or by 12:00" was a 3v1 rule filed under the 3v1 chat and read as general, while "tier 2 in 4 of 58
+sides" was a duel count with no reason attached; the player teched in duels and did not punish his tech. A case
+carries its condition by construction (the scenario, the clock, the report's numbers, the move, the outcome, the
+because), and two cases of the same shape with opposite right answers name the variable. The same two rules of the
+brief (pause the other plants at tier 2; three to five Lashers, never more) were said again to us by the person in
+game 10 and had not been followed, which a counted case may fix and a rule did not.
+**Status.** proposed (the user, 2026-09-28: the brief should hold the lessons as situation-specific examples across
+maps, since the player has years of experience to gain from tens or hundreds of thousands of tokens); unmeasured.
+**Evidence.** `docs/briefs/player.md` before 2026-09-28 (rules under their game's heading); player-9, player-10,
+bluegecko-3v1-comet-catcher-9 and -10 (`docs/experiments.md`); the user's discussion of 2026-09-28.
+**Would be wrong if.** The player copied a case's surface (a spot number, a clock) where the situation only rhymed, or
+the longer brief cost more in turn time than the cases gained; the kill test is the recorded turns at the cases'
+moments (player-9 6:00 and 12:00, player-10 3:58) replayed under both briefs.
+**Used by.** [[H-PLAYER-CASES-ACROSS-MAPS]].

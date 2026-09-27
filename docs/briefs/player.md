@@ -7,6 +7,135 @@ unit duels, the opponent's own configuration, and seven games of your hands play
 its easy setting. Each line names its source entry in `docs/knowledge/`. It is evidence, not orders: say in a `note`
 when the game in front of you contradicts it.
 
+**The decisions, as cases from every map (read these whatever map you are on; the user, 2026-09-28: we are giving a
+player that has never played a game of BAR years of experience, so the lessons are situations, not rules, and a
+situation from another map still teaches).** Each case: the situation as your report would show it, what was done,
+what came of it, and why, with who said so (a person's word outranks our own reading of a record). Where two cases
+have the same shape and opposite answers, the difference between them is the thing to learn.
+
+- **A lead is spent within two minutes or it is gone.** The pros end a Comet Catcher duel 3.4 minutes (median) after
+  first holding twice the other's army. Cases: (1) player-9, Comet duel vs BARb hard_aggressive, lost 36:32: at 5:00
+  the report read army 801 against 270 seen, 14 extractors to 10, his lab unseen; the order was a raid loop through
+  six of our own spots and `armcv:2`; by 8:00 he had the bigger army and the base was never seen in 36 minutes
+  (the user: "look even earlier -- 6:00": the loss was there, not at the 12:00 lead the review opened on). (2)
+  player-10, the same matchup, lost 29:06: rovers had his lab in sight at 3:45 with our army at 4.1x, and the next
+  packet made the Blitzes a home guard that "never goes east of spot_59"; the lead was spent at 8:27 by a push after his
+  commander into a turret line at F3 (18 of 20 Blitzes dead by 10:46). (3) escalate-7, the same matchup, WON 16:00:
+  one ball at spot_39/24 with pickets, his block broken at D4 at 11:33, then the far-north route past the E2/E3
+  nest to G1 and everything onto the commander the moment it was seen. (4) pianist-player-3, Quicksilver vs medium,
+  WON 11:00: at 8:51 with the army at 3,200 against 870 seen and 17 extractors, "committing the whole block via
+  spot_36", and 25 Maces walked through fourteen artillery pieces and seven towers to the commander. (5) pianist-player-2,
+  Quicksilver, lost 27:00 with a hundred soldiers by 18:00: three waves went at his base one after another and the
+  ball of 82 stood five minutes under artillery. (6) The 3v1s of 2026-09-27 (thebluegecko, spectating): "up by
+  almost 400% army value, time to go fight and win; if you dont use that army advantage this will soon go bad". The
+  difference between the wins and the losses is not the size of the lead (player-9's was 2.4:1 at 6:00, player-10's
+  4.1:1 at 4:00): it is whether the ball was in his half, as one body, on a route a scout had proven, within two
+  minutes of the report saying it.
+
+- **His tier 2 is our window; ours is a scenario call.** Cases: (1) player-9: his advanced lab started at 10:32 and
+  his army fell from 2,736 to 2,220 by 12:00 while ours rose to 6,565; our mass stood at D5-D6 in our half and his
+  factory was never in the picture; the lab was never seen and its Fatboys, Sharpshooters and a Razorback ended the
+  game. (2) player-10 and player-11: his lab at 11:42 and 12:10, and the answer both times was to wait for our own
+  (standing 14:15, energy 0 at 11:37 for it). (3) bluegecko-3v1-comet-catcher-9, lost 20:16 after leading three to
+  one: we stayed tier 1 and 94 tier-1 tanks died to 15 Bulls. (4) bluegecko-3v1-comet-catcher-10, lost 26:10: our
+  Lasher mass let him tech ("you made many lashers, so I was safe to go T2"). (5) Great Divide, the plan: tier 2
+  and mohos on both seats by 10:00, because the pass camp is broken by Pillagers at 1,300, not by the ball. (6)
+  escalate-4 and -5 vs BARb hard_aggressive: it techs on a clock (Hounds 14:00, Fatboy 19:00, Razorback 25:48)
+  whatever we do, and both games waited. The calculus (the user, 2026-09-28): in a close duel the tech is a fatal
+  weak point, so his tech is the moment to find and kill his base, and matching him is the mistake (the pros tech in
+  4 of 58 duel sides); past about 25:00, with more than two players, or against an opponent that techs on a clock,
+  the window is covered and tier 2 on our side is right, with that seat's other plants paused ("Top should stop
+  building other units while doing t2 transition", thebluegecko, game 10). Say which scenario you are in before you
+  choose.
+
+- **The unit mix is a message to him, and his to you.** Cases: (1) game 10: many Lashers said "no pressure on your
+  spots", he teched, and Tzars and Tigers beat the Lashers; "brutes would have given you the ability to apply more
+  pressures" (thebluegecko). (2) games 3-5: from about 7:30 a person switches to Pounders against a light-tank
+  ball; the answer is medium tanks (Stouts, Brutes) with three to five Lashers or Janus in all, never more ("too
+  many lashers lose to med tanks"; "3 med tanks per pounder"). (3) comet-3 vs BARb medium: thirteen Blitzes died to
+  one Rocketeer and one Centurion at 11:57; the plant switches to Stouts the first time a line bot is seen. (4)
+  comet-5: nine Janus (380) killed eleven Stouts (350) at 17:07, and 24 Shellshockers without a screen were eaten at
+  23:06: Janus counters Stouts, artillery behind a Stout screen counters Janus, never alone. (5) bluegecko-3v1-2:
+  Janus and Stouts ate packed Blitzes (eleven lost at 12:09): from the first Janus seen every plant makes Stouts and
+  Janus, Blitzes only as pickets. (6) human-8, Quicksilver: Grunts traded one for one with Pawns and lost in ones
+  and twos away from the commander; the commander was not used to improve the exchange. Read his army every turn
+  for what our mix has made safe for him, and change before he does; a mix that threatens his spots keeps him
+  honest, a mix that only holds does not.
+
+- **Raids are answered before they come, by the unit that catches them.** Cases: (1) escalate-4: 33 extractors to
+  single Ticks at spots no soldier stood near, with a home guard that walked out after the extractor was gone (the
+  user: that is not defence). (2) bluegecko-3v1-1: the north seat lost 17 extractors from 2:06 and answered none,
+  its Blitzes in one ball far from the spots. (3) bluegecko-3v1-4: Incisor swarms of ten to fifteen slipped past the
+  Brute ball and took our extractors from 33 to 9 while every fight we had we won; a ball of medium tanks never
+  catches Incisors. (4) pianist-player-6, Quicksilver vs medium: twelve Flashes held us at 0-3 extractors for fifteen
+  minutes; turrets on every spot and a ball of Maces at the passage both failed, since Maces cannot catch Flashes;
+  Pawns on the raids' passages did. (5) comet-5: 31 turrets from 5:07, too late for the first raids. (6) escalate-7,
+  WON: pickets north and south, turrets beside the outer pairs, nine extractors lost all game against 32-45 in the
+  three losses before it. The answer stands across the front before the raid: a Rascal (168) catches a Tick (132),
+  a Blitz (101) never does; a light turret beside each outer pair; one soldier from the nearest group against a lone
+  raider, never the ball.
+
+- **A bank is build power missing.** Cases: (1) escalate-5: 1,600 to 1,850 metal from 6:00 to 10:00 with one plant
+  and three constructors, lost 28:30. (2) escalate-6: 1,357 at 6:00, 1,898 at 7:00, named in a note as "the key" at
+  7:46 and not spent until the raids had taken the income; lost 23:00. (3) comet-4: 2,100 for six minutes with one
+  plant; lost 16:49. (4) escalate-7, WON: the plant made constructors 8 asks of 13, six by 6:20, and the bank drained
+  from 9:00. (5) The pros: five constructors by 5:00, three nanos on the one plant by 6:37, never past 700 banked;
+  "you dont have enough build power" and "get that reclaim asap" (thebluegecko, Irishstud14). The bank goes into
+  constructors and nanos the turn it appears; a second plant only after that.
+
+- **The opening is metal, the lab, and the commander on it.** Cases: (1) human-3, Quicksilver: the lab before any
+  generator emptied the store from 0:46 to 1:54, the first constructor took 43 s, no soldier before 3:01; on that map
+  one solar then wind, and the lab at 0:33 (Matt's replay), the commander helping it from 0:50. (2) comet-3, Comet:
+  six solars before anything else were eight Blitzes' worth spent while income was 6; the store sat at zero from
+  minute two to thirteen and the plant made 28 Blitzes in seventeen minutes. (3) The Comet pros: three solars (two if
+  the plant is up by 0:45), the plant at 0:43-0:58, a constructor first, and the commander at the plant for its first
+  units, out only for one solar or one extractor at a time (thebluegecko, game 10: the commander should be assisting
+  the lab when it first comes up). (4) human-5, Quicksilver: a second constructor at 1:15 put the first Pawn at 1:40,
+  thirty seconds behind Matt. (5) Until 2026-09-28 the list's `assist 25` after the plant ended within a second (a
+  harness fault, fixed): write `assist 40` after the plant and check at 2:00 that the commander is still there and
+  the store reads about 150. The energy source is the map's (wind on Quicksilver, solar on Comet, solar with wind on
+  Cape Violet); the bound in the first four minutes is metal, never build power.
+
+- **Static defence is out-ranged or bypassed, never walked into.** Cases: (1) comet-4: 22 Blitzes onto four light
+  turrets and a beamer for 2,245 of theirs. (2) player-8 and player-9: the E3 nest (a Gauntlet at 1,220) took 9k and
+  11k of tier-1 tanks over two games; the Pillager (1,300, from the advanced plant, standing from 15:17 in
+  player-9) was never ordered. (3) bluegecko-3v1-9: Bulls (460) and beamer nests (490) outrange every tier-1 tank;
+  94 tanks died to 15 Bulls, 73 more to shooters out of sight. (4) Cape Violet: 6,800 of Blitzes died in the B3
+  beamer camp at 8:45. (5) Great Divide, the plan: the ball holds at the pass's north mouth as the screen, and
+  Shellshockers then Pillagers kill the camp for nothing. (6) escalate-3, WON: after two pushes into the fortress
+  the ball went round by the north edge, over 1,300 from it, and found the lab. Reach decides: read the
+  `enemies_near` line's "turrets covering it reach N"; if nothing of ours reaches back, it is artillery from a
+  screen, the whole ball at once onto a nest it outweighs, or a route round.
+
+- **One body at one place, or the push waits.** Cases: (1) escalate-1: about twenty Blitzes fed piecemeal into the
+  commander's D-gun and the H2 turrets from 9:20; the win came when 57 gathered at spot_35 and went in together at
+  13:46. (2) bluegecko-3v1-3: the groups reached spot_24, spot_37 and spot_60 one at a time all game and each was worn
+  down alone; (3) bluegecko-3v1-2: the seats' groups broke his second wave when they fought together on our turrets at
+  13:19, and every loss came when one group met him alone. (4) player-10: the route to his lab at 16:09 walked as
+  a thin line, its tail the plant stream 5k behind, and reached no stop. (5) thebluegecko: "make sure your units are
+  more of a straight line when attacking, less groups"; "your armies keep not fighting together". One gathering
+  place, named; the groups arrive together or the push waits; new units join at the gathering place, not at the front.
+
+- **Nothing is known until something of ours has looked.** Cases: (1) comet-1: fourteen Blitzes went east at 6:20
+  with no radar and nothing scouted and fed nine into the commander's D-gun at 8:58 (the user: "radars would have
+  helped there"). (2) escalate-3: four Rovers found nothing in the south-east; the base was north at G1-G2, as it was
+  every time it was looked for. (3) player-9: three scouts sent at his base and none arrived (one turned home by the
+  hands, one into two Pawns, one onto a hunt); the base was never seen. (4) player-10: three rovers on `rove` had his
+  lab in the picture at 3:45 and came back alive. (5) bluegecko-3v1-1: his commander and factories were never seen by
+  us all game; a person scouts and reads. (6) Great Divide: a scout plane before planning against the camp, since
+  "known to hold" is only what our units have seen. A rover group on `rove` from the first Rascals, a radar at the
+  front by 3:00, and no push onto a place nothing of ours has looked at.
+
+- **The commander is a fighter at home and a builder at the plant, never a walker.** Cases: (1) comet-4: the
+  commander was killed at home at 16:49 while the whole army was east; the recall came at 25% health. (2)
+  bluegecko-3v1-2: a commander told to stay home died at home when the block arrived (15:51, 19:13); it goes to the
+  neighbouring seat before the block is within 1,500. (3) human-1, Quicksilver: two Pawns at home are the
+  commander's job (`attack`), not a reason to walk away. (4) human-8: the exchange rate of Grunts against Pawns
+  turned on whether the commander stood with them. (5) escalate-4: the commander never engaged the Razorback because
+  "help the plant" was still running on its list: cancel the list before a fight it is needed in. (6) The hands'
+  own games: the commander died twice walking to far spots beside the enemy. It stands at the plant, fights what
+  comes within its short walk, and leaves for the neighbouring seat, not the map's edge, when a block is coming.
+
 **Units (tier-1 bots; metal / health / speed / range).** Armada: Tick `armflea` 21/60/132/140 scout; Pawn `armpw`
 54/370/87/180 raider; Rocketeer `armrock` 120/720/51/475; Mace `armham` 130/1000/46/380 line unit; Centurion `armwar`
 270/1590/45/325 brawler; Crossbow `armjeth` anti-air ONLY, it cannot hit ground units; Lazarus `armrectr` 130, repairs,
@@ -132,8 +261,9 @@ commander, one into two Pawns, one onto a hunt). The group's entry says what eac
 found (`rove`); `"on"` takes it back. Your hands' `scout` state now makes a rover of a group's fastest soldier.
 [K-micro-a-rover-outruns-what-it-cannot-fight]
 
-**Which map.** Three maps have sections here, Quicksilver Remake, Comet Catcher Remake and Great Divide V1. The `map` tool names the
-one you are on; read that map's section and its opening, and skip the others'.
+**Which map.** Four maps have sections here, Quicksilver Remake, Comet Catcher Remake, Cape Violet V1 and Great Divide V1.
+The `map` tool names the one you are on; read that map's section and its opening for the facts of the ground, and
+the cases above whatever the map: a lesson from another map is the same situation with different spot numbers.
 
 **This map, Quicksilver Remake, from the north-west corner start (the games so far: `--corner nw`, mirrored).**
 [K-maps-terrain-not-straight-lines, the terrain picture in the `map` tool]
