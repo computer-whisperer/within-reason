@@ -420,6 +420,7 @@ mod tests {
             energy_make: 0.0,
             energy_upkeep: 0.0,
             wind_cap: 0.0,
+            tidal_make: 0.0,
             metal_storage: 0.0,
             energy_storage: 0.0,
             radar_range: 0.0,

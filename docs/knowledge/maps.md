@@ -643,3 +643,19 @@ directory, `topology-review.md`, its flood fills of the terrain file per class);
 **Status.** observed (one game, 2026-09-27; the map is in the pool for replays). Exploited by
 [[H-PLAYER-CAPE-VIOLET-SECTION]].
 
+
+### K-map-lobby-boxes-not-honoured
+**Claim.** In a lobby game the script's start rectangles need not be where anyone starts: the host may place the AI
+seats by hand, so our own start can lie inside the box the script gives the enemy's ally team, and every guess
+built on the boxes (the enemy start, the rover's "his box", the sweep's order, the defences' facing) points at the
+wrong strip. When our own start lies in another team's box or outside ours, the boxes are not honoured.
+**Status.** demonstrated (2026-09-28, bluegecko-3v1-comet-catcher-10)
+**Evidence.** `bot.log`: "start box of ally team 1: (0, 4915) to (8192, 6144) (ours)", "ally team 0: (0, 0) to (8192,
+1229)"; the seats' homes (6898, 685), (6944, 2636), (7371, 5456): the first inside his box, the second in neither;
+the intents' enemy start (3872, 880) for all three; the review: every rover goal a row 1-2 spot, rovers turning back
+16-23 times between D1/E1 and our own G1, his factory and commander never seen, the 12.7k lead of 10:00 walked along
+the empty top row; 18 of 21 turrets beside extractors faced D2. Game 11 on SailAway 2 gave the same script shape with
+all three seats inside our box.
+**Would be wrong if.** The engine placed AI seats inside their boxes in every lobby, or the boxes were honoured and the
+seats' recorded homes wrong.
+**Used by.** [[H-MAP-ENEMY-START]] (amended 2026-09-28), the rover (`brain/micro.rs`), the picture's `start_boxes_note`.

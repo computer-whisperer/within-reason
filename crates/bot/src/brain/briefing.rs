@@ -151,6 +151,7 @@ impl Brain {
     pub(super) fn track_enemy_buildings(&mut self, tick: &Tick) {
         let mut gone = std::mem::take(&mut self.razed);
         let mut seen = Vec::new();
+        let mut seen_unfinished: Vec<(UnitId, bool, i32)> = Vec::new();
         for event in &tick.events {
             if let Event::EnemyDestroyed { enemy } = event {
                 if let Some((def, pos, _)) = self.enemy_buildings.remove(enemy)
@@ -187,6 +188,7 @@ impl Brain {
                 } else {
                     self.enemy_unfinished.remove(&enemy.id);
                 }
+                seen_unfinished.push((enemy.id, enemy.being_built, tick.frame));
                 seen.push((enemy.id, (def, enemy.pos, tick.frame)));
             } else if info.weapon_count > 0 && info.build_speed == 0.0 {
                 self.enemy_soldiers.insert(enemy.id, (def, enemy.pos, tick.frame));
@@ -198,6 +200,7 @@ impl Brain {
         // H-TEAM-BOARD: what one seat of ours has seen, all know.
         if self.enabled("H-TEAM-BOARD") {
             self.enemy_buildings = self.board.pool_buildings(&seen, &gone);
+            self.enemy_unfinished = self.board.pool_unfinished(&seen_unfinished, &gone);
         }
     }
 
@@ -330,7 +333,7 @@ impl Brain {
                 "ally_team": b.ally_team, "ours": b.ally_team == self.world.hello.ally_team, "cells": self.world.box_cells(b),
                 "left": b.left as i32, "top": b.top as i32, "right": b.right as i32, "bottom": b.bottom as i32,
             })).collect::<Vec<_>>(),
-            "start_boxes_note": "the lobby's start boxes: each team's commander was placed somewhere inside its box at 0:00. The engine tells nobody where; where the opponent stands now is known only from what our units see",
+            "start_boxes_note": if self.boxes_honoured { "the lobby's start boxes: each team's commander was placed somewhere inside its box at 0:00. The engine tells nobody where; where the opponent stands now is known only from what our units see" } else { "the lobby's start boxes were NOT honoured: our own start lies in another team's box or outside ours, so the host placed the seats by hand and the boxes say nothing of where he is; his start is guessed as the mirror of ours until something of ours sees his buildings" },
             "metal_spots": spots,
             "metal_spots_note": "n is the spot's number for the `expansion` tool; walk_from_home is the walking distance for our bots (null: they cannot walk there) beside straight_from_home; a spot marked `alcove` is far longer on foot than straight, and a group sent at it by the straight line huddles short of it",
             "terrain": self.terrain_sketch(),

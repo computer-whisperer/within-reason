@@ -48,9 +48,19 @@ impl super::Brain {
         let mut bases: Vec<EnemyBase> = Vec::new();
         // Not the engine's Gaia team, which is on no side (it stood in this list as a phantom enemy base until 2026-09-23).
         let enemy_teams: Vec<(i32, i32)> = hello.teams.iter().filter(|t| t.ally_team != hello.ally_team && t.controller != bot_protocol::Controller::Gaia).map(|t| (t.team, t.ally_team)).collect();
+        // The lobby's boxes are a guess only while they are honoured: our own start inside another team's box, or
+        // outside our own, means the host placed the seats by hand and the boxes say nothing of where he is
+        // (bluegecko-3v1-comet-catcher-10: our G1 seat stood in "his" top box; every rover and push went along the
+        // top row, and his base in the south-west was never seen).
+        let ours_in_theirs = hello.start_boxes.iter().any(|b| b.ally_team != hello.ally_team && b.contains(self.home));
+        let ours_outside_ours = hello.start_boxes.iter().any(|b| b.ally_team == hello.ally_team && !b.contains(self.home));
+        self.boxes_honoured = !(ours_in_theirs || ours_outside_ours);
+        if !self.boxes_honoured {
+            eprintln!("[ai {}] the lobby's start boxes are not honoured (our start {} in another team's box, {} outside ours): his start is the mirror until seen", hello.ai_id, if ours_in_theirs { "is" } else { "is not" }, if ours_outside_ours { "and" } else { "and not" });
+        }
         for (index, (team, ally_team)) in enemy_teams.iter().enumerate() {
             let sharing: Vec<i32> = enemy_teams.iter().filter(|(_, a)| a == ally_team).map(|(t, _)| *t).collect();
-            let at = match hello.start_boxes.iter().find(|b| b.ally_team == *ally_team) {
+            let at = match hello.start_boxes.iter().find(|b| b.ally_team == *ally_team).filter(|_| self.boxes_honoured) {
                 // Seats sharing a box are spread along its longer side.
                 Some(b) => {
                     let share = (sharing.iter().position(|t| t == team).unwrap_or(0) as f32 + 0.5) / sharing.len() as f32;
@@ -83,11 +93,15 @@ impl super::Brain {
     }
 
     /// H-MAP-ENEMY-START: a start is always beside metal, and a box centre or a mirror point may be a beach or a cliff
-    /// top; each guess moves to the metal spot nearest it that we can walk to.
+    /// top; each guess moves to the metal spot nearest it that we can walk to, never one near our own start (on
+    /// SailAway 2, an islet start with three of 96 spots reachable on foot, two seats' guesses snapped to the spots
+    /// beside their own homes, 90 and 310 away; the guess then stays where it was).
     pub(super) fn snap_guesses_to_metal(&mut self, reachable: impl Fn(Vec3) -> bool) {
         let spots = &self.world.hello.metal_spots;
+        let too_near = self.world.hello.map.width.min(self.world.hello.map.height) / 3.0;
+        let home = self.home;
         for base in self.enemy_bases.iter_mut().filter(|b| !b.found) {
-            if let Some(spot) = spots.iter().filter(|s| reachable(**s)).min_by(|a, b| a.dist2d(base.at).total_cmp(&b.dist2d(base.at))) {
+            if let Some(spot) = spots.iter().filter(|s| reachable(**s) && s.dist2d(home) >= too_near).min_by(|a, b| a.dist2d(base.at).total_cmp(&b.dist2d(base.at))) {
                 base.at = Vec3 { y: 0.0, ..*spot };
                 base.guessed = base.at;
             }

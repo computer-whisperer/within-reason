@@ -268,3 +268,16 @@ the user's review.
 **Would be wrong if.** The engine's search preferred the enemy-facing side, or a turret's reach (light 380, beamer 490)
 covered the whole spot from any side.
 **Used by.** [[H-HANDS-DEFENCE-FORWARD]].
+
+### K-eco-tidal-generators-on-water
+**Claim.** On a water map a builder standing at sea has no energy but the tidal generator (`armtide`/`cortide`, 90 metal,
+a steady rate the map sets, built on the water); without it on the menu the hands walked a commander that started on
+the water to the shore for a solar, slowly, for its first energy.
+**Status.** observed (the user, 2026-09-28, watching bluegecko-3v1-comet-catcher-11 on SailAway 2: "it needs to learn
+how to build tidal generators. Right now one of the starting commanders is slowly walking to shore because it was
+started out on the water and it needs energy"); the tidal strength of SailAway 2 unmeasured (the shim reads it from
+2026-09-28).
+**Evidence.** `roster.rs` `USUAL_ARMADA`/`USUAL_CORTEX` before 2026-09-28 (solar, wind, advanced solar only);
+`crates/bot/data/units.json` (`armtide`: on_water, submerged, 90 metal, 400 health).
+**Would be wrong if.** The engine let a solar stand on shallow water, or the tide on the map gave less than a solar.
+**Used by.** [[H-ECO-TIDAL]].

@@ -84,6 +84,7 @@ impl Engine {
             height: call!(self, Map_getHeight()) as f32 * SQUARE_SIZE,
             wind_min: call!(self, Map_getMinWind()),
             wind_max: call!(self, Map_getMaxWind()),
+            tidal: call!(self, Map_getTidalStrength()),
             extractor_radius: call!(self, Map_getExtractorRadius(self.metal)),
         };
         let def_count = call!(self, getUnitDefs(std::ptr::null_mut(), 0));
@@ -289,6 +290,7 @@ impl Engine {
             energy_make: call!(self, UnitDef_getResourceMake(id, self.energy)),
             energy_upkeep: call!(self, UnitDef_getUpkeep(id, self.energy)),
             wind_cap: call!(self, UnitDef_getWindResourceGenerator(id, self.energy)),
+            tidal_make: call!(self, UnitDef_getTidalResourceGenerator(id, self.energy)),
             metal_storage: call!(self, UnitDef_getStorage(id, self.metal)),
             energy_storage: call!(self, UnitDef_getStorage(id, self.energy)),
             radar_range: call!(self, UnitDef_getRadarRadius(id)) as f32,

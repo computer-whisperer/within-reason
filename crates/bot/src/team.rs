@@ -26,6 +26,8 @@ pub struct TeamBoard {
 struct Board {
     seats: BTreeMap<i32, Post>,
     buildings: HashMap<UnitId, Building>,
+    /// Of the pooled buildings, the ones last seen still being built (by whichever seat saw them last).
+    unfinished: HashMap<UnitId, (bool, i32)>,
 }
 
 /// What one seat says of itself, renewed every tick.
@@ -111,6 +113,24 @@ impl TeamBoard {
         }
         board.buildings.extend(seen.iter().copied());
         board.buildings.clone()
+    }
+
+    /// The side's view of which enemy buildings are still being built: each seat posts what it saw this tick (the
+    /// id, whether it was being built, the frame), the latest sighting per id wins, and dead ones go. One seat's
+    /// "(being built)" stayed in every picture after another seat saw the turret finished or killed
+    /// (bluegecko-3v1-comet-catcher-10: two heavy turrets dead at 7:59 and 11:23 shown being built at 24:00).
+    pub fn pool_unfinished(&self, seen: &[(UnitId, bool, i32)], gone: &[UnitId]) -> HashSet<UnitId> {
+        let mut board = self.inner.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        for id in gone {
+            board.unfinished.remove(id);
+        }
+        for (id, being_built, frame) in seen {
+            let entry = board.unfinished.entry(*id).or_insert((*being_built, *frame));
+            if *frame >= entry.1 {
+                *entry = (*being_built, *frame);
+            }
+        }
+        board.unfinished.iter().filter(|(_, (b, _))| *b).map(|(id, _)| *id).collect()
     }
 }
 

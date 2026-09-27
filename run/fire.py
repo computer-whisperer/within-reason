@@ -81,7 +81,7 @@ def read(path, quiet_floor):
                 out["xf"][(a, b)] += d
             own = r["own"]
             soldiers = [(u, d, x, z) for u, d, x, z, hp, fl in own if defs[d]["class"] == "army" and defs[d]["reach"] > 0 and not fl & 1]
-            enemies = [(x, z) for e, d, x, z, hp in r["en"]]
+            enemies = [(u[2], u[3]) for u in r["en"]]  # five fields before 2026-09-28, six (being built) after
             for u, d, x, z in soldiers:
                 reach = defs[d]["reach"] + SLACK
                 in_reach = [(ex, ez) for ex, ez in enemies if (x - ex) ** 2 + (z - ez) ** 2 < reach * reach]

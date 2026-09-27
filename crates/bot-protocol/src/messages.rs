@@ -122,6 +122,9 @@ pub struct MapInfo {
     /// Wind speed range; a wind generator produces the current wind speed in energy, up to its cap.
     pub wind_min: f32,
     pub wind_max: f32,
+    /// The energy a tidal generator makes a second on this map (`Map_getTidalStrength`; from 2026-09-28).
+    #[serde(default)]
+    pub tidal: f32,
     /// How far from a metal spot's squares an extractor still draws from them (`Game.extractorRadius`): the game
     /// (cmd_mex_denier.lua) allows an extractor anywhere its radius covers the whole spot.
     pub extractor_radius: f32,
@@ -195,6 +198,9 @@ pub struct UnitDefInfo {
     pub energy_upkeep: f32,
     /// A wind generator makes the current wind speed in energy up to this.
     pub wind_cap: f32,
+    /// A tidal generator makes the map's tidal strength in energy; 0 for anything else (records from 2026-09-28 on).
+    #[serde(default)]
+    pub tidal_make: f32,
     pub metal_storage: f32,
     pub energy_storage: f32,
     /// Radar coverage it gives, in elmos; 0 for a unit with none.

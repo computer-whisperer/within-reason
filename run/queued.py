@@ -133,7 +133,7 @@ def our_seconds(path):
             r = json.loads(line)
             shots = {u: n for u, n in r.get("shots", [])}
             soldiers = [(u, defs[d]["name"], x, z, defs[d]["reach"], shots.get(u, 0)) for u, d, x, z, hp, fl in r["own"] if defs[d]["class"] == "army" and defs[d]["reach"] > 0 and not fl & 1]
-            enemies = [(x, z, d < 0 or defs[d]["reach"] > 0) for e, d, x, z, hp in r["en"]]
+            enemies = [(u[2], u[3], u[1] < 0 or defs[u[1]]["reach"] > 0) for u in r["en"]]  # five fields before 2026-09-28, six after
             yield r["f"] / 30.0, soldiers, enemies
 
 

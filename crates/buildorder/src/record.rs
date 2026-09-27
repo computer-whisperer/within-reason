@@ -122,6 +122,7 @@ fn unit_table(header: &Value) -> Result<Units, String> {
             energy_make: number(d, "energy_make"),
             energy_upkeep: number(d, "energy_upkeep"),
             wind_cap: number(d, "wind_cap"),
+            tidal_make: number(d, "tidal_make"),
             metal_storage: number(d, "metal_storage"),
             energy_storage: number(d, "energy_storage"),
             radar_range: number(d, "radar_range"),

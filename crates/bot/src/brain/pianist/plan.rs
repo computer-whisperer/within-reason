@@ -239,7 +239,7 @@ impl Brain {
             Response::Keep | Response::Leave | Response::Whole | Response::Hunt(_) | Response::Back(_) => "threat",
             Response::Extractor(_) => "extractor",
             Response::Building(def) | Response::BuildingAt(def, _) => match self.world.def(*def) {
-                Some(d) if d.energy_make > 0.0 || d.energy_upkeep < 0.0 || d.wind_cap > 0.0 => "energy",
+                Some(d) if d.energy_make > 0.0 || d.energy_upkeep < 0.0 || d.wind_cap > 0.0 || d.tidal_make > 0.0 => "energy",
                 Some(d) if !d.build_options.is_empty() => "factory",
                 Some(d) if d.build_speed > 0.0 => "nano",
                 Some(d) if d.weapon_count > 0 => "defence",
@@ -361,6 +361,8 @@ impl Brain {
         });
         if d.wind_cap > 0.0 {
             parts.push(format!("gives {:.0} to {:.0} energy a second here", map.wind_min, map.wind_max));
+        } else if d.tidal_make > 0.0 {
+            parts.push(format!("a steady {:.0} energy a second from this map's tide, on the water where it stands", map.tidal * d.tidal_make));
         } else if d.energy_make > 0.0 || d.energy_upkeep < 0.0 {
             parts.push(format!("a steady {:.0} energy a second", d.energy_make + (-d.energy_upkeep).max(0.0)));
         }
@@ -646,7 +648,7 @@ impl Brain {
             let reach = self.world.def(unit.def).map_or(100.0, |d| d.build_distance) + 300.0;
             let solar_rule = rules.get("solar").map(String::as_str);
             let turret_rule = rules.get("turrets").map(String::as_str);
-            let energy_maker = |d: &bot_protocol::UnitDefInfo| d.energy_make > 0.0 || d.energy_upkeep < 0.0 || d.wind_cap > 0.0;
+            let energy_maker = |d: &bot_protocol::UnitDefInfo| d.energy_make > 0.0 || d.energy_upkeep < 0.0 || d.wind_cap > 0.0 || d.tidal_make > 0.0;
             for def in offered.iter().copied().filter(|d| *d != kit.extractor) {
                 let Some(d) = self.world.def(def) else { continue };
                 if super::glossary::entry(&d.name).is_some_and(|e| e.has_flag("on_water")) && !self.world.water_within(unit.pos, reach) {

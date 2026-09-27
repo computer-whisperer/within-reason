@@ -246,7 +246,10 @@ impl View for BrainView<'_> {
         let walker = brain.walker_of(def);
         let ours = brain.world.hello.ally_team;
         let base = brain.found_enemy_base();
-        let theirs = |at: Vec3| brain.world.hello.start_boxes.iter().any(|b| b.ally_team != ours && b.contains(at)) || base.is_some_and(|b| b.dist2d(at) < BASE_RADIUS);
+        // His box counts only while the lobby's boxes are honoured (game 10: our own G1 seat stood in "his" box and
+        // the rovers walked our own top row for it).
+        let honoured = brain.boxes_honoured;
+        let theirs = |at: Vec3| (honoured && brain.world.hello.start_boxes.iter().any(|b| b.ally_team != ours && b.contains(at))) || base.is_some_and(|b| b.dist2d(at) < BASE_RADIUS);
         let spots = &brain.world.hello.metal_spots;
         let mut goals: Vec<micro::RoveGoal> = spots.iter().enumerate().filter(|(_, at)| brain.reachable_for(walker, **at)).map(|(i, at)| micro::RoveGoal { name: format!("spot_{i}"), at: *at, seen: brain.spot_seen(i), theirs: theirs(*at) }).collect();
         if let Some(at) = base.filter(|b| brain.reachable_for(walker, *b)) {

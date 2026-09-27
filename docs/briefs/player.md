@@ -705,6 +705,19 @@ and H6 against thebluegecko in the west; lost at 18:18).** [K-map-cape-violet-v1
   (they broke on 40 Stouts at spot_29 at 13:00); it does not walk into the B3 beamer camp, where 6,800 of Blitzes
   died to Beamers and Welders at 8:45.
 
+**Water maps, and SailAway 2 (the first game there, 2026-09-28, three seats against thebluegecko; 10240 by 10240,
+wind 5 to 20, the seats on islets: a seat on one had three of 96 spots reachable on foot).** Energy on the water is
+the tidal generator (`armtide` / `cortide`, 90 metal, 400 health, a steady energy rate the map sets: the option's
+words say how much here), built on the water where the builder stands: a commander that starts at sea builds tidal
+generators beside itself and never walks to a shore for a solar (in that game one did, slowly, for its first energy,
+because the hands had no tidal generator on their menu until 2026-09-28). Wind at 5 to 20 is worth turbines on the
+land spots. The land economy of an islet is a few spots: the rest is the sea's, taken by amphibious constructors
+(`armbeaver`; the plant's second or third unit with a list of the under-water spots) and construction ships from a
+shipyard at a water mark, as the Cape Violet section says; the army that matters crosses water (hovercraft from a
+hover platform, amphibious tanks, ships), and a ball of ground tanks on an islet defends the islet and nothing else.
+His start on such a map is unknown until a scout plane or a ship has looked: the lobby's boxes may not be honoured
+(the picture says when they are not), and the hands' guess is then the mirror of our start.
+
 **This map, Great Divide V1 (the games with people from 2026-09-27: two seats of ours under you, the north box A1-H2
 against the south A7-H8, realtime; the opponent a person who, we are told, will fortify the pass and try to win from
 there).** [K-map-great-divide-v1-one-pass, K-map-great-divide-v1-the-choke-is-the-plan,

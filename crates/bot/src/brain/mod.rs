@@ -73,6 +73,9 @@ pub struct Brain {
     team_post: crate::team::Post,
     /// One per enemy seat: guessed, found or dead (`bases.rs`).
     enemy_bases: Vec<bases::EnemyBase>,
+    /// Whether the lobby's start boxes are honoured (our own start inside our box and in no other team's): when
+    /// not, the boxes say nothing of where he is (`bases::guess_enemy_bases`).
+    pub(crate) boxes_honoured: bool,
     /// Metal spot index to the frame it was claimed at.
     spot_claims: HashMap<usize, i32>,
     /// Walking distances over the terrain, once our faction (and so our movement class) is known.
@@ -250,6 +253,7 @@ impl Brain {
             ally_starts: HashMap::new(),
             ally_spot_held: HashMap::new(),
             enemy_bases: Vec::new(),
+            boxes_honoured: true,
             spot_claims: HashMap::new(),
             routes: None,
             reclaim: Default::default(),
