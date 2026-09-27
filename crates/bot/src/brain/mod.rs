@@ -172,6 +172,54 @@ pub struct Brain {
     late_ticks: (u32, i32),
 }
 
+/// The engine sends an AI's chat as its host player's (the user, in a game with people), so every line of the
+/// player's says who wrote it, and the engine cuts a chat line at 127 characters (bluegecko-3v1-comet-catcher-4:
+/// every line over that lost its end), so a long text goes out as several lines that fit. A prefix the player
+/// wrote itself is not doubled (the same game: "[WReason] [WReason] Hi!").
+pub(crate) const CHAT_PREFIX: &str = "[WReason] ";
+const CHAT_LINE: usize = 127;
+
+pub(crate) fn chat_lines(text: &str) -> Vec<String> {
+    let mut rest = text.trim();
+    while let Some(after) = rest.strip_prefix(CHAT_PREFIX.trim_end()) {
+        rest = after.trim_start();
+    }
+    let room = CHAT_LINE - CHAT_PREFIX.chars().count();
+    let mut lines = Vec::new();
+    let mut line = String::new();
+    for word in rest.split_whitespace() {
+        let word: String = if word.chars().count() > room { word.chars().take(room).collect() } else { word.to_string() };
+        if !line.is_empty() && line.chars().count() + 1 + word.chars().count() > room {
+            lines.push(format!("{CHAT_PREFIX}{line}"));
+            line.clear();
+        }
+        if !line.is_empty() {
+            line.push(' ');
+        }
+        line.push_str(&word);
+    }
+    if !line.is_empty() {
+        lines.push(format!("{CHAT_PREFIX}{line}"));
+    }
+    lines
+}
+
+#[cfg(test)]
+mod chat_tests {
+    use super::{CHAT_LINE, chat_lines};
+
+    #[test]
+    fn chat_is_prefixed_once_and_split_to_fit_the_engine() {
+        assert_eq!(chat_lines("[WReason] [WReason] Hi! Good luck."), vec!["[WReason] Hi! Good luck."]);
+        let long = "Taking your advice: gathering our north and middle armies at D3, then pushing their base at B3 together. South Incisors hit their B8 expansion.";
+        let lines = chat_lines(long);
+        assert_eq!(lines.len(), 2, "{lines:?}");
+        assert!(lines.iter().all(|l| l.chars().count() <= CHAT_LINE && l.starts_with("[WReason] ")), "{lines:?}");
+        assert_eq!(lines.join(" ").replace("[WReason] ", ""), long);
+        assert!(chat_lines("   ").is_empty());
+    }
+}
+
 impl Brain {
     pub fn new(world: World, strategist: Option<Arc<Shared>>, board: Arc<crate::team::TeamBoard>, banner: String, pianist: Option<pianist::Pianist>) -> Self {
         let h = &world.hello;
@@ -265,13 +313,12 @@ impl Brain {
                 self.heard_chat_at = tick.frame;
             }
         }
-        // The engine sends an AI's chat as its host player's (the user, in a game with people), so every line of
-        // the player's says who wrote it (the user, 2026-09-27, after bluegecko-3v1-comet-catcher-3).
         for text in std::mem::take(&mut *shared.chat_out.lock().unwrap()) {
-            let text = format!("[WReason] {text}");
-            self.said.push(text.clone());
-            self.said.truncate(16);
-            commands.push(Command::Say { text });
+            for line in chat_lines(&text) {
+                self.said.push(line.clone());
+                self.said.truncate(16);
+                commands.push(Command::Say { text: line });
+            }
         }
     }
 
