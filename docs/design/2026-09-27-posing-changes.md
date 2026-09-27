@@ -198,10 +198,32 @@ builders as its only commander.
 given to the nearest live seat before the game's own ending rules take them (the report says what a dead seat
 still holds and offers the transfer).
 
-## 13. The expansion (the expansion study, pending)
+## 13. The expansion (`docs/studies/2026-09-27-jev-posing/expansion.md`)
 
-(Filled from `docs/studies/2026-09-27-jev-posing/expansion.md` when it lands: the constructors' thrash, the
-returns to base, the lists arriving after the hands moved, the pace against thebluegecko's.)
+The study's verdict: going home is small (2 % of constructor time); the thrash is between seats (114 extractor
+orders abandoned, 57 at spots another seat took), the seats have too few constructors, and the side stops at the
+midline. The side's extractor count was level with his; his tier-2 income per extractor decided it after 14:00.
+13.1 **The seats share their spot claims and their extractors.** `free_spots` counts allied extractors and allied
+orders as taken (the team board's `spot_claims` is filled and read: today it is neither, though H-TEAM-BOARD says
+it is), the picture's spot entry says "constructor_12_t2 is on its way to take it" for another seat's claim, and
+the extractor state's words say what the spot returns and who else is near it.
+13.2 **The packet names spots however they are written**: "spot_34, 29, 35" names three spots; a seat's list of
+spots is echoed back as read.
+13.3 **A list step never vanishes**: a step `execute_builder` cannot play is put back or reported skipped with the
+reason, never popped silently (39 of 139 lists lost extractor steps).
+13.4 **Constructors per seat as the pace**: the brief's opening makes a constructor a minute from each plant to
+four by 4:00 and eight by 8:00 (his count), the allowances written so (`armcv` not capped at one or two), and the
+report's seats line says each seat's constructors beside its extractors with the pool's count.
+13.5 **The midline is not a wall**: the free spots west of the middle are named with their walk and their risk
+(the nearest enemy party, the nearest turret of his), and the `expand` job takes them by walk, nearest first,
+with a turret every one or two spots as his constructors do; the brief's "never go to the enemy's strip" says
+where the strip is, not the middle.
+13.6 **"Help the plant" says what it is worth**: the assist state's words carry the plant's draw against the store
+("the plant is starved: helping adds nothing"; "the store is full: helping spends it") so a pick at 0.32 confidence
+over an extractor is not the default answer of an idle constructor.
+13.7 **The first constructor's first order**: with no list yet, the rule sends a new constructor to the nearest
+free spot on our side, never toward the enemy's base (two first constructors walked 108 s toward the person in
+game 9).
 
 ## 14. Tool debt (the analysis tools, not the bot)
 

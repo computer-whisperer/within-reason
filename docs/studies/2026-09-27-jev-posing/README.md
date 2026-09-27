@@ -269,3 +269,28 @@ game; with the tag the counts are 10/15, 12/17, 22/24 by seat in game 4); `analy
 state words; `commander_turns.py --told` prints headers only; the reviewers shared one scratchpad and overwrote each
 other's scratch files. The games with people have no truth file, so every enemy number is a floor.
 
+### The expansion study (`expansion.md`) — verified in code: `Brain.spot_claims` is read but never filled and `team_mates` is written but never read (the team board shares no spot claims while H-TEAM-BOARD says it does); `free_spots` counts only our own seat's extractors and orders; a list step popped by `next_list_step` is lost without a note when `execute_builder` returns None (lists.rs)
+- The hypothesis measured: constructors going home is real but small (retreat and step-away 2 % of constructor
+  time, 77 plays in 24 seat-games, nearly all under raids 3:20-5:56; home between consecutive extractors in 9 of 69
+  intervals against his 0 of 52). The bigger return is "help the plant": 11 % of the time, 87 picks at a median
+  confidence of 0.32 with an extractor on the menu, the extractor state's words saying nothing of what it returns.
+- The thrash is between seats: 114 extractor orders walked toward and never built, 57 of them at spots another seat
+  of ours took (27 already started when the order went), 2,630 constructor-seconds (7.6 %); a median 800-1,640
+  elmos and 54-185 s between consecutive spots against his 500 elmos and 30-39 s. The words never mention the ally
+  ("builds a metal extractor at spot_46 (14 s of walking, ground ): our 9th").
+- Each seat is a third of him and the side was not behind on extractors: 20-35 for the side against his 18-27 at
+  8:00, level or ahead through 14:00 in games 2, 3 and 9, the side's income ahead until 6:00 (game 3) or 12:00
+  (games 2, 9); after 14:00 his income per extractor pulled ahead on tier 2 (112-132 a second from 32-40 extractors
+  against our 60-76 from 27-37).
+- Too few constructors and a ceiling at the midline: the allowances (`armcv:1` or `:2`, then raiders; no constructor
+  at all in game 3 at 1:31) kept most seats at 2-4 constructors against his 4 by 4:00 and 9-13 by 10:00; seat-games
+  with 6+ constructors held 15-21 extractors at 10:00, those with 4 or fewer 7-13; the side never held more than 5
+  spots west of the middle with 16-23 free there at 8:00 ("never go to the enemy's strip"; each seat's named list
+  ran out at 8-11 spots; the middle seat stalled at 7-9 every game).
+- The first lists: a packet's "spot_34, 29, 35" names only the first as a spot (`diet::names` takes literal `spot_N`),
+  two first constructors were sent by the rule toward the person's base (108 s of walking), and 39 of 139
+  constructor lists' extractor steps vanished unplayed and unreported.
+- His method: one plant making a constructor about once a minute (8 by 8:00); field constructors running strips
+  outward with a turret every one or two spots and never going home; one or two constructors on solars and nanos at
+  home; the same share of time on turrets and solars as ours.
+
