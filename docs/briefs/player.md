@@ -413,6 +413,15 @@ K-maps-comet-barb-opens-bots, the tempo model]
   Stouts or not at all. (4) Air from 17:00 (Thunder bombers, then Banshees): a flak or two and a Ferret at each seat's
   home by 15:00, before the first bomber. (5) A person scouts and reads: the enemy commander and factories were never
   seen by us all game; one Rover along the west strip by 5:00 and a radar at the middle from each seat.
+  From the second game (bluegecko-3v1-comet-catcher-2, lost about 20:30 with the trade 56.7k to 33.5k in our favour):
+  (6) Blitzes never go at a commander: two dives cost about twenty to its D-gun (5:33, 8:23); a commander in the
+  open dies to Shellshockers and Janus from range, or is left. (7) Janus and Stouts eat packed Blitzes (eleven lost
+  to Janus arriving alone at 12:09): from the first Janus seen, every plant makes Stouts and Janus, Blitzes only as
+  pickets. (8) The seats' groups broke his second wave when they fought together on our turrets at 13:19-13:58; every
+  loss came when one group met him alone. (9) He had a Bull and an air plant by 18:32: with three economies the
+  strongest seat starts the advanced vehicle plant by 12:00. (10) A commander told to stay home dies at home when the
+  block arrives (15:51, 19:13): from 12:00 each commander stands at its plant with two turrets and a Ferret beside it,
+  and when a block is seen walking to its seat it goes to the neighbouring seat before the block is within 1,500.
 
 **This map, Great Divide V1 (the games with people from 2026-09-27: two seats of ours under you, the north box A1-H2
 against the south A7-H8, realtime; the opponent a person who, we are told, will fortify the pass and try to win from

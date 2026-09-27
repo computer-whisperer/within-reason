@@ -436,15 +436,26 @@ impl Brain {
                 states.push(State { id: format!("{name}.{key}"), actor: name.clone(), response, words, metal: 0.0, dim, default, current, pair_only });
             };
             let can = |def: UnitDefId| self.world.def(unit.def).is_some_and(|d| d.build_options.contains(&def));
-            let nearest_party = picture.parties.iter().map(|p| (p.at.dist2d(unit.pos), p)).filter(|(d, _)| *d < ALARM).min_by(|a, b| a.0.total_cmp(&b.0)).map(|(_, p)| p);
+            // A party with nothing armed in it (air constructors, a Mason) is no threat to a builder: constructors
+            // fled unarmed air constructors for a minute (bluegecko-3v1-comet-catcher-2, 19:50).
+            let armed = |p: &&Party| p.ids.iter().any(|id| enemies.iter().find(|e| e.id == *id).is_none_or(|e| e.def.is_none_or(|d| self.world.def(d).is_some_and(|d| d.weapon_count > 0))));
+            let nearest_party = picture.parties.iter().filter(armed).map(|p| (p.at.dist2d(unit.pos), p)).filter(|(d, _)| *d < ALARM).min_by(|a, b| a.0.total_cmp(&b.0)).map(|(_, p)| p);
             let walking_home = matches!(task, Some(Task::Walk { place, .. }) if place == "home");
+            // Home is no way out when the party stands at it or between (bluegecko-3v1-comet-catcher-2, 15:41-15:51:
+            // the retreat rule walked commander_t1 home into thirteen Stouts; onepass-player-8, 30:00, into a
+            // Razorback): then the step away below is the way, from home or away from it alike.
+            let home_unsafe = |p: &Party| self.home.dist2d(p.at) < ALARM + 200.0 || self.home.dist2d(p.at) + 300.0 < unit.pos.dist2d(p.at);
+            // A retreat is never queued behind a build: a threatened builder leaves the build (H-HANDS-STARTED's
+            // "unless threatened"; bluegecko-3v1-comet-catcher-2, 18:23: the commander on a list with `assist`
+            // could not be moved from eleven enemies at its home).
             // 1. Home from enemy soldiers it does not outweigh (a lone scout is not one); the rule's default.
-            if unit.pos.dist2d(self.home) > AWAY {
-                let party = nearest_party.filter(|p| !lone_scout(p) && !self.odds_words(&[unit], p, enemies).starts_with("we outweigh"));
-                let default = rules.get("retreat_when_enemy_near").is_some_and(|v| v == "yes") && party.is_some() && !walking_home && !queue;
+            let threat = nearest_party.filter(|p| !lone_scout(p) && !self.odds_words(&[unit], p, enemies).starts_with("we outweigh"));
+            if unit.pos.dist2d(self.home) > AWAY && !threat.is_some_and(home_unsafe) {
+                let party = threat;
+                let default = rules.get("retreat_when_enemy_near").is_some_and(|v| v == "yes") && party.is_some() && !walking_home;
                 let why = party.map_or(String::new(), |p| format!(" from {} ({}), which it does not outweigh", p.name, p.composition));
-                push("retreat_home", Response::RetreatHome, format!("{then}{name} goes home{why} ({} away){leaves}", distance_words(unit.pos.dist2d(self.home))), default, walking_home, false);
-            } else if let Some(party) = nearest_party.filter(|p| !lone_scout(p) && !self.odds_words(&[unit], p, enemies).starts_with("we outweigh")) {
+                push("retreat_home", Response::RetreatHome, format!("{name} goes home{why} ({} away){}", distance_words(unit.pos.dist2d(self.home)), self.leaves_words(task, &status.started)), default, walking_home, false);
+            } else if let Some(party) = threat {
                 // 1b. At home with a party it does not outweigh in the alarm reach: the way home is no way out, so a
                 // step to the nearest place of ours out of the party's reach (onepass-player-2, 12:03-12:40: the
                 // commander helped the plant at home while the block walked in from 671 to 250 and killed it; the
@@ -458,8 +469,8 @@ impl Brain {
                     .min_by(|a, b| a.at.dist2d(unit.pos).total_cmp(&b.at.dist2d(unit.pos)));
                 if let Some(pl) = away {
                     let current = matches!(task, Some(Task::Walk { place, .. }) if *place == pl.name);
-                    let default = rules.get("retreat_when_enemy_near").is_some_and(|v| v == "yes") && !queue;
-                    push(&format!("step_away_{}", pl.name), Response::WalkTo(pl.name.clone()), format!("{then}{name} steps away from {} ({}, {:.0} away, which it does not outweigh) to {} ({} away), out of its reach{leaves}", party.name, party.composition, party.at.dist2d(unit.pos), pl.name, distance_words(unit.pos.dist2d(pl.at))), default, current, false);
+                    let default = rules.get("retreat_when_enemy_near").is_some_and(|v| v == "yes");
+                    push(&format!("step_away_{}", pl.name), Response::WalkTo(pl.name.clone()), format!("{name} steps away from {} ({}, {:.0} away, which it does not outweigh) to {} ({} away), out of its reach{}", party.name, party.composition, party.at.dist2d(unit.pos), pl.name, distance_words(unit.pos.dist2d(pl.at)), self.leaves_words(task, &status.started)), default, current, false);
                 }
             }
             // A builder on the player's list is in the pass only while threatened, and then with the ways out of

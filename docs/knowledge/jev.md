@@ -1146,3 +1146,18 @@ hunt and left the task), or the picks had chosen the whole-group state on the se
 The same shape with one answer: a threat slot whose only state beside `leave` was the rule's default was not "open", so the default fired by rule while the pick sent the group elsewhere the same second (bluegecko-2v1-great-divide 4:57-4:58: attack by rule, hold and fall back by pick; fixed the same day: a threat whose default is due is an open decision).
 **Used by.** H-HANDS-ONE-PASS (the pass holds open slots for the pick, 2026-09-27; a hunt ends the engagement it
 overrides; a threat's due default is a decision); the bar-review skill, item H7.
+
+### K-hands-home-is-no-way-out-with-the-party-at-it
+**Claim.** The builders' retreat rule sent a commander home whatever stood there: onepass-player-8 30:00 ("walking to
+home, 1804 to go" into the Razorback razing the base, home on its own never list), bluegecko-3v1-comet-catcher-2
+15:41-15:51 (commander_t1 at 55% walked home into thirteen Stouts and died before the player's list to build south
+landed; the player: "the retreat rule walked it home into 13 Stouts"). A builder on a list with a build queued ahead
+had no retreat as its default (18:23: commander_t2 "on a list with 'assist' so the hands could not move it" from
+eleven enemies at its home; its plant died, it fled at 2%). Unarmed parties frightened builders (19:50: "constructors
+kept fleeing unarmed enemy air constructors").
+**Status.** observed (2026-09-27), two games, the player's notes and the pictures.
+**Evidence.** `run/matches/1790454920-onepass-player-8/00` (30:00 prompt), `run/matches/1790469236-bluegecko-3v1-comet-catcher-2/00`
+(notes 15:41, 15:56, 18:23, 19:50).
+**Would be wrong if.** The commander at 15:41 had a way out the rule could not see (it did: the player's own list sent
+it south to build turrets, and it walked).
+**Used by.** H-HANDS-STEP-AWAY (amended 2026-09-27).
