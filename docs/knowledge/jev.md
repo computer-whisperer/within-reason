@@ -1254,3 +1254,17 @@ station from 21:17 to 21:34 (about 1,300 metal at D4).
 events 21:14-21:26 against the Gauntlet at (4320, 1712).
 **Status.** fixed 2026-09-28 by [[H-HANDS-SHELLED]] (amended: per-group estimates from the hits on the group's own
 members, the weapon by damage); the check is the next game's `unseen_shooter` and `pull_out` words under a Gauntlet.
+
+### K-jev-follows-a-prose-route-from-the-picture
+**Claim.** Jev follows a route written in the packet's prose ("spot_49, then spot_46, ..., in that order") and answers
+a fork on it from the group's role sentence, when the picture says which stops were reached and the nothing-changes
+world's line names the cost of standing at a reached stop. At the recorded arrivals of player-9's 6:00 loop and
+its scout's 3:53 arrival it named the next stop as the best move 24 of 24 times with reached lines (21 of 24 without,
+under the 0.5 flag) and picked it 24 of 24 with the cost sentence (2 of 24 without: "holding for 1 s since it
+arrived" read as a course); at the 3:58 commander sighting it kept the scout on its route 4 of 4 at 0.82-0.90 where
+the station-list mechanic retreated it 2 of 4. The state Jev needs is words: the program counter, not the program.
+**Evidence.** `docs/studies/2026-09-28-route-in-prose.md`, `docs/studies/data/route-ab-2026-09-28.jsonl`,
+`run/route_ab.py`.
+**Status.** supported offline (2026-09-28, seven moments, four repeats, one game); the design that rests on it is
+`docs/design/2026-09-28-routes-in-prose.md`, not built; the live check is the loop's halts, the E3 task changes per
+minute and the base found by minute N.
