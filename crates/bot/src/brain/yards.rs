@@ -91,6 +91,10 @@ impl Brain {
     /// catcher-4: three of five factories had their lane on cliffs, the user saw the units choking in one).
     pub(super) fn blocked_lane_keep_out(&self, def_id: UnitDefId, anchor: Vec3, radius: f32) -> Vec<Lane> {
         let Some(def) = self.world.def(def_id).filter(|_| self.world.is_factory_def(def_id)) else { return Vec::new() };
+        // A shipyard's units leave into the water the engine placed it on: its lane is the engine's business.
+        if def.build_options.iter().any(|b| self.world.def(*b).is_some_and(|d| d.move_class.is_some_and(|mc| mc.kind == bot_protocol::MoveKind::Ship))) {
+            return Vec::new();
+        }
         let Some(passable) = self.passable_for_factory(def_id) else { return Vec::new() };
         let terrain = &self.world.hello.terrain;
         let (half_width, half_depth) = (def.footprint.0 as f32 * SQUARE / 2.0, def.footprint.1 as f32 * SQUARE / 2.0);

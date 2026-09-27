@@ -558,7 +558,7 @@ impl Brain {
         let mut free: Vec<(f32, usize)> = spots
             .iter()
             .enumerate()
-            .filter(|(i, s)| !listed.contains(i) && their_spot(**s).is_none() && self.reachable_on_foot(**s) && self.spot_open_to_us(*i, **s, frame))
+            .filter(|(i, s)| !listed.contains(i) && their_spot(**s).is_none() && self.reachable_by_any_class(**s) && self.spot_open_to_us(*i, **s, frame))
             .map(|(i, s)| (self.walk_from_home(*s), i))
             .collect();
         free.sort_by(|a, b| a.0.total_cmp(&b.0));
@@ -589,7 +589,7 @@ impl Brain {
             if let Some(i) = token.strip_prefix("spot_").and_then(|n| n.parse::<usize>().ok()) {
                 // An islet spot nobody can walk to is no place to send anyone (pianist-player-7: the ball stood 151 s
                 // short of spot_31 on the shore while the player named it).
-                if i < spots.len() && !places.iter().any(|p| p.spot == Some(i)) && self.reachable_on_foot(spots[i]) {
+                if i < spots.len() && !places.iter().any(|p| p.spot == Some(i)) && self.reachable_by_any_class(spots[i]) {
                     places.push(Place { name: format!("spot_{i}"), at: spots[i], spot: Some(i) });
                 }
             } else if let Some(n) = token.strip_prefix("passage_").and_then(|n| n.parse::<usize>().ok()) {
@@ -631,7 +631,10 @@ impl Brain {
                         .filter(|u| !kit.is_extractor(u.def) && u.pos.dist2d(spot) < 200.0 && self.world.def(u.def).is_some_and(|d| d.speed == 0.0))
                         .map(|u| format!("our {}{}", self.short_words(u.def), if u.being_built { " (being built)" } else { "" }))
                         .collect();
-                    let beside_words = if beside.is_empty() { String::new() } else { format!(" (beside it: {})", beside.join(", ")) };
+                    let mut beside_words = if beside.is_empty() { String::new() } else { format!(" (beside it: {})", beside.join(", ")) };
+                    if !self.reachable_on_foot(spot) {
+                        beside_words.push_str("; under water or off our ground: our soldiers and ordinary constructors cannot get there, an amphibious or hover constructor or a construction ship can");
+                    }
                     if let Some(seen) = their_spot(spot) {
                         let turrets = self.enemy_buildings.values().filter(|(def, pos, _)| pos.dist2d(spot) < 500.0 && self.world.def(*def).is_some_and(|d| d.weapon_count > 0)).count();
                         format!("their extractor, seen {} ago{}", clock(frame - seen), if turrets > 0 { format!(", {turrets} turret(s) beside it") } else { String::new() })

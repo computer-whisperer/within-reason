@@ -348,6 +348,13 @@ impl Brain {
         self.routes.as_ref().map(|r| r.passable.as_slice())
     }
 
+    /// Whether any builder class of ours reaches `pos`: an amphibious or hover constructor or a construction ship
+    /// gets to an underwater spot our soldiers cannot walk to (Cape Violet, 2026-09-27: 28 of 72 spots under water,
+    /// none of them a place, the Beavers' lists skipped as "not free").
+    pub(super) fn reachable_by_any_class(&self, pos: Vec3) -> bool {
+        self.reachable_on_foot(pos) || self.routes.as_ref().is_some_and(|r| r.classes.values().any(|(_, field)| field.distance(pos).is_some()))
+    }
+
     /// Where the units a factory of this type makes can stand: the passable grid of the strictest movement class
     /// among its build options (a vehicle plant's tanks climb less than a lab's bots), else the soldiers'.
     pub(super) fn passable_for_factory(&self, def_id: UnitDefId) -> Option<&[bool]> {

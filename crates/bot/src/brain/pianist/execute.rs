@@ -183,7 +183,12 @@ impl Brain {
             }
             Response::BuildingAt(def, place_name) => {
                 let at = place(place_name).map_or(unit.pos, |p| p.at);
-                did = build(Plan::Near(*def, self.snap_for(self.walker_of(unit.def), at)), None);
+                // A building that stands on water keeps the water site: snapped to the builder's own ground, a
+                // shipyard's mark became the nearest land cell and the engine had nowhere to put it (Cape Violet,
+                // 2026-09-27: three builders sent to yards never moved). The engine walks the builder to the shore.
+                let on_water = super::glossary::entry(self.name(*def)).is_some_and(|e| e.has_flag("on_water"));
+                let site = if on_water { at } else { self.snap_for(self.walker_of(unit.def), at) };
+                did = build(Plan::Near(*def, site), None);
             }
             Response::Assist(target) => {
                 // Queued, the guard order is given when the build finishes (`Pianist::promote`).
