@@ -172,6 +172,10 @@ pub(crate) struct Slot {
     pub queue_ahead: bool,
     /// The actor does nothing now.
     pub idle: bool,
+    /// A group holding at a place of its route it has reached while the packet names further places for it: the
+    /// cost of changing nothing, said in world 1's line (routes-in-prose §4.2; K-jev-follows-a-prose-route-from-the-
+    /// picture: with the sentence Jev picked the next leg 24 of 24 times, without it 2 of 24).
+    pub stop_cost: Option<String>,
 }
 
 impl Slot {
@@ -451,7 +455,7 @@ impl Brain {
                 {
                     let keep = State { id: format!("{name}.keep"), actor: name.clone(), response: Response::Keep, words: format!("{name} goes on with its list ({})", self.task_course(task, unit, &picture.places, frame, own)), metal: 0.0, dim: "threat", default: false, current: false, pair_only: false };
                     let solar = State { id: format!("{name}.{}", self.name(kit.solar)), actor: name.clone(), response: Response::Building(kit.solar), words: format!("{name} builds a {} beside itself now, its list waiting: the energy store is under a quarter and draining ({:.0} of {:.0}, {:.0} in against {:.0} out)", self.unit_words(kit.solar), tick.snapshot.energy.current, tick.snapshot.energy.storage, tick.snapshot.energy.income, tick.snapshot.energy.usage), metal: 0.0, dim: "energy", default: false, current: false, pair_only: false };
-                    slots.push(Slot { name: name.clone(), kind: Kind::Builder(unit.id), states: vec![keep, solar], queue_ahead: status.queue_ahead, idle: false });
+                    slots.push(Slot { name: name.clone(), kind: Kind::Builder(unit.id), states: vec![keep, solar], queue_ahead: status.queue_ahead, idle: false, stop_cost: None });
                 }
                 continue;
             }
@@ -541,7 +545,7 @@ impl Brain {
             // back, the pick built it a turret and an extractor elsewhere for two minutes).
             if listed {
                 if states.len() > 1 {
-                    slots.push(Slot { name, kind: Kind::Builder(unit.id), states, queue_ahead: queue, idle });
+                    slots.push(Slot { name, kind: Kind::Builder(unit.id), states, queue_ahead: queue, idle, stop_cost: None });
                 }
                 continue;
             }
@@ -552,7 +556,7 @@ impl Brain {
             let over_a_build = matches!(task, Some(Task::Build { .. }) | Some(Task::Reclaim { .. }) | Some(Task::ReclaimUnit { .. }) | Some(Task::Repair { .. })) && !queue;
             if over_a_build {
                 if states.len() > 1 {
-                    slots.push(Slot { name, kind: Kind::Builder(unit.id), states, queue_ahead: queue, idle });
+                    slots.push(Slot { name, kind: Kind::Builder(unit.id), states, queue_ahead: queue, idle, stop_cost: None });
                 }
                 continue;
             }
@@ -770,7 +774,7 @@ impl Brain {
                 push(&format!("walk_{}", place.name), Response::WalkTo(place.name.clone()), format!("{then}{name} walks to {} ({} away) and waits there{leaves}", place.name, distance_words(unit.pos.dist2d(place.at))), false, current, false);
             }
             if states.len() > 1 {
-                slots.push(Slot { name, kind: Kind::Builder(unit.id), states, queue_ahead: queue, idle });
+                slots.push(Slot { name, kind: Kind::Builder(unit.id), states, queue_ahead: queue, idle, stop_cost: None });
             }
         }
 
@@ -859,7 +863,7 @@ impl Brain {
                 });
             }
             if states.len() > 1 {
-                slots.push(Slot { name, kind: Kind::Lab(unit.id), states, queue_ahead: on_pad.is_some(), idle });
+                slots.push(Slot { name, kind: Kind::Lab(unit.id), states, queue_ahead: on_pad.is_some(), idle, stop_cost: None });
             }
         }
 
@@ -909,14 +913,10 @@ impl Brain {
                 GroupTask::Engage { .. } => ", leaving the party it was attacking".to_string(),
                 _ => String::new(),
             };
-            // 1. The station (`station`, `station_mode`): the default walk there when away; no chase beyond its reach.
-            // A list of places ("spot_9 spot_2 spot_7") is walked in order, each done when reached (`stations_done`,
-            // kept in `keep_groups`): the raid route the player wrote as "spot_9, then spot_2, spot_7, spot_14" and
-            // advanced by hand every 30-40 s (game 10).
-            let station_list: Vec<&str> = rules.get("station").map(|s| s.split_whitespace().collect()).unwrap_or_default();
-            let station_name = station_list.iter().copied().find(|s| !group.stations_done.iter().any(|d| d == s)).or(station_list.last().copied());
-            let station = station_name.filter(|s| !never.contains(&s.to_string())).and_then(|s| picture.places.iter().find(|p| p.name == s));
-            let station_rest: Vec<&str> = station_list.iter().copied().skip_while(|s| Some(*s) != station_name).skip(1).collect();
+            // 1. The station (`station`, `station_mode`): one place, the group's post; the default walk there when
+            // away, no chase beyond its reach. A route is prose (routes-in-prose §4.1): its places are the named
+            // walks below, and the hands say which the group has reached.
+            let station = rules.get("station").filter(|s| !never.contains(s)).and_then(|s| picture.places.iter().find(|p| p.name == *s));
             if let Some(st) = station {
                 let advance = rules.get("station_mode").is_some_and(|m| m == "advance");
                 let away = centre.dist2d(st.at) > STATION_SLACK;
@@ -926,7 +926,7 @@ impl Brain {
                 // 20:12-20:34: "fall back to where it last held" and "advance to spot_1" in turn, 26 of 31 lost).
                 let default = away && !engaging && !hunting && !odds_against && !walking_back;
                 if away || current {
-                    push(&format!("station_{}", st.name), Response::Walk { place: st.name.clone(), fight: advance }, format!("{name} {} to its station {} ({} away){}{}", if advance { "advances" } else { "walks" }, st.name, distance_words(centre.dist2d(st.at)), if station_rest.is_empty() { String::new() } else { format!(", then on to {}", station_rest.join(", ")) }, if engaging { ", leaving the party it was attacking" } else { "" }), default, current);
+                    push(&format!("station_{}", st.name), Response::Walk { place: st.name.clone(), fight: advance }, format!("{name} {} to its station {} ({} away){}", if advance { "advances" } else { "walks" }, st.name, distance_words(centre.dist2d(st.at)), if engaging { ", leaving the party it was attacking" } else { "" }), default, current);
                 }
                 if rules.get("no_chase").is_some_and(|v| v == "yes")
                     && let GroupTask::Engage { party, .. } = &group.task
@@ -943,9 +943,15 @@ impl Brain {
             // the player advanced the station by hand every 30-40 s, game 10).
             // `shelling` is an estimate, never a walk (10.4): the shooter is answered by the states below.
             let named_spot = |p: &super::Place| p.spot.is_some() && super::diet::names(&instructions, &p.name);
-            let mut named: Vec<&super::Place> = picture.places.iter().filter(|p| !p.name.starts_with("shelling") && (p.name == "home" || p.spot.is_none() || named_spot(p)) && !never.contains(&p.name) && (p.at.dist2d(centre) < WALK_REACH || named_spot(p)) && p.at.dist2d(centre) > STATION_SLACK && station.is_none_or(|s| s.name != p.name)).collect();
+            // The group's own paragraph: every place it names is on the menu, however far, in the packet's order
+            // (routes-in-prose §4.1: a route's stops); of the other named places, the nearest three.
+            let paragraph = super::diet::paragraph(&instructions, &name).unwrap_or(&instructions).to_string();
+            let on_route = |p: &super::Place| p.name != "home" && super::diet::names(&paragraph, &p.name);
+            let mut named: Vec<&super::Place> = picture.places.iter().filter(|p| !p.name.starts_with("shelling") && (p.name == "home" || p.spot.is_none() || named_spot(p)) && !never.contains(&p.name) && (p.at.dist2d(centre) < WALK_REACH || named_spot(p) || on_route(p)) && p.at.dist2d(centre) > STATION_SLACK && station.is_none_or(|s| s.name != p.name)).collect();
             named.sort_by(|a, b| a.at.dist2d(centre).total_cmp(&b.at.dist2d(centre)));
-            for place in named.iter().take(3) {
+            let mut offered: Vec<&super::Place> = named.iter().copied().filter(|p| on_route(p)).collect();
+            offered.extend(named.iter().copied().filter(|p| !on_route(p)).take(3));
+            for place in &offered {
                 let current = matches!(&group.task, GroupTask::Move { place: p, fight: false, .. } if *p == place.name);
                 push(&format!("walk_{}", place.name), Response::Walk { place: place.name.clone(), fight: false }, format!("{name} walks to {} ({} away) without stopping to fight on the way{leave}", place.name, distance_words(centre.dist2d(place.at))), false, current);
             }
@@ -1083,8 +1089,26 @@ impl Brain {
                 let default = rules.get("join").is_some_and(|j| *j == format!("group_{other}"));
                 push(&format!("join_group_{other}"), Response::Join(other.clone()), format!("{name} merges into group_{other} and takes its task"), default, false);
             }
+            // The stop's cost (routes-in-prose §4.2): holding at a place of its route it has reached while the
+            // packet names further places for it, said in world 1's line.
+            let stop_cost = if idle
+                && let Some((last, _)) = group.reached.last()
+                && picture.places.iter().any(|p| p.name == *last && p.at.dist2d(centre) < 300.0)
+            {
+                let order = super::diet::named_in_order(&paragraph, picture.places.iter().map(|p| p.name.as_str()).filter(|n| *n != "home"));
+                let done = |n: &str| group.reached.iter().any(|(r, _)| r == n);
+                let after: Vec<&str> = order.iter().copied().skip_while(|n| *n != last.as_str()).skip(1).filter(|n| !done(n)).collect();
+                let left: Vec<&str> = order.iter().copied().filter(|n| !done(n)).collect();
+                match (after.first(), left.is_empty()) {
+                    (Some(next), _) => Some(format!("{name} holds at {last}, a stop of its route it has reached, with the route's next stop {next} not ordered")),
+                    (None, false) => Some(format!("{name} holds at {last}, a stop of its route it has reached, with further places named for it ({}) not ordered", left.join(", "))),
+                    (None, true) => None,
+                }
+            } else {
+                None
+            };
             if states.len() > 1 {
-                slots.push(Slot { name, kind: Kind::Group(group.name.clone()), states, queue_ahead: false, idle });
+                slots.push(Slot { name, kind: Kind::Group(group.name.clone()), states, queue_ahead: false, idle, stop_cost });
             }
         }
         slots
@@ -1349,6 +1373,7 @@ fn dear(words: &str) -> bool {
 pub(super) fn consequence(world: &World, slots: &[Slot], store: &str, base: Option<&World>) -> String {
     let mut moves: Vec<String> = Vec::new();
     let (mut met, mut unmet, mut idle): (Vec<String>, Vec<String>, Vec<String>) = (Vec::new(), Vec::new(), Vec::new());
+    let mut stops: Vec<String> = Vec::new();
     for (k, (slot, si)) in slots.iter().zip(world).enumerate() {
         let s = &slot.states[*si];
         let unchanged = base.is_some_and(|b| b[k] == *si);
@@ -1376,7 +1401,9 @@ pub(super) fn consequence(world: &World, slots: &[Slot], store: &str, base: Opti
             }
             _ => {
                 if *si == 0 {
-                    if slot.idle {
+                    if let Some(cost) = &slot.stop_cost {
+                        stops.push(cost.clone());
+                    } else if slot.idle {
                         idle.push(slot.name.clone());
                     }
                 } else if !unchanged {
@@ -1404,6 +1431,9 @@ pub(super) fn consequence(world: &World, slots: &[Slot], store: &str, base: Opti
         // a full store lost to the Blitz rated 0.68 at 0.65 against 0.35).
         parts.push(format!("{} idle, doing nothing{}", idle.join(" and "), if store.is_empty() { String::new() } else { format!(", while the metal store reads {store}") }));
     }
+    // A group at a reached stop of its route (routes-in-prose §4.2): the sentence that turned the next leg from
+    // 2 of 24 picks to 24 of 24 in the offline replay.
+    parts.extend(stops);
     format!("{}.", parts.join(". "))
 }
 
@@ -1486,11 +1516,11 @@ mod tests {
     }
 
     fn threat(name: &str, states: Vec<State>) -> Slot {
-        Slot { name: name.to_string(), kind: Kind::Threat(party(name, 1), "at spot_1".into()), states, queue_ahead: false, idle: false }
+        Slot { name: name.to_string(), kind: Kind::Threat(party(name, 1), "at spot_1".into()), states, queue_ahead: false, idle: false, stop_cost: None }
     }
 
     fn builder(name: &str, id: i32, states: Vec<State>) -> Slot {
-        Slot { name: name.to_string(), kind: Kind::Builder(UnitId(id)), states, queue_ahead: false, idle: true }
+        Slot { name: name.to_string(), kind: Kind::Builder(UnitId(id)), states, queue_ahead: false, idle: true, stop_cost: None }
     }
 
     #[test]
@@ -1524,6 +1554,19 @@ mod tests {
         let line = consequence(&vec![1, 1, 0], &slots, "340 of 500 stored", Some(&worlds[0]));
         assert!(line.contains("Met: party_1") && line.contains("party_2 (") && line.contains("constructor_3 idle"), "{line}");
         assert_eq!(pick(&BTreeMap::from([("worlds.pick".to_string(), Answer::Choice { choice: "w2".into(), probabilities: BTreeMap::new(), confidence: 0.6 })]), &worlds), Some((1, 0.6)));
+    }
+
+    #[test]
+    fn world_one_says_what_holding_at_a_reached_stop_costs() {
+        // routes-in-prose 4.2: the sentence that turned the next leg from 2 of 24 picks to 24 of 24 offline.
+        let mut group = builder("group_A", 7, vec![state("group_A.keep", "group_A", Response::Keep, "threat", false, false), state("group_A.walk_spot_46", "group_A", Response::Walk { place: "spot_46".into(), fight: true }, "threat", false, false)]);
+        group.kind = Kind::Group("A".into());
+        group.stop_cost = Some("group_A holds at spot_49, a stop of its route it has reached, with the route's next stop spot_46 not ordered".into());
+        let slots = vec![group];
+        let line = consequence(&vec![0], &slots, "", None);
+        assert!(line.contains("route's next stop spot_46 not ordered") && !line.contains("idle, doing nothing"), "{line}");
+        let line = consequence(&vec![1], &slots, "", Some(&vec![0]));
+        assert!(line.starts_with("As w1, and: group_A.walk_spot_46") && !line.contains("not ordered"), "{line}");
     }
 
     #[test]

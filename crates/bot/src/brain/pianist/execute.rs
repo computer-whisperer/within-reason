@@ -71,11 +71,6 @@ impl Brain {
             if source == "plan" {
                 pianist.picked.insert(actor.clone(), frame);
             }
-            // A station walk is marked so a station change ends it (12.4; Cape Violet 8:05: the gate walk was sent
-            // again after the station had changed).
-            if let Some(group) = actor.strip_prefix("group_").and_then(|g| pianist.groups.iter_mut().find(|x| x.name == g)) {
-                group.station_walk = id.contains(".station_").then(|| id.rsplit(".station_").next().unwrap_or_default().to_string());
-            }
             pianist.done.push(format!("{} {actor}: {did} ({source})", clock(frame)));
             pianist.played.push(json!({ "actor": actor, "kind": kind_of(actor), "played": id, "did": did, "source": source }));
             self.journal.note_from(source, frame, kind_of(actor), json!({ "actor": actor, "state": id }), json!({ "did": did }));

@@ -107,9 +107,15 @@ group is strung out (the front holds until the tail is up), `close_on_shooter` o
 of sight (each group reads its own shooter from the hits on its own soldiers: the place `shelling_<group>` when it
 stands apart from the side's `shelling`), `shell` from a standoff when it has long-reach soldiers, and against a moving raider `next_extractor`
 (stand at the next extractor of ours on its heading). A group is a body: its entry says the front, the tail, who is
-arrived and who is on the way from the plant, and the odds are priced on the part in the fight. `standing`'s
-`station` takes a list (`"spot_9 spot_2 spot_7"`) walked in order, each done when reached, so a raid route is one
-call. The enemy section lists his buildings by place with their guards, the parties that left sight with where and
+arrived and who is on the way from the plant, and the odds are priced on the part in the fight. A route is prose in
+`instruct`: "group_A: spot_49, then spot_46, spot_40, spot_55, spot_58, back to spot_64, in that order, advancing; on his
+buildings in sight it kills what is undefended; on a party it does not outweigh it holds out of its reach". Every
+place a group's own paragraph names is on its menu, its entry says which it has reached (`route_seen`) and what it
+has met since the last stop (`met`), an arrival asks the hands at once, and they pick the next leg or the fight from
+your sentence: name the whole route and its exits in one turn, since your orders land about five seconds after the
+picture you read and a group at a stop with no next place named waits for your next turn. `station` is one place, the
+group's post. A scout's sentence that held under the enemy commander's eyes: "it is a scout: it runs from what can
+catch it and otherwise keeps to its route; being seen is its job". The enemy section lists his buildings by place with their guards, the parties that left sight with where and
 when, his biggest party known, and the first of each tier-2 or air type of his the moment it is seen. The commander
 has a D-gun state against any party whose nearest unit is inside its reach. Every constructor's extractor menu holds
 the nearest free spots beside the ones you name. A `standing` set applies what checks and names what it refused.

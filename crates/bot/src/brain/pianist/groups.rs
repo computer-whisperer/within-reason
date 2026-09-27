@@ -19,6 +19,10 @@ use crate::world::Domain;
 const ADOPT_RADIUS: f32 = 400.0;
 /// A moving group has arrived when its centre is this close to its destination.
 const ARRIVED: f32 = 300.0;
+/// Enemies this close to a group's body are what it met since its last stop (the route's `met` fact).
+const MET_REACH: f32 = 1200.0;
+/// Places reached kept per group, the oldest dropped: the words stay short.
+const REACHED_KEPT: usize = 12;
 /// An engaged group is sent on when its party has moved this far, and no more often than this.
 const FOLLOW_DISTANCE: f32 = 150.0;
 const FOLLOW_FRAMES: i32 = 2 * FRAMES_PER_SECOND;
@@ -138,14 +142,15 @@ pub(crate) struct Group {
     pub gathering: bool,
     /// Shelling a party from a standoff: the long-reach members at the standoff, the rest between (`shell`).
     pub shelling: bool,
-    /// The stations of a station list already reached (the `station` rule with several places): the next unreached
-    /// one is the station now.
-    pub stations_done: Vec<String>,
     /// Hunts by this group that ended without a kill: the party and when, said when the hunt is offered again.
     pub hunts_failed: Vec<(String, i32, String)>,
-    /// The station this group's current walk was sent to by its `station` rule, if that is what the walk is: a
-    /// change of station ends it (12.4).
-    pub station_walk: Option<String>,
+    /// The places named for this group in the packet that its body has come within `ARRIVED` of, in order, with
+    /// the frame: the facts of a route the packet wrote in prose, said in the picture and in `recent` and never
+    /// acted on by code (docs/design/2026-09-28-routes-in-prose.md §4.2; the station list they replace was a
+    /// mechanic Jev only said yes or no to).
+    pub reached: Vec<(String, i32)>,
+    /// The first enemies in sight near the body since the last place reached: the frame and the words.
+    pub met: Option<(i32, String)>,
 }
 
 /// A group's shape on the ground this second (H-HANDS-GROUP-BODY): the core (members not still joining), its front
@@ -186,7 +191,7 @@ pub(crate) const STRUNG_OUT: f32 = 600.0;
 
 impl Group {
     pub(crate) fn new(name: String, domain: Domain, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None, hunt: None, declined: Vec::new(), joining: HashSet::new(), gathering: false, shelling: false, stations_done: Vec::new(), hunts_failed: Vec::new(), station_walk: None }
+        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None, hunt: None, declined: Vec::new(), joining: HashSet::new(), gathering: false, shelling: false, hunts_failed: Vec::new(), reached: Vec::new(), met: None }
     }
 
     /// The group's body toward `toward` (the goal of a walk, the nearest enemy, or nothing: then the front is the
@@ -423,6 +428,7 @@ impl Brain {
             })
             .collect();
         let mut hunt_ends: Vec<String> = Vec::new();
+        let mut route_news: Vec<String> = Vec::new();
         for (index, group) in pianist.groups.iter_mut().enumerate() {
             // The hunt first: its members are not the task's this tick.
             if let Some(end) = Brain::tick_hunt(group, own, enemies, frame, commands) {
@@ -444,32 +450,33 @@ impl Brain {
                 }
             }
             let Some(centre) = centre_of(&units) else { continue };
-            // A station list: the station reached is done, the next is the station (H-HANDS-GROUP-STATES).
-            if let Some(list) = pianist.standing.rules_for(&format!("group_{}", group.name)).get("station") {
-                let stations: Vec<&str> = list.split_whitespace().collect();
-                if stations.len() > 1 {
-                    group.stations_done.retain(|d| stations.contains(&d.as_str()));
-                    if let Some(next) = stations.iter().find(|s| !group.stations_done.iter().any(|d| d == *s))
-                        && let Some(at) = pianist.places.iter().find(|p| p.name == *next).map(|p| p.at)
-                        && let Some(body) = group.body(own, Some(at))
-                        && body.at.dist2d(at) < ARRIVED
-                    {
-                        group.stations_done.push(next.to_string());
-                    }
-                } else {
-                    group.stations_done.clear();
-                }
-            }
-            // A station change ends a walk to the old station (12.4), so the new station's default can play.
-            if let Some(old) = group.station_walk.clone()
-                && matches!(&group.task, GroupTask::Move { place, .. } if *place == old)
+            // The route's facts (routes-in-prose §4.2-4.3): a place the packet names for this group that the body
+            // comes within `ARRIVED` of is reached, said in `recent` and asked about at once; the first enemies in
+            // sight since the last stop are kept until the next. Code records; Jev picks the next leg.
+            let text = super::diet::paragraph(&pianist.packet_seen, &format!("group_{}", group.name)).unwrap_or(&pianist.packet_seen);
+            let here = pianist.places.iter().find(|p| p.name != "home" && super::diet::names(text, &p.name) && p.at.dist2d(centre) < ARRIVED).map(|p| p.name.clone());
+            if let Some(place) = here
+                && group.reached.last().is_none_or(|(last, _)| *last != place)
             {
-                let now = pianist.standing.rules_for(&format!("group_{}", group.name)).get("station").cloned().unwrap_or_default();
-                if !now.split_whitespace().any(|s| s == old) {
-                    commands.extend(group.hold_orders(&units));
-                    group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
-                    group.station_walk = None;
-                    stalled.push(format!("group_{}'s walk to {old} ended: it is no longer its station", group.name));
+                if group.reached.len() >= REACHED_KEPT {
+                    group.reached.remove(0);
+                }
+                group.reached.push((place.clone(), frame));
+                group.met = None;
+                route_news.push(format!("group_{} reached {place}", group.name));
+            }
+            if group.met.is_none() {
+                let mut counts: BTreeMap<String, usize> = BTreeMap::new();
+                let mut at = None;
+                for e in enemies.iter().filter(|e| e.pos.dist2d(centre) < MET_REACH) {
+                    *counts.entry(e.def.map_or("unidentified".to_string(), |d| self.name(d).to_string())).or_default() += 1;
+                    at.get_or_insert(e.pos);
+                }
+                if let Some(at) = at {
+                    let what = counts.iter().map(|(n, k)| format!("{k} {n}")).collect::<Vec<_>>().join(", ");
+                    let words = format!("{what} at {}", self.world.grid(at));
+                    route_news.push(format!("group_{} met {words}", group.name));
+                    group.met = Some((frame, words));
                 }
             }
             // A gather ends when the tail is up: the group is a body again and holds where it gathered.
@@ -587,6 +594,10 @@ impl Brain {
         for text in hunt_ends {
             pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
             pianist.hunt_events.push(text);
+        }
+        for text in route_news {
+            pianist.note(frame, text.clone());
+            pianist.events.insert(text);
         }
         for text in stalled {
             pianist.note(frame, text.clone());

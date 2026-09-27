@@ -1265,6 +1265,6 @@ arrived" read as a course); at the 3:58 commander sighting it kept the scout on 
 the station-list mechanic retreated it 2 of 4. The state Jev needs is words: the program counter, not the program.
 **Evidence.** `docs/studies/2026-09-28-route-in-prose.md`, `docs/studies/data/route-ab-2026-09-28.jsonl`,
 `run/route_ab.py`.
-**Status.** supported offline (2026-09-28, seven moments, four repeats, one game); the design that rests on it is
-`docs/design/2026-09-28-routes-in-prose.md`, not built; the live check is the loop's halts, the E3 task changes per
-minute and the base found by minute N.
+**Status.** supported offline (2026-09-28, seven moments, four repeats, one game); built the same day as
+[[H-HANDS-ROUTE-FACTS]] (`docs/design/2026-09-28-routes-in-prose.md` §4.1-4.3); the live check is the loop's halts,
+the E3 task changes per minute and the base found by minute N.

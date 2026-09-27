@@ -1277,6 +1277,14 @@ impl Brain {
                 "health": health,
                 "doing": doing,
             });
+            // The route's facts (routes-in-prose §4.2): the places named for it that it has reached, and what it
+            // has met since the last; Jev reads its place in the packet's route from these.
+            if !group.reached.is_empty() {
+                entry["route_seen"] = json!(format!("reached {}", group.reached.iter().map(|(p, f)| format!("{p} ({})", clock(*f))).collect::<Vec<_>>().join(", ")));
+            }
+            if let Some((f, words)) = &group.met {
+                entry["met"] = json!(format!("since its last stop: {words} ({})", clock(*f)));
+            }
             if !body.joining.is_empty() {
                 let farthest = body.joining.iter().map(|u| u.pos.dist2d(body.at)).fold(0.0, f32::max);
                 let from: BTreeMap<String, usize> = body.joining.iter().fold(BTreeMap::new(), |mut m, u| {

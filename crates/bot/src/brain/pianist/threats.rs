@@ -305,7 +305,7 @@ impl Brain {
                     defaulted.insert(name.clone());
                 }
             }
-            out.push(Slot { name: party.name.clone(), kind: Kind::Threat(party.clone(), place), states, queue_ahead: false, idle: false });
+            out.push(Slot { name: party.name.clone(), kind: Kind::Threat(party.clone(), place), states, queue_ahead: false, idle: false, stop_cost: None });
         }
         out
     }

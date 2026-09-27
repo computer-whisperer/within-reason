@@ -63,17 +63,38 @@ fn parse(value: Option<&str>) -> HandsEffort {
     }
 }
 
-/// Whether `text` names `place` as a whole word: "spot_4" is not named by "spot_45".
-pub(super) fn names(text: &str, place: &str) -> bool {
+/// The paragraph of the instructions addressed to `actor` ("group_A (Blitzes): ..." or "group_A: ..."): the
+/// packet's convention is one paragraph per actor, so a route or a job written there is that actor's alone
+/// (docs/design/2026-09-28-routes-in-prose.md §4.1).
+pub(super) fn paragraph<'a>(text: &'a str, actor: &str) -> Option<&'a str> {
+    text.split("\n\n").map(str::trim).find(|p| {
+        let head = p.split(':').next().unwrap_or("");
+        head.split('(').next().unwrap_or("").trim() == actor
+    })
+}
+
+/// The places named in `text`, in the order they are first named: a route's stops as the packet wrote them.
+pub(super) fn named_in_order<'a>(text: &str, places: impl Iterator<Item = &'a str>) -> Vec<&'a str> {
+    let mut found: Vec<(usize, &str)> = places.filter_map(|p| first_named(text, p).map(|i| (i, p))).collect();
+    found.sort();
+    found.into_iter().map(|(_, p)| p).collect()
+}
+
+fn first_named(text: &str, place: &str) -> Option<usize> {
     let mut from = 0;
     while let Some(i) = text[from..].find(place) {
         let end = from + i + place.len();
         if !text[end..].chars().next().is_some_and(|c| c.is_ascii_digit() || c == '_') {
-            return true;
+            return Some(from + i);
         }
         from = end;
     }
-    false
+    None
+}
+
+/// Whether `text` names `place` as a whole word: "spot_4" is not named by "spot_45".
+pub(super) fn names(text: &str, place: &str) -> bool {
+    first_named(text, place).is_some()
 }
 
 /// Whether the text names spot `i`, written in full ("spot_34") or in a run after one ("spot_34, 29, 35": the
@@ -206,6 +227,16 @@ mod tests {
         assert!(names_spot("spot_10, 5, 6", 6));
         assert!(!names_spot("spot_10, 5 constructors", 5));
         assert!(names_spot("go to spot_45", 45));
+    }
+
+    #[test]
+    fn the_actors_paragraph_and_its_places_in_order() {
+        let packet = "Plan: hold.\n\ngroup_A (Blitzes): spot_49, then spot_46, spot_40 and back to spot_64.\n\ngroup_B: scouts spot_72, then spot_60.\n\nconstructors: spot_69, spot_62.";
+        assert_eq!(paragraph(packet, "group_A"), Some("group_A (Blitzes): spot_49, then spot_46, spot_40 and back to spot_64."));
+        assert_eq!(paragraph(packet, "group_B"), Some("group_B: scouts spot_72, then spot_60."));
+        assert_eq!(paragraph(packet, "group_C"), None);
+        let places = ["spot_64", "spot_40", "spot_4", "spot_49", "spot_46", "spot_69"];
+        assert_eq!(named_in_order(paragraph(packet, "group_A").unwrap(), places.iter().copied()), vec!["spot_49", "spot_46", "spot_40", "spot_64"], "the route's stops in the packet's order; spot_4 is not named by spot_40 or spot_49");
     }
 
     #[test]

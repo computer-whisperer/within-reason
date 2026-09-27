@@ -20,7 +20,7 @@ pub(super) const NEVER_REACH: f32 = 400.0;
 /// The vocabulary: rule name to the values it takes (`place`, `places`, `party` and `size` are checked against the
 /// picture or the number grammar).
 pub(crate) const GROUP_RULES: &[(&str, &[&str])] = &[
-    ("station", &["places"]),
+    ("station", &["place"]),
     ("station_mode", &["walk", "advance"]),
     ("raiders_lone", &["whole_group", "detachment", "detachment:N", "ignore"]),
     ("raiders_party", &["whole_group", "detachment", "detachment:N", "ignore"]),
@@ -178,7 +178,7 @@ impl Standing {
                 Some(format!("{actor}: {rule} takes {}, not {value}", allowed.join(" | ")))
             } else if allowed.contains(&"place") && !places.iter().any(|p| *p == value) {
                 Some(format!("{actor}: {value} is not a place in the picture"))
-            } else if (rule == "never" || rule == "station") && let Some(bad) = value.split_whitespace().find(|p| !places.iter().any(|q| q == p)) {
+            } else if rule == "never" && let Some(bad) = value.split_whitespace().find(|p| !places.iter().any(|q| q == p)) {
                 Some(format!("{actor}: {bad} is not a place in the picture"))
             } else if allowed.contains(&"party") && !parties.iter().any(|p| *p == value) {
                 Some(format!("{actor}: {value} is not a party in the picture"))
@@ -271,8 +271,7 @@ mod tests {
         assert_eq!(s.set_tool("constructor_4", &json!({ "job": "follow_list" }), &places, &[]).unwrap().0, 0, "follow_list left the vocabulary");
         assert!(s.set_tool("group_B", &json!(["not", "an", "object"]), &places, &[]).is_err());
         assert_eq!(s.set_tool("group_B", &json!({ "station": "spot_9", "raiders_lone": "detachment:2" }), &places, &[]).unwrap(), (2, Vec::new()));
-        assert_eq!(s.set_tool("group_B", &json!({ "station": "spot_9 spot_61", "never": "bogus_place" }), &places, &[]).unwrap().0, 1, "a station list is set; the bad never is refused alone");
-        assert_eq!(s.rules_for("group_B")["station"], "spot_9 spot_61");
+        assert_eq!(s.set_tool("group_B", &json!({ "station": "spot_9 spot_61", "never": "bogus_place" }), &places, &[]).unwrap().0, 0, "a station list is refused: a route is prose (routes-in-prose 4.1)");
         s.set_tool("group_B", &json!({ "station": "spot_9" }), &places, &[]).unwrap();
         let r = s.rules_for("group_B");
         assert_eq!(r["station"], "spot_9");

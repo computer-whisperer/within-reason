@@ -644,7 +644,10 @@ impl Brain {
             // An event alone asks again no oftener than `EVENT_GAP` (onepass-medium-3: a group under fire asked every
             // second, 118 of 663 asks on "hit" alone).
             let since_ask = pianist.sig.as_ref().map_or(i32::MAX, |(_, f)| frame - *f);
-            let changed = pianist.sig.as_ref().is_none_or(|(s, f)| *s != sig || frame - *f >= plan::RE_ASK) || (!events.is_empty() && since_ask >= EVENT_GAP);
+            // A place reached or a first sighting since the last stop asks at once (routes-in-prose §4.3): the next
+            // leg starts within a second of the arrival, not at the 20-s re-ask.
+            let urgent = events.iter().any(|e| e.contains(" reached ") || e.contains(" met "));
+            let changed = pianist.sig.as_ref().is_none_or(|(s, f)| *s != sig || frame - *f >= plan::RE_ASK) || (!events.is_empty() && since_ask >= EVENT_GAP) || urgent;
             (events, changed)
         };
         // The base world goes in force now only where there is nothing to decide. A slot with a real alternative
