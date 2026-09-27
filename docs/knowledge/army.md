@@ -612,3 +612,15 @@ and the seats had too few constructors, stopping at the midline.
 `team_mates` never read).
 **Status.** fixed 2026-09-27 evening: the claims are filled from the build tasks and read by `free_spots` and the
 picture (H-TEAM-BOARD amended); the constructor count and the midline are the brief's (changes doc 13.4, 13.5).
+
+### K-micro-a-rover-tours-the-map-after-one-look
+**Claim.** Ranking his box and base first only while unseen or older than three minutes, the rover looked at his base
+once and then toured every never-seen spot on the map; what a scout is for, once his base is known, is its perimeter:
+what leaves it, what is built at its edge, the constructors and extractors around it.
+**Status.** observed (the user, 2026-09-28, watching player-10-routes: "the rovers tend to explore the whole map rather
+than bother the perimeter of the known enemy base"); the three rovers reached within 511-636 of his start at 3:55 and
+were back in our half by 4:55 (`run/minutes.py`).
+**Evidence.** `crates/micro/src/rove.rs` (the tiers before 2026-09-28); player-10-routes 3:00-5:00.
+**Would be wrong if.** A rover on the perimeter died to the base's turrets faster than it found things, or the map's
+other spots carried what mattered (his expansion away from his base).
+**Used by.** [[H-MICRO-ROVE]] (amended 2026-09-28: the perimeter first, a minute's staleness).

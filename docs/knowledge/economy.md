@@ -246,3 +246,25 @@ important to keep taking mexes, the human player is taking mexes so much faster 
 **Evidence.** `docs/knowledge/_inbox/players-chat-2026-09-27.md` (game 7).
 **Status.** supported (the players' words, 2026-09-27), unmeasured. Exploited by [[H-PLAYER-PLAYERS-ADVICE]].
 
+
+### K-eco-generators-built-on-the-frontier
+**Claim.** With generators placed beside whichever builder is free, the constructors out expanding put the solars on
+the frontier, where raids take them and the base has none; the pros' generators stand at base.
+**Status.** observed (the user, 2026-09-28, watching player-10-routes: "we tend to build solars etc on the front lines
+rather than back at base"); the record's `created` events for `armsolar` against the home distance would give the
+count, not yet computed.
+**Evidence.** The user's review of player-10-routes; `economy.rs` placed every generator `Beside` its builder, copying
+the build-order simulator (queue-smoke: a planned solar 497 elmos from a commander at a far extractor).
+**Would be wrong if.** The pros' replays showed solars beside far extractors, or the walk home cost more than the losses.
+**Used by.** [[H-ECO-BASE-LAYOUT]] (amended 2026-09-28: the back field at home when the builder is over 1,000 from home).
+
+### K-hands-a-defence-at-a-place-faced-nowhere
+**Claim.** A turret ordered at a place was put at the engine's nearest free site to it, on whichever side that was, so
+its reach often covered the far side of the extractor and not the approach the raid came by.
+**Status.** observed (the user, 2026-09-28, after player-10-routes: "our turrets are not built in reasonable locations to
+defend the points of interest intended"); unmeasured.
+**Evidence.** `pianist/execute.rs` `BuildingAt` sited at the place itself with the engine's 1,000-radius search;
+the user's review.
+**Would be wrong if.** The engine's search preferred the enemy-facing side, or a turret's reach (light 380, beamer 490)
+covered the whole spot from any side.
+**Used by.** [[H-HANDS-DEFENCE-FORWARD]].

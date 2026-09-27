@@ -284,8 +284,12 @@ K-maps-comet-barb-opens-bots, the tempo model]
   "radars would have helped there". No radar was built all game: have a constructor build one at the front edge of
   our strip by minute three (`armrad` at a spot or a mark; it sees 2,000), and another mid-map when the tanks go
   out. The base was packed (18 solars and 5 plants within 800 of home) and tanks path badly through buildings:
-  groups of 8 and of 48 stalled at home for 35 to 67 s trying to walk out. Put the solars on named spots away from
-  the plants (a constructor's job) and the plants apart. Energy sat at 0 at 11:57 with five plants: about eight
+  groups of 8 and of 48 stalled at home for 35 to 67 s trying to walk out. Solars and every other generator go at home, in the back
+  field behind the plants (the hands put them there by themselves from 2026-09-28 when the builder is out on the map;
+  at home a builder puts one beside itself), never on the frontier, and the plants apart. A defence at a place of
+  your choosing is a `queue` step with the place after it (`armbeamer spot_35`, `armhlt north_gate` after a `mark` of
+  the cell): the hands' own turrets only stand beside extractors, and every defence ordered at a place is set 120
+  toward the enemy from it, so it covers the approach. Energy sat at 0 at 11:57 with five plants: about eight
   solars behind each plant. This opponent opened with a plant on easy here, against its bot labs in the older games.
 - comet-2 (medium, LOST at 8.6 min): the same opening was written in words and the hands did the same again: four
   extractors and three solars, the plant at 1:45, then three plants and five constructors from "one plant, one

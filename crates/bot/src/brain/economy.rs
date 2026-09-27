@@ -40,6 +40,8 @@ const BUILDING_CLEARANCE: f32 = 90.0;
 const SPOT_CLEARANCE: f32 = 150.0;
 const LAB_SPOT_CLEARANCE: f32 = 260.0;
 const TURRET_LINE: f32 = 650.0;
+/// A builder farther than this from home puts a generator in the back field at home, not beside itself.
+const GENERATOR_HOME: f32 = 1000.0;
 /// No orders before this frame: the engine loses them.
 pub(super) const FIRST_ORDER_FRAME: i32 = 60;
 /// A builder is not judged idle for this long after an order: the order has to reach it first.
@@ -74,6 +76,10 @@ impl Brain {
             d if info.is_some_and(|i| i.speed == 0.0 && i.weapon_count > 0) => Plan::Near(d, self.forward_of_home(TURRET_LINE)),
             d if static_builder && lab.is_some() => Plan::Beside(d, lab.unwrap().pos),
             d if static_builder => Plan::Near(d, self.forward_of_home(-BACK_FIELD)),
+            // A generator goes home, to the back field behind the plants, when its builder is out on the map: beside
+            // the builder it stood on the frontier and died there (player-10-routes; the user, 2026-09-28: "we tend
+            // to build solars etc on the front lines rather than back at base"). At home, beside the builder as before.
+            d if info.is_some_and(|i| i.energy_make > 0.0 || i.energy_upkeep < 0.0 || i.wind_cap > 0.0) && builder.pos.dist2d(self.home) > GENERATOR_HOME => Plan::Near(d, self.forward_of_home(-BACK_FIELD)),
             // As the simulator places them: beside the builder wherever it stands, no walking (queue-smoke: a planned
             // solar went to the back field 497 elmos from a commander out at a far extractor, and the plan's timing
             // with it).

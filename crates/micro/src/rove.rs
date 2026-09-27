@@ -3,9 +3,11 @@
 //! 1.5 s, 60 for a building), stepping to the least threatened ground nearby when it is or is about to be; it kills
 //! what it finds unguarded within 1,000 (a lone constructor first, then an extractor, a radar, anything else unarmed
 //! it kills within 45 s), when nothing armed covers the target and the way there is clear; and otherwise it drives to
-//! look at the place we know least (the spots in his start box never seen or not seen for three minutes, and his base,
-//! first; then any spot never seen; then the spot longest out of sight), stopping short of it by six tenths of its
-//! sight, on a way that passes no reach. Being seen costs it nothing: only what can hit it counts. No host order
+//! look at his perimeter (the spots in his start box and his base: the ones never seen or not seen for a minute
+//! first, then the rest of them, longest unseen first) and, only when none of his can be reached, any spot never
+//! seen, then the spot longest out of sight; stopping short of it by six tenths of its sight, on a way that passes
+//! no reach. It bothers the known enemy base rather than touring the map (player-10-routes; the user, 2026-09-28:
+//! "the rovers tend to explore the whole map rather than bother the perimeter of the known enemy base"). Being seen costs it nothing: only what can hit it counts. No host order
 //! reaches it (`lib.rs` `tick` drops them), so the hands' states cannot pull it off.
 //!
 //! player-9-posing: three scouts sent at his base at G1-G2 never arrived: one pulled home by the hands at the first
@@ -36,8 +38,10 @@ const ARRIVED_FRAMES: i32 = 3 * FRAMES_PER_SECOND;
 const LOOK_SHARE: f32 = 0.6;
 /// Sight when the host has none for the type.
 const DEFAULT_SIGHT: f32 = 350.0;
-/// A place of his looked at longer ago than this is as good as never seen.
+/// A place reached without counting as seen is left alone this long.
 const STALE_FRAMES: i32 = 180 * FRAMES_PER_SECOND;
+/// A place of his looked at longer ago than this is as good as never seen: the perimeter is walked again every minute.
+const PERIMETER_STALE: i32 = 60 * FRAMES_PER_SECOND;
 /// Targets are taken within this of the rover.
 const ATTACK_RADIUS: f32 = 1000.0;
 /// A target that would take one rover longer than this to kill is left: it would stop looking for that long.
@@ -340,12 +344,14 @@ impl Lane {
             if rover.goal.is_none() {
                 let taken: HashSet<&str> = self.rovers.values().filter_map(|r| r.goal.as_ref().map(|g| g.name.as_str())).collect();
                 let tier = |g: &RoveGoal| -> u8 {
-                    if g.theirs && g.seen.is_none_or(|f| frame - f > STALE_FRAMES) {
+                    if g.theirs && g.seen.is_none_or(|f| frame - f > PERIMETER_STALE) {
                         0
-                    } else if g.seen.is_none() {
+                    } else if g.theirs {
                         1
-                    } else {
+                    } else if g.seen.is_none() {
                         2
+                    } else {
+                        3
                     }
                 };
                 let best = goals
@@ -359,8 +365,9 @@ impl Lane {
                         // By the minute, nearest first; a place seen this last minute after every other, the oldest of
                         // those first (by the minute alone it tied with the place just looked at, the nearest).
                         let age = g.seen.map_or(0, |f| frame - f);
-                        let recent = tier(g) == 2 && age < STALE_STEP;
-                        let staleness = if tier(g) != 2 { 0 } else if recent { -age } else { -(age / STALE_STEP) };
+                        let recent = tier(g) == 3 && age < STALE_STEP;
+                        // His places seen this last minute: the longest ago first, so the perimeter is walked round.
+                        let staleness = match tier(g) { 1 => -age, 3 if recent => -age, 3 => -(age / STALE_STEP), _ => 0 };
                         ((taken.contains(g.name.as_str()), tier(g), recent, staleness), unit.pos.dist2d(look), g, look)
                     })
                     .min_by(|a, b| a.0.cmp(&b.0).then(a.1.total_cmp(&b.1)));

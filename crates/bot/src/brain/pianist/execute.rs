@@ -14,6 +14,9 @@ use super::picture::{Party, Picture, clock};
 use super::plan::{Kind, Response, Slot, State, World};
 use super::{Group, GroupTask, Task};
 
+/// A defence ordered at a place stands this far toward the enemy from it, covering the approach.
+const DEFENCE_FORWARD: f32 = 120.0;
+
 /// The soldiers of a group nearest a point, for a detachment.
 pub(crate) fn nearest_of<'a>(units: &[&'a OwnUnit], to: bot_protocol::Vec3, n: usize) -> Vec<&'a OwnUnit> {
     let mut sorted: Vec<&OwnUnit> = units.to_vec();
@@ -190,6 +193,17 @@ impl Brain {
             }
             Response::BuildingAt(def, place_name) => {
                 let at = place(place_name).map_or(unit.pos, |p| p.at);
+                // A defence stands toward the enemy from the place, so its reach covers the approach rather than
+                // whichever side the engine's site search found free (player-10-routes; the user, 2026-09-28: "our
+                // turrets are not built in reasonable locations to defend the points of interest intended").
+                let at = if self.world.def(*def).is_some_and(|d| d.speed == 0.0 && d.weapon_count > 0) {
+                    let enemy = self.enemy_base(at);
+                    let (dx, dz) = (enemy.x - at.x, enemy.z - at.z);
+                    let len = dx.hypot(dz).max(1.0);
+                    Vec3 { x: at.x + dx / len * DEFENCE_FORWARD, y: at.y, z: at.z + dz / len * DEFENCE_FORWARD }
+                } else {
+                    at
+                };
                 // A building that stands on water keeps the water site: snapped to the builder's own ground, a
                 // shipyard's mark became the nearest land cell and the engine had nowhere to put it (Cape Violet,
                 // 2026-09-27: three builders sent to yards never moved). The engine walks the builder to the shore.
