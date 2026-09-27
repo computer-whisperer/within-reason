@@ -1,6 +1,6 @@
 # The changes the games with people call for: to be made together, then the arena resumes
 
-Status: PROPOSED, nothing applied. The user, 2026-09-27: "I don't want to start making changes until we fully
+Status: APPLYING from 2026-09-27 evening (the struck items below were removed by the user's ruling before application began: "we want to empower jev and the player to work the game, and we want limited rigid requirements or heuristics that fight that when the original problem may be resolved by something else we changed"). Before that: PROPOSED, nothing applied. The user, 2026-09-27: "I don't want to start making changes until we fully
 understand everything we can from these matches. Once we understand all the mistakes we can see, we can apply the
 changes at once and resume arena matches." The findings are in `docs/studies/2026-09-27-jev-posing/README.md`
 (six games mined; the expansion study `expansion.md` is being written and will add to this). The code, rules and
@@ -22,8 +22,7 @@ Files: `pianist/picture.rs` (the group entry, `party_words`, `NEAR`), `pianist/g
 group whose units hold formation slots at home is said so, not "stalled" (Cape Violet 5:17).
 1.3 **Health as a distribution**, not "full on average" at 22 of 39 lost (game 9): "N of M at full, K under half,
 L lost since the last orders", with the loss count running from the last orders, not the last turn (I6).
-1.4 **A plant's output joins the group as a body**: new units gather at the plant's rally (or the group's tail)
-until a handful stand, then walk to the group together, and the picture says "N of its soldiers are on the way
+1.4 **A plant's output is said as a body**: the automatic gather-then-walk is ~~STRUCK~~ (2026-09-27, the user: empower Jev and the player; no rigid rule where another change resolves the cause): 6.2's gather state covers the action when Jev or the player wants it. Kept: the picture says "N of its soldiers are on the way
 from plant_X, K behind" (game 3 11:34, game 9 15:44). Files: `pianist/groups.rs` (join), `execute.rs`.
 
 ## 2. The picture: the other seats (I2, games 4, 6, 9)
@@ -93,9 +92,7 @@ on; the state says how long the gather takes.
 and **"pull out of its reach"** to the nearest place beyond the shooter's range, with the walk said.
 6.4 **The artillery state**: a group with long-reach units (Shellshockers 710, Mausers 820) is offered "shell X
 from Y" with the screen standing between (game 9's four Shellshockers never used).
-6.5 **The fall-back point is never where the group stands, never `shelling`, never a place a party is entering**;
-when none qualifies, the state says "no way back that is not into fire" and offers the gather instead (games 3,
-6, 9).
+6.5 **The fall-back state says what is at its point** ("fall back to spot_10 (the Bulls are entering it)"; "no way back that is not into fire" when that is the truth, with the gather offered beside it). The three prunes (never where the group stands, never `shelling`, never a place a party is entering) are ~~STRUCK~~ (2026-09-27, the user: empower Jev and the player; no rigid rule where another change resolves the cause) (games 3, 6, 9).
 6.6 **A group can be sent at buildings, and can sweep** (the user, game 10 at 5:58: "both top and middle seats
 have sizable army groups in position and could have a field day with undefended structures but put no effort
 into exploring ... why nothing takes the initiative with those groups"). Verified: over the whole game a group
@@ -111,10 +108,8 @@ the nearest an extractor 1,184 away; it killed nothing until the player moved it
 rest. The scout state was played 5 times all game. Changes: (a) a `raid` state per group, on the nearest of his
 buildings that are known (seen, or the extractor implied by a spot he holds), worded with the walk, the turrets
 within reach of it and the metal it yields ("kill his extractor at spot_7, 1,184 away, 23 s, no turret within
-450: 50 metal of his income"), and the base world for a group at its station with nothing in sight and a known
-unguarded building within its leash; (b) a `sweep` state: the group walks the never-looked spots nearest it in
-order, as a body, with the fight on the way, and says which; (c) a route in the packet ("spot_9, then spot_2,
-spot_7, spot_14") decompresses to a station list the hands advance through as each is reached or found empty;
+450: 50 metal of his income"); making it the base world for an idle station is ~~STRUCK~~ (2026-09-27, the user: empower Jev and the player; no rigid rule where another change resolves the cause) (the missing piece was the option, not a default); (b) a `sweep` state: the group walks the never-looked spots nearest it in
+order, as a body, with the fight on the way, and says which; (c) the `standing` tool's `station` takes a list ("spot_9, spot_2, spot_7, spot_14") the hands advance through as each is reached or found empty (the decompression path is ~~STRUCK~~ (2026-09-27, the user: empower Jev and the player; no rigid rule where another change resolves the cause), 13b);
 (d) the enemy section lists his buildings by place with when seen and what guards them, not by cell.
 Why the hands did not run the raid, traced (the user: "did Jev not have those destinations available?"): they
 did not, on either path. (1) The per-second menu: a group's walk and split states go only to home and to places
@@ -137,9 +132,7 @@ walk states include the spots the packet names for it, however far, as the tool'
 
 ## 7. The packet and the standing orders (A3)
 
-7.1 **The decompression's vocabulary gains** `advance_together_with group_X`, `attack_commander_on_sight`, an escape
-route (`escape_to place, place`), `station_by_front`; and every paragraph part it cannot read into a rule is
-said back to the player at once ("not read: 'advance as one body'"), instead of dropped silently (game 6).
+7.1 ~~STRUCK~~ (2026-09-27, the user: empower Jev and the player; no rigid rule where another change resolves the cause): the decompression is deleted (13b); there is no vocabulary to grow.
 7.2 **A refusal never takes the actor's other rules with it**: the tool applies what it can and names what it
 refused (game 6 16:42).
 7.3 **A rename never refuses an order**: a party name from the last report resolves to the party those units are
@@ -158,17 +151,16 @@ spot_19 (115 s) and nothing nearer, the `job expand` default took spot_2 by rule
 the middle seat's took spot_36 at 1:29 and spot_45, the person's start, at 1:35 (jev-2 f2640-2850). Game 9's packet
 named the same four scouting spots but wrote the seats' spots in full, so the nearest named were near, and no
 Comet game before 10 sent a constructor west (all nine records scanned). Changes: the offer always carries the
-nearest free spot beside the named ones, nearest first, and the default is the nearest unless the packet names a
-spot for that constructor or for constructors; a spot named in a sentence about scouts, groups or the enemy is
-not a build candidate (the decompression, which already reads the packet into per-actor rules, marks which
-sentences are about builders); and the brief writes spot names in full and says why.
+nearest free spots beside the named ones, each with its walking time, nearest first, and Jev chooses; and the
+brief writes spot names in full and says why. The sentence classification ("a spot named in a sentence about
+scouts is not a build candidate") is ~~STRUCK~~ (2026-09-27, the user: empower Jev and the player; no rigid rule where another change resolves the cause): it needs a reader of prose that 13b deletes.
 
 ## 8. The commander (A4)
 
 8.1 **The D-gun as a state**: "D-gun party_N (within 262, energy 1,415)" with the energy said.
-8.2 **Time-to-contact in every builder threat line** ("Brutes at 87 against its 38: contact in 9 s if it walks
-away, 4 s if it stays"), and the step-away only to places it reaches before contact; when none, "no way out on
-foot: fight here with the D-gun" or the turret's cover.
+8.2 **Time-to-contact in every builder threat line and on every step-away place** ("Brutes at 87 against its 38: contact in 9 s if it walks
+away, 4 s if it stays"; "step away to spot_5: contact before it arrives"), and "no way out on
+foot: fight here with the D-gun" or the turret's cover when none is reached in time. Pruning the places it would not reach before contact is ~~STRUCK~~ (2026-09-27, the user: empower Jev and the player; no rigid rule where another change resolves the cause).
 8.3 **Anti-air and evasion**: a builder under bombers is offered "under the flak at X" or "spread from the plant",
 and the plants' lines say the flak and Nettles they could make when bombers are first seen.
 
@@ -246,9 +238,7 @@ slots at -18 to -24 along its edge jammed the group).
 
 ## 11. The crossing orders (X1)
 
-11.1 **An order landing carries its time and the picture it was written on**; a pick within the landing grace
-never reverses an order that landed in the last N seconds unless a loss or a new party justifies it, and the
-picture says "the player's order of 16:07 is in force" on the group's line (four reversals in 45 s, game 9).
+11.1 **An order landing carries its time**, and the picture says "the player's order of 16:07 is in force, 12 s old" on the group's line (four reversals in 45 s, game 9). The landing grace (a pick never reverses an order that landed in the last N seconds) is ~~STRUCK~~ (2026-09-27, the user: empower Jev and the player; no rigid rule where another change resolves the cause): the reversals came from wrong odds on a strung-out group (1.1) and from the player not knowing what happened (11.2).
 11.2 **The player is told what the hands did with each order in the next report** ("your advance of 16:07 stood
 1 s; fall back picked at 16:08 on losses"), so a standing station shown as set is not read as being played
 (game 6 9:52).
@@ -267,7 +257,7 @@ within the placement radius.
 12.1 One default per actor per second: `raiders_party whole_group` and `attack_raiders yes` make one state the
 default, not one per threat slot. 12.2 `hold_line yes` reads the front's odds (1.1). 12.3 A builder on a list is
 offered the solar default when the store drains (game 7 8:00-10:00). 12.4 A station change ends a walk to the old
-station (Cape Violet 8:05). 12.5 A hunt's leash is measured from where the hunt began, not the station.
+station (Cape Violet 8:05). 12.5 (the hunt's leash from where the hunt began) ~~STRUCK~~ (2026-09-27, the user: empower Jev and the player; no rigid rule where another change resolves the cause): marginal, no cost named.
 
 ## 12b. Transfers between seats (the user, 2026-09-27: "units and resources can be transferred between seats when humans are playing; not sure if we can do that, but we should check")
 
@@ -328,19 +318,16 @@ the extractor state's words say what the spot returns and who else is near it.
 spots is echoed back as read.
 13.3 **A list step never vanishes**: a step `execute_builder` cannot play is put back or reported skipped with the
 reason, never popped silently (39 of 139 lists lost extractor steps).
-13.4 **Constructors per seat as the pace**: the brief's opening makes a constructor a minute from each plant to
-four by 4:00 and eight by 8:00 (his count), the allowances written so (`armcv` not capped at one or two), and the
-report's seats line says each seat's constructors beside its extractors with the pool's count.
+13.4 **Constructors per seat as the pace**: brief text and allowance defaults only (a constructor a minute from each plant to
+four by 4:00 and eight by 8:00, his count; `armcv` not capped at one or two), and the
+report's seats line says each seat's constructors beside its extractors with the pool's count. Nothing the hands enforce.
 13.5 **The midline is not a wall**: the free spots west of the middle are named with their walk and their risk
-(the nearest enemy party, the nearest turret of his), and the `expand` job takes them by walk, nearest first,
-with a turret every one or two spots as his constructors do; the brief's "never go to the enemy's strip" says
-where the strip is, not the middle.
+(the nearest enemy party, the nearest turret of his), and the `expand` job takes them by walk, nearest first; the brief's "never go to the enemy's strip" says
+where the strip is, not the middle. The turret cadence ("a turret every one or two spots") is ~~STRUCK~~ (2026-09-27, the user: empower Jev and the player; no rigid rule where another change resolves the cause): brief advice, not the job's.
 13.6 **"Help the plant" says what it is worth**: the assist state's words carry the plant's draw against the store
 ("the plant is starved: helping adds nothing"; "the store is full: helping spends it") so a pick at 0.32 confidence
 over an extractor is not the default answer of an idle constructor.
-13.7 **The first constructor's first order**: with no list yet, the rule sends a new constructor to the nearest
-free spot on our side, never toward the enemy's base (two first constructors walked 108 s toward the person in
-game 9).
+13.7 ~~STRUCK~~ (2026-09-27, the user: empower Jev and the player; no rigid rule where another change resolves the cause): a hard rule for what 7.5 solves by offering the nearest spots (two first constructors walked 108 s toward the person in game 9).
 
 ## 13b. The decompression stage (the user, 2026-09-27: "is there anywhere the decompression stage actually helped in those games? I am inclined to drop it, and hadn't intended for it to be active there")
 
@@ -413,10 +400,10 @@ carries `busy`), and it reads the first seat's `jev-` file only. No audit summar
 human games; the reviewers read the jsonl directly. Either rewrite it for the worlds log (calls, worlds, picks,
 the states' words, per seat and pooled) or delete it and let `hands_window.py` be the audit.
 
-## Order of application (proposed)
+## Order of application
 
-First the picture and the report (1, 2, 3, 5), because every other change is judged by what the deciders were
-shown; then the odds (4) and the states (6, 8, 9); then the packet vocabulary and the tool refusals (7); then the
-interactions (11, 12); the words (10) throughout. Each change registers its heuristic and claim as the docs loop
+First 13b (the deletion, so nothing after is built on the packet's rules); then the picture and the report (1, 2, 3, 5), because every other change is judged by what the deciders were
+shown; then the odds (4) and the states (6, 8, 9.1, 9.3, 9b.3, 9b.4, 9b.6-9b.8); then the tool refusals and places (7.2-7.5); then the
+interactions (11.2, 11.3, 12.1-12.4, 13.1-13.3, 13.6); the words (10) throughout; 12b and 14 beside. Held for after the arena has run on the rest (scope, not principle): 9.2 (sea actors and states) and 9b.1 (the region graph for walking distances from anywhere; the review ranked it last by cost). Each change registers its heuristic and claim as the docs loop
 asks, and the arena resumes on the whole set (the arena target: Opus 5.5 medium, hard_aggressive on Comet Catcher,
 `--map` always passed), with the games with people as the standard the arena is read against.
