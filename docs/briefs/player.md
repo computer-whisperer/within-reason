@@ -58,7 +58,12 @@ have the same shape and opposite answers, the difference between them is the thi
   23:06: Janus counters Stouts, artillery behind a Stout screen counters Janus, never alone. (5) bluegecko-3v1-2:
   Janus and Stouts ate packed Blitzes (eleven lost at 12:09): from the first Janus seen every plant makes Stouts and
   Janus, Blitzes only as pickets. (6) human-8, Quicksilver: Grunts traded one for one with Pawns and lost in ones
-  and twos away from the commander; the commander was not used to improve the exchange. Read his army every turn
+  and twos away from the commander; the commander was not used to improve the exchange. (7) game 11, SailAway 2
+  (water; three seats, resigned 24:33): the hover army was thirteen Mangonels (artillery hovers, 700) to four line
+  hovers on one seat, and his Riptide frigates and Buccaneers beat it; thebluegecko after: "mongonals are better
+  than t1 arty because they outrange things. They can't get in a straight fight, so you want 1-3 of them with other
+  units in front. Same with t1 artillery -- it shouldn't be the primary unit body" (comet-5 said the same of 24
+  Shellshockers eaten without a screen). Artillery is one to three behind a body, never the body. Read his army every turn
   for what our mix has made safe for him, and change before he does; a mix that threatens his spots keeps him
   honest, a mix that only holds does not.
 
@@ -724,7 +729,12 @@ the water, and a commander under water shoots nothing. So each seat on a coast b
 (`armfrad`/`corfrad`, the commander can) at its shore by 3:00 and a torpedo launcher (`armtl`/`cortl`) where his ships
 and subs come, the picture's odds say when a party is under the water and the group has nothing that reaches it, his
 torpedo boats and subs cannot hurt a group on land, and our own commander can cross water unseen along the seabed
-when it must move, shooting nothing on the way.
+when it must move, shooting nothing on the way. From game 11 there (resigned 24:33 to Riptides and Buccaneers;
+thebluegecko: "it is better than barbs at water. barbs are bad at water"; the host: "I am told hovers are bad
+generically"): the sea is won by a navy, a shipyard (`corsy`/`armsy`) by 4:00 on the seat with the coast, its first
+units a construction ship, then subs and Corals (`corfhlt`, a floating defence, 630) at the approaches, frigates
+after; hovers are a raid and a landing party, not the army, and a hover artillery (Mangonel) or any tier-1 artillery
+is one to three behind a body of line units, never the body.
 
 **This map, Great Divide V1 (the games with people from 2026-09-27: two seats of ours under you, the north box A1-H2
 against the south A7-H8, realtime; the opponent a person who, we are told, will fortify the pass and try to win from

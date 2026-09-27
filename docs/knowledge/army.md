@@ -640,3 +640,19 @@ the cap, and his tier-2 plant's start against our mix at the time.
 **Would be wrong if.** A riot mass with Brutes in front had held his tier-2 units, or he had teched at the same clock
 against Brutes.
 **Used by.** the brief's bluegecko section (game 10) once the arena game ends and the brief can be edited.
+
+### K-army-artillery-outranges-but-is-never-the-body
+**Claim.** Artillery is worth having because it outranges what it faces (the Mangonel hover, `cormh`, 700, over the
+tier-1 artillery tanks' 710 in practice by where a hover can stand), but it cannot take a straight fight: one to three
+of them behind other units in front, never the body of the army. thebluegecko, after game 11 on SailAway 2: "mongonals
+are better than t1 arty because they outrange things. They can't get in a straight fight, so you want 1-3 of them
+with other units in front. Same with t1 artillery -- it shouldn't be the primary unit body." And on the map: "it is
+better than barbs at water. barbs are bad at water."
+**Evidence.** `docs/knowledge/_inbox/players-chat-2026-09-28.md`; game 11 (`run/matches/1790530604-bluegecko-3v1-comet-catcher-11`):
+our seat 0 stood with 13 Mangonels among 65 units at 13:00 and the hover army lost to his Riptides and Buccaneers;
+comet-5 (2026-09-23): 24 Shellshockers without a screen eaten at 23:06.
+**Status.** supported (the player's words, 2026-09-28), unmeasured: count artillery as a share of each seat's army
+per minute against the losses of that seat's fights.
+**Would be wrong if.** A mass of artillery held a line on its own in a recorded game, or the 1-3 with a body in front
+lost to the same fleet.
+**Used by.** the brief's unit-mix case and water-map paragraph (2026-09-28).
