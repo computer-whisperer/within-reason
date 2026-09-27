@@ -437,7 +437,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 }
                 (None, Some(Value::String(all))) if all == "all" => {
                     shared.standing.lock().unwrap().push(StandingChange::Clear(None));
-                    Ok("every standing order is cleared when this turn's orders land".into()),
+                    Ok("every standing order is cleared when this turn's orders land".into())
                 }
                 (None, Some(Value::Array(items))) => {
                     let actors: Vec<String> = items.iter().filter_map(|v| v.as_str().map(str::to_string)).collect();

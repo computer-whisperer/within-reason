@@ -470,20 +470,97 @@ impl Brain {
         } else {
             String::new()
         };
+        // Tier, speed, the commander and aircraft beside the metal (H-HANDS-ODDS-WHAT-SHOOTS): a Bull was a metal
+        // price only ("an even fight" for 13 Stouts against 3 Bulls, game 9); "it outruns this group at 87" was a
+        // radar blip priced as a Pawn while the Welders ran at 48 (Cape Violet 10:20); eleven Incisors walked into a
+        // commander's D-gun and thirteen Brutes into its death blast (game 7); a mixed party's air part was chased
+        // by tanks that could not hit it (game 3 14:21).
+        let identified: Vec<(bot_protocol::UnitId, UnitDefId, Vec3)> = enemies.iter().filter(|e| party.ids.contains(&e.id)).filter_map(|e| e.def.map(|d| (e.id, d, e.pos))).collect();
+        let tier_of = |def: UnitDefId| glossary::entry(self.name(def)).map_or(1, |e| e.tier);
+        let their_tier = identified.iter().map(|(_, d, _)| tier_of(*d)).max().unwrap_or(1);
+        let our_tier = units.iter().map(|u| tier_of(u.def)).max().unwrap_or(1);
+        let mut more = String::new();
+        if their_tier > our_tier {
+            let top: Vec<String> = {
+                let mut counts: BTreeMap<UnitDefId, usize> = BTreeMap::new();
+                for (_, d, _) in identified.iter().filter(|(_, d, _)| tier_of(*d) == their_tier) {
+                    *counts.entry(*d).or_default() += 1;
+                }
+                counts.iter().map(|(d, n)| format!("{n} {} ({:.0} metal each)", self.short_words(*d), self.world.def(*d).map_or(0.0, |x| x.metal_cost))).collect()
+            };
+            more.push_str(&format!("; it outclasses us: tier {their_tier} against our tier {our_tier} ({})", top.join(", ")));
+        } else if our_tier > their_tier && !identified.is_empty() {
+            more.push_str(&format!("; we outclass it (tier {our_tier} against its tier {their_tier})"));
+        }
+        let speed_of = |def: UnitDefId| self.world.def(def).map_or(0.0, |d| d.speed);
+        let their_slowest = identified.iter().map(|(_, d, _)| speed_of(*d)).filter(|s| *s > 0.0).fold(f32::INFINITY, f32::min);
+        let their_fastest = identified.iter().map(|(_, d, _)| speed_of(*d)).fold(0.0, f32::max);
+        let our_fastest = units.iter().map(|u| speed_of(u.def)).fold(0.0, f32::max);
+        let our_slowest = units.iter().map(|u| speed_of(u.def)).filter(|s| *s > 0.0).fold(f32::INFINITY, f32::min);
+        let unidentified = party.ids.len() - identified.len();
+        if identified.is_empty() {
+            more.push_str("; its speed is unknown (radar contacts only)");
+        } else {
+            if their_slowest.is_finite() && their_slowest > our_fastest {
+                more.push_str(&format!("; it outruns everything here (its slowest {their_slowest:.0} against our fastest {our_fastest:.0}): a chase drives it off, a kill needs it to stand"));
+            } else if their_slowest.is_finite() && our_fastest > their_slowest {
+                more.push_str(&format!("; our fastest ({our_fastest:.0}) catch its slowest ({their_slowest:.0})"));
+            }
+            if our_slowest.is_finite() && their_fastest > our_slowest {
+                more.push_str(&format!("; its fastest ({their_fastest:.0}) catch our slowest ({our_slowest:.0}): it chooses the fight"));
+            }
+            if unidentified > 0 {
+                more.push_str(&format!("; {unidentified} more of unknown type in it"));
+            }
+        }
+        if party.has_commander
+            && let Some((_, def, at)) = identified.iter().find(|(_, d, _)| self.world.is_commander_def(*d))
+        {
+            let dgun = self.dgun_reach(*def);
+            let inside = units.iter().filter(|u| u.pos.dist2d(*at) <= dgun).count();
+            more.push_str(&format!("; its commander is in it: it D-guns anything within {dgun:.0} (one shot kills; {inside} of ours stand inside now)"));
+            if let Some(blast) = self.world.def(*def).and_then(|d| d.death_blast) {
+                let in_blast = units.iter().filter(|u| u.pos.dist2d(*at) <= blast.radius).count();
+                more.push_str(&format!(", and its death takes everything within {:.0} ({:.0} damage; {in_blast} of ours inside now)", blast.radius, blast.damage));
+            }
+        }
+        let air_in_it = identified.iter().filter(|(_, d, _)| self.world.domain_of(*d) == crate::world::Domain::Air).count();
+        if air_in_it > 0 && air_in_it < party.ids.len() && !self.force_can_hit(&ours, true) {
+            more.push_str(&format!("; {air_in_it} of it are aircraft nothing in this group hits"));
+        }
         if units.is_empty() {
             "we have nobody to send".to_string()
         } else if !self.force_can_hit(&ours, self.all_air(&theirs)) {
-            "we cannot hit it: nothing in this group shoots at what it is".to_string()
+            format!("we cannot hit it: nothing in this group shoots at what it is{more}")
         } else if !self.force_can_hit(&theirs, self.all_air(&ours)) {
-            "it cannot hit us: nothing there shoots at what this group is".to_string()
+            format!("it cannot hit us: nothing there shoots at what this group is{more}")
         } else if ratio >= 2.5 {
-            format!("we outweigh it heavily{reach_words}")
+            format!("we outweigh it heavily{reach_words}{more}")
         } else if ratio >= 1.3 {
-            format!("we outweigh it{reach_words}")
+            format!("we outweigh it{reach_words}{more}")
         } else if ratio >= 0.8 {
-            format!("an even fight{reach_words}")
+            format!("an even fight{reach_words}{more}")
         } else {
-            format!("it outweighs us{reach_words}")
+            format!("it outweighs us{reach_words}{more}")
+        }
+    }
+
+    /// The unseen shooter counted against a group under fire from out of sight (H-HANDS-ODDS-WHAT-SHOOTS): its
+    /// reach against ours, and the metal verdict when the shooter is attributed to a known type (game 3, 19:30: a
+    /// group under Bull fire read "we outweigh it heavily" of the four blips it could see).
+    pub(super) fn unseen_shooter_words(&self, units: &[&OwnUnit], shelling: &super::super::shelling::Shelling) -> String {
+        let our_reach = units.iter().map(|u| self.world.def(u.def).map_or(0.0, |d| d.reach)).fold(0.0, f32::max);
+        let outranges = if shelling.range > our_reach + OUTRANGE_MARGIN { format!("; it outranges everything here ({:.0} against our {our_reach:.0}): nothing of ours answers it from where it stands", shelling.range) } else { format!("; within our reach ({our_reach:.0} against its {:.0}) once it is found", shelling.range) };
+        let attributed = shelling.attributed.as_ref().and_then(|a| self.world.def_named(&a.name));
+        match attributed {
+            Some(def) => {
+                let mut theirs = super::super::combat::Force::default();
+                theirs.add(def);
+                let ratio = self.odds(&Brain::force_of(units), &theirs);
+                let verdict = if ratio >= 2.5 { "we outweigh it heavily" } else if ratio >= 1.3 { "we outweigh it" } else if ratio >= 0.8 { "an even fight" } else { "it outweighs us" };
+                format!("counted as one {} ({:.0} metal): {verdict}{outranges}", self.short_words(def), self.world.def(def).map_or(0.0, |d| d.metal_cost))
+            }
+            None => format!("of a type not seen, a {} with range {:.0}{outranges}", self.weapon_words(&shelling.weapon), shelling.range),
         }
     }
 
@@ -1243,6 +1320,11 @@ impl Brain {
                     })
                     .collect();
                 entry["under_fire"] = json!(format!("yes, this second, by {}", words.join(", ")));
+                if let Some(s) = &shelling
+                    && kinds.contains_key("something unseen")
+                {
+                    entry["unseen_shooter"] = json!(format!("the shooter out of sight, likeliest at `shelling` ({}), {}", self.place_words(&places, s.at), self.unseen_shooter_words(&units, s)));
+                }
             }
             actors.insert(format!("group_{}", group.name), entry);
         }

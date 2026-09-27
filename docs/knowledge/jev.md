@@ -1216,3 +1216,14 @@ and the switch to Bulls in game 9 was invisible ("factories_seen: none, ever" at
 The deciders were asked to weigh a fight with no memory of the army they had just seen.
 **Evidence.** `docs/studies/2026-09-27-jev-posing/README.md` (I5); `run/matches/1790479031-bluegecko-3v1-comet-catcher-8/00/posing-review.md`.
 **Status.** fixed 2026-09-27 evening by [[H-HANDS-ENEMY-MEMORY]].
+
+### K-hands-the-odds-were-a-metal-price
+**Claim.** Until 2026-09-27 evening the odds line was the square-law metal verdict with, since d265666, reach
+beside it: a Bull (tier 2, 3,500 health, reach 460) against Stouts was "an even fight" (game 9: 13 Stouts, 2,925,
+against 3 Bulls, 2,850); a party of radar blips was priced as Pawns for speed ("it outruns this group at 87
+against 75" of Welders at 48, Cape Violet 10:20); the enemy commander was metal (eleven Incisors into its D-gun,
+thirteen Brutes into its death blast, game 7); a mixed party's aircraft were chased by tanks (game 3 14:21); and
+a group under fire from out of sight read "we outweigh it heavily" of the blips it could see (game 3 19:30).
+**Evidence.** `docs/studies/2026-09-27-jev-posing/README.md` (I4); the games' `posing-review.md`.
+**Status.** fixed 2026-09-27 evening by [[H-HANDS-ODDS-WHAT-SHOOTS]]; what stays open is the matchup table's
+tier-2 and turret rows (the metal verdict itself is still tier-1-trained).

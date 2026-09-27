@@ -249,7 +249,7 @@ pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, fights
             if let Some(health) = field("health").filter(|h| !h.starts_with("full")) {
                 parts.push(format!("health {health}"));
             }
-            for key in ["allowed", "lane", "standing", "progress", "stuck", "yard", "footwork", "enemies_near", "enemies_at_our_extractors", "under_fire", "scouts_out", "detachments_out", "split_from", "nanos"] {
+            for key in ["allowed", "lane", "standing", "progress", "stuck", "yard", "footwork", "reinforcements", "ranks", "enemies_near", "enemies_at_our_extractors", "under_fire", "unseen_shooter", "scouts_out", "detachments_out", "split_from", "nanos"] {
                 match &entry[key] {
                     serde_json::Value::String(text) => parts.push(format!("{key}: {text}")),
                     serde_json::Value::Array(items) => parts.push(format!("{key}: {}", items.iter().filter_map(|i| i.as_str()).collect::<Vec<_>>().join("; "))),

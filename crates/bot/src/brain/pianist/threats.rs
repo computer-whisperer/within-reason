@@ -60,7 +60,13 @@ impl Brain {
             if !(ours || near_ours || toward_home) {
                 continue;
             }
-            let quarry_speed = party.ids.iter().map(|id| speed_of(enemies.iter().find(|e| e.id == *id).and_then(|e| e.def))).fold(0.0, f32::max);
+            // Whether we catch it is its slowest identified member's pace (H-HANDS-ODDS-WHAT-SHOOTS); a party of
+            // radar contacts only has no known speed, and is not priced as a Pawn's 87 (Cape Violet 10:20: "it
+            // outruns this group at 87 against 75" of Welders at 48).
+            let identified_speeds: Vec<f32> = party.ids.iter().filter_map(|id| enemies.iter().find(|e| e.id == *id).and_then(|e| e.def)).map(|d| speed_of(Some(d))).filter(|s| *s > 0.0).collect();
+            let quarry_speed = identified_speeds.iter().copied().fold(f32::INFINITY, f32::min);
+            let quarry_known = quarry_speed.is_finite();
+            let quarry_speed = if quarry_known { quarry_speed } else { UNIDENTIFIED_SPEED };
             let place = place_of(&picture.places, party.at).map_or("in sight".to_string(), |pl| format!("at {pl}"));
             let killing = party.killing.as_ref().map_or(String::new(), |(what, _)| format!(", killing {what}"));
             let state = |id: String, actor: String, response: Response, words: String, metal: f32, default: bool, current: bool| State { id, actor, response, words, metal, dim: "threat", default, current, pair_only: false };
@@ -90,9 +96,9 @@ impl Brain {
                 // hold, else home); the course slot's hold ends an engagement the quarry carries beyond it.
                 let anchor = rules.get("station").and_then(|s| picture.places.iter().find(|p| p.name == *s)).map(|p| p.at).or(group.last_hold).unwrap_or(home);
                 let chase_allowed = !rules.get("no_chase").is_some_and(|v| v == "yes") || party.at.dist2d(anchor) <= RAIDER_REACH;
-                // A group slower than the party can drive it off, not kill it: said in the line.
+                // The speeds are in the odds words now (`odds_words`); the walk below uses the group's slowest.
                 let group_speed = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.speed).fold(f32::INFINITY, f32::min);
-                let outrun = if group_speed < quarry_speed { format!(" (it outruns this group at {quarry_speed:.0} against {group_speed:.0}: a chase drives it off, a kill needs faster hunters)") } else { String::new() };
+                let outrun = String::new();
                 let standing: f32 = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
                 let hunting_it = group.hunt.as_ref().is_some_and(|h| party.ids.contains(&h.quarry));
                 let declined = group.declined.iter().any(|(p, f)| *p == party.name && tick.frame - f < super::groups::DECLINE_FRAMES);
@@ -123,7 +129,7 @@ impl Brain {
                         let speed = fast[..k].iter().filter_map(|u| self.world.def(u.def)).map(|d| d.speed).fold(f32::INFINITY, f32::min);
                         let nearest = fast[..k].iter().map(|u| u.pos.dist2d(party.at)).fold(f32::INFINITY, f32::min);
                         let drive = if speed.is_finite() && speed > 0.0 { format!(": they drive it off in {:.0} s from {nearest:.0} away", nearest / speed) } else { String::new() };
-                        let catching = if speed > quarry_speed { format!(" and can catch it ({speed:.0} against its {quarry_speed:.0})") } else { format!(" without catching it ({speed:.0} against its {quarry_speed:.0}): it leaves when they arrive, or stands and dies") };
+                        let catching = if !quarry_known { " (its speed is unknown: radar contacts only)".to_string() } else if speed > quarry_speed { format!(" and can catch it ({speed:.0} against its slowest {quarry_speed:.0})") } else { format!(" without catching it ({speed:.0} against its slowest {quarry_speed:.0}): it leaves when they arrive, or stands and dies") };
                         let what: BTreeMap<&str, usize> = fast[..k].iter().fold(BTreeMap::new(), |mut m, u| {
                             *m.entry(self.name(u.def)).or_default() += 1;
                             m
@@ -198,7 +204,7 @@ impl Brain {
                 let speed = self.world.def(unit.def).map_or(0.0, |d| d.speed);
                 let walk = if speed > 0.0 { format!(": it drives it off in {:.0} s of walking", distance / speed) } else { String::new() };
                 let killing = party.killing.as_ref().map_or(String::new(), |(what, metal)| format!(", killing {what} ({metal:.0} metal) now"));
-                let chase = if quarry_speed > speed { format!("; it outruns {name} at {quarry_speed:.0} against {speed:.0}: this drives it off if it stays, and kills it only if it stands and fights") } else { String::new() };
+                let chase = if !quarry_known { "; its speed is unknown (radar contacts only)".to_string() } else if quarry_speed > speed { format!("; it outruns {name} at {quarry_speed:.0} against {speed:.0}: this drives it off if it stays, and kills it only if it stands and fights") } else { String::new() };
                 // A skirmisher outranges a commander (onepass-player-3, 22:14: it walked at a Hound, 650 against 300,
                 // that backed off shooting; the player's packet keeps it home against anything that outranges it).
                 let reach = self.world.def(unit.def).map_or(0.0, |d| d.reach);

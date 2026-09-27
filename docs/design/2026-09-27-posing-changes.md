@@ -54,7 +54,7 @@ starving on one seat with metal banked on another (games 7, 9).
 3.5 **Wake lines say the loss since the last orders and since the turn before**, never a per-turn count that resets
 (games 4, 7, Cape Violet).
 
-## 4. The odds: what shoots (I4)
+## 4. The odds: what shoots (I4) — APPLIED 2026-09-27 evening (H-HANDS-ODDS-WHAT-SHOOTS: 4.1-4.5; 4.6 was in the reach addendum; the matchup table rows remain an arena job)
 
 4.1 **Reach, speed and tier beside the metal** in every odds line for groups (the commander lines have reach already;
 the reach addendum of d265666 is a start): "3 Bulls (tier 2, reach 460, 950 metal each) against 13 Stouts (reach
