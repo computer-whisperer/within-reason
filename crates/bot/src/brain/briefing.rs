@@ -159,6 +159,7 @@ impl Brain {
                     self.enemy_factories_gone.push((def, pos, tick.frame));
                 }
                 self.enemy_soldiers.remove(enemy);
+                self.enemy_unfinished.remove(enemy);
                 gone.push(*enemy);
             }
         }
@@ -181,6 +182,11 @@ impl Brain {
             }
             if info.speed == 0.0 {
                 self.enemy_buildings.insert(enemy.id, (def, enemy.pos, tick.frame));
+                if enemy.being_built {
+                    self.enemy_unfinished.insert(enemy.id);
+                } else {
+                    self.enemy_unfinished.remove(&enemy.id);
+                }
                 seen.push((enemy.id, (def, enemy.pos, tick.frame)));
             } else if info.weapon_count > 0 && info.build_speed == 0.0 {
                 self.enemy_soldiers.insert(enemy.id, (def, enemy.pos, tick.frame));

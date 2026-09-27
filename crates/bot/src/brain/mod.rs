@@ -100,6 +100,8 @@ pub struct Brain {
     strategist: Option<Arc<Shared>>,
     /// Enemy buildings seen and not known to be destroyed: definition, position, frame last seen.
     enemy_buildings: HashMap<UnitId, (UnitDefId, Vec3, i32)>,
+    /// Of `enemy_buildings`, the ones last seen still being built: no threat, no shooter, no wall, and a target.
+    enemy_unfinished: HashSet<UnitId>,
     /// Hits from out of sight in the last twenty seconds (`shelling.rs`), and when the player was last woken for them.
     shelling: Vec<shelling::Shell>,
     shelling_warned: i32,
@@ -262,6 +264,7 @@ impl Brain {
             fired: BTreeMap::new(),
             strategist,
             enemy_buildings: HashMap::new(),
+            enemy_unfinished: HashSet::new(),
             shelling: Vec::new(),
             shelling_warned: i32::MIN / 2,
             hits: Vec::new(),

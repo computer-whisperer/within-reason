@@ -183,7 +183,7 @@ impl Brain {
         let rules = self.sim.rules.clone();
         let mut walls: Vec<(UnitId, Vec3, f32)> = self.enemy_buildings.iter().filter_map(|(id, (def, pos, _))| {
             let d = self.world.def(*def)?;
-            (d.weapon_count > 0).then_some(())?;
+            (d.weapon_count > 0 && !self.enemy_unfinished.contains(id)).then_some(())?;
             let reach = rules.units.list[*self.sim.defs.get(def)?].reach();
             Some((*id, *pos, reach + TURRET_MARGIN))
         }).collect();

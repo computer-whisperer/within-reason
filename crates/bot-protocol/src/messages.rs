@@ -326,6 +326,9 @@ pub struct EnemyUnit {
     pub health: f32,
     /// Whose it is, when the engine tells (it does for units in sight).
     pub team: Option<i32>,
+    /// Still under construction (in sight only; a radar contact is never): it cannot shoot, and it dies to anything.
+    #[serde(default)]
+    pub being_built: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

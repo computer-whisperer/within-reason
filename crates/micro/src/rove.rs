@@ -296,7 +296,8 @@ impl Lane {
                 let d = view.def(e.def?)?;
                 let air = d.speed > 0.0 && d.move_class.is_none();
                 let kill_seconds = e.health.max(1.0) / stats.dps.max(0.01);
-                (d.weapon_count == 0 && !air && stats.dps > 0.0 && kill_seconds <= KILL_SECONDS && e.pos.dist2d(unit.pos) <= ATTACK_RADIUS && undefended(e.pos) && clear_way(&danger, unit.pos, e.pos)).then(|| target_class(d))
+                // Unarmed, or a turret still being built: harmless and worth its whole metal.
+                ((d.weapon_count == 0 || e.being_built) && !air && stats.dps > 0.0 && kill_seconds <= KILL_SECONDS && e.pos.dist2d(unit.pos) <= ATTACK_RADIUS && undefended(e.pos) && clear_way(&danger, unit.pos, e.pos)).then(|| target_class(d))
             };
             rover.target = rover.target.filter(|t| enemies.iter().find(|e| e.id == *t).and_then(&attackable).is_some());
             if rover.target.is_none() {
@@ -516,7 +517,7 @@ mod tests {
     }
 
     fn enemy(id: i32, def: UnitDefId, x: f32, z: f32) -> EnemyUnit {
-        EnemyUnit { id: UnitId(id), def: Some(def), pos: at(x, z), vel: at(0.0, 0.0), health: 300.0, team: Some(1) }
+        EnemyUnit { id: UnitId(id), def: Some(def), pos: at(x, z), vel: at(0.0, 0.0), health: 300.0, team: Some(1), being_built: false }
     }
 
     fn tick(frame: i32, own: Vec<OwnUnit>, enemies: Vec<EnemyUnit>) -> Tick {
@@ -576,6 +577,17 @@ mod tests {
         let out = lane.tick(&host, &tick(30, vec![rover(10, 2300.0, 2000.0)], Vec::new()), &mut Vec::new(), false);
         let to = moves_of(&out.commands, 10);
         assert!(to[0].x > 2300.0 + 100.0, "outward: {to:?}");
+    }
+
+    #[test]
+    fn a_tower_being_built_guards_nothing_and_is_itself_a_target() {
+        let host = Host::new(vec![goal("spot_2", 3000.0, 3000.0, None, true)]);
+        let mut lane = roving_lane(&[10]);
+        let mut frame_of_tower = enemy(60, TOWER, 1100.0, 1000.0);
+        (frame_of_tower.being_built, frame_of_tower.health) = (true, 50.0);
+        let out = lane.tick(&host, &tick(30, vec![rover(10, 1000.0, 1000.0)], vec![frame_of_tower]), &mut Vec::new(), false);
+        assert!(moves_of(&out.commands, 10).is_empty(), "no evasion from a tower that cannot shoot: {:?}", out.commands);
+        assert!(out.commands.iter().any(|c| matches!(c, Command::Attack { unit: UnitId(10), target: UnitId(60), .. })), "{:?}", out.commands);
     }
 
     #[test]

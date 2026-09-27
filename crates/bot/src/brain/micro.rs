@@ -207,7 +207,8 @@ impl View for BrainView<'_> {
     }
 
     fn remembered_buildings(&self) -> Vec<(UnitId, UnitDefId, Vec3)> {
-        self.brain.enemy_buildings.iter().map(|(id, (def, pos, _))| (*id, *def, *pos)).collect()
+        // A building last seen being built is remembered, but it shoots nothing.
+        self.brain.enemy_buildings.iter().filter(|(id, _)| !self.brain.enemy_unfinished.contains(id)).map(|(id, (def, pos, _))| (*id, *def, *pos)).collect()
     }
 
     fn building_at(&self, id: UnitId) -> Option<Vec3> {

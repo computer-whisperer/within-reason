@@ -189,7 +189,7 @@ impl Brain {
         let shooter = weapon.split('_').next().and_then(|prefix| self.world.def_named(prefix));
         let attributed = shooter.and_then(|def| {
             let reach = range * 1.1;
-            let mut seen: Vec<(Vec3, i32)> = self.enemy_buildings.values().filter(|(d, _, _)| *d == def).map(|(_, p, f)| (*p, *f)).collect();
+            let mut seen: Vec<(Vec3, i32)> = self.enemy_buildings.iter().filter(|(id, (d, _, _))| *d == def && !self.enemy_unfinished.contains(id)).map(|(_, (_, p, f))| (*p, *f)).collect();
             seen.extend(self.enemy_soldiers.values().filter(|(d, _, f)| *d == def && last - f <= SHELL_MEMORY).map(|(_, p, f)| (*p, *f)));
             if self.is_commander_def(def) {
                 seen.extend(self.enemy_commander_seen.filter(|(_, f)| last - f <= SHELL_MEMORY));

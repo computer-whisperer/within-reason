@@ -407,3 +407,17 @@ with a goal over 300 away) the speed share by orders received in the second is 0
 distance restarts the approach. The lead a slot sends a unit to should be seconds of its speed, not a fixed 150
 (`form::lead_for`), and a chase's goal should lie past the enemy, not short of it.
 **Used by.** H-MICRO-FLEE, H-MICRO-FORM (the lead and the Close point).
+
+### K-hands-a-turret-being-built-read-as-a-threat
+**Claim.** Until 2026-09-28 nothing on our side knew whether an enemy building was finished: the shim read
+`Unit_isBeingBuilt` for our own units and the truth file only, the enemy message had no such field, and the micro lane
+stamped every armed building in sight at its full damage rate over its full reach, so a turret at 5% pushed units off
+its approach, counted in the odds' "turrets covering it", and was remembered as a full threat until seen destroyed;
+nothing preferred it as the target it is (low health, harmless, its whole metal on death).
+**Status.** demonstrated from the code (2026-09-28, the user's question "how does micro combat logic handle a currently
+building turret?"); the effect in games unmeasured (the records before this date carry no flag for enemies).
+**Evidence.** `crates/micro/src/lib.rs` `threat_sources` and `crates/bot-protocol/src/messages.rs` `EnemyUnit` before
+the change; the truth files, which had the flag all along (`[id, name, x, z, health, being built]`).
+**Would be wrong if.** The engine reported an unfinished enemy building as unarmed (`weapon_count` 0), or refused
+`Unit_isBeingBuilt` for enemies in sight.
+**Used by.** [[H-HANDS-UNFINISHED-HARMLESS]].

@@ -298,7 +298,7 @@ impl Recorder {
         for (i, e) in s.enemies.iter().enumerate() {
             let comma = if i == 0 { "" } else { "," };
             let def = self.def(self.known.get(&e.id).and_then(|k| k.0));
-            let _ = write!(self.buffer, "{comma}[{},{def},{},{},{:.0}]", e.id.0, e.pos.x as i32, e.pos.z as i32, e.health);
+            let _ = write!(self.buffer, "{comma}[{},{def},{},{},{:.0},{}]", e.id.0, e.pos.x as i32, e.pos.z as i32, e.health, e.being_built as i32);
         }
         self.buffer.push_str("],\"al\":[");
         for (i, a) in s.allies.iter().enumerate() {

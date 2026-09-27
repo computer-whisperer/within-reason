@@ -647,9 +647,9 @@ impl Brain {
         let mut ground = 0.0;
         let mut air = 0.0;
         let mut counts: BTreeMap<&str, usize> = BTreeMap::new();
-        for (def, pos, _) in self.enemy_buildings.values() {
+        for (id, (def, pos, _)) in &self.enemy_buildings {
             let Some(d) = self.world.def(*def) else { continue };
-            if d.weapon_count == 0 || d.reach <= 0.0 || pos.dist2d(at) > d.reach + TURRET_MARGIN {
+            if d.weapon_count == 0 || d.reach <= 0.0 || pos.dist2d(at) > d.reach + TURRET_MARGIN || self.enemy_unfinished.contains(id) {
                 continue;
             }
             if self.can_hit(*def, false) {
@@ -907,14 +907,15 @@ impl Brain {
             // Its buildings remembered within 500: what a group sent here meets (docs/design/2026-09-22-enemy-evidence.md, decision 4).
             let mut near: BTreeMap<String, usize> = BTreeMap::new();
             let mut oldest = frame;
-            for (def, pos, seen) in self.enemy_buildings.values() {
+            for (id, (def, pos, seen)) in &self.enemy_buildings {
                 if pos.dist2d(place.at) < 500.0 {
-                    *near.entry(self.short_words(*def)).or_default() += 1;
+                    let unfinished = if self.enemy_unfinished.contains(id) { " (being built)" } else { "" };
+                    *near.entry(format!("{}{unfinished}", self.short_words(*def))).or_default() += 1;
                     oldest = oldest.min(*seen);
                 }
             }
             if !near.is_empty() {
-                let turrets = self.enemy_buildings.values().filter(|(def, pos, _)| pos.dist2d(place.at) < 500.0 && self.world.def(*def).is_some_and(|d| d.weapon_count > 0)).count();
+                let turrets = self.enemy_buildings.iter().filter(|(id, (def, pos, _))| pos.dist2d(place.at) < 500.0 && !self.enemy_unfinished.contains(id) && self.world.def(*def).is_some_and(|d| d.weapon_count > 0)).count();
                 entry["their_buildings_near"] = json!(format!("{} ({} armed; last seen {} ago)", near.iter().map(|(n, k)| format!("{k} {n}")).collect::<Vec<_>>().join(", "), turrets, clock(frame - oldest)));
             }
             if let Some(i) = place.spot
@@ -1029,13 +1030,14 @@ impl Brain {
         let known_metal: f32 = known_soldiers.iter().filter_map(|(def, _, _)| self.world.def(*def)).map(|d| d.metal_cost).sum();
         // His buildings by place, with when seen and what guards them (6.6 (d)): "B3: 1 armllt, 1 armmex" per cell
         // gave a group nothing to go and kill.
-        let mut remembered: BTreeMap<String, (BTreeMap<&str, usize>, i32, usize)> = BTreeMap::new();
-        for (def, pos, seen) in self.enemy_buildings.values() {
+        let mut remembered: BTreeMap<String, (BTreeMap<String, usize>, i32, usize)> = BTreeMap::new();
+        for (id, (def, pos, seen)) in &self.enemy_buildings {
             let key = super::threats::place_of(&places, *pos).map_or_else(|| format!("{} (no named place)", self.world.grid(*pos)), |p| format!("{p} ({})", self.world.grid(*pos)));
             let entry = remembered.entry(key).or_insert((BTreeMap::new(), frame, 0));
-            *entry.0.entry(self.name(*def)).or_default() += 1;
+            let unfinished = self.enemy_unfinished.contains(id);
+            *entry.0.entry(if unfinished { format!("{} (being built)", self.name(*def)) } else { self.name(*def).to_string() }).or_default() += 1;
             entry.1 = entry.1.min(*seen);
-            if self.world.def(*def).is_some_and(|d| d.weapon_count > 0 && d.reach > 0.0) {
+            if !unfinished && self.world.def(*def).is_some_and(|d| d.weapon_count > 0 && d.reach > 0.0) {
                 entry.2 += 1;
             }
         }

@@ -393,6 +393,7 @@ impl Engine {
                     vel: self.unit_vel(id),
                     health: call!(self, Unit_getHealth(id)),
                     team: Some(call!(self, Unit_getTeam(id))).filter(|team| *team >= 0),
+                    being_built: def >= 0 && call!(self, Unit_isBeingBuilt(id)),
                 }
             })
             .collect();

@@ -1202,7 +1202,9 @@ impl Lane {
         for enemy in enemies {
             let Some(def) = enemy.def.or(blip) else { continue };
             let Some(d) = view.def(def) else { continue };
-            if d.weapon_count == 0 {
+            // A building still being built shoots nothing: stamped whole, a turret at 5% pushed a push off its
+            // approach (the user, 2026-09-28: the fight logic had no idea of it).
+            if d.weapon_count == 0 || enemy.being_built {
                 continue;
             }
             let Some(s) = stats(def) else { continue };
