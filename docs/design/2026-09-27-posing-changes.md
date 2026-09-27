@@ -126,7 +126,7 @@ tool's description promises "a spot or passage you name here is always on your h
 builders (the extractor states), false of groups. (2) The decompression: its vocabulary for a group is station
 (one place), station_mode, fall_back_to, never, no_chase, raiders_*, hold_line, engage_party, join; the station
 question asks "where do they tell group_A_t1 to stand, gather, hold or be stationed?" with spot_9, spot_2, spot_7
-and spot_14 among its options, and Jev answered spot_11 at 0.96 (jev-0 decompress row f8379). The 4:30 packet still carried the picket sentence ("with fewer than eight soldiers stands at spot_11"), so the answer was a fair reading of a question that has no way to take a route. Nothing
+and spot_14 among its options, and Jev answered spot_11 at 0.96 (jev-0 decompress row f8379). The 4:30 packet named spot_11 only as the place the raiders "fall back to their picket spot (spot_11)", so a question with no way to take a route was answered with the one standing place the paragraph had. Nothing
 asks for a route, an objective or a target. So the player set `station spot_9` by the tool at 4:18 (outranking
 the packet), and then advanced the station by hand at 7:10 (spot_2), 7:35 (spot_4), 8:16 (spot_7) and 9:02
 (spot_13): the packet's "then" list was played by the player, one turn per step, 30-40 s apart, and at each
