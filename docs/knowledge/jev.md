@@ -1173,3 +1173,19 @@ wastes its build power and the metal a unit would have drawn goes to whatever el
 **Evidence.** `run/matches/1790475073-bluegecko-3v1-comet-catcher-5/00` records (`own` idle flags of the plants
 against `m[0]`) and jev logs (`played` entries of kind lab, all source plan).
 **Status.** Fixed in code 2026-09-27 (H-HANDS-LAB-DEFAULT), unmeasured. Exploited by [[H-HANDS-LAB-DEFAULT]].
+
+### K-hands-lists-landing-together-skip-each-others-spots
+**Claim.** When the player's lists for several constructors land in one turn, each list's extractor step finds its
+spot held by another constructor's not-yet-started hands' order, skips it as "not free", and that order is then
+dropped by the other constructor's own list, so nobody builds the spot and the constructors go on to the turrets
+written after it (bluegecko-3v1-comet-catcher-8, 6:20: "the bot counted those steps as done and skipped them, so
+several constructors went straight to their turrets with no extractor built"; the count stood at 27 for 30 s and
+five constructors were re-listed). Two more small refusals of the same night: `produce` refused a plant still going
+up as "not a factory in the picture" (1:05, three games), and the constructors built energy converters unasked
+whenever energy banked (5:52), which the OS-48 players say a metal-heavy map has no use for.
+**Evidence.** `run/matches/1790478204-bluegecko-3v1-comet-catcher-8/00/strategist-0.jsonl` (turns at 1:05, 5:52,
+6:20).
+**Status.** Fixed 2026-09-27 (a spot held by an unstarted order of a builder with a list waiting is free to another
+list; the unit cards carry nanoframes so `produce` knows a factory going up; converters out of the usual menu, by
+name in a list only). Exploited by [[H-HANDS-LISTS]].
+

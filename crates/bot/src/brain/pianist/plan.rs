@@ -253,11 +253,21 @@ impl Brain {
     /// The free spots this builder could take, nearest by its own walking first: not held, not another builder's
     /// task or queued spot, not refused lately, free as far as we know, reachable by its class.
     pub(super) fn free_spots(&self, unit: &OwnUnit, pianist: &Pianist, picture: &Picture, own: &[OwnUnit], frame: i32, kit: &Kit) -> Vec<(usize, f32)> {
+        // A spot is taken by another builder's extractor order, unless that order has not started and the builder
+        // has a list of its own waiting to take it over (bluegecko-3v1-comet-catcher-8, 6:20: lists for five
+        // constructors landed at once, each skipped the spot another's not-yet-started hands' order held, those
+        // orders were dropped by the lists, and the constructors went on to their turrets with no extractor built).
         let taken: Vec<usize> = pianist
             .tasks
             .iter()
             .chain(pianist.queued.iter())
-            .filter_map(|(id, t)| if let (true, Task::Build { spot: Some(i), .. }) = (*id != unit.id, t) { Some(*i) } else { None })
+            .filter_map(|(id, t)| match t {
+                Task::Build { spot: Some(i), started, .. } if *id != unit.id => {
+                    let listed = pianist.scripts.get(&self.actor_name(*id)).is_some_and(|q| !q.is_empty());
+                    (*started || !listed).then_some(*i)
+                }
+                _ => None,
+            })
             .collect();
         let mut spots: Vec<(usize, f32)> = picture
             .places

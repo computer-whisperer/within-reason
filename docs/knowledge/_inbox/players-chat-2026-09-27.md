@@ -70,3 +70,7 @@ bot logs, with the game clock. The claims drawn from them are in openings.md, ec
 - 13:05 Infern8: "when your t2 lab first comes online, it's often worth it to stop production at other labs owned by
   that hand to focus m income"; 13:40 "one constructor and then tanks".
 
+## Comet 3v1 against u6bkep again (game 8, his client gone at 9:24 with both his plants dead)
+- 7:36 Infern8: "defensive structures (like the beamer in the north) are generally stronger per metal than mobile
+  units"; 7:51 "attacking them effectively requires either long-range units or overwhelming firepower".
+

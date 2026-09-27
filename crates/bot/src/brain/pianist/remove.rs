@@ -10,14 +10,14 @@ use super::super::Brain;
 use crate::strategist::shared::{Removal, Shared, UnitCard};
 
 impl Brain {
-    /// The cards the `remove` tool reads: one per finished unit of ours, and the blasts of every unit type once.
+    /// The cards the `remove` tool reads: one per unit of ours, a nanoframe included (a half-built factory can be
+    /// named by `produce` before it stands, and reclaimed), and the blasts of every unit type once.
     pub(in crate::brain) fn publish_cards(&self, tick: &Tick, shared: &Shared) {
         let blast = |b: Option<bot_protocol::Blast>| b.map(|b| (b.radius, b.damage));
         let cards: Vec<UnitCard> = tick
             .snapshot
             .own_units
             .iter()
-            .filter(|u| !u.being_built)
             .map(|u| {
                 let def = self.world.def(u.def);
                 let actor = (self.world.is_mobile_builder(u.def) || self.world.is_factory_def(u.def)).then(|| self.actor_name(u.id));

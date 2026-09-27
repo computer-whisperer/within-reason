@@ -553,7 +553,17 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             };
             // (actor, units or None to clear, the group its soldiers join: Some(Some(name)) sets, Some(None) clears, None leaves)
             let mut parsed: Vec<(String, Option<Option<Vec<String>>>, Option<Option<String>>)> = Vec::new();
-            let factories: Vec<String> = shared.hands_merged(false).picture["actors"].as_object().map(|a| a.keys().filter(|k| ["lab_", "plant_", "factory_"].iter().any(|p| k.starts_with(p))).cloned().collect()).unwrap_or_default();
+            let mut factories: Vec<String> = shared.hands_merged(false).picture["actors"].as_object().map(|a| a.keys().filter(|k| ["lab_", "plant_", "factory_"].iter().any(|p| k.starts_with(p))).cloned().collect()).unwrap_or_default();
+            // ... and a factory still going up, which the picture does not list yet (bluegecko-3v1-comet-catcher-8,
+            // 1:05: the plants' limits refused whole, "not a factory in the picture", the plants standing by 1:17).
+            for card in shared.own_cards.lock().unwrap().values().flatten() {
+                if let Some(actor) = &card.actor
+                    && ["lab_", "plant_", "factory_"].iter().any(|p| actor.starts_with(p))
+                    && !factories.contains(actor)
+                {
+                    factories.push(actor.clone());
+                }
+            }
             for (name, value) in lists {
                 let factory = ["lab_", "plant_", "factory_"].iter().any(|p| name.starts_with(p));
                 if !matches!(name.as_str(), "all" | "all_builders" | "commander") && !factory && !name.starts_with("constructor_") {

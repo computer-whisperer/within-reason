@@ -50,16 +50,19 @@ pub const ROSTERS: [Roster; 2] = [
 /// What a builder is offered when the player has whitelisted nothing for it (docs/design/2026-09-22-full-roster.md,
 /// decision 5): the Kit's buildings and the usual mid-game ones, cut to what the builder can build. The rest of its
 /// build list is reached through `produce`, and always by the policy. Extractors are the `extractor` option.
+// No energy converters (armmakr, cormakr, armmmkr, cormmkr): the hands built them unasked whenever energy banked
+// (bluegecko-3v1-comet-catcher-8, 5:52), and the OS-48 players say a metal-heavy map has no use for them; the
+// player names one in a `queue` or `produce` list when it wants them.
 const USUAL_ARMADA: &[&str] = &[
-    "armsolar", "armwin", "armadvsol", "armmakr", "armlab", "armvp", "armap", "armhp", "armsy", "armllt", "armhlt", "armrl", "armrad", "armarad", "armnanotc",
-    "armmstor", "armestor", "armalab", "armavp", "armaap", "armmoho", "armfus", "armmmkr", "armguard", "armflak", "armdl",
+    "armsolar", "armwin", "armadvsol", "armlab", "armvp", "armap", "armhp", "armsy", "armllt", "armhlt", "armrl", "armrad", "armarad", "armnanotc",
+    "armmstor", "armestor", "armalab", "armavp", "armaap", "armmoho", "armfus", "armguard", "armflak", "armdl",
     // Tier 2 (the advanced constructors' lists): advanced fusion and geothermal, the advanced storages, the jammer,
     // the tier-2 defences, the anti-nuke, the targeting facility.
     "armafus", "armageo", "armuwadvms", "armuwadves", "armveil", "armpb", "armanni", "armamb", "armamd", "armtarg",
 ];
 const USUAL_CORTEX: &[&str] = &[
-    "corsolar", "corwin", "coradvsol", "cormakr", "corlab", "corvp", "corap", "corhp", "corsy", "corllt", "corhlt", "corrl", "corrad", "corarad", "cornanotc",
-    "cormstor", "corestor", "coralab", "coravp", "coraap", "cormoho", "corfus", "cormmkr", "corpun", "corflak", "cordl",
+    "corsolar", "corwin", "coradvsol", "corlab", "corvp", "corap", "corhp", "corsy", "corllt", "corhlt", "corrl", "corrad", "corarad", "cornanotc",
+    "cormstor", "corestor", "coralab", "coravp", "coraap", "cormoho", "corfus", "corpun", "corflak", "cordl",
     "corafus", "corageo", "coruwadvms", "coruwadves", "corshroud", "corvipe", "cordoom", "cortoast", "corfmd", "cortarg",
 ];
 
