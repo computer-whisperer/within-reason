@@ -281,3 +281,17 @@ started out on the water and it needs energy"); the tidal strength of SailAway 2
 `crates/bot/data/units.json` (`armtide`: on_water, submerged, 90 metal, 400 health).
 **Would be wrong if.** The engine let a solar stand on shallow water, or the tide on the map gave less than a solar.
 **Used by.** [[H-ECO-TIDAL]].
+
+### K-team-two-seats-feed-one-seats-tier-2
+**Claim.** With several seats the tier 2 is one seat's, paid by all: the other seats send metal to the advanced plant's
+seat from the moment the plant is placed, that seat's own plants pause, its first tier-2 units are an advanced
+constructor for each seat, given away, and the advanced extractors go up on every seat at once; a pattern for land and
+water alike (the water form: one hover platform's constructors given to the other seats, two shipyards).
+**Status.** ruled (the user, 2026-09-27 with the transfer tool, restated 2026-09-28: "Two seats can gift resources to
+one seat, that seat can build t2, then share t2 constructors to let advanced mexes go up"); not yet seen in a game: no
+`transfer` call in games 8 and 10 (game 10's advanced plant at 0% from 15:40 to its abandonment at 19:15 with its
+seat's store at 1,432), three in game 12 (a dying seat's units and 700 metal to the live one at 11:41-12:13).
+**Evidence.** The strategist logs of `run/matches/1790479031-...-8`, `1790528069-...-10`, `1790532515-...-12`.
+**Would be wrong if.** Metal sent between seats were lost to the receiver's store cap faster than a second advanced
+plant would cost, or an advanced constructor given away could not build the receiving seat's mohos.
+**Used by.** the brief's tier-2 case (7), the Several seats paragraph and the Great Divide plan; [[H-PLAYER-TRANSFER]].

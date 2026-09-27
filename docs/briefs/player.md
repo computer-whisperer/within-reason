@@ -41,7 +41,14 @@ have the same shape and opposite answers, the difference between them is the thi
   Lasher mass let him tech ("you made many lashers, so I was safe to go T2"). (5) Great Divide, the plan: tier 2
   and mohos on both seats by 10:00, because the pass camp is broken by Pillagers at 1,300, not by the ball. (6)
   escalate-4 and -5 vs BARb hard_aggressive: it techs on a clock (Hounds 14:00, Fatboy 19:00, Razorback 25:48)
-  whatever we do, and both games waited. The calculus (the user, 2026-09-28): in a close duel the tech is a fatal
+  whatever we do, and both games waited. (7) With several seats the tier 2 is one seat's, paid by all (the user,
+  2026-09-27, again 2026-09-28: "Two seats can gift resources to one seat, that seat can build t2, then share t2
+  constructors to let advanced mexes go up"): the other seats send metal with `transfer` the moment the advanced
+  plant is placed, that seat's own plants pause, its first tier-2 unit is an advanced constructor for each seat,
+  given away with `transfer`, and the mohos go up on every seat at once. Game 10: the top seat's advanced plant sat
+  at 0% from 15:40 until it was abandoned at 19:15 while that seat's store rose to 1,432 and no `transfer` was made
+  all game (none in game 8 either); game 12 made three, a dying seat's units and 700 metal to the live one at
+  11:41-12:13. The pattern applies on land and water alike, as the water paragraph's one hover platform does. The calculus (the user, 2026-09-28): in a close duel the tech is a fatal
   weak point, so his tech is the moment to find and kill his base, and matching him is the mistake (the pros tech in
   4 of 58 duel sides); past about 25:00, with more than two players, or against an opponent that techs on a clock,
   the window is covered and tier 2 on our side is right, with that seat's other plants paused ("Top should stop
@@ -229,8 +236,9 @@ and its own map picture: a `_t2` actor sent to `passage_1_t2` goes to its own se
 for each seat's commander by its tagged name, and give each seat its own spots, written in full (`spot_10, spot_5`;
 the hands also read a run like `spot_10, 5, 6`, but not past a word). The `transfer` tool moves metal and energy
 between seats (the receiver's store caps it) and gives units, groups, builders or plants to a seat: the team's ways
-are one army under the seat nearest the front, the advanced plant's seat fed metal by the others from about 12:00,
-one tier-2 constructor made and given to each seat, and a dead seat's plants and constructors given to a live one
+are one army under the seat nearest the front, one seat's advanced plant fed metal by the others from the moment it
+is placed (not from a clock), its first tier-2 units an advanced constructor for each seat, given away, so the mohos
+go up everywhere at once (the case in the tier-2 decision above), and a dead seat's plants and constructors given to a live one
 before the game's ending rules take them; a commander can be reclaimed by another builder for its metal (`remove`),
 but a starting store holds 1,000 of its 2,700, so spend as it comes. Say in chat which seat is which by colour.
 
@@ -782,8 +790,9 @@ K-map-great-divide-v1-reach-over-the-divide, K-map-great-divide-v1-not-air-only,
   1,245. A ball advancing into the pass against standing turrets is the Comet Catcher nest again (16k lost for 6k,
   then 10k for 1k, two games running): it does not happen. The ball holds at the north mouth, out of the camp's reach,
   as the screen for the artillery and the threat that keeps their army home.
-- **How the game is won.** Three things in this order. (1) Economy: two seats against one; tier 2 and mohos on both
-  seats by about 10:00, twice their income by 12:00, the bank spent. (2) Fire over the camp: Shellshockers (armart,
+- **How the game is won.** Three things in this order. (1) Economy: two seats against one; one seat's tier 2 by about 10:00,
+  fed by the other's metal from the moment the plant is placed, its first units an advanced constructor for each
+  seat, and mohos on both seats after; twice their income by 12:00, the bank spent. (2) Fire over the camp: Shellshockers (armart,
   710) from a Stout screen at the north mouth outrange light and heavy turrets and kill the early camp for nothing;
   once Pit Bulls or Gauntlets stand, Pillagers (armmerl, 1,300, from the advanced vehicle plant) outrange them from
   the same ground, a dozen at a time with the screen in front. Artillery, not the ball, breaks a camp. (3) Air over
