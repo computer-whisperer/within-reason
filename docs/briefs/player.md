@@ -397,6 +397,21 @@ K-maps-comet-barb-opens-bots, the tempo model]
   lists given to constructors mid-walk at 8:19-8:42 were not taken; a plant's engine queue keeps units already
   queued when the allowance changes; the `shelling` place still leads a group under an unseen beamer.
 
+- **Several seats against a person here (bluegecko-3v1-comet-catcher, 2026-09-27, lost at 21:00 from 31 extractors
+  and 65 soldiers at 12:00).** What one experienced person did to three seats of ours on the east strip, and what to
+  do instead. (1) Raids from 2:06, single Rovers and Blitzes at the outer spots: the north seat lost 17 extractors and
+  answered none, because its Blitzes stood in one ball far from the spots. Each seat keeps two Blitzes as pickets among
+  its outer extractors from 3:00 and a light turret beside each outer pair; the ball is not the raid answer. (2) The
+  block: Stouts and Janus from 7:47, one block of ten to twenty Stouts at the nearest seat's home by 13:00, and the
+  north commander died at 14:29 while the 50-Blitz ball of the middle seat sat at spot_48 for six minutes and then
+  chased side parties. The three seats' soldiers are one army from the first Blitzes: `join` the middle seat's group
+  as they come, station it between the seats (spot_35 or spot_42 on the east strip), and when a block is seen walking
+  to any seat, the whole ball goes to that seat's home before it arrives; the threatened seat's commander stays home
+  and helps its plant. (3) Shellshockers walked ahead of the screen and were pulled back; artillery stands behind
+  Stouts or not at all. (4) Air from 17:00 (Thunder bombers, then Banshees): a flak or two and a Ferret at each seat's
+  home by 15:00, before the first bomber. (5) A person scouts and reads: the enemy commander and factories were never
+  seen by us all game; one Rover along the west strip by 5:00 and a radar at the middle from each seat.
+
 **This map, Great Divide V1 (the games with people from 2026-09-27: two seats of ours under you, the north box A1-H2
 against the south A7-H8, realtime; the opponent a person who, we are told, will fortify the pass and try to win from
 there).** [K-map-great-divide-v1-one-pass, K-map-great-divide-v1-the-choke-is-the-plan,
