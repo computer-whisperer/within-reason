@@ -39,8 +39,16 @@ fn sections(script: &str) -> Vec<(String, &str)> {
         let start = i + open;
         let Some(close) = lower[start..].find(']') else { break };
         let name = lower[start + 1..start + close].trim().to_string();
-        let Some(brace) = lower[start + close..].find('{') else { break };
-        let body_start = start + close + brace + 1;
+        // A section's brace follows its name with nothing but whitespace between: `name=[gecko]thebluegecko;` and
+        // `skill=[6.02];` are values, and taking them for sections lost every section after them (the person's
+        // seat "not in the script", our first seat not ours, in every game with people to 2026-09-27).
+        let after = start + close + 1;
+        let brace = lower[after..].len() - lower[after..].trim_start().len();
+        if !lower[after..].trim_start().starts_with('{') {
+            i = after;
+            continue;
+        }
+        let body_start = after + brace + 1;
         let mut depth = 1;
         let mut j = body_start;
         while j < bytes.len() && depth > 0 {
@@ -147,6 +155,13 @@ mod tests {
         assert_eq!(super::teams(lobby), vec![0]);
         let coloured = "[GAME]\n{\n[team0] { allyteam=0; rgbcolor=0.63922 0.08235 0.88235; side=Armada; }\n[team1] { allyteam=1; side=Random; }\n}";
         assert_eq!(super::colors(coloured), vec![(0, [0.63922, 0.08235, 0.88235])]);
+        // Brackets inside values are not sections (the lobby's clan tags and skill brackets).
+        let tagged = "[GAME]\n{\n[player0] { team=0; name=[gecko]thebluegecko; skill=[34.34]; spectator=0; }\n[player1] { name=[gecko]u6bkep; skill=[19.24]; spectator=1; }\n[ai0] { team=1; host=3; name=WReason0.1(1); shortname=WReason; }\n[mapoptions]\n{\n}\n[team1] { allyteam=1; side=Random; }\n[team0] { allyteam=0; }\n}";
+        let seats = super::controllers(tagged);
+        assert_eq!(seats.len(), 2, "{seats:?}");
+        assert_eq!(seats[0], (0, Controller::Person { name: "[gecko]thebluegecko".into(), skill: Some(34.34) }));
+        assert!(matches!(&seats[1], (1, Controller::Ai { short_name, .. }) if short_name == "WReason"));
+        assert_eq!(super::teams(tagged), vec![1, 0]);
         let arena = "[GAME]\n{\n\t[PLAYER0] { Name=arena; Spectator=1; }\n\t[AI0] { Name=ai0; Team=0; Host=0; ShortName=WReason; Version=0.1; }\n\t[AI1] { Name=ai1; Team=1; Host=0; ShortName=BARb; Version=stable; [OPTIONS] { profile=hard_aggressive; random_seed=1; disabledunits=; } }\n}";
         let seats = super::controllers(arena);
         assert_eq!(seats.len(), 2);
@@ -158,5 +173,21 @@ mod tests {
     fn reads_boxes_and_skips_ally_teams_without_one() {
         let script = "[GAME]\n{\n[TEAM0] { AllyTeam=0; }\n[ALLYTEAM0] { NumAllies=0; StartRectLeft=0; StartRectTop=0; StartRectRight=0.3; StartRectBottom=0.25; }\n[allyteam1]\n{\nnumallies=0;\n}\n[ALLYTEAM2] { StartRectLeft=0.7; StartRectTop=0.7; StartRectRight=1; StartRectBottom=1; }\n}";
         assert_eq!(super::start_rects(script), vec![(0, [0.0, 0.0, 0.3, 0.25]), (2, [0.7, 0.7, 1.0, 1.0])]);
+    }
+}
+
+#[cfg(test)]
+mod probe {
+    /// `WR_SCRIPT=<file> cargo test -p ai-shim -- --ignored probe` prints what the parser reads from a real script.
+    #[test]
+    #[ignore]
+    fn sections_of_a_recorded_script() {
+        let script = std::fs::read_to_string(std::env::var("WR_SCRIPT").unwrap()).unwrap();
+        for (name, body) in super::sections(&script) {
+            println!("[{name}] {} bytes: {}", body.len(), body.replace('\n', " ").chars().take(80).collect::<String>());
+        }
+        println!("teams {:?}", super::teams(&script));
+        println!("controllers {:?}", super::controllers(&script));
+        println!("colors {:?}", super::colors(&script));
     }
 }

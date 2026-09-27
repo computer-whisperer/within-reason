@@ -314,6 +314,24 @@ impl Brain {
 }
 
 impl Brain {
+    /// This seat's faction by name: from the commander's type when the script's side is Random (the engine keeps
+    /// the word; the game picks the faction at start), else the script's side capitalised.
+    pub(super) fn faction(&self) -> String {
+        let side = &self.world.hello.teams.iter().find(|t| t.team == self.world.hello.team).map(|t| t.side.as_str()).unwrap_or("");
+        match self.kit.and_then(|k| self.world.def(k.commander)).map(|d| d.name.as_str()) {
+            Some(n) if side.eq_ignore_ascii_case("random") || side.is_empty() => match &n[..n.len().min(3)] {
+                "arm" => "Armada".to_string(),
+                "cor" => "Cortex".to_string(),
+                "leg" => "Legion".to_string(),
+                _ => n.to_string(),
+            },
+            _ => {
+                let mut c = side.chars();
+                c.next().map(|f| f.to_ascii_uppercase().to_string() + c.as_str()).unwrap_or_default()
+            }
+        }
+    }
+
     /// Every ally team of the game with its seats in words, ours first (from the start script's controllers).
     pub(super) fn sides(&self) -> Vec<crate::strategist::shared::Side> {
         use bot_protocol::Controller;
@@ -341,9 +359,16 @@ impl Brain {
                             Controller::Gaia => unreachable!("filtered above"),
                             Controller::Unknown => format!("team {} (who plays it is not in the script)", t.team),
                         };
-                        // The engine lowercases faction names.
-                        let mut side = t.side.chars();
-                        let side = side.next().map(|c| c.to_ascii_uppercase().to_string() + side.as_str()).unwrap_or_default();
+                        // The engine lowercases faction names; a lobby seat on side Random keeps the word, its
+                        // faction picked by the game at start (our own is read from the commander).
+                        let side = if t.team == hello.team {
+                            self.faction()
+                        } else if t.side.eq_ignore_ascii_case("random") {
+                            "faction chosen at start (Random in the lobby)".to_string()
+                        } else {
+                            let mut side = t.side.chars();
+                            side.next().map(|c| c.to_ascii_uppercase().to_string() + side.as_str()).unwrap_or_default()
+                        };
                         let colour = t.color.map(|c| format!(", {} in the lobby's colours", colour_name(c))).unwrap_or_default();
                         if side.is_empty() { format!("{who}{colour}") } else { format!("{who}, {side}{colour}") }
                     })
@@ -518,7 +543,7 @@ impl Brain {
             turrets: turrets.iter().map(|t| self.place(*t)).collect(),
             buildable,
             roster,
-            factions: vec![(self.world.hello.team, self.world.hello.teams.iter().find(|t| t.team == self.world.hello.team).map_or(String::from("?"), |t| t.side.clone()))],
+            factions: vec![(self.world.hello.team, self.faction())],
         });
     }
 }

@@ -460,6 +460,19 @@ opening. What beats what cannot be read from the cards: kills and losses are who
 composition (the types dying on each side in each fight cell) would answer it.
 **Used by.** (candidate: the unit-mix lever in the brief)
 
+### K-team-the-script-parser-took-clan-tags-for-sections
+**Claim.** The shim's start-script reader took any `[word]` for a section header, so `name=[gecko]thebluegecko;`
+and `skill=[6.02];` inside values started phantom sections and every section after them lost its name: in all
+four games with people (2026-09-26/27) the person's seat read "team 0 (who plays it is not in the script)", our
+first seat (`[ai0]`, listed after his `[player0]`) was not counted as ours, so `seats_of_ours()` said two of three,
+the first turn fired at frame 1 with two seats, the sides line never named the third, and the player wrote a
+two-seat opening three games running ("I found a third seat" at 0:21 in game 4).
+**Evidence.** The demo's start script (`WR_SCRIPT=<file> cargo test -p ai-shim -- --ignored probe --nocapture`
+printed a `[gecko]` section of 4,583 bytes and `controllers` without teams 0 and 1); game 4's first two turns.
+**Status.** Fixed 2026-09-27 (a section's brace must follow its name with only whitespace between; regression
+test with the clan tag). A lobby seat on side Random keeps the word `Random` in the engine's side, so the bot now
+reads its own faction from the commander's type. Exploited by [[H-PLAYER-SEAT-NAMES]], [[H-PLAYER-SIDES]].
+
 ### K-team-one-store-for-all-seats-loses-a-seat
 **Claim.** Every store in `Shared` that one seat overwrote instead of keying by team lost the other seats to the
 player's tools: the standing list (drained by one seat, 8cc9ac6), the hands (aca9d65), the field's roster
