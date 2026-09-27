@@ -59,6 +59,13 @@ extractors while the ball grows.
   blocks of ten from 10:00 into one seat at a time, Banshee gunships in a wave of twenty at 14:00 in the third game,
   a Mauser shelling from out of sight at 16:00, Bulls from 18:30, thirty Falcons by 21:00, and each of our
   commanders killed at its plant by the block. He never met our ball: it fought his raids and blocks in pieces.
+  His side of the second game (`run/matches/1790471894-replay-human-comet-3v1-2/card.md`, team 0): three
+  extractors and three solars, the vehicle plant at 0:58, Rovers from 1:28 (nine at 4:00) and a constructor every
+  fourth unit; extractors 18 at 8:00, 24 at 10:00, 34 at 14:00, 49 at 20:00 (the strong duellists' 23 at 12:00, ours
+  32 over three seats), income 50 at 10:00, 132 at 16:00, 176 at 20:00; a second vehicle plant at 9:12, the advanced
+  one at 16:08, Bulls from 18:00 (twelve at 20:00). He lost 63 Stouts, 56 Rovers and 28 Janus that game and could,
+  on twice our income. The raids and blocks took our outer spots and his constructors took them over (spot_23 E3 at
+  4:56 and 15:15, spot_37 E4 at 14:07, spot_1 D1 at 14:22).
 **What it means for us.** He wins the trade by never fighting our whole army: our seats meet him one at a time.
 What beats his way is the same way, held together: the whole side's spots early, one army on turrets between the
 seats, tier 2 by 12:00 (he brings Bulls, Mausers and gunships at 14:00-18:00 and we have nothing that reaches
