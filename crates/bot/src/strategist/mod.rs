@@ -205,6 +205,11 @@ impl Launch {
             };
             return Ok(Session { kind, turn_done, prompt: crate::texts::digest(&prompt) });
         }
+        // The prompt goes by file: as one argument it hit Linux's 128 KiB limit for a single argument the day the
+        // brief reached 105 KB ("the player's session failed to start: Argument list too long", player-13, the
+        // player never turning and the game lost at 9:03 on the hands' defaults).
+        let prompt_file = self.cwd.join("system-prompt.md");
+        std::fs::write(&prompt_file, &prompt)?;
         let mut child = Command::new("claude")
             .current_dir(&self.cwd)
             .env("CLAUDE_CONFIG_DIR", &self.config_dir)
@@ -212,7 +217,8 @@ impl Launch {
             .arg(&self.mcp_config)
             .args(["--allowedTools", "mcp__wreason__*", "--permission-mode", "dontAsk", "--setting-sources", ""])
             .args(["--effort", &self.effort])
-            .args(["--system-prompt", &prompt])
+            .arg("--system-prompt-file")
+            .arg(&prompt_file)
             .args(["--input-format", "stream-json", "--output-format", "stream-json", "--verbose"])
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())

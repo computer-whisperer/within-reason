@@ -1312,3 +1312,16 @@ samples, `00/review.md` (Z3, the candidate harness note).
 everything that needs it builds slowly" under the hands' condition (store under 5% with usage at 90% of income or
 more), and its counts are of standing units. Exploited by [[H-PLAYER-ECO-WORDS]].
 
+### K-player-the-brief-outgrew-one-argument
+**Claim.** The player's system prompt (the player prompt and the brief, 133 KB together on 2026-09-28) was handed to
+the Claude CLI as one `--system-prompt` argument, and Linux refuses a single argument over 131,072 bytes: player-13's
+session failed to start ("Argument list too long (os error 7)"), the player never turned, and the game was lost at
+9:03 on the hands' defaults (twenty constructor bots, Jev's calls failing on 17,558 questions a minute). Every
+game before it ran under the limit (101 KB the day before).
+**Evidence.** `run/matches/1790549874-player-13-gecko-opening/00/bot.log` line 4; `wc -c docs/briefs/player.md
+crates/bot/src/strategist/player.md`; `getconf ARG_MAX` is the total, MAX_ARG_STRLEN the per-argument limit.
+**Status.** fixed 2026-09-28: the prompt is written to `system-prompt.md` in the strategist's cwd and passed with
+`--system-prompt-file` (`crates/bot/src/strategist/mod.rs`, `Launch::spawn`); the Codex path already wrote
+`AGENTS.md`. A second lesson under it: a game whose player never started runs at full speed and is called in
+minutes, and the hands without a packet make constructors without end (H-HANDS-LAB-DEFAULT with no allowance).
+
