@@ -435,7 +435,7 @@ impl Brain {
             let queue = status.queue_ahead;
             let keep_words = match (&status.started, queue) {
                 (Some((what, share)), true) => format!("finishes the {what} ({:.0}% done) and then waits for an order", share * 100.0),
-                _ => format!("{name} {}", self.task_course(task, unit, &picture.places, frame)),
+                _ => format!("{name} {}", self.task_course(task, unit, &picture.places, frame, own)),
             };
             let idle = task.is_none() && unit.idle;
             let leaves = if queue { String::new() } else { self.leaves_words(task, &status.started) };
@@ -831,7 +831,7 @@ impl Brain {
             };
             let nearest_party = picture.parties.iter().map(|p| (nearest_to_any(p), p)).filter(|(d, _)| *d < ALARM).min_by(|a, b| a.0.total_cmp(&b.0)).map(|(_, p)| p);
             let odds_against = nearest_party.is_some_and(|p| {
-                let (odds, _) = self.group_odds(&body, p, enemies);
+                let (odds, _) = self.group_odds(&body, p, enemies, &tick.snapshot.allies);
                 !odds.starts_with("we outweigh") && !odds.starts_with("it cannot hit us")
             });
             let standing: f32 = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();

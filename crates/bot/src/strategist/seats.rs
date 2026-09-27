@@ -31,6 +31,7 @@ pub struct SeatLine {
     pub metal_income: f32,
     pub metal_stored: f32,
     pub extractors: usize,
+    pub constructors: usize,
     pub soldiers: usize,
 }
 
@@ -62,6 +63,16 @@ impl Shared {
                         into.insert(format!("home_t{team}"), entry.clone());
                     } else if !into.contains_key(name) {
                         into.insert(name.clone(), entry.clone());
+                    }
+                }
+            }
+            // The enemy in sight of every seat, one entry per party (the names are the side's: H-HANDS-SIDE-PARTIES),
+            // so the standing tool's party check and the player's read cover what any seat sees.
+            if let (Some(into), Some(from)) = (merged.picture["enemy"]["in_sight"].as_array_mut(), other.picture["enemy"]["in_sight"].as_array()) {
+                for entry in from {
+                    let name = entry.as_str().and_then(|s| s.split(':').next()).unwrap_or_default().to_string();
+                    if !into.iter().any(|e| e.as_str().and_then(|s| s.split(':').next()) == Some(name.as_str())) {
+                        into.push(entry.clone());
                     }
                 }
             }
@@ -121,6 +132,7 @@ impl Shared {
                 metal_income: s.briefing.metal.income,
                 metal_stored: s.briefing.metal.current,
                 extractors: s.briefing.counts.extractors,
+                constructors: s.briefing.counts.constructors,
                 soldiers: s.briefing.counts.army,
             })
             .collect();
@@ -203,11 +215,22 @@ impl Shared {
                 }
             }
             s.extractors_lost_3_min += o.extractors_lost_3_min;
-            s.traded_3_min = (s.traded_3_min.0 + o.traded_3_min.0, s.traded_3_min.1 + o.traded_3_min.1);
-            s.traded = (s.traded.0 + o.traded.0, s.traded.1 + o.traded.1);
+            s.traded_3_min.0 += o.traded_3_min.0;
+            s.traded.0 += o.traded.0;
+            for death in &o.enemy_deaths {
+                if !s.enemy_deaths.iter().any(|(id, ..)| id == &death.0) {
+                    s.enemy_deaths.push(*death);
+                }
+            }
+            s.enemy_buildings_metal = s.enemy_buildings_metal.max(o.enemy_buildings_metal);
             s.enemy_soldiers_seen = s.enemy_soldiers_seen.max(o.enemy_soldiers_seen);
             s.enemy_soldiers_seen_metal = s.enemy_soldiers_seen_metal.max(o.enemy_soldiers_seen_metal);
         }
+        // Their side of the trade once per death, whichever seats saw it.
+        let s = &mut merged.score;
+        let recent = s.frame - 3 * 60 * 30;
+        s.traded.1 = s.enemy_deaths.iter().map(|(_, _, m)| m).sum();
+        s.traded_3_min.1 = s.enemy_deaths.iter().filter(|(_, f, _)| *f >= recent).map(|(_, _, m)| m).sum();
         merged
     }
 }

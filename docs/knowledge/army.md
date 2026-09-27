@@ -561,3 +561,23 @@ type); the worth probe `cargo test -p bot -- --ignored worth_probe --nocapture`.
 **Status.** supported (2026-09-27, one game with the numbers). Exploited by [[H-HANDS-ODDS-REACH]],
 [[H-PLAYER-PLAYERS-ADVICE]].
 
+
+### K-team-one-party-had-a-name-per-seat
+**Claim.** Until 2026-09-27 evening each seat named the enemy parties it saw with its own counter and a seat tag
+(`party_46_t2`), so one party seen by two seats had two names, the `standing` tool's `engage_party` check read the
+lead seat's sightings only and refused the others' names ("not a party in the picture": games 3, 4, 6, 9), and each
+seat's Jev priced its own group alone against a party the next seat's group stood beside (three armies that could
+never be "together", games 4, 6, 9).
+**Evidence.** `docs/studies/2026-09-27-jev-posing/README.md` (I2; game 3's refused engage orders traced to
+`mcp.rs`'s standing branch); the games' `jev-N.jsonl` (the same units under two names).
+**Status.** fixed 2026-09-27 evening by [[H-HANDS-SIDE-PARTIES]] and [[H-HANDS-ALLIED-GROUPS]] (the check: a party
+in two seats' pictures under one name in the next game with several seats).
+
+### K-team-the-trade-counted-each-death-per-seat
+**Claim.** Every seat records every enemy death it sees, and the report's trade line summed the seats' figures, so
+in a three-seat game a death all three saw counted three times: every ledger row's "destroyed" figure of
+2026-09-27 is inflated on that side (the 3v1 trades of 110k:77k, 85k:30k and the like are not what they say).
+**Evidence.** `docs/studies/2026-09-27-jev-posing/README.md` (I3, verified in `seats.rs`'s merge); the records'
+`enemy_destroyed` events carry the unit id, so the true figure can be re-derived.
+**Status.** fixed 2026-09-27 evening by [[H-PLAYER-TRADE-ONCE]]; the ledger rows' correction is a separate
+cleanup (changes doc 3.1).

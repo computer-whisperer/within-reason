@@ -25,7 +25,7 @@ L lost since the last orders", with the loss count running from the last orders,
 1.4 **A plant's output is said as a body**: the automatic gather-then-walk is ~~STRUCK~~ (2026-09-27, the user: empower Jev and the player; no rigid rule where another change resolves the cause): 6.2's gather state covers the action when Jev or the player wants it. Kept: the picture says "N of its soldiers are on the way
 from plant_X, K behind" (game 3 11:34, game 9 15:44). Files: `pianist/groups.rs` (join), `execute.rs`.
 
-## 2. The picture: the other seats (I2, games 4, 6, 9)
+## 2. The picture: the other seats (I2, games 4, 6, 9) — APPLIED 2026-09-27 evening (H-HANDS-SIDE-PARTIES, H-HANDS-ALLIED-GROUPS)
 
 2.1 **Every seat's picture carries the other seats' groups** as `group_A_t2` entries with position, size, task and
 what they engage, so "together" is a fact Jev can see, and the packet's "as one body" has something to hold to.
@@ -39,7 +39,7 @@ seats has one name in both pictures (party ids keyed on the member ids, allocate
 2.4 **The standing tool checks party names against every seat's sightings** (the engage refusals: games 3, 4, 6, 9).
 File: `strategist/mcp.rs` (the standing branch reads `hands_merged` parties, not the lead's `enemy.in_sight`).
 
-## 3. The report: the numbers (I3, I6)
+## 3. The report: the numbers (I3, I6) — APPLIED 2026-09-27 evening (H-PLAYER-TRADE-ONCE: 3.1, 3.2, 3.4; 3.3 was one source already, 3.5 is covered by the group entry's losses since the player's orders; the ledger rows' correction still to do)
 
 3.1 **One count of enemy deaths across seats**: the merged `traded` and `traded_3_min` dedupe by unit id (the
 seats' `enemy_destroyed` events name the id), so the trade line is true. Every ledger row's trade figure of
@@ -71,7 +71,7 @@ takes everything within 350" (game 7: eleven Incisors, then thirteen Brutes).
 apart, with "nothing in this group hits its air" said (game 3 14:21).
 4.6 **Turrets covering a party**: their reach named in the group's line as it is in the commander's.
 
-## 5. The enemy: where and what (I5)
+## 5. The enemy: where and what (I5) — APPLIED 2026-09-27 evening (H-HANDS-ENEMY-MEMORY: 5.1, 5.3; 5.2's scouts are groups with entries already, 5.4 left)
 
 5.1 **Last-known positions with age** for every enemy party that left sight ("party_46 (10 Stouts, 3 Janus) last
 seen 40 s ago at F3 heading north"), and for the block: "his main block, N units, last seen at X, T ago".

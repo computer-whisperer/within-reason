@@ -2,7 +2,7 @@
 //! weak at arithmetic and at comparing quantities, and distracted by unrelated state), with the player's
 //! instructions at the top. Places and enemy parties are named here so that the menus' answers can name them back.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use crate::strategist::shared::Allowance;
 
 use bot_protocol::{EnemyUnit, Event, OwnUnit, Tick, UnitDefId, Vec3};
@@ -61,6 +61,17 @@ pub(crate) struct Party {
     pub turret_metal: f32,
     pub turret_metal_air: f32,
     pub turrets: String,
+}
+
+/// A party's last sighting, kept after it leaves sight (H-HANDS-ENEMY-MEMORY).
+#[derive(Clone, Debug)]
+pub(crate) struct PartySeen {
+    pub name: String,
+    pub composition: String,
+    pub metal: f32,
+    pub at: Vec3,
+    pub seen: i32,
+    pub heading: String,
 }
 
 #[derive(Clone)]
@@ -281,9 +292,39 @@ impl Brain {
                 party.name = name;
             }
         }
-        for party in parties.iter_mut().filter(|p| p.name.is_empty()) {
-            party.name = format!("party_{}{}", next_name.get(), self.seat_tag());
-            next_name.set(next_name.get() + 1);
+        // The side's registry (H-HANDS-SIDE-PARTIES): a party another seat has named keeps that name here, and a
+        // fresh number comes from the side's counter, so the two seats' pictures and the player's report say one name.
+        let registry = self.strategist.as_ref().map(|s| s.parties.lock().unwrap());
+        match registry {
+            Some(mut registry) => {
+                for party in parties.iter_mut().filter(|p| p.name.is_empty()) {
+                    let mut votes: BTreeMap<String, usize> = BTreeMap::new();
+                    for id in &party.ids {
+                        if let Some(name) = registry.by_unit.get(id) && !taken.contains(name) {
+                            *votes.entry(name.clone()).or_default() += 1;
+                        }
+                    }
+                    party.name = match votes.into_iter().max_by_key(|(_, n)| *n) {
+                        Some((name, _)) => name,
+                        None => {
+                            registry.next += 1;
+                            format!("party_{}", registry.next)
+                        }
+                    };
+                    taken.push(party.name.clone());
+                }
+                for party in &parties {
+                    for id in &party.ids {
+                        registry.by_unit.insert(*id, party.name.clone());
+                    }
+                }
+            }
+            None => {
+                for party in parties.iter_mut().filter(|p| p.name.is_empty()) {
+                    party.name = format!("party_{}", next_name.get());
+                    next_name.set(next_name.get() + 1);
+                }
+            }
         }
         parties
     }
@@ -452,20 +493,47 @@ impl Brain {
     /// Beamers and five Welders while the odds were priced on all 48; game 9: 11-13 Pounders inside Bull reach while
     /// "we outweigh it heavily" was said of the centre.
     /// Returns the verdict of the priced part (as `odds_words` gives it, for the checks) and the full words.
-    pub(super) fn group_odds(&self, body: &Body, party: &Party, enemies: &[EnemyUnit]) -> (String, String) {
-        if !body.strung_out() {
+    /// The allied seats' armed soldiers within `NEAR` of the party are said beside our odds, with the combined
+    /// verdict ("with 12 allied soldiers of seat t2 (1,400 metal) beside it: together we outweigh it"), so "together"
+    /// is a fact Jev can see (games 4, 6, 9: three armies that could not be one group).
+    pub(super) fn group_odds(&self, body: &Body, party: &Party, enemies: &[EnemyUnit], allies: &[bot_protocol::AllyUnit]) -> (String, String) {
+        let (verdict, mut words) = if !body.strung_out() {
             let v = self.odds_words(&body.core, party, enemies);
-            return (v.clone(), v);
+            (v.clone(), v)
+        } else {
+            let in_fight = body.within(party.at, NEAR);
+            if in_fight.is_empty() || in_fight.len() == body.core.len() {
+                let v = self.odds_words(&body.core, party, enemies);
+                (v.clone(), v)
+            } else {
+                let behind = body.core.len() - in_fight.len();
+                let farthest = body.core.iter().map(|u| u.pos.dist2d(party.at)).fold(0.0, f32::max);
+                let verdict = self.odds_words(&in_fight, party, enemies);
+                let words = format!("for the {} of its {} soldiers in the fight, {verdict}; the other {behind} are {:.0}-{farthest:.0} behind and not in it yet", in_fight.len(), body.core.len(), NEAR);
+                (verdict, words)
+            }
+        };
+        let beside: Vec<&bot_protocol::AllyUnit> = allies.iter().filter(|a| !a.being_built && a.pos.dist2d(party.at) <= NEAR && self.world.def(a.def).is_some_and(|d| d.weapon_count > 0 && d.speed > 0.0)).collect();
+        if !beside.is_empty() {
+            let mut ours = Brain::force_of(&body.within(party.at, NEAR.max(body.length)));
+            for a in &beside {
+                ours.add(a.def);
+            }
+            let mut theirs = super::super::combat::Force::default();
+            for enemy in enemies.iter().filter(|e| party.ids.contains(&e.id)) {
+                match enemy.def {
+                    Some(def) => theirs.add(def),
+                    None => theirs.unidentified += 1,
+                }
+            }
+            theirs.turret_metal += party.turret_metal;
+            theirs.turret_metal_air += party.turret_metal_air;
+            let ratio = self.odds(&ours, &theirs);
+            let together = if ratio >= 2.5 { "together we outweigh it heavily" } else if ratio >= 1.3 { "together we outweigh it" } else if ratio >= 0.8 { "together an even fight" } else { "even together it outweighs us" };
+            let metal: f32 = beside.iter().filter_map(|a| self.world.def(a.def)).map(|d| d.metal_cost).sum();
+            let seats: BTreeSet<i32> = beside.iter().map(|a| a.team).collect();
+            words.push_str(&format!("; with {} allied soldiers of seat {} ({metal:.0} metal) within reach of it: {together}", beside.len(), seats.iter().map(|t| format!("t{t}")).collect::<Vec<_>>().join(" and ")));
         }
-        let in_fight = body.within(party.at, NEAR);
-        if in_fight.is_empty() || in_fight.len() == body.core.len() {
-            let v = self.odds_words(&body.core, party, enemies);
-            return (v.clone(), v);
-        }
-        let behind = body.core.len() - in_fight.len();
-        let farthest = body.core.iter().map(|u| u.pos.dist2d(party.at)).fold(0.0, f32::max);
-        let verdict = self.odds_words(&in_fight, party, enemies);
-        let words = format!("for the {} of its {} soldiers in the fight, {verdict}; the other {behind} are {:.0}-{farthest:.0} behind and not in it yet", in_fight.len(), body.core.len(), NEAR);
         (verdict, words)
     }
 
@@ -514,9 +582,9 @@ impl Brain {
             .map(|(d, p)| format!("{} ({}) {:.0} away", p.name, p.composition, d))
     }
 
-    fn task_words(&self, task: Option<&Task>, unit: &OwnUnit, places: &[Place], frame: i32) -> String {
+    fn task_words(&self, task: Option<&Task>, unit: &OwnUnit, places: &[Place], frame: i32, own: &[OwnUnit]) -> String {
         let ago = |since: i32| format!("{} s ago", (frame - since) / FRAMES_PER_SECOND);
-        let mut words = self.task_course(task, unit, places, frame);
+        let mut words = self.task_course(task, unit, places, frame, own);
         // A builder whose moves the engine gives up says so, as a group's soldiers do (pace-1: constructor_9823 read
         // "walking to build ... 951 to go" for four minutes wedged behind the first plant).
         if let Some(stuck) = self.stuck.get(&unit.id) {
@@ -530,7 +598,7 @@ impl Brain {
         words
     }
 
-    pub(super) fn task_course(&self, task: Option<&Task>, unit: &OwnUnit, places: &[Place], frame: i32) -> String {
+    pub(super) fn task_course(&self, task: Option<&Task>, unit: &OwnUnit, places: &[Place], frame: i32, own: &[OwnUnit]) -> String {
         let ago = |since: i32| format!("{} s ago", (frame - since) / FRAMES_PER_SECOND);
         match task {
             None if unit.idle => "idle, waiting for an order".into(),
@@ -539,7 +607,10 @@ impl Brain {
                 let what = self.short_words(*def);
                 let walk = unit.pos.dist2d(*near);
                 if *started {
-                    format!("building a {what} at {}, ordered {}", self.place_words(places, *near), ago(*ordered))
+                    // How far along, from the frame on the ground (games 7, 9: "armavp ordered 200 s ago" with no
+                    // percentage was believed standing at 14:45 and finished at 16:12).
+                    let percent = own.iter().filter(|u| u.being_built && u.def == *def && u.pos.dist2d(*near) < 200.0).map(|u| u.health / u.max_health.max(1.0) * 100.0).fold(None, |acc: Option<f32>, p| Some(acc.map_or(p, |a| a.max(p))));
+                    format!("building a {what} at {} ({}), ordered {}", self.place_words(places, *near), percent.map_or("not yet started".to_string(), |p| format!("{p:.0} % built")), ago(*ordered))
                 } else if walk > 120.0 {
                     format!("walking to build a {what} at {}, {walk:.0} to go, ordered {}", self.place_words(places, *near), ago(*ordered))
                 } else {
@@ -796,6 +867,24 @@ impl Brain {
                 format!("{}: {} worth {:.0} metal at {}{under}, {} from home, {heading}{}{}", p.name, p.composition, p.metal, self.place_words(&places, p.at), distance_words(p.at.dist2d(self.home)), near_ours.unwrap_or_default(), p.killing.as_ref().map_or(String::new(), |(what, metal)| format!("; killing {what} ({metal:.0} metal) now")))
             })
             .collect();
+        // The parties' memory (H-HANDS-ENEMY-MEMORY): every party in sight refreshes its entry; one gone from sight
+        // is said with its last place and age for `ARMY_MEMORY`.
+        {
+            let mut memory = pianist.party_memory.borrow_mut();
+            for p in &parties {
+                let heading = in_sight.iter().find(|l| l.starts_with(&format!("{}:", p.name))).and_then(|l| ["moving toward our side", "moving away from us", "standing still"].into_iter().find(|h| l.contains(h))).unwrap_or("").to_string();
+                match memory.iter_mut().find(|m| m.name == p.name) {
+                    Some(m) => *m = PartySeen { name: p.name.clone(), composition: p.composition.clone(), metal: p.metal, at: p.at, seen: frame, heading },
+                    None => memory.push(PartySeen { name: p.name.clone(), composition: p.composition.clone(), metal: p.metal, at: p.at, seen: frame, heading }),
+                }
+            }
+            memory.retain(|m| frame - m.seen < ARMY_MEMORY);
+        }
+        let memory = pianist.party_memory.borrow();
+        let mut out_of_sight: Vec<&PartySeen> = memory.iter().filter(|m| !parties.iter().any(|p| p.name == m.name)).collect();
+        out_of_sight.sort_by(|a, b| b.metal.total_cmp(&a.metal));
+        let out_of_sight: Vec<String> = out_of_sight.iter().take(6).map(|m| format!("{} ({}, {:.0} metal) last seen {} ago at {}{}", m.name, m.composition, m.metal, clock(frame - m.seen), self.place_words(&places, m.at), if m.heading.is_empty() { String::new() } else { format!(", then {}", m.heading) })).collect();
+        let biggest = memory.iter().max_by(|a, b| a.metal.total_cmp(&b.metal)).map(|m| format!("{} ({}, {:.0} metal), {} at {}", m.name, m.composition, m.metal, if parties.iter().any(|p| p.name == m.name) { "in sight now".to_string() } else { format!("last seen {} ago", clock(frame - m.seen)) }, self.place_words(&places, m.at)));
         let known_soldiers: Vec<&(UnitDefId, Vec3, i32)> = self.enemy_soldiers.values().filter(|(_, _, seen)| frame - seen < ARMY_MEMORY).collect();
         let known_metal: f32 = known_soldiers.iter().filter_map(|(def, _, _)| self.world.def(*def)).map(|d| d.metal_cost).sum();
         let mut remembered: BTreeMap<String, BTreeMap<&str, usize>> = BTreeMap::new();
@@ -833,6 +922,8 @@ impl Brain {
         let stale: Vec<String> = stale.iter().take(NEVER_LOOKED).map(|(seen, i)| format!("spot_{i} ({}) {} ago", self.world.grid(spots[*i]), clock(frame - seen))).collect();
         let enemy = json!({
             "in_sight": in_sight,
+            "out_of_sight": if out_of_sight.is_empty() { json!("no party seen in the last three minutes is out of sight") } else { json!(out_of_sight) },
+            "biggest_party_known": biggest.unwrap_or_else(|| "none seen in the last three minutes".to_string()),
             "factories_seen": if factories.is_empty() { json!("none, ever: nothing of ours has had one in sight") } else { json!(factories) },
             "start_box": start_box,
             "never_looked": format!("{never_total} of the map's {} metal spots have never been within sight of a unit of ours; a base is always beside metal. Inside its start box, nearest home first: {}. Elsewhere, nearest home first: {}", spots.len(), words(&in_box), words(&elsewhere)),
@@ -864,9 +955,9 @@ impl Brain {
             });
             if builder {
                 entry["health"] = json!(format!("{} ({:.0}%)", health_words(unit.health / unit.max_health), unit.health / unit.max_health * 100.0));
-                entry["doing"] = json!(self.task_words(pianist.tasks.get(&unit.id), unit, &places, frame));
+                entry["doing"] = json!(self.task_words(pianist.tasks.get(&unit.id), unit, &places, frame, own));
                 if let Some(next) = pianist.queued.get(&unit.id) {
-                    entry["next"] = json!(format!("queued to start the moment this is done: {}", self.task_words(Some(next), unit, &places, frame)));
+                    entry["next"] = json!(format!("queued to start the moment this is done: {}", self.task_words(Some(next), unit, &places, frame, own)));
                 }
                 if let Some(steps) = pianist.scripts.get(&name).filter(|s| !s.is_empty()) {
                     entry["list"] = json!(format!("the player's list, done by the bot without asking: {}", steps.iter().cloned().collect::<Vec<_>>().join(", ")));
@@ -1121,7 +1212,7 @@ impl Brain {
                 };
                 let under = if p.turrets.is_empty() { String::new() } else { format!(", under {}", p.turrets) };
                 let touching = body.within(p.at, NEAR).len();
-                entry["enemies_near"] = json!(format!("{} ({}{under}) {d:.0} from its nearest soldier, within {NEAR:.0} of {touching} of its {}: {}{killing}", p.name, p.composition, body.core.len(), self.group_odds(&body, p, &snapshot.enemies).1));
+                entry["enemies_near"] = json!(format!("{} ({}{under}) {d:.0} from its nearest soldier, within {NEAR:.0} of {touching} of its {}: {}{killing}", p.name, p.composition, body.core.len(), self.group_odds(&body, p, &snapshot.enemies, &snapshot.allies).1));
             }
             let threats = self.threats_words(&parties, &places, own, kit, centre);
             if !threats.is_empty() {
@@ -1156,6 +1247,26 @@ impl Brain {
             actors.insert(format!("group_{}", group.name), entry);
         }
 
+        // The other seats' groups (H-HANDS-ALLIED-GROUPS): position, size, task and what they engage, as their own
+        // pictures said them a second ago, so "together" and "as one body" have something to hold to. They are
+        // theirs to order: no slot is made for them.
+        let mut allies: BTreeMap<String, Value> = BTreeMap::new();
+        if let Some(shared) = &self.strategist {
+            let hands = shared.hands.lock().unwrap();
+            for (team, h) in hands.iter().filter(|(team, _)| **team != self.world.hello.team) {
+                if let Some(entries) = h.picture["actors"].as_object() {
+                    for (name, entry) in entries.iter().filter(|(n, _)| n.starts_with("group_")) {
+                        let mut line = json!({ "seat": format!("t{team}, an allied seat of ours: its group, not yours to order") });
+                        for key in ["units", "at", "doing", "enemies_near", "losses"] {
+                            if let Some(v) = entry.get(key) {
+                                line[key] = v.clone();
+                            }
+                        }
+                        allies.insert(name.clone(), line);
+                    }
+                }
+            }
+        }
         let wind = (self.world.hello.map.wind_min + self.world.hello.map.wind_max) / 2.0;
         let rules = format!(
             "{}This map's wind averages about {wind:.0}: {}.",
@@ -1171,6 +1282,7 @@ impl Brain {
             "enemy": enemy,
             "places": place_entries,
             "actors": actors,
+            "allies": if allies.is_empty() { json!("no other seat of ours has a group") } else { json!(allies) },
             "recent": pianist.recent(frame),
         });
         // H-HANDS-FALL-BACK: whether the player can answer now. Under the think penalty its orders land as long after

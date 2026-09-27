@@ -173,6 +173,9 @@ pub struct Pianist {
     /// The number the next new enemy party is named with (H-HANDS-PARTY-NAMES); a `Cell` because the picture is
     /// built through `&self`.
     pub(super) next_party: std::cell::Cell<usize>,
+    /// Every party seen, by name, with its last sighting: the enemy section says where a party that left sight was
+    /// last seen and how long ago (H-HANDS-ENEMY-MEMORY; game 3: nothing said where the block went after 19:30).
+    pub(super) party_memory: std::cell::RefCell<Vec<picture::PartySeen>>,
     /// Things worth telling: (frame, text).
     recent: VecDeque<(i32, String)>,
     /// What the hands did this call, for the player's report (`Shared.hands`).
@@ -355,6 +358,7 @@ impl Pianist {
             places: Vec::new(),
             parties: Vec::new(),
             next_party: std::cell::Cell::new(1),
+            party_memory: std::cell::RefCell::new(Vec::new()),
             recent: VecDeque::new(),
             scripts: HashMap::new(),
             ordered: HashMap::new(),

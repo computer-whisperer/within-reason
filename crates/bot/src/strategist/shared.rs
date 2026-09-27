@@ -125,9 +125,18 @@ pub struct Score {
     pub trend: Vec<(i32, usize, f32, u32)>,
     pub extractors_lost_3_min: usize,
     /// Metal of ours destroyed and of theirs we saw destroyed (units and buildings): in the last three minutes, and
-    /// in the whole game. Kills out of our sight are not counted.
+    /// in the whole game. Kills out of our sight are not counted. Their side is recomputed at the merge from
+    /// `enemy_deaths`, so a death two seats both saw counts once (every ledger trade of 2026-09-27 counted it up to
+    /// three times).
     pub traded_3_min: (u32, u32),
     pub traded: (u32, u32),
+    /// Every enemy death this seat saw: unit id, frame, metal.
+    pub enemy_deaths: Vec<(u32, i32, u32)>,
+    /// The frame this score was taken at.
+    pub frame: i32,
+    /// Metal of his buildings seen and not seen destroyed: with the deaths and the soldiers seen, a floor on what
+    /// he has spent.
+    pub enemy_buildings_metal: u32,
     /// Game seconds since the commander's previous turn began; `None` before its first.
     pub seconds_since_turn: Option<i32>,
     /// The opponent's lobby start boxes, one per enemy ally team, as grid cell ranges: where its commander was
@@ -224,6 +233,13 @@ pub struct Hands {
     /// The standing orders (`brain/pianist/standing.rs`): what is in force, and how many rules.
     pub standing_text: String,
     pub standing_count: usize,
+}
+
+/// The side's party names: enemy unit id to the party it was last named in, and the next number.
+#[derive(Default)]
+pub struct PartyRegistry {
+    pub by_unit: std::collections::HashMap<bot_protocol::UnitId, String>,
+    pub next: usize,
 }
 
 /// A change to the standing orders from the `standing` tool: rules per actor to set (checked by the brain against
@@ -324,6 +340,11 @@ pub struct Shared {
     /// What each seat's pianist publishes for the player (`brain/pianist`), by team; the report reads the merge
     /// (`seats.rs` `hands_merged`).
     pub hands: Mutex<BTreeMap<i32, Hands>>,
+    /// One name for one enemy party across every seat of ours (H-HANDS-SIDE-PARTIES): the party a unit was last in,
+    /// by unit id, and the next number. Each seat named its own parties with a seat tag before, so a party seen by
+    /// two seats had two names, and the player's `engage_party` on one seat's name was refused on another (games
+    /// 3, 4, 6, 9).
+    pub parties: Mutex<PartyRegistry>,
     /// The `standing` tool's changes, applied by every seat's brain at its next ask: each seat keeps its own cursor
     /// into the list (`standing_seen`) and takes the entries for its own actors, so one seat's read does not rob
     /// another's (bluegecko-2v1-great-divide: `set station spot_16` at 9:31 and `clear` at 10:47 vanished into the

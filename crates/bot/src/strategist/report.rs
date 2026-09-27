@@ -46,10 +46,24 @@ fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
         s.enemy_soldiers_seen_metal
     ));
     lines.push(format!(
-        "traded: in the last 3 min we lost {} metal of units and buildings and destroyed {} of theirs that we saw die; whole game {} lost, {} destroyed{}",
+        "traded: in the last 3 min we lost {} metal of units and buildings and destroyed {} of theirs that we saw die (each death counted once across our seats); whole game {} lost, {} destroyed{}",
         s.traded_3_min.0, s.traded_3_min.1, s.traded.0, s.traded.1,
         s.seconds_since_turn.map_or(String::new(), |t| format!(" | {} of game time since your last turn began", clock(t)))
     ));
+    // A floor on his spending: what of his we saw die, what stands or was seen alive. Read against our own income
+    // per extractor it says how big his economy is at least (game 9: 37k of his seen dead by 13:24 implied 18
+    // extractors while the line said "known to hold 7").
+    let seconds = (s.frame / 30).max(1);
+    let spent = s.traded.1 + s.enemy_soldiers_seen_metal + s.enemy_buildings_metal;
+    if spent > 0 && seconds > 60 {
+        let per_second = spent as f32 / seconds as f32;
+        let ours_per_extractor = if s.extractors > 0 { briefing.metal.income / s.extractors as f32 } else { 0.0 };
+        lines.push(format!(
+            "his spending seen: at least {spent} metal by {} ({} seen dying, {} of soldiers seen in the last 3 min, {} of buildings seen standing): at least {per_second:.0} a second over the game{}; a floor, since we see little of his side",
+            clock(seconds), s.traded.1, s.enemy_soldiers_seen_metal, s.enemy_buildings_metal,
+            if ours_per_extractor > 0.0 { format!(", about {:.0} extractors' worth at our {ours_per_extractor:.1} an extractor", per_second / ours_per_extractor) } else { String::new() }
+        ));
+    }
     lines.push(format!(
         "eco: metal {:.0} ({:+.1}/-{:.1}), energy {:.0}/{:.0} ({:+.0}), wind now {:.0} of this map's {:.0} to {:.0} | extractors {} constructors {} labs {} turrets {} converters {}",
         briefing.metal.current, briefing.metal.income, briefing.metal.usage, briefing.energy.current, briefing.energy.storage,
@@ -79,7 +93,7 @@ fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
             .iter()
             .map(|s| {
                 let faction = field.factions.iter().find(|(team, _)| *team == s.team).map(|(_, f)| f.as_str()).unwrap_or("faction not yet known");
-                format!("team {} at {} ({}{}): metal {:.0} ({:+.1}), {} extractors, {} soldiers", s.team, s.home.grid, faction, if s.colour.is_empty() { String::new() } else { format!(", {} to the people in the game", s.colour) }, s.metal_stored, s.metal_income, s.extractors, s.soldiers)
+                format!("team {} at {} ({}{}): metal {:.0} ({:+.1}), {} extractors, {} constructors, {} soldiers", s.team, s.home.grid, faction, if s.colour.is_empty() { String::new() } else { format!(", {} to the people in the game", s.colour) }, s.metal_stored, s.metal_income, s.extractors, s.constructors, s.soldiers)
             })
             .collect();
         lines.push(format!("seats: you command {} seats, each with its own economy (people in the game know a seat by its lobby colour, so say \"our {} seat\" in chat, never t{}) | {}", seats.len(), briefing.seats[0].colour, briefing.seats[0].team, seats.join(" | ")));

@@ -1208,3 +1208,11 @@ states went to home and non-spot places only, so a raid route named in the packe
 the next arena games' pictures at the moments of contact).
 **Would be wrong if.** The pictures on the new code still price a strung-out group whole, or a body's arrival by
 its members lets a group hold with its tail under fire more often than the centre did.
+
+### K-hands-the-block-left-sight-unsaid
+**Claim.** The enemy section said only what was in sight this second and what buildings were remembered per cell:
+a party that left sight vanished from the picture, so after 19:30 of game 3 nothing said where his block had gone,
+and the switch to Bulls in game 9 was invisible ("factories_seen: none, ever" at 15:49 with 37k of his seen dead).
+The deciders were asked to weigh a fight with no memory of the army they had just seen.
+**Evidence.** `docs/studies/2026-09-27-jev-posing/README.md` (I5); `run/matches/1790479031-bluegecko-3v1-comet-catcher-8/00/posing-review.md`.
+**Status.** fixed 2026-09-27 evening by [[H-HANDS-ENEMY-MEMORY]].

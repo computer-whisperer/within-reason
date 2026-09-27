@@ -84,7 +84,7 @@ impl Brain {
                     continue;
                 }
                 let units = group.units(own);
-                let (odds, odds_words) = self.group_odds(&body, party, enemies);
+                let (odds, odds_words) = self.group_odds(&body, party, enemies, &tick.snapshot.allies);
                 let tail = if body.strung_out() { format!(", its tail {:.0} behind its front", body.length) } else { String::new() };
                 // `no_chase`: the whole group goes only after a party within reach of its station (else its last
                 // hold, else home); the course slot's hold ends an engagement the quarry carries beyond it.
@@ -204,7 +204,7 @@ impl Brain {
                 let reach = self.world.def(unit.def).map_or(0.0, |d| d.reach);
                 let their_reach = party.ids.iter().filter_map(|id| enemies.iter().find(|e| e.id == *id).and_then(|e| e.def)).filter_map(|d| self.world.def(d)).map(|d| d.reach).fold(0.0, f32::max);
                 let range = if their_reach > reach { format!("; it outranges {name} ({their_reach:.0} against {reach:.0}): it is hit on the way in and lands nothing unless the party stands") } else { String::new() };
-                let doing = pianist.tasks.get(&unit.id).map_or(String::new(), |t| format!(", leaving {}", self.task_course(Some(t), unit, &picture.places, tick.frame)));
+                let doing = pianist.tasks.get(&unit.id).map_or(String::new(), |t| format!(", leaving {}", self.task_course(Some(t), unit, &picture.places, tick.frame, own)));
                 states.push(state(
                     format!("{}.attack_{name}", party.name),
                     name.clone(),

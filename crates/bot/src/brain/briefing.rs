@@ -75,6 +75,7 @@ impl Brain {
                 let def = self.enemy_defs.remove(enemy);
                 let worth = def.and_then(|d| self.world.def(d)).map_or(0.0, |d| d.metal_cost);
                 self.trade_log.push((tick.frame, 0.0, worth));
+                self.enemy_deaths.push((enemy.0 as u32, tick.frame, worth as u32));
                 let name = def.map_or("unseen", |d| self.name(d));
                 let line = format!("killed {name}");
                 if let Some(shared) = &self.strategist {
@@ -161,11 +162,22 @@ impl Brain {
                 gone.push(*enemy);
             }
         }
+        let mut firsts: Vec<String> = Vec::new();
         for enemy in &tick.snapshot.enemies {
             let Some(def) = enemy.def else { continue };
             let Some(info) = self.world.def(def) else { continue };
             if self.is_commander_def(def) {
                 self.enemy_commander_seen = Some((enemy.pos, tick.frame));
+            }
+            // The first of each tier-2 or air type of his in sight is said at once (game 9: the Bull switch was
+            // invisible, "factories_seen: none, ever" at 15:49; the first Liche of Cape Violet came unannounced).
+            if !self.first_seen.contains(&def) {
+                let tier = super::pianist::glossary::entry(&info.name).map_or(1, |e| e.tier);
+                let air = self.world.domain_of(def) == crate::world::Domain::Air;
+                if tier >= 2 || air {
+                    self.first_seen.insert(def);
+                    firsts.push(format!("first {} of his seen: {} at {}{}", if air && tier >= 2 { "tier-2 air unit" } else if air { "air unit" } else { "tier-2 unit" }, self.name(def), self.world.grid(enemy.pos), if info.build_speed > 0.0 { " (a builder: tier 2 is up)" } else { "" }));
+                }
             }
             if info.speed == 0.0 {
                 self.enemy_buildings.insert(enemy.id, (def, enemy.pos, tick.frame));
@@ -173,6 +185,9 @@ impl Brain {
             } else if info.weapon_count > 0 && info.build_speed == 0.0 {
                 self.enemy_soldiers.insert(enemy.id, (def, enemy.pos, tick.frame));
             }
+        }
+        for text in firsts {
+            self.trigger("first_seen", tick.frame, text);
         }
         // H-TEAM-BOARD: what one seat of ours has seen, all know.
         if self.enabled("H-TEAM-BOARD") {
@@ -510,6 +525,9 @@ impl Brain {
             extractors_lost_3_min: self.wake.losses.len(),
             traded_3_min: traded(&|frame| recent(&frame)),
             traded: traded(&|_| true),
+            enemy_deaths: self.enemy_deaths.clone(),
+            frame: tick.frame,
+            enemy_buildings_metal: self.enemy_buildings.values().filter_map(|(def, _, _)| self.world.def(*def)).map(|d| d.metal_cost).sum::<f32>() as u32,
             seconds_since_turn: Some(shared.last_turn_frame.load(std::sync::atomic::Ordering::Relaxed)).filter(|at| *at > 0).map(|at| (tick.frame - at) / FRAMES_PER_SECOND),
             enemy_start_boxes: self.world.hello.start_boxes.iter().filter(|b| b.ally_team != self.world.hello.ally_team).map(|b| self.world.box_cells(b)).collect(),
             never_looked: {

@@ -146,6 +146,10 @@ pub struct Brain {
     /// (frame, metal of ours destroyed, metal of theirs we saw destroyed), one entry per death: what the fighting costs
     /// each side, which neither army count shows.
     trade_log: Vec<(i32, f32, f32)>,
+    /// Every enemy death seen: unit id, frame, metal (the merge across seats counts each once).
+    enemy_deaths: Vec<(u32, i32, u32)>,
+    /// Types of his seen at least once: the first tier-2 or air unit of a type is said when it appears.
+    first_seen: HashSet<UnitDefId>,
     /// Extractors lost so far at each metal spot (its index in the map's list).
     spot_losses: HashMap<usize, u32>,
     /// This minute's soldier move failures by 200-elmo cell.
@@ -279,6 +283,8 @@ impl Brain {
             enemy_defs: HashMap::new(),
             fight_ledger: Default::default(),
             trade_log: Vec::new(),
+            enemy_deaths: Vec::new(),
+            first_seen: HashSet::new(),
             spot_losses: HashMap::new(),
             stuck_cells: HashMap::new(),
             extractor_losses: VecDeque::new(),
