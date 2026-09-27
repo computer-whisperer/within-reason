@@ -92,8 +92,10 @@ solar; banking or in balance: no solar, ever"); a positive condition alone is re
 station, its answer to a lone raider or a party, no_chase, never places, fall_back_to; a builder's job, attack_raiders,
 solar, turrets): `set` puts one in, `standing` with no arguments shows what is in force, `clear` drops them. Use it
 for what must be reflexive and sure; the packet for everything a table can say.
-`produce` restricts what a lab, or every lab, may build to a list of unit names: the lab is then offered those and
-nothing else, so the mix is exactly what you allow and the packet's words only order among them. A name with a count
+`produce` restricts what a lab, or every lab (`all`), may build to a list of unit names: the lab is then offered
+those and nothing else, so the mix is exactly what you allow and the packet's words only order among them. `all`
+reaches the builders too, but binds a builder only where it names a building that builder can make (a list of
+plant units leaves the constructors on their usual menu; `all_builders` or `constructor_N` names a builder's own). A name with a count
 after a colon (`armck:1`) is allowed that many more times and then drops off the list by itself. It is the sure way
 to get a unit built (raiders against raiders, constructors after losses) and the only way to get a count: the hands
 cannot count, and "one constructor first, then raiders" got three constructors (human-7). A factory's new soldiers

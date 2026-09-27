@@ -637,7 +637,14 @@ impl Brain {
             // An allowance with no units is no restriction: `produce` keeps an entry for the group alone after a null
             // list (onepass-player-7: three plants with `group: new` had their lists lifted at 18:48 and were offered
             // nothing until 21:20, the picture saying "it builds anything").
-            let allowed = self.allowed_units(&name).filter(|a| !a.units.is_empty());
+            // A list naming nothing this builder can build leaves it unrestricted (H-HANDS-PRODUCE as registered, not
+            // as it ran): the opening's `produce {"all": [plant units]}` was every constructor's allowance too, and
+            // no constructor was offered a turret, a solar or a nano turret from 2:40 to 9:40 while the standing
+            // order for turrets beside each outer extractor stood and thirteen extractors died (player-14).
+            let allowed = self
+                .allowed_units(&name)
+                .filter(|a| !a.units.is_empty())
+                .filter(|a| a.units.iter().any(|e| self.world.def_named(super::allowance(e).0).is_some_and(|d| build_list.contains(&d))));
             let permits = |list: &[String], b: UnitDefId| {
                 let unit_name = self.name(b).to_string();
                 let made = pianist.produced.get(&(unit.id, unit_name.clone())).copied().unwrap_or(0);

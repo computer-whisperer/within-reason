@@ -1340,3 +1340,20 @@ rule playing armfav each time with Jev's armcv at 0.53 to 0.65 against the base)
 (`entry_cap`, `entry_permits` in `pianist/mod.rs`; the plan's `permits` and default, the picture's words), with a
 test. Exploited by [[H-HANDS-LAB-DEFAULT]].
 
+### K-hands-the-all-list-bound-the-constructors
+**Claim.** The player's opening `produce {"all": ["armflash:1", "armfav:5", "armcv:1", ...]}`, written for the plant,
+was every constructor's allowance as well: `allowed_units` resolves an actor's own list, then `all_builders` for a
+builder, then `all`, and the plan offered a builder only the buildings its allowance named. A list of plant units
+names no building, so from 2:40 to 9:40 of player-14 no constructor was offered a turret, a solar or a nano turret
+(the Jev log holds no such state; the first came at 9:45, five seconds after `produce {"all": null}`), the standing
+order for a turret beside each outer extractor from 2:40 had nothing to act on, and every turret before 9:40 came
+from an explicit `queue` list (the first queued 5:26). Thirteen extractors died 4:29-7:25, twelve with no turret
+near. The same shape in player-15 (the same opening list): every turret to 8:00 from a list. The player prompt said
+`produce` restricts "a lab, or every lab", so the player could not know.
+**Evidence.** `crates/bot/src/brain/pianist/picture.rs` `allowed_units`; `plan.rs` the builder's `offered`; the
+reviewer's `scratchpad/review-p14/turret_offer.py` over `jev-0.jsonl` of both games (turret plays by source: all
+`list`); `00/review.md` finding 1.
+**Status.** fixed 2026-09-28: a builder's allowance that names nothing it can build leaves it on the usual menu
+(the rule H-HANDS-PRODUCE had registered for builders and the code had not run); the prompt says `all` reaches
+builders only where it names a building. Exploited by [[H-HANDS-PRODUCE]].
+
