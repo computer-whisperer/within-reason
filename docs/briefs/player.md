@@ -77,7 +77,9 @@ Thug `corthud` 140/1100/45/380 line unit; Trasher `corcrash` anti-air only; Grav
   [K-eco-comet-pros-rez-bots, K-army-dead-waves-are-resurrected]
 
 **Several seats.** The people in the game know a seat by its lobby colour, which the `sides:` and `seats:` lines
-give beside each seat: in chat say "our purple seat", never `t2`. The bot puts `[WReason] ` in front of every line
+give beside each seat: in chat say "our purple seat", never `t2`, and never say a seat's faction or where it
+started (a person in game 1: "your opponent will know what faction you are playing and where you spawned"). The
+bot puts `[WReason] ` in front of every line
 you say and cuts nothing (the game shows 127 characters a line; a longer text goes out as several lines): never
 write the prefix yourself.
 When the report's `seats:` line says you command more than one seat, every per-seat name carries
@@ -185,10 +187,13 @@ K-maps-comet-barb-opens-bots, the tempo model]
   and 2v1-hard put solars five and six at 1:38 and 2:20 with energy full and the store at 0: each was three
   extractors' metal). Your first list lands at about 0:25, when the hands have already ordered two extractors and a
   solar; the hands skip the steps of your list they have ordered already, so write the whole opening from its
-  start. The plant's first units are `armfav` scout cars (31 metal: half the pros' first eight units), one
-  constructor after two or three of them, a second constructor near 2:00, never three constructors at once: write
-  it as `produce {"plant_N": ["armfav:3", "armcv:1", "armfav:2", "armcv:1", "armflash"]}` (the pool has four
-  soldiers by 2:00; we had one). The `armfav` at speed 168 is also the only tier-1 vehicle that catches a Tick
+  start. The plant's first unit is a constructor vehicle: the third solar before the plant is there to power it
+  (thebluegecko, game 5 of 2026-09-27: "the reason to make 3 solar rather than 2 is so you have enough e to make a
+  fast con, otherwise you can just make 2 and get the factory moving faster"), then `armfav` scout cars (31 metal:
+  half the pros' first eight units), a second constructor near 2:00, never three constructors at once: write it as
+  `produce {"plant_N": ["armcv:1", "armfav:3", "armcv:1", "armflash"]}` (the pool has four soldiers by 2:00; we
+  had one). The commander stays on the plant while the first units come out ("removing your com from the lab too
+  early: you're missing out on the BP for the lab", Irishstud14). The `armfav` at speed 168 is also the only tier-1 vehicle that catches a Tick
   (132): a Blitz (101) never does, and against two seats the Ticks come from 2:20.
   **The limit in the first four minutes is metal, not build power**: the store should read about 150 at 2:00 and
   100 at 3:00 and never 0; when it reads 0 the plant is starving and the commander's own build is the thing to
@@ -438,13 +443,39 @@ K-maps-comet-barb-opens-bots, the tempo model]
   seats are of two factions (the `seats:` line says which), each seat's lists and limits take its own faction's
   names: `corsolar` and `corvp` for a Cortex seat, `armsolar` and `armvp` for an Armada one.
   From the fourth game (bluegecko-3v1-comet-catcher-4, lost about 20:30 with the trade 85k to 30k in our favour;
-  he played Cortex): (15) The push at 8:00 into his Pounders (riot tanks that beat Blitzes and Incisors head on)
+  the opponent [Stud]Irishstud14, OS 48, Cortex, with thebluegecko spectating and advising): (15) The push at 8:00 into his Pounders (riot tanks that beat Blitzes and Incisors head on)
   stopped at his base, and from 11:00 his Incisor swarms of ten to fifteen slipped past the Brute ball and took our
   extractors from 33 to 9 by 19:00 while every fight we had we won. A ball of medium tanks never catches Incisors:
   each seat keeps its raiders (Blitzes, Incisors) as pickets at its outer spots with a light turret beside each pair
   from 4:00, and the ball stands between the seats; a spectator's "push until they die" is advice about his
   army, not about our extractors. (16) Against Pounders and Brutes the answer is Lashers or Janus behind Stouts or
   Brutes, never Blitzes alone; a raid group that meets a Pounder block walks away from it, it does not fight.
+- **What the OS-48 players told us in chat, games 3 to 5 of 2026-09-27 (thebluegecko, Irishstud14; the lines in
+  `docs/knowledge/_inbox/players-chat-2026-09-27.md`), to follow as written.** [K-open-comet-three-solars-buy-a-fast-constructor-first,
+  K-eco-comet-no-converters-store-the-energy-and-two-hundred-a-second-with-nanos,
+  K-army-riots-answer-a-light-tank-blob-and-mediums-answer-riots, K-army-an-army-lead-unspent-goes-bad]
+  (a) The opening above: three solars, the plant, a constructor first, the commander on the plant. (b) A plant is
+  never idle longer than two seconds: the `produce` lists keep every plant queued, whatever the store reads; the
+  hands queue the next unit on their own now, your lists say which. (c) No energy converters on this map ("this is a
+  metal heavy map"); spare energy goes into an energy store, which pays for bombers later; the economy aims at 200
+  energy a second by 6:00 and a construction turret beside each plant by then ("orange and red both need nanos";
+  "you dont have enough build power"). (d) Naked extractors of theirs are punished at once: the first raiders go at
+  his outer spots and solars from 4:00, both corners at once, and keep moving ("an aggressive response is needed to
+  prevent a large metal lead"; "spread out for the raid, attack both corners"; "focus on mexes and solars"; "try top
+  corner, not much defence there"). (e) From about 7:30 a person switches to Pounders (Cortex riot tanks, slow, from
+  the plant) against a light-tank ball: from the first Pounder seen every plant makes medium tanks (Stouts, Brutes)
+  with three to five Lashers or Janus in all, never more ("too many lashers lose to med tanks"; "3 med tanks per
+  pounder"), light tanks only for raids where the Pounders are not, or bombers over his solars if energy allows.
+  (f) An army lead is spent the minute it shows: when the report says our army is far ahead and income behind, the
+  seats' groups go as one line with few groups at his extractors, solars and then his plant ("up by almost 400%
+  army value, time to go fight and win; if you dont use that army advantage this will soon go bad"; "make sure your
+  units are more of a straight line when attacking, less groups"; "your armies keep not fighting together"), the
+  constructors reclaiming behind them ("eat as you push"; "get that reclaim asap"). (g) His commander is sniped by
+  light tanks with the target set on it circling it, never by walking a ball into its D-gun. (h) Tier 2 when the
+  first heavy unit of his is seen or by 12:00, whichever is first ("either bomb or t2 now" at 6:35 of game 3; "go
+  t2" at 20:39, too late); a lab of a seat that no longer needs it is reclaimed ("eat your bot lab"). (i) A few
+  resurrection bots over a big wreck field. (j) In chat never say which faction a seat plays or where it started
+  ("your opponent will know what faction you are playing and where you spawned").
 
 **This map, Great Divide V1 (the games with people from 2026-09-27: two seats of ours under you, the north box A1-H2
 against the south A7-H8, realtime; the opponent a person who, we are told, will fortify the pass and try to win from
