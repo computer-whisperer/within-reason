@@ -515,3 +515,33 @@ And the packet's paragraphs never reached a tagged group or commander: the reade
 and `jev-1.jsonl` with no `list` plays, `bot.log`).
 **Would be wrong if.** The lists had reached the Cortex seat and its hands had refused them for another reason.
 **Used by.** H-PLAYER-SEAT-NAMES.
+
+### K-army-riots-answer-a-light-tank-blob-and-mediums-answer-riots
+**Claim.** A ball of Blitzes or Incisors is beaten by Pounders (Cortex riot tanks, slow, made in the plant) from
+about 7:30 ("this is about the right time to switch to pounders, which will be hard to fight with light tanks like
+blitz"; Irishstud14 after game 4: "pounders solve the blobbing it does"), and the answer is medium tanks with a few
+Lashers, never many ("once you have maybe 3 or 5 lashers pure med tank is probably better; too many lashers lose to
+med tanks"; "pounders for defence and med tanks for offence, maybe 3 med tanks per pounder, or all pounder if I am
+getting pushed"), or air over their solars ("air switch to bomb solar is strong in the tank phase if you have the
+e"). Light tanks keep raiding where the Pounders are not ("pounders are made in the main lab and slow, so if you go
+other places it is safer for those fast light tanks"; "spread out for the raid, attack both corners"; "focus on
+mexes and solars"; "try top corner, not much defence there"). Game 4: our push of Blitzes and Incisors stopped on
+Pounders at 8:41 and our Lasher-heavy groups lost to his Brutes.
+**Evidence.** `docs/knowledge/_inbox/players-chat-2026-09-27.md`; game 4's turns 8:41-11:10.
+**Status.** supported (the players' words and game 4), unmeasured as a rule. Exploited by
+[[H-PLAYER-PLAYERS-ADVICE]].
+
+### K-army-an-army-lead-unspent-goes-bad
+**Claim.** An army lead over a person with the better income has to be spent at once: on his extractors and
+solars, as one line with few groups, the constructors reclaiming behind it, or it goes bad as his income tells
+("you are up by almost 400% army value, time to go fight and win; you are down in metal income; if you dont use
+that army advantage this will soon go bad": thebluegecko, game 5, 6:50, and the push won the game by 9:42; game 3:
+"red not mobilizing fast enough is what lost you the game", "your armies keep not fighting together", "make sure
+your units are more of a straight line when attacking, less groups", "eat as you push", "get that reclaim asap";
+game 4: "Irish expanded faster, even fight on first contact, then Irish's raids did better damage"). The
+commander is sniped by a circle of light tanks with the target set on it ("set target the commander and drive into
+a circle around it to snipe it"); an early lead in raids answers naked extractors ("an aggressive response is
+needed to prevent irish gaining a large metal lead").
+**Evidence.** `docs/knowledge/_inbox/players-chat-2026-09-27.md`; games 3, 4 and 5.
+**Status.** supported (2026-09-27; game 5 is the one game where it was done). Exploited by
+[[H-PLAYER-PLAYERS-ADVICE]].

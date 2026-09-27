@@ -510,3 +510,14 @@ the cards' build orders show none before 2:00), or our seven units by 4:00 were 
 rather than a stall (the store at 0 from 2:00 says stall).
 **Used by.** `docs/briefs/player.md` (the Comet opening); H-HANDS-SCRIPT (`assist N`).
 
+### K-open-comet-three-solars-buy-a-fast-constructor-first
+**Claim.** On Comet Catcher the third solar before the plant exists to power a constructor vehicle as the plant's
+first unit ("the reason to make 3 solar rather than 2 is so you have enough e to make a fast con, otherwise you can
+just make 2 and get the factory moving faster": thebluegecko, game 5, 2:27); the commander then stays on the plant
+("removing your com from the lab too early: you're missing out on the BP for the lab": Irishstud14, 1:47), and the
+plant is never idle ("labs should never be idle longer than 2 seconds"; "que units so no BP is wasted"). Our seats
+went three solars and then scout cars, the constructor third or fourth, and walked the commander off the plant.
+**Evidence.** `docs/knowledge/_inbox/players-chat-2026-09-27.md`; the seats' lists in
+`run/matches/1790475073-bluegecko-3v1-comet-catcher-5/00/strategist-0.jsonl` (turn 1).
+**Status.** supported by two OS-48 players' words (2026-09-27), unmeasured in a game. Exploited by
+[[H-PLAYER-PLAYERS-ADVICE]].

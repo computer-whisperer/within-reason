@@ -224,3 +224,14 @@ unwalkable cell near the anchor (up to about 1,100 strips for a vehicle plant on
 **Evidence.** `run/matches/1790473186-bluegecko-3v1-comet-catcher-4/00` (terrain-0.bin, terrain-2.bin against the
 `finished` events' positions and facing 0); the user's note.
 **Status.** Fixed 2026-09-27, unmeasured in a game. Exploited by [[H-ECO-YARD-LANE]].
+
+### K-eco-comet-no-converters-store-the-energy-and-two-hundred-a-second-with-nanos
+**Claim.** On Comet Catcher (a metal-heavy map) energy converters are wasted metal; spare energy goes into an energy
+store, which the tank phase spends on bombers ("if you have extra e make an e store, you will need the e later
+anyway; you can use it for quick bombers": thebluegecko), and the economy aims at 200 energy a second with
+construction turrets beside the plants by 5:30 ("get to 200+ E per second and add nanos"; "orange and red both need
+nanos"; game 3: "you dont have enough build power", "orange needs nanos"). Our seats built converters (game 3, 4)
+and no nanos until told, and ran the energy store to 1,736 falling 434 a second at 7:18 of game 5 on solars alone
+behind three vehicle plants.
+**Evidence.** `docs/knowledge/_inbox/players-chat-2026-09-27.md`; game 5's turn at 7:18.
+**Status.** supported (the players' words, 2026-09-27), unmeasured. Exploited by [[H-PLAYER-PLAYERS-ADVICE]].

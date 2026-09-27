@@ -54,11 +54,14 @@ extractors while the ball grows.
   Warriors only (8 at 8:00, 12 at 12:00) that met our Hammers and Thugs at the pass's south mouth (D7, E7) from
   5:00 as they arrived one group at a time: 42 Thugs, 37 Hammers and 16 Storms of ours for 16 Warriors of his; the
   advanced bot lab at 11:16, Zeus and a Fatboy by 14:00.
-- Comet Catcher against three seats of ours (three games, 2026-09-26/27, all won): scout cars and Blitzes at every
-  seat's outer extractors from 2:30 (17, 45 and about 30 extractors of ours lost per game), Stouts and Janus in
-  blocks of ten from 10:00 into one seat at a time, Banshee gunships in a wave of twenty at 14:00 in the third game,
-  a Mauser shelling from out of sight at 16:00, Bulls from 18:30, thirty Falcons by 21:00, and each of our
-  commanders killed at its plant by the block. He never met our ball: it fought his raids and blocks in pieces.
+- Comet Catcher against three seats of ours (three games, 2026-09-26/27, all won; the fourth Comet game was
+  [Stud]Irishstud14's, OS 48, Cortex, who won with Pounders and Incisor raids, and the fifth [gecko]Infern8's, OS
+  25, lost): scout cars and Blitzes at every seat's outer extractors from 2:30 (17, 45 and about 30 extractors of
+  ours lost per game), Stouts and Janus in blocks of ten from 10:00 into one seat at a time, Banshee gunships in a
+  wave of twenty at 14:00 in the third game, a Mauser shelling from out of sight at 16:00, Bulls from 18:30, thirty
+  Falcons by 21:00, and each of our commanders killed at its plant by the block. He never met our ball: it fought
+  his raids and blocks in pieces. Spectating the fourth and fifth games he told the player how he would play against
+  us: `docs/knowledge/_inbox/players-chat-2026-09-27.md`.
   His side of the second game (`run/matches/1790471894-replay-human-comet-3v1-2/card.md`, team 0): three
   extractors and three solars, the vehicle plant at 0:58, Rovers from 1:28 (nine at 4:00) and a constructor every
   fourth unit; extractors 18 at 8:00, 24 at 10:00, 34 at 14:00, 49 at 20:00 (the strong duellists' 23 at 12:00, ours
