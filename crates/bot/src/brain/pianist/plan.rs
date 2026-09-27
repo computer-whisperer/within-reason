@@ -169,7 +169,11 @@ impl Slot {
 
     pub(super) fn open(&self) -> bool {
         let base = self.base();
-        self.states.iter().enumerate().any(|(i, s)| i != base && i != 0 && !s.pair_only)
+        // A threat whose base is a rule's default not yet in force is a decision too (answer, or leave): with one
+        // answer and no other it fired by rule while the pick sent the group elsewhere in the same second
+        // (bluegecko-2v1-great-divide 4:57-4:58: attack by rule, hold and fall back by pick).
+        let default_due = matches!(self.kind, Kind::Threat(..)) && base != 0 && self.states[base].default && !self.states[base].current;
+        default_due || self.states.iter().enumerate().any(|(i, s)| i != base && i != 0 && !s.pair_only)
     }
 }
 

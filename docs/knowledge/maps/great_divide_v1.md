@@ -30,7 +30,7 @@ Spots, 22, eleven a side, by the bot's walking distance from the north-west star
 crosses, and nothing walks round. The map's economy is symmetric (eleven spots a side, the twelfth at the pass's
 south mouth), so a side that holds the pass and keeps its eleven is not out-expanded by ground alone.
 **Status.** observed (2026-09-27): the bot's own passages list (one entry) and the terrain picture; the spot list.
-**Evidence.** `run/matches/1790465040-rehearsal-2v1-realtime/00/strategist-0.jsonl`, the first prompt's `map`.
+**Evidence.** `run/matches/1790465040-rehearsal-2v1-realtime/00/strategist-0.jsonl`, the first prompt's `map`; the game with a person (bluegecko-2v1-great-divide): every enemy contact in rows 4-5 at x 1280-1791, their two light turrets at (1504-1648, 1936). The bot's own finder, read from the south, named the cut-off pockets' necks (C5 272 wide, G5 500 wide, and A5, F7) and not the pass, and the player's first packet was built on "passage_1, the narrow west pass, and passage_2, the wider east pass"; fixed 2026-09-27 (`terrain::passages`: a narrow piece is a way only when the ground beyond it comes nearer the far end; from the south-east and north-west starts it now names E5 alone, from the south-west start still a narrow way at (1999, 3054) and not E5, which is 0.57 of the corridor's usual width there).
 **Would be wrong if.** Hovers or amphibious units had a way round (no water: they do not), or the cut-off pockets
 connected to the north somewhere the 32-column picture does not resolve.
 **Used by.** the brief's Great Divide section (`docs/briefs/player.md`).

@@ -210,6 +210,7 @@ impl Field {
 }
 
 /// A passage on the way between two places: where it is and how wide.
+#[derive(Debug)]
 pub struct Passage {
     pub at: Vec3,
     pub width: f32,
@@ -232,19 +233,21 @@ pub fn passages(from: &Field, to: &Field) -> Vec<Passage> {
     let in_corridor = |i: usize| sum(i).is_some_and(|s| s <= limit);
     let band_of = |i: usize| from.cost[i] / (BAND * 10);
     let mut seen = vec![false; cells];
-    // (band, cells in the piece, sum x, sum z)
-    let mut pieces: Vec<(u32, usize, f32, f32)> = Vec::new();
+    // (band, cells in the piece, sum x, sum z, the cells)
+    let mut pieces: Vec<(u32, usize, f32, f32, Vec<usize>)> = Vec::new();
     for start in 0..cells {
         if seen[start] || !in_corridor(start) {
             continue;
         }
         let band = band_of(start);
         let (mut count, mut x, mut z) = (0usize, 0.0, 0.0);
+        let mut members: Vec<usize> = Vec::new();
         let mut stack = vec![start];
         seen[start] = true;
         while let Some(i) = stack.pop() {
             let centre = from.centre(i);
             (count, x, z) = (count + 1, x + centre.x, z + centre.z);
+            members.push(i);
             let (cx, cz) = ((i % from.width) as i32, (i / from.width) as i32);
             for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)] {
                 let (nx, nz) = (cx + dx, cz + dz);
@@ -258,7 +261,7 @@ pub fn passages(from: &Field, to: &Field) -> Vec<Passage> {
                 }
             }
         }
-        pieces.push((band, count, x, z));
+        pieces.push((band, count, x, z, members));
     }
     // Slivers where a band (a ring round the first place) meets the corridor's edge are not routes. A piece counts when
     // it is a fifth of its band or more. The price: a narrow side pass level with a wide one is not reported (tried
@@ -270,13 +273,52 @@ pub fn passages(from: &Field, to: &Field) -> Vec<Passage> {
     pieces.retain(|p| p.1 >= 3 * BAND as usize && p.1 * 5 >= band_cells[&p.0]);
     // Away from both ends, where the corridor narrows to a point by construction.
     let bands = shortest / (BAND * 10);
-    let middle: Vec<&(u32, usize, f32, f32)> = pieces.iter().filter(|p| p.0 * 5 >= bands && p.0 * 5 <= bands * 4).collect();
+    let middle: Vec<&(u32, usize, f32, f32, Vec<usize>)> = pieces.iter().filter(|p| p.0 * 5 >= bands && p.0 * 5 <= bands * 4).collect();
+    // A narrow piece is a way only when the route goes on from it: the ground beyond it (later bands, flooded from
+    // its cells) comes nearer to the far end than the piece itself. The neck of a dead-end pocket beside the route
+    // is narrow too, and everything beyond it is farther from the end (Great Divide from the south: the finder
+    // named the two cut-off pockets' necks at C5 and G5 and not the one pass at E5, and the player's first packet
+    // was built on them). Several ways may lead on side by side (Quicksilver names three).
+    let leads_on = |piece: &(u32, usize, f32, f32, Vec<usize>)| -> bool {
+        let nearest = piece.4.iter().map(|i| to.cost[*i]).min().unwrap_or(UNREACHABLE);
+        let mut reached = vec![false; cells];
+        let mut stack: Vec<usize> = piece.4.clone();
+        for i in &stack {
+            reached[*i] = true;
+        }
+        while let Some(i) = stack.pop() {
+            // Nearer by a band's depth at least: a pocket four cells deep is no way either.
+            if to.cost[i] + BAND * 10 <= nearest {
+                return true;
+            }
+            let (cx, cz) = ((i % from.width) as i32, (i / from.width) as i32);
+            for (dx, dz) in [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)] {
+                let (nx, nz) = (cx + dx, cz + dz);
+                if nx < 0 || nz < 0 || nx >= from.width as i32 || nz >= from.height as i32 {
+                    continue;
+                }
+                let next = nz as usize * from.width + nx as usize;
+                if !reached[next] && in_corridor(next) && band_of(next) >= piece.0 && !piece.4.contains(&next) {
+                    reached[next] = true;
+                    stack.push(next);
+                }
+            }
+        }
+        false
+    };
     let mut widths: Vec<usize> = middle.iter().map(|p| p.1).collect();
     widths.sort_unstable();
     let Some(usual) = widths.get(widths.len() / 2).copied() else { return Vec::new() };
+    #[cfg(test)]
+    if std::env::var_os("WR_PASSAGE_DEBUG").is_some() {
+        eprintln!("usual {usual}");
+        for p in &middle {
+            eprintln!("piece band {} cells {} at ({:.0},{:.0}) leads on {}", p.0, p.1, p.2 / p.1 as f32 / from.cell, p.3 / p.1 as f32 / from.cell, leads_on(p));
+        }
+    }
     let mut narrow: Vec<Passage> = middle
         .iter()
-        .filter(|p| p.1 * 2 <= usual)
+        .filter(|p| p.1 * 2 <= usual && leads_on(p))
         .map(|p| Passage {
             at: Vec3 { x: p.2 / p.1 as f32, y: 0.0, z: p.3 / p.1 as f32 },
             width: p.1 as f32 / BAND as f32 * from.cell,
@@ -414,5 +456,83 @@ mod field_timing {
             assert!(Field::from(&terrain, &passable, origin).is_some());
         }
         eprintln!("44 fields: {:.0} ms", started.elapsed().as_secs_f64() * 1000.0);
+    }
+}
+
+#[cfg(test)]
+mod passage_tests {
+    use super::*;
+
+    /// A 60 by 40 map: a wall five cells thick down columns 28-32 with one gap four cells tall, and a dead-end
+    /// pocket south of the route on the near side, entered through a neck three cells wide and four deep. The gap is
+    /// the passage; the neck is as narrow, and is not.
+    fn map() -> (bot_protocol::Terrain, Vec<u32>) {
+        let (w, h) = (60usize, 40usize);
+        let mut costs = vec![10u32; w * h];
+        let mut block = |x: usize, z: usize| costs[z * w + x] = IMPASSABLE;
+        for x in 28..33 {
+            for z in 0..h {
+                if !(18..22).contains(&z) {
+                    block(x, z);
+                }
+            }
+        }
+        // The neck rows 26-29 at columns 12-14; the pocket rows 30-39, columns 8-21; walls round both.
+        for x in 0..28 {
+            for z in 26..30 {
+                if !(12..15).contains(&x) {
+                    block(x, z);
+                }
+            }
+        }
+        for z in 30..h {
+            for x in 0..8 {
+                block(x, z);
+            }
+            for x in 22..w {
+                block(x, z);
+            }
+        }
+        let terrain = bot_protocol::Terrain { cell: 32.0, width: w as u32, height: h as u32, heights: vec![10; w * h], slopes: vec![0; w * h], metal: vec![0; w * h] };
+        (terrain, costs)
+    }
+
+    /// The finder on a recorded game's terrain, by hand: `WR_TERRAIN=<terrain-N.bin> WR_SIZE=192x256 WR_HOME=x,z
+    /// WR_ENEMY=x,z [WR_KIND=bot|tank] cargo test -p terrain passages_of_a_recorded_map -- --ignored --nocapture`.
+    #[test]
+    #[ignore]
+    fn passages_of_a_recorded_map() {
+        let path = std::env::var("WR_TERRAIN").expect("WR_TERRAIN");
+        let size = std::env::var("WR_SIZE").unwrap_or_else(|_| "192x256".into());
+        let (w, h): (usize, usize) = { let mut it = size.split('x').map(|v| v.parse::<usize>().unwrap()); (it.next().unwrap(), it.next().unwrap()) };
+        let xz = |var: &str| { let v = std::env::var(var).unwrap(); let mut it = v.split(',').map(|n| n.parse::<f32>().unwrap()); Vec3 { x: it.next().unwrap(), y: 0.0, z: it.next().unwrap() } };
+        let bytes = std::fs::read(&path).unwrap();
+        let n = w * h;
+        let heights: Vec<i16> = (0..n).map(|i| i16::from_le_bytes([bytes[2 * i], bytes[2 * i + 1]])).collect();
+        let slopes: Vec<u8> = bytes[2 * n..3 * n].to_vec();
+        let terrain = bot_protocol::Terrain { cell: 16.0, width: w as u32, height: h as u32, heights, slopes, metal: vec![0; n] };
+        let kind = if std::env::var("WR_KIND").as_deref() == Ok("tank") { bot_protocol::MoveKind::Tank } else { bot_protocol::MoveKind::Bot };
+        let class = bot_protocol::MoveClass { kind, max_slope: if matches!(kind, bot_protocol::MoveKind::Tank) { 0.2 } else { 0.4122 }, depth: 20.0, slope_mod: 1.0 };
+        let passable = passable(&terrain, class);
+        let from = Field::from(&terrain, &passable, xz("WR_HOME")).unwrap();
+        let to = Field::from(&terrain, &passable, xz("WR_ENEMY")).unwrap();
+        for p in passages(&from, &to) {
+            eprintln!("passage at ({:.0}, {:.0}) width {:.0} along {:.2}", p.at.x, p.at.z, p.width, p.along);
+        }
+    }
+
+    #[test]
+    fn a_passage_cuts_the_corridor_and_a_pockets_neck_does_not() {
+        let (terrain, costs) = map();
+        let at = |x: f32, z: f32| Vec3 { x: x * 32.0, y: 0.0, z: z * 32.0 };
+        let from = Field::from_costs(&terrain, &costs, &[at(2.5, 20.5)]).unwrap();
+        let to = Field::from_costs(&terrain, &costs, &[at(57.5, 20.5)]).unwrap();
+        let found = passages(&from, &to);
+        assert_eq!(found.len(), 1, "{found:?}");
+        let gap = &found[0];
+        assert!((gap.at.x - 30.5 * 32.0).abs() < 3.0 * 32.0 && (gap.at.z - 20.0 * 32.0).abs() < 3.0 * 32.0, "{gap:?}");
+        // From the far side the same gap, and nothing else.
+        let back = passages(&to, &from);
+        assert_eq!(back.len(), 1, "{back:?}");
     }
 }

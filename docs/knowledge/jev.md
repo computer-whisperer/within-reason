@@ -1143,5 +1143,6 @@ The calls themselves: gate 278 ms median (p90 316) over ~53 KB and 50 questions,
 flags, the `plan` lines, the `call` lines' `ms`), `record-0.jsonl` (the `cmd` lines 7:13-7:38).
 **Would be wrong if.** The engagement's task were cleared by the hunt in the code (it was not: `start_hunt` set the
 hunt and left the task), or the picks had chosen the whole-group state on the seconds it re-fired (they chose w1).
+The same shape with one answer: a threat slot whose only state beside `leave` was the rule's default was not "open", so the default fired by rule while the pick sent the group elsewhere the same second (bluegecko-2v1-great-divide 4:57-4:58: attack by rule, hold and fall back by pick; fixed the same day: a threat whose default is due is an open decision).
 **Used by.** H-HANDS-ONE-PASS (the pass holds open slots for the pick, 2026-09-27; a hunt ends the engagement it
-overrides); the bar-review skill, item H7.
+overrides; a threat's due default is a decision); the bar-review skill, item H7.
