@@ -2,9 +2,11 @@
 
 **Status.** Written 2026-09-28 after player-9-posing (lost 36:32: his base at G1-G2 never found) and the study
 `docs/studies/2026-09-28-route-in-prose.md`. Agreed direction with the user (2026-09-28): three changes, quoted in §1.
-§4.1-4.3 built 2026-09-28 (H-HANDS-ROUTE-FACTS): the station list deleted, the route as prose with every place of
+§4.1-4.5 built 2026-09-28 (H-HANDS-ROUTE-FACTS): the station list deleted, the route as prose with every place of
 the group's paragraph on its menu, `reached` and `met` kept and said, the arrival and the first sighting asking at
-once, the stop's cost in world 1. §4.4 and §4.5 follow. §5 is the user's open idea, with one proposal, not a decision.
+once, the stop's cost in world 1, a group on a leg asked on events and at the re-ask only, the leg's words carrying
+what stands ahead, the sweep toward his box, the brief and the report's landing figure. §4.6's live check is the next
+arena game. §5 is the user's open idea, with one proposal, not a decision.
 
 ## 1. The user's three changes
 

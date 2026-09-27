@@ -29,6 +29,8 @@ const DEPTH: usize = 2;
 pub(super) const RE_ASK: i32 = 20 * FRAMES_PER_SECOND;
 /// An enemy party this close to a group or a builder is news.
 pub(super) const ALARM: f32 = 600.0;
+/// His buildings and parties this close to a leg's end are said in the leg's words (routes-in-prose §4.4).
+const AHEAD: f32 = 800.0;
 /// A builder on a started build has no other state unless an enemy party is this close (H-HANDS-STARTED).
 const STARTED_ALARM: f32 = 800.0;
 /// A builder whose started build is this far along has its next states, ordered behind it (H-HANDS-QUEUE).
@@ -176,6 +178,11 @@ pub(crate) struct Slot {
     /// cost of changing nothing, said in world 1's line (routes-in-prose §4.2; K-jev-follows-a-prose-route-from-the-
     /// picture: with the sentence Jev picked the next leg 24 of 24 times, without it 2 of 24).
     pub stop_cost: Option<String>,
+    /// A group walking a leg of a route its paragraph names (routes-in-prose §4.4): asked on an event that names it
+    /// and at the re-ask, not every second.
+    pub on_route: bool,
+    /// Closed this second: no question goes out for it and world 1 keeps its course.
+    pub quiet: bool,
 }
 
 impl Slot {
@@ -185,6 +192,9 @@ impl Slot {
     }
 
     pub(super) fn open(&self) -> bool {
+        if self.quiet {
+            return false;
+        }
         let base = self.base();
         // A threat whose base is a rule's default not yet in force is a decision too (answer, or leave): with one
         // answer and no other it fired by rule while the pick sent the group elsewhere in the same second
@@ -455,7 +465,7 @@ impl Brain {
                 {
                     let keep = State { id: format!("{name}.keep"), actor: name.clone(), response: Response::Keep, words: format!("{name} goes on with its list ({})", self.task_course(task, unit, &picture.places, frame, own)), metal: 0.0, dim: "threat", default: false, current: false, pair_only: false };
                     let solar = State { id: format!("{name}.{}", self.name(kit.solar)), actor: name.clone(), response: Response::Building(kit.solar), words: format!("{name} builds a {} beside itself now, its list waiting: the energy store is under a quarter and draining ({:.0} of {:.0}, {:.0} in against {:.0} out)", self.unit_words(kit.solar), tick.snapshot.energy.current, tick.snapshot.energy.storage, tick.snapshot.energy.income, tick.snapshot.energy.usage), metal: 0.0, dim: "energy", default: false, current: false, pair_only: false };
-                    slots.push(Slot { name: name.clone(), kind: Kind::Builder(unit.id), states: vec![keep, solar], queue_ahead: status.queue_ahead, idle: false, stop_cost: None });
+                    slots.push(Slot { name: name.clone(), kind: Kind::Builder(unit.id), states: vec![keep, solar], queue_ahead: status.queue_ahead, idle: false, stop_cost: None, on_route: false, quiet: false });
                 }
                 continue;
             }
@@ -545,7 +555,7 @@ impl Brain {
             // back, the pick built it a turret and an extractor elsewhere for two minutes).
             if listed {
                 if states.len() > 1 {
-                    slots.push(Slot { name, kind: Kind::Builder(unit.id), states, queue_ahead: queue, idle, stop_cost: None });
+                    slots.push(Slot { name, kind: Kind::Builder(unit.id), states, queue_ahead: queue, idle, stop_cost: None, on_route: false, quiet: false });
                 }
                 continue;
             }
@@ -556,7 +566,7 @@ impl Brain {
             let over_a_build = matches!(task, Some(Task::Build { .. }) | Some(Task::Reclaim { .. }) | Some(Task::ReclaimUnit { .. }) | Some(Task::Repair { .. })) && !queue;
             if over_a_build {
                 if states.len() > 1 {
-                    slots.push(Slot { name, kind: Kind::Builder(unit.id), states, queue_ahead: queue, idle, stop_cost: None });
+                    slots.push(Slot { name, kind: Kind::Builder(unit.id), states, queue_ahead: queue, idle, stop_cost: None, on_route: false, quiet: false });
                 }
                 continue;
             }
@@ -774,7 +784,7 @@ impl Brain {
                 push(&format!("walk_{}", place.name), Response::WalkTo(place.name.clone()), format!("{then}{name} walks to {} ({} away) and waits there{leaves}", place.name, distance_words(unit.pos.dist2d(place.at))), false, current, false);
             }
             if states.len() > 1 {
-                slots.push(Slot { name, kind: Kind::Builder(unit.id), states, queue_ahead: queue, idle, stop_cost: None });
+                slots.push(Slot { name, kind: Kind::Builder(unit.id), states, queue_ahead: queue, idle, stop_cost: None, on_route: false, quiet: false });
             }
         }
 
@@ -863,7 +873,7 @@ impl Brain {
                 });
             }
             if states.len() > 1 {
-                slots.push(Slot { name, kind: Kind::Lab(unit.id), states, queue_ahead: on_pad.is_some(), idle, stop_cost: None });
+                slots.push(Slot { name, kind: Kind::Lab(unit.id), states, queue_ahead: on_pad.is_some(), idle, stop_cost: None, on_route: false, quiet: false });
             }
         }
 
@@ -951,9 +961,33 @@ impl Brain {
             named.sort_by(|a, b| a.at.dist2d(centre).total_cmp(&b.at.dist2d(centre)));
             let mut offered: Vec<&super::Place> = named.iter().copied().filter(|p| on_route(p)).collect();
             offered.extend(named.iter().copied().filter(|p| !on_route(p)).take(3));
+            // A route's legs advance (fight on the way) when its paragraph says so, else walk; each leg's words say
+            // what is known to stand at its end and the odds on a party there (§4.4: the E3 advance's whole text was
+            // its station's name while every state against it carried its cost).
+            let advancing = paragraph.contains("advanc");
             for place in &offered {
-                let current = matches!(&group.task, GroupTask::Move { place: p, fight: false, .. } if *p == place.name);
-                push(&format!("walk_{}", place.name), Response::Walk { place: place.name.clone(), fight: false }, format!("{name} walks to {} ({} away) without stopping to fight on the way{leave}", place.name, distance_words(centre.dist2d(place.at))), false, current);
+                let fight = advancing && on_route(place);
+                let current = matches!(&group.task, GroupTask::Move { place: p, fight: f, .. } if *p == place.name && *f == fight);
+                let mut ahead: Vec<String> = Vec::new();
+                let mut his: BTreeMap<&str, usize> = BTreeMap::new();
+                for (def, pos, _) in self.enemy_buildings.values() {
+                    if pos.dist2d(place.at) < AHEAD {
+                        *his.entry(self.name(*def)).or_default() += 1;
+                    }
+                }
+                if !his.is_empty() {
+                    ahead.push(format!("his {} there", his.iter().map(|(n, k)| format!("{k} {n}")).collect::<Vec<_>>().join(", ")));
+                }
+                if let Some(p) = picture.parties.iter().filter(|p| p.at.dist2d(place.at) < AHEAD).min_by(|a, b| a.at.dist2d(place.at).total_cmp(&b.at.dist2d(place.at))) {
+                    ahead.push(format!("{} ({}{}) at it: {}", p.name, p.composition, under(p), self.group_odds(&body, p, enemies, &tick.snapshot.allies).0));
+                }
+                let ahead = if ahead.is_empty() { String::new() } else { format!("; ahead: {}", ahead.join("; ")) };
+                let words = if fight {
+                    format!("{name} advances to {} ({} away), fighting on the way{ahead}{leave}", place.name, distance_words(centre.dist2d(place.at)))
+                } else {
+                    format!("{name} walks to {} ({} away) without stopping to fight on the way{ahead}{leave}", place.name, distance_words(centre.dist2d(place.at)))
+                };
+                push(&format!("{}_{}", if fight { "advance" } else { "walk" }, place.name), Response::Walk { place: place.name.clone(), fight }, words, false, current);
             }
             // 2b. The group's own initiative (H-HANDS-GROUP-STATES): a raid on his buildings known within reach, a
             // sweep of the spots nothing of ours has looked at, a gather when strung out, the answers to a shooter
@@ -990,10 +1024,15 @@ impl Brain {
                 let current = matches!(&group.task, GroupTask::Move { place: p, fight: true, .. } if *p == place.name);
                 push(&format!("raid_{}", place.name), Response::Walk { place: place.name.clone(), fight: true }, words.clone(), false, current);
             }
-            // The sweep: the nearest spot nothing of ours has looked at that this group reaches, on our side of the
-            // midline first, then any; the group advances to it as a body and the state is offered again from there.
+            // The sweep: the nearest spot nothing of ours has looked at that this group reaches; his start box first
+            // when the group's paragraph is about his base or his side (routes-in-prose §4.5: at 6:01 the sweep named
+            // four spots of our own half to a ball whose job was finding him); the group advances to it as a body
+            // and the state is offered again from there.
             let never_looked: Vec<&super::Place> = picture.places.iter().filter(|p| p.spot.is_some_and(|i| self.spot_seen(i).is_none()) && !never.contains(&p.name) && self.reachable_for(walker, p.at) && p.at.dist2d(centre) > STATION_SLACK).collect();
-            if let Some(next) = never_looked.iter().copied().min_by(|a, b| a.at.dist2d(body.front).total_cmp(&b.at.dist2d(body.front))) {
+            let seek_his = paragraph.contains("base") || paragraph.contains("his ");
+            let our_ally = self.world.hello.ally_team;
+            let in_his_box = |p: &super::Place| self.world.hello.start_boxes.iter().any(|b| b.ally_team != our_ally && b.contains(p.at));
+            if let Some(next) = never_looked.iter().copied().min_by(|a, b| (seek_his && !in_his_box(a), a.at.dist2d(body.front)).partial_cmp(&(seek_his && !in_his_box(b), b.at.dist2d(body.front))).unwrap_or(std::cmp::Ordering::Equal)) {
                 let mut then: Vec<(f32, String)> = never_looked.iter().filter(|p| p.name != next.name).map(|p| (p.at.dist2d(next.at), p.name.clone())).collect();
                 then.sort_by(|a, b| a.0.total_cmp(&b.0));
                 let then: Vec<String> = then.into_iter().map(|(_, n)| n).take(3).collect();
@@ -1107,8 +1146,11 @@ impl Brain {
             } else {
                 None
             };
+            // On a leg of its route (§4.4): the paragraph names two or more places and the walk is to one of them.
+            let on_route = super::diet::named_in_order(&paragraph, picture.places.iter().map(|p| p.name.as_str()).filter(|n| *n != "home")).len() >= 2
+                && matches!(&group.task, GroupTask::Move { place, .. } if picture.places.iter().any(|p| p.name == *place && on_route(p)));
             if states.len() > 1 {
-                slots.push(Slot { name, kind: Kind::Group(group.name.clone()), states, queue_ahead: false, idle, stop_cost });
+                slots.push(Slot { name, kind: Kind::Group(group.name.clone()), states, queue_ahead: false, idle, stop_cost, on_route, quiet: false });
             }
         }
         slots
@@ -1516,11 +1558,11 @@ mod tests {
     }
 
     fn threat(name: &str, states: Vec<State>) -> Slot {
-        Slot { name: name.to_string(), kind: Kind::Threat(party(name, 1), "at spot_1".into()), states, queue_ahead: false, idle: false, stop_cost: None }
+        Slot { name: name.to_string(), kind: Kind::Threat(party(name, 1), "at spot_1".into()), states, queue_ahead: false, idle: false, stop_cost: None, on_route: false, quiet: false }
     }
 
     fn builder(name: &str, id: i32, states: Vec<State>) -> Slot {
-        Slot { name: name.to_string(), kind: Kind::Builder(UnitId(id)), states, queue_ahead: false, idle: true, stop_cost: None }
+        Slot { name: name.to_string(), kind: Kind::Builder(UnitId(id)), states, queue_ahead: false, idle: true, stop_cost: None, on_route: false, quiet: false }
     }
 
     #[test]
@@ -1567,6 +1609,12 @@ mod tests {
         assert!(line.contains("route's next stop spot_46 not ordered") && !line.contains("idle, doing nothing"), "{line}");
         let line = consequence(&vec![1], &slots, "", Some(&vec![0]));
         assert!(line.starts_with("As w1, and: group_A.walk_spot_46") && !line.contains("not ordered"), "{line}");
+        // On a leg of its route and quiet (4.4): no question goes out, world 1 keeps its course.
+        let mut walking = slots.into_iter().next().unwrap();
+        assert!(walking.open());
+        walking.quiet = true;
+        assert!(!walking.open());
+        assert!(gate_questions(&[walking], true).is_empty());
     }
 
     #[test]

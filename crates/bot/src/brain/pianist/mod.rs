@@ -596,7 +596,7 @@ impl Brain {
     /// question follows in `after_gate`. Without Jev the base is the plan.
     fn pass(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, commands: &mut Vec<Command>) {
         let frame = tick.frame;
-        let slots = self.slots(tick, kit, picture);
+        let mut slots = self.slots(tick, kit, picture);
         let mut line = json!({ "t": "pass", "f": frame });
         {
             let pianist = self.pianist.as_mut().expect("pianist mode");
@@ -618,6 +618,19 @@ impl Brain {
                 pianist.write_log(line);
             }
             return;
+        }
+        // A group walking a leg of its route (routes-in-prose §4.4) is asked on an event that names it, on a packet
+        // or rules change, and at the re-ask, not every second: the per-second re-decision against fall-back,
+        // pull-out and gather flipped group_G 13 times in 53 s at E3 (player-9 18:32-19:25) and never past the edge.
+        {
+            let pianist = self.pianist.as_ref().expect("pianist mode");
+            let re_ask_due = pianist.sig.as_ref().is_none_or(|(_, f)| tick.frame - *f >= plan::RE_ASK);
+            let orders = ["packet", "places", "rules", "lists"].iter().any(|e| pianist.events.contains(*e));
+            for s in slots.iter_mut() {
+                if s.on_route && !re_ask_due && !orders && !pianist.events.iter().any(|e| e.starts_with(&format!("{} ", s.name))) {
+                    s.quiet = true;
+                }
+            }
         }
         let mut base: plan::World = slots.iter().map(plan::Slot::base).collect();
         plan::hold_current(&slots, &mut base);

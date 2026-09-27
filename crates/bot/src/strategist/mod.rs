@@ -529,7 +529,7 @@ fn player_prompt(game_time: &str, headline: &str, shared: &Shared, seen: &mut re
         if turn == 0 || fresh_session {
             String::new()
         } else if landed >= turn {
-            format!("Your orders of {} came into force at {}, {} s before this report; what follows shows the game after them.\n", clock(turn), clock(landed), (frame - landed).max(0) / 30)
+            format!("Your orders of {} came into force at {}, {} s after the report they answered and {} s before this one; what follows shows the game after them. A group that reaches the last place named for it waits for your next turn: name the whole route.\n", clock(turn), clock(landed), (landed - turn).max(0) / 30, (frame - landed).max(0) / 30)
         } else {
             format!("Your orders of {} are still on their way (the think penalty): what follows shows the game before them.\n", clock(turn))
         }
