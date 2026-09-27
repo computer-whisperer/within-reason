@@ -641,7 +641,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             Ok(format!("{}; they see it from their next look", said.join("; ")))
         }
         "remove" => {
-            let cards = shared.own_cards.lock().unwrap().clone();
+            let cards: Vec<super::shared::UnitCard> = shared.own_cards.lock().unwrap().values().flatten().cloned().collect();
             if cards.is_empty() {
                 return Err("your hands have not published our units yet: try again in a few seconds".into());
             }
@@ -759,12 +759,12 @@ mod tests {
         let shared = Arc::new(Shared::default());
         assert!(call_tool("remove", &json!({ "destruct": ["armsolar_7"] }), &shared).unwrap_err().contains("not published"));
         let card = |handle: &str, actor: Option<&str>, at: (f32, f32), health: f32, blast: Option<(f32, f32)>| UnitCard { handle: handle.into(), actor: actor.map(str::to_string), unit: handle.split('_').next().unwrap().into(), at, health, metal: 155.0, self_destruct: blast, self_destruct_seconds: 5.0 };
-        *shared.own_cards.lock().unwrap() = vec![
+        shared.own_cards.lock().unwrap().insert(0, vec![
             card("armsolar_7", None, (100.0, 100.0), 400.0, Some((120.0, 500.0))),
             card("armavp_3", Some("plant_3"), (150.0, 100.0), 3000.0, Some((300.0, 2000.0))),
             card("armck_9", Some("constructor_9"), (160.0, 120.0), 300.0, None),
             card("armmex_4", None, (900.0, 900.0), 300.0, Some((50.0, 100.0))),
-        ];
+        ]);
         assert!(call_tool("remove", &json!({}), &shared).unwrap_err().contains("remove takes"));
         assert!(call_tool("remove", &json!({ "reclaim": ["armsolar_99"] }), &shared).unwrap_err().contains("nothing of ours has that name"));
         let refused = call_tool("remove", &json!({ "destruct": ["armsolar_7"] }), &shared).unwrap_err();

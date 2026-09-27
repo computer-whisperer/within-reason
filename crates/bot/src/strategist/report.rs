@@ -77,9 +77,9 @@ fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
         let seats: Vec<String> = briefing
             .seats
             .iter()
-            .map(|s| format!("team {} at {}: metal {:.0} ({:+.1}), {} extractors, {} soldiers", s.team, s.home.grid, s.metal_stored, s.metal_income, s.extractors, s.soldiers))
+            .map(|s| format!("team {} at {}{}: metal {:.0} ({:+.1}), {} extractors, {} soldiers", s.team, s.home.grid, if s.colour.is_empty() { String::new() } else { format!(" ({} to the people in the game)", s.colour) }, s.metal_stored, s.metal_income, s.extractors, s.soldiers))
             .collect();
-        lines.push(format!("seats: you command {} seats, each with its own economy | {}", seats.len(), seats.join(" | ")));
+        lines.push(format!("seats: you command {} seats, each with its own economy (people in the game know a seat by its lobby colour, so say \"our {} seat\" in chat, never t{}) | {}", seats.len(), briefing.seats[0].colour, briefing.seats[0].team, seats.join(" | ")));
     }
     // Evidence, never a guess (docs/design/2026-09-22-enemy-evidence.md): finding the opponent is the player's.
     let gone = if s.enemy_factories_gone.is_empty() { String::new() } else { format!("; seen destroyed: {}", s.enemy_factories_gone.iter().map(|(p, at)| format!("{} ({}, {}) at {}", p.grid, p.x, p.z, clock(*at))).collect::<Vec<_>>().join("; ")) };

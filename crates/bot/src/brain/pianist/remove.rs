@@ -33,7 +33,7 @@ impl Brain {
                 }
             })
             .collect();
-        *shared.own_cards.lock().unwrap() = cards;
+        shared.own_cards.lock().unwrap().insert(self.world.hello.team, cards);
         let mut blasts = shared.blasts.lock().unwrap();
         if blasts.is_empty() {
             for d in &self.world.hello.unit_defs {

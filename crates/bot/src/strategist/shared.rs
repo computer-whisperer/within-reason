@@ -21,6 +21,8 @@ pub struct Briefing {
     pub wind_range: (f32, f32),
     pub counts: Counts,
     pub home: Place,
+    /// This seat's lobby colour by name (how people in the game call it), empty when the script gave none.
+    pub colour: String,
     pub home_group: Group,
     /// Enemies in sight or radar right now, grouped by map grid cell.
     pub enemies_visible: Vec<EnemyCluster>,
@@ -342,8 +344,9 @@ pub struct Shared {
     /// again at 4:15 and 4:43 gave no constructor, the counts having been spent on the same list at 1:15).
     pub produce_calls: AtomicU64,
     /// One card per finished unit of ours, by the handle the player names it with (`remove` tool); the pianist
-    /// republishes them every ask (docs/design/2026-09-22-yard-and-reclaim.md).
-    pub own_cards: Mutex<Vec<UnitCard>>,
+    /// republishes them every ask (docs/design/2026-09-22-yard-and-reclaim.md). Per seat (team): a single list was overwritten by whichever seat published last, and the `remove` tool
+    /// knew only that seat's units (bluegecko-3v1-comet-catcher-3: `cormex_344` "nothing of ours has that name").
+    pub own_cards: Mutex<BTreeMap<i32, Vec<UnitCard>>>,
     /// Unit name to (death blast, self-destruct blast, self-destruct seconds), each blast (radius, damage); once.
     pub blasts: Mutex<BTreeMap<String, (Option<(f32, f32)>, Option<(f32, f32)>, f32)>>,
     /// The `remove` tool's orders, taken by the pianist.

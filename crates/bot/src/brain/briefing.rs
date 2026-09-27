@@ -248,6 +248,7 @@ impl Brain {
                 army: soldiers.len(),
             },
             home: self.place(self.home),
+            colour: self.world.hello.teams.iter().find(|t| t.team == self.world.hello.team).and_then(|t| t.color).map(colour_name).unwrap_or_default(),
             home_group: self.group(&soldiers),
             enemies_visible,
             enemy_buildings_remembered,
@@ -343,12 +344,59 @@ impl Brain {
                         // The engine lowercases faction names.
                         let mut side = t.side.chars();
                         let side = side.next().map(|c| c.to_ascii_uppercase().to_string() + side.as_str()).unwrap_or_default();
-                        if side.is_empty() { who } else { format!("{who}, {side}") }
+                        let colour = t.color.map(|c| format!(", {} in the lobby's colours", colour_name(c))).unwrap_or_default();
+                        if side.is_empty() { format!("{who}{colour}") } else { format!("{who}, {side}{colour}") }
                     })
                     .collect();
                 crate::strategist::shared::Side { ours: ally_team == hello.ally_team, ally_team, seats }
             })
             .collect()
+    }
+}
+
+/// A colour's everyday name from its lobby RGB (0-1): the word people in the game use for a seat ("the purple
+/// one"). Hue in twelve bands, "dark" or "pale" from lightness, "grey" when there is no colour to speak of.
+pub(crate) fn colour_name(c: [f32; 3]) -> String {
+    let [r, g, b] = c;
+    let (max, min) = (r.max(g).max(b), r.min(g).min(b));
+    let light = (max + min) / 2.0;
+    let sat = if max == min { 0.0 } else { (max - min) / (1.0 - (2.0 * light - 1.0).abs()).max(1e-6) };
+    if sat < 0.15 {
+        return match light {
+            l if l < 0.2 => "black",
+            l if l < 0.7 => "grey",
+            _ => "white",
+        }
+        .to_string();
+    }
+    let d = max - min;
+    let hue = if d == 0.0 {
+        0.0
+    } else if max == r {
+        60.0 * (((g - b) / d) % 6.0)
+    } else if max == g {
+        60.0 * ((b - r) / d + 2.0)
+    } else {
+        60.0 * ((r - g) / d + 4.0)
+    };
+    let hue = if hue < 0.0 { hue + 360.0 } else { hue };
+    let name = match hue {
+        h if h < 15.0 || h >= 335.0 => "red",
+        h if h < 40.0 => "orange",
+        h if h < 65.0 => "yellow",
+        h if h < 80.0 => "lime",
+        h if h < 160.0 => "green",
+        h if h < 195.0 => "teal",
+        h if h < 215.0 => "sky blue",
+        h if h < 255.0 => "blue",
+        h if h < 290.0 => "purple",
+        _ => "magenta",
+    };
+    match light {
+        l if l < 0.25 && name != "red" => format!("dark {name}"),
+        l if l > 0.75 && name == "red" => "pink".to_string(),
+        l if l > 0.75 => format!("pale {name}"),
+        _ => name.to_string(),
     }
 }
 
@@ -472,5 +520,23 @@ impl Brain {
             roster,
             factions: vec![(self.world.hello.team, self.world.hello.teams.iter().find(|t| t.team == self.world.hello.team).map_or(String::from("?"), |t| t.side.clone()))],
         });
+    }
+}
+
+#[cfg(test)]
+mod colour_tests {
+    use super::colour_name;
+
+    #[test]
+    fn lobby_colours_get_their_everyday_names() {
+        // The lobby colours of the games with people on 2026-09-27.
+        assert_eq!(colour_name([0.63922, 0.08235, 0.88235]), "purple");
+        assert_eq!(colour_name([0.0, 0.96863, 0.0]), "green");
+        assert_eq!(colour_name([0.0, 0.0, 0.92941]), "blue");
+        assert_eq!(colour_name([0.86667, 0.0, 0.27059]), "red");
+        assert_eq!(colour_name([0.78039, 0.0, 0.89804]), "magenta");
+        assert_eq!(colour_name([0.72549, 0.88627, 0.69020]), "pale green");
+        assert_eq!(colour_name([0.5, 0.5, 0.5]), "grey");
+        assert_eq!(colour_name([0.44706, 0.0, 0.85098]), "purple");
     }
 }

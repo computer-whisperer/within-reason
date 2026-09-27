@@ -86,6 +86,18 @@ pub fn teams(script: &str) -> Vec<i32> {
     sections(script).into_iter().filter_map(|(name, _)| name.strip_prefix("team").and_then(|n| n.parse::<i32>().ok())).collect()
 }
 
+/// Each team's lobby colour: `(team, [r, g, b])` from `rgbcolor=r g b` (0-1) of every `[TEAMn]` that has one.
+pub fn colors(script: &str) -> Vec<(i32, [f32; 3])> {
+    sections(script)
+        .into_iter()
+        .filter_map(|(name, body)| {
+            let team = name.strip_prefix("team")?.parse::<i32>().ok()?;
+            let parts: Vec<f32> = value(body, "rgbcolor")?.split_whitespace().filter_map(|v| v.parse::<f32>().ok()).collect();
+            (parts.len() == 3).then(|| (team, [parts[0], parts[1], parts[2]]))
+        })
+        .collect()
+}
+
 /// Who plays each team: `(team, controller)` for every non-spectator player and every AI in the script.
 pub fn controllers(script: &str) -> Vec<(i32, Controller)> {
     let all = sections(script);
@@ -133,6 +145,8 @@ mod tests {
         assert_eq!(seats[0], (0, Controller::Person { name: "[gecko]u6bkep".into(), skill: Some(19.24) }));
         assert_eq!(seats[1], (1, Controller::Ai { name: "BARbarianAI(1)".into(), short_name: "BARb".into(), version: String::new(), profile: Some("medium".into()) }));
         assert_eq!(super::teams(lobby), vec![0]);
+        let coloured = "[GAME]\n{\n[team0] { allyteam=0; rgbcolor=0.63922 0.08235 0.88235; side=Armada; }\n[team1] { allyteam=1; side=Random; }\n}";
+        assert_eq!(super::colors(coloured), vec![(0, [0.63922, 0.08235, 0.88235])]);
         let arena = "[GAME]\n{\n\t[PLAYER0] { Name=arena; Spectator=1; }\n\t[AI0] { Name=ai0; Team=0; Host=0; ShortName=WReason; Version=0.1; }\n\t[AI1] { Name=ai1; Team=1; Host=0; ShortName=BARb; Version=stable; [OPTIONS] { profile=hard_aggressive; random_seed=1; disabledunits=; } }\n}";
         let seats = super::controllers(arena);
         assert_eq!(seats.len(), 2);

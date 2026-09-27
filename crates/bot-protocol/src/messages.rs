@@ -73,6 +73,10 @@ pub struct TeamInfo {
     /// Who plays the seat, from the start script; `Unknown` from a shim older than 2026-09-23.
     #[serde(default)]
     pub controller: Controller,
+    /// The seat's lobby colour (`rgbcolor` of its `[TEAMn]` section, 0-1 each), how people in the game name a
+    /// seat; `None` from a shim older than 2026-09-27 or a script without one.
+    #[serde(default)]
+    pub color: Option<[f32; 3]>,
 }
 
 /// Who plays a seat, read from the start script's `[PLAYERn]` and `[AIn]` sections (human-9: the player could not

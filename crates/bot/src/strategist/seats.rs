@@ -26,6 +26,8 @@ pub struct SeatView {
 pub struct SeatLine {
     pub team: i32,
     pub home: Place,
+    /// The seat's lobby colour by name, empty when unknown.
+    pub colour: String,
     pub metal_income: f32,
     pub metal_stored: f32,
     pub extractors: usize,
@@ -116,6 +118,7 @@ impl Shared {
             .map(|(team, s)| SeatLine {
                 team: *team,
                 home: s.briefing.home.clone(),
+                colour: s.briefing.colour.clone(),
                 metal_income: s.briefing.metal.income,
                 metal_stored: s.briefing.metal.current,
                 extractors: s.briefing.counts.extractors,

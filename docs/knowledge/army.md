@@ -460,6 +460,18 @@ opening. What beats what cannot be read from the cards: kills and losses are who
 composition (the types dying on each side in each fight cell) would answer it.
 **Used by.** (candidate: the unit-mix lever in the brief)
 
+### K-team-one-store-for-all-seats-loses-a-seat
+**Claim.** Every store in `Shared` that one seat overwrote instead of keying by team lost the other seats to the
+player's tools: the standing list (drained by one seat, 8cc9ac6), the hands (aca9d65), the field's roster
+(6872ff4) and the unit cards the `remove` tool searches (bluegecko-3v1-comet-catcher-3, 18:55: the extractor
+`cormex_344` blocking a Cortex lab's exit "nothing of ours has that name" twice, the lab idle with a Thug in its
+lane). The pattern: `*shared.x.lock() = mine` in a per-seat publisher. Fixed by keying on `hello.team` and reading
+the union.
+**Evidence.** `run/matches/1790471259-bluegecko-3v1-comet-catcher-3/00/strategist-0.jsonl` (turn at 18:55);
+`grep -n "lock().unwrap() = " crates/bot/src/brain` for the pattern.
+**Status.** Cards fixed 2026-09-27 (`own_cards: BTreeMap<i32, Vec<UnitCard>>`). Exploited by
+[[H-PLAYER-SEAT-NAMES]].
+
 ### K-team-random-side-gives-the-seats-two-factions
 **Claim.** A lobby seat on side Random draws its faction at start, so seats of ours can be of two factions in one
 game, and the tools checked names against the lead seat's roster alone: in bluegecko-3v1-comet-catcher-3
