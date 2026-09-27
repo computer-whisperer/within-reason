@@ -9,8 +9,6 @@ pub struct Roster {
     pub commander: &'static str,
     extractor: &'static str,
     solar: &'static str,
-    wind: &'static str,
-    advanced_solar: &'static str,
     converter: &'static str,
     lab: &'static str,
     turret: &'static str,
@@ -32,14 +30,14 @@ pub struct Roster {
 
 pub const ROSTERS: [Roster; 2] = [
     Roster {
-        commander: "armcom", extractor: "armmex", solar: "armsolar", wind: "armwin", advanced_solar: "armadvsol",
+        commander: "armcom", extractor: "armmex", solar: "armsolar",
         converter: "armmakr", lab: "armlab", turret: "armllt", constructor: "armck",
         plant: "armvp", vehicle_constructor: "armcv",
         advanced_lab: "armalab", advanced_constructor: "armack", advanced_extractor: "armmoho",
         raider: "armpw", line: "armham", resurrector: "armrectr",
     },
     Roster {
-        commander: "corcom", extractor: "cormex", solar: "corsolar", wind: "corwin", advanced_solar: "coradvsol",
+        commander: "corcom", extractor: "cormex", solar: "corsolar",
         converter: "cormakr", lab: "corlab", turret: "corllt", constructor: "corck",
         plant: "corvp", vehicle_constructor: "corcv",
         advanced_lab: "coralab", advanced_constructor: "corack", advanced_extractor: "cormoho",
@@ -80,8 +78,6 @@ pub struct Kit {
     pub commander: UnitDefId,
     pub extractor: UnitDefId,
     pub solar: UnitDefId,
-    pub wind: UnitDefId,
-    pub advanced_solar: UnitDefId,
     pub converter: UnitDefId,
     pub lab: UnitDefId,
     pub turret: UnitDefId,
@@ -118,8 +114,6 @@ impl Roster {
             commander: id(self.commander)?,
             extractor: id(self.extractor)?,
             solar: id(self.solar)?,
-            wind: id(self.wind)?,
-            advanced_solar: id(self.advanced_solar)?,
             converter: id(self.converter)?,
             lab: id(self.lab)?,
             turret: id(self.turret)?,

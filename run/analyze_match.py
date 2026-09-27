@@ -174,6 +174,10 @@ def summarise(units, match, built_only=True):
         if built_only and building:
             continue
         c = match.cls(name)
+        # Hovers, ships and aircraft are soldiers too: counted apart, a water map's army read as 0 all game
+        # (bluegecko-3v1-comet-catcher-11 on SailAway 2, 217 hovers and 10 ships).
+        if c in ("hover", "ship", "aircraft"):
+            c = "army"
         out[c][0] += 1
         out[c][1] += match.metal(name)
     return out

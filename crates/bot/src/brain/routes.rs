@@ -75,7 +75,13 @@ impl Brain {
         let terrain = &self.world.hello.terrain;
         let Some(class) = self.world.def(kit.raider).and_then(|d| d.move_class) else { return };
         let passable = terrain::passable(terrain, class);
-        let Some(from_home) = Field::from(terrain, &passable, self.home) else {
+        // A start in the water (SailAway 2: a seat's commander at height -62) is no ground the raiders stand on: the
+        // field then runs from the nearest shore cell, and every distance is from there.
+        let origin = if Field::from(terrain, &passable, self.home).is_some() { self.home } else { nearest_passable(terrain, &passable, self.home, 2500.0).unwrap_or(self.home) };
+        if origin != self.home {
+            eprintln!("[ai {}] our start ({:.0}, {:.0}) is not ground our soldiers stand on; distances run from the nearest shore at ({:.0}, {:.0})", self.ai(), self.home.x, self.home.z, origin.x, origin.z);
+        }
+        let Some(from_home) = Field::from(terrain, &passable, origin) else {
             eprintln!("[ai {}] no terrain data; distances are straight lines", self.ai());
             return;
         };
@@ -379,4 +385,28 @@ impl Brain {
 fn is_ours(from_home: &Field, from_enemy: Option<&Field>, spot: Vec3) -> bool {
     let Some(ours) = from_home.distance(spot) else { return false };
     from_enemy.and_then(|f| f.distance(spot)).is_none_or(|theirs| ours < theirs)
+}
+
+/// The centre of the passable cell nearest `pos` within `radius`, if any: where a field starts for a home that is
+/// itself in the water.
+fn nearest_passable(terrain: &bot_protocol::Terrain, passable: &[bool], pos: Vec3, radius: f32) -> Option<Vec3> {
+    if terrain.cell <= 0.0 || passable.is_empty() {
+        return None;
+    }
+    let cells = (radius / terrain.cell).ceil() as i64;
+    let (cx, cz) = ((pos.x / terrain.cell) as i64, (pos.z / terrain.cell) as i64);
+    let mut best: Option<(f32, Vec3)> = None;
+    for row in (cz - cells).max(0)..=(cz + cells).min(i64::from(terrain.height) - 1) {
+        for col in (cx - cells).max(0)..=(cx + cells).min(i64::from(terrain.width) - 1) {
+            if !passable[(row * i64::from(terrain.width) + col) as usize] {
+                continue;
+            }
+            let at = Vec3 { x: (col as f32 + 0.5) * terrain.cell, y: 0.0, z: (row as f32 + 0.5) * terrain.cell };
+            let d = at.dist2d(pos);
+            if d <= radius && best.is_none_or(|(b, _)| d < b) {
+                best = Some((d, at));
+            }
+        }
+    }
+    best.map(|(_, at)| at)
 }
