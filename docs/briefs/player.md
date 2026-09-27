@@ -48,7 +48,15 @@ have the same shape and opposite answers, the difference between them is the thi
   given away with `transfer`, and the mohos go up on every seat at once. Game 10: the top seat's advanced plant sat
   at 0% from 15:40 until it was abandoned at 19:15 while that seat's store rose to 1,432 and no `transfer` was made
   all game (none in game 8 either); game 12 made three, a dying seat's units and 700 metal to the live one at
-  11:41-12:13. The pattern applies on land and water alike, as the water paragraph's one hover platform does. The calculus (the user, 2026-09-28): in a close duel the tech is a fatal
+  11:41-12:13. The pattern applies on land and water alike, as the water paragraph's one hover platform does. And the metal is
+  nothing without build power on the plant (the user, 2026-09-28: "The top player had only one constructor applying
+  build power to it, and a second constructor eventually came along and tried building a second t2 vehicle lab before
+  eventually assisting the first one. Two players gifting to one doesn't help if that player doesn't have the build
+  power to push it through"): in game 10 one constructor built the frame from 15:40 and a second was given a list
+  naming the plant at 18:07 and started a second frame 224 away (abandoned 19:15; the hands now help a frame of the
+  asked type already standing instead). When the plant is placed, every constructor of that seat and a construction
+  turret or two beside it go on `assist` of the plant, and the seat's other plants pause; the received metal is then
+  a plant standing in two minutes, not a store. The calculus (the user, 2026-09-28): in a close duel the tech is a fatal
   weak point, so his tech is the moment to find and kill his base, and matching him is the mistake (the pros tech in
   4 of 58 duel sides); past about 25:00, with more than two players, or against an opponent that techs on a clock,
   the window is covered and tier 2 on our side is right, with that seat's other plants paused ("Top should stop

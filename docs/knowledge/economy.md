@@ -292,6 +292,10 @@ one seat, that seat can build t2, then share t2 constructors to let advanced mex
 `transfer` call in games 8 and 10 (game 10's advanced plant at 0% from 15:40 to its abandonment at 19:15 with its
 seat's store at 1,432), three in game 12 (a dying seat's units and 700 metal to the live one at 11:41-12:13).
 **Evidence.** The strategist logs of `run/matches/1790479031-...-8`, `1790528069-...-10`, `1790532515-...-12`.
+The metal needs build power on the plant (the user, 2026-09-28: "Two players gifting to one doesn't help if that
+player doesn't have the build power to push it through"): in game 10 one constructor built the frame from 15:40 and a
+second, told to build the plant at 18:07, started a second frame 224 away instead of helping (abandoned 19:15; the
+hands now help a frame of the asked type already standing within 900).
 **Would be wrong if.** Metal sent between seats were lost to the receiver's store cap faster than a second advanced
 plant would cost, or an advanced constructor given away could not build the receiving seat's mohos.
 **Used by.** the brief's tier-2 case (7), the Several seats paragraph and the Great Divide plan; [[H-PLAYER-TRANSFER]].
