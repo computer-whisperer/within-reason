@@ -108,9 +108,10 @@ have the same shape and opposite answers, the difference between them is the thi
   one solar then wind, and the lab at 0:33 (Matt's replay), the commander helping it from 0:50. (2) comet-3, Comet:
   six solars before anything else were eight Blitzes' worth spent while income was 6; the store sat at zero from
   minute two to thirteen and the plant made 28 Blitzes in seventeen minutes. (3) The Comet pros: three solars (two if
-  the plant is up by 0:45), the plant at 0:43-0:58, a constructor first, and the commander at the plant for its first
-  units, out only for one solar or one extractor at a time (thebluegecko, game 10: the commander should be assisting
-  the lab when it first comes up). (4) human-5, Quicksilver: a second constructor at 1:15 put the first Pawn at 1:40,
+  the plant is up by 0:45), the plant at 0:43-0:58, and the commander at the plant for its first units, out only
+  for one solar or one extractor at a time (thebluegecko, game 10: the commander should be assisting the lab when
+  it first comes up); his own plant makes a Blitz, five Rovers and only then the constructor (the recommended line
+  in the Comet section). (4) human-5, Quicksilver: a second constructor at 1:15 put the first Pawn at 1:40,
   thirty seconds behind Matt. (5) Until 2026-09-28 the list's `assist 25` after the plant ended within a second (a
   harness fault, fixed): write `assist 40` after the plant and check at 2:00 that the commander is still there and
   the store reads about 150. (6) player-12, Comet vs BARb hard_aggressive, lost 26:28 with the root at 1:45: the
@@ -122,9 +123,9 @@ have the same shape and opposite answers, the difference between them is the thi
   6 to 8), so the metal store sat at 0 from 2:04 to 3:10 while the energy store was full again from 2:15; three
   extractors stood at 3:00 (six the game before, on the same seed), two at 4:00 after single raiders ate four at home
   with no turret affordable, nine at 8:00 against his fifteen, and his army led ours from 8:00 to the end. The rule
-  that follows: one constructor under the assist, then Rovers (370 energy each: the assisted plant makes one every
-  3 s on 90 income), the second constructor near 2:00 as (4) says; an energy dip behind an assisted constructor ends
-  when it rolls out and is never a reason for a solar; when the metal store reads 0 in the first three minutes the
+  that follows: Rovers under the assist (370 energy each: the assisted plant makes one every 3 s), the constructor
+  after five of them and the second when the stream runs, as thebluegecko's line has it; an energy store at 0
+  behind an assisted plant that is making units is the plant working and is never a reason for a solar; when the metal store reads 0 in the first three minutes the
   commander's own build is the thing to drop, and a solar with the energy line not STALLING is three extractors
   spent on nothing. The energy source is the map's (wind on Quicksilver, solar on Comet, solar with wind on
   Cape Violet); the bound in the first four minutes is metal, never build power.
@@ -387,28 +388,65 @@ K-maps-comet-barb-opens-bots, the tempo model]
 - **The opening on this map, from the replays** (33 duels with both players at OS 40 and above and thebluegecko's
   13 at 48.5, 2026-09-24; the earlier VAK-Artur game of 2026-09-09 agrees) [K-map-comet-catcher-remake-1-8-two-solars-before-the-plant,
   K-map-comet-catcher-remake-1-8-commander-assists-the-plant, K-open-comet-our-plant-starves, K-open-comet-pro-order].
-  The commander: extractors on the two or three spots beside the start (spot_30, spot_28, spot_36 from A4; spot_45,
-  spot_50 from B5), three solars (two at most if the plant is up by 0:45), never a fourth before the plant, the plant at 0:43 to 0:58
-  (standing 1:05 to 1:17); then the fourth solar at about 1:30 and the fifth by 3:00, the pool's clocks: on two or
-  three solars the energy store ran dry behind a plant making Blitzes (2v1b-medium 3:57, 2v1b-hard_aggressive 2:00). **Then it guards the plant**: the pros' commander stands at the plant from the second it is done and steps
-  out only for one solar or one extractor at a time, back to the plant after each (thebluegecko 140 s of the first
-  240 guarding, the pool 50). Write it as the list: `armvp`, `assist 25`, `extractor spot_36`, `assist 25`, `extractor
-  spot_28`, `assist 25`, ... with the fourth solar near 1:30 and the fifth by 3:00, and none beyond those where energy is full (2v1-medium
-  and 2v1-hard put solars five and six at 1:38 and 2:20 with energy full and the store at 0: each was three
-  extractors' metal). Your first list lands at about 0:25, when the hands have already ordered two extractors and a
-  solar; the hands skip the steps of your list they have ordered already, so write the whole opening from its
-  start. The plant's first unit is a constructor vehicle: the third solar before the plant is there to power it
-  (thebluegecko, game 5 of 2026-09-27: "the reason to make 3 solar rather than 2 is so you have enough e to make a
-  fast con, otherwise you can just make 2 and get the factory moving faster"), then `armfav` scout cars (31 metal:
-  half the pros' first eight units), a second constructor near 2:00, never three constructors at once: write it as
-  `produce {"plant_N": ["armcv:1", "armfav:3", "armcv:1", "armflash"]}` (the pool has four soldiers by 2:00; we
-  had one). The commander stays on the plant while the first units come out ("removing your com from the lab too
-  early: you're missing out on the BP for the lab", Irishstud14). The `armfav` at speed 168 is also the only tier-1 vehicle that catches a Tick
-  (132): a Blitz (101) never does, and against two seats the Ticks come from 2:20.
-  **The limit in the first four minutes is metal, not build power**: the store should read about 150 at 2:00 and
-  100 at 3:00 and never 0; when it reads 0 the plant is starving and the commander's own build is the thing to
-  drop. Check at 4:00: about eighteen units out of the plant (we had seven when the commander walked off to turrets
-  and far extractors with the store at 0 from 2:00), five solars, the store between 50 and 200. No turrets and no
+  **The recommended line is thebluegecko's** (OS 48.5, the strongest player in the survey: 13 of his 14 Armada sides
+  on this map, 10 won; the replay cards, 2026-09-28) [K-open-comet-thebluegecko-rover-mass]. The commander:
+  extractors on the two home spots and the third within 700 of the start (spot_30, spot_28, spot_36 from A4 at 0:03,
+  0:10, 0:25; spot_67, spot_74, spot_73 from B8), three solars (0:31, 0:40, 0:49), the plant at 0:58 (standing 1:17),
+  then **on the plant from the second it stands** (140 s of the first 240 in his games; the pool 50), out only for
+  the fourth solar at 1:32 to 1:45 and the fifth and sixth by 4:00, back on the plant after each. The plant, under
+  the commander's build power: a Blitz first (1:17), then Rovers one every three seconds (1:23, 1:26, 1:30, 1:33,
+  1:37), the first constructor seventh (1:40; 1:11 to 1:40 across his games), then Rovers again, the second
+  constructor when the stream is running (2:08 to 3:48, median 2:40). By 2:00 seven units out, by 3:00 eighteen (15
+  Rovers), by 4:00 twenty-four to thirty-two (16 to 30 Rovers, two to four constructors, up to five Blitzes). His
+  extractors are few (4 to 9 by 4:00; his constructor takes the near spots from 2:00 and puts a light turret at
+  home by 3:00) because the Rovers are the opening: his first Rover is within 1,500 of the enemy start at 1:54,
+  and by 3:00 fifteen of them are at the enemy's base together, killing extractors and constructors and stepping
+  off from everything that can shoot them (against Artur91: 377 of his lost there in minute 3 for 620 of the
+  enemy's, 236 for 336 in minute 4, 327 for 945 in minute 5). **Both stores read 0 through minutes 2 to 4 and
+  that is the plant working**: the assisted plant on Rovers draws 135 energy and 11 metal a second against 90 to
+  130 and 9 coming in, so his energy store sits under 20 from about 1:45 to 3:50 in 11 of his 14 games and his
+  metal touches 0 in 6; he answers it with the one solar the list already holds, never more (player-12 answered
+  its stall with four solars, 620 metal at an income of 8, and stood on three extractors at 3:00). Write it, from B8:
+  `queue {"commander": ["extractor spot_67", "extractor spot_74", "extractor spot_73", "armsolar", "armsolar",
+  "armsolar", "armvp", "assist 45", "armsolar", "assist 60", "extractor spot_68", "assist 60", "armsolar", "assist"]}`
+  (a timed `assist N` that begins with the metal store under 20 is skipped by the hands and the next step runs, so
+  the step after every timed assist is an extractor or the open `assist`, never a solar) and
+  `produce {"plant_N": {"group": "group_A", "units": ["armflash:1", "armfav:5", "armcv:1", "armfav:10", "armcv:1", "armfav"]}}`
+  (the hands build the list's entries in order, each to its count, so `armcv:2` first is two constructors back
+  to back under the assist and the energy store gone: player-12). The first constructor's list: the near spots
+  outward, a light turret at home the moment the first Tick or Pawn is in the picture (his at 3:02), then the strip.
+  The Rovers: at 2:20, with eight out, group_A goes as one body for his outer extractors and constructors by a
+  route through the spots of his strip nearest us (the first Rover ahead of it finds his lab on the way: `rove` for
+  one, the body for the rest), never inside 300 of his commander (the D-gun), never at a turret, stepping off from
+  Pawns, and every Rover out of the plant after that walks to the body; two Rovers stay home from 2:30 against
+  Ticks (BARb's first at 2:08). Your first list lands at about 0:25, when the hands have already ordered two
+  extractors and a solar; the hands skip the steps of your list they have ordered already, so write the whole
+  opening from its start. The `armfav` at speed 168 is also the only tier-1 vehicle that catches a Tick (132): a
+  Blitz (101) never does, and against two seats the Ticks come from 2:20.
+  **Other openings seen on this map, as snippets** (the start of a tree of practical actions by scenario; each
+  says when it was played and how it went): (1) *The Rascal-constructor line* (VAK, OS 52, against Artur91, won;
+  K-open-comet-pro-order): extractors 0:03, 0:10, solars 0:31, 0:40, 0:49, the plant 0:58, a solar 1:29; two Rascals
+  1:17 and 1:20, a constructor 1:24, a second 1:41, two Rascals, Blitzes from 2:12 one every ten to fifteen seconds
+  (thirteen by 5:00), constructors at 3:09, 4:30 and 5:46; 9, 13, 19 extractors at 4:00, 5:00, 6:52 and three nano
+  turrets by 6:37 on one plant. The economy line for a long duel: fewer raiders out, the extractor curve the pool's;
+  what BARb's Pawn and Tick raids meet. (2) *The pool's median at OS 40+* (80 sides): the plant standing 1:07, the
+  fourth solar 1:33, five solars and eighteen factory units by 4:00, the bank 567 at 1:00, 152 at 2:00, 99 at 3:00,
+  the store under 20 in 9% of the seconds; the commander on the plant 50 s. Winners assist less (32 s) and bank less
+  at 3:00 (72) than losers (93 s, 107): they spend harder. (3) *thebluegecko's bot lab* (once, against Hellontoast,
+  won in 8:01): the lab at 0:03 before any solar, solars 0:21, 0:30, 0:40, then the commander takes extractors
+  itself (0:51, 1:35, 1:50, 2:23, 2:37, 2:58, 3:17: eight by 4:00), two Pawns 0:21 and 0:32, five Ticks 0:46 to 1:33,
+  Pawns, constructor bots at 2:14 and 2:38, a second lab 3:23, a light turret 3:29. Bots against a vehicle player:
+  the Ticks scout and pick off constructors, the commander is the expander. (4) *Ours through player-11*: the
+  constructor first (thebluegecko's own advice on the third solar, game 5: "the reason to make 3 solar rather than 2
+  is so you have enough e to make a fast con"), then three Rovers, the second constructor near 2:00: 5 to 6
+  extractors at 3:00 and 4x his army at 4:00 against BARb, and a lead never spent. (5) *BARb hard_aggressive* (the
+  arena opponent, 91 of 104 recorded games): a bot lab, Pawns and Ticks from 2:08, six extractors at 3:00 and fifteen
+  at 8:00, light turrets from 4:00 and a Beamer by 8:00, its advanced lab near 11:50.
+  **The limit in the first four minutes is metal, not build power**: on thebluegecko's line both stores read 0
+  from about 1:45 with the plant never idle, and that is right; a store at 0 with the plant idle or making a
+  constructor is starving, and then the commander's own build is the thing to drop, never the assist. Check at
+  4:00: twenty-four units out of the plant (we had seven when the commander walked off to turrets and far
+  extractors, and nine in player-12 behind four solars), five or six solars, sixteen Rovers or more at his base. No turrets and no
   extractors beyond the home spots from the commander before 2:00; the first constructor takes the next spots
   (spot_43 at 2:33, spot_38 and spot_39 by 3:36 from A4), a light turret beside each pair after that. From 2:00 the
   commander can walk toward the middle with the second constructor's work behind it, as the VAK game's did (an
@@ -719,9 +757,9 @@ K-maps-comet-barb-opens-bots, the tempo model]
   a second `assist 30` after the next extractor, and keep the commander at the plant until the first constructor
   and the first two soldiers are out. The condition on it (player-12, the first game the assist held): the assisted
   plant draws about 220 energy a second on a constructor against three solars' 90, and the start's store covers one
-  such constructor; so the plant's list is one constructor, then Rovers, then the second constructor
-  (`armcv:1, armfav:3, armcv:1`, never `armcv:2`), and an empty energy store at 1:30 to 1:45 behind that first
-  constructor is the assist working, over when the constructor rolls out, not a call for solars (player-12 answered
+  such constructor; so the plant's list is a Blitz, five Rovers, the constructor, ten Rovers, the second constructor
+  (`armflash:1, armfav:5, armcv:1, armfav:10, armcv:1, armfav`: his line, never `armcv:2`), and an empty energy
+  store from 1:45 behind the assisted plant making Rovers is the assist working, not a call for solars (player-12 answered
   it with four, 620 metal at an income of 8, and stood on three extractors at 3:00).
 
 **This map, Cape Violet V1 (one game with a person, 2026-09-27, three seats of ours on the east strip at H2, H4

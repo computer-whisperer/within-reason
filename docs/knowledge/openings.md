@@ -531,3 +531,34 @@ So the third solar buys exactly one fast constructor; a second constructor under
 energy) between them do not. The player's answer to the stall, four solars at 1:45 (620 metal at an income of 6 to
 8), is the fault the pros' curve names: the metal store sat at 0 from 2:04 to 3:10 and three extractors stood at 3:00
 against player-11's six on the same seed. Used by the brief's opening case (6) and its item (r).
+
+### K-open-comet-thebluegecko-rover-mass
+**Claim.** thebluegecko (OS 48.5) opens Comet Catcher with a Rover mass, the same line in 13 of his 14 Armada sides
+(10 won): extractors 0:03, 0:10 and the third home spot at 0:25, solars 0:31, 0:40, 0:49, the plant 0:58 standing
+1:17, the fourth solar 1:32 (median), six by 4:00; the commander on the plant 140 s of the first 240 (first guard
+1:18, the second it stands; the pool 50 s). The plant under his build power: a Blitz 1:17, Rovers every three seconds
+(1:23, 1:26, 1:30, 1:33, 1:37), the first constructor seventh (1:11 to 1:40), Rovers again, the second constructor
+2:08 to 3:48 (median about 2:40); 24 factory units by 4:00 (21 to 32; 16 to 30 Rovers, two to four constructors, up
+to five Blitzes; the pool 18). Extractors 4 to 9 by 4:00 (the pool 7). Both stores run empty and he keeps going: the
+energy store under 20 from about 1:45 to 3:50 in 11 of 14 sides (the assisted plant on Rovers draws 135 a second
+against 90 to 130), the metal store at 0 at some point in 6 of 14 (11 a second against 9); the stall is answered by
+the list's one solar. The Rovers go to the enemy's base: his first within 1,500 of the enemy start at 1:54, and by
+minute 3 the body is there (against Artur91, 15469c6a: 377 of his lost there in minute 3 for 620 of the enemy's, 236
+for 336 in minute 4, 327 for 945 in minute 5; his light turret at home 3:02 by the constructor). His one bot-lab
+side on the map (against Hellontoast, won 8:01) is a different line: the lab at 0:03 before any solar, the
+commander expanding to eight extractors by 4:00, Pawns and Ticks.
+**Evidence.** `run/replays/assist.py --floors 40 --player thebluegecko` (the 14 rows and medians); the cards
+`run/matches/1790231217-replay-15469c6a183b7b6bd5559e0fbc61c4b4/card.json` (his build order to 4:00),
+`...-6f439c6aaa27fa810932d14555309a3a` (the bot lab), `...-0e16796a072560b412917c61cc89a32d` (32 units, lost); the
+records' resource samples (a scratch pass over `record-<team>.jsonl`, 2026-09-28); `run/minutes.py` on the 15469c6a
+directory (the trades by minute).
+**Status.** measured (2026-09-28, the replay survey). The brief's recommended Comet opening from this date; the
+first arena game on it is player-13-gecko-opening. The VAK line (K-open-comet-pro-order) and the pool's median stay
+in the brief as snippets. Amends K-open-comet-our-plant-starves and the brief's "never 0" rule: for this line the
+stores at 0 from 1:45 with the plant never idle is the opening working, not a stall to fix.
+**Would be wrong if.** His Rovers' trades came from the opponents' weakness at OS 40-43 rather than the line (the
+pool's winners make 18 units by 4:00 and win as often), or BARb's Pawn-and-Tick lab opening with turrets from 4:00
+punishes a Rover body more than a person does.
+**Used by.** `docs/briefs/player.md` (the Comet opening, the cases layer's opening case, item (r));
+[[H-PLAYER-OPENING-SNIPPETS]].
+
