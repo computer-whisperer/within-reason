@@ -190,9 +190,18 @@ fn roster_lines(field: &Field) -> String {
         })
         .collect();
     entries.sort();
+    let sides: Vec<&str> = field.factions.iter().map(|(_, side)| side.as_str()).collect::<std::collections::BTreeSet<_>>().into_iter().collect();
     let mut lines = vec![format!(
-        "our roster ({} units the commander reaches by build lists; [now] marks what a builder or factory standing now can build; `units` gives any entry's full prose):",
-        entries.len()
+        "our roster ({} units the commander reaches by build lists; [now] marks what a builder or factory standing now can build; `units` gives any entry's full prose){}:",
+        entries.len(),
+        if sides.len() > 1 {
+            format!(
+                "; the seats are of two factions ({}), so the roster holds both: a seat's builders and factories take their own faction's names (arm... or cor...) and skip the other's",
+                field.factions.iter().map(|(team, side)| format!("t{team} {side}")).collect::<Vec<_>>().join(", ")
+            )
+        } else {
+            String::new()
+        }
     )];
     lines.extend(entries.into_iter().map(|(_, line)| format!("  {line}")));
     lines.join("\n")

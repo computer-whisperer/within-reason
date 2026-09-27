@@ -470,6 +470,7 @@ impl Brain {
             turrets: turrets.iter().map(|t| self.place(*t)).collect(),
             buildable,
             roster,
+            factions: vec![(self.world.hello.team, self.world.hello.teams.iter().find(|t| t.team == self.world.hello.team).map_or(String::from("?"), |t| t.side.clone()))],
         });
     }
 }

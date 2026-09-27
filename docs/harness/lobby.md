@@ -16,7 +16,10 @@ AI runs on his machine (his compute, his inference subscriptions). Own autohost 
   claude-opus-5 before the argument existed), recording into `run/matches/<time>-<label>/00`; then add "Within Reason"
   in the lobby, once per seat we play: every seat's shim finds the one bot on the socket, one player session runs
   over all of them, and in a game with several seats every per-seat name carries `_t<team>` (H-PLAYER-SEAT-NAMES).
-  Re-run `run/install_to_bar.sh` after any shim or protocol change (pitfalls.md).
+  Re-run `run/install_to_bar.sh` after any shim or protocol change (pitfalls.md). **Set each seat's faction in the
+  lobby** (Armada, what the brief's openings assume): a seat left on side Random draws its faction at start, and
+  bluegecko-3v1-comet-catcher-3 got one Armada and two Cortex seats (K-team-random-side-gives-the-seats-two-factions;
+  the tools now take both rosters, but the brief speaks Armada).
 - Start `target/release/bot` with `WITHIN_REASON_SOCKET` unset; shim and bot both default to `$XDG_RUNTIME_DIR/within-reason.sock`.
   The shim retries about once a second, so the bot may start late or be restarted mid-game.
 - **Text edits need no rebuild** (`crates/bot/src/texts.rs`): the prompts (`crates/bot/src/strategist/*.md`), the

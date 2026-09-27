@@ -89,8 +89,11 @@ pub struct Field {
     pub turrets: Vec<Place>,
     /// What our standing builders and factories can build now, with metal cost.
     pub buildable: Vec<(String, u32)>,
-    /// Every unit the commander reaches by build lists: the faction's whole roster, with metal cost.
+    /// Every unit the commander reaches by build lists: the faction's whole roster, with metal cost. Merged over
+    /// seats of different factions (a lobby seat on side Random), it holds both factions' units.
     pub roster: Vec<(String, u32)>,
+    /// This seat's faction as the start script names it (Armada, Cortex, Legion); merged, every seat's with its team.
+    pub factions: Vec<(i32, String)>,
     pub score: Score,
     /// Wreck fields known: place, metal, whether it is safe to work (no enemy in sight near it, a way to walk there).
     pub wreck_fields: Vec<(Place, u32, bool)>,

@@ -460,6 +460,20 @@ opening. What beats what cannot be read from the cards: kills and losses are who
 composition (the types dying on each side in each fight cell) would answer it.
 **Used by.** (candidate: the unit-mix lever in the brief)
 
+### K-team-random-side-gives-the-seats-two-factions
+**Claim.** A lobby seat on side Random draws its faction at start, so seats of ours can be of two factions in one
+game, and the tools checked names against the lead seat's roster alone: in bluegecko-3v1-comet-catcher-3
+(2026-09-27) t1 was Armada and t2 and t3 Cortex, the `queue` tool refused `corsolar` as "not a step" and `produce`
+refused `corfav` as "not a unit of our roster", both Cortex seats opened on the hands' defaults with no list, t2 had
+no plant at 2:00, and the player spent two turns guessing which faction's names the tools wanted. The report's
+roster is the merged field's, which took the lead seat's roster only. The earlier games with people had every seat
+on side Random too and drew the same faction by chance.
+**Evidence.** `run/matches/1790471259-bluegecko-3v1-comet-catcher-3/00/strategist-0.jsonl` (turns 1-3), the demo's
+start script (`side=Random` on every team of ours).
+**Status.** Fixed in code the same night (the merged field's roster is the union of the seats' rosters, the report
+names each seat's faction when they differ, a seat skips a step it cannot build); for the games with people the
+lobby sets each seat's faction explicitly (docs/harness/lobby.md). Exploited by [[H-PLAYER-SEAT-NAMES]].
+
 ### K-team-one-name-for-two-seats-loses-a-seat
 **Claim.** With two seats of ours under one player and one name space, the player cannot steer the second seat: both
 commanders were "commander", lists keyed by name were drained by whichever seat ticked first, and the report's hands

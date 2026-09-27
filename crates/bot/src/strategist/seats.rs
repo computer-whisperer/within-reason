@@ -162,6 +162,14 @@ impl Shared {
                     merged.buildable.push(item.clone());
                 }
             }
+            // Seats of two factions (bluegecko-3v1-comet-catcher-3: t1 Armada, t2 and t3 Cortex from side Random)
+            // have two rosters; the tools check names against the union and each seat skips what it cannot build.
+            for item in &f.roster {
+                if !merged.roster.contains(item) {
+                    merged.roster.push(item.clone());
+                }
+            }
+            merged.factions.extend(f.factions.iter().cloned());
             merged.resurrection_bots += f.resurrection_bots;
             for field in &f.wreck_fields {
                 if !merged.wreck_fields.iter().any(|have| have.0.grid == field.0.grid && have.1 == field.1) {

@@ -870,11 +870,14 @@ impl Brain {
                 let coming = own.iter().filter(|u| u.being_built && self.world.is_constructor_def(u.def)).count() + queue.iter().filter(|(def, _)| self.world.is_constructor_def(*def)).count();
                 entry["we_have"] = json!(format!("constructors {constructors}{} for {extractors} extractors; soldiers {} ({})", if coming > 0 { format!(" and {coming} being made") } else { String::new() }, soldiers.len(), soldier_words(soldiers.len(), army_metal)));
                 if let Some(Allowance { units: list, .. }) = self.allowed_units(&name).filter(|a| !a.units.is_empty()) {
+                    // Only what this lab builds: an advanced plant's line said "allows only: Stout" when the list was
+                    // the whole army's (onepass-player-8), and the player took it for the plant's own list.
+                    let can_build: &[UnitDefId] = self.world.def(unit.def).map(|d| d.build_options.as_slice()).unwrap_or(&[]);
                     let words: Vec<String> = list
                         .iter()
                         .filter_map(|e| {
                             let (n, cap) = super::allowance(e);
-                            let def = self.world.def_named(n)?;
+                            let def = self.world.def_named(n).filter(|d| can_build.contains(d))?;
                             let made = pianist.produced.get(&(unit.id, n.to_string())).copied().unwrap_or(0);
                             Some(match cap {
                                 Some(cap) if made >= cap => format!("{} (all {cap} allowed made: no more)", self.short_words(def)),
@@ -883,14 +886,14 @@ impl Brain {
                             })
                         })
                         .collect();
-                    let used_up = list.iter().all(|e| {
+                    let used_up = list.iter().filter(|e| self.world.def_named(super::allowance(e).0).is_some_and(|d| can_build.contains(&d))).all(|e| {
                         let (n, cap) = super::allowance(e);
                         cap.is_some_and(|cap| pianist.produced.get(&(unit.id, n.to_string())).copied().unwrap_or(0) >= cap)
                     });
-                    entry["allowed"] = json!(if used_up {
-                        "the player's allowance is used up (every count made): it builds nothing until a new `produce` list".to_string()
-                    } else if words.is_empty() {
+                    entry["allowed"] = json!(if words.is_empty() {
                         "the player's list names nothing this lab can build: it builds nothing until a new `produce` list".to_string()
+                    } else if used_up {
+                        "the player's allowance is used up (every count made): it builds nothing until a new `produce` list".to_string()
                     } else {
                         format!("the player allows only: {}", words.join(", "))
                     });
