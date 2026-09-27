@@ -348,6 +348,21 @@ impl Brain {
         self.routes.as_ref().map(|r| r.passable.as_slice())
     }
 
+    /// Where the units a factory of this type makes can stand: the passable grid of the strictest movement class
+    /// among its build options (a vehicle plant's tanks climb less than a lab's bots), else the soldiers'.
+    pub(super) fn passable_for_factory(&self, def_id: UnitDefId) -> Option<&[bool]> {
+        let routes = self.routes.as_ref()?;
+        let strictest = self
+            .world
+            .def(def_id)?
+            .build_options
+            .iter()
+            .filter_map(|id| self.world.def(*id).filter(|d| d.speed > 0.0).and_then(|d| d.move_class))
+            .filter_map(|mc| routes.classes.get(&Walker::Class(ClassKey::of(mc))).map(|(passable, _)| passable.as_slice()))
+            .min_by_key(|passable| passable.iter().filter(|p| **p).count());
+        Some(strictest.unwrap_or(routes.passable.as_slice()))
+    }
+
     /// The reachable ground nearest `pos`; `pos` itself when we cannot tell.
     pub(super) fn snap_to_reachable(&self, pos: Vec3) -> Vec3 {
         self.routes.as_ref().and_then(|r| r.from_home.snap(pos)).unwrap_or(pos)

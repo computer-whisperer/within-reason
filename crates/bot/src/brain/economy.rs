@@ -148,8 +148,12 @@ impl Brain {
         }
         // Nothing but an extractor goes in a factory's exit lane (yards.rs).
         let mut keep_out = self.lanes.clone();
-        // A new factory's own exit lane must be clear of what stands or is ordered (the mirrored lanes).
+        // A new factory's own exit lane must be clear of what stands or is ordered (the mirrored lanes), and of
+        // ground its units cannot walk.
         keep_out.extend(self.own_lane_keep_out(planned_def, own));
+        if let Plan::Near(_, anchor) | Plan::Beside(_, anchor) = plan {
+            keep_out.extend(self.blocked_lane_keep_out(planned_def, *anchor, 1000.0 + 2.0 * super::yards::LANE_DEPTH));
+        }
         // A site the engine refused for this type is not asked again while the refusal stands (a point lane).
         if let Some(pianist) = self.pianist.as_ref() {
             keep_out.extend(pianist.refused_sites.iter().filter(|(def, _, _)| *def == planned_def).map(|(_, at, _)| Lane { from: *at, to: *at, half_width: REFUSED_SITE_RADIUS }));

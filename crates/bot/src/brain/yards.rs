@@ -86,6 +86,17 @@ impl Brain {
         standing.chain(ordered).collect()
     }
 
+    /// Where a new factory of this type must not stand for its exit lane (facing south) to run over ground its
+    /// units cannot walk: the mirror of every unwalkable cell within `radius` of `anchor` (bluegecko-3v1-comet-
+    /// catcher-4: three of five factories had their lane on cliffs, the user saw the units choking in one).
+    pub(super) fn blocked_lane_keep_out(&self, def_id: UnitDefId, anchor: Vec3, radius: f32) -> Vec<Lane> {
+        let Some(def) = self.world.def(def_id).filter(|_| self.world.is_factory_def(def_id)) else { return Vec::new() };
+        let Some(passable) = self.passable_for_factory(def_id) else { return Vec::new() };
+        let terrain = &self.world.hello.terrain;
+        let (half_width, half_depth) = (def.footprint.0 as f32 * SQUARE / 2.0, def.footprint.1 as f32 * SQUARE / 2.0);
+        lanes_north_of_blocked(passable, terrain.width as usize, terrain.height as usize, terrain.cell, half_width, half_depth, anchor, radius)
+    }
+
     /// Every tick: the lanes of our factories, standing or being built (a site chosen now must stay clear of a lane
     /// that will be), and which of our mobile units cannot move.
     pub(super) fn track_yards(&mut self, tick: &Tick) {
@@ -173,5 +184,56 @@ impl Brain {
         // `constructor_N`, `lab_N`, `plant_N`: the unit's id; a name with another seat's tag or a bare word is nobody's.
         let id = handle.rsplit_once('_').and_then(|(_, n)| n.parse::<i32>().ok());
         id.and_then(|id| own.iter().find(|u| u.id.0 == id))
+    }
+}
+
+/// The keep-out strips for a factory facing south whose lane must not cross a blocked cell: for each blocked cell
+/// within `radius` of `anchor` (sampled every other cell each way, a cell being 16 elmos), the strip of sites whose
+/// lane would cover it, which is the lane mirrored north of the cell.
+pub(super) fn lanes_north_of_blocked(passable: &[bool], width: usize, height: usize, cell: f32, half_width: f32, half_depth: f32, anchor: Vec3, radius: f32) -> Vec<Lane> {
+    let reach = half_depth + LANE_DEPTH;
+    let stride = 2usize;
+    let (x0, x1) = (((anchor.x - radius) / cell).floor().max(0.0) as usize, (((anchor.x + radius) / cell).ceil() as usize).min(width));
+    let (z0, z1) = (((anchor.z - radius) / cell).floor().max(0.0) as usize, (((anchor.z + radius) / cell).ceil() as usize).min(height));
+    let mut lanes = Vec::new();
+    let mut j = z0;
+    while j < z1 {
+        let mut i = x0;
+        while i < x1 {
+            let blocked = (0..stride).any(|dj| (0..stride).any(|di| {
+                let (ii, jj) = (i + di, j + dj);
+                ii < width && jj < height && !passable[jj * width + ii]
+            }));
+            if blocked {
+                let at = Vec3 { x: (i as f32 + 1.0) * cell, y: 0.0, z: (j as f32 + 1.0) * cell };
+                if at.dist2d(anchor) <= radius {
+                    lanes.push(Lane { from: Vec3 { x: at.x, y: 0.0, z: at.z - half_depth }, to: Vec3 { x: at.x, y: 0.0, z: at.z - reach }, half_width: half_width + LANE_MARGIN });
+                }
+            }
+            i += stride;
+        }
+        j += stride;
+    }
+    lanes
+}
+
+#[cfg(test)]
+mod lane_ground_tests {
+    use super::*;
+
+    #[test]
+    fn a_cliff_south_of_a_site_keeps_the_factory_off_it() {
+        // A 64-cell square map, cell 16: a cliff band across rows 40-41 (z 640-672).
+        let (w, h, cell) = (64usize, 64usize, 16.0);
+        let passable: Vec<bool> = (0..w * h).map(|k| !(40..42).contains(&(k / w))).collect();
+        let anchor = Vec3 { x: 512.0, y: 0.0, z: 400.0 };
+        let lanes = lanes_north_of_blocked(&passable, w, h, cell, 48.0, 48.0, anchor, 600.0);
+        assert!(!lanes.is_empty());
+        let banned = |x: f32, z: f32| lanes.iter().any(|l| l.contains(Vec3 { x, y: 0.0, z }));
+        // A site whose lane (48 deep to the front, 320 past it) reaches the cliff at z 640: from z 272 up to 592.
+        assert!(banned(512.0, 400.0), "a site 240 north of the cliff has its lane on it");
+        assert!(banned(512.0, 580.0));
+        assert!(!banned(512.0, 150.0), "a site 490 north of the cliff is clear (the strip ends are rounded by the half width)");
+        assert!(!banned(512.0, 60.0));
     }
 }

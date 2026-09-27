@@ -212,3 +212,15 @@ field (rez bots built, first at, income above extractors).
 **Would be wrong if.** The replay records' income excluded reclaim (then the spike share says nothing), or a wider
 radius showed constructors on the battlefield after most fights.
 **Used by.** H-WAKE-WRECKS; H-REC-CREW under the pianist; the brief's economy section.
+
+### K-eco-a-factory-lane-on-a-cliff-chokes-it
+**Claim.** Every building of ours faces south and the site search never looked at the ground in front, so a factory
+placed with its exit lane on unwalkable ground chokes: its units leave into the cliff and stand. In
+bluegecko-3v1-comet-catcher-4 (2026-09-27) three of five factories had it (the air plant at G1 (6856, 944): 134 of
+294 lane cells unwalkable for bots; t3's labs at (6652, 2638) and (5036, 2526): 70 and 61 of 273), the other three
+directions clear at each, and seven of the ten "exit lane is blocked" wakes were theirs; the user saw the units
+choking in one. The engine's site search takes keep-out strips, so the ban is expressed as the mirror of every
+unwalkable cell near the anchor (up to about 1,100 strips for a vehicle plant on Comet Catcher's east strip).
+**Evidence.** `run/matches/1790473186-bluegecko-3v1-comet-catcher-4/00` (terrain-0.bin, terrain-2.bin against the
+`finished` events' positions and facing 0); the user's note.
+**Status.** Fixed 2026-09-27, unmeasured in a game. Exploited by [[H-ECO-YARD-LANE]].
