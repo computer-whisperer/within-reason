@@ -257,11 +257,9 @@ pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, fights
     }
     seen.hands = actors;
     {
-        let (packet, tool) = hands.standing_counts;
-        if !hands.packet_rules && full {
-            lines.push(format!("your packet is read as prose every second: no standing orders are taken from it{}", if tool > 0 { format!("; {tool} from `standing` prune your hands' choices and set their defaults") } else { String::new() }));
-        } else if packet + tool > 0 {
-            lines.push(format!("standing orders: {packet} from your packet, {tool} from `standing`; they prune your hands' choices and set their defaults"));
+        let rules = hands.standing_count;
+        if rules > 0 {
+            lines.push(format!("standing orders: {rules} from `standing`; they prune your hands' choices and set their defaults; your packet is read as prose every second"));
             if full {
                 lines.push(format!("standing orders in force:\n{}", hands.standing_text));
             }

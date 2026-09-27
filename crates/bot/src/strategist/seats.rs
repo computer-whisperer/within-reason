@@ -73,8 +73,7 @@ impl Shared {
                 }
                 merged.standing_text.push_str(&other.standing_text);
             }
-            merged.standing_counts.0 += other.standing_counts.0;
-            merged.standing_counts.1 += other.standing_counts.1;
+            merged.standing_count += other.standing_count;
             if drain {
                 other.done.clear();
             }

@@ -221,12 +221,9 @@ pub struct Hands {
     /// "m:ss actor: what", oldest first; drained by the driver at each turn.
     pub done: Vec<String>,
     pub engaged: Vec<String>,
-    /// The standing orders (`brain/pianist/standing.rs`): what is in force, and the counts from the packet and
-    /// from the tool.
+    /// The standing orders (`brain/pianist/standing.rs`): what is in force, and how many rules.
     pub standing_text: String,
-    pub standing_counts: (usize, usize),
-    /// Whether the packet is read into standing orders at all (`WITHIN_REASON_RULES`); false: prose every second.
-    pub packet_rules: bool,
+    pub standing_count: usize,
 }
 
 /// A change to the standing orders from the `standing` tool: rules per actor to set (checked by the brain against

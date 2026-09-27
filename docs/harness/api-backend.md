@@ -24,7 +24,7 @@ its last packet (the bot log: "cost cap reached: $X of $Y spent"; the transcript
 
 Then, for example:
 
-    target/release/arena --pianist --player --no-rules --profile medium --map "Comet Catcher Remake 1.8" --corner nw \
+    target/release/arena --pianist --player --profile medium --map "Comet Catcher Remake 1.8" --corner nw \
       --mirror --place --side armada --think-penalty 1 --matches 1 --speed 50 --base-port 9300 \
       --label fw-deepseek-1 --commander-model fw:accounts/fireworks/models/deepseek-v3p1 --effort low
 

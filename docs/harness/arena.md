@@ -149,10 +149,11 @@ then carries `StartPosType=3` with `StartPosX/Z` per team; the opponent keeps th
 such match exists, the game places everyone (`StartPosType=2`) and the log says why. In a game with people the lobby
 places an AI, so the bot itself never chooses: it plans from where it stands (the user's ruling, 2026-09-20).
 
-**No rules from the packet (`--no-rules`, since 2026-09-27).** The pianist reads no standing rules out of the packet
-(the bot's `WITHIN_REASON_RULES=off`): no defaults fire and nothing is pruned, so every response to a threat and every
-build is the pick's or nothing. The instrument for telling what Jev decides from what code decided for it
-(onepass-norules-hard-1: the rule-run games had credited the pick with defence it never chose).
+**No rules from the packet (the only mode since 2026-09-27 evening; `--no-rules` from 2026-09-27 morning until then).**
+The pianist reads no standing rules out of the packet: the packet is prose in the picture every second, and the
+`standing` tool is the one source of rules, whose defaults and pruning are the only ones. The decompression was
+deleted after the audit of the eleven games with people (`docs/design/2026-09-27-posing-changes.md` §13b), which had
+run it by omission (`run/human_game.sh` never set `WITHIN_REASON_RULES=off`). The `--no-rules` flag is gone with it.
 
 **A packet from a file (`--packet PATH`, since 2026-09-25).** The pianist plays this text as the player's packet for the
 whole game when no player is attached (`run/packets/`, the bot's `WITHIN_REASON_PACKET`): the arena instrument for A/Bs

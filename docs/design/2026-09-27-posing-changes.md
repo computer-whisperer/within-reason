@@ -374,7 +374,7 @@ What the vocabulary could not take at all: routes, conditions, "attack the enemy
 middle", "every group", ranges ("spot_0 to spot_11" read as its endpoints), the commanders' "never chases" missed
 in nearly every packet, and 18 "keep away from enemy soldiers" sentences never read as `retreat_when_enemy_near`.
 Readings graded against the text: game 1 138 correct, 11 wrong, 52 missing; game 4 314, 68, 129.
-**The change**: `run/human_game.sh` passes `WITHIN_REASON_RULES=off` now; then `decompress_packet`,
+**The change (APPLIED 2026-09-27 evening, the first of the set)**: the stage is deleted outright, so no flag is needed: `decompress_packet`,
 `take_decompression`, `extraction_questions`, `extraction_state`, `orders_from`, `set_packet`, the `packet` side of
 `Standing` and the `rules`/`packet_rules` flag are deleted with the arena's `--no-rules` (the only mode); the
 packet stands as prose in the picture for the per-second pass; the `standing` tool is the one source of rules.

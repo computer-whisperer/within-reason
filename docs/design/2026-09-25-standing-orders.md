@@ -1,5 +1,10 @@
 # Standing orders: the executor, the `standing` tool, and the variants (target design, 2026-09-25)
 
+**Status (2026-09-27 evening).** The decompression (§2's packet source) is deleted after the audit of the eleven
+games with people (`docs/design/2026-09-27-posing-changes.md` §13b; K-jev-a-packet-decompresses-to-standing-orders
+retired). What stands: the vocabulary (less a builder's `no_chase` and `job follow_list`), the `standing` tool as the
+one source of rules, and the rules' place in the pass as defaults and pruning (`2026-09-26-one-pass.md` §6).
+
 **Status (2026-09-25 evening).** Built (770bebd) and played twice (standing-1, standing-2: both lost, the ledger has the
 reading). The `family` arm and the Lua policy are gone (`2026-09-25-one-decider.md`); the executor stays as the candidate
 generator of the worlds question, which becomes the groups' one decider. The rules and the tool below stand.

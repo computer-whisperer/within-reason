@@ -88,8 +88,10 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   {noul id: p}, `worlds` [[state index per slot]] or null, `lines`); the second call is its own `call` line with
   `worlds.pick` alone, and a `plan` line records its pick (`pick`, `confidence`, `changed`, `played` with source
   `plan`). `call` lines carry no `played`: every play is on a `pass` or `plan` line. The header carries
-  `worlds_cap` and `packet_rules` (false when the packet was left as prose, `WITHIN_REASON_RULES=off`; the
-  `decompress` line then carries `skipped`). Among the `events`, `party_N appeared` says a party got a threat slot
+  `worlds_cap`, and until 2026-09-27 evening `packet_rules` (false when the packet was left as prose,
+  `WITHIN_REASON_RULES=off`; the `decompress` line then carried `skipped`); from then the decompression is deleted
+  (the packet is prose every second, the `standing` tool the one source of rules), so `decompress` lines and
+  `packet_rules` appear in older logs only. Among the `events`, `party_N appeared` says a party got a threat slot
   this second (2026-09-27). With `WITHIN_REASON_TOLD=1` the `worlds_gate` `flags` carry `<state>.told` beside each
   builder state's noul, and the viewer's pass panel shows it as a second bar. Logs from 2026-09-26 morning (threats-smoke-1 to -5) carry the `standing` line in its threat form
   (`threats`, `plan`, `gate`/`quiet`, `hunts`, `played` with source `rule`/`plan`) and logs from 2026-09-25 night to

@@ -88,17 +88,12 @@ struct Stats {
 pub struct Pianist {
     /// Jev, when `--pianist`; without it only the lists and the rules' defaults play.
     client: Option<jev::Client>,
-    /// Standing orders (`standing.rs`, `docs/design/2026-09-25-standing-orders.md`): the packet's decompressed rules
-    /// and the `standing` tool's; the pass's pruning and defaults.
+    /// Standing orders (`standing.rs`, `docs/design/2026-09-25-standing-orders.md`): the `standing` tool's rules;
+    /// the pass's pruning and defaults.
     pub(super) standing: Standing,
     /// A fixed packet from a file (`WITHIN_REASON_PACKET`, the arena's `--packet`): what the hands play from when no
     /// player writes one, the arena instrument of the micro A/Bs (`docs/design/2026-09-25-one-decider.md`, §2).
     pub(super) packet: Option<String>,
-    /// A decompression request on the worker (realtime): its id and the packet's frame.
-    pending_decompression: Option<(u64, i32)>,
-    /// Whether the packet is decompressed into standing rules at all (`WITHIN_REASON_RULES=off`, the arena's
-    /// `--no-rules`, leaves it prose only: no defaults, no pruning; every response is the pick's).
-    rules: bool,
     /// Realtime (`WITHIN_REASON_REALTIME`): the call runs on this thread and its answer is played on the tick it
     /// arrives, so the game and the control lane never wait on Jev; in lockstep the call is made in place.
     worker: Option<Worker>,
@@ -319,14 +314,11 @@ impl Pianist {
             None => None,
         };
         let cap = std::env::var("WITHIN_REASON_WORLDS").ok().and_then(|v| v.parse::<usize>().ok()).filter(|n| *n >= 2).unwrap_or(plan::CAP);
-        let rules = !std::env::var("WITHIN_REASON_RULES").ok().is_some_and(|v| matches!(v.trim().to_ascii_lowercase().as_str(), "off" | "0" | "no" | "false"));
         let told = std::env::var("WITHIN_REASON_TOLD").ok().is_some_and(|v| matches!(v.trim(), "1" | "on" | "yes"));
         Ok(Pianist {
             client,
             standing: Standing::default(),
             packet,
-            pending_decompression: None,
-            rules,
             worker,
             pending: None,
             next_request: 0,
@@ -384,7 +376,7 @@ impl Pianist {
         if let Some(log) = &mut self.log {
             let line = json!({
                 "t": "header", "format": "within-reason-jev", "version": LOG_VERSION, "ai_id": ai_id, "model": model,
-                "interval_frames": self.interval_frames, "rules": rules, "packet_rules": self.rules, "hands_effort": self.diet.level_name(), "worlds_cap": self.cap,
+                "interval_frames": self.interval_frames, "rules": rules, "hands_effort": self.diet.level_name(), "worlds_cap": self.cap,
             });
             let _ = writeln!(log, "{line}");
         }
@@ -507,9 +499,6 @@ impl Brain {
             pianist.places_seen = place_set;
             pianist.places = picture.places.clone();
             pianist.parties = picture.parties.clone();
-        }
-        if self.pianist.as_ref().expect("pianist mode").events.contains("packet") {
-            self.decompress_packet(tick, &picture);
         }
         self.play_lists(tick, kit, &picture, commands);
         self.pass(tick, kit, &picture, commands);
@@ -802,59 +791,6 @@ impl Brain {
         self.journal.note_from("plan", tick.frame, "worlds", json!({ "worlds": worlds.len() }), json!({ "pick": wi + 1, "confidence": confidence, "changed": changed }));
     }
 
-    /// The packet, changed, goes to Jev once as extraction questions over the standing vocabulary; the answers
-    /// replace the packet's standing orders (`standing::orders_from`). In lockstep the call is made here; in
-    /// realtime it goes through the worker and lands in `collect_answer`.
-    fn decompress_packet(&mut self, tick: &Tick, picture: &picture::Picture) {
-        let ai = self.world.hello.ai_id;
-        let text = picture.state["instructions"].as_str().unwrap_or_default().to_string();
-        let places: Vec<String> = picture.places.iter().map(|p| p.name.clone()).collect();
-        let questions = standing::extraction_questions(&text, &places);
-        let pianist = self.pianist.as_mut().expect("pianist mode");
-        if !pianist.rules {
-            pianist.standing.set_packet(BTreeMap::new(), tick.frame);
-            pianist.done.push(format!("{} the packet stands as prose: no standing orders read from it", picture::clock(tick.frame)));
-            pianist.write_log(json!({ "t": "decompress", "f": tick.frame, "packet_frame": tick.frame, "skipped": "rules off" }));
-            return;
-        }
-        if questions.is_empty() || pianist.client.is_none() {
-            pianist.standing.set_packet(BTreeMap::new(), tick.frame);
-            return;
-        }
-        let request = jev::Request { state: standing::extraction_state(&text), questions };
-        if let Some(worker) = &pianist.worker {
-            let id = pianist.next_request;
-            pianist.next_request += 1;
-            if worker.to.send((id, request, None)).is_ok() {
-                pianist.pending_decompression = Some((id, tick.frame));
-            }
-            return;
-        }
-        let result = pianist.client.as_ref().expect("checked").ask(&request);
-        self.take_decompression(tick.frame, tick.frame, result, ai);
-    }
-
-    fn take_decompression(&mut self, frame: i32, packet_frame: i32, result: Result<jev::Response, jev::Error>, ai: i32) {
-        let pianist = self.pianist.as_mut().expect("pianist mode");
-        match result {
-            Ok(response) => {
-                let orders = standing::orders_from(&response.answers);
-                let n: usize = orders.values().map(|r| r.len()).sum();
-                let actors = orders.len();
-                pianist.standing.set_packet(orders.clone(), packet_frame);
-                pianist.stats.tokens += response.usage["input_tokens"].as_u64().unwrap_or(0);
-                pianist.done.push(format!("{} the packet was read into {n} standing orders for {actors} actors", picture::clock(frame)));
-                pianist.write_log(json!({ "t": "decompress", "f": frame, "packet_frame": packet_frame, "ms": (response.latency.as_secs_f32() * 1000.0) as u32, "usage": response.usage, "orders": orders, "answers": response.answers }));
-                pianist.events.insert("rules".to_string());
-            }
-            Err(e) => {
-                pianist.stats.errors += 1;
-                pianist.write_log(json!({ "t": "error", "f": frame, "error": format!("decompression: {e}") }));
-                eprintln!("[ai {ai}] f={frame} pianist: the packet's decompression failed: {e}; the standing orders stand as they were");
-            }
-        }
-    }
-
     /// The player's `standing` calls since the last pass: orders set or cleared, checked against the picture.
     fn apply_standing_changes(&mut self, tick: &Tick) {
         let frame = tick.frame;
@@ -977,19 +913,11 @@ impl Brain {
     /// late to judge the picture it was built from.
     fn collect_answer(&mut self, tick: &Tick, kit: &Kit, commands: &mut Vec<Command>) {
         let ai = self.world.hello.ai_id;
-        let mut decompressed: Option<(i32, Result<jev::Response, jev::Error>)> = None;
         let arrived = {
             let pianist = self.pianist.as_mut().expect("pianist mode");
             let Some(worker) = &pianist.worker else { return };
             let mut got = None;
             while let Ok((id, result, followed)) = worker.from.try_recv() {
-                if let Some((did, dframe)) = pianist.pending_decompression
-                    && did == id
-                {
-                    pianist.pending_decompression = None;
-                    decompressed = Some((dframe, result));
-                    continue;
-                }
                 // An answer to a request already dropped is not played.
                 if pianist.pending.as_ref().is_some_and(|p| p.id == id) {
                     got = Some((result, followed));
@@ -1009,9 +937,6 @@ impl Brain {
                 }
             }
         };
-        if let Some((dframe, result)) = decompressed {
-            self.take_decompression(tick.frame, dframe, result, ai);
-        }
         let Some((pending, result, followed)) = arrived else { return };
         {
             let pianist = self.pianist.as_mut().expect("pianist mode");
@@ -1282,8 +1207,7 @@ impl Brain {
         hands.picture = state;
         hands.done.append(&mut pianist.done);
         hands.standing_text = pianist.standing.in_force();
-        hands.standing_counts = pianist.standing.counts();
-        hands.packet_rules = pianist.rules;
+        hands.standing_count = pianist.standing.count();
         hands.engaged = pianist.played.iter().filter(|p| p["did"].as_str().is_some_and(|d| d.starts_with("attack "))).filter_map(|p| p["actor"].as_str().map(str::to_string)).collect();
     }
 
