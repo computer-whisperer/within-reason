@@ -1,6 +1,6 @@
 # The changes the games with people call for: to be made together, then the arena resumes
 
-Status: APPLYING from 2026-09-27 evening (the struck items below were removed by the user's ruling before application began: "we want to empower jev and the player to work the game, and we want limited rigid requirements or heuristics that fight that when the original problem may be resolved by something else we changed"). Before that: PROPOSED, nothing applied. The user, 2026-09-27: "I don't want to start making changes until we fully
+Status: APPLIED 2026-09-27 evening (commits 2879bdf to 0acc9d7 and the tool-debt commit after; what is held or left: 9.2 sea actors and states, 9b.1 the region graph, 9b.3 gather points by total walk (the gather takes the place nearest the front), 9b.8 formation slots (no formation code exists beyond the march's holds; the reviewer's slots were the lane's move orders, left to the micro), 5.4 resurrection said, 12b.4 chunked sends, 12b.6 the paused reclaim, 14's seat arguments for the analysis tools). Before: APPLYING from 2026-09-27 evening (the struck items below were removed by the user's ruling before application began: "we want to empower jev and the player to work the game, and we want limited rigid requirements or heuristics that fight that when the original problem may be resolved by something else we changed"). Before that: PROPOSED, nothing applied. The user, 2026-09-27: "I don't want to start making changes until we fully
 understand everything we can from these matches. Once we understand all the mistakes we can see, we can apply the
 changes at once and resume arena matches." The findings are in `docs/studies/2026-09-27-jev-posing/README.md`
 (six games mined; the expansion study `expansion.md` is being written and will add to this). The code, rules and
@@ -394,11 +394,11 @@ is what keeps the player's spot walks possible once the packet's stations go. Th
 and `fire.py` take a seat argument or read every seat; `hands_window.py` prints the states' words; the reviewers
 get their own scratch folders in the brief.
 
-`run/jev_audit.py` is broken on the worlds-era log (2026-09-27, on the Cape Violet game: its summary line reads
-"None in 0.0 min vs None", and `--section kinds` dies with `KeyError: 'busy'` because a `played` entry no longer
-carries `busy`), and it reads the first seat's `jev-` file only. No audit summary was produced for any of the
-human games; the reviewers read the jsonl directly. Either rewrite it for the worlds log (calls, worlds, picks,
-the states' words, per seat and pooled) or delete it and let `hands_window.py` be the audit.
+`run/jev_audit.py` was broken on the worlds-era log (2026-09-27, on the Cape Violet game: its summary line read
+"None in 0.0 min vs None", and `--section kinds` died with `KeyError: 'busy'` because a `played` entry no longer
+carries `busy`), and it read the first seat's `jev-` file only; no audit summary was produced for any of the
+human games, the reviewers read the jsonl directly. Deleted 2026-09-27 evening; `hands_window.py` is the audit,
+and the review skill's references point at it and at the jsonl. The seat arguments for the other tools are still to do.
 
 ## Order of application
 

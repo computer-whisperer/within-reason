@@ -40,8 +40,9 @@ Run each from the repository root; keep the outputs, you will quote them. Times 
 8. For each moment you will write about: `run/hands_window.py <match> <from> <to> [actors]` (what the hands did,
    second by second) and `run/analyze_match.py <match> --engagement N` or `--scene m:ss X Z` (who stood where).
    `run/fire.py <match>` for the muzzling and friendly-fire numbers of a fight-heavy game; `run/queued.py <match>`
-   for units waiting behind a firing front; `run/jev_audit.py <match> --section view,turns` for what the player
-   knew against the truth, turn by turn.
+   for units waiting behind a firing front; `run/hands_window.py <match> <from> <to> [actor ...]` for what the hands
+   saw and played second by second, and the player's turns straight from `strategist-<ai>.jsonl` (the `turn` rows
+   carry the report it read, the `tool_call` rows what it ordered) against `truth-<ai>.jsonl`.
 9. `docs/experiments.md` (grep the batch label) for what the batch was testing and what the main session already
    found; `docs/knowledge/_inbox/player-notes.md` for the experienced players' notes in force.
 
@@ -188,7 +189,7 @@ found clean in one line at the end of the findings.
 - **P2 the cadence** [K-player-idle-after-the-flight-costs-more-than-the-flight; run/wake_read.py]. Turns a minute,
   median wall seconds, abandoned turns, the share of game time with orders in flight; the think penalty and cap in
   `batch.json`. Above 10 s a turn or 30% abandoned is a harness-side finding, not the player's.
-- **P3 what it knew** [run/jev_audit.py --section view; floor's known%]. The player's enemy-army estimate against
+- **P3 what it knew** [the `turn` rows of `strategist-<ai>.jsonl` against `truth-<ai>.jsonl`; floor's known%]. The player's enemy-army estimate against
   the truth at the turns that mattered (the push, the hold). Quote one turn: "army 13k vs 2.6k seen" against the
   truth's number.
 - **P4 the lead** [F1]. At the first turn with our army at 2x what it saw, what did it order, and what did it order at
@@ -302,7 +303,7 @@ When the user brings notes from experienced players who watched a replay:
 2. For each note that names something checkable, find the number: run the tools on the game they watched and on one
    of our better games, and put the pair in `baselines.md` under the phase it belongs to, with the date and the
    commands. If no existing tool gives the number, write the smallest script in `run/` (module docstring with
-   usage, plain stdlib, reads the record through `run/jev_audit.py`'s `Match` or `run/replays/card.py`'s `Record`)
+   usage, plain stdlib, reads the record through `run/replays/card.py`'s `Record` or the jsonl directly)
    and run it on two games before citing it.
 3. Add the item under its phase above: the next free id in that phase's series (O, E, R, W, F, X, P, H, Z), the
    source tag `[packet YYYY-MM-DD: <who>; <our game it was seen in>]`, what good looks like with the number, and what
