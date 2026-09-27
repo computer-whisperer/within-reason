@@ -296,6 +296,12 @@ impl Brain {
             Some(step) => {
                 if !queue {
                     pianist.list_steps.insert(id, (step.to_string(), frame));
+                } else {
+                    // Kept with the queued task and moved to `list_steps` when it is promoted: unrecorded, a queued
+                    // `assist 25` read as the step before it once the plant stood, and the next step was ordered the
+                    // same second (bluegecko-3v1-comet-catcher-10 1:04-1:11, player-11 1:05-1:13: the guard lasted a
+                    // second; thebluegecko: the commander should be assisting the lab for the first few units).
+                    pianist.queued_steps.insert(id, step.to_string());
                 }
             }
             None => {
@@ -306,6 +312,7 @@ impl Brain {
                     && let Some(list) = pianist.scripts.get_mut(&name)
                 {
                     list.push_front(step.clone());
+                    pianist.diverted.insert(id, frame);
                     did = did.map(|d| format!("{d}; its list step '{step}' waits for it"));
                 }
             }

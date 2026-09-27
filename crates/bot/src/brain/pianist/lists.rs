@@ -15,6 +15,10 @@ use super::{Pianist, Task};
 /// A timed assist step is skipped while the metal store is under this (the pool's bank at 2:00 to 3:00 is 100 to 150).
 const ASSIST_STORE_FLOOR: f32 = 20.0;
 
+/// A builder the pass diverted from its list (an attack on a party, a retreat) is left on that for this long before
+/// the list orders its step again; each second, the diversion and the step replaced each other (player-11 3:12-3:26).
+const LIST_DIVERT_HOLD: i32 = 8 * FRAMES_PER_SECOND;
+
 /// The seconds of a timed list step `assist N`; None for any other step.
 pub(super) fn timed_assist(step: &str) -> Option<i32> {
     let mut words = step.split_whitespace();
@@ -40,6 +44,9 @@ impl Brain {
             // to spot_68 away from the block never started, the block being within 800). Not in the hold after the
             // pass sent the builder home: the way out first.
             if pianist.retreated.get(&unit.id).is_some_and(|f| frame - f < super::plan::RETREAT_HOLD) {
+                continue;
+            }
+            if pianist.diverted.get(&unit.id).is_some_and(|f| frame - f < LIST_DIVERT_HOLD) {
                 continue;
             }
             let task = pianist.tasks.get(&unit.id).cloned();

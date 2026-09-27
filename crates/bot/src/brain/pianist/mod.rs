@@ -119,6 +119,12 @@ pub struct Pianist {
     /// The list step each builder is on (its words, and the clock of the task it became): diverted from that task
     /// by the pass, the builder gets the step back at the front of its list.
     pub(super) list_steps: HashMap<UnitId, (String, i32)>,
+    /// The list step a queued task came from (`queued`), moved to `list_steps` when the task is promoted.
+    pub(super) queued_steps: HashMap<UnitId, String>,
+    /// Builders the pass diverted from their list this last while (an attack, a retreat): the list waits
+    /// `LIST_DIVERT_HOLD` before its step is ordered again, instead of the step and the diversion alternating every
+    /// second (player-11 3:12-3:26: `attack party_2` and `help plant build` in turn for 14 s).
+    pub(super) diverted: HashMap<UnitId, i32>,
     /// Units a lab has been told to build and not yet started, oldest first.
     pub(super) lab_queue: HashMap<UnitId, Vec<(UnitDefId, i32)>>,
     pub(super) groups: Vec<Group>,
@@ -285,6 +291,9 @@ impl Pianist {
     /// could not hold queued (the guard order has no queue flag), so it is ordered here, as the build finishes.
     pub(super) fn promote(&mut self, builder: UnitId, frame: i32) -> Option<Command> {
         let mut next = self.queued.remove(&builder)?;
+        if let Some(step) = self.queued_steps.remove(&builder) {
+            self.list_steps.insert(builder, (step, frame));
+        }
         let mut order = None;
         match &mut next {
             Task::Build { ordered, started, .. } => {
@@ -367,6 +376,8 @@ impl Pianist {
             scripts: HashMap::new(),
             ordered: HashMap::new(),
             list_steps: HashMap::new(),
+            queued_steps: HashMap::new(),
+            diverted: HashMap::new(),
             done: Vec::new(),
             log,
             logged_instructions: String::new(),
@@ -1062,6 +1073,7 @@ impl Brain {
         pianist.tasks.retain(|id, _| own.iter().any(|u| u.id == *id));
         pianist.produced_by.retain(|id, _| own.iter().any(|u| u.id == *id));
         pianist.queued.retain(|id, _| own.iter().any(|u| u.id == *id));
+        pianist.queued_steps.retain(|id, _| own.iter().any(|u| u.id == *id));
         pianist.lab_queue.retain(|id, _| own.iter().any(|u| u.id == *id));
         for event in &tick.events {
             match *event {

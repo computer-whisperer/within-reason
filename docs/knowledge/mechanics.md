@@ -421,3 +421,19 @@ the change; the truth files, which had the flag all along (`[id, name, x, z, hea
 **Would be wrong if.** The engine reported an unfinished enemy building as unarmed (`weapon_count` 0), or refused
 `Unit_isBeingBuilt` for enemies in sight.
 **Used by.** [[H-HANDS-UNFINISHED-HARMLESS]].
+
+### K-hands-a-queued-timed-assist-never-held
+**Claim.** A `queue` list's `assist N` step, ordered when the plant before it was 60% built and so queued behind it,
+held the commander at the plant for about one second once the plant stood: the queued step's words were never
+recorded, the runner read the step before it, found no timer, and ordered the next step the same second; the
+person's advice that the commander assist the lab for its first units was written in every opening packet and never
+happened. A second fault compounded it: a builder diverted from its list by the pass (`attack party_N`) had its step
+re-ordered the next second, and the two alternated.
+**Status.** demonstrated (2026-09-28; thebluegecko: "the commander should be assisting the lab when it first comes up")
+**Evidence.** bluegecko-3v1-comet-catcher-10: the list rows `1:04 assist 25 -> next, queued`, `1:11 extractor -> build`,
+`1:20 assist 25 -> queued`, `1:23 corsolar -> build`; the commander's commands `1:11 guard` then `1:11 build`; the
+plant's second unit 25 s after its first (1:13, 1:38) with the store falling 278 to 0 by 2:05. Player-11: `1:05 assist
+25 -> queued`, `1:13 extractor -> build`; 3:12-3:26 `attack party_2` and `help plant build` alternating. `floor.py`'s
+`assist4` (67 and 58 s) counted the later, untimed `assist` steps, not the ones at the plant's first units.
+**Would be wrong if.** The engine ended a guard order by itself, or the pros' commanders left the plant for its first units.
+**Used by.** [[H-HANDS-SCRIPT]] (amended 2026-09-28).

@@ -624,3 +624,19 @@ were back in our half by 4:55 (`run/minutes.py`).
 **Would be wrong if.** A rover on the perimeter died to the base's turrets faster than it found things, or the map's
 other spots carried what mattered (his expansion away from his base).
 **Used by.** [[H-MICRO-ROVE]] (amended 2026-09-28: a minute's staleness for his places; ranking his recently seen places ahead of the map's unseen ones was tried the same evening and reverted: with the base's own spots behind turret reach it left two edge spots, and the rovers walked between them in the first human game).
+
+### K-army-what-we-make-tells-him-what-is-safe
+**Claim.** The unit mix is adversarial, not a static answer to his: a mass of riot units (Lashers, Janus) puts no
+pressure on his spots, so he reads it as safe to go tier 2, and his Tzars and Tigers then beat the riot mass; a mass
+that threatens his spots (Brutes, raiders) denies him the tech. thebluegecko, game 10 (2026-09-28): "this isn't a
+static problem, it is adversarial, that is, you made many lashers, so I was safe to go T2"; "brutes would have given
+you the ability to apply more pressures"; "i think you made too many lashers". The same day the user, on the duel:
+tier 2 is rare because the attempt opens a fatal weak point, which the opponent's army mix decides whether he can
+afford. Pairs with K-map-comet-catcher-remake-1-8-tier-2-is-rare (the count) and the user's calculus by scenario.
+**Evidence.** `docs/knowledge/_inbox/players-chat-2026-09-28.md`; `run/matches/1790528069-bluegecko-3v1-comet-catcher-10`
+(the brief's Lasher cap of three to five, in force since games 3-5, was not followed).
+**Status.** supported (the player's words, 2026-09-28), unmeasured: count Lashers made per seat in the record against
+the cap, and his tier-2 plant's start against our mix at the time.
+**Would be wrong if.** A riot mass with Brutes in front had held his tier-2 units, or he had teched at the same clock
+against Brutes.
+**Used by.** the brief's bluegecko section (game 10) once the arena game ends and the brief can be edited.

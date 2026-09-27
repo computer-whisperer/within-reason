@@ -538,7 +538,22 @@ K-maps-comet-barb-opens-bots, the tempo model]
   in only as one body that outweighs them, never in ones and twos, and never chases into ground it cannot see
   (94 tier-1 tanks died to Bulls for 15 Bulls, 73 more to shooters out of sight). What answers Bulls is our own
   Bulls, Mausers and bombers, or a turret of ours where they must come; against a nest, artillery or the whole
-  ball at once. The `enemies_near` line now says when a party or its turrets outrange the group.
+  ball at once. The `enemies_near` line now says when a party or its turrets outrange the group. From game 10
+  (thebluegecko, 2026-09-28, lost about 26:10 with the last commander; build d2b5e2c): (p) What we make tells him
+  what is safe. His words at 25:10: "this isn't a static problem, it is adversarial, that is, you made many lashers,
+  so I was safe to go T2"; and "brutes would have given you the ability to apply more pressure". A riot mass
+  (Lashers, Janus) threatens none of his spots, so he techs behind it and his Tzars and Tigers then beat it; Brutes
+  and raiders on his spots deny him the tech. Read his army each turn for what it says our mix has made safe for
+  him, and change the mix before he does. (q) Two rules of this section were said to us again in that game and had
+  not been followed: at 17:27 "Top should stop building other units while doing t2 transition" (rule (n): the
+  seat's other plants pause when its advanced plant comes online; the player paused at 17:39, when told) and at
+  24:09 "i think you made too many lashers" (rule (e): three to five Lashers or Janus in all, never more). Count
+  them in the picture every turn; a rule that is not counted is not followed. (r) The commander assists the plant
+  for its first few units (thebluegecko, after the game): the opening list's `assist 25` after the plant now holds
+  its 25 s once the plant stands (until 2026-09-28 a queued timed assist ended within a second, a harness fault,
+  so the plant's second unit came 25 s after its first with the store at 0); write `assist 40` after the plant and
+  a second `assist 30` after the next extractor, and keep the commander at the plant until the first constructor
+  and the first two soldiers are out.
 
 **This map, Cape Violet V1 (one game with a person, 2026-09-27, three seats of ours on the east strip at H2, H4
 and H6 against thebluegecko in the west; lost at 18:18).** [K-map-cape-violet-v1-a-water-map-with-a-third-of-the-spots-under-water]
