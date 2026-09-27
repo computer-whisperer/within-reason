@@ -56,3 +56,17 @@ bot logs, with the game clock. The claims drawn from them are in openings.md, ec
   down in metal income"; 7:00 "so if you dont use that army advantage this will soon go bad"; 8:36 Irish: "push the
   advantage. kill his base".
 - 8:32 thebluegecko: "nice work on the constructer picking up the metal field".
+
+## Comet 3v1 against u6bkep (game 7, ended 14:11 with his client gone while three groups hit his two plants at B4), thebluegecko and Infern8 spectating
+- 5:01 thebluegecko: "it is very important to keep taking mexes, the human player is taking mexes so much faster
+  that 3v1 is about fair"; 5:07 "the mexes are the biggest difference"; 5:26 "try and hold half the map while
+  raiding the corners"; 6:28 "expanding with all available cons is important"; 6:34 "cons at home only if you have
+  extra metal to spend".
+- 7:00 Infern8: "the raid in the north has stopped moving"; 7:26 thebluegecko: "when raids stop moving that gives
+  the other player time to respond. might be worth making a movement queue to prevent".
+- 8:01 thebluegecko: "metal store is getting higher, making more build power, maybe cons, maybe construction
+  turrets could help"; 10:11 "con turrets take a lot of e".
+- 8:42 thebluegecko: "south has unprotected mexes that should be raided".
+- 13:05 Infern8: "when your t2 lab first comes online, it's often worth it to stop production at other labs owned by
+  that hand to focus m income"; 13:40 "one constructor and then tanks".
+

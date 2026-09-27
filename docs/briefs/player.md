@@ -475,7 +475,14 @@ K-maps-comet-barb-opens-bots, the tempo model]
   first heavy unit of his is seen or by 12:00, whichever is first ("either bomb or t2 now" at 6:35 of game 3; "go
   t2" at 20:39, too late); a lab of a seat that no longer needs it is reclaimed ("eat your bot lab"). (i) A few
   resurrection bots over a big wreck field. (j) In chat never say which faction a seat plays or where it started
-  ("your opponent will know what faction you are playing and where you spawned").
+  ("your opponent will know what faction you are playing and where you spawned"). From game 7 (u6bkep, 14:11):
+  (k) The extractor count is the whole difference against a person ("the human player is taking mexes so much faster
+  that 3v1 is about fair"): hold half the map while the raiders work his corners, every constructor expanding and
+  none at home unless metal is spare. (l) A raid that stops moving gives him time to answer: a raid group's list of
+  stops is written whole (spot after spot, a `mark` for each if needed), never one stop at a time. (m) When the
+  store rises, build power: constructors first, nanos where the energy allows (they draw a lot). (n) When a seat's
+  advanced plant comes online, that seat's other plants pause (`produce` them an empty list) so its income goes
+  into tier 2: one constructor, then tanks.
 
 **This map, Great Divide V1 (the games with people from 2026-09-27: two seats of ours under you, the north box A1-H2
 against the south A7-H8, realtime; the opponent a person who, we are told, will fortify the pass and try to win from

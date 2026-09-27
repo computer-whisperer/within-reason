@@ -235,3 +235,14 @@ and no nanos until told, and ran the energy store to 1,736 falling 434 a second 
 behind three vehicle plants.
 **Evidence.** `docs/knowledge/_inbox/players-chat-2026-09-27.md`; game 5's turn at 7:18.
 **Status.** supported (the players' words, 2026-09-27), unmeasured. Exploited by [[H-PLAYER-PLAYERS-ADVICE]].
+
+### K-eco-a-rising-store-buys-build-power-and-tier-2-pauses-the-seats-other-plants
+**Claim.** When the metal store rises the answer is build power (constructors first, construction turrets where
+energy allows: "con turrets take a lot of e"), constructors expanding with every one of them and standing at home
+only when metal is spare; and when a seat's advanced plant comes online its other plants pause so the seat's income
+goes into tier-2 units ("when your t2 lab first comes online, it's often worth it to stop production at other labs
+owned by that hand to focus m income"; "one constructor and then tanks"). thebluegecko, game 7: "it is very
+important to keep taking mexes, the human player is taking mexes so much faster that 3v1 is about fair".
+**Evidence.** `docs/knowledge/_inbox/players-chat-2026-09-27.md` (game 7).
+**Status.** supported (the players' words, 2026-09-27), unmeasured. Exploited by [[H-PLAYER-PLAYERS-ADVICE]].
+
