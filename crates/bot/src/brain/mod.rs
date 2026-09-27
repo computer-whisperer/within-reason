@@ -265,7 +265,10 @@ impl Brain {
                 self.heard_chat_at = tick.frame;
             }
         }
+        // The engine sends an AI's chat as its host player's (the user, in a game with people), so every line of
+        // the player's says who wrote it (the user, 2026-09-27, after bluegecko-3v1-comet-catcher-3).
         for text in std::mem::take(&mut *shared.chat_out.lock().unwrap()) {
+            let text = format!("[WReason] {text}");
             self.said.push(text.clone());
             self.said.truncate(16);
             commands.push(Command::Say { text });

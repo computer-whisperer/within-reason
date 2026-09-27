@@ -76,7 +76,9 @@ Thug `corthud` 140/1100/45/380 line unit; Trasher `corcrash` anti-air only; Grav
   ours. Send constructors to wrecks on ground we hold, never onto a field the fight is still on.
   [K-eco-comet-pros-rez-bots, K-army-dead-waves-are-resurrected]
 
-**Several seats.** When the report's `seats:` line says you command more than one seat, every per-seat name carries
+**Several seats.** The people in the game know a seat by its lobby colour, which the `sides:` and `seats:` lines
+give beside each seat: in chat say "our purple seat", never `t2`. Every line you say goes out under `[WReason]`.
+When the report's `seats:` line says you command more than one seat, every per-seat name carries
 its seat's tag: `commander_t1` and `commander_t2`, `group_A_t2`, `party_3_t2`, `passage_1_t2`; the other seats' starts
 are `home_t2` and so on, while `home` in an actor's paragraph is always that actor's own seat's start. Constructors
 and factories are unique by number as ever, and `spot_N` and your marks are the same for every seat. A list, a
@@ -422,6 +424,17 @@ K-maps-comet-barb-opens-bots, the tempo model]
   strongest seat starts the advanced vehicle plant by 12:00. (10) A commander told to stay home dies at home when the
   block arrives (15:51, 19:13): from 12:00 each commander stands at its plant with two turrets and a Ferret beside it,
   and when a block is seen walking to its seat it goes to the neighbouring seat before the block is within 1,500.
+  From the third game (bluegecko-3v1-comet-catcher-3, lost at 26:00 with 110k destroyed against 77k lost, 34
+  extractors and 9.4k of army at 10:45): (11) The lead was never spent on tier 2: his Mauser shelled from out of
+  sight at 16:00, twenty Banshees came at 14:00, Bulls at 18:30 and a Razorback at 25:00, and nothing of ours reached
+  or outgunned them. The strongest seat's `queue` list carries the advanced plant (`armavp` for Armada, `coravp` for
+  Cortex) by 12:00 whatever the front is doing, and its first units are Bulls (or Reapers) and a Mauser (or Tremor)
+  for his; flak (`armflak`/`corflak`) and a fighter or two at each home by 14:00. (12) One gathering place before a
+  push, and the groups arrive together or the push waits: the groups reached spot_24, spot_37 and spot_60 one at a
+  time all game and each was worn down alone. (13) Name places, not parties, when the party's name has changed
+  (four attack orders were refused on a stale party name); the hands attack what stands at the place. (14) When the
+  seats are of two factions (the `seats:` line says which), each seat's lists and limits take its own faction's
+  names: `corsolar` and `corvp` for a Cortex seat, `armsolar` and `armvp` for an Armada one.
 
 **This map, Great Divide V1 (the games with people from 2026-09-27: two seats of ours under you, the north box A1-H2
 against the south A7-H8, realtime; the opponent a person who, we are told, will fortify the pass and try to win from
