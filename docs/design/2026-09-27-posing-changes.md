@@ -116,6 +116,24 @@ unguarded building within its leash; (b) a `sweep` state: the group walks the ne
 order, as a body, with the fight on the way, and says which; (c) a route in the packet ("spot_9, then spot_2,
 spot_7, spot_14") decompresses to a station list the hands advance through as each is reached or found empty;
 (d) the enemy section lists his buildings by place with when seen and what guards them, not by cell.
+Why the hands did not run the raid, traced (the user: "did Jev not have those destinations available?"): they
+did not, on either path. (1) The per-second menu: a group's walk and split states go only to home and to places
+that are not spots within 3,000 (`plan.rs`, "walks to named places": `p.name == "home" || p.spot.is_none()`), so
+group_A_t1 was never offered a walk to spot_2, spot_7 or spot_14 at any second of the game (its states 4:30-9:30:
+keep, walk/split to passage_1, passage_2, shelling, home, fall back, retreat, scout, join, and the one
+`station_spot_N` its standing rule named). A spot reaches a group only as its `station`, one place. The `instruct`
+tool's description promises "a spot or passage you name here is always on your hands' menu, however far": true of
+builders (the extractor states), false of groups. (2) The decompression: its vocabulary for a group is station
+(one place), station_mode, fall_back_to, never, no_chase, raiders_*, hold_line, engage_party, join; the station
+question asks "where do they tell group_A_t1 to stand, gather, hold or be stationed?" with spot_9, spot_2, spot_7
+and spot_14 among its options, and Jev answered spot_11 at 0.96 (jev-0 decompress row f8379). The 4:30 packet still carried the picket sentence ("with fewer than eight soldiers stands at spot_11"), so the answer was a fair reading of a question that has no way to take a route. Nothing
+asks for a route, an objective or a target. So the player set `station spot_9` by the tool at 4:18 (outranking
+the packet), and then advanced the station by hand at 7:10 (spot_2), 7:35 (spot_4), 8:16 (spot_7) and 9:02
+(spot_13): the packet's "then" list was played by the player, one turn per step, 30-40 s apart, and at each
+station the group held with nothing to hold against. Changes (c) and (a) above are the answer: a route in the
+packet becomes a station list the hands advance, and a group at a station with a known unguarded building in
+reach has the raid as its base world; add (e): a group's walk states include the spots the packet names for it,
+however far, as the tool's description already promises.
 
 ## 7. The packet and the standing orders (A3)
 
