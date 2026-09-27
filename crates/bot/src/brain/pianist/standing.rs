@@ -75,7 +75,14 @@ impl Standing {
     /// then the tool's over them.
     pub(crate) fn rules_for(&self, actor: &str) -> Rules {
         let mut out = Rules::new();
-        let class = if actor.starts_with("constructor_") { Some("constructors") } else { None };
+        let class = if actor.starts_with("constructor_") {
+            Some("constructors")
+        } else if actor.starts_with("commander_t") {
+            // A packet paragraph headed `commander:` is every seat's commander; `commander_t2:` that seat's only.
+            Some("commander")
+        } else {
+            None
+        };
         for source in [&self.packet, &self.tool] {
             if let Some(c) = class
                 && let Some(rules) = source.get(c)
@@ -236,7 +243,16 @@ fn group_names(packet: &str) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
     for (i, _) in packet.match_indices("group_") {
         let rest = &packet[i + 6..];
-        let name: String = rest.chars().take_while(|c| c.is_ascii_alphanumeric()).collect();
+        let mut name: String = rest.chars().take_while(|c| c.is_ascii_alphanumeric()).collect();
+        // The seat's tag is part of the name (`group_A_t2` in a game with several seats of ours); the packet's
+        // `group_A_t2:` was read as `group_A` and reached nobody (bluegecko-3v1-comet-catcher).
+        if let Some(after) = rest[name.len()..].strip_prefix("_t") {
+            let digits: String = after.chars().take_while(char::is_ascii_digit).collect();
+            if !digits.is_empty() {
+                name.push_str("_t");
+                name.push_str(&digits);
+            }
+        }
         if name.chars().next().is_some_and(|c| c.is_ascii_uppercase()) {
             let full = format!("group_{name}");
             if !out.contains(&full) {
@@ -250,7 +266,25 @@ fn group_names(packet: &str) -> Vec<String> {
 /// The paragraphs of the packet that name the actor (the constructors: any naming a constructor).
 fn paragraphs_about(packet: &str, actor: &str) -> String {
     let needle = if actor == "constructors" { "constructor" } else { actor };
-    packet.split("\n\n").filter(|p| if actor == "constructors" { p.to_lowercase().contains(needle) } else { p.contains(needle) }).collect::<Vec<_>>().join("\n\n")
+    // `commander` is not `commander_t2`, and `group_A` not `group_A_t2`: the name ends where a tag would begin.
+    let names = |p: &str| p.match_indices(needle).any(|(i, _)| !p[i + needle.len()..].starts_with("_t") || actor.contains("_t"));
+    packet.split("\n\n").filter(|p| if actor == "constructors" { p.to_lowercase().contains(needle) } else { names(p) }).collect::<Vec<_>>().join("\n\n")
+}
+
+/// The builders a packet speaks about: `commander`, every `commander_t<N>` it names, and `constructors`.
+fn builder_names(packet: &str) -> Vec<String> {
+    let mut out = vec!["commander".to_string()];
+    for (i, _) in packet.match_indices("commander_t") {
+        let digits: String = packet[i + 11..].chars().take_while(char::is_ascii_digit).collect();
+        if !digits.is_empty() {
+            let name = format!("commander_t{digits}");
+            if !out.contains(&name) {
+                out.push(name);
+            }
+        }
+    }
+    out.push("constructors".to_string());
+    out
 }
 
 fn places_in(text: &str, places: &[String]) -> Vec<String> {
@@ -298,7 +332,8 @@ pub(crate) fn extraction_state(packet: &str) -> Value {
     for g in group_names(packet) {
         paragraphs.insert(g.clone(), json!(paragraphs_about(packet, &g)));
     }
-    for b in ["commander", "constructors"] {
+    for b in builder_names(packet) {
+        let b = b.as_str();
         let paras = paragraphs_about(packet, b);
         if !paras.is_empty() {
             paragraphs.insert(b.to_string(), json!(paras));
@@ -346,7 +381,8 @@ pub(crate) fn extraction_questions(packet: &str, places: &[String]) -> BTreeMap<
             qs.insert(format!("{g}.never_{p}"), Question::noul(format!("Read `paragraphs.{g}`. Do they say {g} never goes to, stands at or advances to {p}, or that no soldier stands at {p}?")));
         }
     }
-    for b in ["commander", "constructors"] {
+    for b in builder_names(packet) {
+        let b = b.as_str();
         let paras = paragraphs_about(packet, b);
         if paras.is_empty() {
             continue;
@@ -422,6 +458,27 @@ pub(crate) fn orders_from(answers: &BTreeMap<String, Answer>) -> BTreeMap<String
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn tagged_seats_paragraphs_reach_their_own_actors() {
+        let packet = "commander: never chases scout cars.\n\ncommander_t2: helps the plant.\n\ngroup_A_t2: stands at spot_61.\n\ngroup_B: stands at spot_24.";
+        assert_eq!(group_names(packet), vec!["group_A_t2".to_string(), "group_B".to_string()]);
+        assert_eq!(builder_names(packet), vec!["commander".to_string(), "commander_t2".to_string(), "constructors".to_string()]);
+        let state = extraction_state(packet);
+        assert!(state["paragraphs"]["commander"].as_str().unwrap().contains("scout cars") && !state["paragraphs"]["commander"].as_str().unwrap().contains("helps the plant"));
+        assert!(state["paragraphs"]["commander_t2"].as_str().unwrap().contains("helps the plant"));
+        assert!(state["paragraphs"]["group_A_t2"].as_str().unwrap().contains("spot_61"));
+        let ids: Vec<String> = extraction_questions(packet, &["spot_61".to_string(), "spot_24".to_string()]).keys().cloned().collect();
+        assert!(ids.iter().any(|i| i.starts_with("group_A_t2.")) && ids.iter().any(|i| i.starts_with("commander_t2.")), "{ids:?}");
+        let mut standing = Standing::default();
+        let mut orders: BTreeMap<String, Rules> = BTreeMap::new();
+        orders.insert("commander".into(), BTreeMap::from([("no_chase".to_string(), "yes".to_string())]));
+        orders.insert("commander_t2".into(), BTreeMap::from([("job".to_string(), "help_factory".to_string())]));
+        standing.set_packet(orders, 1);
+        let rules = standing.rules_for("commander_t2");
+        assert_eq!(rules.get("no_chase").map(String::as_str), Some("yes"), "the plain commander paragraph is every seat's");
+        assert_eq!(rules.get("job").map(String::as_str), Some("help_factory"));
+    }
 
     #[test]
     fn party_names_keep_their_seat_tag() {

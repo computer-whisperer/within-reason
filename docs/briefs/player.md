@@ -81,7 +81,9 @@ its seat's tag: `commander_t1` and `commander_t2`, `group_A_t2`, `party_3_t2`, `
 are `home_t2` and so on, while `home` in an actor's paragraph is always that actor's own seat's start. Constructors
 and factories are unique by number as ever, and `spot_N` and your marks are the same for every seat. A list, a
 `produce` entry, a standing paragraph or a removal goes to the seat that owns the name; a paragraph headed
-`constructors:` applies to every seat's constructors. Each seat has its own economy, and its own map picture: a
+`constructors:` or `commander:` applies to every seat's constructors or commanders, a `commander_t2:` paragraph to
+that seat's over it. Parties are named as each seat sees them: the party a `_t3` group fights is `party_N_t3`, and
+the same enemy units may be `party_M_t1` to another seat; name the party by the group's own seat. Each seat has its own economy, and its own map picture: a
 `_t2` actor sent to `passage_1_t2` goes to its own seat's first passage. Write the opening for each seat's commander
 by its tagged name, and give each seat its own spots.
 

@@ -470,8 +470,9 @@ could build none of it, the Cortex seat got nothing, and neither seat played one
 both ran the hands' default opening (a bot lab each at 0:39 and 0:40) on a map whose brief section asked for a
 vehicle plant.
 The same drain took the `standing` changes: the 4:16 `never spot_0..11` for constructors landed on the west seat only (the east seat's constructors kept spot_8, spot_9 and spot_11 on offer and built at spot_9 at 5:34 and spot_8 at 6:35), and the 9:31 `set station spot_16` and the 10:47 `clear` for group_A went to the other seat's group_A, so the west group's `station spot_15 (tool)` stood until `clear all` at 12:06 and the group flipped thirty times between its station under the turrets and home (-2,910 for 540).
-**Status.** observed (2026-09-27), one game.
-**Evidence.** `run/matches/1790465811-bluegecko-2v1-great-divide/00` (`strategist-0.jsonl` turns 1 and 2, `jev-0.jsonl`
+And the packet's paragraphs never reached a tagged group or commander: the reader took `group_A_t2:` as `group_A` and knew only a plain `commander` (bluegecko-3v1-comet-catcher, the review: group_B_t3's slot carried no station from six packets that gave it one, the 50-Blitz ball holding at spot_48 from 5:30 to 13:33 while the block killed the north seat; fixed 98cac09+, `standing.rs` `group_names`, `builder_names`, `rules_for`).
+**Status.** observed (2026-09-27), two games.
+**Evidence.** `run/matches/1790465811-bluegecko-2v1-great-divide/00`, `run/matches/1790467496-bluegecko-2v1-comet-catcher/00` (`00/review.md`) (`strategist-0.jsonl` turns 1 and 2, `jev-0.jsonl`
 and `jev-1.jsonl` with no `list` plays, `bot.log`).
 **Would be wrong if.** The lists had reached the Cortex seat and its hands had refused them for another reason.
 **Used by.** H-PLAYER-SEAT-NAMES.
