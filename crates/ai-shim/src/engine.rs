@@ -627,6 +627,16 @@ impl Engine {
     }
 
     /// Issues a command; `Err` carries the engine's non-zero result code.
+    /// A command position with the map's height at it. The bot's points carry whatever height they were made
+    /// with (0 for a route cell or a ring round a builder, a neighbouring spot's for a spot from the game's list),
+    /// and the engine keeps a command's parameters as given: it corrects the height when it executes the order
+    /// (`Pos2BuildPos`, the path), but the replay draws the queued ghost or destination at the height sent, in
+    /// the sky or under the ground (the user, 2026-09-27: "to-be-started mex ghosts and unit movement destinations
+    /// appear as either high in the sky or under the terrain").
+    fn on_the_ground(&self, at: Vec3) -> [f32; 3] {
+        [at.x, call!(self, Map_getElevationAt(at.x, at.z)), at.z]
+    }
+
     /// [`Command::Build`] must already have a concrete position in `site.near`.
     pub fn issue(&self, command: &Command) -> Result<(), i32> {
         let options = |queue: bool| if queue { sys::UNIT_COMMAND_OPTION_SHIFT_KEY as i16 } else { 0 };
@@ -634,7 +644,7 @@ impl Engine {
         const NO_TIMEOUT: c_int = c_int::MAX;
         match *command {
             Command::Build { unit, def, ref site, queue } => {
-                let mut pos = site.as_ref().map_or([0.0; 3], |s| [s.near.x, s.near.y, s.near.z]);
+                let mut pos = site.as_ref().map_or([0.0; 3], |s| self.on_the_ground(s.near));
                 self.handle(sys::COMMAND_UNIT_BUILD, &mut sys::SBuildUnitCommand {
                     unitId: unit.0,
                     groupId: NO_GROUP,
@@ -647,7 +657,7 @@ impl Engine {
                 })
             }
             Command::Move { unit, to, queue } => {
-                let mut pos = [to.x, to.y, to.z];
+                let mut pos = self.on_the_ground(to);
                 self.handle(sys::COMMAND_UNIT_MOVE, &mut sys::SMoveUnitCommand {
                     unitId: unit.0,
                     groupId: NO_GROUP,
@@ -657,7 +667,7 @@ impl Engine {
                 })
             }
             Command::Fight { unit, to, queue } => {
-                let mut pos = [to.x, to.y, to.z];
+                let mut pos = self.on_the_ground(to);
                 self.handle(sys::COMMAND_UNIT_FIGHT, &mut sys::SFightUnitCommand {
                     unitId: unit.0,
                     groupId: NO_GROUP,
