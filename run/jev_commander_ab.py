@@ -26,7 +26,7 @@ import argparse, collections, json, math, os, re, statistics, sys, time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from jev_ab import api_key, ask, choice_of  # noqa: E402
-from jev_audit import Match, clock  # noqa: E402
+from match_read import Match, clock  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UNIDENTIFIED_METAL = 110.0

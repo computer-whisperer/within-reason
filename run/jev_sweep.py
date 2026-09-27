@@ -17,7 +17,7 @@ import urllib.error
 import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from jev_audit import Match, clock  # noqa: E402
+from match_read import Match, clock  # noqa: E402
 
 URL = "https://api.typesafe.ai/v1/systemone"
 KEY_FILE = os.path.expanduser("~/.config/within-reason/jev.env")

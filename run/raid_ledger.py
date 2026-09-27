@@ -7,7 +7,7 @@ late, whether the raiders paid, and whether the spot was rebuilt. The reviewer's
 
 Reads the record (`record-<ai>.jsonl`), the truth file (`truth-<ai>.jsonl`: every enemy unit every two seconds;
 matches run with WITHIN_REASON_OBSERVE=1, without it the party column is what we saw) and the pianist's log
-(`jev-<ai>.jsonl`, the hands' plays) through `run/jev_audit.py`'s reader.
+(`jev-<ai>.jsonl`, the hands' plays) through `run/match_read.py`'s reader.
 
 Columns:
   clock, spot (the record's spot index, the cards' numbers on Comet Catcher) and cell; killer (the `destroyed`
@@ -30,7 +30,7 @@ import statistics
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from jev_audit import Match, clock  # noqa: E402
+from match_read import Match, clock  # noqa: E402
 
 FPS = 30
 ANSWER = re.compile(r"\b(hunt|attack|against)\b.*?(party_\d+)")
