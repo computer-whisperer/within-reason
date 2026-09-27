@@ -89,6 +89,26 @@ fn value(body: &str, key: &str) -> Option<String> {
     })
 }
 
+/// The script's `startpostype` in `[GAME]`: 0 fixed (the map's positions), 1 random, 2 chosen in the game inside
+/// the boxes, 3 chosen before the game; None when the script does not say.
+pub fn start_pos_type(script: &str) -> Option<i32> {
+    sections(script).into_iter().find(|(name, _)| name == "game").and_then(|(_, body)| value(body, "startpostype")?.parse::<i32>().ok())
+}
+
+/// Each team's start as the script gives it: `(team, x, z)` from `startposx`/`startposz` of every `[TEAMn]` that
+/// has both (the lobby writes them for fixed and pre-chosen positions; an in-game choice leaves them out).
+pub fn start_positions(script: &str) -> Vec<(i32, f32, f32)> {
+    sections(script)
+        .into_iter()
+        .filter_map(|(name, body)| {
+            let team = name.strip_prefix("team")?.parse::<i32>().ok()?;
+            let x = value(body, "startposx")?.parse::<f32>().ok()?;
+            let z = value(body, "startposz")?.parse::<f32>().ok()?;
+            Some((team, x, z))
+        })
+        .collect()
+}
+
 /// The teams the script declares (`[TEAMn]`): a team the engine lists beyond these is its Gaia team.
 pub fn teams(script: &str) -> Vec<i32> {
     sections(script).into_iter().filter_map(|(name, _)| name.strip_prefix("team").and_then(|n| n.parse::<i32>().ok())).collect()
@@ -173,6 +193,10 @@ mod tests {
     fn reads_boxes_and_skips_ally_teams_without_one() {
         let script = "[GAME]\n{\n[TEAM0] { AllyTeam=0; }\n[ALLYTEAM0] { NumAllies=0; StartRectLeft=0; StartRectTop=0; StartRectRight=0.3; StartRectBottom=0.25; }\n[allyteam1]\n{\nnumallies=0;\n}\n[ALLYTEAM2] { StartRectLeft=0.7; StartRectTop=0.7; StartRectRight=1; StartRectBottom=1; }\n}";
         assert_eq!(super::start_rects(script), vec![(0, [0.0, 0.0, 0.3, 0.25]), (2, [0.7, 0.7, 1.0, 1.0])]);
+        let fixed = "[GAME]\n{\nStartPosType=0;\n[TEAM0] { AllyTeam=0; StartPosX=6899; StartPosZ=681; }\n[TEAM1] { AllyTeam=1; }\n[ALLYTEAM0] { StartRectLeft=0; StartRectTop=0; StartRectRight=1; StartRectBottom=0.2; }\n}";
+        assert_eq!(super::start_pos_type(fixed), Some(0));
+        assert_eq!(super::start_positions(fixed), vec![(0, 6899.0, 681.0)], "a team without both coordinates is left out");
+        assert_eq!(super::start_pos_type("[GAME]\n{\n[TEAM0] { AllyTeam=0; }\n}"), None);
     }
 }
 

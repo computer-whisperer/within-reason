@@ -67,6 +67,12 @@ impl Recorder {
             return None;
         }
         let path = dir.join(format!("record-{}.jsonl", hello.ai_id));
+        // The start script beside the record (the arena writes its own; a game with people had none until
+        // 2026-09-28, and the lobby's start positions and boxes could not be checked afterwards).
+        let script = dir.join("script.txt");
+        if !hello.script.is_empty() && !script.exists() {
+            let _ = std::fs::write(&script, &hello.script);
+        }
         if let Err(e) = write_terrain(&dir.join(terrain_file(hello)), hello) {
             eprintln!("[ai {}] no terrain file: {e}", hello.ai_id);
         }
@@ -391,6 +397,7 @@ fn header(hello: &Hello, mode: &str, session: bool, pianist: bool) -> Value {
             json!({
                 "id": d.id.0, "name": d.name, "class": class(d), "metal": d.metal_cost, "energy": d.energy_cost,
                 "speed": d.speed, "weapons": d.weapon_count,
+                "tidal_make": d.tidal_make, "sonar_range": d.sonar_range, "submerges": d.submerges, "hits_submerged": d.hits_submerged, "water_only": d.water_only,
                 "build_time": d.build_time, "build_speed": d.build_speed, "build_distance": d.build_distance,
                 "builds": d.build_options.iter().map(|o| o.0).collect::<Vec<_>>(),
                 "extracts_metal": d.extracts_metal, "metal_make": d.metal_make, "energy_make": d.energy_make,
@@ -422,7 +429,8 @@ fn header(hello: &Hello, mode: &str, session: bool, pianist: bool) -> Value {
         "seats": hello.teams.iter().map(|t| json!({ "team": t.team, "ally_team": t.ally_team, "side": t.side, "controller": t.controller })).collect::<Vec<_>>(),
         "frames_per_second": 30, "sample_frames": SAMPLE_FRAMES, "tick_frames": hello.tick_frames, "mode": mode,
         "wall_start": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs()),
-        "map": { "name": map.name, "width": map.width, "height": map.height, "wind_min": map.wind_min, "wind_max": map.wind_max, "extractor_radius": map.extractor_radius },
+        "map": { "name": map.name, "width": map.width, "height": map.height, "wind_min": map.wind_min, "wind_max": map.wind_max, "tidal": map.tidal, "extractor_radius": map.extractor_radius },
+        "start_pos_type": hello.start_pos_type,
         "grid": { "columns": 8, "rows": 8 },
         "metal_spots": spots,
         "terrain": {

@@ -76,6 +76,19 @@ impl Brain {
         }
     }
 
+    /// Whether a unit of this type has a water weapon (a torpedo, a depth charge): the engine lets nothing else fire
+    /// at a unit under the surface (`Weapon::TestTarget`: `!waterweapon && !owner->IsUnderWater() && TargetUnderWater
+    /// -> false`).
+    pub(super) fn can_hit_submerged(&self, def: UnitDefId) -> bool {
+        self.world.def(def).is_some_and(|d| d.hits_submerged)
+    }
+
+    /// Whether any soldier in a force can hit a submerged unit (turrets: only a torpedo launcher, which stands in
+    /// the water and counts among its soldiers when in a party).
+    pub(super) fn force_can_hit_submerged(&self, force: &Force) -> bool {
+        force.units.keys().any(|def| self.can_hit_submerged(*def))
+    }
+
     /// Whether anything in a force can hit `air` (or ground) at all: soldiers or turrets.
     pub(super) fn force_can_hit(&self, force: &Force, air: bool) -> bool {
         force.units.keys().any(|def| self.can_hit(*def, air)) || (if air { force.turret_metal_air } else { force.turret_metal }) > 0.0 || force.unidentified > 0

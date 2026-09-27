@@ -174,11 +174,14 @@ impl Engine {
         let controllers = crate::script::controllers(&script);
         let scripted_teams = crate::script::teams(&script);
         let colors = crate::script::colors(&script);
+        let start_pos_type = crate::script::start_pos_type(&script);
+        let starts = crate::script::start_positions(&script);
         let teams = (0..call!(self, Game_getTeams()))
             .map(|team| TeamInfo {
                 team,
                 ally_team: call!(self, Game_getTeamAllyTeam(team)),
                 side: self.string(call!(self, Game_getTeamSide(team))),
+                start_pos: starts.iter().find(|(t, _, _)| *t == team).map(|(_, x, z)| Vec3 { x: *x, y: 0.0, z: *z }),
                 color: colors.iter().find(|(t, _)| *t == team).map(|(_, c)| *c),
                 controller: if !scripted_teams.is_empty() && !scripted_teams.contains(&team) {
                     Controller::Gaia
@@ -211,6 +214,8 @@ impl Engine {
             game_id,
             teams,
             start_boxes,
+            start_pos_type,
+            script,
             frame,
             tick_frames,
             map,
@@ -276,6 +281,7 @@ impl Engine {
         let mut options = vec![0; option_count.max(0) as usize];
         call!(self, UnitDef_getBuildOptions(id, options.as_mut_ptr(), option_count));
         let (reach, reload) = self.longest_weapon(id);
+        let water_weapons = self.water_weapons(id);
         UnitDefInfo {
             id: UnitDefId(id),
             name: self.string(call!(self, UnitDef_getName(id))),
@@ -294,6 +300,10 @@ impl Engine {
             metal_storage: call!(self, UnitDef_getStorage(id, self.metal)),
             energy_storage: call!(self, UnitDef_getStorage(id, self.energy)),
             radar_range: call!(self, UnitDef_getRadarRadius(id)) as f32,
+            sonar_range: call!(self, UnitDef_getSonarRadius(id)) as f32,
+            submerges: call!(self, UnitDef_isAbleToSubmerge(id)),
+            hits_submerged: water_weapons.0,
+            water_only: water_weapons.1,
             converter: self.converter(id),
             weapon_count: call!(self, UnitDef_getWeaponMounts(id)),
             build_options: options.into_iter().map(UnitDefId).collect(),
@@ -305,6 +315,23 @@ impl Engine {
             reach,
             reload,
         }
+    }
+
+    /// Whether any weapon of the type is a water weapon (a torpedo, a depth charge: what reaches a submerged
+    /// target), and whether every weapon is (it hits nothing out of the water).
+    fn water_weapons(&mut self, id: c_int) -> (bool, bool) {
+        let mounts = call!(self, UnitDef_getWeaponMounts(id)).max(0);
+        let (mut any, mut all) = (false, mounts > 0);
+        for mount in 0..mounts {
+            let weapon = call!(self, UnitDef_WeaponMount_getWeaponDef(id, mount));
+            if weapon < 0 {
+                continue;
+            }
+            let water = call!(self, WeaponDef_isWaterWeapon(weapon)) || call!(self, WeaponDef_isSubMissile(weapon));
+            any |= water;
+            all &= water;
+        }
+        (any, all)
     }
 
     /// The range and reload of a type's longest ordinary weapon: manual-fire weapons (the D-gun) left out.

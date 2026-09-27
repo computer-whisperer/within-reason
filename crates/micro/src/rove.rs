@@ -192,9 +192,11 @@ impl Lane {
     /// H-MICRO-ROVE, every tick, for every rover: evade, else attack, else look (the module's comment).
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn rove(&mut self, view: &dyn View, rovers: &[&OwnUnit], enemies: &[EnemyUnit], sources: &[Source], frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, events: &mut Vec<RoveEvent>, debug: bool) {
-        let danger: Vec<&Source> = sources.iter().filter(|s| s.weight >= FAINT).collect();
+        let danger_all: Vec<&Source> = sources.iter().filter(|s| s.weight >= FAINT).collect();
         let mut goals_of: HashMap<UnitDefId, Vec<RoveGoal>> = HashMap::new();
         for unit in rovers {
+            // A torpedo shooter is no danger to a rover on land (the engine: water weapons reach only what is in the water).
+            let danger: Vec<&Source> = danger_all.iter().copied().filter(|s| !s.water_only || unit.pos.y <= 0.0).collect();
             let stats = view.stats(unit.def).unwrap_or_default();
             let sight = if stats.sight > 0.0 { stats.sight } else { DEFAULT_SIGHT };
             let name = view.def(unit.def).map_or("?", |d| d.name.as_str()).to_string();
@@ -421,6 +423,10 @@ mod tests {
             energy_upkeep: 0.0,
             wind_cap: 0.0,
             tidal_make: 0.0,
+            sonar_range: 0.0,
+            submerges: false,
+            hits_submerged: false,
+            water_only: false,
             metal_storage: 0.0,
             energy_storage: 0.0,
             radar_range: 0.0,

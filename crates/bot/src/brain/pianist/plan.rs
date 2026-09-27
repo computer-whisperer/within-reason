@@ -243,7 +243,7 @@ impl Brain {
                 Some(d) if !d.build_options.is_empty() => "factory",
                 Some(d) if d.build_speed > 0.0 => "nano",
                 Some(d) if d.weapon_count > 0 => "defence",
-                Some(d) if d.radar_range > 0.0 => "radar",
+                Some(d) if d.radar_range > 0.0 || d.sonar_range > 0.0 => "radar",
                 Some(d) if d.metal_storage > 0.0 || d.energy_storage > 0.0 => "storage",
                 Some(d) if d.extracts_metal > 0.0 => "extractor",
                 _ => "other",
@@ -385,6 +385,9 @@ impl Brain {
         }
         if d.radar_range > 0.0 {
             parts.push(format!("sees {:.0} around it", d.radar_range));
+        }
+        if d.sonar_range > 0.0 {
+            parts.push(format!("its sonar sees {:.0} under the water: a submarine, a ship's hull or a commander walking the seabed is seen by sonar only, never by eyes or radar", d.sonar_range));
         }
         if let Some(b) = self.world.def(unit.def)
             && d.build_time > 0.0

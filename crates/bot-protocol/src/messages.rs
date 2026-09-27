@@ -49,8 +49,16 @@ pub struct Hello {
     pub game_id: u64,
     /// Every team in the game, ours included.
     pub teams: Vec<TeamInfo>,
-    /// Where each ally team may start, for the ally teams whose box the start script gives.
+    /// Where each ally team may start, for the ally teams whose box the start script gives. The boxes mean
+    /// something only under `start_pos_type` 2 (chosen in game): a map's default boxes ride along in every script.
     pub start_boxes: Vec<StartBox>,
+    /// The script's `startpostype`: 0 fixed (the map's positions, each team's in its `[TEAMn]`), 1 random, 2 chosen
+    /// in the game inside the boxes, 3 chosen before the game (each team's in its `[TEAMn]`); None when unsaid.
+    #[serde(default)]
+    pub start_pos_type: Option<i32>,
+    /// The whole start script, for the record (`script.txt` beside it) and for reading what the lobby set.
+    #[serde(default)]
+    pub script: String,
     pub frame: i32,
     /// Frames between ticks (the sim runs 30 a second): the shim's setting, so that nothing in the bot assumes one.
     pub tick_frames: i32,
@@ -73,6 +81,10 @@ pub struct TeamInfo {
     /// Who plays the seat, from the start script; `Unknown` from a shim older than 2026-09-23.
     #[serde(default)]
     pub controller: Controller,
+    /// The seat's start as the script gives it (`startposx`/`startposz` of its `[TEAMn]`), when the lobby fixed
+    /// the positions (`start_pos_type` 0 or 3): exact for every seat, ours and theirs (shims from 2026-09-28).
+    #[serde(default)]
+    pub start_pos: Option<Vec3>,
     /// The seat's lobby colour (`rgbcolor` of its `[TEAMn]` section, 0-1 each), how people in the game name a
     /// seat; `None` from a shim older than 2026-09-27 or a script without one.
     #[serde(default)]
@@ -203,6 +215,18 @@ pub struct UnitDefInfo {
     pub tidal_make: f32,
     pub metal_storage: f32,
     pub energy_storage: f32,
+    /// Sonar coverage it gives, in elmos; 0 for none: what sees submerged units (records and shims from 2026-09-28).
+    #[serde(default)]
+    pub sonar_range: f32,
+    /// Whether the type can go under the surface (`UnitDef_isAbleToSubmerge`); a submarine, an amphibious walker.
+    #[serde(default)]
+    pub submerges: bool,
+    /// Whether any of its weapons is a water weapon (a torpedo, a depth charge): the only kind that hits a submerged target.
+    #[serde(default)]
+    pub hits_submerged: bool,
+    /// Whether every weapon it has is a water weapon: it hits nothing that is not in the water.
+    #[serde(default)]
+    pub water_only: bool,
     /// Radar coverage it gives, in elmos; 0 for a unit with none.
     pub radar_range: f32,
     /// For an energy converter (the game's `energyconv_*` custom parameters).

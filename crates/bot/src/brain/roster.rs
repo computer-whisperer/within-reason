@@ -54,14 +54,14 @@ pub const ROSTERS: [Roster; 2] = [
 // (bluegecko-3v1-comet-catcher-8, 5:52), and the OS-48 players say a metal-heavy map has no use for them; the
 // player names one in a `queue` or `produce` list when it wants them.
 const USUAL_ARMADA: &[&str] = &[
-    "armsolar", "armwin", "armtide", "armadvsol", "armlab", "armvp", "armap", "armhp", "armsy", "armllt", "armhlt", "armrl", "armrad", "armarad", "armnanotc",
+    "armsolar", "armwin", "armtide", "armfrad", "armtl", "armadvsol", "armlab", "armvp", "armap", "armhp", "armsy", "armllt", "armhlt", "armrl", "armrad", "armarad", "armnanotc",
     "armmstor", "armestor", "armalab", "armavp", "armaap", "armmoho", "armfus", "armguard", "armflak", "armdl",
     // Tier 2 (the advanced constructors' lists): advanced fusion and geothermal, the advanced storages, the jammer,
     // the tier-2 defences, the anti-nuke, the targeting facility.
     "armafus", "armageo", "armuwadvms", "armuwadves", "armveil", "armpb", "armanni", "armamb", "armamd", "armtarg",
 ];
 const USUAL_CORTEX: &[&str] = &[
-    "corsolar", "corwin", "cortide", "coradvsol", "corlab", "corvp", "corap", "corhp", "corsy", "corllt", "corhlt", "corrl", "corrad", "corarad", "cornanotc",
+    "corsolar", "corwin", "cortide", "corfrad", "cortl", "coradvsol", "corlab", "corvp", "corap", "corhp", "corsy", "corllt", "corhlt", "corrl", "corrad", "corarad", "cornanotc",
     "cormstor", "corestor", "coralab", "coravp", "coraap", "cormoho", "corfus", "corpun", "corflak", "cordl",
     "corafus", "corageo", "coruwadvms", "coruwadves", "corshroud", "corvipe", "cordoom", "cortoast", "corfmd", "cortarg",
 ];

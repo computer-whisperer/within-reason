@@ -333,7 +333,11 @@ impl Brain {
                 "ally_team": b.ally_team, "ours": b.ally_team == self.world.hello.ally_team, "cells": self.world.box_cells(b),
                 "left": b.left as i32, "top": b.top as i32, "right": b.right as i32, "bottom": b.bottom as i32,
             })).collect::<Vec<_>>(),
-            "start_boxes_note": if self.boxes_honoured { "the lobby's start boxes: each team's commander was placed somewhere inside its box at 0:00. The engine tells nobody where; where the opponent stands now is known only from what our units see" } else { "the lobby's start boxes were NOT honoured: our own start lies in another team's box or outside ours, so the host placed the seats by hand and the boxes say nothing of where he is; his start is guessed as the mirror of ours until something of ours sees his buildings" },
+            "start_boxes_note": match self.world.hello.start_pos_type {
+                Some(0) | Some(3) => "the lobby fixed every seat's start (the script's startpostype 0 or 3): the enemy's start below is exact, from the script, and the boxes are the map's defaults, meaning nothing",
+                _ if self.boxes_honoured => "the lobby's start boxes: each team's commander was placed somewhere inside its box at 0:00. The engine tells nobody where; where the opponent stands now is known only from what our units see",
+                _ => "the lobby's start boxes were NOT honoured: our own start lies in another team's box or outside ours, so the host placed the seats by hand and the boxes say nothing of where he is; his start is guessed as the mirror of ours until something of ours sees his buildings",
+            },
             "metal_spots": spots,
             "metal_spots_note": "n is the spot's number for the `expansion` tool; walk_from_home is the walking distance for our bots (null: they cannot walk there) beside straight_from_home; a spot marked `alcove` is far longer on foot than straight, and a group sent at it by the straight line huddles short of it",
             "terrain": self.terrain_sketch(),

@@ -26,6 +26,8 @@ const NEVER_LOOKED: usize = 3;
 const LONG_UNSEEN: i32 = 5 * 60 * FRAMES_PER_SECOND;
 const PASSAGES: usize = 3;
 /// Enemies this close together are one party.
+/// A unit whose position is this far below the water's surface is under it: seen by sonar only, hit by water weapons only.
+const SUBMERGED_Y: f32 = -5.0;
 const PARTY_RADIUS: f32 = 400.0;
 /// A turret whose reach ends this short of a party's centre still covers its edge.
 const TURRET_MARGIN: f32 = 150.0;
@@ -554,8 +556,21 @@ impl Brain {
         if air_in_it > 0 && air_in_it < party.ids.len() && !self.force_can_hit(&ours, true) {
             more.push_str(&format!("; {air_in_it} of it are aircraft nothing in this group hits"));
         }
+        // Under the water (the engine: a unit below the surface is seen by sonar only and hit by water weapons
+        // only; a shooter under the surface hits only what is in the water): what the odds say of it.
+        let submerged_in_it = enemies.iter().filter(|e| party.ids.contains(&e.id) && e.pos.y < SUBMERGED_Y).count();
+        let ours_in_water = units.iter().filter(|u| u.pos.y <= 0.0).count();
+        if submerged_in_it > 0 && submerged_in_it < party.ids.len() && !self.force_can_hit_submerged(&ours) {
+            more.push_str(&format!("; {submerged_in_it} of it {} under the water, where only torpedoes and depth charges reach, and this group has none", if submerged_in_it == 1 { "is" } else { "are" }));
+        }
+        let their_water_only = !identified.is_empty() && identified.iter().all(|(_, d, _)| self.world.def(*d).is_some_and(|x| x.water_only));
+        if their_water_only && ours_in_water == 0 {
+            more.push_str("; its weapons are torpedoes, which reach only what is in the water: it cannot hit this group on land");
+        }
         if units.is_empty() {
             "we have nobody to send".to_string()
+        } else if submerged_in_it > 0 && submerged_in_it == party.ids.len() && !self.force_can_hit_submerged(&ours) {
+            format!("we cannot hit it: it is under the water, where only torpedoes and depth charges reach, and this group has none{more}")
         } else if !self.force_can_hit(&ours, self.all_air(&theirs)) {
             format!("we cannot hit it: nothing in this group shoots at what it is{more}")
         } else if !self.force_can_hit(&theirs, self.all_air(&ours)) {

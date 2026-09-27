@@ -334,6 +334,9 @@ struct Source {
     /// Elmos a second; 0 for a building.
     speed: f32,
     def: Option<UnitDefId>,
+    /// Every weapon it has is a water weapon (a torpedo): it reaches nothing out of the water, so a unit on land
+    /// neither flees it nor routes round it, and it is not stamped on the grid.
+    water_only: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -838,7 +841,8 @@ impl Lane {
     fn flee(&mut self, view: &dyn View, unit: &OwnUnit, sources: &[Source], friends: f32, frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, debug: bool) -> Option<Rule> {
         let next = Vec3 { x: unit.pos.x + unit.vel.x * LOOKAHEAD_FRAMES, y: 0.0, z: unit.pos.z + unit.vel.z * LOOKAHEAD_FRAMES };
         let commitment = self.commitment.get(&unit.id).cloned().unwrap_or_default();
-        let covers = |s: &Source, p: Vec3| s.pos.dist2d(p) < s.reach + TAIL;
+        // A torpedo shooter covers a unit only while that unit is in the water (the engine's TestTarget).
+        let covers = |s: &Source, p: Vec3| s.pos.dist2d(p) < s.reach + TAIL && (!s.water_only || unit.pos.y <= 0.0);
         let unpriced_at = |p: Vec3| sources.iter().find(|s| !commitment.covers(s) && s.weight >= FAINT && covers(s, p));
         // Damage a second from soldiers of theirs at `p`, and their strength (damage a second times health): a
         // committed unit leaves a unit fight it would die in and its side is losing, but never a turret dive its
@@ -1213,14 +1217,14 @@ impl Lane {
                 self.seen.insert(enemy.id, (def, enemy.pos, frame));
             }
             let health = if enemy.health > 0.0 { enemy.health } else { s.health };
-            sources.push(Source { id: enemy.id, pos: enemy.pos, reach: s.reach, weight: s.dps, health, mobile, commander: is_commander(d), dgun: s.dgun, speed: s.speed, def: enemy.def });
+            sources.push(Source { id: enemy.id, pos: enemy.pos, reach: s.reach, weight: s.dps, health, mobile, commander: is_commander(d), dgun: s.dgun, speed: s.speed, def: enemy.def, water_only: d.water_only });
         }
         for (id, def, pos) in view.remembered_buildings() {
             if sources.iter().any(|s| s.id == id) {
                 continue;
             }
             let Some(s) = stats(def) else { continue };
-            sources.push(Source { id, pos, reach: s.reach, weight: s.dps, health: s.health, mobile: false, commander: false, dgun: 0.0, speed: 0.0, def: Some(def) });
+            sources.push(Source { id, pos, reach: s.reach, weight: s.dps, health: s.health, mobile: false, commander: false, dgun: 0.0, speed: 0.0, def: Some(def), water_only: view.def(def).is_some_and(|d| d.water_only) });
         }
         self.seen.retain(|id, (_, _, at)| frame - *at < MEMORY_FRAMES && view.enemy_known(*id));
         for (id, (def, pos, at)) in &self.seen {
@@ -1230,7 +1234,7 @@ impl Lane {
             let Some(s) = stats(*def) else { continue };
             let fade = 1.0 - (frame - at) as f32 / MEMORY_FRAMES as f32;
             let commander = view.def(*def).is_some_and(is_commander);
-            sources.push(Source { id: *id, pos: *pos, reach: s.reach, weight: s.dps * fade, health: s.health, mobile: true, commander, dgun: s.dgun, speed: s.speed, def: Some(*def) });
+            sources.push(Source { id: *id, pos: *pos, reach: s.reach, weight: s.dps * fade, health: s.health, mobile: true, commander, dgun: s.dgun, speed: s.speed, def: Some(*def), water_only: view.def(*def).is_some_and(|d| d.water_only) });
         }
         sources
     }
@@ -1244,6 +1248,11 @@ impl Lane {
         let grid = self.grid.as_mut().expect("made above");
         grid.clear();
         for source in sources {
+            // Torpedoes reach nothing out of the water; the grid serves every unit, most of them on land, so a
+            // water-only shooter is left off it and counts in the point checks for a unit in the water.
+            if source.water_only {
+                continue;
+            }
             grid.stamp(source.pos, source.reach, TAIL, source.weight);
         }
     }

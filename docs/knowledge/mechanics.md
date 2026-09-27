@@ -437,3 +437,24 @@ plant's second unit 25 s after its first (1:13, 1:38) with the store falling 278
 `assist4` (67 and 58 s) counted the later, untimed `assist` steps, not the ones at the plant's first units.
 **Would be wrong if.** The engine ended a guard order by itself, or the pros' commanders left the plant for its first units.
 **Used by.** [[H-HANDS-SCRIPT]] (amended 2026-09-28).
+
+### K-mech-under-the-water-is-sonar-and-torpedoes
+**Claim.** In the engine (Recoil, `rts/Sim/Misc/LosHandler.cpp`, `rts/Sim/Weapons/Weapon.cpp`, `rts/Sim/Units/Unit.cpp`,
+read 2026-09-28): a unit under the surface (`IsUnderWater`) is detected by sonar only, never by line of sight or radar
+(`requireSonarUnderWater`: `if (unit->IsUnderWater() && !InRadar(unit, allyTeam)) return false`, where a submerged
+unit's "radar" status comes from sonar); a unit at the surface (`IsInWater`) is seen by sight and by sonar; a unit's
+own sight and sonar radii do not change when it goes under. A weapon that is not a water weapon cannot fire at a
+submerged target from above the water (`if (!weaponDef->waterweapon) { if (!owner->IsUnderWater() && TargetUnderWater(..))
+return false; }`); a shooter under the surface hits only what is in the water; a weapon without `fireSubmersed` cannot
+fire while its own muzzle is under water (a commander walking the seabed shoots nothing). Targets must be in sight or
+radar status, which a sonar contact gives. So on a water map: submarines and a commander walking the seabed are
+invisible without sonar and untouchable without torpedoes or depth charges, and his torpedoes reach nothing on land.
+**Status.** demonstrated from the engine's source (2026-09-28); BAR's `requireSonarUnderWater` assumed on (the game's
+modrules), unverified in a game.
+**Evidence.** The engine files named; the AI interface's `UnitDef_getSonarRadius`, `UnitDef_isAbleToSubmerge`,
+`WeaponDef_isWaterWeapon`, `WeaponDef_isSubMissile`, `Map_getTidalStrength` (`SSkirmishAICallback.h`); game 11 on
+SailAway 2: `corsub` seen 8 times against 65 sightings of frigates, our seat 0 with one torpedo launcher and no sonar
+tower by 13:00.
+**Would be wrong if.** BAR set `requireSonarUnderWater` off (then sight would see submerged units), or its commanders
+could not walk under water.
+**Used by.** [[H-HANDS-UNDER-WATER]], [[H-ECO-TIDAL]].

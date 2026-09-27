@@ -58,8 +58,20 @@ impl super::Brain {
         if !self.boxes_honoured {
             eprintln!("[ai {}] the lobby's start boxes are not honoured (our start {} in another team's box, {} outside ours): his start is the mirror until seen", hello.ai_id, if ours_in_theirs { "is" } else { "is not" }, if ours_outside_ours { "and" } else { "and not" });
         }
+        // The lobby fixes the positions (`startpostype` 0, the map's; 3, chosen before the game): the script then
+        // carries each team's start, his included, and the boxes are the map's defaults riding along.
+        let fixed = matches!(hello.start_pos_type, Some(0) | Some(3));
+        if fixed {
+            self.boxes_honoured = false;
+        }
         for (index, (team, ally_team)) in enemy_teams.iter().enumerate() {
             let sharing: Vec<i32> = enemy_teams.iter().filter(|(_, a)| a == ally_team).map(|(t, _)| *t).collect();
+            let scripted = hello.teams.iter().find(|t| t.team == *team).and_then(|t| t.start_pos);
+            if let Some(at) = scripted.filter(|_| fixed) {
+                eprintln!("[ai {}] enemy team {team} starts at ({:.0}, {:.0}) by the script (startpostype {})", hello.ai_id, at.x, at.z, hello.start_pos_type.unwrap_or(-1));
+                bases.push(EnemyBase { team: Some(*team), at, found: false, dead: false, refined: true, guessed: at, rejected: Vec::new(), factories: HashMap::new() });
+                continue;
+            }
             let at = match hello.start_boxes.iter().find(|b| b.ally_team == *ally_team).filter(|_| self.boxes_honoured) {
                 // Seats sharing a box are spread along its longer side.
                 Some(b) => {

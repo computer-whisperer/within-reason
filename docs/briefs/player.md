@@ -715,8 +715,16 @@ land spots. The land economy of an islet is a few spots: the rest is the sea's, 
 (`armbeaver`; the plant's second or third unit with a list of the under-water spots) and construction ships from a
 shipyard at a water mark, as the Cape Violet section says; the army that matters crosses water (hovercraft from a
 hover platform, amphibious tanks, ships), and a ball of ground tanks on an islet defends the islet and nothing else.
-His start on such a map is unknown until a scout plane or a ship has looked: the lobby's boxes may not be honoured
-(the picture says when they are not), and the hands' guess is then the mirror of our start.
+His start on such a map is unknown until a scout plane or a ship has looked, unless the lobby fixed the positions
+(the picture's start_boxes_note says so, and then his start is exact); the lobby's boxes may not be honoured (the
+note says when they are not), and the hands' guess is then the mirror of our start. Under the water (the engine's
+own rules): a submarine, a ship's hull below the line, or a commander walking the seabed is seen by sonar only, never
+by eyes or radar, and is hit by torpedoes and depth charges only; a shooter under the surface hits only what is in
+the water, and a commander under water shoots nothing. So each seat on a coast builds a naval radar/sonar tower
+(`armfrad`/`corfrad`, the commander can) at its shore by 3:00 and a torpedo launcher (`armtl`/`cortl`) where his ships
+and subs come, the picture's odds say when a party is under the water and the group has nothing that reaches it, his
+torpedo boats and subs cannot hurt a group on land, and our own commander can cross water unseen along the seabed
+when it must move, shooting nothing on the way.
 
 **This map, Great Divide V1 (the games with people from 2026-09-27: two seats of ours under you, the north box A1-H2
 against the south A7-H8, realtime; the opponent a person who, we are told, will fortify the pass and try to win from
