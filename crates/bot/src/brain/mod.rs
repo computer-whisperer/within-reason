@@ -390,6 +390,9 @@ impl Brain {
         if tick.frame % planner::PLAN_CONTEXT_FRAMES < TICK_FRAMES_GUESS {
             self.publish_plan_context(tick, &kit);
         }
+        // The spots this seat's builders are on their way to, for the team board (13.1: the board shared no claims,
+        // `spot_claims` was never filled, and 57 of 114 abandoned extractor orders were spots another seat took).
+        self.spot_claims = self.pianist.as_ref().map(|p| p.tasks.values().chain(p.queued.values()).filter_map(|t| if let pianist::Task::Build { spot: Some(i), .. } = t { Some((*i, tick.frame)) } else { None }).collect()).unwrap_or_default();
         self.exchange_with_team(tick);
         self.journal_intent();
         self.report(tick, &kit);

@@ -130,7 +130,7 @@ packet becomes a station list the hands advance, and a group at a station with a
 reach has the raid as its base world; add (e), ruled firm by the user ("definitely something to fix"): a group's
 walk states include the spots the packet names for it, however far, as the tool's description already promises.
 
-## 7. The packet and the standing orders (A3)
+## 7. The packet and the standing orders (A3) — 7.2-7.5 APPLIED 2026-09-27 evening (H-HANDS-STANDING, H-HANDS-NAMED-PLACES, H-HANDS-BUILDER-WORDS); 7.3 is moot with side-wide party names
 
 7.1 ~~STRUCK~~ (2026-09-27, the user: empower Jev and the player; no rigid rule where another change resolves the cause): the decompression is deleted (13b); there is no vocabulary to grow.
 7.2 **A refusal never takes the actor's other rules with it**: the tool applies what it can and names what it
@@ -155,7 +155,7 @@ nearest free spots beside the named ones, each with its walking time, nearest fi
 brief writes spot names in full and says why. The sentence classification ("a spot named in a sentence about
 scouts is not a build candidate") is ~~STRUCK~~ (2026-09-27, the user: empower Jev and the player; no rigid rule where another change resolves the cause): it needs a reader of prose that 13b deletes.
 
-## 8. The commander (A4)
+## 8. The commander (A4) — 8.2, 8.3 APPLIED 2026-09-27 evening (H-HANDS-BUILDER-WORDS); 8.1 waits for a D-gun command in the shim (a protocol change)
 
 8.1 **The D-gun as a state**: "D-gun party_N (within 262, energy 1,415)" with the energy said.
 8.2 **Time-to-contact in every builder threat line and on every step-away place** ("Brutes at 87 against its 38: contact in 9 s if it walks
@@ -164,7 +164,7 @@ foot: fight here with the D-gun" or the turret's cover when none is reached in t
 8.3 **Anti-air and evasion**: a builder under bombers is offered "under the flak at X" or "spread from the plant",
 and the plants' lines say the flak and Nettles they could make when bombers are first seen.
 
-## 9. The map and the sea (I7, A5)
+## 9. The map and the sea (I7, A5) — 9.1's words and 9.3 APPLIED 2026-09-27 evening (H-PLAYER-MAP-WATER, H-HANDS-LISTS); the terrain classes wait with 9b.1; 9.2 held
 
 9.1 **Water as it is**: the terrain read classes ground as walkable, wadeable (within each class's depth) and
 deep; the map tool and the party lines say "coming through the E4 ford (wadeable)" and "in deep water at spot_20:
@@ -236,7 +236,7 @@ slots at -18 to -24 along its edge jammed the group).
 10.3 "The quarry is dead" only when it is. 10.4 `shelling` is never a place to walk to in any state's words.
 10.5 A hunt that failed says so when the same units are offered again.
 
-## 11. The crossing orders (X1)
+## 11. The crossing orders (X1) — 11.3 APPLIED 2026-09-27 evening (H-HANDS-LISTS); 11.2 is carried by the hands' `done` lines, which say every play with its source (rule, plan, list)
 
 11.1 **An order landing carries its time**, and the picture says "the player's order of 16:07 is in force, 12 s old" on the group's line (four reversals in 45 s, game 9). The landing grace (a pick never reverses an order that landed in the last N seconds) is ~~STRUCK~~ (2026-09-27, the user: empower Jev and the player; no rigid rule where another change resolves the cause): the reversals came from wrong odds on a strung-out group (1.1) and from the player not knowing what happened (11.2).
 11.2 **The player is told what the hands did with each order in the next report** ("your advance of 16:07 stood
@@ -252,7 +252,7 @@ unfinished corsolar", bot.log f1800). Change: a step naming the type of the acto
 keeps that order (the list takes it over, as a started one is); a step with a site adopts a nanoframe of its type
 within the placement radius.
 
-## 12. Defaults that stack (X2, X5)
+## 12. Defaults that stack (X2, X5) — 12.1-12.4 APPLIED 2026-09-27 evening (H-HANDS-GROUP-STATES, H-HANDS-GROUP-BODY, H-HANDS-BUILDER-WORDS, H-HANDS-STANDING)
 
 12.1 One default per actor per second: `raiders_party whole_group` and `attack_raiders yes` make one state the
 default, not one per threat slot. 12.2 `hold_line yes` reads the front's odds (1.1). 12.3 A builder on a list is
@@ -305,7 +305,7 @@ builders as its only commander.
 given to the nearest live seat before the game's own ending rules take them (the report says what a dead seat
 still holds and offers the transfer).
 
-## 13. The expansion (`docs/studies/2026-09-27-jev-posing/expansion.md`)
+## 13. The expansion (`docs/studies/2026-09-27-jev-posing/expansion.md`) — 13.1-13.3, 13.6 APPLIED 2026-09-27 evening (H-TEAM-BOARD, H-HANDS-NAMED-PLACES, H-HANDS-LISTS, H-HANDS-BUILDER-WORDS); 13.4 and 13.5 are the brief's
 
 The study's verdict: going home is small (2 % of constructor time); the thrash is between seats (114 extractor
 orders abandoned, 57 at spots another seat took), the seats have too few constructors, and the side stops at the

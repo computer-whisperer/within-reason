@@ -757,6 +757,20 @@ impl Brain {
             .or_else(|| self.pianist.as_ref().and_then(|p| p.packet.clone()))
             .unwrap_or_else(|| crate::texts::read(&crate::texts::HANDS_DEFAULT));
         let tool_words = pianist.standing.tool_words();
+        // Spots in runs ("spot_10, 5, 6") and spots the lists name are places too (13.2, 7.4).
+        let mut extra_spots: Vec<usize> = super::diet::spot_runs(&instructions);
+        for steps in pianist.scripts.values() {
+            for step in steps {
+                if let Some(i) = step.split_whitespace().nth(1).and_then(|p| p.strip_prefix("spot_")).and_then(|n| n.parse::<usize>().ok()) {
+                    extra_spots.push(i);
+                }
+            }
+        }
+        for i in extra_spots {
+            if i < spots.len() && !places.iter().any(|p| p.spot == Some(i)) && self.reachable_by_any_class(spots[i]) {
+                places.push(Place { name: format!("spot_{i}"), at: spots[i], spot: Some(i) });
+            }
+        }
         for token in instructions.split(|c: char| !c.is_ascii_alphanumeric() && c != '_').chain(tool_words.iter().map(String::as_str)) {
             if let Some(i) = token.strip_prefix("spot_").and_then(|n| n.parse::<usize>().ok()) {
                 // An islet spot nobody can walk to is no place to send anyone (pianist-player-7: the ball stood 151 s
@@ -790,7 +804,11 @@ impl Brain {
         for place in &places {
             let mut entry = json!({ "grid": self.world.grid(place.at) });
             let walk = self.walk_from_home(place.at);
-            entry["from_home"] = json!(format!("{} ({walk:.0} on foot)", distance_words(walk)));
+            let straight = place.at.dist2d(self.home);
+            // An alcove: far longer on foot than as the crow flies (9b.4; Cape Violet's spot_18: 6,838 on foot
+            // against 1,605, chosen as a gather point twice).
+            let alcove = if straight > 300.0 && walk > 1.8 * straight { format!("; an alcove or a pocket: {walk:.0} on foot against {straight:.0} straight, it opens from the far side") } else { String::new() };
+            entry["from_home"] = json!(format!("{} ({walk:.0} on foot){alcove}", distance_words(walk)));
             let what = match place.spot {
                 Some(i) => {
                     let spot = spots[i];
@@ -814,8 +832,10 @@ impl Brain {
                         format!("our extractor{}{beside_words}", if u.being_built { " (being built)" } else { "" })
                     } else {
                         let taker = pianist.tasks.iter().find_map(|(id, t)| matches!(t, Task::Build { spot: Some(s), .. } if *s == i).then_some(*id));
+                        let ally_taker = self.team_mates.spot_claims.contains(&i);
                         match (taker, self.spot_seen(i)) {
                             (Some(id), _) => format!("free metal spot, {} is on its way to take it{beside_words}", self.actor_name(id)),
+                            (None, _) if ally_taker => format!("free metal spot, a builder of another seat of ours is on its way to take it{beside_words}"),
                             (None, None) => format!("metal spot never in our sight: nobody knows what stands here{beside_words}"),
                             (None, Some(seen)) if frame - seen > LONG_UNSEEN => format!("free metal spot when last in sight, {} ago{beside_words}", clock(frame - seen)),
                             (None, Some(_)) => format!("free metal spot{beside_words}"),
@@ -1054,7 +1074,19 @@ impl Brain {
                 entry["from_home"] = json!(format!("{} ({from_home:.0})", distance_words(from_home)));
                 if let Some(party) = parties.iter().filter(|p| p.at.dist2d(unit.pos) < NEAR).min_by(|a, b| a.at.dist2d(unit.pos).total_cmp(&b.at.dist2d(unit.pos))) {
                     let alone: Vec<&OwnUnit> = vec![unit];
-                    let mut line = format!("{} ({}) {:.0} away: against this unit alone, {}", party.name, party.composition, party.at.dist2d(unit.pos), self.odds_words(&alone, party, &snapshot.enemies));
+                    // Time to contact (8.2): the party's fastest against this builder's own pace, if it stays or
+                    // walks away (game 7: the commander helped the plant while the block walked in from 671 to 250).
+                    let their_fastest = party.ids.iter().filter_map(|id| snapshot.enemies.iter().find(|e| e.id == *id).and_then(|e| e.def)).filter_map(|d| self.world.def(d)).map(|d| d.speed).fold(0.0, f32::max);
+                    let mine = self.world.def(unit.def).map_or(0.0, |d| d.speed);
+                    let d = party.at.dist2d(unit.pos);
+                    let contact = if their_fastest > 0.0 {
+                        let stays = d / their_fastest;
+                        let away = if their_fastest > mine { format!("{:.0} s if it walks away", d / (their_fastest - mine)) } else { "never if it walks away (it is faster)".to_string() };
+                        format!("; contact in {stays:.0} s if it stays, {away}")
+                    } else {
+                        String::new()
+                    };
+                    let mut line = format!("{} ({}) {:.0} away: against this unit alone, {}{contact}", party.name, party.composition, d, self.odds_words(&alone, party, &snapshot.enemies));
                     // The commander's odds are its fighting worth (H-HANDS-COMMANDER-WORTH); the reach words say
                     // why: what must walk into its D-gun and what shoots it from beyond.
                     if unit.def == kit.commander {
@@ -1128,6 +1160,15 @@ impl Brain {
                     } else {
                         format!("the player allows only: {}", words.join(", "))
                     });
+                }
+                // Anti-air the plant can make, once his air has been seen (8.3; Cape Violet: the first Liche came
+                // unannounced and no flak stood).
+                if self.first_seen.iter().any(|d| self.world.domain_of(*d) == crate::world::Domain::Air) {
+                    let can_build: &[UnitDefId] = self.world.def(unit.def).map(|d| d.build_options.as_slice()).unwrap_or(&[]);
+                    let aa: Vec<String> = can_build.iter().filter(|d| glossary::entry(self.name(**d)).is_some_and(|e| e.class.contains("anti-air") || e.class.contains("fighter"))).map(|d| self.short_words(*d)).collect();
+                    if !aa.is_empty() {
+                        entry["anti_air"] = json!(format!("his aircraft have been seen; what this plant makes against them: {}", aa.join(", ")));
+                    }
                 }
                 let named = self.allowed_units(&name).and_then(|a| a.group);
                 let rally = pianist.rally.get(&unit.id).map(|g| format!("group_{g}"));

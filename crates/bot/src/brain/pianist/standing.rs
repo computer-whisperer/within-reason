@@ -118,9 +118,10 @@ impl Standing {
         Some(rules.iter().map(|(k, v)| format!("{k} {v}")).collect::<Vec<_>>().join("; "))
     }
 
-    /// Sets tool orders after checking each against the vocabulary and the picture's places and parties.
-    pub(crate) fn set_tool(&mut self, actor: &str, rules: &Value, places: &[String], parties: &[String]) -> Result<usize, String> {
-        let checked = Self::check_tool(actor, rules, places, parties)?;
+    /// Sets tool orders after checking each against the vocabulary and the picture's places and parties: the
+    /// number set, and the rules refused with why (a refusal never takes the actor's other rules with it: 7.2).
+    pub(crate) fn set_tool(&mut self, actor: &str, rules: &Value, places: &[String], parties: &[String]) -> Result<(usize, Vec<String>), String> {
+        let (checked, refused) = Self::check_tool(actor, rules, places, parties)?;
         self.tool_seen.remove(actor);
         let under_a_class = actor.starts_with("constructor_") || actor.starts_with("commander_t");
         let entry = self.tool.entry(actor.to_string()).or_default();
@@ -136,20 +137,23 @@ impl Standing {
         if entry.is_empty() {
             self.tool.remove(actor);
         }
-        Ok(n)
+        Ok((n, refused))
     }
 
     /// One actor's tool rules checked against the vocabulary and the picture's places and parties: the rules to set
-    /// (an empty value clears one), or why the actor's orders are refused whole. The `standing` tool runs this in
-    /// the player's turn so a refusal is answered at once (worlds-2, 17:07: "a set with an unknown place is refused
-    /// whole, silently in my view"); the hands run it again at their next second.
-    pub(crate) fn check_tool(actor: &str, rules: &Value, places: &[String], parties: &[String]) -> Result<Rules, String> {
+    /// (an empty value clears one) and the rules refused with why. Only a set that is not an object is refused
+    /// whole. The `standing` tool runs this in the player's turn so a refusal is answered at once (worlds-2, 17:07:
+    /// "a set with an unknown place is refused whole, silently in my view"); the hands run it again at their next
+    /// second. Until 2026-09-27 evening one unknown place refused the actor's whole set (game 6 16:42).
+    pub(crate) fn check_tool(actor: &str, rules: &Value, places: &[String], parties: &[String]) -> Result<(Rules, Vec<String>), String> {
         let Some(map) = rules.as_object() else { return Err(format!("{actor}: rules must be an object of rule to value")) };
         let vocabulary = if is_group(actor) { GROUP_RULES } else { BUILDER_RULES };
         let mut checked = Rules::new();
+        let mut refused: Vec<String> = Vec::new();
         for (rule, value) in map {
             let Some((_, allowed)) = vocabulary.iter().find(|(r, _)| r == rule) else {
-                return Err(format!("{actor}: {rule} is not a rule ({})", vocabulary.iter().map(|(r, _)| *r).collect::<Vec<_>>().join(", ")));
+                refused.push(format!("{actor}: {rule} is not a rule ({})", vocabulary.iter().map(|(r, _)| *r).collect::<Vec<_>>().join(", ")));
+                continue;
             };
             // null, false and "no" clear the rule (standing-1: the player wrote `retreat_when_enemy_near: "no"`
             // three turns running and was refused each time).
@@ -165,26 +169,32 @@ impl Standing {
                 Value::String(s) => s.trim().to_string(),
                 Value::Bool(true) => "yes".to_string(),
                 Value::Number(n) => n.to_string(),
-                other => return Err(format!("{actor}: {rule} takes a string, not {other}")),
+                other => {
+                    refused.push(format!("{actor}: {rule} takes a string, not {other}"));
+                    continue;
+                }
             };
-            if !valid_value(rule, &value, allowed) {
-                return Err(format!("{actor}: {rule} takes {}, not {value}", allowed.join(" | ")));
+            let problem = if !valid_value(rule, &value, allowed) {
+                Some(format!("{actor}: {rule} takes {}, not {value}", allowed.join(" | ")))
+            } else if allowed.contains(&"place") && !places.iter().any(|p| *p == value) {
+                Some(format!("{actor}: {value} is not a place in the picture"))
+            } else if (rule == "never" || rule == "station") && let Some(bad) = value.split_whitespace().find(|p| !places.iter().any(|q| q == p)) {
+                Some(format!("{actor}: {bad} is not a place in the picture"))
+            } else if allowed.contains(&"party") && !parties.iter().any(|p| *p == value) {
+                Some(format!("{actor}: {value} is not a party in the picture"))
+            } else if allowed.contains(&"group") && (!value.starts_with("group_") || value == actor) {
+                Some(format!("{actor}: {rule} takes another group's name (group_X), not {value}"))
+            } else {
+                None
+            };
+            match problem {
+                Some(why) => refused.push(why),
+                None => {
+                    checked.insert(rule.clone(), value);
+                }
             }
-            if allowed.contains(&"place") && !places.iter().any(|p| *p == value) {
-                return Err(format!("{actor}: {value} is not a place in the picture"));
-            }
-            if (rule == "never" || rule == "station") && let Some(bad) = value.split_whitespace().find(|p| !places.iter().any(|q| q == p)) {
-                return Err(format!("{actor}: {bad} is not a place in the picture"));
-            }
-            if allowed.contains(&"party") && !parties.iter().any(|p| *p == value) {
-                return Err(format!("{actor}: {value} is not a party in the picture"));
-            }
-            if allowed.contains(&"group") && (!value.starts_with("group_") || value == actor) {
-                return Err(format!("{actor}: {rule} takes another group's name (group_X), not {value}"));
-            }
-            checked.insert(rule.clone(), value);
         }
-        Ok(checked)
+        Ok((checked, refused))
     }
 
     pub(crate) fn clear_tool(&mut self, actors: Option<&[String]>) -> usize {
@@ -243,9 +253,11 @@ mod tests {
     #[test]
     fn a_tool_check_names_the_unknown_place_and_passes_the_rest() {
         let places = ["spot_61", "spot_9"].map(String::from);
-        let refused = Standing::check_tool("group_C", &json!({ "never": "shelling spot_9", "station": "spot_61" }), &places, &[]).unwrap_err();
-        assert_eq!(refused, "group_C: shelling is not a place in the picture");
-        let checked = Standing::check_tool("group_C", &json!({ "never": "spot_9", "station": "spot_61", "raiders_lone": null }), &places, &[]).unwrap();
+        let (checked, refused) = Standing::check_tool("group_C", &json!({ "never": "shelling spot_9", "station": "spot_61" }), &places, &[]).unwrap();
+        assert_eq!(refused, vec!["group_C: shelling is not a place in the picture".to_string()]);
+        assert_eq!(checked, Rules::from([("station".to_string(), "spot_61".to_string())]), "the rest of the set stands");
+        let (checked, refused) = Standing::check_tool("group_C", &json!({ "never": "spot_9", "station": "spot_61", "raiders_lone": null }), &places, &[]).unwrap();
+        assert!(refused.is_empty());
         assert_eq!(checked, Rules::from([("never".to_string(), "spot_9".to_string()), ("station".to_string(), "spot_61".to_string()), ("raiders_lone".to_string(), String::new())]));
     }
 
@@ -253,11 +265,15 @@ mod tests {
     fn tool_orders_are_checked_and_a_class_rule_reaches_its_actors() {
         let mut s = Standing::default();
         let places = ["spot_61", "spot_9"].map(String::from);
-        assert!(s.set_tool("group_B", &json!({ "station": "spot_7" }), &places, &[]).is_err());
-        assert!(s.set_tool("group_B", &json!({ "raiders_lone": "detachment:3" }), &places, &[]).is_err());
-        assert!(s.set_tool("group_B", &json!({ "bogus": "yes" }), &places, &[]).is_err());
-        assert!(s.set_tool("constructor_4", &json!({ "job": "follow_list" }), &places, &[]).is_err(), "follow_list left the vocabulary");
-        assert_eq!(s.set_tool("group_B", &json!({ "station": "spot_9", "raiders_lone": "detachment:2" }), &places, &[]), Ok(2));
+        assert_eq!(s.set_tool("group_B", &json!({ "station": "spot_7" }), &places, &[]).unwrap().0, 0);
+        assert_eq!(s.set_tool("group_B", &json!({ "raiders_lone": "detachment:3" }), &places, &[]).unwrap().1.len(), 1);
+        assert_eq!(s.set_tool("group_B", &json!({ "bogus": "yes" }), &places, &[]).unwrap().0, 0);
+        assert_eq!(s.set_tool("constructor_4", &json!({ "job": "follow_list" }), &places, &[]).unwrap().0, 0, "follow_list left the vocabulary");
+        assert!(s.set_tool("group_B", &json!(["not", "an", "object"]), &places, &[]).is_err());
+        assert_eq!(s.set_tool("group_B", &json!({ "station": "spot_9", "raiders_lone": "detachment:2" }), &places, &[]).unwrap(), (2, Vec::new()));
+        assert_eq!(s.set_tool("group_B", &json!({ "station": "spot_9 spot_61", "never": "bogus_place" }), &places, &[]).unwrap().0, 1, "a station list is set; the bad never is refused alone");
+        assert_eq!(s.rules_for("group_B")["station"], "spot_9 spot_61");
+        s.set_tool("group_B", &json!({ "station": "spot_9" }), &places, &[]).unwrap();
         let r = s.rules_for("group_B");
         assert_eq!(r["station"], "spot_9");
         assert_eq!(s.words("group_B").unwrap(), "raiders_lone detachment:2; station spot_9");

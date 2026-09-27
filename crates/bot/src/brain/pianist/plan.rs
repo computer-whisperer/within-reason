@@ -38,8 +38,10 @@ const RECLAIM_WITHIN: f32 = 1800.0;
 const REPAIR_WITHIN: f32 = 1200.0;
 /// A builder farther than this from home has the way home.
 const AWAY: f32 = 400.0;
-/// Free spots the instructions name offered to a builder at most, nearest first.
+/// Free spots the instructions name offered to a builder at most, nearest first; and the nearest free spots always
+/// offered beside them.
 const NAMED_SPOTS: usize = 8;
+const NEAREST_SPOTS: usize = 2;
 /// With `WITHIN_REASON_TOLD=1`, a builder's state is asked a second noul (is this the step the instructions name
 /// next) and opens when it reaches this. Off by default: the told noul sits at 0.4-0.7 for the instructions' next
 /// spot when the builder is idle and near, 0.2-0.35 when it is busy or far, 0.03-0.07 for a forbidden spot, under
@@ -284,8 +286,8 @@ impl Brain {
             .places
             .iter()
             .filter_map(|p| p.spot.map(|i| (i, p.at)))
-            .filter(|(i, _)| !taken.contains(i) && !pianist.refused_spots.get(i).is_some_and(|until| *until > frame))
-            .filter(|(_, at)| !own.iter().any(|u| kit.is_extractor(u.def) && u.pos.dist2d(*at) < self.spot_occupied_radius()))
+            .filter(|(i, _)| !taken.contains(i) && !self.team_mates.spot_claims.contains(i) && !pianist.refused_spots.get(i).is_some_and(|until| *until > frame))
+            .filter(|(_, at)| !own.iter().any(|u| kit.is_extractor(u.def) && u.pos.dist2d(*at) < self.spot_occupied_radius()) && !self.allied_extractor_on(*at))
             .filter(|(i, at)| !self.enemy_buildings.values().any(|(def, pos, _)| pos.dist2d(*at) < self.spot_occupied_radius() && self.world.def(*def).is_some_and(|d| d.extracts_metal > 0.0)) && self.spot_open_to_us(*i, *at, frame))
             .filter(|(_, at)| self.reachable_for(self.walker_of(unit.def), *at))
             .map(|(i, _)| (i, self.seconds_to_spot(unit.def, i, unit.pos)))
@@ -403,6 +405,7 @@ impl Brain {
         let mut slots = self.threat_slots(tick, picture);
         let mut under_fire: Vec<UnitId> = tick.events.iter().filter_map(|e| if let bot_protocol::Event::UnitDamaged { unit, .. } = e { Some(*unit) } else { None }).collect();
         under_fire.extend(pianist.hits.keys().copied());
+        let draws = self.production_draws(own, pianist);
         let stalling = picture.state["economy"]["energy"].as_str().is_some_and(|e| e.contains("STALLING"));
         let lone_scout = |p: &Party| p.ids.len() == 1 && enemies.iter().any(|e| e.id == p.ids[0] && e.def.is_some_and(|d| super::glossary::entry(self.name(d)).is_some_and(|g| g.class.contains("scout"))));
         // The player's marks: the places that are neither spots nor the map's own (home, the passages, `shelling`).
@@ -434,7 +437,20 @@ impl Brain {
             // the pass and idle (onepass-player-5 and the models-medium bundle on 92d59cc: builders idle 22-30%,
             // the metal store full 15-45% of the game).
             let listed = pianist.scripts.get(&name).is_some_and(|s| !s.is_empty()) || (pianist.list_steps.contains_key(&unit.id) && task.is_some());
+            // A builder on a list is offered a solar while energy drains (12.3): builders on lists were never
+            // offered one through 120 s of STALLING (game 7 8:00-10:00). Offered, not a default: the list is the
+            // player's order.
+            let draining_now = tick.snapshot.energy.storage > 0.0 && tick.snapshot.energy.current < 0.25 * tick.snapshot.energy.storage && tick.snapshot.energy.usage > tick.snapshot.energy.income;
             if !status.threatened && listed {
+                if draining_now
+                    && self.world.def(unit.def).is_some_and(|d| d.build_options.contains(&kit.solar))
+                    && !own.iter().any(|u| u.being_built && u.def == kit.solar)
+                    && pianist.standing.rules_for(&name).get("solar").is_none_or(|v| v != "never")
+                {
+                    let keep = State { id: format!("{name}.keep"), actor: name.clone(), response: Response::Keep, words: format!("{name} goes on with its list ({})", self.task_course(task, unit, &picture.places, frame, own)), metal: 0.0, dim: "threat", default: false, current: false, pair_only: false };
+                    let solar = State { id: format!("{name}.{}", self.name(kit.solar)), actor: name.clone(), response: Response::Building(kit.solar), words: format!("{name} builds a {} beside itself now, its list waiting: the energy store is under a quarter and draining ({:.0} of {:.0}, {:.0} in against {:.0} out)", self.unit_words(kit.solar), tick.snapshot.energy.current, tick.snapshot.energy.storage, tick.snapshot.energy.income, tick.snapshot.energy.usage), metal: 0.0, dim: "energy", default: false, current: false, pair_only: false };
+                    slots.push(Slot { name: name.clone(), kind: Kind::Builder(unit.id), states: vec![keep, solar], queue_ahead: status.queue_ahead, idle: false });
+                }
                 continue;
             }
             // A started build under the queue mark, unthreatened: nothing but the build (H-HANDS-STARTED).
@@ -496,7 +512,25 @@ impl Brain {
                 if let Some(pl) = away {
                     let current = matches!(task, Some(Task::Walk { place, .. }) if *place == pl.name);
                     let default = rules.get("retreat_when_enemy_near").is_some_and(|v| v == "yes");
-                    push(&format!("step_away_{}", pl.name), Response::WalkTo(pl.name.clone()), format!("{name} steps away from {} ({}, {:.0} away, which it does not outweigh) to {} ({} away), out of its reach{}", party.name, party.composition, party.at.dist2d(unit.pos), pl.name, distance_words(unit.pos.dist2d(pl.at)), self.leaves_words(task, &status.started)), default, current, false);
+                    // Whether it gets there before contact (8.2), said, never pruned.
+                    let their_fastest = party.ids.iter().filter_map(|id| enemies.iter().find(|e| e.id == *id).and_then(|e| e.def)).filter_map(|d| self.world.def(d)).map(|d| d.speed).fold(0.0, f32::max);
+                    let mine = self.world.def(unit.def).map_or(0.0, |d| d.speed);
+                    let timing = if their_fastest > mine && mine > 0.0 {
+                        let contact = party.at.dist2d(unit.pos) / (their_fastest - mine);
+                        let arrive = unit.pos.dist2d(pl.at) / mine;
+                        if arrive < contact { format!("; it arrives in {arrive:.0} s, before contact ({contact:.0} s)") } else { format!("; it arrives in {arrive:.0} s, after contact ({contact:.0} s): it is caught on the way unless something covers it") }
+                    } else {
+                        String::new()
+                    };
+                    push(&format!("step_away_{}", pl.name), Response::WalkTo(pl.name.clone()), format!("{name} steps away from {} ({}, {:.0} away, which it does not outweigh) to {} ({} away), out of its reach{timing}{}", party.name, party.composition, party.at.dist2d(unit.pos), pl.name, distance_words(unit.pos.dist2d(pl.at)), self.leaves_words(task, &status.started)), default, current, false);
+                }
+            }
+            // Under aircraft: the nearest place with anti-air of ours beside it (8.3), a walk offered, never pruned.
+            if under_fire.contains(&unit.id) && self.first_seen.iter().any(|d| self.world.domain_of(*d) == crate::world::Domain::Air) {
+                let aa: Vec<Vec3> = own.iter().filter(|u| !u.being_built && super::glossary::entry(self.name(u.def)).is_some_and(|e| e.class.contains("anti-air"))).map(|u| u.pos).collect();
+                if let Some(pl) = picture.places.iter().filter(|pl| !never.contains(&pl.name) && aa.iter().any(|a| a.dist2d(pl.at) < AT_STRUCTURE) && pl.at.dist2d(unit.pos) > 100.0).min_by(|a, b| a.at.dist2d(unit.pos).total_cmp(&b.at.dist2d(unit.pos))) {
+                    let current = matches!(task, Some(Task::Walk { place, .. }) if *place == pl.name);
+                    push(&format!("under_flak_{}", pl.name), Response::WalkTo(pl.name.clone()), format!("{name} walks under our anti-air at {} ({} away) while his aircraft are about{}", pl.name, distance_words(unit.pos.dist2d(pl.at)), self.leaves_words(task, &status.started)), false, current, false);
                 }
             }
             // A builder on the player's list is in the pass only while threatened, and then with the ways out of
@@ -536,16 +570,22 @@ impl Brain {
                 // were the middle spots the packet names as never, and the strip it names as the job was cut off).
                 // The nearest spot, and a safe one, only when the instructions name none.
                 let instructions = picture.state["instructions"].as_str().unwrap_or_default();
-                let mut offered: Vec<(usize, f32)> = spots.iter().copied().filter(|(i, _)| super::diet::names(instructions, &format!("spot_{i}"))).take(NAMED_SPOTS).collect();
-                if offered.is_empty()
-                    && let Some(first) = spots.first().copied()
-                {
-                    offered.push(first);
-                    if enemies_near(first.0).is_some()
-                        && let Some(safe) = spots.iter().copied().find(|(i, _)| enemies_near(*i).is_none())
-                    {
-                        offered.push(safe);
+                // The nearest free spots always stand beside the named ones, nearest first, and the default is the
+                // nearest (7.5): a slot that held only spot_2 and spot_19 at 107-115 s of walking sent the first
+                // constructor across the map (game 10).
+                let mut offered: Vec<(usize, f32)> = spots.iter().copied().take(NEAREST_SPOTS).collect();
+                for named in spots.iter().copied().filter(|(i, _)| super::diet::names_spot(instructions, *i)).take(NAMED_SPOTS) {
+                    if !offered.iter().any(|(i, _)| *i == named.0) {
+                        offered.push(named);
                     }
+                }
+                offered.sort_by(|a, b| a.1.total_cmp(&b.1));
+                if let Some(first) = offered.first().copied()
+                    && enemies_near(first.0).is_some()
+                    && let Some(safe) = spots.iter().copied().find(|(i, _)| enemies_near(*i).is_none())
+                    && !offered.iter().any(|(i, _)| *i == safe.0)
+                {
+                    offered.push(safe);
                 }
                 let (standing, coming) = self.count_of(kit.extractor, own, pianist);
                 let default_spot = offered.iter().find(|(i, _)| enemies_near(*i).is_none()).map(|(i, _)| *i);
@@ -687,7 +727,16 @@ impl Brain {
                 let current = matches!(task, Some(Task::Assist { lab: l, .. }) if *l == lab.id);
                 let default = free && rules.get("job").is_some_and(|j| j == "help_factory");
                 let lab_name = self.actor_name(lab.id);
-                push(&format!("help_{lab_name}"), Response::Assist(lab.id), format!("{then}{name} helps {lab_name} build: adds its build power to whatever it makes (metal must be coming in faster than the factory spends it){leaves}"), default, current, false);
+                // What the help is worth (13.6): a pick at 0.32 over an extractor was the default answer of an idle
+                // constructor while the plant was starved or the store full.
+                let m = &tick.snapshot.metal;
+                let worth = match draws.iter().find(|(who, _, _)| *who == lab_name).map(|(_, _, metal)| *metal) {
+                    Some(draw) if m.current < 100.0 && m.income < draw => format!("the plant is starved (it would spend {draw:.1} a second against {:.1} coming in and {:.0} stored): helping adds nothing until metal comes", m.income, m.current),
+                    Some(draw) if m.current >= m.storage - 1.0 => format!("the store is full: helping spends it ({draw:.1} a second more)"),
+                    Some(draw) => format!("the plant draws {draw:.1} a second against {:.1} coming in and {:.0} stored: helping makes its unit sooner while the store lasts", m.income, m.current),
+                    None => "adds its build power to whatever it makes (metal must be coming in faster than the factory spends it)".to_string(),
+                };
+                push(&format!("help_{lab_name}"), Response::Assist(lab.id), format!("{then}{name} helps {lab_name} build: {worth}{leaves}"), default, current, false);
             }
             for (other, def, share) in building.iter().filter(|(o, ..)| o.id != unit.id && o.pos.dist2d(unit.pos) < HELP_REACH) {
                 let current = matches!(task, Some(Task::Assist { lab: l, .. }) if *l == other.id);

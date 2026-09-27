@@ -70,13 +70,49 @@ impl Brain {
         self.pianist = Some(pianist);
         for (id, response, step, queue) in steps {
             let name = self.actor_name(id);
-            if let Some(did) = self.execute_builder(tick, kit, picture, id, &response, queue, Some(&step), commands) {
-                let pianist = self.pianist.as_mut().expect("pianist mode");
-                pianist.done.push(format!("{} {name}: {did} (from its list)", clock(frame)));
-                pianist.played.push(json!({ "actor": name, "kind": "builder", "played": step, "did": did, "source": "list" }));
-                self.journal.note_from("list", frame, "builder", json!({ "actor": name, "step": step }), json!({ "did": did }));
+            match self.execute_builder(tick, kit, picture, id, &response, queue, Some(&step), commands) {
+                Some(did) => {
+                    let pianist = self.pianist.as_mut().expect("pianist mode");
+                    pianist.done.push(format!("{} {name}: {did} (from its list)", clock(frame)));
+                    pianist.played.push(json!({ "actor": name, "kind": "builder", "played": step, "did": did, "source": "list" }));
+                    self.journal.note_from("list", frame, "builder", json!({ "actor": name, "step": step }), json!({ "did": did }));
+                }
+                // Never lost silently (13.3: 39 of 139 lists lost extractor steps): the same build under way is
+                // the step done; anything else is said.
+                None => {
+                    let pianist = self.pianist.as_mut().expect("pianist mode");
+                    let same = matches!(pianist.tasks.get(&id), Some(Task::Build { .. }));
+                    let text = if same { format!("the step '{step}' of its list is the build already under way: taken as done") } else { format!("the step '{step}' of its list could not be played this second and was dropped") };
+                    pianist.done.push(format!("{} {name}: {text}", clock(frame)));
+                    pianist.note(frame, format!("{name}: {text}"));
+                }
             }
         }
+    }
+
+    /// Why a spot is not free to this builder, for the list's skip line (9.3).
+    fn why_not_free(&self, i: usize, unit: &OwnUnit, pianist: &Pianist, own: &[OwnUnit], kit: &Kit) -> String {
+        let Some(spot) = self.world.hello.metal_spots.get(i).copied() else { return format!("spot_{i} is not a spot") };
+        let radius = self.spot_occupied_radius();
+        if own.iter().any(|u| kit.is_extractor(u.def) && u.pos.dist2d(spot) < radius) {
+            return format!("spot_{i} holds our extractor already");
+        }
+        if self.enemy_buildings.values().any(|(def, pos, _)| pos.dist2d(spot) < radius && self.world.def(*def).is_some_and(|d| d.extracts_metal > 0.0)) {
+            return format!("spot_{i} holds his extractor: it is taken by killing that, not by a list");
+        }
+        if let Some((id, _)) = pianist.tasks.iter().chain(pianist.queued.iter()).find(|(id, t)| **id != unit.id && matches!(t, Task::Build { spot: Some(s), .. } if *s == i)) {
+            return format!("spot_{i} is being taken by {}", self.actor_name(*id));
+        }
+        if self.team_mates.spot_claims.contains(&i) {
+            return format!("spot_{i} is being taken by a builder of another seat of ours");
+        }
+        if !self.reachable_for(self.walker_of(unit.def), spot) {
+            return format!("spot_{i} is off this builder's ground (water or a cliff): an amphibious or hover constructor or a construction ship takes it");
+        }
+        if pianist.refused_spots.get(&i).is_some() {
+            return format!("the engine refused a build at spot_{i} lately (wrecks or a unit on it)");
+        }
+        format!("spot_{i} is not free")
     }
 
     /// The next step of a builder's list as a state, its words kept. Steps that cannot be done are dropped and
@@ -102,7 +138,9 @@ impl Brain {
                     match &place {
                         Some(p) => match p.strip_prefix("spot_").and_then(|n| n.parse::<usize>().ok()) {
                             Some(i) if spots.iter().any(|(j, _)| *j == i) => Ok(Response::Extractor(i)),
-                            Some(_) => Err(format!("{p} is not free")),
+                            // Why it is not free (9.3): "not free" covered a spot nothing of ours reached, one the
+                            // enemy held, one under wrecks and one another builder was taking (Cape Violet, 333 skips).
+                            Some(i) => Err(self.why_not_free(i, unit, pianist, own, kit)),
                             None => Err(format!("{p} is not a spot")),
                         },
                         None => match spots.first() {

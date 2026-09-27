@@ -76,6 +76,48 @@ pub(super) fn names(text: &str, place: &str) -> bool {
     false
 }
 
+/// Whether the text names spot `i`, written in full ("spot_34") or in a run after one ("spot_34, 29, 35": the
+/// brief's own shorthand, which game 10's packet used and nothing read: the seats' spots matched nothing and the
+/// first constructors went to the scouting sentence's far spots).
+pub(super) fn names_spot(text: &str, i: usize) -> bool {
+    if names(text, &format!("spot_{i}")) {
+        return true;
+    }
+    spot_runs(text).contains(&i)
+}
+
+/// The spots named in runs: after a "spot_N", every ", M" that follows with only digits, commas and spaces between.
+pub(super) fn spot_runs(text: &str) -> Vec<usize> {
+    let mut out = Vec::new();
+    for (start, _) in text.match_indices("spot_") {
+        let rest = &text[start + 5..];
+        let first: String = rest.chars().take_while(char::is_ascii_digit).collect();
+        if first.is_empty() {
+            continue;
+        }
+        let mut tail = &rest[first.len()..];
+        loop {
+            let trimmed = tail.trim_start_matches([',', ' ']);
+            if trimmed.len() == tail.len() || !trimmed.starts_with(|c: char| c.is_ascii_digit()) {
+                break;
+            }
+            let digits: String = trimmed.chars().take_while(char::is_ascii_digit).collect();
+            let after = &trimmed[digits.len()..];
+            // "spot_10, 5, 6" names three and "spot_34, 29 and spot_35" names 29; "spot_10, 5 constructors" ends
+            // at the word, the 5 being a count.
+            let next_word: String = after.trim_start().chars().take_while(|c| c.is_ascii_alphabetic()).collect();
+            if !next_word.is_empty() && !matches!(next_word.as_str(), "and" | "then" | "or") {
+                break;
+            }
+            if let Ok(n) = digits.parse::<usize>() {
+                out.push(n);
+            }
+            tail = after;
+        }
+    }
+    out
+}
+
 impl Brain {
     /// The request's state: the picture's, with the places block cut to the places in play and the entries of
     /// actors not asked cut to a line, as the diet says. `asked` is each asked actor and where it stands.
@@ -156,6 +198,14 @@ mod tests {
         assert_eq!(parse(Some("FULL")), HandsEffort::Full);
         assert_eq!(parse(None), HandsEffort::Normal);
         assert_eq!(parse(Some("bogus")), HandsEffort::Normal);
+    }
+
+    #[test]
+    fn a_run_after_a_spot_names_every_number_in_it() {
+        assert_eq!(spot_runs("North seat's spots: spot_10, 5, 6, 12. Middle: spot_34, 29 and spot_35."), vec![5, 6, 12, 29]);
+        assert!(names_spot("spot_10, 5, 6", 6));
+        assert!(!names_spot("spot_10, 5 constructors", 5));
+        assert!(names_spot("go to spot_45", 45));
     }
 
     #[test]

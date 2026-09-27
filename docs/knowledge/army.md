@@ -581,3 +581,13 @@ in a three-seat game a death all three saw counted three times: every ledger row
 `enemy_destroyed` events carry the unit id, so the true figure can be re-derived.
 **Status.** fixed 2026-09-27 evening by [[H-PLAYER-TRADE-ONCE]]; the ledger rows' correction is a separate
 cleanup (changes doc 3.1).
+
+### K-team-the-seats-thrashed-over-spots
+**Claim.** In the games with three seats of ours, constructors abandoned 114 extractor orders, 57 of them for spots
+another seat took first, because no seat knew the others' claims: the team board posted `spot_claims` from a map
+nothing filled and `free_spots` counted the seat's own orders only; going home was small (2 % of constructor time)
+and the seats had too few constructors, stopping at the midline.
+**Evidence.** `docs/studies/2026-09-27-jev-posing/expansion.md` (verified in code: `Brain.spot_claims` never filled,
+`team_mates` never read).
+**Status.** fixed 2026-09-27 evening: the claims are filled from the build tasks and read by `free_spots` and the
+picture (H-TEAM-BOARD amended); the constructor count and the midline are the brief's (changes doc 13.4, 13.5).

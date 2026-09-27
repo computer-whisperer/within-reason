@@ -423,9 +423,14 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                     let mut said: Vec<String> = Vec::new();
                     for (actor, rules) in map {
                         match crate::brain::pianist::standing::Standing::check_tool(actor, rules, &places, &parties) {
-                            Ok(checked) => {
-                                said.push(format!("{actor}: {} rules set when this turn's orders land", checked.len()));
-                                accepted.insert(actor.clone(), rules.clone());
+                            Ok((checked, refused)) => {
+                                if !checked.is_empty() {
+                                    said.push(format!("{actor}: {} rules set when this turn's orders land", checked.len()));
+                                    accepted.insert(actor.clone(), rules.clone());
+                                }
+                                for why in refused {
+                                    said.push(format!("refused: {why}"));
+                                }
                             }
                             Err(e) => said.push(format!("refused: {e}")),
                         }

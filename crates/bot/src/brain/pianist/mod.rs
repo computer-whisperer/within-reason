@@ -863,7 +863,8 @@ impl Brain {
                     let mut said = Vec::new();
                     for (actor, rules) in &map {
                         said.push(match pianist.standing.set_tool(actor, rules, &places, &parties) {
-                            Ok(n) => format!("{actor}: {n} rules set"),
+                            Ok((n, refused)) if refused.is_empty() => format!("{actor}: {n} rules set"),
+                            Ok((n, refused)) => format!("{actor}: {n} rules set; refused: {}", refused.join("; ")),
                             Err(e) => format!("refused: {e}"),
                         });
                     }

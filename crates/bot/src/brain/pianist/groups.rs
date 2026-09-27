@@ -143,6 +143,9 @@ pub(crate) struct Group {
     pub stations_done: Vec<String>,
     /// Hunts by this group that ended without a kill: the party and when, said when the hunt is offered again.
     pub hunts_failed: Vec<(String, i32, String)>,
+    /// The station this group's current walk was sent to by its `station` rule, if that is what the walk is: a
+    /// change of station ends it (12.4).
+    pub station_walk: Option<String>,
 }
 
 /// A group's shape on the ground this second (H-HANDS-GROUP-BODY): the core (members not still joining), its front
@@ -183,7 +186,7 @@ pub(crate) const STRUNG_OUT: f32 = 600.0;
 
 impl Group {
     pub(crate) fn new(name: String, domain: Domain, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None, hunt: None, declined: Vec::new(), joining: HashSet::new(), gathering: false, shelling: false, stations_done: Vec::new(), hunts_failed: Vec::new() }
+        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None, hunt: None, declined: Vec::new(), joining: HashSet::new(), gathering: false, shelling: false, stations_done: Vec::new(), hunts_failed: Vec::new(), station_walk: None }
     }
 
     /// The group's body toward `toward` (the goal of a walk, the nearest enemy, or nothing: then the front is the
@@ -434,6 +437,18 @@ impl Brain {
                     }
                 } else {
                     group.stations_done.clear();
+                }
+            }
+            // A station change ends a walk to the old station (12.4), so the new station's default can play.
+            if let Some(old) = group.station_walk.clone()
+                && matches!(&group.task, GroupTask::Move { place, .. } if *place == old)
+            {
+                let now = pianist.standing.rules_for(&format!("group_{}", group.name)).get("station").cloned().unwrap_or_default();
+                if !now.split_whitespace().any(|s| s == old) {
+                    commands.extend(group.hold_orders(&units));
+                    group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
+                    group.station_walk = None;
+                    stalled.push(format!("group_{}'s walk to {old} ended: it is no longer its station", group.name));
                 }
             }
             // A gather ends when the tail is up: the group is a body again and holds where it gathered.

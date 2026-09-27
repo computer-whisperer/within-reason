@@ -279,19 +279,21 @@ impl Brain {
         let under = terrain.heights.iter().filter(|h| **h < 0).count();
         let share = if terrain.heights.is_empty() { 0.0 } else { under as f32 / terrain.heights.len() as f32 * 100.0 };
         let lab_builds: Vec<UnitDefId> = self.kit.and_then(|k| self.world.def(k.lab)).map(|d| d.build_options.clone()).unwrap_or_default();
-        let side = self.world.hello.teams.iter().find(|t| t.team == self.world.hello.team).map(|t| t.side.to_lowercase()).unwrap_or_default();
+        // By the commander's roster, not the lobby side's prefix: a seat on side Random ("ran") listed none (Cape
+        // Violet, the water note's `amphibious_of_ours: []`).
+        let roster: Vec<UnitDefId> = self.kit.map(|k| self.world.reachable_from(k.commander)).unwrap_or_default();
         let crosses = |d: &bot_protocol::UnitDefInfo| d.move_class.is_some_and(|m| matches!(m.kind, bot_protocol::MoveKind::Hover) || m.depth >= 1000.0) && d.speed > 0.0;
         let ours: Vec<String> = self
             .world
             .hello
             .unit_defs
             .iter()
-            .filter(|d| crosses(d) && d.name.starts_with(&side[..3.min(side.len())]) && (d.weapon_count > 0 || d.build_speed > 0.0))
+            .filter(|d| crosses(d) && roster.contains(&d.id) && (d.weapon_count > 0 || d.build_speed > 0.0))
             .map(|d| format!("{} ({}{})", d.name, if d.weapon_count > 0 { "armed" } else { "a builder" }, if lab_builds.contains(&d.id) { ", from the bot lab" } else { "" }))
             .collect();
         json!({
             "share": format!("{share:.0}% of the map is under water (the sketch's ~)"),
-            "note": "Our bots and vehicles stop at the shore; a spot or a place in the water cannot be reached and an advance toward it stalls. The commander is amphibious: it walks on the sea floor, and so does the enemy's, which can retreat into the sea when its base is gone and build on the shore from the water. When it does, nothing on your hands' menu today reaches it (only the bot lab and the advanced bot lab can be built; the plants that make amphibians are not offered), and the referee ends the game once its economy is gone.",
+            "note": "Our bots and vehicles stop at the shore, except through fords their class wades (tanks to a depth of about 20, bots likewise: a ford is a crossing, deep water is not); a spot or a place in deep water is reached only by what is listed below, and an advance of tanks toward it stalls at the shore. The commander is amphibious: it walks on the sea floor, and so does the enemy's, which can retreat into the sea when its base is gone and build on the shore from the water; its construction ships take the under-water spots and its ships shell the shore from beyond our reach.",
             "amphibious_of_ours": ours,
         })
     }
@@ -306,7 +308,12 @@ impl Brain {
             .enumerate()
             .map(|(n, s)| {
                 let walk = self.reachable_on_foot(*s).then(|| self.walk_from_home(*s) as i32);
-                json!({ "n": n, "grid": self.world.grid(*s), "x": s.x as i32, "z": s.z as i32, "walk_from_home": walk })
+                let straight = s.dist2d(self.home) as i32;
+                let mut entry = json!({ "n": n, "grid": self.world.grid(*s), "x": s.x as i32, "z": s.z as i32, "walk_from_home": walk, "straight_from_home": straight });
+                if let Some(w) = walk && straight > 300 && w as f32 > 1.8 * straight as f32 {
+                    entry["alcove"] = json!(format!("an alcove or a pocket: {w} on foot against {straight} straight; it opens from the far side, so a group sent here walks round"));
+                }
+                entry
             })
             .collect();
         json!({
@@ -319,7 +326,7 @@ impl Brain {
             })).collect::<Vec<_>>(),
             "start_boxes_note": "the lobby's start boxes: each team's commander was placed somewhere inside its box at 0:00. The engine tells nobody where; where the opponent stands now is known only from what our units see",
             "metal_spots": spots,
-            "metal_spots_note": "n is the spot's number for the `expansion` tool; walk_from_home is the walking distance for our bots; null means they cannot walk there",
+            "metal_spots_note": "n is the spot's number for the `expansion` tool; walk_from_home is the walking distance for our bots (null: they cannot walk there) beside straight_from_home; a spot marked `alcove` is far longer on foot than straight, and a group sent at it by the straight line huddles short of it",
             "terrain": self.terrain_sketch(),
             "water": self.water_description(),
             "passages": self.passages().iter().map(|p| json!({ "at": self.place(p.at), "width": p.width as i32, "share_of_the_way_from_our_start": (p.along * 100.0) as i32 })).collect::<Vec<_>>(),

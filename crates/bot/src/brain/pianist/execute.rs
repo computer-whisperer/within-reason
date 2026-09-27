@@ -71,6 +71,11 @@ impl Brain {
             if source == "plan" {
                 pianist.picked.insert(actor.clone(), frame);
             }
+            // A station walk is marked so a station change ends it (12.4; Cape Violet 8:05: the gate walk was sent
+            // again after the station had changed).
+            if let Some(group) = actor.strip_prefix("group_").and_then(|g| pianist.groups.iter_mut().find(|x| x.name == g)) {
+                group.station_walk = id.contains(".station_").then(|| id.rsplit(".station_").next().unwrap_or_default().to_string());
+            }
             pianist.done.push(format!("{} {actor}: {did} ({source})", clock(frame)));
             pianist.played.push(json!({ "actor": actor, "kind": kind_of(actor), "played": id, "did": did, "source": source }));
             self.journal.note_from(source, frame, kind_of(actor), json!({ "actor": actor, "state": id }), json!({ "did": did }));
@@ -131,8 +136,10 @@ impl Brain {
         let previous_since = self.pianist.as_ref().and_then(|p| p.tasks.get(&id)).map(Task::since);
         // H-HANDS-STARTED: the kind of building already started, ordered again, is the same build going on, not a
         // second frame. Helping the lab it already helps is the same task going on, not a new guard order.
+        // ... and a list step naming the type of the actor's current order, started or not, keeps that order
+        // (11.3: a list's `corsolar` step re-issued a pick's solar 15 frames after it, and the first frame decayed).
         let (started_def, helping) = match self.pianist.as_ref().and_then(|p| p.tasks.get(&id)) {
-            Some(Task::Build { def, started: true, .. }) if !queue => (Some(*def), None),
+            Some(Task::Build { def, started, .. }) if !queue && (*started || list_step.is_some()) => (Some(*def), None),
             Some(Task::Assist { lab, .. }) if !queue => (None, Some(*lab)),
             _ => (None, None),
         };
