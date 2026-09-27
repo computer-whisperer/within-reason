@@ -5,8 +5,15 @@
 §4.1-4.5 built 2026-09-28 (H-HANDS-ROUTE-FACTS): the station list deleted, the route as prose with every place of
 the group's paragraph on its menu, `reached` and `met` kept and said, the arrival and the first sighting asking at
 once, the stop's cost in world 1, a group on a leg asked on events and at the re-ask only, the leg's words carrying
-what stands ahead, the sweep toward his box, the brief and the report's landing figure. §4.6's live check is the next
-arena game. §5 is the user's open idea, with one proposal, not a decision.
+what stands ahead, the sweep toward his box, the brief and the report's landing figure. §4.6's live check ran 2026-09-28
+(player-10-routes, lost 29:06; `docs/experiments.md`): the base was found at 3:45 by three rovers (never, in
+player-8 and -9); the one prose route (group_C's eight stops of 16:09) reached no stop, because the group's body
+counted the plant stream 5k behind it, its `route_seen` listed the whole game's arrivals and none of the route's, and
+its `met` stayed on a sighting from before the route; a group on a leg was quiet 59% of its seconds, the `places`
+event (a mark, a new shelling place) opening 22% of them; Jev answered `max_tokens_exceeded` on 30 calls at 19:33-26:31
+with 22 actors in the picture. Open from it: `reached` and `met` begin again when the group's paragraph changes; the
+`places` event does not open a walker; the body is the members that have joined, the stream is said apart; the call's
+size. §5 is the user's open idea, with one proposal, not a decision.
 
 ## 1. The user's three changes
 
