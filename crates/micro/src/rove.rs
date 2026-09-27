@@ -3,11 +3,13 @@
 //! 1.5 s, 60 for a building), stepping to the least threatened ground nearby when it is or is about to be; it kills
 //! what it finds unguarded within 1,000 (a lone constructor first, then an extractor, a radar, anything else unarmed
 //! it kills within 45 s), when nothing armed covers the target and the way there is clear; and otherwise it drives to
-//! look at his perimeter (the spots in his start box and his base: the ones never seen or not seen for a minute
-//! first, then the rest of them, longest unseen first) and, only when none of his can be reached, any spot never
-//! seen, then the spot longest out of sight; stopping short of it by six tenths of its sight, on a way that passes
-//! no reach. It bothers the known enemy base rather than touring the map (player-10-routes; the user, 2026-09-28:
-//! "the rovers tend to explore the whole map rather than bother the perimeter of the known enemy base"). Being seen costs it nothing: only what can hit it counts. No host order
+//! look at the place we know least (the spots in his start box and his base never seen or not seen for a minute,
+//! first; then any spot never seen; then the spot longest out of sight), stopping short of it by six tenths of its
+//! sight, on a way that passes no reach. His places go stale in a minute, not three, so it comes back to his
+//! perimeter that often (the user, 2026-09-28: "the rovers tend to explore the whole map rather than bother the
+//! perimeter of the known enemy base"); his places seen this minute never rank ahead of the map's unseen ones: ranked
+//! there, a rover whose way into his base passed a turret's reach walked back and forth between the two edge spots it
+//! could reach, each the oldest seen in turn (the first human game of 2026-09-28). Being seen costs it nothing: only what can hit it counts. No host order
 //! reaches it (`lib.rs` `tick` drops them), so the hands' states cannot pull it off.
 //!
 //! player-9-posing: three scouts sent at his base at G1-G2 never arrived: one pulled home by the hands at the first
@@ -347,12 +349,10 @@ impl Lane {
                 let tier = |g: &RoveGoal| -> u8 {
                     if g.theirs && g.seen.is_none_or(|f| frame - f > PERIMETER_STALE) {
                         0
-                    } else if g.theirs {
-                        1
                     } else if g.seen.is_none() {
-                        2
+                        1
                     } else {
-                        3
+                        2
                     }
                 };
                 let best = goals
@@ -366,9 +366,8 @@ impl Lane {
                         // By the minute, nearest first; a place seen this last minute after every other, the oldest of
                         // those first (by the minute alone it tied with the place just looked at, the nearest).
                         let age = g.seen.map_or(0, |f| frame - f);
-                        let recent = tier(g) == 3 && age < STALE_STEP;
-                        // His places seen this last minute: the longest ago first, so the perimeter is walked round.
-                        let staleness = match tier(g) { 1 => -age, 3 if recent => -age, 3 => -(age / STALE_STEP), _ => 0 };
+                        let recent = tier(g) == 2 && age < STALE_STEP;
+                        let staleness = if tier(g) != 2 { 0 } else if recent { -age } else { -(age / STALE_STEP) };
                         ((taken.contains(g.name.as_str()), tier(g), recent, staleness), unit.pos.dist2d(look), g, look)
                     })
                     .min_by(|a, b| a.0.cmp(&b.0).then(a.1.total_cmp(&b.1)));
@@ -577,6 +576,27 @@ mod tests {
         let out = lane.tick(&host, &tick(30, vec![rover(10, 2300.0, 2000.0)], Vec::new()), &mut Vec::new(), false);
         let to = moves_of(&out.commands, 10);
         assert!(to[0].x > 2300.0 + 100.0, "outward: {to:?}");
+    }
+
+    #[test]
+    fn his_places_seen_this_minute_rank_after_the_maps_unseen_ones() {
+        // His two edge spots were looked at 10 s and 20 s ago; a third of his is in a tower's reach; one of ours in
+        // the middle was never seen. The rover goes to the unseen one, not back to his older edge spot (the first
+        // human game of 2026-09-28: rovers walking between two edge spots).
+        let mut host = Host::new(vec![
+            goal("spot_1", 2500.0, 300.0, Some(1000 - 300), true),
+            goal("spot_2", 4400.0, 300.0, Some(1000 - 600), true),
+            goal("spot_3", 3500.0, 1200.0, None, true),
+            goal("spot_4", 2000.0, 2500.0, None, false),
+        ]);
+        host.buildings.push((UnitId(60), TOWER, at(3500.0, 1200.0)));
+        let mut lane = roving_lane(&[10]);
+        lane.tick(&host, &tick(1000, vec![rover(10, 3500.0, 300.0)], Vec::new()), &mut Vec::new(), false);
+        assert_eq!(lane.roving(UnitId(10)).unwrap().goal.unwrap().0, "spot_4");
+        // Once his edge spot is a minute stale it comes first again.
+        let mut lane = roving_lane(&[10]);
+        lane.tick(&host, &tick(1000 + PERIMETER_STALE, vec![rover(10, 3500.0, 300.0)], Vec::new()), &mut Vec::new(), false);
+        assert_eq!(lane.roving(UnitId(10)).unwrap().goal.unwrap().0, "spot_2");
     }
 
     #[test]

@@ -623,4 +623,4 @@ were back in our half by 4:55 (`run/minutes.py`).
 **Evidence.** `crates/micro/src/rove.rs` (the tiers before 2026-09-28); player-10-routes 3:00-5:00.
 **Would be wrong if.** A rover on the perimeter died to the base's turrets faster than it found things, or the map's
 other spots carried what mattered (his expansion away from his base).
-**Used by.** [[H-MICRO-ROVE]] (amended 2026-09-28: the perimeter first, a minute's staleness).
+**Used by.** [[H-MICRO-ROVE]] (amended 2026-09-28: a minute's staleness for his places; ranking his recently seen places ahead of the map's unseen ones was tried the same evening and reverted: with the base's own spots behind turret reach it left two edge spots, and the rovers walked between them in the first human game).
