@@ -152,6 +152,32 @@ default, not one per threat slot. 12.2 `hold_line yes` reads the front's odds (1
 offered the solar default when the store drains (game 7 8:00-10:00). 12.4 A station change ends a walk to the old
 station (Cape Violet 8:05). 12.5 A hunt's leash is measured from where the hunt began, not the station.
 
+## 12b. Transfers between seats (the user, 2026-09-27: "units and resources can be transferred between seats when humans are playing; not sure if we can do that, but we should check")
+
+Checked, and we can. The AI interface has both commands: `COMMAND_SEND_RESOURCES` (`SSendResourcesCommand`:
+resource, amount, receiving team; capped to the sender's store; "LuaRules might not allow resource transfers, AI's
+must verify the deduction") and `COMMAND_SEND_UNITS` (`SSendUnitsCommand`: unit ids, receiving team; returns how
+many went; "AI's should check each unit ... via UnitTaken() and UnitGiven(), since LuaRules might block part of
+it") in `AISCommands.h`, vendored in `crates/recoil-ai-sys` and bound by bindgen, so the shim only needs the two
+handlers. The game allows both between allies: `game_no_share_to_enemy.lua` allows any transfer between allied
+teams (and anything from an AI team), `game_prevent_excessive_share.lua` caps a resource transfer to what the
+receiver can hold, `unit_cancel_orders_on_share.lua` clears a given unit's orders; the lobby options are
+`tax_resource_sharing_amount` (default 0) and `disable_unit_sharing` (default false). What it answers: a seat with
+1,224 banked while the advanced plant's seat sat at 0 (games 7, 9: "the player has no way to move metal between our
+seats"), three armies that cannot be one group because they belong to three seats (I2), and the seat whose
+commander died keeping its plants and constructors nobody can order well.
+12b.1 **Protocol**: `Command::SendResource { metal, energy, to_team }` and `Command::SendUnits { units, to_team }`;
+the shim handles them and reports `ret_isExecuted`/`ret_sentUnits`; the `UnitGiven`/`UnitTaken` events reach the
+bot so a seat's own-unit set is right after a transfer (re-run `run/install_to_bar.sh` after: a shim change).
+12b.2 **Tools**: `transfer {"metal": 800, "from": "t2", "to": "t1"}` and `transfer {"units": ["group_A_t2"], "to":
+"t1"}` (a group, a constructor, a plant by actor name); the receiving seat's hands take the units into a group of
+its own and say so; the report's seats line shows each seat's store so the player sees where the metal sits.
+12b.3 **What it makes possible without a rule**: one army under one seat (the groups given to the seat nearest the
+front), the advanced plant's seat fed by the others, a dead seat's plants and constructors given to a live one,
+and a person's own habit (Irishstud14, game 5: "orange and red both need nanos", said of seats by colour).
+12b.4 **Caps**: the receiver's storage caps metal (the gadget), so a transfer says what arrived; a tax option, when
+set, is read from the mod options and said in the report.
+
 ## 13. The expansion (the expansion study, pending)
 
 (Filled from `docs/studies/2026-09-27-jev-posing/expansion.md` when it lands: the constructors' thrash, the
