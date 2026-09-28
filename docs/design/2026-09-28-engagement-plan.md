@@ -8,6 +8,12 @@ examples it may choose a decent order of operations." Stage 2 of the micro answe
 **Status (2026-09-28).** Design written; nothing built. Branch `engagement-plan`, worktree `../bar_bots-plan`.
 Step 1 built: the position finder and the battlefield with the cover-priced odds (`crates/bot/src/brain/pianist/engagement.rs`;
 the synthetic E3 scene's test: the Centurions' stand-off exists, the turrets' do not).
+Step 2 built: the candidates and their words (`engagement.rs` `candidates`), `bot --plan-replay` (`pianist/replay.rs`, the
+brain rebuilt from the record's header and terrain, `recorder.rs` `hello_from_record`) and its wrapper
+`run/plan_replay.py --dump`. Found on the way: at the named clocks the positions were mostly not yet in sight (E3's
+Centurions first seen at 9:15, the turrets at 9:16/9:19); player-14's group_C was holding at its station when E3 came
+in sight, so the gate takes the hold an advance arrived in as an attack; player-17's body was fourteen Rovers and one
+Blitz, which the scout check by every armed member missed (now: scouts more than half the armed metal).
 
 ## Why
 

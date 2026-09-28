@@ -21,6 +21,8 @@ use super::Brain;
 const HUNT_PARTY_MAX: usize = 2 * DETACH_PARTY_MAX;
 /// Groups offered against one party at most, nearest first: the question count stays bounded on a map of many groups.
 const GROUPS_PER_PARTY: usize = 3;
+/// A body whose armed metal is more than this share scouts is a scout body.
+const SCOUT_SHARE: f32 = 0.5;
 /// The speed an unidentified contact is taken to have when a hunt is sized against it (a Pawn's).
 const UNIDENTIFIED_SPEED: f32 = 87.0;
 
@@ -117,7 +119,7 @@ impl Brain {
                 // Lazarus) with the whole group" to thirteen Rovers at his base and the pick took it (player-16
                 // 4:06, five lost for nothing); "attack party_2 (2 armpw) with the whole group" three times at
                 // player-17 4:53-5:28 (eleven lost for nothing under a light turret, the pick at 0.36).
-                let scouts_only = units.iter().all(|u| self.world.def(u.def).is_none_or(|d| d.weapon_count == 0 || super::glossary::entry(&d.name).is_some_and(|g| g.class.contains("scout"))));
+                let scouts_only = self.scouts_only(&units);
                 let party_armed = enemies.iter().any(|e| party.ids.contains(&e.id) && e.def.and_then(|d| self.world.def(d)).is_some_and(|d| d.weapon_count > 0));
                 let scouts_vs_armed = scouts_only && party_armed;
                 let hitting_us = self.killing_words(&party.ids, Some(&own_ids)).is_some();
@@ -319,6 +321,17 @@ impl Brain {
             out.push(Slot { name: party.name.clone(), kind: Kind::Threat(party.clone(), place), states, queue_ahead: false, idle: false, stop_cost: None, on_route: false, quiet: false });
         }
         out
+    }
+
+    /// Whether scouts (the glossary's class: Rovers, Tumbleweeds, Ticks) are more than half of these units' armed
+    /// metal (or nothing is armed): a body that fights nothing armed (H-HANDS-SCOUTS-FIGHT-NOTHING-ARMED). By every
+    /// armed member, the check missed player-17's body, fourteen Rovers and one Blitz at 4:53 and seven and the Blitz
+    /// at 5:03 (the engagement plan's replay).
+    pub(super) fn scouts_only(&self, units: &[&OwnUnit]) -> bool {
+        let armed: Vec<&bot_protocol::UnitDefInfo> = units.iter().filter_map(|u| self.world.def(u.def)).filter(|d| d.weapon_count > 0).collect();
+        let scouts: f32 = armed.iter().filter(|d| super::glossary::entry(&d.name).is_some_and(|g| g.class.contains("scout"))).map(|d| d.metal_cost).sum();
+        let all: f32 = armed.iter().map(|d| d.metal_cost).sum();
+        all <= 0.0 || scouts > SCOUT_SHARE * all
     }
 
     /// The fewest of the fast units (nearest first) that outweigh the party by the combat table, or None when

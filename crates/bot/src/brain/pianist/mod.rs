@@ -15,6 +15,7 @@ mod execute;
 mod lists;
 pub(super) mod picture;
 mod remove;
+pub mod replay;
 mod transfer;
 mod diet;
 mod plan;

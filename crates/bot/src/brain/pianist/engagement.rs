@@ -17,6 +17,7 @@ use serde_json::{Value, json};
 use super::super::combat::Force;
 use super::super::routes::Walker;
 use super::super::{Brain, FRAMES_PER_SECOND};
+use super::GroupTask;
 use super::picture::{Party, Place};
 
 /// A body whose front comes this close to an element of a position plans the engagement.
@@ -428,6 +429,255 @@ impl Brain {
             "elements": elements,
         })
     }
+}
+
+/// How long a phase runs at most before the next.
+pub(crate) const PHASE_UNTIL: i32 = 60 * FRAMES_PER_SECOND;
+/// The top plan is taken when Jev puts more than this on it (and more than on the decline).
+pub(crate) const PLAN_BAR: f64 = 0.4;
+/// The question's id in the request.
+pub(crate) const QUESTION: &str = "engagement.plan";
+
+/// What a phase does.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum PhaseKind {
+    /// A whole-body attack on its targets, from its point when it has one (a Fight to the point, then Attack by id).
+    Attack,
+    /// Walk to the point and hold until most of the body is there.
+    Gather,
+    /// The artillery shells the targets from the point, the rest standing with it.
+    Shell,
+    /// Fall back to the point without fighting.
+    Decline,
+}
+
+/// One phase of a plan.
+#[derive(Clone, Debug)]
+pub(crate) struct Phase {
+    pub kind: PhaseKind,
+    /// The elements it is fought against, by name.
+    pub elements: Vec<String>,
+    /// Their units: id and where last seen, nearest first.
+    pub targets: Vec<(UnitId, Vec3)>,
+    /// Where the body goes first: the stand-off, the gathering point, the shelling point, the hold it falls back to.
+    pub point: Option<Vec3>,
+    /// Its targets stand under a static's reach: the next phase begins by stepping out of it.
+    pub covered: bool,
+}
+
+/// A candidate plan: its phases and its words.
+#[derive(Clone, Debug)]
+pub(crate) struct Candidate {
+    pub key: &'static str,
+    pub phases: Vec<Phase>,
+    pub words: String,
+}
+
+/// The examples block (the design's §5): what the studies found in positions like this, one line each.
+pub(crate) const EXAMPLES: &str = "Examples from our studies, each a position fought again in the engine: (1) E3, fourteen Blitzes (reach 180) against three Centurions (reach 325) at a rock's corner with two light turrets (reach 430) 400 east of them: the Centurions first from the corner outside the turrets' reach, then out of the reach, gather outside the 430, the turrets last, took the position ahead 24 times of 24; the turrets first 5 of 24; attack-move on everything 21 of 24; the orders the bot gave (one Centurion, then home after 5 s) 0 of 24. (2) F3, four Rocketeers (reach 475) under a light turret out-range Blitzes (180) and Stouts (350): the stand-off must be beyond 475 or the fight is declined; walking in under them cost the body. (3) A ball of Stouts against a few Fatboys (area damage) loses worse the tighter and bigger it is: against area damage, spread and few. (4) The pros' Rovers kill unguarded things only and never fight Pawns.";
+
+impl Brain {
+    /// The candidate plans for a battlefield, at most six: the screen first from its stand-off then the statics then
+    /// the rest; the statics first; the nearest first then by distance; a gather before the screen-first plan when
+    /// the body is strung out; hold and shell when the body's artillery out-reaches the statics and one is in sight;
+    /// the decline (fall back to `back`).
+    pub(crate) fn candidates(&self, bf: &Battlefield, places: &[Place], back: (Vec3, String)) -> Vec<Candidate> {
+        let pos = &bf.position;
+        let mut by_distance: Vec<usize> = (0..pos.elements.len()).collect();
+        by_distance.sort_by(|a, b| bf.facts[*a].distance.total_cmp(&bf.facts[*b].distance));
+        let statics: Vec<usize> = by_distance.iter().copied().filter(|i| pos.elements[*i].fixed).collect();
+        let attack = |indices: &[usize], point: Option<Vec3>| -> Phase {
+            let mut targets: Vec<(UnitId, Vec3)> = indices.iter().flat_map(|i| pos.elements[*i].members.iter().map(|m| (m.id, m.at))).collect();
+            let from = point.unwrap_or(bf.ours.front);
+            targets.sort_by(|a, b| a.1.dist2d(from).total_cmp(&b.1.dist2d(from)));
+            Phase { kind: PhaseKind::Attack, elements: indices.iter().map(|i| pos.elements[*i].name.clone()).collect(), targets, point, covered: indices.iter().any(|i| !bf.facts[*i].cover.is_empty()) }
+        };
+        let mut out: Vec<Candidate> = Vec::new();
+        // The screen first: the mobile elements our reach reaches from outside every other reach, screens first.
+        let mut first: Vec<usize> = by_distance.iter().copied().filter(|i| !pos.elements[*i].fixed && bf.facts[*i].stand_off.is_some()).collect();
+        first.sort_by_key(|i| !bf.facts[*i].screen);
+        let screen_first: Option<Vec<Phase>> = (!first.is_empty() && !statics.is_empty()).then(|| {
+            let mut phases: Vec<Phase> = first.iter().map(|i| attack(&[*i], bf.facts[*i].stand_off.map(|(p, _)| p))).collect();
+            phases.push(attack(&statics, None));
+            phases.extend(by_distance.iter().copied().filter(|i| !pos.elements[*i].fixed && !first.contains(i)).map(|i| attack(&[i], None)));
+            phases
+        });
+        if let Some(phases) = &screen_first {
+            out.push(self.candidate("screen_first", "The screen first from outside the statics' reach, then the statics, then the rest", phases.clone(), bf, places));
+        }
+        if !statics.is_empty() {
+            let mut phases = vec![attack(&statics, None)];
+            phases.extend(by_distance.iter().copied().filter(|i| !pos.elements[*i].fixed).map(|i| attack(&[i], None)));
+            out.push(self.candidate("statics_first", "The statics first, walking in on them; then the mobile elements by distance", phases, bf, places));
+        }
+        out.push(self.candidate("nearest_first", "The nearest element first, then each by distance, walking in on each", by_distance.iter().map(|i| attack(&[*i], None)).collect(), bf, places));
+        if !bf.ours.gathered()
+            && let Some(phases) = &screen_first
+            && let Some(point) = phases[0].point
+        {
+            let gather = Brain::gathering_point(pos, point, bf.ours.centre);
+            let mut all = vec![Phase { kind: PhaseKind::Gather, elements: Vec::new(), targets: Vec::new(), point: Some(gather), covered: false }];
+            all.extend(phases.iter().cloned());
+            out.push(self.candidate("gather_first", "Gather first outside every reach, then the screen first, the statics, the rest", all, bf, places));
+        }
+        // Hold and shell: the artillery out-reaches every static and a static is in sight (the spotter).
+        let static_reach = statics.iter().map(|i| pos.elements[*i].reach).fold(0.0, f32::max);
+        if !bf.ours.artillery.is_empty() && bf.ours.long_reach.0 > static_reach && statics.iter().any(|i| pos.elements[*i].in_sight) {
+            let nearest = statics[0];
+            if let Some((point, _)) = self.stand_off(pos, nearest, bf.ours.long_reach.0, bf.ours.front, bf.ours.walker).filter(|(p, _)| pos.reaching(*p, None).is_empty()) {
+                let mut phase = attack(&statics, Some(point));
+                phase.kind = PhaseKind::Shell;
+                out.push(self.candidate("shell", "Hold outside every reach and shell the statics with the artillery", vec![phase], bf, places));
+            }
+        }
+        let decline = Phase { kind: PhaseKind::Decline, elements: Vec::new(), targets: Vec::new(), point: Some(back.0), covered: false };
+        let mut words = self.candidate("decline", "Decline", vec![decline], bf, places);
+        words.words = format!("Decline: fall back to {} ({:.0} from our front) and leave the position; against all of it at once with the cover, {} ({:.1})", back.1, back.0.dist2d(bf.ours.front), verdict(bf.odds_whole), bf.odds_whole);
+        out.push(words);
+        out
+    }
+
+    /// Where a body gathers before its first phase: the first point no element reaches on the way from the first
+    /// stand-off `near` back past the body's centre (to 1,500 beyond the stand-off); the centre when every such
+    /// point is in reach.
+    fn gathering_point(pos: &Position, near: Vec3, centre: Vec3) -> Vec3 {
+        let (dx, dz) = (centre.x - near.x, centre.z - near.z);
+        let len = dx.hypot(dz);
+        if len < 1.0 {
+            return centre;
+        }
+        (1..=30).map(|k| 50.0 * k as f32).map(|d| Vec3 { x: near.x + dx / len * d, y: 0.0, z: near.z + dz / len * d }).find(|p| pos.reaching(*p, None).is_empty()).unwrap_or(centre)
+    }
+
+    /// A candidate's words: each phase with its geometry (where it is fought from, what reaches us there), the odds
+    /// of the phase with the cover still standing priced in, the walk, and the metal at risk.
+    fn candidate(&self, key: &'static str, title: &str, phases: Vec<Phase>, bf: &Battlefield, places: &[Place]) -> Candidate {
+        let pos = &bf.position;
+        let index = |name: &str| pos.elements.iter().position(|e| e.name == name);
+        let mut dead: Vec<usize> = Vec::new();
+        let mut from = bf.ours.front;
+        let mut parts: Vec<String> = Vec::new();
+        for (n, phase) in phases.iter().enumerate() {
+            let targets: Vec<usize> = phase.elements.iter().filter_map(|e| index(e)).collect();
+            let names = targets.iter().map(|i| format!("{} ({})", pos.elements[*i].name, pos.elements[*i].composition)).collect::<Vec<_>>().join(" and ");
+            let alive = |i: &usize| !dead.contains(i) && !targets.contains(i);
+            let text = match phase.kind {
+                PhaseKind::Gather => {
+                    let p = phase.point.unwrap_or(from);
+                    let outside = if pos.reaching(p, None).is_empty() { "outside every reach" } else { "inside the reach of some of his elements (no point on the way back is outside them all)" };
+                    let t = format!("gather at {} ({:.0} from our front, about {:.0} s), {outside}, until 80% of the body is within 300 of it", self.place_words(places, p), p.dist2d(from), bf.ours.walk_seconds(p.dist2d(from)));
+                    from = p;
+                    t
+                }
+                PhaseKind::Decline => String::new(),
+                PhaseKind::Attack | PhaseKind::Shell => {
+                    // What reaches us where the phase is fought: at the point, the elements still standing whose reach
+                    // covers it; walking in, those covering any target.
+                    let joined: Vec<usize> = match phase.point {
+                        Some(p) => pos.reaching(p, None).into_iter().filter(|i| alive(i)).collect(),
+                        // Walking in, whatever reaches the ground our reach fights the targets from.
+                        None => (0..pos.elements.len()).filter(|i| alive(i) && targets.iter().any(|t| pos.elements[*t].members.iter().any(|m| pos.elements[*i].members.iter().any(|o| o.at.dist2d(m.at) <= o.reach + bf.ours.short_reach.0)))).collect(),
+                    };
+                    let odds = self.odds(&bf.ours.force, &self.force_of_elements(targets.iter().chain(&joined).map(|i| &pos.elements[*i])));
+                    let also = if joined.is_empty() { "nothing else reaches us there".to_string() } else { format!("also in reach of us there: {}", joined.iter().map(|i| format!("{} (reach {:.0})", pos.elements[*i].name, pos.elements[*i].reach)).collect::<Vec<_>>().join(", ")) };
+                    let target_metal: f32 = targets.iter().map(|i| pos.elements[*i].metal).sum();
+                    let t = match (phase.kind.clone(), phase.point) {
+                        (PhaseKind::Shell, Some(p)) => format!("hold at {} ({:.0} from our front, about {:.0} s), outside every reach, and shell {names} with the {} artillery (reach {:.0}) while a spotter keeps them in sight; the rest of the body stands with it; {} ({:.1}) against their {target_metal:.0} metal", self.place_words(places, p), p.dist2d(from), bf.ours.walk_seconds(p.dist2d(from)), bf.ours.artillery.len(), bf.ours.long_reach.0, verdict(odds), odds),
+                        (_, Some(p)) => format!("{names} from its stand-off at {} ({:.0} from where the body is, about {:.0} s): our {:.0} reaches it there and {also}; {} ({:.1}) against their {target_metal:.0} metal", self.place_words(places, p), p.dist2d(from), bf.ours.walk_seconds(p.dist2d(from)), bf.ours.short_reach.0, verdict(odds), odds),
+                        (_, None) => {
+                            let d = targets.iter().map(|i| pos.elements[*i].distance_to(from)).fold(f32::INFINITY, f32::min);
+                            format!("{names}, walking in on {} ({:.0} from where the body is, about {:.0} s); {also}; {} ({:.1}) against their {target_metal:.0} metal", if targets.len() > 1 { "them" } else { "it" }, d, bf.ours.walk_seconds(d), verdict(odds), odds)
+                        }
+                    };
+                    dead.extend(targets.iter().copied());
+                    if let Some(p) = phase.point {
+                        from = p;
+                    } else if let Some(t) = targets.first() {
+                        from = pos.elements[*t].at;
+                    }
+                    let out_of_reach = if phase.covered && n + 1 < phases.len() { ", then out of the statics' reach before the next" } else { "" };
+                    format!("{t}{out_of_reach}")
+                }
+            };
+            parts.push(format!("({}) {text}", n + 1));
+        }
+        let metal: f32 = pos.elements.iter().map(|e| e.metal).sum();
+        let words = format!("{title}: {}. Our {:.0} metal at risk against their {metal:.0}.", parts.join("; "), bf.ours.metal);
+        Candidate { key, phases, words }
+    }
+}
+
+impl Brain {
+    /// The engagement of a group this second, or why it has none: not a roving or air group, not a scout body
+    /// (H-HANDS-SCOUTS-FIGHT-NOTHING-ARMED), not under the player's `plan: no`, on a course or an attack (when
+    /// `task_gate`; the replay tool plans a holding body too and says so), and a position within `PLAN_REACH` of its
+    /// front. The battlefield and the candidates, with the decline back to its last hold, else home.
+    pub(crate) fn engagement_of(&self, group: &super::Group, own: &[OwnUnit], parties: &[Party], enemies: &[EnemyUnit], places: &[Place], task_gate: bool) -> Result<(Battlefield, Vec<Candidate>), String> {
+        let name = format!("group_{}", group.name);
+        if group.roving {
+            return Err(format!("{name} roves: its soldiers are the lane's"));
+        }
+        if group.domain == crate::world::Domain::Air {
+            return Err(format!("{name} flies"));
+        }
+        let body = group.body(own, None).ok_or_else(|| format!("{name} has nobody standing"))?;
+        let core = body.core.clone();
+        if self.scouts_only(&core) {
+            return Err(format!("{name} is a scout body: it fights nothing armed (H-HANDS-SCOUTS-FIGHT-NOTHING-ARMED)"));
+        }
+        if self.pianist.as_ref().is_some_and(|p| p.standing.rules_for(&name).get("plan").is_some_and(|v| v == "no")) {
+            return Err(format!("{name}: the player's standing `plan: no`"));
+        }
+        // The hold an advance arrives in is still an attack (it fights everything there): player-14's group_C held
+        // at its station spot_20 when E3's Centurions came into sight at 9:15.
+        if task_gate && !group.task.busy() && !matches!(group.task, GroupTask::Hold { committed: true, .. }) {
+            return Err(format!("{name} holds: a body plans on a course, an attack or the hold an advance arrived in"));
+        }
+        let metal: f32 = core.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
+        let nearest = |p: &Position| core.iter().map(|u| p.distance_to(u.pos)).fold(f32::INFINITY, f32::min);
+        let position = Brain::positions(self.armed_elements(parties, enemies), metal).into_iter().min_by(|a, b| nearest(a).total_cmp(&nearest(b))).ok_or_else(|| format!("{name}: no position in sight or remembered"))?;
+        let d = nearest(&position);
+        if d > PLAN_REACH {
+            return Err(format!("{name}: the nearest position ({}) is {d:.0} from its front, beyond {PLAN_REACH:.0}", position.signature()));
+        }
+        let own_units: Vec<OwnUnit> = own.to_vec();
+        let walker = self.group_walker(group, &own_units);
+        let ours = self.ours_of(&name, &core, position.centre(), walker).ok_or_else(|| format!("{name} has nobody standing"))?;
+        let back = match group.last_hold {
+            Some(at) => (at, format!("where it last held, {}", self.place_words(places, at))),
+            None => (self.home, "home".to_string()),
+        };
+        let bf = self.battlefield(ours, position);
+        let candidates = self.candidates(&bf, places, back);
+        Ok((bf, candidates))
+    }
+}
+
+/// The plan question: a Choice over the candidates, the battlefield, the player's words for the group and its
+/// standing orders in the state; the examples block in the instructions unless `examples` is false.
+pub(crate) fn request(group: &str, battlefield: Value, candidates: &[Candidate], instructions: &str, standing: &str, examples: bool) -> jev::Request {
+    let text = format!(
+        "Given `battlefield` (our body {group}; his armed elements at this position; what covers each; where our reach reaches each from outside every other element's reach; the odds, with the cover priced in) and the player's `instructions` for {group}: which order of operations does {group} take against this position? Each option is a plan: its phases in order, where each is fought from, what else reaches us there, and the odds of each phase as the body stands now. decline falls back and leaves the position.{}",
+        if examples { format!(" {EXAMPLES}") } else { String::new() }
+    );
+    let state = json!({
+        "battlefield": battlefield,
+        "instructions": if instructions.is_empty() { "(the player wrote nothing for this group)" } else { instructions },
+        "standing": if standing.is_empty() { "(none)" } else { standing },
+    });
+    let question = jev::Question::choice(text, candidates.iter().map(|c| (c.key, json!(c.words))));
+    jev::Request { state, questions: BTreeMap::from([(QUESTION.to_string(), question)]) }
+}
+
+/// The plan taken from Jev's answer: the top option when its probability is above `PLAN_BAR` and above the
+/// decline's, else the decline. The index and the probabilities.
+pub(crate) fn choose(answers: &BTreeMap<String, jev::Answer>, candidates: &[Candidate]) -> Option<(usize, BTreeMap<String, f64>)> {
+    let jev::Answer::Choice { probabilities, .. } = answers.get(QUESTION)? else { return None };
+    let decline = candidates.iter().position(|c| c.key == "decline")?;
+    let (top, p) = candidates.iter().enumerate().map(|(i, c)| (i, probabilities.get(c.key).copied().unwrap_or(0.0))).max_by(|a, b| a.1.total_cmp(&b.1))?;
+    let p_decline = probabilities.get("decline").copied().unwrap_or(0.0);
+    let taken = if top != decline && (p <= PLAN_BAR || p <= p_decline) { decline } else { top };
+    Some((taken, probabilities.clone()))
 }
 
 #[cfg(test)]
