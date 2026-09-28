@@ -884,9 +884,25 @@ impl Brain {
         // A pick below the bar moves no group that is fighting (player-17 21:34: "attack party_25 (2 armstump)"
         // 1,300 behind the front at confidence 0.03, after picks at 0.09 and 0.15, turned the army from its fight
         // at D1; 40 to 23 units, 6,900 lost for 1,284 in engagements #16, #17 and #22).
+        // The hold is keyed on the actor of the state the pick chose, not the slot's name: a threat slot carries
+        // the party's name and its states move groups (`party_142.whole_group_U`, `party_107.leave`), so a hold
+        // on `group_X` slots alone never saw them (player-18: 22 changes of an engaged group under 0.25, "group_U:
+        // attack party_142" at 0.06 and "group_B: leaves party_107 and holds" at 0.13, the fault the bar was built
+        // for at player-17). `Leave` names no actor: it is held when it would end an engagement.
         let held: Vec<bool> = if confidence < ENGAGED_PICK_BAR {
             let groups = &self.pianist.as_ref().expect("pianist mode").groups;
-            slots.iter().map(|s| groups.iter().any(|g| format!("group_{}", g.name) == s.name && matches!(g.task, groups::GroupTask::Engage { .. } | groups::GroupTask::Plan(_)))).collect()
+            let engaged = |actor: &str| groups.iter().any(|g| format!("group_{}", g.name) == actor && matches!(g.task, groups::GroupTask::Engage { .. } | groups::GroupTask::Plan(_)));
+            slots
+                .iter()
+                .zip(&worlds[wi])
+                .map(|(s, si)| {
+                    let state = &s.states[*si];
+                    match (&s.kind, &state.response) {
+                        (plan::Kind::Threat(party, _), plan::Response::Leave) => groups.iter().any(|g| matches!(&g.task, groups::GroupTask::Engage { party: ids, .. } if ids.iter().any(|id| party.ids.contains(id)))),
+                        _ => engaged(&state.actor),
+                    }
+                })
+                .collect()
         } else {
             vec![false; slots.len()]
         };

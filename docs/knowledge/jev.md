@@ -1448,3 +1448,27 @@ notes at 10:56 and 11:20 (`run/commander_turns.py --notes`).
 **Status.** fixed 2026-09-28: a party of scouts alone is not the self-defence that overrides `ignore` (a Bull is).
 Exploited by [[H-HANDS-STANDING]].
 
+### K-hands-the-bar-held-the-groups-slot-and-not-the-threat-states
+**Claim.** The confidence bar of H-HANDS-ENGAGED-PICK-BAR (a pick under 0.25 moves no fighting group) held slots
+named `group_X` and nothing else, and the states that move a group at a party come from the threat slots, named
+after the party (`party_142.whole_group_U`, `party_107.leave`): in player-18, the first game with the bar, an
+engaged group was changed 22 times under 0.25, among them "group_U: attack party_142 (2 armstump) with the whole
+group" at 34:09 at confidence 0.06 and "group_B: leaves party_107 and holds" at 27:03 at 0.13, the two shapes of
+player-17's fault (K-hands-a-low-confidence-pick-turned-an-engaged-army).
+**Evidence.** `run/matches/1790560788-player-18-planner/00/jev-0.jsonl`, the `plan` rows at f=61470 and f=48690;
+the review's hands section (`00/review.md`, the bar check, which takes each group's task from the call line before
+the pick); `pianist/mod.rs` at cc03951, `after_pick`'s `held`.
+**Status.** fixed 2026-09-28: the hold is keyed on the actor of the picked state, and a `leave` is held when a
+group engages that party. Not yet seen in a game.
+
+### K-hands-a-plan-walked-into-a-never-place
+**Claim.** The engagement planner read the packet's paragraph and standing orders into the question but not the
+`never` rule into its gate: in player-18 the player put spot_23 under `never` at 21:04, and from 21:33 group_B's
+plans (the E4 position won at 21:33, engagement #16, 3,654 of his for 1,670) went on to the E2 nest north of it,
+engagement #18 costing 675 of ours for 280. The chase (`groups.rs`) and the threat pass both stop 400 short of a
+`never` place; the planner did not.
+**Evidence.** `run/matches/1790560788-player-18-planner/00/review.md` (the planner section: "then the plans went
+north"); `run/analyze_match.py ... --engagement 18`; the player's 21:04 `standing` call in `strategist-0.jsonl`.
+**Status.** fixed 2026-09-28: `engagement_of` declines a position with an element within `NEVER_REACH` of a
+`never` place of the group (unit test on the E3 scene). Not yet seen in a game.
+

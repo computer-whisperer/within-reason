@@ -19,6 +19,7 @@ use super::super::routes::Walker;
 use super::super::{Brain, FRAMES_PER_SECOND};
 use super::GroupTask;
 use super::picture::{Party, Place};
+use super::standing::NEVER_REACH;
 
 /// A body whose front comes this close to an element of a position plans the engagement.
 pub(crate) const PLAN_REACH: f32 = 1200.0;
@@ -678,6 +679,15 @@ impl Brain {
         if d > PLAN_REACH {
             return Err(format!("{name}: the nearest position ({}) is {d:.0} from its front, beyond {PLAN_REACH:.0}", position.signature()));
         }
+        // A position at a place the player's `never` names is not planned against, as a chase there is not made
+        // (groups.rs): player-18's plans took group_B north at the E2 nest from 21:33 with spot_23 under `never`
+        // since 21:04 (engagement #18, 675 of ours for 280).
+        if let Some(pianist) = self.pianist.as_ref() {
+            let never = pianist.standing.never_places(&name);
+            if let Some(place) = places.iter().find(|pl| never.contains(&pl.name) && position.elements.iter().any(|e| e.distance_to(pl.at) < NEVER_REACH)) {
+                return Err(format!("{name}: the position ({}) is at {}, where it never goes", position.signature(), place.name));
+            }
+        }
         let own_units: Vec<OwnUnit> = own.to_vec();
         let walker = self.group_walker(group, &own_units);
         let ours = self.ours_of(&name, &core, position.centre(), walker).ok_or_else(|| format!("{name} has nobody standing"))?;
@@ -1233,6 +1243,19 @@ pub(crate) mod tests {
         brain.pianist = Some(pianist);
         let err = brain.engagement_of(&group, &ours, &parties, &enemies, &[], true).expect_err("declined by the player");
         assert!(err.contains("plan: no"), "{err}");
+        // A place under `never` within reach of an element of the position: not planned (player-18 21:33, the E2
+        // nest with spot_23 under `never`); a `never` place elsewhere leaves the plan.
+        let places = vec![Place { name: "spot_23".into(), at: at(4600.0, 1500.0), spot: Some(23) }, Place { name: "spot_9".into(), at: at(1000.0, 1000.0), spot: Some(9) }];
+        let names: Vec<String> = places.iter().map(|p| p.name.clone()).collect();
+        let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        pianist.standing.set_tool("group_C", &json!({ "never": "spot_23" }), &names, &[]).expect("never is a rule");
+        brain.pianist = Some(pianist);
+        let err = brain.engagement_of(&group, &ours, &parties, &enemies, &places, true).expect_err("a never place");
+        assert!(err.contains("spot_23") && err.contains("never goes"), "{err}");
+        let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        pianist.standing.set_tool("group_C", &json!({ "never": "spot_9" }), &names, &[]).expect("never is a rule");
+        brain.pianist = Some(pianist);
+        assert!(brain.engagement_of(&group, &ours, &parties, &enemies, &places, true).is_ok(), "a never place elsewhere");
     }
 
     /// The taken plan: the top above `PLAN_BAR` and above the decline, else the decline.
