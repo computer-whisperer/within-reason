@@ -194,3 +194,18 @@ four (`docs/studies/2026-09-28-body-shape.md`). H-MICRO-STEP-OUT retired the sam
 **Would be wrong if.** A body-level version (a body whose target is dead gathering outside the turrets' reach before
 the next target, the TAS's v5) gained on the same arms.
 **Used by.** none (H-MICRO-STEP-OUT, retired).
+
+### K-micro-the-contact-followed-a-tick-into-his-base
+**Claim.** The lane's contact rule (H-MICRO-FORM) forms on the nearest armed mobile enemy within 700 of the body's
+centre and moves each unit's slot on when the target has walked 96 from it, with no bound to the body's own goal:
+in player-21 six Rovers whose group task read `fight_to spot_61` and then `spot_64` (C6, D7, stations in our half)
+got a fresh Fight point every 1-2 s from 5:41 trailing party_11, a lone Tick, along row 2 (the points from
+(1144, 2280) at 5:40 to (5976, 1000) at 6:40, 4,700 elmos), and all six died at (5741-5983, 911-1047) at 6:40-6:46
+to Rocketeers, Centurions and Pawns for one Lazarus. Neither the player nor a pick ordered the chase.
+**Evidence.** `run/matches/1790568930-player-21-leash/00/record-0.jsonl` `cmd` rows for units 25079, 26776, 1971,
+19953, 5134, 24632 (the fight points by ten-second bucket); the review's finding 3; `crates/micro/src/lib.rs` `form`
+at 1ffc8e9 (`engaged` = any foe within `HORIZON`, `keep` the target most claims name).
+**Status.** fixed 2026-09-28 (H-MICRO-FORM-PURSUIT: a target that has run 600 from first contact and is out of
+reach is let go for 30 s). Not yet measured: the harness has no fleeing-target scenario, and the E3/F3 arms hold
+static or standing targets, so they cannot show a regression from it either way.
+

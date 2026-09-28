@@ -107,6 +107,13 @@ const ARRIVED: f32 = 48.0;
 /// A unit waiting at its contact slot with nothing in reach is sent to its new one when the target has walked the
 /// slot this far (a unit walking to its slot keeps it until it gets there).
 const SLOT_MOVED: f32 = 96.0;
+/// H-MICRO-FORM-PURSUIT: a mobile target that has run this far from where the body first formed on it, and is out
+/// of the body's reach, is let go (player-21 5:41-6:46: six Rovers on an advance to a station in our half formed
+/// on a lone Tick within the horizon, their slots trailed it 4,700 elmos along row 2 into his base, and all six
+/// died at F2 to Rocketeers, Centurions and Pawns; nobody had ordered the chase).
+const PURSUIT: f32 = 600.0;
+/// A target let go is not formed on again for this long.
+const LET_GO_FRAMES: i32 = 30 * 30;
 /// H-MICRO-FORM-SPACING: an area weapon of theirs in sight or remembered this near a body's centre sets its spacing.
 const AREA_HORIZON: f32 = 1500.0;
 /// A stance lasts at least this long: a change is an order, and an order costs shots.
@@ -486,6 +493,10 @@ pub struct Lane {
     /// Which footwork rules apply to each soldier; a unit not listed gets them all.
     footwork: HashMap<UnitId, Footwork>,
     claims: HashMap<UnitId, Claim>,
+    /// Per mobile target a body formed on: where it stood at first contact and the frame (H-MICRO-FORM-PURSUIT).
+    pursuits: std::cell::RefCell<HashMap<UnitId, (Vec3, i32)>>,
+    /// Targets let go, and the frame until which no body forms on them.
+    let_go: std::cell::RefCell<HashMap<UnitId, i32>>,
     /// The motion of every unit under a claim, for the milling counters.
     motion: HashMap<UnitId, Motion>,
     /// Armed mobile enemies as last seen: type, place, frame.
@@ -666,7 +677,7 @@ impl Lane {
         };
         // H-MICRO-FORM's orders for every unit in a body, decided first: the host's group orders of this tick are
         // rewritten into them here (a standing unit's dropped), and the free units take them last.
-        let form_orders = if gate.form { self.form(view, &soldiers, snapshot.enemies.as_slice(), &sources, &rules_of) } else { HashMap::new() };
+        let form_orders = if gate.form { self.form(view, tick.frame, &soldiers, snapshot.enemies.as_slice(), &sources, &rules_of) } else { HashMap::new() };
         let mut host_ordered: HashSet<UnitId> = HashSet::new();
         let mut rewritten: Vec<Command> = Vec::with_capacity(host.len());
         for command in host.drain(..) {
@@ -1058,8 +1069,11 @@ impl Lane {
     /// walks on); one with nothing in reach walks to its slot (a Move: a Fight stops at the first thing in reach and
     /// the concave never forms), and waits there. A Move order has no contact behaviour; an Attack on a unit is left
     /// to the engine on the march.
-    fn form(&self, view: &dyn View, soldiers: &[&OwnUnit], enemies: &[EnemyUnit], sources: &[Source], rules_of: &dyn Fn(UnitId) -> Footwork) -> HashMap<UnitId, FormOrder> {
+    fn form(&self, view: &dyn View, frame: i32, soldiers: &[&OwnUnit], enemies: &[EnemyUnit], sources: &[Source], rules_of: &dyn Fn(UnitId) -> Footwork) -> HashMap<UnitId, FormOrder> {
         let mut orders = HashMap::new();
+        let pursuit_on = view.enabled("H-MICRO-FORM-PURSUIT");
+        self.let_go.borrow_mut().retain(|_, until| *until > frame);
+        self.pursuits.borrow_mut().retain(|id, (_, since)| enemies.iter().any(|e| e.id == *id) && frame - *since < 4 * LET_GO_FRAMES);
         let members: Vec<form::Member> = soldiers.iter().filter_map(|u| {
             if !rules_of(u.id).form {
                 return None;
@@ -1091,7 +1105,9 @@ impl Lane {
             };
             let spacing = form::spacing_for(area, self.tuning.factor, self.tuning.max);
             // Engaged: an armed enemy within the horizon of the body's centre.
-            let foes: Vec<form::Foe> = sources.iter().filter(|s| s.weight >= FAINT && s.pos.dist2d(centre) < HORIZON).map(|s| form::Foe { id: s.id, pos: s.pos, mobile: s.mobile, reach: s.reach }).collect();
+            let let_go = self.let_go.borrow();
+            let foes: Vec<form::Foe> = sources.iter().filter(|s| s.weight >= FAINT && s.pos.dist2d(centre) < HORIZON && !let_go.contains_key(&s.id)).map(|s| form::Foe { id: s.id, pos: s.pos, mobile: s.mobile, reach: s.reach }).collect();
+            drop(let_go);
             let engaged = !walking && !foes.is_empty();
             if !engaged && matches!(order, form::Order::Attack(_)) {
                 continue;
@@ -1109,7 +1125,18 @@ impl Lane {
                 }
             }
             let keep = had.into_iter().max_by_key(|(t, n)| (*n, t.0)).map(|(t, _)| t);
-            let contact = if engaged && reach.is_finite() && reach > 0.0 { form::contact(centre, named, keep, &foes, reach) } else { None };
+            let mut contact = if engaged && reach.is_finite() && reach > 0.0 { form::contact(centre, named, keep, &foes, reach) } else { None };
+            // A running target is let go: the slot follows the target, and a body sent somewhere else would follow
+            // it anywhere (H-MICRO-FORM-PURSUIT). A target the host named (an Attack) is chased as ordered.
+            if pursuit_on && named.is_none() && let Some(c) = &contact && let Some(foe) = foes.iter().find(|f| f.id == c.target) && foe.mobile {
+                let mut pursuits = self.pursuits.borrow_mut();
+                let (origin, _) = *pursuits.entry(foe.id).or_insert((foe.pos, frame));
+                if foe.pos.dist2d(origin) > PURSUIT && foe.pos.dist2d(centre) > reach {
+                    pursuits.remove(&foe.id);
+                    self.let_go.borrow_mut().insert(foe.id, frame + LET_GO_FRAMES);
+                    contact = None;
+                }
+            }
             let positions: Vec<Vec3> = body.iter().map(|m| m.pos).collect();
             if let Some(contact) = contact {
                 let (slots, _, _) = form::contact_slots(&contact, body.len(), spacing);
