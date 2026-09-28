@@ -245,6 +245,12 @@ pub struct UnitDefInfo {
     /// Seconds between that weapon's shots; 0 unarmed.
     #[serde(default)]
     pub reload: f32,
+    /// The largest area of effect among its ordinary weapons (manual-fire left out), as the engine gives it
+    /// (`WeaponDef_getAreaOfEffect`): a radius, half the unit file's `areaofeffect` (the Fatboy's file says 300, this
+    /// is 150). What a shell landing on one unit also does to the units within it; the micro spaces a body by it
+    /// (H-MICRO-FORM-SPACING). 0 unarmed, and in records and shims from before 2026-09-28.
+    #[serde(default)]
+    pub blast_radius: f32,
 }
 
 /// An explosion: full `damage` at its centre, falling to nothing at `radius` elmos.

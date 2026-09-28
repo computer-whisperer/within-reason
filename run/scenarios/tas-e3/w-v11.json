@@ -1,0 +1,115 @@
+{
+ "format": "within-reason-script",
+ "version": 1,
+ "note": "w-v11 (r1250): w-v10 with the opening's pull-out to the south-west ((4230, 1760): out of the Centurions' 325 sooner than w-v10's due west, which walked along Centurion 8's path), in at 4 s.",
+ "rows": [
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "move",
+   "x": 4230,
+   "z": 1760
+  },
+  {
+   "t": 4,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 8
+  },
+  {
+   "t": 4,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 5,
+   "queue": true
+  },
+  {
+   "t": 4,
+   "unit": "all",
+   "cmd": "move",
+   "x": 4200,
+   "z": 1450,
+   "queue": true
+  },
+  {
+   "t": 19,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 4440,
+   "z": 1480
+  },
+  {
+   "t": 19,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 4440,
+   "z": 1660,
+   "queue": true
+  },
+  {
+   "t": 26,
+   "unit": "all",
+   "cmd": "move",
+   "x": 4470,
+   "z": 1720
+  },
+  {
+   "t": 29,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 6
+  },
+  {
+   "t": 29,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 4,
+   "queue": true
+  },
+  {
+   "t": 29,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 4850,
+   "z": 1510,
+   "queue": true
+  },
+  {
+   "t": 29,
+   "unit": "all",
+   "cmd": "move",
+   "x": 4800,
+   "z": 1650,
+   "queue": true
+  },
+  {
+   "t": 48,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 5000,
+   "z": 1480
+  },
+  {
+   "t": 48,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 4750,
+   "z": 1560,
+   "queue": true
+  },
+  {
+   "t": 56,
+   "unit": "all",
+   "cmd": "move",
+   "x": 5150,
+   "z": 1480
+  },
+  {
+   "t": 61,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 5464,
+   "z": 1192
+  }
+ ]
+}

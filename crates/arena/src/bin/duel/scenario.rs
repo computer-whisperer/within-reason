@@ -16,8 +16,36 @@
 //!         "heading": [0.71, -0.71],             // which way it was moving; absent when it stood
 //!         "order": { "kind": "fight", "x": 3900, "z": 3300 } }  // or "move", or {"kind":"attack","target":i}
 //!     ] },                                      //   (i: a unit of the other side, by its place in the list)
-//!     { "name": "theirs", "units": [ ... ] } ] }
+//!     { "name": "theirs", "units": [ ... ],
+//!       "track": [ { "t": 2.0, "unit": 1, "x": 4466, "z": 1496 } ] } ] }   // optional: where each unit was, by time
 //! ```
+//!
+//! `track` (`run/engagement.py --track`, 2026-09-28): the recorded places of a side's units after the cut, `t` seconds
+//! from the start of the fight (rows before 0 allowed). Under `duel --theirs track` the director walks side 1 along
+//! it: each unit is sent (a move) to its first place later than now, whenever that place changes and is more than
+//! `TRACK_STILL` from the last one it was sent to. A unit that died in the record is not killed by the clock; it
+//! dies when it dies in the engine. When its rows run out it stands (and fires at will).
+//!
+//! A **script** (`duel --script FILE`, 2026-09-28, `docs/design/2026-09-28-tas-micro.md`) is a separate file: timed
+//! orders for side 0, which replace the director's orders for that side (and its lane):
+//!
+//! ```json
+//! { "format": "within-reason-script", "version": 1, "note": "anything",
+//!   "rows": [
+//!     { "t": 0.0, "unit": [0, 1, 2], "cmd": "move", "x": 4300, "z": 1900 },   // unit: an index into side 0, a list, or "all"
+//!     { "t": 0.0, "unit": 3, "cmd": "attack", "target": 4 },                    // target: an index into side 1
+//!     { "t": 4.5, "unit": "all", "cmd": "fight", "x": 4527, "z": 1436, "queue": true },
+//!     { "t": 9.0, "unit": 5, "cmd": "guard", "target": 6 },                     // guard: an index into side 0
+//!     { "t": 9.0, "unit": 5, "cmd": "stop" },
+//!     { "t": 9.0, "unit": 5, "cmd": "firestate", "state": 0 } ] }           // 0 hold fire, 1 return fire, 2 fire at will
+//! ```
+//!
+//! (A bare JSON array of rows is read too.) `t` is seconds from the fight's first orders; the director issues a row on
+//! its first tick at or after `t` plus `--script-delay`. Ticks are three frames (0.1 s) apart, so a row lands up to
+//! 0.1 s after its time; rows due on one tick go out in file order, in that tick's one batch of commands, and the
+//! engine carries them out in that order on the same frame. A row for a dead unit, or an attack or guard on a dead
+//! target, is skipped (the per-second log says so). Before its first row a unit has only the heading step (below);
+//! after its last order is done it stands and fires at will.
 //!
 //! How it is spawned (`director.rs`, `Phase::Preparing`), since the AI interface's cheat gives a unit at a place and
 //! nothing else (`COMMAND_CHEATS_GIVE_ME_NEW_UNIT`: no health, no facing; no Lua gadget of the game answers an AI's
@@ -54,6 +82,112 @@ pub struct Scenario {
 pub struct Side {
     pub name: String,
     pub units: Vec<Unit>,
+    /// Where each unit was after the cut (`run/engagement.py --track`); walked under `duel --theirs track`.
+    #[serde(default)]
+    pub track: Vec<TrackRow>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize)]
+pub struct TrackRow {
+    pub t: f32,
+    pub unit: usize,
+    pub x: f32,
+    pub z: f32,
+}
+
+/// A track's next place is not sent while it is this close to the last one sent: a unit standing in the record stands.
+pub const TRACK_STILL: f32 = 16.0;
+
+/// Timed orders for side 0 (`duel --script`).
+#[derive(Clone, Debug)]
+pub struct Script {
+    /// The file's name without its extension, for `duels.csv`.
+    pub label: String,
+    /// Sorted by time; rows of one time keep the file's order.
+    pub rows: Vec<ScriptRow>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct ScriptRow {
+    pub t: f32,
+    pub unit: Units,
+    pub cmd: ScriptCmd,
+    pub x: Option<f32>,
+    pub z: Option<f32>,
+    pub target: Option<usize>,
+    #[serde(default)]
+    pub queue: bool,
+    pub state: Option<i32>,
+}
+
+/// Which units of side 0 a row orders.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(untagged)]
+pub enum Units {
+    One(usize),
+    Many(Vec<usize>),
+    All(String),
+}
+
+impl Units {
+    pub fn indices(&self, count: usize) -> Vec<usize> {
+        match self {
+            Units::One(i) => vec![*i],
+            Units::Many(list) => list.clone(),
+            Units::All(_) => (0..count).collect(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ScriptCmd {
+    Move,
+    Fight,
+    Attack,
+    Stop,
+    Guard,
+    Firestate,
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum ScriptFile {
+    Rows(Vec<ScriptRow>),
+    Wrapped { rows: Vec<ScriptRow> },
+}
+
+impl Script {
+    /// Reads and checks a script against the scenario it will be fought in.
+    pub fn load(path: &std::path::Path, scenario: &Scenario) -> Result<Script, String> {
+        let text = std::fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
+        let file: ScriptFile = serde_json::from_str(&text).map_err(|e| format!("{}: {e}", path.display()))?;
+        let mut rows = match file {
+            ScriptFile::Rows(rows) | ScriptFile::Wrapped { rows } => rows,
+        };
+        let (ours, theirs) = (scenario.sides[0].units.len(), scenario.sides[1].units.len());
+        for (n, row) in rows.iter().enumerate() {
+            let problem = |what: &str| Err(format!("{}: row {n}: {what}", path.display()));
+            if let Units::All(word) = &row.unit
+                && word != "all"
+            {
+                return problem("unit is an index, a list of indices, or \"all\"");
+            }
+            if row.unit.indices(ours).iter().any(|&i| i >= ours) {
+                return problem(&format!("a unit index past side 0's {ours} units"));
+            }
+            match row.cmd {
+                ScriptCmd::Move | ScriptCmd::Fight if row.x.is_none() || row.z.is_none() => return problem("move and fight need x and z"),
+                ScriptCmd::Attack if row.target.is_none_or(|t| t >= theirs) => return problem(&format!("attack needs a target below {theirs}")),
+                ScriptCmd::Guard if row.target.is_none_or(|t| t >= ours) => return problem(&format!("guard needs a target (of side 0) below {ours}")),
+                ScriptCmd::Firestate if !row.state.is_some_and(|s| (0..=2).contains(&s)) => return problem("firestate needs a state 0, 1 or 2"),
+                _ => {}
+            }
+        }
+        rows.sort_by(|a, b| a.t.total_cmp(&b.t));
+        let label = path.file_stem().map_or_else(|| "script".to_string(), |s| s.to_string_lossy().replace(',', "_"));
+        Ok(Script { label, rows })
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]

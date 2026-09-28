@@ -1,0 +1,57 @@
+{
+ "format": "within-reason-script",
+ "version": 1,
+ "note": "The user's turret-first pattern, plain: everyone attacks the near turret (an attack order moves each unit in until it has the target in reach), then the far turret, then the Centurions (1, 4, 3; an attack on one out of sight is dropped, so fights at where Centurions 4 and 3 were seen follow).",
+ "rows": [
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 2
+  },
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 0,
+   "queue": true
+  },
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 1,
+   "queue": true
+  },
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 4,
+   "queue": true
+  },
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 3,
+   "queue": true
+  },
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 4590,
+   "z": 1000,
+   "queue": true
+  },
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 5622,
+   "z": 1113,
+   "queue": true
+  }
+ ]
+}

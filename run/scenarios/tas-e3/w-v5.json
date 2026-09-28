@@ -1,0 +1,114 @@
+{
+ "format": "within-reason-script",
+ "version": 1,
+ "note": "w-v5: v5 unchanged, its targets renumbered for the r1250 cut (far turret 4, Centurions 5/7/8, near turret 6).",
+ "rows": [
+  {
+   "t": 0,
+   "unit": [
+    3,
+    4,
+    7,
+    8,
+    10
+   ],
+   "cmd": "move",
+   "x": 4430,
+   "z": 1640
+  },
+  {
+   "t": 0,
+   "unit": [
+    3,
+    4,
+    7,
+    8,
+    10
+   ],
+   "cmd": "attack",
+   "target": 8,
+   "queue": true
+  },
+  {
+   "t": 0,
+   "unit": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    9,
+    11,
+    12,
+    13
+   ],
+   "cmd": "attack",
+   "target": 8
+  },
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 5,
+   "queue": true
+  },
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "move",
+   "x": 4250,
+   "z": 1400,
+   "queue": true
+  },
+  {
+   "t": 16,
+   "unit": "all",
+   "cmd": "move",
+   "x": 4300,
+   "z": 960
+  },
+  {
+   "t": 16,
+   "unit": "all",
+   "cmd": "move",
+   "x": 4800,
+   "z": 940,
+   "queue": true
+  },
+  {
+   "t": 16,
+   "unit": "all",
+   "cmd": "move",
+   "x": 5150,
+   "z": 1000,
+   "queue": true
+  },
+  {
+   "t": 33,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 5622,
+   "z": 1113
+  },
+  {
+   "t": 44,
+   "unit": "all",
+   "cmd": "move",
+   "x": 5450,
+   "z": 1250
+  },
+  {
+   "t": 49,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 4
+  },
+  {
+   "t": 49,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 6,
+   "queue": true
+  }
+ ]
+}

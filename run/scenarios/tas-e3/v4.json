@@ -1,0 +1,16 @@
+{"format": "within-reason-script", "version": 1,
+ "note": "v4: v3's opening (kill Centurions 4 and 1 at the rock's south-west corner); at 12 s round the rock's west and north side to hunt Centurion 3 with a fight along where it was seen (an attack on a unit out of sight is dropped); at 45 s gather at (5400, 1250), outside both turrets' 430; at 50 s take the far turret then the near one together.",
+ "rows": [
+  {"t": 0, "unit": [3, 4, 7, 8, 10], "cmd": "move", "x": 4430, "z": 1640},
+  {"t": 0, "unit": [3, 4, 7, 8, 10], "cmd": "attack", "target": 4, "queue": true},
+  {"t": 0, "unit": [0, 1, 2, 5, 6, 9, 11, 12, 13], "cmd": "attack", "target": 4},
+  {"t": 0, "unit": "all", "cmd": "attack", "target": 1, "queue": true},
+  {"t": 12, "unit": "all", "cmd": "move", "x": 4250, "z": 1350},
+  {"t": 12, "unit": "all", "cmd": "move", "x": 4300, "z": 960, "queue": true},
+  {"t": 12, "unit": "all", "cmd": "move", "x": 4750, "z": 940, "queue": true},
+  {"t": 12, "unit": "all", "cmd": "move", "x": 5250, "z": 1000, "queue": true},
+  {"t": 12, "unit": "all", "cmd": "fight", "x": 5620, "z": 1110, "queue": true},
+  {"t": 45, "unit": "all", "cmd": "move", "x": 5400, "z": 1250},
+  {"t": 50, "unit": "all", "cmd": "attack", "target": 0},
+  {"t": 50, "unit": "all", "cmd": "attack", "target": 2, "queue": true}
+ ]}

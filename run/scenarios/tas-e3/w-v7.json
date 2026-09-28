@@ -1,0 +1,108 @@
+{
+ "format": "within-reason-script",
+ "version": 1,
+ "note": "w-v7 (r1250): open from the west (to (4250, 1560) at once, Centurion 7 walks east out of reach), at 3.5 s kill Centurion 8 then 5 as they come round the rock's south-west corner, gather at (4200, 1450); 19 s the Rocketeers; 27 s gather at (4450, 1850) outside the turrets; 31 s both turrets and the Pawns by them, back to (4500, 1900); 52 s the Pawns coming back to (4700, 1570); 64 s Centurion 7 alone where its track ends (5464, 1192).",
+ "rows": [
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "move",
+   "x": 4250,
+   "z": 1560
+  },
+  {
+   "t": 3.5,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 8
+  },
+  {
+   "t": 3.5,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 5,
+   "queue": true
+  },
+  {
+   "t": 3.5,
+   "unit": "all",
+   "cmd": "move",
+   "x": 4200,
+   "z": 1450,
+   "queue": true
+  },
+  {
+   "t": 19,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 4440,
+   "z": 1480
+  },
+  {
+   "t": 19,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 4520,
+   "z": 1640,
+   "queue": true
+  },
+  {
+   "t": 27,
+   "unit": "all",
+   "cmd": "move",
+   "x": 4450,
+   "z": 1850
+  },
+  {
+   "t": 31,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 6
+  },
+  {
+   "t": 31,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 4,
+   "queue": true
+  },
+  {
+   "t": 31,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 4850,
+   "z": 1510,
+   "queue": true
+  },
+  {
+   "t": 31,
+   "unit": "all",
+   "cmd": "move",
+   "x": 4500,
+   "z": 1900,
+   "queue": true
+  },
+  {
+   "t": 52,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 4700,
+   "z": 1570
+  },
+  {
+   "t": 52,
+   "unit": "all",
+   "cmd": "move",
+   "x": 5150,
+   "z": 1450,
+   "queue": true
+  },
+  {
+   "t": 64,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 5464,
+   "z": 1192
+  }
+ ]
+}

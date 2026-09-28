@@ -31,12 +31,32 @@ from the record's `s` lines, theirs from the truth file (whatever `--enemies` sa
 It goes into the file's `source.live` and to stderr, to set beside the engine's and the simulator's outcomes; it is
 not a prediction of them (the live units kept their orders, reinforcements came, the rest of the game went on).
 
+The other side's track (`--track`, 2026-09-28): the positions of the cut's enemies over the `--track-seconds` (60)
+after the clock, as `sides[1].track` rows `{"t", "unit", "x", "z"}` (`t` seconds from the clock, `unit` the enemy's
+index in the file; rows from the sample just before the clock on, so every unit has a place at 0): from the truth
+file (every two seconds) when `--enemies truth`, else from the record's `en` rows (once a second, only while in sight
+or on radar). `duel --theirs track` walks them; the sight version is what a script's author may plan from, and so
+it also lists, as `sides[1].later`, the armed enemies first seen within `--radius` of the place after the clock (type,
+first second, place, hit points), whose track rows carry indices after the cut's units (the duel spawns none of them).
+
+The record's own orders as a script (`--script FILE`, 2026-09-28): every move, fight, attack, stop and guard the bot
+gave a unit of the cut in the `--track-seconds` after the clock, as `duel --script` rows (`crates/arena/src/bin/duel/
+scenario.rs`, `Script`): an attack on an enemy outside the cut becomes a fight at where it was last seen, an order
+repeating the unit's last one is dropped (the lane re-sends its focus every tick), and a unit's second and later
+orders of one tick are queued (the record keeps no queue flag; the bot queues within a tick, never across). A move or
+fight to a point further than `FIELD` from the place is pulled in to `FIELD` along its line: a retreat home would walk
+into the duel's commanders, which stand in the corners farthest from the place (smoke-e3: the record's retreat
+killed one and ended the match).
+
+A unit of ours whose health reads -1 at the clock died that second and is left out.
+
 The file format is `crates/arena/src/bin/duel/scenario.rs`'s doc comment.
 """
 import argparse, json, math, os, sys
 
 CONTACT = 800.0
 MOVED = 8.0
+FIELD = 1500.0
 
 
 def record_of(path):
@@ -153,6 +173,124 @@ def live_outcome(path, header, frame, ours, theirs, after):
     return rows
 
 
+def enemy_track(path, header, frame, theirs, source, seconds, centre=None, radius=None):
+    """The cut's enemies' places from just before `frame` to `seconds` after it: truth lines, or the record's `en`.
+    From the record, armed enemies first seen inside `radius` of `centre` after the clock are added (`later`)."""
+    index = {e["id"]: i for i, e in enumerate(theirs)}
+    defs = header["unit_defs"]
+    later = []
+    end = frame + int(seconds * 30)
+    lines = []
+    if source == "truth":
+        with open(os.path.join(os.path.dirname(path), f"truth-{header['ai_id']}.jsonl")) as f:
+            for line in f:
+                try:
+                    r = json.loads(line)
+                except json.JSONDecodeError:
+                    break
+                if r["f"] > end:
+                    break
+                lines.append((r["f"], [(e[0], e[2], e[3]) for e in r["enemy"]]))
+    else:
+        with open(path) as f:
+            f.readline()
+            for line in f:
+                if '"t":"s"' not in line[:40]:
+                    continue
+                try:
+                    r = json.loads(line)
+                except json.JSONDecodeError:
+                    break
+                if r["f"] > end:
+                    break
+                lines.append((r["f"], [(e[0], e[2], e[3]) for e in r["en"]]))
+                if centre is None or r["f"] <= frame:
+                    continue
+                for e, d, x, z, hp, *_ in r["en"]:
+                    if e in index or d < 0 or not (defs[d].get("reach", 0) > 0 and defs[d]["class"] != "commander"):
+                        continue
+                    if math.hypot(x - centre[0], z - centre[1]) <= radius:
+                        index[e] = len(theirs) + len(later)
+                        later.append({"type": defs[d]["name"], "t": round((r["f"] - frame) / 30, 2), "x": x, "z": z,
+                                      **({"hp": hp} if hp >= 0 else {}), "source_id": e})
+    # From the last line at or before the clock on.
+    start = max((i for i, (f, _) in enumerate(lines) if f <= frame), default=0)
+    rows = []
+    for f, units in lines[start:]:
+        for e, x, z in units:
+            if e in index:
+                rows.append({"t": round((f - frame) / 30, 2), "unit": index[e], "x": x, "z": z})
+    return rows, later
+
+
+def within_field(x, z, centre):
+    dx, dz = x - centre[0], z - centre[1]
+    d = math.hypot(dx, dz)
+    if d <= FIELD:
+        return x, z
+    return round(centre[0] + dx / d * FIELD), round(centre[1] + dz / d * FIELD)
+
+
+def recorded_script(path, frame, ours, theirs, last_seen, seconds, centre):
+    """Our cut units' recorded orders in the `seconds` after `frame`, as duel script rows."""
+    ours_index = {u["id"]: i for i, u in enumerate(ours)}
+    theirs_index = {e["id"]: i for i, e in enumerate(theirs)}
+    end = frame + int(seconds * 30)
+    seen = dict(last_seen)
+    rows, last = [], {}
+    with open(path) as f:
+        f.readline()
+        for line in f:
+            if '"t":"s"' in line[:40]:
+                try:
+                    r = json.loads(line)
+                except json.JSONDecodeError:
+                    break
+                if r["f"] > end:
+                    break
+                if r["f"] >= frame:
+                    seen.update({e: (x, z) for e, d, x, z, *_ in r["en"]})
+                continue
+            if not (line.startswith('{"c":') or '"t":"cmd"' in line[-40:]):
+                continue
+            try:
+                r = json.loads(line)
+            except json.JSONDecodeError:
+                break
+            if r.get("t") != "cmd" or r["f"] < frame:
+                continue
+            if r["f"] > end:
+                break
+            t = round((r["f"] - frame) / 30, 2)
+            this_tick = set()
+            for c in r["c"]:
+                if len(c) < 2 or c[1] not in ours_index:
+                    continue
+                unit = ours_index[c[1]]
+                row = None
+                if c[0] in ("move", "fight"):
+                    x, z = within_field(c[2], c[3], centre)
+                    row = {"cmd": c[0], "x": x, "z": z}
+                elif c[0] == "attack":
+                    if c[2] in theirs_index:
+                        row = {"cmd": "attack", "target": theirs_index[c[2]]}
+                    elif c[2] in seen:
+                        row = {"cmd": "fight", "x": seen[c[2]][0], "z": seen[c[2]][1]}
+                elif c[0] == "stop":
+                    row = {"cmd": "stop"}
+                elif c[0] == "guard" and c[2] in ours_index:
+                    row = {"cmd": "guard", "target": ours_index[c[2]]}
+                if row is None:
+                    continue
+                queued = unit in this_tick
+                if not queued and last.get(unit) == row:
+                    continue
+                this_tick.add(unit)
+                last[unit] = row if not queued else {"queued": True}
+                rows.append({"t": t, "unit": unit} | row | ({"queue": True} if queued else {}))
+    return rows
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("record")
@@ -163,6 +301,9 @@ def main():
     ap.add_argument("--orders", type=float, default=20.0, help="seconds before the clock in which a command still counts")
     ap.add_argument("--after", default="30,60", help="seconds after the clock at which to score the live outcome")
     ap.add_argument("--out")
+    ap.add_argument("--track", action="store_true", help="write the enemies' positions after the clock as sides[1].track")
+    ap.add_argument("--track-seconds", type=float, default=60.0, help="how long after the clock the track and the script run")
+    ap.add_argument("--script", help="write our units' recorded orders after the clock as a duel script to this file")
     a = ap.parse_args()
 
     path = record_of(a.record)
@@ -177,7 +318,7 @@ def main():
     earlier = {u: (x, z) for u, d, x, z, *_ in (before or {"own": []})["own"]}
     ours = []
     for u, d, x, z, hp, flags in at["own"]:
-        if armed(defs[d]) and not flags & 1:
+        if armed(defs[d]) and not flags & 1 and hp >= 0:
             ours.append({"id": u, "type": defs[d]["name"], "x": x, "z": z, "health": round(hp / 100, 3), "heading": heading((x, z), earlier.get(u))})
 
     theirs = []
@@ -250,6 +391,14 @@ def main():
         return out
 
     live = live_outcome(path, header, frame, ours, theirs, [float(x) for x in a.after.split(",") if x])
+    track, later = enemy_track(path, header, frame, theirs, a.enemies, a.track_seconds, (cx, cz), a.radius) if a.track else (None, [])
+    if a.script:
+        rows = recorded_script(path, frame, ours, theirs, last_seen, a.track_seconds, (cx, cz))
+        with open(a.script, "w") as f:
+            json.dump({"format": "within-reason-script", "version": 1, "source": {"record": os.path.abspath(path), "clock": a.clock, "frame": at["f"]},
+                       "rows": rows}, f, indent=None, separators=(",", ":"))
+            f.write("\n")
+        print(f"  script: {len(rows)} rows over {a.track_seconds:.0f} s -> {a.script}", file=sys.stderr)
 
     scenario = {
         "format": "within-reason-scenario",
@@ -263,6 +412,10 @@ def main():
         },
         "sides": [{"name": "ours", "units": clean(ours)}, {"name": "theirs", "units": clean(theirs)}],
     }
+    if track is not None:
+        scenario["sides"][1]["track"] = track
+    if later:
+        scenario["sides"][1]["later"] = later
     text = json.dumps(scenario, indent=1)
     if a.out:
         with open(a.out, "w") as f:

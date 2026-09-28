@@ -10,13 +10,17 @@ duel (--units a,b,c | --ours a,b --theirs c,d | --pairs a:b,c:d)
      [--sweep-waves 3] [--spacing 56] [--formation X[/Y],...] [--lane off|old|on[/...]] [--speed 50] [--map NAME]
      [--label TEXT] [--base-port 9500]
 duel --scenario FILE [--reps 8] [--parallel 2] [--time-limit 240] [--lane X[/Y]] [--speed 50] [--label TEXT] [--base-port 9500]
+     [--script FILE [--script-delay S]] [--theirs director|track] [--economy bare|fed] [--seeds a,b,c]
 duel --pairs chaser:runner --count N --chase FRAMES [--lane on] ...   the chase instrument (below)
 duel --scenario raid [--ours armfav*4+armflash*2] [--theirs armflea*1+armpw*1] [--reps 8] [--lane on|off] [--time-limit 180] ...
                                        the raid scenario (below): a picket body against scripted raiders
 duel --report DIR [duels.csv ...]      rebuild the tables in DIR (from its own duels.csv, or merge the files named)
 run/engagement.py <match dir> <MM:SS> [--radius 900] [--at X,Z] [--enemies sight|known|truth] [--orders 20]
-                  [--after 30,60] [--out FILE]     cut a scenario file from a live record
+                  [--after 30,60] [--out FILE] [--track [--track-seconds 60]] [--script FILE]
+                                       cut a scenario file from a live record (with the enemy's track, our orders)
+run/scenario_table.py <batch dir> ... [--by-seed]   one markdown row per scenario batch (margins, value left at 30/60 s)
 ```
+`--seeds a,b,c` works for every kind of batch: each duel is fought `--reps` times under each engine seed.
 `--units` runs every pair from the list, each unit against itself included; `--ours/--theirs` the cross product;
 `--pairs` exactly those. Unit names are the game's internal ones (`armpw`). A side may also be a **mixed force**,
 `armflash*8+armstump*6` (2026-09-25): spawned as written, in list order, so the first type stands in the front
@@ -64,7 +68,7 @@ batches from before the fire instrument too, leaving its columns empty (nan in `
 - **Order of play.** Repetition `r` of a pairing puts the first unit at the west end when `r` is even and gives it
   team 0 when `r / 2` is even, so four repetitions cover every combination. The plan is shuffled with a fixed seed.
 - **The lane** (`--lane`, 2026-09-25). `X` or `X/Y`: whether the bot's control lane (`crates/micro`: flee, fan,
-  focus, kite and the formation slots of H-MICRO-FORM) drives the first army of each pairing, and the second
+  kite and the body's shape of H-MICRO-FORM) drives the first army of each pairing, and the second
   (default `off`): `off` is the director's orders alone (the harness before 2026-09-25), `old` the lane without
   H-MICRO-FORM (the bot's lane as it was), `on` the whole lane. The director holds a `micro::Lane` per army, notes
   its own Fight orders as the standing orders, commits everything (`Commitment::All`), and appends the lane's
@@ -73,7 +77,11 @@ batches from before the fire instrument too, leaving its columns empty (nan in `
   design. `duels.csv` names the modes in `lane_x` / `lane_y`; `pairs.csv` splits by them. Run a batch in each mode
   and compare with `run/duel_ab.py <without> <with>` (the lane is not part of its pairing key). This replaced
   `--spread` (a copy of the retired H-MICRO-SPREAD's block, deleted 2026-09-25: the lane itself now runs here).
-  `WITHIN_REASON_MICRO_DEBUG=1` prints the lane's claims to the terminal.
+  `WITHIN_REASON_MICRO_DEBUG=1` prints the lane's claims to the terminal. `WITHIN_REASON_DISABLE=<rule IDs>` switches
+  lane rules off (H-MICRO-FORM-SPACING, H-MICRO-FLEE, ...), and `WITHIN_REASON_FORM_SPACING=factor,max` sets the
+  spacing against area weapons (`micro::FormTuning`: twice the blast radius, at most 160, by default); `batch.json`
+  records both (`disabled`, `form_spacing`; from 2026-09-28). At every start the duel prints the blast radius the
+  definitions carry for the Fatboy, Bull, Stout and Blitz (`duel: blast radius from the definitions: armfboy 150, ...`).
 - **Scoring.** Decided when one army has nobody left (`wiped`), after `--time-limit` game seconds (`timeout`), or after
   60 s without damage to anyone (`stalemate`: anti-air against anti-air). `value_left` is the surviving share of an
   army's metal, each survivor weighted by its health. **Margin** = own `value_left` minus the enemy's: +1 is a flawless
@@ -161,6 +169,48 @@ prepared is given again whole in step 3, and counts in that error. Measured on t
 the Pawn's sprayed gun hurt and killed its target's neighbours (mean error 0.15); held units kept firing at the
 hurters they had taken as targets; hurters given with their targets were crushed by the tanks pushed into them
 (killed by a Stout that never fired); and a unit left hurt for a minute and a half healed back to whole.
+
+### Scripts, tracks, seeds and the per-second log (2026-09-28)
+
+For the hand-built TAS of one engagement (`docs/design/2026-09-28-tas-micro.md`, `docs/studies/2026-09-28-tas-e3.md`).
+- **`--script FILE`**: timed orders for side 0 (ours), JSON rows `{"t", "unit", "cmd", "x", "z" | "target", "queue",
+  "state"}` (the format is `scenario.rs`'s doc comment: move, fight, attack, stop, guard, firestate; `unit` an index
+  into side 0, a list, or `"all"`; an attack's `target` an index into side 1). Side 0 then gets no order from the
+  director (only fire at will and the heading step at the start) and its lane is off; a row goes out on the
+  director's first tick at or after `t + --script-delay` seconds from the first orders. Ticks are three frames, so
+  a row lands up to 0.1 s after its time; the rows of one tick go out in file order in that tick's one batch of
+  commands, which the engine carries out in that order on one frame. A dead unit or dead target skips the row for
+  that unit (the log says which). `run/engagement.py --script FILE` writes the record's own orders as a script (an
+  order repeating the unit's last dropped, a unit's later orders of one tick queued, a point further than 1,500 from
+  the place pulled in to 1,500: a retreat home walked into a commander and ended the match, smoke-e3).
+- **`--theirs director|track`**: who orders side 1. `director` is the plain duel (the file's first orders, idle units
+  attack-move at our centre). `track` walks the positions the file's `sides[1].track` recorded (`run/engagement.py
+  --track`: from the truth file every 2 s, or from the record's sight rows): each mobile unit is moved to its first
+  recorded place later than now whenever that changes (and is more than 16 from the last place sent); it dies when
+  it dies in the engine, and stands when the rows run out. Checked on E3 (val-e3-record-track): the Centurions stood
+  within 15-90 of their recorded places at 5, 10, 20, 30, 45 and 59 s. `ai` (BARb on side 1) is not built.
+- **`--economy fed`**: each team is given a `freefusion` (850 energy a second) beside its commander at the start, so
+  turrets fire at their rate (K-units-towers-fire-at-the-rate-energy-arrives). On E3 (two light turrets, a 25 s
+  fight) it changed nothing measurable (val-e3-director +0.297 ± 0.076 fed, +0.330 ± 0.056 bare).
+- **`--seeds a,b,c`**: every duel `--reps` times under each engine seed (`FixedRNGSeed`); a match takes the seed of
+  the first job waiting and fights only that seed's jobs. Without it the seed is the match's index plus one, as before.
+- **The per-second log**: `seconds/m<match>-s<site>-d<seq>-rep<r>[-seed<s>].jsonl` beside `duels.csv` (named in its
+  `log` column), one line a second from the first orders: `t`, `left` (each side's value left), `x` and `y` (every
+  living unit as `[index in the file, x, z, health]`), `shots` per unit and `dealt` as `[attacker, victim, damage]` that second (from
+  2026-09-28 evening; the first batches, val-* to tas-e3w-v0-director, carry `[attacker, damage]`), each team's stored
+  `energy`, and the script rows that went out (`orders`: row, frame, units sent, units skipped).
+- **An attack on a unit out of sight does not hunt it.** Queued, the engine drops it when it comes due (tas-e3-v3:
+  Centurion 3 lived in 11 of 24); given as the unit's current order it ends at once and the unit stands (tas-e3w-w-v9:
+  the Blitzes stood 430 from Centurion 7 for a minute). Send a fight to where the unit was seen instead. Buildings
+  once seen can be attacked from out of sight (the turret assaults).
+- Readers: `run/scenario_table.py` (one row per batch; `--position` counts the duels in which the named units of side
+  1 all died, and those with our value ahead), `run/tas_read.py <log>` (one duel's log as a timeline),
+  `run/front_rank.py` (in reach, stood still, blocked and first target by rank, from logs with the victim),
+  `run/shape_table.py <batch dir> ... [--position i,j,k]` (any duel batch: the margin with the first army's in reach
+  while engaged, muzzled, friend on the line, nearest friend and friendly-fire shares; the body-shape judge's table).
+- `duels.csv` gains `seed`, `left30_x/_y`, `left60_x/_y` (each side's value left 30 and 60 s after the first orders,
+  the end's value for a fight decided sooner: the live outcome a scenario file carries is scored at the same two) and
+  `log`. `batch.json` records the script, the delay, `theirs`, the seeds, the economy and the command line.
 
 ## The raid scenario: a picket body against scripted raiders (2026-09-26)
 

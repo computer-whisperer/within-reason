@@ -65,6 +65,8 @@ pub struct Job {
     pub shape: usize,
     /// Times this job was handed out before (a match that aborts gives its running duels back).
     pub attempts: u32,
+    /// The engine's `FixedRNGSeed` this duel must be fought under (`--seeds`); any match takes it when `None`.
+    pub seed: Option<u32>,
 }
 
 impl Job {
@@ -103,12 +105,16 @@ pub fn cross(ours: &[String], theirs: &[String]) -> Vec<(String, String)> {
     pairs
 }
 
-/// `reps` jobs per pair and shape, in an order that spreads a pair's repetitions over sites and matches.
-pub fn jobs(pairs: &[(String, String)], reps: u32, shapes: usize) -> Vec<Job> {
-    let mut jobs: Vec<Job> = (0..reps)
-        .flat_map(|rep| {
-            (0..shapes).flat_map(move |shape| {
-                pairs.iter().map(move |(x, y)| Job { x: x.clone(), y: y.clone(), rep, shape, attempts: 0 })
+/// `reps` jobs per pair and shape (and per seed, when `seeds` names any), in an order that spreads a pair's
+/// repetitions over sites and matches.
+pub fn jobs(pairs: &[(String, String)], reps: u32, shapes: usize, seeds: &[u32]) -> Vec<Job> {
+    let seeds: Vec<Option<u32>> = if seeds.is_empty() { vec![None] } else { seeds.iter().copied().map(Some).collect() };
+    let mut jobs: Vec<Job> = (seeds.iter().copied())
+        .flat_map(|seed| {
+            (0..reps).flat_map(move |rep| {
+                (0..shapes).flat_map(move |shape| {
+                    pairs.iter().map(move |(x, y)| Job { x: x.clone(), y: y.clone(), rep, shape, attempts: 0, seed })
+                })
             })
         })
         .collect();

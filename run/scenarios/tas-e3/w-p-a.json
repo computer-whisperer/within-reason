@@ -1,0 +1,81 @@
+{
+ "format": "within-reason-script",
+ "version": 1,
+ "note": "p-a on the r1250 cut: the near turret (6), the far turret (4), then the Centurions (5, 8, 7) and fights through where the Rocketeers, Centurions and Pawns were seen.",
+ "rows": [
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 6
+  },
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 4,
+   "queue": true
+  },
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 5,
+   "queue": true
+  },
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 8,
+   "queue": true
+  },
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 7,
+   "queue": true
+  },
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 4830,
+   "z": 1695,
+   "queue": true
+  },
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 4590,
+   "z": 1000,
+   "queue": true
+  },
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 5622,
+   "z": 1113,
+   "queue": true
+  },
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 5664,
+   "z": 1302,
+   "queue": true
+  },
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 4650,
+   "z": 1580,
+   "queue": true
+  }
+ ]
+}

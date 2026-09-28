@@ -280,7 +280,7 @@ impl Engine {
         let option_count = call!(self, UnitDef_getBuildOptions(id, std::ptr::null_mut(), 0));
         let mut options = vec![0; option_count.max(0) as usize];
         call!(self, UnitDef_getBuildOptions(id, options.as_mut_ptr(), option_count));
-        let (reach, reload) = self.longest_weapon(id);
+        let (reach, reload, blast_radius) = self.longest_weapon(id);
         let water_weapons = self.water_weapons(id);
         UnitDefInfo {
             id: UnitDefId(id),
@@ -313,6 +313,7 @@ impl Engine {
             self_destruct_seconds: call!(self, UnitDef_getSelfDCountdown(id)) as f32,
             reach,
             reload,
+            blast_radius,
         }
     }
 
@@ -333,21 +334,24 @@ impl Engine {
         (any, all)
     }
 
-    /// The range and reload of a type's longest ordinary weapon: manual-fire weapons (the D-gun) left out.
-    fn longest_weapon(&mut self, id: c_int) -> (f32, f32) {
+    /// The range and reload of a type's longest ordinary weapon, and the largest area of effect (a radius) among its
+    /// ordinary weapons: manual-fire weapons (the D-gun) left out.
+    fn longest_weapon(&mut self, id: c_int) -> (f32, f32, f32) {
         let mounts = call!(self, UnitDef_getWeaponMounts(id)).max(0);
         let mut best = (0.0f32, 0.0f32);
+        let mut area = 0.0f32;
         for mount in 0..mounts {
             let weapon = call!(self, UnitDef_WeaponMount_getWeaponDef(id, mount));
             if weapon < 0 || call!(self, WeaponDef_isManualFire(weapon)) {
                 continue;
             }
+            area = area.max(call!(self, WeaponDef_getAreaOfEffect(weapon)));
             let range = call!(self, WeaponDef_getRange(weapon));
             if range > best.0 {
                 best = (range, call!(self, WeaponDef_getReload(weapon)));
             }
         }
-        best
+        (best.0, best.1, area)
     }
 
     /// An explosion weapon's reach and its largest damage figure; None for no weapon or one that hurts nothing.

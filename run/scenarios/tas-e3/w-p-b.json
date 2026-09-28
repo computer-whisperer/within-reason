@@ -1,0 +1,88 @@
+{
+ "format": "within-reason-script",
+ "version": 1,
+ "note": "p-b on the r1250 cut: gather at (4450, 1950), at 4 s the near turret, the far turret, then the rest as w-p-a.",
+ "rows": [
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "move",
+   "x": 4450,
+   "z": 1950
+  },
+  {
+   "t": 4,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 6
+  },
+  {
+   "t": 4,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 4,
+   "queue": true
+  },
+  {
+   "t": 4,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 5,
+   "queue": true
+  },
+  {
+   "t": 4,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 8,
+   "queue": true
+  },
+  {
+   "t": 4,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 7,
+   "queue": true
+  },
+  {
+   "t": 4,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 4830,
+   "z": 1695,
+   "queue": true
+  },
+  {
+   "t": 4,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 4590,
+   "z": 1000,
+   "queue": true
+  },
+  {
+   "t": 4,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 5622,
+   "z": 1113,
+   "queue": true
+  },
+  {
+   "t": 4,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 5664,
+   "z": 1302,
+   "queue": true
+  },
+  {
+   "t": 4,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 4650,
+   "z": 1580,
+   "queue": true
+  }
+ ]
+}

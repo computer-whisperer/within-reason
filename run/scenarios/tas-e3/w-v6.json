@@ -1,0 +1,115 @@
+{
+ "format": "within-reason-script",
+ "version": 1,
+ "note": "w-v6 (r1250): v5's opening (Centurions 8 and 5 at the rock's south-west corner, pull out to (4250, 1400)); at 19 s a fight at (4440, 1480), where the Rocketeers come round the rock into the open (20-24 s); at 26 s the near turret, the far one, the Pawn standing by them, then to (5150, 1350); at 42 s a fight at Centurion 7's seen place and the Pawn beside it.",
+ "rows": [
+  {
+   "t": 0,
+   "unit": [
+    3,
+    4,
+    7,
+    8,
+    10
+   ],
+   "cmd": "move",
+   "x": 4430,
+   "z": 1640
+  },
+  {
+   "t": 0,
+   "unit": [
+    3,
+    4,
+    7,
+    8,
+    10
+   ],
+   "cmd": "attack",
+   "target": 8,
+   "queue": true
+  },
+  {
+   "t": 0,
+   "unit": [
+    0,
+    1,
+    2,
+    5,
+    6,
+    9,
+    11,
+    12,
+    13
+   ],
+   "cmd": "attack",
+   "target": 8
+  },
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 5,
+   "queue": true
+  },
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "move",
+   "x": 4250,
+   "z": 1400,
+   "queue": true
+  },
+  {
+   "t": 19,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 4440,
+   "z": 1480
+  },
+  {
+   "t": 26,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 6
+  },
+  {
+   "t": 26,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 4,
+   "queue": true
+  },
+  {
+   "t": 26,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 4848,
+   "z": 1514,
+   "queue": true
+  },
+  {
+   "t": 26,
+   "unit": "all",
+   "cmd": "move",
+   "x": 5150,
+   "z": 1350,
+   "queue": true
+  },
+  {
+   "t": 42,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 5622,
+   "z": 1113
+  },
+  {
+   "t": 42,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 5664,
+   "z": 1302,
+   "queue": true
+  }
+ ]
+}
