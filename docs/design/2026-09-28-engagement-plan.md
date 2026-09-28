@@ -30,6 +30,11 @@ priced against the current phase's statics only (`micro.rs`), the player's line 
 `plan: no`. Deleted from the pass: the whole-group attack on a party of the position a body's plan answers (running
 or opening this second), and the group's rule defaults (station walk, fall-back) while it runs a plan. Not built:
 stage 1's lane shape taking the phase's target (branch `tas-micro`, not merged here).
+Step 5: H-HANDS-ENGAGEMENT-PLAN registered; the claims K-jev-plans-the-screen-first-from-the-geometry-words,
+K-jev-the-examples-block-moved-no-plan and K-hands-the-plan-odds-do-not-see-reach (`docs/knowledge/jev.md`);
+H-HANDS-SCOUTS-FIGHT-NOTHING-ARMED and K-hands-a-scout-body-offered-an-armed-fight amended. Next: the one arena game
+(the main session's), read with `run/analyze_match.py --engagement`, the `engagement` lines and `run/fire.py`; then the
+reach in the phase words (the F3 fault).
 
 ## Why
 
