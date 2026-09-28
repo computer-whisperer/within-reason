@@ -119,7 +119,7 @@ markers and as the "theirs" series. Census positions are the mean of all units o
 extractors sits between them.
 
 ## Viewer
-`run/view_match.py` (the matches directory, the default) serves `viewer/` and every match under `run/matches/` at
+`run/view_match.py` (the matches directory, the default) serves `viewer/` and every match under `run/matches/` (the batches of 2026-09-19 and 2026-09-20 live in `/ceph/christian/within-reason/run/matches-archive/`, see the ledger's head; give the viewer that directory to see them) at
 `/matches/` and opens on a **match browser**: every batch newest first with its label, opponent, map, commit, hands
 (player, pianist, packet) and each match's result (a batch without a results line is still being played), a filter
 box, and a link per match (`?match=matches/<batch>/<NN>/`); "matches" in the header goes back. Given one batch it
