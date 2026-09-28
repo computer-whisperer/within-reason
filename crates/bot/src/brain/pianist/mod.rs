@@ -202,7 +202,7 @@ pub struct Pianist {
     pub(super) played: Vec<serde_json::Value>,
     /// The engagement plans (`engagement.rs`): per group the position last asked about and when, the question in
     /// flight in realtime, and the thread that asks it then.
-    pub(super) plan_asked: HashMap<String, (String, i32)>,
+    pub(super) plan_memory: HashMap<String, engagement::PlanMemory>,
     pub(super) plan_pending: HashMap<String, engagement::PlanPending>,
     plan_worker: Option<engagement::PlanWorker>,
     stats: Stats,
@@ -431,7 +431,7 @@ impl Pianist {
             logged_instructions: String::new(),
             logged_rules: String::new(),
             played: Vec::new(),
-            plan_asked: HashMap::new(),
+            plan_memory: HashMap::new(),
             plan_pending: HashMap::new(),
             plan_worker,
             stats: Stats::default(),

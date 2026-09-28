@@ -98,7 +98,8 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   2026-09-26 morning (worlds-smoke-1 to nouls-1) the retired H-HANDS-WORLDS lines (`quiet`, `groups`, `worlds`,
   `lines`, `played_outright`, `gate` per group, and `worlds_gate` with `flags` per group).
 - From 2026-09-28 (H-HANDS-ENGAGEMENT-PLAN, `docs/design/2026-09-28-engagement-plan.md`) an `engagement` line per plan
-  question answered: `{"t": "engagement", "f", "group", "position" (the elements' names, sorted, comma-joined), "ms",
+  question answered: `{"t": "engagement", "f", "group", "position" (the elements' names, sorted, comma-joined), "reason" (why it asked: `first`, `<element> died`,
+  `new static turret_N`, `new party party_N (M metal)`, `stale: N s since the last ask`; from 2026-09-28 evening), "ms",
   "model", "battlefield" (the words Jev read), "options" {key: words}, "probabilities" {key: p}, "taken" (the plan
   made the group's task: the top above 0.4 and above the decline's, else `decline`)}`, or `{"t": "engagement", "f",
   "group", "position", "error"}` for a call that failed. Not the pass's `plan` line (the worlds pick). The plan runs as

@@ -24,8 +24,14 @@ use super::picture::{Party, Place};
 pub(crate) const PLAN_REACH: f32 = 1200.0;
 /// Armed elements this close to each other (their nearest members) are one position.
 const LINK: f32 = 600.0;
-/// A plan is asked again for the same position after this long.
+/// A plan is asked again for the same position after this long (not while a phase runs).
 pub(crate) const PLAN_STALE: i32 = 45 * FRAMES_PER_SECOND;
+/// A taken plan, and a decline, hold at least this long before any re-ask (player-18: 69 asks by 35:00, 20 flips
+/// between consecutive asks of one group, group_H asked 8 times in minute 17 between two positions it was between).
+pub(crate) const PLAN_HOLD: i32 = 20 * FRAMES_PER_SECOND;
+pub(crate) const DECLINE_HOLD: i32 = 30 * FRAMES_PER_SECOND;
+/// A party that appears is a change of the position when its metal is above this share of the body's.
+const NEW_PARTY_SHARE: f32 = 0.2;
 /// The stand-off point stands this far inside our shortest reach from the element.
 const STANDOFF_SLACK: f32 = 20.0;
 /// Directions tried round each member for a stand-off point.
@@ -856,36 +862,41 @@ impl Brain {
         }
         let own = &tick.snapshot.own_units;
         let instructions = picture.state["instructions"].as_str().unwrap_or_default();
-        let mut asks: Vec<(String, String, Vec<Candidate>, jev::Request)> = Vec::new();
+        let mut asks: Vec<(String, String, String, PlanMemory, Vec<Candidate>, jev::Request)> = Vec::new();
         for group in &pianist.groups {
             let name = format!("group_{}", group.name);
             let Ok((bf, candidates)) = self.engagement_of(group, own, &picture.parties, &tick.snapshot.enemies, &picture.places, true) else { continue };
             let signature = bf.position.signature();
-            // One plan per body and position: asked again when an element appears or dies (the signature) or after
-            // `PLAN_STALE`, a running plan included.
-            let asked = pianist.plan_asked.get(&name).is_some_and(|(sig, f)| *sig == signature && frame - f < PLAN_STALE);
-            if asked || pianist.plan_pending.contains_key(&name) {
+            if pianist.plan_pending.contains_key(&name) {
                 continue;
             }
+            let running = match &group.task {
+                GroupTask::Plan(plan) => Some(plan.phase),
+                _ => None,
+            };
+            let dead = |id: UnitId, fixed: bool| if fixed { !self.enemy_buildings.contains_key(&id) } else { self.enemy_deaths.iter().any(|(d, ..)| *d == id.0 as u32) };
+            let Some(reason) = ask_reason(pianist.plan_memory.get(&name), &bf.position, bf.ours.metal, running, frame, &dead) else { continue };
+            let mut memory = PlanMemory::of(&bf.position, frame);
+            memory.phase = running;
             let rules = pianist.standing.rules_for(&name);
             let standing = rules.iter().map(|(k, v)| format!("{k} {v}")).collect::<Vec<_>>().join("; ");
             let paragraph = super::diet::paragraph(instructions, &name).unwrap_or_default();
             let words = self.battlefield_words(&bf, &picture.places);
             let request = request(&name, words, &candidates, paragraph, &standing, true);
-            asks.push((name, signature, candidates, request));
+            asks.push((name, signature, reason, memory, candidates, request));
         }
-        for (name, signature, candidates, request) in asks {
+        for (name, signature, reason, memory, candidates, request) in asks {
             let pianist = self.pianist.as_mut().expect("checked");
-            pianist.plan_asked.insert(name.clone(), (signature.clone(), frame));
+            pianist.plan_memory.insert(name.clone(), memory);
             match &pianist.plan_worker {
                 Some(worker) => {
                     if worker.to.send((name.clone(), request.clone())).is_ok() {
-                        pianist.plan_pending.insert(name, PlanPending { frame, signature, candidates, request });
+                        pianist.plan_pending.insert(name, PlanPending { frame, signature, reason, candidates, request });
                     }
                 }
                 None => {
                     let result = pianist.client.as_ref().expect("checked").ask(&request);
-                    self.plan_answered(frame, &name, &signature, &candidates, &request, result);
+                    self.plan_answered(frame, &name, &signature, &reason, &candidates, &request, result);
                 }
             }
         }
@@ -906,32 +917,49 @@ impl Brain {
             if tick.frame - pending.frame > PLAN_ANSWER_STALE {
                 continue;
             }
-            self.plan_answered(tick.frame, &name, &pending.signature, &pending.candidates, &pending.request, result);
+            self.plan_answered(tick.frame, &name, &pending.signature, &pending.reason, &pending.candidates, &pending.request, result);
         }
     }
 
     /// An answer: the plan taken (`choose`), logged as an `engagement` line of the Jev log, and made the group's task.
     #[allow(clippy::too_many_arguments)]
-    fn plan_answered(&mut self, frame: i32, name: &str, signature: &str, candidates: &[Candidate], request: &jev::Request, result: Result<jev::Response, jev::Error>) {
+    fn plan_answered(&mut self, frame: i32, name: &str, signature: &str, reason: &str, candidates: &[Candidate], request: &jev::Request, result: Result<jev::Response, jev::Error>) {
         let Some(pianist) = self.pianist.as_mut() else { return };
         let options: BTreeMap<&str, &str> = candidates.iter().map(|c| (c.key, c.words.as_str())).collect();
         let response = match result {
             Ok(r) => r,
             Err(e) => {
-                pianist.write_log(json!({ "t": "engagement", "f": frame, "group": name, "position": signature, "error": e.to_string() }));
+                pianist.write_log(json!({ "t": "engagement", "f": frame, "group": name, "position": signature, "reason": reason, "error": e.to_string() }));
                 return;
             }
         };
         let taken = choose(&response.answers, candidates);
         pianist.write_log(json!({
-            "t": "engagement", "f": frame, "group": name, "position": signature, "ms": response.latency.as_millis() as u64, "model": response.model,
+            "t": "engagement", "f": frame, "group": name, "position": signature, "reason": reason, "ms": response.latency.as_millis() as u64, "model": response.model,
             "battlefield": request.state["battlefield"], "options": options,
             "probabilities": taken.as_ref().map(|(_, p)| json!(p)), "taken": taken.as_ref().map(|(i, _)| candidates[*i].key),
         }));
         let Some((index, probabilities)) = taken else { return };
         let candidate = &candidates[index];
+        if let Some(m) = pianist.plan_memory.get_mut(name) {
+            (m.taken, m.asked) = (Some(candidate.key.to_string()), frame);
+        }
         let Some(group) = pianist.groups.iter_mut().find(|g| format!("group_{}", g.name) == name) else { return };
+        // The same plan again goes on where it is (its phase keeps running), with the position as it is now.
+        if let GroupTask::Plan(plan) = &mut group.task
+            && plan.key == candidate.key
+        {
+            plan.position = signature.split(',').map(str::to_string).collect();
+            let phase = plan.phase;
+            if let Some(m) = pianist.plan_memory.get_mut(name) {
+                m.phase = Some(phase);
+            }
+            return;
+        }
         group.set_task(GroupTask::Plan(PlanTask::with_position(candidate, signature.split(',').map(str::to_string).collect(), frame)), frame);
+        if let Some(m) = pianist.plan_memory.get_mut(name) {
+            m.phase = Some(0);
+        }
         let p = probabilities.get(candidate.key).copied().unwrap_or(0.0);
         let text = format!("{name} takes the engagement plan {} against {signature} (p {p:.2}): {}", candidate.key, candidate.phases.iter().map(|ph| ph.short.as_str()).collect::<Vec<_>>().join(", then "));
         pianist.note(frame, text.clone());
@@ -941,6 +969,55 @@ impl Brain {
     }
 }
 
+/// What a group was last asked about (H-HANDS-ENGAGEMENT-PLAN's hysteresis): the position's elements by their units,
+/// when, what was taken, and the plan's phase at the ask.
+#[derive(Clone, Debug)]
+pub(crate) struct PlanMemory {
+    pub elements: Vec<(String, bool, Vec<UnitId>)>,
+    pub asked: i32,
+    /// The plan taken; None until answered (or when the call failed).
+    pub taken: Option<String>,
+    pub phase: Option<usize>,
+}
+
+impl PlanMemory {
+    pub(crate) fn of(position: &Position, frame: i32) -> PlanMemory {
+        PlanMemory { elements: position.elements.iter().map(|e| (e.name.clone(), e.fixed, e.members.iter().map(|m| m.id).collect())).collect(), asked: frame, taken: None, phase: None }
+    }
+}
+
+/// Why the group's plan is asked again now, or None to keep what stands: a first ask; else, after the hold of what
+/// was taken (`PLAN_HOLD`, `DECLINE_HOLD`) and never while the phase that was running at the last ask still runs, an
+/// element of the remembered position dead (a party all of whose units are dead, a building gone from memory), a new
+/// static, a new party (none of its units in the remembered position) above a fifth of the body's metal, or
+/// `PLAN_STALE`. A party renamed, or a member more or less, is no change.
+pub(crate) fn ask_reason(memory: Option<&PlanMemory>, position: &Position, body_metal: f32, running_phase: Option<usize>, frame: i32, dead: &dyn Fn(UnitId, bool) -> bool) -> Option<String> {
+    let Some(m) = memory else { return Some("first".into()) };
+    let hold = if m.taken.as_deref() == Some("decline") { DECLINE_HOLD } else { PLAN_HOLD };
+    if frame - m.asked < hold {
+        return None;
+    }
+    if running_phase.is_some() && running_phase == m.phase {
+        return None;
+    }
+    if let Some((name, _, _)) = m.elements.iter().find(|(_, fixed, ids)| !ids.is_empty() && ids.iter().all(|id| dead(*id, *fixed))) {
+        return Some(format!("{name} died"));
+    }
+    let known = |id: &UnitId| m.elements.iter().any(|(_, _, ids)| ids.contains(id));
+    for e in &position.elements {
+        if e.members.iter().any(|x| known(&x.id)) {
+            continue;
+        }
+        if e.fixed {
+            return Some(format!("new static {}", e.name));
+        }
+        if e.metal > NEW_PARTY_SHARE * body_metal {
+            return Some(format!("new party {} ({:.0} metal)", e.name, e.metal));
+        }
+    }
+    (frame - m.asked >= PLAN_STALE).then(|| format!("stale: {} s since the last ask", (frame - m.asked) / FRAMES_PER_SECOND))
+}
+
 /// A plan answer older than this judges a battlefield too old to play (realtime).
 const PLAN_ANSWER_STALE: i32 = 3 * FRAMES_PER_SECOND;
 
@@ -948,6 +1025,7 @@ const PLAN_ANSWER_STALE: i32 = 3 * FRAMES_PER_SECOND;
 pub(crate) struct PlanPending {
     frame: i32,
     signature: String,
+    reason: String,
     candidates: Vec<Candidate>,
     request: jev::Request,
 }
@@ -1211,6 +1289,48 @@ pub(crate) mod tests {
         let (_, news) = tick(&brain, &mut group, &ours, &enemies, frame);
         assert!(news.is_some_and(|n| n.contains("finished")));
         assert!(matches!(group.task, GroupTask::Hold { .. }));
+    }
+
+    /// The hysteresis: a first ask; nothing within the hold (20 s a plan, 30 s a decline) or while the phase asked
+    /// under still runs; a renamed party or a member more is no change; a death, a new static or a party above a fifth
+    /// of the body's metal is; 45 s is stale.
+    #[test]
+    fn a_plan_is_asked_again_only_on_a_material_change_after_its_hold() {
+        let (brain, ours, enemies, parties) = e3();
+        let group = e3_group(&ours, GroupTask::Move { to: at(4500.0, 1400.0), place: "spot_20".into(), fight: true, since: 0 });
+        let (bf, _) = brain.engagement_of(&group, &ours, &parties, &enemies, &[], true).expect("planned");
+        let alive = |_: UnitId, _: bool| false;
+        let metal = bf.ours.metal;
+        assert_eq!(ask_reason(None, &bf.position, metal, None, 0, &alive).as_deref(), Some("first"));
+        let mut memory = PlanMemory::of(&bf.position, 0);
+        memory.taken = Some("screen_first".into());
+        memory.phase = Some(0);
+        let s = FRAMES_PER_SECOND;
+        assert!(ask_reason(Some(&memory), &bf.position, metal, Some(0), 10 * s, &alive).is_none(), "within the hold");
+        assert!(ask_reason(Some(&memory), &bf.position, metal, Some(0), 60 * s, &alive).is_none(), "the phase asked under still runs");
+        assert!(ask_reason(Some(&memory), &bf.position, metal, Some(1), 25 * s, &alive).is_none(), "nothing changed");
+        // The party renamed and one Centurion more: no change.
+        let mut renamed = bf.position.clone();
+        let screen = renamed.elements.iter_mut().find(|e| !e.fixed).unwrap();
+        screen.name = "party_99".into();
+        screen.members.push(Member { id: UnitId(4), def: None, at: at(4500.0, 1400.0), reach: 325.0, health: None });
+        assert!(ask_reason(Some(&memory), &renamed, metal, Some(1), 25 * s, &alive).is_none(), "a rename is no change");
+        // A turret destroyed.
+        let turret_dead = |id: UnitId, fixed: bool| fixed && id.0 == 10;
+        assert_eq!(ask_reason(Some(&memory), &bf.position, metal, Some(1), 25 * s, &turret_dead).as_deref(), Some("turret_10 died"));
+        // A new party: a Pawn (a twentieth of the body) is no change, three Centurions are.
+        let mut bigger = bf.position.clone();
+        let mut pawn = bigger.elements[0].clone();
+        (pawn.name, pawn.fixed, pawn.metal) = ("party_50".into(), false, 54.0);
+        pawn.members = vec![Member { id: UnitId(50), def: None, at: at(4700.0, 1500.0), reach: 180.0, health: None }];
+        bigger.elements.push(pawn.clone());
+        assert!(ask_reason(Some(&memory), &bigger, metal, None, 25 * s, &alive).is_none(), "a small party is no change");
+        bigger.elements.last_mut().unwrap().metal = 810.0;
+        assert!(ask_reason(Some(&memory), &bigger, metal, None, 25 * s, &alive).is_some_and(|r| r.starts_with("new party party_50")));
+        // A decline holds 30 s; stale at 45 s.
+        memory.taken = Some("decline".into());
+        assert!(ask_reason(Some(&memory), &bigger, metal, None, 25 * s, &alive).is_none(), "a decline holds 30 s");
+        assert!(ask_reason(Some(&memory), &bf.position, metal, None, 46 * s, &alive).is_some_and(|r| r.starts_with("stale")));
     }
 
     /// A lone raider and a scattered pair are not positions; a static alone is not either.

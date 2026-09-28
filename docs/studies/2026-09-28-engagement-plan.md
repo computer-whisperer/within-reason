@@ -62,3 +62,31 @@ player-15 rankings match the table's within 0.06.
 
 Next (not done here): the one arena game the design names, read with `run/analyze_match.py --engagement`, the
 `engagement` lines of the Jev log and `run/fire.py`.
+
+## The re-ask gate after player-18 (2026-09-28 evening)
+
+player-18 (`run/matches/1790560788-player-18-planner/00`, the main tree's first game with the planner) logged 72
+`engagement` lines: 70 before 36:00, 47 of them declines, 20 flips of the taken plan between consecutive asks of one
+group; group_H asked 8 times in minute 17 while its nearest position flipped between two turrets and two parties. The
+gate now asks again only on a material change, after a hold, and not while the phase asked under runs
+(H-HANDS-ENGAGEMENT-PLAN, amended).
+
+**On player-18's log** (a scratch pass over the recorded asks, the gate's rule re-implemented in Python: parties' units
+from the call line at the ask, deaths from the record's `enemy_destroyed`, the running phase from the call line's group
+task; the recorded answer stands in for what each kept ask would have got, and asks the old gate never made cannot be
+added): 24 of the 70 asks to 35:59 (26 of 72 to the end), 16 declines, 7 flips, at most 2 asks in any group-minute
+(was 8). Reasons of the 26: 12 first asks, 7 an element dead, 6 a new party, 1 a new static, none stale.
+
+**The rankings, re-asked after the change** (the replay does not go through the gate; the candidates are the same;
+one ask per arm, with / without the examples):
+
+| Moment | Before | After |
+|---|---|---|
+| player-14 9:16 | screen_first 0.79 / 0.76 | screen_first 0.80 / 0.79, gather_first 0.15 / 0.11, the walk-ins 0.01-0.03 |
+| player-14 9:17 | screen_first 0.80 / 0.81 | screen_first 0.78 / 0.79, gather_first 0.15 / 0.11, the walk-ins 0.01-0.03 |
+| player-15 9:24 | screen_first 0.57 / 0.61 | screen_first 0.55 / 0.59, gather_first 0.41 / 0.34, decline 0.01 |
+| player-15 9:27 | screen_first 0.73 / 0.78 | screen_first 0.70 / 0.71, gather_first 0.27 / 0.25, decline 0.01-0.02 |
+
+The order is the same at every moment; the largest shift is 0.07 (9:27 without the examples), within one ask's noise
+for all we know (Jev's variance between asks is not measured).
+

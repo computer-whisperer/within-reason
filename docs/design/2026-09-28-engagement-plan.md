@@ -30,6 +30,10 @@ priced against the current phase's statics only (`micro.rs`), the player's line 
 `plan: no`. Deleted from the pass: the whole-group attack on a party of the position a body's plan answers (running
 or opening this second), and the group's rule defaults (station walk, fall-back) while it runs a plan. Not built:
 stage 1's lane shape taking the phase's target (branch `tas-micro`, not merged here).
+After player-18 (the first game, the main tree's): the churn was real (70 asks to 35:59, 47 declines, 20 flips), so the
+re-ask is gated (`ask_reason`): a material change of the remembered position (a death, a new static, a new party above
+a fifth of the body's metal; not a rename or a member more) or 45 s, never within 20 s of a plan or 30 s of a decline
+or while the phase asked under runs; the log line says the reason. Replayed over player-18's log: 24 of the 70 asks.
 Step 5: H-HANDS-ENGAGEMENT-PLAN registered; the claims K-jev-plans-the-screen-first-from-the-geometry-words,
 K-jev-the-examples-block-moved-no-plan and K-hands-the-plan-odds-do-not-see-reach (`docs/knowledge/jev.md`);
 H-HANDS-SCOUTS-FIGHT-NOTHING-ARMED and K-hands-a-scout-body-offered-an-armed-fight amended. Next: the one arena game
