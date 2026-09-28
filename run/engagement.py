@@ -194,8 +194,8 @@ def main():
                 theirs.append({"id": e, "type": name, "x": x, "z": z, "health": health, "heading": heading((x, z), was.get(e))})
         truth_frame = current["f"]
     else:
-        was = {e: (x, z) for e, d, x, z, hp in (before or {"en": []})["en"]}
-        for e, d, x, z, hp in at["en"]:
+        was = {e: (x, z) for e, d, x, z, hp, *_ in (before or {"en": []})["en"]}  # five fields before 2026-09-28, six (being built) after
+        for e, d, x, z, hp, *_ in at["en"]:
             if d < 0 or not armed(defs[d]) or (a.enemies == "sight" and hp < 0):
                 continue
             unit = {"id": e, "type": defs[d]["name"], "x": x, "z": z, "heading": heading((x, z), was.get(e))}
@@ -219,7 +219,7 @@ def main():
 
     # Our first orders: the last move / fight / attack / stop per unit in the window.
     index_of = {e["id"]: i for i, e in enumerate(theirs)}
-    last_seen = {e: (x, z) for e, d, x, z, hp in at["en"]}
+    last_seen = {e: (x, z) for e, d, x, z, hp, *_ in at["en"]}
     wanted = {u["id"] for u in ours}
     orders = {}
     for r in commands:
