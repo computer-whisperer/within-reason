@@ -206,6 +206,6 @@ to Rocketeers, Centurions and Pawns for one Lazarus. Neither the player nor a pi
 19953, 5134, 24632 (the fight points by ten-second bucket); the review's finding 3; `crates/micro/src/lib.rs` `form`
 at 1ffc8e9 (`engaged` = any foe within `HORIZON`, `keep` the target most claims name).
 **Status.** fixed 2026-09-28 (H-MICRO-FORM-PURSUIT: a target that has run 600 from first contact and is out of
-reach is let go for 30 s). Not yet measured: the harness has no fleeing-target scenario, and the E3/F3 arms hold
+reach is let go for 30 s; a lane test in `rove.rs` shows the let-go and the return to the station). Not yet measured: the harness has no fleeing-target scenario, and the E3/F3 arms hold
 static or standing targets, so they cannot show a regression from it either way.
 
