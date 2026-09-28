@@ -671,3 +671,19 @@ normal"); measured on one game: shipyards by 1:06 and hover platforms by 3:01 on
 **Would be wrong if.** A seat without its own hover platform could not get hover constructors in time by transfer, or
 construction ships could not take the under-water spots the hands offer them.
 **Used by.** the brief's water-map paragraph (2026-09-28).
+
+### K-army-the-pros-body-ceiling-is-a-dozen
+**Claim.** In the experienced players' Comet Catcher duels (40 games, OS 40+, `run/replays/composition.py`) the
+typical largest body of one type in a game (the median over games of each game's largest body, chained at 200) is a
+dozen of a raider or line tank (13 Blitzes, 13 Bulldogs, 11 Instigators, 13 Grunts, 10 Pawns, 9 Thuds) and eight
+Stouts; seven Whistlers or Mortars; four Hammers or Levelers; two Slashers. Rovers alone are massed (16-17 in one body
+at 3:50-5:10). The bodies over 30 are late (after 14:00) and mixed (two or three types together), never 30 of one
+thing. Ours: 24 Stouts in one body at 17:13 of player-15 (three times the pros' typical largest), 31 owned at once.
+**Evidence.** `docs/studies/2026-09-28-body-sizes.md` (the table, with the game and clock of every maximum).
+**Status.** measured 2026-09-28 (the user's question: units without micro attention lose effectiveness at a scale,
+and we throw armies that cannot all engage against a few tier-2 units). Not yet a rule: what a body over the ceiling
+costs is the duel harness's next measurement (8 against 24 Stouts, `--formation` arms), and the TAS work
+(`docs/design/2026-09-28-tas-micro.md`) asks the same question of one engagement.
+**Would be wrong if.** The pros' small bodies were the map's chokes and not a choice (the same players on Full
+Metal Plate would say), or the count at 200 elmos split one intended body into several (the max at 400 would say).
+
