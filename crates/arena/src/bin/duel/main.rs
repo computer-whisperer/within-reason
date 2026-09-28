@@ -6,7 +6,10 @@
 //!             [--parallel N] [--sites N] [--duels-per-match N] [--time-limit SECONDS] [--sweep-waves N] [--spacing ELMOS] [--formation X[/Y],...] [--lane X[/Y]] [--speed N] [--map NAME]
 //!             [--label TEXT] [--base-port N]
 //!        duel --scenario FILE [--reps N] [--parallel N] [--time-limit SECONDS] [--lane X[/Y]] [--speed N] [--label TEXT] [--base-port N]
-//!             (a recorded engagement, `scenario.rs`, fought `--reps` times on its own map and place)
+//!             [--script FILE [--script-delay S]] [--theirs director|track] [--economy bare|fed]
+//!             (a recorded engagement, `scenario.rs`, fought `--reps` times on its own map and place; side 0 under a
+//!             timed script, side 1 on its recorded track)
+//!        --seeds a,b,c: every duel `--reps` times under each engine seed (`FixedRNGSeed`), not only the match's own.
 //!        A side of a pairing is a unit name (the count from --budget/--count) or a mixed force `name*count+name*count`.
 //!        --lane off|old|on per side: whether the control lane (`crates/micro`) drives the army over the director's orders.
 //!        duel --report DIR [duels.csv ...]   (rebuild the tables in DIR, from its own duels.csv or the files named)
@@ -37,9 +40,9 @@ use arena::harness::{
 };
 use bot_protocol::{Commands, FrameReader, ToBot, write_frame};
 
-use director::{Batch, Director};
+use director::{Batch, Control, Director};
 use plan::{Job, LaneMode, Sizing};
-use scenario::Scenario;
+use scenario::{Scenario, Script};
 use sites::Formation;
 
 /// A match whose director hears nothing for this long has hung.
@@ -73,6 +76,15 @@ struct Options {
     /// `--scenario raid`: the raid scenario (`raid.rs`).
     raid: bool,
     boxes: [script::StartBox; 2],
+    /// `--script FILE`: timed orders for side 0 of the scenario; `--script-delay`.
+    script: Option<Script>,
+    script_delay: f32,
+    /// `--theirs director|track`: who orders side 1 of the scenario.
+    theirs: Control,
+    /// `--seeds`: the engine seeds each duel is fought under.
+    seeds: Vec<u32>,
+    /// `--economy fed`: a free fusion for each team (`director.rs` `FEEDER`).
+    fed: bool,
 }
 
 fn main() -> io::Result<()> {
@@ -91,7 +103,7 @@ fn main() -> io::Result<()> {
     let stamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
     let batch_dir = repo.join(format!("run/matches/{stamp}-duel-{}", options.label));
     fs::create_dir_all(&batch_dir)?;
-    let jobs = plan::jobs(&options.pairs, options.reps, options.shapes.len());
+    let jobs = plan::jobs(&options.pairs, options.reps, options.shapes.len(), &options.seeds);
     let shapes: Vec<String> = options.shapes.iter().map(|[x, y]| format!("{}/{}", x.label(), y.label())).collect();
     println!(
         "{} duels ({} pairings x {} shapes x {}) on {} -> {}",
@@ -104,12 +116,19 @@ fn main() -> io::Result<()> {
             "reps": options.reps, "sizing": format!("{:?}", options.sizing), "time_limit": options.time_limit,
             "speed": options.speed, "sweep_waves": options.sweep_waves, "spacing": options.spacing, "formations": shapes, "lanes": [options.lanes[0].label(), options.lanes[1].label()], "sites": options.sites, "duels_per_match": options.duels_per_match,
             "scenario": options.scenario.as_ref().map(|s| s.centre), "chase": options.chase, "raid": options.raid,
+            "script": options.script.as_ref().map(|s| s.label.clone()), "script_delay": options.script_delay,
+            "theirs": options.theirs.label(), "seeds": options.seeds, "economy": if options.fed { "fed" } else { "bare" },
+            "argv": std::env::args().collect::<Vec<_>>(),
         }))?,
     )?;
 
     let csv_path = batch_dir.join("duels.csv");
     fs::write(&csv_path, format!("{}\n", report::HEADER))?;
     let csv = Mutex::new(OpenOptions::new().append(true).open(&csv_path)?);
+    let log_dir = options.scenario.is_some().then(|| batch_dir.join("seconds"));
+    if let Some(dir) = &log_dir {
+        fs::create_dir_all(dir)?;
+    }
     let total = jobs.len();
     let done = AtomicUsize::new(0);
     let batch = Arc::new(Batch {
@@ -124,15 +143,22 @@ fn main() -> io::Result<()> {
         scenario: options.scenario.clone(),
         chase: options.chase,
         raid: options.raid,
+        script: options.script.clone(),
+        script_delay: options.script_delay,
+        theirs: options.theirs,
+        fed: options.fed,
+        log_dir,
         on_result: Box::new(move |result| {
             // Written as they finish, so an interrupted batch keeps what it has.
             let _ = writeln!(csv.lock().unwrap(), "{}", report::row(result));
             let n = done.fetch_add(1, Ordering::Relaxed) + 1;
             let muzzled = |i: usize| 100.0 * result.fire[i].muzzled_seconds() as f32 / result.fire[i].reach_seconds.max(1) as f32;
             println!(
-                "[{n}/{total}] {}x{} ({}, lane {}) vs {}x{} ({}, lane {}): {} ({}) {:.0}s, left {:.0}% / {:.0}%, muzzled {:.0}% / {:.0}%, nearest friend {:.0} / {:.0}",
+                "[{n}/{total}] {}x{} ({}, lane {}) vs {}x{} ({}, lane {}){}: {} ({}) {:.0}s, left {:.0}% / {:.0}% (at 30 s {:.0}% / {:.0}%), muzzled {:.0}% / {:.0}%, nearest friend {:.0} / {:.0}",
                 result.count[0], result.job.x, result.formation[0], result.lane[0], result.count[1], result.job.y, result.formation[1], result.lane[1],
+                result.seed.map_or(String::new(), |s| format!(" seed {s}")),
                 result.winner, result.reason, result.seconds, 100.0 * result.value_left[0], 100.0 * result.value_left[1],
+                100.0 * result.left_at[0][0], 100.0 * result.left_at[0][1],
                 muzzled(0), muzzled(1), result.shape[0].median_nearest(), result.shape[1].median_nearest()
             );
         }),
@@ -175,6 +201,15 @@ fn main() -> io::Result<()> {
 
 /// One engine start: duels run until the queue is empty or the match has had its share.
 fn run_match(repo: &Path, batch_dir: &Path, options: &Options, batch: &Arc<Batch>, index: usize) -> io::Result<()> {
+    // Under `--seeds` the match takes the seed of the first job waiting, and only that seed's jobs; else its own.
+    let seed = if options.seeds.is_empty() {
+        None
+    } else {
+        match batch.queue.lock().unwrap().front() {
+            Some(job) => job.seed,
+            None => return Ok(()),
+        }
+    };
     let dir = batch_dir.join(format!("{index:02}"));
     fs::create_dir_all(&dir)?;
     let host_port = options.base_port + 2 * index as u16;
@@ -184,14 +219,15 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, batch: &Arc<Batch
         copy_tree(&cache_template, &dir.join("cache"))?;
     }
     let script_path = dir.join("script.txt");
-    fs::write(&script_path, script::render(&resolve_game(repo, GAME_TAG)?, &options.map, host_port, host_port + 1, index as u32 + 1, options.boxes))?;
+    let engine_seed = seed.unwrap_or(index as u32 + 1);
+    fs::write(&script_path, script::render(&resolve_game(repo, GAME_TAG)?, &options.map, host_port, host_port + 1, engine_seed, options.boxes))?;
 
     let mut autohost = Autohost::bind(host_port + 1)?;
     // Unix socket paths are limited to ~108 bytes, so the socket cannot live in the match directory.
     let runtime_dir = std::env::var_os("XDG_RUNTIME_DIR").map_or_else(std::env::temp_dir, Into::into);
     let socket = runtime_dir.join(format!("wreason-duel-{}-{index}.sock", std::process::id()));
     let _ = fs::remove_file(&socket);
-    let director = Arc::new(Mutex::new(Director::new(batch.clone(), index, options.sites, options.duels_per_match)));
+    let director = Arc::new(Mutex::new(Director::new(batch.clone(), index, options.sites, options.duels_per_match, seed)));
     let closing = Arc::new(AtomicBool::new(false));
     let listener = serve(&socket, director.clone(), closing.clone())?;
 
@@ -321,7 +357,13 @@ fn parse_args() -> io::Result<Options> {
         chase: None,
         raid: false,
         boxes: script::DUEL_BOXES,
+        script: None,
+        script_delay: 0.0,
+        theirs: Control::Director,
+        seeds: Vec::new(),
+        fed: false,
     };
+    let mut script_path: Option<PathBuf> = None;
     let mut time_limit_given = false;
     let mut map_given = false;
     let list = |text: String| text.split(',').map(str::to_string).collect::<Vec<_>>();
@@ -342,7 +384,23 @@ fn parse_args() -> io::Result<Options> {
         match flag.as_str() {
             "--units" => options.pairs.extend(plan::all_pairs(&list(value()))),
             "--ours" => ours = list(value()),
-            "--theirs" => theirs = list(value()),
+            // Under a scenario `--theirs` names who orders side 1; elsewhere the other side's units.
+            "--theirs" => match value().as_str() {
+                "director" => options.theirs = Control::Director,
+                "track" => options.theirs = Control::Track,
+                "ai" => usage("--theirs ai is not built yet (phase 3 of docs/design/2026-09-28-tas-micro.md)"),
+                other => theirs = list(other.to_string()),
+            },
+            "--script" => script_path = Some(PathBuf::from(value())),
+            "--script-delay" => options.script_delay = value().parse().unwrap_or_else(|_| usage("--script-delay takes seconds")),
+            "--seeds" => {
+                options.seeds = list(value()).iter().map(|s| s.parse().unwrap_or_else(|_| usage("--seeds takes numbers"))).collect();
+            }
+            "--economy" => match value().as_str() {
+                "fed" => options.fed = true,
+                "bare" => options.fed = false,
+                _ => usage("--economy is bare or fed"),
+            },
             "--pairs" => {
                 for pair in list(value()) {
                     let (x, y) = pair.split_once(':').unwrap_or_else(|| usage("--pairs takes x:y,x:y"));
@@ -424,11 +482,23 @@ fn parse_args() -> io::Result<Options> {
     if options.scenario.is_some() && (options.pairs.len() != 1 || options.shapes.len() != 1) {
         usage("--scenario fights its own sides: no pairings and no formations beside it");
     }
+    if let Some(path) = script_path {
+        let Some(scenario) = &options.scenario else { usage("--script needs --scenario FILE") };
+        options.script = Some(Script::load(&path, scenario).unwrap_or_else(|e| usage(&e)));
+        if options.lanes[0] != LaneMode::Off {
+            eprintln!("--script: side 0 is the script's alone; its lane is off");
+            options.lanes[0] = LaneMode::Off;
+        }
+    }
+    if options.theirs == Control::Track && options.scenario.as_ref().is_none_or(|s| s.sides[1].track.is_empty()) {
+        usage("--theirs track needs a scenario whose side 1 has a track (run/engagement.py --track)");
+    }
     Ok(options)
 }
 
 fn usage(problem: &str) -> ! {
     eprintln!("{problem}\nusage: duel (--units a,b,c | --ours a,b --theirs c,d | --pairs a:b,c:d) [--reps N] [--budget METAL | --count N] [--parallel N] [--sites N] [--duels-per-match N] [--time-limit SECONDS] [--sweep-waves N] [--spacing ELMOS] [--formation X[/Y],...] [--lane off|old|on[/...]] [--speed N] [--map NAME] [--label TEXT] [--base-port N]\n       duel --scenario FILE [--reps N] [--parallel N] [--time-limit SECONDS] [--lane X[/Y]] [--speed N] [--label TEXT] [--base-port N]
+            [--script FILE [--script-delay S]] [--theirs director|track] [--economy bare|fed] [--seeds a,b,c]
        duel --report DIR [duels.csv ...]");
     std::process::exit(2)
 }

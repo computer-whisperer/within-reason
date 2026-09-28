@@ -6,8 +6,11 @@
 //! side: a list of `Spawn`s.
 
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
+
+use serde_json::{Value, json};
 
 use bot_protocol::{Command, Event, Hello, Terrain, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
 use micro::{Commitment, Lane, Stats, View};
@@ -15,7 +18,7 @@ use micro::{Commitment, Lane, Stats, View};
 use crate::fire::{self, Fire, Tally};
 use crate::plan::{Force, Job, LaneMode, Sizing};
 use crate::raid::{self, Raid};
-use crate::scenario::{self, Order, Scenario};
+use crate::scenario::{self, Order, Scenario, Script, ScriptCmd, TRACK_STILL, TrackRow};
 use crate::sites::{self, Footprint, Formation, FormationKind, Site};
 
 const FPS: i32 = 30;
@@ -63,6 +66,31 @@ const HEADING_STEP: f32 = 24.0;
 /// The shape instrument samples the armies at first damage and this much later (`run/replays/shapes.py`: t0 and
 /// t0 + 10 s).
 const SHAPE_LATER: i32 = 10 * FPS;
+/// The seconds after the first orders at which each side's value left is kept for `duels.csv` (`left30`, `left60`):
+/// the live outcome a scenario file carries is scored at the same two.
+const LEFT_AT: [i32; 2] = [30, 60];
+/// `--economy fed`: each team is given one of these beside its commander when the match starts (850 energy a second
+/// for 40 metal), so turrets fire at their rate and not at the rate a lone commander's 30 energy a second allows
+/// (K-units-towers-fire-at-the-rate-energy-arrives). A recorded engagement had an economy behind it.
+const FEEDER: &str = "freefusion";
+
+/// Who gives side 1 of a scenario its orders (`--theirs`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Control {
+    /// The duel director: the file's first orders, then idle units attack-move at the other side's centre.
+    Director,
+    /// The recorded track (`Side::track`), as move orders.
+    Track,
+}
+
+impl Control {
+    pub fn label(self) -> &'static str {
+        match self {
+            Control::Director => "director",
+            Control::Track => "track",
+        }
+    }
+}
 
 /// What the matches of a batch share: the duels still to run and where results go.
 pub struct Batch {
@@ -88,6 +116,16 @@ pub struct Batch {
     pub chase: Option<i32>,
     /// `duel --scenario raid`: every job is the raid scenario (`raid.rs`), `x` the picket body and `y` the raiders.
     pub raid: bool,
+    /// `duel --script`: timed orders for side 0 of the scenario, replacing the director's (and the lane's).
+    pub script: Option<Script>,
+    /// `--script-delay`: seconds every script row is held back (the latency a rule's order would have).
+    pub script_delay: f32,
+    /// `--theirs`: who orders side 1 of the scenario.
+    pub theirs: Control,
+    /// `--economy fed`: each team gets a `FEEDER`.
+    pub fed: bool,
+    /// Where a scenario's per-second logs go (`<batch>/seconds/`).
+    pub log_dir: Option<PathBuf>,
     pub on_result: Box<dyn Fn(&DuelResult) + Send + Sync>,
 }
 
@@ -136,6 +174,12 @@ pub struct DuelResult {
     pub first_kill_seconds: Option<f32>,
     pub hunters_lost: u32,
     pub hunts: String,
+    /// The engine's seed the duel was fought under, when the batch named seeds.
+    pub seed: Option<u32>,
+    /// Each side's value left at `LEFT_AT` seconds after the first orders (the end's, for a fight over sooner).
+    pub left_at: [[f32; 2]; 2],
+    /// The per-second log's file name under `seconds/` (a scenario's), or empty.
+    pub log: String,
 }
 
 /// One unit to give.
@@ -216,6 +260,15 @@ struct Army {
     moved_samples: u32,
     /// The last frame this army was re-sent (a chase's runner or chaser).
     resent: i32,
+    /// The team's stored energy at its last tick (the per-second log).
+    energy: f32,
+    /// Shots per unit since the last per-second log line, and damage taken by attacker.
+    second_shots: HashMap<UnitId, u32>,
+    second_hits: Vec<(UnitId, f32)>,
+    /// A script's next row (side 0 under `--script`).
+    next_row: usize,
+    /// A track's last place sent per spawn index, with the row's time (side 1 under `--theirs track`).
+    track_sent: HashMap<usize, (f32, Vec3)>,
 }
 
 impl Army {
@@ -251,6 +304,11 @@ impl Army {
             moved: 0.0,
             moved_samples: 0,
             resent: -1,
+            energy: 0.0,
+            second_shots: HashMap::new(),
+            second_hits: Vec::new(),
+            next_row: 0,
+            track_sent: HashMap::new(),
         }
     }
 
@@ -308,6 +366,12 @@ struct Duel {
     wreckage: Option<[f32; 4]>,
     /// The raid scenario's state (`raid.rs`), when this duel is one.
     raid: Option<Raid>,
+    /// A scenario's per-second log, one JSON line a second from the first orders; written out when it is decided.
+    log: Vec<String>,
+    /// Script rows issued or skipped since the last log line.
+    notes: Vec<Value>,
+    /// Each side's value left at `LEFT_AT`.
+    left_at: [Option<[f32; 2]>; 2],
 }
 
 impl Duel {
@@ -340,6 +404,10 @@ pub struct Director {
     /// Lane rule IDs switched off for this batch (`WITHIN_REASON_DISABLE`).
     disabled: Vec<String>,
     hello: Option<Hello>,
+    /// The engine seed of this match (`--seeds`): it takes only jobs of that seed.
+    seed: Option<u32>,
+    /// Teams already given their `FEEDER`.
+    fed: HashSet<i32>,
     /// First sighting of each team's own units: the commander.
     commanders: HashMap<i32, Vec3>,
     fields: Option<Vec<Field>>,
@@ -349,7 +417,7 @@ pub struct Director {
 }
 
 impl Director {
-    pub fn new(batch: Arc<Batch>, match_index: usize, wanted_sites: usize, duel_budget: u32) -> Self {
+    pub fn new(batch: Arc<Batch>, match_index: usize, wanted_sites: usize, duel_budget: u32, seed: Option<u32>) -> Self {
         Director {
             batch,
             match_index,
@@ -359,6 +427,8 @@ impl Director {
             defs_by_id: HashMap::new(),
             disabled: std::env::var("WITHIN_REASON_DISABLE").map_or_else(|_| Vec::new(), |ids| ids.split(',').map(str::to_string).collect()),
             hello: None,
+            seed,
+            fed: HashSet::new(),
             commanders: HashMap::new(),
             fields: None,
             last_tick: Instant::now(),
@@ -398,6 +468,18 @@ impl Director {
             }
         }
         let mut commands = Vec::new();
+        if self.batch.fed
+            && !self.fed.contains(&team)
+            && let (Some(def), Some(&at), Some(hello)) = (self.defs.get(FEEDER), self.commanders.get(&team), self.hello.as_ref())
+        {
+            // Beside the commander, toward the middle of the map: out of the fight's way.
+            self.fed.insert(team);
+            let (w, h) = (hello.map.width, hello.map.height);
+            let (dx, dz) = (w / 2.0 - at.x, h / 2.0 - at.z);
+            let len = dx.hypot(dz).max(1.0);
+            let (x, z) = (at.x + dx / len * 200.0, at.z + dz / len * 200.0);
+            commands.push(Command::GiveUnit { def: def.id, at: Vec3 { x, y: ground(&hello.terrain, x, z), z } });
+        }
         let mut fields = self.fields.take().unwrap_or_default();
         let hurter = self.defs.get(HURTER).map(|d| d.id);
         for (index, field) in fields.iter_mut().enumerate() {
@@ -420,9 +502,23 @@ impl Director {
                 disabled: &self.disabled,
                 chase: self.batch.chase,
                 map: (hello.map.width, hello.map.height),
+                script: self.batch.script.as_ref(),
+                script_delay: self.batch.script_delay,
+                theirs: self.batch.theirs,
+                track: self.batch.scenario.as_ref().map_or(&[], |s| s.sides[1].track.as_slice()),
             };
             if let Some(result) = advance(duel, team, tick, &rules, &mut commands) {
-                let result = DuelResult { match_index: self.match_index, site: index, ..result };
+                let mut log = String::new();
+                if let Some(dir) = &self.batch.log_dir
+                    && !duel.log.is_empty()
+                {
+                    log = format!("m{:02}-s{index}-d{:02}-rep{}{}.jsonl", self.match_index, result.sequence, result.job.rep, result.seed.map_or(String::new(), |s| format!("-seed{s}")));
+                    let lines = std::mem::take(&mut duel.log);
+                    if let Err(e) = std::fs::write(dir.join(&log), lines.join("\n") + "\n") {
+                        eprintln!("match {}: could not write {log}: {e}", self.match_index);
+                    }
+                }
+                let result = DuelResult { match_index: self.match_index, site: index, log, ..result };
                 (self.batch.on_result)(&result);
                 self.batch.results.lock().unwrap().push(result);
             }
@@ -439,7 +535,8 @@ impl Director {
         let idle = fields.iter().all(|f| f.duel.is_none());
         let usable = fields.iter().any(|f| !f.abandoned);
         self.fields = Some(fields);
-        if idle && (self.duel_budget == 0 || !usable || self.batch.queue.lock().unwrap().is_empty()) {
+        let seed = self.seed;
+        if idle && (self.duel_budget == 0 || !usable || !self.batch.queue.lock().unwrap().iter().any(|job| seed.is_none() || job.seed == seed)) {
             self.finished = true;
         }
         commands
@@ -542,7 +639,12 @@ impl Director {
 
     fn next_duel(&mut self, field: &mut Field) -> Option<Duel> {
         let job = loop {
-            let job = self.batch.queue.lock().unwrap().pop_front()?;
+            // Under `--seeds` a match fights only the jobs of its own seed.
+            let job = {
+                let mut queue = self.batch.queue.lock().unwrap();
+                let at = queue.iter().position(|job| self.seed.is_none() || job.seed == self.seed)?;
+                queue.remove(at)?
+            };
             // Two buildings never meet.
             let mobile = |spec: &str| Force::parse(spec).parts.iter().any(|(n, _)| self.defs.get(n).is_some_and(|d| d.speed > 0.0));
             if self.batch.scenario.is_some() || mobile(&job.x) || mobile(&job.y) {
@@ -598,7 +700,19 @@ impl Director {
             ]
         };
         field.fought += 1;
-        Some(Duel { job, armies, phase: Phase::Spawning { since: -1, round: 1 }, sequence: field.fought, next_sample: 0, shape_due: Vec::new(), wreckage: None, raid: raid_state })
+        Some(Duel {
+            job,
+            armies,
+            phase: Phase::Spawning { since: -1, round: 1 },
+            sequence: field.fought,
+            next_sample: 0,
+            shape_due: Vec::new(),
+            wreckage: None,
+            raid: raid_state,
+            log: Vec::new(),
+            notes: Vec::new(),
+            left_at: [None; 2],
+        })
     }
 }
 
@@ -677,6 +791,12 @@ struct Rules<'a> {
     chase: Option<i32>,
     /// The map's size, to keep a runner's goal inside it.
     map: (f32, f32),
+    /// `Batch::script`, `Batch::script_delay`, `Batch::theirs`.
+    script: Option<&'a Script>,
+    script_delay: f32,
+    theirs: Control,
+    /// Side 1's recorded track (`Side::track`; empty outside a scenario).
+    track: &'a [TrackRow],
 }
 
 /// What the lane reads of a duel: the game's definitions, the simulator's numbers, the map, and the other army.
@@ -853,11 +973,15 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
             army.dispersion = (spread / n).sqrt();
         }
         army.reported = frame;
+        army.energy = tick.snapshot.energy.current;
         for event in &tick.events {
             match event {
                 Event::UnitDamaged { unit, damage, attacker, .. } if fighting && army.units.contains(unit) => {
                     army.damage_taken += damage;
                     hurt = true;
+                    if let Some(a) = attacker {
+                        army.second_hits.push((*a, *damage));
+                    }
                     // Damage is booked to the army that did it: to itself (friendly fire) or to the enemy army.
                     match attacker {
                         Some(a) if army.units.contains(a) => {
@@ -869,7 +993,10 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                         _ => {}
                     }
                 }
-                Event::WeaponFired { unit, .. } if fighting && army.units.contains(unit) => army.fire.shot(*unit),
+                Event::WeaponFired { unit, .. } if fighting && army.units.contains(unit) => {
+                    army.fire.shot(*unit);
+                    *army.second_shots.entry(*unit).or_default() += 1;
+                }
                 _ => {}
             }
         }
@@ -1033,16 +1160,23 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
             }
             let from = commands.len();
             let mut commitments: HashMap<UnitId, Commitment> = HashMap::new();
+            // A scenario's side under a script (side 0) or on its track (side 1) takes no orders from the director.
+            let script = rules.script.filter(|_| scenario && side == 0);
+            let on_track = scenario && side == 1 && rules.theirs == Control::Track;
             if frame >= advance_at {
                 if army.ordered_at.is_none() {
                     army.ordered_at = Some(frame);
                     army.start = army.alive.clone();
                     if scenario {
-                        first_orders(army, enemy, enemy_centroid, commands);
+                        first_orders(army, enemy, enemy_centroid, script.is_none() && !on_track, commands);
                     }
                 }
                 let settled = army.ordered_at.is_some_and(|at| !scenario || frame - at >= FPS);
-                if settled && let Some(raid) = duel.raid.as_mut() {
+                if let Some(script) = script {
+                    script_orders(army, enemy, script, rules.script_delay, frame, &mut duel.notes, commands);
+                } else if on_track {
+                    track_orders(army, rules.track, frame, commands);
+                } else if settled && let Some(raid) = duel.raid.as_mut() {
                     raid_orders(raid, army, enemy, tick, side, rules, commands, &mut commitments);
                 } else if settled {
                     match rules.chase {
@@ -1077,8 +1211,14 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
             } else {
                 if duel.next_sample <= advance_at {
                     duel.next_sample = advance_at + FPS;
+                    if scenario {
+                        log_second(duel, frame, advance_at);
+                    }
                 } else if frame >= duel.next_sample {
                     duel.next_sample += FPS;
+                    if scenario {
+                        log_second(duel, frame, advance_at);
+                    }
                     sample_fire(&mut duel.armies, frame);
                     if first_damage.is_none() {
                         sample_speed(&mut duel.armies);
@@ -1184,9 +1324,9 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
     result
 }
 
-/// A scenario's first orders: fire at will, then each unit's heading step and its order from the file, or a fight at
-/// the other side's centre.
-fn first_orders(army: &Army, enemy: &Army, enemy_centroid: Vec3, commands: &mut Vec<Command>) {
+/// A scenario's first orders: fire at will, then each unit's heading step and (`with_orders`) its order from the file,
+/// or a fight at the other side's centre. A side under a script or on a track gets the heading step alone.
+fn first_orders(army: &Army, enemy: &Army, enemy_centroid: Vec3, with_orders: bool, commands: &mut Vec<Command>) {
     commands.extend(army.held.iter().filter(|u| army.alive.contains_key(u)).map(|&unit| Command::FireState { unit, state: 2 }));
     for (&unit, &i) in &army.spawn_of {
         let spawn = &army.spawns[i];
@@ -1199,6 +1339,9 @@ fn first_orders(army: &Army, enemy: &Army, enemy_centroid: Vec3, commands: &mut 
             commands.push(Command::Move { unit, to: Vec3 { x: at.x + hx * HEADING_STEP, y: at.y, z: at.z + hz * HEADING_STEP }, queue: false });
             queue = true;
         }
+        if !with_orders {
+            continue;
+        }
         let order = match plan.and_then(|p| p.order) {
             Some(Order::Move { x, z }) => Command::Move { unit, to: Vec3 { x, y: 0.0, z }, queue },
             Some(Order::Fight { x, z }) => Command::Fight { unit, to: Vec3 { x, y: 0.0, z }, queue },
@@ -1209,6 +1352,135 @@ fn first_orders(army: &Army, enemy: &Army, enemy_centroid: Vec3, commands: &mut 
             None => Command::Fight { unit, to: enemy_centroid, queue },
         };
         commands.push(order);
+    }
+}
+
+/// A script's rows that are due (`scenario.rs` `Script`): each row at its time plus `delay` after the first orders, in
+/// file order; a dead unit or a dead target skips the row for that unit. What went out goes into `notes` for the log.
+fn script_orders(army: &mut Army, enemy: &Army, script: &Script, delay: f32, frame: i32, notes: &mut Vec<Value>, commands: &mut Vec<Command>) {
+    let Some(at) = army.ordered_at else { return };
+    let elapsed = (frame - at) as f32 / FPS as f32;
+    let count = army.spawns.len();
+    let living = |a: &Army, i: usize| a.unit_of.get(&i).copied().filter(|u| a.alive.contains_key(u));
+    while let Some(row) = script.rows.get(army.next_row)
+        && row.t + delay <= elapsed + 1e-3
+    {
+        let index = army.next_row;
+        army.next_row += 1;
+        let (mut sent, mut skipped) = (Vec::new(), Vec::new());
+        for i in row.unit.indices(count) {
+            let Some(unit) = living(army, i) else {
+                skipped.push(i);
+                continue;
+            };
+            let to = Vec3 { x: row.x.unwrap_or(0.0), y: 0.0, z: row.z.unwrap_or(0.0) };
+            let command = match row.cmd {
+                ScriptCmd::Move => Command::Move { unit, to, queue: row.queue },
+                ScriptCmd::Fight => Command::Fight { unit, to, queue: row.queue },
+                ScriptCmd::Stop => Command::Stop { unit },
+                ScriptCmd::Firestate => Command::FireState { unit, state: row.state.unwrap_or(2) },
+                ScriptCmd::Attack => match row.target.and_then(|t| living(enemy, t)) {
+                    Some(target) => Command::Attack { unit, target, queue: row.queue },
+                    None => {
+                        skipped.push(i);
+                        continue;
+                    }
+                },
+                ScriptCmd::Guard => match row.target.and_then(|t| living(army, t)) {
+                    Some(target) => Command::Guard { unit, target },
+                    None => {
+                        skipped.push(i);
+                        continue;
+                    }
+                },
+            };
+            commands.push(command);
+            sent.push(i);
+        }
+        let mut note = json!({"row": index, "f": frame, "cmd": format!("{:?}", row.cmd).to_lowercase(), "sent": sent});
+        if !skipped.is_empty() {
+            note["skipped"] = json!(skipped);
+        }
+        notes.push(note);
+    }
+}
+
+/// Side 1 on its recorded track: each living mobile unit is sent to its first recorded place later than now, when that
+/// place is a new row and more than `TRACK_STILL` from the last place it was sent to.
+fn track_orders(army: &mut Army, track: &[TrackRow], frame: i32, commands: &mut Vec<Command>) {
+    let Some(at) = army.ordered_at else { return };
+    let elapsed = (frame - at) as f32 / FPS as f32;
+    for (&i, &unit) in &army.unit_of {
+        if !army.alive.contains_key(&unit) || !army.spawns[i].mobile {
+            continue;
+        }
+        let next = track.iter().filter(|r| r.unit == i && r.t > elapsed + 1e-3).min_by(|a, b| a.t.total_cmp(&b.t));
+        let Some(row) = next else { continue };
+        let to = Vec3 { x: row.x, y: 0.0, z: row.z };
+        match army.track_sent.get(&i) {
+            Some(&(t, _)) if t == row.t => continue,
+            Some(&(_, last)) if last.dist2d(to) < TRACK_STILL => {
+                army.track_sent.insert(i, (row.t, last));
+                continue;
+            }
+            _ => {}
+        }
+        army.track_sent.insert(i, (row.t, to));
+        commands.push(Command::Move { unit, to, queue: false });
+    }
+}
+
+/// A scenario's per-second log line: every living unit of each side (its index in the file, place, health), the shots
+/// each fired and the damage each did since the last line, each team's stored energy, each side's value left, and the
+/// script rows that went out. Also keeps the value left at `LEFT_AT`.
+fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
+    let t = (frame - advance_at) / FPS;
+    let [x, y] = &mut duel.armies;
+    let units = |a: &Army| -> Vec<Value> {
+        let mut rows: Vec<(usize, Value)> = (a.alive.iter())
+            .filter_map(|(u, h)| {
+                let i = *a.spawn_of.get(u)?;
+                let at = a.seen_at.get(u)?;
+                Some((i, json!([i, at.x.round(), at.z.round(), (f64::from(*h) * 1000.0).round() / 1000.0])))
+            })
+            .collect();
+        rows.sort_by_key(|r| r.0);
+        rows.into_iter().map(|r| r.1).collect()
+    };
+    let shots = |a: &mut Army| -> Vec<Value> {
+        let mut rows: Vec<(usize, u32)> = a.second_shots.drain().filter_map(|(u, n)| Some((*a.spawn_of.get(&u)?, n))).collect();
+        rows.sort();
+        rows.into_iter().map(|(i, n)| json!([i, n])).collect()
+    };
+    // Damage each unit did to the other side: the hits the other side's units took, by attacker.
+    let dealt = |by: &Army, hits: Vec<(UnitId, f32)>| -> Vec<Value> {
+        let mut sums: HashMap<usize, f32> = HashMap::new();
+        for (attacker, damage) in hits {
+            if let Some(&i) = by.spawn_of.get(&attacker) {
+                *sums.entry(i).or_default() += damage;
+            }
+        }
+        let mut rows: Vec<(usize, f32)> = sums.into_iter().collect();
+        rows.sort_by_key(|r| r.0);
+        rows.into_iter().map(|(i, d)| json!([i, d.round()])).collect()
+    };
+    let (hits_on_x, hits_on_y) = (std::mem::take(&mut x.second_hits), std::mem::take(&mut y.second_hits));
+    let left = [x.value_left(), y.value_left()];
+    let line = json!({
+        "t": t,
+        "left": [(f64::from(left[0]) * 1000.0).round() / 1000.0, (f64::from(left[1]) * 1000.0).round() / 1000.0],
+        "x": units(x),
+        "y": units(y),
+        "shots": {"x": shots(x), "y": shots(y)},
+        "dealt": {"x": dealt(x, hits_on_y), "y": dealt(y, hits_on_x)},
+        "energy": [x.energy.round(), y.energy.round()],
+        "orders": std::mem::take(&mut duel.notes),
+    });
+    duel.log.push(line.to_string());
+    for (k, at) in LEFT_AT.iter().enumerate() {
+        if t == *at {
+            duel.left_at[k] = Some(left);
+        }
     }
 }
 
@@ -1363,6 +1635,13 @@ fn conclude(duel: &mut Duel, started: i32, frame: i32, first_damage: Option<i32>
         first_kill_seconds: duel.raid.as_ref().and_then(|r| r.first_kill).map(|f| (f - started) as f32 / FPS as f32),
         hunters_lost: duel.raid.as_ref().map_or(0, |r| r.pickets.iter().filter(|&&i| !x.unit_of.get(&i).is_some_and(|u| x.alive.contains_key(u))).count() as u32),
         hunts: duel.raid.as_ref().map_or(String::new(), |r| r.hunts_line(started)),
+        seed: duel.job.seed,
+        left_at: duel.left_at.map(|l| {
+            let end = [x.value_left(), y.value_left()];
+            let at = l.unwrap_or(end);
+            [at[0], at[1]]
+        }),
+        log: String::new(),
     };
     duel.phase = Phase::Clearing { since: frame, sweep: Sweep::Survivors };
     result

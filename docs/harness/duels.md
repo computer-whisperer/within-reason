@@ -10,13 +10,17 @@ duel (--units a,b,c | --ours a,b --theirs c,d | --pairs a:b,c:d)
      [--sweep-waves 3] [--spacing 56] [--formation X[/Y],...] [--lane off|old|on[/...]] [--speed 50] [--map NAME]
      [--label TEXT] [--base-port 9500]
 duel --scenario FILE [--reps 8] [--parallel 2] [--time-limit 240] [--lane X[/Y]] [--speed 50] [--label TEXT] [--base-port 9500]
+     [--script FILE [--script-delay S]] [--theirs director|track] [--economy bare|fed] [--seeds a,b,c]
 duel --pairs chaser:runner --count N --chase FRAMES [--lane on] ...   the chase instrument (below)
 duel --scenario raid [--ours armfav*4+armflash*2] [--theirs armflea*1+armpw*1] [--reps 8] [--lane on|off] [--time-limit 180] ...
                                        the raid scenario (below): a picket body against scripted raiders
 duel --report DIR [duels.csv ...]      rebuild the tables in DIR (from its own duels.csv, or merge the files named)
 run/engagement.py <match dir> <MM:SS> [--radius 900] [--at X,Z] [--enemies sight|known|truth] [--orders 20]
-                  [--after 30,60] [--out FILE]     cut a scenario file from a live record
+                  [--after 30,60] [--out FILE] [--track [--track-seconds 60]] [--script FILE]
+                                       cut a scenario file from a live record (with the enemy's track, our orders)
+run/scenario_table.py <batch dir> ... [--by-seed]   one markdown row per scenario batch (margins, value left at 30/60 s)
 ```
+`--seeds a,b,c` works for every kind of batch: each duel is fought `--reps` times under each engine seed.
 `--units` runs every pair from the list, each unit against itself included; `--ours/--theirs` the cross product;
 `--pairs` exactly those. Unit names are the game's internal ones (`armpw`). A side may also be a **mixed force**,
 `armflash*8+armstump*6` (2026-09-25): spawned as written, in list order, so the first type stands in the front
@@ -161,6 +165,38 @@ prepared is given again whole in step 3, and counts in that error. Measured on t
 the Pawn's sprayed gun hurt and killed its target's neighbours (mean error 0.15); held units kept firing at the
 hurters they had taken as targets; hurters given with their targets were crushed by the tanks pushed into them
 (killed by a Stout that never fired); and a unit left hurt for a minute and a half healed back to whole.
+
+### Scripts, tracks, seeds and the per-second log (2026-09-28)
+
+For the hand-built TAS of one engagement (`docs/design/2026-09-28-tas-micro.md`, `docs/studies/2026-09-28-tas-e3.md`).
+- **`--script FILE`**: timed orders for side 0 (ours), JSON rows `{"t", "unit", "cmd", "x", "z" | "target", "queue",
+  "state"}` (the format is `scenario.rs`'s doc comment: move, fight, attack, stop, guard, firestate; `unit` an index
+  into side 0, a list, or `"all"`; an attack's `target` an index into side 1). Side 0 then gets no order from the
+  director (only fire at will and the heading step at the start) and its lane is off; a row goes out on the
+  director's first tick at or after `t + --script-delay` seconds from the first orders. Ticks are three frames, so
+  a row lands up to 0.1 s after its time; the rows of one tick go out in file order in that tick's one batch of
+  commands, which the engine carries out in that order on one frame. A dead unit or dead target skips the row for
+  that unit (the log says which). `run/engagement.py --script FILE` writes the record's own orders as a script (an
+  order repeating the unit's last dropped, a unit's later orders of one tick queued, a point further than 1,500 from
+  the place pulled in to 1,500: a retreat home walked into a commander and ended the match, smoke-e3).
+- **`--theirs director|track`**: who orders side 1. `director` is the plain duel (the file's first orders, idle units
+  attack-move at our centre). `track` walks the positions the file's `sides[1].track` recorded (`run/engagement.py
+  --track`: from the truth file every 2 s, or from the record's sight rows): each mobile unit is moved to its first
+  recorded place later than now whenever that changes (and is more than 16 from the last place sent); it dies when
+  it dies in the engine, and stands when the rows run out. Checked on E3 (val-e3-record-track): the Centurions stood
+  within 15-90 of their recorded places at 5, 10, 20, 30, 45 and 59 s. `ai` (BARb on side 1) is not built.
+- **`--economy fed`**: each team is given a `freefusion` (850 energy a second) beside its commander at the start, so
+  turrets fire at their rate (K-units-towers-fire-at-the-rate-energy-arrives). On E3 (two light turrets, a 25 s
+  fight) it changed nothing measurable (val-e3-director +0.297 ± 0.076 fed, +0.330 ± 0.056 bare).
+- **`--seeds a,b,c`**: every duel `--reps` times under each engine seed (`FixedRNGSeed`); a match takes the seed of
+  the first job waiting and fights only that seed's jobs. Without it the seed is the match's index plus one, as before.
+- **The per-second log**: `seconds/m<match>-s<site>-d<seq>-rep<r>[-seed<s>].jsonl` beside `duels.csv` (named in its
+  `log` column), one line a second from the first orders: `t`, `left` (each side's value left), `x` and `y` (every
+  living unit as `[index in the file, x, z, health]`), `shots` and `dealt` per unit that second, each team's stored
+  `energy`, and the script rows that went out (`orders`: row, frame, units sent, units skipped).
+- `duels.csv` gains `seed`, `left30_x/_y`, `left60_x/_y` (each side's value left 30 and 60 s after the first orders,
+  the end's value for a fight decided sooner: the live outcome a scenario file carries is scored at the same two) and
+  `log`. `batch.json` records the script, the delay, `theirs`, the seeds, the economy and the command line.
 
 ## The raid scenario: a picket body against scripted raiders (2026-09-26)
 
