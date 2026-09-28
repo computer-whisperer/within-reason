@@ -178,7 +178,7 @@ impl Brain {
                 let air = self.world.domain_of(def) == crate::world::Domain::Air;
                 if tier >= 2 || air {
                     self.first_seen.insert(def);
-                    firsts.push(format!("first {} of his seen: {} at {}{}", if air && tier >= 2 { "tier-2 air unit" } else if air { "air unit" } else { "tier-2 unit" }, self.name(def), self.world.grid(enemy.pos), if info.build_speed > 0.0 { " (a builder: tier 2 is up)" } else { "" }));
+                    firsts.push(format!("first {} of his seen: {} at {}{}{}", if air && tier >= 2 { "tier-2 air unit" } else if air { "air unit" } else { "tier-2 unit" }, self.name(def), self.world.grid(enemy.pos), if enemy.being_built { " (being built)" } else { "" }, if info.build_speed > 0.0 { " (a builder: tier 2 is up)" } else { "" }));
                 }
             }
             if info.speed == 0.0 {
@@ -228,10 +228,13 @@ impl Brain {
         let count = |def: UnitDefId| snapshot.own_units.iter().filter(|u| u.def == def && !u.being_built).count();
         let soldiers: Vec<&OwnUnit> = snapshot.own_units.iter().filter(|u| !u.being_built && self.is_army(u, kit)).collect();
 
-        let mut cells: BTreeMap<String, (Vec3, BTreeMap<&str, usize>, usize, Vec<UnitId>)> = BTreeMap::new();
+        // A frame is said as one ("armguard 1 (being built)"): player-16's 13:19 packet read a Gauntlet at 8% health
+        // as "the F2 fortress" and banned F2 to the end; it was gone at 13:54 and the first standing one came 16:52.
+        let mut cells: BTreeMap<String, (Vec3, BTreeMap<String, usize>, usize, Vec<UnitId>)> = BTreeMap::new();
         for enemy in &snapshot.enemies {
             let cell = cells.entry(self.world.grid(enemy.pos)).or_insert((enemy.pos, BTreeMap::new(), 0, Vec::new()));
-            *cell.1.entry(enemy.def.map_or("unidentified", |def| self.name(def))).or_default() += 1;
+            let name = enemy.def.map_or("unidentified", |def| self.name(def));
+            *cell.1.entry(if enemy.being_built { format!("{name} (being built)") } else { name.to_string() }).or_default() += 1;
             cell.2 += 1;
             cell.3.push(enemy.id);
         }
@@ -240,7 +243,7 @@ impl Brain {
             .map(|(pos, composition, units, ids)| EnemyCluster {
                 at: self.place(pos),
                 units,
-                composition: composition.into_iter().map(|(name, n)| (name.to_string(), n)).collect(),
+                composition: composition.into_iter().collect(),
                 distance_from_home: pos.dist2d(self.home) as i32,
                 killing: self.killing_words(&ids, None),
             })

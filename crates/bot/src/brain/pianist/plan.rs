@@ -844,13 +844,20 @@ impl Brain {
             // in nine of ten of them; the user: waiting for the bank is wrong). The unit: the allowance's first
             // permitted entry, else what this plant has made most, else its cheapest armed mobile unit.
             let default_unit: Option<UnitDefId> = match &allowed {
-                // The first entry, in the list's order, that still permits its unit: a list naming a unit twice is a
-                // sequence (`entry_cap`).
-                Some(Allowance { units: list, .. }) => (0..list.len()).find_map(|k| {
-                    let (n, _) = super::allowance(&list[k]);
-                    let made = pianist.produced.get(&(unit.id, n.to_string())).copied().unwrap_or(0);
-                    if super::entry_permits(list, k, made) { buildables.iter().copied().find(|b| self.name(*b) == n) } else { None }
-                }),
+                // The counted entries first, in the list's order, then the open ones: a list naming a unit twice is
+                // a sequence (`entry_cap`), and an open entry ahead of a counted one would never end (player-16:
+                // `armstump, armflash, armart:4, armcv:2` three times from 13:28, 197 Stouts and 161 Blitzes made
+                // and no Shellshocker, the plant on the Stout in 13 of 14 plays with the Shellshocker offered at
+                // 0.34-0.52).
+                Some(Allowance { units: list, .. }) => {
+                    let permitted = |k: usize| {
+                        let (n, _) = super::allowance(&list[k]);
+                        let made = pianist.produced.get(&(unit.id, n.to_string())).copied().unwrap_or(0);
+                        if super::entry_permits(list, k, made) { buildables.iter().copied().find(|b| self.name(*b) == n) } else { None }
+                    };
+                    (0..list.len()).filter(|k| super::allowance(&list[*k]).1.is_some()).find_map(permitted)
+                        .or_else(|| (0..list.len()).filter(|k| super::allowance(&list[*k]).1.is_none()).find_map(permitted))
+                }
                 None => None,
             }
             .or_else(|| {

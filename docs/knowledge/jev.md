@@ -1357,3 +1357,13 @@ reviewer's `scratchpad/review-p14/turret_offer.py` over `jev-0.jsonl` of both ga
 (the rule H-HANDS-PRODUCE had registered for builders and the code had not run); the prompt says `all` reaches
 builders only where it names a building. Exploited by [[H-HANDS-PRODUCE]].
 
+### K-hands-an-open-entry-ahead-of-a-count-never-ends
+**Claim.** A `produce` list's default was the first entry in order that still permitted its unit, and an entry with
+no count always permits: `armstump, armflash, armart:4, armcv:2`, written three times from 13:28 of player-16, kept
+the plant on the Stout in 13 of 14 plays (the Shellshocker offered at 0.34-0.52 and not picked) and the game ended
+with 197 Stouts and 161 Blitzes made and no Shellshocker or Janus, the player having listed them seven times.
+**Evidence.** `run/matches/1790553987-player-16-gecko-opening/00` (the `produce` calls in strategist-0.jsonl, the
+created events, `run/hands_window.py ... 13:30 15:00 plant_13472`); `00/review.md` finding 4.
+**Status.** fixed 2026-09-28: the default takes the counted entries first, in order, then the open ones; the brief's
+words on `produce` say an open entry is the filler after the counts. Exploited by [[H-HANDS-LAB-DEFAULT]].
+
