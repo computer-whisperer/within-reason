@@ -10,6 +10,7 @@
 
 pub mod glossary;
 pub(super) mod groups;
+mod engagement;
 mod execute;
 mod lists;
 pub(super) mod picture;

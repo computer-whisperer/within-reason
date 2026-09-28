@@ -6,6 +6,8 @@ examples it may choose a decent order of operations." Stage 2 of the micro answe
 `docs/design/2026-09-28-body-shape.md` on branch `tas-micro`.
 
 **Status (2026-09-28).** Design written; nothing built. Branch `engagement-plan`, worktree `../bar_bots-plan`.
+Step 1 built: the position finder and the battlefield with the cover-priced odds (`crates/bot/src/brain/pianist/engagement.rs`;
+the synthetic E3 scene's test: the Centurions' stand-off exists, the turrets' do not).
 
 ## Why
 
