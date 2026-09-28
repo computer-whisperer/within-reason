@@ -561,6 +561,48 @@ mod tests {
         assert_eq!(out.fired, vec!["H-MICRO-ROVE", "H-MICRO-ROVE"]);
     }
 
+    /// H-MICRO-FORM-PURSUIT: a body advancing to a station forms on a Pawn that comes within the horizon, and its
+    /// orders follow the Pawn while it stays; once the Pawn has run 600 from where the body formed on it and is out
+    /// of reach, the body lets it go and its orders point at the station again (player-21 5:41-6:46: six Rovers
+    /// trailed a Tick 4,700 elmos into his base).
+    #[test]
+    fn a_body_lets_a_running_target_go_and_walks_on_to_its_station() {
+        let host = Host::new(Vec::new());
+        let mut lane = Lane::default();
+        let ids = [10, 11, 12, 13, 14, 15];
+        let form_only = crate::Footwork { flee: false, fan: false, kite: false, form: true, march: false, follow: false, rove: false };
+        lane.set_commitments(HashMap::new(), ids.iter().map(|id| (UnitId(*id), form_only)).collect());
+        let station = at(1000.0, 3600.0);
+        let rovers = |x: f32| ids.iter().enumerate().map(|(i, id)| rover(*id, x + 40.0 * (i % 3) as f32, 1000.0 + 40.0 * (i / 3) as f32)).collect::<Vec<_>>();
+        let orders_of = |commands: &[Command], unit: i32| commands.iter().filter_map(|c| match c { Command::Fight { unit: u, to, .. } | Command::Move { unit: u, to, .. } if u.0 == unit => Some(*to), _ => None }).collect::<Vec<Vec3>>();
+        // Tick 1: the host sends the body to the station; a Pawn stands 500 east, inside the 700 horizon.
+        let mut host_orders: Vec<Command> = ids.iter().map(|id| Command::Fight { unit: UnitId(*id), to: station, queue: false }).collect();
+        lane.note_standing_orders(&host_orders, 30, |_| true);
+        let out = lane.tick(&host, &tick(30, rovers(1000.0), vec![enemy(50, PAWN, 1500.0, 1000.0)]), &mut host_orders, false);
+        let first = orders_of(&out.commands, 10);
+        let first = if first.is_empty() { orders_of(&host_orders, 10) } else { first };
+        assert!(!first.is_empty() && first[0].dist2d(at(1500.0, 1000.0)) < 400.0, "the body forms on the Pawn: {first:?}");
+        // The Pawn runs east 100 a tick; the body walks after it. At 300 run it is still the target.
+        let mut x = 1500.0;
+        let mut last = Vec::new();
+        for f in 1..=3 {
+            x += 100.0;
+            let out = lane.tick(&host, &tick(30 + 30 * f, rovers(1000.0 + 100.0 * f as f32), vec![enemy(50, PAWN, x, 1000.0)]), &mut Vec::new(), false);
+            last = orders_of(&out.commands, 10);
+        }
+        assert!(last.is_empty() || last[0].dist2d(at(x, 1000.0)) < 400.0, "still on the Pawn at 300 run: {last:?}");
+        // Past 600 run, out of reach (the body 500 behind): let go, and the orders point at the station.
+        for f in 4..=8 {
+            x += 100.0;
+            let out = lane.tick(&host, &tick(30 + 30 * f, rovers(1000.0 + 100.0 * f as f32), vec![enemy(50, PAWN, x, 1000.0)]), &mut Vec::new(), false);
+            last = orders_of(&out.commands, 10);
+        }
+        // The march's pair: a form-up point ahead of the body, then its slot at the station; none near the Pawn.
+        assert!(!last.is_empty(), "the body is ordered on to its station");
+        assert!(last.last().unwrap().dist2d(station) < 600.0 && last.iter().all(|p| p.dist2d(at(x, 1000.0)) > 400.0), "the orders point at the station, not the Pawn: {last:?} (Pawn at {x})");
+        // Under WITHIN_REASON_DISABLE the chase goes on: not tested here (the Host enables every rule).
+    }
+
     #[test]
     fn a_rover_steps_away_from_a_pawn_before_it_is_in_reach() {
         let host = Host::new(vec![goal("spot_2", 3000.0, 3000.0, None, true)]);
