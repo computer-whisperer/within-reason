@@ -1,8 +1,10 @@
 //! The control lane: what a soldier does with its order between its commander's decisions, every tick
-//! (`docs/design/2026-09-20-micro-lane.md`, `docs/design/2026-09-25-formation-micro.md`). The host (the bot's brain,
-//! or the duel director) decides intent and gives orders; the lane may override a unit's order for as long as a
-//! behaviour claims it, and gives the order back when none does. It never chooses a party's target and never
-//! re-prices a fight: it spends a unit's order on staying alive, shooting well and standing in its slot. The one
+//! (`docs/design/2026-09-20-micro-lane.md`, `docs/design/2026-09-25-formation-micro.md`,
+//! `docs/design/2026-09-28-body-shape.md`). The host (the bot's brain, or the duel director) decides intent and gives
+//! orders; the lane may override a unit's order for as long as a behaviour claims it, and gives the order back when
+//! none does. It never re-prices a fight: it spends a unit's order on staying alive, shooting well and standing in
+//! its slot. The body's shape at contact is centred on a target: the host's when it named one (an Attack), else the
+//! lane picks the nearest soldier of theirs in the open (`form::contact`). The one
 //! exception is a rover (`rove.rs`, H-MICRO-ROVE): a unit the host hands over whole, which chooses where to look and
 //! what to kill itself.
 //!
@@ -107,9 +109,6 @@ const ARRIVED: f32 = 48.0;
 const SLOT_MOVED: f32 = 96.0;
 /// H-MICRO-FORM-SPACING: an area weapon of theirs in sight or remembered this near a body's centre sets its spacing.
 const AREA_HORIZON: f32 = 1500.0;
-/// H-MICRO-STEP-OUT: a unit inside an armed building's reach with nothing of its own in reach steps out to the
-/// building's reach plus this.
-const STEP_OUT_MARGIN: f32 = 40.0;
 /// A stance lasts at least this long: a change is an order, and an order costs shots.
 const FORM_FRAMES: i32 = 15;
 /// H-MICRO-HUNT: a quarry out of sight and radar this long ends the hunt.
@@ -349,7 +348,6 @@ enum Rule {
     Kite,
     Form,
     Hunt,
-    StepOut,
 }
 
 impl Rule {
@@ -360,7 +358,6 @@ impl Rule {
             Rule::Kite => "H-MICRO-KITE",
             Rule::Form => "H-MICRO-FORM",
             Rule::Hunt => "H-MICRO-HUNT",
-            Rule::StepOut => "H-MICRO-STEP-OUT",
         }
     }
 }
@@ -449,9 +446,8 @@ struct FormOrder {
     then: Option<Command>,
     /// Where the command sends the unit.
     at: Vec3,
-    /// The body's target at contact (the shape's reference), and its party (the target and the foes chained to it).
+    /// The body's target at contact (the shape's reference).
     target: Option<UnitId>,
-    party: Vec<UnitId>,
 }
 
 /// H-MICRO-FORM-SPACING's numbers: the spacing against area weapons is `factor` times the largest blast radius about,
@@ -721,9 +717,6 @@ impl Lane {
         free.retain(|u| !fanned.contains(&u.id));
         for unit in &free {
             if near(unit) && rules_of(unit.id).kite && self.kite(view, unit, snapshot.enemies.as_slice(), frame, commands, fired, debug) {
-                continue;
-            }
-            if near(unit) && view.enabled(Rule::StepOut.id()) && self.step_out(view, unit, form_orders.get(&unit.id), snapshot.enemies.as_slice(), &sources, frame, commands, fired, debug) {
                 continue;
             }
             if let Some(order) = form_orders.get(&unit.id) {
@@ -1147,7 +1140,7 @@ impl Lane {
                             form::Order::Attack(named) if nearest.is_some_and(|e| e.id == named) => Some(Command::Attack { unit: unit.id, target: named, queue: false }),
                             _ => None,
                         };
-                        FormOrder { stance: Stance::Stand, command, then: None, at: slot, target, party: contact.party.clone() }
+                        FormOrder { stance: Stance::Stand, command, then: None, at: slot, target }
                     } else {
                         let to = match sent {
                             Some((at, Some(Stance::Slot))) if unit.pos.dist2d(at) > ARRIVED => at,
@@ -1155,10 +1148,10 @@ impl Lane {
                             _ => slot,
                         };
                         if unit.pos.dist2d(to) <= ARRIVED {
-                            FormOrder { stance: Stance::Wait, command: None, then: None, at: to, target, party: contact.party.clone() }
+                            FormOrder { stance: Stance::Wait, command: None, then: None, at: to, target }
                         } else {
                             let command = if walk { Command::Move { unit: unit.id, to, queue: false } } else { Command::Fight { unit: unit.id, to, queue: false } };
-                            FormOrder { stance: Stance::Slot, command: Some(command), then: None, at: to, target, party: contact.party.clone() }
+                            FormOrder { stance: Stance::Slot, command: Some(command), then: None, at: to, target }
                         }
                     };
                     orders.insert(unit.id, form_order);
@@ -1187,8 +1180,8 @@ impl Lane {
                 };
                 let first = Some(view.snap(form_up[slot_of[i]])).filter(|f| f.dist2d(slot) > ARRIVED && f.dist2d(unit.pos) > ARRIVED);
                 let form_order = match first {
-                    Some(first) => FormOrder { stance: Stance::March, command: Some(make(first, false)), then: Some(make(slot, true)), at: slot, target: None, party: Vec::new() },
-                    None => FormOrder { stance: Stance::March, command: Some(make(slot, false)), then: None, at: slot, target: None, party: Vec::new() },
+                    Some(first) => FormOrder { stance: Stance::March, command: Some(make(first, false)), then: Some(make(slot, true)), at: slot, target: None },
+                    None => FormOrder { stance: Stance::March, command: Some(make(slot, false)), then: None, at: slot, target: None },
                 };
                 orders.insert(unit.id, form_order);
             }
@@ -1233,48 +1226,6 @@ impl Lane {
             commands.push(command.clone());
             commands.extend(order.then.clone());
         }
-    }
-
-    /// H-MICRO-STEP-OUT for one unit: idle (waiting at its slot, or in no body) inside the reach of an armed building
-    /// of theirs that is not in its body's target's party, with nothing of its own in reach, it steps out to the
-    /// building's reach plus a margin, straight away from it (the TAS of player-14's E3: Blitzes idling 345 from the
-    /// near turret after their Centurion died lost five; never idle under a turret). A unit walking to its slot is
-    /// not idle: stepping those out too dragged the E3 900 fight from 22 s to 35 s and cost 0.16 of margin
-    /// (nw-e3-track against nw-e3-track-nostep). True when it owns the unit.
-    #[allow(clippy::too_many_arguments)]
-    fn step_out(&mut self, view: &dyn View, unit: &OwnUnit, order: Option<&FormOrder>, enemies: &[EnemyUnit], sources: &[Source], frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, debug: bool) -> bool {
-        if order.is_some_and(|o| o.stance != Stance::Wait) {
-            return false;
-        }
-        let Some(reach) = view.stats(unit.def).map(|s| s.reach).filter(|r| *r > 0.0) else { return false };
-        if enemies.iter().any(|e| e.pos.dist2d(unit.pos) < reach + REACH_SLACK) {
-            return false;
-        }
-        let party = order.map_or(&[][..], |o| o.party.as_slice());
-        let over = sources
-            .iter()
-            .filter(|s| !s.mobile && !s.water_only && s.weight >= FAINT && !party.contains(&s.id) && s.pos.dist2d(unit.pos) < s.reach + REACH_SLACK)
-            .max_by(|a, b| (a.reach - a.pos.dist2d(unit.pos)).total_cmp(&(b.reach - b.pos.dist2d(unit.pos))));
-        let Some(over) = over else { return false };
-        let d = over.pos.dist2d(unit.pos).max(1.0);
-        let out = over.reach + STEP_OUT_MARGIN;
-        let to = view.snap(Vec3 { x: over.pos.x + (unit.pos.x - over.pos.x) / d * out, y: 0.0, z: over.pos.z + (unit.pos.z - over.pos.z) / d * out });
-        let claim = self.claims.get(&unit.id);
-        let fresh = claim.is_none_or(|c| c.rule != Rule::StepOut);
-        let reorder = claim.is_none_or(|c| c.sent_to.dist2d(to) > REORDER_DISTANCE && frame - c.frame >= REORDER_FRAMES);
-        if fresh {
-            fired.push(Rule::StepOut.id());
-            self.counts.0 += 1;
-            if debug {
-                eprintln!("{} f={frame} micro: {}#{} steps out of building {}'s reach ({:.0} of {:.0}) to ({:.0}, {:.0})", view.label(), view.def(unit.def).map_or("?", |d| d.name.as_str()), unit.id.0, over.id.0, d, over.reach, to.x, to.z);
-            }
-        }
-        if fresh || reorder {
-            self.counts.1 += 1;
-            self.claims.insert(unit.id, Claim { rule: Rule::StepOut, sent_to: to, target: None, frame, stance: None, kind: None });
-            commands.push(Command::Move { unit: unit.id, to, queue: false });
-        }
-        true
     }
 
     /// A claimed unit no behaviour wants any more gets its standing order back, once.

@@ -68,7 +68,7 @@ batches from before the fire instrument too, leaving its columns empty (nan in `
 - **Order of play.** Repetition `r` of a pairing puts the first unit at the west end when `r` is even and gives it
   team 0 when `r / 2` is even, so four repetitions cover every combination. The plan is shuffled with a fixed seed.
 - **The lane** (`--lane`, 2026-09-25). `X` or `X/Y`: whether the bot's control lane (`crates/micro`: flee, fan,
-  kite, the body's shape of H-MICRO-FORM and the step out of a turret's reach) drives the first army of each pairing, and the second
+  kite and the body's shape of H-MICRO-FORM) drives the first army of each pairing, and the second
   (default `off`): `off` is the director's orders alone (the harness before 2026-09-25), `old` the lane without
   H-MICRO-FORM (the bot's lane as it was), `on` the whole lane. The director holds a `micro::Lane` per army, notes
   its own Fight orders as the standing orders, commits everything (`Commitment::All`), and appends the lane's
@@ -78,7 +78,7 @@ batches from before the fire instrument too, leaving its columns empty (nan in `
   and compare with `run/duel_ab.py <without> <with>` (the lane is not part of its pairing key). This replaced
   `--spread` (a copy of the retired H-MICRO-SPREAD's block, deleted 2026-09-25: the lane itself now runs here).
   `WITHIN_REASON_MICRO_DEBUG=1` prints the lane's claims to the terminal. `WITHIN_REASON_DISABLE=<rule IDs>` switches
-  lane rules off (H-MICRO-FORM-SPACING, H-MICRO-STEP-OUT, ...), and `WITHIN_REASON_FORM_SPACING=factor,max` sets the
+  lane rules off (H-MICRO-FORM-SPACING, H-MICRO-FLEE, ...), and `WITHIN_REASON_FORM_SPACING=factor,max` sets the
   spacing against area weapons (`micro::FormTuning`: twice the blast radius, at most 160, by default); `batch.json`
   records both (`disabled`, `form_spacing`; from 2026-09-28). At every start the duel prints the blast radius the
   definitions carry for the Fatboy, Bull, Stout and Blitz (`duel: blast radius from the definitions: armfboy 150, ...`).
@@ -205,7 +205,9 @@ For the hand-built TAS of one engagement (`docs/design/2026-09-28-tas-micro.md`,
   once seen can be attacked from out of sight (the turret assaults).
 - Readers: `run/scenario_table.py` (one row per batch; `--position` counts the duels in which the named units of side
   1 all died, and those with our value ahead), `run/tas_read.py <log>` (one duel's log as a timeline),
-  `run/front_rank.py` (in reach, stood still, blocked and first target by rank, from logs with the victim).
+  `run/front_rank.py` (in reach, stood still, blocked and first target by rank, from logs with the victim),
+  `run/shape_table.py <batch dir> ... [--position i,j,k]` (any duel batch: the margin with the first army's in reach
+  while engaged, muzzled, friend on the line, nearest friend and friendly-fire shares; the body-shape judge's table).
 - `duels.csv` gains `seed`, `left30_x/_y`, `left60_x/_y` (each side's value left 30 and 60 s after the first orders,
   the end's value for a fight decided sooner: the live outcome a scenario file carries is scored at the same two) and
   `log`. `batch.json` records the script, the delay, `theirs`, the seeds, the economy and the command line.

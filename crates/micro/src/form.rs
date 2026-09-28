@@ -113,11 +113,6 @@ pub fn spacing_for(area: f32, factor: f32, max: f32) -> f32 {
     (area * factor).clamp(HULL_SPACING, max.max(HULL_SPACING))
 }
 
-/// How many slots the near half of a point target's arc holds at radius `radius` and spacing `spacing`: the
-/// range-against-diameter number (`pi * r / s` plus the end slot).
-pub fn arc_capacity(radius: f32, spacing: f32) -> usize {
-    (PI * radius / spacing.max(1.0)).floor() as usize + 1
-}
 
 /// Bodies: members under the same group order and of the same class, chained within `BODY_LINK`. Bodies of one are
 /// not returned. A body is not cut by its size here: at contact its count against the arc at its reach decides how
@@ -151,13 +146,13 @@ pub fn bodies(members: &[Member]) -> Vec<Vec<Member>> {
     }
     let mut groups: Vec<Vec<Member>> = Vec::new();
     let mut of_root: Vec<Option<usize>> = vec![None; n];
-    for i in 0..n {
+    for (i, member) in members.iter().enumerate() {
         let r = root(&mut parent, i);
         match of_root[r] {
-            Some(g) => groups[g].push(members[i]),
+            Some(g) => groups[g].push(*member),
             None => {
                 of_root[r] = Some(groups.len());
-                groups.push(vec![members[i]]);
+                groups.push(vec![*member]);
             }
         }
     }
@@ -228,6 +223,12 @@ impl Stadium {
         self.perimeter() / 2.0
     }
 
+    /// How many slots the near half holds at `spacing` (H-MICRO-FORM-ARC): on a point, the range-against-diameter
+    /// number `pi * r / s` plus the end slot.
+    pub fn arc_capacity(&self, spacing: f32) -> usize {
+        (self.half() / spacing.max(1.0)).floor() as usize + 1
+    }
+
     /// The point at arc length `t` (any real: the walk wraps).
     pub fn at(&self, t: f32) -> Vec3 {
         let (u, n, len) = self.frame();
@@ -280,12 +281,8 @@ impl Stadium {
 #[derive(Clone, Debug)]
 pub struct Contact {
     pub target: UnitId,
-    /// The target and the foes chained to it.
-    pub party: Vec<UnitId>,
     pub stadium: Stadium,
     pub facing: f32,
-    /// Whether the target's party is a line (wider across the body's approach than the body's reach), not a point.
-    pub line: bool,
     /// Armed buildings not in the target's party: their place and reach.
     pub avoid: Vec<(Vec3, f32)>,
 }
@@ -336,13 +333,8 @@ pub fn contact(centre: Vec3, named: Option<UnitId>, keep: Option<UnitId>, foes: 
     let stand = reach - REACH_MARGIN;
     let r = (stand - spread).max(stand / 2.0).max(1.0);
     let stadium = Stadium { a, b, r };
-    let h = heading(centre, c);
-    let width = {
-        let xs: Vec<f32> = points.iter().map(|p| across(*p, h)).collect();
-        xs.iter().cloned().fold(f32::NEG_INFINITY, f32::max) - xs.iter().cloned().fold(f32::INFINITY, f32::min)
-    };
     let avoid = foes.iter().filter(|f| !f.mobile && !party.iter().any(|q| q.id == f.id)).map(|f| (f.pos, f.reach)).collect();
-    Some(Contact { target: target.id, party: party.iter().map(|f| f.id).collect(), stadium, facing: stadium.param_of(centre), line: width > reach, avoid })
+    Some(Contact { target: target.id, stadium, facing: stadium.param_of(centre), avoid })
 }
 
 /// A body's slots at contact: `count` slots `spacing` apart along the stadium, centred on the point facing the body
@@ -354,7 +346,7 @@ pub fn contact(centre: Vec3, named: Option<UnitId>, keep: Option<UnitId>, foes: 
 /// equals), and how many arcs the body stands on (its count over the near half's).
 pub fn contact_slots(contact: &Contact, count: usize, spacing: f32) -> (Vec<Vec3>, f32, usize) {
     let st = contact.stadium;
-    let near = ((st.half() / spacing).floor() as usize + 1).max(1);
+    let near = st.arc_capacity(spacing);
     let arcs = count.div_ceil(near).max(1);
     let lay = |pitch: f32| -> Vec<Vec3> {
         let mut out = Vec::with_capacity(count);
@@ -491,8 +483,9 @@ mod tests {
 
     #[test]
     fn the_arc_holds_nine_blitzes_at_65_and_seventeen_stouts_at_the_hull() {
-        assert_eq!(arc_capacity(180.0 - REACH_MARGIN, 65.0), 8);
-        assert_eq!(arc_capacity(STOUT - REACH_MARGIN, HULL_SPACING), 17);
+        let point = |r: f32| Stadium { a: at(0.0, 0.0), b: at(0.0, 0.0), r };
+        assert_eq!(point(180.0 - REACH_MARGIN).arc_capacity(65.0), 8);
+        assert_eq!(point(STOUT - REACH_MARGIN).arc_capacity(HULL_SPACING), 17);
     }
 
     #[test]
@@ -568,7 +561,6 @@ mod tests {
         // Four Fatboys in a row 56 apart across the approach.
         let foes: Vec<Foe> = (0..4).map(|i| foe(100 + i, 1000.0, i as f32 * 56.0, true, 700.0)).collect();
         let contact = contact(at(0.0, 84.0), None, None, &foes, STOUT).expect("a target");
-        assert!(!contact.line);
         let (slots, _, _) = contact_slots(&contact, 6, SPACING_MAX);
         for s in &slots {
             assert!(foes.iter().any(|f| f.pos.dist2d(*s) <= STOUT - REACH_MARGIN + 1.0), "slot {s:?} reaches none");
@@ -580,7 +572,6 @@ mod tests {
         // Twelve Stouts in a row 64 apart across the approach: 704 wide.
         let foes: Vec<Foe> = (0..12).map(|i| foe(100 + i, 1000.0, i as f32 * 64.0, true, STOUT)).collect();
         let contact = contact(at(0.0, 352.0), None, None, &foes, STOUT).expect("a target");
-        assert!(contact.line);
         let (slots, _, arcs) = contact_slots(&contact, 12, HULL_SPACING);
         assert_eq!(arcs, 1);
         // The middle ten stand on a straight rank at x = 1000 - 330.

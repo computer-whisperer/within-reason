@@ -22,14 +22,21 @@ nearest building; its party chained within 150, fitted with a segment), `form::c
 of the points within `R - 20 - spread` of that segment: an arc on a point, a rank with curled ends on a line; the
 pitch of nine that leaves fewest slots in another building's reach; a count past the near half continues round the
 sides, past the full ring closes the spacing to fit, down to 64), `form::spacing_for` (64, or twice the largest blast
-radius about within 1,500, at most 160), `form::arc_capacity`; the cut at 12, the rank at the standing front's depth
+radius about within 1,500, at most 160), `Stadium::arc_capacity`; the cut at 12, the rank at the standing front's depth
 (H-MICRO-FORM-FLANK's gate) and the `Close` step are deleted. The lane: `Slot` (walk to the slot: a Move against
 area, a Fight otherwise), `Wait` (at the slot, nothing in reach), `Stand`; a unit keeps the slot it was sent to until
 it gets there or the target changes. H-MICRO-STEP-OUT: a unit inside the reach of a building outside its target's
 party with nothing in its own reach, not walking out already, steps out to the reach plus 40. Two findings while
 building it (probe batches `pr-*`, `pr2-*`, `pr3-*`, `docs/studies/2026-09-28-body-shape.md`): a slot pushed out of a
 turret's reach leaves its unit out-ranged in the target's reach (dropped); slots re-dealt every tick re-ordered the
-Blitzes twice a second (the unit keeps its slot now).
+Blitzes twice a second (the unit keeps its slot now). Step 4 done (`docs/studies/2026-09-28-body-shape.md`, the
+fin-* batches): 25 Stouts against 4 Fatboys +0.462 (attack-move -0.515), in reach while engaged 0.72 (0.63-0.65);
+21 against 5 Bulls +0.366 (-0.329); E3 r1250 under the lane -0.189 against the director (the old lane -0.296 here,
+the design's -0.320) and -0.233 on the track (-0.416), 0 of 24 fell; E3 900 on the track 23 of 24 fell, +0.214; F3
++0.229 on the track; the 24-Stout mirror +0.146 against a ball, +0.172 against a line. The walk under a Move is most of
+the gain against area fire (the concave with a Fight loses: -0.429). H-MICRO-STEP-OUT built, measured (no gain, 0.07
+lost on two of six arms), retired and deleted. The friend-on-the-line share did not move one way. Step 5
+(`run/tas_diff.py`) not built.
 
 ## What exists (read first)
 

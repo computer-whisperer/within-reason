@@ -100,7 +100,7 @@ of their engagement: the walk-up of the rear behind a front that has stopped, no
 reach the enemy within seconds), and the live medium game form-7 6%. The cost of the walk-up is friendly fire, the
 rear firing into the front: 37-40% of the damage done in the bank-1 13:50 cut under the plain order, 18% in
 family-1 11:05; H-MICRO-FORM-FLANK takes those to 4% and 3% and the fight from +0.69 to +0.84 and +0.66 to +0.71.
-**Used by.** H-MICRO-FORM-FLANK; the harness's `engaged_s` / `queued_s` / `blocked_s` columns.
+**Used by.** H-MICRO-FORM (the line case, since 2026-09-28; before, H-MICRO-FORM-FLANK); the harness's `engaged_s` / `queued_s` / `blocked_s` columns.
 
 ### K-form-the-rear-at-the-ends-not-in-the-back
 **Claim.** When a body's front stops with targets in reach, the units behind it should file to the ends of the
@@ -124,7 +124,7 @@ seeds and corners: with the flank 0.79 [0.68-0.91] lost per killed, without 0.87
 at contact 26% against 31% (the pros' 22%); muzzled by a friend on the line 736 against 1,336 s; friendly fire 4.0%
 against 4.3%; blocked 6% in both; wins none. Supported on the line of fire and the muzzling; the trade within the
 noise (about 0.15 of ratio at 24 games).
-**Used by.** H-MICRO-FORM-FLANK.
+**Used by.** H-MICRO-FORM (since 2026-09-28 the line case of the body's shape: a rank at the body's reach along a party wider than it is deep, its ends curled round; H-MICRO-FORM-FLANK folded into it).
 
 ### K-form-rocketeers-hit-the-friends-in-front
 **Claim.** Three quarters of our friendly fire in heuristic games on Comet Catcher is the Rocketeers' rockets on
@@ -164,3 +164,33 @@ with the lane on.
 **Used by.** H-MICRO-FORM (a slot on a building is a defect to fix: clear-ground snapping, or a smaller footprint at a
 station).
 
+### K-form-a-concave-walked-beats-area-fire
+**Claim.** A body of tier-1 tanks meeting a few area-fire units (Fatboys, Bulls) should walk to slots on a concave at
+its own reach from them, spread wider than two hulls, with Move orders: that takes the fight from a loss to a win at
+equal metal, and most of it is the walking (the shells miss units that keep moving to their slots) rather than the
+spacing's width. The same concave walked with Fight orders (which stop at the first thing in reach) loses as the ball
+does.
+**Status.** measured (2026-09-28) in the duel harness only, Mithril Mountain v2.0.1 flat sites, equal metal, 8 duels
+an arm (`docs/studies/2026-09-28-body-shape.md`): 25 Stouts against 4 Fatboys +0.462 (attack-move -0.515, the lane of
+899d64a -0.335, the concave with a Fight at 64 -0.429; with a Move at 65, 110, 240: +0.424, +0.427, +0.437); 21 Stouts
+against 5 Bulls +0.366 at 130 (-0.329, -0.385, -0.352; a Move at 65 +0.154, at 98 +0.323, at 160 +0.369); 6 against
+1 Fatboy +0.648 (+0.142); 8 against 2 Bulls +0.189 ± 0.241 (-0.186). The Fatboys' damage per counted shot 2,074 under
+the Fight, 1,246-1,379 under the Move. In reach while engaged against the Fatboys 0.72-0.75 against 0.63-0.68; muzzled
+0.2-0.3 of in-reach seconds under the Move (walking units in reach fire less), 0.00 under a Fight.
+**Would be wrong if.** A live game's tier-2 fights under the lane (read with `run/fire.py`) showed the Stouts walking
+under the Move losing their shots without the area fire missing them (the Fatboys' or Bulls' damage per shot the same
+as against a ball), or the slots on sloped ground unreachable (the duel's sites are flat and its view does not snap).
+**Used by.** H-MICRO-FORM, H-MICRO-FORM-SPACING, H-MICRO-FORM-ARC.
+
+### K-form-a-per-unit-step-out-of-a-turret-does-not-pay
+**Claim.** Stepping a unit out of a turret's reach whenever it stands inside it with nothing of its own in reach (the
+TAS's "never idle under a turret", as a per-unit reflex) does not improve a fight: it pulls units walking to their
+slots back out and drags the fight; the TAS's gain from leaving the turret's reach came from the body's order of
+targets and its gathering, which are body-level decisions.
+**Status.** measured (2026-09-28) in the duel harness, six arms of 24 duels (E3 900 and r1250, F3 r1500; the recorded
+track and the reacting director): as first built E3 900 on the track +0.056 against +0.217 without (the fight 35 s
+against 22 s); for idle units only +0.146 / +0.217 there, +0.161 / +0.230 on F3's track, and within 0.04 on the other
+four (`docs/studies/2026-09-28-body-shape.md`). H-MICRO-STEP-OUT retired the same day.
+**Would be wrong if.** A body-level version (a body whose target is dead gathering outside the turrets' reach before
+the next target, the TAS's v5) gained on the same arms.
+**Used by.** none (H-MICRO-STEP-OUT, retired).
