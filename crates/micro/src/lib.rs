@@ -1235,12 +1235,17 @@ impl Lane {
         }
     }
 
-    /// H-MICRO-STEP-OUT for one unit: inside the reach of an armed building of theirs (not in its body's target's
-    /// party) with nothing of its own in reach, and not already walking to a place outside it, it steps out to the building's
-    /// reach plus a margin, straight away from it (the TAS of player-14's E3: Blitzes idling 345 from the near turret
-    /// after their Centurion died lost five; never idle under a turret). True when it owns the unit.
+    /// H-MICRO-STEP-OUT for one unit: idle (waiting at its slot, or in no body) inside the reach of an armed building
+    /// of theirs that is not in its body's target's party, with nothing of its own in reach, it steps out to the
+    /// building's reach plus a margin, straight away from it (the TAS of player-14's E3: Blitzes idling 345 from the
+    /// near turret after their Centurion died lost five; never idle under a turret). A unit walking to its slot is
+    /// not idle: stepping those out too dragged the E3 900 fight from 22 s to 35 s and cost 0.16 of margin
+    /// (nw-e3-track against nw-e3-track-nostep). True when it owns the unit.
     #[allow(clippy::too_many_arguments)]
     fn step_out(&mut self, view: &dyn View, unit: &OwnUnit, order: Option<&FormOrder>, enemies: &[EnemyUnit], sources: &[Source], frame: i32, commands: &mut Vec<Command>, fired: &mut Vec<&'static str>, debug: bool) -> bool {
+        if order.is_some_and(|o| o.stance != Stance::Wait) {
+            return false;
+        }
         let Some(reach) = view.stats(unit.def).map(|s| s.reach).filter(|r| *r > 0.0) else { return false };
         if enemies.iter().any(|e| e.pos.dist2d(unit.pos) < reach + REACH_SLACK) {
             return false;
@@ -1251,10 +1256,6 @@ impl Lane {
             .filter(|s| !s.mobile && !s.water_only && s.weight >= FAINT && !party.contains(&s.id) && s.pos.dist2d(unit.pos) < s.reach + REACH_SLACK)
             .max_by(|a, b| (a.reach - a.pos.dist2d(unit.pos)).total_cmp(&(b.reach - b.pos.dist2d(unit.pos))));
         let Some(over) = over else { return false };
-        // Walking out already: its slot or point lies outside that reach.
-        if order.is_some_and(|o| o.command.is_some() && o.at.dist2d(over.pos) >= over.reach + REACH_SLACK) {
-            return false;
-        }
         let d = over.pos.dist2d(unit.pos).max(1.0);
         let out = over.reach + STEP_OUT_MARGIN;
         let to = view.snap(Vec3 { x: over.pos.x + (unit.pos.x - over.pos.x) / d * out, y: 0.0, z: over.pos.z + (unit.pos.z - over.pos.z) / d * out });
