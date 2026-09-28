@@ -1,0 +1,316 @@
+{
+ "format": "within-reason-scenario",
+ "version": 1,
+ "map": "Comet Catcher Remake 1.8",
+ "map_size": [
+  8192.0,
+  6144.0
+ ],
+ "centre": [
+  4274,
+  2063
+ ],
+ "source": {
+  "record": "/home/christian/workspace/playground/bar_bots/run/matches/1790550188-player-14-gecko-opening/00/record-0.jsonl",
+  "clock": "9:17",
+  "frame": 16710,
+  "radius": 900.0,
+  "enemies": "truth",
+  "truth_frame": 16680,
+  "orders_window": 20.0,
+  "live": [
+   {
+    "seconds": 30.0,
+    "ours": 0.287,
+    "theirs": 0.65
+   },
+   {
+    "seconds": 60.0,
+    "ours": 0.287,
+    "theirs": 1.0
+   }
+  ]
+ },
+ "sides": [
+  {
+   "name": "ours",
+   "units": [
+    {
+     "type": "armflash",
+     "x": 4414,
+     "z": 1636,
+     "health": 1.0,
+     "heading": [
+      0.243,
+      -0.97
+     ],
+     "order": {
+      "kind": "attack",
+      "target": 4
+     },
+     "source_id": 6635
+    },
+    {
+     "type": "armflash",
+     "x": 4372,
+     "z": 1635,
+     "health": 1.0,
+     "heading": [
+      0.305,
+      -0.952
+     ],
+     "order": {
+      "kind": "attack",
+      "target": 4
+     },
+     "source_id": 15278
+    },
+    {
+     "type": "armflash",
+     "x": 4455,
+     "z": 1887,
+     "health": 1.0,
+     "heading": [
+      0.73,
+      0.684
+     ],
+     "order": {
+      "kind": "attack",
+      "target": 4
+     },
+     "source_id": 1736
+    },
+    {
+     "type": "armflash",
+     "x": 4486,
+     "z": 1818,
+     "health": 1.0,
+     "order": {
+      "kind": "attack",
+      "target": 4
+     },
+     "source_id": 30526
+    },
+    {
+     "type": "armflash",
+     "x": 4559,
+     "z": 1877,
+     "health": 1.0,
+     "heading": [
+      0.996,
+      0.091
+     ],
+     "order": {
+      "kind": "attack",
+      "target": 4
+     },
+     "source_id": 1763
+    },
+    {
+     "type": "armflash",
+     "x": 4390,
+     "z": 1723,
+     "health": 1.0,
+     "heading": [
+      0.925,
+      -0.381
+     ],
+     "order": {
+      "kind": "attack",
+      "target": 4
+     },
+     "source_id": 11096
+    },
+    {
+     "type": "armflash",
+     "x": 4392,
+     "z": 1837,
+     "health": 1.0,
+     "heading": [
+      0.763,
+      0.647
+     ],
+     "order": {
+      "kind": "attack",
+      "target": 4
+     },
+     "source_id": 31791
+    },
+    {
+     "type": "armflash",
+     "x": 4542,
+     "z": 1586,
+     "health": -0.01,
+     "heading": [
+      0.376,
+      -0.927
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 5016,
+      "z": 1784
+     },
+     "source_id": 3728
+    },
+    {
+     "type": "armflash",
+     "x": 4679,
+     "z": 1837,
+     "health": 0.75,
+     "heading": [
+      1.0,
+      0.021
+     ],
+     "order": {
+      "kind": "attack",
+      "target": 4
+     },
+     "source_id": 22911
+    },
+    {
+     "type": "armflash",
+     "x": 4590,
+     "z": 1737,
+     "health": 1.0,
+     "heading": [
+      0.971,
+      -0.237
+     ],
+     "order": {
+      "kind": "attack",
+      "target": 4
+     },
+     "source_id": 30757
+    },
+    {
+     "type": "armflash",
+     "x": 4393,
+     "z": 1867,
+     "health": 1.0,
+     "heading": [
+      0.998,
+      -0.07
+     ],
+     "order": {
+      "kind": "attack",
+      "target": 4
+     },
+     "source_id": 17698
+    },
+    {
+     "type": "armflash",
+     "x": 4541,
+     "z": 1836,
+     "health": 1.0,
+     "heading": [
+      0.999,
+      -0.045
+     ],
+     "order": {
+      "kind": "attack",
+      "target": 4
+     },
+     "source_id": 14742
+    },
+    {
+     "type": "armflash",
+     "x": 4450,
+     "z": 1910,
+     "health": 1.0,
+     "heading": [
+      0.996,
+      0.093
+     ],
+     "order": {
+      "kind": "attack",
+      "target": 4
+     },
+     "source_id": 29934
+    },
+    {
+     "type": "armflash",
+     "x": 4016,
+     "z": 2191,
+     "health": 1.0,
+     "heading": [
+      0.695,
+      -0.719
+     ],
+     "order": {
+      "kind": "fight",
+      "x": 5016,
+      "z": 1784
+     },
+     "source_id": 2121
+    },
+    {
+     "type": "armflash",
+     "x": 4064,
+     "z": 1988,
+     "health": 1.0,
+     "heading": [
+      0.946,
+      -0.323
+     ],
+     "order": {
+      "kind": "attack",
+      "target": 4
+     },
+     "source_id": 16320
+    }
+   ]
+  },
+  {
+   "name": "theirs",
+   "units": [
+    {
+     "type": "armllt",
+     "x": 5024,
+     "z": 1616,
+     "health": 1.0,
+     "source_id": 10588
+    },
+    {
+     "type": "armwar",
+     "x": 4404,
+     "z": 1228,
+     "health": 1.0,
+     "heading": [
+      -0.917,
+      0.398
+     ],
+     "source_id": 17173
+    },
+    {
+     "type": "armllt",
+     "x": 4912,
+     "z": 1632,
+     "health": 1.0,
+     "source_id": 8265
+    },
+    {
+     "type": "armwar",
+     "x": 4576,
+     "z": 1430,
+     "health": 1.0,
+     "heading": [
+      -0.469,
+      0.883
+     ],
+     "source_id": 3575
+    },
+    {
+     "type": "armwar",
+     "x": 4527,
+     "z": 1436,
+     "health": 1.0,
+     "heading": [
+      -0.735,
+      0.678
+     ],
+     "source_id": 16840
+    }
+   ]
+  }
+ ]
+}

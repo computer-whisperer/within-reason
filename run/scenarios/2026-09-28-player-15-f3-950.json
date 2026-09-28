@@ -1,0 +1,272 @@
+{
+ "format": "within-reason-scenario",
+ "version": 1,
+ "map": "Comet Catcher Remake 1.8",
+ "map_size": [
+  8192.0,
+  6144.0
+ ],
+ "centre": [
+  5059,
+  2650
+ ],
+ "source": {
+  "record": "/home/christian/workspace/playground/bar_bots/run/matches/1790551892-player-15-gecko-opening/00/record-0.jsonl",
+  "clock": "9:50",
+  "frame": 17700,
+  "radius": 900.0,
+  "enemies": "truth",
+  "truth_frame": 17700,
+  "orders_window": 20.0,
+  "live": [
+   {
+    "seconds": 30.0,
+    "ours": 0.576,
+    "theirs": 1.017
+   },
+   {
+    "seconds": 60.0,
+    "ours": 0.511,
+    "theirs": 0.927
+   }
+  ]
+ },
+ "sides": [
+  {
+   "name": "ours",
+   "units": [
+    {
+     "type": "armfav",
+     "x": 5134,
+     "z": 2628,
+     "health": 1.0,
+     "source_id": 5134
+    },
+    {
+     "type": "armflash",
+     "x": 5447,
+     "z": 2514,
+     "health": 0.85,
+     "heading": [
+      -0.695,
+      0.719
+     ],
+     "source_id": 11407
+    },
+    {
+     "type": "armflash",
+     "x": 5497,
+     "z": 2465,
+     "health": 1.0,
+     "heading": [
+      -0.701,
+      0.713
+     ],
+     "source_id": 28488
+    },
+    {
+     "type": "armflash",
+     "x": 5116,
+     "z": 1827,
+     "health": 0.58,
+     "heading": [
+      0.836,
+      -0.549
+     ],
+     "source_id": 10859
+    },
+    {
+     "type": "armflash",
+     "x": 5386,
+     "z": 2550,
+     "health": 1.0,
+     "heading": [
+      -0.803,
+      0.596
+     ],
+     "source_id": 22911
+    },
+    {
+     "type": "armflash",
+     "x": 5622,
+     "z": 2404,
+     "health": 1.0,
+     "heading": [
+      -0.381,
+      0.924
+     ],
+     "source_id": 6231
+    },
+    {
+     "type": "armflash",
+     "x": 5285,
+     "z": 1862,
+     "health": 1.0,
+     "heading": [
+      0.987,
+      0.158
+     ],
+     "order": {
+      "kind": "move",
+      "x": 5048,
+      "z": 1944
+     },
+     "source_id": 18847
+    },
+    {
+     "type": "armstump",
+     "x": 5170,
+     "z": 2724,
+     "health": 1.0,
+     "heading": [
+      0.623,
+      0.782
+     ],
+     "source_id": 3165
+    },
+    {
+     "type": "armstump",
+     "x": 5421,
+     "z": 1948,
+     "health": 0.74,
+     "heading": [
+      0.573,
+      -0.819
+     ],
+     "order": {
+      "kind": "move",
+      "x": 5320,
+      "z": 2184
+     },
+     "source_id": 16399
+    },
+    {
+     "type": "armflash",
+     "x": 5531,
+     "z": 2416,
+     "health": 1.0,
+     "heading": [
+      -0.86,
+      0.511
+     ],
+     "source_id": 11249
+    },
+    {
+     "type": "armstump",
+     "x": 5130,
+     "z": 2731,
+     "health": 1.0,
+     "heading": [
+      0.757,
+      0.654
+     ],
+     "source_id": 29164
+    },
+    {
+     "type": "armstump",
+     "x": 4340,
+     "z": 3094,
+     "health": 1.0,
+     "heading": [
+      0.8,
+      -0.6
+     ],
+     "source_id": 5903
+    }
+   ]
+  },
+  {
+   "name": "theirs",
+   "units": [
+    {
+     "type": "armpw",
+     "x": 5509,
+     "z": 3096,
+     "health": 0.62,
+     "heading": [
+      0.922,
+      0.388
+     ],
+     "source_id": 18176
+    },
+    {
+     "type": "armpw",
+     "x": 5439,
+     "z": 3066,
+     "health": 0.49,
+     "heading": [
+      0.857,
+      0.514
+     ],
+     "source_id": 511
+    },
+    {
+     "type": "armpw",
+     "x": 5435,
+     "z": 3042,
+     "health": 0.8,
+     "heading": [
+      0.725,
+      0.689
+     ],
+     "source_id": 13115
+    },
+    {
+     "type": "armpw",
+     "x": 5346,
+     "z": 3039,
+     "health": 0.89,
+     "heading": [
+      0.715,
+      0.699
+     ],
+     "source_id": 21029
+    },
+    {
+     "type": "armpw",
+     "x": 5341,
+     "z": 2977,
+     "health": 1.0,
+     "heading": [
+      0.62,
+      0.784
+     ],
+     "source_id": 56
+    },
+    {
+     "type": "armpw",
+     "x": 5379,
+     "z": 3008,
+     "health": 0.98,
+     "heading": [
+      0.689,
+      0.724
+     ],
+     "source_id": 22032
+    },
+    {
+     "type": "armpw",
+     "x": 5358,
+     "z": 2996,
+     "health": 0.93,
+     "heading": [
+      0.656,
+      0.755
+     ],
+     "source_id": 26214
+    },
+    {
+     "type": "armpw",
+     "x": 5361,
+     "z": 2967,
+     "health": 0.28,
+     "heading": [
+      0.648,
+      0.762
+     ],
+     "source_id": 16320
+    }
+   ]
+  }
+ ]
+}
