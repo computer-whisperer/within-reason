@@ -1423,3 +1423,16 @@ decline rose above the walk-ins with reach said as a cost and the odds unchanged
 **Status.** conjectured. Open: price the approach under an out-ranging reach into the phase words (the odds words of
 `picture.rs` `odds_words` already say "it outranges us", the plan's phases do not).
 
+### K-hands-a-low-confidence-pick-turned-an-engaged-army
+**Claim.** The world pick's confidence is logged and was not a gate: at 21:29 of player-17 the army (40 units) met
+a Fatboy, seven Maces, a Hound, two Sharpshooters and turrets at D1/E1, and at 21:34 the pick chose "group_B attacks
+party_25 (2 armstump) with the whole group", a party 1,300 behind the front, at confidence 0.03 (the two picks before
+it, "attack party_51 (2 armham)" and "advance to spot_8", at 0.15 and 0.09); the army turned, went 40 to 23 units,
+and engagements #16, #17 and #22 cost 6,900 for 1,284; the ratio fell from 3.0x to 1.1x by 22:00.
+**Evidence.** `run/hands_window.py run/matches/1790557341-player-17-gecko-opening/00 21:30 21:38 group_B`; the
+review's finding 4; `run/analyze_match.py ... --engagement 16`.
+**Status.** fixed 2026-09-28: a pick under 0.25 confidence holds every fighting group's slot at its base
+(H-HANDS-ENGAGED-PICK-BAR). The bar is a guess from this one game: the picks that moved engaged groups well were
+not surveyed for their confidence, and the survey (`{"t":"plan"}` lines with `changed` naming a group in Engage,
+against the trade in the next minute) is the check.
+

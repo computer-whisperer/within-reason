@@ -286,6 +286,9 @@ fn spawn_worker(client: jev::Client) -> Worker {
 }
 
 /// A `produce` list entry: the unit name and, after a colon, how many more of it are allowed ("corck:1").
+/// A pick under this confidence moves no group that is fighting (`after_pick`).
+const ENGAGED_PICK_BAR: f64 = 0.25;
+
 pub fn allowance(entry: &str) -> (&str, Option<usize>) {
     match entry.split_once(':') {
         Some((name, count)) => (name, count.trim().parse::<usize>().ok().filter(|n| *n >= 1)),
@@ -878,7 +881,16 @@ impl Brain {
     #[allow(clippy::too_many_arguments)]
     fn after_pick(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, slots: &[plan::Slot], worlds: &[plan::World], answers: &BTreeMap<String, jev::Answer>, commands: &mut Vec<Command>) {
         let Some((wi, confidence)) = plan::pick(answers, worlds) else { return };
-        let changed = self.apply_plan(tick, kit, picture, slots, &worlds[wi], "plan", &[], commands);
+        // A pick below the bar moves no group that is fighting (player-17 21:34: "attack party_25 (2 armstump)"
+        // 1,300 behind the front at confidence 0.03, after picks at 0.09 and 0.15, turned the army from its fight
+        // at D1; 40 to 23 units, 6,900 lost for 1,284 in engagements #16, #17 and #22).
+        let held: Vec<bool> = if confidence < ENGAGED_PICK_BAR {
+            let groups = &self.pianist.as_ref().expect("pianist mode").groups;
+            slots.iter().map(|s| groups.iter().any(|g| format!("group_{}", g.name) == s.name && matches!(g.task, groups::GroupTask::Engage { .. } | groups::GroupTask::Plan(_)))).collect()
+        } else {
+            vec![false; slots.len()]
+        };
+        let changed = self.apply_plan(tick, kit, picture, slots, &worlds[wi], "plan", &held, commands);
         let pianist = self.pianist.as_mut().expect("pianist mode");
         let played = std::mem::take(&mut pianist.played);
         pianist.write_log(json!({ "t": "plan", "f": tick.frame, "pick": wi + 1, "confidence": confidence, "changed": changed, "played": played }));
