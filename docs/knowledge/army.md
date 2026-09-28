@@ -704,8 +704,25 @@ the ranks behind), so the body engages piecemeal on the wrong targets.
 **Evidence.** None yet: the prediction is registered so the TAS (`docs/design/2026-09-28-tas-micro.md`, worktree
 `tas-micro`) can confirm or refute it against its own best script, and `run/tas_diff.py` can show whether the front
 stops in the micro's replay of the scene.
-**Status.** conjectured (the user, 2026-09-28). The TAS study (`docs/studies/2026-09-28-tas-e3.md` on the branch)
-records the script family that follows this prediction beside the agent's own, with the margins over seeds.
+**Status.** scored 2026-09-28 (`docs/studies/2026-09-28-tas-e3.md` on branch `tas-micro`, worktree
+`../bar_bots-tas`; 3 seeds x 8 reps, the enemy on its recorded track, a 0.3 s delay on every order). Part (1), the
+turret-first pattern, lost on this scene: the near turret dies at a median 6 s and the far at 8 s, but the three
+Centurions standing 50-400 from the turrets shred the ball meanwhile (2,015 damage in the first ten seconds against
+the turrets' 1,346) and live on in the draws; the position fell with us ahead in 5 of 24 (gathered first: 4 of 24)
+against plain attack-move's 21 of 24 and the winning script's 24 of 24 (+0.318, worst +0.216), which kills the
+Centurions first at the rock's corner outside turret cover, pulls out, and takes the turrets last. On the position as
+it was (five Pawns and two Rocketeers walking in from 920-1,443, the r1250 cut) the pattern fell 0 of 24 and no
+fourteen-Blitz script wins every duel (the best 21 of 24, +0.126); a Shellshocker pair with a Rover spotter does
+(24 of 24, +0.348), as do three more Blitzes (+0.268). Part (2), the fault: the front does stop on the nearest enemy
+(25-31 of 40 front Blitzes first damaged the enemy nearest them; 90-97% of the front's damage to Centurions; still in
+57% of its in-reach seconds under the lane), and the ranks behind are somewhat less in reach (0.29-0.34 against
+0.42-0.43 on the 900 cut), but they are blocked by the front in only 4-7% of engaged seconds (the pros 8%), and here
+the nearest target was the right one. So the fault on this scene is the ball meeting turrets and their screen at once
+rather than the screen first out of turret cover, not who the front shoots. Not measured: a turret line with no
+mobile screen, where the prediction may hold as written. Candidate rules from the winning scripts (none built):
+don't leave a fight you are winning; fight mobile units outside turret reach; after a kill leave the turret's reach;
+gather, then go in together; catch separated units; hunt an unseen unit with a fight, not an attack; spotted
+artillery against turrets.
 **Would be wrong if.** The turrets fall faster to the Centurions being killed first (the turrets' 430 reach against
 the Blitz's 180 makes the approach the cost either way), or the front does not stop in the micro's replay (then the
 fault is target choice alone).
