@@ -1496,3 +1496,15 @@ run/matches/1790560788-player-18-planner/00 --told` at 10:11-10:56; the truth fi
 **Status.** fixed 2026-09-28: the line names each held spot by number and grid, nearest our start first
 (H-PLAYER-SPOTS-HELD). Not yet seen in a game.
 
+### K-player-the-rover-body-walked-onto-his-commander
+**Claim.** The brief's Rover body goes to his start's end of the strip by a route ending in a station; player-19's
+player ended the route at `their_corner`, a mark set at 0:00 on his commander's start, and the ten Rovers crossed
+strung out and four died to his commander at 4:00, 4:01, 4:02 and 4:03 (the record's `destroyed` rows, killer
+armcom); the player then marked `his_base` at 4:01 and waited for "his lab found" (notes 7:37, 8:00) with the army
+at C7-D7 at 2.6x, while the lab stood 480 from the commander (truth file: armlab at (6944,336) from 0:58, the
+commander's start (6899,681)) and was first seen at 20:51. The 2:00-9:00 window at 1.8-3.3x ended at 10:00 at 1.4x.
+**Evidence.** `run/matches/1790563943-player-19-planner/00/review.md` (E8, the root); `run/minutes.py` on the match
+(the windows, `look_min` 3.9 against `fac_min` 20.9); the player's 3:15 `standing` call in `strategist-0.jsonl`.
+**Status.** brief amended 2026-09-28 (the station one of his outer spots, never a mark on his commander; a
+commander seen is a base found). Not yet seen in a game.
+

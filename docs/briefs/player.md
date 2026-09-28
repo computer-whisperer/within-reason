@@ -465,7 +465,12 @@ K-maps-comet-barb-opens-bots, the tempo model]
   route is the packet's prose with the station at the far end (player-14 put the whole group on `rove` at 2:40: the lane is the scouting footwork, each
   Rover on its own tour, and they came home having killed one extractor); one Rover on `rove` ahead of the body
   finds his lab on the way. The body never goes inside 300 of his commander (the D-gun) or at a turret, steps off
-  from Pawns, and every Rover out of the plant after that walks to it; two Rovers stay home from 2:30 against
+  from Pawns, and every Rover out of the plant after that walks to it. The station is one of his outer spots
+  (spot_6, spot_11, spot_18, spot_16 from B8), never `their_corner` or any mark on his commander's start:
+  player-19 walked the body to `their_corner` at 3:15 and four Rovers died to his commander at 4:00-4:03, the lead
+  then spent at home. His lab stands within 500 of his commander (player-19: 480), so a commander seen is a base
+  found: mark `his_base`, name the spots the report says he holds as the push's targets, and go; player-19 waited
+  four minutes at 2.6x for "his lab found" while the lab stood beside the commander it had seen; two Rovers stay home from 2:30 against
   Ticks (BARb's first at 2:08). **His minutes 4 to 8** (the same tool over his records and player-14's): the
   extractor curves match to 6:00 (3 at 3:00, 5 at 4:00, 7 at 5:00, 9 to 10 at 6:00) and then his goes 12, 16, 16 to
   20 at 7:00, 8:00, 9:00 with income 30, 39, 39 to 58, while player-14's fell to 5 at 7:00 with 13 extractors lost
