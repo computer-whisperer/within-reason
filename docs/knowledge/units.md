@@ -206,8 +206,8 @@ by up to ~500 elmos for the largest armies) rather than from spacing. Not separa
 stats suggest)
 **Amended 2026-09-28** (`docs/studies/2026-09-28-body-sizes.md`, the user's guess that the tier-2 bench was decided by
 splash): a Stout ball at equal metal against Fatboys goes from -0.55 at 56 spacing to -0.22 at 160, against Bulls
-from -0.34 to +0.01, and six Stouts against one Fatboy from +0.12 to +0.52. The Fatboy's 300 area and the Bull's 130
-against the Stout's 48 decide the ball's loss; the range (700 against 350) is the rest of the Fatboy's margin.
+from -0.34 to +0.01, and six Stouts against one Fatboy from +0.12 to +0.52. The Fatboy's 300 area of effect and the Bull's 130 (the file's figures; the engine's radius is half: 150, 65, and the
+Stout's 24) against the Stout's 48 decide the ball's loss; the range (700 against 350) is the rest of the Fatboy's margin.
 Neither the brief nor the picture's odds carry a unit's area: the shim reads the area of effect only for the blast
 words of `remove`, the glossary line says "300 area" for the Fatboy and "wide splash" for the Janus and nothing for
 the Bull, Leveler or Mauser, and the brief has no splash word at all (checked 2026-09-28). Nothing in the hands holds spacing:

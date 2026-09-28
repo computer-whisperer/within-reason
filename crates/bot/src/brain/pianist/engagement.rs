@@ -1096,6 +1096,7 @@ pub(crate) mod tests {
                     energy_cost: u.energy,
                     speed: u.speed,
                     build_speed: 0.0,
+                    blast_radius: 0.0,
                     build_time: 1.0,
                     build_distance: 0.0,
                     extracts_metal: 0.0,

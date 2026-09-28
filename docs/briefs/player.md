@@ -392,8 +392,8 @@ K-maps-comet-barb-opens-bots, the tempo model]
 - This opponent opened with a bot lab in 91 of 104 recorded games on this map (a vehicle plant in 13), whatever the
   terrain says: expect Pawns and Ticks early and Maces or Rocketeers later, from the far end of its strip.
 - **Splash: which shots hit an area, and why spacing decides** (the bench of 2026-09-28,
-  `docs/studies/2026-09-28-body-sizes.md`; K-units-duel-spacing-decides-area-damage). A shot's area, in elmos, and its
-  damage: Fatboy `armfboy` 300 (800 a shell, at 700); Leveler `corlevlr` 144 (190, at 315); Bull `armbull` 130
+  `docs/studies/2026-09-28-body-sizes.md`; K-units-duel-spacing-decides-area-damage). A shot's area of effect as the unit file gives it (the engine's radius is half of it: the
+  Fatboy's shells hurt everything within 150 of where they land), and its damage: Fatboy `armfboy` 300 (800 a shell, at 700); Leveler `corlevlr` 144 (190, at 315); Bull `armbull` 130
   (270, at 460); Janus `armjanus` 128 (two of 330, at 380); Mauser `armmart` 120 (260, at 820); Stout `armstump` 48
   (97); Blitz, light turret, Centurion, Sharpshooter 11 to 16 (single-target in effect). The damage falls to 15% at
   the edge of the area (65% for the Mauser, none for the Leveler: full to its edge). A body at our usual 25 to 40

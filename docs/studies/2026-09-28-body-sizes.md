@@ -103,8 +103,10 @@ batches there ran 0 duels), `--spacing 56` against `--spacing 160`, eight reps e
 | 21 Stouts against 5 Bulls | -0.34 (0.04) | **+0.01** (0.07) | 0.78 / 0.78 |
 | 6 Stouts against 1 Fatboy | +0.12 (0.08) | **+0.52** (0.02) | 0.82 / 0.82 |
 
-Splash it is: the Fatboy's shell has a 300 area (800 damage, 0.15 at the edge), the Bull's 130, the Stout's own 48
-(`crates/combatsim/data/units.json`). Spread out, the Bulls' win vanishes and the Fatboys' halves; what remains of
+Splash it is: the Fatboy's shell has a 300 area of effect in the unit file (800 damage, 0.15 at the edge), the Bull's 130,
+the Stout's own 48 (`crates/combatsim/data/units.json`); the engine's radius is half the file's figure (the Fatboy
+hurts everything within 150 of the impact; the body-shape study, 2026-09-28: `WeaponDef.cpp` scales it by 0.5,
+and the shim's `blast_radius` is the radius: 150, 65, 24). Spread out, the Bulls' win vanishes and the Fatboys' halves; what remains of
 the Fatboys' margin is the range (700 against 350, 0.74 in reach). The Sharpshooter (16 area) had none of it.
 
 **Not measured here.** Whether a body's units could all fire at contact (the shapes study has the friend-on-the-line

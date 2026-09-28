@@ -490,6 +490,7 @@ pub(crate) fn hello_from_record(dir: &Path, header: &Value) -> Result<(Hello, Ve
             energy_cost: f(&d["energy"]),
             speed: f(&d["speed"]),
             build_speed: f(&d["build_speed"]),
+            blast_radius: f(&d["blast_radius"]),
             build_time: f(&d["build_time"]),
             build_distance: f(&d["build_distance"]),
             extracts_metal: f(&d["extracts_metal"]),
