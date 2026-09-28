@@ -809,7 +809,13 @@ impl Brain {
             Some(t) => commands.extend(units.iter().map(|u| Command::Attack { unit: u.id, target: t, queue: false })),
             None => commands.extend(units.iter().map(|u| Command::Fight { unit: u.id, to: party.at, queue: false })),
         }
-        let from = centre_of(&units).unwrap_or(party.at);
+        // The leash's anchor is the body's place, as the leash measures it (`tick_groups`: "the body's place, not
+        // the centre of every member"): the centre of every member, the stream still joining at the yard included,
+        // stood over 900 from the body on the first tick, the leash held the group, and the pick engaged it again
+        // a second later, a Fight and a Stop every half second (player-20: 422 stops in minute 9 with five
+        // extractors lost at C5-C7 under them, 1,026 in minute 15 through engagement #13, 2,525 lost for 0 in the
+        // base; K-hands-the-follow-leash-fired-on-the-first-tick).
+        let from = group.body(own, Some(party.at)).map(|b| b.at).or_else(|| centre_of(&units)).unwrap_or(party.at);
         group.set_task(GroupTask::Engage { party: party.ids.clone(), at: party.at, since: frame, last_seen: frame, target, searched: false, from }, frame);
         group.last_order = frame;
         format!("attack {} ({}) with the whole group", party.name, party.composition)

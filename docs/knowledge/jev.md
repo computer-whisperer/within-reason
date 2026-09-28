@@ -1508,3 +1508,26 @@ commander's start (6899,681)) and was first seen at 20:51. The 2:00-9:00 window 
 **Status.** brief amended 2026-09-28 (the station one of his outer spots, never a mark on his commander; a
 commander seen is a base found). Not yet seen in a game.
 
+### K-hands-the-follow-leash-fired-on-the-first-tick
+**Claim.** `engage_group` anchored the follow leash at the centre of every member of the group, and the leash
+(`tick_groups`, `FOLLOW_LEASH` 900) measures the body's place, which excludes the stream still joining from the
+yard; a group whose joiners stood at home while its body engaged 900 or more away held on the first tick after the
+engagement ("drawn N from where it engaged"), the pick played "attack party_N with the whole group" again the next
+second, and the engine got a Fight and a Stop every half second: player-20 unit 15785 at frames 27540/27555/27570/
+27585 (fight, stop, fight, stop), 422 stop orders in minute 9 (five extractors lost at C5-C7 under them) and 1,026
+in minute 15, through engagement #13 (15:12-15:55 at B8: 2,525 lost for 0 with 665 of soldiers, 510 of turrets and
+the commander on the spot against 7 Maces, 5 Centurions and 4 Rocketeers). The player saw it twice (notes 9:30,
+15:30); its `lane group_B: focus, kite, march` was refused (`focus` retired) and `lane raw` at 15:40 ended the stops.
+**Evidence.** `run/matches/1790566750-player-20-live/00/record-0.jsonl` `cmd` rows (stops per minute, unit
+15785's sequence); `groups.rs` `engage_group` (`from`) against the leash at `GroupTask::Engage`; the review's H5.
+**Status.** fixed 2026-09-28: the anchor is the body's place. Not yet seen in a game.
+
+### K-player-the-prompt-offered-a-retired-lane-word
+**Claim.** The player's prompt described `focus` among the footwork rules `lane` keeps, while the tool's schema
+accepts `flee`, `fan`, `kite`, `form`, `march`, `follow` (FOCUS retired with H-MICRO-FOCUS): player-20's 15:30
+`lane group_B: ["focus", "kite", "march"]`, its answer to the stop storm, was refused whole, and the storm ran ten
+more seconds until `lane raw` at 15:40.
+**Evidence.** `run/matches/1790566750-player-20-live/00/strategist-0.jsonl` (the 15:30 tool_call, "lane: REFUSED");
+`crates/bot/src/strategist/mcp.rs` (the lane schema); `strategist/player.md` line 74 before this fix.
+**Status.** fixed 2026-09-28: the prompt's sentence names `form` in `focus`'s place.
+

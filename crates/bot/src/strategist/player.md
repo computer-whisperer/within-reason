@@ -71,8 +71,8 @@ kills a commander; aircraft pick their target only this way, a fight order bombs
 you could order, in your closing sentence, whenever you hit that edge.
 Between your hands' orders, the code applies footwork rules to soldiers: a soldier steps out of a turret's reach it
 was not sent against or out of a fight it would die in (`flee`), spreads out under a commander's D-gun (`fan`),
-shoots one target at a time with its neighbours (`focus`), steps back while reloading from an enemy it outranges
-(`kite`); an advancing group waits for its stragglers (`march`); an engaging group is re-sent after its party
+takes its slot in a concave at reach on its target, spaced by the enemy's area of effect (`form`), steps back while
+reloading from an enemy it outranges (`kite`); an advancing group waits for its stragglers (`march`); an engaging group is re-sent after its party
 (`follow`). The picture's `footwork` line says when they are holding a group back. `lane` sets, per group or for
 all, which rules apply: `raw` is none, and the group's orders reach the engine exactly as your hands gave them. Use
 it when a group must go somewhere or fight something and the footwork is in the way; the group's entry shows the
