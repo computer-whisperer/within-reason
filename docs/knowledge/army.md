@@ -692,3 +692,21 @@ has said what the body should do instead.
 **Would be wrong if.** The pros' small bodies were the map's chokes and not a choice (the same players on Full
 Metal Plate would say), or the count at 200 elmos split one intended body into several (the max at 400 would say).
 
+### K-micro-the-front-stops-on-the-nearest-and-blocks-the-rest
+**Claim (the user's registered prediction, 2026-09-28, before the TAS result).** "The correct attack pattern for the
+TAS situation [player-14's 9:17 push at E3: fifteen Blitzes against three Centurions and two light turrets] is move in
+until most of the ball can attack a turret, focus fire it until done, repeat with the second turret, then clean up
+the rest. Our current micro tends to have the units in front stop and shoot at whatever is nearest -- both failing
+to hit the correct target and blocking our other units from getting in range." Two parts: (1) the winning script is
+approach-to-mass-reach, then turret one, turret two, then the mobiles; (2) the fault in `crates/micro` is the front
+rank stopping at its first target (H-MICRO-FOCUS chooses among what is in reach, and a stopped front is a wall for
+the ranks behind), so the body engages piecemeal on the wrong targets.
+**Evidence.** None yet: the prediction is registered so the TAS (`docs/design/2026-09-28-tas-micro.md`, worktree
+`tas-micro`) can confirm or refute it against its own best script, and `run/tas_diff.py` can show whether the front
+stops in the micro's replay of the scene.
+**Status.** conjectured (the user, 2026-09-28). The TAS study (`docs/studies/2026-09-28-tas-e3.md` on the branch)
+records the script family that follows this prediction beside the agent's own, with the margins over seeds.
+**Would be wrong if.** The turrets fall faster to the Centurions being killed first (the turrets' 430 reach against
+the Blitz's 180 makes the approach the cost either way), or the front does not stop in the micro's replay (then the
+fault is target choice alone).
+
