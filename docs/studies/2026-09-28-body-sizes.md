@@ -48,6 +48,11 @@ Ours: 24 Stouts in a body of 32 (with 5 Blitzes and 3 Shellshockers) at 17:13 of
 - **Long-range units come in sevens at most**: 7 Whistlers, 7 Mortars, 4 Hammers in a body typically, beside the
   line. We had 4 Shellshockers behind 16 Stouts at 21:25; the pros' record for artillery in one body is 7 Mortars.
 
+**The count at 400 elmos** (`--link 400`, the "would be wrong if" of the claim): the typical ceiling barely moves,
+13 Blitzes, 14 Bulldogs, 13 Instigators, 15 Grunts, 14 Thuds and 11 Stouts; the pool's largest single bodies grow to
+65 Instigators, 58 Bulldogs, 41 Blitzes and 25 Stouts (the late mixed blobs joined). Our largest Blitz body reads 20
+at 400 (14 at 200) and the Stouts stay 24.
+
 **Not measured here.** Whether a body's units could all fire at contact (the shapes study has the friend-on-the-line
 share by body size: 22% for the pros' bodies of 6, 43% for ours of 13); what a body over the ceiling costs in a
 fight (the duel harness can: 8 Stouts against 24 in `--formation` arms, the muzzled share and the margin). Both are
