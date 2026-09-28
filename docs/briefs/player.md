@@ -438,15 +438,22 @@ K-maps-comet-barb-opens-bots, the tempo model]
   (a timed `assist N` that begins with the metal store under 20 is skipped by the hands and the next step runs, so
   the step after every timed assist is an extractor or the open `assist`, never a solar) and
   `produce {"plant_N": {"group": "group_A", "units": ["armflash:1", "armfav:5", "armcv:1", "armfav:10", "armcv:1", "armfav"]}}`
-  (the hands build the list's entries in order, each to its count, so `armcv:2` first is two constructors back
-  to back under the assist and the energy store gone: player-12). The first constructor's list: the near spots
+  (the hands build the list's counted entries in order, each to its count, and the entries with no count are the
+  filler after them: `armcv:2` first is two constructors back to back under the assist and the energy store gone
+  (player-12), and an open `armstump` ahead of `armart:4` was, until 2026-09-28, a plant that never reached the
+  Shellshockers (player-16: seven lists, none made); write the counts first and the open entry last). The first constructor's list: the near spots
   outward, a light turret at home the moment the first Tick or Pawn is in the picture (his at 3:02), then the strip.
   The Rovers: at 2:20, with eight out, group_A goes as one body to **his start's end of the strip** (his home spots
   and the ones beside them: from B8 that is G1-G2, spot_6, spot_11, spot_18, spot_16; the mirror of our own home,
   where the boxes put him and where his base was every time it was looked for), for his outer extractors and
   constructors, by a route that ends in a station there, not `lane rove` and not the near end of his strip
   (player-15 sent the body "along the south route into his strip" from B8, found G8 to G5 empty at 4:33 and had his
-  base in the picture only at 6:14; thebluegecko's first Rover is within 1,500 of the enemy start at 1:54). The
+  base in the picture only at 6:14; thebluegecko's first Rover is within 1,500 of the enemy start at 1:54). **On arrival the
+  body goes on `lane group_A: rove`**: the rove lane has each Rover kill his unguarded constructors and extractors
+  and step out of every reach, which is what his Rovers do (377 for 620 in minute 3); under the pass instead, the
+  body at his base was offered "attack party (2 Pawns) with the whole group" and took it, five Rovers lost for
+  nothing in player-16 and eleven in player-17 (the hands now refuse that offer for a scout body, but the rove lane
+  is the play, not a refusal). The
   route is the packet's prose with the station at the far end (player-14 put the whole group on `rove` at 2:40: the lane is the scouting footwork, each
   Rover on its own tour, and they came home having killed one extractor); one Rover on `rove` ahead of the body
   finds his lab on the way. The body never goes inside 300 of his commander (the D-gun) or at a turret, steps off
