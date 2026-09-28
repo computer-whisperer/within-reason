@@ -94,8 +94,8 @@ side's engaged unit-seconds (an enemy within 700) in which the unit had an enemy
 
 Mithril Mountain v2.0.1's flat sites (Quicksilver's hold no 25-unit line at 160: the two `ball-vs-*-5400-sp160`
 batches there ran 0 duels), `--spacing 56` against `--spacing 160`, eight reps each:
-`run/matches/1790556*-duel-mm-ball-vs-armfboy-5400-sp56` / `-sp160`, `-armbull-5400-sp56` / `-sp160`, and
-`1790556*-duel-ball-vs-armfboy-1800-sp160` on Quicksilver.
+`run/matches/1790556033-duel-mm-ball-vs-armfboy-5400-sp56`, `1790556045-...-sp160`, `1790556061-duel-mm-ball-vs-armbull-5400-sp56`,
+`1790556073-...-sp160`, and `1790555999-duel-ball-vs-armfboy-1800-sp160` on Quicksilver.
 
 | pairing | spacing 56 | spacing 160 | in reach 56 / 160 |
 |---|---|---|---|

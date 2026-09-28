@@ -210,8 +210,9 @@ from -0.34 to +0.01, and six Stouts against one Fatboy from +0.12 to +0.52. The 
 against the Stout's 48 decide the ball's loss; the range (700 against 350) is the rest of the Fatboy's margin.
 Neither the brief nor the picture's odds carry a unit's area: the shim reads the area of effect only for the blast
 words of `remove`, the glossary line says "300 area" for the Fatboy and "wide splash" for the Janus and nothing for
-the Bull, Leveler or Mauser, and the brief has no splash word at all (checked 2026-09-28). The hands' H-MICRO-SPREAD
-orders a spread of 110 and the live spacing at contact was 25-40 (the pro-fight-shapes study; the pros 67-70).
+the Bull, Leveler or Mauser, and the brief has no splash word at all (checked 2026-09-28). Nothing in the hands holds spacing:
+H-MICRO-SPREAD was retired 2026-09-20 (nothing measurable, move failures), and the live spacing at contact is 25-40
+(the pro-fight-shapes study; the pros 67-70).
 
 ### K-units-duel-a-stout-ball-is-not-muzzled-on-flat-ground
 **Claim.** On flat ground, a ball of 24 Stouts `armstump` closing on 24 at the duel director's attack-move fires at
