@@ -53,6 +53,43 @@ Ours: 24 Stouts in a body of 32 (with 5 Blitzes and 3 Shellshockers) at 17:13 of
 65 Instigators, 58 Bulldogs, 41 Blitzes and 25 Stouts (the late mixed blobs joined). Our largest Blitz body reads 20
 at 400 (14 at 200) and the Stouts stay 24.
 
+## What a body over the ceiling costs, in the duel harness (2026-09-28)
+
+`target/release/duel` on Quicksilver's flat sites, speed 50, the director's attack-move both sides, ranks of eight
+at 56 elmos; batches `run/matches/1790555341-duel-scale-stout-6` .. `-36` (six reps each) and
+`1790555408-duel-ball-vs-armbull-5400` .. `1790555479-duel-ball-vs-armsnipe-1800` (eight reps each; equal metal by
+`--budget`, so 21 Stouts against 5 Bulls, 25 against 4 Fatboys, 24 against 8 Sharpshooters, and 8, 6 and 9 Stouts
+against 2, 1 and 3 at 1,800). Margin = our value left minus theirs, per duel, meaned; "in reach" = the share of a
+side's engaged unit-seconds (an enemy within 700) in which the unit had an enemy within its reach.
+
+| pairing | a side | margin (sd) | in reach while engaged | shots per reach-second | seconds |
+|---|---|---|---|---|---|
+| Stouts mirror, 6 a side | 6 | 0.00 (0.13) | 0.91 | 0.82 | 36 |
+| Stouts mirror, 12 | 12 | 0.00 (0.17) | 0.92 | 0.83 | 73 |
+| Stouts mirror, 24 | 24 | 0.00 (0.16) | 0.90 | 0.82 | 77 |
+| Stouts mirror, 36 | 36 | 0.00 (0.11) | 0.90 | 0.81 | 93 |
+| 8 Stouts against 2 Bulls | 1,800 | **-0.18** (0.09) | 0.81 / 0.92 | 0.80 / 0.87 | 29 |
+| 21 Stouts against 5 Bulls | 5,400 | **-0.31** (0.06) | 0.79 / 0.91 | 0.80 / 0.85 | 29 |
+| 6 Stouts against 1 Fatboy | 1,800 | **+0.12** (0.08) | 0.82 / 1.00 | 0.81 | 31 |
+| 25 Stouts against 4 Fatboys | 5,400 | **-0.54** (0.14) | 0.63 / 1.00 | 0.79 | 28 |
+| 9 Stouts against 3 Sharpshooters | 1,800 | +0.83 (0.06) | 0.59 | 0.72 | 14 |
+| 24 Stouts against 8 Sharpshooters | 5,400 | +0.94 (0.03) | 0.63 | 0.70 | 17 |
+
+**What it says.**
+- **A Stout ball does not lose to itself.** In the mirror the in-reach share and the rate of fire are the same at 6
+  and at 36 (0.90-0.92, 0.82 a second): on flat ground against a line of the same reach, the whole front fires at
+  every size (the muzzle study's phase 1 again).
+- **It loses to a few long-range units, and worse the bigger it is.** At the same metal ratio, six Stouts beat one
+  Fatboy (+0.12) and twenty-five lose to four (-0.54); eight Stouts lose to two Bulls by 0.18 and twenty-one to five
+  by 0.31. Against the Fatboys only 63% of the ball's engaged seconds had a target in reach: the back of a 25-Stout
+  body (spread 105 across the front, ranks behind) closes 350 under 700-range fire and never shoots. The ninth Stout
+  is worth less than the eighth, and the sixteenth less again, exactly against the units that appear at 12:00.
+- **Sharpshooters alone die** (+0.83 and +0.94: 580 health, one shot every 20 s): their value in the games is the
+  line in front of them (player-15's one Gunslinger, 65 kills among our Stouts from behind his), which the duel has
+  no arm for yet (a Sharpshooter pair behind eight Bulls against the same metal of Stouts is the next arm).
+- **So the ceiling is about what the enemy fields, not the ball's own geometry**: past about a dozen, more of the
+  same tank buys nothing against tier 2 and less against artillery; the metal is a second group elsewhere, or tier 2.
+
 **Not measured here.** Whether a body's units could all fire at contact (the shapes study has the friend-on-the-line
 share by body size: 22% for the pros' bodies of 6, 43% for ours of 13); what a body over the ceiling costs in a
 fight (the duel harness can: 8 Stouts against 24 in `--formation` arms, the muzzled share and the margin). Both are

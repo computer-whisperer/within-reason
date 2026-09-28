@@ -681,9 +681,14 @@ at 3:50-5:10). The bodies over 30 are late (after 14:00) and mixed (two or three
 thing. Ours: 24 Stouts in one body at 17:13 of player-15 (three times the pros' typical largest), 31 owned at once.
 **Evidence.** `docs/studies/2026-09-28-body-sizes.md` (the table, with the game and clock of every maximum).
 **Status.** measured 2026-09-28 (the user's question: units without micro attention lose effectiveness at a scale,
-and we throw armies that cannot all engage against a few tier-2 units). Not yet a rule: what a body over the ceiling
-costs is the duel harness's next measurement (8 against 24 Stouts, `--formation` arms), and the TAS work
-(`docs/design/2026-09-28-tas-micro.md`) asks the same question of one engagement.
+and we throw armies that cannot all engage against a few tier-2 units). The cost measured the same day in the duel
+harness (the study's second table): a Stout ball loses nothing to itself at any size (in reach 0.90-0.92 from 6 to
+36 a side), but at equal metal six Stouts beat one Fatboy (+0.12) and twenty-five lose to four (-0.54, in reach
+0.63); eight lose to two Bulls by 0.18 and twenty-one to five by 0.31. The ceiling is set by what the enemy fields
+from 12:00, not by the ball's geometry. The user's rule for the games (2026-09-28): a lead is spent by taking a
+second group elsewhere and, later, by tier 2, never by adding to a body of a unit that does not scale; a first-order
+cap for the hands by unit range against ball diameter, once the TAS work (`docs/design/2026-09-28-tas-micro.md`)
+has said what the body should do instead.
 **Would be wrong if.** The pros' small bodies were the map's chokes and not a choice (the same players on Full
 Metal Plate would say), or the count at 200 elmos split one intended body into several (the max at 400 would say).
 
