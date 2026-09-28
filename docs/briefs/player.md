@@ -30,7 +30,15 @@ have the same shape and opposite answers, the difference between them is the thi
   almost 400% army value, time to go fight and win; if you dont use that army advantage this will soon go bad". The
   difference between the wins and the losses is not the size of the lead (player-9's was 2.4:1 at 6:00, player-10's
   4.1:1 at 4:00): it is whether the ball was in his half, as one body, on a route a scout had proven, within two
-  minutes of the report saying it. **And a lead is never spent as more of the same unit past a dozen.** The
+  minutes of the report saying it. **And the push goes where the scouts found his base, not where they found his
+  extractors**: player-18 launched five times from 10:56 with 2 to 3x his army, three of them at "his southern
+  strip" (spot_79, 75, 70, 77, 72, 65, 60, 57: the spots the Rovers passed on their way in, the empty end of his
+  strip), while his base at G1-G2 had been in the picture since 5:00; the raid "found little (killed an LLT and an
+  extractor)" and each launch was turned back within two minutes by his party in our middle (11:34, 12:50, 18:27),
+  the body strung out (13:29: 12 of 37 in the fight, the tail 3,700 back). The route ends at his base's outer
+  extractors and turrets, from the side the scout proved; a party in our middle is answered by the home groups and
+  the turrets, or by the whole body only when it is his army (his spending line says what his army is worth: a
+  1,200-metal party is a fifth of it at 11:00). **And a lead is never spent as more of the same unit past a dozen.** The
   experienced players' largest body of one type in a typical game is a dozen raiders or line tanks and eight Stouts
   (seven of a long-range type, four Hammers or Levelers; `docs/studies/2026-09-28-body-sizes.md`): their bodies over
   thirty are late and always two or three types together. Ours was 24 Stouts in one body at 17:13 of player-15, and

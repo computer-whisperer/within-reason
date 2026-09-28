@@ -134,7 +134,11 @@ impl Brain {
                 let scouts_only = self.scouts_only(&units);
                 let party_armed = enemies.iter().any(|e| party.ids.contains(&e.id) && e.def.and_then(|d| self.world.def(d)).is_some_and(|d| d.weapon_count > 0));
                 let scouts_vs_armed = scouts_only && party_armed;
-                let hitting_us = self.killing_words(&party.ids, Some(&own_ids)).is_some();
+                // A scout nibbling the tail is not self-defence: with `raiders_lone: ignore` and `no_chase` set for
+                // the launch, a Flea on group_B's tail opened "2 of group_B hunt party_32" and the group left its
+                // route (player-18 11:06-11:20: "group_B ignored the prose route (kept reacting to his Rover)").
+                let party_scouts = enemies.iter().filter(|e| party.ids.contains(&e.id)).all(|e| e.def.map_or(false, |d| super::glossary::entry(self.name(d)).is_some_and(|g| g.class.contains("scout"))));
+                let hitting_us = !party_scouts && self.killing_words(&party.ids, Some(&own_ids)).is_some();
                 // `ignore` never prunes self-defence: a party hitting this group is answered whatever the rule says
                 // (comet-catcher-3, 21:52: `raiders_lone ignore` stopped eleven Stouts in front of a Bull that was
                 // killing them, twice, over Jev's own picks).

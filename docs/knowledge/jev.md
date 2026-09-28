@@ -1436,3 +1436,15 @@ review's finding 4; `run/analyze_match.py ... --engagement 16`.
 not surveyed for their confidence, and the survey (`{"t":"plan"}` lines with `changed` naming a group in Engage,
 against the trade in the next minute) is the check.
 
+### K-hands-a-scouts-nibble-opened-a-hunt-through-ignore
+**Claim.** `raiders_lone: ignore` yields to self-defence, a party hitting the group (comet-catcher-3 21:52: eleven
+Stouts stood under a Bull killing them). In player-18 the player set `ignore` and `no_chase` on group_B for its
+launch at 10:56 and a Flea (party_32) hitting the tail at 11:06 was enough: the pass offered "2 of group_B hunt
+party_32 (1 armflea)" and the pick took it, the group met a Rover at E6 and reacted, and at 11:20 the player wrote
+"group_B ignored the prose route (kept reacting to his Rover)" and forced a station. The launch, one of five that
+game, never reached its route.
+**Evidence.** `run/hands_window.py run/matches/1790559*-player-18-planner/00 11:00 11:22 group_B`; the player's
+notes at 10:56 and 11:20 (`run/commander_turns.py --notes`).
+**Status.** fixed 2026-09-28: a party of scouts alone is not the self-defence that overrides `ignore` (a Bull is).
+Exploited by [[H-HANDS-STANDING]].
+
