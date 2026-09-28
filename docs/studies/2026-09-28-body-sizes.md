@@ -90,6 +90,23 @@ side's engaged unit-seconds (an enemy within 700) in which the unit had an enemy
 - **So the ceiling is about what the enemy fields, not the ball's own geometry**: past about a dozen, more of the
   same tank buys nothing against tier 2 and less against artillery; the metal is a second group elsewhere, or tier 2.
 
+## Splash or range? The same arms at 160 spacing (2026-09-28, the user's guess: "the deciding factor there is the splash of the t2 units")
+
+Mithril Mountain v2.0.1's flat sites (Quicksilver's hold no 25-unit line at 160: the two `ball-vs-*-5400-sp160`
+batches there ran 0 duels), `--spacing 56` against `--spacing 160`, eight reps each:
+`run/matches/1790556*-duel-mm-ball-vs-armfboy-5400-sp56` / `-sp160`, `-armbull-5400-sp56` / `-sp160`, and
+`1790556*-duel-ball-vs-armfboy-1800-sp160` on Quicksilver.
+
+| pairing | spacing 56 | spacing 160 | in reach 56 / 160 |
+|---|---|---|---|
+| 25 Stouts against 4 Fatboys | -0.55 (sd 0.13) | **-0.22** (0.04) | 0.64 / 0.74 |
+| 21 Stouts against 5 Bulls | -0.34 (0.04) | **+0.01** (0.07) | 0.78 / 0.78 |
+| 6 Stouts against 1 Fatboy | +0.12 (0.08) | **+0.52** (0.02) | 0.82 / 0.82 |
+
+Splash it is: the Fatboy's shell has a 300 area (800 damage, 0.15 at the edge), the Bull's 130, the Stout's own 48
+(`crates/combatsim/data/units.json`). Spread out, the Bulls' win vanishes and the Fatboys' halves; what remains of
+the Fatboys' margin is the range (700 against 350, 0.74 in reach). The Sharpshooter (16 area) had none of it.
+
 **Not measured here.** Whether a body's units could all fire at contact (the shapes study has the friend-on-the-line
 share by body size: 22% for the pros' bodies of 6, 43% for ours of 13); what a body over the ceiling costs in a
 fight (the duel harness can: 8 Stouts against 24 in `--formation` arms, the muzzled share and the margin). Both are

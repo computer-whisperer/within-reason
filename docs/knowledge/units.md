@@ -204,6 +204,14 @@ the median shift is 0.12.
 by up to ~500 elmos for the largest armies) rather than from spacing. Not separated.
 **Used by.** (candidate: the brain's blob attack-move is the tight case; spreading a Pawn wave is worth more than its unit
 stats suggest)
+**Amended 2026-09-28** (`docs/studies/2026-09-28-body-sizes.md`, the user's guess that the tier-2 bench was decided by
+splash): a Stout ball at equal metal against Fatboys goes from -0.55 at 56 spacing to -0.22 at 160, against Bulls
+from -0.34 to +0.01, and six Stouts against one Fatboy from +0.12 to +0.52. The Fatboy's 300 area and the Bull's 130
+against the Stout's 48 decide the ball's loss; the range (700 against 350) is the rest of the Fatboy's margin.
+Neither the brief nor the picture's odds carry a unit's area: the shim reads the area of effect only for the blast
+words of `remove`, the glossary line says "300 area" for the Fatboy and "wide splash" for the Janus and nothing for
+the Bull, Leveler or Mauser, and the brief has no splash word at all (checked 2026-09-28). The hands' H-MICRO-SPREAD
+orders a spread of 110 and the live spacing at contact was 25-40 (the pro-fight-shapes study; the pros 67-70).
 
 ### K-units-duel-a-stout-ball-is-not-muzzled-on-flat-ground
 **Claim.** On flat ground, a ball of 24 Stouts `armstump` closing on 24 at the duel director's attack-move fires at
