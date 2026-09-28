@@ -1472,3 +1472,16 @@ north"); `run/analyze_match.py ... --engagement 18`; the player's 21:04 `standin
 **Status.** fixed 2026-09-28: `engagement_of` declines a position with an element within `NEVER_REACH` of a
 `never` place of the group (unit test on the E3 scene). Not yet seen in a game.
 
+### K-jev-the-pre-pass-outgrew-the-context-by-its-questions
+**Claim.** The pre-pass request grows with the actors' options, not the state: at 15:52 of player-19 it carried
+322 noul questions over 22 actors (104 of them a group's advance to a spot, about 30 a constructor: the buildings
+at every spot), 181,000 of its 215,000 characters, with the state at 30,000 (the 160,000-character shedding of
+player-10 never fired). Jev answered HTTP 400 `max_tokens_exceeded` on 44 calls in 14:50-16:13, every actor
+keeping its course each time; the largest call that passed carried 65,771 input tokens, and answered in 0.6 s.
+**Evidence.** `run/matches/1790563943-player-19-planner/00/jev-0.jsonl` (the `error` rows at f=26700-29040, the
+`call` rows' `usage` and `questions`); `00/bot.log`.
+**Status.** fixed 2026-09-28 in the client (`crates/jev` `REQUEST_CHARS` 150,000: a request past it goes as
+batches of whole questions over the same state, the answers merged, the call row's `batches`). Open: whether a
+group needs an advance to every spot and a constructor every building offered every second (the size), and
+whether Jev's context limit is 65,536 input tokens (the largest that passed was just above).
+

@@ -1110,7 +1110,7 @@ impl Brain {
         let parties: Vec<serde_json::Value> = pianist.parties.iter().map(|p| json!({ "name": p.name, "ids": p.ids.iter().map(|id| id.0).collect::<Vec<_>>(), "x": p.at.x as i32, "z": p.at.z as i32, "metal": p.metal as i32, "composition": p.composition })).collect();
         let mut line = json!({
             "t": "call", "f": tick.frame, "ms": (response.latency.as_secs_f32() * 1000.0) as u32, "model": response.model, "usage": response.usage,
-            "retries": response.retries, "state": state, "questions": request.questions, "answers": response.answers,
+            "retries": response.retries, "batches": response.batches, "state": state, "questions": request.questions, "answers": response.answers,
             "groups": groups, "places": places, "parties": parties,
         });
         if rules_changed {

@@ -20,6 +20,12 @@ const TIMEOUT: Duration = Duration::from_secs(20);
 /// A 429 or a 5xx is retried this many times, waiting `retry-after` (at most `RETRY_WAIT_MAX`) each time.
 const RETRIES: u32 = 2;
 const RETRY_WAIT_MAX: Duration = Duration::from_secs(5);
+/// A request whose body is longer than this is sent as several batches of its questions over the same state, and
+/// the answers are merged: the service refuses a request past its context (HTTP 400 `max_tokens_exceeded`; the
+/// largest that passed carried 65,771 input tokens for a 215,000-character body, and player-19's pre-pass grew to
+/// 322 questions over 22 actors, 44 calls refused in 14:50-16:13 with every actor keeping its course). The budget
+/// is about 45,000 tokens of this text; a call at 65,000 tokens answered in 0.6 s, so a second batch costs little.
+pub const REQUEST_CHARS: usize = 150_000;
 
 /// A typed question, in the API's own shape (`type`, `instructions`, `criteria`).
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -111,6 +117,8 @@ pub struct Response {
     pub latency: Duration,
     /// Retries this call needed (429 or 5xx).
     pub retries: u32,
+    /// The batches the request was sent as (1 unless its body passed `REQUEST_CHARS`).
+    pub batches: u32,
 }
 
 #[derive(Debug)]
@@ -188,8 +196,34 @@ impl Client {
         &self.model
     }
 
-    /// One call: every question answered over the state. Retries a 429 or a 5xx, waiting what the service asks.
+    /// One call: every question answered over the state. Retries a 429 or a 5xx, waiting what the service asks. A
+    /// request past `REQUEST_CHARS` goes as batches of its questions (each with the whole state), the answers merged.
     pub fn ask(&self, request: &Request) -> Result<Response, Error> {
+        let batches = batches(request, REQUEST_CHARS);
+        if batches.len() <= 1 {
+            return self.ask_one(request);
+        }
+        let started = Instant::now();
+        let mut merged: Option<Response> = None;
+        for questions in batches {
+            let part = self.ask_one(&Request { state: request.state.clone(), questions })?;
+            merged = Some(match merged {
+                None => part,
+                Some(mut all) => {
+                    all.answers.extend(part.answers);
+                    all.usage = add_usage(&all.usage, &part.usage);
+                    all.retries += part.retries;
+                    all.batches += 1;
+                    all
+                }
+            });
+        }
+        let mut all = merged.expect("at least one batch");
+        all.latency = started.elapsed();
+        Ok(all)
+    }
+
+    fn ask_one(&self, request: &Request) -> Result<Response, Error> {
         let body = serde_json::json!({ "model": self.model, "state": request.state, "questions": request.questions });
         let started = Instant::now();
         let mut retries = 0;
@@ -240,6 +274,7 @@ impl Client {
             usage: parsed["usage"].take(),
             latency: Duration::ZERO,
             retries: 0,
+            batches: 1,
         })
     }
 }
@@ -247,6 +282,55 @@ impl Client {
 enum Retry {
     After(Duration),
     Never(Error),
+}
+
+/// The request's questions in batches whose body (the state and the batch's questions) fits `budget`, in the map's
+/// order (an actor's questions stay together, as their ids share its prefix); one batch when the whole fits, and a
+/// batch is never empty, so a single question past the budget still goes.
+fn batches(request: &Request, budget: usize) -> Vec<BTreeMap<String, Question>> {
+    let size = |v: &Value| v.to_string().len();
+    let base = size(&request.state) + 64;
+    if base + size(&serde_json::to_value(&request.questions).unwrap_or(Value::Null)) <= budget {
+        return vec![request.questions.clone()];
+    }
+    let mut out: Vec<BTreeMap<String, Question>> = Vec::new();
+    let mut current: BTreeMap<String, Question> = BTreeMap::new();
+    let mut used = base;
+    for (id, q) in &request.questions {
+        let cost = id.len() + 4 + size(&serde_json::to_value(q).unwrap_or(Value::Null));
+        if !current.is_empty() && used + cost > budget {
+            out.push(std::mem::take(&mut current));
+            used = base;
+        }
+        current.insert(id.clone(), q.clone());
+        used += cost;
+    }
+    if !current.is_empty() {
+        out.push(current);
+    }
+    out
+}
+
+/// The usage of two batches added: every numeric field summed, the rest from the first.
+fn add_usage(a: &Value, b: &Value) -> Value {
+    match (a, b) {
+        (Value::Object(x), Value::Object(y)) => {
+            let mut out = x.clone();
+            for (k, v) in y {
+                let sum = match (out.get(k).and_then(Value::as_f64), v.as_f64()) {
+                    (Some(p), Some(q)) => Some(p + q),
+                    _ => None,
+                };
+                match sum {
+                    Some(s) if s.fract() == 0.0 => { out.insert(k.clone(), Value::from(s as u64)); }
+                    Some(s) => { out.insert(k.clone(), Value::from(s)); }
+                    None => { out.entry(k.clone()).or_insert_with(|| v.clone()); }
+                }
+            }
+            Value::Object(out)
+        }
+        _ => a.clone(),
+    }
 }
 
 #[cfg(test)]
@@ -262,6 +346,20 @@ mod tests {
         assert_eq!(serde_json::to_value(&n).unwrap(), serde_json::json!({ "type": "noul", "instructions": "Is it?" }));
         let s = Question::score("How much?", ["none", "some", "all"]);
         assert_eq!(serde_json::to_value(&s).unwrap(), serde_json::json!({ "type": "score", "instructions": "How much?", "criteria": ["none", "some", "all"] }));
+    }
+
+    #[test]
+    fn a_request_past_the_budget_goes_as_batches_of_whole_questions() {
+        let questions: BTreeMap<String, Question> = (0..10).map(|i| (format!("group_{}.walk_{i}", i / 3), Question::noul("x".repeat(100)))).collect();
+        let request = Request { state: serde_json::json!({ "actors": "y".repeat(200) }), questions };
+        assert_eq!(batches(&request, 10_000).len(), 1, "the whole fits");
+        let parts = batches(&request, 700);
+        assert!(parts.len() > 1 && parts.len() < 10, "{}", parts.len());
+        let all: Vec<&String> = parts.iter().flat_map(|p| p.keys()).collect();
+        assert_eq!(all, request.questions.keys().collect::<Vec<_>>(), "every question once, in order");
+        assert_eq!(batches(&request, 10).len(), 10, "a batch is never empty: one question a batch past any budget");
+        let usage = add_usage(&serde_json::json!({ "input_tokens": 40000, "output_tokens": 3000 }), &serde_json::json!({ "input_tokens": 25000, "output_tokens": 2000, "model": "m" }));
+        assert_eq!(usage, serde_json::json!({ "input_tokens": 65000, "output_tokens": 5000, "model": "m" }));
     }
 
     #[test]
