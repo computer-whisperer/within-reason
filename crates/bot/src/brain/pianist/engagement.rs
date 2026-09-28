@@ -478,7 +478,7 @@ pub(crate) const EXAMPLES: &str = "Examples from our studies, each a position fo
 
 impl Brain {
     /// The candidate plans for a battlefield, at most six: the screen first from its stand-off then the statics then
-    /// the rest; the statics first; the nearest first then by distance; a gather before the screen-first plan when
+    /// the rest (else, when a static has a stand-off, those statics one at a time from theirs); the statics first; the nearest first then by distance; a gather before the screen-first plan when
     /// the body is strung out; hold and shell when the body's artillery out-reaches the statics and one is in sight;
     /// the decline (fall back to `back`).
     pub(crate) fn candidates(&self, bf: &Battlefield, places: &[Place], back: (Vec3, String)) -> Vec<Candidate> {
@@ -504,6 +504,19 @@ impl Brain {
         });
         if let Some(phases) = &screen_first {
             out.push(self.candidate("screen_first", "The screen first from outside the statics' reach, then the statics, then the rest", phases.clone(), bf, places));
+        }
+        // With no mobile element to take first from outside cover (a turret line, or a screen standing in every
+        // reach): the statics our reach reaches from outside every other reach, one at a time from there, then the
+        // rest by distance. In place of the screen-first plan, so the candidates stay six.
+        let alone: Vec<usize> = statics.iter().copied().filter(|i| bf.facts[*i].stand_off.is_some()).collect();
+        if screen_first.is_none() && !alone.is_empty() {
+            let mut phases: Vec<Phase> = alone.iter().map(|i| attack(&[*i], bf.facts[*i].stand_off.map(|(p, _)| p))).collect();
+            let rest: Vec<usize> = statics.iter().copied().filter(|i| !alone.contains(i)).collect();
+            if !rest.is_empty() {
+                phases.push(attack(&rest, None));
+            }
+            phases.extend(by_distance.iter().copied().filter(|i| !pos.elements[*i].fixed).map(|i| attack(&[i], None)));
+            out.push(self.candidate("one_at_a_time", "The statics our reach reaches from outside every other reach, one at a time from there, then the rest", phases, bf, places));
         }
         if !statics.is_empty() {
             let mut phases = vec![attack(&statics, None)];

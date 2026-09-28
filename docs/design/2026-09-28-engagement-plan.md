@@ -14,6 +14,13 @@ brain rebuilt from the record's header and terrain, `recorder.rs` `hello_from_re
 Centurions first seen at 9:15, the turrets at 9:16/9:19); player-14's group_C was holding at its station when E3 came
 in sight, so the gate takes the hold an advance arrived in as an attack; player-17's body was fourteen Rovers and one
 Blitz, which the scout check by every armed member missed (now: scouts more than half the armed metal).
+Step 3, the validation (`docs/studies/2026-09-28-engagement-plan.md`, 28 Jev calls): no named clock had a position in
+reach, so each fight was replayed at its first planned second. E3 (9:16, 9:17) ranks screen_first 0.76-0.81 over
+statics_first and nearest_first (0.01-0.03): the TAS's verdict met. The F3 test fails (no shell candidate, the
+decline last at 0.01-0.03, every phase "we outweigh it"), as does the decline of an Overwatch that out-ranges the body
+(player-16 16:10: 0.21 with the examples, 0.11 without). The examples block moved no top pick. A candidate added:
+`one_at_a_time` (the statics our reach reaches from outside every other reach, one at a time from there), offered in
+place of screen_first when no mobile element has a stand-off; a turret line had only walk-ins before.
 
 ## Why
 
