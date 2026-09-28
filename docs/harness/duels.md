@@ -192,8 +192,16 @@ For the hand-built TAS of one engagement (`docs/design/2026-09-28-tas-micro.md`,
   the first job waiting and fights only that seed's jobs. Without it the seed is the match's index plus one, as before.
 - **The per-second log**: `seconds/m<match>-s<site>-d<seq>-rep<r>[-seed<s>].jsonl` beside `duels.csv` (named in its
   `log` column), one line a second from the first orders: `t`, `left` (each side's value left), `x` and `y` (every
-  living unit as `[index in the file, x, z, health]`), `shots` and `dealt` per unit that second, each team's stored
+  living unit as `[index in the file, x, z, health]`), `shots` per unit and `dealt` as `[attacker, victim, damage]` that second (from
+  2026-09-28 evening; the first batches, val-* to tas-e3w-v0-director, carry `[attacker, damage]`), each team's stored
   `energy`, and the script rows that went out (`orders`: row, frame, units sent, units skipped).
+- **An attack on a unit out of sight does not hunt it.** Queued, the engine drops it when it comes due (tas-e3-v3:
+  Centurion 3 lived in 11 of 24); given as the unit's current order it ends at once and the unit stands (tas-e3w-w-v9:
+  the Blitzes stood 430 from Centurion 7 for a minute). Send a fight to where the unit was seen instead. Buildings
+  once seen can be attacked from out of sight (the turret assaults).
+- Readers: `run/scenario_table.py` (one row per batch; `--position` counts the duels in which the named units of side
+  1 all died, and those with our value ahead), `run/tas_read.py <log>` (one duel's log as a timeline),
+  `run/front_rank.py` (in reach, stood still, blocked and first target by rank, from logs with the victim).
 - `duels.csv` gains `seed`, `left30_x/_y`, `left60_x/_y` (each side's value left 30 and 60 s after the first orders,
   the end's value for a fight decided sooner: the live outcome a scenario file carries is scored at the same two) and
   `log`. `batch.json` records the script, the delay, `theirs`, the seeds, the economy and the command line.

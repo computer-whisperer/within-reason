@@ -1,0 +1,9 @@
+{"format": "within-reason-script", "version": 1,
+ "note": "v2: no retreat. Everyone on one chain of queued attacks: Centurion 4 (the record's own first target), then Centurion 3, Centurion 1, the near turret 2, the far turret 0.",
+ "rows": [
+  {"t": 0, "unit": "all", "cmd": "attack", "target": 4},
+  {"t": 0, "unit": "all", "cmd": "attack", "target": 3, "queue": true},
+  {"t": 0, "unit": "all", "cmd": "attack", "target": 1, "queue": true},
+  {"t": 0, "unit": "all", "cmd": "attack", "target": 2, "queue": true},
+  {"t": 0, "unit": "all", "cmd": "attack", "target": 0, "queue": true}
+ ]}

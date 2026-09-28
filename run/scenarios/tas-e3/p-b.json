@@ -1,0 +1,64 @@
+{
+ "format": "within-reason-script",
+ "version": 1,
+ "note": "The user's turret-first pattern with the ball gathered first: everyone to (4450, 1950), outside the turrets' 430 and the Centurions' 325; at 4 s all attack the near turret together, then the far one, then the Centurions as p-a.",
+ "rows": [
+  {
+   "t": 0,
+   "unit": "all",
+   "cmd": "move",
+   "x": 4450,
+   "z": 1950
+  },
+  {
+   "t": 4,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 2
+  },
+  {
+   "t": 4,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 0,
+   "queue": true
+  },
+  {
+   "t": 4,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 1,
+   "queue": true
+  },
+  {
+   "t": 4,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 4,
+   "queue": true
+  },
+  {
+   "t": 4,
+   "unit": "all",
+   "cmd": "attack",
+   "target": 3,
+   "queue": true
+  },
+  {
+   "t": 4,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 4590,
+   "z": 1000,
+   "queue": true
+  },
+  {
+   "t": 4,
+   "unit": "all",
+   "cmd": "fight",
+   "x": 5622,
+   "z": 1113,
+   "queue": true
+  }
+ ]
+}

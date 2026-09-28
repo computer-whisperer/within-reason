@@ -262,9 +262,9 @@ struct Army {
     resent: i32,
     /// The team's stored energy at its last tick (the per-second log).
     energy: f32,
-    /// Shots per unit since the last per-second log line, and damage taken by attacker.
+    /// Shots per unit since the last per-second log line, and damage taken: (attacker, victim, damage).
     second_shots: HashMap<UnitId, u32>,
-    second_hits: Vec<(UnitId, f32)>,
+    second_hits: Vec<(UnitId, UnitId, f32)>,
     /// A script's next row (side 0 under `--script`).
     next_row: usize,
     /// A track's last place sent per spawn index, with the row's time (side 1 under `--theirs track`).
@@ -980,7 +980,7 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                     army.damage_taken += damage;
                     hurt = true;
                     if let Some(a) = attacker {
-                        army.second_hits.push((*a, *damage));
+                        army.second_hits.push((*a, *unit, *damage));
                     }
                     // Damage is booked to the army that did it: to itself (friendly fire) or to the enemy army.
                     match attacker {
@@ -1452,17 +1452,18 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
         rows.sort();
         rows.into_iter().map(|(i, n)| json!([i, n])).collect()
     };
-    // Damage each unit did to the other side: the hits the other side's units took, by attacker.
-    let dealt = |by: &Army, hits: Vec<(UnitId, f32)>| -> Vec<Value> {
-        let mut sums: HashMap<usize, f32> = HashMap::new();
-        for (attacker, damage) in hits {
-            if let Some(&i) = by.spawn_of.get(&attacker) {
-                *sums.entry(i).or_default() += damage;
+    // Damage each unit did to the other side, by victim: the hits the other side's units took, by attacker, as
+    // [attacker's index, victim's index, damage].
+    let dealt = |by: &Army, on: &Army, hits: Vec<(UnitId, UnitId, f32)>| -> Vec<Value> {
+        let mut sums: HashMap<(usize, usize), f32> = HashMap::new();
+        for (attacker, victim, damage) in hits {
+            if let (Some(&i), Some(&j)) = (by.spawn_of.get(&attacker), on.spawn_of.get(&victim)) {
+                *sums.entry((i, j)).or_default() += damage;
             }
         }
-        let mut rows: Vec<(usize, f32)> = sums.into_iter().collect();
+        let mut rows: Vec<((usize, usize), f32)> = sums.into_iter().collect();
         rows.sort_by_key(|r| r.0);
-        rows.into_iter().map(|(i, d)| json!([i, d.round()])).collect()
+        rows.into_iter().map(|((i, j), d)| json!([i, j, d.round()])).collect()
     };
     let (hits_on_x, hits_on_y) = (std::mem::take(&mut x.second_hits), std::mem::take(&mut y.second_hits));
     let left = [x.value_left(), y.value_left()];
@@ -1472,7 +1473,7 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
         "x": units(x),
         "y": units(y),
         "shots": {"x": shots(x), "y": shots(y)},
-        "dealt": {"x": dealt(x, hits_on_y), "y": dealt(y, hits_on_x)},
+        "dealt": {"x": dealt(x, y, hits_on_y), "y": dealt(y, x, hits_on_x)},
         "energy": [x.energy.round(), y.energy.round()],
         "orders": std::mem::take(&mut duel.notes),
     });

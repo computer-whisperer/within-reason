@@ -1,0 +1,14 @@
+{"format": "within-reason-script", "version": 1,
+ "note": "v3: the units inside the near turret's 430 (3, 4, 7, 8, 10) step west out of it first; everyone then kills Centurion 4 and Centurion 1 at the rock's south-west corner (outside turret cover at 3-10 s), goes round the rock's west and north side out of turret reach, kills Centurion 3 alone in the north-east, and takes the far turret then the near one.",
+ "rows": [
+  {"t": 0, "unit": [3, 4, 7, 8, 10], "cmd": "move", "x": 4430, "z": 1640},
+  {"t": 0, "unit": [3, 4, 7, 8, 10], "cmd": "attack", "target": 4, "queue": true},
+  {"t": 0, "unit": [0, 1, 2, 5, 6, 9, 11, 12, 13], "cmd": "attack", "target": 4},
+  {"t": 0, "unit": "all", "cmd": "attack", "target": 1, "queue": true},
+  {"t": 0, "unit": "all", "cmd": "move", "x": 4250, "z": 1350, "queue": true},
+  {"t": 0, "unit": "all", "cmd": "move", "x": 4300, "z": 960, "queue": true},
+  {"t": 0, "unit": "all", "cmd": "move", "x": 4750, "z": 940, "queue": true},
+  {"t": 0, "unit": "all", "cmd": "attack", "target": 3, "queue": true},
+  {"t": 0, "unit": "all", "cmd": "attack", "target": 0, "queue": true},
+  {"t": 0, "unit": "all", "cmd": "attack", "target": 2, "queue": true}
+ ]}
