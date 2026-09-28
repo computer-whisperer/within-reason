@@ -441,6 +441,10 @@ impl Director {
         if self.hello.is_none() {
             self.defs = hello.unit_defs.iter().map(|d| (d.name.clone(), d.clone())).collect();
             self.defs_by_id = hello.unit_defs.iter().map(|d| (d.id, d.clone())).collect();
+            // The check of the definitions' blast radius (H-MICRO-FORM-SPACING reads it): the Fatboy's file says an
+            // area of 300, the engine gives the radius, 150.
+            let areas: Vec<String> = ["armfboy", "armbull", "armstump", "armflash"].iter().filter_map(|n| self.defs.get(*n).map(|d| format!("{n} {:.0}", d.blast_radius))).collect();
+            eprintln!("duel: blast radius from the definitions: {}", areas.join(", "));
             self.hello = Some(hello);
         }
     }
@@ -818,7 +822,7 @@ impl View for DuelView<'_> {
         let name = &self.rules.defs.get(&def)?.name;
         let unit = &self.rules.units.list[self.rules.units.index(name)?];
         let dgun = unit.weapons.iter().filter(|w| w.command_fire && !w.paralyzer).map(|w| w.range).fold(0.0, f32::max);
-        Some(Stats { reach: unit.reach(), dps: unit.dps(), speed: unit.speed, health: unit.health, dgun, sight: unit.sight })
+        Some(Stats { reach: unit.reach(), dps: unit.dps(), speed: unit.speed, health: unit.health, dgun, sight: unit.sight, area: self.rules.defs.get(&def)?.blast_radius })
     }
 
     fn grid_spec(&self) -> (f32, usize, usize) {

@@ -143,6 +143,7 @@ fn unit_table(header: &Value) -> Result<Units, String> {
             self_destruct_seconds: number(d, "selfd_seconds"),
             reach: number(d, "reach"),
             reload: number(d, "reload"),
+            blast_radius: number(d, "blast_radius"),
         })
         .collect();
     Ok(Units::new(&defs))

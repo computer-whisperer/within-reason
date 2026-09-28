@@ -439,6 +439,7 @@ mod tests {
             self_destruct_seconds: 0.0,
             reach: 0.0,
             reload: 0.0,
+            blast_radius: 0.0,
         }
     }
 
@@ -467,9 +468,9 @@ mod tests {
         }
         fn stats(&self, def: UnitDefId) -> Option<Stats> {
             Some(match def {
-                ROVER => Stats { reach: 180.0, dps: 40.0, speed: 168.0, health: 105.0, dgun: 0.0, sight: 635.0 },
-                PAWN => Stats { reach: 180.0, dps: 60.0, speed: 87.0, health: 370.0, dgun: 0.0, sight: 450.0 },
-                TOWER => Stats { reach: 430.0, dps: 80.0, speed: 0.0, health: 700.0, dgun: 0.0, sight: 500.0 },
+                ROVER => Stats { reach: 180.0, dps: 40.0, speed: 168.0, health: 105.0, dgun: 0.0, sight: 635.0, area: 0.0 },
+                PAWN => Stats { reach: 180.0, dps: 60.0, speed: 87.0, health: 370.0, dgun: 0.0, sight: 450.0, area: 0.0 },
+                TOWER => Stats { reach: 430.0, dps: 80.0, speed: 0.0, health: 700.0, dgun: 0.0, sight: 500.0, area: 0.0 },
                 EXTRACTOR => Stats { health: 300.0, ..Stats::default() },
                 CONSTRUCTOR => Stats { speed: 36.0, health: 760.0, ..Stats::default() },
                 _ => return None,

@@ -181,7 +181,7 @@ impl View for BrainView<'_> {
             }
             None => (super::pianist::glossary::entry(self.brain.name(def)).map_or(0.0, |e| e.health), 0.0),
         };
-        Some(Stats { reach, dps, speed, health, dgun, sight: self.brain.sight_of(def) })
+        Some(Stats { reach, dps, speed, health, dgun, sight: self.brain.sight_of(def), area: self.brain.world.def(def).map_or(0.0, |d| d.blast_radius) })
     }
 
     fn grid_spec(&self) -> (f32, usize, usize) {

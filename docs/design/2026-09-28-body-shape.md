@@ -9,8 +9,13 @@ itself at any size but loses to a few area units, worse the bigger and tighter i
 a dozen, eight Stouts; the TAS found the front's target choice and the ranks' blocking small on E3 and the body-level
 decisions large. The user's first-order heuristic for a body's size: unit range against ball diameter.
 
-**Status (2026-09-28).** Design written; nothing built. Branch `tas-micro`, worktree `../bar_bots-tas`, after
-phases 1-2 of `docs/design/2026-09-28-tas-micro.md` (b3562ad, 20834a6).
+**Status (2026-09-28).** Branch `tas-micro`, worktree `../bar_bots-tas`, after phases 1-2 of
+`docs/design/2026-09-28-tas-micro.md` (b3562ad, 20834a6). Step 1 built: `UnitDefInfo::blast_radius` (the shim's
+`WeaponDef_getAreaOfEffect`, the largest over the ordinary weapons), the record's `unit_defs`, `Stats::area` in the
+micro's `View` (the duel's and the brain's), the picture's unit line ("its shells hit everything within 150 of where
+they land"). **Correction to the design:** the engine's area of effect is a radius, half the unit file's
+`areaofeffect` (`WeaponDef.cpp`: `scaleValue(0.5f)`); the Fatboy's is 150, not 300 (the duel prints it at every start:
+armfboy 150, armbull 65, armstump 24, armflash 4); the test is a wire round trip in `bot-protocol` and that line.
 
 ## What exists (read first)
 

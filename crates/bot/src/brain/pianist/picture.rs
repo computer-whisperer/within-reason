@@ -188,17 +188,21 @@ impl Brain {
         word.to_string()
     }
 
-    /// A unit for a menu line or an actor's `is`: "Pawn (armpw; raider bot, 54 metal): gloss".
+    /// A unit for a menu line or an actor's `is`: "Pawn (armpw; raider bot, 54 metal): gloss", with the splash of a
+    /// weapon that hurts a neighbour two hulls away ("Bull (armbull; ..., 400 metal, its shells hit everything within
+    /// 65 of where they land)": the area from the definitions, K-units-duel-spacing-decides-area-damage).
     pub(super) fn unit_words(&self, def: UnitDefId) -> String {
         let internal = self.name(def);
         let metal = self.world.def(def).map_or(0.0, |d| d.metal_cost);
+        let area = self.world.def(def).map_or(0.0, |d| d.blast_radius);
+        let splash = if area >= 30.0 { format!(", its shells hit everything within {area:.0} of where they land") } else { String::new() };
         match glossary::entry(internal) {
             Some(e) if !e.name.is_empty() => {
                 let gloss = if e.gloss.is_empty() { String::new() } else { format!(": {}", e.gloss) };
-                format!("{} ({internal}; {}, {metal:.0} metal){gloss}", e.name, if e.class.is_empty() { self.class_words(def) } else { e.class.clone() })
+                format!("{} ({internal}; {}, {metal:.0} metal{splash}){gloss}", e.name, if e.class.is_empty() { self.class_words(def) } else { e.class.clone() })
             }
             _ if self.world.is_commander_def(def) => format!("{internal} (our commander; the strongest builder, a good fighter; the game is lost if it dies)"),
-            _ => format!("{internal} ({}; {metal:.0} metal)", self.class_words(def)),
+            _ => format!("{internal} ({}; {metal:.0} metal{splash})", self.class_words(def)),
         }
     }
 

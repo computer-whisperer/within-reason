@@ -261,7 +261,8 @@ impl Footwork {
 }
 
 /// A type's fighting numbers against ground: reach, damage a second, speed (elmos a second), hit points, the reach of
-/// its D-gun (a `command_fire` weapon; 0 for everything but a commander), and its sight.
+/// its D-gun (a `command_fire` weapon; 0 for everything but a commander), its sight, and the radius its shells hurt
+/// round where they land (`UnitDefInfo::blast_radius`; 0 when the host has none).
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct Stats {
     pub reach: f32,
@@ -270,6 +271,7 @@ pub struct Stats {
     pub health: f32,
     pub dgun: f32,
     pub sight: f32,
+    pub area: f32,
 }
 
 /// What the lane reads of its host.

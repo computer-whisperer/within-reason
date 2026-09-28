@@ -91,4 +91,24 @@ mod tests {
         let second: Commands = reader.read(&mut source).unwrap().unwrap();
         assert!(second.0.is_empty());
     }
+
+    /// The blast radius goes over the wire (H-MICRO-FORM-SPACING reads it): the Fatboy's, as the engine gives it (the
+    /// duel prints the engine's figure for it at every start: 150, half the unit file's area of 300).
+    #[test]
+    fn a_definition_carries_its_blast_radius() {
+        let fatboy = crate::UnitDefInfo {
+            id: crate::UnitDefId(1), name: "armfboy".into(), metal_cost: 1400.0, energy_cost: 0.0, speed: 43.0,
+            build_speed: 0.0, build_time: 1.0, build_distance: 0.0, extracts_metal: 0.0, metal_make: 0.0,
+            energy_make: 0.0, energy_upkeep: 0.0, wind_cap: 0.0, tidal_make: 0.0, metal_storage: 0.0,
+            energy_storage: 0.0, sonar_range: 0.0, hits_submerged: false, water_only: false, radar_range: 0.0,
+            converter: None, weapon_count: 1, build_options: Vec::new(), move_class: None, footprint: (3, 3),
+            death_blast: None, self_destruct_blast: None, self_destruct_seconds: 0.0, reach: 700.0, reload: 7.0,
+            blast_radius: 150.0,
+        };
+        let mut wire = Vec::new();
+        write_frame(&mut wire, &fatboy).unwrap();
+        let mut reader = FrameReader::default();
+        let read: crate::UnitDefInfo = reader.read(&mut Trickle(wire)).unwrap().unwrap();
+        assert_eq!((read.name.as_str(), read.reach, read.blast_radius), ("armfboy", 700.0, 150.0));
+    }
 }

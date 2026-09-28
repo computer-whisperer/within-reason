@@ -408,7 +408,7 @@ fn header(hello: &Hello, mode: &str, session: bool, pianist: bool) -> Value {
                 "death_blast": d.death_blast.map(|b| json!([b.radius, b.damage])),
                 "selfd_blast": d.self_destruct_blast.map(|b| json!([b.radius, b.damage])),
                 "selfd_seconds": d.self_destruct_seconds,
-                "reach": d.reach, "reload": d.reload,
+                "reach": d.reach, "reload": d.reload, "blast_radius": d.blast_radius,
                 "converter": d.converter.map(|c| json!([c.capacity, c.efficiency])),
                 "move": d.move_class.map(|m| json!([format!("{:?}", m.kind).to_lowercase(), m.max_slope, m.depth, m.slope_mod])),
             })
