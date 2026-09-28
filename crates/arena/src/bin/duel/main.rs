@@ -119,6 +119,7 @@ fn main() -> io::Result<()> {
             "script": options.script.as_ref().map(|s| s.label.clone()), "script_delay": options.script_delay,
             "theirs": options.theirs.label(), "seeds": options.seeds, "economy": if options.fed { "fed" } else { "bare" },
             "argv": std::env::args().collect::<Vec<_>>(),
+            "disabled": std::env::var("WITHIN_REASON_DISABLE").ok(), "form_spacing": std::env::var("WITHIN_REASON_FORM_SPACING").ok(),
         }))?,
     )?;
 

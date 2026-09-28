@@ -15,7 +15,21 @@ decisions large. The user's first-order heuristic for a body's size: unit range 
 micro's `View` (the duel's and the brain's), the picture's unit line ("its shells hit everything within 150 of where
 they land"). **Correction to the design:** the engine's area of effect is a radius, half the unit file's
 `areaofeffect` (`WeaponDef.cpp`: `scaleValue(0.5f)`); the Fatboy's is 150, not 300 (the duel prints it at every start:
-armfboy 150, armbull 65, armstump 24, armflash 4); the test is a wire round trip in `bot-protocol` and that line.
+armfboy 150, armbull 65, armstump 24, armflash 4); the test is a wire round trip in `bot-protocol` and that line. Steps 2 and 3 built together (the
+generator replaced `form.rs`'s old API in place, so the lane moved with it): `form::contact` (the target: the host's,
+else the one the body had, else the nearest soldier no other building covers, else the nearest soldier, else the
+nearest building; its party chained within 150, fitted with a segment), `form::contact_slots` (slots on the near side
+of the points within `R - 20 - spread` of that segment: an arc on a point, a rank with curled ends on a line; the
+pitch of nine that leaves fewest slots in another building's reach; a count past the near half continues round the
+sides, past the full ring closes the spacing to fit, down to 64), `form::spacing_for` (64, or twice the largest blast
+radius about within 1,500, at most 160), `form::arc_capacity`; the cut at 12, the rank at the standing front's depth
+(H-MICRO-FORM-FLANK's gate) and the `Close` step are deleted. The lane: `Slot` (walk to the slot: a Move against
+area, a Fight otherwise), `Wait` (at the slot, nothing in reach), `Stand`; a unit keeps the slot it was sent to until
+it gets there or the target changes. H-MICRO-STEP-OUT: a unit inside the reach of a building outside its target's
+party with nothing in its own reach, not walking out already, steps out to the reach plus 40. Two findings while
+building it (probe batches `pr-*`, `pr2-*`, `pr3-*`, `docs/studies/2026-09-28-body-shape.md`): a slot pushed out of a
+turret's reach leaves its unit out-ranged in the target's reach (dropped); slots re-dealt every tick re-ordered the
+Blitzes twice a second (the unit keeps its slot now).
 
 ## What exists (read first)
 

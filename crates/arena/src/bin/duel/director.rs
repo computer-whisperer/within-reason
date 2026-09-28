@@ -297,7 +297,11 @@ impl Army {
             hurters_given: false,
             ordered_at: None,
             reported: -1,
-            lane: (lane_mode != LaneMode::Off).then(Lane::default),
+            lane: (lane_mode != LaneMode::Off).then(|| {
+                let mut lane = Lane::default();
+                lane.tuning = form_tuning();
+                lane
+            }),
             lane_mode,
             shape: fire::Shape::default(),
             last_sampled: HashMap::new(),
@@ -717,6 +721,18 @@ impl Director {
             notes: Vec::new(),
             left_at: [None; 2],
         })
+    }
+}
+
+/// H-MICRO-FORM-SPACING's numbers for the lane: `WITHIN_REASON_FORM_SPACING=factor,max` (the harness's search), else
+/// the lane's own.
+fn form_tuning() -> micro::FormTuning {
+    let default = micro::FormTuning::default();
+    let Ok(value) = std::env::var("WITHIN_REASON_FORM_SPACING") else { return default };
+    let mut parts = value.split(',').map(|p| p.trim().parse::<f32>());
+    match (parts.next(), parts.next()) {
+        (Some(Ok(factor)), Some(Ok(max))) => micro::FormTuning { factor, max },
+        _ => default,
     }
 }
 
