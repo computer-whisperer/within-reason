@@ -564,7 +564,11 @@ impl Brain {
                 never.sort_by(|a, b| a.0.total_cmp(&b.0));
                 never.into_iter().map(|(_, i)| { let s = self.world.hello.metal_spots[i]; (i, self.place(s), boxes.iter().any(|b| b.contains(s))) }).collect()
             },
-            enemy_spots_seen: enemy_extractors.len(),
+            enemy_spots: {
+                let mut spots: Vec<(f32, usize)> = self.world.hello.metal_spots.iter().enumerate().filter(|(_, s)| held(**s, &enemy_extractors)).map(|(n, s)| (s.dist2d(self.home), n)).collect();
+                spots.sort_by(|a, b| a.0.total_cmp(&b.0));
+                spots.into_iter().map(|(_, n)| (n, self.place(self.world.hello.metal_spots[n]))).collect()
+            },
             enemy_factories: self
                 .enemy_buildings
                 .values()

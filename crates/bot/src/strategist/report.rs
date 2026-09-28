@@ -38,7 +38,7 @@ fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
         clock(s.seconds_since_growth),
         s.free_spots,
         if s.next_free.is_empty() { "none".to_string() } else { s.next_free.iter().map(|(n, p, walk)| format!("#{n} {} {walk}", p.grid)).collect::<Vec<_>>().join(", ") },
-        s.enemy_spots_seen,
+        if s.enemy_spots.is_empty() { "0".to_string() } else { format!("{}, nearest our start first: {}", s.enemy_spots.len(), s.enemy_spots.iter().map(|(n, p)| format!("#{n} {}", p.grid)).collect::<Vec<_>>().join(", ")) },
         s.soldiers,
         s.army_metal,
         s.soldiers_near_home,

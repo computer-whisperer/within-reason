@@ -204,7 +204,11 @@ impl Shared {
             }
             s.next_free.sort_by_key(|(_, _, walk)| *walk);
             s.next_free.truncate(lead.field.score.next_free.len().max(o.next_free.len()));
-            s.enemy_spots_seen = s.enemy_spots_seen.max(o.enemy_spots_seen);
+            for (n, place) in &o.enemy_spots {
+                if !s.enemy_spots.iter().any(|(have, _)| have == n) {
+                    s.enemy_spots.push((*n, place.clone()));
+                }
+            }
             s.soldiers += o.soldiers;
             s.army_metal += o.army_metal;
             s.soldiers_near_home += o.soldiers_near_home;

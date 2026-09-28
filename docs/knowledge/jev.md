@@ -1485,3 +1485,14 @@ batches of whole questions over the same state, the answers merged, the call row
 group needs an advance to every spot and a constructor every building offered every second (the size), and
 whether Jev's context limit is 65,536 input tokens (the largest that passed was just above).
 
+### K-player-the-report-counted-his-spots-and-never-named-them
+**Claim.** The score line told the player how many spots the opponent held and never which: in player-18 it read
+"the opponent is known to hold 12" while the picture had his base at G1-G2 since 4:24, and the player sent the
+whole army at "his southern strip" (spot_79, 75, 70, 77, 72, 65, 60, 57) at 10:56, 12:17, 16:14 and 24:34, where
+by the truth file not one extractor or turret of his stood at any of those times; his 17-19 extractors were within
+2,500 of his start or on the D1-E4 column (spot_1, 13, 21, 23, 32, 31 at 12:17), several of them in our picture.
+**Evidence.** `run/matches/1790560788-player-18-planner/00/review.md` (F1, the root); `run/commander_turns.py
+run/matches/1790560788-player-18-planner/00 --told` at 10:11-10:56; the truth file's extractor positions.
+**Status.** fixed 2026-09-28: the line names each held spot by number and grid, nearest our start first
+(H-PLAYER-SPOTS-HELD). Not yet seen in a game.
+

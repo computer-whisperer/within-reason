@@ -114,8 +114,11 @@ pub struct Score {
     /// game 9 while 18 lay at 2700-5400, and the commander made no expansion call for ten minutes.)
     pub free_spots: usize,
     pub next_free: Vec<(usize, Place, u32)>,
-    /// Spots the opponent is known to hold (its extractors seen and not seen dead).
-    pub enemy_spots_seen: usize,
+    /// Spots the opponent is known to hold (its extractors seen and not seen dead): each spot's number in the map's
+    /// list and its place, nearest our start first. (Player-18: the line said "known to hold 12" and never where,
+    /// and the whole army went four times at a strip where nothing of his stood, his extractors being on the
+    /// D1-E4 column and at his start.)
+    pub enemy_spots: Vec<(usize, Place)>,
     pub soldiers: usize,
     pub army_metal: u32,
     pub soldiers_near_home: usize,
