@@ -1261,6 +1261,7 @@ impl Brain {
             let goal = match &group.task {
                 GroupTask::Move { to, .. } => Some(*to),
                 GroupTask::Engage { at, .. } => Some(*at),
+                GroupTask::Plan(plan) => Some(plan.goal()),
                 GroupTask::Hold { .. } => None,
             };
             let nearest_to_any = |p: &Party| units.iter().map(|u| u.pos.dist2d(p.at)).fold(f32::INFINITY, f32::min);
@@ -1286,6 +1287,8 @@ impl Brain {
                     let name = parties.iter().find(|p| p.ids.iter().any(|id| party.contains(id))).map_or("a party now out of sight".to_string(), |p| p.name.clone());
                     format!("attacking {name}{} at {}, for {}", if target.is_some() { " (one named unit of it, until it dies)" } else { "" }, self.place_words(&places, *at), ago(*since))
                 }
+                // The plan in a line (H-HANDS-ENGAGEMENT-PLAN): its phases, which one, how long in.
+                GroupTask::Plan(plan) => plan.line(frame),
             };
             // A hunt out is the group's doing too: the entry said "attacking party_22, for 15 s" while four of its
             // eight hunted and the rest had no order (onepass-player-8 7:22-7:31).

@@ -918,6 +918,7 @@ impl Brain {
             let goal = match &group.task {
                 GroupTask::Move { to, .. } => Some(*to),
                 GroupTask::Engage { at, .. } => Some(*at),
+                GroupTask::Plan(plan) => Some(plan.goal()),
                 GroupTask::Hold { .. } => None,
             };
             let nearest_to_any = |p: &super::Party| units.iter().map(|u| u.pos.dist2d(p.at)).fold(f32::INFINITY, f32::min);
@@ -944,10 +945,14 @@ impl Brain {
             let losing = lost_lately >= 0.1 * (lost_lately + standing);
             let walking_back = matches!(&group.task, GroupTask::Move { fight: false, place, .. } if place == "home" || place.starts_with(super::groups::LAST_HOLD));
             let engaging = matches!(group.task, GroupTask::Engage { .. });
+            // A body on its engagement plan (H-HANDS-ENGAGEMENT-PLAN) takes no rule's default walk: the plan is Jev's
+            // pick and a pick still changes it.
+            let planning = matches!(group.task, GroupTask::Plan(_));
             let leave = match &group.task {
                 GroupTask::Hold { .. } if !hunting => format!(", leaving {} unguarded", picture.state["actors"][&name]["at"].as_str().unwrap_or("where it stands")),
                 GroupTask::Move { place, .. } => format!(", abandoning its way to {place}"),
                 GroupTask::Engage { .. } => ", leaving the party it was attacking".to_string(),
+                GroupTask::Plan(plan) => format!(", leaving its engagement plan {}", plan.key),
                 _ => String::new(),
             };
             // 1. The station (`station`, `station_mode`): one place, the group's post; the default walk there when
@@ -961,7 +966,7 @@ impl Brain {
                 // Not the default while the group walks back: a walk back the pick chose stood one second before the
                 // station's default re-advanced it, every second, into the fight it was leaving (onepass-player-3,
                 // 20:12-20:34: "fall back to where it last held" and "advance to spot_1" in turn, 26 of 31 lost).
-                let default = away && !engaging && !hunting && !odds_against && !walking_back;
+                let default = away && !engaging && !planning && !hunting && !odds_against && !walking_back;
                 if away || current {
                     push(&format!("station_{}", st.name), Response::Walk { place: st.name.clone(), fight: advance }, format!("{name} {} to its station {} ({} away){}", if advance { "advances" } else { "walks" }, st.name, distance_words(centre.dist2d(st.at)), if engaging { ", leaving the party it was attacking" } else { "" }), default, current);
                 }
@@ -1115,7 +1120,7 @@ impl Brain {
                 };
                 if let Some(to) = rules.get("fall_back_to").and_then(|s| picture.places.iter().find(|p| p.name == *s)).filter(|p| p.at.dist2d(centre) > STATION_SLACK) {
                     let current = matches!(&group.task, GroupTask::Move { place, fight: false, .. } if *place == to.name);
-                    let default = (odds_against || losing) && !walking_back;
+                    let default = (odds_against || losing) && !walking_back && !planning;
                     push(&format!("fall_back_{}", to.name), Response::Walk { place: to.name.clone(), fight: false }, format!("{name} falls back to {} ({} away){}{}", to.name, distance_words(centre.dist2d(to.at)), nearest_party.map_or(String::new(), |p| format!(" from {} ({}), which outweighs it", p.name, p.composition)), at_point(to.at)), default, current);
                 }
                 // A walk back in progress is the slot's current state, so the base world keeps it until the pick

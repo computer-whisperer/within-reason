@@ -41,7 +41,7 @@ impl Matchups {
 }
 
 /// A force: how many of each mobile unit type, and the metal of the turrets standing with it.
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct Force {
     pub units: HashMap<UnitDefId, usize>,
     /// Metal of the armed buildings standing with it that can hit ground (hover and ship count as ground).

@@ -62,6 +62,10 @@ impl Brain {
                     super::pianist::GroupTask::Hold { .. } => Commitment::Priced { turrets: Vec::new(), commander: false },
                     super::pianist::GroupTask::Engage { .. } => Commitment::Priced { turrets: Vec::new(), commander: metal >= COMMANDER_PARTY_METAL },
                     super::pianist::GroupTask::Move { fight: false, .. } => Commitment::None,
+                    // A plan's phase fights mobile units and the statics it names only (the screen outside turret
+                    // cover); a step out, a gather and the way back fight nothing.
+                    super::pianist::GroupTask::Plan(plan) if plan.fighting() => Commitment::Priced { turrets: plan.turrets(), commander: false },
+                    super::pianist::GroupTask::Plan(_) => Commitment::None,
                 };
                 let rules = self.footwork_of(&group.name);
                 if group.roving {

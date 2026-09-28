@@ -31,6 +31,8 @@ pub(crate) const GROUP_RULES: &[(&str, &[&str])] = &[
     ("engage_party", &["party"]),
     ("join", &["group"]),
     ("never", &["places"]),
+    // H-HANDS-ENGAGEMENT-PLAN: `plan: no` declines the engagement plan for the group.
+    ("plan", &["no"]),
 ];
 /// A builder's `no_chase` and `job follow_list` were in the vocabulary and read by nothing (the decompression audit,
 /// 2026-09-27): gone.

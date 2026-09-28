@@ -1382,4 +1382,44 @@ the rove lane does and the pass does not.
 **Status.** fixed 2026-09-28: a scout body is offered neither a hunt nor a whole-group attack on an armed party, and
 the slot names the rove lane (H-HANDS-SCOUTS-FIGHT-NOTHING-ARMED). Open: the odds words priced "2 armpw" while 324
 of soldiers and a turret stood on the spot (the parties near the target and its cover are not in the group's odds).
+**Amended 2026-09-28 (the engagement plan's replay):** the fix as built did not cover player-17's body: its group_A at
+4:53 was fourteen Rovers and one Blitz (seven and the Blitz at 5:03), and the check wanted every armed member a scout.
+Now scouts more than half the armed metal; `run/plan_replay.py` on player-17 at 4:53, 5:03 and 5:13 says "a scout
+body". The odds fault is answered for a body with a plan: the battlefield prices each element with its cover and the
+whole position (H-HANDS-ENGAGEMENT-PLAN); the threat slot's own odds words are unchanged.
+
+### K-jev-plans-the-screen-first-from-the-geometry-words
+**Claim.** Given the battlefield of a position in words (each element's cover, where our reach reaches it from outside
+every other reach, the odds with the cover priced in) and candidate orders of operations worded with where each phase
+is fought from and what else reaches us there, Jev's choice ranks the order the TAS found winning (the screen first
+from outside turret cover, the turrets last) above the turrets first and the nearest first.
+**Evidence.** `docs/studies/2026-09-28-engagement-plan.md`: player-14 E3 at 9:16 and 9:17 (the fight's first planned
+seconds; nothing of E3 was in sight at the design's 9:05): screen_first 0.79 / 0.76 and 0.80 / 0.81 (with / without
+the examples block), statics_first and nearest_first 0.01-0.03; the same order at player-15 9:24 and 9:27
+(screen_first 0.57-0.78, gather_first second at 0.19-0.38). One ask per arm, jev-1.13.0. It would be wrong if a game's
+`engagement` lines picked a walk-in with a stand-off candidate offered, or if the pick flipped between asks of the
+same picture.
+**Status.** conjectured (offline replay only; no game yet). Exploited by [[H-HANDS-ENGAGEMENT-PLAN]].
+
+### K-jev-the-examples-block-moved-no-plan
+**Claim.** The examples block of the plan question (the E3 and F3 scenes, the Stout bench, the pros' Rovers, one line
+each) changes no pick on the recorded moments: Jev's ranking comes from the candidates' own words.
+**Evidence.** `docs/studies/2026-09-28-engagement-plan.md`: seven moments asked with and without it; the top plan is
+the same in all seven; the largest shifts are the decline at player-16 16:10 (0.21 with, 0.11 without) and
+one_at_a_time at 12:51 (0.79 against 0.66). One ask per arm: Jev's variance between asks is not separated from the
+block's effect.
+**Status.** conjectured. The block stays in the live question (the design's) until a game says otherwise; it is the
+first thing to cut if the question's size matters.
+
+### K-hands-the-plan-odds-do-not-see-reach
+**Claim.** The plan's phase odds are `combat.rs`'s (metal, matchups, turrets at three times their metal) and do not
+price reach, so a position whose statics or soldiers out-range the body reads "we outweigh it" in every phase and the
+decline is not taken: the design's F3 test (hold and shell, or decline, above the walk in) fails.
+**Evidence.** `docs/studies/2026-09-28-engagement-plan.md`: player-15 F3 at 9:24 and 9:27, the decline 0.01-0.03 of
+five (no artillery in group_B, so no shell candidate; one Rocketeer at 475 in sight, not the four the design names);
+player-16 16:10, an Overwatch (620) and three Sentries against 18 Blitzes and 8 Stouts (reach 180-350): the odds 1.8,
+the decline 0.21 with the examples and 0.11 without, one_at_a_time taken. It would be wrong if the same moments'
+decline rose above the walk-ins with reach said as a cost and the odds unchanged.
+**Status.** conjectured. Open: price the approach under an out-ranging reach into the phase words (the odds words of
+`picture.rs` `odds_words` already say "it outranges us", the plan's phases do not).
 

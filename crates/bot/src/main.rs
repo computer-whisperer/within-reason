@@ -16,7 +16,7 @@ use brain::Brain;
 use strategist::Strategist;
 use world::World;
 
-/// usage: bot [--player] [--pianist]
+/// usage: bot [--player] [--pianist], or bot --plan-replay <match dir> <m:ss> [...] (`brain/pianist/replay.rs`)
 /// `--pianist`: Jev plays every unit from the player's instructions (`docs/design/2026-09-21-pianist.md`).
 /// `--player`: a Claude Code session beside the brains (see `DESIGN.md`), the Opus player whose lever is the
 /// pianist's instructions; one session serves every seat we play on a team (`strategist/seats.rs`).
@@ -24,6 +24,11 @@ use world::World;
 fn main() -> io::Result<()> {
     let mut player = false;
     let mut pianist = false;
+    // `bot --plan-replay <match dir> <m:ss> ...`: the engagement plan on a recorded moment (`run/plan_replay.py`).
+    let arguments: Vec<String> = std::env::args().skip(1).collect();
+    if arguments.first().is_some_and(|a| a == "--plan-replay") {
+        return brain::pianist::replay::plan_replay(&arguments[1..]).map_err(io::Error::other);
+    }
     for argument in std::env::args().skip(1) {
         match argument.as_str() {
             "--player" => player = true,

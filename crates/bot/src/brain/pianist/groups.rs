@@ -91,6 +91,8 @@ pub(crate) enum GroupTask {
     /// `searched`: an air group has been sent to its lost target's last position. `from`: where the group stood
     /// when the engagement began, the follow leash's anchor.
     Engage { party: Vec<UnitId>, at: Vec3, since: i32, last_seen: i32, target: Option<UnitId>, searched: bool, from: Vec3 },
+    /// An engagement plan Jev picked (`engagement.rs`, H-HANDS-ENGAGEMENT-PLAN): phase by phase against a position.
+    Plan(super::engagement::PlanTask),
 }
 
 impl GroupTask {
@@ -235,6 +237,7 @@ impl Group {
             },
             GroupTask::Move { to, fight, .. } => units.iter().map(|u| if *fight { Command::Fight { unit: u.id, to: *to, queue: false } } else { Command::Move { unit: u.id, to: *to, queue: false } }).collect(),
             GroupTask::Engage { at, target, .. } => units.iter().map(|u| match target { Some(t) => Command::Attack { unit: u.id, target: *t, queue: false }, None => Command::Fight { unit: u.id, to: *at, queue: false } }).collect(),
+            GroupTask::Plan(plan) => units.iter().map(|u| Command::Fight { unit: u.id, to: plan.goal(), queue: false }).collect(),
         }
     }
 
@@ -332,6 +335,7 @@ impl Brain {
                     GroupTask::Hold { .. } => "holding".to_string(),
                     GroupTask::Move { place, fight, .. } => format!("{} to {place}", if *fight { "advancing" } else { "walking" }),
                     GroupTask::Engage { .. } => "attacking a party".to_string(),
+                    GroupTask::Plan(plan) => format!("on its engagement plan ({})", plan.key),
                 };
                 loss_wakes.push(format!(
                     "group_{} has lost {} of its {} soldiers ({lost:.0} metal) since your last orders, {doing} at {}",
@@ -438,6 +442,7 @@ impl Brain {
         let mut route_news: Vec<String> = Vec::new();
         let roving: Vec<bool> = pianist.groups.iter().map(|g| self.roves(g)).collect();
         let mut rove_changes: Vec<String> = Vec::new();
+        let mut plan_news: Vec<String> = Vec::new();
         for (index, group) in pianist.groups.iter_mut().enumerate() {
             // A roving group is the lane's (H-MICRO-ROVE): no task, no hunt, no orders kept up. Switched either way,
             // it starts from a hold; switched off, its soldiers hold where each stands.
@@ -464,7 +469,7 @@ impl Brain {
             let units = group.free_units(own);
             group.joining.retain(|id| group.members.contains(id));
             // A newcomer that has reached the body is of it (or was sent nowhere: nothing stands to reach).
-            let goal = match &group.task { GroupTask::Move { to, .. } => Some(*to), GroupTask::Engage { at, .. } => Some(*at), GroupTask::Hold { .. } => None };
+            let goal = match &group.task { GroupTask::Move { to, .. } => Some(*to), GroupTask::Engage { at, .. } => Some(*at), GroupTask::Plan(plan) => Some(plan.goal()), GroupTask::Hold { .. } => None };
             if let Some(body) = group.body(own, goal) {
                 let core_at = body.at;
                 let joined: Vec<UnitId> = body.joining.iter().filter(|u| u.pos.dist2d(core_at) <= ADOPT_RADIUS || self.stuck.contains_key(&u.id)).map(|u| u.id).collect();
@@ -624,7 +629,16 @@ impl Brain {
                         group.task = GroupTask::Hold { since: frame, committed: false };
                     }
                 }
+                GroupTask::Plan(_) => {
+                    if let Some(news) = self.tick_plan(group, &units, enemies, frame, commands) {
+                        plan_news.push(news);
+                    }
+                }
             }
+        }
+        for text in plan_news {
+            pianist.note(frame, text.clone());
+            pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
         }
         for text in rove_changes {
             pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
