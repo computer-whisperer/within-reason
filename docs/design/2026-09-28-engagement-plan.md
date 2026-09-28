@@ -21,6 +21,15 @@ decline last at 0.01-0.03, every phase "we outweigh it"), as does the decline of
 (player-16 16:10: 0.21 with the examples, 0.11 without). The examples block moved no top pick. A candidate added:
 `one_at_a_time` (the statics our reach reaches from outside every other reach, one at a time from there), offered in
 place of screen_first when no mobile element has a stand-off; a turret line had only walk-ins before.
+Step 4 built: the live question once a second after the one pass (`engagement_pass`; in realtime on its own worker
+thread, an answer older than 3 s dropped), logged as `{"t":"engagement", ...}` (not `"plan"`: that line is the worlds
+pick's), the plan as the task `GroupTask::Plan` (`tick_plan`: a Fight to the phase's point, Attack by id on the
+nearest target in sight, a building out of sight fought where it stands; a phase ends with its targets dead, 10 s out
+of sight, or 60 s; after a covered phase a Move out of the reach first; the gather at 80% within 300), the lane
+priced against the current phase's statics only (`micro.rs`), the player's line in the group's entry, the standing
+`plan: no`. Deleted from the pass: the whole-group attack on a party of the position a body's plan answers (running
+or opening this second), and the group's rule defaults (station walk, fall-back) while it runs a plan. Not built:
+stage 1's lane shape taking the phase's target (branch `tas-micro`, not merged here).
 
 ## Why
 

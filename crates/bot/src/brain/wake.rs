@@ -178,7 +178,7 @@ impl Brain {
         }
         let since = tick.frame - last_turn_frame;
         let hot = self.unit_losses.back().is_some_and(|(f, ..)| tick.frame - f <= HOT_LOSS_FRAMES)
-            || self.pianist.as_ref().is_some_and(|p| p.groups.iter().any(|g| matches!(g.task, GroupTask::Engage { .. })));
+            || self.pianist.as_ref().is_some_and(|p| p.groups.iter().any(|g| matches!(g.task, GroupTask::Engage { .. } | GroupTask::Plan(_))));
         let max_seconds = if hot { wake.max_seconds.min(HOT_MAX_SECONDS) } else { wake.max_seconds };
         if reasons.is_empty() && since >= max_seconds as i32 * FRAMES_PER_SECOND {
             reasons.push(if max_seconds < wake.max_seconds {

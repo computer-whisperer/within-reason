@@ -89,7 +89,8 @@ pub(crate) struct Position {
 }
 
 impl Position {
-    /// The elements by name, sorted: a plan is for one signature, and an element appearing or dying changes it.
+    /// The elements by name, sorted and joined by commas: a plan is for one signature, and an element appearing or
+    /// dying changes it.
     pub(crate) fn signature(&self) -> String {
         let mut names: Vec<&str> = self.elements.iter().map(|e| e.name.as_str()).collect();
         names.sort_unstable();
@@ -115,7 +116,6 @@ impl Position {
 #[derive(Clone, Debug)]
 pub(crate) struct Ours {
     pub group: String,
-    pub ids: Vec<UnitId>,
     pub force: Force,
     pub front: Vec3,
     pub centre: Vec3,
@@ -312,7 +312,6 @@ impl Brain {
         let artillery = sorted.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.reach >= ARTILLERY_REACH && d.speed > 0.0)).map(|u| u.id).collect();
         Some(Ours {
             group: group.to_string(),
-            ids: sorted.iter().map(|u| u.id).collect(),
             force: Brain::force_of(&sorted),
             front,
             centre,
@@ -463,6 +462,11 @@ pub(crate) struct Phase {
     pub point: Option<Vec3>,
     /// Its targets stand under a static's reach: the next phase begins by stepping out of it.
     pub covered: bool,
+    /// After a covered phase, where this one steps to first (its point, else the first point outside every reach
+    /// on the way back from its first target).
+    pub step_to: Option<Vec3>,
+    /// The phase in a few words, for the player's line: "party_12 from spot_44".
+    pub short: String,
 }
 
 /// A candidate plan: its phases and its words.
@@ -490,7 +494,7 @@ impl Brain {
             let mut targets: Vec<(UnitId, Vec3)> = indices.iter().flat_map(|i| pos.elements[*i].members.iter().map(|m| (m.id, m.at))).collect();
             let from = point.unwrap_or(bf.ours.front);
             targets.sort_by(|a, b| a.1.dist2d(from).total_cmp(&b.1.dist2d(from)));
-            Phase { kind: PhaseKind::Attack, elements: indices.iter().map(|i| pos.elements[*i].name.clone()).collect(), targets, point, covered: indices.iter().any(|i| !bf.facts[*i].cover.is_empty()) }
+            Phase { kind: PhaseKind::Attack, elements: indices.iter().map(|i| pos.elements[*i].name.clone()).collect(), targets, point, covered: indices.iter().any(|i| !bf.facts[*i].cover.is_empty()), step_to: None, short: String::new() }
         };
         let mut out: Vec<Candidate> = Vec::new();
         // The screen first: the mobile elements our reach reaches from outside every other reach, screens first.
@@ -529,7 +533,7 @@ impl Brain {
             && let Some(point) = phases[0].point
         {
             let gather = Brain::gathering_point(pos, point, bf.ours.centre);
-            let mut all = vec![Phase { kind: PhaseKind::Gather, elements: Vec::new(), targets: Vec::new(), point: Some(gather), covered: false }];
+            let mut all = vec![Phase { kind: PhaseKind::Gather, elements: Vec::new(), targets: Vec::new(), point: Some(gather), covered: false, step_to: None, short: String::new() }];
             all.extend(phases.iter().cloned());
             out.push(self.candidate("gather_first", "Gather first outside every reach, then the screen first, the statics, the rest", all, bf, places));
         }
@@ -543,7 +547,7 @@ impl Brain {
                 out.push(self.candidate("shell", "Hold outside every reach and shell the statics with the artillery", vec![phase], bf, places));
             }
         }
-        let decline = Phase { kind: PhaseKind::Decline, elements: Vec::new(), targets: Vec::new(), point: Some(back.0), covered: false };
+        let decline = Phase { kind: PhaseKind::Decline, elements: Vec::new(), targets: Vec::new(), point: Some(back.0), covered: false, step_to: None, short: format!("fall back to {}", back.1) };
         let mut words = self.candidate("decline", "Decline", vec![decline], bf, places);
         words.words = format!("Decline: fall back to {} ({:.0} from our front) and leave the position; against all of it at once with the cover, {} ({:.1})", back.1, back.0.dist2d(bf.ours.front), verdict(bf.odds_whole), bf.odds_whole);
         out.push(words);
@@ -564,8 +568,23 @@ impl Brain {
 
     /// A candidate's words: each phase with its geometry (where it is fought from, what reaches us there), the odds
     /// of the phase with the cover still standing priced in, the walk, and the metal at risk.
-    fn candidate(&self, key: &'static str, title: &str, phases: Vec<Phase>, bf: &Battlefield, places: &[Place]) -> Candidate {
+    fn candidate(&self, key: &'static str, title: &str, mut phases: Vec<Phase>, bf: &Battlefield, places: &[Place]) -> Candidate {
         let pos = &bf.position;
+        for n in 0..phases.len() {
+            let covered_before = n > 0 && phases[n - 1].covered;
+            let phase = &mut phases[n];
+            if covered_before {
+                phase.step_to = phase.point.or_else(|| phase.targets.first().map(|(_, at)| Brain::gathering_point(pos, *at, bf.ours.centre)));
+            }
+            if phase.short.is_empty() {
+                let at = |p: Option<Vec3>| p.map_or(String::new(), |p| format!(" from {}", self.place_words(places, p)));
+                phase.short = match phase.kind {
+                    PhaseKind::Gather => format!("gather{}", at(phase.point).replacen(" from ", " at ", 1)),
+                    PhaseKind::Shell => format!("shell {}{}", phase.elements.join(" and "), at(phase.point)),
+                    _ => format!("{}{}", phase.elements.join(" and "), at(phase.point)),
+                };
+            }
+        }
         let index = |name: &str| pos.elements.iter().position(|e| e.name == name);
         let mut dead: Vec<usize> = Vec::new();
         let mut from = bf.ours.front;
@@ -664,6 +683,292 @@ impl Brain {
         let candidates = self.candidates(&bf, places, back);
         Ok((bf, candidates))
     }
+}
+
+/// A phase whose targets have all been out of sight this long is over.
+const PHASE_LOST: i32 = 10 * FRAMES_PER_SECOND;
+/// Orders of a running plan are given again this often.
+const PLAN_ORDERS: i32 = 2 * FRAMES_PER_SECOND;
+/// A step out of the reach ends when this share of the body stands within `GATHERED` of its point, or after
+/// `STEP_OUT_MAX`.
+const STEP_OUT_MAX: i32 = 15 * FRAMES_PER_SECOND;
+/// A gather ends when this share of the body is within `GATHERED` of its point (the design's 80%).
+const GATHER_SHARE: f32 = 0.8;
+/// A decline ends when this share of the body is back.
+const BACK_SHARE: f32 = 0.6;
+
+/// A plan the body runs as its task (`GroupTask::Plan`).
+#[derive(Clone, Debug)]
+pub(crate) struct PlanTask {
+    pub key: String,
+    /// The position's elements when it was chosen.
+    pub position: Vec<String>,
+    pub phases: Vec<Phase>,
+    pub phase: usize,
+    /// When the phase (or its step out) began.
+    pub since: i32,
+    /// Stepping out of a static's reach to this point before the phase begins.
+    pub stepping_out: Option<Vec3>,
+    /// A target of the phase last in sight.
+    pub last_seen: i32,
+    pub last_order: i32,
+}
+
+impl PlanTask {
+    fn with_position(candidate: &Candidate, position: Vec<String>, frame: i32) -> PlanTask {
+        PlanTask { key: candidate.key.to_string(), position, phases: candidate.phases.clone(), phase: 0, since: frame, stepping_out: None, last_seen: frame, last_order: i32::MIN / 2 }
+    }
+
+    fn current(&self) -> &Phase {
+        &self.phases[self.phase.min(self.phases.len() - 1)]
+    }
+
+    /// Where the body is going now: the step out, the phase's point, else its first target.
+    pub(crate) fn goal(&self) -> Vec3 {
+        let phase = self.current();
+        self.stepping_out.or(phase.point).or_else(|| phase.targets.first().map(|(_, at)| *at)).unwrap_or_default()
+    }
+
+    /// The statics the current phase attacks (the lane is priced against those and no other building).
+    pub(crate) fn turrets(&self) -> Vec<UnitId> {
+        let phase = self.current();
+        if self.stepping_out.is_some() || !matches!(phase.kind, PhaseKind::Attack | PhaseKind::Shell) {
+            return Vec::new();
+        }
+        phase.elements.iter().filter_map(|e| e.strip_prefix("turret_")).filter_map(|id| id.parse::<i32>().ok()).map(UnitId).collect()
+    }
+
+    /// Whether the current step fights (an attack or a shelling, not a step out, a gather or the way back).
+    pub(crate) fn fighting(&self) -> bool {
+        self.stepping_out.is_none() && matches!(self.current().kind, PhaseKind::Attack | PhaseKind::Shell)
+    }
+
+    /// The player's line: "plan screen_first: party_12 from spot_44, then turret_3 and turret_4, then party_9; phase
+    /// 1 of 3, 20 s in".
+    pub(crate) fn line(&self, frame: i32) -> String {
+        let phases: Vec<&str> = self.phases.iter().map(|p| p.short.as_str()).collect();
+        let step = if self.stepping_out.is_some() { ", stepping out of the statics' reach first" } else { "" };
+        format!("on its engagement plan {}: {}; phase {} of {}, {} s in{step}", self.key, phases.join(", then "), self.phase + 1, self.phases.len(), (frame - self.since) / FRAMES_PER_SECOND)
+    }
+}
+
+impl Brain {
+    /// One think of a group's plan: the phase's end (its targets dead, out of sight for `PHASE_LOST`, or
+    /// `PHASE_UNTIL`; a gather at 80% of the body within `GATHERED` of its point), the step out of a static's reach
+    /// after a covered phase, and the orders: a Fight to the phase's point, then an Attack by id on the nearest target
+    /// in sight for each soldier near enough (a building out of sight is fought at where it stands: the engine drops
+    /// an attack on an unseen unit); the shelling's long-reach members attack from the point, the rest stand there.
+    /// Returns what the player's report should hear (a phase begun, the plan done).
+    pub(super) fn tick_plan(&self, group: &mut super::Group, units: &[&OwnUnit], enemies: &[EnemyUnit], frame: i32, commands: &mut Vec<bot_protocol::Command>) -> Option<String> {
+        use bot_protocol::Command;
+        let name = group.name.clone();
+        let GroupTask::Plan(plan) = &mut group.task else { return None };
+        if units.is_empty() {
+            return None;
+        }
+        let near = |to: Vec3| units.iter().filter(|u| u.pos.dist2d(to) <= GATHERED).count() as f32 / units.len() as f32;
+        let mut news: Option<String> = None;
+        for _ in 0..=plan.phases.len() {
+            if let Some(to) = plan.stepping_out {
+                if near(to) >= BACK_SHARE || frame - plan.since > STEP_OUT_MAX {
+                    (plan.stepping_out, plan.since, plan.last_seen, plan.last_order) = (None, frame, frame, i32::MIN / 2);
+                    continue;
+                }
+                if frame - plan.last_order >= PLAN_ORDERS {
+                    plan.last_order = frame;
+                    commands.extend(units.iter().map(|u| Command::Move { unit: u.id, to, queue: false }));
+                }
+                return news;
+            }
+            let phase = plan.current().clone();
+            let living: Vec<(UnitId, Vec3, bool)> = phase
+                .targets
+                .iter()
+                .filter_map(|(id, at)| match enemies.iter().find(|e| e.id == *id) {
+                    Some(e) => Some((*id, e.pos, e.def.is_some())),
+                    // Out of sight: a building where it stands, a soldier where it was when the plan was made,
+                    // until it is known dead.
+                    None if self.enemy_deaths.iter().any(|(dead, ..)| *dead == id.0 as u32) => None,
+                    None => Some((*id, self.enemy_buildings.get(id).map_or(*at, |(_, pos, _)| *pos), false)),
+                })
+                .collect();
+            if living.iter().any(|(_, _, seen)| *seen) {
+                plan.last_seen = frame;
+            }
+            let done = frame - plan.since > PHASE_UNTIL
+                || match phase.kind {
+                    PhaseKind::Gather => phase.point.is_none_or(|p| near(p) >= GATHER_SHARE),
+                    PhaseKind::Decline => phase.point.is_none_or(|p| near(p) >= BACK_SHARE),
+                    PhaseKind::Attack | PhaseKind::Shell => living.is_empty() || frame - plan.last_seen > PHASE_LOST,
+                };
+            if done {
+                plan.phase += 1;
+                if plan.phase >= plan.phases.len() {
+                    let key = plan.key.clone();
+                    group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
+                    return Some(format!("group_{name} finished its engagement plan {key}"));
+                }
+                (plan.since, plan.last_seen, plan.last_order) = (frame, frame, i32::MIN / 2);
+                if phase.covered {
+                    plan.stepping_out = plan.current().step_to;
+                }
+                news = Some(format!("group_{name}'s engagement plan {}: phase {} of {}, {}", plan.key, plan.phase + 1, plan.phases.len(), plan.current().short));
+                continue;
+            }
+            if frame - plan.last_order < PLAN_ORDERS {
+                return news;
+            }
+            plan.last_order = frame;
+            let seen: Vec<&(UnitId, Vec3, bool)> = living.iter().filter(|(_, _, s)| *s).collect();
+            let reach_of = |u: &OwnUnit| self.world.def(u.def).map_or(0.0, |d| d.reach);
+            for u in units {
+                let nearest_seen = seen.iter().min_by(|a, b| a.1.dist2d(u.pos).total_cmp(&b.1.dist2d(u.pos)));
+                let nearest_living = living.iter().min_by(|a, b| a.1.dist2d(u.pos).total_cmp(&b.1.dist2d(u.pos)));
+                let order = match phase.kind {
+                    PhaseKind::Gather | PhaseKind::Decline => phase.point.map(|to| Command::Move { unit: u.id, to, queue: false }),
+                    PhaseKind::Shell if reach_of(u) < ARTILLERY_REACH => phase.point.map(|to| Command::Move { unit: u.id, to, queue: false }),
+                    PhaseKind::Attack | PhaseKind::Shell => {
+                        let close = |at: Vec3| u.pos.dist2d(at) <= reach_of(u) + 150.0;
+                        let at_point = phase.point.is_none_or(|p| u.pos.dist2d(p) <= 250.0);
+                        match (nearest_seen, phase.point) {
+                            (Some((id, at, _)), _) if at_point || close(*at) => Some(Command::Attack { unit: u.id, target: *id, queue: false }),
+                            (_, Some(p)) if !at_point => Some(Command::Fight { unit: u.id, to: p, queue: false }),
+                            _ => nearest_living.map(|(_, at, _)| Command::Fight { unit: u.id, to: *at, queue: false }),
+                        }
+                    }
+                };
+                commands.extend(order);
+            }
+            return news;
+        }
+        news
+    }
+
+    /// The engagement pass, once a second after the one pass: for every group whose gate opens (`engagement_of`),
+    /// the plan question when its position is new to it (another signature, or `PLAN_STALE` since the last ask) and
+    /// no ask is in flight; in lockstep the answer is played at once, in realtime when it comes.
+    pub(super) fn engagement_pass(&mut self, tick: &bot_protocol::Tick, picture: &super::picture::Picture) {
+        self.collect_plans(tick);
+        let frame = tick.frame;
+        let Some(pianist) = self.pianist.as_ref() else { return };
+        if pianist.client.is_none() {
+            return;
+        }
+        let own = &tick.snapshot.own_units;
+        let instructions = picture.state["instructions"].as_str().unwrap_or_default();
+        let mut asks: Vec<(String, String, Vec<Candidate>, jev::Request)> = Vec::new();
+        for group in &pianist.groups {
+            let name = format!("group_{}", group.name);
+            let Ok((bf, candidates)) = self.engagement_of(group, own, &picture.parties, &tick.snapshot.enemies, &picture.places, true) else { continue };
+            let signature = bf.position.signature();
+            // One plan per body and position: asked again when an element appears or dies (the signature) or after
+            // `PLAN_STALE`, a running plan included.
+            let asked = pianist.plan_asked.get(&name).is_some_and(|(sig, f)| *sig == signature && frame - f < PLAN_STALE);
+            if asked || pianist.plan_pending.contains_key(&name) {
+                continue;
+            }
+            let rules = pianist.standing.rules_for(&name);
+            let standing = rules.iter().map(|(k, v)| format!("{k} {v}")).collect::<Vec<_>>().join("; ");
+            let paragraph = super::diet::paragraph(instructions, &name).unwrap_or_default();
+            let words = self.battlefield_words(&bf, &picture.places);
+            let request = request(&name, words, &candidates, paragraph, &standing, true);
+            asks.push((name, signature, candidates, request));
+        }
+        for (name, signature, candidates, request) in asks {
+            let pianist = self.pianist.as_mut().expect("checked");
+            pianist.plan_asked.insert(name.clone(), (signature.clone(), frame));
+            match &pianist.plan_worker {
+                Some(worker) => {
+                    if worker.to.send((name.clone(), request.clone())).is_ok() {
+                        pianist.plan_pending.insert(name, PlanPending { frame, signature, candidates, request });
+                    }
+                }
+                None => {
+                    let result = pianist.client.as_ref().expect("checked").ask(&request);
+                    self.plan_answered(frame, &name, &signature, &candidates, &request, result);
+                }
+            }
+        }
+    }
+
+    /// Realtime: the plan answers that have come, played; an answer older than `PLAN_ANSWER_STALE` is dropped.
+    pub(super) fn collect_plans(&mut self, tick: &bot_protocol::Tick) {
+        let Some(pianist) = self.pianist.as_mut() else { return };
+        let Some(worker) = &pianist.plan_worker else { return };
+        let mut arrived = Vec::new();
+        while let Ok((name, result)) = worker.from.try_recv() {
+            if let Some(pending) = pianist.plan_pending.remove(&name) {
+                arrived.push((name, pending, result));
+            }
+        }
+        pianist.plan_pending.retain(|_, p| tick.frame - p.frame <= PLAN_ANSWER_STALE);
+        for (name, pending, result) in arrived {
+            if tick.frame - pending.frame > PLAN_ANSWER_STALE {
+                continue;
+            }
+            self.plan_answered(tick.frame, &name, &pending.signature, &pending.candidates, &pending.request, result);
+        }
+    }
+
+    /// An answer: the plan taken (`choose`), logged as an `engagement` line of the Jev log, and made the group's task.
+    #[allow(clippy::too_many_arguments)]
+    fn plan_answered(&mut self, frame: i32, name: &str, signature: &str, candidates: &[Candidate], request: &jev::Request, result: Result<jev::Response, jev::Error>) {
+        let Some(pianist) = self.pianist.as_mut() else { return };
+        let options: BTreeMap<&str, &str> = candidates.iter().map(|c| (c.key, c.words.as_str())).collect();
+        let response = match result {
+            Ok(r) => r,
+            Err(e) => {
+                pianist.write_log(json!({ "t": "engagement", "f": frame, "group": name, "position": signature, "error": e.to_string() }));
+                return;
+            }
+        };
+        let taken = choose(&response.answers, candidates);
+        pianist.write_log(json!({
+            "t": "engagement", "f": frame, "group": name, "position": signature, "ms": response.latency.as_millis() as u64, "model": response.model,
+            "battlefield": request.state["battlefield"], "options": options,
+            "probabilities": taken.as_ref().map(|(_, p)| json!(p)), "taken": taken.as_ref().map(|(i, _)| candidates[*i].key),
+        }));
+        let Some((index, probabilities)) = taken else { return };
+        let candidate = &candidates[index];
+        let Some(group) = pianist.groups.iter_mut().find(|g| format!("group_{}", g.name) == name) else { return };
+        group.set_task(GroupTask::Plan(PlanTask::with_position(candidate, signature.split(',').map(str::to_string).collect(), frame)), frame);
+        let p = probabilities.get(candidate.key).copied().unwrap_or(0.0);
+        let text = format!("{name} takes the engagement plan {} against {signature} (p {p:.2}): {}", candidate.key, candidate.phases.iter().map(|ph| ph.short.as_str()).collect::<Vec<_>>().join(", then "));
+        pianist.note(frame, text.clone());
+        pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
+        pianist.played.push(json!({ "actor": name, "kind": "group", "played": format!("{name}.plan_{}", candidate.key), "did": text, "source": "engagement" }));
+        self.journal.note_from("engagement", frame, "group", json!({ "actor": name, "position": signature }), json!({ "plan": candidate.key, "p": p }));
+    }
+}
+
+/// A plan answer older than this judges a battlefield too old to play (realtime).
+const PLAN_ANSWER_STALE: i32 = 3 * FRAMES_PER_SECOND;
+
+/// A plan question in flight (realtime).
+pub(crate) struct PlanPending {
+    frame: i32,
+    signature: String,
+    candidates: Vec<Candidate>,
+    request: jev::Request,
+}
+
+/// The thread that asks the plan questions in realtime, so the game never waits on them.
+pub(crate) struct PlanWorker {
+    to: std::sync::mpsc::Sender<(String, jev::Request)>,
+    from: std::sync::mpsc::Receiver<(String, Result<jev::Response, jev::Error>)>,
+}
+
+pub(crate) fn spawn_plan_worker(client: jev::Client) -> PlanWorker {
+    let (to, requests) = std::sync::mpsc::channel::<(String, jev::Request)>();
+    let (answers, from) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        while let Ok((name, request)) = requests.recv() {
+            if answers.send((name, client.ask(&request))).is_err() {
+                break;
+            }
+        }
+    });
+    PlanWorker { to, from }
 }
 
 /// The plan question: a Choice over the candidates, the battlefield, the player's words for the group and its
@@ -818,6 +1123,94 @@ pub(crate) mod tests {
         let words = brain.battlefield_words(&bf, &[]);
         assert!(words["elements"]["party_12"].as_str().unwrap().contains("reaches it from outside"), "{words}");
         assert!(words["elements"]["turret_10"].as_str().unwrap().contains("no point"), "{words}");
+    }
+
+    fn e3_group(ours: &[OwnUnit], task: GroupTask) -> super::super::Group {
+        super::super::Group::new("C".into(), crate::world::Domain::Ground, ours.iter().map(|u| u.id).collect(), task, 0)
+    }
+
+    /// The gate and the candidates on the E3 scene: an advancing body (gathered, so no gather) is offered the screen
+    /// first, the statics first, the nearest first and the decline; a holding body and the player's `plan: no` are
+    /// not planned, the hold an advance arrived in is.
+    #[test]
+    fn the_e3_body_is_offered_the_screen_first_and_the_standing_plan_no_declines_it() {
+        let (mut brain, ours, enemies, parties) = e3();
+        let advancing = GroupTask::Move { to: at(4500.0, 1400.0), place: "spot_20".into(), fight: true, since: 0 };
+        let group = e3_group(&ours, advancing.clone());
+        let (bf, candidates) = brain.engagement_of(&group, &ours, &parties, &enemies, &[], true).expect("planned");
+        let keys: Vec<&str> = candidates.iter().map(|c| c.key).collect();
+        assert_eq!(keys, ["screen_first", "statics_first", "nearest_first", "decline"], "{:?}", bf.ours);
+        let screen = &candidates[0];
+        assert_eq!(screen.phases[0].elements, ["party_12"]);
+        assert!(screen.phases[0].point.is_some() && screen.phases[0].covered);
+        assert!(screen.phases[1].step_to.is_some(), "the statics' phase steps out of the reach first");
+        assert!(screen.words.contains("nothing else reaches us there"), "{}", screen.words);
+        let holding = e3_group(&ours, GroupTask::Hold { since: 0, committed: false });
+        assert!(brain.engagement_of(&holding, &ours, &parties, &enemies, &[], true).is_err());
+        let arrived = e3_group(&ours, GroupTask::Hold { since: 0, committed: true });
+        assert!(brain.engagement_of(&arrived, &ours, &parties, &enemies, &[], true).is_ok(), "an advance's arrival hold is planned");
+        let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        pianist.standing.set_tool("group_C", &json!({ "plan": "no" }), &[], &[]).expect("plan: no is a rule");
+        brain.pianist = Some(pianist);
+        let err = brain.engagement_of(&group, &ours, &parties, &enemies, &[], true).expect_err("declined by the player");
+        assert!(err.contains("plan: no"), "{err}");
+    }
+
+    /// The taken plan: the top above `PLAN_BAR` and above the decline, else the decline.
+    #[test]
+    fn the_top_plan_is_taken_above_the_bar_else_the_decline() {
+        let (brain, ours, enemies, parties) = e3();
+        let group = e3_group(&ours, GroupTask::Move { to: at(4500.0, 1400.0), place: "spot_20".into(), fight: true, since: 0 });
+        let (_, candidates) = brain.engagement_of(&group, &ours, &parties, &enemies, &[], true).expect("planned");
+        let answer = |pairs: &[(&str, f64)]| BTreeMap::from([(QUESTION.to_string(), jev::Answer::Choice { choice: pairs[0].0.to_string(), probabilities: pairs.iter().map(|(k, p)| (k.to_string(), *p)).collect(), confidence: 0.5 })]);
+        let key = |a: &BTreeMap<String, jev::Answer>| candidates[choose(a, &candidates).expect("an answer").0].key;
+        assert_eq!(key(&answer(&[("screen_first", 0.74), ("decline", 0.04)])), "screen_first");
+        assert_eq!(key(&answer(&[("screen_first", 0.38), ("nearest_first", 0.33), ("decline", 0.29)])), "decline", "under the bar");
+        assert_eq!(key(&answer(&[("decline", 0.55), ("screen_first", 0.45)])), "decline");
+    }
+
+    /// The plan runs phase by phase: a Fight to the stand-off and Attacks on the screen; the screen dead, a step out
+    /// of the turrets' reach first (a Move); there, the turrets; the turrets dead, the body holds.
+    #[test]
+    fn a_plan_runs_its_phases_and_steps_out_of_the_reach_between_them() {
+        use bot_protocol::Command;
+        let (mut brain, mut ours, mut enemies, parties) = e3();
+        let mut group = e3_group(&ours, GroupTask::Move { to: at(4500.0, 1400.0), place: "spot_20".into(), fight: true, since: 0 });
+        let (_, candidates) = brain.engagement_of(&group, &ours, &parties, &enemies, &[], true).expect("planned");
+        group.set_task(GroupTask::Plan(PlanTask::with_position(&candidates[0], vec!["party_12".into(), "turret_10".into(), "turret_11".into()], 0)), 0);
+        let mut frame = 30;
+        let tick = |brain: &Brain, group: &mut super::super::Group, ours: &[OwnUnit], enemies: &[EnemyUnit], frame: i32| {
+            let units: Vec<&OwnUnit> = ours.iter().collect();
+            let mut commands = Vec::new();
+            let news = brain.tick_plan(group, &units, enemies, frame, &mut commands);
+            (commands, news)
+        };
+        let (commands, _) = tick(&brain, &mut group, &ours, &enemies, frame);
+        assert!(!commands.is_empty() && commands.iter().all(|c| matches!(c, Command::Fight { .. } | Command::Attack { .. })), "{commands:?}");
+        // The screen dies.
+        enemies.retain(|e| e.def != Some(UnitDefId(2)));
+        brain.enemy_deaths.extend([(1, frame, 270), (2, frame, 270), (3, frame, 270)]);
+        frame += 60;
+        let (commands, news) = tick(&brain, &mut group, &ours, &enemies, frame);
+        assert!(news.is_some_and(|n| n.contains("phase 2 of 2")));
+        let GroupTask::Plan(plan) = &group.task else { panic!("still planning") };
+        let out = plan.stepping_out.expect("stepping out of the turrets' reach");
+        assert!(commands.iter().all(|c| matches!(c, Command::Move { to, .. } if *to == out)), "{commands:?}");
+        // At the step's point: the turrets.
+        for u in ours.iter_mut() {
+            u.pos = out;
+        }
+        frame += 60;
+        let (commands, _) = tick(&brain, &mut group, &ours, &enemies, frame);
+        assert!(commands.iter().any(|c| matches!(c, Command::Attack { target, .. } if target.0 == 10 || target.0 == 11) || matches!(c, Command::Fight { .. })), "{commands:?}");
+        // The turrets die: the plan is done.
+        enemies.clear();
+        brain.enemy_buildings.clear();
+        brain.enemy_deaths.extend([(10, frame, 85), (11, frame, 85)]);
+        frame += 60;
+        let (_, news) = tick(&brain, &mut group, &ours, &enemies, frame);
+        assert!(news.is_some_and(|n| n.contains("finished")));
+        assert!(matches!(group.task, GroupTask::Hold { .. }));
     }
 
     /// A lone raider and a scattered pair are not positions; a static alone is not either.

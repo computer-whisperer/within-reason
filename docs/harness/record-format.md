@@ -97,6 +97,14 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   (`threats`, `plan`, `gate`/`quiet`, `hunts`, `played` with source `rule`/`plan`) and logs from 2026-09-25 night to
   2026-09-26 morning (worlds-smoke-1 to nouls-1) the retired H-HANDS-WORLDS lines (`quiet`, `groups`, `worlds`,
   `lines`, `played_outright`, `gate` per group, and `worlds_gate` with `flags` per group).
+- From 2026-09-28 (H-HANDS-ENGAGEMENT-PLAN, `docs/design/2026-09-28-engagement-plan.md`) an `engagement` line per plan
+  question answered: `{"t": "engagement", "f", "group", "position" (the elements' names, sorted, comma-joined), "ms",
+  "model", "battlefield" (the words Jev read), "options" {key: words}, "probabilities" {key: p}, "taken" (the plan
+  made the group's task: the top above 0.4 and above the decline's, else `decline`)}`, or `{"t": "engagement", "f",
+  "group", "position", "error"}` for a call that failed. Not the pass's `plan` line (the worlds pick). The plan runs as
+  the group's task: `groups` in a `call` line say `{"kind": "plan", "plan", "phase", "to"}`, and a `pass` line's
+  `played` carries the taking with source `engagement`. `bot --plan-replay` (`run/plan_replay.py`) asks the same
+  question of a recorded moment.
 Size: 15-30 KB a call (3-6k tokens of state and questions), 20-60 calls a minute: 25 MB for a 20-minute game. Logs from
 the first morning (2026-09-21, before the header line) carry `instructions` and `rules` in every state and no `played`;
 the viewer reads those too, taking the decisions from the answers.
