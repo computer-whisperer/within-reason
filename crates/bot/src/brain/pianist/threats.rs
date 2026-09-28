@@ -112,6 +112,14 @@ impl Brain {
                 let named = rules.get("engage_party").is_some_and(|p| *p == party.name);
                 let units = group.units(own);
                 let own_ids: Vec<UnitId> = units.iter().map(|u| u.id).collect();
+                // A body of scouts (Rovers, Ticks: 105 health, 35 a second) is never sent at anything armed: its
+                // fights are the rove lane's, unguarded things only. The pass offered "attack party_7 (2 Pawns, a
+                // Lazarus) with the whole group" to thirteen Rovers at his base and the pick took it (player-16
+                // 4:06, five lost for nothing); "attack party_2 (2 armpw) with the whole group" three times at
+                // player-17 4:53-5:28 (eleven lost for nothing under a light turret, the pick at 0.36).
+                let scouts_only = units.iter().all(|u| self.world.def(u.def).is_none_or(|d| d.weapon_count == 0 || super::glossary::entry(&d.name).is_some_and(|g| g.class.contains("scout"))));
+                let party_armed = enemies.iter().any(|e| party.ids.contains(&e.id) && e.def.and_then(|d| self.world.def(d)).is_some_and(|d| d.weapon_count > 0));
+                let scouts_vs_armed = scouts_only && party_armed;
                 let hitting_us = self.killing_words(&party.ids, Some(&own_ids)).is_some();
                 // `ignore` never prunes self-defence: a party hitting this group is answered whatever the rule says
                 // (comet-catcher-3, 21:52: `raiders_lone ignore` stopped eleven Stouts in front of a Bull that was
@@ -153,7 +161,10 @@ impl Brain {
                 // sent the commander on a 31 s walk instead, onepass-player-4 5:59; the user: the Blitz would have
                 // had the Tick out of our base sooner, and that time is what to present); the fewest that outweigh
                 // it. The words say in how many seconds the hunters drive it off and whether they can catch it.
-                if party.ids.len() <= HUNT_PARTY_MAX && group.domain != crate::world::Domain::Air && !rules.get("no_detachments").is_some_and(|v| v == "yes") && (!declined || hunting_it) {
+                if scouts_vs_armed {
+                    states.push(state(format!("{}.scouts_{name}", party.name), name.clone(), Response::Keep, format!("{name} is scouts (105 health): it fights nothing armed, and {} is armed; the rove lane (`lane {name}: rove`) has each of them kill his unguarded constructors and extractors and step out of every reach", party.name), 0.0, false, false));
+                }
+                if party.ids.len() <= HUNT_PARTY_MAX && !scouts_vs_armed && group.domain != crate::world::Domain::Air && !rules.get("no_detachments").is_some_and(|v| v == "yes") && (!declined || hunting_it) {
                     let armed = |u: &&OwnUnit| self.world.def(u.def).is_some_and(|d| d.weapon_count > 0 && d.speed > 0.0);
                     let mut fast: Vec<&OwnUnit> = units.iter().copied().filter(armed).filter(|u| self.world.def(u.def).is_some_and(|d| d.speed > quarry_speed)).collect();
                     if fast.is_empty() {
@@ -193,7 +204,7 @@ impl Brain {
                     }
                 }
                 // The whole group.
-                if odds != "it outweighs us" && !odds.starts_with("we cannot hit") && !units.is_empty() && (chase_allowed || engaging_it) {
+                if odds != "it outweighs us" && !odds.starts_with("we cannot hit") && !units.is_empty() && !scouts_vs_armed && (chase_allowed || engaging_it) {
                     let default = !default_set && !declined && (raider_rule == "whole_group" || named);
                     let walk = if group_speed.is_finite() && group_speed > 0.0 { format!(", {:.0} s of walking", distance / group_speed) } else { String::new() };
                     // A radar contact is priced as a Pawn (`combat.rs`): at minute 14 a column of 23 blips said 2,530

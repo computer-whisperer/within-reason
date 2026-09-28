@@ -1367,3 +1367,19 @@ created events, `run/hands_window.py ... 13:30 15:00 plant_13472`); `00/review.m
 **Status.** fixed 2026-09-28: the default takes the counted entries first, in order, then the open ones; the brief's
 words on `produce` say an open entry is the filler after the counts. Exploited by [[H-HANDS-LAB-DEFAULT]].
 
+### K-hands-a-scout-body-offered-an-armed-fight
+**Claim.** The Rover body of the brief's opening reached his base in player-16 (4:02) and player-17 (4:53) and was
+killed there by the pass's own offer: with the odds words not saying "it outweighs us" (thirteen to seventeen Rovers
+against "2 armpw"), the threat slot offered "attack party_N with the whole group", the pick took it (p 0.49 in
+player-16, 0.36-0.37 in player-17, confidence 0.14-0.22), and the Rovers (105 health, 35 a second) fought Pawns
+(370 health, 90 a second) beside a light turret and his commander: five lost for nothing at 4:06-4:14 of player-16
+(the hunt of his four constructors called off one second before), eleven lost for nothing at 4:53-5:28 of player-17
+(engagement #0: 341 for 0, 544 of ours on the spot against 324 and a 170 turret). thebluegecko's Rovers trade 377
+for 620 at the enemy's base in minute 3 by killing what is unguarded and never standing in a reach, which is what
+the rove lane does and the pass does not.
+**Evidence.** `run/hands_window.py <player-16> 3:28 4:20 group_A`, `<player-17> 4:40 5:40 group_A`; the reviews;
+`run/analyze_match.py <player-17> --engagement 0`.
+**Status.** fixed 2026-09-28: a scout body is offered neither a hunt nor a whole-group attack on an armed party, and
+the slot names the rove lane (H-HANDS-SCOUTS-FIGHT-NOTHING-ARMED). Open: the odds words priced "2 armpw" while 324
+of soldiers and a turret stood on the spot (the parties near the target and its cover are not in the group's odds).
+
