@@ -30,7 +30,16 @@ have the same shape and opposite answers, the difference between them is the thi
   almost 400% army value, time to go fight and win; if you dont use that army advantage this will soon go bad". The
   difference between the wins and the losses is not the size of the lead (player-9's was 2.4:1 at 6:00, player-10's
   4.1:1 at 4:00): it is whether the ball was in his half, as one body, on a route a scout had proven, within two
-  minutes of the report saying it.
+  minutes of the report saying it. **And a lead is never spent as more of the same unit past a dozen.** The
+  experienced players' largest body of one type in a typical game is a dozen raiders or line tanks and eight Stouts
+  (seven of a long-range type, four Hammers or Levelers; `docs/studies/2026-09-28-body-sizes.md`): their bodies over
+  thirty are late and always two or three types together. Ours was 24 Stouts in one body at 17:13 of player-15, and
+  the bench says what that buys: at equal metal six Stouts beat one Fatboy (+0.12) and twenty-five lose to four
+  (-0.54), eight Stouts lose to two Bulls by 0.18 and twenty-one to five by 0.31; a Stout ball loses nothing to a
+  Stout ball at any size. So when a body of a type reaches its dozen (Stouts eight), the next metal is a second group
+  somewhere else (the other flank, his expansions, a raid picket), and after 12:00 it is tier 2, never the thirteenth
+  of the same (the user, 2026-09-28). Two bodies at two places also make him choose; one big one lets him bring his
+  splash to it.
 
 - **His tier 2 is our window; ours is a scenario call.** Cases: (1) player-9: his advanced lab started at 10:32 and
   his army fell from 2,736 to 2,220 by 12:00 while ours rose to 6,565; our mass stood at D5-D6 in our half and his
@@ -374,6 +383,21 @@ K-maps-comet-barb-opens-bots, the tempo model]
   solars behind it; build them beside the commander before and while the plant goes up.
 - This opponent opened with a bot lab in 91 of 104 recorded games on this map (a vehicle plant in 13), whatever the
   terrain says: expect Pawns and Ticks early and Maces or Rocketeers later, from the far end of its strip.
+- **Splash: which shots hit an area, and why spacing decides** (the bench of 2026-09-28,
+  `docs/studies/2026-09-28-body-sizes.md`; K-units-duel-spacing-decides-area-damage). A shot's area, in elmos, and its
+  damage: Fatboy `armfboy` 300 (800 a shell, at 700); Leveler `corlevlr` 144 (190, at 315); Bull `armbull` 130
+  (270, at 460); Janus `armjanus` 128 (two of 330, at 380); Mauser `armmart` 120 (260, at 820); Stout `armstump` 48
+  (97); Blitz, light turret, Centurion, Sharpshooter 11 to 16 (single-target in effect). The damage falls to 15% at
+  the edge of the area (65% for the Mauser, none for the Leveler: full to its edge). A body at our usual 25 to 40
+  elmos between neighbours (the pros' 67 to 70) puts six to ten units inside a Fatboy's 300 and three or four inside
+  a Bull's or a Janus's: at equal metal 25 Stouts lose to 4 Fatboys by 0.55 at 56 spacing and by 0.22 at 160; 21
+  Stouts lose to 5 Bulls by 0.34 at 56 and draw at 160; 6 Stouts against 1 Fatboy go from +0.12 to +0.52. The rule:
+  **against area (a Fatboy, Bulls, Janus, Levelers, Mausers), spread and few**: bodies at the dozen, 100 elmos or
+  more between neighbours, the long-range units (Shellshockers, Mausers) doing the work from outside his reach;
+  **against single-target fire (turrets, Centurions, Sharpshooters, Blitzes), tight and many** at once, every unit in
+  reach of the one target. Nothing in the hands holds spacing yet (the spread rule was retired 2026-09-20): a wide
+  formation is a `lane` and standing matter for now, and a body against splash is best made small at the source, by
+  `produce` groups of a dozen.
 - Tier-1 vehicles (metal / health / speed / range), Armada with the Cortex twin in brackets: Rascal `armfav`
   31/105/168/180 scout car (Tumbleweed `corfav` 26/90/153/180); Blitz `armflash` 110/730/101/180 raider tank
   (Instigator `corgator` 120/820/85/230); Stout `armstump` 225/1800/75/350 tank, the line unit (Bulldog `corraid`
