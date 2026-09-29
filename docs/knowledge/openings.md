@@ -542,8 +542,8 @@ against player-11's six on the same seed. Used by the brief's opening case (6) a
 to five Blitzes; the pool 18). Extractors 4 to 9 by 4:00 (the pool 7). Both stores run empty and he keeps going: the
 energy store under 20 from about 1:45 to 3:50 in 11 of 14 sides (the assisted plant on Rovers draws 135 a second
 against 90 to 130), the metal store at 0 at some point in 6 of 14 (11 a second against 9); the stall is answered by
-the list's one solar. The Rovers go to the enemy's base: his first within 1,500 of the enemy start at 1:54, and by
-minute 3 the body is there (against Artur91, 15469c6a: 377 of his lost there in minute 3 for 620 of the enemy's, 236
+the list's one solar. The Rovers go to the enemy's base one by one as they are built, never as a massed body: his first within 1,500 of the enemy start at 1:54, and by
+minute 3 they are trading there (**corrected 2026-09-28**: the 24 by 4:00 is production; a count of his records shows 2 to 12 Rovers alive at 3:00 and 5 to 19 at 4:00, 10 to 24 lost by 5:00 with nearly every death in the enemy half, the first at 1:40 to 3:01; there is no gathering, no station and no evasive touring in any of the 13 sides) (against Artur91, 15469c6a: 377 of his lost there in minute 3 for 620 of the enemy's, 236
 for 336 in minute 4, 327 for 945 in minute 5; his light turret at home 3:02 by the constructor). His one bot-lab
 side on the map (against Hellontoast, won 8:01) is a different line: the lab at 0:03 before any solar, the
 commander expanding to eight extractors by 4:00, Pawns and Ticks.
@@ -552,7 +552,7 @@ commander expanding to eight extractors by 4:00, Pawns and Ticks.
 `...-6f439c6aaa27fa810932d14555309a3a` (the bot lab), `...-0e16796a072560b412917c61cc89a32d` (32 units, lost); the
 records' resource samples (a scratch pass over `record-<team>.jsonl`, 2026-09-28); `run/minutes.py` on the 15469c6a
 directory (the trades by minute).
-**Status.** measured (2026-09-28, the replay survey). The brief's recommended Comet opening from this date; the
+**Status.** measured (2026-09-28, the replay survey); **reopened 2026-09-28** after player-21: the brief had turned the production count into a body of fifteen at his base at 3:00 and put it on the rove lane, neither of which his records show (the count above). Also noted: his 14 sides are against three opponents (Artur91 OS 42-43, Hellontoast OS 40-41, IamRaider OS 29), mostly in back-to-back sessions, and in the cited 15469c6a game Artur91 opened the same Rover rush at 0:34. The brief's recommended Comet opening from this date; the
 first arena game on it is player-13-gecko-opening. The VAK line (K-open-comet-pro-order) and the pool's median stay
 in the brief as snippets. Amends K-open-comet-our-plant-starves and the brief's "never 0" rule: for this line the
 stores at 0 from 1:45 with the plant never idle is the opening working, not a stall to fix.

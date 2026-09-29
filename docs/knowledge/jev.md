@@ -1508,6 +1508,12 @@ commander's start (6899,681)) and was first seen at 20:51. The 2:00-9:00 window 
 **Status.** brief amended 2026-09-28 (the station one of his outer spots, never a mark on his commander; a
 commander seen is a base found). Not yet seen in a game.
 
+### K-player-the-brief-put-the-rovers-on-an-evasive-lane
+**Claim.** In player-20 and player-21 the Rover body arrived at his base whole and did no damage because the brief told the player to put it on `lane rove` on arrival, and the player did exactly that: the tool text and the brief both say a roving unit "never stands inside the reach of anything that can shoot it", so the player had the information and followed the instruction; the fault was the instruction. Under `rove` at a base BARb's Pawns patrol, every Rover steps off within a second of a Pawn's approach and the tour kills nothing (player-21: `lane group_A: rove` at 3:38, the record holds no enemy death from 3:15 to 4:30 while the report said "destroyed 21"; player-20 the same at F8 from 2:55, 420 killed against the line's 620). The brief justified the lane with "which is what his Rovers do (377 for 620 in minute 3)", and his records show no such thing (K-open-comet-thebluegecko-rover-mass, reopened).
+**Evidence.** `run/matches/1790568930-player-21-leash/00/strategist-0.jsonl` (the lane call and its reply at 3:38), `00/review.md`; `run/matches/1790566750-player-20-live/00/review.md`; the brief's Rover paragraph before commit da69668's successor; the tool text in `crates/bot/src/strategist/mcp.rs` (`lane`); the count over his 14 Comet records (a scratch pass over `record-<team>.jsonl`, 2026-09-28: Rovers made, alive and lost by minute).
+**Status.** observed (2026-09-28, the user watching player-21's replay: "evasive mode just sent our rovers ping-ponging around the map in a particle cloud rather than actually using it to damage the enemy"). The brief now commits the body (H-PLAYER-OPENING-SNIPPETS amended); first game player-22-commit.
+**Would be wrong if.** A committed Rover body at his base dies to Pawns and turrets for less than the rove lane's tour killed, which player-22 measures.
+
 ### K-hands-the-follow-leash-fired-on-the-first-tick
 **Claim.** `engage_group` anchored the follow leash at the centre of every member of the group, and the leash
 (`tick_groups`, `FOLLOW_LEASH` 900) measures the body's place, which excludes the stream still joining from the

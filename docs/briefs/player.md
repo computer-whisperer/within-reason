@@ -307,7 +307,9 @@ fast units (Rovers, Ticks, scout cars; name a plant's output into it with `produ
 times a second: it drives to look at what we know least (his start box and base first, then spots nobody has seen,
 then the stalest), attacks what it finds unguarded (a constructor, an extractor, a radar with nothing armed in reach),
 and never stands inside the reach of anything that can shoot it: a Rover outruns a Pawn and steps off before it is in
-reach. Your hands never move a roving group (no hunt, retreat or join), which is what killed the scouts before: in
+reach. It is scouting footwork, not an assault: at a base with Pawns patrolling, a roving Rover steps off from each
+and kills nothing (player-20, player-21); a body sent to do damage goes with the evasion rules off, never on `rove`.
+Your hands never move a roving group (no hunt, retreat or join), which is what killed the scouts before: in
 player-9 three scouts went at his base and none arrived (one turned home by the hands at the first sight of his
 commander, one into two Pawns, one onto a hunt). The group's entry says what each rover is doing and what it has
 found (`rove`); `"on"` takes it back. Your hands' `scout` state now makes a rover of a group's fastest soldier.
@@ -453,25 +455,26 @@ K-maps-comet-barb-opens-bots, the tempo model]
   outward, a light turret at home the moment the first Tick or Pawn is in the picture (his at 3:02), then the strip.
   The Rovers: at 2:20, with eight out, group_A goes as one body to **his start's end of the strip** (his home spots
   and the ones beside them: from B8 that is G1-G2, spot_6, spot_11, spot_18, spot_16; the mirror of our own home,
-  where the boxes put him and where his base was every time it was looked for), for his outer extractors and
-  constructors, by a route that ends in a station there, not `lane rove` and not the near end of his strip
-  (player-15 sent the body "along the south route into his strip" from B8, found G8 to G5 empty at 4:33 and had his
-  base in the picture only at 6:14; thebluegecko's first Rover is within 1,500 of the enemy start at 1:54). **On arrival the
-  body goes on `lane group_A: rove`**: the rove lane has each Rover kill his unguarded constructors and extractors
-  and step out of every reach, which is what his Rovers do (377 for 620 in minute 3); under the pass instead, the
-  body at his base was offered "attack party (2 Pawns) with the whole group" and took it, five Rovers lost for
-  nothing in player-16 and eleven in player-17 (the hands now refuse that offer for a scout body, but the rove lane
-  is the play, not a refusal). The
-  route is the packet's prose with the station at the far end (player-14 put the whole group on `rove` at 2:40: the lane is the scouting footwork, each
-  Rover on its own tour, and they came home having killed one extractor); one Rover on `rove` ahead of the body
-  finds his lab on the way. The body never goes inside 300 of his commander (the D-gun) or at a turret, steps off
-  from Pawns, and every Rover out of the plant after that walks to it. The station is one of his outer spots
-  (spot_6, spot_11, spot_18, spot_16 from B8), never `their_corner` or any mark on his commander's start:
-  player-19 walked the body to `their_corner` at 3:15 and four Rovers died to his commander at 4:00-4:03, the lead
-  then spent at home. His lab stands within 500 of his commander (player-19: 480), so a commander seen is a base
-  found: mark `his_base`, name the spots the report says he holds as the push's targets, and go; player-19 waited
-  four minutes at 2.6x for "his lab found" while the lab stood beside the commander it had seen; two Rovers stay home from 2:30 against
-  Ticks (BARb's first at 2:08). **His minutes 4 to 8** (the same tool over his records and player-14's): the
+  where the boxes put him and where his base was every time it was looked for), and every Rover out of the plant
+  after that walks to it. **The body commits** (the user, 2026-09-28, after player-21): the opening spends the
+  economy on a pile of fast units, and the pile pays only by the damage it does before his army is bigger, so on
+  arrival it attacks and keeps attacking: his extractors, his constructors, his solars and his plant, in that order
+  of what stands nearest, with `instruct` naming the targets ("group_A: attack his extractors and constructors at
+  spot_6, spot_11, spot_18, then his plant") and the lane without the evasion rules,
+  `lane {"group_A": ["fan", "form", "march", "follow"]}`: no `flee`, no `kite`, and **never `rove`** for this body.
+  Not `lane rove` (player-21: sixteen Rovers arrived whole at 3:35 against his whole army of 270, went on `rove`
+  at 3:38, split into solo tours and stepped off from every Pawn within a second; the record holds no enemy death
+  between 3:15 and 4:30, and the lead was gone by 8:00; player-20 the same at F8). The rove lane is scouting
+  footwork: it evades everything that can shoot, so a roving Rover kills nothing where Pawns patrol, which is every
+  base BARb builds. thebluegecko's own Rovers never rove and never wait: from 1:54 each one goes to the enemy's
+  extractors as it is built and trades there (his records: 2 to 12 alive at 3:00, 10 to 24 lost by 5:00, nearly
+  all in the enemy half, against 13 extractors, 9 Blitzes and 17 Rovers killed in one 7:32 game). The pile is
+  spent, not kept: a Rover alive at home at 6:00 is metal that bought nothing. The body never goes inside 300 of
+  his commander (the D-gun) and does not stand under a turret (it walks past to the extractors behind it); it
+  steps off from nothing else. A commander seen is a base found (his lab stands within 500 of it: player-19,
+  480): mark `his_base`, name the spots the report says he holds as the targets, and go; player-19 waited four
+  minutes at 2.6x for "his lab found" while the lab stood beside the commander it had seen. Two Rovers stay home
+  from 2:30 against Ticks (BARb's first at 2:08). **His minutes 4 to 8** (the same tool over his records and player-14's): the
   extractor curves match to 6:00 (3 at 3:00, 5 at 4:00, 7 at 5:00, 9 to 10 at 6:00) and then his goes 12, 16, 16 to
   20 at 7:00, 8:00, 9:00 with income 30, 39, 39 to 58, while player-14's fell to 5 at 7:00 with 13 extractors lost
   by 7:25, nine to single Pawns. The difference is where the metal went from 4:00: his turrets are 3 by 4:00, 5 to
