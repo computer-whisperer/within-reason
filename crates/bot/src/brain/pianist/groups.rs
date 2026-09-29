@@ -40,10 +40,6 @@ const AIR_LOST_FRAMES: i32 = 60 * FRAMES_PER_SECOND;
 /// of the enemy base with the player reading "under fire" and nothing about the hands).
 const PROGRESS_STEP: f32 = 60.0;
 const STALL_FRAMES: i32 = 45 * FRAMES_PER_SECOND;
-/// An advance that has not got nearer its goal for this long is given up: the group holds and the player is told
-/// (pianist-player-7: the ball answered `continue` for 151 s short of an islet spot, then for 103 s short of a mark
-/// on the shore, while the player rewrote the packet four times).
-const GIVE_UP_FRAMES: i32 = 90 * FRAMES_PER_SECOND;
 /// H-HANDS-LOSS-WAKE: a group wakes the player once per turn when, since the player's last orders, it has lost this
 /// many soldiers or this share of its metal (upgrade-2: a unit loss woke nothing, and the ball shed pairs against the
 /// Hounds for 7 to 37 s until the timer; Jev's `needs_player` Noul was a constant 0.77 with noise, retired).
@@ -77,8 +73,6 @@ pub(crate) struct Hunt {
 pub(crate) const HUNT_LEASH: f32 = 900.0;
 /// A roving group's log keeps this many lines.
 const ROVE_LOG: usize = 10;
-/// A party a group was told to leave is not answered by its rule's default for this long.
-pub(super) const DECLINE_FRAMES: i32 = 30 * FRAMES_PER_SECOND;
 
 #[derive(Clone, Debug)]
 pub(crate) enum GroupTask {
@@ -127,9 +121,6 @@ pub(crate) struct Group {
     pub last_hold: Option<Vec3>,
     /// The hunt some or all of its members are on (`docs/design/2026-09-26-threat-response.md` §1-2).
     pub hunt: Option<Hunt>,
-    /// Parties this group was told to leave (a pick, or a hunt that ended at its leash), and when: no default and
-    /// no hunt against them for `DECLINE_FRAMES`, so a plan the pick ended is not restarted by the rule a second later.
-    pub declined: Vec<(String, i32)>,
     /// Members still on their way to join (a plant's output walking to the body): not the front, not the tail,
     /// not counted as arrived; said in the picture as reinforcements on the way (H-HANDS-GROUP-BODY).
     pub joining: HashSet<UnitId>,
@@ -196,7 +187,7 @@ pub(crate) const STRUNG_OUT: f32 = 600.0;
 
 impl Group {
     pub(crate) fn new(name: String, domain: Domain, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None, hunt: None, declined: Vec::new(), joining: HashSet::new(), gathering: false, shelling: false, hunts_failed: Vec::new(), reached: Vec::new(), met: None, route: Vec::new(), scout: false, roving: false, rove_log: Vec::new() }
+        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None, hunt: None, joining: HashSet::new(), gathering: false, shelling: false, hunts_failed: Vec::new(), reached: Vec::new(), met: None, route: Vec::new(), scout: false, roving: false, rove_log: Vec::new() }
     }
 
     /// The group's body toward `toward` (the goal of a walk, the nearest enemy, or nothing: then the front is the
@@ -424,8 +415,6 @@ impl Brain {
         }
         // Standing orders, under each group's footwork rules (H-HANDS-LANE).
         let footwork: Vec<crate::strategist::shared::Footwork> = pianist.groups.iter().map(|g| self.footwork_of(&g.name)).collect();
-        let marks: Vec<String> = self.strategist.as_ref().map(|s| s.marks.lock().unwrap().keys().cloned().collect()).unwrap_or_default();
-        let is_mark_name = |place: &str| place != "home" && !place.starts_with("spot_") && !place.starts_with("passage_") && !place.starts_with(LAST_HOLD);
         let mut marches: Vec<(usize, Vec3)> = Vec::new();
         let mut stalled: Vec<String> = Vec::new();
         let mut hunt_ends: Vec<String> = Vec::new();
@@ -536,8 +525,6 @@ impl Brain {
                     if to_go < group.best_to_go - PROGRESS_STEP {
                         (group.best_to_go, group.progressed) = (to_go, frame);
                     }
-                    let forgotten = is_mark_name(place) && !marks.contains(place);
-                    let given_up = frame - group.progressed >= GIVE_UP_FRAMES;
                     if to_go < ARRIVED {
                         let gathering = group.gathering;
                         let shelling = group.shelling;
@@ -545,14 +532,6 @@ impl Brain {
                         group.held.clear();
                         group.gathering = gathering;
                         group.shelling = shelling;
-                    } else if forgotten || given_up {
-                        stalled.push(if forgotten {
-                            format!("group_{} was walking to {place}, which is no longer a marked place: it holds where it is", group.name)
-                        } else {
-                            format!("group_{} gave up its {} to {place}: it has not got nearer for {} s, {to_go:.0} short of it, and holds where it is", group.name, if *fight { "advance" } else { "walk" }, (frame - group.progressed) / FRAMES_PER_SECOND)
-                        });
-                        commands.extend(group.hold_orders(&units));
-                        group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
                     } else if *fight {
                         if frame - group.progressed >= STALL_FRAMES && !group.stall_warned {
                             group.stall_warned = true;
@@ -733,8 +712,6 @@ impl Brain {
             None => {
                 let (party, since, hunters) = (hunt.party.clone(), hunt.since, hunt.hunters.clone());
                 group.hunt = None;
-                group.declined.retain(|(_, f)| frame - f < DECLINE_FRAMES);
-                group.declined.push((party.clone(), frame));
                 let rejoining: Vec<&OwnUnit> = own.iter().filter(|u| hunters.contains(&u.id)).collect();
                 commands.extend(group.rejoin_orders(&rejoining));
                 let why = match event.why {

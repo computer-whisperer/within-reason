@@ -12,8 +12,6 @@ use super::picture::{Picture, clock};
 use super::plan::Response;
 use super::{Pianist, Task};
 
-/// A timed assist step is skipped while the metal store is under this (the pool's bank at 2:00 to 3:00 is 100 to 150).
-const ASSIST_STORE_FLOOR: f32 = 20.0;
 
 
 /// The seconds of a timed list step `assist N`; None for any other step.
@@ -146,12 +144,6 @@ impl Brain {
                             None => Err("no free spot in reach".to_string()),
                         },
                     }
-                }
-                // `assist` or `assist N`: the seconds, when given, end the step. A timed assist at an empty store is
-                // skipped: helping adds build power, and an empty store has nothing for it to spend
-                // (K-open-comet-our-plant-starves).
-                "assist" if timed_assist(&step).is_some() && picture.metal_stored < ASSIST_STORE_FLOOR => {
-                    Err(format!("the store holds {:.0} metal, and helping the plant adds nothing at an empty store; the list goes on", picture.metal_stored))
                 }
                 "assist" => match own.iter().filter(|u| self.world.is_factory_def(u.def)).min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos))) {
                     Some(factory) => Ok(Response::Assist(factory.id)),

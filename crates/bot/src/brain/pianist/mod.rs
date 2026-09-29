@@ -272,8 +272,6 @@ fn spawn_worker(client: jev::Client) -> Worker {
 }
 
 /// A `produce` list entry: the unit name and, after a colon, how many more of it are allowed ("corck:1").
-/// A pick under this confidence moves no group that is fighting (`after_pick`).
-const ENGAGED_PICK_BAR: f64 = 0.25;
 
 pub fn allowance(entry: &str) -> (&str, Option<usize>) {
     match entry.split_once(':') {
@@ -853,29 +851,7 @@ impl Brain {
         // A pick below the bar moves no group that is fighting (player-17 21:34: "attack party_25 (2 armstump)"
         // 1,300 behind the front at confidence 0.03, after picks at 0.09 and 0.15, turned the army from its fight
         // at D1; 40 to 23 units, 6,900 lost for 1,284 in engagements #16, #17 and #22).
-        // The hold is keyed on the actor of the state the pick chose, not the slot's name: a threat slot carries
-        // the party's name and its states move groups (`party_142.whole_group_U`, `party_107.leave`), so a hold
-        // on `group_X` slots alone never saw them (player-18: 22 changes of an engaged group under 0.25, "group_U:
-        // attack party_142" at 0.06 and "group_B: leaves party_107 and holds" at 0.13, the fault the bar was built
-        // for at player-17). `Leave` names no actor: it is held when it would end an engagement.
-        let held: Vec<bool> = if confidence < ENGAGED_PICK_BAR {
-            let groups = &self.pianist.as_ref().expect("pianist mode").groups;
-            let engaged = |actor: &str| groups.iter().any(|g| format!("group_{}", g.name) == actor && matches!(g.task, groups::GroupTask::Engage { .. } | groups::GroupTask::Plan(_)));
-            slots
-                .iter()
-                .zip(&worlds[wi])
-                .map(|(s, si)| {
-                    let state = &s.states[*si];
-                    match (&s.kind, &state.response) {
-                        (plan::Kind::Threat(party, _), plan::Response::Leave) => groups.iter().any(|g| matches!(&g.task, groups::GroupTask::Engage { party: ids, .. } if ids.iter().any(|id| party.ids.contains(id)))),
-                        _ => engaged(&state.actor),
-                    }
-                })
-                .collect()
-        } else {
-            vec![false; slots.len()]
-        };
-        let changed = self.apply_plan(tick, kit, picture, slots, &worlds[wi], "plan", &held, commands);
+        let changed = self.apply_plan(tick, kit, picture, slots, &worlds[wi], "plan", commands);
         let pianist = self.pianist.as_mut().expect("pianist mode");
         let played = std::mem::take(&mut pianist.played);
         pianist.write_log(json!({ "t": "plan", "f": tick.frame, "pick": wi + 1, "confidence": confidence, "changed": changed, "played": played }));

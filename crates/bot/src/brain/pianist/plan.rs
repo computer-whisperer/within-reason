@@ -50,8 +50,6 @@ const NEAREST_SPOTS: usize = 2;
 /// "helping the plant" as the constructors' job too (0.41 mean); opened at 0.25 it sent every constructor to the
 /// plant and none to the strip (onepass-norules-hard-6: two extractors all game, 1,000 metal unspent).
 const TOLD_BAR: f64 = 0.25;
-/// A party bigger than this is an attack, not a raider to be met by a detachment (human-1).
-pub(super) const DETACH_PARTY_MAX: usize = 3;
 /// A builder helps another builder's build within this.
 const HELP_REACH: f32 = 900.0;
 /// A build this dear, or any factory, is worth a second builder's hands: the pair world.
@@ -490,16 +488,18 @@ impl Brain {
             // "unless threatened"; bluegecko-3v1-comet-catcher-2, 18:23: the commander on a list with `assist`
             // could not be moved from eleven enemies at its home).
             // 1. Home from enemy soldiers it does not outweigh (a lone scout is not one); the rule's default.
-            let threat = nearest_party.filter(|p| !lone_scout(p) && !self.odds_words(&[unit], p, enemies).starts_with("we outweigh"));
+            let threat = nearest_party.filter(|p| !lone_scout(p));
             // Home is unsafe from any armed party at it, not only the one at the builder: the last commander of
             // bluegecko-3v1-comet-catcher-9 (19:58) stood 630 from home with four Bulls at home, no party within its
             // own alarm reach, and the pick chose "go home" over the player's escape list with home banned.
             let home_party = picture.parties.iter().filter(armed).filter(|p| !lone_scout(p)).filter(|p| home_unsafe(p)).min_by(|a, b| a.at.dist2d(self.home).total_cmp(&b.at.dist2d(self.home)));
-            if unit.pos.dist2d(self.home) > AWAY && !threat.is_some_and(home_unsafe) && home_party.is_none() {
+            if unit.pos.dist2d(self.home) > AWAY {
                 let party = threat;
-                let why = party.map_or(String::new(), |p| format!(" from {} ({}), which it does not outweigh", p.name, p.composition));
-                push("retreat_home", Response::RetreatHome, format!("{name} goes home{why} ({} away){}", distance_words(unit.pos.dist2d(self.home)), self.leaves_words(task, &status.started)), walking_home, false);
-            } else if let Some(party) = threat.or(home_party) {
+                let why = party.map_or(String::new(), |p| format!(" from {} ({}; {})", p.name, p.composition, self.odds_words(&[unit], p, enemies)));
+                let at_home = home_party.map_or(String::new(), |p| format!("; {} ({}) stands at home", p.name, p.composition));
+                push("retreat_home", Response::RetreatHome, format!("{name} goes home{why} ({} away){at_home}{}", distance_words(unit.pos.dist2d(self.home)), self.leaves_words(task, &status.started)), walking_home, false);
+            }
+            if let Some(party) = threat.or(home_party) {
                 // 1b. At home with a party it does not outweigh in the alarm reach: the way home is no way out, so a
                 // step to the nearest place of ours out of the party's reach (onepass-player-2, 12:03-12:40: the
                 // commander helped the plant at home while the block walked in from 671 to 250 and killed it; the
@@ -843,13 +843,6 @@ impl Brain {
                 states.push(State { id: format!("{name}.{key}"), actor: name.clone(), response, words, metal: 0.0, dim, current, pair_only: false });
             };
             let nearest_party = picture.parties.iter().map(|p| (nearest_to_any(p), p)).filter(|(d, _)| *d < ALARM).min_by(|a, b| a.0.total_cmp(&b.0)).map(|(_, p)| p);
-            let odds_against = nearest_party.is_some_and(|p| {
-                let (odds, _) = self.group_odds(&body, p, enemies, &tick.snapshot.allies);
-                !odds.starts_with("we outweigh") && !odds.starts_with("it cannot hit us")
-            });
-            let standing: f32 = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
-            let (_, lost_lately) = group.lost_since(frame - 30 * FRAMES_PER_SECOND, &self.world);
-            let losing = lost_lately >= 0.1 * (lost_lately + standing);
             let walking_back = matches!(&group.task, GroupTask::Move { fight: false, place, .. } if place == "home" || place.starts_with(super::groups::LAST_HOLD));
             // A body on its engagement plan (H-HANDS-ENGAGEMENT-PLAN) takes no rule's default walk: the plan is Jev's
             // pick and a pick still changes it.
@@ -969,7 +962,6 @@ impl Brain {
                 let verdict = self.unseen_shooter_words(&units, &s);
                 let shooter_place = picture.places.iter().find(|p| p.name == format!("shelling_{}", group.name)).or_else(|| picture.places.iter().find(|p| p.name == "shelling"));
                 if let Some(sp) = shooter_place
-                    && verdict.contains("we outweigh")
                     && self.reachable_for(walker, s.at)
                 {
                     push("close_on_shooter", Response::Walk { place: sp.name.clone(), fight: true }, format!("{name} closes on the shooter out of sight as one body, toward `{}` ({}, {}): {verdict}{leave}", sp.name, self.place_words(&picture.places, s.at), walk_words(body.front.dist2d(s.at))), false);
@@ -1009,7 +1001,6 @@ impl Brain {
                 }
                 if !walking_back
                     && group.task.busy()
-                    && (odds_against || losing)
                     && let Some(back) = group.last_hold
                     && back.dist2d(centre) > 300.0
                     && nearest_party.is_none_or(|p| p.at.dist2d(back) > p.at.dist2d(centre) + 300.0)

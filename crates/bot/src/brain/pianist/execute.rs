@@ -45,14 +45,14 @@ impl Brain {
     /// `held` marks the slots this world does not touch: the pass holds every open slot when a question goes out,
     /// and the pick then plays those in full, base state included.
     #[allow(clippy::too_many_arguments)]
-    pub(super) fn apply_plan(&mut self, tick: &Tick, kit: &Kit, picture: &Picture, slots: &[Slot], world: &World, source: &'static str, held: &[bool], commands: &mut Vec<Command>) -> Vec<String> {
+    pub(super) fn apply_plan(&mut self, tick: &Tick, kit: &Kit, picture: &Picture, slots: &[Slot], world: &World, source: &'static str, commands: &mut Vec<Command>) -> Vec<String> {
         let frame = tick.frame;
         let mut done: Vec<(String, String, String)> = Vec::new();
         // A pick answered after its group began to rove is not played on it, nor merges anyone into it (H-MICRO-ROVE).
         let roving: Vec<String> = self.pianist.as_ref().map(|p| p.groups.iter().filter(|g| g.roving).map(|g| format!("group_{}", g.name)).collect()).unwrap_or_default();
-        for (i, (slot, si)) in slots.iter().zip(world).enumerate() {
+        for (slot, si) in slots.iter().zip(world) {
             let state = &slot.states[*si];
-            if state.current || held.get(i).copied().unwrap_or(false) {
+            if state.current {
                 continue;
             }
             if roving.contains(&state.actor) || matches!(&state.response, Response::Join(other) if roving.contains(&format!("group_{other}"))) {
@@ -97,7 +97,6 @@ impl Brain {
             if group.hunt.as_ref().is_some_and(|h| party.ids.contains(&h.quarry)) {
                 let hunters: Vec<UnitId> = group.hunt.as_ref().map(|h| h.hunters.clone()).unwrap_or_default();
                 group.hunt = None;
-                group.declined.push((party.name.clone(), frame));
                 let units: Vec<&OwnUnit> = own.iter().filter(|u| hunters.contains(&u.id)).collect();
                 commands.extend(group.rejoin_orders(&units));
                 done.push((format!("group_{}", group.name), format!("its hunt of {} called off", party.name)));
@@ -106,7 +105,6 @@ impl Brain {
                 let units = group.units(own);
                 commands.extend(group.hold_orders(&units));
                 group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
-                group.declined.push((party.name.clone(), frame));
                 done.push((format!("group_{}", group.name), format!("leaves {} and holds", party.name)));
             }
         }

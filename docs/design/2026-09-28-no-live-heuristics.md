@@ -1,6 +1,6 @@
 # No live heuristics above the micro engine
 
-**Status.** Proposed 2026-09-28 evening, after player-22-commit. The user's ruling: "any higher level heuristics making
+**Status.** Stages 1-3 built 2026-09-28 night (f2cf462 and the stage-3 commit): the standing tool, every default, and the game-keyed gates are gone. Open: the A sites that move down into micro (follow, march, hunt ends) and the decisions listed under 'remove' not yet touched (the nano guard, the resurrection crews, the task drops on clocks, the newcomer walk), and the questions below. Proposed 2026-09-28 evening, after player-22-commit. The user's ruling: "any higher level heuristics making
 live game decisions should be removed completely"; the micro engine stays because it runs faster than a model call
 returns. Nothing is deleted until the cut line below is ruled on.
 

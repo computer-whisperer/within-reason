@@ -83,8 +83,6 @@ pub(crate) struct Picture {
     pub state: Value,
     pub places: Vec<Place>,
     pub parties: Vec<Party>,
-    /// The metal store as a number, for the hands' own rules (a timed assist at an empty store is skipped).
-    pub metal_stored: f32,
 }
 
 pub(crate) fn clock(frame: i32) -> String {
@@ -1501,7 +1499,7 @@ impl Brain {
                 None => "has not spoken yet".to_string(),
             });
         }
-        Picture { state, places, parties, metal_stored: tick.snapshot.metal.current }
+        Picture { state, places, parties }
     }
 
     /// How an actor is named in the picture and the questions.

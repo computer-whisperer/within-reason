@@ -1,6 +1,6 @@
 //! Stage 2 of the micro answer (`docs/design/2026-09-28-engagement-plan.md`, H-HANDS-ENGAGEMENT-PLAN): a body that
-//! comes within `PLAN_REACH` of a position (two or more armed enemy elements within `LINK` of each other) is given
-//! an order of operations. Code finds the position, prices each element with its cover and finds where our reach
+//! has a position in sight or remembered (two or more armed enemy elements within `LINK` of each other) is given
+//! an order of operations; the battlefield words carry the distance. Code finds the position, prices each element with its cover and finds where our reach
 //! reaches it from outside every other reach (the battlefield), enumerates the candidate plans, and Jev's choice
 //! question picks one; the body executes it phase by phase as its task.
 //!
@@ -20,16 +20,10 @@ use super::super::{Brain, FRAMES_PER_SECOND};
 use super::GroupTask;
 use super::picture::{Party, Place};
 
-/// A body whose front comes this close to an element of a position plans the engagement.
-pub(crate) const PLAN_REACH: f32 = 1200.0;
 /// Armed elements this close to each other (their nearest members) are one position.
 const LINK: f32 = 600.0;
 /// A plan is asked again for the same position after this long (not while a phase runs).
 pub(crate) const PLAN_STALE: i32 = 45 * FRAMES_PER_SECOND;
-/// A taken plan, and a decline, hold at least this long before any re-ask (player-18: 69 asks by 35:00, 20 flips
-/// between consecutive asks of one group, group_H asked 8 times in minute 17 between two positions it was between).
-pub(crate) const PLAN_HOLD: i32 = 20 * FRAMES_PER_SECOND;
-pub(crate) const DECLINE_HOLD: i32 = 30 * FRAMES_PER_SECOND;
 /// A party that appears is a change of the position when its metal is above this share of the body's.
 const NEW_PARTY_SHARE: f32 = 0.2;
 /// The stand-off point stands this far inside our shortest reach from the element.
@@ -438,8 +432,6 @@ impl Brain {
 
 /// How long a phase runs at most before the next.
 pub(crate) const PHASE_UNTIL: i32 = 60 * FRAMES_PER_SECOND;
-/// The top plan is taken when Jev puts more than this on it (and more than on the decline).
-pub(crate) const PLAN_BAR: f64 = 0.4;
 /// The question's id in the request.
 pub(crate) const QUESTION: &str = "engagement.plan";
 
@@ -660,9 +652,6 @@ impl Brain {
         }
         let body = group.body(own, None).ok_or_else(|| format!("{name} has nobody standing"))?;
         let core = body.core.clone();
-        if self.scouts_only(&core) {
-            return Err(format!("{name} is a scout body: it fights nothing armed (H-HANDS-SCOUTS-FIGHT-NOTHING-ARMED)"));
-        }
         // The hold an advance arrives in is still an attack (it fights everything there): player-14's group_C held
         // at its station spot_20 when E3's Centurions came into sight at 9:15.
         if task_gate && !group.task.busy() && !matches!(group.task, GroupTask::Hold { committed: true, .. }) {
@@ -671,10 +660,6 @@ impl Brain {
         let metal: f32 = core.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
         let nearest = |p: &Position| core.iter().map(|u| p.distance_to(u.pos)).fold(f32::INFINITY, f32::min);
         let position = Brain::positions(self.armed_elements(parties, enemies), metal).into_iter().min_by(|a, b| nearest(a).total_cmp(&nearest(b))).ok_or_else(|| format!("{name}: no position in sight or remembered"))?;
-        let d = nearest(&position);
-        if d > PLAN_REACH {
-            return Err(format!("{name}: the nearest position ({}) is {d:.0} from its front, beyond {PLAN_REACH:.0}", position.signature()));
-        }
         // A position at a place the player's `never` names is not planned against, as a chase there is not made
         // (groups.rs): player-18's plans took group_B north at the E2 nest from 21:33 with spot_23 under `never`
         // since 21:04 (engagement #18, 675 of ours for 280).
@@ -984,17 +969,13 @@ impl PlanMemory {
     }
 }
 
-/// Why the group's plan is asked again now, or None to keep what stands: a first ask; else, after the hold of what
-/// was taken (`PLAN_HOLD`, `DECLINE_HOLD`) and never while the phase that was running at the last ask still runs, an
+/// Why the group's plan is asked again now, or None to keep what stands: a first ask; else, never while the phase
+/// that was running at the last ask still runs, an
 /// element of the remembered position dead (a party all of whose units are dead, a building gone from memory), a new
 /// static, a new party (none of its units in the remembered position) above a fifth of the body's metal, or
 /// `PLAN_STALE`. A party renamed, or a member more or less, is no change.
 pub(crate) fn ask_reason(memory: Option<&PlanMemory>, position: &Position, body_metal: f32, running_phase: Option<usize>, frame: i32, dead: &dyn Fn(UnitId, bool) -> bool) -> Option<String> {
     let Some(m) = memory else { return Some("first".into()) };
-    let hold = if m.taken.as_deref() == Some("decline") { DECLINE_HOLD } else { PLAN_HOLD };
-    if frame - m.asked < hold {
-        return None;
-    }
     if running_phase.is_some() && running_phase == m.phase {
         return None;
     }
@@ -1062,15 +1043,12 @@ pub(crate) fn request(group: &str, battlefield: Value, candidates: &[Candidate],
     jev::Request { state, questions: BTreeMap::from([(QUESTION.to_string(), question)]) }
 }
 
-/// The plan taken from Jev's answer: the top option when its probability is above `PLAN_BAR` and above the
-/// decline's, else the decline. The index and the probabilities.
+/// The plan taken from Jev's answer: the option it put the most on (the decline is one of them). The index and the
+/// probabilities.
 pub(crate) fn choose(answers: &BTreeMap<String, jev::Answer>, candidates: &[Candidate]) -> Option<(usize, BTreeMap<String, f64>)> {
     let jev::Answer::Choice { probabilities, .. } = answers.get(QUESTION)? else { return None };
-    let decline = candidates.iter().position(|c| c.key == "decline")?;
-    let (top, p) = candidates.iter().enumerate().map(|(i, c)| (i, probabilities.get(c.key).copied().unwrap_or(0.0))).max_by(|a, b| a.1.total_cmp(&b.1))?;
-    let p_decline = probabilities.get("decline").copied().unwrap_or(0.0);
-    let taken = if top != decline && (p <= PLAN_BAR || p <= p_decline) { decline } else { top };
-    Some((taken, probabilities.clone()))
+    let (top, _) = candidates.iter().enumerate().map(|(i, c)| (i, probabilities.get(c.key).copied().unwrap_or(0.0))).max_by(|a, b| a.1.total_cmp(&b.1))?;
+    Some((top, probabilities.clone()))
 }
 
 #[cfg(test)]
@@ -1227,16 +1205,16 @@ pub(crate) mod tests {
         assert!(brain.engagement_of(&arrived, &ours, &parties, &enemies, &[], true).is_ok(), "an advance's arrival hold is planned");
     }
 
-    /// The taken plan: the top above `PLAN_BAR` and above the decline, else the decline.
+    /// The taken plan: the option Jev put the most on, the decline one of them.
     #[test]
-    fn the_top_plan_is_taken_above_the_bar_else_the_decline() {
+    fn the_top_plan_is_what_jev_put_the_most_on() {
         let (brain, ours, enemies, parties) = e3();
         let group = e3_group(&ours, GroupTask::Move { to: at(4500.0, 1400.0), place: "spot_20".into(), fight: true, since: 0 });
         let (_, candidates) = brain.engagement_of(&group, &ours, &parties, &enemies, &[], true).expect("planned");
         let answer = |pairs: &[(&str, f64)]| BTreeMap::from([(QUESTION.to_string(), jev::Answer::Choice { choice: pairs[0].0.to_string(), probabilities: pairs.iter().map(|(k, p)| (k.to_string(), *p)).collect(), confidence: 0.5 })]);
         let key = |a: &BTreeMap<String, jev::Answer>| candidates[choose(a, &candidates).expect("an answer").0].key;
         assert_eq!(key(&answer(&[("screen_first", 0.74), ("decline", 0.04)])), "screen_first");
-        assert_eq!(key(&answer(&[("screen_first", 0.38), ("nearest_first", 0.33), ("decline", 0.29)])), "decline", "under the bar");
+        assert_eq!(key(&answer(&[("screen_first", 0.38), ("nearest_first", 0.33), ("decline", 0.29)])), "screen_first", "no bar: the top option");
         assert_eq!(key(&answer(&[("decline", 0.55), ("screen_first", 0.45)])), "decline");
     }
 
@@ -1284,11 +1262,11 @@ pub(crate) mod tests {
         assert!(matches!(group.task, GroupTask::Hold { .. }));
     }
 
-    /// The hysteresis: a first ask; nothing within the hold (20 s a plan, 30 s a decline) or while the phase asked
+    /// The re-ask: a first ask; nothing while the phase asked
     /// under still runs; a renamed party or a member more is no change; a death, a new static or a party above a fifth
     /// of the body's metal is; 45 s is stale.
     #[test]
-    fn a_plan_is_asked_again_only_on_a_material_change_after_its_hold() {
+    fn a_plan_is_asked_again_only_on_a_material_change() {
         let (brain, ours, enemies, parties) = e3();
         let group = e3_group(&ours, GroupTask::Move { to: at(4500.0, 1400.0), place: "spot_20".into(), fight: true, since: 0 });
         let (bf, _) = brain.engagement_of(&group, &ours, &parties, &enemies, &[], true).expect("planned");
@@ -1299,7 +1277,6 @@ pub(crate) mod tests {
         memory.taken = Some("screen_first".into());
         memory.phase = Some(0);
         let s = FRAMES_PER_SECOND;
-        assert!(ask_reason(Some(&memory), &bf.position, metal, Some(0), 10 * s, &alive).is_none(), "within the hold");
         assert!(ask_reason(Some(&memory), &bf.position, metal, Some(0), 60 * s, &alive).is_none(), "the phase asked under still runs");
         assert!(ask_reason(Some(&memory), &bf.position, metal, Some(1), 25 * s, &alive).is_none(), "nothing changed");
         // The party renamed and one Centurion more: no change.
@@ -1320,9 +1297,7 @@ pub(crate) mod tests {
         assert!(ask_reason(Some(&memory), &bigger, metal, None, 25 * s, &alive).is_none(), "a small party is no change");
         bigger.elements.last_mut().unwrap().metal = 810.0;
         assert!(ask_reason(Some(&memory), &bigger, metal, None, 25 * s, &alive).is_some_and(|r| r.starts_with("new party party_50")));
-        // A decline holds 30 s; stale at 45 s.
-        memory.taken = Some("decline".into());
-        assert!(ask_reason(Some(&memory), &bigger, metal, None, 25 * s, &alive).is_none(), "a decline holds 30 s");
+        // Stale at 45 s.
         assert!(ask_reason(Some(&memory), &bf.position, metal, None, 46 * s, &alive).is_some_and(|r| r.starts_with("stale")));
     }
 

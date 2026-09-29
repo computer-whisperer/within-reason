@@ -13,17 +13,13 @@ use serde_json::json;
 
 use super::groups::GroupTask;
 use super::picture::{Party, Picture, Place};
-use super::plan::{ALARM, DETACH_PARTY_MAX, Kind, Response, Slot, State, under};
+use super::plan::{ALARM, Kind, Response, Slot, State, under};
 /// The raider states reach this far from the group (the detectors' reach).
 pub(super) const RAIDER_REACH: f32 = 1200.0;
 use super::Brain;
 
-/// A party this large is met whole, never hunted by a detachment.
-const HUNT_PARTY_MAX: usize = 2 * DETACH_PARTY_MAX;
 /// Groups offered against one party at most, nearest first: the question count stays bounded on a map of many groups.
 const GROUPS_PER_PARTY: usize = 3;
-/// A body whose armed metal is more than this share scouts is a scout body.
-const SCOUT_SHARE: f32 = 0.5;
 /// The speed an unidentified contact is taken to have when a hunt is sized against it (a Pawn's).
 const UNIDENTIFIED_SPEED: f32 = 87.0;
 
@@ -119,17 +115,6 @@ impl Brain {
             for (distance, body, group) in groups.into_iter().take(GROUPS_PER_PARTY) {
                 let name = format!("group_{}", group.name);
                 let units = group.units(own);
-                // A body of scouts (Rovers, Ticks: 105 health, 35 a second) is never sent at anything armed: its
-                // fights are the rove lane's, unguarded things only. The pass offered "attack party_7 (2 Pawns, a
-                // Lazarus) with the whole group" to thirteen Rovers at his base and the pick took it (player-16
-                // 4:06, five lost for nothing); "attack party_2 (2 armpw) with the whole group" three times at
-                // player-17 4:53-5:28 (eleven lost for nothing under a light turret, the pick at 0.36).
-                let scouts_only = self.scouts_only(&units);
-                let party_armed = enemies.iter().any(|e| party.ids.contains(&e.id) && e.def.and_then(|d| self.world.def(d)).is_some_and(|d| d.weapon_count > 0));
-                let scouts_vs_armed = scouts_only && party_armed;
-                // A scout nibbling the tail is not self-defence: with `raiders_lone: ignore` and `no_chase` set for
-                // the launch, a Flea on group_B's tail opened "2 of group_B hunt party_32" and the group left its
-                // route (player-18 11:06-11:20: "group_B ignored the prose route (kept reacting to his Rover)").
                 // A party where this group's class cannot go is not a fight it can be sent to (9b.7): the whole
                 // group_A_t3 was sent at a floating radar in deep water, "938 away, 13 s of walking" (Cape Violet
                 // 11:17).
@@ -137,7 +122,7 @@ impl Brain {
                     states.push(state(format!("{}.unreachable_{name}", party.name), name.clone(), Response::Keep, format!("{name} cannot reach {}: it stands where this group's class cannot go (water or a cliff); nothing of the group answers it from where it is", party.name), 0.0, false));
                     continue;
                 }
-                let (odds, odds_words) = self.group_odds(&body, party, enemies, &tick.snapshot.allies);
+                let (_, odds_words) = self.group_odds(&body, party, enemies, &tick.snapshot.allies);
                 let tail = if body.strung_out() { format!(", its tail {:.0} behind its front", body.length) } else { String::new() };
                 // `no_chase`: the whole group goes only after a party within reach of its station (else its last
                 // hold, else home); the course slot's hold ends an engagement the quarry carries beyond it.
@@ -146,7 +131,6 @@ impl Brain {
                 let outrun = String::new();
                 let standing: f32 = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
                 let hunting_it = group.hunt.as_ref().is_some_and(|h| party.ids.contains(&h.quarry));
-                let declined = group.declined.iter().any(|(p, f)| *p == party.name && tick.frame - f < super::groups::DECLINE_FRAMES);
                 let engaging_it = matches!(&group.task, GroupTask::Engage { party: ids, .. } if ids.iter().any(|id| party.ids.contains(id)));
                 let leave = match &group.task {
                     GroupTask::Hold { .. } => format!(", leaving {} unguarded", picture.state["actors"][&name]["at"].as_str().unwrap_or("where it stands")),
@@ -160,10 +144,7 @@ impl Brain {
                 // sent the commander on a 31 s walk instead, onepass-player-4 5:59; the user: the Blitz would have
                 // had the Tick out of our base sooner, and that time is what to present); the fewest that outweigh
                 // it. The words say in how many seconds the hunters drive it off and whether they can catch it.
-                if scouts_vs_armed {
-                    states.push(state(format!("{}.scouts_{name}", party.name), name.clone(), Response::Keep, format!("{name} is scouts (105 health): it fights nothing armed, and {} is armed; the rove lane (`lane {name}: rove`) has each of them kill his unguarded constructors and extractors and step out of every reach", party.name), 0.0, false));
-                }
-                if party.ids.len() <= HUNT_PARTY_MAX && !scouts_vs_armed && group.domain != crate::world::Domain::Air && (!declined || hunting_it) {
+                if group.domain != crate::world::Domain::Air {
                     let armed = |u: &&OwnUnit| self.world.def(u.def).is_some_and(|d| d.weapon_count > 0 && d.speed > 0.0);
                     let mut fast: Vec<&OwnUnit> = units.iter().copied().filter(armed).filter(|u| self.world.def(u.def).is_some_and(|d| d.speed > quarry_speed)).collect();
                     if fast.is_empty() {
@@ -171,8 +152,11 @@ impl Brain {
                         fast = units.iter().copied().filter(armed).filter(|u| self.world.def(u.def).is_some_and(|d| d.speed >= top - 1.0)).collect();
                     }
                     fast.sort_by(|a, b| a.pos.dist2d(party.at).total_cmp(&b.pos.dist2d(party.at)));
-                    if let Some(k) = self.hunters_for(&fast, party, enemies) {
-                        let k = k.min(fast.len());
+                    if !fast.is_empty() {
+                        let (k, weigh) = match self.hunters_for(&fast, party, enemies) {
+                            Some(k) => (k.min(fast.len()), ""),
+                            None => (fast.len().min(2), ", which do not outweigh it"),
+                        };
                         let hunters: Vec<UnitId> = fast[..k].iter().map(|u| u.id).collect();
                         // A hunt of this party by this group that ended without a kill says so (10.5).
                         let failed = group.hunts_failed.iter().rev().find(|(p, _, _)| *p == party.name).map(|(_, f, why)| format!("; its last hunt of it ended {} s ago: {why}", (tick.frame - f) / super::super::FRAMES_PER_SECOND)).unwrap_or_default();
@@ -190,14 +174,14 @@ impl Brain {
                             format!("{}.hunt_{name}", party.name),
                             name.clone(),
                             Response::Hunt(hunters),
-                            format!("{who} of {name} hunt {} ({}{}{killing}){drive}{catching}{rest}{failed}", party.name, party.composition, under(party)),
+                            format!("{who} of {name} hunt {} ({}{}{killing}){weigh}{drive}{catching}{rest}{failed}", party.name, party.composition, under(party)),
                             fast[..k].iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum(),
                             hunting_it,
                         ));
                     }
                 }
                 // The whole group.
-                if odds != "it outweighs us" && !odds.starts_with("we cannot hit") && !units.is_empty() && !scouts_vs_armed && !planned {
+                if !units.is_empty() && !planned {
                     let walk = if group_speed.is_finite() && group_speed > 0.0 { format!(", {:.0} s of walking", distance / group_speed) } else { String::new() };
                     // A radar contact is priced as a Pawn (`combat.rs`): at minute 14 a column of 23 blips said 2,530
                     // metal against our 4,820 and cost ten Blitzes (onepass-player-3), so the words call it a floor.
@@ -227,14 +211,14 @@ impl Brain {
                     ));
                 }
                 // The way back.
-                if odds == "it outweighs us" && distance < ALARM {
+                if distance < ALARM {
                     let to = "home".to_string();
                     let current = matches!(&group.task, GroupTask::Move { place, fight: false, .. } if *place == to);
                     states.push(state(
                         format!("{}.back_{name}", party.name),
                         name.clone(),
                         Response::Back(to.clone()),
-                        format!("{name} falls back to {to} from {} ({}{}), which outweighs it ({odds_words}), {distance:.0} from its front{tail}", party.name, party.composition, under(party)),
+                        format!("{name} falls back to {to} from {} ({}{}; {odds_words}), {distance:.0} from its front{tail}", party.name, party.composition, under(party)),
                         0.0,
                         current,
                     ));
@@ -271,9 +255,6 @@ impl Brain {
                     ));
                 }
                 let odds = self.odds_words(&[unit], party, enemies);
-                if !odds.starts_with("we outweigh") {
-                    continue;
-                }
                 let name = self.actor_name(unit.id);
                 let current = matches!(pianist.tasks.get(&unit.id), Some(super::Task::Walk { place, .. }) if *place == party.name);
                 let speed = self.world.def(unit.def).map_or(0.0, |d| d.speed);
@@ -298,17 +279,6 @@ impl Brain {
             out.push(Slot { name: party.name.clone(), kind: Kind::Threat(party.clone(), place), states, queue_ahead: false, idle: false, stop_cost: None, on_route: false, quiet: false });
         }
         out
-    }
-
-    /// Whether scouts (the glossary's class: Rovers, Tumbleweeds, Ticks) are more than half of these units' armed
-    /// metal (or nothing is armed): a body that fights nothing armed (H-HANDS-SCOUTS-FIGHT-NOTHING-ARMED). By every
-    /// armed member, the check missed player-17's body, fourteen Rovers and one Blitz at 4:53 and seven and the Blitz
-    /// at 5:03 (the engagement plan's replay).
-    pub(super) fn scouts_only(&self, units: &[&OwnUnit]) -> bool {
-        let armed: Vec<&bot_protocol::UnitDefInfo> = units.iter().filter_map(|u| self.world.def(u.def)).filter(|d| d.weapon_count > 0).collect();
-        let scouts: f32 = armed.iter().filter(|d| super::glossary::entry(&d.name).is_some_and(|g| g.class.contains("scout"))).map(|d| d.metal_cost).sum();
-        let all: f32 = armed.iter().map(|d| d.metal_cost).sum();
-        all <= 0.0 || scouts > SCOUT_SHARE * all
     }
 
     /// The fewest of the fast units (nearest first) that outweigh the party by the combat table, or None when
