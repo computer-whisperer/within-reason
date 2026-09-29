@@ -19,7 +19,6 @@ use super::super::routes::Walker;
 use super::super::{Brain, FRAMES_PER_SECOND};
 use super::GroupTask;
 use super::picture::{Party, Place};
-use super::standing::NEVER_REACH;
 
 /// A body whose front comes this close to an element of a position plans the engagement.
 pub(crate) const PLAN_REACH: f32 = 1200.0;
@@ -664,9 +663,6 @@ impl Brain {
         if self.scouts_only(&core) {
             return Err(format!("{name} is a scout body: it fights nothing armed (H-HANDS-SCOUTS-FIGHT-NOTHING-ARMED)"));
         }
-        if self.pianist.as_ref().is_some_and(|p| p.standing.rules_for(&name).get("plan").is_some_and(|v| v == "no")) {
-            return Err(format!("{name}: the player's standing `plan: no`"));
-        }
         // The hold an advance arrives in is still an attack (it fights everything there): player-14's group_C held
         // at its station spot_20 when E3's Centurions came into sight at 9:15.
         if task_gate && !group.task.busy() && !matches!(group.task, GroupTask::Hold { committed: true, .. }) {
@@ -682,12 +678,6 @@ impl Brain {
         // A position at a place the player's `never` names is not planned against, as a chase there is not made
         // (groups.rs): player-18's plans took group_B north at the E2 nest from 21:33 with spot_23 under `never`
         // since 21:04 (engagement #18, 675 of ours for 280).
-        if let Some(pianist) = self.pianist.as_ref() {
-            let never = pianist.standing.never_places(&name);
-            if let Some(place) = places.iter().find(|pl| never.contains(&pl.name) && position.elements.iter().any(|e| e.distance_to(pl.at) < NEVER_REACH)) {
-                return Err(format!("{name}: the position ({}) is at {}, where it never goes", position.signature(), place.name));
-            }
-        }
         let own_units: Vec<OwnUnit> = own.to_vec();
         let walker = self.group_walker(group, &own_units);
         let ours = self.ours_of(&name, &core, position.centre(), walker).ok_or_else(|| format!("{name} has nobody standing"))?;
@@ -888,11 +878,9 @@ impl Brain {
             let Some(reason) = ask_reason(pianist.plan_memory.get(&name), &bf.position, bf.ours.metal, running, frame, &dead) else { continue };
             let mut memory = PlanMemory::of(&bf.position, frame);
             memory.phase = running;
-            let rules = pianist.standing.rules_for(&name);
-            let standing = rules.iter().map(|(k, v)| format!("{k} {v}")).collect::<Vec<_>>().join("; ");
             let paragraph = super::diet::paragraph(instructions, &name).unwrap_or_default();
             let words = self.battlefield_words(&bf, &picture.places);
-            let request = request(&name, words, &candidates, paragraph, &standing, true);
+            let request = request(&name, words, &candidates, paragraph, true);
             asks.push((name, signature, reason, memory, candidates, request));
         }
         for (name, signature, reason, memory, candidates, request) in asks {
@@ -1061,7 +1049,7 @@ pub(crate) fn spawn_plan_worker(client: jev::Client) -> PlanWorker {
 
 /// The plan question: a Choice over the candidates, the battlefield, the player's words for the group and its
 /// standing orders in the state; the examples block in the instructions unless `examples` is false.
-pub(crate) fn request(group: &str, battlefield: Value, candidates: &[Candidate], instructions: &str, standing: &str, examples: bool) -> jev::Request {
+pub(crate) fn request(group: &str, battlefield: Value, candidates: &[Candidate], instructions: &str, examples: bool) -> jev::Request {
     let text = format!(
         "Given `battlefield` (our body {group}; his armed elements at this position; what covers each; where our reach reaches each from outside every other element's reach; the odds, with the cover priced in) and the player's `instructions` for {group}: which order of operations does {group} take against this position? Each option is a plan: its phases in order, where each is fought from, what else reaches us there, and the odds of each phase as the body stands now. decline falls back and leaves the position.{}",
         if examples { format!(" {EXAMPLES}") } else { String::new() }
@@ -1069,7 +1057,6 @@ pub(crate) fn request(group: &str, battlefield: Value, candidates: &[Candidate],
     let state = json!({
         "battlefield": battlefield,
         "instructions": if instructions.is_empty() { "(the player wrote nothing for this group)" } else { instructions },
-        "standing": if standing.is_empty() { "(none)" } else { standing },
     });
     let question = jev::Question::choice(text, candidates.iter().map(|c| (c.key, json!(c.words))));
     jev::Request { state, questions: BTreeMap::from([(QUESTION.to_string(), question)]) }
@@ -1223,7 +1210,7 @@ pub(crate) mod tests {
     /// not planned, the hold an advance arrived in is.
     #[test]
     fn the_e3_body_is_offered_the_screen_first_and_the_standing_plan_no_declines_it() {
-        let (mut brain, ours, enemies, parties) = e3();
+        let (brain, ours, enemies, parties) = e3();
         let advancing = GroupTask::Move { to: at(4500.0, 1400.0), place: "spot_20".into(), fight: true, since: 0 };
         let group = e3_group(&ours, advancing.clone());
         let (bf, candidates) = brain.engagement_of(&group, &ours, &parties, &enemies, &[], true).expect("planned");
@@ -1238,24 +1225,6 @@ pub(crate) mod tests {
         assert!(brain.engagement_of(&holding, &ours, &parties, &enemies, &[], true).is_err());
         let arrived = e3_group(&ours, GroupTask::Hold { since: 0, committed: true });
         assert!(brain.engagement_of(&arrived, &ours, &parties, &enemies, &[], true).is_ok(), "an advance's arrival hold is planned");
-        let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
-        pianist.standing.set_tool("group_C", &json!({ "plan": "no" }), &[], &[]).expect("plan: no is a rule");
-        brain.pianist = Some(pianist);
-        let err = brain.engagement_of(&group, &ours, &parties, &enemies, &[], true).expect_err("declined by the player");
-        assert!(err.contains("plan: no"), "{err}");
-        // A place under `never` within reach of an element of the position: not planned (player-18 21:33, the E2
-        // nest with spot_23 under `never`); a `never` place elsewhere leaves the plan.
-        let places = vec![Place { name: "spot_23".into(), at: at(4600.0, 1500.0), spot: Some(23) }, Place { name: "spot_9".into(), at: at(1000.0, 1000.0), spot: Some(9) }];
-        let names: Vec<String> = places.iter().map(|p| p.name.clone()).collect();
-        let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
-        pianist.standing.set_tool("group_C", &json!({ "never": "spot_23" }), &names, &[]).expect("never is a rule");
-        brain.pianist = Some(pianist);
-        let err = brain.engagement_of(&group, &ours, &parties, &enemies, &places, true).expect_err("a never place");
-        assert!(err.contains("spot_23") && err.contains("never goes"), "{err}");
-        let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
-        pianist.standing.set_tool("group_C", &json!({ "never": "spot_9" }), &names, &[]).expect("never is a rule");
-        brain.pianist = Some(pianist);
-        assert!(brain.engagement_of(&group, &ours, &parties, &enemies, &places, true).is_ok(), "a never place elsewhere");
     }
 
     /// The taken plan: the top above `PLAN_BAR` and above the decline, else the decline.

@@ -268,8 +268,7 @@ are `home_t2` and so on, while `home` in an actor's paragraph is always that act
 and factories are unique by number as ever, and `spot_N` and your marks are the same for every seat. A list, a
 `produce` entry, a standing paragraph or a removal goes to the seat that owns the name; a paragraph headed
 `constructors:` or `commander:` applies to every seat's constructors or commanders, a `commander_t2:` paragraph to
-that seat's over it. An enemy party has one name for the whole side (`party_N`, the same in every seat's picture and
-in `standing`'s `engage_party`). Each seat's picture carries the other seats' groups under `allies` (theirs to order,
+that seat's over it. An enemy party has one name for the whole side (`party_N`, the same in every seat's picture). Each seat's picture carries the other seats' groups under `allies` (theirs to order,
 but their odds count with ours when they stand within reach of the same party), and every seat has its own economy
 and its own map picture: a `_t2` actor sent to `passage_1_t2` goes to its own seat's first passage. Write the opening
 for each seat's commander by its tagged name, and give each seat its own spots, written in full (`spot_10, spot_5`;
@@ -299,8 +298,8 @@ group's post. A scout's sentence that held under the enemy commander's eyes: "it
 catch it and otherwise keeps to its route; being seen is its job". The enemy section lists his buildings by place with their guards, the parties that left sight with where and
 when, his biggest party known, and the first of each tier-2 or air type of his the moment it is seen. The commander
 has a D-gun state against any party whose nearest unit is inside its reach. Every constructor's extractor menu holds
-the nearest free spots beside the ones you name. A `standing` set applies what checks and names what it refused.
-Nothing of this plays without a pick or your rule: say in the packet what you want done and the hands weigh it.
+the nearest free spots beside the ones you name.
+Nothing of this plays without a pick: say in the packet what you want done and the hands weigh it.
 
 **Scouting and raiding with fast units: `rove` (2026-09-27).** `lane` with `{"group_R": "rove"}` hands a group of
 fast units (Rovers, Ticks, scout cars; name a plant's output into it with `produce`) to code that runs each of them ten

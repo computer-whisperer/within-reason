@@ -20,7 +20,6 @@ mod transfer;
 mod diet;
 mod plan;
 mod schedule;
-pub(crate) mod standing;
 mod threats;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
@@ -41,7 +40,6 @@ use super::{Brain, FRAMES_PER_SECOND};
 pub(super) use groups::{Group, GroupTask};
 pub(super) use picture::{Party, Place};
 pub(crate) use picture::clock;
-pub(crate) use standing::Standing;
 
 /// Game seconds between calls (`WITHIN_REASON_JEV_INTERVAL` overrides).
 const INTERVAL_SECONDS: f32 = 1.0;
@@ -91,9 +89,6 @@ struct Stats {
 pub struct Pianist {
     /// Jev, when `--pianist`; without it only the lists and the rules' defaults play.
     client: Option<jev::Client>,
-    /// Standing orders (`standing.rs`, `docs/design/2026-09-25-standing-orders.md`): the `standing` tool's rules;
-    /// the pass's pruning and defaults.
-    pub(super) standing: Standing,
     /// A fixed packet from a file (`WITHIN_REASON_PACKET`, the arena's `--packet`): what the hands play from when no
     /// player writes one, the arena instrument of the micro A/Bs (`docs/design/2026-09-25-one-decider.md`, §2).
     pub(super) packet: Option<String>,
@@ -123,10 +118,6 @@ pub struct Pianist {
     pub(super) list_steps: HashMap<UnitId, (String, i32)>,
     /// The list step a queued task came from (`queued`), moved to `list_steps` when the task is promoted.
     pub(super) queued_steps: HashMap<UnitId, String>,
-    /// Builders the pass diverted from their list this last while (an attack, a retreat): the list waits
-    /// `LIST_DIVERT_HOLD` before its step is ordered again, instead of the step and the diversion alternating every
-    /// second (player-11 3:12-3:26: `attack party_2` and `help plant build` in turn for 14 s).
-    pub(super) diverted: HashMap<UnitId, i32>,
     /// Units a lab has been told to build and not yet started, oldest first.
     pub(super) lab_queue: HashMap<UnitId, Vec<(UnitDefId, i32)>>,
     pub(super) groups: Vec<Group>,
@@ -161,11 +152,6 @@ pub struct Pianist {
     pub(super) packet_frame: i32,
     /// Our units hit since the last call, with the frame: the pass's under-fire set, across the ticks between calls.
     pub(super) hits: HashMap<UnitId, i32>,
-    /// When each builder last went home from an enemy (any source): its building defaults hold off for
-    /// `RETREAT_HOLD` after (standing-2: sent home and back to the same extractor the next second, 11 times).
-    pub(super) retreated: HashMap<UnitId, i32>,
-    /// When each actor's course was last set by a pick: a rule default does not displace it for `PICK_HOLD`.
-    pub(super) picked: HashMap<String, i32>,
     /// (builder, party name) pairs with the party inside the builder's alarm reach: a party's arrival is an event once.
     pub(super) alarmed: HashSet<(UnitId, String)>,
     /// The token diet's level and knobs (H-HANDS-DIET).
@@ -380,7 +366,6 @@ impl Pianist {
         let told = std::env::var("WITHIN_REASON_TOLD").ok().is_some_and(|v| matches!(v.trim(), "1" | "on" | "yes"));
         Ok(Pianist {
             client,
-            standing: Standing::default(),
             packet,
             worker,
             pending: None,
@@ -409,8 +394,6 @@ impl Pianist {
             packet_frame: 0,
             diet: diet::Diet::from_env(),
             hits: HashMap::new(),
-            retreated: HashMap::new(),
-            picked: HashMap::new(),
             alarmed: HashSet::new(),
             places_seen: BTreeSet::new(),
             packet_seen: String::new(),
@@ -425,7 +408,6 @@ impl Pianist {
             ordered: HashMap::new(),
             list_steps: HashMap::new(),
             queued_steps: HashMap::new(),
-            diverted: HashMap::new(),
             done: Vec::new(),
             log,
             logged_instructions: String::new(),
@@ -552,7 +534,6 @@ impl Brain {
         }
         self.pianist.as_mut().expect("pianist mode").last_ask_frame = tick.frame;
         self.take_lists(tick, kit, commands);
-        self.apply_standing_changes(tick);
         let picture = self.picture(tick, kit);
         {
             // A changed packet is asked afresh: its frame is part of the signature.
@@ -704,7 +685,6 @@ impl Brain {
             }
         }
         let mut base: plan::World = slots.iter().map(plan::Slot::base).collect();
-        plan::hold_current(&slots, &mut base);
         plan::resolve(&slots, &mut base);
         let open: Vec<&str> = slots.iter().filter(|s| s.open()).map(|s| s.name.as_str()).collect();
         line["open"] = json!(open);
@@ -734,17 +714,6 @@ impl Brain {
             let changed = pianist.sig.as_ref().is_none_or(|(s, f)| *s != sig || frame - *f >= plan::RE_ASK) || (!events.is_empty() && since_ask >= EVENT_GAP) || urgent;
             (events, changed)
         };
-        // The base world goes in force now only where there is nothing to decide. A slot with a real alternative
-        // waits for the pick when a question goes out this second (the user, 2026-09-27: "I never meant for things
-        // to fire before jev calls it"; onepass-player-8 7:13-7:38, the rule's whole-group attack fired the second
-        // the party appeared, the pick's hunt stacked on it, and the group flipped between the two). Without Jev, or
-        // when the picture is as at the last ask, the base is the plan and stands.
-        let asking = jev && !questions.is_empty() && changed;
-        let held: Vec<bool> = slots.iter().map(|s| asking && s.open()).collect();
-        let started = self.apply_plan(tick, kit, picture, &slots, &base, "rule", &held, commands);
-        if !started.is_empty() {
-            line["plan"] = json!(started);
-        }
         let pianist = self.pianist.as_mut().expect("pianist mode");
         if questions.is_empty() || !jev {
             line["played"] = json!(std::mem::take(&mut pianist.played));
@@ -913,88 +882,6 @@ impl Brain {
         self.journal.note_from("plan", tick.frame, "worlds", json!({ "worlds": worlds.len() }), json!({ "pick": wi + 1, "confidence": confidence, "changed": changed }));
     }
 
-    /// The player's `standing` calls since the last pass: orders set or cleared, checked against the picture.
-    fn apply_standing_changes(&mut self, tick: &Tick) {
-        let frame = tick.frame;
-        let Some(shared) = &self.strategist else { return };
-        let team = self.world.hello.team;
-        // This seat's slice of the list, then the entries every seat has applied are dropped.
-        let changes: Vec<crate::strategist::shared::StandingChange> = {
-            let mut all = shared.standing.lock().unwrap();
-            let mut seen = shared.standing_seen.lock().unwrap();
-            let from = seen.get(&team).copied().unwrap_or(0).min(all.len());
-            let mine: Vec<_> = all[from..].to_vec();
-            seen.insert(team, all.len());
-            if seen.len() >= self.seats_of_ours() {
-                let done = seen.values().copied().min().unwrap_or(0).min(all.len());
-                if done > 0 {
-                    all.drain(..done);
-                    for c in seen.values_mut() {
-                        *c -= done.min(*c);
-                    }
-                }
-            }
-            mine
-        };
-        if changes.is_empty() {
-            return;
-        }
-        // Which actors of the change are this seat's: its commander (or a plain `commander` for every seat's),
-        // `constructors`, its own constructors and its own groups; another seat's are left to that seat.
-        let own_units = &tick.snapshot.own_units;
-        let commander = self.commander_handle();
-        let group_names: Vec<String> = self.pianist.as_ref().expect("pianist mode").groups.iter().map(|g| format!("group_{}", g.name)).collect();
-        let mine = |actor: &str| -> bool {
-            actor == commander
-                || actor == "commander"
-                || actor == "constructors"
-                || (actor.starts_with("group_") && (self.seat_tag().is_empty() || group_names.iter().any(|g| g == actor)))
-                || (!actor.starts_with("group_") && !actor.starts_with("commander") && self.unit_by_handle(actor, own_units).is_some())
-        };
-        let changes: Vec<crate::strategist::shared::StandingChange> = changes
-            .into_iter()
-            .filter_map(|change| match change {
-                crate::strategist::shared::StandingChange::Set(map) => {
-                    let map: BTreeMap<String, serde_json::Value> = map.into_iter().filter(|(a, _)| mine(a)).collect();
-                    (!map.is_empty()).then_some(crate::strategist::shared::StandingChange::Set(map))
-                }
-                crate::strategist::shared::StandingChange::Clear(Some(actors)) => {
-                    let actors: Vec<String> = actors.into_iter().filter(|a| mine(a)).collect();
-                    (!actors.is_empty()).then_some(crate::strategist::shared::StandingChange::Clear(Some(actors)))
-                }
-                all => Some(all),
-            })
-            .collect();
-        if changes.is_empty() {
-            return;
-        }
-        // The marks too: a mark and a rule naming it come in one turn, before the picture has the mark (worlds-1,
-        // 14:15: "marks refused in standing"); and every spot our bots can walk to, listed in the picture or not.
-        let mut places: Vec<String> = self.pianist.as_ref().expect("pianist mode").places.iter().map(|p| p.name.clone()).collect();
-        places.extend(shared.marks.lock().unwrap().keys().cloned());
-        places.extend(self.world.hello.metal_spots.iter().enumerate().filter(|(_, s)| self.reachable_on_foot(**s)).map(|(i, _)| format!("spot_{i}")));
-        let pianist = self.pianist.as_mut().expect("pianist mode");
-        let parties: Vec<String> = pianist.parties.iter().map(|p| p.name.clone()).collect();
-        for change in changes {
-            let said = match change {
-                crate::strategist::shared::StandingChange::Set(map) => {
-                    let mut said = Vec::new();
-                    for (actor, rules) in &map {
-                        said.push(match pianist.standing.set_tool(actor, rules, &places, &parties) {
-                            Ok((n, refused)) if refused.is_empty() => format!("{actor}: {n} rules set"),
-                            Ok((n, refused)) => format!("{actor}: {n} rules set; refused: {}", refused.join("; ")),
-                            Err(e) => format!("refused: {e}"),
-                        });
-                    }
-                    said.join("; ")
-                }
-                crate::strategist::shared::StandingChange::Clear(actors) => format!("{} tool orders cleared", pianist.standing.clear_tool(actors.as_deref())),
-            };
-            pianist.done.push(format!("{} standing: {said}", picture::clock(frame)));
-            pianist.events.insert("rules".to_string());
-        }
-    }
-
     /// The groups as the log sees them: name, members, centre, task.
     fn groups_json(&self, own: &[bot_protocol::OwnUnit]) -> Vec<serde_json::Value> {
         let Some(pianist) = self.pianist.as_ref() else { return Vec::new() };
@@ -1133,7 +1020,6 @@ impl Brain {
         let mut done: Vec<String> = Vec::new();
         let mut refused: Vec<(UnitId, UnitDefId, Vec3)> = Vec::new();
         let allowances: Vec<(UnitId, String, Option<Allowance>)> = own.iter().filter(|u| !u.being_built && (self.world.is_mobile_builder(u.def) || self.world.is_factory_def(u.def))).map(|u| (u.id, self.actor_name(u.id), self.allowed_units(&self.actor_name(u.id)))).collect();
-        let types: Vec<(String, BTreeSet<String>)> = self.pianist.as_ref().map(|p| p.groups.iter().map(|g| (format!("group_{}", g.name), g.units(own).iter().map(|u| self.name(u.def).to_string()).collect::<BTreeSet<_>>())).collect()).unwrap_or_default();
         let Some(mut pianist) = self.pianist.take() else { return };
         for (id, name, allowed) in allowances {
             if pianist.allowed_seen.get(&name) != allowed.as_ref() {
@@ -1142,11 +1028,6 @@ impl Brain {
                     Some(a) => pianist.allowed_seen.insert(name, a),
                     None => pianist.allowed_seen.remove(&name),
                 };
-            }
-        }
-        for (name, types) in types {
-            if let Some(text) = pianist.standing.composition_changed(&name, types) {
-                done.push(format!("{} standing: {text}", picture::clock(frame)));
             }
         }
         pianist.tasks.retain(|id, _| own.iter().any(|u| u.id == *id));
@@ -1332,8 +1213,6 @@ impl Brain {
         let hands = all.entry(self.world.hello.team).or_default();
         hands.picture = state;
         hands.done.append(&mut pianist.done);
-        hands.standing_text = pianist.standing.in_force();
-        hands.standing_count = pianist.standing.count();
         hands.engaged = pianist.played.iter().filter(|p| p["did"].as_str().is_some_and(|d| d.starts_with("attack "))).filter_map(|p| p["actor"].as_str().map(str::to_string)).collect();
     }
 

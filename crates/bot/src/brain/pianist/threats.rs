@@ -14,7 +14,8 @@ use serde_json::json;
 use super::groups::GroupTask;
 use super::picture::{Party, Picture, Place};
 use super::plan::{ALARM, DETACH_PARTY_MAX, Kind, Response, Slot, State, under};
-use super::standing::{NEVER_REACH, RAIDER_REACH};
+/// The raider states reach this far from the group (the detectors' reach).
+pub(super) const RAIDER_REACH: f32 = 1200.0;
 use super::Brain;
 
 /// A party this large is met whole, never hunted by a detachment.
@@ -52,9 +53,6 @@ impl Brain {
             .collect();
         let speed_of = |def: Option<bot_protocol::UnitDefId>| def.and_then(|d| self.world.def(d)).map_or(UNIDENTIFIED_SPEED, |d| d.speed);
         let mut out = Vec::new();
-        // One default per actor per second across every party (12.1): `raiders_party whole_group` made the attack
-        // the default in every threat slot, so one pick played three whole-group attacks for one group (game 4).
-        let mut defaulted: std::collections::HashSet<String> = std::collections::HashSet::new();
         let extractors: Vec<&OwnUnit> = own.iter().filter(|u| !u.being_built && kit.is_extractor(u.def)).collect();
         // Per group, the position its engagement plan answers (H-HANDS-ENGAGEMENT-PLAN): the plan's, or the one its
         // gate opens on this second (the plan question follows this pass). A party of it gets no whole-group attack
@@ -112,20 +110,15 @@ impl Brain {
             };
             let place = place_of(&picture.places, party.at).map_or("in sight".to_string(), |pl| format!("at {pl}"));
             let killing = party.killing.as_ref().map_or(String::new(), |(what, _)| format!(", killing {what}"));
-            let state = |id: String, actor: String, response: Response, words: String, metal: f32, default: bool, current: bool| State { id, actor, response, words, metal, dim: "threat", default, current, pair_only: false };
-            let mut states = vec![state(format!("{}.leave", party.name), String::new(), Response::Leave, format!("nobody moves for {} ({}, {place}{}{killing}{heading_words})", party.name, party.composition, under(party)), 0.0, false, false)];
+            let state = |id: String, actor: String, response: Response, words: String, metal: f32, current: bool| State { id, actor, response, words, metal, dim: "threat", current, pair_only: false };
+            let mut states = vec![state(format!("{}.leave", party.name), String::new(), Response::Leave, format!("nobody moves for {} ({}, {place}{}{killing}{heading_words})", party.name, party.composition, under(party)), 0.0, false)];
             // By the nearest member, not the centre (H-HANDS-GROUP-BODY): the odds on the part in the fight, the
             // tail said when the group is strung out. A roving group is never sent (H-MICRO-ROVE).
             let mut groups: Vec<(f32, super::groups::Body, &super::groups::Group)> = pianist.groups.iter().filter(|g| !g.roving).filter_map(|g| g.body(own, Some(party.at)).map(|b| (b.front.dist2d(party.at), b, g))).collect();
             groups.sort_by(|a, b| a.0.total_cmp(&b.0));
             for (distance, body, group) in groups.into_iter().take(GROUPS_PER_PARTY) {
                 let name = format!("group_{}", group.name);
-                let rules = pianist.standing.rules_for(&name);
-                let never = pianist.standing.never_places(&name);
-                let raider_rule = rules.get(if party.ids.len() == 1 { "raiders_lone" } else { "raiders_party" }).cloned().unwrap_or_default();
-                let named = rules.get("engage_party").is_some_and(|p| *p == party.name);
                 let units = group.units(own);
-                let own_ids: Vec<UnitId> = units.iter().map(|u| u.id).collect();
                 // A body of scouts (Rovers, Ticks: 105 health, 35 a second) is never sent at anything armed: its
                 // fights are the rove lane's, unguarded things only. The pass offered "attack party_7 (2 Pawns, a
                 // Lazarus) with the whole group" to thirteen Rovers at his base and the pick took it (player-16
@@ -137,31 +130,17 @@ impl Brain {
                 // A scout nibbling the tail is not self-defence: with `raiders_lone: ignore` and `no_chase` set for
                 // the launch, a Flea on group_B's tail opened "2 of group_B hunt party_32" and the group left its
                 // route (player-18 11:06-11:20: "group_B ignored the prose route (kept reacting to his Rover)").
-                let party_scouts = enemies.iter().filter(|e| party.ids.contains(&e.id)).all(|e| e.def.map_or(false, |d| super::glossary::entry(self.name(d)).is_some_and(|g| g.class.contains("scout"))));
-                let hitting_us = !party_scouts && self.killing_words(&party.ids, Some(&own_ids)).is_some();
-                // `ignore` never prunes self-defence: a party hitting this group is answered whatever the rule says
-                // (comet-catcher-3, 21:52: `raiders_lone ignore` stopped eleven Stouts in front of a Bull that was
-                // killing them, twice, over Jev's own picks).
-                if raider_rule == "ignore" && !named && !hitting_us {
-                    continue;
-                }
-                if never.iter().any(|n| picture.places.iter().any(|pl| pl.name == *n && pl.at.dist2d(party.at) < NEVER_REACH)) {
-                    continue;
-                }
                 // A party where this group's class cannot go is not a fight it can be sent to (9b.7): the whole
                 // group_A_t3 was sent at a floating radar in deep water, "938 away, 13 s of walking" (Cape Violet
                 // 11:17).
                 if !self.reachable_for(self.group_walker(group, own), party.at) {
-                    states.push(state(format!("{}.unreachable_{name}", party.name), name.clone(), Response::Keep, format!("{name} cannot reach {}: it stands where this group's class cannot go (water or a cliff); nothing of the group answers it from where it is", party.name), 0.0, false, false));
+                    states.push(state(format!("{}.unreachable_{name}", party.name), name.clone(), Response::Keep, format!("{name} cannot reach {}: it stands where this group's class cannot go (water or a cliff); nothing of the group answers it from where it is", party.name), 0.0, false));
                     continue;
                 }
-                let default_set = defaulted.contains(&name);
                 let (odds, odds_words) = self.group_odds(&body, party, enemies, &tick.snapshot.allies);
                 let tail = if body.strung_out() { format!(", its tail {:.0} behind its front", body.length) } else { String::new() };
                 // `no_chase`: the whole group goes only after a party within reach of its station (else its last
                 // hold, else home); the course slot's hold ends an engagement the quarry carries beyond it.
-                let anchor = rules.get("station").and_then(|s| picture.places.iter().find(|p| p.name == *s)).map(|p| p.at).or(group.last_hold).unwrap_or(home);
-                let chase_allowed = !rules.get("no_chase").is_some_and(|v| v == "yes") || party.at.dist2d(anchor) <= RAIDER_REACH;
                 // The speeds are in the odds words now (`odds_words`); the walk below uses the group's slowest.
                 let group_speed = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.speed).fold(f32::INFINITY, f32::min);
                 let outrun = String::new();
@@ -182,9 +161,9 @@ impl Brain {
                 // had the Tick out of our base sooner, and that time is what to present); the fewest that outweigh
                 // it. The words say in how many seconds the hunters drive it off and whether they can catch it.
                 if scouts_vs_armed {
-                    states.push(state(format!("{}.scouts_{name}", party.name), name.clone(), Response::Keep, format!("{name} is scouts (105 health): it fights nothing armed, and {} is armed; the rove lane (`lane {name}: rove`) has each of them kill his unguarded constructors and extractors and step out of every reach", party.name), 0.0, false, false));
+                    states.push(state(format!("{}.scouts_{name}", party.name), name.clone(), Response::Keep, format!("{name} is scouts (105 health): it fights nothing armed, and {} is armed; the rove lane (`lane {name}: rove`) has each of them kill his unguarded constructors and extractors and step out of every reach", party.name), 0.0, false));
                 }
-                if party.ids.len() <= HUNT_PARTY_MAX && !scouts_vs_armed && group.domain != crate::world::Domain::Air && !rules.get("no_detachments").is_some_and(|v| v == "yes") && (!declined || hunting_it) {
+                if party.ids.len() <= HUNT_PARTY_MAX && !scouts_vs_armed && group.domain != crate::world::Domain::Air && (!declined || hunting_it) {
                     let armed = |u: &&OwnUnit| self.world.def(u.def).is_some_and(|d| d.weapon_count > 0 && d.speed > 0.0);
                     let mut fast: Vec<&OwnUnit> = units.iter().copied().filter(armed).filter(|u| self.world.def(u.def).is_some_and(|d| d.speed > quarry_speed)).collect();
                     if fast.is_empty() {
@@ -192,11 +171,9 @@ impl Brain {
                         fast = units.iter().copied().filter(armed).filter(|u| self.world.def(u.def).is_some_and(|d| d.speed >= top - 1.0)).collect();
                     }
                     fast.sort_by(|a, b| a.pos.dist2d(party.at).total_cmp(&b.pos.dist2d(party.at)));
-                    let wanted = raider_rule.strip_prefix("detachment:").and_then(|n| n.parse::<usize>().ok()).unwrap_or(0);
                     if let Some(k) = self.hunters_for(&fast, party, enemies) {
-                        let k = k.max(wanted).min(fast.len());
+                        let k = k.min(fast.len());
                         let hunters: Vec<UnitId> = fast[..k].iter().map(|u| u.id).collect();
-                        let default = !default_set && !declined && raider_rule.starts_with("detachment");
                         // A hunt of this party by this group that ended without a kill says so (10.5).
                         let failed = group.hunts_failed.iter().rev().find(|(p, _, _)| *p == party.name).map(|(_, f, why)| format!("; its last hunt of it ended {} s ago: {why}", (tick.frame - f) / super::super::FRAMES_PER_SECOND)).unwrap_or_default();
                         let speed = fast[..k].iter().filter_map(|u| self.world.def(u.def)).map(|d| d.speed).fold(f32::INFINITY, f32::min);
@@ -215,17 +192,12 @@ impl Brain {
                             Response::Hunt(hunters),
                             format!("{who} of {name} hunt {} ({}{}{killing}){drive}{catching}{rest}{failed}", party.name, party.composition, under(party)),
                             fast[..k].iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum(),
-                            default,
                             hunting_it,
                         ));
-                        if default {
-                            defaulted.insert(name.clone());
-                        }
                     }
                 }
                 // The whole group.
-                if odds != "it outweighs us" && !odds.starts_with("we cannot hit") && !units.is_empty() && !scouts_vs_armed && !planned && (chase_allowed || engaging_it) {
-                    let default = !default_set && !declined && (raider_rule == "whole_group" || named);
+                if odds != "it outweighs us" && !odds.starts_with("we cannot hit") && !units.is_empty() && !scouts_vs_armed && !planned {
                     let walk = if group_speed.is_finite() && group_speed > 0.0 { format!(", {:.0} s of walking", distance / group_speed) } else { String::new() };
                     // A radar contact is priced as a Pawn (`combat.rs`): at minute 14 a column of 23 blips said 2,530
                     // metal against our 4,820 and cost ten Blitzes (onepass-player-3), so the words call it a floor.
@@ -236,12 +208,8 @@ impl Brain {
                         Response::Whole,
                         format!("{name} attacks {} ({}{}) with the whole group ({standing:.0} metal against {theirs}: {odds_words}), {distance:.0} from its front{tail}{walk}{leave}{outrun}", party.name, party.composition, under(party)),
                         standing,
-                        default,
                         engaging_it,
                     ));
-                    if default {
-                        defaulted.insert(name.clone());
-                    }
                 }
                 // Stand at the next extractor on its heading before it (6.1), beside the chase and the leave.
                 if let Some((x, _)) = next_extractor
@@ -255,13 +223,12 @@ impl Brain {
                         Response::Walk { place: pl.to_string(), fight: true },
                         format!("{name} stands at {pl}, the next extractor of ours on {}'s heading, before it gets there ({:.0} from its front{walk}; the party about {:.0} s from it){leave}", party.name, body.front.dist2d(x.pos), next_extractor.map_or(0.0, |(_, along)| along / quarry_speed.max(1.0))),
                         0.0,
-                        false,
                         matches!(&group.task, GroupTask::Move { place, fight: true, .. } if place == pl),
                     ));
                 }
                 // The way back.
                 if odds == "it outweighs us" && distance < ALARM {
-                    let to = rules.get("fall_back_to").cloned().unwrap_or_else(|| "home".to_string());
+                    let to = "home".to_string();
                     let current = matches!(&group.task, GroupTask::Move { place, fight: false, .. } if *place == to);
                     states.push(state(
                         format!("{}.back_{name}", party.name),
@@ -269,7 +236,6 @@ impl Brain {
                         Response::Back(to.clone()),
                         format!("{name} falls back to {to} from {} ({}{}), which outweighs it ({odds_words}), {distance:.0} from its front{tail}", party.name, party.composition, under(party)),
                         0.0,
-                        false,
                         current,
                     ));
                 }
@@ -302,7 +268,6 @@ impl Brain {
                         format!("{name} D-guns {}'s nearest unit ({d:.0} away; {inside} of its {} inside the D-gun's {dgun:.0}; one shot kills, {:.0} energy stored){}", party.name, party.ids.len(), tick.snapshot.energy.current, if d > dgun { ": it steps in to reach it" } else { "" }),
                         0.0,
                         false,
-                        false,
                     ));
                 }
                 let odds = self.odds_words(&[unit], party, enemies);
@@ -310,9 +275,7 @@ impl Brain {
                     continue;
                 }
                 let name = self.actor_name(unit.id);
-                let rules = pianist.standing.rules_for(&name);
                 let current = matches!(pianist.tasks.get(&unit.id), Some(super::Task::Walk { place, .. }) if *place == party.name);
-                let default = !defaulted.contains(&name) && rules.get("attack_raiders").is_some_and(|v| v == "yes");
                 let speed = self.world.def(unit.def).map_or(0.0, |d| d.speed);
                 let walk = if speed > 0.0 { format!(": it drives it off in {:.0} s of walking", distance / speed) } else { String::new() };
                 let killing = party.killing.as_ref().map_or(String::new(), |(what, metal)| format!(", killing {what} ({metal:.0} metal) now"));
@@ -329,12 +292,8 @@ impl Brain {
                     Response::Attack(party.name.clone()),
                     format!("{name} attacks {} ({}{}, {distance:.0} away{killing}) and comes back to what it was doing{walk}; against it alone, {odds}{chase}{range}{doing}", party.name, party.composition, under(party)),
                     self.world.def(unit.def).map_or(0.0, |d| d.metal_cost),
-                    default,
                     current,
                 ));
-                if default {
-                    defaulted.insert(name.clone());
-                }
             }
             out.push(Slot { name: party.name.clone(), kind: Kind::Threat(party.clone(), place), states, queue_ahead: false, idle: false, stop_cost: None, on_route: false, quiet: false });
         }

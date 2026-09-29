@@ -206,7 +206,6 @@ pub struct TurnOutputs {
     pub marks: BTreeMap<String, (f32, f32)>,
     pub allowed: BTreeMap<String, Allowance>,
     pub removals: Vec<Removal>,
-    pub standing: Vec<StandingChange>,
 }
 
 impl TurnOutputs {
@@ -216,9 +215,6 @@ impl TurnOutputs {
         // Removals and standing changes are appended during a turn and never reordered: the tail is the turn's.
         if self.removals.len() >= before.removals.len() {
             self.removals.drain(..before.removals.len());
-        }
-        if self.standing.len() >= before.standing.len() {
-            self.standing.drain(..before.standing.len());
         }
         self
     }
@@ -233,9 +229,6 @@ pub struct Hands {
     /// "m:ss actor: what", oldest first; drained by the driver at each turn.
     pub done: Vec<String>,
     pub engaged: Vec<String>,
-    /// The standing orders (`brain/pianist/standing.rs`): what is in force, and how many rules.
-    pub standing_text: String,
-    pub standing_count: usize,
 }
 
 /// The side's party names: enemy unit id to the party it was last named in, and the next number.
@@ -243,14 +236,6 @@ pub struct Hands {
 pub struct PartyRegistry {
     pub by_unit: std::collections::HashMap<bot_protocol::UnitId, String>,
     pub next: usize,
-}
-
-/// A change to the standing orders from the `standing` tool: rules per actor to set (checked by the brain against
-/// the vocabulary and the picture), or the actors whose tool orders to clear (None: all).
-#[derive(Clone, Debug)]
-pub enum StandingChange {
-    Set(BTreeMap<String, serde_json::Value>),
-    Clear(Option<Vec<String>>),
 }
 
 /// Lockstep turns: the brain asks for a turn and holds the game (its reply to the engine) until the turn is over.
@@ -357,12 +342,6 @@ pub struct Shared {
     /// two seats had two names, and the player's `engage_party` on one seat's name was refused on another (games
     /// 3, 4, 6, 9).
     pub parties: Mutex<PartyRegistry>,
-    /// The `standing` tool's changes, applied by every seat's brain at its next ask: each seat keeps its own cursor
-    /// into the list (`standing_seen`) and takes the entries for its own actors, so one seat's read does not rob
-    /// another's (bluegecko-2v1-great-divide: `set station spot_16` at 9:31 and `clear` at 10:47 vanished into the
-    /// other seat, whose group_A they named).
-    pub standing: Mutex<Vec<StandingChange>>,
-    pub standing_seen: Mutex<BTreeMap<i32, usize>>,
     /// The player's footwork settings by group name (`group_A`) or `all` (`lane` tool, H-HANDS-LANE).
     pub lane: Mutex<BTreeMap<String, Footwork>>,
     /// Places the player named (`mark` tool): name to (x, z). They join the picture's places (H-HANDS-NAMED-PLACES).
@@ -450,7 +429,6 @@ impl Shared {
             marks: self.marks.lock().unwrap().clone(),
             allowed: self.allowed.lock().unwrap().clone(),
             removals: self.removals.lock().unwrap().clone(),
-            standing: self.standing.lock().unwrap().clone(),
         }
     }
 
@@ -462,7 +440,6 @@ impl Shared {
         *self.marks.lock().unwrap() = o.marks;
         *self.allowed.lock().unwrap() = o.allowed;
         *self.removals.lock().unwrap() = o.removals;
-        *self.standing.lock().unwrap() = o.standing;
     }
 
     /// Brain side, realtime: ask for a turn and go on; the game does not wait (the user, 2026-09-22: "the main
@@ -492,7 +469,6 @@ impl Shared {
                 *self.allowed.lock().unwrap() = o.allowed;
                 self.queues.lock().unwrap().extend(o.queues);
                 self.removals.lock().unwrap().extend(o.removals);
-                self.standing.lock().unwrap().extend(o.standing);
                 false
             }
             waiting => {

@@ -173,13 +173,10 @@ fn tool_list() -> Value {
             { "name": "remove",
               "description": "Take apart or blow up what we own: {\"reclaim\": [handles], \"by\": \"constructor_N\" (optional; else the nearest builder without a list)} puts `reclaim <handle>` steps at the front of that builder's list, and most of the metal comes back; {\"destruct\": [handles]} sends the engine's self-destruct, and nothing comes back. A handle is a unit's name and id as the picture writes it (armsolar_31002: a factory's `yard` entry names the buildings in its exit lane) or an actor's name (constructor_N, plant_N, commander). Every unit that self-destructs blows up: the answer says the blast's radius and damage and what of ours stands inside it, and a destruct that would kill something of ours is refused unless \"accept_losses\": true. The commander's blast is the game's largest; a reclaim is the safe way beside anything that matters.",
               "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "reclaim": { "type": "array", "items": { "type": "string" } }, "by": { "type": "string" }, "destruct": { "type": "array", "items": { "type": "string" } }, "accept_losses": { "type": "boolean" } } } },
-            { "name": "standing",
-              "description": "Your standing orders, played by the bot itself every second without asking Jev while they apply (docs/design/2026-09-25-standing-orders.md). Your `instruct` packet is read as prose by Jev every second and never becomes a rule; this tool is the one source of rules, and they hold until cleared. A rule set on `commander` or `constructors` is every commander's or constructor's; a seat's own `no` (or null) over it switches that seat off. {\"set\": {\"group_B\": {\"station\": \"spot_61\", \"raiders_lone\": \"detachment:2\", \"raiders_party\": \"whole_group\", \"no_chase\": \"yes\", \"never\": \"spot_50 spot_73\"}, \"constructors\": {\"job\": \"expand\", \"turrets\": \"beside_each_outer_extractor\"}}} sets rules (null clears one): each actor's rules are checked at once against the vocabulary and the picture's places (this turn's marks included) and parties, the answer names an actor refused and why, and the others' rules land when the turn ends; {\"clear\": [\"group_B\"]} or {\"clear\": \"all\"} drops tool orders; no arguments shows what is in force. Group rules: station (one place, the group's post; a route is prose in `instruct`, the places in order and what to do on the way, and the group's entry says which it has reached), station_mode (walk|advance), raiders_lone and raiders_party (whole_group|detachment|detachment:1|2|4|8|half|ignore), no_chase, no_detachments, hold_line (never fall back while even or better), fall_back_to (a place), engage_party (a party name), never (places, space-separated), plan (\"no\": the group takes no engagement plan, the hands' order of operations against a position of turrets and soldiers; its entry says the plan it is on). Builder rules (commander, constructors, constructor_N): job (help_factory|expand), attack_raiders, retreat_when_enemy_near, solar (only_when_stalling|never|freely), turrets (beside_each_outer_extractor|beside_each_extractor|none), never. Yes/no rules take \"yes\" or true. The picture shows each actor's orders on its `standing` line and the report says what fired.",
-              "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "set": { "type": "object", "additionalProperties": { "type": "object", "additionalProperties": { "type": ["string", "boolean", "null"] } } }, "clear": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "string", "enum": ["all"] } ] } } } },
             { "name": "say",
               "description": "Say something in the game's chat, to everyone playing. Short lines: the game shows 127 characters a line, the bot prefixes `[WReason] ` to each (never write it yourself) and splits a longer text into lines that fit. The report shows what people say to you; when an experienced player offers advice or asks what you are doing, answer, and ask them what they would do: their feedback is what this project learns from.",
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "maxLength": 240 } } } },
-            orders(&["instruct", "queue", "standing", "lane", "mark", "produce", "remove", "transfer", "say", "note", "wait"], "your instructions or policy, standing orders, build lists, footwork settings, marked places, what labs may build, removals, a chat line, a note and when to be woken"),
+            orders(&["instruct", "queue", "lane", "mark", "produce", "remove", "transfer", "say", "note", "wait"], "your instructions or policy, build lists, footwork settings, marked places, what labs may build, removals, a chat line, a note and when to be woken"),
             wait("A group of ours starts fighting an enemy party.", "Woken when this many soldiers of each named unit type are alive, e.g. {\"armham\": 6}. {} clears it."),
             note,
     ])
@@ -187,7 +184,7 @@ fn tool_list() -> Value {
 
 /// What `orders` may batch.
 fn batchable() -> &'static [&'static str] {
-    &["instruct", "queue", "standing", "lane", "mark", "produce", "remove", "transfer", "say", "note", "wait"]
+    &["instruct", "queue", "lane", "mark", "produce", "remove", "transfer", "say", "note", "wait"]
 }
 
 /// The `orders` tool: several tool calls in one request. `wait` goes last wherever it was listed, since it ends the turn.
@@ -391,69 +388,6 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 queues.insert(name, list);
             }
             Ok(said.join("; "))
-        }
-        "standing" => {
-            use super::shared::StandingChange;
-            let set = arguments.get("set").and_then(Value::as_object).filter(|o| !o.is_empty());
-            let clear = arguments.get("clear");
-            match (set, clear) {
-                (None, None) => {
-                    let hands = shared.hands_merged(false);
-                    Ok(format!("standing orders ({} from this tool):\n{}", hands.standing_count, hands.standing_text))
-                }
-                (Some(map), None) => {
-                    for (actor, rules) in map {
-                        if !(actor.starts_with("group_") || actor.starts_with("commander") || actor == "constructors" || actor.starts_with("constructor_")) {
-                            return Err(format!("{actor}: standing orders are for group_X, commander, constructors or constructor_N"));
-                        }
-                        if !rules.is_object() {
-                            return Err(format!("{actor}: rules must be an object of rule to value"));
-                        }
-                    }
-                    // Checked now, in the player's turn, so a refusal is answered at once and the other actors'
-                    // orders still go through (worlds-2, 17:07: "a set with an unknown place (never: shelling) is
-                    // refused whole, silently in my view", learned a turn later from the picture). The turn's marks
-                    // count as places; the hands check again against their own picture at the next second.
-                    let (places, parties) = {
-                        let hands = shared.hands_merged(false);
-                        let mut places: Vec<String> = hands.picture["places"].as_object().map(|o| o.keys().cloned().collect()).unwrap_or_default();
-                        places.extend(shared.marks.lock().unwrap().keys().cloned());
-                        places.extend(shared.map.lock().unwrap()["metal_spots"].as_array().into_iter().flatten().filter(|s| !s["walk_from_home"].is_null()).filter_map(|s| s["n"].as_u64()).map(|n| format!("spot_{n}")));
-                        let parties: Vec<String> = hands.picture["enemy"]["in_sight"].as_array().map(|a| a.iter().filter_map(|v| v.as_str()).filter_map(|s| s.split(':').next()).map(str::to_string).collect()).unwrap_or_default();
-                        (places, parties)
-                    };
-                    let mut accepted: std::collections::BTreeMap<String, Value> = std::collections::BTreeMap::new();
-                    let mut said: Vec<String> = Vec::new();
-                    for (actor, rules) in map {
-                        match crate::brain::pianist::standing::Standing::check_tool(actor, rules, &places, &parties) {
-                            Ok((checked, refused)) => {
-                                if !checked.is_empty() {
-                                    said.push(format!("{actor}: {} rules set when this turn's orders land", checked.len()));
-                                    accepted.insert(actor.clone(), rules.clone());
-                                }
-                                for why in refused {
-                                    said.push(format!("refused: {why}"));
-                                }
-                            }
-                            Err(e) => said.push(format!("refused: {e}")),
-                        }
-                    }
-                    if !accepted.is_empty() {
-                        shared.standing.lock().unwrap().push(StandingChange::Set(accepted));
-                    }
-                    Ok(said.join("; "))
-                }
-                (None, Some(Value::String(all))) if all == "all" => {
-                    shared.standing.lock().unwrap().push(StandingChange::Clear(None));
-                    Ok("every standing order is cleared when this turn's orders land".into())
-                }
-                (None, Some(Value::Array(items))) => {
-                    let actors: Vec<String> = items.iter().filter_map(|v| v.as_str().map(str::to_string)).collect();
-                    shared.standing.lock().unwrap().push(StandingChange::Clear(Some(actors.clone())));
-                    Ok(format!("tool orders for {} cleared when this turn's orders land", actors.join(", ")))
-                }
-                _ => Err("standing takes {\"set\": {actor: {rule: value}}} or {\"clear\": [actors] | \"all\"}, not both".into()),
-            }
         }
         "lane" => {
             let settings = arguments.as_object().filter(|o| !o.is_empty()).ok_or("lane takes an object: group name (or \"all\") to \"raw\", \"on\" or a list of the rules to keep")?;
@@ -842,7 +776,7 @@ mod tests {
     #[test]
     fn the_player_has_its_lever_and_none_of_the_commanders() {
         let player: Vec<String> = tool_list().as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap().to_string()).collect();
-        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "produce", "transfer", "remove", "standing", "say", "orders", "wait", "note"]);
+        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "produce", "transfer", "remove", "say", "orders", "wait", "note"]);
         for tool in batchable() {
             assert!(player.contains(&tool.to_string()));
         }
@@ -863,7 +797,7 @@ mod tests {
         assert!(call_tool("queue", &json!({ "commander": ["armllt spot_3", "armsolar"] }), &shared).is_ok());
         // Every player tool but the readers and `orders` itself can be batched (comet-3: `queue` was refused by the
         // batch as "not a tool that can be batched" and the game ran without the list).
-        for tool in ["instruct", "queue", "standing", "lane", "mark", "produce", "say", "note", "wait"] {
+        for tool in ["instruct", "queue", "lane", "mark", "produce", "say", "note", "wait"] {
             assert!(batchable().contains(&tool), "{tool}");
         }
         assert!(orders(&json!({ "calls": [{ "tool": "queue", "arguments": { "commander": ["armsolar"] } }] }), &shared).unwrap().contains("1 steps"));

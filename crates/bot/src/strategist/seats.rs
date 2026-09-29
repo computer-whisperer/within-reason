@@ -78,13 +78,6 @@ impl Shared {
             }
             merged.done.extend(other.done.iter().cloned());
             merged.engaged.extend(other.engaged.iter().cloned());
-            if !other.standing_text.is_empty() {
-                if !merged.standing_text.is_empty() {
-                    merged.standing_text.push('\n');
-                }
-                merged.standing_text.push_str(&other.standing_text);
-            }
-            merged.standing_count += other.standing_count;
             if drain {
                 other.done.clear();
             }

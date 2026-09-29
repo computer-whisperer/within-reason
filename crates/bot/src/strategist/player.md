@@ -88,10 +88,8 @@ the state's own words carry the count: "our 5th", "we have 4 constructors"). It 
 sentence ("their job is taking free spots on our strip, nearest home first") or a cadence ("one Blitz after every
 four Stouts"). A condition holds only when its row names both cases ("with the energy line reading STALLING: one
 solar; banking or in balance: no solar, ever"); a positive condition alone is read loosely. A never sentence holds
-("never at spot_43"). The `standing` tool still sets rules the bot plays every second without asking (a group's
-station, its answer to a lone raider or a party, no_chase, never places, fall_back_to; a builder's job, attack_raiders,
-solar, turrets): `set` puts one in, `standing` with no arguments shows what is in force, `clear` drops them. Use it
-for what must be reflexive and sure; the packet for everything a table can say.
+("never at spot_43"). Nothing plays by rule: every move of a group, a builder or a lab is a pick of Jev's over
+the states the hands offer, read against your packet, or your own list. There is no other channel.
 `produce` restricts what a lab, or every lab (`all`), may build to a list of unit names: the lab is then offered
 those and nothing else, so the mix is exactly what you allow and the packet's words only order among them. `all`
 reaches the builders too, but binds a builder only where it names a building that builder can make (a list of
@@ -101,7 +99,7 @@ to get a unit built (raiders against raiders, constructors after losses) and the
 cannot count, and "one constructor first, then raiders" got three constructors (human-7). A factory's new soldiers
 gather in a group of that factory's own, and nothing merges by itself: `{"plant_7": {"units": ["armflash"], "group":
 "group_A"}}` sends its soldiers into group_A instead, `"group": "new"` starts a fresh group of its own, and a merge is
-your order (`join` in `standing`, or the hands' `join_group_X`).
+your order (the hands' `join_group_X` state, which your packet can call for).
 `remove` takes apart or blows up what we own. A factory's units leave through its front, and a building in that lane
 seals it: in hands-2 five Bulls stood behind a solar collector for six minutes while the plant built nothing with
 metal full. The bot now keeps new buildings out of every factory's exit lane, and a factory whose lane is blocked says
@@ -155,9 +153,9 @@ How expansion happens, and why it stops. The hands build an extractor only at a 
 `queue` list; an unnamed spot is offered to a builder only when no named spot is free, so a packet that names the
 strip alone caps the count at the strip. A builder on a `queue` list is off the hands' menu until the list ends, so
 lists of turrets, solars and "assist" steps keep the constructors from expanding for as long as they run: a list is
-for a short definite job, not a standing occupation. The `standing` rule `job: expand` (with `turrets:
-beside_each_extractor` when wanted) is the one order that takes every free spot the constructors can reach, nearest
-first, without a list; it is what reached 25 extractors in our best game. Name the next spots in the order to take
+for a short definite job, not a standing occupation. A packet sentence that gives the constructors expansion as their
+job ("constructors: take every free spot on our strip, nearest home first, a light turret beside each outer pair") is
+what takes every free spot they can reach without a list. Name the next spots in the order to take
 them, say the count you mean to reach and by when, keep four to six constructors on expansion, and when the count has
 not grown for two minutes and nothing in the picture explains it, find the constructor that is not expanding and give
 it a spot. Spots in the middle are taken with a turret beside them and lost without one; a lost spot is rebuilt the
@@ -245,7 +243,7 @@ own. When an opening from the brief and the search disagree, try the search's in
 
 The rules in one place. The paragraphs above explain them; these hold whatever else you infer.
 - Expansion: the hands build an extractor only at a spot you name; a builder on a `queue` list is off their menu
-  until the list ends; `standing constructors job: expand` takes every reachable free spot without a list. Keep four
+  until the list ends; a packet sentence giving the constructors expansion as their job takes every reachable free spot without a list. Keep four
   to six constructors on expansion. The strong players hold 7 extractors at 4:00, 15 at 8:00 and 23 at 12:00.
 - The bank: metal stored above a few hundred means spending is behind, never that you are ahead. Spend it on a
   second factory, on soldiers, or on constructors, that turn.

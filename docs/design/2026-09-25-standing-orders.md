@@ -1,5 +1,7 @@
 # Standing orders: the executor, the `standing` tool, and the variants (target design, 2026-09-25)
 
+**Status (2026-09-28 night).** DELETED: the `standing` tool, `standing.rs` and every rule read by the pass are gone (the user: "Agreed, delete the standing tool"; `2026-09-28-no-live-heuristics.md`). The player's intent is prose in `instruct`, read by Jev each second; nothing plays by rule or default.
+
 **Status (2026-09-27 evening).** The decompression (§2's packet source) is deleted after the audit of the eleven
 games with people (`docs/design/2026-09-27-posing-changes.md` §13b; K-jev-a-packet-decompresses-to-standing-orders
 retired). What stands: the vocabulary (less a builder's `no_chase` and `job follow_list`), the `standing` tool as the

@@ -8,7 +8,7 @@
 //!   --dump prints the request and asks nothing; --both asks with and without the examples block. The key is read
 //!   by `jev::Client::from_env` and never printed.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 
@@ -165,7 +165,6 @@ pub fn plan_replay(raw: &[String]) -> Result<(), String> {
             Group::new(g["name"].as_str().unwrap_or_default().to_string(), domain, members, task, a.frame)
         })
         .collect();
-    let standing: HashMap<String, String> = call["state"]["actors"].as_object().into_iter().flatten().filter_map(|(k, v)| v["standing"].as_str().map(|s| (k.clone(), s.to_string()))).collect();
     {
         let p = brain.pianist.as_mut().expect("built with one");
         p.groups = groups;
@@ -194,11 +193,11 @@ pub fn plan_replay(raw: &[String]) -> Result<(), String> {
                 println!("\n{name} ({task}){live}: position {} at {:.0} from its front", bf.position.signature(), bf.position.distance_to(bf.ours.front));
                 let words = brain.battlefield_words(&bf, &places);
                 let paragraph = super::diet::paragraph(&instructions, &name).unwrap_or_default().to_string();
-                asked.push((name, words, candidates, paragraph, standing.get(&format!("group_{}", group.name)).cloned().unwrap_or_default()));
+                asked.push((name, words, candidates, paragraph));
             }
         }
     }
-    for (name, words, candidates, paragraph, standing) in &asked {
+    for (name, words, candidates, paragraph) in &asked {
         println!("\nbattlefield of {name}:\n{}", serde_json::to_string_pretty(words).unwrap_or_default());
         println!("\ncandidates:");
         for c in candidates.iter() {
@@ -206,14 +205,14 @@ pub fn plan_replay(raw: &[String]) -> Result<(), String> {
             println!("  {} [{}]: {}", c.key, phases.join(" > "), c.words);
         }
         if a.dump {
-            let request = engagement::request(name, words.clone(), candidates, paragraph, standing, a.examples[0]);
+            let request = engagement::request(name, words.clone(), candidates, paragraph, a.examples[0]);
             println!("\nrequest:\n{}", serde_json::to_string_pretty(&serde_json::json!({ "state": request.state, "questions": request.questions })).unwrap_or_default());
             continue;
         }
         let client = jev::Client::from_env().map_err(|e| e.to_string())?;
         for examples in &a.examples {
             for rep in 0..a.repeat {
-                let request = engagement::request(name, words.clone(), candidates, paragraph, standing, *examples);
+                let request = engagement::request(name, words.clone(), candidates, paragraph, *examples);
                 let response = client.ask(&request).map_err(|e| e.to_string())?;
                 let ranking = ranking(&response.answers, candidates);
                 let taken = engagement::choose(&response.answers, candidates).map(|(i, _)| candidates[i].key).unwrap_or("none");

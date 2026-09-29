@@ -81,7 +81,6 @@ impl Brain {
         let pianist = self.pianist.as_mut().expect("pianist mode");
         for (actor, id, did) in &done {
             if source == "plan" {
-                pianist.picked.insert(actor.clone(), frame);
             }
             pianist.done.push(format!("{} {actor}: {did} ({source})", clock(frame)));
             pianist.played.push(json!({ "actor": actor, "kind": kind_of(actor), "played": id, "did": did, "source": source }));
@@ -297,7 +296,6 @@ impl Brain {
         }
         let pianist = self.pianist.as_mut().expect("pianist mode");
         if matches!(response, Response::RetreatHome) {
-            pianist.retreated.insert(id, frame);
         }
         if let Some(task) = task {
             if let Task::Build { def, .. } = &task {
@@ -334,7 +332,6 @@ impl Brain {
                     && let Some(list) = pianist.scripts.get_mut(&name)
                 {
                     list.push_front(step.clone());
-                    pianist.diverted.insert(id, frame);
                     did = did.map(|d| format!("{d}; its list step '{step}' waits for it"));
                 }
             }
@@ -389,12 +386,6 @@ impl Brain {
                     group.last_order = frame;
                     did = Some(format!("fall back to {}{}", p.name, party.map_or(String::new(), |p| format!(" from {}", p.name))));
                 }
-            }
-            Response::Hold => {
-                let group = &mut pianist.groups[index];
-                commands.extend(group.hold_orders(&units));
-                group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
-                did = Some("hold".into());
             }
             Response::Walk { place: place_name, fight } => {
                 if let Some(p) = place(place_name) {

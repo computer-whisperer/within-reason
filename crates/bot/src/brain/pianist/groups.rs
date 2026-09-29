@@ -10,7 +10,6 @@ use bot_protocol::{Command, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
 use super::super::roster::Kit;
 use super::super::{Brain, FRAMES_PER_SECOND};
 use super::picture::Party;
-use super::standing::NEVER_REACH;
 use crate::world::Domain;
 
 /// H-HANDS-GROUPS: a newcomer whose group stands farther than this walks to it (fresh Grunts at the lab formed groups of
@@ -429,15 +428,6 @@ impl Brain {
         let is_mark_name = |place: &str| place != "home" && !place.starts_with("spot_") && !place.starts_with("passage_") && !place.starts_with(LAST_HOLD);
         let mut marches: Vec<(usize, Vec3)> = Vec::new();
         let mut stalled: Vec<String> = Vec::new();
-        // Per group, the places it never goes (the player's `never` rule), for the chase that would reach one.
-        let never_at: BTreeMap<String, Vec<(String, Vec3)>> = pianist
-            .groups
-            .iter()
-            .map(|g| {
-                let places = pianist.standing.never_places(&format!("group_{}", g.name)).into_iter().filter_map(|n| pianist.places.iter().find(|p| p.name == n).map(|p| (n.clone(), p.at))).collect();
-                (g.name.clone(), places)
-            })
-            .collect();
         let mut hunt_ends: Vec<String> = Vec::new();
         let mut route_news: Vec<String> = Vec::new();
         let roving: Vec<bool> = pianist.groups.iter().map(|g| self.roves(g)).collect();
@@ -579,16 +569,6 @@ impl Brain {
                     // The leash: a ground group drawn this far from where it engaged holds where it is.
                     if !air && footwork[index].follow && centre.dist2d(*from) > FOLLOW_LEASH {
                         stalled.push(format!("group_{} was drawn {:.0} from where it engaged its party, which is running, not fighting: it holds where it is", group.name, centre.dist2d(*from)));
-                        commands.extend(group.hold_orders(&units));
-                        group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
-                        continue;
-                    }
-                    // A quarry that has run to a place this group never goes is left there (worlds-2, 18:28-18:43:
-                    // `never: spot_20 ...` set while group_C chased a Centurion into the E3 nest, and the chase went
-                    // on to the nest's turrets).
-                    let quarry_at = centre_of_enemies(&seen).unwrap_or(*at);
-                    if let Some((place, _)) = never_at.get(&group.name).and_then(|ps| ps.iter().find(|(_, p)| p.dist2d(quarry_at) < NEVER_REACH)) {
-                        stalled.push(format!("group_{} was chasing its party to {place}, where it never goes: it holds where it is", group.name));
                         commands.extend(group.hold_orders(&units));
                         group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
                         continue;

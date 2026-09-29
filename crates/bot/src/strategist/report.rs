@@ -254,7 +254,7 @@ pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, fights
             if let Some(health) = field("health").filter(|h| !h.starts_with("full")) {
                 parts.push(format!("health {health}"));
             }
-            for key in ["allowed", "lane", "standing", "progress", "stuck", "yard", "footwork", "reinforcements", "ranks", "enemies_near", "enemies_at_our_extractors", "under_fire", "unseen_shooter", "rove", "scouts_out", "detachments_out", "split_from", "nanos"] {
+            for key in ["allowed", "lane", "progress", "stuck", "yard", "footwork", "reinforcements", "ranks", "enemies_near", "enemies_at_our_extractors", "under_fire", "unseen_shooter", "rove", "scouts_out", "detachments_out", "split_from", "nanos"] {
                 match &entry[key] {
                     serde_json::Value::String(text) => parts.push(format!("{key}: {text}")),
                     serde_json::Value::Array(items) => parts.push(format!("{key}: {}", items.iter().filter_map(|i| i.as_str()).collect::<Vec<_>>().join("; "))),
@@ -275,15 +275,6 @@ pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, fights
         lines.push(format!("actors gone (dead, merged or split): {}", gone.join(", ")));
     }
     seen.hands = actors;
-    {
-        let rules = hands.standing_count;
-        if rules > 0 {
-            lines.push(format!("standing orders: {rules} from `standing`; they prune your hands' choices and set their defaults; your packet is read as prose every second"));
-            if full {
-                lines.push(format!("standing orders in force:\n{}", hands.standing_text));
-            }
-        }
-    }
     if !chat.is_empty() {
         lines.push("chat since your last turn (people in the game; `say` answers them):".to_string());
         lines.extend(chat.iter().map(|c| format!("  {c}")));

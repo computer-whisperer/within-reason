@@ -801,7 +801,6 @@ impl Brain {
             .filter(|i| !i.trim().is_empty())
             .or_else(|| self.pianist.as_ref().and_then(|p| p.packet.clone()))
             .unwrap_or_else(|| crate::texts::read(&crate::texts::HANDS_DEFAULT));
-        let tool_words = pianist.standing.tool_words();
         // Spots in runs ("spot_10, 5, 6") and spots the lists name are places too (13.2, 7.4).
         let mut extra_spots: Vec<usize> = super::diet::spot_runs(&instructions);
         for steps in pianist.scripts.values() {
@@ -816,7 +815,7 @@ impl Brain {
                 places.push(Place { name: format!("spot_{i}"), at: spots[i], spot: Some(i) });
             }
         }
-        for token in instructions.split(|c: char| !c.is_ascii_alphanumeric() && c != '_').chain(tool_words.iter().map(String::as_str)) {
+        for token in instructions.split(|c: char| !c.is_ascii_alphanumeric() && c != '_') {
             if let Some(i) = token.strip_prefix("spot_").and_then(|n| n.parse::<usize>().ok()) {
                 // An islet spot nobody can walk to is no place to send anyone (pianist-player-7: the ball stood 151 s
                 // short of spot_31 on the shore while the player named it).
@@ -1137,9 +1136,6 @@ impl Brain {
                 if let Some(steps) = pianist.scripts.get(&name).filter(|s| !s.is_empty()) {
                     entry["list"] = json!(format!("the player's list, done by the bot without asking: {}", steps.iter().cloned().collect::<Vec<_>>().join(", ")));
                 }
-                if let Some(words) = pianist.standing.words(&name) {
-                    entry["standing"] = json!(format!("standing orders in force, played by the bot when they apply: {words}"));
-                }
                 let from_home = unit.pos.dist2d(self.home);
                 entry["from_home"] = json!(format!("{} ({from_home:.0})", distance_words(from_home)));
                 if let Some(party) = parties.iter().filter(|p| p.at.dist2d(unit.pos) < NEAR).min_by(|a, b| a.at.dist2d(unit.pos).total_cmp(&b.at.dist2d(unit.pos))) {
@@ -1355,9 +1351,6 @@ impl Brain {
             }
             if group.roving && !group.rove_log.is_empty() {
                 entry["rove"] = json!(group.rove_log.iter().map(|(_, line)| line.as_str()).collect::<Vec<_>>());
-            }
-            if let Some(words) = pianist.standing.words(&format!("group_{}", group.name)) {
-                entry["standing"] = json!(format!("standing orders in force, played by the bot when they apply: {words}"));
             }
             // The last 30 s, not "since the player's last orders": turns come every ten seconds now, and the line read
             // "lost 1" while the ball had lost eleven in eleven seconds (wake-1, 18:14). A share in words beside the
