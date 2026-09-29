@@ -159,7 +159,7 @@ pub fn plan_replay(raw: &[String]) -> Result<(), String> {
             let to = at(&g["task"]["to"][0], &g["task"]["to"][1]);
             let task = match g["task"]["kind"].as_str() {
                 Some("move_to") | Some("fight_to") => GroupTask::Move { to, place: g["task"]["place"].as_str().unwrap_or_default().to_string(), fight: g["task"]["kind"] == "fight_to", since: a.frame },
-                Some("engage") | Some("attack_unit") => GroupTask::Engage { party: Vec::new(), at: to, since: a.frame, last_seen: a.frame, target: None, searched: false, from: to },
+                Some("engage") | Some("attack_unit") => GroupTask::Engage { party: Vec::new(), at: to, since: a.frame, last_seen: a.frame, target: None, searched: false },
                 _ => GroupTask::Hold { since: a.frame, committed: false },
             };
             Group::new(g["name"].as_str().unwrap_or_default().to_string(), domain, members, task, a.frame)

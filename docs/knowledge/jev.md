@@ -163,6 +163,8 @@ record's `cmd` rows (a Fight to the party's new centre every 2 s).
 saved one from a chase; the leash is then the player's to set.
 **Used by.** H-HANDS-LANE (follow).
 
+**Status (2026-09-28 late).** The leash and the follow re-send are deleted with the `follow` lane word (the user: a group chasing a Tick or Pawn through our base "just stops randomly and lets the intruder continue for another few seconds"; player-22: 489 leash lines, group_B held at 5:23 drawn 942). The form lane's contact and pursuit own the chase; a chase ends when Jev or the player ends it or the party is unseen 6 s. The 2v1-hard_aggressive cases this claim came from are now Jev's to decide from the picture.
+
 ### K-hands-far-places-never-on-the-menu
 **Claim.** The picture's places were home, enemy_base, our spots, the ten nearest free spots, the six nearest of
 theirs and three passages, so a place in the far half of the map was not on any `where` question and an instruction

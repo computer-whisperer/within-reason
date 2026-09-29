@@ -22,14 +22,6 @@ const ARRIVED: f32 = 300.0;
 const MET_REACH: f32 = 1200.0;
 /// Places reached kept per group, the oldest dropped: the words stay short.
 const REACHED_KEPT: usize = 12;
-/// An engaged group is sent on when its party has moved this far, and no more often than this.
-const FOLLOW_DISTANCE: f32 = 150.0;
-const FOLLOW_FRAMES: i32 = 2 * FRAMES_PER_SECOND;
-/// A party that has drawn an engaging group this far from where the engagement began is running, not fighting:
-/// the group holds and the player is told (2v1-hard_aggressive 9:21-9:46 and 11:04-11:32: groups followed
-/// retreating parties 2,000 and 3,500 elmos across the map, re-sent every 2 s while the party stayed in sight
-/// 300-600 ahead, and died to what waited there; K-hands-follow-had-no-leash).
-const FOLLOW_LEASH: f32 = 900.0;
 /// A party nobody has seen for this long is gone; a ground group holds where it stands, an air group searches its
 /// target's last position once and holds only after `AIR_LOST_FRAMES` (H-HANDS-AIR-TARGET: evidence-1-bombers, where
 /// the hold after six seconds out of sight cancelled every strike).
@@ -81,9 +73,8 @@ pub(crate) enum GroupTask {
     Move { to: Vec3, place: String, fight: bool, since: i32 },
     /// `target`: one unit of the party every member attacks directly (`attack_unit`, and every air group's
     /// engagement): re-issued while it is seen, the group holds when it is lost or dead.
-    /// `searched`: an air group has been sent to its lost target's last position. `from`: where the group stood
-    /// when the engagement began, the follow leash's anchor.
-    Engage { party: Vec<UnitId>, at: Vec3, since: i32, last_seen: i32, target: Option<UnitId>, searched: bool, from: Vec3 },
+    /// `searched`: an air group has been sent to its lost target's last position.
+    Engage { party: Vec<UnitId>, at: Vec3, since: i32, last_seen: i32, target: Option<UnitId>, searched: bool },
     /// An engagement plan Jev picked (`engagement.rs`, H-HANDS-ENGAGEMENT-PLAN): phase by phase against a position.
     Plan(super::engagement::PlanTask),
 }
@@ -101,8 +92,6 @@ pub(crate) struct Group {
     pub domain: Domain,
     pub members: Vec<UnitId>,
     pub task: GroupTask,
-    /// H-ARMY-MARCH's memory: who is waiting for the body.
-    pub held: HashSet<UnitId>,
     pub last_order: i32,
     /// The nearest the centre has been to a moving task's goal, and when it last got nearer (H-HANDS-STALL).
     pub best_to_go: f32,
@@ -187,7 +176,7 @@ pub(crate) const STRUNG_OUT: f32 = 600.0;
 
 impl Group {
     pub(crate) fn new(name: String, domain: Domain, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, members, task, held: HashSet::new(), last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None, hunt: None, joining: HashSet::new(), gathering: false, shelling: false, hunts_failed: Vec::new(), reached: Vec::new(), met: None, route: Vec::new(), scout: false, roving: false, rove_log: Vec::new() }
+        Group { name, domain, members, task, last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None, hunt: None, joining: HashSet::new(), gathering: false, shelling: false, hunts_failed: Vec::new(), reached: Vec::new(), met: None, route: Vec::new(), scout: false, roving: false, rove_log: Vec::new() }
     }
 
     /// The group's body toward `toward` (the goal of a walk, the nearest enemy, or nothing: then the front is the
@@ -277,7 +266,6 @@ impl Group {
     /// A new task starts the progress clock afresh.
     pub(crate) fn set_task(&mut self, task: GroupTask, frame: i32) {
         self.task = task;
-        self.held.clear();
         self.best_to_go = f32::INFINITY;
         self.progressed = frame;
         self.stall_warned = false;
@@ -414,8 +402,6 @@ impl Brain {
             }
         }
         // Standing orders, under each group's footwork rules (H-HANDS-LANE).
-        let footwork: Vec<crate::strategist::shared::Footwork> = pianist.groups.iter().map(|g| self.footwork_of(&g.name)).collect();
-        let mut marches: Vec<(usize, Vec3)> = Vec::new();
         let mut stalled: Vec<String> = Vec::new();
         let mut hunt_ends: Vec<String> = Vec::new();
         let mut route_news: Vec<String> = Vec::new();
@@ -529,7 +515,6 @@ impl Brain {
                         let gathering = group.gathering;
                         let shelling = group.shelling;
                         group.task = GroupTask::Hold { since: frame, committed: *fight || shelling };
-                        group.held.clear();
                         group.gathering = gathering;
                         group.shelling = shelling;
                     } else if *fight {
@@ -537,21 +522,11 @@ impl Brain {
                             group.stall_warned = true;
                             stalled.push(format!("group_{} was told to advance to {place} and has not got nearer for {} s, {to_go:.0} short of it", group.name, (frame - group.progressed) / FRAMES_PER_SECOND));
                         }
-                        if footwork[index].march && group.domain != Domain::Air {
-                            marches.push((index, *to));
-                        }
                     }
                 }
-                GroupTask::Engage { party, at, last_seen, target, searched, from, .. } => {
+                GroupTask::Engage { party, at, last_seen, target, searched, .. } => {
                     let seen: Vec<&bot_protocol::EnemyUnit> = enemies.iter().filter(|e| party.contains(&e.id)).collect();
                     let air = group.domain == Domain::Air;
-                    // The leash: a ground group drawn this far from where it engaged holds where it is.
-                    if !air && footwork[index].follow && centre.dist2d(*from) > FOLLOW_LEASH {
-                        stalled.push(format!("group_{} was drawn {:.0} from where it engaged its party, which is running, not fighting: it holds where it is", group.name, centre.dist2d(*from)));
-                        commands.extend(group.hold_orders(&units));
-                        group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
-                        continue;
-                    }
                     // A named target: the attack stands while the target is seen. Lost, a ground group holds; an air
                     // group searches the last position once and holds only much later (H-HANDS-AIR-TARGET).
                     if let Some(t) = *target {
@@ -559,8 +534,8 @@ impl Brain {
                             let found_again = *searched;
                             *last_seen = frame;
                             *searched = false;
-                            if found_again || (e.pos.dist2d(*at) > FOLLOW_DISTANCE && frame - group.last_order >= FOLLOW_FRAMES) {
-                                *at = e.pos;
+                            *at = e.pos;
+                            if found_again {
                                 group.last_order = frame;
                                 commands.extend(units.iter().map(|u| Command::Attack { unit: u.id, target: t, queue: false }));
                             }
@@ -578,11 +553,7 @@ impl Brain {
                         }
                     } else if let Some(now) = centre_of_enemies(&seen) {
                         *last_seen = frame;
-                        if footwork[index].follow && now.dist2d(*at) > FOLLOW_DISTANCE && frame - group.last_order >= FOLLOW_FRAMES {
-                            *at = now;
-                            group.last_order = frame;
-                            commands.extend(units.iter().map(|u| Command::Fight { unit: u.id, to: now, queue: false }));
-                        }
+                        *at = now;
                     } else if frame - *last_seen > LOST_FRAMES {
                         commands.extend(group.hold_orders(&units));
                         group.task = GroupTask::Hold { since: frame, committed: false };
@@ -618,15 +589,6 @@ impl Brain {
             }
         }
         self.pianist = Some(pianist);
-        for (index, to) in marches {
-            let mut held = std::mem::take(&mut self.pianist.as_mut().expect("pianist mode").groups[index].held);
-            let members = self.pianist.as_ref().expect("pianist mode").groups[index].members.clone();
-            // A straggler that cannot move (`yards.rs` `stuck`) holds nobody up (worlds-1, 16:14: the player turned
-            // the march off for group_C, held by a soldier stuck at B5).
-            let group: Vec<&OwnUnit> = own.iter().filter(|u| members.contains(&u.id) && !self.stuck.contains_key(&u.id)).collect();
-            commands.extend(self.march(&mut held, &group, to, enemies.as_slice()));
-            self.pianist.as_mut().expect("pianist mode").groups[index].held = held;
-        }
     }
 }
 
@@ -767,13 +729,7 @@ impl Brain {
             None => commands.extend(units.iter().map(|u| Command::Fight { unit: u.id, to: party.at, queue: false })),
         }
         // The leash's anchor is the body's place, as the leash measures it (`tick_groups`: "the body's place, not
-        // the centre of every member"): the centre of every member, the stream still joining at the yard included,
-        // stood over 900 from the body on the first tick, the leash held the group, and the pick engaged it again
-        // a second later, a Fight and a Stop every half second (player-20: 422 stops in minute 9 with five
-        // extractors lost at C5-C7 under them, 1,026 in minute 15 through engagement #13, 2,525 lost for 0 in the
-        // base; K-hands-the-follow-leash-fired-on-the-first-tick).
-        let from = group.body(own, Some(party.at)).map(|b| b.at).or_else(|| centre_of(&units)).unwrap_or(party.at);
-        group.set_task(GroupTask::Engage { party: party.ids.clone(), at: party.at, since: frame, last_seen: frame, target, searched: false, from }, frame);
+        group.set_task(GroupTask::Engage { party: party.ids.clone(), at: party.at, since: frame, last_seen: frame, target, searched: false }, frame);
         group.last_order = frame;
         format!("attack {} ({}) with the whole group", party.name, party.composition)
     }

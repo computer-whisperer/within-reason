@@ -204,7 +204,6 @@ pub struct Footwork {
     #[serde(default = "yes")]
     pub form: bool,
     pub march: bool,
-    pub follow: bool,
     #[serde(default)]
     pub rove: bool,
 }
@@ -215,15 +214,15 @@ fn yes() -> bool {
 
 impl Default for Footwork {
     fn default() -> Footwork {
-        Footwork { flee: true, fan: true, kite: true, form: true, march: true, follow: true, rove: false }
+        Footwork { flee: true, fan: true, kite: true, form: true, march: true, rove: false }
     }
 }
 
 impl Footwork {
-    pub const RULES: [&'static str; 6] = ["flee", "fan", "kite", "form", "march", "follow"];
+    pub const RULES: [&'static str; 5] = ["flee", "fan", "kite", "form", "march"];
 
     pub fn raw() -> Footwork {
-        Footwork { flee: false, fan: false, kite: false, form: false, march: false, follow: false, rove: false }
+        Footwork { flee: false, fan: false, kite: false, form: false, march: false, rove: false }
     }
 
     /// The rover's setting: none of the rules, the lane runs the soldiers itself (H-MICRO-ROVE).
@@ -233,7 +232,7 @@ impl Footwork {
 
     /// The rules kept, by name.
     pub fn kept(&self) -> Vec<&'static str> {
-        let flags = [self.flee, self.fan, self.kite, self.form, self.march, self.follow];
+        let flags = [self.flee, self.fan, self.kite, self.form, self.march];
         Footwork::RULES.iter().zip(flags).filter(|(_, on)| *on).map(|(name, _)| *name).collect()
     }
 
@@ -247,7 +246,6 @@ impl Footwork {
                 "kite" => footwork.kite = true,
                 "form" => footwork.form = true,
                 "march" => footwork.march = true,
-                "follow" => footwork.follow = true,
                 other => return Err(format!("{other} is not a footwork rule; the rules are {}", Footwork::RULES.join(", "))),
             }
         }
@@ -668,12 +666,11 @@ impl Lane {
             kite: view.enabled(Rule::Kite.id()),
             form: view.enabled(Rule::Form.id()),
             march: true,
-            follow: true,
             rove: false,
         };
         let rules_of = |id: UnitId| {
             let f = footwork.get(&id).copied().unwrap_or_default();
-            Footwork { flee: f.flee && gate.flee, fan: f.fan && gate.fan, kite: f.kite && gate.kite, form: f.form && gate.form, march: f.march, follow: f.follow, rove: false }
+            Footwork { flee: f.flee && gate.flee, fan: f.fan && gate.fan, kite: f.kite && gate.kite, form: f.form && gate.form, march: f.march, rove: false }
         };
         // H-MICRO-FORM's orders for every unit in a body, decided first: the host's group orders of this tick are
         // rewritten into them here (a standing unit's dropped), and the free units take them last.

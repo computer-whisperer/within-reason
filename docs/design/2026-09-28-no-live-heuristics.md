@@ -1,6 +1,6 @@
 # No live heuristics above the micro engine
 
-**Status.** Stages 1-3 built 2026-09-28 night (f2cf462 and the stage-3 commit): the standing tool, every default, and the game-keyed gates are gone. Open: the A sites that move down into micro (follow, march, hunt ends) and the decisions listed under 'remove' not yet touched (the nano guard, the resurrection crews, the task drops on clocks, the newcomer walk), and the questions below. Proposed 2026-09-28 evening, after player-22-commit. The user's ruling: "any higher level heuristics making
+**Status.** Stages 1-3 built 2026-09-28 night (f2cf462 and the stage-3 commit): the standing tool, every default, and the game-keyed gates are gone. Stage 4 (the user's rulings, late 2026-09-28): the hands' follow re-send, its 900 leash and the named-target re-attack are deleted with the `follow` lane word; H-ARMY-MARCH is deleted (the lane's march stands); the hunt-end release stays as the end of an order; the nano guard, the resurrection crews and the newcomer walk stay as mechanics; rove holds as-is, a rework expected; the brief stays large as in-context training data. The lane's `release` no longer re-sends an order the host gave this tick (the doubled stops). Proposed 2026-09-28 evening, after player-22-commit. The user's ruling: "any higher level heuristics making
 live game decisions should be removed completely"; the micro engine stays because it runs faster than a model call
 returns. Nothing is deleted until the cut line below is ruled on.
 

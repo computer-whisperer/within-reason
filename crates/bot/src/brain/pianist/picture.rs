@@ -1337,9 +1337,6 @@ impl Brain {
                     from.iter().map(|(p, n)| format!("{n} from {p}")).collect::<Vec<_>>().join(", ")
                 ));
             }
-            if !group.held.is_empty() {
-                entry["ranks"] = json!(format!("{} of its soldiers stand waiting for the body to come up (the march keeps the group together); they are not stalled", group.held.len()));
-            }
             // The lane as it plays: a hands' scout roves without a setting; an air group never roves (H-MICRO-ROVE).
             let footwork = if group.roving { crate::strategist::shared::Footwork::rove() } else { self.footwork_of(&group.name) };
             if footwork.rove && !group.roving {
@@ -1362,7 +1359,7 @@ impl Brain {
                 entry["losses"] = json!(format!("lost {} of its {} soldiers ({lost_metal:.0} metal, {words}) in the last 30 s, the last {} s ago", lost_lately.len(), units.len() + lost_lately.len(), (frame - last) / FRAMES_PER_SECOND));
             }
             if let Some(seconds) = group.stalled_seconds(frame).filter(|s| *s >= 20) {
-                entry["progress"] = json!(format!("its body has not got nearer its goal for {seconds} s: stalled{}", if group.held.is_empty() { "" } else { " (part of it waits in ranks)" }));
+                entry["progress"] = json!(format!("its body has not got nearer its goal for {seconds} s: stalled"));
             }
             // The army in pieces, said on both sides (escalate-6: 19 detachments and 15 splits in ten minutes, five to
             // nine groups alive, dying one by one; nothing in the picture counted them).

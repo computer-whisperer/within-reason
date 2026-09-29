@@ -570,7 +570,7 @@ mod tests {
         let host = Host::new(Vec::new());
         let mut lane = Lane::default();
         let ids = [10, 11, 12, 13, 14, 15];
-        let form_only = crate::Footwork { flee: false, fan: false, kite: false, form: true, march: false, follow: false, rove: false };
+        let form_only = crate::Footwork { flee: false, fan: false, kite: false, form: true, march: false, rove: false };
         lane.set_commitments(HashMap::new(), ids.iter().map(|id| (UnitId(*id), form_only)).collect());
         let station = at(1000.0, 3600.0);
         let rovers = |x: f32| ids.iter().enumerate().map(|(i, id)| rover(*id, x + 40.0 * (i % 3) as f32, 1000.0 + 40.0 * (i / 3) as f32)).collect::<Vec<_>>();
@@ -610,7 +610,7 @@ mod tests {
         let host = Host::new(Vec::new());
         let mut lane = Lane::default();
         let ids = [10, 11, 12, 13, 14, 15];
-        let form_only = crate::Footwork { flee: false, fan: false, kite: false, form: true, march: false, follow: false, rove: false };
+        let form_only = crate::Footwork { flee: false, fan: false, kite: false, form: true, march: false, rove: false };
         lane.set_commitments(HashMap::new(), ids.iter().map(|id| (UnitId(*id), form_only)).collect());
         let rovers = ids.iter().enumerate().map(|(i, id)| rover(*id, 1000.0 + 40.0 * (i % 3) as f32, 1000.0 + 40.0 * (i / 3) as f32)).collect::<Vec<_>>();
         let mut host_orders: Vec<Command> = ids.iter().map(|id| Command::Fight { unit: UnitId(*id), to: at(1000.0, 3600.0), queue: false }).collect();
@@ -624,6 +624,30 @@ mod tests {
             let n = stops.iter().chain(out.commands.iter()).filter(|c| matches!(c, Command::Stop { unit } if unit.0 == id)).count();
             assert_eq!(n, 1, "unit {id} stopped {n} times: host {stops:?}, lane {:?}", out.commands);
         }
+    }
+
+    /// The lane's march is the one march (H-ARMY-MARCH deleted): a fast unit in a body sent far is ordered to a form-up
+    /// rank a few seconds ahead of the body, never straight to the goal ahead of the rest.
+    #[test]
+    fn the_march_keeps_a_fast_unit_in_a_rank_ahead_of_the_body() {
+        let host = Host::new(Vec::new());
+        let mut lane = Lane::default();
+        let ids = [10, 11, 12, 13, 14, 15];
+        let marching = crate::Footwork { flee: false, fan: false, kite: false, form: true, march: true, rove: false };
+        lane.set_commitments(HashMap::new(), ids.iter().map(|id| (UnitId(*id), marching)).collect());
+        // Five Pawns (87) and one Rover (168), together at x 1000; the goal 3,000 east.
+        let mut body: Vec<OwnUnit> = ids.iter().enumerate().map(|(i, id)| rover(*id, 1000.0 + 40.0 * (i % 3) as f32, 1000.0 + 40.0 * (i / 3) as f32)).collect();
+        for u in body.iter_mut().skip(1) {
+            u.def = PAWN;
+        }
+        let goal = at(4000.0, 1000.0);
+        let mut host_orders: Vec<Command> = ids.iter().map(|id| Command::Fight { unit: UnitId(*id), to: goal, queue: false }).collect();
+        lane.note_standing_orders(&host_orders, 30, |_| true);
+        let out = lane.tick(&host, &tick(30, body, Vec::new()), &mut host_orders, false);
+        let first: Vec<Vec3> = host_orders.iter().chain(out.commands.iter()).filter_map(|c| match c { Command::Fight { unit, to, queue: false } | Command::Move { unit, to, queue: false } if unit.0 == 10 => Some(*to), _ => None }).collect();
+        assert!(!first.is_empty(), "the Rover is ordered");
+        let ahead = first[0].x - 1000.0;
+        assert!(ahead < 700.0 && first[0].dist2d(goal) > 2000.0, "the Rover's first point is a rank {ahead:.0} ahead of the body, not the goal: {first:?}");
     }
 
     #[test]
