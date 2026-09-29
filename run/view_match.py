@@ -70,10 +70,10 @@ def batch_entry(root, name):
     # connection at the end): its records go quiet. Quiet for three minutes is ended, and shown as "no result".
     newest_write = 0
     for sub in matches:
-        for name in os.listdir(os.path.join(path, sub["index"])) if sub["record"] else []:
-            if name.startswith("record-") and name.endswith(".jsonl"):
+        for file in os.listdir(os.path.join(path, sub["index"])) if sub["record"] else []:
+            if file.startswith("record-") and file.endswith(".jsonl"):
                 try:
-                    newest_write = max(newest_write, os.path.getmtime(os.path.join(path, sub["index"], name)))
+                    newest_write = max(newest_write, os.path.getmtime(os.path.join(path, sub["index"], file)))
                 except OSError:
                     pass
     quiet = newest_write > 0 and time.time() - newest_write > 180
