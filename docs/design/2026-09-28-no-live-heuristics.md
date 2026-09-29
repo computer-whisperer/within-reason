@@ -28,27 +28,53 @@ commander left its assist; a forgotten-mark check from 09-21 stopped every group
 
 ## The inventory
 
-(To be filled from `scratchpad/inventory-live-decisions.md` once verified: every site by category A (acts without a
-pick), B (prunes or cancels), C (defaults), with file:line, trigger, heuristic id, and how often it fired in
-player-22.)
+`2026-09-28-no-live-heuristics-inventory.md`: **27 sites that give or cancel an order on their own (A), 43 that prune
+or hide a state before Jev sees it or refuse a pick (B), 18 defaults that play when Jev does not (C) plus 6 modifiers
+that decide when a default fires.** What fired most in player-22: the quiet gate (320 s where the base world stood and
+nothing was asked), the FLAG threshold (273 of 976 gates opened nothing), the march's leader stops (124), the lab
+default (110 of the 142 `rule` plays), OVER_RULE 0.7 (99 gates where a state rated 0.5-0.7 stayed under a default),
+the confidence bar (12 group moves not played), list steps held after a diversion (26), hunt ends (25, each declining
+the party 30 s), the forgotten-mark stop (21, every one a pick to `shelling`/`standoff`), the station default (17).
+The player's standing rules played 29 of the 142 `rule` plays (station 17, detachment 5, `job expand` 5).
 
 ## The cut line: what goes, what becomes information, what stays
 
-(Per site: **remove**, or **convert** into words/options Jev sees or a tool the player has, or **keep** as execution
-mechanics. The conversion rule: the fact the gate keyed on goes into the state's words or the odds; the option the gate
-removed is offered; Jev declines it or not.)
+**Goes, all of it: every C default and the `standing` tool.** An idle lab, an idle constructor, a station, a
+raiders rule, a fall-back, a retreat: each is a state Jev sees and picks or a line the player writes in `instruct`
+that the picture quotes beside the state. The tool's pruning keys (`never`, `ignore`, `no_detachments`) become
+words in the state ("the instructions forbid spot_50") for Jev to decline. `station` becomes the ordinary walk-and-hold
+order it already is; `plan: no` becomes a lane-style switch on the group. With the defaults gone, OVER_RULE goes too.
+
+**Goes: every B gate that keys on the game** (odds strings, reach, never places, scout share, the confidence bar,
+the plan hysteresis, GROUPS_PER_PARTY, HUNT_PARTY_MAX, `declined` timers). The fact each keyed on goes into the
+state's words or the odds; the option it removed is offered. **Stays, as the cost of asking, not as a decision:** the
+quiet gate (nothing changed since the last ask: do not ask) and FLAG/IDLE_BAR, which are thresholds on Jev's own
+"should this actor change" answer, on the condition that the base world is `keep` for every actor and never a default.
+`diet::shed` stays (request size).
+
+**A sites: three kinds.**
+- *Execution of a pick or a list step, keep:* the plan's phases (A8), the queued-task promotion (A24), the timed
+  assist's own timer (A14, the player's N), arrival becoming a hold (A23), the head-of-list stop.
+- *Tick-rate work that belongs in the micro engine, move down and fix there:* following a moving target (A16, A20;
+  replaces the 900 leash A7), the march's leader waiting (A1, already a lane word), hunt ends (A3, A26: keep the
+  release, drop the 30 s decline), the named-target re-attack (A15).
+- *Decisions, remove:* the forgotten-mark stop (A4), the 90 s give-up (A12: keep the stall words), the assist skip on
+  the store (A13), the list holds after a diversion or a retreat (A2, A27: the list resumes; the pick that diverted
+  it is the decision), the base-world Leave (A6), the party-gone stop (A9: the target's absence is in the picture),
+  the never-chase stop (A11), the newcomer's automatic walk (A18: a produced soldier stands at the plant until its
+  group is told; or the `produce ... group` order carries the walk, the user's call), the nano guard (A10), the
+  resurrection crews (A25), the task drops on clocks (A21, A22: the stuck and the wait are words; the player or Jev
+  drops the task), the engagement's lost-party hold (A17: a fact for Jev).
 
 ## Questions for the user
 
-1. Standing rules the player writes (`standing`: `raiders_party`, `no_chase`, `never`, `fall_back_to`,
-   `retreat_when_enemy_near`) are applied by code without a pick (source `rule`, 142 plays in player-22). Is a
-   player-authored rule "the player in root control", or must its effect also go through a pick?
-2. The lists (`queue`, `produce`): code advances a list step by step (source `list`, 129 plays). Same question; and
-   the timed `assist N` skipped on a metal store under 20 is a code decision inside a list.
-3. Hunts by id, the follow leash and the forgotten-mark stop live in the hands but act at tick rate: do they belong
-   to the micro engine (keep, fix the bug) or to the hands (remove, make them Jev's)?
-4. Engagement plan hysteresis and the confidence bar: remove outright, or replace with the information (the last
-   answer, the confidence) in the question so Jev holds its own line?
+1. The `standing` tool: delete it (recommended), or keep `never` as a tool-side place filter?
+2. A produced soldier: walks to its group on its own (today), or stands at the plant until the player's `produce
+   ... group` order is read as "and walk to it"?
+3. The engagement plan: keep as a Jev decision with its phases executed by code (recommended), or fold it back
+   into the pick?
+4. The pursuit let-go inside `crates/micro` (600 elmos, 30 s, from one game): keep as a micro rule, or make the
+   let-go a lane word the player sets?
 
 ## Order of work
 
