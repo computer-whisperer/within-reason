@@ -62,3 +62,14 @@
   again at 17:03 after the player's `fall_back_to far_north`; the rule stands over any packet written before the last
   loss, and under steady shelling every packet is.
 - The user ended the review at 16:45: "other issues past that point ... may be more of the same artifact."
+
+## 2026-09-28, the user, after watching player-22-commit's opening (the Rover mass committed to an assault)
+
+- **"Our initial assault failed, and talking to the experienced players tells me that we need specific micro
+  behavior to take advantage of those units."** Untested as a rule for the hands; measured so far: the body on `rove`
+  killed nothing (player-20, -21), the committed body died without paying (player-22, the numbers in its ledger row).
+- **"I would flag that build in the brief as an example, but note that we currently don't have a micro mode capable
+  of using the units properly to make that build work."** Applied: the brief's recommended Comet line is the pros'
+  macro line again, the Rover mass is snippet (0) with this note.
+- The Rover rush "is not the kind of macro game I was intending for us to pursue"; the games he meant for review
+  were thebluegecko's games against us (the human games of 2026-09-27).
