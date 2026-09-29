@@ -58,6 +58,8 @@ A commitment kind `Hunt` for a set of hunters on one quarry (a unit id):
 
 ### 2. Detachments are temporary bodies (the brain, `groups.rs`; the main thread)
 
+**Superseded 2026-09-29 (the user):** a hunt is a group of its own, split from its parent under a new name with the hunt as its task; when the hunt ends it holds where it stands and the merge back is Jev's `join_group_X` state or the player's ask. The resolution below was the design's, not a ruling, and it let one hunter hold its parent's name in the pass (player-23 4:00).
+
 A detachment on a hunt is `Detachment { from: group, members, hunt }`: not a named group, not adoptable, no rules of
 its own, invisible to the player except as "3 of group_A hunting party_9"; when the hunt ends its members rejoin
 their group and take its current task. The `send_against` order and the path that makes a new group from it are

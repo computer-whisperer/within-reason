@@ -138,6 +138,8 @@ pub struct Pianist {
     pub(super) events: BTreeSet<String>,
     /// The hunts' ends since the last pass line (`groups.rs` `tick_hunt`), for the log.
     pub(super) hunt_events: Vec<String>,
+    /// Hunts that ended without a kill: the party, when, and why, said when a hunt of it is offered again.
+    pub(super) hunts_failed: Vec<(String, i32, String)>,
     /// The rovers' events since the last pass line (`groups.rs` `rove_events`), for the log.
     pub(super) rove_events: Vec<String>,
     /// Spots where the engine refused an extractor, and until when they are left off (H-HANDS-REFUSED).
@@ -385,6 +387,7 @@ impl Pianist {
             sig: None,
             events: BTreeSet::new(),
             hunt_events: Vec::new(),
+            hunts_failed: Vec::new(),
             rove_events: Vec::new(),
             refused_spots: HashMap::new(),
             refused_sites: Vec::new(),
@@ -872,6 +875,7 @@ impl Brain {
                     GroupTask::Move { to, place, fight, .. } => json!({ "kind": if *fight { "fight_to" } else { "move_to" }, "place": place, "to": [to.x as i32, to.z as i32] }),
                     GroupTask::Engage { at, target, .. } => json!({ "kind": if target.is_some() { "attack_unit" } else { "engage" }, "to": [at.x as i32, at.z as i32] }),
                     GroupTask::Plan(plan) => json!({ "kind": "plan", "plan": plan.key, "phase": plan.phase + 1, "to": [plan.goal().x as i32, plan.goal().z as i32] }),
+                    GroupTask::Hunt(h) => json!({ "kind": "hunt", "party": h.party, "quarry": h.quarry.0, "to": [h.at.x as i32, h.at.z as i32] }),
                 };
                 json!({ "name": g.name, "members": g.members.iter().map(|id| id.0).collect::<Vec<_>>(), "at": centre.map(|c| [c.x as i32, c.z as i32]), "task": task })
             })

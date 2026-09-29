@@ -1260,6 +1260,7 @@ impl Brain {
                 GroupTask::Move { to, .. } => Some(*to),
                 GroupTask::Engage { at, .. } => Some(*at),
                 GroupTask::Plan(plan) => Some(plan.goal()),
+                GroupTask::Hunt(h) => Some(h.at),
                 GroupTask::Hold { .. } => None,
             };
             let nearest_to_any = |p: &Party| units.iter().map(|u| u.pos.dist2d(p.at)).fold(f32::INFINITY, f32::min);
@@ -1287,14 +1288,9 @@ impl Brain {
                 }
                 // The plan in a line (H-HANDS-ENGAGEMENT-PLAN): its phases, which one, how long in.
                 GroupTask::Plan(plan) => plan.line(frame),
+                GroupTask::Hunt(hunt) => format!("hunting {} since {} ago (its quarry {} at {}{})", hunt.party, ago(hunt.since), if frame - hunt.last_seen < FRAMES_PER_SECOND { "seen" } else { "last seen" }, self.place_words(&places, hunt.at), if hunt.dropped.is_empty() { String::new() } else { format!("; {} of its hunters dropped out and hold", hunt.dropped.len()) }),
             };
-            // A hunt out is the group's doing too: the entry said "attacking party_22, for 15 s" while four of its
-            // eight hunted and the rest had no order (onepass-player-8 7:22-7:31).
-            let doing = match &group.hunt {
-                Some(hunt) => format!("{} of its soldiers hunting {} since {} ago; the rest {doing}", hunt.hunters.len(), hunt.party, ago(hunt.since)),
-                None if group.roving => format!("roving, in code, beyond your hands' reach: {}", self.rover_words(group, own, &snapshot.enemies, &places)),
-                None => doing,
-            };
+            let doing = if group.roving { format!("roving, in code, beyond your hands' reach: {}", self.rover_words(group, own, &snapshot.enemies, &places)) } else { doing };
             // Health as a distribution, not an average (game 9: "full on average" at 22 of 39 lost), with the
             // losses since the player's last orders, which is what it asked about.
             let full = units.iter().filter(|u| u.health >= 0.95 * u.max_health).count();

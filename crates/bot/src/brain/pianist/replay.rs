@@ -185,6 +185,7 @@ pub fn plan_replay(raw: &[String]) -> Result<(), String> {
             GroupTask::Move { place, fight, .. } => format!("{} to {place}", if *fight { "advancing" } else { "walking" }),
             GroupTask::Engage { .. } => "attacking a party".to_string(),
             GroupTask::Plan(plan) => format!("on its engagement plan {}", plan.key),
+            GroupTask::Hunt(h) => format!("hunting {}", h.party),
         };
         match brain.engagement_of(group, &own, &parties, &enemies, &places, false) {
             Err(why) => println!("\n{name} ({task}): not planned: {why}"),

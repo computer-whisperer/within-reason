@@ -828,6 +828,7 @@ impl Brain {
                 GroupTask::Move { to, .. } => Some(*to),
                 GroupTask::Engage { at, .. } => Some(*at),
                 GroupTask::Plan(plan) => Some(plan.goal()),
+                GroupTask::Hunt(h) => Some(h.at),
                 GroupTask::Hold { .. } => None,
             };
             let nearest_to_any = |p: &super::Party| units.iter().map(|u| u.pos.dist2d(p.at)).fold(f32::INFINITY, f32::min);
@@ -835,7 +836,7 @@ impl Brain {
             let Some(body) = group.body(own, toward) else { continue };
             let centre = body.at;
             let doing = picture.state["actors"][&name]["doing"].as_str().unwrap_or("holds").to_string();
-            let hunting = group.hunt.is_some();
+            let hunting = matches!(group.task, GroupTask::Hunt(_));
             let idle = matches!(group.task, GroupTask::Hold { .. }) && !hunting;
             let mut states = vec![State { id: format!("{name}.keep"), actor: name.clone(), response: Response::Keep, words: format!("{name} {doing}{}", if hunting { " (hunting a raider with a few of its soldiers)" } else { "" }), metal: 0.0, dim: "threat", current: false, pair_only: false }];
             let mut push = |key: &str, response: Response, words: String, current: bool| {

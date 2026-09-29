@@ -89,17 +89,16 @@ impl Brain {
         done.into_iter().map(|(a, _, d)| format!("{a}: {d}")).collect()
     }
 
-    /// Nobody moves for the party: a group hunting it or engaging it stops and declines it for a while.
+    /// Nobody moves for the party: a group hunting it or engaging it stops and holds.
     fn leave_party(&mut self, party: &Party, own: &[OwnUnit], frame: i32, commands: &mut Vec<Command>) -> Vec<(String, String)> {
         let mut done = Vec::new();
         let Some(pianist) = self.pianist.as_mut() else { return done };
         for group in pianist.groups.iter_mut() {
-            if group.hunt.as_ref().is_some_and(|h| party.ids.contains(&h.quarry)) {
-                let hunters: Vec<UnitId> = group.hunt.as_ref().map(|h| h.hunters.clone()).unwrap_or_default();
-                group.hunt = None;
-                let units: Vec<&OwnUnit> = own.iter().filter(|u| hunters.contains(&u.id)).collect();
-                commands.extend(group.rejoin_orders(&units));
-                done.push((format!("group_{}", group.name), format!("its hunt of {} called off", party.name)));
+            if matches!(&group.task, GroupTask::Hunt(h) if party.ids.contains(&h.quarry)) {
+                let units = group.units(own);
+                commands.extend(group.hold_orders(&units));
+                group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
+                done.push((format!("group_{}", group.name), format!("its hunt of {} called off; it holds", party.name)));
             }
             if matches!(&group.task, GroupTask::Engage { party: ids, .. } if ids.iter().any(|id| party.ids.contains(id))) {
                 let units = group.units(own);
@@ -372,7 +371,7 @@ impl Brain {
             }
             Response::Hunt(hunters) => {
                 if let Some(party) = party {
-                    did = Some(Brain::start_hunt(&mut pianist.groups[index], hunters.clone(), party, own, enemies, frame, commands));
+                    did = Brain::start_hunt(&mut pianist, index, hunters, party, own, enemies, frame, commands);
                 }
             }
             Response::Back(place_name) => {
@@ -389,7 +388,6 @@ impl Brain {
                 if let Some(p) = place(place_name) {
                     let to = self.snap_for(self.group_walker(&pianist.groups[index], own), p.at);
                     let group = &mut pianist.groups[index];
-                    group.hunt = None;
                     commands.extend(group.release_orders(&units));
                     commands.extend(ids.iter().map(|id| if *fight { Command::Fight { unit: *id, to, queue: false } } else { Command::Move { unit: *id, to, queue: false } }));
                     group.set_task(GroupTask::Move { to, place: p.name.clone(), fight: *fight, since: frame }, frame);
@@ -399,7 +397,6 @@ impl Brain {
             }
             Response::Retreat => {
                 let group = &mut pianist.groups[index];
-                group.hunt = None;
                 commands.extend(group.release_orders(&units));
                 commands.extend(ids.iter().map(|id| Command::Move { unit: *id, to: home, queue: false }));
                 group.set_task(GroupTask::Move { to: home, place: "home".into(), fight: false, since: frame }, frame);
@@ -410,7 +407,6 @@ impl Brain {
                 if let Some(to) = pianist.groups[index].last_hold {
                     let place = format!("{} {}", LAST_HOLD, self.place_words(&picture.places, to));
                     let group = &mut pianist.groups[index];
-                    group.hunt = None;
                     commands.extend(group.release_orders(&units));
                     commands.extend(ids.iter().map(|id| Command::Move { unit: *id, to, queue: false }));
                     group.set_task(GroupTask::Move { to, place: place.clone(), fight: false, since: frame }, frame);
@@ -423,7 +419,7 @@ impl Brain {
                     let n = (*n).clamp(1, units.len().saturating_sub(1).max(1));
                     let domain = pianist.groups[index].domain;
                     let to = self.snap_for(self.group_walker(&pianist.groups[index], own), p.at);
-                    let free: Vec<&OwnUnit> = pianist.groups[index].free_units(own);
+                    let free: Vec<&OwnUnit> = pianist.groups[index].units(own);
                     let detached: Vec<UnitId> = nearest_of(&free, to, n).iter().map(|u| u.id).collect();
                     pianist.groups[index].members.retain(|id| !detached.contains(id));
                     commands.extend(detached.iter().flat_map(|id| [Command::MoveState { unit: *id, state: 1 }].into_iter().filter(|_| domain == crate::world::Domain::Air).chain([Command::Fight { unit: *id, to, queue: false }])));
@@ -437,7 +433,7 @@ impl Brain {
                 // The group's fastest soldier becomes a group of its own that roves (H-MICRO-ROVE): the lane picks
                 // where it looks from the next tick, and no state of the hands' moves it (player-9-posing: three
                 // scouts walked at his base by the hands' Moves, pulled home, into two Pawns, onto a hunt).
-                let free: Vec<&OwnUnit> = pianist.groups[index].free_units(own);
+                let free: Vec<&OwnUnit> = pianist.groups[index].units(own);
                 let speed = |u: &OwnUnit| self.world.def(u.def).map_or(0.0, |d| d.speed);
                 if let Some(scout) = free.iter().copied().max_by(|a, b| speed(a).total_cmp(&speed(b)))
                     && free.len() >= 2
@@ -457,7 +453,6 @@ impl Brain {
                 if let Some(p) = place(place_name) {
                     let to = self.snap_for(self.group_walker(&pianist.groups[index], own), p.at);
                     let group = &mut pianist.groups[index];
-                    group.hunt = None;
                     commands.extend(group.release_orders(&units));
                     commands.extend(ids.iter().map(|id| Command::Move { unit: *id, to, queue: false }));
                     group.set_task(GroupTask::Move { to, place: p.name.clone(), fight: false, since: frame }, frame);
@@ -479,7 +474,6 @@ impl Brain {
                     let point = |dist: f32| Vec3 { x: party.at.x + dx / len * dist, y: 0.0, z: party.at.z + dz / len * dist };
                     let standoff = self.snap_for(self.group_walker(group, own), point(reach * 0.85));
                     let screen = self.snap_for(self.group_walker(group, own), point(reach * 0.55));
-                    group.hunt = None;
                     commands.extend(group.release_orders(&units));
                     for u in &units {
                         let to = if reach_of(u) >= 600.0 { standoff } else { screen };
@@ -493,7 +487,6 @@ impl Brain {
             }
             Response::Join(other) => {
                 if let Some(target) = pianist.groups.iter().position(|g| g.name == *other && g.domain == pianist.groups[index].domain) {
-                    pianist.groups[index].hunt = None;
                     let members = std::mem::take(&mut pianist.groups[index].members);
                     let to = super::groups::centre_of(&pianist.groups[target].units(own)).or(centre).unwrap_or(home);
                     commands.extend(members.iter().map(|id| Command::Move { unit: *id, to, queue: false }));

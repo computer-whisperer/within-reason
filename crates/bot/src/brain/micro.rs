@@ -66,6 +66,7 @@ impl Brain {
                     // cover); a step out, a gather and the way back fight nothing.
                     super::pianist::GroupTask::Plan(plan) if plan.fighting() => Commitment::Priced { turrets: plan.turrets(), commander: false },
                     super::pianist::GroupTask::Plan(_) => Commitment::None,
+                    super::pianist::GroupTask::Hunt(_) => Commitment::None,
                 };
                 let rules = self.footwork_of(&group.name);
                 if group.roving {
@@ -76,7 +77,11 @@ impl Brain {
                 for id in &group.members {
                     // A hunter is the engine's (H-MICRO-HUNT): attack by id every tick, raw, until the quarry is dead or
                     // lost or the leash ends (docs/design/2026-09-26-threat-response.md §1).
-                    match group.hunt.as_ref().filter(|h| h.hunters.contains(id)) {
+                    let hunting = match &group.task {
+                        super::pianist::GroupTask::Hunt(h) if !h.dropped.contains(id) => Some(h),
+                        _ => None,
+                    };
+                    match hunting {
                         Some(h) => {
                             commitment.insert(*id, Commitment::Hunt(micro::Hunt { quarry: h.quarry, leash_from: h.from, leash: super::pianist::groups::HUNT_LEASH }));
                             footwork.insert(*id, Footwork::raw());
@@ -130,10 +135,18 @@ impl Brain {
         {
             let own = &tick.snapshot.own_units;
             for event in &output.hunts {
+                let mut ended = Vec::new();
                 for group in pianist.groups.iter_mut() {
-                    if let Some(text) = Brain::hunt_event(group, event, own, tick.frame, commands) {
-                        pianist.done.push(format!("{} {text}", super::pianist::picture::clock(tick.frame)));
-                        pianist.hunt_events.push(text);
+                    if let Some(end) = Brain::hunt_event(group, event, own, tick.frame, commands) {
+                        ended.push(end);
+                    }
+                }
+                for (text, failed) in ended {
+                    pianist.done.push(format!("{} {text}", super::pianist::picture::clock(tick.frame)));
+                    pianist.hunt_events.push(text);
+                    if let Some((party, why)) = failed {
+                        pianist.hunts_failed.retain(|(_, f, _)| tick.frame - f < 3 * 60 * super::FRAMES_PER_SECOND);
+                        pianist.hunts_failed.push((party, tick.frame, why));
                     }
                 }
             }

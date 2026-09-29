@@ -1539,3 +1539,8 @@ more seconds until `lane raw` at 15:40.
 `crates/bot/src/strategist/mcp.rs` (the lane schema); `strategist/player.md` line 74 before this fix.
 **Status.** fixed 2026-09-28: the prompt's sentence names `form` in `focus`'s place.
 
+
+### K-hands-a-hunter-held-its-groups-name
+**Claim.** With a hunt kept inside its group, the pass's one-actor-one-threat rule (`compose`'s `taken` set) marked the whole group as sent the moment one member hunted: in player-23-clean at 3:53-4:17 one Rover of group_A hunting a Tick 1,800 east (party_6) left the six Blitzes and the second Rover at home unofferable against the Tick killing the base's extractors (party_7), though Jev rated that hunt 0.47-0.56 and "needs answering" 0.72 every second; the only mover offered was the commander (picked at 0.45, cannot catch a Tick), and the extractors at spot_67 and spot_68 died at 4:06 and 4:17. The design's detachment-inside-the-group (threat-response §2) was the cause; the user: a hunt is a group of its own.
+**Evidence.** `run/matches/1790652620-player-23-clean/00/jev-0.jsonl` (the worlds at 3:58: no hunt of party_7 among w1-w5; the `party_7.hunt_group_A` question at 0.54), `record-0.jsonl` (the extractor deaths).
+**Status.** fixed 2026-09-29: a hunt splits off as its own group (H-MICRO-HUNT amended).

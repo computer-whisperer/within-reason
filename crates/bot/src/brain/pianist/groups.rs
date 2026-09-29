@@ -43,16 +43,17 @@ pub(super) const LAST_HOLD: &str = "where it last held,";
 /// last held", and group_L fell back to where it stood, held, retreated, and fell back again, eleven times in 30 s).
 pub(super) const STATION_FRAMES: i32 = 15 * FRAMES_PER_SECOND;
 
-/// A hunt (`docs/design/2026-09-26-threat-response.md` §1-2): these members of the group attack one unit of a party by
-/// id, raw (no formation, no flee, no march), re-issued from the latest sighting, until the quarry dies, is out of
-/// sight and radar for `HUNT_LOST_FRAMES`, or the leash ends; a hunter under a third of its health drops out. The
-/// rest of the group keeps its task; the hunters rejoin it when the hunt ends. The micro engine's own primitive
-/// replaces the brain's re-issued attack when it lands.
+/// A hunt (`docs/design/2026-09-26-threat-response.md` §1; the user, 2026-09-29: a hunt is a group of its own, never
+/// part of the mass it left): the group's members attack one unit of a party by id, raw (no formation, no flee, no
+/// march), until the quarry dies, is out of sight and radar for `HUNT_LOST_FRAMES`, or the leash ends; a hunter under
+/// a third of its health drops out (`dropped`) and holds. The group holds where the hunt ends; the merge back is a
+/// state Jev picks or the player asks for.
 #[derive(Clone, Debug)]
 pub(crate) struct Hunt {
     pub quarry: UnitId,
     pub party: String,
-    pub hunters: Vec<UnitId>,
+    /// Members the engine let go (hurt, or slower than the quarry): they hold and are not committed again.
+    pub dropped: Vec<UnitId>,
     pub from: Vec3,
     pub since: i32,
     pub last_seen: i32,
@@ -77,6 +78,8 @@ pub(crate) enum GroupTask {
     Engage { party: Vec<UnitId>, at: Vec3, since: i32, last_seen: i32, target: Option<UnitId>, searched: bool },
     /// An engagement plan Jev picked (`engagement.rs`, H-HANDS-ENGAGEMENT-PLAN): phase by phase against a position.
     Plan(super::engagement::PlanTask),
+    /// A hunt (H-MICRO-HUNT): the whole group after one unit of a party, the micro engine's to run.
+    Hunt(Hunt),
 }
 
 impl GroupTask {
@@ -108,8 +111,6 @@ pub(crate) struct Group {
     pub loss_warned: bool,
     /// Where the group last stood holding: the `fall_back` option's destination (H-HANDS-FALL-BACK).
     pub last_hold: Option<Vec3>,
-    /// The hunt some or all of its members are on (`docs/design/2026-09-26-threat-response.md` §1-2).
-    pub hunt: Option<Hunt>,
     /// Members still on their way to join (a plant's output walking to the body): not the front, not the tail,
     /// not counted as arrived; said in the picture as reinforcements on the way (H-HANDS-GROUP-BODY).
     pub joining: HashSet<UnitId>,
@@ -117,8 +118,6 @@ pub(crate) struct Group {
     pub gathering: bool,
     /// Shelling a party from a standoff: the long-reach members at the standoff, the rest between (`shell`).
     pub shelling: bool,
-    /// Hunts by this group that ended without a kill: the party and when, said when the hunt is offered again.
-    pub hunts_failed: Vec<(String, i32, String)>,
     /// The places named for this group in the packet that its body has come within `ARRIVED` of, in order, with
     /// the frame: the facts of a route the packet wrote in prose, said in the picture and in `recent` and never
     /// acted on by code (docs/design/2026-09-28-routes-in-prose.md §4.2; the station list they replace was a
@@ -176,13 +175,13 @@ pub(crate) const STRUNG_OUT: f32 = 600.0;
 
 impl Group {
     pub(crate) fn new(name: String, domain: Domain, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, members, task, last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None, hunt: None, joining: HashSet::new(), gathering: false, shelling: false, hunts_failed: Vec::new(), reached: Vec::new(), met: None, route: Vec::new(), scout: false, roving: false, rove_log: Vec::new() }
+        Group { name, domain, members, task, last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None, joining: HashSet::new(), gathering: false, shelling: false, reached: Vec::new(), met: None, route: Vec::new(), scout: false, roving: false, rove_log: Vec::new() }
     }
 
     /// The group's body toward `toward` (the goal of a walk, the nearest enemy, or nothing: then the front is the
     /// centre and the tail the member farthest from it). `None` when no member stands.
     pub(crate) fn body<'a>(&self, own: &'a [OwnUnit], toward: Option<Vec3>) -> Option<Body<'a>> {
-        let units = self.free_units(own);
+        let units = self.units(own);
         let (joining, mut core): (Vec<&OwnUnit>, Vec<&OwnUnit>) = units.iter().copied().partition(|u| self.joining.contains(&u.id));
         if core.is_empty() {
             // Everybody is still on the way: the body is wherever they are.
@@ -199,12 +198,6 @@ impl Group {
         Some(Body { length: front.dist2d(tail), core, joining, front, tail, at, arrived })
     }
 
-    /// The members not on a hunt: the ones the group's task orders.
-    pub(crate) fn free_units<'a>(&self, own: &'a [OwnUnit]) -> Vec<&'a OwnUnit> {
-        let hunting: Vec<UnitId> = self.hunt.as_ref().map(|h| h.hunters.clone()).unwrap_or_default();
-        self.units(own).into_iter().filter(|u| !hunting.contains(&u.id)).collect()
-    }
-
     /// Orders for members rejoining the task: what the task would give them now. A holding group's members walk back
     /// to where it holds (onepass-norules-hard-3, 4:47: a hunter released 850 from its holding group was told to
     /// stand where it was, and stood there for the rest of the game).
@@ -217,6 +210,7 @@ impl Group {
             GroupTask::Move { to, fight, .. } => units.iter().map(|u| if *fight { Command::Fight { unit: u.id, to: *to, queue: false } } else { Command::Move { unit: u.id, to: *to, queue: false } }).collect(),
             GroupTask::Engage { at, target, .. } => units.iter().map(|u| match target { Some(t) => Command::Attack { unit: u.id, target: *t, queue: false }, None => Command::Fight { unit: u.id, to: *at, queue: false } }).collect(),
             GroupTask::Plan(plan) => units.iter().map(|u| Command::Fight { unit: u.id, to: plan.goal(), queue: false }).collect(),
+            GroupTask::Hunt(h) => units.iter().map(|u| Command::Attack { unit: u.id, target: h.quarry, queue: false }).collect(),
         }
     }
 
@@ -314,6 +308,7 @@ impl Brain {
                     GroupTask::Move { place, fight, .. } => format!("{} to {place}", if *fight { "advancing" } else { "walking" }),
                     GroupTask::Engage { .. } => "attacking a party".to_string(),
                     GroupTask::Plan(plan) => format!("on its engagement plan ({})", plan.key),
+                    GroupTask::Hunt(h) => format!("hunting {}", h.party),
                 };
                 loss_wakes.push(format!(
                     "group_{} has lost {} of its {} soldiers ({lost:.0} metal) since your last orders, {doing} at {}",
@@ -413,7 +408,7 @@ impl Brain {
             // it starts from a hold; switched off, its soldiers hold where each stands.
             if roving[index] != group.roving {
                 group.roving = roving[index];
-                (group.hunt, group.gathering, group.shelling) = (None, false, false);
+                (group.gathering, group.shelling) = (false, false);
                 group.joining.clear();
                 group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
                 if group.roving {
@@ -427,14 +422,10 @@ impl Brain {
                 group.joining.clear();
                 continue;
             }
-            // The hunt first: its members are not the task's this tick.
-            if let Some(end) = Brain::tick_hunt(group, own, enemies, frame, commands) {
-                hunt_ends.push(end);
-            }
-            let units = group.free_units(own);
+            let units = group.units(own);
             group.joining.retain(|id| group.members.contains(id));
             // A newcomer that has reached the body is of it (or was sent nowhere: nothing stands to reach).
-            let goal = match &group.task { GroupTask::Move { to, .. } => Some(*to), GroupTask::Engage { at, .. } => Some(*at), GroupTask::Plan(plan) => Some(plan.goal()), GroupTask::Hold { .. } => None };
+            let goal = match &group.task { GroupTask::Move { to, .. } => Some(*to), GroupTask::Engage { at, .. } => Some(*at), GroupTask::Plan(plan) => Some(plan.goal()), GroupTask::Hunt(h) => Some(h.at), GroupTask::Hold { .. } => None };
             if let Some(body) = group.body(own, goal) {
                 let core_at = body.at;
                 let joined: Vec<UnitId> = body.joining.iter().filter(|u| u.pos.dist2d(core_at) <= ADOPT_RADIUS || self.stuck.contains_key(&u.id)).map(|u| u.id).collect();
@@ -564,6 +555,17 @@ impl Brain {
                         plan_news.push(news);
                     }
                 }
+                // The hunt's book: the quarry's last sighting for the words; the chase and its ends are the engine's
+                // (H-MICRO-HUNT). Every hunter dead ends it; the empty group goes at the next look.
+                GroupTask::Hunt(hunt) => {
+                    if let Some(q) = enemies.iter().find(|e| e.id == hunt.quarry) {
+                        hunt.last_seen = frame;
+                        hunt.at = q.pos;
+                    }
+                    if units.is_empty() {
+                        hunt_ends.push(format!("group_{}'s hunt of {} ended after {} s: every hunter dead", group.name, hunt.party, (frame - hunt.since) / FRAMES_PER_SECOND));
+                    }
+                }
             }
         }
         for text in plan_news {
@@ -593,26 +595,6 @@ impl Brain {
 }
 
 impl Brain {
-    /// One tick of a group's hunt: the book kept (the quarry's last sighting for the words), hunters that died
-    /// dropped, and the hunt ended when none is left. The chasing and the other ends are the micro engine's
-    /// (H-MICRO-HUNT: `Commitment::Hunt` set in `micro.rs` `note_commitments`, the ends read from its output in
-    /// `micro.rs` `micro`). Returns the end's words.
-    fn tick_hunt(group: &mut Group, own: &[OwnUnit], enemies: &[bot_protocol::EnemyUnit], frame: i32, commands: &mut Vec<Command>) -> Option<String> {
-        let hunt = group.hunt.as_mut()?;
-        hunt.hunters.retain(|id| own.iter().any(|u| u.id == *id));
-        if let Some(q) = enemies.iter().find(|e| e.id == hunt.quarry) {
-            hunt.last_seen = frame;
-            hunt.at = q.pos;
-        }
-        if !hunt.hunters.is_empty() {
-            return None;
-        }
-        let (party, since) = (hunt.party.clone(), hunt.since);
-        group.hunt = None;
-        let _ = commands;
-        Some(format!("group_{}'s hunt of {party} ended after {} s: every hunter dead", group.name, (frame - since) / FRAMES_PER_SECOND))
-    }
-
     /// The lane's word from the rovers (H-MICRO-ROVE), into their groups' logs (the picture's `rove` entry), one
     /// line a rover, a tick and a kind: what it found, by place; what it attacks; what it ran from; what it gave up.
     /// A building or commander of his found, and every attack, is also what the hands did for the player's report.
@@ -660,41 +642,66 @@ impl Brain {
     }
 
     /// The micro engine's word on a hunt (`micro::HuntEvent`): a hunter dropped (hurt, or slower than the quarry)
-    /// rejoins the group's task; the hunt's end (the quarry dead or lost, the leash reached, no hunter left) releases
-    /// every hunter and declines the party for `DECLINE_FRAMES`. Returns the end's words.
-    pub(crate) fn hunt_event(group: &mut Group, event: &micro::HuntEvent, own: &[OwnUnit], frame: i32, commands: &mut Vec<Command>) -> Option<String> {
-        let hunt = group.hunt.as_mut().filter(|h| h.quarry == event.quarry)?;
+    /// holds where it is; the hunt's end (the quarry dead or lost, the leash reached, no hunter left) leaves the
+    /// group holding where it stands, for Jev or the player to send on or merge. Returns the end's words and, for a
+    /// hunt that ended without a kill, the failure to remember (the party and why).
+    pub(crate) fn hunt_event(group: &mut Group, event: &micro::HuntEvent, own: &[OwnUnit], frame: i32, commands: &mut Vec<Command>) -> Option<(String, Option<(String, String)>)> {
+        let GroupTask::Hunt(hunt) = &mut group.task else { return None };
+        if hunt.quarry != event.quarry {
+            return None;
+        }
         match event.hunter {
             Some(hunter) => {
-                hunt.hunters.retain(|id| *id != hunter);
-                let dropped: Vec<&OwnUnit> = own.iter().filter(|u| u.id == hunter).collect();
-                commands.extend(group.rejoin_orders(&dropped));
+                hunt.dropped.push(hunter);
+                commands.push(Command::Stop { unit: hunter });
                 None
             }
             None => {
-                let (party, since, hunters) = (hunt.party.clone(), hunt.since, hunt.hunters.clone());
-                group.hunt = None;
-                let rejoining: Vec<&OwnUnit> = own.iter().filter(|u| hunters.contains(&u.id)).collect();
-                commands.extend(group.rejoin_orders(&rejoining));
+                let (party, since) = (hunt.party.clone(), hunt.since);
+                let units = group.units(own);
+                commands.extend(group.hold_orders(&units));
+                group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
                 let why = match event.why {
                     "dead" => "the quarry is dead".to_string(),
                     "lost" => format!("{party} out of sight for 6 s"),
                     "leash" => format!("the leash of {HUNT_LEASH:.0} from where it began reached"),
                     other => other.to_string(),
                 };
-                if event.why != "dead" {
-                    group.hunts_failed.retain(|(_, f, _)| frame - f < 3 * 60 * FRAMES_PER_SECOND);
-                    group.hunts_failed.push((party.clone(), frame, why.clone()));
-                }
-                Some(format!("group_{}'s hunt of {party} ended after {} s: {why}; {} rejoin the group", group.name, (frame - since) / FRAMES_PER_SECOND, rejoining.len()))
+                let failed = (event.why != "dead").then(|| (party.clone(), why.clone()));
+                Some((format!("group_{}'s hunt of {party} ended after {} s: {why}; it holds where it is ({} soldiers)", group.name, (frame - since) / FRAMES_PER_SECOND, units.len()), failed))
             }
         }
     }
 
-    /// Starts a hunt of the party's nearest unit by these members of the group (the previous hunt, if any, ends).
-    pub(super) fn start_hunt(group: &mut Group, hunters: Vec<UnitId>, party: &Party, own: &[OwnUnit], enemies: &[bot_protocol::EnemyUnit], frame: i32, commands: &mut Vec<Command>) -> String {
-        let units: Vec<&OwnUnit> = own.iter().filter(|u| hunters.contains(&u.id)).collect();
-        let centre = centre_of(&units).unwrap_or(party.at);
+    /// A hunt is a group of its own (the user, 2026-09-29): the hunters split off from `pianist.groups[index]` under
+    /// a new name with the hunt as their task, unless the whole group hunts; the engine's commitment does the
+    /// chasing (`micro.rs`). Returns what was done.
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn start_hunt(pianist: &mut super::Pianist, index: usize, hunters: &[UnitId], party: &Party, own: &[OwnUnit], enemies: &[bot_protocol::EnemyUnit], frame: i32, commands: &mut Vec<Command>) -> Option<String> {
+        let all: Vec<&OwnUnit> = pianist.groups[index].units(own);
+        let chosen: Vec<&OwnUnit> = all.iter().copied().filter(|u| hunters.contains(&u.id)).collect();
+        if chosen.is_empty() {
+            return None;
+        }
+        let hunt = Brain::hunt_of(party, &chosen, enemies, frame);
+        let group = &mut pianist.groups[index];
+        commands.extend(group.release_orders(&chosen));
+        if chosen.len() == all.len() {
+            group.set_task(GroupTask::Hunt(hunt), frame);
+            return Some(format!("hunt {} ({}) with the whole group", party.name, party.composition));
+        }
+        let ids: Vec<UnitId> = chosen.iter().map(|u| u.id).collect();
+        group.members.retain(|id| !ids.contains(id));
+        let (domain, parent_name) = (group.domain, group.name.clone());
+        let name = pianist.new_group_name();
+        let did = format!("{} of group_{parent_name} hunt {} ({}) as group_{name}", ids.len(), party.name, party.composition);
+        pianist.groups.push(Group::new(name, domain, ids, GroupTask::Hunt(hunt), frame).split_from(&parent_name));
+        Some(did)
+    }
+
+    /// A hunt of the party's unit nearest these hunters, begun where they stand.
+    pub(super) fn hunt_of(party: &Party, hunters: &[&OwnUnit], enemies: &[bot_protocol::EnemyUnit], frame: i32) -> Hunt {
+        let centre = centre_of(hunters).unwrap_or(party.at);
         let quarry = party
             .ids
             .iter()
@@ -702,26 +709,11 @@ impl Brain {
             .min_by(|a, b| a.pos.dist2d(centre).total_cmp(&b.pos.dist2d(centre)))
             .map(|e| (e.id, e.pos))
             .unwrap_or((party.ids[0], party.at));
-        // Released; the engine's hunt commitment (set at the next `note_commitments`) does the chasing.
-        commands.extend(group.release_orders(&units));
-        let n = units.len();
-        // A hunt picked over the group's engagement of the same party replaces it: the rest hold where they are.
-        // Left standing, the engagement kept the slot's whole-group state current beside the hunt, the base fell
-        // back to it the second the hunters died, and the doing line said "attacking" throughout (onepass-player-8
-        // 7:22-7:38).
-        let engaged = matches!(&group.task, GroupTask::Engage { party: ids, .. } if ids.iter().any(|id| party.ids.contains(id)));
-        if engaged {
-            let rest: Vec<&OwnUnit> = own.iter().filter(|u| group.members.contains(&u.id) && !hunters.contains(&u.id)).collect();
-            commands.extend(group.hold_orders(&rest));
-            group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
-        }
-        group.hunt = Some(Hunt { quarry: quarry.0, party: party.name.clone(), hunters, from: centre, since: frame, last_seen: frame, at: quarry.1 });
-        format!("{n} of group_{} hunt {} ({}){}", group.name, party.name, party.composition, if engaged { ", the rest holding" } else { "" })
+        Hunt { quarry: quarry.0, party: party.name.clone(), dropped: Vec::new(), from: centre, since: frame, last_seen: frame, at: quarry.1 }
     }
 
     /// The whole group engages the party: released, sent to fight at it, its task the engagement.
     pub(super) fn engage_group(group: &mut Group, party: &Party, own: &[OwnUnit], target: Option<UnitId>, frame: i32, commands: &mut Vec<Command>) -> String {
-        group.hunt = None;
         let units = group.units(own);
         commands.extend(group.release_orders(&units));
         match target {
@@ -755,7 +747,42 @@ fn group_for_newcomer(named: Option<&str>, factory_group: Option<&str>) -> Optio
 
 #[cfg(test)]
 mod tests {
-    use super::group_for_newcomer;
+    use super::super::engagement::tests::{e3, own};
+    use super::*;
+
+    /// A hunt is a group of its own: three of fourteen sent after a party split off under a new name with the hunt
+    /// as their task, the parent keeps eleven; the whole of a group hunting keeps its name; the hunt's end is a hold.
+    #[test]
+    fn a_hunt_splits_its_hunters_into_a_group_of_their_own_and_ends_in_a_hold() {
+        let (_, ours, enemies, parties) = e3();
+        let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { since: 0, committed: false }, 0));
+        let hunters: Vec<UnitId> = ours.iter().take(3).map(|u| u.id).collect();
+        let mut commands = Vec::new();
+        let did = Brain::start_hunt(&mut pianist, 0, &hunters, &parties[0], &ours, &enemies, 30, &mut commands).expect("a hunt");
+        assert!(did.starts_with("3 of group_A hunt party_12"), "{did}");
+        assert_eq!(pianist.groups.len(), 2);
+        assert_eq!(pianist.groups[0].members.len(), 11);
+        let hunt_group = &pianist.groups[1];
+        assert_eq!(hunt_group.members, hunters);
+        assert_eq!(hunt_group.parent.as_deref(), Some("A"));
+        let GroupTask::Hunt(hunt) = &hunt_group.task else { panic!("the new group's task is the hunt: {:?}", hunt_group.task) };
+        assert!(parties[0].ids.contains(&hunt.quarry));
+        let quarry = hunt.quarry;
+        // The parent, sent whole: no new group, its own task the hunt.
+        let rest: Vec<UnitId> = pianist.groups[0].members.clone();
+        let did = Brain::start_hunt(&mut pianist, 0, &rest, &parties[0], &ours, &enemies, 60, &mut commands).expect("a hunt");
+        assert!(did.starts_with("hunt party_12") && did.contains("whole group"), "{did}");
+        assert_eq!(pianist.groups.len(), 2);
+        assert!(matches!(pianist.groups[0].task, GroupTask::Hunt(_)));
+        // The engine says the quarry is lost: the hunting group holds where it stands, and the failure is returned.
+        let event = micro::HuntEvent { quarry, hunter: None, why: "lost" };
+        let (text, failed) = Brain::hunt_event(&mut pianist.groups[1], &event, &ours, 200, &mut commands).expect("the end");
+        assert!(text.contains("holds where it is"), "{text}");
+        assert_eq!(failed.map(|(p, _)| p).as_deref(), Some("party_12"));
+        assert!(matches!(pianist.groups[1].task, GroupTask::Hold { .. }));
+        let _ = own;
+    }
 
     #[test]
     fn a_newcomer_joins_the_named_group_else_its_factorys_own_and_new_starts_a_fresh_one() {

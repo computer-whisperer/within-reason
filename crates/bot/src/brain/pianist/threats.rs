@@ -130,13 +130,14 @@ impl Brain {
                 let group_speed = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.speed).fold(f32::INFINITY, f32::min);
                 let outrun = String::new();
                 let standing: f32 = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
-                let hunting_it = group.hunt.as_ref().is_some_and(|h| party.ids.contains(&h.quarry));
+                let hunting_it = matches!(&group.task, GroupTask::Hunt(h) if party.ids.contains(&h.quarry));
                 let engaging_it = matches!(&group.task, GroupTask::Engage { party: ids, .. } if ids.iter().any(|id| party.ids.contains(id)));
                 let leave = match &group.task {
                     GroupTask::Hold { .. } => format!(", leaving {} unguarded", picture.state["actors"][&name]["at"].as_str().unwrap_or("where it stands")),
                     GroupTask::Move { place, .. } => format!(", abandoning its way to {place}"),
                     GroupTask::Engage { .. } => ", leaving the party it was attacking".to_string(),
                     GroupTask::Plan(plan) => format!(", leaving its engagement plan {}", plan.key),
+                    GroupTask::Hunt(h) => format!(", leaving its hunt of {}", h.party),
                 };
                 let planned = planned.get(group.name.as_str()).is_some_and(|names| names.contains(&party.name));
                 // The hunt: the armed members that outrun the party, else the group's fastest armed members (a
@@ -159,7 +160,7 @@ impl Brain {
                         };
                         let hunters: Vec<UnitId> = fast[..k].iter().map(|u| u.id).collect();
                         // A hunt of this party by this group that ended without a kill says so (10.5).
-                        let failed = group.hunts_failed.iter().rev().find(|(p, _, _)| *p == party.name).map(|(_, f, why)| format!("; its last hunt of it ended {} s ago: {why}", (tick.frame - f) / super::super::FRAMES_PER_SECOND)).unwrap_or_default();
+                        let failed = pianist.hunts_failed.iter().rev().find(|(p, _, _)| *p == party.name).map(|(_, f, why)| format!("; its last hunt of it ended {} s ago: {why}", (tick.frame - f) / super::super::FRAMES_PER_SECOND)).unwrap_or_default();
                         let speed = fast[..k].iter().filter_map(|u| self.world.def(u.def)).map(|d| d.speed).fold(f32::INFINITY, f32::min);
                         let nearest = fast[..k].iter().map(|u| u.pos.dist2d(party.at)).fold(f32::INFINITY, f32::min);
                         let drive = if speed.is_finite() && speed > 0.0 { format!(": they drive it off in {:.0} s from {nearest:.0} away", nearest / speed) } else { String::new() };
