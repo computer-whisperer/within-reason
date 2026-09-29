@@ -1260,7 +1260,11 @@ impl Lane {
         if self.claims.remove(&unit).is_none() {
             return;
         }
-        if let Some((order, _)) = self.standing.get(&unit) {
+        // An order the host gave this very tick is in the host's own list already: re-sending it doubled every
+        // group-wide stop to a formed body (player-22, 22:21: 110 stops for 55 units in one row).
+        if let Some((order, at)) = self.standing.get(&unit)
+            && *at != frame
+        {
             if debug {
                 eprintln!("{} f={frame} micro: unit {} released to its order", view.label(), unit.0);
             }

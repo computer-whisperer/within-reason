@@ -603,6 +603,29 @@ mod tests {
         // Under WITHIN_REASON_DISABLE the chase goes on: not tested here (the Host enables every rule).
     }
 
+    /// A stop the host gives a formed body this tick is not sent again by the release (player-22, 22:21: 110 stops
+    /// for 55 units in one row).
+    #[test]
+    fn a_hosts_stop_to_a_formed_body_goes_out_once() {
+        let host = Host::new(Vec::new());
+        let mut lane = Lane::default();
+        let ids = [10, 11, 12, 13, 14, 15];
+        let form_only = crate::Footwork { flee: false, fan: false, kite: false, form: true, march: false, follow: false, rove: false };
+        lane.set_commitments(HashMap::new(), ids.iter().map(|id| (UnitId(*id), form_only)).collect());
+        let rovers = ids.iter().enumerate().map(|(i, id)| rover(*id, 1000.0 + 40.0 * (i % 3) as f32, 1000.0 + 40.0 * (i / 3) as f32)).collect::<Vec<_>>();
+        let mut host_orders: Vec<Command> = ids.iter().map(|id| Command::Fight { unit: UnitId(*id), to: at(1000.0, 3600.0), queue: false }).collect();
+        lane.note_standing_orders(&host_orders, 30, |_| true);
+        lane.tick(&host, &tick(30, rovers.clone(), vec![enemy(50, PAWN, 1500.0, 1000.0)]), &mut host_orders, false);
+        // Tick 2: the host stops the body (the Pawn gone); every unit's stop goes out once, host and lane together.
+        let mut stops: Vec<Command> = ids.iter().map(|id| Command::Stop { unit: UnitId(*id) }).collect();
+        lane.note_standing_orders(&stops, 60, |_| true);
+        let out = lane.tick(&host, &tick(60, rovers, Vec::new()), &mut stops, false);
+        for id in ids {
+            let n = stops.iter().chain(out.commands.iter()).filter(|c| matches!(c, Command::Stop { unit } if unit.0 == id)).count();
+            assert_eq!(n, 1, "unit {id} stopped {n} times: host {stops:?}, lane {:?}", out.commands);
+        }
+    }
+
     #[test]
     fn a_rover_steps_away_from_a_pawn_before_it_is_in_reach() {
         let host = Host::new(vec![goal("spot_2", 3000.0, 3000.0, None, true)]);

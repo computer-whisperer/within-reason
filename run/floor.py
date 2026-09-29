@@ -134,12 +134,6 @@ def scorecard(m):
             r = json.loads(line)
         except ValueError:
             continue
-        if r.get("t") == "policy":
-            illegal += len(r.get("illegal") or [])
-        if r.get("t") == "standing":
-            illegal += len(r.get("illegal") or [])
-            standing_plays += sum(1 for p in r.get("played") or [] if p.get("source") in ("standing", "rule")) + len(r.get("continued") or [])
-            jev_plays += sum(1 for p in r.get("played") or [] if p.get("source") == "plan")
         if r.get("t") == "pass":
             standing_plays += sum(1 for p in r.get("played") or [] if p.get("source") == "rule")
             if r.get("open"):
@@ -147,7 +141,7 @@ def scorecard(m):
                 quiet_s += 1 if r.get("quiet") else 0
         if r.get("t") == "plan":
             jev_plays += len(r.get("played") or r.get("changed") or [])
-        if r.get("t") in ("call", "decompress"):
+        if r.get("t") == "call":
             tokens += (r.get("usage") or {}).get("input_tokens", 0)
     delays = [(answered[k] - episodes[k]) / frames for k in answered]
     unanswered = sum(1 for k in episodes if k not in answered or answered[k] - episodes[k] > 60 * frames)

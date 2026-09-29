@@ -209,3 +209,13 @@ at 1ffc8e9 (`engaged` = any foe within `HORIZON`, `keep` the target most claims 
 reach is let go for 30 s; a lane test in `rove.rs` shows the let-go and the return to the station). Not yet measured: the harness has no fleeing-target scenario, and the E3/F3 arms hold
 static or standing targets, so they cannot show a regression from it either way.
 
+
+### K-micro-the-release-doubled-the-hosts-stop
+**Claim.** The lane's `release` re-sent a soldier's standing order when its claim ended, and when the host's order that
+ended the claim arrived in the same tick, that order was already in the host's list: every group-wide stop to a formed
+body went out twice (player-22, minute 22: 171 of 173 duplicated orders were stops, 110 stops for 55 units in one row
+at 22:21). Fixed: a release re-sends nothing the host gave this tick (`crates/micro/src/lib.rs` `release`; the test
+`a_hosts_stop_to_a_formed_body_goes_out_once` fails without the condition).
+**Evidence.** `run/matches/1790646080-player-22-commit/00/record-0.jsonl` (the `cmd` rows of minute 22); the review
+agent's report on the game.
+**Status.** fixed 2026-09-28. It cost nothing in play by itself; it doubled every order storm and the counts.
