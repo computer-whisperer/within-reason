@@ -45,15 +45,13 @@ pub(super) const STATION_FRAMES: i32 = 15 * FRAMES_PER_SECOND;
 
 /// A hunt (`docs/design/2026-09-26-threat-response.md` §1; the user, 2026-09-29: a hunt is a group of its own, never
 /// part of the mass it left): the group's members attack one unit of a party by id, raw (no formation, no flee, no
-/// march), until the quarry dies, is out of sight and radar for `HUNT_LOST_FRAMES`, or the leash ends; a hunter under
-/// a third of its health drops out (`dropped`) and holds. The group holds where the hunt ends; the merge back is a
-/// state Jev picks or the player asks for.
+/// march), until the quarry dies, is out of sight and radar for `HUNT_LOST_FRAMES`, or the leash ends. Whether the
+/// hunters can catch or survive the quarry is said in the state's words for the pick; the engine drops nobody. The
+/// group holds where the hunt ends; the merge back is a state Jev picks or the player asks for.
 #[derive(Clone, Debug)]
 pub(crate) struct Hunt {
     pub quarry: UnitId,
     pub party: String,
-    /// Members the engine let go (hurt, or slower than the quarry): they hold and are not committed again.
-    pub dropped: Vec<UnitId>,
     pub from: Vec3,
     pub since: i32,
     pub last_seen: i32,
@@ -627,36 +625,26 @@ impl Brain {
         self.pianist = Some(pianist);
     }
 
-    /// The micro engine's word on a hunt (`micro::HuntEvent`): a hunter dropped (hurt, or slower than the quarry)
-    /// holds where it is; the hunt's end (the quarry dead or lost, the leash reached, no hunter left) leaves the
-    /// group holding where it stands, for Jev or the player to send on or merge. Returns the end's words and, for a
-    /// hunt that ended without a kill, the failure to remember (the party and why).
+    /// The micro engine's word on a hunt (`micro::HuntEvent`): its end (the quarry dead or lost, the leash reached)
+    /// leaves the group holding where it stands, for Jev or the player to send on or merge. Returns the end's words
+    /// and, for a hunt that ended without a kill, the failure to remember (the party and why).
     pub(crate) fn hunt_event(group: &mut Group, event: &micro::HuntEvent, own: &[OwnUnit], frame: i32, commands: &mut Vec<Command>) -> Option<(String, Option<(String, String)>)> {
         let GroupTask::Hunt(hunt) = &mut group.task else { return None };
         if hunt.quarry != event.quarry {
             return None;
         }
-        match event.hunter {
-            Some(hunter) => {
-                hunt.dropped.push(hunter);
-                commands.push(Command::Stop { unit: hunter });
-                None
-            }
-            None => {
-                let (party, since) = (hunt.party.clone(), hunt.since);
-                let units = group.units(own);
-                commands.extend(group.hold_orders(&units));
-                group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
-                let why = match event.why {
-                    "dead" => "the quarry is dead".to_string(),
-                    "lost" => format!("{party} out of sight for 6 s"),
-                    "leash" => format!("the leash of {HUNT_LEASH:.0} from where it began reached"),
-                    other => other.to_string(),
-                };
-                let failed = (event.why != "dead").then(|| (party.clone(), why.clone()));
-                Some((format!("group_{}'s hunt of {party} ended after {} s: {why}; it holds where it is ({} soldiers)", group.name, (frame - since) / FRAMES_PER_SECOND, units.len()), failed))
-            }
-        }
+        let (party, since) = (hunt.party.clone(), hunt.since);
+        let units = group.units(own);
+        commands.extend(group.hold_orders(&units));
+        group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
+        let why = match event.why {
+            "dead" => "the quarry is dead".to_string(),
+            "lost" => format!("{party} out of sight for 6 s"),
+            "leash" => format!("the leash of {HUNT_LEASH:.0} from where it began reached"),
+            other => other.to_string(),
+        };
+        let failed = (event.why != "dead").then(|| (party.clone(), why.clone()));
+        Some((format!("group_{}'s hunt of {party} ended after {} s: {why}; it holds where it is ({} soldiers)", group.name, (frame - since) / FRAMES_PER_SECOND, units.len()), failed))
     }
 
     /// A hunt is a group of its own (the user, 2026-09-29): the hunters split off from `pianist.groups[index]` under
@@ -695,7 +683,7 @@ impl Brain {
             .min_by(|a, b| a.pos.dist2d(centre).total_cmp(&b.pos.dist2d(centre)))
             .map(|e| (e.id, e.pos))
             .unwrap_or((party.ids[0], party.at));
-        Hunt { quarry: quarry.0, party: party.name.clone(), dropped: Vec::new(), from: centre, since: frame, last_seen: frame, at: quarry.1 }
+        Hunt { quarry: quarry.0, party: party.name.clone(), from: centre, since: frame, last_seen: frame, at: quarry.1 }
     }
 
     /// The whole group engages the party: released, sent to fight at it, its task the engagement.
@@ -762,7 +750,7 @@ mod tests {
         assert_eq!(pianist.groups.len(), 2);
         assert!(matches!(pianist.groups[0].task, GroupTask::Hunt(_)));
         // The engine says the quarry is lost: the hunting group holds where it stands, and the failure is returned.
-        let event = micro::HuntEvent { quarry, hunter: None, why: "lost" };
+        let event = micro::HuntEvent { quarry, why: "lost" };
         let (text, failed) = Brain::hunt_event(&mut pianist.groups[1], &event, &ours, 200, &mut commands).expect("the end");
         assert!(text.contains("holds where it is"), "{text}");
         assert_eq!(failed.map(|(p, _)| p).as_deref(), Some("party_12"));

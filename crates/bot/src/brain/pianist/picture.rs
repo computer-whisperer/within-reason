@@ -213,7 +213,7 @@ impl Brain {
         }
     }
 
-    fn composition_words(&self, units: &[&OwnUnit]) -> String {
+    pub(super) fn composition_words(&self, units: &[&OwnUnit]) -> String {
         let mut counts: BTreeMap<String, usize> = BTreeMap::new();
         for unit in units {
             *counts.entry(self.short_words(unit.def)).or_default() += 1;
@@ -1285,7 +1285,7 @@ impl Brain {
                     let name = parties.iter().find(|p| p.ids.iter().any(|id| party.contains(id))).map_or("a party now out of sight".to_string(), |p| p.name.clone());
                     format!("attacking {name}{} at {}, for {}", if target.is_some() { " (one named unit of it, until it dies)" } else { "" }, self.place_words(&places, *at), ago(*since))
                 }
-                GroupTask::Hunt(hunt) => format!("hunting {} since {} ago (its quarry {} at {}{})", hunt.party, ago(hunt.since), if frame - hunt.last_seen < FRAMES_PER_SECOND { "seen" } else { "last seen" }, self.place_words(&places, hunt.at), if hunt.dropped.is_empty() { String::new() } else { format!("; {} of its hunters dropped out and hold", hunt.dropped.len()) }),
+                GroupTask::Hunt(hunt) => format!("hunting {} since {} ago (its quarry {} at {})", hunt.party, ago(hunt.since), if frame - hunt.last_seen < FRAMES_PER_SECOND { "seen" } else { "last seen" }, self.place_words(&places, hunt.at)),
             };
             let doing = if group.roving { format!("roving, in code, beyond your hands' reach: {}", self.rover_words(group, own, &snapshot.enemies, &places)) } else { doing };
             // Health as a distribution, not an average (game 9: "full on average" at 22 of 39 lost), with the

@@ -74,7 +74,7 @@ impl Brain {
                     // A hunter is the engine's (H-MICRO-HUNT): attack by id every tick, raw, until the quarry is dead or
                     // lost or the leash ends (docs/design/2026-09-26-threat-response.md §1).
                     let hunting = match &group.task {
-                        super::pianist::GroupTask::Hunt(h) if !h.dropped.contains(id) => Some(h),
+                        super::pianist::GroupTask::Hunt(h) => Some(h),
                         _ => None,
                     };
                     match hunting {
@@ -125,7 +125,7 @@ impl Brain {
         }
         self.journal.milling += output.milling;
         commands.extend(output.commands);
-        // The hunts' word from the engine: a hunter dropped, or a hunt ended (`groups.rs` `hunt_event`).
+        // The hunts' word from the engine: a hunt ended (`groups.rs` `hunt_event`).
         if !output.hunts.is_empty()
             && let Some(pianist) = self.pianist.as_mut()
         {

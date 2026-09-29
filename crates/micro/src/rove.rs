@@ -393,7 +393,7 @@ impl Lane {
 
 #[cfg(test)]
 mod tests {
-    use super::super::{Commitment, Stats};
+    use super::super::{Commitment, Footwork, Hunt, Stats};
     use super::*;
     use bot_protocol::{MoveClass, MoveKind, Snapshot, Tick, UnitDefInfo};
 
@@ -821,5 +821,22 @@ mod tests {
         let out = lane.tick(&host, &tick(120, vec![hurt], Vec::new()), &mut Vec::new(), false);
         assert!(out.rove.iter().any(|e| matches!(&e.what, RoveWhat::GivesUp { goal, .. } if goal == "spot_2")));
         assert_eq!(lane.roving(UnitId(10)).unwrap().goal.unwrap().0, "spot_3");
+    }
+
+    /// The hunt (H-MICRO-HUNT; the fixture lives here): whether a hunter can catch or survive its quarry is the hands'
+    /// call, so the engine keeps a hunter that is no faster than its quarry and one that is hurt (player-24: its own
+    /// "slower" drop ended 46 of 47 hunts in their first tick, a Blitz after a Blitz or a Rover, against the hands' offer).
+    #[test]
+    fn a_hunter_no_faster_than_its_quarry_and_hurt_keeps_hunting() {
+        let host = Host::new(Vec::new());
+        let mut lane = Lane::default();
+        let hunt = Hunt { quarry: UnitId(99), leash_from: at(2500.0, 2500.0), leash: 900.0 };
+        lane.set_commitments([(UnitId(10), Commitment::Hunt(hunt))].into_iter().collect(), [(UnitId(10), Footwork::raw())].into_iter().collect());
+        let mut hunter = rover(10, 2500.0, 2500.0);
+        hunter.health = 30.0;
+        let out = lane.tick(&host, &tick(30, vec![hunter], vec![enemy(99, ROVER, 2800.0, 2500.0)]), &mut Vec::new(), false);
+        assert!(out.hunts.is_empty(), "{:?}", out.hunts);
+        assert!(out.commands.iter().any(|c| matches!(c, Command::Attack { unit, target, .. } if unit.0 == 10 && target.0 == 99)), "{:?}", out.commands);
+        assert_eq!(lane.hunting(UnitId(10)), Some(UnitId(99)));
     }
 }

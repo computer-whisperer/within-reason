@@ -120,8 +120,6 @@ const AREA_HORIZON: f32 = 1500.0;
 const FORM_FRAMES: i32 = 15;
 /// H-MICRO-HUNT: a quarry out of sight and radar this long ends the hunt.
 const HUNT_LOST_FRAMES: i32 = 6 * FRAMES_PER_SECOND;
-/// A hunter under this share of its health drops out of the hunt.
-const HUNT_DROP_HEALTH: f32 = 1.0 / 3.0;
 
 /// What a soldier's group was priced against, so the lane knows which threats its host meant it to face.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -149,13 +147,13 @@ pub struct Hunt {
     pub leash: f32,
 }
 
-/// What the lane reports of a hunt: `hunter` is `None` when the hunt on `quarry` ended (`why`: "dead", "lost" (out
-/// of sight and radar 6 s), "leash", "no hunters"), else that hunter dropped out ("hurt": under a third of its
-/// health; "slower": not faster than the quarry). Each is reported once; the host clears the commitments.
+/// What the lane reports of a hunt: the hunt on `quarry` ended (`why`: "dead", "lost" (out of sight and radar
+/// 6 s), "leash"), reported once; the host clears the commitments. Whether a hunter can catch or survive its quarry
+/// is the hands' call, made in the state's words before the pick, never here (player-24: the engine's own "slower"
+/// drop ended 46 of 47 hunts in their first tick, against the hands' offer of a chase that drives the raider off).
 #[derive(Clone, Debug, PartialEq)]
 pub struct HuntEvent {
     pub quarry: UnitId,
-    pub hunter: Option<UnitId>,
     pub why: &'static str,
 }
 
@@ -167,9 +165,7 @@ struct HuntState {
     leash_from: Vec3,
     /// The quarry's last sighting (sight or radar): place, velocity, frame.
     last_seen: Option<(Vec3, Vec3, i32)>,
-    quarry_def: Option<UnitDefId>,
     ended: Option<&'static str>,
-    dropped: HashMap<UnitId, &'static str>,
     /// The frame of the sighting each hunter was last sent to when the quarry was out of sight.
     sent_to_sighting: HashMap<UnitId, i32>,
 }
@@ -476,7 +472,7 @@ pub struct Output {
     /// Rule IDs that fired, once per firing.
     pub fired: Vec<&'static str>,
     pub milling: Milling,
-    /// Hunts that ended and hunters that dropped out this tick (H-MICRO-HUNT), each once.
+    /// Hunts that ended this tick (H-MICRO-HUNT), each once.
     pub hunts: Vec<HuntEvent>,
     /// What the rovers found, attacked, ran from and gave up this tick (H-MICRO-ROVE).
     pub rove: Vec<RoveEvent>,
@@ -744,8 +740,7 @@ impl Lane {
 
     /// H-MICRO-HUNT: every hunter is sent at its quarry by id every tick while the quarry is in sight or on radar,
     /// and once to the last sighting (carried along its velocity) while it is not; the hunt ends when the quarry is
-    /// dead, out of sight and radar for six seconds, or any hunter has passed the leash, and a hunter drops out
-    /// under a third of its health or when it is not faster than the quarry. Each end and drop is reported once;
+    /// dead, out of sight and radar for six seconds, or any hunter has passed the leash. Each end is reported once;
     /// the host clears the commitments (worlds-2: four Rovers at 168 never closed on a Pawn at 87 in 28 s under
     /// fight-to-point orders re-issued at the party's last place, the flank slots 400-500 short of it every tick).
     #[allow(clippy::too_many_arguments)]
@@ -760,7 +755,7 @@ impl Lane {
         }
         for quarry in by_quarry {
             let leash_from = hunters.iter().find(|(_, h)| h.quarry == quarry).map(|(_, h)| h.leash_from).unwrap_or_default();
-            let fresh_state = || HuntState { started: frame, leash_from, last_seen: None, quarry_def: None, ended: None, dropped: HashMap::new(), sent_to_sighting: HashMap::new() };
+            let fresh_state = || HuntState { started: frame, leash_from, last_seen: None, ended: None, sent_to_sighting: HashMap::new() };
             if self.hunts.get(&quarry).is_some_and(|s| s.ended.is_some() && s.leash_from.dist2d(leash_from) > 1.0) {
                 self.hunts.insert(quarry, fresh_state());
             }
@@ -771,64 +766,27 @@ impl Lane {
             let seen = enemies.iter().find(|e| e.id == quarry);
             if let Some(e) = seen {
                 state.last_seen = Some((e.pos, e.vel, frame));
-                state.quarry_def = e.def.or(state.quarry_def);
             }
-            if state.quarry_def.is_none() {
-                state.quarry_def = self.seen.get(&quarry).map(|(d, _, _)| *d);
-            }
-            let quarry_speed = state.quarry_def.and_then(|d| view.stats(d)).map(|s| s.speed);
             let mut ended: Option<&'static str> = None;
             if seen.is_none() && !view.enemy_known(quarry) {
                 ended = Some("dead");
             } else if seen.is_none() && state.last_seen.map_or(frame - state.started, |(_, _, f)| frame - f) >= HUNT_LOST_FRAMES {
                 ended = Some("lost");
-            }
-            let mut active: Vec<&OwnUnit> = Vec::new();
-            if ended.is_none() {
-                for (unit, hunt) in hunters.iter().filter(|(_, h)| h.quarry == quarry) {
-                    if state.dropped.contains_key(&unit.id) {
-                        continue;
-                    }
-                    if hunt.leash_from.dist2d(unit.pos) > hunt.leash {
-                        ended = Some("leash");
-                        break;
-                    }
-                    let drop = if unit.health < unit.max_health * HUNT_DROP_HEALTH {
-                        Some("hurt")
-                    } else if let (Some(mine), Some(theirs)) = (view.stats(unit.def).map(|s| s.speed), quarry_speed)
-                        && mine <= theirs
-                    {
-                        Some("slower")
-                    } else {
-                        None
-                    };
-                    if let Some(why) = drop {
-                        state.dropped.insert(unit.id, why);
-                        self.claims.remove(&unit.id);
-                        events.push(HuntEvent { quarry, hunter: Some(unit.id), why });
-                        if debug {
-                            eprintln!("{} f={frame} micro: unit {} drops out of the hunt on {} ({why})", view.label(), unit.id.0, quarry.0);
-                        }
-                        continue;
-                    }
-                    active.push(unit);
-                }
-                if ended.is_none() && active.is_empty() {
-                    ended = Some("no hunters");
-                }
+            } else if hunters.iter().any(|(unit, hunt)| hunt.quarry == quarry && hunt.leash_from.dist2d(unit.pos) > hunt.leash) {
+                ended = Some("leash");
             }
             if let Some(why) = ended {
                 state.ended = Some(why);
                 for (unit, _) in hunters.iter().filter(|(_, h)| h.quarry == quarry) {
                     self.claims.remove(&unit.id);
                 }
-                events.push(HuntEvent { quarry, hunter: None, why });
+                events.push(HuntEvent { quarry, why });
                 if debug {
                     eprintln!("{} f={frame} micro: the hunt on {} ends ({why}) after {} s", view.label(), quarry.0, (frame - state.started) / FRAMES_PER_SECOND);
                 }
                 continue;
             }
-            for unit in active {
+            for (unit, _) in hunters.iter().filter(|(_, h)| h.quarry == quarry) {
                 let fresh = !self.claims.get(&unit.id).is_some_and(|c| c.rule == Rule::Hunt && c.target == Some(quarry));
                 if fresh {
                     fired.push(Rule::Hunt.id());

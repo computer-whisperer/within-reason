@@ -41,8 +41,6 @@ pub const RESUME_AFTER: i32 = 3 * FPS;
 pub const REISSUE_OFF: i32 = 2 * FPS;
 /// A quarry out of sight this long ends the lane-off arm's hunt (the lane's own constant is the same).
 pub const LOST_FRAMES: i32 = 6 * FPS;
-/// A hunter under this share of its health drops out (as in the lane).
-pub const DROP_HEALTH: f32 = 1.0 / 3.0;
 /// A raider is sent at a building from this far short of it, so its attack lands when the building is in sight.
 const APPROACH: f32 = 120.0;
 
@@ -235,7 +233,7 @@ impl Raid {
             let Some(def) = e.def.and_then(|d| defs.get(&d)) else { continue };
             let mut candidates: Vec<&(&bot_protocol::OwnUnit, &UnitDefInfo)> = pickets
                 .iter()
-                .filter(|(u, d)| !hunting.contains(&u.id) && u.health >= u.max_health * DROP_HEALTH && d.speed > def.speed)
+                .filter(|(u, d)| !hunting.contains(&u.id) && d.speed > def.speed)
                 .collect();
             candidates.sort_by(|a, b| a.0.pos.dist2d(e.pos).total_cmp(&b.0.pos.dist2d(e.pos)));
             let chosen: Vec<&(&bot_protocol::OwnUnit, &UnitDefInfo)> = candidates.into_iter().take(HUNTERS_PER_QUARRY).collect();
@@ -268,27 +266,14 @@ impl Raid {
             } else if seen.is_none() && frame - run.last_seen >= LOST_FRAMES {
                 ended = Some("lost");
             }
-            let mut dropped: Vec<UnitId> = Vec::new();
             if ended.is_none() {
-                for &h in &run.hunters {
-                    let Some((u, _)) = pickets.iter().find(|(u, _)| u.id == h) else { dropped.push(h); continue };
-                    if u.pos.dist2d(run.from) > LEASH {
-                        ended = Some("leash");
-                        break;
-                    }
-                    if u.health < u.max_health * DROP_HEALTH {
-                        dropped.push(h);
-                    }
+                // A dead hunter leaves the hunt; the leash ends it.
+                run.hunters.retain(|h| pickets.iter().any(|(u, _)| u.id == *h));
+                if run.hunters.iter().any(|h| pickets.iter().any(|(u, _)| u.id == *h && u.pos.dist2d(run.from) > LEASH)) {
+                    ended = Some("leash");
+                } else if run.hunters.is_empty() {
+                    ended = Some("no hunters");
                 }
-            }
-            for h in &dropped {
-                run.hunters.retain(|x| x != h);
-                if let Some(&to) = place_of.get(h) {
-                    commands.push(Command::Move { unit: *h, to, queue: false });
-                }
-            }
-            if ended.is_none() && run.hunters.is_empty() {
-                ended = Some("no hunters");
             }
             if let Some(why) = ended {
                 run.ended = Some((frame, why.to_string()));
@@ -309,25 +294,14 @@ impl Raid {
         commitments
     }
 
-    /// The lane's hunt events (the lane-on arm): a hunt's end or a hunter's drop sends the hunters back to their
-    /// places at the station.
+    /// The lane's hunt events (the lane-on arm): a hunt's end sends the hunters back to their places at the station.
     pub fn note_hunt_events(&mut self, events: &[HuntEvent], frame: i32, commands: &mut Vec<Command>) {
         for event in events {
             let Some(run) = self.hunts.iter_mut().find(|h| h.quarry == event.quarry && h.ended.is_none()) else { continue };
-            match event.hunter {
-                Some(h) => {
-                    run.hunters.retain(|x| *x != h);
-                    if let Some(&to) = self.place_of.get(&h) {
-                        commands.push(Command::Move { unit: h, to, queue: false });
-                    }
-                }
-                None => {
-                    run.ended = Some((frame, event.why.to_string()));
-                    for &h in &run.hunters {
-                        if let Some(&to) = self.place_of.get(&h) {
-                            commands.push(Command::Move { unit: h, to, queue: false });
-                        }
-                    }
+            run.ended = Some((frame, event.why.to_string()));
+            for &h in &run.hunters {
+                if let Some(&to) = self.place_of.get(&h) {
+                    commands.push(Command::Move { unit: h, to, queue: false });
                 }
             }
         }

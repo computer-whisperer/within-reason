@@ -1021,9 +1021,30 @@ impl Brain {
                     push(&format!("split_{}", place.name), Response::Split(n, place.name.clone()), format!("{name} sends {n} of its {} soldiers to advance to {} ({} away) as a group of their own; the rest carry on", units.len(), place.name, distance_words(centre.dist2d(place.at))), false);
                 }
             }
-            // 5. A merge: into the nearest group of its domain; `join` the default.
-            if let Some((other, _, _)) = group_names.iter().filter(|(n, c, d)| *n != group.name && c.is_some() && *d == group.domain).min_by(|a, b| a.1.unwrap().dist2d(centre).total_cmp(&b.1.unwrap().dist2d(centre))) {
-                push(&format!("join_group_{other}"), Response::Join(other.clone()), format!("{name} merges into group_{other} and takes its task"), false);
+            // 5. A merge: into the nearest group of its domain, the words saying what the one body would be and what
+            // it is doing (player-24, 7:26: "group_H merges into group_G and takes its task" rated 0.00-0.03 in the
+            // pick, six such worlds a second, while ten groups of one Blitz stood on one spot and a hunt that had
+            // failed the second before was picked at 0.44).
+            if let Some((other, Some(other_centre), _)) = group_names.iter().filter(|(n, c, d)| *n != group.name && c.is_some() && *d == group.domain).min_by(|a, b| a.1.unwrap().dist2d(centre).total_cmp(&b.1.unwrap().dist2d(centre)))
+                && let Some(other_group) = pianist.groups.iter().find(|g| g.name == *other)
+            {
+                let theirs = other_group.units(own);
+                let both: Vec<&OwnUnit> = units.iter().chain(theirs.iter()).copied().collect();
+                let metal: f32 = both.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
+                let doing = picture.state["actors"][&format!("group_{other}")]["doing"].as_str().unwrap_or("holding").to_string();
+                push(
+                    &format!("join_group_{other}"),
+                    Response::Join(other.clone()),
+                    format!(
+                        "{name} ({}) merges into group_{other} ({}, {} away, {doing}): one body of {} ({} soldiers worth {metal:.0} metal) on group_{other}'s course",
+                        self.composition_words(&units),
+                        self.composition_words(&theirs),
+                        distance_words(centre.dist2d(*other_centre)),
+                        self.composition_words(&both),
+                        both.len()
+                    ),
+                    false,
+                );
             }
             // The stop's cost (routes-in-prose §4.2): holding at a place of its route it has reached while the
             // packet names further places for it, said in world 1's line.

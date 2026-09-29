@@ -373,6 +373,21 @@ tower cases are few (0.4 deaths in reach a game by minute 10). The claim stands 
 margin at a tower); its "would be wrong if" no longer separates the lane from no lane here.
 **Used by.** H-MICRO-LANE, H-MICRO-FLEE.
 
+### K-micro-the-engines-slower-drop-ended-every-hunt
+**Claim.** A rule in the engine that second-guesses the hands' pick ends the pick without anyone deciding it: the
+hunt's "slower" drop (a hunter whose type is no faster than the quarry's leaves the hunt at its first tick) turned every
+hunt the hands offered "without catching it" into "ended after 0 s: no hunters", and with a hunt a group of its own,
+each such pick split one or two units off that then held where they stood.
+**Evidence.** player-24-hunts (`run/matches/1790657006-player-24-hunts/00/jev-0.jsonl`): 47 hunt ends, 46 "after 0 s:
+no hunters" (party_10 21, party_7 9, party_9 9, party_15 3, party_16 2, party_5 2), the one kill a Rover; the hunters a
+Blitz (101) after a Blitz (101) or a Rover (168), or a Rover after a Rover; twelve splits (2:50, 5:31, 6:38, 6:48-6:50,
+7:03, 7:10-7:13) and ten groups of one at 7:38, 990 metal within 1,100 of home, when eight Blitzes and a Rover (911)
+drove into the base and killed 2,371 metal. The hands' words had said "they drive it off in 3 s from 264 away without
+catching it (101 against its slowest 168)" and, from the second pick on, "its last hunt of it ended 1 s ago: no hunters".
+**Status.** fixed 2026-09-29: the engine's "slower" and "hurt" drops deleted (H-MICRO-HUNT amended); whether the
+hunters can catch or survive the quarry is the hands' call in the state's words. Recheck in the next player game: no
+hunt ends "no hunters"; a hunt by a Blitz after a Blitz runs until dead, lost or the leash.
+
 ### K-micro-a-hunt-by-id-catches-a-raider
 **Claim.** A raider is caught by hunters faster than it when the order is an attack on its unit id re-issued every
 tick with no footwork over it (H-MICRO-HUNT), and not by a fight-to-point at its last place re-issued every two seconds

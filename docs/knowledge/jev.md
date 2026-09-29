@@ -1540,6 +1540,21 @@ more seconds until `lane raw` at 15:40.
 **Status.** fixed 2026-09-28: the prompt's sentence names `form` in `focus`'s place.
 
 
+### K-hands-the-bare-merge-lost-to-a-failed-hunt
+**Claim.** Jev knew ten groups of one Blitz stood on one spot (each entry: "at spot_76 (C8)", "1 Blitz", "split_from:
+group_A, 37 s ago"; group_A's: "7 groups of 7 soldiers split from it ... still out") and the player had written "every one
+of our small groups joins group_A" (6:59, 7:18 "no hunts, no detachments", 7:37, 7:47), and still rated the merge worlds
+0.00-0.03 in the pick, six of them a second, against 0.44 for one Blitz hunting a Rover whose words said "its last hunt
+of it ended 1 s ago: no hunters". The merge's line said only "group_H merges into group_G and takes its task. Left to
+nobody: party_10 ... killing 2 of our Solar Collector": nothing about the body it makes, and the raider marked unanswered;
+the hunt's line was the one that named the raider being driven off.
+**Evidence.** player-24-hunts `jev-0.jsonl` at 13380 (7:26): the worlds w6, w8-w12 merges, `worlds.pick` w2 0.44, w8-w12
+0.00-0.03; the noul `group_H.join_group_G` 0.49, `group_G.join_group_H` 0.14; the `instructions` in the same call. One
+merge picked all game, at 8:26 (group_A into group_F, 0.2).
+**Status.** words fixed 2026-09-29 (H-HANDS-GROUPS amended: the merge state says the one body and what it is doing).
+Open: the merge target is the nearest group only, so "join group_A" was on the board for two of the ten groups; and Jev
+picked a hunt the second after the player wrote "no hunts", which is Jev's reading of the instructions, not the words.
+
 ### K-hands-a-hunter-held-its-groups-name
 **Claim.** With a hunt kept inside its group, the pass's one-actor-one-threat rule (`compose`'s `taken` set) marked the whole group as sent the moment one member hunted: in player-23-clean at 3:53-4:17 one Rover of group_A hunting a Tick 1,800 east (party_6) left the six Blitzes and the second Rover at home unofferable against the Tick killing the base's extractors (party_7), though Jev rated that hunt 0.47-0.56 and "needs answering" 0.72 every second; the only mover offered was the commander (picked at 0.45, cannot catch a Tick), and the extractors at spot_67 and spot_68 died at 4:06 and 4:17. The design's detachment-inside-the-group (threat-response §2) was the cause; the user: a hunt is a group of its own.
 **Evidence.** `run/matches/1790652620-player-23-clean/00/jev-0.jsonl` (the worlds at 3:58: no hunt of party_7 among w1-w5; the `party_7.hunt_group_A` question at 0.54), `record-0.jsonl` (the extractor deaths).

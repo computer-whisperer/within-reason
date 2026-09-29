@@ -51,9 +51,12 @@ A commitment kind `Hunt` for a set of hunters on one quarry (a unit id):
 - **Hunters run raw**: no formation, no flee, no march, no kite; the engine's attack order does the closing.
 - **Only units faster than the quarry hunt** (the code knows every speed: Rover 168, Tick 132, Blitz 101, Pawn 87);
   a hunt with no faster unit in reach is not offered.
-- **Ends** when the quarry dies, is out of sight and radar for 6 s, the leash (900 from where the hunt began, or the
-  group's station) is reached, or a hunter falls under a third of its health (that hunter drops out). The engine
-  reports the end and its reason in its output so the brain can release the hunters.
+- **Ends** when the quarry dies, is out of sight and radar for 6 s, or the leash (900 from where the hunt began, or the
+  group's station) is reached. The engine reports the end and its reason in its output so the brain can release the
+  hunters. *(2026-09-29: the engine's own drops, a hunter under a third of its health or no faster than the quarry,
+  are deleted: whether the hunters can catch or survive the quarry is the hands' call, said in the state's words.
+  player-24: the "slower" drop ended 46 of 47 hunts in their first tick against the hands' offer of a chase that
+  drives the raider off.)*
 - Measured in the duel harness before anything is built on it (§3).
 
 ### 2. Detachments are temporary bodies (the brain, `groups.rs`; the main thread)
