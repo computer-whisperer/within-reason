@@ -827,7 +827,6 @@ impl Brain {
             let goal = match &group.task {
                 GroupTask::Move { to, .. } => Some(*to),
                 GroupTask::Engage { at, .. } => Some(*at),
-                GroupTask::Plan(plan) => Some(plan.goal()),
                 GroupTask::Hunt(h) => Some(h.at),
                 GroupTask::Hold { .. } => None,
             };
@@ -851,7 +850,6 @@ impl Brain {
                 GroupTask::Hold { .. } if !hunting => format!(", leaving {} unguarded", picture.state["actors"][&name]["at"].as_str().unwrap_or("where it stands")),
                 GroupTask::Move { place, .. } => format!(", abandoning its way to {place}"),
                 GroupTask::Engage { .. } => ", leaving the party it was attacking".to_string(),
-                GroupTask::Plan(plan) => format!(", leaving its engagement plan {}", plan.key),
                 _ => String::new(),
             };
             // 2. Walks to named places: home, the player's marks and passages within reach, and every spot the packet

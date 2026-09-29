@@ -54,14 +54,6 @@ impl Brain {
         // gate opens on this second (the plan question follows this pass). A party of it gets no whole-group attack
         // from this slot: the attack on the nearest party walked the body into the screen and its turrets at once
         // (player-14 E3 9:17), and the plan's order is the answer to it.
-        let planned: BTreeMap<&str, Vec<String>> = pianist
-            .groups
-            .iter()
-            .filter_map(|g| match &g.task {
-                GroupTask::Plan(plan) => Some((g.name.as_str(), plan.position.clone())),
-                _ => self.engagement_of(g, own, &picture.parties, enemies, &picture.places, true).ok().map(|(bf, _)| (g.name.as_str(), bf.position.elements.iter().map(|e| e.name.clone()).collect())),
-            })
-            .collect();
         for party in &picture.parties {
             let toward_home = {
                 let vel = enemies.iter().filter(|e| party.ids.contains(&e.id)).fold(Vec3::default(), |s, e| Vec3 { x: s.x + e.vel.x, y: 0.0, z: s.z + e.vel.z });
@@ -136,10 +128,8 @@ impl Brain {
                     GroupTask::Hold { .. } => format!(", leaving {} unguarded", picture.state["actors"][&name]["at"].as_str().unwrap_or("where it stands")),
                     GroupTask::Move { place, .. } => format!(", abandoning its way to {place}"),
                     GroupTask::Engage { .. } => ", leaving the party it was attacking".to_string(),
-                    GroupTask::Plan(plan) => format!(", leaving its engagement plan {}", plan.key),
                     GroupTask::Hunt(h) => format!(", leaving its hunt of {}", h.party),
                 };
-                let planned = planned.get(group.name.as_str()).is_some_and(|names| names.contains(&party.name));
                 // The hunt: the armed members that outrun the party, else the group's fastest armed members (a
                 // Blitz at 101 never outruns a Tick at 132, so no Blitz was ever offered against one and the pick
                 // sent the commander on a 31 s walk instead, onepass-player-4 5:59; the user: the Blitz would have
@@ -182,7 +172,7 @@ impl Brain {
                     }
                 }
                 // The whole group.
-                if !units.is_empty() && !planned {
+                if !units.is_empty() {
                     let walk = if group_speed.is_finite() && group_speed > 0.0 { format!(", {:.0} s of walking", distance / group_speed) } else { String::new() };
                     // A radar contact is priced as a Pawn (`combat.rs`): at minute 14 a column of 23 blips said 2,530
                     // metal against our 4,820 and cost ten Blitzes (onepass-player-3), so the words call it a floor.

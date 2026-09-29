@@ -76,8 +76,6 @@ pub(crate) enum GroupTask {
     /// engagement): re-issued while it is seen, the group holds when it is lost or dead.
     /// `searched`: an air group has been sent to its lost target's last position.
     Engage { party: Vec<UnitId>, at: Vec3, since: i32, last_seen: i32, target: Option<UnitId>, searched: bool },
-    /// An engagement plan Jev picked (`engagement.rs`, H-HANDS-ENGAGEMENT-PLAN): phase by phase against a position.
-    Plan(super::engagement::PlanTask),
     /// A hunt (H-MICRO-HUNT): the whole group after one unit of a party, the micro engine's to run.
     Hunt(Hunt),
 }
@@ -209,7 +207,6 @@ impl Group {
             },
             GroupTask::Move { to, fight, .. } => units.iter().map(|u| if *fight { Command::Fight { unit: u.id, to: *to, queue: false } } else { Command::Move { unit: u.id, to: *to, queue: false } }).collect(),
             GroupTask::Engage { at, target, .. } => units.iter().map(|u| match target { Some(t) => Command::Attack { unit: u.id, target: *t, queue: false }, None => Command::Fight { unit: u.id, to: *at, queue: false } }).collect(),
-            GroupTask::Plan(plan) => units.iter().map(|u| Command::Fight { unit: u.id, to: plan.goal(), queue: false }).collect(),
             GroupTask::Hunt(h) => units.iter().map(|u| Command::Attack { unit: u.id, target: h.quarry, queue: false }).collect(),
         }
     }
@@ -307,7 +304,6 @@ impl Brain {
                     GroupTask::Hold { .. } => "holding".to_string(),
                     GroupTask::Move { place, fight, .. } => format!("{} to {place}", if *fight { "advancing" } else { "walking" }),
                     GroupTask::Engage { .. } => "attacking a party".to_string(),
-                    GroupTask::Plan(plan) => format!("on its engagement plan ({})", plan.key),
                     GroupTask::Hunt(h) => format!("hunting {}", h.party),
                 };
                 loss_wakes.push(format!(
@@ -402,7 +398,6 @@ impl Brain {
         let mut route_news: Vec<String> = Vec::new();
         let roving: Vec<bool> = pianist.groups.iter().map(|g| self.roves(g)).collect();
         let mut rove_changes: Vec<String> = Vec::new();
-        let mut plan_news: Vec<String> = Vec::new();
         for (index, group) in pianist.groups.iter_mut().enumerate() {
             // A roving group is the lane's (H-MICRO-ROVE): no task, no hunt, no orders kept up. Switched either way,
             // it starts from a hold; switched off, its soldiers hold where each stands.
@@ -425,7 +420,7 @@ impl Brain {
             let units = group.units(own);
             group.joining.retain(|id| group.members.contains(id));
             // A newcomer that has reached the body is of it (or was sent nowhere: nothing stands to reach).
-            let goal = match &group.task { GroupTask::Move { to, .. } => Some(*to), GroupTask::Engage { at, .. } => Some(*at), GroupTask::Plan(plan) => Some(plan.goal()), GroupTask::Hunt(h) => Some(h.at), GroupTask::Hold { .. } => None };
+            let goal = match &group.task { GroupTask::Move { to, .. } => Some(*to), GroupTask::Engage { at, .. } => Some(*at), GroupTask::Hunt(h) => Some(h.at), GroupTask::Hold { .. } => None };
             if let Some(body) = group.body(own, goal) {
                 let core_at = body.at;
                 let joined: Vec<UnitId> = body.joining.iter().filter(|u| u.pos.dist2d(core_at) <= ADOPT_RADIUS || self.stuck.contains_key(&u.id)).map(|u| u.id).collect();
@@ -550,11 +545,6 @@ impl Brain {
                         group.task = GroupTask::Hold { since: frame, committed: false };
                     }
                 }
-                GroupTask::Plan(_) => {
-                    if let Some(news) = self.tick_plan(group, &units, enemies, frame, commands) {
-                        plan_news.push(news);
-                    }
-                }
                 // The hunt's book: the quarry's last sighting for the words; the chase and its ends are the engine's
                 // (H-MICRO-HUNT). Every hunter dead ends it; the empty group goes at the next look.
                 GroupTask::Hunt(hunt) => {
@@ -567,10 +557,6 @@ impl Brain {
                     }
                 }
             }
-        }
-        for text in plan_news {
-            pianist.note(frame, text.clone());
-            pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
         }
         for text in rove_changes {
             pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
@@ -747,7 +733,7 @@ fn group_for_newcomer(named: Option<&str>, factory_group: Option<&str>) -> Optio
 
 #[cfg(test)]
 mod tests {
-    use super::super::engagement::tests::{e3, own};
+    use super::super::fixtures::{e3, own};
     use super::*;
 
     /// A hunt is a group of its own: three of fourteen sent after a party split off under a new name with the hunt

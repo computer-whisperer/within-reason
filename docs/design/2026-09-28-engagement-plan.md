@@ -5,6 +5,8 @@ might be a separate call from the world choice system, but given a picture of th
 examples it may choose a decent order of operations." Stage 2 of the micro answer; stage 1 (the body's shape) is
 `docs/design/2026-09-28-body-shape.md` on branch `tas-micro`.
 
+**Status (2026-09-29).** RETIRED: the live planner is deleted (the user: reimplement only after a thorough design review; player-23 4:52-6:06, the plan across the map and the decline home). The battlefield/candidates code is in git at 3fbb5a0.
+
 **Status (2026-09-28).** Design written; nothing built. Branch `engagement-plan`, worktree `../bar_bots-plan`.
 Step 1 built: the position finder and the battlefield with the cover-priced odds (`crates/bot/src/brain/pianist/engagement.rs`;
 the synthetic E3 scene's test: the Centurions' stand-off exists, the turrets' do not).

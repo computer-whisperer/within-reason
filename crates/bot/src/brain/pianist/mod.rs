@@ -10,12 +10,12 @@
 
 pub mod glossary;
 pub(super) mod groups;
-mod engagement;
 mod execute;
 mod lists;
 pub(super) mod picture;
 mod remove;
-pub mod replay;
+#[cfg(test)]
+pub(crate) mod fixtures;
 mod transfer;
 mod diet;
 mod plan;
@@ -188,11 +188,6 @@ pub struct Pianist {
     logged_rules: String,
     /// What the pass played this second (`execute.rs`, `lists.rs`), for the log line.
     pub(super) played: Vec<serde_json::Value>,
-    /// The engagement plans (`engagement.rs`): per group the position last asked about and when, the question in
-    /// flight in realtime, and the thread that asks it then.
-    pub(super) plan_memory: HashMap<String, engagement::PlanMemory>,
-    pub(super) plan_pending: HashMap<String, engagement::PlanPending>,
-    plan_worker: Option<engagement::PlanWorker>,
     stats: Stats,
     /// The versioned model has been said in the game chat (once, after the first answer).
     announced: bool,
@@ -357,7 +352,6 @@ impl Pianist {
             None => None,
         };
         let worker = if jev && crate::strategist::realtime() { jev::Client::from_env().ok().map(spawn_worker) } else { None };
-        let plan_worker = if jev && crate::strategist::realtime() { jev::Client::from_env().ok().map(engagement::spawn_plan_worker) } else { None };
         let packet = match std::env::var_os("WITHIN_REASON_PACKET") {
             Some(path) => Some(std::fs::read_to_string(&path).map_err(|e| format!("the packet file {} cannot be read: {e}", path.to_string_lossy()))?),
             None => None,
@@ -414,9 +408,6 @@ impl Pianist {
             logged_instructions: String::new(),
             logged_rules: String::new(),
             played: Vec::new(),
-            plan_memory: HashMap::new(),
-            plan_pending: HashMap::new(),
-            plan_worker,
             stats: Stats::default(),
             announced: false,
         })
@@ -555,7 +546,6 @@ impl Brain {
         }
         self.play_lists(tick, kit, &picture, commands);
         self.pass(tick, kit, &picture, commands);
-        self.engagement_pass(tick, &picture);
         self.publish_hands(&picture);
         let status_due = tick.due() % (60 * FRAMES_PER_SECOND) < self.pianist.as_ref().expect("pianist mode").interval_frames;
         if status_due {
@@ -874,7 +864,6 @@ impl Brain {
                     GroupTask::Hold { .. } => json!({ "kind": "hold" }),
                     GroupTask::Move { to, place, fight, .. } => json!({ "kind": if *fight { "fight_to" } else { "move_to" }, "place": place, "to": [to.x as i32, to.z as i32] }),
                     GroupTask::Engage { at, target, .. } => json!({ "kind": if target.is_some() { "attack_unit" } else { "engage" }, "to": [at.x as i32, at.z as i32] }),
-                    GroupTask::Plan(plan) => json!({ "kind": "plan", "plan": plan.key, "phase": plan.phase + 1, "to": [plan.goal().x as i32, plan.goal().z as i32] }),
                     GroupTask::Hunt(h) => json!({ "kind": "hunt", "party": h.party, "quarry": h.quarry.0, "to": [h.at.x as i32, h.at.z as i32] }),
                 };
                 json!({ "name": g.name, "members": g.members.iter().map(|id| id.0).collect::<Vec<_>>(), "at": centre.map(|c| [c.x as i32, c.z as i32]), "task": task })
@@ -945,7 +934,6 @@ impl Brain {
             return;
         }
         self.collect_answer(tick, &kit, commands);
-        self.collect_plans(tick);
     }
 
     /// One line of the log per call: the request (the instructions and the rules only when they changed; the rules
