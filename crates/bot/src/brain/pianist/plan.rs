@@ -16,10 +16,11 @@ use super::picture::{Party, Picture, distance_words};
 use super::{GroupTask, Pianist, Task};
 use crate::strategist::shared::Allowance;
 
-/// Worlds in one question at most, by default (`WITHIN_REASON_WORLDS` sets it): battery J held 1.00 to 128 worlds
-/// with sharp consequences; the offline study's diffusion past 8 was over near-equivalent worlds; onepass-smoke-1
+/// Worlds in one question at most, by default (`WITHIN_REASON_WORLDS` sets it): the API's cap on a Choice's options.
+/// Battery J (`../jev_experiments/results/j.md` §2) holds 0.95-1.00 to 255 worlds when each carries its computed
+/// consequence; the offline study's diffusion past 8 was a bare Choice over near-equivalent worlds. onepass-smoke-1
 /// at 8: one actor's seven states filled every deviation and the others were starved (the round-robin fill below).
-pub(super) const CAP: usize = 16;
+pub(super) const CAP: usize = 255;
 /// A noul at or above this flags its actor, state or threat for the second call.
 pub(super) const FLAG: f64 = 0.5;
 /// A slot's deviations in the second call at most: its best states by the gate.
@@ -1146,9 +1147,13 @@ pub(super) fn resolve(slots: &[Slot], world: &mut World) {
 /// The worlds after the pre-pass: world 1 is every slot's base; a threat the gate says needs answering opens every
 /// state against it, ranked by its state noul; an actor the gate says should change (an idle one always) opens its
 /// states ranked by their nouls; a dear build of one builder with a flagged neighbour's help makes a pair world; a
-/// state whose actor world 1 already sends elsewhere is pruned. The deviations are taken round-robin over the slots,
-/// each slot's best first, so one actor's many states never starve another's (onepass-smoke-1), at most `cap`.
-/// `flags` receives what the gate said. None when nothing opened.
+/// state whose actor world 1 already sends elsewhere is pruned. The single deviations are taken round-robin over
+/// the slots, each slot's best first, so one actor's many states never starve another's (onepass-smoke-1); then the
+/// joint worlds (the user's one-decider design, restored 2026-09-29; one-pass note §4): every combination of the
+/// best-rated slots' deviations, one per slot, over as many slots as fit under `cap`, a world sending one actor at
+/// two threats dropped, ordered by the product of their ranks (player-25: ten groups told to join one body needed
+/// ten winning picks of one change each; 33 merges landed against 50 splits). `flags` receives what the gate said.
+/// None when nothing opened.
 pub(super) fn compose(slots: &[Slot], answers: &BTreeMap<String, Answer>, flags: &mut BTreeMap<String, f64>, cap: usize) -> Option<Vec<World>> {
     let noul = |id: &str| match answers.get(id) {
         Some(Answer::Noul { noul }) => Some(*noul),
@@ -1278,16 +1283,17 @@ pub(super) fn compose(slots: &[Slot], answers: &BTreeMap<String, Answer>, flags:
         return None;
     }
     // Round-robin: every slot's best, then every slot's second best, ...
-    let mut out = vec![base];
+    let cap = cap.max(2);
+    let mut out = vec![base.clone()];
     let mut round = 0;
-    while out.len() < cap.max(2) {
+    while out.len() < cap {
         let mut any = false;
         for mine in &per_slot {
             if let Some((_, w)) = mine.get(round) {
                 any = true;
                 if !out.contains(w) {
                     out.push(w.clone());
-                    if out.len() >= cap.max(2) {
+                    if out.len() >= cap {
                         break;
                     }
                 }
@@ -1297,6 +1303,79 @@ pub(super) fn compose(slots: &[Slot], answers: &BTreeMap<String, Answer>, flags:
             break;
         }
         round += 1;
+    }
+    // The joint worlds: the slots ranked by their best deviation, as many as the cap has room for the product of.
+    let mut ranked: Vec<usize> = (0..per_slot.len()).filter(|si| !per_slot[*si].is_empty()).collect();
+    ranked.sort_by(|a, b| per_slot[*b][0].0.total_cmp(&per_slot[*a][0].0));
+    let mut active: Vec<usize> = Vec::new();
+    for si in ranked {
+        let with: Vec<usize> = active.iter().copied().chain([si]).collect();
+        let product: usize = with.iter().map(|sj| 1 + per_slot[*sj].len()).product();
+        let singles: usize = with.iter().map(|sj| per_slot[*sj].len()).sum();
+        if out.len() + product - 1 - singles > cap {
+            break;
+        }
+        active = with;
+    }
+    if active.len() >= 2 {
+        let mut joint: Vec<(f64, World)> = Vec::new();
+        let radix: Vec<usize> = active.iter().map(|si| 1 + per_slot[*si].len()).collect();
+        let mut digits = vec![0usize; active.len()];
+        'combos: loop {
+            // The next combination, mixed radix; done when it wraps.
+            let mut carry = 0;
+            while carry < digits.len() {
+                digits[carry] += 1;
+                if digits[carry] < radix[carry] {
+                    break;
+                }
+                digits[carry] = 0;
+                carry += 1;
+            }
+            if carry == digits.len() {
+                break;
+            }
+            let chosen: Vec<(usize, usize)> = digits.iter().enumerate().filter(|(_, d)| **d > 0).map(|(k, d)| (active[k], d - 1)).collect();
+            if chosen.len() < 2 {
+                continue;
+            }
+            let mut w = base.clone();
+            let mut rank = 1.0;
+            for (si, di) in &chosen {
+                let (r, dev) = &per_slot[*si][*di];
+                rank *= r;
+                for (k, (a, b)) in dev.iter().zip(&base).enumerate() {
+                    if a != b {
+                        if w[k] != base[k] && w[k] != *a {
+                            continue 'combos; // two deviations set one slot differently
+                        }
+                        w[k] = *a;
+                    }
+                }
+            }
+            // One actor at two threats is no world.
+            let mut actors: Vec<&str> = Vec::new();
+            for (slot, i) in slots.iter().zip(&w) {
+                if matches!(slot.kind, Kind::Threat(..)) && *i != 0 {
+                    let actor = slot.states[*i].actor.as_str();
+                    if actors.contains(&actor) {
+                        continue 'combos;
+                    }
+                    actors.push(actor);
+                }
+            }
+            resolve(slots, &mut w);
+            if !out.contains(&w) && !joint.iter().any(|(_, j)| *j == w) {
+                joint.push((rank, w));
+            }
+        }
+        joint.sort_by(|a, b| b.0.total_cmp(&a.0));
+        for (_, w) in joint {
+            if out.len() >= cap {
+                break;
+            }
+            out.push(w);
+        }
     }
     Some(out)
 }
@@ -1308,10 +1387,54 @@ fn dear(words: &str) -> bool {
 
 /// A world's line: its moves, then what follows: which threats are met with what metal and odds (turrets counted),
 /// which are left to nobody, who stays idle. World 1's line carries every course in force; every other world's
-/// says only what it changes from world 1 ("as w1, and ...") so the change is the option's own words
-/// (K-jev-hold-words-carry-the-cost; onepass-hard-2: the plant's Blitz rated 0.69 lost at 0.36 to a w1 whose line
-/// the deviation repeated in full, the change buried at its end).
+/// says only what it changes from world 1 ("as w1, and ...") and the consequences that differ from world 1's, so
+/// the change is the option's own words (K-jev-hold-words-carry-the-cost; onepass-hard-2: the plant's Blitz rated
+/// 0.69 lost at 0.36 to a w1 whose line the deviation repeated in full, the change buried at its end; player-25:
+/// sixteen lines each carrying the same 500 characters of parties left to nobody, idle actors and route holds).
 pub(super) fn consequence(world: &World, slots: &[Slot], store: &str, base: Option<&World>) -> String {
+    let (moves, met, unmet, idle, stops) = parts_of(world, slots, base);
+    let same = |mine: &[String], theirs: &[String]| mine == theirs;
+    let (met, unmet, idle, stops) = match base {
+        Some(b) => {
+            let (_, bmet, bunmet, bidle, bstops) = parts_of(b, slots, None);
+            (
+                if same(&met, &bmet) { Vec::new() } else { met },
+                if same(&unmet, &bunmet) { Vec::new() } else { unmet },
+                if same(&idle, &bidle) { Vec::new() } else { idle },
+                if same(&stops, &bstops) { Vec::new() } else { stops },
+            )
+        }
+        None => (met, unmet, idle, stops),
+    };
+    // World 1's own words are the cost of changing nothing and no more: the courses in force are in `actors`
+    // (K-jev-hold-words-carry-the-cost; onepass-hard-3: a w1 listing three helpers' courses took 0.45-0.49 against
+    // the plant's Blitz at 0.28-0.33, rated 0.7 by the pre-pass).
+    let mut parts: Vec<String> = Vec::new();
+    parts.push(match base {
+        None => "Nothing changes: every actor keeps the course its entry under `actors` describes".to_string(),
+        Some(_) => format!("As w1, and: {}", moves.join("; ")),
+    });
+    if !met.is_empty() {
+        parts.push(format!("Met: {}", met.join("; ")));
+    }
+    if !unmet.is_empty() {
+        parts.push(format!("Left to nobody: {}", unmet.join("; ")));
+    }
+    if !idle.is_empty() {
+        // The cost on the option's own words (K-jev-hold-words-carry-the-cost; onepass-smoke-3: "Idle: plant" beside
+        // a full store lost to the Blitz rated 0.68 at 0.65 against 0.35).
+        parts.push(format!("{} idle, doing nothing{}", idle.join(" and "), if store.is_empty() { String::new() } else { format!(", while the metal store reads {store}") }));
+    }
+    // A group at a reached stop of its route (routes-in-prose §4.2): the sentence that turned the next leg from
+    // 2 of 24 picks to 24 of 24 in the offline replay.
+    parts.extend(stops);
+    format!("{}.", parts.join(". "))
+}
+
+/// A world's moves (the states changed from `base`) and consequences: the parties met, the parties left to nobody,
+/// the idle actors, the reached stops.
+#[allow(clippy::type_complexity)]
+fn parts_of(world: &World, slots: &[Slot], base: Option<&World>) -> (Vec<String>, Vec<String>, Vec<String>, Vec<String>, Vec<String>) {
     let mut moves: Vec<String> = Vec::new();
     let (mut met, mut unmet, mut idle): (Vec<String>, Vec<String>, Vec<String>) = (Vec::new(), Vec::new(), Vec::new());
     let mut stops: Vec<String> = Vec::new();
@@ -1353,35 +1476,13 @@ pub(super) fn consequence(world: &World, slots: &[Slot], store: &str, base: Opti
             }
         }
     }
-    // World 1's own words are the cost of changing nothing and no more: the courses in force are in `actors`
-    // (K-jev-hold-words-carry-the-cost; onepass-hard-3: a w1 listing three helpers' courses took 0.45-0.49 against
-    // the plant's Blitz at 0.28-0.33, rated 0.7 by the pre-pass).
-    let mut parts: Vec<String> = Vec::new();
-    parts.push(match base {
-        None => "Nothing changes: every actor keeps the course its entry under `actors` describes".to_string(),
-        Some(_) => format!("As w1, and: {}", moves.join("; ")),
-    });
-    if !met.is_empty() {
-        parts.push(format!("Met: {}", met.join("; ")));
-    }
-    if !unmet.is_empty() {
-        parts.push(format!("Left to nobody: {}", unmet.join("; ")));
-    }
-    if !idle.is_empty() {
-        // The cost on the option's own words (K-jev-hold-words-carry-the-cost; onepass-smoke-3: "Idle: plant" beside
-        // a full store lost to the Blitz rated 0.68 at 0.65 against 0.35).
-        parts.push(format!("{} idle, doing nothing{}", idle.join(" and "), if store.is_empty() { String::new() } else { format!(", while the metal store reads {store}") }));
-    }
-    // A group at a reached stop of its route (routes-in-prose §4.2): the sentence that turned the next leg from
-    // 2 of 24 picks to 24 of 24 in the offline replay.
-    parts.extend(stops);
-    format!("{}.", parts.join(". "))
+    (moves, met, unmet, idle, stops)
 }
 
 /// The one question of the second call: a Choice over the worlds' lines.
 pub(super) fn question(lines: &[String]) -> Question {
     let instructions = json!(
-        "Given `economy`, `ours`, `enemy`, `actors`, `player` and the player's `instructions`, which plan is best this second? Each option is one world: who changes course to do what, with what it costs and gives up, which enemy parties are met and which are left to nobody, who stays idle. w1 changes nothing: every actor keeps its course and the idle ones stay idle; every other world is w1 with one actor's course changed (a pair, when two hands go to one build), and its line says only that change. An idle factory or builder with metal in the store is a cost, not a course, unless the instructions say to wait. The instructions were written before this picture: where they name a place, a party, a building, a unit or a rule, follow them; where the situation has changed, pick the world they would call for."
+        "Given `economy`, `ours`, `enemy`, `actors`, `player` and the player's `instructions`, which plan is best this second? Each option is one world: who changes course to do what, with what it costs and gives up, which enemy parties are met and which are left to nobody, who stays idle. w1 changes nothing: every actor keeps its course and the idle ones stay idle; every other world is w1 with one or more actors' courses changed, and its line says only those changes and what they alter. An idle factory or builder with metal in the store is a cost, not a course, unless the instructions say to wait. The instructions were written before this picture: where they name a place, a party, a building, a unit or a rule, follow them; where the situation has changed, pick the world they would call for."
     );
     Question::Choice { instructions, criteria: lines.iter().enumerate().map(|(i, l)| (format!("w{}", i + 1), json!(l))).collect() }
 }
@@ -1492,8 +1593,46 @@ mod tests {
         assert_eq!(gate_questions(&slots, true).iter().filter(|(id, _)| id.starts_with("constructor_3")).count(), 4, "an idle actor is not asked whether to change, only which move: two states, each as the move and as a fact about the instructions");
         assert_eq!(flags["party_2.answer"], 0.9);
         let line = consequence(&vec![1, 1, 0], &slots, "340 of 500 stored", Some(&worlds[0]));
-        assert!(line.contains("Met: party_1") && line.contains("party_2 (") && line.contains("constructor_3 idle"), "{line}");
+        assert!(line.contains("Met: party_1") && line.contains("party_2 (") && !line.contains("idle"), "a deviation's line says only what differs from world 1: {line}");
+        assert!(consequence(&worlds[0], &slots, "340 of 500 stored", None).contains("constructor_3 idle"));
         assert_eq!(pick(&BTreeMap::from([("worlds.pick".to_string(), Answer::Choice { choice: "w2".into(), probabilities: BTreeMap::new(), confidence: 0.6 })]), &worlds), Some((1, 0.6)));
+    }
+
+    /// The joint worlds (the user's one-decider design, restored 2026-09-29): every combination of the best-rated
+    /// slots' deviations under the cap, one actor never sent at two threats, each line saying every change.
+    #[test]
+    fn the_worlds_join_the_flagged_deviations_under_the_cap() {
+        let slots = vec![
+            threat("party_1", vec![state("party_1.leave", "", Response::Leave, "threat", false), state("party_1.whole_group_A", "group_A", Response::Whole, "threat", false), state("party_1.whole_group_C", "group_C", Response::Whole, "threat", false)]),
+            threat("party_2", vec![state("party_2.leave", "", Response::Leave, "threat", false), state("party_2.whole_group_B", "group_B", Response::Whole, "threat", false), state("party_2.whole_group_A", "group_A", Response::Whole, "threat", false)]),
+            builder("constructor_3", 3, vec![state("constructor_3.keep", "constructor_3", Response::Keep, "threat", false), state("constructor_3.extractor_spot_4", "constructor_3", Response::Extractor(4), "extractor", false)]),
+        ];
+        let answers = BTreeMap::from([
+            ("party_1.answer".to_string(), Answer::Noul { noul: 0.9 }),
+            ("party_1.whole_group_A".to_string(), Answer::Noul { noul: 0.8 }),
+            ("party_1.whole_group_C".to_string(), Answer::Noul { noul: 0.6 }),
+            ("party_2.answer".to_string(), Answer::Noul { noul: 0.9 }),
+            ("party_2.whole_group_B".to_string(), Answer::Noul { noul: 0.7 }),
+            ("party_2.whole_group_A".to_string(), Answer::Noul { noul: 0.5 }),
+            ("constructor_3.extractor_spot_4".to_string(), Answer::Noul { noul: 0.9 }),
+        ]);
+        let mut flags = BTreeMap::new();
+        let worlds = compose(&slots, &answers, &mut flags, 255).unwrap();
+        // The singles, then the product: both threats answered and the extractor built in one world.
+        assert!(worlds.contains(&vec![1, 1, 1]), "{worlds:?}");
+        assert!(worlds.contains(&vec![2, 1, 1]) && worlds.contains(&vec![1, 1, 0]) && worlds.contains(&vec![0, 1, 1]), "{worlds:?}");
+        // group_A at both parties is no world; nor group_C at party_1 beside group_A at party_2? (that one stands).
+        assert!(!worlds.contains(&vec![1, 2, 0]) && !worlds.contains(&vec![1, 2, 1]), "{worlds:?}");
+        assert!(worlds.contains(&vec![2, 2, 0]), "{worlds:?}");
+        // 1 base + 5 singles + the product's joint worlds (3*3*2 = 18 combinations, less the base, the 5 singles and
+        // the two with group_A at both parties): 10 joint.
+        assert_eq!(worlds.len(), 1 + 5 + 10, "{worlds:?}");
+        let joint = consequence(&vec![1, 1, 1], &slots, "340 of 500 stored", Some(&worlds[0]));
+        assert!(joint.starts_with("As w1, and: party_1.whole_group_A; party_2.whole_group_B; constructor_3.extractor_spot_4") && joint.contains("Met: party_1") && joint.contains("party_2 (") && !joint.contains("Left to nobody") && !joint.contains("idle"), "{joint}");
+        // A cap of 6 holds the base and the five singles; nothing joint fits.
+        let small = compose(&slots, &answers, &mut BTreeMap::new(), 6).unwrap();
+        assert_eq!(small.len(), 6);
+        assert!(small.iter().all(|w| w.iter().filter(|i| **i != 0).count() <= 1), "{small:?}");
     }
 
     #[test]

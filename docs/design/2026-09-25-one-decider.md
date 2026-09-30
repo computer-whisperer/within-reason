@@ -103,7 +103,7 @@ standing-2 (Jev hold then the station walk, 26 times on group_I) cannot occur.
 
 A group with nothing within reach and no rule firing has one candidate, `keep`, and does not vary.
 
-**Worlds.** The product of the varying groups' candidates, pruned: two groups do not both take the same party unless
+**Worlds.** *(Replaced by single-change worlds in the one-pass note of 2026-09-26; the product restored 2026-09-29, see that note's §4.)* The product of the varying groups' candidates, pruned: two groups do not both take the same party unless
 together they are needed to outweigh it; a group beyond 1,200 of every event has only `keep`; the count is capped at
 8 by dropping, in order, the `back` of groups not outweighed, then the whole-group engage where a detachment
 outweighs, then the farthest group's variation. Offline (`docs/studies/2026-09-25-joint-worlds.md`) the pick diffused

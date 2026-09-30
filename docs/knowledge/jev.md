@@ -1540,6 +1540,18 @@ more seconds until `lane raw` at 15:40.
 **Status.** fixed 2026-09-28: the prompt's sentence names `form` in `focus`'s place.
 
 
+### K-hands-one-change-a-second-starved-the-merge
+**Claim.** With every world one actor's change from world 1, a plan that needs several actors to move in one second
+(ten fragments joining one body, a raid on two flanks) can only land one change a pick, each pick contested by every
+plant's build and every raider's hunt; the merge of a fragmented army never catches up with the splitting.
+**Evidence.** player-25-nodrops: 664 picks with a merge world on the board, a merge chosen 33 times (5%), "nothing
+changes" 323, a plant's build 99, a hunt 86, a builder's step 73; 50 hunt splits in 19 minutes; the player wrote
+"join group_K1" for ten groups at 14:08 and one of them had that merge on the board. The single-change form was the
+one-pass note's (2026-09-26, mine), reversing the product of the one-decider design (2026-09-25, the user's) on the
+bare-Choice diffusion of the joint-worlds study; battery J with consequences holds 0.95-1.00 to 255 worlds.
+**Status.** fixed 2026-09-29: the joint worlds restored (H-HANDS-ONE-PASS amended, one-pass note §4). Recheck in the
+next player game: worlds a pick, joint worlds picked, merges picked against splits, the pick's latency and tokens.
+
 ### K-hands-the-bare-merge-lost-to-a-failed-hunt
 **Claim.** Jev knew ten groups of one Blitz stood on one spot (each entry: "at spot_76 (C8)", "1 Blitz", "split_from:
 group_A, 37 s ago"; group_A's: "7 groups of 7 soldiers split from it ... still out") and the player had written "every one
