@@ -90,3 +90,33 @@ off the gate, some 30% off the game, roughly $0.75 of $2.59.
 The pick's states are already dieted to what the worlds name; the savings there are a tenth of a game's cost for a
 measurable drift, so the picks keep their state apart from `places`, which goes with the gate's (one state feeds
 both).
+
+## 7. A sampling floor on stage one (player-29-hard, the 295 picks of 23:00-28:00; no calls)
+
+The suspect after player-28: stage one's sampled candidate carried little mass (under 0.1 in 36% of picks), so a
+floor or an argmax might pick better. Player-29-hard's late game made it pressing: the packet from 17:22 on said
+"It never splits: no detachment of any size leaves it to hunt", and in those five minutes the picks played ~110 hunt
+starts, 49 hunts called off and 124 joins, seven groups of 1-26 near home while the ball fought at E4.
+
+The recorded stage-one distributions replayed under five rules (the scripts in the session's scratchpad `p29/floor.py`,
+`p29/picks.py`; 20 draws a pick for the random rules), the kind of world each rule lands on:
+
+| rule | median mass of the pick | detachment hunt | join | walk | fall back | build |
+|---|---|---|---|---|---|---|
+| plain sampling (the game) | 0.05 | 39% | 25% | 8% | 5% | 3% |
+| argmax | 0.17 | 47% | 14% | 12% | 7% | 3% |
+| floor at half the top | 0.14 | 47% | 15% | 11% | 7% | 3% |
+| floor at a quarter of the top | 0.10 | 44% | 18% | 9% | 7% | 3% |
+| top three | 0.13 | 46% | 16% | 11% | 7% | 3% |
+
+Stage one is not flat (the top candidate a median 0.17 over a median 56 candidates, p25 0.11, p75 0.26); it is
+pointed at the detachment hunts: 33% of the worlds, 44% of the mass (joins 42% of the worlds, 30% of the mass).
+Stage two agrees: the recorded P(change over world 1) for a detachment-hunt candidate is a median 0.79, chosen 91
+of 99 times (joins 0.70 and 87%, walks 0.77, fall-backs 0.82, builds 0.75). The plan row's `confidence` (0.53 median)
+is the Choice's margin, not that probability. The hypothesis is dead: a floor picks more hunts, not fewer. The hunt
+line's own words ("we outweigh it heavily", "they drive it off in 10 s", "can catch it") beat the instruction that
+forbids it in both stages; the merge lines the packet asks for lose to them. The lever is the words. Candidates
+(not built): a rules sentence in the pick's question ("a change the player's instructions forbid is never the best
+one, whatever its odds"), replayed on these picks; the same on the gate's hunt nouls (660 of 7,487 cleared 0.5 in
+those minutes); or the harness not offering detachments when the packet says never splits, which is a rule reading
+the packet and the user's call.
