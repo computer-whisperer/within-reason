@@ -21,6 +21,12 @@ use crate::strategist::shared::Allowance;
 /// consequence; the offline study's diffusion past 8 was a bare Choice over near-equivalent worlds. onepass-smoke-1
 /// at 8: one actor's seven states filled every deviation and the others were starved (the round-robin fill below).
 pub(super) const CAP: usize = 255;
+/// Characters of deviation lines in one pick at most: the stage-one Choice cannot be split into batches, and the
+/// service refuses a request past its context (player-27, 10:20-13:00: 145-255 worlds with 120-240k characters of
+/// lines refused 172 times, HTTP 400 max_tokens_exceeded, no pick for three minutes with 2,200 metal banked; the
+/// largest call that passed carried 66k characters of lines beside a 12-26k state, 33k tokens at 2.1 characters a
+/// token for this dense text). The worlds are cut to the longest prefix that fits: the singles first, then the joint.
+pub(super) const LINE_CHARS: usize = 40_000;
 /// A noul at or above this flags its actor, state or threat for the second call.
 pub(super) const FLAG: f64 = 0.5;
 /// A slot's deviations in the second call at most: its best states by the gate.
@@ -1393,16 +1399,15 @@ fn dear(words: &str) -> bool {
 /// sixteen lines each carrying the same 500 characters of parties left to nobody, idle actors and route holds).
 pub(super) fn consequence(world: &World, slots: &[Slot], store: &str, base: Option<&World>) -> String {
     let (moves, met, unmet, idle, stops) = parts_of(world, slots, base);
-    let same = |mine: &[String], theirs: &[String]| mine == theirs;
+    // A deviation's consequences are what it adds to world 1's: a party now met, a party now left, an actor now
+    // idle, a stop now reached. What it removes (the actor no longer idle, the party no longer left to nobody) is
+    // said by its move (player-27 offline, the 10:44 pick: the Mace's line with world 1's idle list re-listed took
+    // 0.48-0.50 against world 1, cut to its move 0.70; and the re-listed lines were what overflowed the call).
+    let added = |mine: Vec<String>, theirs: &[String]| mine.into_iter().filter(|m| !theirs.contains(m)).collect::<Vec<_>>();
     let (met, unmet, idle, stops) = match base {
         Some(b) => {
             let (_, bmet, bunmet, bidle, bstops) = parts_of(b, slots, None);
-            (
-                if same(&met, &bmet) { Vec::new() } else { met },
-                if same(&unmet, &bunmet) { Vec::new() } else { unmet },
-                if same(&idle, &bidle) { Vec::new() } else { idle },
-                if same(&stops, &bstops) { Vec::new() } else { stops },
-            )
+            (added(met, &bmet), added(unmet, &bunmet), added(idle, &bidle), added(stops, &bstops))
         }
         None => (met, unmet, idle, stops),
     };
@@ -1567,10 +1572,26 @@ pub(super) fn pick(answers: &BTreeMap<String, Answer>, worlds: &[World]) -> Opti
 /// (`pick_state`). Pure, so the realtime worker runs it the instant the gate answers.
 pub(super) fn follow_up(slots: &[Slot], answers: &BTreeMap<String, Answer>, store: &str, cap: usize, state: &Value) -> (BTreeMap<String, f64>, Option<(Vec<World>, Vec<String>, Value)>) {
     let mut flags: BTreeMap<String, f64> = BTreeMap::new();
-    let Some(worlds) = compose(slots, answers, &mut flags, cap) else { return (flags, None) };
-    let lines: Vec<String> = worlds.iter().enumerate().map(|(i, w)| consequence(w, slots, store, (i > 0).then_some(&worlds[0]))).collect();
+    let Some(mut worlds) = compose(slots, answers, &mut flags, cap) else { return (flags, None) };
+    let mut lines: Vec<String> = worlds.iter().enumerate().map(|(i, w)| consequence(w, slots, store, (i > 0).then_some(&worlds[0]))).collect();
+    let keep = fit(&lines, LINE_CHARS);
+    worlds.truncate(keep);
+    lines.truncate(keep);
     let state = pick_state(state, slots, &worlds, &lines);
     (flags, Some((worlds, lines, state)))
+}
+
+/// How many worlds fit the line budget: world 1 and at least one deviation, then the longest prefix whose
+/// deviation lines total `budget` characters or fewer.
+pub(super) fn fit(lines: &[String], budget: usize) -> usize {
+    let mut total = 0;
+    for (i, line) in lines.iter().enumerate().skip(1) {
+        total += line.len();
+        if total > budget && i > 1 {
+            return i;
+        }
+    }
+    lines.len()
 }
 
 /// The pick's state: the gate's, with every actor no world sends anywhere cut to one line and every place the
@@ -1724,6 +1745,15 @@ mod tests {
         assert_eq!(pick(&BTreeMap::from([("worlds.pick".to_string(), Answer::Choice { choice: "w1".into(), probabilities: BTreeMap::new(), confidence: 0.6 })]), &worlds), Some((0, 0.6)));
         let u = draw();
         assert!((0.0..1.0).contains(&u));
+    }
+
+    /// The line budget (player-27: 145-255 worlds of 120-240k characters refused for three minutes).
+    #[test]
+    fn the_worlds_are_cut_to_the_line_budget_keeping_world_one_and_a_deviation() {
+        let lines: Vec<String> = (0..10).map(|i| format!("w{i} {}", "x".repeat(100))).collect();
+        assert_eq!(fit(&lines, 10_000), 10);
+        assert_eq!(fit(&lines, 350), 4, "three deviations of 104 fit 350, the fourth does not");
+        assert_eq!(fit(&lines, 10), 2, "the first deviation stays even over the budget");
     }
 
     #[test]
