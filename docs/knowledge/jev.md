@@ -1540,6 +1540,18 @@ more seconds until `lane raw` at 15:40.
 **Status.** fixed 2026-09-28: the prompt's sentence names `form` in `focus`'s place.
 
 
+### K-hands-a-plurality-over-near-duplicates-picks-nothing
+**Claim.** A Choice's probabilities sum to one, so worlds that share a change split its support while the one world
+with unique content keeps its share whole: with a median 96 joint worlds a pick, "nothing changes" won 142 of 315 picks
+at a median 0.33 while some change held a median 0.46 summed over its worlds (105 of the 142). It is not a
+safe-fallback preference: framed without its sentence, as a plan, or last, w1's share on the idle-factory seconds
+stayed 0.10-0.12 and the builds' 0.46-0.54, and the order Jev gives the near-duplicates is chance.
+**Evidence.** player-26-joint, `docs/studies/2026-09-29-pick-framing.md` §1-§3 (the 10:44 pick re-asked 13 ways; 44
+picks under five framings).
+**Status.** answered 2026-09-29 by the pick in two stages (H-HANDS-ONE-PASS amended): offline a build on 29 of the 92
+idle-factory seconds against 9, w1 8 against 44 (§4). Recheck in player-27: w1's share of picks, builds while the
+store is full, the candidate's sampled probability (the mass under 0.05 was 0.26 of a median pick).
+
 ### K-hands-one-change-a-second-starved-the-merge
 **Claim.** With every world one actor's change from world 1, a plan that needs several actors to move in one second
 (ten fragments joining one body, a raid on two flanks) can only land one change a pick, each pick contested by every

@@ -134,6 +134,8 @@ pub struct Pianist {
     /// frame at the last ask (ask on change), and the events since (`schedule.rs`).
     pub(super) slots: Vec<plan::Slot>,
     pub(super) worlds: Vec<plan::World>,
+    /// The pick's candidate this second: the world stage one's sample drew, and its probability (for the log).
+    pub(super) candidate: Option<(usize, f64)>,
     pub(super) sig: Option<(String, i32)>,
     pub(super) events: BTreeSet<String>,
     /// The hunts' ends since the last pass line (`groups.rs` `tick_hunt`), for the log.
@@ -216,22 +218,20 @@ struct Follow {
 }
 
 /// The worker's follow-up to a gate: what the gate flagged, the worlds and their lines (None when nothing opened),
-/// and the pick's request with its answer.
+/// and the pick's two stages with their answers.
 struct Followed {
     flags: BTreeMap<String, f64>,
     worlds: Option<Vec<plan::World>>,
     lines: Vec<String>,
-    pick: Option<(jev::Request, Result<jev::Response, jev::Error>)>,
+    pick: Option<plan::PickRun>,
 }
 
-/// A request in flight: what it was built from, so its answer can be played when it comes. `worlds` is None for
-/// the pre-pass and the composed worlds for the pick.
+/// A gate request in flight: what it was built from, so its answer can be played when it comes.
 struct Pending {
     id: u64,
     frame: i32,
     picture: picture::Picture,
     slots: Vec<plan::Slot>,
-    worlds: Option<Vec<plan::World>>,
     request: jev::Request,
 }
 
@@ -250,9 +250,9 @@ fn spawn_worker(client: jev::Client) -> Worker {
                 (Ok(response), Some(f)) => {
                     let (flags, next) = plan::follow_up(&f.slots, &response.answers, &f.store, f.cap, &request.state);
                     let (worlds, lines, pick) = match next {
-                        Some((worlds, lines, second)) => {
-                            let answer = client.ask(&second);
-                            (Some(worlds), lines, Some((second, answer)))
+                        Some((worlds, lines, state)) => {
+                            let run = plan::run_pick(&|r| client.ask(r), &state, &lines, plan::draw());
+                            (Some(worlds), lines, Some(run))
                         }
                         None => (None, Vec::new(), None),
                     };
@@ -378,6 +378,7 @@ impl Pianist {
             rally: HashMap::new(),
             slots: Vec::new(),
             worlds: Vec::new(),
+            candidate: None,
             sig: None,
             events: BTreeSet::new(),
             hunt_events: Vec::new(),
@@ -754,7 +755,7 @@ impl Brain {
             self.pianist.as_mut().expect("pianist mode").log_header(self.world.hello.ai_id, &rules);
         }
         let follow = self.pianist.as_ref().is_some_and(|p| p.worker.is_some()).then(|| Follow { slots: slots.clone(), store: Self::store_words(picture), cap: self.pianist.as_ref().expect("pianist mode").cap });
-        self.call(tick, kit, picture.clone(), slots, None, request, follow, commands);
+        self.call(tick, kit, picture.clone(), slots, request, follow, commands);
     }
 
     /// The store's words for the worlds' lines ("340 of 500 stored").
@@ -762,9 +763,9 @@ impl Brain {
         picture.state["economy"]["metal"].as_str().and_then(|m| m.split(';').next()).unwrap_or_default().to_string()
     }
 
-    /// A call to Jev: through the worker in realtime (its answer lands in `collect_answer`), in place in lockstep.
-    #[allow(clippy::too_many_arguments)]
-    fn call(&mut self, tick: &Tick, kit: &Kit, picture: picture::Picture, slots: Vec<plan::Slot>, worlds: Option<Vec<plan::World>>, request: jev::Request, follow: Option<Follow>, commands: &mut Vec<Command>) {
+    /// The gate call to Jev: through the worker in realtime (its answer lands in `collect_answer`), in place in
+    /// lockstep.
+    fn call(&mut self, tick: &Tick, kit: &Kit, picture: picture::Picture, slots: Vec<plan::Slot>, request: jev::Request, follow: Option<Follow>, commands: &mut Vec<Command>) {
         let pianist = self.pianist.as_mut().expect("pianist mode");
         pianist.stats.calls += 1;
         pianist.stats.questions += request.questions.len() as u32;
@@ -772,12 +773,12 @@ impl Brain {
             let id = pianist.next_request;
             pianist.next_request += 1;
             if pianist.worker.as_ref().expect("checked").to.send((id, request.clone(), follow)).is_ok() {
-                pianist.pending = Some(Pending { id, frame: tick.frame, picture, slots, worlds, request });
+                pianist.pending = Some(Pending { id, frame: tick.frame, picture, slots, request });
             }
             return;
         }
         let result = pianist.client.as_ref().expect("a call needs Jev").ask(&request);
-        self.answered(tick, kit, &picture, slots, worlds, &request, result, None, commands);
+        self.answered(tick, kit, &picture, slots, None, &request, result, None, commands);
     }
 
     /// A call's answer: the pre-pass's composes the worlds and makes the second call; the pick's puts the plan in force.
@@ -812,42 +813,71 @@ impl Brain {
     #[allow(clippy::too_many_arguments)]
     fn after_gate(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, slots: Vec<plan::Slot>, request: &jev::Request, answers: &BTreeMap<String, jev::Answer>, followed: Option<Followed>, commands: &mut Vec<Command>) {
         let cap = self.pianist.as_ref().expect("pianist mode").cap;
-        // Realtime: the worker composed the worlds and made the pick as soon as the gate answered; lockstep: here.
+        // Realtime: the worker composed the worlds and made the pick's two calls as soon as the gate answered;
+        // lockstep: here.
         let (flags, composed) = match followed {
             Some(f) => (
                 f.flags,
                 match (f.worlds, f.pick) {
-                    (Some(worlds), Some((second, answer))) => Some((worlds, f.lines, second, Some(answer))),
+                    (Some(worlds), Some(run)) => Some((worlds, f.lines, run)),
                     _ => None,
                 },
             ),
             None => {
                 let (flags, next) = plan::follow_up(&slots, answers, &Self::store_words(picture), cap, &request.state);
-                (flags, next.map(|(worlds, lines, second)| (worlds, lines, second, None)))
+                let run = next.map(|(worlds, lines, state)| {
+                    let client = self.pianist.as_ref().expect("pianist mode").client.as_ref().expect("a call needs Jev");
+                    let run = plan::run_pick(&|r| client.ask(r), &state, &lines, plan::draw());
+                    (worlds, lines, run)
+                });
+                (flags, run)
             }
         };
         let pianist = self.pianist.as_mut().expect("pianist mode");
         pianist.write_log(json!({ "t": "worlds_gate", "f": tick.frame, "flags": flags, "worlds": composed.as_ref().map(|c| c.0.clone()), "lines": composed.as_ref().map(|c| c.1.clone()).unwrap_or_default() }));
-        let Some((ws, _, second, answer)) = composed else { return };
+        let Some((ws, _, run)) = composed else { return };
         pianist.worlds = ws.clone();
         pianist.slots = slots.clone();
-        match answer {
-            Some(result) => self.answered(tick, kit, picture, slots, Some(ws), &second, result, None, commands),
-            None => self.call(tick, kit, picture.clone(), slots, Some(ws), second, None, commands),
+        pianist.candidate = run.candidate;
+        // Stage one's call, logged; stage two's answer is the pick.
+        if let Some((first, result)) = run.stage_one {
+            match result {
+                Ok(response) => {
+                    let pianist = self.pianist.as_mut().expect("pianist mode");
+                    pianist.stats.calls += 1;
+                    pianist.stats.questions += 1;
+                    pianist.stats.latencies_ms.push(response.latency.as_secs_f32() * 1000.0);
+                    pianist.stats.tokens += response.usage["input_tokens"].as_u64().unwrap_or(0);
+                    self.log_call(tick, &first, &response);
+                }
+                Err(e) => {
+                    let pianist = self.pianist.as_mut().expect("pianist mode");
+                    pianist.stats.errors += 1;
+                    pianist.write_log(json!({ "t": "error", "f": tick.frame, "error": e.to_string() }));
+                }
+            }
         }
+        let Some((second, result)) = run.stage_two else { return };
+        {
+            let pianist = self.pianist.as_mut().expect("pianist mode");
+            pianist.stats.calls += 1;
+            pianist.stats.questions += 1;
+        }
+        self.answered(tick, kit, picture, slots, Some(ws), &second, result, None, commands);
     }
 
     /// The second call's pick put in force, and logged as a `plan` line.
     #[allow(clippy::too_many_arguments)]
     fn after_pick(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, slots: &[plan::Slot], worlds: &[plan::World], answers: &BTreeMap<String, jev::Answer>, commands: &mut Vec<Command>) {
         let Some((wi, confidence)) = plan::pick(answers, worlds) else { return };
+        let candidate = self.pianist.as_ref().expect("pianist mode").candidate;
         // A pick below the bar moves no group that is fighting (player-17 21:34: "attack party_25 (2 armstump)"
         // 1,300 behind the front at confidence 0.03, after picks at 0.09 and 0.15, turned the army from its fight
         // at D1; 40 to 23 units, 6,900 lost for 1,284 in engagements #16, #17 and #22).
         let changed = self.apply_plan(tick, kit, picture, slots, &worlds[wi], "plan", commands);
         let pianist = self.pianist.as_mut().expect("pianist mode");
         let played = std::mem::take(&mut pianist.played);
-        pianist.write_log(json!({ "t": "plan", "f": tick.frame, "pick": wi + 1, "confidence": confidence, "changed": changed, "played": played }));
+        pianist.write_log(json!({ "t": "plan", "f": tick.frame, "pick": wi + 1, "confidence": confidence, "candidate": candidate.map(|(c, _)| c + 1), "sampled_p": candidate.map(|(_, p)| p), "changed": changed, "played": played }));
         self.journal.note_from("plan", tick.frame, "worlds", json!({ "worlds": worlds.len() }), json!({ "pick": wi + 1, "confidence": confidence, "changed": changed }));
     }
 
@@ -923,7 +953,7 @@ impl Brain {
             pianist.places = pending.picture.places.clone();
             pianist.parties = pending.picture.parties.clone();
         }
-        self.answered(tick, kit, &pending.picture, pending.slots, pending.worlds, &pending.request, result, followed, commands);
+        self.answered(tick, kit, &pending.picture, pending.slots, None, &pending.request, result, followed, commands);
     }
 
     /// Every tick between thinks: an answer that has come is played now rather than at the next think (the user,
