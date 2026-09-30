@@ -153,14 +153,18 @@ impl Instance {
         for mut command in commands.0 {
             if let Command::Build { unit, def, site: Some(site), .. } = &mut command {
                 match self.engine.find_build_site(*def, site) {
-                    Some(pos) => {
+                    Some((pos, placement)) => {
                         if std::env::var_os("WITHIN_REASON_TRACE_BUILDS").is_some() {
                             self.log(format_args!(
-                                "build unit={} def={} wanted=({:.0},{:.0}) placed=({:.0},{:.0})",
-                                unit.0, def.0, site.near.x, site.near.z, pos.x, pos.z
+                                "build unit={} def={} wanted=({:.0},{:.0}) placed=({:.0},{:.0}) placement={:?} of {}",
+                                unit.0, def.0, site.near.x, site.near.z, pos.x, pos.z, placement.map(|i| i + 1), site.placements.len()
                             ));
                         }
                         site.near = pos;
+                        // The placement the site was found for is the one to build with.
+                        if let Some(i) = placement {
+                            site.placements = vec![site.placements[i].clone()];
+                        }
                     }
                     None => {
                         if std::env::var_os("WITHIN_REASON_TRACE_BUILDS").is_some() {

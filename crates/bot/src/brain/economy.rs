@@ -2,7 +2,7 @@
 //! `build_site_for`, the extractor's exact site). The rules that chose what to build went with the heuristic bot
 //! (2026-09-25, `docs/design/2026-09-25-one-decider.md`).
 
-use bot_protocol::{BuildSite, Lane, OwnUnit, UnitDefId, Vec3};
+use bot_protocol::{BuildSite, Lane, OwnUnit, Placement, UnitDefId, Vec3};
 
 use super::roster::Kit;
 use super::Brain;
@@ -152,22 +152,33 @@ impl Brain {
         if !self.world.def(unit.def).is_some_and(|d| d.build_options.contains(&planned_def)) {
             return None;
         }
-        // Nothing but an extractor goes in a factory's exit lane (yards.rs).
+        // Nothing but an extractor goes in a factory's exit lane (yards.rs), and a site the engine refused for this
+        // type is not asked again while the refusal stands (a point lane).
         let mut keep_out = self.lanes.clone();
-        // A new factory's own exit lane must be clear of what stands or is ordered (the mirrored lanes), and of
-        // ground its units cannot walk.
-        keep_out.extend(self.own_lane_keep_out(planned_def, own));
-        if let Plan::Near(_, anchor) | Plan::Beside(_, anchor) = plan {
-            keep_out.extend(self.blocked_lane_keep_out(planned_def, *anchor, 1000.0 + 2.0 * super::yards::LANE_DEPTH));
-        }
-        // A site the engine refused for this type is not asked again while the refusal stands (a point lane).
         if let Some(pianist) = self.pianist.as_ref() {
             keep_out.extend(pianist.refused_sites.iter().filter(|(def, _, _)| *def == planned_def).map(|(_, at, _)| Lane { from: *at, to: *at, half_width: REFUSED_SITE_RADIUS }));
         }
+        // A factory is offered every facing, the one toward the enemy first; each facing's own exit lane must be
+        // clear of what stands or is ordered (the mirrored lanes), of ground its units cannot walk and of the map's
+        // edge. Anything else stands the engine's default way.
+        let placements = |anchor: Vec3| -> Vec<Placement> {
+            if !self.world.is_factory_def(planned_def) {
+                return vec![Placement { facing: 0, keep_out: keep_out.clone() }];
+            }
+            self.facings_toward_the_enemy(anchor)
+                .into_iter()
+                .map(|facing| {
+                    let mut keep_out = keep_out.clone();
+                    keep_out.extend(self.own_lane_keep_out(planned_def, own, facing));
+                    keep_out.extend(self.blocked_lane_keep_out(planned_def, anchor, 1000.0 + 2.0 * super::yards::LANE_DEPTH, facing));
+                    Placement { facing, keep_out }
+                })
+                .collect()
+        };
         Some(match *plan {
             // The game rejects an extractor that is not exactly on its spot (cmd_mex_denier.lua), and the shim
             // places extractors exactly at `near`, searching nowhere.
-            Plan::Extractor(spot) => (kit.extractor, BuildSite { near: self.extractor_site(spot, unit), search_radius: 0.0, min_dist: 0, keep_out: Vec::new() }),
+            Plan::Extractor(spot) => (kit.extractor, BuildSite { near: self.extractor_site(spot, unit), search_radius: 0.0, min_dist: 0, placements: Vec::new() }),
             // A tier-2 extractor over one of ours goes exactly where ours stands: the game upgrades in place and
             // refuses any other position on a held spot (low-1: three `armmoho spot_N` orders at the spots' centres,
             // 97-104 elmos from our extractors placed off centre, all "site bad"; the player: "upgrade path not working").
@@ -175,10 +186,10 @@ impl Brain {
                 if self.world.def(def_id).is_some_and(|d| d.extracts_metal > 0.0)
                     && let Some(ours) = own.iter().filter(|u| kit.is_extractor(u.def) && u.def != def_id && u.pos.dist2d(anchor) < self.spot_occupied_radius()).min_by(|a, b| a.pos.dist2d(anchor).total_cmp(&b.pos.dist2d(anchor))) =>
             {
-                (def_id, BuildSite { near: ours.pos, search_radius: 0.0, min_dist: 0, keep_out: Vec::new() })
+                (def_id, BuildSite { near: ours.pos, search_radius: 0.0, min_dist: 0, placements: Vec::new() })
             }
-            Plan::Near(def_id, anchor) => (def_id, BuildSite { near: anchor, search_radius: 1000.0, min_dist: self.gap_around(def_id, kit), keep_out }),
-            Plan::Beside(def_id, anchor) => (def_id, BuildSite { near: anchor, search_radius: NANO_REACH, min_dist: 2, keep_out }),
+            Plan::Near(def_id, anchor) => (def_id, BuildSite { near: anchor, search_radius: 1000.0, min_dist: self.gap_around(def_id, kit), placements: placements(anchor) }),
+            Plan::Beside(def_id, anchor) => (def_id, BuildSite { near: anchor, search_radius: NANO_REACH, min_dist: 2, placements: placements(anchor) }),
         })
     }
 

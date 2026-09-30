@@ -35,25 +35,91 @@ impl Brain {
         self.lane_at(factory.def, factory.pos, factory.facing)
     }
 
-    /// The exit lane a factory of this type would have standing at `pos` with this facing (0 south, the engine's
-    /// facing for every building of ours in the recorded games), so a factory not yet standing has a lane too.
+    /// The exit lane a factory of this type would have standing at `pos` with this facing, so a factory not yet
+    /// standing has a lane too.
     pub(super) fn lane_at(&self, def_id: UnitDefId, pos: Vec3, facing: i32) -> Option<Lane> {
+        let (half_width, half_depth) = self.factory_half_size(def_id)?;
+        let (fx, fz) = facing_dir(facing);
+        let reach = half_depth + LANE_DEPTH;
+        let front = Vec3 { x: pos.x + fx * half_depth, y: pos.y, z: pos.z + fz * half_depth };
+        Some(Lane { from: front, to: Vec3 { x: pos.x + fx * reach, y: pos.y, z: pos.z + fz * reach }, half_width: half_width + LANE_MARGIN })
+    }
+
+    /// Half the footprint of a factory type across its front and from front to back, in elmos; None for anything
+    /// else. The footprint's z is its depth in its own frame whichever way it faces.
+    fn factory_half_size(&self, def_id: UnitDefId) -> Option<(f32, f32)> {
         if !self.world.is_factory_def(def_id) {
             return None;
         }
         let def = self.world.def(def_id)?;
-        let (half_width, half_depth) = (def.footprint.0 as f32 * SQUARE / 2.0, def.footprint.1 as f32 * SQUARE / 2.0);
-        // The engine's facing: 0 south (+z), 1 east (+x), 2 north (-z), 3 west (-x). The footprint's z is its depth
-        // in its own frame whichever way it faces.
-        let (fx, fz) = match facing.rem_euclid(4) {
-            0 => (0.0, 1.0),
-            1 => (1.0, 0.0),
-            2 => (0.0, -1.0),
-            _ => (-1.0, 0.0),
+        Some((def.footprint.0 as f32 * SQUARE / 2.0, def.footprint.1 as f32 * SQUARE / 2.0))
+    }
+
+    /// The facings to try for a factory at `anchor`, the one whose lane points most toward the enemy's start first:
+    /// its units leave toward where they are going. Every facing is offered; the shim takes the first with a site.
+    pub(super) fn facings_toward_the_enemy(&self, anchor: Vec3) -> [i32; 4] {
+        let enemy = self.enemy_base(self.home);
+        let (dx, dz) = (enemy.x - anchor.x, enemy.z - anchor.z);
+        let mut facings = [0, 1, 2, 3];
+        facings.sort_by(|a, b| {
+            let along = |f: &i32| { let (fx, fz) = facing_dir(*f); fx * dx + fz * dz };
+            along(b).total_cmp(&along(a))
+        });
+        facings
+    }
+
+    /// Where a new factory of this type must not stand for its exit lane, with this facing, to be clear of what
+    /// stands or is ordered: for every building of ours, the lane mirrored behind it. A site in one of these would
+    /// have that building in its lane (the yard design's open case, decided 2026-09-23).
+    pub(super) fn own_lane_keep_out(&self, def_id: UnitDefId, own: &[OwnUnit], facing: i32) -> Vec<Lane> {
+        let Some((half_width, half_depth)) = self.factory_half_size(def_id) else { return Vec::new() };
+        let mirror = |at: Vec3| lane_behind(at, facing, half_width, half_depth);
+        let standing = own.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0 && d.extracts_metal == 0.0)).map(|u| mirror(u.pos));
+        let ordered = self.pianist.as_ref().map(|p| p.tasks.values()).into_iter().flatten().filter_map(|t| match t {
+            super::pianist::Task::Build { def, near, .. } if self.world.def(*def).is_some_and(|d| d.speed == 0.0 && d.extracts_metal == 0.0) => Some(mirror(*near)),
+            _ => None,
+        });
+        standing.chain(ordered).collect()
+    }
+
+    /// Where a new factory of this type must not stand for its exit lane, with this facing, to run over ground its
+    /// units cannot walk or off the map: the lane mirrored behind every unwalkable cell within `radius` of `anchor`
+    /// and behind every cell past the map's edge (bluegecko-3v1-comet-catcher-4: three of five factories had their
+    /// lane on cliffs, the user saw the units choking in one; player-29: an Advanced Vehicle Plant with its front
+    /// five elmos from the south edge, seven units stuck in it from 16:51 on).
+    pub(super) fn blocked_lane_keep_out(&self, def_id: UnitDefId, anchor: Vec3, radius: f32, facing: i32) -> Vec<Lane> {
+        let Some((half_width, half_depth)) = self.factory_half_size(def_id) else { return Vec::new() };
+        let def = self.world.def(def_id).expect("a factory type has a definition");
+        // A shipyard's units leave into the water the engine placed it on: its lane is the engine's business.
+        if def.build_options.iter().any(|b| self.world.def(*b).is_some_and(|d| d.move_class.is_some_and(|mc| mc.kind == bot_protocol::MoveKind::Ship))) {
+            return Vec::new();
+        }
+        let Some(passable) = self.passable_for_factory(def_id) else { return Vec::new() };
+        let terrain = &self.world.hello.terrain;
+        lanes_behind_blocked(passable, terrain.width as usize, terrain.height as usize, terrain.cell, half_width, half_depth, anchor, radius, facing)
+    }
+
+    /// Whether a factory's lane leaves the ground its units can walk: off the map, or over cells the factory's
+    /// strictest movement class cannot cross. The wake names it (player-29, 17:22: "exit lane is blocked ... nothing
+    /// of ours stands in the lane" for a lane off the map's edge, and the player reclaimed the two stuck Lugers).
+    pub(super) fn lane_ground(&self, factory: &OwnUnit, lane: &Lane) -> Option<&'static str> {
+        let map = &self.world.hello.map;
+        let off_map = |p: Vec3| p.x < 0.0 || p.z < 0.0 || p.x > map.width || p.z > map.height;
+        // The lane's far end and its middle: a lane that reaches the edge is as good as one across it.
+        let middle = Vec3 { x: (lane.from.x + lane.to.x) / 2.0, y: 0.0, z: (lane.from.z + lane.to.z) / 2.0 };
+        if off_map(lane.to) || off_map(middle) {
+            return Some("runs off the map's edge");
+        }
+        let terrain = &self.world.hello.terrain;
+        let passable = self.passable_for_factory(factory.def)?;
+        let cell_at = |p: Vec3| {
+            let (i, j) = ((p.x / terrain.cell) as usize, (p.z / terrain.cell) as usize);
+            (i < terrain.width as usize && j < terrain.height as usize).then(|| passable[j * terrain.width as usize + i])
         };
-        let reach = half_depth + LANE_DEPTH;
-        let front = Vec3 { x: pos.x + fx * half_depth, y: pos.y, z: pos.z + fz * half_depth };
-        Some(Lane { from: front, to: Vec3 { x: pos.x + fx * reach, y: pos.y, z: pos.z + fz * reach }, half_width: half_width + LANE_MARGIN })
+        if cell_at(lane.to) == Some(false) || cell_at(middle) == Some(false) {
+            return Some("runs over ground its units cannot walk");
+        }
+        None
     }
 
     /// Factory build orders the engine has not started yet: (type, site). A site chosen now must stay clear of their
@@ -70,43 +136,13 @@ impl Brain {
             .collect()
     }
 
-    /// Where a new factory of this type must not stand for its own exit lane (facing south) to be clear of what
-    /// stands or is ordered: for every building of ours, the mirror of the lane, pointing north from it. A site in
-    /// one of these would have that building in its lane (the yard design's open case, decided 2026-09-23).
-    pub(super) fn own_lane_keep_out(&self, def_id: UnitDefId, own: &[OwnUnit]) -> Vec<Lane> {
-        let Some(def) = self.world.def(def_id).filter(|_| self.world.is_factory_def(def_id)) else { return Vec::new() };
-        let (half_width, half_depth) = (def.footprint.0 as f32 * SQUARE / 2.0, def.footprint.1 as f32 * SQUARE / 2.0);
-        let reach = half_depth + LANE_DEPTH;
-        let mirror = |at: Vec3| Lane { from: Vec3 { x: at.x, y: at.y, z: at.z - half_depth }, to: Vec3 { x: at.x, y: at.y, z: at.z - reach }, half_width: half_width + LANE_MARGIN };
-        let standing = own.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0 && d.extracts_metal == 0.0)).map(|u| mirror(u.pos));
-        let ordered = self.pianist.as_ref().map(|p| p.tasks.values()).into_iter().flatten().filter_map(|t| match t {
-            super::pianist::Task::Build { def, near, .. } if self.world.def(*def).is_some_and(|d| d.speed == 0.0 && d.extracts_metal == 0.0) => Some(mirror(*near)),
-            _ => None,
-        });
-        standing.chain(ordered).collect()
-    }
-
-    /// Where a new factory of this type must not stand for its exit lane (facing south) to run over ground its
-    /// units cannot walk: the mirror of every unwalkable cell within `radius` of `anchor` (bluegecko-3v1-comet-
-    /// catcher-4: three of five factories had their lane on cliffs, the user saw the units choking in one).
-    pub(super) fn blocked_lane_keep_out(&self, def_id: UnitDefId, anchor: Vec3, radius: f32) -> Vec<Lane> {
-        let Some(def) = self.world.def(def_id).filter(|_| self.world.is_factory_def(def_id)) else { return Vec::new() };
-        // A shipyard's units leave into the water the engine placed it on: its lane is the engine's business.
-        if def.build_options.iter().any(|b| self.world.def(*b).is_some_and(|d| d.move_class.is_some_and(|mc| mc.kind == bot_protocol::MoveKind::Ship))) {
-            return Vec::new();
-        }
-        let Some(passable) = self.passable_for_factory(def_id) else { return Vec::new() };
-        let terrain = &self.world.hello.terrain;
-        let (half_width, half_depth) = (def.footprint.0 as f32 * SQUARE / 2.0, def.footprint.1 as f32 * SQUARE / 2.0);
-        lanes_north_of_blocked(passable, terrain.width as usize, terrain.height as usize, terrain.cell, half_width, half_depth, anchor, radius)
-    }
-
     /// Every tick: the lanes of our factories, standing or being built (a site chosen now must stay clear of a lane
     /// that will be), and which of our mobile units cannot move.
     pub(super) fn track_yards(&mut self, tick: &Tick) {
         let own = &tick.snapshot.own_units;
         self.lanes = own.iter().filter_map(|u| self.lane_of(u)).collect();
-        let pending: Vec<Lane> = self.pending_factories().into_iter().filter_map(|(def, at)| self.lane_at(def, at, 0)).collect();
+        // A factory not yet placed faces the way the shim tries first (`facings_toward_the_enemy`).
+        let pending: Vec<Lane> = self.pending_factories().into_iter().filter_map(|(def, at)| self.lane_at(def, at, self.facings_toward_the_enemy(at)[0])).collect();
         self.lanes.extend(pending);
         self.stuck.retain(|id, s| own.iter().any(|u| u.id == *id && u.pos.dist2d(s.at) < STUCK_FREE));
         // Mobile units standing still inside a standing factory's lane (a builder working from the pad blocks the plant
@@ -148,12 +184,17 @@ impl Brain {
                 let name = self.actor_name(factory);
                 let blockers = self.lane_blockers(&lane, own, factory);
                 let names: Vec<String> = stuck.iter().filter_map(|(id, _)| own.iter().find(|u| u.id == *id)).map(|u| self.handle(u)).collect();
+                let ground = own.iter().find(|u| u.id == factory).and_then(|f| self.lane_ground(f, &lane));
+                let cause = match (ground, blockers.is_empty()) {
+                    (Some(ground), _) => format!("; its exit lane {ground}: its units cannot leave it, and only removing {name} frees them"),
+                    (None, true) => "; nothing of ours stands in the lane".to_string(),
+                    (None, false) => format!("; in the lane: {} (the remove tool takes them away)", blockers.iter().map(|u| self.handle(u)).collect::<Vec<_>>().join(", ")),
+                };
                 let text = format!(
-                    "{name}'s exit lane is blocked: {} of ours ({}) have stood in it for {} (stuck, or standing there working){}",
+                    "{name}'s exit lane is blocked: {} of ours ({}) have stood in it for {} (stuck, or standing there working){cause}",
                     stuck.len(),
                     names.join(", "),
                     super::pianist::clock(longest),
-                    if blockers.is_empty() { "; nothing of ours stands in the lane".to_string() } else { format!("; in the lane: {} (the remove tool takes them away)", blockers.iter().map(|u| self.handle(u)).collect::<Vec<_>>().join(", ")) }
                 );
                 self.trigger("yard", tick.frame, text);
             }
@@ -193,27 +234,47 @@ impl Brain {
     }
 }
 
-/// The keep-out strips for a factory facing south whose lane must not cross a blocked cell: for each blocked cell
-/// within `radius` of `anchor` (sampled every other cell each way, a cell being 16 elmos), the strip of sites whose
-/// lane would cover it, which is the lane mirrored north of the cell.
-pub(super) fn lanes_north_of_blocked(passable: &[bool], width: usize, height: usize, cell: f32, half_width: f32, half_depth: f32, anchor: Vec3, radius: f32) -> Vec<Lane> {
+/// The engine's facing as a unit vector in the ground plane: 0 south (+z), 1 east (+x), 2 north (-z), 3 west (-x).
+pub(super) fn facing_dir(facing: i32) -> (f32, f32) {
+    match facing.rem_euclid(4) {
+        0 => (0.0, 1.0),
+        1 => (1.0, 0.0),
+        2 => (0.0, -1.0),
+        _ => (-1.0, 0.0),
+    }
+}
+
+/// The strip of sites from which a factory of this size, with this facing, would have `at` in its exit lane: the
+/// lane mirrored behind the point.
+fn lane_behind(at: Vec3, facing: i32, half_width: f32, half_depth: f32) -> Lane {
+    let (fx, fz) = facing_dir(facing);
     let reach = half_depth + LANE_DEPTH;
-    let stride = 2usize;
-    let (x0, x1) = (((anchor.x - radius) / cell).floor().max(0.0) as usize, (((anchor.x + radius) / cell).ceil() as usize).min(width));
-    let (z0, z1) = (((anchor.z - radius) / cell).floor().max(0.0) as usize, (((anchor.z + radius) / cell).ceil() as usize).min(height));
+    Lane {
+        from: Vec3 { x: at.x - fx * half_depth, y: 0.0, z: at.z - fz * half_depth },
+        to: Vec3 { x: at.x - fx * reach, y: 0.0, z: at.z - fz * reach },
+        half_width: half_width + LANE_MARGIN,
+    }
+}
+
+/// The keep-out strips for a factory with this facing whose lane must not cross a blocked cell: for each blocked
+/// cell within `radius` of `anchor` (sampled every other cell each way, a cell being 16 elmos), the strip of sites
+/// whose lane would cover it, which is the lane mirrored behind the cell. Cells past the map's edge are blocked:
+/// a unit sent off the map stands at the edge.
+pub(super) fn lanes_behind_blocked(passable: &[bool], width: usize, height: usize, cell: f32, half_width: f32, half_depth: f32, anchor: Vec3, radius: f32, facing: i32) -> Vec<Lane> {
+    let stride = 2i64;
+    let (x0, x1) = (((anchor.x - radius) / cell).floor() as i64, ((anchor.x + radius) / cell).ceil() as i64);
+    let (z0, z1) = (((anchor.z - radius) / cell).floor() as i64, ((anchor.z + radius) / cell).ceil() as i64);
+    let blocked_cell = |i: i64, j: i64| i < 0 || j < 0 || i >= width as i64 || j >= height as i64 || !passable[j as usize * width + i as usize];
     let mut lanes = Vec::new();
     let mut j = z0;
     while j < z1 {
         let mut i = x0;
         while i < x1 {
-            let blocked = (0..stride).any(|dj| (0..stride).any(|di| {
-                let (ii, jj) = (i + di, j + dj);
-                ii < width && jj < height && !passable[jj * width + ii]
-            }));
+            let blocked = (0..stride).any(|dj| (0..stride).any(|di| blocked_cell(i + di, j + dj)));
             if blocked {
                 let at = Vec3 { x: (i as f32 + 1.0) * cell, y: 0.0, z: (j as f32 + 1.0) * cell };
                 if at.dist2d(anchor) <= radius {
-                    lanes.push(Lane { from: Vec3 { x: at.x, y: 0.0, z: at.z - half_depth }, to: Vec3 { x: at.x, y: 0.0, z: at.z - reach }, half_width: half_width + LANE_MARGIN });
+                    lanes.push(lane_behind(at, facing, half_width, half_depth));
                 }
             }
             i += stride;
@@ -233,7 +294,7 @@ mod lane_ground_tests {
         let (w, h, cell) = (64usize, 64usize, 16.0);
         let passable: Vec<bool> = (0..w * h).map(|k| !(40..42).contains(&(k / w))).collect();
         let anchor = Vec3 { x: 512.0, y: 0.0, z: 400.0 };
-        let lanes = lanes_north_of_blocked(&passable, w, h, cell, 48.0, 48.0, anchor, 600.0);
+        let lanes = lanes_behind_blocked(&passable, w, h, cell, 48.0, 48.0, anchor, 600.0, 0);
         assert!(!lanes.is_empty());
         let banned = |x: f32, z: f32| lanes.iter().any(|l| l.contains(Vec3 { x, y: 0.0, z }));
         // A site whose lane (48 deep to the front, 320 past it) reaches the cliff at z 640: from z 272 up to 592.
@@ -241,5 +302,31 @@ mod lane_ground_tests {
         assert!(banned(512.0, 580.0));
         assert!(!banned(512.0, 150.0), "a site 490 north of the cliff is clear (the strip ends are rounded by the half width)");
         assert!(!banned(512.0, 60.0));
+        // Facing north, the same cliff bans the sites south of it and frees the ones north of it.
+        let lanes = lanes_behind_blocked(&passable, w, h, cell, 48.0, 48.0, Vec3 { x: 512.0, y: 0.0, z: 900.0 }, 600.0, 2);
+        let banned = |x: f32, z: f32| lanes.iter().any(|l| l.contains(Vec3 { x, y: 0.0, z }));
+        assert!(banned(512.0, 900.0), "a site 228 south of the cliff, facing north, has its lane on it");
+        assert!(!banned(512.0, 400.0), "a site north of the cliff, facing north, is clear of it");
+    }
+
+    #[test]
+    fn the_map_edge_keeps_a_factory_from_facing_it() {
+        // Player-29: an 18x18 Advanced Vehicle Plant (half size 72) at z 6067 on a 6144-deep map, facing south, its
+        // front five elmos from the edge. A 64-cell map here, cell 16, 1024 deep, all walkable.
+        let (w, h, cell) = (64usize, 64usize, 16.0);
+        let passable = vec![true; w * h];
+        let anchor = Vec3 { x: 512.0, y: 0.0, z: 947.0 };
+        let banned_facing = |facing: i32| {
+            let lanes = lanes_behind_blocked(&passable, w, h, cell, 72.0, 72.0, anchor, 1000.0, facing);
+            lanes.iter().any(|l| l.contains(anchor))
+        };
+        assert!(banned_facing(0), "facing the south edge from 77 elmos: the lane runs off the map");
+        assert!(banned_facing(1) && banned_facing(3), "facing along the edge from 77 elmos: the lane's margin hangs over it, as beside a cliff");
+        assert!(!banned_facing(2), "facing north: the lane runs up the map");
+        // Further in, the lanes along the edge clear it: the margin is 120 (half the width plus 48). The site sits
+        // well west too: a lane's rounded far end (392 out, 120 round) would touch the east edge from x 512.
+        let inner = Vec3 { x: 400.0, y: 0.0, z: 880.0 };
+        let lanes = lanes_behind_blocked(&passable, w, h, cell, 72.0, 72.0, inner, 1000.0, 1);
+        assert!(!lanes.iter().any(|l| l.contains(inner)), "facing east 144 elmos from the edge is clear");
     }
 }

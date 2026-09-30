@@ -6,7 +6,7 @@ use std::ffi::{CStr, CString, c_int, c_void};
 
 use bot_protocol::{
     Controller,
-    AllyUnit, Blast, BuildSite, Command, Converter, EnemyUnit, Hello, MapInfo, MoveClass, MoveKind, OwnUnit, Resource, Snapshot, Terrain,
+    AllyUnit, Blast, BuildSite, Command, Converter, EnemyUnit, Hello, Lane, MapInfo, MoveClass, MoveKind, OwnUnit, Resource, Snapshot, Terrain,
     FeatureId, StartBox, TeamInfo, UnitDefId, UnitDefInfo, UnitId, Vec3, Wreck,
 };
 use recoil_ai_sys as sys;
@@ -496,20 +496,30 @@ impl Engine {
         call!(self, Unit_Weapon_getReloadFrame(unit, weapon))
     }
 
-    /// A legal position for `def` near `site`, if the map has one.
+    /// A legal position for `def` near `site`, if the map has one, and the index of the placement it was found
+    /// for (None when the site carries no placements).
     ///
     /// An extractor goes exactly on its spot or nowhere: the engine's site search refuses a spot holding a wreck,
     /// though building there is allowed (the builder reclaims the wreck first). Anything else keeps off the
     /// metal spots, or the base's own generators bury the nearest extractor sites.
-    pub fn find_build_site(&self, def: UnitDefId, site: &BuildSite) -> Option<Vec3> {
+    pub fn find_build_site(&self, def: UnitDefId, site: &BuildSite) -> Option<(Vec3, Option<usize>)> {
         if call!(self, UnitDef_getExtractsResource(def.0, self.metal)) > 0.0 {
             let mut at = [site.near.x, site.near.y, site.near.z];
             return call!(self, Map_isPossibleToBuildAt(def.0, at.as_mut_ptr(), sys::UNIT_COMMAND_BUILD_NO_FACING))
-                .then_some(site.near);
+                .then_some((site.near, None));
         }
-        // ... and out of our factories' exit lanes, or the yard fills with our own solar collectors (hands-2-bulldogs:
-        // five Bulls stood in the plant's exit for five to seven minutes behind a solar 165 elmos off its front).
-        let on_a_spot = |pos: Vec3| self.metal_spots.iter().any(|s| s.dist2d(pos) < SPOT_KEEPOUT) || site.keep_out.iter().any(|lane| lane.contains(pos));
+        if site.placements.is_empty() {
+            return self.site_facing(def, site, sys::UNIT_COMMAND_BUILD_NO_FACING, &[]).map(|pos| (pos, None));
+        }
+        // The placements in the bot's order: the first facing with a site wins.
+        site.placements.iter().enumerate().find_map(|(i, p)| self.site_facing(def, site, p.facing, &p.keep_out).map(|pos| (pos, Some(i))))
+    }
+
+    /// The closest site to `site.near` for one facing, off the metal spots and out of `keep_out` (our factories'
+    /// exit lanes, or the yard fills with our own solar collectors: hands-2-bulldogs, five Bulls stood in the plant's
+    /// exit for five to seven minutes behind a solar 165 elmos off its front).
+    fn site_facing(&self, def: UnitDefId, site: &BuildSite, facing: c_int, keep_out: &[Lane]) -> Option<Vec3> {
+        let on_a_spot = |pos: Vec3| self.metal_spots.iter().any(|s| s.dist2d(pos) < SPOT_KEEPOUT) || keep_out.iter().any(|lane| lane.contains(pos));
         // The search returns the closest site to its centre, so walk the centre outwards until the answer is clear.
         let rings = [0.0, 1.0, 2.0, 3.0].map(|r| r * 2.0 * SPOT_KEEPOUT);
         for (ring, radius) in rings.into_iter().enumerate() {
@@ -517,7 +527,7 @@ impl Engine {
             for step in 0..directions {
                 let angle = step as f32 * std::f32::consts::TAU / directions as f32;
                 let centre = Vec3 { x: site.near.x + radius * angle.cos(), z: site.near.z + radius * angle.sin(), ..site.near };
-                if let Some(found) = self.closest_build_site(def, centre, site) && !on_a_spot(found) {
+                if let Some(found) = self.closest_build_site(def, centre, site, facing) && !on_a_spot(found) {
                     return Some(found);
                 }
             }
@@ -525,13 +535,10 @@ impl Engine {
         None
     }
 
-    fn closest_build_site(&self, def: UnitDefId, centre: Vec3, site: &BuildSite) -> Option<Vec3> {
+    fn closest_build_site(&self, def: UnitDefId, centre: Vec3, site: &BuildSite, facing: c_int) -> Option<Vec3> {
         let mut near = [centre.x, centre.y, centre.z];
         let mut found = [0f32; 3];
-        call!(self, Map_findClosestBuildSite(
-            def.0, near.as_mut_ptr(), site.search_radius, site.min_dist,
-            sys::UNIT_COMMAND_BUILD_NO_FACING, found.as_mut_ptr()
-        ));
+        call!(self, Map_findClosestBuildSite(def.0, near.as_mut_ptr(), site.search_radius, site.min_dist, facing, found.as_mut_ptr()));
         // The engine reports failure as x == -1.
         (found[0] >= 0.0).then_some(Vec3 { x: found[0], y: found[1], z: found[2] })
     }
@@ -686,7 +693,8 @@ impl Engine {
                     timeOut: NO_TIMEOUT,
                     toBuildUnitDefId: def.0,
                     buildPos_posF3: pos.as_mut_ptr(),
-                    facing: sys::UNIT_COMMAND_BUILD_NO_FACING,
+                    // The facing the site was found for (`find_build_site` keeps that placement alone).
+                    facing: site.as_ref().and_then(|s| s.facing()).unwrap_or(sys::UNIT_COMMAND_BUILD_NO_FACING),
                 })
             }
             Command::Move { unit, to, queue } => {

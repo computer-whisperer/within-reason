@@ -225,6 +225,21 @@ unwalkable cell near the anchor (up to about 1,100 strips for a vehicle plant on
 `finished` events' positions and facing 0); the user's note.
 **Status.** Fixed 2026-09-27, unmeasured in a game. Exploited by [[H-ECO-YARD-LANE]].
 
+### K-eco-a-factory-facing-the-map-edge-keeps-every-unit-it-makes
+**Claim.** The map's edge is unwalkable ground the cliff rule never saw: the keep-out strips were mirrored only from
+cells inside the map, and every building faced south, so a factory placed near the south edge had its lane off the
+map and its units stood in the yard for good. In player-29-hard the Advanced Vehicle Plant (18x18, half size 72) was
+placed at (1672, 6067) on a 6,144-deep map, its front five elmos from the edge; six Lugers (320 metal each) and an
+advanced constructor (550) came out of it from 16:51 on and failed to move until the game's end (2,470 metal parked).
+The yard wake fired at 17:22 saying "nothing of ours stands in the lane", and the player, offered only the remove
+tool, reclaimed the two Lugers it named. A finished building cannot be turned; only the placement can choose the
+facing, and the engine's site search and build command both take one.
+**Evidence.** `run/matches/1790740188-player-29-hard/00` (record-0.jsonl: the `finished` row of unit 995 with facing 0,
+the `move_failed` rows of 8265, 19363, 885, 1470, 6051, 16306, 2739, 26002 at z 6080-6141; strategist-0.jsonl 17:22
+and the `remove` call after it).
+**Status.** Fixed 2026-09-30 (the facing is chosen at placement, the edge counts as blocked, the wake names the
+ground), unmeasured in a game. Exploited by [[H-ECO-YARD-LANE]].
+
 ### K-eco-comet-no-converters-store-the-energy-and-two-hundred-a-second-with-nanos
 **Claim.** On Comet Catcher (a metal-heavy map) energy converters are wasted metal; spare energy goes into an energy
 store, which the tank phase spends on bombers ("if you have extra e make an e store, you will need the e later

@@ -452,8 +452,28 @@ pub struct BuildSite {
     pub search_radius: f32,
     /// Minimum gap to other buildings, in build squares.
     pub min_dist: i32,
-    /// Ground no site may have its centre on: our factories' exit lanes (docs/design/2026-09-22-yard-and-reclaim.md).
+    /// The facings to try, in order, each with the ground no site may have its centre on for that facing. The shim
+    /// keeps the first that has a site and builds with it; empty means the engine's default facing and no keep-out.
+    /// A factory's exit lane runs off its front, so its facing decides where its units can leave (player-29: an
+    /// Advanced Vehicle Plant faced the map's south edge, its lane off the map, and every unit it made stood stuck).
+    pub placements: Vec<Placement>,
+}
+
+/// One way to stand a building: the engine's facing (0 south +z, 1 east +x, 2 north -z, 3 west -x) and the ground
+/// a site with that facing must keep its centre off: our factories' exit lanes, and for a factory the strips from
+/// which its own lane would cover a building of ours, unwalkable ground or the map's edge
+/// (docs/design/2026-09-22-yard-and-reclaim.md).
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Placement {
+    pub facing: i32,
     pub keep_out: Vec<Lane>,
+}
+
+impl BuildSite {
+    /// The facing the shim builds with: the placement it kept, else the engine's default.
+    pub fn facing(&self) -> Option<i32> {
+        self.placements.first().map(|p| p.facing)
+    }
 }
 
 /// A strip of ground: within `half_width` of the segment `from`-`to`. A factory's exit lane runs from its centre out
