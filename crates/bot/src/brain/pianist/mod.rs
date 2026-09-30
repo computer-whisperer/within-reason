@@ -745,6 +745,13 @@ impl Brain {
             .collect();
         let diet = pianist.diet.clone();
         let mut state = self.trim_state(&diet, picture, &asked);
+        // Jev is not sent `places` (offline on player-28, 24 gate calls: without it a noul moved 0.023 against 0.017
+        // re-asked and 48 flags flipped against 36, for 18% fewer tokens; the words name each place's distance and
+        // what stands at it), and reads the bulk questions' preamble once (plan::ASKING).
+        if let Some(obj) = state.as_object_mut() {
+            obj.remove("places");
+            obj.insert("asking".to_string(), json!(plan::ASKING));
+        }
         let shed = diet::shed(&mut state, diet::STATE_CHARS);
         if !shed.is_empty() {
             self.pianist.as_mut().expect("pianist mode").write_log(json!({ "t": "shed", "f": tick.frame, "shed": shed }));
