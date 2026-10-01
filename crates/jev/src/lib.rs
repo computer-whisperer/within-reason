@@ -197,16 +197,23 @@ impl Client {
     }
 
     /// One call: every question answered over the state. Retries a 429 or a 5xx, waiting what the service asks. A
-    /// request past `REQUEST_CHARS` goes as batches of its questions (each with the whole state), the answers merged.
+    /// request past `REQUEST_CHARS` goes as batches of its questions (each with the whole state), sent at once and
+    /// the answers merged (player-29-hard: one after another they took 340, 831 and 1,240 ms for one, two and three
+    /// batches, 62-76 s of a late game minute in lockstep; `docs/studies/2026-09-30-jev-load.md`). Each batch
+    /// retries on its own; the first error in the batches' order is the call's.
     pub fn ask(&self, request: &Request) -> Result<Response, Error> {
         let batches = batches(request, REQUEST_CHARS);
         if batches.len() <= 1 {
             return self.ask_one(request);
         }
         let started = Instant::now();
+        let parts: Vec<Result<Response, Error>> = std::thread::scope(|scope| {
+            let sent: Vec<_> = batches.into_iter().map(|questions| scope.spawn(move || self.ask_one(&Request { state: request.state.clone(), questions }))).collect();
+            sent.into_iter().map(|batch| batch.join().expect("a batch's thread")).collect()
+        });
         let mut merged: Option<Response> = None;
-        for questions in batches {
-            let part = self.ask_one(&Request { state: request.state.clone(), questions })?;
+        for part in parts {
+            let part = part?;
             merged = Some(match merged {
                 None => part,
                 Some(mut all) => {

@@ -137,6 +137,11 @@ pub struct Pianist {
     /// The pick's candidate this second: the world stage one's sample drew, and its probability (for the log).
     pub(super) candidate: Option<(usize, f64)>,
     pub(super) sig: Option<(String, i32)>,
+    /// Ask on change, actor by actor (`plan::settle`): each actor's course and frame at its last ask, and the
+    /// threats' parties and the store's extremes when the gate last went.
+    pub(super) asked: BTreeMap<String, (String, i32)>,
+    pub(super) asked_parties: BTreeSet<String>,
+    pub(super) asked_store: String,
     pub(super) events: BTreeSet<String>,
     /// The hunts' ends since the last pass line (`groups.rs` `tick_hunt`), for the log.
     pub(super) hunt_events: Vec<String>,
@@ -380,6 +385,9 @@ impl Pianist {
             worlds: Vec::new(),
             candidate: None,
             sig: None,
+            asked: BTreeMap::new(),
+            asked_parties: BTreeSet::new(),
+            asked_store: String::new(),
             events: BTreeSet::new(),
             hunt_events: Vec::new(),
             hunts_failed: Vec::new(),
@@ -630,9 +638,9 @@ impl Brain {
         }
     }
 
-    /// The pass (`plan.rs`): the slots this second, the base world put in force at once, and when something is
-    /// open and the picture changed since the last ask (or `RE_ASK` passed), the pre-pass's nouls sent; the worlds
-    /// question follows in `after_gate`. Without Jev the base is the plan.
+    /// The pass (`plan.rs`): the slots this second, and when something is open and the picture changed since the
+    /// last ask (or `RE_ASK` passed), the pre-pass's nouls sent for the actors something has happened to
+    /// (`plan::settle`); the worlds question follows in `after_gate`.
     fn pass(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, commands: &mut Vec<Command>) {
         let frame = tick.frame;
         let mut slots = self.slots(tick, kit, picture);
@@ -661,37 +669,29 @@ impl Brain {
             }
             return;
         }
-        // A group walking a leg of its route (routes-in-prose §4.4) is asked on an event that names it, on a packet
-        // or rules change, and at the re-ask, not every second: the per-second re-decision against fall-back,
-        // pull-out and gather flipped group_G 13 times in 53 s at E3 (player-9 18:32-19:25) and never past the edge.
-        // Not on a `places` change: a mark or a new shelling place opened 22% of the walkers' seconds in player-10
-        // (258 of 1,667 passes); a mark the packet names comes with a packet event.
-        {
-            let pianist = self.pianist.as_ref().expect("pianist mode");
-            let re_ask_due = pianist.sig.as_ref().is_none_or(|(_, f)| tick.frame - *f >= plan::RE_ASK);
-            let orders = ["packet", "rules", "lists"].iter().any(|e| pianist.events.contains(*e));
-            for s in slots.iter_mut() {
-                if s.on_route && !re_ask_due && !orders && !pianist.events.iter().any(|e| e.starts_with(&format!("{} ", s.name))) {
-                    s.quiet = true;
-                }
-            }
-        }
-        let mut base: plan::World = slots.iter().map(plan::Slot::base).collect();
-        plan::resolve(&slots, &mut base);
-        let open: Vec<&str> = slots.iter().filter(|s| s.open()).map(|s| s.name.as_str()).collect();
-        line["open"] = json!(open);
-        let questions = plan::gate_questions(&slots, self.pianist.as_ref().is_some_and(|p| p.told));
-        // The economy in the signature at its extremes only: the stock words' five buckets flapped at their edges
-        // (onepass-medium-3: 58 of 663 asks).
-        // ... and whether the store now covers the cheapest unit an idle lab could make: the store crossing that cost
-        // is what an idle lab waits for (onepass-norules-hard-4: each Stout cycle ran 5 s of building and 21 s of
-        // waiting, the pick having kept w1 at 138 metal and the pass staying quiet for the 20 s re-ask).
+        // The economy at its extremes only: the stock words' five buckets flapped at their edges (onepass-medium-3:
+        // 58 of 663 asks); and whether the store now covers the cheapest unit an idle lab could make: the store
+        // crossing that cost is what an idle lab waits for (onepass-norules-hard-4: each Stout cycle ran 5 s of
+        // building and 21 s of waiting, the pick having kept w1 at 138 metal and the pass staying quiet for the 20 s
+        // re-ask).
         let idle_lab_afford = slots.iter().any(|s| {
             matches!(s.kind, plan::Kind::Lab(_))
                 && s.base() == 0
                 && s.states.iter().filter_map(|st| if let plan::Response::Next(def) = &st.response { self.world.def(*def).map(|d| d.metal_cost) } else { None }).fold(f32::INFINITY, f32::min) <= tick.snapshot.metal.current
         });
         let eco = format!("{}|{}|{}", if tick.snapshot.metal.current < 100.0 { "empty" } else if tick.snapshot.metal.current >= tick.snapshot.metal.storage - 1.0 { "full" } else { "" }, picture.state["economy"]["energy"].as_str().is_some_and(|e| e.contains("STALLING")), idle_lab_afford);
+        let parties: BTreeSet<String> = slots.iter().filter(|s| matches!(s.kind, plan::Kind::Threat(..))).map(|s| s.name.clone()).collect();
+        // Ask on change, actor by actor (`plan::settle`): the busy actors nothing has happened to are closed.
+        {
+            let pianist = self.pianist.as_ref().expect("pianist mode");
+            let news = plan::News { frame, events: &pianist.events, orders: ["packet", "lists"].iter().any(|e| pianist.events.contains(*e)), parties: parties != pianist.asked_parties, store: eco != pianist.asked_store };
+            plan::settle(&mut slots, &pianist.asked, &news);
+        }
+        let mut base: plan::World = slots.iter().map(plan::Slot::base).collect();
+        plan::resolve(&slots, &mut base);
+        let open: Vec<&str> = slots.iter().filter(|s| s.open()).map(|s| s.name.as_str()).collect();
+        line["open"] = json!(open);
+        let questions = plan::gate_questions(&slots, self.pianist.as_ref().is_some_and(|p| p.told));
         let sig = format!("{}|{eco}|{}", plan::signature(&slots), self.pianist.as_ref().expect("pianist mode").packet_frame);
         let jev = self.pianist.as_ref().is_some_and(|p| p.client.is_some());
         let (events, changed) = {
@@ -703,7 +703,9 @@ impl Brain {
             // A place reached or a first sighting since the last stop asks at once (routes-in-prose §4.3): the next
             // leg starts within a second of the arrival, not at the 20-s re-ask.
             let urgent = events.iter().any(|e| e.contains(" reached ") || e.contains(" met "));
-            let changed = pianist.sig.as_ref().is_none_or(|(s, f)| *s != sig || frame - *f >= plan::RE_ASK) || (!events.is_empty() && since_ask >= EVENT_GAP) || urgent;
+            // An actor's own re-ask comes due on its own clock, whatever the rest of the picture does.
+            let due = slots.iter().any(|s| !matches!(s.kind, plan::Kind::Threat(..)) && s.open() && pianist.asked.get(&s.name).is_none_or(|(_, f)| frame - *f >= plan::RE_ASK));
+            let changed = pianist.sig.as_ref().is_none_or(|(s, f)| *s != sig || frame - *f >= plan::RE_ASK) || (!events.is_empty() && since_ask >= EVENT_GAP) || urgent || due;
             (events, changed)
         };
         let pianist = self.pianist.as_mut().expect("pianist mode");
@@ -722,6 +724,16 @@ impl Brain {
         pianist.sig = Some((sig, frame));
         pianist.events.clear();
         pianist.worlds.clear();
+        pianist.asked.retain(|_, (_, f)| frame - *f < plan::RE_ASK);
+        for s in slots.iter().filter(|s| s.open() && !matches!(s.kind, plan::Kind::Threat(..))) {
+            pianist.asked.insert(s.name.clone(), (plan::course(s), frame));
+        }
+        pianist.asked_parties = parties;
+        pianist.asked_store = eco;
+        let closed: Vec<&str> = slots.iter().filter(|s| s.quiet).map(|s| s.name.as_str()).collect();
+        if !closed.is_empty() {
+            line["closed"] = json!(closed);
+        }
         line["slots"] = plan::log_slots(&slots);
         line["gate"] = json!(questions.iter().map(|(id, _)| id.clone()).collect::<Vec<_>>());
         if !events.is_empty() {

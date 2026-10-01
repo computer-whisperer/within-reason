@@ -1,8 +1,8 @@
 //! One pass (`docs/design/2026-09-26-one-pass.md`, H-HANDS-ONE-PASS): code enumerates every actor's executable
 //! states each second, a pre-pass of nouls asks which actors should change course and which kinds of action matter
 //! now, code composes worlds from what was flagged (each with its consequence in words), and one Choice picks a plan
-//! for every actor. The plan runs in code until the picture's signature changes. The standing orders prune states
-//! and set defaults; nothing else decides. The threat family (`threats.rs`) is one family of slots here.
+//! for every actor. The plan runs in code until the picture's signature changes; nothing else decides. The threat
+//! family (`threats.rs`) is one family of slots here.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -172,10 +172,10 @@ pub(crate) struct Slot {
     /// cost of changing nothing, said in world 1's line (routes-in-prose §4.2; K-jev-follows-a-prose-route-from-the-
     /// picture: with the sentence Jev picked the next leg 24 of 24 times, without it 2 of 24).
     pub stop_cost: Option<String>,
-    /// A group walking a leg of a route its paragraph names (routes-in-prose §4.4): asked on an event that names it
-    /// and at the re-ask, not every second.
+    /// A group walking a leg of a route its paragraph names (routes-in-prose §4.4): a party appearing or leaving
+    /// does not open it (`settle`).
     pub on_route: bool,
-    /// Closed this second: no question goes out for it and world 1 keeps its course.
+    /// Closed this second (`settle`): no question goes out for it and world 1 keeps its course.
     pub quiet: bool,
 }
 
@@ -1146,13 +1146,58 @@ pub(super) fn signature(slots: &[Slot]) -> String {
         .iter()
         .map(|s| match &s.kind {
             Kind::Threat(p, place) => format!("{}@{place}:{}{}{}", p.name, p.ids.len(), if p.killing.is_some() { "!" } else { "" }, s.states.iter().filter(|st| st.current).map(|st| format!("[{}]", st.id)).collect::<String>()),
-            _ => {
-                let base = &s.states[s.base()];
-                format!("{}:{}{}", s.name, if s.base() == 0 { "keep" } else { base.dim }, if s.idle { ":idle" } else { "" })
-            }
+            _ => format!("{}:{}", s.name, course(s)),
         })
         .collect::<Vec<_>>()
         .join(" ")
+}
+
+/// An actor's course as ask-on-change sees it: the kind of what it does, and its idleness.
+pub(super) fn course(slot: &Slot) -> String {
+    format!("{}{}", if slot.base() == 0 { "keep" } else { slot.states[slot.base()].dim }, if slot.idle { ":idle" } else { "" })
+}
+
+/// What has changed since the gate last went, beyond each actor's own course.
+pub(super) struct News<'a> {
+    pub frame: i32,
+    /// The events since the last gate (`schedule.rs`); one that starts with an actor's name is that actor's.
+    pub events: &'a BTreeSet<String>,
+    /// The packet or a list changed.
+    pub orders: bool,
+    /// An enemy party came into the threats or left them.
+    pub parties: bool,
+    /// The store crossed empty or full, energy began or stopped stalling, or the store came to cover an idle lab's
+    /// cheapest unit.
+    pub store: bool,
+}
+
+/// Ask on change, actor by actor (the user's law, 2026-09-30): a busy actor is asked about again only when its own
+/// course or idleness changes, an event names it, the orders change, an enemy party appears or leaves (a group off
+/// its route's legs), the store crosses empty or full (a builder or a lab), or `RE_ASK` has passed since it was
+/// last asked; an idle actor and every threat are asked whenever the gate goes. The rest are closed this second:
+/// no question goes out for them and world 1 keeps their course. `asked` holds each actor's course and frame at
+/// its last ask. player-29-hard (`docs/studies/2026-09-30-jev-load.md`): the whole-picture signature differed
+/// every second past ten actors, every option of every actor was re-asked 58-60 times a minute, and the builders'
+/// 258,000 option questions (57% of the gate's characters) bought 194 moves; replayed on its gates the rule sends
+/// 14% of the builders' questions, 44% of the labs' and 85% of the groups', 40M gate tokens for 88M, and 138 of
+/// the pick's 1,826 moves fall on a second their actor is closed (they come at its next event or re-ask). A group
+/// walking a leg of its route is not opened by a party (routes-in-prose §4.4: the per-second re-decision against
+/// fall-back, pull-out and gather flipped group_G 13 times in 53 s at E3, player-9 18:32-19:25; a mark or a new
+/// shelling place opened 22% of the walkers' seconds in player-10, and a mark the packet names comes with a packet
+/// event).
+pub(super) fn settle(slots: &mut [Slot], asked: &BTreeMap<String, (String, i32)>, news: &News) {
+    for slot in slots.iter_mut() {
+        if matches!(slot.kind, Kind::Threat(..)) || slot.idle || news.orders {
+            continue;
+        }
+        let Some((before, frame)) = asked.get(&slot.name) else { continue };
+        let named = news.events.iter().any(|e| e.strip_prefix(slot.name.as_str()).is_some_and(|rest| rest.starts_with(' ')));
+        let outside = match slot.kind {
+            Kind::Group(_) => news.parties && !slot.on_route,
+            _ => news.store,
+        };
+        slot.quiet = *before == course(slot) && news.frame - *frame < RE_ASK && !named && !outside;
+    }
 }
 
 pub(super) fn resolve(slots: &[Slot], world: &mut World) {
@@ -1786,6 +1831,47 @@ mod tests {
         assert!(ASKING.contains("rather than the course named after it"));
     }
 
+    /// Ask on change, actor by actor: a busy actor is closed until its own course changes, an event names it, the
+    /// orders change, its kind's outside news comes (a party for a group off its route, the store for a builder) or
+    /// the re-ask is due; an idle actor and a threat are never closed.
+    #[test]
+    fn a_busy_actor_is_asked_again_only_on_its_own_news() {
+        let busy = || {
+            let mut s = builder("constructor_3", 3, vec![state("constructor_3.keep", "constructor_3", Response::Keep, "threat", false), state("constructor_3.extractor_spot_4", "constructor_3", Response::Extractor(4), "extractor", true), state("constructor_3.extractor_spot_5", "constructor_3", Response::Extractor(5), "extractor", false)]);
+            s.idle = false;
+            s
+        };
+        let walking = |on_route: bool| Slot { name: "group_A".into(), kind: Kind::Group("A".into()), states: vec![state("group_A.keep", "group_A", Response::Keep, "threat", false), state("group_A.walk_spot_4", "group_A", Response::Walk { place: "spot_4".into(), fight: false }, "walk", true), state("group_A.walk_spot_5", "group_A", Response::Walk { place: "spot_5".into(), fight: false }, "walk", false)], queue_ahead: false, idle: false, stop_cost: None, on_route, quiet: false };
+        let none = BTreeSet::new();
+        let calm = |frame: i32| News { frame, events: &none, orders: false, parties: false, store: false };
+        let closed = |slot: Slot, asked: &BTreeMap<String, (String, i32)>, news: &News| {
+            let mut slots = vec![slot, threat("party_1", vec![state("party_1.leave", "", Response::Leave, "threat", false), state("party_1.hunt_group_A", "group_A", Response::Hunt(vec![UnitId(9)]), "threat", false)])];
+            settle(&mut slots, asked, news);
+            assert!(!slots[1].quiet, "a threat is never closed");
+            slots[0].quiet
+        };
+        let asked: BTreeMap<String, (String, i32)> = [("constructor_3".to_string(), ("extractor".to_string(), 300)), ("group_A".to_string(), ("walk".to_string(), 300))].into();
+        assert!(!closed(busy(), &BTreeMap::new(), &calm(330)), "never asked: asked");
+        assert!(closed(busy(), &asked, &calm(330)), "the same course a second later: closed");
+        let mut slots = vec![busy()];
+        settle(&mut slots, &asked, &calm(330));
+        assert!(gate_questions(&slots, false).is_empty(), "no question goes out for a closed actor");
+        assert!(!closed(busy(), &asked, &calm(300 + RE_ASK)), "the re-ask is due");
+        let elsewhere: BTreeMap<String, (String, i32)> = [("constructor_3".to_string(), ("assist".to_string(), 300))].into();
+        assert!(!closed(busy(), &elsewhere, &calm(330)), "its course changed");
+        let mut idle = busy();
+        idle.idle = true;
+        assert!(!closed(idle, &[("constructor_3".to_string(), ("extractor:idle".to_string(), 300))].into(), &calm(330)), "an idle actor is asked whenever the gate goes");
+        let hit: BTreeSet<String> = ["constructor_3 hit".to_string()].into();
+        assert!(!closed(busy(), &asked, &News { events: &hit, ..calm(330) }), "an event names it");
+        let other: BTreeSet<String> = ["constructor_30 hit".to_string(), "group_A hit".to_string()].into();
+        assert!(closed(busy(), &asked, &News { events: &other, ..calm(330) }), "another actor's event");
+        assert!(!closed(busy(), &asked, &News { orders: true, ..calm(330) }), "the orders changed");
+        assert!(!closed(busy(), &asked, &News { store: true, ..calm(330) }) && closed(busy(), &asked, &News { parties: true, ..calm(330) }), "the store opens a builder, a party does not");
+        assert!(!closed(walking(false), &asked, &News { parties: true, ..calm(330) }) && closed(walking(false), &asked, &News { store: true, ..calm(330) }), "a party opens a group, the store does not");
+        assert!(closed(walking(true), &asked, &News { parties: true, ..calm(330) }) && !closed(walking(true), &asked, &News { events: &other, ..calm(330) }), "a group on a leg of its route: its own event, not a party");
+    }
+
     #[test]
     fn world_one_says_what_holding_at_a_reached_stop_costs() {
         // routes-in-prose 4.2: the sentence that turned the next leg from 2 of 24 picks to 24 of 24 offline.
@@ -1797,7 +1883,7 @@ mod tests {
         assert!(line.contains("route's next stop spot_46 not ordered") && !line.contains("idle, doing nothing"), "{line}");
         let line = consequence(&vec![1], &slots, "", Some(&vec![0]));
         assert!(line.starts_with("As w1, and: group_A.walk_spot_46") && !line.contains("not ordered"), "{line}");
-        // On a leg of its route and quiet (4.4): no question goes out, world 1 keeps its course.
+        // Closed (`settle`): no question goes out, world 1 keeps its course.
         let mut walking = slots.into_iter().next().unwrap();
         assert!(walking.open());
         walking.quiet = true;

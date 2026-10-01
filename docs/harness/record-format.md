@@ -83,7 +83,8 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   `slots` ([{name, kind: "threat at spot_N"|builder|lab|group, base, idle, states: [{id, actor, words, dim, metal,
   default, current, pair_only}]}], index 0 the `party_N.leave` or `<actor>.keep` state), `gate` (the noul ids of the
   first call: `party_N.answer` and one per threat state, `<actor>.change` per actor with an open state, `dim.<kind>`
-  per kind of action among them) and `events` (what made it ask out of turn); a second with something open and the
+  per kind of action among them), `events` (what made it ask out of turn) and, from 2026-09-30, `closed` (the busy
+  actors not asked about this second, `plan::settle`: absent from `open`); a second with something open and the
   picture as at the last ask carries `quiet` instead. A `worlds_gate` line follows the first call's answers (`flags`
   {noul id: p}, `worlds` [[state index per slot]] or null, `lines`); the second call is its own `call` line with
   `worlds.pick` alone, and a `plan` line records its pick (`pick`, `confidence`, `changed`, `played` with source
