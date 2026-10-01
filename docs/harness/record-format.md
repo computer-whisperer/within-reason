@@ -86,7 +86,8 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   per kind of action among them), `events` (what made it ask out of turn) and, from 2026-09-30, `closed` (the busy
   actors not asked about this second, `plan::settle`: absent from `open`); a second with something open and the
   picture as at the last ask carries `quiet` instead. A `worlds_gate` line follows the first call's answers (`flags`
-  {noul id: p}, `worlds` [[state index per slot]] or null, `lines`); the second call is its own `call` line with
+  {noul id: p}, from 2026-09-30 with `<hunt state>.forbidden`, the gate's reading of whether the instructions forbid
+  that hunt: at 0.7 or over the hunt's line says so, `worlds` [[state index per slot]] or null, `lines`); the second call is its own `call` line with
   `worlds.pick` alone, and a `plan` line records its pick (`pick`, `confidence`, `changed`, `played` with source
   `plan`). `call` lines carry no `played`: every play is on a `pass` or `plan` line. The header carries
   `worlds_cap`, and until 2026-09-27 evening `packet_rules` (false when the packet was left as prose,

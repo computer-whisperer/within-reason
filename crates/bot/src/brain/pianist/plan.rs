@@ -29,6 +29,17 @@ pub(super) const CAP: usize = 255;
 pub(super) const LINE_CHARS: usize = 40_000;
 /// A noul at or above this flags its actor, state or threat for the second call.
 pub(super) const FLAG: f64 = 0.5;
+/// A hunt whose `forbidden` noul is at or above this says on its line in the pick that the player's instructions
+/// forbid it (the user's law, 2026-09-30: "For each hunt on offer, Jev is asked whether the player's instructions
+/// forbid it for that group, and a hunt it rates forbidden says so on its line in the pick"; hunts only, the bar
+/// the user's). player-29-hard, `docs/studies/2026-09-29-pick-framing.md` §8: the packets said the ball "never
+/// hunts and never sends detachments" from 12:39 on and the pick played 61 hunts by a few of its soldiers; the
+/// hunt's own noul never names the instructions (0.37 for a forbidden hunt, 0.32 for an ordered one), a sentence
+/// about forbidden changes in the pick's question moved nothing, and this noul rated the ball's hunts a median
+/// 0.84 (p10 0.72) against the early ordered hunts' 0.53 (p90 0.68). With the sentence on the line the forbidden
+/// hunts' stage-one mass fell from 0.40 to 0.08 and they beat world 1 in 10 of 181 picks for 172; the bar sits
+/// between the two sets.
+pub(super) const FORBIDDEN: f64 = 0.7;
 /// A slot's deviations in the second call at most: its best states by the gate.
 const DEPTH: usize = 2;
 /// A standing plan is asked again this long after its last ask even when nothing changed.
@@ -1456,7 +1467,9 @@ fn dear(words: &str) -> bool {
 /// the change is the option's own words (K-jev-hold-words-carry-the-cost; onepass-hard-2: the plant's Blitz rated
 /// 0.69 lost at 0.36 to a w1 whose line the deviation repeated in full, the change buried at its end; player-25:
 /// sixteen lines each carrying the same 500 characters of parties left to nobody, idle actors and route holds).
-pub(super) fn consequence(world: &World, slots: &[Slot], store: &str, base: Option<&World>) -> String {
+/// A hunt the world starts whose id is in `forbidden` (the gate's reading of the instructions, `FORBIDDEN`) says so
+/// in a sentence of its own at the line's end.
+pub(super) fn consequence(world: &World, slots: &[Slot], store: &str, base: Option<&World>, forbidden: &BTreeSet<String>) -> String {
     let (moves, met, unmet, idle, stops) = parts_of(world, slots, base);
     // A deviation's consequences are what it adds to world 1's: a party now met, a party now left, an actor now
     // idle, a stop now reached. What it removes (the actor no longer idle, the party no longer left to nobody) is
@@ -1492,6 +1505,14 @@ pub(super) fn consequence(world: &World, slots: &[Slot], store: &str, base: Opti
     // A group at a reached stop of its route (routes-in-prose §4.2): the sentence that turned the next leg from
     // 2 of 24 picks to 24 of 24 in the offline replay.
     parts.extend(stops);
+    if let Some(b) = base {
+        for (k, (slot, si)) in slots.iter().zip(world).enumerate() {
+            let s = &slot.states[*si];
+            if b[k] != *si && forbidden.contains(&s.id) {
+                parts.push(format!("The player's instructions forbid this hunt for {}", s.actor));
+            }
+        }
+    }
     format!("{}.", parts.join(". "))
 }
 
@@ -1631,8 +1652,19 @@ pub(super) fn pick(answers: &BTreeMap<String, Answer>, worlds: &[World]) -> Opti
 /// (`pick_state`). Pure, so the realtime worker runs it the instant the gate answers.
 pub(super) fn follow_up(slots: &[Slot], answers: &BTreeMap<String, Answer>, store: &str, cap: usize, state: &Value) -> (BTreeMap<String, f64>, Option<(Vec<World>, Vec<String>, Value)>) {
     let mut flags: BTreeMap<String, f64> = BTreeMap::new();
+    // The hunts the gate reads as forbidden by the instructions (`FORBIDDEN`): said on their lines.
+    let mut forbidden: BTreeSet<String> = BTreeSet::new();
+    for s in slots.iter().filter(|slot| matches!(slot.kind, Kind::Threat(..))).flat_map(|slot| &slot.states) {
+        let id = format!("{}.forbidden", s.id);
+        if let Some(Answer::Noul { noul }) = answers.get(&id) {
+            flags.insert(id, *noul);
+            if *noul >= FORBIDDEN {
+                forbidden.insert(s.id.clone());
+            }
+        }
+    }
     let Some(mut worlds) = compose(slots, answers, &mut flags, cap) else { return (flags, None) };
-    let mut lines: Vec<String> = worlds.iter().enumerate().map(|(i, w)| consequence(w, slots, store, (i > 0).then_some(&worlds[0]))).collect();
+    let mut lines: Vec<String> = worlds.iter().enumerate().map(|(i, w)| consequence(w, slots, store, (i > 0).then_some(&worlds[0]), &forbidden)).collect();
     let keep = fit(&lines, LINE_CHARS);
     worlds.truncate(keep);
     lines.truncate(keep);
@@ -1740,9 +1772,9 @@ mod tests {
         assert_eq!(worlds.len(), 3);
         assert_eq!(gate_questions(&slots, true).iter().filter(|(id, _)| id.starts_with("constructor_3")).count(), 4, "an idle actor is not asked whether to change, only which move: two states, each as the move and as a fact about the instructions");
         assert_eq!(flags["party_2.answer"], 0.9);
-        let line = consequence(&vec![1, 1, 0], &slots, "340 of 500 stored", Some(&worlds[0]));
+        let line = consequence(&vec![1, 1, 0], &slots, "340 of 500 stored", Some(&worlds[0]), &BTreeSet::new());
         assert!(line.contains("Met: party_1") && line.contains("party_2 (") && !line.contains("idle"), "a deviation's line says only what differs from world 1: {line}");
-        assert!(consequence(&worlds[0], &slots, "340 of 500 stored", None).contains("constructor_3 idle"));
+        assert!(consequence(&worlds[0], &slots, "340 of 500 stored", None, &BTreeSet::new()).contains("constructor_3 idle"));
         assert_eq!(pick(&BTreeMap::from([("worlds.pick".to_string(), Answer::Choice { choice: "w2".into(), probabilities: BTreeMap::new(), confidence: 0.6 })]), &worlds), Some((1, 0.6)));
     }
 
@@ -1775,7 +1807,7 @@ mod tests {
         // 1 base + 5 singles + the product's joint worlds (3*3*2 = 18 combinations, less the base, the 5 singles and
         // the two with group_A at both parties): 10 joint.
         assert_eq!(worlds.len(), 1 + 5 + 10, "{worlds:?}");
-        let joint = consequence(&vec![1, 1, 1], &slots, "340 of 500 stored", Some(&worlds[0]));
+        let joint = consequence(&vec![1, 1, 1], &slots, "340 of 500 stored", Some(&worlds[0]), &BTreeSet::new());
         assert!(joint.starts_with("As w1, and: party_1.whole_group_A; party_2.whole_group_B; constructor_3.extractor_spot_4") && joint.contains("Met: party_1") && joint.contains("party_2 (") && !joint.contains("Left to nobody") && !joint.contains("idle"), "{joint}");
         // A cap of 6 holds the base and the five singles; nothing joint fits.
         let small = compose(&slots, &answers, &mut BTreeMap::new(), 6).unwrap();
@@ -1804,6 +1836,28 @@ mod tests {
         assert_eq!(pick(&BTreeMap::from([("worlds.pick".to_string(), Answer::Choice { choice: "w1".into(), probabilities: BTreeMap::new(), confidence: 0.6 })]), &worlds), Some((0, 0.6)));
         let u = draw();
         assert!((0.0..1.0).contains(&u));
+    }
+
+    /// The forbidden mark: a hunt is asked about a second time as a reading of the instructions, and one the gate
+    /// rates at the bar or over says so on its line; under the bar, and for the group's whole attack, nothing is said.
+    #[test]
+    fn a_hunt_the_gate_reads_as_forbidden_says_so_on_its_line() {
+        let slots = vec![threat("party_1", vec![state("party_1.leave", "", Response::Leave, "threat", false), state("party_1.hunt_group_A", "group_A", Response::Hunt(vec![UnitId(9)]), "threat", false), state("party_1.whole_group_A", "group_A", Response::Whole, "threat", false)])];
+        let qs: BTreeMap<String, Question> = gate_questions(&slots, false).into_iter().collect();
+        let Question::Noul { instructions, .. } = &qs["party_1.hunt_group_A.forbidden"] else { panic!("a noul") };
+        assert!(instructions.as_str().unwrap().starts_with("Read the player's `instructions` alone: do they forbid this move"));
+        assert!(!qs.contains_key("party_1.whole_group_A.forbidden"), "hunts only");
+        let gate = |forbidden: f64| BTreeMap::from([("party_1.answer".to_string(), Answer::Noul { noul: 0.8 }), ("party_1.hunt_group_A".to_string(), Answer::Noul { noul: 0.6 }), ("party_1.whole_group_A".to_string(), Answer::Noul { noul: 0.4 }), ("party_1.hunt_group_A.forbidden".to_string(), Answer::Noul { noul: forbidden })]);
+        let hunt_line = |forbidden: f64| {
+            let (flags, next) = follow_up(&slots, &gate(forbidden), "", CAP, &json!({}));
+            assert_eq!(flags["party_1.hunt_group_A.forbidden"], forbidden);
+            let (worlds, lines, _) = next.expect("the threat opened");
+            (lines[worlds.iter().position(|w| w[0] == 1).expect("the hunt's world")].clone(), lines[worlds.iter().position(|w| w[0] == 2).expect("the whole group's world")].clone())
+        };
+        let (hunt, whole) = hunt_line(0.84);
+        assert!(hunt.ends_with("The player's instructions forbid this hunt for group_A."), "{hunt}");
+        assert!(!whole.contains("forbid"), "{whole}");
+        assert!(!hunt_line(0.6).0.contains("forbid"), "under the bar");
     }
 
     /// The line budget (player-27: 145-255 worlds of 120-240k characters refused for three minutes).
@@ -1879,9 +1933,9 @@ mod tests {
         group.kind = Kind::Group("A".into());
         group.stop_cost = Some("group_A holds at spot_49, a stop of its route it has reached, with the route's next stop spot_46 not ordered".into());
         let slots = vec![group];
-        let line = consequence(&vec![0], &slots, "", None);
+        let line = consequence(&vec![0], &slots, "", None, &BTreeSet::new());
         assert!(line.contains("route's next stop spot_46 not ordered") && !line.contains("idle, doing nothing"), "{line}");
-        let line = consequence(&vec![1], &slots, "", Some(&vec![0]));
+        let line = consequence(&vec![1], &slots, "", Some(&vec![0]), &BTreeSet::new());
         assert!(line.starts_with("As w1, and: group_A.walk_spot_46") && !line.contains("not ordered"), "{line}");
         // Closed (`settle`): no question goes out, world 1 keeps its course.
         let mut walking = slots.into_iter().next().unwrap();

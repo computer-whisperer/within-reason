@@ -309,6 +309,10 @@ pub(super) fn gate_questions(slot: &Slot) -> Vec<(String, Question)> {
     )];
     for s in open {
         out.push((s.id.clone(), Question::noul(json!(format!("Is this the move to make against {} now, rather than {standing}? The move: {}.", party.name, s.words)))));
+        // A hunt is asked about a second time, as a reading of the instructions (`plan::FORBIDDEN`).
+        if matches!(s.response, Response::Hunt(_)) {
+            out.push((format!("{}.forbidden", s.id), Question::noul(json!(format!("Read the player's `instructions` alone: do they forbid this move for the group that would make it? The move: {}.", s.words)))));
+        }
     }
     out
 }
