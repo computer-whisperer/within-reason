@@ -1,4 +1,5 @@
-//! The player's lists (H-HANDS-SCRIPT, the `queue` tool): a builder with a list from the player is not in the pass;
+//! The player's lists (H-HANDS-SCRIPT, the `queue` tool; and the counted entries of a factory's `produce` list, made
+//! in order, `play_sequences`): a builder with a list from the player is not in the pass;
 //! the bot orders the next step when the builder is free, or when the build in progress is 60% done (queued behind
 //! it), and skips a step it cannot do. An enemy on the builder puts it back in the pass until that is over. A
 //! bypass, not a decider: nothing in the pass reads a list (`docs/design/2026-09-26-one-pass.md` §6).
@@ -82,6 +83,38 @@ impl Brain {
                     pianist.done.push(format!("{} {name}: {text}", clock(frame)));
                     pianist.note(frame, format!("{name}: {text}"));
                 }
+            }
+        }
+    }
+
+    /// The unit a factory's `produce` list makes next as a sequence (`sequence_next`), if a counted entry is left.
+    pub(super) fn sequence_unit(&self, factory: &OwnUnit, name: &str, pianist: &Pianist) -> Option<UnitDefId> {
+        let allowed = self.allowed_units(name).filter(|a| !a.units.is_empty())?;
+        let options = &self.world.def(factory.def)?.build_options;
+        let can_build = |unit: &str| self.world.def_named(unit).is_some_and(|d| options.contains(&d));
+        let made = |unit: &str| pianist.produced.get(&(factory.id, unit.to_string())).copied().unwrap_or(0);
+        let k = super::sequence_next(&allowed.units, can_build, made)?;
+        self.world.def_named(super::allowance(&allowed.units[k]).0)
+    }
+
+    /// Every factory with a counted entry left on its `produce` list: the next unit ordered, one ahead of the pad,
+    /// without asking. A bypass like the builders' lists: a factory in its sequence has no slot in the pass.
+    pub(super) fn play_sequences(&mut self, tick: &Tick, commands: &mut Vec<Command>) {
+        let own = &tick.snapshot.own_units;
+        let Some(pianist) = self.pianist.as_ref() else { return };
+        let next: Vec<(UnitId, UnitDefId)> = own
+            .iter()
+            .filter(|u| !u.being_built && self.world.is_factory_def(u.def) && !pianist.lab_queue.get(&u.id).is_some_and(|q| !q.is_empty()))
+            .filter_map(|u| self.sequence_unit(u, &self.actor_name(u.id), pianist).map(|def| (u.id, def)))
+            .collect();
+        for (id, def) in next {
+            let name = self.actor_name(id);
+            if let Some(did) = self.execute_lab(tick, id, &Response::Next(def), commands) {
+                let unit = self.name(def).to_string();
+                let pianist = self.pianist.as_mut().expect("pianist mode");
+                pianist.done.push(format!("{} {name}: {did} (from its produce list)", clock(tick.frame)));
+                pianist.played.push(json!({ "actor": name, "kind": "lab", "played": unit, "did": did, "source": "list" }));
+                self.journal.note_from("list", tick.frame, "lab", json!({ "actor": name, "step": unit }), json!({ "did": did }));
             }
         }
     }

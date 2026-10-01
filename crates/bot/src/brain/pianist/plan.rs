@@ -779,6 +779,10 @@ impl Brain {
                 continue;
             }
             let Some(def) = self.world.def(unit.def) else { continue };
+            // A factory with a counted entry left on its `produce` list makes it without asking (`sequence_next`).
+            if self.sequence_unit(unit, &name, pianist).is_some() {
+                continue;
+            }
             let on_pad = own.iter().find(|u| u.being_built && u.pos.dist2d(unit.pos) < 120.0 && self.world.def(u.def).is_some_and(|d| d.speed > 0.0)).map(|u| (self.short_words(u.def), u.health / u.max_health.max(1.0)));
             let idle = on_pad.is_none() && unit.idle;
             let keep_words = match &on_pad {

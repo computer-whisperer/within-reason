@@ -1222,6 +1222,8 @@ impl Brain {
                         "the player's list names nothing this lab can build: it builds nothing until a new `produce` list".to_string()
                     } else if used_up {
                         "the player's allowance is used up (every count made): it builds nothing until a new `produce` list".to_string()
+                    } else if let Some(next) = self.sequence_unit(unit, &name, pianist) {
+                        format!("the player's list, its counted entries made in order by the bot without asking, now a {}: {}", self.short_words(next), words.join(", "))
                     } else {
                         format!("the player allows only: {}", words.join(", "))
                     });

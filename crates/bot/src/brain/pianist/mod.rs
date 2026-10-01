@@ -300,6 +300,20 @@ pub fn entry_permits(list: &[String], k: usize, made: usize) -> bool {
     entry_cap(list, k).is_none_or(|cap| made < cap)
 }
 
+/// The entry of a `produce` list a factory makes next without asking (the user's law, 2026-10-01: "make produce a
+/// sequence the code follows"): the first entry with a count, in the list's order, whose unit the factory can make
+/// and whose count is not yet made. None when no counted entry is left: the factory is then asked among the entries
+/// without a count. Until now every unit named was on offer while its total lasted and Jev picked among them:
+/// player-30's plant, told `armcv:1, armfav:3, armcv:1, armflash:4`, made a constructor, a Rover, a Blitz, a
+/// constructor, a Rover, a constructor, three constructors by 2:23, while the brief told the player the counted
+/// entries were built in order.
+pub fn sequence_next(list: &[String], can_build: impl Fn(&str) -> bool, made: impl Fn(&str) -> usize) -> Option<usize> {
+    (0..list.len()).find(|k| {
+        let (name, count) = allowance(&list[*k]);
+        count.is_some() && can_build(name) && entry_permits(list, *k, made(name))
+    })
+}
+
 #[cfg(test)]
 mod allowance_tests {
     use super::*;
@@ -316,6 +330,25 @@ mod allowance_tests {
         assert!(entry_permits(&list, 3, 5));
         let first = (0..list.len()).find(|k| entry_permits(&list, *k, match allowance(&list[*k]).0 { "armfav" => 5, "armflash" => 1, _ => 0 }));
         assert_eq!(first, Some(2));
+    }
+
+    /// The brief's Comet list as a sequence: one constructor, three Rovers, a constructor, six Blitzes, a
+    /// constructor, then nothing counted is left and the open Blitz entry is Jev's.
+    #[test]
+    fn a_factory_makes_the_counted_entries_in_order() {
+        let list: Vec<String> = ["armcv:1", "armfav:3", "armcv:1", "armflash:6", "armcv:1", "armflash"].iter().map(|s| s.to_string()).collect();
+        let next = |cv: usize, fav: usize, flash: usize| sequence_next(&list, |_| true, |name| match name { "armcv" => cv, "armfav" => fav, _ => flash }).map(|k| allowance(&list[k]).0.to_string());
+        assert_eq!(next(0, 0, 0).as_deref(), Some("armcv"));
+        assert_eq!(next(1, 0, 0).as_deref(), Some("armfav"));
+        assert_eq!(next(1, 2, 0).as_deref(), Some("armfav"));
+        assert_eq!(next(1, 3, 0).as_deref(), Some("armcv"));
+        assert_eq!(next(2, 3, 0).as_deref(), Some("armflash"));
+        assert_eq!(next(2, 3, 6).as_deref(), Some("armcv"));
+        assert_eq!(next(3, 3, 6), None, "the open entry is asked about");
+        // A factory that cannot make a unit passes over its entries.
+        assert_eq!(sequence_next(&list, |name| name != "armcv", |_| 0), Some(1));
+        // A list of open entries alone is no sequence.
+        assert_eq!(sequence_next(&["armpw".to_string(), "armham".to_string()], |_| true, |_| 0), None);
     }
 }
 
@@ -560,6 +593,7 @@ impl Brain {
             pianist.parties = picture.parties.clone();
         }
         self.play_lists(tick, kit, &picture, commands);
+        self.play_sequences(tick, commands);
         self.pass(tick, kit, &picture, commands);
         self.publish_hands(&picture);
         let status_due = tick.due() % (60 * FRAMES_PER_SECOND) < self.pianist.as_ref().expect("pianist mode").interval_frames;

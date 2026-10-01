@@ -101,9 +101,13 @@ the states the hands offer, read against your packet, or your own list. There is
 those and nothing else, so the mix is exactly what you allow and the packet's words only order among them. `all`
 reaches the builders too, but binds a builder only where it names a building that builder can make (a list of
 plant units leaves the constructors on their usual menu; `all_builders` or `constructor_N` names a builder's own). A name with a count
-after a colon (`armck:1`) is allowed that many more times and then drops off the list by itself. It is the sure way
-to get a unit built (raiders against raiders, constructors after losses) and the only way to get a count: the hands
-cannot count, and "one constructor first, then raiders" got three constructors (human-7). A factory's new soldiers
+after a colon (`armck:1`) is made that many times and then drops off the list by itself, and for a factory the
+counted entries are a sequence: it makes them in the order you wrote them, each to its count, without asking Jev
+(`armcv:1, armfav:3, armcv:1, armflash:6, armflash` is one constructor, three Rovers, a constructor, six Blitzes,
+and only then Jev's choice among the entries without a count). Saying a list again restarts it from its first
+entry, so repeat a list only when you mean that. It is the sure way to get a unit built (raiders against raiders,
+constructors after losses) and the only way to get a count or an order: the hands cannot count, and "one
+constructor first, then raiders" got three constructors (human-7). A factory's new soldiers
 gather in a group of that factory's own, and nothing merges by itself: `{"plant_7": {"units": ["armflash"], "group":
 "group_A"}}` sends its soldiers into group_A instead, `"group": "new"` starts a fresh group of its own, and a merge is
 your order (the hands' `join_group_X` state, which your packet can call for).

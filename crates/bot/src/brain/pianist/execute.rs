@@ -336,7 +336,7 @@ impl Brain {
         did
     }
 
-    fn execute_lab(&mut self, tick: &Tick, id: UnitId, response: &Response, commands: &mut Vec<Command>) -> Option<String> {
+    pub(super) fn execute_lab(&mut self, tick: &Tick, id: UnitId, response: &Response, commands: &mut Vec<Command>) -> Option<String> {
         let Response::Next(def) = response else { return None };
         commands.push(Command::Build { unit: id, def: *def, site: None, queue: false });
         self.pianist.as_mut().expect("pianist mode").lab_queue.entry(id).or_default().push((*def, tick.frame));
