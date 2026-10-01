@@ -65,7 +65,7 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   field of the call only when it changed since the last logged call, so a reader carries it forward; `questions` and
   `answers` are the API's own shapes (`docs/harness/jev.md`); `played` is one entry per menu answered, the decision
   record's fields plus `kept` (a busy actor held its course); `groups` [{`name`, `members` [unit ids], `at` [x, z],
-  `task` {`kind` hold/move_to/fight_to/engage, `place`, `to` [x, z]}}], `places` [{`name`, `x`, `z`, `spot`}] and
+  `task` {`kind` hold/move_to/fight_to/engage/attack_unit/hunt/escort, `place`, `to` [x, z]; a hunt's `party` and `quarry`, an escort's `ward` (the builder's name, from 2026-10-01)}}], `places` [{`name`, `x`, `z`, `spot`}] and
   `parties` [{`name`, `ids`, `x`, `z`, `metal`, `composition`}] are what the picture named, so a reader can draw them.
 - `{"t":"error","f","error"}` for a call that failed (every actor kept its task).
 - From 2026-09-24 late to 2026-09-25 a group's `do` was asked in two levels (H-HANDS-TWO-LEVEL, deleted): those logs

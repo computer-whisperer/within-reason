@@ -138,6 +138,8 @@ pub(crate) enum Response {
     Gather(String),
     /// The long-reach members shell the named party from a standoff, the rest between.
     Shell(String),
+    /// Stay beside this builder of ours wherever it goes and attack what hits it (H-HANDS-ESCORT).
+    Escort(UnitId),
 }
 
 /// One executable state of one actor.
@@ -257,7 +259,7 @@ impl Brain {
             Response::Next(def) => {
                 if self.world.is_constructor_def(*def) { "constructor" } else { "soldier" }
             }
-            Response::Walk { .. } | Response::Retreat | Response::FallBack => "move",
+            Response::Walk { .. } | Response::Retreat | Response::FallBack | Response::Escort(_) => "move",
             Response::Scout => "scout",
             Response::Split(..) => "split",
             Response::Join(_) => "join",
@@ -278,6 +280,31 @@ impl Brain {
         let threatened = under_fire.contains(&unit.id) || picture.parties.iter().any(|p| p.at.dist2d(unit.pos) < STARTED_ALARM);
         let queue_ahead = started.as_ref().is_some_and(|(_, share)| *share >= QUEUE_AT) && !threatened && !pianist.queued.contains_key(&unit.id);
         BuilderStatus { started, threatened, queue_ahead }
+    }
+
+    /// A party of one scout (a Tick, a scout car): no reason for a builder to leave its work.
+    pub(super) fn lone_scout(&self, p: &Party, enemies: &[bot_protocol::EnemyUnit]) -> bool {
+        p.ids.len() == 1 && enemies.iter().any(|e| e.id == p.ids[0] && e.def.is_some_and(|d| super::glossary::entry(self.name(d)).is_some_and(|g| g.class.contains("scout"))))
+    }
+
+    /// Something in the party shoots, or is not identified.
+    pub(super) fn party_armed(&self, p: &Party, enemies: &[bot_protocol::EnemyUnit]) -> bool {
+        p.ids.iter().any(|id| enemies.iter().find(|e| e.id == *id).is_none_or(|e| e.def.is_none_or(|d| self.world.def(d).is_some_and(|d| d.weapon_count > 0))))
+    }
+
+    /// The party a builder's list step waits for (H-HANDS-SCRIPT, 2026-10-01): an armed enemy party, a lone scout
+    /// aside, within `STARTED_ALARM` of the place the step would take the builder to, or within it of the builder on
+    /// the side that place lies. A step that leads away from the party plays: the list can be the way out
+    /// (onepass-player-2, 12:23). player-31, 3:17-3:20: a Pawn 75 from constructor_28188 at spot_62 and 340 from
+    /// spot_54, the list's next step; the list walked the constructor on toward it twice while the pick sent it home.
+    pub(super) fn step_waits<'a>(&self, unit: &OwnUnit, place: Vec3, parties: &'a [Party], enemies: &[bot_protocol::EnemyUnit]) -> Option<&'a Party> {
+        parties.iter().filter(|p| self.party_armed(p, enemies) && !self.lone_scout(p, enemies)).find(|p| {
+            if p.at.dist2d(place) < STARTED_ALARM {
+                return true;
+            }
+            let toward = (place.x - unit.pos.x) * (p.at.x - unit.pos.x) + (place.z - unit.pos.z) * (p.at.z - unit.pos.z) > 0.0;
+            p.at.dist2d(unit.pos) < STARTED_ALARM && toward
+        })
     }
 
     /// The free spots this builder could take, nearest by its own walking first: not held, not another builder's
@@ -430,7 +457,7 @@ impl Brain {
         let mut under_fire: Vec<UnitId> = tick.events.iter().filter_map(|e| if let bot_protocol::Event::UnitDamaged { unit, .. } = e { Some(*unit) } else { None }).collect();
         under_fire.extend(pianist.hits.keys().copied());
         let draws = self.production_draws(own, pianist);
-        let lone_scout = |p: &Party| p.ids.len() == 1 && enemies.iter().any(|e| e.id == p.ids[0] && e.def.is_some_and(|d| super::glossary::entry(self.name(d)).is_some_and(|g| g.class.contains("scout"))));
+        let lone_scout = |p: &Party| self.lone_scout(p, enemies);
         // The player's marks: the places that are neither spots nor the map's own (home, the passages, `shelling*`).
         let marks: Vec<&super::Place> = picture.places.iter().filter(|p| p.spot.is_none() && p.name != "home" && !p.name.starts_with("shelling") && !p.name.starts_with("passage_")).collect();
 
@@ -495,7 +522,7 @@ impl Brain {
             let can = |def: UnitDefId| self.world.def(unit.def).is_some_and(|d| d.build_options.contains(&def));
             // A party with nothing armed in it (air constructors, a Mason) is no threat to a builder: constructors
             // fled unarmed air constructors for a minute (bluegecko-3v1-comet-catcher-2, 19:50).
-            let armed = |p: &&Party| p.ids.iter().any(|id| enemies.iter().find(|e| e.id == *id).is_none_or(|e| e.def.is_none_or(|d| self.world.def(d).is_some_and(|d| d.weapon_count > 0))));
+            let armed = |p: &&Party| self.party_armed(p, enemies);
             let nearest_party = picture.parties.iter().filter(armed).map(|p| (p.at.dist2d(unit.pos), p)).filter(|(d, _)| *d < ALARM).min_by(|a, b| a.0.total_cmp(&b.0)).map(|(_, p)| p);
             let walking_home = matches!(task, Some(Task::Walk { place, .. }) if place == "home");
             // Home is no way out when the party stands at it or between (bluegecko-3v1-comet-catcher-2, 15:41-15:51:
@@ -848,7 +875,7 @@ impl Brain {
             // its nearest member, the odds on the part in the fight.
             let goal = match &group.task {
                 GroupTask::Move { to, .. } => Some(*to),
-                GroupTask::Engage { at, .. } => Some(*at),
+                GroupTask::Engage { at, .. } | GroupTask::Escort { at, .. } => Some(*at),
                 GroupTask::Hunt(h) => Some(h.at),
                 GroupTask::Hold { .. } => None,
             };
@@ -872,6 +899,7 @@ impl Brain {
                 GroupTask::Hold { .. } if !hunting => format!(", leaving {} unguarded", picture.state["actors"][&name]["at"].as_str().unwrap_or("where it stands")),
                 GroupTask::Move { place, .. } => format!(", abandoning its way to {place}"),
                 GroupTask::Engage { .. } => ", leaving the party it was attacking".to_string(),
+                GroupTask::Escort { name: ward, .. } => format!(", leaving {ward} without its escort"),
                 _ => String::new(),
             };
             // 2. Walks to named places: home, the player's marks and passages within reach, and every spot the packet
@@ -950,6 +978,30 @@ impl Brain {
             for (_, place, words) in raids.iter().take(RAID_STATES) {
                 let current = matches!(&group.task, GroupTask::Move { place: p, fight: true, .. } if *p == place.name);
                 push(&format!("raid_{}", place.name), Response::Walk { place: place.name.clone(), fight: true }, words.clone(), current);
+            }
+            // The escort (H-HANDS-ESCORT): beside a builder the group's own paragraph names, wherever it goes. Offered
+            // only there, as a spot is offered only where the packet names it: an escort of every builder for every
+            // group would be a hundred questions a second. player-31, 3:12-3:22: a Pawn killed an extractor frame
+            // and shot its constructor to 63% at spot_62 while the Blitzes stood 1,950 away at spot_69 as told; the
+            // player could station a group at a place, never with a builder that moves from spot to spot.
+            if group.domain != crate::world::Domain::Air
+                && let Some(own_paragraph) = super::diet::paragraph(&instructions, &name)
+            {
+                for ward in builders.iter().filter(|b| super::diet::names(own_paragraph, &self.actor_name(b.id))) {
+                    let ward_name = self.actor_name(ward.id);
+                    let current = matches!(&group.task, GroupTask::Escort { ward: w, .. } if *w == ward.id);
+                    push(
+                        &format!("escort_{ward_name}"),
+                        Response::Escort(ward.id),
+                        format!(
+                            "{name} escorts {ward_name} ({}; {}): it stays beside {ward_name} wherever it goes and attacks what hits it{}",
+                            self.task_course(pianist.tasks.get(&ward.id), ward, &picture.places, frame, own),
+                            walk_words(body.front.dist2d(ward.pos)),
+                            if current { "" } else { leave.as_str() }
+                        ),
+                        current,
+                    );
+                }
             }
             // The sweep: the nearest spot nothing of ours has looked at that this group reaches; his start box first
             // when the group's paragraph is about his base or his side (routes-in-prose §4.5: at 6:01 the sweep named

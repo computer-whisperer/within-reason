@@ -116,6 +116,8 @@ pub struct Pianist {
     /// The list step each builder is on (its words, and the clock of the task it became): diverted from that task
     /// by the pass, the builder gets the step back at the front of its list.
     pub(super) list_steps: HashMap<UnitId, (String, i32)>,
+    /// The builders whose list is waiting, and the party it waits for (`Brain::step_waits`): said once per party.
+    pub(super) list_waits: HashMap<UnitId, String>,
     /// The list step a queued task came from (`queued`), moved to `list_steps` when the task is promoted.
     pub(super) queued_steps: HashMap<UnitId, String>,
     /// Units a lab has been told to build and not yet started, oldest first.
@@ -444,6 +446,7 @@ impl Pianist {
             scripts: HashMap::new(),
             ordered: HashMap::new(),
             list_steps: HashMap::new(),
+            list_waits: HashMap::new(),
             queued_steps: HashMap::new(),
             done: Vec::new(),
             log,
@@ -954,6 +957,7 @@ impl Brain {
                     GroupTask::Move { to, place, fight, .. } => json!({ "kind": if *fight { "fight_to" } else { "move_to" }, "place": place, "to": [to.x as i32, to.z as i32] }),
                     GroupTask::Engage { at, target, .. } => json!({ "kind": if target.is_some() { "attack_unit" } else { "engage" }, "to": [at.x as i32, at.z as i32] }),
                     GroupTask::Hunt(h) => json!({ "kind": "hunt", "party": h.party, "quarry": h.quarry.0, "to": [h.at.x as i32, h.at.z as i32] }),
+                    GroupTask::Escort { name, at, .. } => json!({ "kind": "escort", "ward": name, "to": [at.x as i32, at.z as i32] }),
                 };
                 json!({ "name": g.name, "members": g.members.iter().map(|id| id.0).collect::<Vec<_>>(), "at": centre.map(|c| [c.x as i32, c.z as i32]), "task": task })
             })

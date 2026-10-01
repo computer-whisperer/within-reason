@@ -62,6 +62,27 @@ pub(crate) struct Hunt {
 /// A hunt this far from where it began ends (threats-smoke-1: anchored on the group's station, a hunt begun 900
 /// from the station ended on its first tick, 12 of 16 hunts one order long). The engine judges it (H-MICRO-HUNT).
 pub(crate) const HUNT_LEASH: f32 = 900.0;
+/// An escort is sent after its ward again when the ward has moved this far from where the escort was last sent.
+const ESCORT_STEP: f32 = 150.0;
+
+/// What an escort is ordered this second (H-HANDS-ESCORT).
+#[derive(Debug, PartialEq)]
+pub(super) enum EscortOrder {
+    /// Every member attacks this enemy, which hit the ward in the last seconds.
+    Attack(UnitId),
+    /// Every member fights its way to where the ward stands now.
+    Follow(Vec3),
+}
+
+/// The escort's order, or none while the one it has still fits: the attack on an enemy in sight that hit the ward
+/// (`attacker`) when it is not the one being fought; back beside the ward when the hitting has stopped, and after
+/// it when it has moved `ESCORT_STEP` from where the escort was last sent (`at`).
+pub(super) fn escort_order(ward_at: Vec3, at: Vec3, fighting: Option<UnitId>, attacker: Option<UnitId>) -> Option<EscortOrder> {
+    match attacker {
+        Some(target) => (fighting != attacker).then_some(EscortOrder::Attack(target)),
+        None => (fighting.is_some() || ward_at.dist2d(at) > ESCORT_STEP).then_some(EscortOrder::Follow(ward_at)),
+    }
+}
 /// A roving group's log keeps this many lines.
 const ROVE_LOG: usize = 10;
 
@@ -76,6 +97,9 @@ pub(crate) enum GroupTask {
     Engage { party: Vec<UnitId>, at: Vec3, since: i32, last_seen: i32, target: Option<UnitId>, searched: bool },
     /// A hunt (H-MICRO-HUNT): the whole group after one unit of a party, the micro engine's to run.
     Hunt(Hunt),
+    /// An escort (H-HANDS-ESCORT): the group stays beside one builder of ours wherever it goes and attacks what hits
+    /// it. `at`: where the ward stood at the group's last order to follow; `fighting`: the attacker it is sent at.
+    Escort { ward: UnitId, name: String, at: Vec3, fighting: Option<UnitId>, since: i32 },
 }
 
 impl GroupTask {
@@ -206,6 +230,7 @@ impl Group {
             GroupTask::Move { to, fight, .. } => units.iter().map(|u| if *fight { Command::Fight { unit: u.id, to: *to, queue: false } } else { Command::Move { unit: u.id, to: *to, queue: false } }).collect(),
             GroupTask::Engage { at, target, .. } => units.iter().map(|u| match target { Some(t) => Command::Attack { unit: u.id, target: *t, queue: false }, None => Command::Fight { unit: u.id, to: *at, queue: false } }).collect(),
             GroupTask::Hunt(h) => units.iter().map(|u| Command::Attack { unit: u.id, target: h.quarry, queue: false }).collect(),
+            GroupTask::Escort { at, fighting, .. } => units.iter().map(|u| match fighting { Some(t) => Command::Attack { unit: u.id, target: *t, queue: false }, None => Command::Fight { unit: u.id, to: *at, queue: false } }).collect(),
         }
     }
 
@@ -303,6 +328,7 @@ impl Brain {
                     GroupTask::Move { place, fight, .. } => format!("{} to {place}", if *fight { "advancing" } else { "walking" }),
                     GroupTask::Engage { .. } => "attacking a party".to_string(),
                     GroupTask::Hunt(h) => format!("hunting {}", h.party),
+                    GroupTask::Escort { name, .. } => format!("escorting {name}"),
                 };
                 loss_wakes.push(format!(
                     "group_{} has lost {} of its {} soldiers ({lost:.0} metal) since your last orders, {doing} at {}",
@@ -394,6 +420,7 @@ impl Brain {
         let mut stalled: Vec<String> = Vec::new();
         let mut hunt_ends: Vec<String> = Vec::new();
         let mut route_news: Vec<String> = Vec::new();
+        let mut escort_ends: Vec<String> = Vec::new();
         let roving: Vec<bool> = pianist.groups.iter().map(|g| self.roves(g)).collect();
         let mut rove_changes: Vec<String> = Vec::new();
         for (index, group) in pianist.groups.iter_mut().enumerate() {
@@ -418,7 +445,7 @@ impl Brain {
             let units = group.units(own);
             group.joining.retain(|id| group.members.contains(id));
             // A newcomer that has reached the body is of it (or was sent nowhere: nothing stands to reach).
-            let goal = match &group.task { GroupTask::Move { to, .. } => Some(*to), GroupTask::Engage { at, .. } => Some(*at), GroupTask::Hunt(h) => Some(h.at), GroupTask::Hold { .. } => None };
+            let goal = match &group.task { GroupTask::Move { to, .. } => Some(*to), GroupTask::Engage { at, .. } | GroupTask::Escort { at, .. } => Some(*at), GroupTask::Hunt(h) => Some(h.at), GroupTask::Hold { .. } => None };
             if let Some(body) = group.body(own, goal) {
                 let core_at = body.at;
                 let joined: Vec<UnitId> = body.joining.iter().filter(|u| u.pos.dist2d(core_at) <= ADOPT_RADIUS || self.stuck.contains_key(&u.id)).map(|u| u.id).collect();
@@ -554,7 +581,38 @@ impl Brain {
                         hunt_ends.push(format!("group_{}'s hunt of {} ended after {} s: every hunter dead", group.name, hunt.party, (frame - hunt.since) / FRAMES_PER_SECOND));
                     }
                 }
+                // The escort (H-HANDS-ESCORT): the group follows its ward when it has moved on, attacks an enemy in
+                // sight that hit the ward in the last seconds, and comes back beside it when the hitting stops. A
+                // dead ward ends it in a hold, said, and the group is asked at once.
+                GroupTask::Escort { ward, name: ward_name, at, fighting, since } => match own.iter().find(|u| u.id == *ward) {
+                    Some(w) => {
+                        let attacker = self.hits.iter().rev().filter(|h| h.victim == *ward).map(|h| h.attacker).find(|a| enemies.iter().any(|e| e.id == *a));
+                        match escort_order(w.pos, *at, *fighting, attacker) {
+                            Some(EscortOrder::Attack(target)) => {
+                                *fighting = Some(target);
+                                group.last_order = frame;
+                                commands.extend(units.iter().map(|u| Command::Attack { unit: u.id, target, queue: false }));
+                            }
+                            Some(EscortOrder::Follow(to)) => {
+                                (*fighting, *at) = (None, to);
+                                group.last_order = frame;
+                                commands.extend(units.iter().map(|u| Command::Fight { unit: u.id, to, queue: false }));
+                            }
+                            None => {}
+                        }
+                    }
+                    None => {
+                        escort_ends.push(format!("group_{}'s escort of {ward_name} ended after {} s: {ward_name} is dead; the group holds where it is", group.name, (frame - *since) / FRAMES_PER_SECOND));
+                        commands.extend(group.hold_orders(&units));
+                        group.task = GroupTask::Hold { since: frame, committed: false };
+                    }
+                },
             }
+        }
+        for text in escort_ends {
+            pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
+            pianist.note(frame, text.clone());
+            pianist.events.insert(text);
         }
         for text in rove_changes {
             pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
@@ -756,6 +814,25 @@ mod tests {
         assert_eq!(failed.map(|(p, _)| p).as_deref(), Some("party_12"));
         assert!(matches!(pianist.groups[1].task, GroupTask::Hold { .. }));
         let _ = own;
+    }
+
+    /// An escort follows its ward when it has moved on, attacks the enemy that hit it, comes back beside it when the
+    /// hitting stops, and is given nothing new while its order still fits; a member rejoining gets the same order.
+    #[test]
+    fn an_escort_follows_its_ward_and_attacks_what_hits_it() {
+        let at = |x: f32| Vec3 { x, y: 0.0, z: 0.0 };
+        assert_eq!(escort_order(at(100.0), at(0.0), None, None), None);
+        assert_eq!(escort_order(at(200.0), at(0.0), None, None), Some(EscortOrder::Follow(at(200.0))));
+        assert_eq!(escort_order(at(0.0), at(0.0), None, Some(UnitId(7))), Some(EscortOrder::Attack(UnitId(7))));
+        assert_eq!(escort_order(at(0.0), at(0.0), Some(UnitId(7)), Some(UnitId(7))), None);
+        assert_eq!(escort_order(at(0.0), at(0.0), Some(UnitId(7)), Some(UnitId(8))), Some(EscortOrder::Attack(UnitId(8))));
+        assert_eq!(escort_order(at(50.0), at(0.0), Some(UnitId(7)), None), Some(EscortOrder::Follow(at(50.0))));
+        let soldier = own(1, 1, at(0.0));
+        let mut group = Group::new("A".into(), Domain::Ground, vec![soldier.id], GroupTask::Escort { ward: UnitId(9), name: "constructor_9".into(), at: at(300.0), fighting: None, since: 0 }, 0);
+        assert!(matches!(group.rejoin_orders(&[&soldier])[..], [Command::Fight { to, .. }] if to.x == 300.0));
+        group.task = GroupTask::Escort { ward: UnitId(9), name: "constructor_9".into(), at: at(300.0), fighting: Some(UnitId(7)), since: 0 };
+        assert!(matches!(group.rejoin_orders(&[&soldier])[..], [Command::Attack { target: UnitId(7), .. }]));
+        assert!(group.task.busy());
     }
 
     #[test]

@@ -72,7 +72,8 @@ and `resurrection_bots` lines carry the totals. Labs, plants and other factories
 name; `units` gives any unit's full entry, ours or theirs. Groups hold, walk to a place (running
 from everything), advance to a place fighting (arriving together), engage a party in sight, retreat home, split a
 detachment to a place, send a detachment of one, two, four or eight against a party in sight (`send_against`: the rest
-carry on), send one scout to a place, join another group of the same kind (ground, hover or air groups never mix), or
+carry on), send one scout to a place, join another group of the same kind (ground, hover or air groups never mix),
+escort a builder (it stays beside `constructor_N` or `commander` wherever that goes and attacks what hits it), or
 `attack_unit`: every soldier on one unit of a party, its commander when it is there, until it dies (the order that
 kills a commander; aircraft pick their target only this way, a fight order bombs whatever is nearest). Nothing else can be asked for; say what you wished
 you could order, in your closing sentence, whenever you hit that edge.
@@ -168,7 +169,9 @@ ahead; an army lead is the moment to take ground for constructors, and the const
 not growing and nothing is stopping them, that is the problem to solve this turn.
 How expansion happens, and why it stops. The hands build an extractor only at a spot you name, in the packet or in a
 `queue` list; an unnamed spot is offered to a builder only when no named spot is free, so a packet that names the
-strip alone caps the count at the strip. A builder on a `queue` list is off the hands' menu until the list ends, so
+strip alone caps the count at the strip. A list step that would hold or walk its builder within 800 of an armed
+enemy party in sight (a lone Tick or scout car aside) waits until the party is gone; the hands' report says so,
+the builder is meanwhile asked only its ways out, and a step that leads away from the party still plays. A builder on a `queue` list is off the hands' menu until the list ends, so
 lists of turrets, solars and "assist" steps keep the constructors from expanding for as long as they run: a list is
 for a short definite job, not a standing occupation. A packet sentence that gives the constructors expansion as their
 job ("constructors: take every free spot on our strip, nearest home first, a light turret beside each outer pair") is
@@ -211,7 +214,12 @@ how much: a single Tick or scout car at an extractor is met by one soldier from 
 The raids are standard and expected, so the soldiers that answer them stand across the front before the first one
 comes: a picket of one or two at each outer spot cluster from the first Blitzes, not a guard at home that arrives after
 the extractor is gone. The opponent raids extractors with
-small fast groups from about minute 3, outermost first, and later moves its army as one block. Good defence is decided
+small fast groups from about minute 3, outermost first, and later moves its army as one block. A constructor sent to
+an outer spot alone has nothing with it when the raider comes: an escort is a group whose own paragraph, headed with
+its name, names the builder ("group_D: escorts constructor_28188"); the hands are then offered that course for it
+and it follows the builder from spot to spot (a Pawn killed an extractor frame and shot its constructor to 63% at
+spot_62 while seven soldiers stood 1,950 away at the spot they had been told to hold). A group of two from the
+plant (`produce` with `"group": "new"`) is enough against a lone raider. Good defence is decided
 before the raid arrives: line units standing where raiders must pass, a light turret at an extractor no soldier covers. A group holding at home protects nothing but home; a group
 holding at a passage covers everything behind it. Fights are decided by the metal of soldiers on the spot, a turret
 counting about three times its metal: never walk into a turret line at parity, and arrive together (the `fight_to`

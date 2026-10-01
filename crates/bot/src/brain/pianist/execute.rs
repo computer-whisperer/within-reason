@@ -395,6 +395,18 @@ impl Brain {
                     did = Some(format!("{} to {}", if *fight { "advance" } else { "walk" }, p.name));
                 }
             }
+            Response::Escort(ward) => {
+                if let Some(w) = own.iter().find(|u| u.id == *ward) {
+                    let ward_name = self.actor_name(*ward);
+                    let to = self.snap_for(self.group_walker(&pianist.groups[index], own), w.pos);
+                    let group = &mut pianist.groups[index];
+                    commands.extend(group.release_orders(&units));
+                    commands.extend(ids.iter().map(|id| Command::Fight { unit: *id, to, queue: false }));
+                    group.set_task(GroupTask::Escort { ward: *ward, name: ward_name.clone(), at: to, fighting: None, since: frame }, frame);
+                    group.last_order = frame;
+                    did = Some(format!("escort {ward_name}"));
+                }
+            }
             Response::Retreat => {
                 let group = &mut pianist.groups[index];
                 commands.extend(group.release_orders(&units));

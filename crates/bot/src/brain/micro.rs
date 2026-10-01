@@ -59,7 +59,8 @@ impl Brain {
                 let metal: f32 = group.members.iter().filter_map(|id| self.known_units.get(id)).filter_map(|(def, _)| self.world.def(*def)).map(|d| d.metal_cost).sum();
                 let commitment_of = match &group.task {
                     super::pianist::GroupTask::Hold { committed: true, .. } | super::pianist::GroupTask::Move { fight: true, .. } => Commitment::All,
-                    super::pianist::GroupTask::Hold { .. } => Commitment::Priced { turrets: Vec::new(), commander: false },
+                    // An escort stands as a hold does: against mobile units, out of turret reach.
+                    super::pianist::GroupTask::Hold { .. } | super::pianist::GroupTask::Escort { .. } => Commitment::Priced { turrets: Vec::new(), commander: false },
                     super::pianist::GroupTask::Engage { .. } => Commitment::Priced { turrets: Vec::new(), commander: metal >= COMMANDER_PARTY_METAL },
                     super::pianist::GroupTask::Move { fight: false, .. } => Commitment::None,
                     super::pianist::GroupTask::Hunt(_) => Commitment::None,

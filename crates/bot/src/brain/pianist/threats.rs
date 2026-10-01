@@ -129,6 +129,7 @@ impl Brain {
                     GroupTask::Move { place, .. } => format!(", abandoning its way to {place}"),
                     GroupTask::Engage { .. } => ", leaving the party it was attacking".to_string(),
                     GroupTask::Hunt(h) => format!(", leaving its hunt of {}", h.party),
+                    GroupTask::Escort { name: ward, .. } => format!(", leaving {ward} without its escort"),
                 };
                 // The hunt: the armed members that outrun the party, else the group's fastest armed members (a
                 // Blitz at 101 never outruns a Tick at 132, so no Blitz was ever offered against one and the pick
