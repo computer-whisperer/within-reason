@@ -1097,7 +1097,7 @@ impl Brain {
 /// state whether it should change course (an idle actor is always open), and one per open state whether it is the
 /// move. onepass-smoke-1 asked a noul per kind of action instead and they came back at 0.44-0.60 everywhere, coin
 /// flips that pruned the one state the packet asked for.
-/// The state's `asking` line: the preamble the bulk questions leave out.
+/// The state's `asking` line: the preamble a group's walk and advance questions leave out.
 pub(super) const ASKING: &str = "Each question below that names an actor and a move without more asks: is that what the actor should do now, rather than the course named after it? Judge it from that actor's entry under `actors`, `economy`, `ours` and the player's `instructions`.";
 
 pub(super) fn gate_questions(slots: &[Slot], told: bool) -> Vec<(String, Question)> {
@@ -1122,12 +1122,16 @@ pub(super) fn gate_questions(slots: &[Slot], told: bool) -> Vec<(String, Questio
                 }
                 for (i, s) in slot.states.iter().enumerate() {
                     if i != base && i != 0 && !s.pair_only {
-                        // The bulk kinds (a builder's states, a group's walks and advances: 175k of player-28's 215k
-                        // gate questions) carry the actor and the move alone under the state's `asking` line
-                        // (ASKING); the rest keep the full form (offline, 24 calls of 6,407 nouls: the short form
-                        // moved a noul 0.032 on average against 0.017 re-asked, flipped 56 flags against 36, and cut
-                        // the gate's tokens by a third; the flips sat on the factory and change nouls, kept whole).
-                        let bulk = matches!(slot.kind, Kind::Builder(_)) || s.id.contains(".walk_") || s.id.contains(".advance_");
+                        // A group's walks and advances carry the actor and the move alone under the state's `asking`
+                        // line (ASKING); the rest keep the full form. The short form was every bulk kind's from 818868f
+                        // (offline, 24 calls of 6,407 nouls: a noul moved 0.032 on average against 0.017 re-asked) and
+                        // sank a builder's extractor: on the game's first second the two home extractors fell from
+                        // 0.77 and 0.73 to 0.12 and 0.25, a solar at 0.40 took the pick, and players 29 and 30 opened
+                        // with a fourth solar and the plant ten seconds late; over a game a builder's extractor cleared
+                        // 0.5 in about 80 asks long, 3 and 0 short (`docs/studies/2026-09-29-pick-framing.md` §9). The
+                        // groups' walks and advances rate alike under both (medians 0.08-0.11, players 27-30), and
+                        // since `settle` a busy builder is asked a quarter as often.
+                        let bulk = matches!(slot.kind, Kind::Group(_)) && (s.id.contains(".walk_") || s.id.contains(".advance_"));
                         let text = if bulk {
                             format!("{}, rather than {standing}: {}.", slot.name, s.words)
                         } else {
@@ -1869,17 +1873,17 @@ mod tests {
         assert_eq!(fit(&lines, 10), 2, "the first deviation stays even over the budget");
     }
 
-    /// The bulk kinds (a builder's states, a group's walks and advances) are asked short under the state's
-    /// `asking` line; the other kinds keep the full form.
+    /// A group's walks and advances are asked short under the state's `asking` line; a builder's states and the
+    /// other kinds keep the full form.
     #[test]
-    fn the_bulk_gate_questions_are_short_and_the_rest_keep_the_preamble() {
+    fn a_groups_walks_are_asked_short_and_the_rest_keep_the_preamble() {
         let slots = vec![
             builder("constructor_3", 3, vec![state("constructor_3.keep", "constructor_3", Response::Keep, "threat", false), state("constructor_3.extractor_spot_4", "constructor_3", Response::Extractor(4), "extractor", false)]),
             Slot { name: "group_A".into(), kind: Kind::Group("A".into()), states: vec![state("group_A.keep", "group_A", Response::Keep, "threat", false), state("group_A.walk_spot_4", "group_A", Response::Walk { place: "spot_4".into(), fight: false }, "walk", false), state("group_A.join_group_B", "group_A", Response::Join("B".into()), "join", false)], queue_ahead: false, idle: true, stop_cost: None, on_route: false, quiet: false },
         ];
         let qs: BTreeMap<String, Question> = gate_questions(&slots, false).into_iter().collect();
         let text = |id: &str| match &qs[id] { Question::Noul { instructions, .. } => instructions.as_str().unwrap().to_string(), _ => panic!("a noul") };
-        assert!(text("constructor_3.extractor_spot_4").starts_with("constructor_3, rather than "), "{}", text("constructor_3.extractor_spot_4"));
+        assert!(text("constructor_3.extractor_spot_4").starts_with("Given `actors.constructor_3`"), "{}", text("constructor_3.extractor_spot_4"));
         assert!(text("group_A.walk_spot_4").starts_with("group_A, rather than "));
         assert!(text("group_A.join_group_B").starts_with("Given `actors.group_A`"));
         assert!(ASKING.contains("rather than the course named after it"));
