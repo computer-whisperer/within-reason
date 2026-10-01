@@ -185,3 +185,22 @@ per option, by Jev, and said on that option's line. Not built: it is a new quest
 the worlds' lines, the user's call (the bar, 0.5 as replayed or 0.7 between the two sets; hunts alone or every
 threat state). The other groups' hunts in the forbid gates rated a median 0.75 on G2 (the packet has them join the
 ball) and were not marked in this replay.
+
+## 9. Correction to §5-6: the short form of a builder's question sinks the extractor (2026-09-30, the user: "the build order was wrong")
+
+Read from the games' logs, no calls. The first gate of a game (0:02, the commander idle, 1,000 metal, the default
+"no player is connected" instructions in force because the player's first orders land at about 0:09) is the same
+state in every game on this start:
+
+| game | the builder's question | `extractor_spot_67` | `extractor_spot_74` | `armsolar` | the pick at 0:02 | the opening | plant started |
+|---|---|---|---|---|---|---|---|
+| player-28 (a969cf2) | long ("Given `actors.commander`, `economy`, `ours` and the player's `instructions`: is this what commander should do now, rather than ...? The move: ...") | 0.77 | 0.73 | 0.47 | the extractor at spot_67 | M M M S S S plant (as players 14 to 28) | 1:08 |
+| player-29 (818868f) | short ("commander, rather than ...: ...") | 0.12 | 0.25 | 0.40 | a solar | S M M M S S S plant | 1:18 |
+| player-30 (3d4a929) | short | 0.14 | 0.25 | 0.40 | a solar | S M M M S S S plant | 1:18 |
+
+Over whole games the extractor question for a builder cleared 0.5 in 76 of 9,123 (player-27) and 81 of 26,851
+(player-28) asks under the long form, and in 3 of 75,960 (player-29) and 0 of 10,795 (player-30) under the short;
+for an idle builder it cleared the idle bar of 0.3 in 28% and 57% of asks long, 5% and 5% short. §6's replay
+averaged the drift over 6,407 nouls (0.032 against 0.017 re-asked), nearly all of them near zero under either
+form, and missed a 0.65 fall on the one kind of question an idle builder is waiting on. The pick's builder moves
+did not fall with it (177 in player-28's 20:46, 194 and 212 in the two hard games): what moved is which move.
