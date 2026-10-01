@@ -430,7 +430,7 @@ impl Brain {
         let frame = tick.frame;
         let mut slots = self.threat_slots(tick, picture);
         let mut under_fire: Vec<UnitId> = tick.events.iter().filter_map(|e| if let bot_protocol::Event::UnitDamaged { unit, .. } = e { Some(*unit) } else { None }).collect();
-        under_fire.extend(pianist.hits.keys().copied());
+        under_fire.extend(pianist.under_fire(frame));
         let draws = self.production_draws(own, pianist);
         let lone_scout = |p: &Party| p.ids.len() == 1 && enemies.iter().any(|e| e.id == p.ids[0] && e.def.is_some_and(|d| super::glossary::entry(self.name(d)).is_some_and(|g| g.class.contains("scout"))));
         // The player's marks: the places that are neither spots nor the map's own (home, the passages, `shelling*`).

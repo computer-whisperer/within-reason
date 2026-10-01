@@ -32,6 +32,7 @@ impl Brain {
         for unit in &hit {
             pianist.hits.insert(*unit, frame);
         }
+        pianist.hits.retain(|_, at| frame - *at <= super::UNDER_FIRE_FRAMES);
         // A party entering a builder's alarm reach (the parties are the last picture's; their place is where their
         // units stand now) is an event once, and again when it comes back after leaving.
         let mut alarmed: HashSet<(UnitId, String)> = HashSet::new();

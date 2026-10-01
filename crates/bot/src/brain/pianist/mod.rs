@@ -49,6 +49,8 @@ const RECENT_FRAMES: i32 = 90 * FRAMES_PER_SECOND;
 /// H-HANDS-REFUSED: a spot where the engine refused an extractor is left off every state for this long (smoke-4: the
 /// commander asked for the same refused spot thirty times running beside the enemy base, and died there).
 const REFUSED_FRAMES: i32 = 90 * FRAMES_PER_SECOND;
+/// A unit of ours is under fire this long after its last hit (the brain's own `HIT_MEMORY` for what a party shoots).
+pub(super) const UNDER_FIRE_FRAMES: i32 = 3 * FRAMES_PER_SECOND;
 /// What a builder or a lab is committed to.
 #[derive(Clone, Debug)]
 pub(super) enum Task {
@@ -162,7 +164,8 @@ pub struct Pianist {
     pub(super) script_frame: HashMap<String, i32>,
     /// The frame the player's packet last changed: part of the signature, so a new packet asks at once.
     pub(super) packet_frame: i32,
-    /// Our units hit since the last call, with the frame: the pass's under-fire set, across the ticks between calls.
+    /// Our units hit in the last `UNDER_FIRE_FRAMES`, with the frame of the last hit: the pass's and the lists'
+    /// under-fire set (`under_fire`), across the ticks between calls.
     pub(super) hits: HashMap<UnitId, i32>,
     /// (builder, party name) pairs with the party inside the builder's alarm reach: a party's arrival is an event once.
     pub(super) alarmed: HashSet<(UnitId, String)>,
@@ -500,6 +503,15 @@ impl Pianist {
             self.list_held.remove(&builder);
         }
         self.list_held.contains(&builder)
+    }
+
+    /// Our units hit in the last `UNDER_FIRE_FRAMES`. The record was cleared after each ask until the one pass
+    /// (cf66874, 2026-09-25) and never since: a unit hit once was under fire for the rest of the game, so a builder
+    /// once shot stayed in the pass, never queued a step behind its build, and (player-32) never came off the hold
+    /// the pick's retreat had put on its list: the commander stood idle from 33:57 to the end with the nearest
+    /// party 2,679 away.
+    pub(super) fn under_fire(&self, frame: i32) -> impl Iterator<Item = UnitId> + '_ {
+        self.hits.iter().filter(move |(_, hit)| frame - **hit <= UNDER_FIRE_FRAMES).map(|(id, _)| *id)
     }
 
     pub(super) fn new_group_name(&mut self) -> String {

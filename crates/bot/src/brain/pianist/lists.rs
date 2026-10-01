@@ -30,7 +30,7 @@ impl Brain {
         let frame = tick.frame;
         let Some(mut pianist) = self.pianist.take() else { return };
         let mut under_fire: Vec<UnitId> = tick.events.iter().filter_map(|e| if let bot_protocol::Event::UnitDamaged { unit, .. } = e { Some(*unit) } else { None }).collect();
-        under_fire.extend(pianist.hits.keys().copied());
+        under_fire.extend(pianist.under_fire(frame));
         let mut steps: Vec<(UnitId, Response, String, bool)> = Vec::new();
         pianist.list_held.retain(|id| own.iter().any(|u| u.id == *id));
         for unit in own.iter().filter(|u| !u.being_built && self.world.is_mobile_builder(u.def)) {
@@ -243,5 +243,14 @@ mod tests {
         assert!(pianist.list_is_held(builder, true));
         assert!(!pianist.list_is_held(builder, false));
         assert!(!pianist.list_is_held(builder, true));
+    }
+
+    /// A unit is under fire for three seconds after its last hit, not for the rest of the game.
+    #[test]
+    fn a_hit_is_forgotten_after_three_seconds() {
+        let mut pianist = super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        pianist.hits.insert(UnitId(1), 100);
+        assert_eq!(pianist.under_fire(160).collect::<Vec<_>>(), vec![UnitId(1)]);
+        assert_eq!(pianist.under_fire(100 + super::super::UNDER_FIRE_FRAMES + 1).count(), 0);
     }
 }
