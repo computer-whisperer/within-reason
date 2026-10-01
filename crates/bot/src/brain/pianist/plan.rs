@@ -282,31 +282,6 @@ impl Brain {
         BuilderStatus { started, threatened, queue_ahead }
     }
 
-    /// A party of one scout (a Tick, a scout car): no reason for a builder to leave its work.
-    pub(super) fn lone_scout(&self, p: &Party, enemies: &[bot_protocol::EnemyUnit]) -> bool {
-        p.ids.len() == 1 && enemies.iter().any(|e| e.id == p.ids[0] && e.def.is_some_and(|d| super::glossary::entry(self.name(d)).is_some_and(|g| g.class.contains("scout"))))
-    }
-
-    /// Something in the party shoots, or is not identified.
-    pub(super) fn party_armed(&self, p: &Party, enemies: &[bot_protocol::EnemyUnit]) -> bool {
-        p.ids.iter().any(|id| enemies.iter().find(|e| e.id == *id).is_none_or(|e| e.def.is_none_or(|d| self.world.def(d).is_some_and(|d| d.weapon_count > 0))))
-    }
-
-    /// The party a builder's list step waits for (H-HANDS-SCRIPT, 2026-10-01): an armed enemy party, a lone scout
-    /// aside, within `STARTED_ALARM` of the place the step would take the builder to, or within it of the builder on
-    /// the side that place lies. A step that leads away from the party plays: the list can be the way out
-    /// (onepass-player-2, 12:23). player-31, 3:17-3:20: a Pawn 75 from constructor_28188 at spot_62 and 340 from
-    /// spot_54, the list's next step; the list walked the constructor on toward it twice while the pick sent it home.
-    pub(super) fn step_waits<'a>(&self, unit: &OwnUnit, place: Vec3, parties: &'a [Party], enemies: &[bot_protocol::EnemyUnit]) -> Option<&'a Party> {
-        parties.iter().filter(|p| self.party_armed(p, enemies) && !self.lone_scout(p, enemies)).find(|p| {
-            if p.at.dist2d(place) < STARTED_ALARM {
-                return true;
-            }
-            let toward = (place.x - unit.pos.x) * (p.at.x - unit.pos.x) + (place.z - unit.pos.z) * (p.at.z - unit.pos.z) > 0.0;
-            p.at.dist2d(unit.pos) < STARTED_ALARM && toward
-        })
-    }
-
     /// The free spots this builder could take, nearest by its own walking first: not held, not another builder's
     /// task or queued spot, not refused lately, free as far as we know, reachable by its class.
     pub(super) fn free_spots(&self, unit: &OwnUnit, pianist: &Pianist, picture: &Picture, own: &[OwnUnit], frame: i32, kit: &Kit) -> Vec<(usize, f32)> {
@@ -457,7 +432,7 @@ impl Brain {
         let mut under_fire: Vec<UnitId> = tick.events.iter().filter_map(|e| if let bot_protocol::Event::UnitDamaged { unit, .. } = e { Some(*unit) } else { None }).collect();
         under_fire.extend(pianist.hits.keys().copied());
         let draws = self.production_draws(own, pianist);
-        let lone_scout = |p: &Party| self.lone_scout(p, enemies);
+        let lone_scout = |p: &Party| p.ids.len() == 1 && enemies.iter().any(|e| e.id == p.ids[0] && e.def.is_some_and(|d| super::glossary::entry(self.name(d)).is_some_and(|g| g.class.contains("scout"))));
         // The player's marks: the places that are neither spots nor the map's own (home, the passages, `shelling*`).
         let marks: Vec<&super::Place> = picture.places.iter().filter(|p| p.spot.is_none() && p.name != "home" && !p.name.starts_with("shelling") && !p.name.starts_with("passage_")).collect();
 
@@ -522,7 +497,7 @@ impl Brain {
             let can = |def: UnitDefId| self.world.def(unit.def).is_some_and(|d| d.build_options.contains(&def));
             // A party with nothing armed in it (air constructors, a Mason) is no threat to a builder: constructors
             // fled unarmed air constructors for a minute (bluegecko-3v1-comet-catcher-2, 19:50).
-            let armed = |p: &&Party| self.party_armed(p, enemies);
+            let armed = |p: &&Party| p.ids.iter().any(|id| enemies.iter().find(|e| e.id == *id).is_none_or(|e| e.def.is_none_or(|d| self.world.def(d).is_some_and(|d| d.weapon_count > 0))));
             let nearest_party = picture.parties.iter().filter(armed).map(|p| (p.at.dist2d(unit.pos), p)).filter(|(d, _)| *d < ALARM).min_by(|a, b| a.0.total_cmp(&b.0)).map(|(_, p)| p);
             let walking_home = matches!(task, Some(Task::Walk { place, .. }) if place == "home");
             // Home is no way out when the party stands at it or between (bluegecko-3v1-comet-catcher-2, 15:41-15:51:
@@ -994,7 +969,7 @@ impl Brain {
                         &format!("escort_{ward_name}"),
                         Response::Escort(ward.id),
                         format!(
-                            "{name} escorts {ward_name} ({}; {}): it stays beside {ward_name} wherever it goes and attacks what hits it{}",
+                            "{name} escorts {ward_name} ({}; {}): it stays beside {ward_name} wherever it goes{}",
                             self.task_course(pianist.tasks.get(&ward.id), ward, &picture.places, frame, own),
                             walk_words(body.front.dist2d(ward.pos)),
                             if current { "" } else { leave.as_str() }

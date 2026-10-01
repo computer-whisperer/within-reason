@@ -116,8 +116,9 @@ pub struct Pianist {
     /// The list step each builder is on (its words, and the clock of the task it became): diverted from that task
     /// by the pass, the builder gets the step back at the front of its list.
     pub(super) list_steps: HashMap<UnitId, (String, i32)>,
-    /// The builders whose list is waiting, and the party it waits for (`Brain::step_waits`): said once per party.
-    pub(super) list_waits: HashMap<UnitId, String>,
+    /// The builders with a list that the pick has sent away from an enemy: their list takes no step while they
+    /// are still in the pass for one (`list_is_held`).
+    pub(super) list_held: HashSet<UnitId>,
     /// The list step a queued task came from (`queued`), moved to `list_steps` when the task is promoted.
     pub(super) queued_steps: HashMap<UnitId, String>,
     /// Units a lab has been told to build and not yet started, oldest first.
@@ -446,7 +447,7 @@ impl Pianist {
             scripts: HashMap::new(),
             ordered: HashMap::new(),
             list_steps: HashMap::new(),
-            list_waits: HashMap::new(),
+            list_held: HashSet::new(),
             queued_steps: HashMap::new(),
             done: Vec::new(),
             log,
@@ -491,6 +492,16 @@ impl Pianist {
     }
 
     /// A new group's name: A, B, C, ...
+    /// Whether this builder's list waits this second (H-HANDS-SCRIPT, 2026-10-01): the pick sent it away from an
+    /// enemy (`execute_builder`) and it is still threatened, which is while the pass still asks about it. The hold
+    /// ends when the enemy is off it; a new list from the player ends it too.
+    pub(super) fn list_is_held(&mut self, builder: UnitId, threatened: bool) -> bool {
+        if !threatened {
+            self.list_held.remove(&builder);
+        }
+        self.list_held.contains(&builder)
+    }
+
     pub(super) fn new_group_name(&mut self) -> String {
         let n = self.next_group;
         self.next_group += 1;
@@ -664,7 +675,12 @@ impl Brain {
                     steps = None;
                 }
             }
+            // A new list is the player's order now: it ends the hold the pick's retreat put on the old one.
+            let listed = tick.snapshot.own_units.iter().find(|u| self.actor_name(u.id) == name).map(|u| u.id);
             let pianist = self.pianist.as_mut().expect("pianist mode");
+            if let Some(id) = listed {
+                pianist.list_held.remove(&id);
+            }
             pianist.script_frame.insert(name.clone(), tick.frame);
             match steps {
                 Some(steps) => {

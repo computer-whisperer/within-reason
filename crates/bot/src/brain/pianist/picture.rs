@@ -1168,7 +1168,7 @@ impl Brain {
                     entry["next"] = json!(format!("queued to start the moment this is done: {}", self.task_words(Some(next), unit, &places, frame, own)));
                 }
                 if let Some(steps) = pianist.scripts.get(&name).filter(|s| !s.is_empty()) {
-                    let waits = pianist.list_waits.get(&unit.id).map_or(String::new(), |party| format!("; waiting: {party} stands where its next step would take it, and the step is taken when the party is gone"));
+                    let waits = if pianist.list_held.contains(&unit.id) { "; waiting: the hands sent this builder away from an enemy, and its list goes on when no enemy is on it" } else { "" };
                     entry["list"] = json!(format!("the player's list, done by the bot without asking: {}{waits}", steps.iter().cloned().collect::<Vec<_>>().join(", ")));
                 }
                 let from_home = unit.pos.dist2d(self.home);
@@ -1324,7 +1324,7 @@ impl Brain {
                     let name = parties.iter().find(|p| p.ids.iter().any(|id| party.contains(id))).map_or("a party now out of sight".to_string(), |p| p.name.clone());
                     format!("attacking {name}{} at {}, for {}", if target.is_some() { " (one named unit of it, until it dies)" } else { "" }, self.place_words(&places, *at), ago(*since))
                 }
-                GroupTask::Escort { name: ward, since, fighting, at, .. } => format!("escorting {ward} for {} ({:.0} from it{})", ago(*since), body.at.dist2d(*at), if fighting.is_some() { ", attacking what hit it" } else { "" }),
+                GroupTask::Escort { name: ward, since, at, .. } => format!("escorting {ward} for {} ({:.0} from it)", ago(*since), body.at.dist2d(*at)),
                 GroupTask::Hunt(hunt) => format!("hunting {} since {} ago (its quarry {} at {})", hunt.party, ago(hunt.since), if frame - hunt.last_seen < FRAMES_PER_SECOND { "seen" } else { "last seen" }, self.place_words(&places, hunt.at)),
             };
             let doing = if group.roving { format!("roving, in code, beyond your hands' reach: {}", self.rover_words(group, own, &snapshot.enemies, &places)) } else { doing };

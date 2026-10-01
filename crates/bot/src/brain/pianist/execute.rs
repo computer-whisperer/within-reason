@@ -331,6 +331,11 @@ impl Brain {
                     list.push_front(step.clone());
                     did = did.map(|d| format!("{d}; its list step '{step}' waits for it"));
                 }
+                // A way out the pick gave a builder with a list holds the list while the enemy is still on the
+                // builder (`Pianist::list_is_held`): the list ordered its step again the next second otherwise.
+                if !queue && did.is_some() && matches!(response, Response::RetreatHome | Response::WalkTo(_)) && pianist.scripts.get(&name).is_some_and(|s| !s.is_empty()) {
+                    pianist.list_held.insert(id);
+                }
             }
         }
         did
@@ -402,7 +407,7 @@ impl Brain {
                     let group = &mut pianist.groups[index];
                     commands.extend(group.release_orders(&units));
                     commands.extend(ids.iter().map(|id| Command::Fight { unit: *id, to, queue: false }));
-                    group.set_task(GroupTask::Escort { ward: *ward, name: ward_name.clone(), at: to, fighting: None, since: frame }, frame);
+                    group.set_task(GroupTask::Escort { ward: *ward, name: ward_name.clone(), at: to, since: frame }, frame);
                     group.last_order = frame;
                     did = Some(format!("escort {ward_name}"));
                 }

@@ -2,8 +2,8 @@
 //! in order, `play_sequences`): a builder with a list from the player is not in the pass;
 //! the bot orders the next step when the builder is free, or when the build in progress is 60% done (queued behind
 //! it), and skips a step it cannot do. An enemy on the builder puts it back in the pass until that is over, and a
-//! step that would hold or walk the builder within reach of an armed party waits at the front of the list until
-//! the party is gone (`Brain::step_waits`). A bypass, not a decider: nothing in the pass reads a list
+//! builder the pass has sent away from an enemy takes no step while it is still in the pass for one
+//! (`Pianist::list_is_held`). A bypass, not a decider: nothing in the pass reads a list
 //! (`docs/design/2026-09-26-one-pass.md` §6).
 
 use bot_protocol::{Command, OwnUnit, Tick, UnitDefId, UnitId};
@@ -32,17 +32,20 @@ impl Brain {
         let mut under_fire: Vec<UnitId> = tick.events.iter().filter_map(|e| if let bot_protocol::Event::UnitDamaged { unit, .. } = e { Some(*unit) } else { None }).collect();
         under_fire.extend(pianist.hits.keys().copied());
         let mut steps: Vec<(UnitId, Response, String, bool)> = Vec::new();
-        pianist.list_waits.retain(|id, _| own.iter().any(|u| u.id == *id));
+        pianist.list_held.retain(|id| own.iter().any(|u| u.id == *id));
         for unit in own.iter().filter(|u| !u.being_built && self.world.is_mobile_builder(u.def)) {
             let name = self.actor_name(unit.id);
             if !pianist.scripts.get(&name).is_some_and(|s| !s.is_empty()) {
-                pianist.list_waits.remove(&unit.id);
                 continue;
             }
             let status = self.builder_status(&pianist, unit, picture, &under_fire, own);
-            // A list plays under threat too when its step leads away from it: it is the player's order
-            // (onepass-player-2, 12:23: the commander's list to spot_68 away from the block never started, the block
-            // being within 800). A step toward the party waits (`next_list_step`).
+            // A list plays under threat too: it is the player's order (onepass-player-2, 12:23: the commander's list
+            // to spot_68 away from the block never started, the block being within 800). Not after the pick has
+            // sent the builder away from an enemy, while that enemy is still on it: the pick's way out stands
+            // (player-31: 83 of 92 such retreats were undone by the list within three seconds).
+            if pianist.list_is_held(unit.id, status.threatened) {
+                continue;
+            }
             let task = pianist.tasks.get(&unit.id).cloned();
             // The player's list outranks the bot's fillers: a builder helping a factory, walking, reclaiming or
             // repairing takes its next step at once (plan-1: the commander helped a plant from 3:46 to 14:24 while
@@ -62,10 +65,9 @@ impl Brain {
                 Some(_) => true,
             };
             if !ready {
-                pianist.list_waits.remove(&unit.id);
                 continue;
             }
-            if let Some((response, step)) = self.next_list_step(unit, &name, &mut pianist, picture, own, &tick.snapshot.enemies, frame, kit) {
+            if let Some((response, step)) = self.next_list_step(unit, &name, &mut pianist, picture, own, frame, kit) {
                 steps.push((unit.id, response, step, status.queue_ahead));
             }
         }
@@ -152,7 +154,7 @@ impl Brain {
     /// The next step of a builder's list as a state, its words kept. Steps that cannot be done are dropped and
     /// said; `assist` before any factory exists waits.
     #[allow(clippy::too_many_arguments)]
-    fn next_list_step(&self, unit: &OwnUnit, name: &str, pianist: &mut Pianist, picture: &Picture, own: &[OwnUnit], enemies: &[bot_protocol::EnemyUnit], frame: i32, kit: &Kit) -> Option<(Response, String)> {
+    fn next_list_step(&self, unit: &OwnUnit, name: &str, pianist: &mut Pianist, picture: &Picture, own: &[OwnUnit], frame: i32, kit: &Kit) -> Option<(Response, String)> {
         let can = |def: UnitDefId| self.world.def(unit.def).is_some_and(|d| d.build_options.contains(&def));
         loop {
             let step = pianist.scripts.get_mut(name)?.pop_front()?;
@@ -215,28 +217,7 @@ impl Brain {
                 },
             };
             match resolved {
-                Ok(response) => {
-                    // Where the step takes the builder; a building placed by the layout goes up beside it.
-                    let at = match &response {
-                        Response::Extractor(i) => self.world.hello.metal_spots.get(*i).copied(),
-                        Response::BuildingAt(_, p) => picture.places.iter().find(|q| q.name == *p).map(|q| q.at),
-                        Response::Assist(id) | Response::ReclaimUnit(id) => own.iter().find(|u| u.id == *id).map(|u| u.pos),
-                        _ => Some(unit.pos),
-                    };
-                    if let Some(party) = at.and_then(|at| self.step_waits(unit, at, &picture.parties, enemies)) {
-                        // The step waits at the front of the list, said once for each party it waits for.
-                        if pianist.list_waits.get(&unit.id) != Some(&party.name) {
-                            let text = format!("its list waits at the step '{step}': {} ({}) stands where the step would take it; the step is taken when the party is gone", party.name, party.composition);
-                            pianist.done.push(format!("{} {name}: {text}", clock(frame)));
-                            pianist.note(frame, format!("{name}: {text}"));
-                            pianist.list_waits.insert(unit.id, party.name.clone());
-                        }
-                        pianist.scripts.get_mut(name)?.push_front(step);
-                        return None;
-                    }
-                    pianist.list_waits.remove(&unit.id);
-                    return Some((response, step));
-                }
+                Ok(response) => return Some((response, step)),
                 Err(why) => {
                     let text = format!("skipped the step '{step}' of its list: {why}");
                     pianist.done.push(format!("{} {name}: {text}", clock(frame)));
@@ -249,38 +230,18 @@ impl Brain {
 
 #[cfg(test)]
 mod tests {
-    use super::super::fixtures::{at, brain_of, enemy, own};
-    use super::super::picture::Party;
+    use bot_protocol::UnitId;
 
-    /// A list step waits for an armed party at the place it would take the builder to, or on the builder on that
-    /// side; a step that leads away from the party plays, and so does one past a lone scout or an unarmed party.
+    /// A list waits only for a builder the pick sent away from an enemy, and only while an enemy is still on it:
+    /// once the builder is clear the hold is over for good, whatever comes near it later.
     #[test]
-    fn a_list_step_waits_for_an_armed_party_in_its_way_and_plays_when_it_leads_away() {
-        let mut brain = brain_of(&["armflash", "armpw", "armflea", "armfav"]);
-        // The Rover stands in for an unarmed resurrection bot.
-        brain.world.hello.unit_defs[3].weapon_count = 0;
-        let builder = own(1, 1, at(1000.0, 1000.0));
-        let party = |def: i32, pos| {
-            let e = enemy(9, def, pos);
-            (vec![Party { name: "party_1".into(), ids: vec![e.id], at: pos, metal: 54.0, composition: "1 of it".into(), has_commander: false, harming: None, unarmed: def == 4, turret_metal: 0.0, turret_metal_air: 0.0, turrets: String::new() }], vec![e])
-        };
-        let waits = |def: i32, pos, step| {
-            let (parties, enemies) = party(def, pos);
-            brain.step_waits(&builder, step, &parties, &enemies).is_some()
-        };
-        let north = at(1000.0, 200.0);
-        // A Pawn 340 from the step's place, the builder far from both: the step waits.
-        assert!(waits(2, at(1000.0, 540.0), north));
-        // A Pawn 75 from the builder on the side the step lies, 900 from the step's place: it waits.
-        assert!(waits(2, at(1000.0, 925.0), at(1000.0, 25.0)));
-        // The same Pawn behind the builder: the step leads away and plays.
-        assert!(!waits(2, at(1000.0, 1300.0), north));
-        // A Pawn a long way from both: plays.
-        assert!(!waits(2, at(3000.0, 3000.0), north));
-        // A lone Tick and an unarmed party at the step's place: plays.
-        assert!(!waits(3, at(1000.0, 300.0), north));
-        assert!(!waits(4, at(1000.0, 300.0), north));
-        // A step that builds where the builder stands, with a Pawn 300 away: waits.
-        assert!(waits(2, at(1300.0, 1000.0), builder.pos));
+    fn a_list_is_held_after_the_picks_way_out_while_the_builder_is_threatened() {
+        let mut pianist = super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        let builder = UnitId(1);
+        assert!(!pianist.list_is_held(builder, true));
+        pianist.list_held.insert(builder);
+        assert!(pianist.list_is_held(builder, true));
+        assert!(!pianist.list_is_held(builder, false));
+        assert!(!pianist.list_is_held(builder, true));
     }
 }
