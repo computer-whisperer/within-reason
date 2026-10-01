@@ -187,20 +187,19 @@ impl Brain {
                 format!("{} s have passed", since / FRAMES_PER_SECOND)
             });
         }
-        // Under the pianist the player opens the game, since the factory is its choice (comet-0: the hands built a
-        // bot lab under the default text before the player's first turn, on a vehicles map). The field commander
-        // still comes in when the first factory stands.
-        let opens = self.pianist.is_some();
-        // With several seats of ours the first turn waits until every seat has published, else the report shows
+        // The fallback first turn: the opening turn is asked for at Hello, before any tick
+        // (`docs/design/2026-09-30-opening-turn.md`), and marks `last_turn_frame`; when a seat of ours never said
+        // Hello it was not, and the player opens the game here instead.
+        // With several seats of ours this turn waits until every seat has published, else the report shows
         // one seat and the player takes itself for that seat alone (bluegecko-2v1-great-divide, turn 1 at frame 1:
         // "south-east seat here, Cortex", a Cortex opening for the Armada seat too). 15 s at most.
         // ... and its field (roster, faction): bluegecko-3v1-comet-catcher-7's first turn came at frame 1 with the
         // other seats' faction "chosen at start", the player wrote both factions' names in one list, and the
         // whole list was refused.
         let seats_in = (shared.live_seats().len() >= self.seats_of_ours() && shared.field().factions.len() >= self.seats_of_ours()) || tick.frame >= SEATS_WAIT_FRAMES;
-        let first_turn = last_turn_frame == 0 && seats_in && (opens || tick.snapshot.own_units.iter().any(|u| kit.is_factory(u.def)));
+        let first_turn = last_turn_frame == 0 && seats_in;
         if first_turn {
-            reasons.push(if opens { "the game begins: the opening is yours" } else { "our first factory is up" }.into());
+            reasons.push("the game begins: the opening is yours".into());
         }
         let settling = self.wake.landed.is_some_and(|f| tick.frame - f < LANDING_GRACE);
         let too_soon = if last_turn_frame == 0 { !first_turn } else { since < MIN_GAP_FRAMES || settling };
@@ -220,7 +219,7 @@ impl Brain {
         }
         shared.last_turn_frame.store(tick.frame, Ordering::Relaxed);
         if shared.lockstep.load(Ordering::Relaxed) {
-            shared.hold_for_turn(reasons.join("; "), tick.frame);
+            shared.hold_for_turn(reasons.join("; "), tick.frame, first_turn);
         } else {
             shared.request_turn(reasons.join("; "));
         }

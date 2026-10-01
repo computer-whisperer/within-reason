@@ -789,6 +789,8 @@ mod tests {
         assert!(shared.queues.lock().unwrap().contains_key("constructor_7"));
         // `assist N` sits in the middle of a list; a bare `assist` only ends one.
         assert!(call_tool("queue", &json!({ "commander": ["armvp", "assist 20", "armsolar", "assist 30", "extractor spot_36", "assist"] }), &shared).is_ok());
+        // The relative step of an opening written before the start is known: a bare `extractor`, or `extractor nearest`.
+        assert!(call_tool("queue", &json!({ "commander": ["extractor", "extractor nearest", "armsolar", "armvp", "assist"] }), &shared).unwrap().contains("5 steps"));
         assert!(call_tool("queue", &json!({ "commander": ["armvp", "assist", "armsolar"] }), &shared).is_err());
         assert!(call_tool("queue", &json!({ "commander": ["armvp", "assist 2", "armsolar"] }), &shared).is_err());
         // With a roster published, a step must be a unit of it; without one any word passes and the bot skips it.

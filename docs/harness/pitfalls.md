@@ -76,6 +76,10 @@ of a strip's extractor clusters. `--boxes standard` (the default) reads the lobb
 - The bot protocol changed on 2026-09-22 (`UnitDamaged` gained `from` and `weapon`; later that day `Snapshot` gained `wind`; `Command::MoveState`; late
   that night `UnitDefInfo` gained `footprint` and the blasts, `OwnUnit` `facing`, `BuildSite` `keep_out`, and `Command::ReclaimUnit`, on 2026-09-23 `TeamInfo.controller` (who plays each seat), and on 2026-09-30 `BuildSite.keep_out` became `placements` (a facing with its keep-out, tried in order)): the arena builds both
   sides, but GUI play needs `run/install_to_bar.sh` re-run so the installed shim matches the bot.
+- The shim says Hello at `init` since 2026-10-01 (the opening turn, `docs/design/2026-09-30-opening-turn.md`): a shim
+  installed before that connects at the first frame, the opening turn then starts as the game does, and the hands wait
+  for it with the game running. Re-run `run/install_to_bar.sh` before a game with people. The bot must be listening
+  before the game loads, as before.
 
 - The engine's watchdog (`HangTimeout`, 60 s by default, 600 at most) kills a game whose main thread stalls that long,
   and a lockstep turn is such a stall: a hung `claude -p` session took pianist-player-10 with it. The arena writes

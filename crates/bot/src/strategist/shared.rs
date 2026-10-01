@@ -381,6 +381,23 @@ pub struct Shared {
     pub think_cap: Mutex<f32>,
     /// A turn's orders waiting out their delay: the frame they take effect, and what then becomes live.
     pub delayed: Mutex<Option<(i32, TurnOutputs)>>,
+    /// The opening turn, taken before the game (`docs/design/2026-09-30-opening-turn.md`).
+    pub opening: Mutex<Opening>,
+    /// The first turn of the game has ended, however it ended: the hands may ask and order.
+    pub opening_over: std::sync::atomic::AtomicBool,
+}
+
+/// The opening turn's book: asked for when every seat of ours has said Hello, before any tick.
+#[derive(Default)]
+pub struct Opening {
+    /// Each seat of ours that has said Hello, by team: its line for the turn's prompt.
+    pub seats: BTreeMap<i32, String>,
+    /// The turn has been asked for.
+    pub asked: bool,
+    /// The driver has taken the turn's prompt.
+    pub prompted: bool,
+    /// The first report of the running game still owes the map with our start in it.
+    pub map_owed: bool,
 }
 
 impl Shared {
@@ -388,8 +405,46 @@ impl Shared {
         self.triggers.lock().unwrap().push(text);
     }
 
+    /// Brain side, at Hello: a seat of ours is in, with its line for the opening turn's prompt and the map as it
+    /// can be known before the start. When all `expected` seats are in, the opening turn is asked for; nobody
+    /// waits here (lockstep waits at its first tick, `hold_for_opening`).
+    pub fn seat_said_hello(&self, team: i32, expected: usize, line: String, map: serde_json::Value) {
+        {
+            let mut opening = self.opening.lock().unwrap();
+            opening.seats.insert(team, line);
+            if opening.asked || opening.seats.len() < expected {
+                return;
+            }
+            opening.asked = true;
+        }
+        *self.map.lock().unwrap() = map;
+        // Not 0, which reads as "no turn yet" (`wake_commander_if_due`'s fallback first turn).
+        self.last_turn_frame.store(1, std::sync::atomic::Ordering::Relaxed);
+        self.request_turn("the game has not begun: the opening is yours".into());
+    }
+
+    /// Brain side, lockstep, every tick: the game stands until the opening turn asked for at Hello is over, as a
+    /// game with people stands in its countdown. Its orders are in force when it ends: no think penalty.
+    pub fn hold_for_opening(&self) {
+        use std::sync::atomic::Ordering::Relaxed;
+        if self.opening_over.load(Relaxed) || !self.opening.lock().unwrap().asked {
+            return;
+        }
+        let gate = self.gate.lock().unwrap();
+        let _held = self.gate_changed.wait_while(gate, |g| !g.closed && !self.opening_over.load(Relaxed)).unwrap();
+    }
+
+    /// Whether the hands still wait for the player's first turn to end: a session takes turns, it has not gone,
+    /// and no turn has ended yet.
+    pub fn opening_pending(&self) -> bool {
+        use std::sync::atomic::Ordering::Relaxed;
+        self.gated.load(Relaxed) && !self.opening_over.load(Relaxed) && !self.gate.lock().unwrap().closed
+    }
+
     /// Brain side: ask for a turn and hold the game until it is over. Returns at once when no session can answer.
-    pub fn hold_for_turn(&self, reason: String, frame: i32) {
+    /// `opening`: the game's first turn, asked at a tick because no opening turn was asked at Hello; its orders
+    /// are in force when it ends, as the opening turn's are.
+    pub fn hold_for_turn(&self, reason: String, frame: i32, opening: bool) {
         let before = self.outputs();
         let started = std::time::Instant::now();
         {
@@ -407,7 +462,7 @@ impl Shared {
         // footwork and removals landed at once, so the penalty did nothing in a pianist or Lua game (the user: "we
         // want to compress arena games to get through them faster, but otherwise be representative of realtime games").
         let penalty = *self.think_penalty.lock().unwrap();
-        if penalty > 0.0 {
+        if penalty > 0.0 && !opening {
             let cap = *self.think_cap.lock().unwrap();
             let seconds = started.elapsed().as_secs_f32() * penalty;
             let delay = (if cap > 0.0 { seconds.min(cap) } else { seconds } * 30.0) as i32;
@@ -506,7 +561,9 @@ impl Shared {
     }
 
     pub fn end_turn(&self) {
-        self.gate.lock().unwrap().in_progress = false;
+        let mut gate = self.gate.lock().unwrap();
+        gate.in_progress = false;
+        self.opening_over.store(true, std::sync::atomic::Ordering::Relaxed);
         self.gate_changed.notify_all();
     }
 
@@ -538,3 +595,60 @@ pub struct Side {
     pub seats: Vec<String>,
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::Ordering::Relaxed;
+
+    /// The opening turn (`docs/design/2026-09-30-opening-turn.md`): asked for when the last seat of ours says Hello,
+    /// the lockstep tick held and the hands waiting until a turn ends or the session is gone.
+    #[test]
+    fn the_opening_turn_is_asked_when_every_seat_is_in_and_its_end_frees_the_game() {
+        let shared = std::sync::Arc::new(Shared::default());
+        shared.gated.store(true, Relaxed);
+        assert!(shared.opening_pending());
+        shared.seat_said_hello(0, 2, "commander_t0 (team 0): Armada".into(), serde_json::json!({ "name": "one" }));
+        assert!(shared.gate.lock().unwrap().requested.is_none(), "one seat of two");
+        shared.hold_for_opening();
+        shared.seat_said_hello(1, 2, "commander_t1 (team 1): Cortex".into(), serde_json::json!({ "name": "both" }));
+        assert_eq!(shared.gate.lock().unwrap().requested.as_deref(), Some("the game has not begun: the opening is yours"));
+        assert_eq!(shared.last_turn_frame.load(Relaxed), 1);
+        assert_eq!(shared.map.lock().unwrap()["name"], "both");
+        assert_eq!(shared.opening.lock().unwrap().seats.len(), 2);
+        let held = shared.clone();
+        let tick = std::thread::spawn(move || held.hold_for_opening());
+        std::thread::sleep(std::time::Duration::from_millis(60));
+        assert!(!tick.is_finished(), "the first tick waits for the turn");
+        shared.end_turn();
+        tick.join().unwrap();
+        assert!(!shared.opening_pending());
+        // A session that is gone ends the wait as well.
+        let gone = Shared::default();
+        gone.gated.store(true, Relaxed);
+        gone.seat_said_hello(0, 1, "commander (team 0): Armada".into(), serde_json::Value::Null);
+        gone.close_gate();
+        gone.hold_for_opening();
+        assert!(!gone.opening_pending());
+    }
+
+    /// The fallback first turn asked at a tick lands at once under the penalty, as the opening turn does.
+    #[test]
+    fn the_games_first_turn_is_not_delayed_by_the_think_penalty() {
+        let shared = std::sync::Arc::new(Shared::default());
+        *shared.think_penalty.lock().unwrap() = 1.0;
+        let driver = shared.clone();
+        let stop = std::sync::atomic::AtomicBool::new(false);
+        let turn = std::thread::spawn(move || {
+            driver.next_turn_request(&stop).unwrap();
+            *driver.instructions.lock().unwrap() = "the plan".into();
+            std::thread::sleep(std::time::Duration::from_millis(40));
+            driver.end_turn();
+        });
+        shared.hold_for_turn("the game begins".into(), 15, true);
+        turn.join().unwrap();
+        assert!(shared.delayed.lock().unwrap().is_none());
+        assert_eq!(*shared.instructions.lock().unwrap(), "the plan");
+        assert_eq!(shared.last_landing.load(Relaxed), 15);
+    }
+}

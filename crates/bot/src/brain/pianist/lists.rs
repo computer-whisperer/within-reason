@@ -120,7 +120,9 @@ impl Brain {
             let step = pianist.scripts.get_mut(name)?.pop_front()?;
             let mut words = step.split_whitespace();
             let kind = words.next().unwrap_or_default();
-            let place = words.next().map(str::to_string);
+            // `extractor nearest` is the bare `extractor`: the free spot this builder reaches soonest, whatever the
+            // start (the opening list is written before the start is known).
+            let place = words.next().filter(|p| !(kind == "extractor" && *p == "nearest")).map(str::to_string);
             let at_place = |def: UnitDefId| match &place {
                 _ if !can(def) => Err("this builder cannot build it".to_string()),
                 Some(p) if picture.places.iter().any(|q| q.name == *p) => Ok(Response::BuildingAt(def, p.clone())),

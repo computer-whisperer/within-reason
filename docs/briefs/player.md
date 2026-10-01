@@ -431,7 +431,11 @@ K-maps-comet-barb-opens-bots, the tempo model]
   `queue {"commander": ["extractor spot_67", "extractor spot_74", "extractor spot_73", "armsolar", "armsolar",
   "armsolar", "armvp", "assist 20", "armsolar", "assist 60", "extractor spot_68", "assist 60", "armsolar", "assist"]}`
   (a timed `assist N` that begins with the metal store under 20 is skipped by the hands and the next step runs, so
-  the step after every timed assist is an extractor or the open `assist`, never a solar). The plant's first unit is a
+  the step after every timed assist is an extractor or the open `assist`, never a solar). In the turn before
+  the game the start inside the box is not known yet: write the same list with a bare `extractor` for each named
+  spot (`["extractor", "extractor", "extractor", "armsolar", "armsolar", "armsolar", "armvp", "assist 20",
+  "armsolar", "assist 60", "extractor", "assist 60", "armsolar", "assist"]`), the hands taking the free spot the
+  commander reaches soonest at each. The plant's first unit is a
   constructor vehicle (the third solar is there to power it: thebluegecko, game 5 of 2026-09-27, "the reason to make
   3 solar rather than 2 is so you have enough e to make a fast con"), then Rovers as scouts and Tick-catchers
   (`armfav`, 31 metal, speed 168: the only tier-1 vehicle that catches a Tick at 132; a Blitz at 101 never does),

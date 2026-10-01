@@ -101,6 +101,8 @@ fn session(mut stream: UnixStream, player: bool, pianist: bool) -> io::Result<()
         banner += &format!(" | hands: {}", pianist.as_ref().map_or(String::new(), |p| p.model()));
     }
     let mut brain = Brain::new(World::new(hello), strategist.as_ref().map(|s| s.shared.clone()), board, banner, pianist);
+    // The opening turn is asked for now, before the game's first tick (`docs/design/2026-09-30-opening-turn.md`).
+    brain.before_the_game();
     write_frame(&mut stream, &Commands::default())?;
     loop {
         let ToBot::Tick(tick) = next()? else {

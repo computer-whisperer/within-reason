@@ -32,6 +32,13 @@ would brief a hard-working assistant who follows orders literally and never coun
   A build the builder has already started is finished first, and `null` cancels a list without touching it: to
   drop that build too (its frame decays, the metal in it is lost), begin the new list with `stop`, or send the
   bare word `stop`.
+- Your first turn comes before the game begins (its report opens `[before the game]`): the starts are still being
+  placed, no game time passes while you think, and what you order is in force from the first second. You know the
+  map, the seats and our start box, not yet where the commander will stand, so write the brief's opening for this
+  map with a bare `extractor` for each opening extractor: the hands take the free spot that builder reaches soonest
+  when the step comes up (`extractor spot_N` names one, once you know the start). Give `produce` and the packet
+  without places that depend on the start, and `wait` with a short `max_seconds`: the first report of the running
+  game has the start, the walking distances and every spot named, and the places go in then.
 - What the lab makes and the condition, in words the hands can see in the picture, that changes it ("constructors until
   we have a couple, then raiders until we have a group, then line units and raiders about two to one"). The picture says
   "a couple", "a group", "a real army", "far too many constructors"; the menu says how many we have beside each option.

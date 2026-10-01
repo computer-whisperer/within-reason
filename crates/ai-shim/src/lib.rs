@@ -319,7 +319,12 @@ pub unsafe extern "C" fn init(skirmish_ai_id: c_int, callback: *const sys::SSkir
             events: Vec::new(),
             spawns: Vec::new(),
         };
+        let mut instance = instance;
         instance.log("init");
+        // Hello at init, before the people place their starts and long before the first update: the player takes
+        // its opening turn while the game has not begun (`docs/design/2026-09-30-opening-turn.md`). With no bot
+        // listening yet the first update connects, as before.
+        instance.connect(0);
         instances().insert(skirmish_ai_id, instance);
         0
     })

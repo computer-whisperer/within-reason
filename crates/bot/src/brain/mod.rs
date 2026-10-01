@@ -337,6 +337,12 @@ impl Brain {
     /// One tick: the control lane every time, the whole brain (`think`) on the frames due at its own interval, with
     /// every event since it last ran.
     pub fn decide(&mut self, tick: &Tick) -> Vec<Command> {
+        // Lockstep: the game stands at its first tick until the opening turn asked for at Hello is over.
+        if let Some(shared) = &self.strategist
+            && shared.lockstep.load(std::sync::atomic::Ordering::Relaxed)
+        {
+            shared.hold_for_opening();
+        }
         if tick.late > 0 {
             self.late_ticks = (self.late_ticks.0 + 1, self.late_ticks.1.max(tick.late));
         }

@@ -355,6 +355,8 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
     let mut owed_result = false;
     let turn_limit: f32 = std::env::var("WITHIN_REASON_TURN_LIMIT").ok().and_then(|v| v.parse().ok()).unwrap_or(0.0);
     let mut walls: Vec<f32> = Vec::new();
+    // The frame of the report the last turn answered (0: none, or the opening turn before the game).
+    let mut previous_turn = 0;
     while !stop.load(Ordering::Relaxed) {
         let Some(headline) = shared.next_turn_request(stop) else { break };
         // The last turn ended at its `wait`; the session may still be writing its closing words, and takes no new
@@ -396,7 +398,8 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
             let briefing = shared.briefing();
             (briefing.frame, briefing.game_time)
         };
-        let prompt = player_prompt(&game_time, &headline, shared, &mut seen, turns_this_session == 0);
+        let prompt = player_prompt(&game_time, &headline, shared, &mut seen, turns_this_session == 0, previous_turn);
+        previous_turn = frame;
         turns_this_session += 1;
         let started = Instant::now();
         launch.transcript.record(json!({ "kind": "turn", "frame": frame, "prompt": prompt }));
@@ -498,7 +501,22 @@ pub(crate) fn realtime() -> bool {
 
 /// The player is shown the game as the commander is, then its hands: what they did since the last turn, the actors
 /// as the picture has them. A fresh session is handed the notes and the instructions in force as well as the map.
-fn player_prompt(game_time: &str, headline: &str, shared: &Shared, seen: &mut report::Seen, fresh_session: bool) -> String {
+fn player_prompt(game_time: &str, headline: &str, shared: &Shared, seen: &mut report::Seen, fresh_session: bool, previous_turn: i32) -> String {
+    // The opening turn, before the game: no report of a running game exists yet.
+    let before_the_game = {
+        let mut opening = shared.opening.lock().unwrap();
+        (opening.asked && !opening.prompted).then(|| {
+            opening.prompted = true;
+            opening.map_owed = true;
+            opening.seats.values().cloned().collect::<Vec<String>>()
+        })
+    };
+    if let Some(seats) = before_the_game {
+        return opening_prompt(&seats, &shared.map.lock().unwrap());
+    }
+    // The first report of the running game after an opening turn: a full one, with the map now that our start
+    // is in it.
+    let first_report = fresh_session || std::mem::take(&mut shared.opening.lock().unwrap().map_owed);
     let briefing = shared.briefing();
     let field = shared.field();
     let fights: Vec<String> =
@@ -517,6 +535,8 @@ fn player_prompt(game_time: &str, headline: &str, shared: &Shared, seen: &mut re
         if !instructions.trim().is_empty() {
             prompt += &format!("The instructions in force, as your earlier session last wrote them:\n{instructions}\n\n");
         }
+    }
+    if first_report {
         prompt += &format!("Map: {}\n\n", shared.map.lock().unwrap());
     }
     let wake = serde_json::to_string(&*shared.wake.lock().unwrap()).unwrap_or_default();
@@ -527,22 +547,66 @@ fn player_prompt(game_time: &str, headline: &str, shared: &Shared, seen: &mut re
     }
     // When the last turn's orders came into force, so an order still on its way is never read as one that failed
     // (models-medium: Terra three times, Opus 5, astra in 25 notes, Opus 5.5 low once).
+    // `previous_turn` is the frame of the report the last turn answered, kept by the driver: `last_turn_frame` is
+    // already this turn's when the prompt is written, and read here it told the player at every turn from
+    // player-10 to player-30 that its orders of this very clock were still on their way.
     let landing = {
-        let turn = shared.last_turn_frame.load(Ordering::Relaxed);
+        let turn = previous_turn;
         let landed = shared.last_landing.load(Ordering::Relaxed);
         let frame = briefing.frame;
         let clock = |f: i32| format!("{}:{:02}", f / 30 / 60, f / 30 % 60);
         if turn == 0 || fresh_session {
             String::new()
+        } else if shared.delayed.lock().unwrap().is_some() {
+            format!("Your orders of {} are still on their way (the think penalty): what follows shows the game before them.\n", clock(turn))
         } else if landed >= turn {
             format!("Your orders of {} came into force at {}, {} s after the report they answered and {} s before this one; what follows shows the game after them. A group that reaches the last place named for it waits for your next turn: name the whole route.\n", clock(turn), clock(landed), (landed - turn).max(0) / 30, (frame - landed).max(0) / 30)
         } else {
-            format!("Your orders of {} are still on their way (the think penalty): what follows shows the game before them.\n", clock(turn))
+            String::new()
         }
     };
     prompt += &format!(
         "[{game_time}] Woken because: {headline}\n{landing}{}\nwake conditions in force: {wake}",
-        report::player_report(seen, &briefing, &field, &fights, &hands, &chat, fresh_session)
+        report::player_report(seen, &briefing, &field, &fights, &hands, &chat, first_report)
     );
     prompt
+}
+
+/// The opening turn's prompt (`docs/design/2026-09-30-opening-turn.md`): taken before the game, with the map, the
+/// seats and our start box, and no start yet.
+fn opening_prompt(seats: &[String], map: &Value) -> String {
+    let mut prompt = String::from(
+        "[before the game] The game has not begun: the starts are being placed and the countdown has not run. This turn costs nothing: no game time passes while you think, and what you order is in force from the first second.\n\n\
+What is known now: the map, the seats and our start box. What is not: where inside the box each commander will stand (the game or a teammate places it), so no spot can be called nearest home yet. Write the opening so that it holds from any start in the box:\n\
+- `queue` for each commander with a bare `extractor` for every opening extractor: the hands take the free spot it reaches soonest when the step comes up. A building given without a place (a solar, the plant, by their internal names) stands beside it.\n\
+- `produce` with `all`, and `instruct` with the plan and each kind of actor's standing job, naming no place that depends on the start.\n\
+- then `wait` with a short `max_seconds` (10): your first report of the running game comes then, with the start, the walking distances and every spot named, and you refine from it.\n\n",
+    );
+    if realtime() {
+        prompt.push_str("Once it begins this game runs in real time: it does not pause while you take a turn, and your orders land when the turn ends, five to ten seconds later. Decide from the report, write states that hold, and keep turns short.\n\n");
+    }
+    prompt += &format!("Seats of ours:\n{}\n\nMap: {map}", seats.join("\n"));
+    prompt
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The opening turn's prompt comes once, with the seats and the map and no report; the report after it is a
+    /// full one with the map again, and says nothing of orders on their way.
+    #[test]
+    fn the_opening_prompt_comes_once_and_the_first_report_carries_the_map_again() {
+        let shared = Shared::default();
+        shared.seat_said_hello(0, 1, "commander (team 0): Armada; its start will be somewhere inside our start box (cells A4-B8)".into(), json!({ "name": "Comet", "our_start": "not known before the game begins" }));
+        let mut seen = report::Seen::default();
+        let opening = player_prompt("", "the game has not begun: the opening is yours", &shared, &mut seen, true, 0);
+        assert!(opening.starts_with("[before the game]") && opening.contains("a bare `extractor`") && opening.contains("commander (team 0): Armada") && opening.contains("not known before the game begins"), "{opening}");
+        assert!(!opening.contains("Woken because"));
+        *shared.map.lock().unwrap() = json!({ "name": "Comet", "our_start": { "grid": "B8" } });
+        let first = player_prompt("0:10", "10 s have passed", &shared, &mut seen, false, 0);
+        assert!(first.contains("Map: ") && first.contains("B8") && first.contains("Woken because: 10 s have passed") && !first.contains("on their way"), "{first}");
+        let second = player_prompt("0:20", "10 s have passed", &shared, &mut seen, false, 300);
+        assert!(!second.contains("Map: ") && !second.contains("on their way"), "{second}");
+    }
 }

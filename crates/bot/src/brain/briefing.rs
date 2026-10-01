@@ -315,6 +315,44 @@ impl Brain {
         })
     }
 
+    /// At Hello, before any tick (`docs/design/2026-09-30-opening-turn.md`): this seat's line for the opening
+    /// turn's prompt, and the map as it can be known before our start is.
+    pub fn before_the_game(&self) {
+        let Some(shared) = &self.strategist else { return };
+        let hello = &self.world.hello;
+        let me = hello.teams.iter().find(|t| t.team == hello.team);
+        let faction = match self.faction() {
+            f if f.is_empty() || f.eq_ignore_ascii_case("random") => "its faction chosen by the game at the start".to_string(),
+            f => f,
+        };
+        let start = match (hello.start_pos_type, me.and_then(|t| t.start_pos)) {
+            (Some(0) | Some(3), Some(at)) => format!("its start is fixed by the lobby at {} ({:.0}, {:.0})", self.world.grid(at), at.x, at.z),
+            _ => match hello.start_boxes.iter().find(|b| b.ally_team == hello.ally_team) {
+                Some(b) => format!("its start will be somewhere inside our start box (cells {}), placed by the game or by a teammate", self.world.box_cells(b)),
+                None => "its start is not known".to_string(),
+            },
+        };
+        let line = format!("{} (team {}): {faction}; {start}", self.commander_handle(), hello.team);
+        shared.seat_said_hello(hello.team, self.seats_of_ours(), line, self.map_before_the_game());
+    }
+
+    /// The `map` tool's answer before the game: what does not depend on where we start.
+    fn map_before_the_game(&self) -> serde_json::Value {
+        let hello = &self.world.hello;
+        let spots: Vec<_> = hello.metal_spots.iter().enumerate().map(|(n, s)| json!({ "n": n, "grid": self.world.grid(*s), "x": s.x as i32, "z": s.z as i32 })).collect();
+        json!({
+            "name": hello.map.name, "width": hello.map.width, "height": hello.map.height,
+            "grid": "8x8 cells; columns A-H run west to east (x), rows 1-8 run north to south (z)",
+            "our_start": "not known before the game begins",
+            "start_boxes": hello.start_boxes.iter().map(|b| json!({
+                "ally_team": b.ally_team, "ours": b.ally_team == hello.ally_team, "cells": self.world.box_cells(b),
+                "left": b.left as i32, "top": b.top as i32, "right": b.right as i32, "bottom": b.bottom as i32,
+            })).collect::<Vec<_>>(),
+            "metal_spots": spots,
+            "note": "spot_N is metal spot n. The walking distances from our start, the terrain sketch, the water and the passages come with the first report of the running game, when our start is known.",
+        })
+    }
+
     fn map_description(&self) -> serde_json::Value {
         let map = &self.world.hello.map;
         let spots: Vec<_> = self

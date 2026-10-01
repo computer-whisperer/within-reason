@@ -521,6 +521,12 @@ impl Brain {
         if tick.frame < FIRST_ORDER_FRAME {
             return;
         }
+        // Nothing of ours is asked or ordered until the player's first turn is over (the user's law, 2026-09-30;
+        // `docs/design/2026-09-30-opening-turn.md`): the hands played those seconds under the default "no player
+        // is connected" instructions, a fourth solar and the plant ten seconds late in players 29 and 30.
+        if self.strategist.as_ref().is_some_and(|shared| shared.opening_pending()) {
+            return;
+        }
         if self.pianist.as_ref().expect("pianist mode").worker.is_some() {
             self.collect_answer(tick, kit, commands);
         }
