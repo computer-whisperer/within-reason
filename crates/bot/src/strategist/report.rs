@@ -159,7 +159,7 @@ fn contact(briefing: &Briefing, field: &Field) -> Vec<String> {
             cluster.at.z,
             cluster.distance_from_home,
             counted(&cluster.composition),
-            cluster.killing.as_ref().map_or(String::new(), |(what, metal)| format!("; killing {what} ({metal:.0} metal) now"))
+            cluster.harming.as_ref().map_or(String::new(), |(what, metal)| format!("; {what} ({metal:.0} metal) now"))
         ));
     }
     let threatened: Vec<String> = field

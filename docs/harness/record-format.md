@@ -106,8 +106,8 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   made the group's task: the top above 0.4 and above the decline's, else `decline`)}`, or `{"t": "engagement", "f",
   "group", "position", "error"}` for a call that failed. Not the pass's `plan` line (the worlds pick). The plan runs as
   the group's task: `groups` in a `call` line say `{"kind": "plan", "plan", "phase", "to"}`, and a `pass` line's
-  `played` carries the taking with source `engagement`. `bot --plan-replay` (`run/plan_replay.py`) asks the same
-  question of a recorded moment.
+  `played` carries the taking with source `engagement`. The planner, `bot --plan-replay` and `run/plan_replay.py`
+  were deleted on 2026-09-29 (ccc7858): logs from then on carry no such line.
 Size: 15-30 KB a call (3-6k tokens of state and questions), 20-60 calls a minute: 25 MB for a 20-minute game. Logs from
 the first morning (2026-09-21, before the header line) carry `instructions` and `rules` in every state and no `played`;
 the viewer reads those too, taking the decisions from the answers.

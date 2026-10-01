@@ -16,7 +16,7 @@ use brain::Brain;
 use strategist::Strategist;
 use world::World;
 
-/// usage: bot [--player] [--pianist], or bot --plan-replay <match dir> <m:ss> [...] (`brain/pianist/replay.rs`)
+/// usage: bot [--player] [--pianist]
 /// `--pianist`: Jev plays every unit from the player's instructions (`docs/design/2026-09-21-pianist.md`).
 /// `--player`: a Claude Code session beside the brains (see `DESIGN.md`), the Opus player whose lever is the
 /// pianist's instructions; one session serves every seat we play on a team (`strategist/seats.rs`).

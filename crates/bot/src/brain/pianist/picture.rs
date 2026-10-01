@@ -56,9 +56,12 @@ pub(crate) struct Party {
     pub composition: String,
     /// Their commander is one of its members.
     pub has_commander: bool,
-    /// What it is shooting now, from the hits of the last seconds (H-HANDS-PARTY-KILLING): "our Vehicle Plant
-    /// (armvp), 2 of our Solar Collector (armsolar)" and the metal of those units.
-    pub killing: Option<(String, f32)>,
+    /// What it is doing to us now, the verb with it, from the hits and the reclaims of the last seconds
+    /// (H-HANDS-PARTY-KILLING): "killing our Vehicle Plant (armvp), 2 of our Solar Collector (armsolar)", "taking
+    /// apart our Metal Extractor (armmex), 46% left and gone in about 5 s", and the metal of those units.
+    pub harming: Option<(String, f32)>,
+    /// Every member is identified and none has a weapon, and no turret of theirs covers it: it cannot fight back.
+    pub unarmed: bool,
     /// The enemy's armed buildings whose reach covers where it stands (a lone unit under a nest's turrets is not a
     /// lone unit): the metal of those that hit ground, of those that hit air, and words ("3 turrets: 1 armhlt,
     /// 2 armllt"; empty under none).
@@ -301,9 +304,10 @@ impl Brain {
             let composition = counts.iter().map(|(name, n)| format!("{n} {name}")).collect::<Vec<_>>().join(", ");
             let has_commander = members.iter().any(|i| mobile[*i].def.is_some_and(|d| self.world.is_commander_def(d)));
             let ids: Vec<bot_protocol::UnitId> = members.iter().map(|i| mobile[*i].id).collect();
-            let killing = self.killing_words(&ids, None);
+            let harming = self.harm_words(&ids);
             let (turret_metal, turret_metal_air, turrets) = self.turrets_covering(at);
-            parties.push(Party { name: String::new(), ids, at, metal, composition, has_commander, killing, turret_metal, turret_metal_air, turrets });
+            let unarmed = turret_metal == 0.0 && turret_metal_air == 0.0 && members.iter().all(|i| mobile[*i].def.and_then(|d| self.world.def(d)).is_some_and(|d| d.weapon_count == 0));
+            parties.push(Party { name: String::new(), ids, at, metal, composition, has_commander, harming, unarmed, turret_metal, turret_metal_air, turrets });
         }
         parties.sort_by(|a, b| a.at.dist2d(self.home).total_cmp(&b.at.dist2d(self.home)));
         // Names: the last picture's for a party sharing a member with one of them (the larger overlap wins a name
@@ -359,9 +363,37 @@ impl Brain {
         parties
     }
 
+    /// What the units `ids` are doing to us now, the verb with it: "killing" what they have hit in the last seconds
+    /// (`killing_words`), "taking apart" the buildings of ours whose health falls beside a builder of theirs
+    /// (`Brain::track_takings`), with how much is left and when it is gone; and the metal of all of it.
+    pub(crate) fn harm_words(&self, ids: &[bot_protocol::UnitId]) -> Option<(String, f32)> {
+        let mut parts: Vec<String> = Vec::new();
+        let mut metal = 0.0;
+        if let Some((what, m)) = self.killing_words(ids, None) {
+            parts.push(format!("killing {what}"));
+            metal += m;
+        }
+        let taken: Vec<String> = self
+            .takings
+            .iter()
+            .filter(|t| ids.contains(&t.taker))
+            .map(|t| {
+                metal += self.world.def(t.victim_def).map_or(0.0, |d| d.metal_cost);
+                let left = 100.0 * t.health / t.max_health.max(1.0);
+                let fell = t.from - t.health;
+                let gone = if fell > 0.0 && t.frame > t.since { format!(" and gone in about {:.0} s", t.health / fell * (t.frame - t.since) as f32 / super::super::FRAMES_PER_SECOND as f32) } else { String::new() };
+                format!("our {}, {left:.0}% left{gone}", self.short_words(t.victim_def))
+            })
+            .collect();
+        if !taken.is_empty() {
+            parts.push(format!("taking apart {}", taken.join(", ")));
+        }
+        (!parts.is_empty()).then(|| (parts.join(" and "), metal))
+    }
+
     /// What the units `ids` have hit in the last seconds, buildings first, one entry per kind with its count, and the
-    /// metal of the victims; nothing when they have hit nothing of ours.
-    /// What the party `ids` is hitting now; `among`: only these victims (a group's own soldiers) count.
+    /// metal of the victims; nothing when they have hit nothing of ours. `among`: only these victims (a group's own
+    /// soldiers) count.
     pub(crate) fn killing_words(&self, ids: &[bot_protocol::UnitId], among: Option<&[bot_protocol::UnitId]>) -> Option<(String, f32)> {
         let mut victims: Vec<(bot_protocol::UnitId, UnitDefId)> = Vec::new();
         for h in self.hits.iter().filter(|h| ids.contains(&h.attacker) && among.is_none_or(|a| a.contains(&h.victim))) {
@@ -536,7 +568,7 @@ impl Brain {
             } else if their_slowest.is_finite() && our_fastest > their_slowest {
                 more.push_str(&format!("; our fastest ({our_fastest:.0}) catch its slowest ({their_slowest:.0})"));
             }
-            if our_slowest.is_finite() && their_fastest > our_slowest {
+            if our_slowest.is_finite() && their_fastest > our_slowest && !party.unarmed {
                 more.push_str(&format!("; its fastest ({their_fastest:.0}) catch our slowest ({our_slowest:.0}): it chooses the fight"));
             }
             if unidentified > 0 {
@@ -575,6 +607,10 @@ impl Brain {
             format!("we cannot hit it: it is under the water, where only torpedoes and depth charges reach, and this group has none{more}")
         } else if !self.force_can_hit(&ours, self.all_air(&theirs)) {
             format!("we cannot hit it: nothing in this group shoots at what it is{more}")
+        } else if party.unarmed {
+            // Not "it cannot hit us" and never "it outweighs us": a Lazarus taking an extractor apart read as no
+            // threat, and one Rover sent at it as the weaker side (player-31, 6:21-6:52).
+            format!("it is unarmed and cannot fight back{more}")
         } else if !self.force_can_hit(&theirs, self.all_air(&ours)) {
             format!("it cannot hit us: nothing there shoots at what this group is{more}")
         } else if ratio >= 2.5 {
@@ -1027,7 +1063,7 @@ impl Brain {
                     .min_by(|a, b| a.0.total_cmp(&b.0))
                     .map(|(d, u)| format!("; {d:.0} from our {}", self.name(u.def)));
                 let under = if p.turrets.is_empty() { String::new() } else { format!(" under {} ({:.0} metal)", p.turrets, p.turret_metal) };
-                format!("{}: {} worth {:.0} metal at {}{under}, {} from home, {heading}{}{}", p.name, p.composition, p.metal, self.place_words(&places, p.at), distance_words(p.at.dist2d(self.home)), near_ours.unwrap_or_default(), p.killing.as_ref().map_or(String::new(), |(what, metal)| format!("; killing {what} ({metal:.0} metal) now")))
+                format!("{}: {} worth {:.0} metal at {}{under}, {} from home, {heading}{}{}", p.name, p.composition, p.metal, self.place_words(&places, p.at), distance_words(p.at.dist2d(self.home)), near_ours.unwrap_or_default(), p.harming.as_ref().map_or(String::new(), |(what, metal)| format!("; {what} ({metal:.0} metal) now")))
             })
             .collect();
         // The parties' memory (H-HANDS-ENEMY-MEMORY): every party in sight refreshes its entry; one gone from sight
@@ -1395,9 +1431,9 @@ impl Brain {
                 // (wake-3: "killing 3 of our Blitz" on a group's line read as its own, and it retreated from a party it
                 // outweighed in 7 of 51 such asks, 0 of 69 without the clause).
                 let own_ids: Vec<bot_protocol::UnitId> = units.iter().map(|u| u.id).collect();
-                let killing = match (self.killing_words(&p.ids, Some(&own_ids)), &p.killing) {
+                let killing = match (self.killing_words(&p.ids, Some(&own_ids)), &p.harming) {
                     (Some((what, metal)), _) => format!("; it is hitting this group now: {what} ({metal:.0} metal)"),
-                    (None, Some((what, metal))) => format!("; it is killing {what} ({metal:.0} metal) elsewhere, not this group"),
+                    (None, Some((what, metal))) => format!("; it is {what} ({metal:.0} metal) elsewhere, not this group"),
                     (None, None) => String::new(),
                 };
                 let under = if p.turrets.is_empty() { String::new() } else { format!(", under {}", p.turrets) };

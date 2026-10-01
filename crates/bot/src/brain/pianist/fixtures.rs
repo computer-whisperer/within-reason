@@ -97,6 +97,6 @@ pub(crate) fn e3() -> (Brain, Vec<OwnUnit>, Vec<EnemyUnit>, Vec<Party>) {
     }
     let mut enemies = centurions.clone();
     enemies.extend(turrets.iter().map(|(id, pos)| enemy(*id, 3, *pos)));
-    let party = Party { name: "party_12".into(), ids: centurions.iter().map(|e| e.id).collect(), at: at(4502.0, 1365.0), metal: 810.0, composition: "3 armwar".into(), has_commander: false, killing: None, turret_metal: 0.0, turret_metal_air: 0.0, turrets: String::new() };
+    let party = Party { name: "party_12".into(), ids: centurions.iter().map(|e| e.id).collect(), at: at(4502.0, 1365.0), metal: 810.0, composition: "3 armwar".into(), has_commander: false, harming: None, unarmed: false, turret_metal: 0.0, turret_metal_air: 0.0, turrets: String::new() };
     (brain, ours, enemies, vec![party])
 }

@@ -45,6 +45,21 @@ struct Hit {
     attacker: UnitId,
 }
 
+/// A building of ours losing health to an enemy builder beside it and to no weapon: it is being taken apart (a
+/// reclaim is no hit: the engine sends no damage event for it). `since` and `from` are the frame and health of the
+/// first drop seen, `frame` and `health` of the last, for the rate.
+#[derive(Clone, Copy, Debug)]
+struct Taking {
+    victim: UnitId,
+    victim_def: UnitDefId,
+    taker: UnitId,
+    since: i32,
+    from: f32,
+    frame: i32,
+    health: f32,
+    max_health: f32,
+}
+
 const FRAMES_PER_SECOND: i32 = 30;
 /// Frames between runs of the whole brain (`think`), 2 Hz: the shim's ticks come more often than that, for the
 /// control lane (`micro.rs`), and must divide this (`docs/design/2026-09-20-micro-lane.md`).
@@ -110,6 +125,11 @@ pub struct Brain {
     /// Hits on our units with a known attacker in the last `HIT_MEMORY` frames: what each enemy party is shooting
     /// (H-HANDS-PARTY-KILLING).
     hits: Vec<Hit>,
+    /// Buildings of ours an enemy builder is taking apart, seen in the last `HIT_MEMORY` frames, and each building's
+    /// health at the last tick (and that tick's frame), which is how a reclaim shows (H-HANDS-PARTY-KILLING).
+    takings: Vec<Taking>,
+    building_health: HashMap<UnitId, f32>,
+    building_health_frame: i32,
     /// Our factories' exit lanes this tick, kept clear of new buildings; our mobile units that cannot move; the
     /// factories whose blocked yard the player has been told of (`yards.rs`).
     lanes: Vec<bot_protocol::Lane>,
@@ -271,6 +291,9 @@ impl Brain {
             shelling: Vec::new(),
             shelling_warned: i32::MIN / 2,
             hits: Vec::new(),
+            takings: Vec::new(),
+            building_health: HashMap::new(),
+            building_health_frame: 0,
             lanes: Vec::new(),
             stuck: HashMap::new(),
             lane_standers: HashMap::new(),
@@ -398,6 +421,7 @@ impl Brain {
         }
         self.track_shelling(tick);
         self.track_hits(tick);
+        self.track_takings(tick);
         self.run_pianist(tick, &kit, &mut commands);
         if tick.frame % planner::PLAN_CONTEXT_FRAMES < TICK_FRAMES_GUESS {
             self.publish_plan_context(tick, &kit);
@@ -473,6 +497,38 @@ impl Brain {
                 self.hits.push(Hit { frame: tick.frame, victim: unit, victim_def: victim.def, attacker });
             }
         }
+    }
+
+    /// A finished building of ours whose health fell since the last tick with no hit on it, while an enemy builder
+    /// stands within its build reach of it, is being taken apart by that builder (player-31, 6:23-6:50: a Lazarus
+    /// took two extractors from full health in ten seconds each, and nothing in the picture said so).
+    fn track_takings(&mut self, tick: &Tick) {
+        /// A reclaim reaches the building's edge, not its centre.
+        const EDGE: f32 = 120.0;
+        let own = &tick.snapshot.own_units;
+        self.takings.retain(|t| tick.frame - t.frame <= HIT_MEMORY && own.iter().any(|u| u.id == t.victim));
+        let hit: HashSet<UnitId> = tick.events.iter().filter_map(|e| if let Event::UnitDamaged { unit, .. } = *e { Some(unit) } else { None }).collect();
+        let mut health = HashMap::new();
+        for unit in own.iter().filter(|u| !u.being_built && self.world.def(u.def).is_some_and(|d| d.speed == 0.0)) {
+            health.insert(unit.id, unit.health);
+            let Some(before) = self.building_health.get(&unit.id).copied() else { continue };
+            if unit.health >= before - 0.1 || hit.contains(&unit.id) {
+                continue;
+            }
+            let taker = tick
+                .snapshot
+                .enemies
+                .iter()
+                .filter(|e| !e.being_built && e.def.and_then(|d| self.world.def(d)).is_some_and(|d| d.build_speed > 0.0 && e.pos.dist2d(unit.pos) <= d.build_distance + EDGE))
+                .min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)));
+            let Some(taker) = taker else { continue };
+            match self.takings.iter_mut().find(|t| t.victim == unit.id) {
+                Some(t) => (t.taker, t.frame, t.health) = (taker.id, tick.frame, unit.health),
+                None => self.takings.push(Taking { victim: unit.id, victim_def: unit.def, taker: taker.id, since: self.building_health_frame, from: before, frame: tick.frame, health: unit.health, max_health: unit.max_health }),
+            }
+        }
+        self.building_health = health;
+        self.building_health_frame = tick.frame;
     }
 
     fn report(&mut self, tick: &Tick, kit: &Kit) {

@@ -97,7 +97,7 @@ impl Brain {
                 None => String::new(),
             };
             let place = place_of(&picture.places, party.at).map_or("in sight".to_string(), |pl| format!("at {pl}"));
-            let killing = party.killing.as_ref().map_or(String::new(), |(what, _)| format!(", killing {what}"));
+            let killing = party.harming.as_ref().map_or(String::new(), |(what, _)| format!(", {what}"));
             let state = |id: String, actor: String, response: Response, words: String, metal: f32, current: bool| State { id, actor, response, words, metal, dim: "threat", current, pair_only: false };
             let mut states = vec![state(format!("{}.leave", party.name), String::new(), Response::Leave, format!("nobody moves for {} ({}, {place}{}{killing}{heading_words})", party.name, party.composition, under(party)), 0.0, false)];
             // By the nearest member, not the centre (H-HANDS-GROUP-BODY): the odds on the part in the fight, the
@@ -250,7 +250,7 @@ impl Brain {
                 let current = matches!(pianist.tasks.get(&unit.id), Some(super::Task::Walk { place, .. }) if *place == party.name);
                 let speed = self.world.def(unit.def).map_or(0.0, |d| d.speed);
                 let walk = if speed > 0.0 { format!(": it drives it off in {:.0} s of walking", distance / speed) } else { String::new() };
-                let killing = party.killing.as_ref().map_or(String::new(), |(what, metal)| format!(", killing {what} ({metal:.0} metal) now"));
+                let killing = party.harming.as_ref().map_or(String::new(), |(what, metal)| format!(", {what} ({metal:.0} metal) now"));
                 let chase = if !quarry_known { "; its speed is unknown (radar contacts only)".to_string() } else if quarry_speed > speed { format!("; it outruns {name} at {quarry_speed:.0} against {speed:.0}: this drives it off if it stays, and kills it only if it stands and fights") } else { String::new() };
                 // A skirmisher outranges a commander (onepass-player-3, 22:14: it walked at a Hound, 650 against 300,
                 // that backed off shooting; the player's packet keeps it home against anything that outranges it).
@@ -303,8 +303,8 @@ pub(super) fn gate_questions(slot: &Slot) -> Vec<(String, Question)> {
     let mut out = vec![(
         format!("{}.answer", party.name),
         Question::noul(json!(format!(
-            "Given `enemy`, `actors`, `player` and the player's `instructions`: does {} ({}, {place}{}{}) need answering this second by someone other than what stands ({standing})? Yes when it is killing or about to kill something of ours that nothing there can stop; no when a turret handles it, it is leaving, or the instructions say to leave such a party.",
-            party.name, party.composition, under(party), party.killing.as_ref().map_or(String::new(), |(what, _)| format!(", killing {what}"))
+            "Given `enemy`, `actors`, `player` and the player's `instructions`: does {} ({}, {place}{}{}) need answering this second by someone other than what stands ({standing})? Yes when it is killing, taking apart or about to kill something of ours that nothing there can stop; no when a turret handles it, it is leaving, or the instructions say to leave such a party.",
+            party.name, party.composition, under(party), party.harming.as_ref().map_or(String::new(), |(what, _)| format!(", {what}"))
         ))),
     )];
     for s in open {
@@ -315,4 +315,54 @@ pub(super) fn gate_questions(slot: &Slot) -> Vec<(String, Question)> {
         }
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use bot_protocol::{Event, OwnUnit, Resource, Snapshot, Tick, UnitId};
+
+    use super::super::fixtures::{at, brain_of, enemy, own};
+
+    /// A building of ours whose health falls beside an enemy builder, with no hit on it, is said on that builder's
+    /// party as being taken apart, with what is left and when it is gone; a party without a weapon is said unarmed,
+    /// never as outweighing us or choosing the fight.
+    #[test]
+    fn a_builder_taking_a_building_apart_is_said_and_an_unarmed_party_reads_unarmed() {
+        let mut brain = brain_of(&["armflash", "armllt", "armfav"]);
+        // The Rover stands in for a resurrection bot: no weapon, build power, a short build reach.
+        let lazarus = &mut brain.world.hello.unit_defs[2];
+        (lazarus.weapon_count, lazarus.build_speed, lazarus.build_distance) = (0, 200.0, 96.0);
+        let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+        let tick = |frame: i32, health: f32, events: Vec<Event>| Tick {
+            frame,
+            late: 0,
+            events,
+            snapshot: Snapshot {
+                metal: resource(),
+                energy: resource(),
+                wind: 0.0,
+                own_units: vec![OwnUnit { health, max_health: 100.0, ..own(1, 2, at(1000.0, 1000.0)) }, own(2, 1, at(1500.0, 1000.0))],
+                allies: Vec::new(),
+                enemies: vec![enemy(9, 3, at(1100.0, 1000.0))],
+                wrecks: None,
+            },
+        };
+        brain.track_takings(&tick(30, 100.0, Vec::new()));
+        brain.track_takings(&tick(60, 90.0, Vec::new()));
+        let last = tick(90, 80.0, Vec::new());
+        brain.track_takings(&last);
+        let parties = brain.enemy_parties(&last.snapshot.enemies, &[], &std::cell::Cell::new(1));
+        let (what, _) = parties[0].harming.clone().expect("the taking");
+        assert_eq!(what, "taking apart our Sentry (armllt), 80% left and gone in about 8 s");
+        assert!(parties[0].unarmed);
+        let odds = brain.odds_words(&[&last.snapshot.own_units[1]], &parties[0], &last.snapshot.enemies);
+        assert!(odds.starts_with("it is unarmed and cannot fight back") && !odds.contains("chooses the fight") && !odds.contains("outweighs"), "{odds}");
+        // Health lost to a weapon is a hit, not a reclaim: nothing is taken apart.
+        let mut brain = brain_of(&["armflash", "armllt", "armfav"]);
+        let lazarus = &mut brain.world.hello.unit_defs[2];
+        (lazarus.weapon_count, lazarus.build_speed, lazarus.build_distance) = (0, 200.0, 96.0);
+        brain.track_takings(&tick(30, 100.0, Vec::new()));
+        brain.track_takings(&tick(60, 90.0, vec![Event::UnitDamaged { unit: UnitId(1), attacker: None, damage: 10.0, from: None, weapon: None }]));
+        assert!(brain.takings.is_empty());
+    }
 }

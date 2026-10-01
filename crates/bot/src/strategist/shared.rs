@@ -69,8 +69,9 @@ pub struct EnemyCluster {
     /// Unit name to count; radar-only contacts are "unidentified".
     pub composition: Vec<(String, usize)>,
     pub distance_from_home: i32,
-    /// What it is shooting now, from the hits of the last seconds (H-HANDS-PARTY-KILLING), with the victims' metal.
-    pub killing: Option<(String, f32)>,
+    /// What it is doing to us now, the verb with it ("killing ...", "taking apart ..."), from the hits and reclaims
+    /// of the last seconds (H-HANDS-PARTY-KILLING), with the victims' metal.
+    pub harming: Option<(String, f32)>,
 }
 
 #[derive(Clone, Debug, Serialize)]

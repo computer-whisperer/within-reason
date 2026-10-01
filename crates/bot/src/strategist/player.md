@@ -97,6 +97,12 @@ four Stouts"). A condition holds only when its row names both cases ("with the e
 solar; banking or in balance: no solar, ever"); a positive condition alone is read loosely. A never sentence holds
 ("never at spot_43"). Nothing plays by rule: every move of a group, a builder or a lab is a pick of Jev's over
 the states the hands offer, read against your packet, or your own list. There is no other channel.
+Name unit types in the packet by their internal names, the opponent's as well as ours (`armpw`, `armflea`, `armfav`,
+`armrectr`, never "Pawn", "Tick", "scout car", "resurrection bot"): the picture and every question Jev reads write
+an enemy party by internal name alone ("party_9 (1 armrectr, at spot_62)"), and an order about "a resurrection bot"
+is one Jev cannot tie to it (a picket told to attack "any Pawn, Tick, scout car or resurrection bot" at spot_62 stood
+1,100 away while an `armrectr` took two extractors apart there). Your report and the roster give the internal names;
+the English names are for your own notes and for chat.
 `produce` restricts what a lab, or every lab (`all`), may build to a list of unit names: the lab is then offered
 those and nothing else, so the mix is exactly what you allow and the packet's words only order among them. `all`
 reaches the builders too, but binds a builder only where it names a building that builder can make (a list of

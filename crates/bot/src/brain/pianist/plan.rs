@@ -1164,7 +1164,7 @@ pub(super) fn signature(slots: &[Slot]) -> String {
     slots
         .iter()
         .map(|s| match &s.kind {
-            Kind::Threat(p, place) => format!("{}@{place}:{}{}{}", p.name, p.ids.len(), if p.killing.is_some() { "!" } else { "" }, s.states.iter().filter(|st| st.current).map(|st| format!("[{}]", st.id)).collect::<String>()),
+            Kind::Threat(p, place) => format!("{}@{place}:{}{}{}", p.name, p.ids.len(), if p.harming.is_some() { "!" } else { "" }, s.states.iter().filter(|st| st.current).map(|st| format!("[{}]", st.id)).collect::<String>()),
             _ => format!("{}:{}", s.name, course(s)),
         })
         .collect::<Vec<_>>()
@@ -1537,7 +1537,7 @@ fn parts_of(world: &World, slots: &[Slot], base: Option<&World>) -> (Vec<String>
         match &slot.kind {
             Kind::Threat(p, place) => {
                 let composition = if p.has_commander { format!("THEIR COMMANDER, whose death wins the game, with {}", p.composition) } else { p.composition.clone() };
-                let killing = p.killing.as_ref().map_or(String::new(), |(what, _)| format!(", killing {what}"));
+                let killing = p.harming.as_ref().map_or(String::new(), |(what, _)| format!(", {what}"));
                 match &s.response {
                     Response::Leave => unmet.push(format!("{} ({composition}, {place}{}{killing})", p.name, under(p))),
                     Response::Back(..) => {
@@ -1552,7 +1552,7 @@ fn parts_of(world: &World, slots: &[Slot], base: Option<&World>) -> (Vec<String>
                         }
                         let theirs = p.metal + p.turret_metal;
                         let with = if p.turrets.is_empty() { String::new() } else { format!(" with {} ({:.0} metal)", p.turrets, p.turret_metal) };
-                        met.push(format!("{} ({composition}, {:.0} metal, {place}){with} met with {:.0} metal: {}{killing}", p.name, p.metal, s.metal, odds_by_metal(s.metal, theirs)));
+                        met.push(format!("{} ({composition}, {:.0} metal, {place}){with} met with {:.0} metal: {}{killing}", p.name, p.metal, s.metal, if p.unarmed { "it is unarmed and cannot fight back" } else { odds_by_metal(s.metal, theirs) }));
                     }
                 }
             }
@@ -1738,7 +1738,7 @@ mod tests {
     use super::*;
 
     fn party(name: &str, n: usize) -> Party {
-        Party { name: name.to_string(), ids: (0..n).map(|i| UnitId(i as i32)).collect(), at: Vec3::default(), metal: 100.0, composition: format!("{n} Ticks"), has_commander: false, killing: None, turret_metal: 0.0, turret_metal_air: 0.0, turrets: String::new() }
+        Party { name: name.to_string(), ids: (0..n).map(|i| UnitId(i as i32)).collect(), at: Vec3::default(), metal: 100.0, composition: format!("{n} Ticks"), has_commander: false, harming: None, unarmed: false, turret_metal: 0.0, turret_metal_air: 0.0, turrets: String::new() }
     }
 
     fn state(id: &str, actor: &str, response: Response, dim: &'static str, current: bool) -> State {
