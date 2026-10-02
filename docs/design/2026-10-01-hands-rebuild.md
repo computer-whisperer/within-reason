@@ -534,6 +534,11 @@ In a game (rebuild-smoke-8-standing, the pianist alone on the fixed packet, twel
 an attack task, every soldier idle and over 400 from the party (0 of 104; rebuild-smoke-5 14 of 99, -6 4 of 88);
 the party's `answer` averaged 0.68 where its question said a group was told to attack and had nothing in reach,
 0.40 where it said a group had it in reach. Twelve extractors were still lost to lone Pawns and Ticks: the words
-are true now, and the answers on offer before the first Blitz are the commander, which a Pawn outruns. Not yet
-run with the player.
+are true now, and the answers on offer before the first Blitz are the commander, which a Pawn outruns.
+
+With the player (player-36-standing, the settings of player-35): won at 16:58, the first win on the rebuilt hands.
+Idle-and-away attack group-seconds 22 of 988 (2%, against 13%); the party's `answer` 0.59 where its question said
+told-and-not-in-reach, 0.41 where a group had it in reach; 17 extractors lost (player-35: 19 by 17:00), 12 of the 17
+raiding parties lost a unit; Jev $1.17. The churn is where it was (59% of group picks within 10 s of the group's
+last). One game: the win is not shown to be the change's.
 
