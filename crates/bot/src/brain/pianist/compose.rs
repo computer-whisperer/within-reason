@@ -41,10 +41,19 @@ pub(crate) type World = Vec<usize>;
 /// What the gate said of an actor's moves: the two it rated best, for world 1's line and the player's report.
 pub(super) type Rated = BTreeMap<String, Vec<(String, f64)>>;
 
-/// Who is on a party now, in words, from the courses in force.
+/// Who is on a party now, in words: each actor whose course is aimed at it, with where that actor stands against
+/// it (`Standing`: an actor told to attack a party it has not reached is not "on it").
 fn on_it(party: &Party, menus: &[Menu]) -> String {
-    let who: Vec<&str> = menus.iter().filter(|m| m.aimed_at.as_deref() == Some(party.name.as_str())).map(|m| m.name.as_str()).collect();
-    if who.is_empty() { "nobody moves for it".to_string() } else { format!("{} on it", who.join(" and ")) }
+    let who: Vec<String> = menus
+        .iter()
+        .filter(|m| m.aimed_at.as_deref() == Some(party.name.as_str()))
+        .map(|m| match &m.against {
+            Some(s) if s.met() => format!("{} on it: {}", m.name, s.words()),
+            Some(s) => format!("{} is told to attack it, but {}", m.name, s.words()),
+            None => format!("{} is told to attack it", m.name),
+        })
+        .collect();
+    if who.is_empty() { "nobody moves for it".to_string() } else { who.join("; ") }
 }
 
 /// A party as the gate's question and a world's line say it.
@@ -304,25 +313,48 @@ pub(super) struct Lines<'a> {
     pub forbidden: &'a BTreeSet<String>,
 }
 
-/// A world's moves (the changes from world 1) and what follows: the parties met and by whom, the parties Jev says
-/// need answering that nobody is on, and the idle actors with the move the gate rated best for each.
-fn parts_of(world: &World, menus: &[Menu], lines: &Lines) -> (Vec<String>, Vec<String>, Vec<String>, Vec<String>) {
-    let moves: Vec<String> = menus.iter().zip(world).filter(|(_, i)| **i != 0).map(|(menu, i)| menu.moves[*i].words.clone()).collect();
-    let (mut met, mut unmet) = (Vec::new(), Vec::new());
+/// A world's parts beside its moves.
+#[derive(Default)]
+struct Parts {
+    /// The changes from world 1, in each move's words.
+    moves: Vec<String>,
+    /// A party with something of ours in reach of it, and whose.
+    met: Vec<String>,
+    /// A party a move of this world sends an actor at.
+    sent: Vec<String>,
+    /// A party an actor is told to attack and has not reached, with where that actor stands.
+    not_met: Vec<String>,
+    /// A party Jev says needs answering that nobody is aimed at.
+    unmet: Vec<String>,
+    /// The idle actors, each with the move the gate rated best for it.
+    idle: Vec<String>,
+}
+
+/// A world's moves and what follows from them. A party is met only by an actor with something in reach of it
+/// (H-HANDS-STANDING): a course aimed at it from afar is said as that, with the distance, the idleness and whether
+/// it can be caught, and a move made at it this second is said as a sending.
+fn parts_of(world: &World, menus: &[Menu], lines: &Lines) -> Parts {
+    let mut parts = Parts { moves: menus.iter().zip(world).filter(|(_, i)| **i != 0).map(|(menu, i)| menu.moves[*i].words.clone()).collect(), ..Parts::default() };
     for party in lines.parties {
-        let who: Vec<&str> = menus
-            .iter()
-            .zip(world)
-            .filter(|(menu, i)| if **i == 0 { menu.aimed_at.as_deref() == Some(party.name.as_str()) } else { menu.moves[**i].party.as_deref() == Some(party.name.as_str()) })
-            .map(|(menu, _)| menu.name.as_str())
-            .collect();
-        if !who.is_empty() {
-            met.push(format!("{} met by {}", party_line(party, lines.places), who.join(" and ")));
-        } else if lines.flags.get(&format!("{}.answer", party.name)).is_some_and(|a| *a >= FLAG) {
-            unmet.push(party_line(party, lines.places));
+        let aimed = |menu: &&Menu| menu.aimed_at.as_deref() == Some(party.name.as_str());
+        let staying: Vec<&Menu> = menus.iter().zip(world).filter(|(_, i)| **i == 0).map(|(menu, _)| menu).filter(aimed).collect();
+        let sent: Vec<&str> = menus.iter().zip(world).filter(|(menu, i)| **i != 0 && menu.moves[**i].party.as_deref() == Some(party.name.as_str())).map(|(menu, _)| menu.name.as_str()).collect();
+        let (there, away): (Vec<&Menu>, Vec<&Menu>) = staying.into_iter().partition(|m| m.against.as_ref().is_none_or(|s| s.met()));
+        let line = party_line(party, lines.places);
+        if !there.is_empty() {
+            parts.met.push(format!("{line} met by {}", there.iter().map(|m| m.name.as_str()).collect::<Vec<_>>().join(" and ")));
+        }
+        if !sent.is_empty() {
+            parts.sent.push(format!("{line} by {}", sent.join(" and ")));
+        }
+        if there.is_empty() && !away.is_empty() {
+            parts.not_met.push(format!("{line}: {}", away.iter().map(|m| format!("{} is told to attack it, but {}", m.name, m.against.as_ref().map_or(String::new(), |s| s.words()))).collect::<Vec<_>>().join("; ")));
+        }
+        if there.is_empty() && away.is_empty() && sent.is_empty() && lines.flags.get(&format!("{}.answer", party.name)).is_some_and(|a| *a >= FLAG) {
+            parts.unmet.push(line);
         }
     }
-    let idle: Vec<String> = menus
+    parts.idle = menus
         .iter()
         .zip(world)
         .enumerate()
@@ -332,7 +364,7 @@ fn parts_of(world: &World, menus: &[Menu], lines: &Lines) -> (Vec<String>, Vec<S
             None => menu.idle_words.clone(),
         })
         .collect();
-    (moves, met, unmet, idle)
+    parts
 }
 
 /// A world's line. World 1's says the cost of changing nothing and no more (the courses in force are in `actors`;
@@ -342,15 +374,17 @@ fn parts_of(world: &World, menus: &[Menu], lines: &Lines) -> (Vec<String>, Vec<S
 /// from world 1 ("As w1, and ...") and the consequences that differ, so the change is the option's own words. A
 /// detachment the gate reads as forbidden says so in a sentence of its own at the line's end.
 pub(super) fn consequence(world: &World, menus: &[Menu], lines: &Lines, base: Option<&World>) -> String {
-    let (moves, met, unmet, idle) = parts_of(world, menus, lines);
-    let added = |mine: Vec<String>, theirs: &[String]| mine.into_iter().filter(|m| !theirs.contains(m)).collect::<Vec<_>>();
-    let (met, unmet, idle) = match base {
-        Some(b) => {
-            let (_, bmet, bunmet, bidle) = parts_of(b, menus, lines);
-            (added(met, &bmet), added(unmet, &bunmet), added(idle, &bidle))
-        }
-        None => (met, unmet, idle),
-    };
+    let mut of = parts_of(world, menus, lines);
+    if let Some(b) = base {
+        let theirs = parts_of(b, menus, lines);
+        let added = |mine: &mut Vec<String>, theirs: &[String]| mine.retain(|m| !theirs.contains(m));
+        added(&mut of.met, &theirs.met);
+        added(&mut of.sent, &theirs.sent);
+        added(&mut of.not_met, &theirs.not_met);
+        added(&mut of.unmet, &theirs.unmet);
+        added(&mut of.idle, &theirs.idle);
+    }
+    let Parts { moves, met, sent, not_met, unmet, idle } = of;
     let mut parts: Vec<String> = Vec::new();
     parts.push(match base {
         None => "Nothing changes: every actor keeps the course its entry under `actors` describes".to_string(),
@@ -358,6 +392,12 @@ pub(super) fn consequence(world: &World, menus: &[Menu], lines: &Lines, base: Op
     });
     if !met.is_empty() {
         parts.push(format!("Met: {}", met.join("; ")));
+    }
+    if !sent.is_empty() {
+        parts.push(format!("Sent at: {}", sent.join("; ")));
+    }
+    if !not_met.is_empty() {
+        parts.push(format!("Not met: {}", not_met.join("; ")));
     }
     if !unmet.is_empty() {
         parts.push(format!("Left to nobody: {}", unmet.join("; ")));
@@ -547,6 +587,7 @@ pub(super) fn log_menus(menus: &[Menu]) -> Value {
 #[cfg(test)]
 mod tests {
     use super::super::groups::Ward;
+    use super::super::menu::Standing;
     use super::super::menu::tests::{menu, mv};
     use super::*;
     use bot_protocol::{UnitDefId, UnitId, Vec3};
@@ -650,6 +691,7 @@ mod tests {
         a.moves[1].said = "the advance to spot_46".into();
         let mut b = group("B", false, vec![mv("follow_group_A", Order::Follow(Ward::Group("A".into())), None)]);
         b.aimed_at = Some("party_8".into());
+        b.against = Some(Standing { in_reach: 2, of: 3, way: "right here, a few seconds of walking".into(), idle: 0, catches: Some(false) });
         let menus = vec![a, b, menu("plant_5", Kind::Factory(UnitId(5)), true, vec![mv("make_armflash", Order::Make(UnitDefId(1)), None)])];
         let parties = vec![party("party_7"), party("party_8"), party("party_9")];
         let flags: BTreeMap<String, f64> = [("party_7.answer".to_string(), 0.8), ("party_8.answer".to_string(), 0.9), ("party_9.answer".to_string(), 0.2)].into();
@@ -663,6 +705,32 @@ mod tests {
         // The change's line says only what it changes: the group no longer idle is said by its move.
         let line = consequence(&vec![1, 0, 0], &menus, &said(&parties, &flags, &next, &forbidden), Some(&vec![0, 0, 0]));
         assert_eq!(line, "As w1, and: fight_to_spot_46.");
+    }
+
+    /// A party is met only by an actor with something in reach of it. One told to attack it from afar is said as
+    /// that, in world 1 and in the party's question, with how far it stands, that it stands with no order and that
+    /// the party outruns it; a move made at the party is a sending. (player-35 7:53-8:28: "party_17 met by group_W"
+    /// and "what stands (group_W on it)" for 35 s while all nine of group_W stood idle 1,000 or more from it.)
+    #[test]
+    fn a_party_is_met_only_by_what_has_it_in_reach() {
+        let mut w = group("W", false, vec![mv("go_spot_30", Order::Go("spot_30".into()), None)]);
+        w.aimed_at = Some("party_7".into());
+        w.against = Some(Standing { in_reach: 0, of: 9, way: "near, about 10 s of walking".into(), idle: 9, catches: Some(false) });
+        let menus = vec![w, group("A", false, vec![mv("attack_party_7", Order::Attack("party_7".into()), Some("party_7"))])];
+        let parties = vec![party("party_7")];
+        let flags: BTreeMap<String, f64> = [("party_7.answer".to_string(), 0.8)].into();
+        let (next, forbidden) = (vec![None, None], BTreeSet::new());
+        let away = "group_W is told to attack it, but nothing of it has the party in reach (the nearest of its 9 soldiers is near, about 10 s of walking away, every one of them standing with no order); the party outruns it: it reaches the party only where the party stands still";
+        let line = consequence(&vec![0, 0], &menus, &said(&parties, &flags, &next, &forbidden), None);
+        assert_eq!(line, format!("Nothing changes: every actor keeps the course its entry under `actors` describes. Not met: party_7 (2 Ticks, in sight): {away}."));
+        let line = consequence(&vec![0, 1], &menus, &said(&parties, &flags, &next, &forbidden), Some(&vec![0, 0]));
+        assert_eq!(line, "As w1, and: attack_party_7. Sent at: party_7 (2 Ticks, in sight) by group_A.");
+        // Taken off the party, and nobody else sent: Jev said it needs answering, so it is left to nobody.
+        let line = consequence(&vec![1, 0], &menus, &said(&parties, &flags, &next, &forbidden), Some(&vec![0, 0]));
+        assert_eq!(line, "As w1, and: go_spot_30. Left to nobody: party_7 (2 Ticks, in sight).");
+        let qs: BTreeMap<String, Question> = gate_questions(&menus, &parties, &[]).into_iter().collect();
+        let Question::Noul { instructions, .. } = &qs["party_7.answer"] else { panic!("a noul") };
+        assert!(instructions.as_str().unwrap().contains(&format!("by someone other than what stands ({away})?")), "{instructions}");
     }
 
     /// The forbidden mark: a detachment is asked about a second time, as a reading of the instructions, and one
@@ -687,7 +755,7 @@ mod tests {
         };
         let (sent, whole) = line_of(0.84);
         assert!(sent.ends_with("The player's instructions forbid this detachment for group_A."), "{sent}");
-        assert!(sent.contains("Met: party_1") && !whole.contains("forbid"), "{sent} / {whole}");
+        assert!(sent.contains("Sent at: party_1") && !whole.contains("forbid"), "{sent} / {whole}");
         assert!(!line_of(0.6).0.contains("forbid"), "under the bar");
     }
 

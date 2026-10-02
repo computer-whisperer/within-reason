@@ -480,3 +480,60 @@ bill is what `split`, `one` and `local` are for; a decode that leaves out the pl
    group names in the packets of 2:40 to 11:50 were gone before the packet landed or within 30 s of it, so the
    player's per-group paragraphs spoke to groups that no longer existed. With `fuse` on a join the packet does not
    order is not offered; whether that cures it is what player-35 is for.
+
+## 16. The user's first review: told to attack is not attacking (2026-10-02)
+
+The user, watching player-35: "at 8:09 a single tick is within our territory destroying mexes, with several
+vehicles available to repulse it nearby." What the log and the record show (the Tick is `party_17`):
+
+- 7:23 the pick "group_W attacks party_17" (two Blitzes). The order was one fight order to where the Tick stood
+  then, spot_47. The task's `at` followed the Tick each second in the books; no order did.
+- 7:46 "group_Z joins group_W" (seven Blitzes): one move order to where group_W stood, and never the group's order.
+- 7:53 to 8:28 all nine stood with no order (idle in the record, no command to any of them), 1,000 to 1,500 from
+  the Tick, their task reading "attacking party_17". The Tick killed spot_63 at 8:10 and spot_61 at 8:28.
+- Every second of it the party's question read "... by someone other than what stands (group_W on it)?" and world
+  1's line "party_17 ... met by group_W"; Jev rated the answer 0.30 to 0.47 (eight asks, 7:38 to 8:06), and under 0.5 the `openers` layer held
+  every other group's attack on it off the questions (a Rover 355 from the Tick was asked once in 31 s).
+- Game-wide, the group-seconds with a task of "attack" in which every soldier was idle and over 400 from the
+  party: player-30 to -33 (the old hands) 0%, 1%, 1%, 5%; player-34 9%; player-35 13% (193 of 1,522). The upkeep
+  code was the same before the rebuild; the old hands offered the attack again each second to the group already on
+  it, the rebuilt menu leaves it out as the group's `stay`. Whether that is the whole difference is not shown.
+
+Built on the user's word ("Agreed with the changes you proposed ... Fixing the misinformation is higher
+priority"), each a law of one sentence:
+
+1. *Standing* (H-HANDS-STANDING). A party is "met" only by an actor with a soldier that has a member of it inside
+   its weapon's reach; an actor whose course is aimed at it from farther is said as "told to attack it, but nothing
+   of it has the party in reach", with the nearest soldier's way to it in the menus' buckets, whether its soldiers
+   stand with no order, and whether the party outruns it. The words are on the group's entry (`doing`), on its
+   `stay`, in the party's question ("what stands"), and in the worlds' lines, which now have four parts: `Met`,
+   `Sent at` (a move of this world aimed at the party), `Not met` (told, not in reach) and `Left to nobody`. The
+   fight facts on a move said "in reach of party_N" for a party within 800; they say "near".
+2. *An attack follows the party* (H-HANDS-ATTACK-FOLLOWS). A group told to attack a party keeps its fight order
+   aimed at where the party is now: sent again each time the party has moved 150 from where the order in force is
+   aimed, until the party has been out of sight for 6 s or the group is given another move. Jev decides the attack
+   and when it ends; code keeps the order Jev picked aimed at its target, as it already did for a builder's attack
+   and for `follow`.
+3. *A joiner takes the group's order* (H-HANDS-JOINERS). A soldier on its way to join a group (a plant's output, the
+   soldiers of a group that joined it) is sent after the group's body each time the nearest member of the body is
+   150 from where it was last sent, and takes the group's order when it stands within 400 of the body.
+
+What code decides here and what Jev decides: Jev picks the attack, the join, and every leaving of them; code
+measures where the actor stands and says it, and keeps a picked order aimed at the thing it was picked against.
+The lane's pursuit limit (H-MICRO-FORM-PURSUIT: a running target is let go 600 from where the body formed on it)
+is unchanged; with law 2 the units it releases go back to a fight order that is where the party now is.
+
+That Blitzes cannot catch a Tick is Jev's to weigh (the user: "we need to make sure jev is aware of that, and can
+choose to send a faster unit after the tick when available"): the party's question now says it of what stands, and
+each other group's attack and each detachment already say whether they catch it. Replayed offline on player-35's
+own requests (three asks each): the party's `answer` with "group_W on it" 0.44, 0.49, 0.51 at 7:57, 8:03, 8:06;
+with the standing words 0.81, 0.86, 0.83. The Rover's attack on it, which the game did not ask in those seconds:
+0.56, 0.50, 0.51 with the old words in the question, 0.68, 0.67, 0.66 with the new.
+
+In a game (rebuild-smoke-8-standing, the pianist alone on the fixed packet, twelve minutes): no group-second with
+an attack task, every soldier idle and over 400 from the party (0 of 104; rebuild-smoke-5 14 of 99, -6 4 of 88);
+the party's `answer` averaged 0.68 where its question said a group was told to attack and had nothing in reach,
+0.40 where it said a group had it in reach. Twelve extractors were still lost to lone Pawns and Ticks: the words
+are true now, and the answers on offer before the first Blitz are the commander, which a Pawn outruns. Not yet
+run with the player.
+

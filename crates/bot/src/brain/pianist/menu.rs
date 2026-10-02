@@ -201,6 +201,8 @@ pub(crate) struct Menu {
     pub course_words: String,
     /// The party the course in force is aimed at.
     pub aimed_at: Option<String>,
+    /// Where the actor stands against that party, while the party is in the picture.
+    pub against: Option<Standing>,
     /// The party in the actor's entry (the nearest within `NEAR` of it), for the news rule.
     pub near_party: Option<String>,
     pub at: Option<Vec3>,
@@ -243,6 +245,50 @@ pub(crate) struct Register {
     pub words: String,
     /// The key of the course the pick took the actor from: a move with this key undoes the pick, and says so.
     pub left: String,
+}
+
+/// Where an actor whose course is aimed at a party stands against it this second: measured on the ground, never
+/// read off its task (H-HANDS-STANDING). player-35 7:53-8:28: nine Blitzes whose task read "attacking party_17"
+/// stood with no order 1,000 to 1,500 from the Tick for 35 s while world 1 said "met by group_W" and the party's
+/// question "group_W on it"; Jev rated the party's answer 0.31-0.47 and the Tick killed two extractors.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct Standing {
+    /// Soldiers with a member of the party inside their weapon's reach, of how many.
+    pub in_reach: usize,
+    pub of: usize,
+    /// The nearest soldier's way to the party, in the menus' buckets.
+    pub way: String,
+    /// Soldiers with no order in the engine.
+    pub idle: usize,
+    /// Whether the actor's fastest outpaces the party's slowest; none while the party's speed is unknown.
+    pub catches: Option<bool>,
+}
+
+impl Standing {
+    /// Whether anything of the actor has the party in reach: the one case in which the party is "met".
+    pub(super) fn met(&self) -> bool {
+        self.in_reach > 0
+    }
+
+    /// "4 of its 9 soldiers have the party in reach", or what stands in the way of that.
+    pub(super) fn words(&self) -> String {
+        if self.met() {
+            return if self.of == 1 { "it has the party in reach".to_string() } else { format!("{} of its {} soldiers have the party in reach", self.in_reach, self.of) };
+        }
+        let idle = match (self.idle, self.of) {
+            (0, _) => "",
+            (_, 1) => ", standing with no order",
+            (i, n) if i == n => ", every one of them standing with no order",
+            _ => ", some of them standing with no order",
+        };
+        let catches = match self.catches {
+            Some(false) => "; the party outruns it: it reaches the party only where the party stands still",
+            Some(true) => "; it is faster than the party",
+            None => "",
+        };
+        let who = if self.of == 1 { "it is".to_string() } else { format!("the nearest of its {} soldiers is", self.of) };
+        format!("nothing of it has the party in reach ({who} {} away{idle}){catches}", self.way)
+    }
 }
 
 /// A builder's standing as the menus and the lists read it.
@@ -296,12 +342,12 @@ fn tenths(share: f32) -> f32 {
 }
 
 /// A verdict's first clause: "it outweighs us" of "it outweighs us, and it outranges us (...); ...". The odds of a
-/// strung-out group are on the part of it in the fight, and keep saying so: "for the 3 of its 8 soldiers in the
-/// fight, it outweighs us".
+/// strung-out group are on the part of it near the party, and keep saying so: "for the 3 of its 8 soldiers near
+/// it, it outweighs us".
 fn verdict(odds: &str) -> String {
     let first = |text: &str| text.split([';', ',', ':']).next().unwrap_or(text).trim().to_string();
-    match odds.split_once(" in the fight, ") {
-        Some((part, rest)) if odds.starts_with("for the ") => format!("{part} in the fight, {}", first(rest)),
+    match odds.split_once(" soldiers near it, ") {
+        Some((part, rest)) if odds.starts_with("for the ") => format!("{part} soldiers near it, {}", first(rest)),
         _ => first(odds),
     }
 }
@@ -510,6 +556,21 @@ impl Brain {
         }
     }
 
+    /// Where `units` stand against a party (`Standing`): how many have a member of it inside their weapon's reach,
+    /// the nearest one's way to it, how many have no order, and whether their fastest outpaces its slowest.
+    pub(super) fn standing(&self, units: &[&OwnUnit], party: &Party, enemies: &[EnemyUnit]) -> Standing {
+        let members: Vec<&EnemyUnit> = enemies.iter().filter(|e| party.ids.contains(&e.id)).collect();
+        let to_party = |u: &OwnUnit| if members.is_empty() { u.pos.dist2d(party.at) } else { members.iter().map(|e| e.pos.dist2d(u.pos)).fold(f32::INFINITY, f32::min) };
+        let def = |u: &OwnUnit| self.world.def(u.def);
+        let in_reach = units.iter().filter(|u| def(u).is_some_and(|d| d.reach > 0.0 && to_party(u) <= d.reach)).count();
+        let nearest = units.iter().copied().min_by(|a, b| to_party(a).total_cmp(&to_party(b)));
+        let way = nearest.map_or(String::new(), |u| way_words(to_party(u), def(u).map_or(0.0, |d| d.speed)));
+        let their_slowest = members.iter().filter_map(|e| e.def).filter_map(|d| self.world.def(d)).map(|d| d.speed).filter(|s| *s > 0.0).fold(f32::INFINITY, f32::min);
+        let our_fastest = units.iter().filter_map(|u| def(u)).map(|d| d.speed).fold(0.0, f32::max);
+        let catches = their_slowest.is_finite().then_some(our_fastest > their_slowest);
+        Standing { in_reach, of: units.len(), way, idle: units.iter().filter(|u| u.idle).count(), catches }
+    }
+
     /// A group's course without its clocks: its kind, its key as a move would have it, its words, and the party
     /// it is aimed at.
     pub(super) fn group_course(&self, group: &Group, picture: &Picture) -> (&'static str, String, String, Option<String>) {
@@ -659,7 +720,7 @@ impl Brain {
         let units = group.units(own);
         let air = group.domain == Domain::Air;
         // The group as a body (H-HANDS-GROUP-BODY): distances from where the body stands, its front toward its goal
-        // or the nearest party any member is near, the odds on the part in the fight.
+        // or the nearest party any member is near, the odds on the part near it.
         let goal = match &group.task {
             GroupTask::Move { to, .. } => Some(*to),
             GroupTask::Engage { at, .. } | GroupTask::Follow { at, .. } => Some(*at),
@@ -698,7 +759,11 @@ impl Brain {
             };
             (p, format!("{} ({}{}): {}{losses}{follow}", p.name, p.composition, under(p), verdict(&odds)))
         });
-        let keeps = fight.as_ref().map_or(String::new(), |(_, words)| format!("; in reach of {words}"));
+        let keeps = fight.as_ref().map_or(String::new(), |(_, words)| format!("; near {words}"));
+        // Where it stands against the party its course is aimed at, on the course's own words: a group told to
+        // attack is not thereby fighting.
+        let against = aimed_at.as_ref().and_then(|name| picture.parties.iter().find(|p| p.name == *name)).map(|p| self.standing(&body.core, p, enemies));
+        let against_words = against.as_ref().map_or(String::new(), |s| format!(": {}", s.words()));
         let stands = |to: Vec3| {
             fight.as_ref().map_or(String::new(), |(p, words)| {
                 let (now, then) = (body.at.dist2d(p.at), to.dist2d(p.at));
@@ -716,7 +781,7 @@ impl Brain {
             GroupTask::Follow { name: ward, .. } => format!("; leaves {ward}"),
         };
         let at = picture.state["actors"][&name]["at"].as_str().unwrap_or("where it stands").to_string();
-        let mut moves = vec![Move::new("stay".into(), Order::Stay, format!("{name} {course_words}{keeps}"), "its course".into(), None, false)];
+        let mut moves = vec![Move::new("stay".into(), Order::Stay, format!("{name} {course_words}{against_words}{keeps}"), "its course".into(), None, false)];
         let mut push = |key: String, order: Order, words: String, said: String, party: Option<&Party>, detachment: bool| {
             if key != course_key {
                 moves.push(Move::new(key, order, words, said, party.map(|p| p.name.clone()), detachment));
@@ -917,7 +982,7 @@ impl Brain {
         for m in &mut moves {
             m.reads = self.reads_of(&m.order);
         }
-        Some(Menu { name, kind: Kind::Group(group.name.clone()), moves, idle, queue_ahead: false, course, course_key, course_words, aimed_at, near_party: near_party.map(|p| p.name.clone()), at: Some(body.at), idle_words, quiet: false, audit: false })
+        Some(Menu { name, kind: Kind::Group(group.name.clone()), moves, idle, queue_ahead: false, course, course_key, course_words, aimed_at, against, near_party: near_party.map(|p| p.name.clone()), at: Some(body.at), idle_words, quiet: false, audit: false })
     }
 
     fn builder_menu(&self, scene: &Scene, unit: &OwnUnit) -> Option<Menu> {
@@ -935,9 +1000,14 @@ impl Brain {
         let queue = status.queue_ahead && !listed;
         let (course, course_key, course_words) = self.builder_course(task, unit, &picture.places);
         let idle = course == "idle";
+        let aimed_at = match task {
+            Some(Task::Attack { party, .. }) => Some(party.clone()),
+            _ => None,
+        };
+        let against = aimed_at.as_ref().and_then(|name| picture.parties.iter().find(|p| p.name == *name)).map(|p| self.standing(&[unit], p, enemies));
         let stay_words = match (&status.started, queue) {
             (Some((what, _)), true) => format!("{name} finishes the {what} and then waits for an order"),
-            _ => format!("{name} {course_words}"),
+            _ => format!("{name} {course_words}{}", against.as_ref().map_or(String::new(), |s| format!(": {}", s.words()))),
         };
         let leaves = if queue { String::new() } else { self.leaves_words(task, &status.started) };
         let then = if queue { "then " } else { "" };
@@ -1149,7 +1219,7 @@ impl Brain {
         for m in &mut moves {
             m.reads = self.reads_of(&m.order);
         }
-        Some(Menu { name, kind: Kind::Builder(unit.id), moves, idle, queue_ahead: queue, course, course_key, course_words, aimed_at: match task { Some(Task::Attack { party, .. }) => Some(party.clone()), _ => None }, near_party: near_party.map(|p| p.name.clone()), at: Some(unit.pos), idle_words, quiet: false, audit: false })
+        Some(Menu { name, kind: Kind::Builder(unit.id), moves, idle, queue_ahead: queue, course, course_key, course_words, aimed_at, against, near_party: near_party.map(|p| p.name.clone()), at: Some(unit.pos), idle_words, quiet: false, audit: false })
     }
 
     /// What of the player's instructions bears on a move (`Read`): the place a walk, an advance or a build is aimed
@@ -1227,7 +1297,7 @@ impl Brain {
             ));
         }
         let idle_words = format!("{name} idle, doing nothing");
-        Some(Menu { name, kind: Kind::Factory(unit.id), moves, idle, queue_ahead: on_pad.is_some(), course: if idle { "idle" } else { "make" }, course_key: String::new(), course_words: if idle { "stands idle".to_string() } else { "builds the unit on its pad".to_string() }, aimed_at: None, near_party: None, at: Some(unit.pos), idle_words, quiet: false, audit: false })
+        Some(Menu { name, kind: Kind::Factory(unit.id), moves, idle, queue_ahead: on_pad.is_some(), course: if idle { "idle" } else { "make" }, course_key: String::new(), course_words: if idle { "stands idle".to_string() } else { "builds the unit on its pad".to_string() }, aimed_at: None, against: None, near_party: None, at: Some(unit.pos), idle_words, quiet: false, audit: false })
     }
 }
 
@@ -1242,7 +1312,7 @@ pub(super) mod tests {
     pub(crate) fn menu(name: &str, kind: Kind, idle: bool, moves: Vec<Move>) -> Menu {
         let mut all = vec![mv("stay", Order::Stay, None)];
         all.extend(moves);
-        Menu { name: name.to_string(), kind, moves: all, idle, queue_ahead: false, course: if idle { "idle" } else { "go" }, course_key: String::new(), course_words: "walks".to_string(), aimed_at: None, near_party: None, at: None, idle_words: format!("{name} idle, doing nothing"), quiet: false, audit: false }
+        Menu { name: name.to_string(), kind, moves: all, idle, queue_ahead: false, course: if idle { "idle" } else { "go" }, course_key: String::new(), course_words: "walks".to_string(), aimed_at: None, against: None, near_party: None, at: None, idle_words: format!("{name} idle, doing nothing"), quiet: false, audit: false }
     }
 
     /// The E3 scene (fourteen Blitzes, three Centurions 600 from them, two of his turrets beyond): one menu for the
@@ -1282,7 +1352,7 @@ pub(super) mod tests {
         assert!(menu.idle && menu.course == "idle" && menu.near_party.as_deref() == Some("party_12"));
         let words = |key: &str| menu.moves.iter().find(|m| m.key == key).unwrap().words.clone();
         // The fight's facts are on the move that keeps it and on the move that leaves it.
-        assert!(words("stay").contains("; in reach of party_12 (3 armwar"), "{}", words("stay"));
+        assert!(words("stay").contains("; near party_12 (3 armwar"), "{}", words("stay"));
         assert!(words("go_spot_30").starts_with("group_A walks to spot_30 (some way off, about ") && words("go_spot_30").contains("; stepping back from party_12 (3 armwar"), "{}", words("go_spot_30"));
         assert!(words("fight_to_spot_47").starts_with("group_A attacks his buildings at spot_47 (") && words("fight_to_spot_47").contains("his 2 Sentry (armllt) (2 of them armed; seen under a minute ago); staying as near to party_12 (3 armwar): we outweigh it"), "{}", words("fight_to_spot_47"));
         let attack = menu.moves.iter().find(|m| m.key == "attack_party_12").unwrap();
@@ -1291,6 +1361,13 @@ pub(super) mod tests {
         let send = menu.moves.iter().find(|m| m.key == "send_2_party_12").unwrap();
         assert!(send.detachment && matches!(&send.order, Order::Send(hunters, party) if hunters.len() == 2 && party == "party_12"));
         assert!(send.words.starts_with("2 armflash of group_A (its fastest, the nearest first) leave it as a group of their own and hunt party_12"), "{}", send.words);
+        // Where the group stands against the party, measured: the Centurions are 600 off and a Blitz reaches 180.
+        let core: Vec<&OwnUnit> = tick.snapshot.own_units.iter().take(14).collect();
+        let standing = brain.standing(&core, &picture.parties[0], &tick.snapshot.enemies);
+        assert_eq!((standing.in_reach, standing.of, standing.idle, standing.catches), (0, 14, 0, Some(true)), "{standing:?}");
+        assert!(standing.words().starts_with("nothing of it has the party in reach (the nearest of its 14 soldiers is near, ") && standing.words().ends_with("; it is faster than the party"), "{}", standing.words());
+        let beside = super::super::fixtures::own(901, 1, at(4420.0, 1240.0));
+        assert_eq!(brain.standing(&[&beside], &picture.parties[0], &tick.snapshot.enemies).words(), "it has the party in reach");
         // The other group holds by a pick: that is a course, and its menu has no second `hold`.
         let other = menus.iter().find(|m| m.name == "group_B").expect("the other group's menu");
         assert!(!other.idle && other.course == "hold" && !other.moves.iter().any(|m| m.key == "hold" || m.key == "gather" || m.key == "scout"), "{:?}", other.moves.iter().map(|m| &m.key).collect::<Vec<_>>());
@@ -1313,7 +1390,7 @@ pub(super) mod tests {
         assert_eq!(age_words(130 * FRAMES_PER_SECOND), "seen minutes ago");
         assert_eq!(verdict("it outweighs us, and it outranges us (460 to our 350); its fastest catch our slowest"), "it outweighs us");
         assert_eq!(verdict("we cannot hit it: nothing in this group shoots at what it is"), "we cannot hit it");
-        assert_eq!(verdict("for the 3 of its 8 soldiers in the fight, it outweighs us; its fastest catch our slowest; the other 5 are 800-1900 behind and not in it yet"), "for the 3 of its 8 soldiers in the fight, it outweighs us");
+        assert_eq!(verdict("for the 3 of its 8 soldiers near it, it outweighs us; its fastest catch our slowest; the other 5 are 800-1900 behind and not near it yet"), "for the 3 of its 8 soldiers near it, it outweighs us");
         assert_eq!(tenths(0.46), 50.0);
     }
 }

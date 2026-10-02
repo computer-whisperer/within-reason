@@ -224,11 +224,12 @@ pub(super) fn remember(said: &mut HashMap<String, Said>, questions: &BTreeMap<St
     }
 }
 
-/// What the picture looks like to the gate: the parties, and every actor's course by kind. A change asks; the same
-/// picture does not (the gate then goes on events and on the actors' own re-asks, `mod.rs`).
+/// What the picture looks like to the gate: the parties, and every actor's course by kind, with whether an actor
+/// aimed at a party has it in reach. A change asks; the same picture does not (the gate then goes on events and on
+/// the actors' own re-asks, `mod.rs`).
 pub(super) fn signature(menus: &[Menu], parties: &[super::Party]) -> String {
     let parties = parties.iter().map(|p| format!("{}:{}{}", p.name, p.ids.len(), if p.harming.is_some() { "!" } else { "" }));
-    let actors = menus.iter().map(|m| format!("{}:{}{}", m.name, course(m), m.aimed_at.as_ref().map_or(String::new(), |p| format!(">{p}"))));
+    let actors = menus.iter().map(|m| format!("{}:{}{}", m.name, course(m), m.aimed_at.as_ref().map_or(String::new(), |p| format!(">{p}{}", if m.against.as_ref().is_some_and(|s| !s.met()) { "~" } else { "" }))));
     parties.chain(actors).collect::<Vec<_>>().join(" ")
 }
 

@@ -3,7 +3,7 @@
 //! the player's, `docs/design/2026-09-25-one-decider.md` §3). A group carries one task at a time; between calls the
 //! standing orders are kept up (a march arrives together, an engagement follows its party, an arrival becomes a hold).
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashMap};
 
 use bot_protocol::{Command, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
 
@@ -83,7 +83,9 @@ pub(crate) enum GroupTask {
     /// `target`: one unit of the party every member attacks directly (`attack_unit`, and every air group's
     /// engagement): re-issued while it is seen, the group holds when it is lost or dead.
     /// `searched`: an air group has been sent to its lost target's last position.
-    Engage { party: Vec<UnitId>, at: Vec3, since: i32, last_seen: i32, target: Option<UnitId>, searched: bool },
+    /// `at`: where the party stands now; `sent`: where the fight order in force is aimed, which follows `at`
+    /// (H-HANDS-ATTACK-FOLLOWS).
+    Engage { party: Vec<UnitId>, at: Vec3, sent: Vec3, since: i32, last_seen: i32, target: Option<UnitId>, searched: bool },
     /// A hunt (H-MICRO-HUNT): the whole group after one unit of a party, the micro engine's to run.
     Hunt(Hunt),
     /// Following (H-HANDS-FOLLOW): the group stays beside a builder or another group of ours wherever it goes.
@@ -113,9 +115,11 @@ pub(crate) struct Group {
     pub losses: Vec<(i32, UnitDefId)>,
     pub losses_since: i32,
     pub loss_warned: bool,
-    /// Members still on their way to join (a plant's output walking to the body): not the front, not the tail,
-    /// not counted as arrived; said in the picture as reinforcements on the way (H-HANDS-GROUP-BODY).
-    pub joining: HashSet<UnitId>,
+    /// Members still on their way to join (a plant's output walking to the body, the soldiers of a group that
+    /// joined this one), each with where it was last sent: not the front, not the tail, not counted as arrived;
+    /// said in the picture as reinforcements on the way (H-HANDS-GROUP-BODY). They are sent after the body while it
+    /// moves and take the group's order when they reach it (H-HANDS-JOINERS).
+    pub joining: HashMap<UnitId, Vec3>,
     /// Gathering: closing up on its front (the `gather` move); the walk there is its task.
     pub gathering: bool,
     /// Shelling a party from a standoff: the long-reach members at the standoff, the rest between (`shell`).
@@ -171,14 +175,14 @@ pub(crate) const STRUNG_OUT: f32 = 600.0;
 
 impl Group {
     pub(crate) fn new(name: String, domain: Domain, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, members, task, last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, joining: HashSet::new(), gathering: false, shelling: false, reached: Vec::new(), met: None, scout: false, roving: false, rove_log: Vec::new() }
+        Group { name, domain, members, task, last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, joining: HashMap::new(), gathering: false, shelling: false, reached: Vec::new(), met: None, scout: false, roving: false, rove_log: Vec::new() }
     }
 
     /// The group's body toward `toward` (the goal of a walk, the nearest enemy, or nothing: then the front is the
     /// centre and the tail the member farthest from it). `None` when no member stands.
     pub(crate) fn body<'a>(&self, own: &'a [OwnUnit], toward: Option<Vec3>) -> Option<Body<'a>> {
         let units = self.units(own);
-        let (joining, mut core): (Vec<&OwnUnit>, Vec<&OwnUnit>) = units.iter().copied().partition(|u| self.joining.contains(&u.id));
+        let (joining, mut core): (Vec<&OwnUnit>, Vec<&OwnUnit>) = units.iter().copied().partition(|u| self.joining.contains_key(&u.id));
         if core.is_empty() {
             // Everybody is still on the way: the body is wherever they are.
             core = joining.clone();
@@ -356,7 +360,7 @@ impl Brain {
                     // To the nearest member standing, on ground the newcomer reaches, never the arithmetic centre
                     // (Cape Violet: the centre of a group split between a plateau and the shore below lay in deep
                     // water, and every newcomer was sent into it).
-                    let nearest = pianist.groups[i].units(own).iter().filter(|m| !pianist.groups[i].joining.contains(&m.id)).map(|m| m.pos).min_by(|a, b| a.dist2d(unit.pos).total_cmp(&b.dist2d(unit.pos)));
+                    let nearest = pianist.groups[i].units(own).iter().filter(|m| !pianist.groups[i].joining.contains_key(&m.id)).map(|m| m.pos).min_by(|a, b| a.dist2d(unit.pos).total_cmp(&b.dist2d(unit.pos)));
                     // Of the body when it stands within the adopt radius of the body's place, else a reinforcement
                     // on its way: by the nearest member a plant's stream at the yard adopted itself one unit at a
                     // time and the body's tail never left home (player-10 18:20: "its tail is 4649 behind at yard2").
@@ -366,7 +370,7 @@ impl Brain {
                         && body_at.is_none_or(|at| at.dist2d(unit.pos) > ADOPT_RADIUS)
                     {
                         let to = self.snap_for(self.walker_of(unit.def), to);
-                        pianist.groups[i].joining.insert(unit.id);
+                        pianist.groups[i].joining.insert(unit.id, to);
                         commands.push(Command::Move { unit: unit.id, to, queue: false });
                     }
                 }
@@ -417,7 +421,7 @@ impl Brain {
                 continue;
             }
             let units = group.units(own);
-            group.joining.retain(|id| group.members.contains(id));
+            group.joining.retain(|id, _| group.members.contains(id));
             // A newcomer that has reached the body is of it (or was sent nowhere: nothing stands to reach).
             let goal = match &group.task { GroupTask::Move { to, .. } => Some(*to), GroupTask::Engage { at, .. } | GroupTask::Follow { at, .. } => Some(*at), GroupTask::Hunt(h) => Some(h.at), GroupTask::Hold { .. } => None };
             if let Some(body) = group.body(own, goal) {
@@ -428,6 +432,18 @@ impl Brain {
                     // Onto the task with the rest.
                     if let Some(u) = units.iter().find(|u| u.id == id) {
                         commands.extend(group.rejoin_orders(&[u]));
+                    }
+                }
+                // The rest go after the body: each was sent to where a member stood, and a body that has moved on
+                // since left them standing at an empty place (player-35 7:46-8:28: seven Blitzes that joined a
+                // group of two walked to where the two had stood and waited there with no order for 35 s).
+                let core: Vec<Vec3> = body.core.iter().filter(|u| !group.joining.contains_key(&u.id)).map(|u| u.pos).collect();
+                for unit in &units {
+                    let Some(sent) = group.joining.get_mut(&unit.id) else { continue };
+                    let Some(nearest) = core.iter().copied().min_by(|a, b| a.dist2d(unit.pos).total_cmp(&b.dist2d(unit.pos))) else { continue };
+                    if let Some(to) = follow_step(nearest, *sent) {
+                        *sent = to;
+                        commands.push(Command::Move { unit: unit.id, to, queue: false });
                     }
                 }
             }
@@ -471,7 +487,7 @@ impl Brain {
                     // centre within 300 of its goal, so a fall-back walk stayed the base world for two minutes and
                     // the player's new stations were shown as the default and never played (Cape Violet 9:40-11:17).
                     let joining = group.joining.clone();
-                    let moving: Vec<&OwnUnit> = units.iter().copied().filter(|u| !joining.contains(&u.id) && !self.stuck.contains_key(&u.id)).collect();
+                    let moving: Vec<&OwnUnit> = units.iter().copied().filter(|u| !joining.contains_key(&u.id) && !self.stuck.contains_key(&u.id)).collect();
                     let core = if moving.is_empty() { units.clone() } else { moving };
                     let mut distances: Vec<f32> = core.iter().map(|u| u.pos.dist2d(*to)).collect();
                     distances.sort_by(f32::total_cmp);
@@ -490,7 +506,7 @@ impl Brain {
                         }
                     }
                 }
-                GroupTask::Engage { party, at, last_seen, target, searched, .. } => {
+                GroupTask::Engage { party, at, sent, last_seen, target, searched, .. } => {
                     let seen: Vec<&bot_protocol::EnemyUnit> = enemies.iter().filter(|e| party.contains(&e.id)).collect();
                     let air = group.domain == Domain::Air;
                     // A named target: the attack stands while the target is seen. Lost, a ground group holds; an air
@@ -520,6 +536,14 @@ impl Brain {
                     } else if let Some(now) = centre_of_enemies(&seen) {
                         *last_seen = frame;
                         *at = now;
+                        // The attack follows the party (H-HANDS-ATTACK-FOLLOWS): the fight order was to where it
+                        // stood at the pick, and a party that moves on left the group standing there with no order
+                        // while its task still read "attacking" (player-35 7:53-8:28).
+                        if let Some(to) = follow_step(now, *sent) {
+                            *sent = to;
+                            group.last_order = frame;
+                            commands.extend(units.iter().filter(|u| !group.joining.contains_key(&u.id)).map(|u| Command::Fight { unit: u.id, to, queue: false }));
+                        }
                     } else if frame - *last_seen > LOST_FRAMES {
                         commands.extend(group.hold_orders(&units));
                         group.task = GroupTask::Hold { since: frame, committed: false, picked: false };
@@ -705,7 +729,7 @@ impl Brain {
             None => commands.extend(units.iter().map(|u| Command::Fight { unit: u.id, to: party.at, queue: false })),
         }
         // The leash's anchor is the body's place, as the leash measures it (`tick_groups`: "the body's place, not
-        group.set_task(GroupTask::Engage { party: party.ids.clone(), at: party.at, since: frame, last_seen: frame, target, searched: false }, frame);
+        group.set_task(GroupTask::Engage { party: party.ids.clone(), at: party.at, sent: party.at, since: frame, last_seen: frame, target, searched: false }, frame);
         group.last_order = frame;
         format!("attack {} ({}) with the whole group", party.name, party.composition)
     }
@@ -778,6 +802,58 @@ mod tests {
         let soldier = own(1, 1, at(0.0));
         let group = Group::new("A".into(), Domain::Ground, vec![soldier.id], GroupTask::Follow { ward: Ward::Builder(UnitId(9)), name: "constructor_9".into(), at: at(300.0), since: 0 }, 0);
         assert!(matches!(group.rejoin_orders(&[&soldier])[..], [Command::Fight { to, .. }] if to.x == 300.0));
+    }
+
+    /// An attack on a party follows it, and a soldier on its way to join goes after the body and takes the group's
+    /// order when it gets there (player-35 7:23-8:28: the fight order stayed at where the Tick stood at the pick,
+    /// and seven Blitzes that joined walked to where the group had been; all nine stood with no order for 35 s
+    /// under a task that read "attacking").
+    #[test]
+    fn an_attack_follows_the_party_and_a_joiner_takes_the_groups_order() {
+        use super::super::fixtures::at;
+        use bot_protocol::{Resource, Snapshot};
+        let (mut brain, mut ours, mut enemies, parties) = e3();
+        let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        let mut group = Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { since: 0, committed: false, picked: false }, 0);
+        let mut commands = Vec::new();
+        Brain::engage_group(&mut group, &parties[0], &ours[..12], None, 30, &mut commands);
+        // The last two are still on their way, far behind, sent to where a member stood then.
+        let joiners = [ours[12].id, ours[13].id];
+        for (id, unit) in joiners.iter().zip(&mut ours[12..]) {
+            unit.pos = at(1000.0, 4000.0);
+            group.joining.insert(*id, at(2000.0, 3000.0));
+        }
+        pianist.groups.push(group);
+        brain.pianist = Some(pianist);
+        let none = UnitDefId(99);
+        let kit = Kit { commander: none, extractor: none, converter: none, lab: none, turret: none, constructor: none, plant: none, vehicle_constructor: none, advanced_lab: none, advanced_constructor: none, advanced_extractor: none, raider: none, line: none, resurrector: none };
+        let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+        let tick = |frame: i32, ours: &[OwnUnit], enemies: &[bot_protocol::EnemyUnit]| Tick { frame, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.to_vec(), allies: Vec::new(), enemies: enemies.to_vec(), wrecks: None } };
+        // The party has not moved: no order. The joiners are sent after the body, which is not where they were sent.
+        let mut commands = Vec::new();
+        brain.keep_groups(&tick(60, &ours, &enemies), &kit, &mut commands);
+        assert!(!commands.iter().any(|c| matches!(c, Command::Fight { .. })), "{commands:?}");
+        let moved: Vec<UnitId> = commands.iter().filter_map(|c| if let Command::Move { unit, to, .. } = c { (to.x > 4000.0).then_some(*unit) } else { None }).collect();
+        assert_eq!(moved, joiners, "{commands:?}");
+        // The party runs 600 east: the twelve of the body are sent to fight where it is now, the joiners are not.
+        for e in enemies.iter_mut().take(3) {
+            e.pos.x += 600.0;
+        }
+        let mut commands = Vec::new();
+        brain.keep_groups(&tick(90, &ours, &enemies), &kit, &mut commands);
+        let fights: Vec<(UnitId, f32)> = commands.iter().filter_map(|c| if let Command::Fight { unit, to, .. } = c { Some((*unit, to.x)) } else { None }).collect();
+        assert_eq!(fights.len(), 12, "{commands:?}");
+        assert!(fights.iter().all(|(unit, x)| !joiners.contains(unit) && (*x - 5102.0).abs() < 2.0), "{fights:?}");
+        // It stands: no order again.
+        let mut commands = Vec::new();
+        brain.keep_groups(&tick(120, &ours, &enemies), &kit, &mut commands);
+        assert!(commands.is_empty(), "{commands:?}");
+        // A joiner reaches the body: it is of it, with the group's order.
+        ours[12].pos = at(4200.0, 1950.0);
+        let mut commands = Vec::new();
+        brain.keep_groups(&tick(150, &ours, &enemies), &kit, &mut commands);
+        assert!(matches!(commands[..], [Command::Fight { unit, to, .. }] if unit == joiners[0] && (to.x - 5102.0).abs() < 2.0), "{commands:?}");
+        assert!(!brain.pianist.as_ref().unwrap().groups[0].joining.contains_key(&joiners[0]));
     }
 
     #[test]

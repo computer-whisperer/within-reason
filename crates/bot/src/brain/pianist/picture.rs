@@ -665,7 +665,7 @@ impl Brain {
         }
     }
 
-    /// A group's odds against a party, priced on the part of it that is in the fight when the group is strung out
+    /// A group's odds against a party, priced on the part of it that is near the party when the group is strung out
     /// (H-HANDS-GROUP-BODY): the core members within `NEAR` of the party, with words saying how many that is and
     /// where the rest are. A compact group is priced whole. Game 3, 8:35: 17 of 48 Blitzes were in B3 under two
     /// Beamers and five Welders while the odds were priced on all 48; game 9: 11-13 Pounders inside Bull reach while
@@ -687,7 +687,7 @@ impl Brain {
                 let behind = body.core.len() - in_fight.len();
                 let farthest = body.core.iter().map(|u| u.pos.dist2d(party.at)).fold(0.0, f32::max);
                 let verdict = self.odds_words(&in_fight, party, enemies);
-                let words = format!("for the {} of its {} soldiers in the fight, {verdict}; the other {behind} are {:.0}-{farthest:.0} behind and not in it yet", in_fight.len(), body.core.len(), NEAR);
+                let words = format!("for the {} of its {} soldiers near it, {verdict}; the other {behind} are {:.0}-{farthest:.0} behind and not near it yet", in_fight.len(), body.core.len(), NEAR);
                 (verdict, words)
             }
         };
@@ -1360,9 +1360,13 @@ impl Brain {
                 GroupTask::Hold { since, committed, .. } => format!("standing with no order for {}{}", ago(*since), if *committed { ", fighting everything here, turrets included, since it arrived by advancing" } else { "" }),
                 GroupTask::Move { since, .. } if group.gathering => format!("gathering on its front for {}: the rest close up on it ({} of {} within {:.0}; the tail {:.0} behind)", ago(*since), body.core.iter().filter(|u| u.pos.dist2d(body.front) <= super::groups::STRUNG_OUT).count(), body.core.len(), super::groups::STRUNG_OUT, body.length),
                 GroupTask::Move { to, place, fight, since } => format!("{} to {place}: {}, for {}", if *fight { "advancing" } else { "walking" }, shape(*to), ago(*since)),
+                // Told to attack is not attacking: the entry says where the group stands against the party
+                // (H-HANDS-STANDING).
                 GroupTask::Engage { party, at, since, target, .. } => {
-                    let name = parties.iter().find(|p| p.ids.iter().any(|id| party.contains(id))).map_or("a party now out of sight".to_string(), |p| p.name.clone());
-                    format!("attacking {name}{} at {}, for {}", if target.is_some() { " (one named unit of it, until it dies)" } else { "" }, self.place_words(&places, *at), ago(*since))
+                    let aimed = parties.iter().find(|p| p.ids.iter().any(|id| party.contains(id)));
+                    let name = aimed.map_or("a party now out of sight".to_string(), |p| p.name.clone());
+                    let standing = aimed.map_or(String::new(), |p| format!(": {}", self.standing(&body.core, p, &snapshot.enemies).words()));
+                    format!("told to attack {name}{} at {}, {} ago{standing}", if target.is_some() { " (one named unit of it, until it dies)" } else { "" }, self.place_words(&places, *at), ago(*since))
                 }
                 GroupTask::Follow { name: ward, since, at, .. } => format!("following {ward} for {} ({:.0} from it)", ago(*since), body.at.dist2d(*at)),
                 GroupTask::Hunt(hunt) => format!("hunting {} since {} ago (its quarry {} at {})", hunt.party, ago(hunt.since), if frame - hunt.last_seen < FRAMES_PER_SECOND { "seen" } else { "last seen" }, self.place_words(&places, hunt.at)),
