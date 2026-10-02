@@ -127,7 +127,13 @@ walked leg by leg from what the group has reached. Each actor's entry carries wh
 Jev remembers nothing: `reached` (the named places it has come to, with the clock), `last_pick` (what the hands last
 chose for it, what that left, and how long ago), and in your report `best_rated` (the two moves Jev rated best for
 it when it was last asked, with the ratings; 0.5 and over goes to the pick). When `best_rated` is not what your
-paragraph for that actor means, the paragraph is not being read as you meant it: rewrite it. There is no other
+paragraph for that actor means, the paragraph is not being read as you meant it: rewrite it. When a group's entry
+carries `reads`, the hands are reading each packet once for whose places are whose (a saving that is switched on or
+off per game): `reads` lists the places Jev read as that group's, and says "NO place to step back to" when no
+sentence gave it one. While it is on, a walk or an advance to a place not read as the group's, a building type or a
+spot not read as a builder's, and a `join` or a `follow` the packet does not tell the unit to make are not offered
+until your next packet; so name each group's places, its step-back place, and whom it joins or follows, in its own
+paragraph, headed by its name. There is no other
 channel: every move of a group, a builder or a factory is a pick of Jev's over that unit's menu, read against your
 packet, or a step of your own list.
 Name unit types in the packet by their internal names, the opponent's as well as ours (`armpw`, `armflea`, `armfav`,
