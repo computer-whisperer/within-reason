@@ -16,6 +16,20 @@ use super::{Group, GroupTask, Task};
 
 /// A defence ordered at a place stands this far toward the enemy from it, covering the approach.
 const DEFENCE_FORWARD: f32 = 120.0;
+/// A build's site within this of a place is the build a list step names at that place (a defence stands
+/// `DEFENCE_FORWARD` off it, the engine's site search a building's width more).
+const SAME_SITE: f32 = 250.0;
+/// Whether a build (the spot it takes, the site asked for) is the one a list step names: at the spot the step
+/// names, or within `SAME_SITE` of its place (`Some(None)`: a place the picture does not know, which is no site);
+/// a step naming neither is any build of its type.
+fn at_the_steps_site(on: Option<usize>, near: Vec3, spot: Option<usize>, place: Option<Option<Vec3>>) -> bool {
+    match (spot, place) {
+        (Some(i), _) => on == Some(i),
+        (None, Some(at)) => at.is_some_and(|at| at.dist2d(near) < SAME_SITE),
+        (None, None) => true,
+    }
+}
+
 /// A factory frame of the type a builder is told to build, standing unfinished within this of it, is helped up
 /// instead of a second frame being started (game 10: a second advanced vehicle plant at 18:35, 224 from the first
 /// at 0%, abandoned at 19:15; the user: two seats gifting metal does not help a seat without the build power).
@@ -146,9 +160,21 @@ impl Brain {
             Some(Task::Assist { lab, .. }) if !queue => (None, Some(*lab)),
             _ => (None, None),
         };
+        // For a list step the same build is the same type at the same place. By type alone, a list's `extractor
+        // spot_62`, `extractor spot_54` were both taken as the extractor the pick had the builder walking to at
+        // another spot, one step a second (fable-2-medium, 2:33; its player: "skipped extractor 62 and 54 as
+        // 'already under way' though it had not arrived"; about half of 43 such steps in four games named another
+        // place, five tier-2 extractors in five seconds in player-32). A step for another place replaces the
+        // unstarted order, as a list set after it does (`play_lists`).
+        let same_site = |spot: Option<usize>, named: Option<&str>| match (list_step, self.pianist.as_ref().and_then(|p| p.tasks.get(&id))) {
+            (None, _) => true,
+            (Some(_), Some(Task::Build { spot: on, near, .. })) => at_the_steps_site(*on, *near, spot, named.map(|n| place(n).map(|p| p.at))),
+            (Some(_), _) => false,
+        };
         match response {
-            Response::Building(def) | Response::BuildingAt(def, _) if started_def == Some(*def) => return None,
-            Response::Extractor(_) if started_def.is_some_and(|d| self.world.is_extractor_def(d)) => return None,
+            Response::Building(def) if started_def == Some(*def) => return None,
+            Response::BuildingAt(def, named) if started_def == Some(*def) && same_site(None, Some(named)) => return None,
+            Response::Extractor(i) if started_def.is_some_and(|d| self.world.is_extractor_def(d)) && same_site(Some(*i), None) => return None,
             Response::Assist(target) if helping == Some(*target) => return None,
             _ => {}
         }
@@ -535,4 +561,26 @@ fn frame_since(pianist: Option<&super::Pianist>, builder: UnitId, target: UnitId
 
 fn frame_now(tick: &Tick) -> i32 {
     tick.frame
+}
+
+#[cfg(test)]
+mod tests {
+    use super::at_the_steps_site;
+    use bot_protocol::Vec3;
+
+    /// A list step is the build under way only at the same place: `extractor spot_54` is not the extractor the
+    /// builder is walking to at spot_62, and `armllt spot_43` is the turret ordered beside spot_43, not one elsewhere.
+    #[test]
+    fn a_list_step_is_the_build_under_way_only_at_its_own_place() {
+        let at = |x: f32, z: f32| Vec3 { x, y: 0.0, z };
+        assert!(at_the_steps_site(Some(62), at(576.0, 4608.0), Some(62), None));
+        assert!(!at_the_steps_site(Some(62), at(576.0, 4608.0), Some(54), None));
+        assert!(!at_the_steps_site(None, at(576.0, 4608.0), Some(54), None), "a build that is no extractor's spot");
+        // A turret stands up to 120 toward the enemy from the place named, the site search a little more.
+        assert!(at_the_steps_site(None, at(2130.0, 3360.0), None, Some(Some(at(2032.0, 3360.0)))));
+        assert!(!at_the_steps_site(None, at(1216.0, 3408.0), None, Some(Some(at(2032.0, 3360.0)))));
+        assert!(!at_the_steps_site(None, at(2032.0, 3360.0), None, Some(None)), "a place the picture does not know");
+        // A step naming no place (`armsolar`) is any build of its type.
+        assert!(at_the_steps_site(None, at(100.0, 100.0), None, None));
+    }
 }
