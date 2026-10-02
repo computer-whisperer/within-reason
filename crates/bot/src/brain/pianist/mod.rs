@@ -112,9 +112,6 @@ pub struct Pianist {
     pub(super) queued: HashMap<UnitId, Task>,
     /// The player's lists of steps per builder (by actor name), done by the bot without asking (H-HANDS-SCRIPT).
     pub(super) scripts: HashMap<String, VecDeque<String>>,
-    /// What the hands have ordered each builder to build, in order, by unit name: a list arriving after the hands
-    /// began the opening skips the leading steps already ordered.
-    pub(super) ordered: HashMap<UnitId, Vec<String>>,
     /// The list step each builder is on (its words, and the clock of the task it became): diverted from that task
     /// by the pass, the builder gets the step back at the front of its list.
     pub(super) list_steps: HashMap<UnitId, (String, i32)>,
@@ -123,6 +120,9 @@ pub struct Pianist {
     pub(super) list_held: HashSet<UnitId>,
     /// The list step a queued task came from (`queued`), moved to `list_steps` when the task is promoted.
     pub(super) queued_steps: HashMap<UnitId, String>,
+    /// The builders whose queued task was ordered before the player replaced or cancelled their list: it is dropped
+    /// when its turn comes (`take_queued`).
+    pub(super) stale_queue: HashSet<UnitId>,
     /// Units a lab has been told to build and not yet started, oldest first.
     pub(super) lab_queue: HashMap<UnitId, Vec<(UnitDefId, i32)>>,
     pub(super) groups: Vec<Group>,
@@ -359,9 +359,38 @@ mod allowance_tests {
 }
 
 impl Pianist {
+    /// The player has replaced (`new_list`) or cancelled a builder's list: the old list is gone whole. The hold the
+    /// pick's way out put on it ends, the step its builder is on no longer returns to a list when the pass diverts
+    /// the builder, and what is queued behind the build in progress is marked to be dropped when its turn comes
+    /// (`take_queued`): whatever is queued under a new list, a list's own step under a cancelled one.
+    pub(super) fn list_replaced(&mut self, builder: UnitId, new_list: bool) {
+        self.list_held.remove(&builder);
+        self.list_steps.remove(&builder);
+        if self.queued.contains_key(&builder) && (new_list || self.queued_steps.contains_key(&builder)) {
+            self.stale_queue.insert(builder);
+        }
+    }
+
+    /// The builder's queued task when its turn comes (the build before it is finished, or the engine has begun the
+    /// queued one): it becomes the task, or, queued before the player replaced or cancelled the builder's list, it
+    /// is dropped with a stop and said. The law (2026-10-01): a new list leaves the build in progress to finish and
+    /// drops what was queued behind it (player-32-hard, 0:17: the opening list queued its third extractor half a
+    /// second before the list of the 0:10 turn came into force; the commander built it, then the new list's, four
+    /// extractors for the three both lists asked for, and the plant began at 1:34 for 1:08).
+    pub(super) fn take_queued(&mut self, builder: UnitId, name: &str, frame: i32) -> Option<Command> {
+        if !self.stale_queue.remove(&builder) {
+            return self.promote(builder, frame);
+        }
+        self.queued.remove(&builder)?;
+        let what = self.queued_steps.remove(&builder).map_or("the build".to_string(), |step| format!("the step '{step}'"));
+        self.tasks.remove(&builder);
+        self.done.push(format!("{} {name}: dropped {what} its old list had queued behind the build it was on: you have replaced or cancelled that list since", picture::clock(frame)));
+        Some(Command::Stop { unit: builder })
+    }
+
     /// The builder's queued task becomes its task, its clock starting now. Helping the lab is the one task the engine
     /// could not hold queued (the guard order has no queue flag), so it is ordered here, as the build finishes.
-    pub(super) fn promote(&mut self, builder: UnitId, frame: i32) -> Option<Command> {
+    fn promote(&mut self, builder: UnitId, frame: i32) -> Option<Command> {
         let mut next = self.queued.remove(&builder)?;
         if let Some(step) = self.queued_steps.remove(&builder) {
             self.list_steps.insert(builder, (step, frame));
@@ -448,10 +477,10 @@ impl Pianist {
             party_memory: std::cell::RefCell::new(Vec::new()),
             recent: VecDeque::new(),
             scripts: HashMap::new(),
-            ordered: HashMap::new(),
             list_steps: HashMap::new(),
             list_held: HashSet::new(),
             queued_steps: HashMap::new(),
+            stale_queue: HashSet::new(),
             done: Vec::new(),
             log,
             logged_instructions: String::new(),
@@ -599,7 +628,7 @@ impl Brain {
             return;
         }
         self.pianist.as_mut().expect("pianist mode").last_ask_frame = tick.frame;
-        self.take_lists(tick, kit, commands);
+        self.take_lists(tick, commands);
         let picture = self.picture(tick, kit);
         {
             // A changed packet is asked afresh: its frame is part of the signature.
@@ -629,7 +658,7 @@ impl Brain {
     }
 
     /// The player's `queue` calls since the last pass: lists set or cancelled per builder.
-    fn take_lists(&mut self, tick: &Tick, kit: &Kit, commands: &mut Vec<Command>) {
+    fn take_lists(&mut self, tick: &Tick, commands: &mut Vec<Command>) {
         let Some(shared) = &self.strategist else { return };
         let lists = std::mem::take(&mut *shared.queues.lock().unwrap());
         let mut others: BTreeMap<String, Option<Vec<String>>> = BTreeMap::new();
@@ -659,29 +688,10 @@ impl Brain {
                     commands.push(Command::Stop { unit });
                     let pianist = self.pianist.as_mut().expect("pianist mode");
                     pianist.tasks.remove(&unit);
+                    // The stop empties the engine's queue: what was queued behind the build is gone with it.
+                    pianist.queued.remove(&unit);
+                    pianist.queued_steps.remove(&unit);
                     pianist.done.push(format!("{} {name}: stopped what it was doing on your `stop`", picture::clock(tick.frame)));
-                }
-                if s.is_empty() {
-                    steps = None;
-                }
-            }
-            // The first list of the game for a builder skips the leading steps the hands' default opening has
-            // already built (a step matches a build by kind: `extractor` the extractor, else the unit's name).
-            if let Some(s) = steps.as_mut()
-                && !self.pianist.as_ref().expect("pianist mode").script_frame.contains_key(&name)
-                && let Some(unit) = self.unit_by_handle(&name, &tick.snapshot.own_units).map(|u| u.id)
-            {
-                let extractor = self.world.def(kit.extractor).map(|d| d.name.clone()).unwrap_or_default();
-                let ordered = self.pianist.as_ref().expect("pianist mode").ordered.get(&unit).cloned().unwrap_or_default();
-                let matches = |step: &String, name: &String| {
-                    let kind = step.split_whitespace().next().unwrap_or_default();
-                    (kind == "extractor" && *name == extractor) || kind == name
-                };
-                let k = s.iter().zip(ordered.iter()).take_while(|(step, name)| matches(step, name)).count();
-                if k > 0 {
-                    let skipped: Vec<String> = s.drain(..k).collect();
-                    let pianist = self.pianist.as_mut().expect("pianist mode");
-                    pianist.done.push(format!("{} {name}: its list arrived after the hands had built its first {k} steps ({}); it goes on from the next", picture::clock(tick.frame), skipped.join(", ")));
                 }
                 if s.is_empty() {
                     steps = None;
@@ -691,7 +701,7 @@ impl Brain {
             let listed = tick.snapshot.own_units.iter().find(|u| self.actor_name(u.id) == name).map(|u| u.id);
             let pianist = self.pianist.as_mut().expect("pianist mode");
             if let Some(id) = listed {
-                pianist.list_held.remove(&id);
+                pianist.list_replaced(id, steps.is_some());
             }
             pianist.script_frame.insert(name.clone(), tick.frame);
             match steps {
@@ -1123,6 +1133,7 @@ impl Brain {
         pianist.produced_by.retain(|id, _| own.iter().any(|u| u.id == *id));
         pianist.queued.retain(|id, _| own.iter().any(|u| u.id == *id));
         pianist.queued_steps.retain(|id, _| own.iter().any(|u| u.id == *id));
+        pianist.stale_queue.retain(|id| pianist.queued.contains_key(id));
         pianist.lab_queue.retain(|id, _| own.iter().any(|u| u.id == *id));
         for event in &tick.events {
             match *event {
@@ -1133,7 +1144,7 @@ impl Brain {
                     // A frame appearing while the task is a started build is the queued build beginning (the
                     // finished event promoted it already, unless the frame in progress died): promote now.
                     if matches!(pianist.tasks.get(&builder), Some(Task::Build { started: true, .. })) {
-                        commands.extend(pianist.promote(builder, frame));
+                        commands.extend(pianist.take_queued(builder, &self.actor_name(builder), frame));
                     }
                     // The frame stands where the engine put it, up to a building's width from the point ordered
                     // (pianist-player-6: two windmills 200 from their ordered point were not seen as started, and
@@ -1172,7 +1183,7 @@ impl Brain {
                             .collect();
                         for builder in builders {
                             if pianist.queued.contains_key(&builder) {
-                                commands.extend(pianist.promote(builder, frame));
+                                commands.extend(pianist.take_queued(builder, &self.actor_name(builder), frame));
                             } else {
                                 pianist.tasks.remove(&builder);
                             }

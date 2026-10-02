@@ -1,7 +1,8 @@
 //! The player's lists (H-HANDS-SCRIPT, the `queue` tool; and the counted entries of a factory's `produce` list, made
 //! in order, `play_sequences`): a builder with a list from the player is not in the pass;
 //! the bot orders the next step when the builder is free, or when the build in progress is 60% done (queued behind
-//! it), and skips a step it cannot do. An enemy on the builder puts it back in the pass until that is over, and a
+//! it), and skips a step it cannot do. A new list replaces the old one whole: the build in progress finishes and
+//! what the old list queued behind it is dropped (`Pianist::list_replaced`, `take_queued`). An enemy on the builder puts it back in the pass until that is over, and a
 //! builder the pass has sent away from an enemy takes no step while it is still in the pass for one
 //! (`Pianist::list_is_held`). A bypass, not a decider: nothing in the pass reads a list
 //! (`docs/design/2026-09-26-one-pass.md` §6).
@@ -243,6 +244,43 @@ mod tests {
         assert!(pianist.list_is_held(builder, true));
         assert!(!pianist.list_is_held(builder, false));
         assert!(!pianist.list_is_held(builder, true));
+    }
+
+    /// A new list drops what the old one had queued behind the build in progress, when that build is finished: the
+    /// builder is stopped and free for the new list's step, and it is said. Without a new list the queued task
+    /// becomes the task as before.
+    #[test]
+    fn a_step_the_old_list_queued_is_dropped_for_the_new_list() {
+        use super::super::Task;
+        use bot_protocol::{Command, UnitDefId, Vec3};
+        let build = |started| Task::Build { def: UnitDefId(7), near: Vec3::default(), spot: None, ordered: 100, started };
+        let queued = |pianist: &mut super::Pianist, builder| {
+            pianist.tasks.insert(builder, build(true));
+            pianist.queued.insert(builder, build(false));
+            pianist.queued_steps.insert(builder, "extractor".to_string());
+            pianist.list_steps.insert(builder, ("extractor".to_string(), 100));
+        };
+        let mut pianist = super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        let (kept, replaced, cancelled, unlisted) = (UnitId(1), UnitId(2), UnitId(3), UnitId(4));
+        for builder in [kept, replaced, cancelled, unlisted] {
+            queued(&mut pianist, builder);
+        }
+        // The pass's own queued build, on a builder without a list: a cancel of no list leaves it.
+        pianist.queued_steps.remove(&unlisted);
+        pianist.list_replaced(replaced, true);
+        pianist.list_replaced(cancelled, false);
+        pianist.list_replaced(unlisted, false);
+        assert!(!pianist.list_steps.contains_key(&replaced), "the old list's step no longer returns to a list");
+        assert!(pianist.take_queued(kept, "commander", 200).is_none());
+        assert!(matches!(pianist.tasks.get(&kept), Some(Task::Build { started: false, ordered: 200, .. })));
+        assert_eq!(pianist.list_steps.get(&kept), Some(&("extractor".to_string(), 200)));
+        assert!(pianist.take_queued(unlisted, "constructor_4", 200).is_none());
+        assert!(matches!(pianist.tasks.get(&unlisted), Some(Task::Build { started: false, .. })));
+        for builder in [replaced, cancelled] {
+            assert!(matches!(pianist.take_queued(builder, "commander", 200), Some(Command::Stop { unit }) if unit == builder));
+            assert!(!pianist.tasks.contains_key(&builder) && !pianist.queued.contains_key(&builder) && !pianist.queued_steps.contains_key(&builder));
+        }
+        assert!(pianist.done.last().unwrap().contains("commander: dropped the step 'extractor' its old list had queued"), "{:?}", pianist.done);
     }
 
     /// A unit is under fire for three seconds after its last hit, not for the rest of the game.

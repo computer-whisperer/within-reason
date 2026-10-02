@@ -292,14 +292,7 @@ impl Brain {
             _ => {}
         }
         let pianist = self.pianist.as_mut().expect("pianist mode");
-        if matches!(response, Response::RetreatHome) {
-        }
         if let Some(task) = task {
-            if let Task::Build { def, .. } = &task {
-                if let Some(d) = self.world.def(*def) {
-                    pianist.ordered.entry(id).or_default().push(d.name.clone());
-                }
-            }
             if queue {
                 pianist.queued.insert(id, task);
                 did = did.map(|d| format!("next, queued: {d}"));
