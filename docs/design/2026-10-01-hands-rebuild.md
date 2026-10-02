@@ -1,6 +1,6 @@
 # The hands, rebuilt: one menu per actor (target design, 2026-10-01)
 
-**Status.** Draft 5, for the user's approval to build. Nothing is built and nothing is deleted. Drafts 1 to 4 went
+**Status.** Approved to build by the user on 2026-10-01 ("This looks good, let's begin deletion and implementation"); §14 holds the build's decisions. Draft 5 as approved: Drafts 1 to 4 went
 through three reviews and a set of offline replays of recorded seconds; draft 5 folds in the user's rulings of
 2026-10-01 on cost and on how to build it (§8); §13 says what each step changed. The row by row disposition of what
 the code does today is in `2026-10-01-hands-rebuild-cut-line.md`; the token budget is in
@@ -341,3 +341,48 @@ who would write packets for it; my own pass against the inventory. Replays as in
 | Savings baked into the design cannot be told apart when a game goes wrong | the user, 2026-10-01 | draft 5: a base version that asks everything, and layers with a switch and an audit each |
 | The decode was demoted to an option in draft 4 | the user, 2026-10-01: the principle was not bad; a decode of the existing orders, not a second tool call | draft 5: the decode is the `fuse` layer, held to questions about the instructions alone and to clear answers |
 | Cutting the rules text in the same game as the new menu confounds the two | the budget study: the text steers | draft 5: the base keeps its judgments; the cut is a later step |
+
+## 14. The build: what was taken as decided, and what the code needed that the note did not say
+
+The user approved the note without answering §12, so each question is built as the note's body has it, and each is
+one function to change:
+
+1. Detachments come from the ladder (1, 2, 4, 8 below the group's size), as §3 has it.
+2. `send N` is aimed at a party only.
+3. No movement to a place nobody named.
+4. The cut line's "to rule" rows are built as proposed there, with one exception: an extractor "beside itself" is the
+   free spot its builder reaches soonest (what a bare `extractor` list step already means), so a builder whose
+   packet names no spot can still take metal. The nearest-two and the safe spot go.
+
+Not done before code, against §10: the four small replays (the ladder's mass across sizes, a builder's way out,
+situation 12, the decode's other questions). They need the new menu's own lines, so they are run on the first
+game's log instead of on lines written by hand.
+
+What the code needed:
+
+- **The course is `stay`.** A move that is the actor's course in force is not listed a second time; world 1 is
+  every actor at `stay`. Nothing is "current" and nothing is settled between menus.
+- **Which moves go to the pick** (one sentence, as a law): a move goes to the pick when Jev rated it 0.5 or over
+  and its opener is open (the actor's `change`, or the `answer` of the party it is aimed at); an idle actor's best
+  move goes at 0.3 when none reaches 0.5; and a party Jev says needs answering puts forward the two best-rated
+  moves aimed at it whatever their rating. The last clause is today's rule for a party's answers
+  (K-jev-a-response-opens-by-the-party-noul-not-its-own: an answer's own noul sits under the bar while the party's
+  is high), kept. Of an actor's moves the two best go on.
+- **"Left to nobody"** in a world's line lists only the parties whose `answer` Jev rated 0.5 or over: with every
+  party a question, his army at home is not our neglect.
+- **`fight to` a place where his buildings are known is worded as the attack on them** ("attacks his buildings at
+  spot_9: ..."). It is one order with one footwork; two moves for it would be near-synonyms.
+- **No-ops are left out as things the unit cannot do**: `go` to where it stands, `hold` for a group already holding
+  by a pick, `join` with itself. `gather` is always listed for a group of two or more; its words say how far the tail is.
+- **Named places** are: every mark; every spot, passage or `home` the packet's text names; every spot a list step
+  names. The picture gains a place for every spot with buildings of his within 500, so that `attack` and `shell`
+  can be aimed at all of them.
+- **A listed builder** has no menu unless it is threatened (hit in the last 3 s, or a party within 800), as today;
+  then only its ways out. A pick's way out holds its list while the threat lasts (today: walks only; now `go`,
+  `follow` and `attack`).
+- **A builder's order the engine dropped** (the unit idle, its task not done, the order's grace over) ends at once
+  and is said; the 40 s and 10 s clocks go.
+- **The picture sent** is today's (the diet level, `--hands-effort`, and the pick's cut state): they have a switch
+  already and are not counted among §8's layers.
+- **Built first:** the base and the `news` layer with its switch and audit. The other layers follow §8's order, each
+  after the game before it is read. Naming a layer that is not built yet stops the bot at start.
