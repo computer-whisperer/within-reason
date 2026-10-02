@@ -454,3 +454,17 @@ groups' picks fell from 62 in ten minutes to 15 and 30. `same` skipped 13% witho
    reading put the ordered size at 0.27 and the forbidden ones at 0.95, so under `fuse` the ordered size is asked
    each second and the others are marked without asking.
 4. *Which buildings go at which places* (§14): a bound I put on the menu after the first game.
+5. *A party's two best answers go to the pick whatever their rating* (§14's clause, carried over from the old
+   party menus and never ruled). In player-34, 122 of the 291 picks that sent a group at a party were of a move
+   rated under 0.5, carried by the party's `answer`. At 12:56 the main army of 45, advancing on its order and
+   closed by the `news` layer, was turned to shell one Pawn (the move rated 0.35, the Pawn's `answer` 0.53); it
+   walked from C6 to B3, and the fight that decided the game began a minute later with the army strung from our
+   base to D4 (the game's review, `review.md` in the match directory; the counts checked against the log). Under
+   the old menus the same clause reached only the three nearest groups. The alternatives, each one sentence: a
+   move aimed at a party goes to the pick only when it is itself rated 0.5 or over; or the clause holds only for a
+   detachment, never for a whole group's attack or shelling.
+6. *The body joins its own detachment* (the same review): from 4:44 a raid of six sent two after a Tick and the
+   other four joined them a second later; 98 of the game's 184 groups lived under ten seconds, and 45 of the 70
+   group names in the packets of 2:40 to 11:50 were gone before the packet landed or within 30 s of it, so the
+   player's per-group paragraphs spoke to groups that no longer existed. With `fuse` on a join the packet does not
+   order is not offered; whether that cures it is what player-35 is for.
