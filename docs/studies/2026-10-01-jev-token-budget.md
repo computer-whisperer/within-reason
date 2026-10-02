@@ -294,7 +294,11 @@ packet does not name (504 answers at 0.5 or over of 29,729, 76 walks played).
 - *An idle actor not asked again for 5 s after a menu with nothing at 0.5* (counted, not replayed): 5.1M of the
   text, and for groups something was at 0.5 or over in 185 of the 735 asks it would skip.
 
-With §8's three, every trim of the questions' words tried so far has moved the answers; what is left is asking
+- *The pick's picture cut to the actors its questions name* (`run/jev_pick_rules_ab.py`, 120 split picks of
+  player-38): 15% of a pick. The second stage gave the recorded choice in 548 of 578 against 564 asked again
+  unchanged (the first stage 127 of 146 against 137), and took 265 changes against 251.
+
+With §8's three, every trim of the questions' words or of the picture tried so far has moved the answers; what is left is asking
 fewer actors or fewer moves.
 
 **Found, not changed.** The design's news for an actor (§4, "When things are asked") is its course *ended*; the
