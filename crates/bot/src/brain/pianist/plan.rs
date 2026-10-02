@@ -911,6 +911,18 @@ impl Brain {
                 if let Some(p) = picture.parties.iter().filter(|p| p.at.dist2d(place.at) < AHEAD).min_by(|a, b| a.at.dist2d(place.at).total_cmp(&b.at.dist2d(place.at))) {
                     ahead.push(format!("{} ({}{}) at it: {}", p.name, p.composition, under(p), self.group_odds(&body, p, enemies, &tick.snapshot.allies).0));
                 }
+                // A stop of the group's route where nothing of his is on record says so, with the age of the look
+                // (H-SCOUT-GLANCE; player-33, 5:52 to 7:54: six stops of a raid route, each seen empty three
+                // minutes before, read like any other place). Not for a spot in sight now.
+                if ahead.is_empty() && on_route(place)
+                    && let Some(spot) = place.spot
+                {
+                    match self.spot_seen(spot) {
+                        Some(seen) if frame - seen >= 10 * FRAMES_PER_SECOND => ahead.push(format!("nothing of his was there when last seen, {} ago", super::picture::clock(frame - seen))),
+                        Some(_) => {}
+                        None => ahead.push("never seen: nobody knows what stands there".to_string()),
+                    }
+                }
                 let ahead = if ahead.is_empty() { String::new() } else { format!("; ahead: {}", ahead.join("; ")) };
                 let words = if fight {
                     format!("{name} advances to {} ({} away), fighting on the way{ahead}{leave}", place.name, distance_words(centre.dist2d(place.at)))

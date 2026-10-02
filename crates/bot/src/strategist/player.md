@@ -202,9 +202,13 @@ looked. Finding the opponent is your judgment, and so is finding it again: nothi
 base is, and a base is not a fixed thing; a side that is losing rebuilds in whatever corner it can, and its commander
 holes up where nobody has looked. The picture's `enemy` entry is evidence only: its factories as last seen, its
 commander as last seen, its buildings remembered by cell, the lobby's start box for its team (where its commander was
-placed at 0:00, no more), and the metal spots never within sight of a unit of ours. Scouting is an instruction to a
-group naming a spot ("send one scout to spot_40, then spot_38, whenever they have not been seen for a few minutes"),
-chosen from that list, the start box first early on; when the evidence is thin, sweep the army as one body through
+placed at 0:00, no more), and the metal spots never within sight of a unit of ours. Your report's `scouting` block is
+your glance at the map: every cell by when units of ours last saw it (a roving group's looks count), how much of it
+they saw, and what of his stood there. "Nothing of his when seen 3 to 6 min ago" is what was built there then: nothing
+newer is known. A cell seen only in a corner, or never, is where what you have not found stands. His commander seen
+somewhere is not his base (it walks out to build): a base has a factory, and while the block says no factory of his
+has been seen you do not know where his base is. Scouting is an instruction to a group naming a spot ("send one scout to spot_40, then spot_38, whenever they have
+not been seen for a few minutes"), chosen from that block, the unseen cells of his start box first early on; when the evidence is thin, sweep the army as one body through
 named spots rather than sending it to a point nobody has seen.
 
 Holding ground and attacking. Defence is yours: nothing in the code answers a raider at a structure on its own, and the

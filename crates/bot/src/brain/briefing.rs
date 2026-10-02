@@ -596,12 +596,7 @@ impl Brain {
             enemy_buildings_metal: self.enemy_buildings.values().filter_map(|(def, _, _)| self.world.def(*def)).map(|d| d.metal_cost).sum::<f32>() as u32,
             seconds_since_turn: Some(shared.last_turn_frame.load(std::sync::atomic::Ordering::Relaxed)).filter(|at| *at > 0).map(|at| (tick.frame - at) / FRAMES_PER_SECOND),
             enemy_start_boxes: self.world.hello.start_boxes.iter().filter(|b| b.ally_team != self.world.hello.ally_team).map(|b| self.world.box_cells(b)).collect(),
-            never_looked: {
-                let boxes: Vec<&bot_protocol::StartBox> = self.world.hello.start_boxes.iter().filter(|b| b.ally_team != self.world.hello.ally_team).collect();
-                let mut never: Vec<(f32, usize)> = self.world.hello.metal_spots.iter().enumerate().filter(|(i, _)| self.spot_seen(*i).is_none()).map(|(i, s)| (s.dist2d(self.home), i)).collect();
-                never.sort_by(|a, b| a.0.total_cmp(&b.0));
-                never.into_iter().map(|(_, i)| { let s = self.world.hello.metal_spots[i]; (i, self.place(s), boxes.iter().any(|b| b.contains(s))) }).collect()
-            },
+            scouting: self.scouting(tick.frame),
             enemy_spots: {
                 let mut spots: Vec<(f32, usize)> = self.world.hello.metal_spots.iter().enumerate().filter(|(_, s)| held(**s, &enemy_extractors)).map(|(n, s)| (s.dist2d(self.home), n)).collect();
                 spots.sort_by(|a, b| a.0.total_cmp(&b.0));

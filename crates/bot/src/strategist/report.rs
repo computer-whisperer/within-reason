@@ -3,7 +3,7 @@
 //! on what did. The front of the report describes the game (the score, the trade, the economy, the ground, the
 //! opponent); the tail is the player's hands.
 
-use super::shared::{Briefing, Field, Hands, Side};
+use super::shared::{Briefing, CellLook, Field, Hands, Side};
 
 /// The hands' `did` lines a player's report carries at most.
 const DONE_LINES: usize = 40;
@@ -24,6 +24,84 @@ fn counted(items: &[(String, usize)]) -> String {
 
 fn clock(seconds: i32) -> String {
     format!("{}:{:02}", seconds / 60, seconds % 60)
+}
+
+/// How much of a cell was ever seen, in words.
+fn share_words(share: f32) -> &'static str {
+    match share {
+        s if s >= 0.9 => "all",
+        s if s >= 0.5 => "most",
+        s if s >= 0.15 => "part",
+        _ => "a corner",
+    }
+}
+
+/// Cells as runs down a column, in the order given (columns A to H, rows 1 to 8): G4, G5, G6, H2 is "G4-G6, H2".
+fn cell_runs(cells: &[&CellLook]) -> String {
+    let mut runs: Vec<(String, String)> = Vec::new();
+    for cell in cells {
+        let next_in_column = |last: &str| last.as_bytes().first() == cell.cell.as_bytes().first() && last.as_bytes().get(1).map(|row| row + 1) == cell.cell.as_bytes().get(1).copied();
+        match runs.last_mut() {
+            Some((_, last)) if next_in_column(last) => *last = cell.cell.clone(),
+            _ => runs.push((cell.cell.clone(), cell.cell.clone())),
+        }
+    }
+    runs.iter().map(|(first, last)| if first == last { first.clone() } else { format!("{first}-{last}") }).collect::<Vec<_>>().join(", ")
+}
+
+/// The `scouting` block (H-SCOUT-GLANCE, `docs/design/2026-10-01-scouting-glance.md`): every cell of the map by
+/// when units of ours last saw it, how much of it, and what of his stood there. A cell holding something of his has
+/// its own line; the others are grouped by the age of the look and written as runs; a cell not seen for six
+/// minutes or never seen names its metal spots, which are what the player orders by.
+fn scouting_lines(cells: &[CellLook], factory_known: bool) -> Vec<String> {
+    if cells.is_empty() {
+        return Vec::new();
+    }
+    let spots = |c: &CellLook| if c.spots.is_empty() { String::new() } else { c.spots.iter().map(|n| format!("spot_{n}")).collect::<Vec<_>>().join(", ") };
+    let when = |ago: i32| if ago < 10 { "in sight now".to_string() } else { format!("seen {} ago", clock(ago)) };
+    let look = |c: &CellLook| match c.ago {
+        Some(ago) => format!("{} of it {}", share_words(c.seen_share), when(ago)),
+        None => "never seen".to_string(),
+    };
+    let mut lines = vec!["scouting (each cell of the map by when units of ours last saw it; an old look says what was built there then, nothing about his army now):".to_string()];
+    let holds = |c: &CellLook| !c.his.is_empty() || c.his_commander;
+    for c in cells.iter().filter(|c| holds(c)) {
+        let mut his: Vec<String> = c.his_commander.then(|| "his commander as last seen".to_string()).into_iter().collect();
+        his.extend(c.his.iter().map(|(name, count)| format!("{count} {name}")));
+        lines.push(format!("  his, in {} ({}): {}", c.cell, look(c), his.join(", ")));
+    }
+    let bands: [(i32, &str); 4] = [(10, "nothing of his, in sight now"), (60, "nothing of his when seen under 1 min ago"), (180, "nothing of his when seen 1 to 3 min ago"), (360, "nothing of his when seen 3 to 6 min ago")];
+    let mut from = 0;
+    for (until, words) in bands {
+        let band: Vec<&CellLook> = cells.iter().filter(|c| !holds(c) && c.ago.is_some_and(|ago| ago >= from && ago < until)).collect();
+        from = until;
+        let groups: Vec<String> = ["all", "most", "part", "a corner"]
+            .into_iter()
+            .filter_map(|share| {
+                let of: Vec<&CellLook> = band.iter().copied().filter(|c| share_words(c.seen_share) == share).collect();
+                (!of.is_empty()).then(|| format!("{} ({share} of {})", cell_runs(&of), if of.len() == 1 { "it" } else { "each" }))
+            })
+            .collect();
+        if !groups.is_empty() {
+            lines.push(format!("  {words}: {}", groups.join("; ")));
+        }
+    }
+    let named = |c: &CellLook, words: String| if c.spots.is_empty() { format!("{} ({words})", c.cell) } else { format!("{} ({words}; {})", c.cell, spots(c)) };
+    let old: Vec<String> = cells.iter().filter(|c| !holds(c) && c.ago.is_some_and(|ago| ago >= 360)).map(|c| named(c, format!("{} of it, {} ago", share_words(c.seen_share), clock(c.ago.unwrap_or(0))))).collect();
+    if !old.is_empty() {
+        lines.push(format!("  nothing of his when seen over 6 min ago: {}", old.join(", ")));
+    }
+    let never: Vec<String> = cells.iter().filter(|c| !holds(c) && c.ago.is_none()).map(|c| if c.spots.is_empty() { c.cell.clone() } else { format!("{} ({})", c.cell, spots(c)) }).collect();
+    if !never.is_empty() {
+        lines.push(format!("  never seen: {}", never.join(", ")));
+    }
+    if !factory_known {
+        let mut least: Vec<&CellLook> = cells.iter().filter(|c| c.in_his_box).collect();
+        least.sort_by(|a, b| a.seen_share.total_cmp(&b.seen_share).then(b.ago.unwrap_or(i32::MAX).cmp(&a.ago.unwrap_or(i32::MAX))));
+        let least: Vec<String> = least.iter().take(4).map(|c| format!("{} ({})", c.cell, look(c))).collect();
+        lines.push(format!("  no factory of his has been seen: it stands on ground we have not seen, or was built after we looked{}", if least.is_empty() { String::new() } else { format!("; the cells of his box seen least: {}", least.join(", ")) }));
+    }
+    lines
 }
 
 /// The lines every report opens with, changed or not: what is not shown is not weighed.
@@ -106,10 +184,8 @@ fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
     // Evidence, never a guess (docs/design/2026-09-22-enemy-evidence.md): finding the opponent is the player's.
     let gone = if s.enemy_factories_gone.is_empty() { String::new() } else { format!("; seen destroyed: {}", s.enemy_factories_gone.iter().map(|(p, at)| format!("{} ({}, {}) at {}", p.grid, p.x, p.z, clock(*at))).collect::<Vec<_>>().join("; ")) };
     let boxes = if s.enemy_start_boxes.is_empty() { "the lobby gave it no start box".to_string() } else { format!("its commander was placed at 0:00 inside its lobby box, cells {}", s.enemy_start_boxes.join(" and ")) };
-    let in_box = s.never_looked.iter().filter(|(_, _, inside)| *inside).count();
-    let unseen: Vec<String> = s.never_looked.iter().filter(|(_, _, inside)| *inside).chain(s.never_looked.iter().filter(|(_, _, inside)| !*inside)).take(10).map(|(n, p, inside)| format!("#{n} {}{}", p.grid, if *inside { " (in its box)" } else { "" })).collect();
     lines.push(format!(
-        "to win: its commander {}; its factories standing as far as we know: {}{}; {}; where it stands and builds now is known only from what our units see, and it may rebuild anywhere. Metal spots never within sight of a unit of ours: {} ({} inside its box){}",
+        "to win: its commander {}; its factories standing as far as we know: {}{}; {}; where it stands and builds now is known only from what our units see, and it may rebuild anywhere",
         s.enemy_commander.as_ref().map_or("has never been seen".to_string(), |(p, ago)| format!("was last seen at {} ({}, {}) {} ago{}", p.grid, p.x, p.z, clock(*ago), if s.enemy_commander_afloat { ", in the water or on ground our bots cannot walk to (it is amphibious; our soldiers are not)" } else { "" })),
         if s.enemy_factories.is_empty() {
             "none seen standing".to_string()
@@ -123,11 +199,9 @@ fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
                 .join("; ")
         },
         gone,
-        boxes,
-        s.never_looked.len(),
-        in_box,
-        if unseen.is_empty() { String::new() } else { format!("; its box's first, then nearest home first: {}", unseen.join(", ")) }
+        boxes
     ));
+    lines.extend(scouting_lines(&s.scouting, !s.enemy_factories.is_empty()));
     if !s.trend.is_empty() {
         let then = |pick: &dyn Fn(&(i32, usize, f32, u32)) -> String| s.trend.iter().map(|t| format!("{} ({} min ago)", pick(t), t.0)).collect::<Vec<_>>().join(", ");
         lines.push(format!(
@@ -287,4 +361,46 @@ pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, fights
         lines.push("your hands played nothing new since your last turn (every actor carried on)".into());
     }
     lines.join("\n")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{CellLook, cell_runs, scouting_lines};
+
+    fn cell(name: &str, seen_share: f32, ago: Option<i32>) -> CellLook {
+        CellLook { cell: name.to_string(), seen_share, ago, in_his_box: name.starts_with('G') || name.starts_with('H'), ..CellLook::default() }
+    }
+
+    /// The scouting block says what player-33's report did not at 5:52: the south-east cells were seen, three
+    /// minutes ago, with nothing of his in them; his commander's cell holds no factory; the cells around his base
+    /// were never seen.
+    #[test]
+    fn the_scouting_block_says_what_was_seen_empty_and_what_was_never_seen() {
+        let mut h3 = cell("H3", 0.95, Some(177));
+        h3.his = vec![("armllt".to_string(), 1), ("armmex".to_string(), 2), ("armrad".to_string(), 1)];
+        h3.his_commander = true;
+        let mut g1 = cell("G1", 0.0, None);
+        g1.spots = vec![5, 10];
+        let mut old = cell("F1", 0.3, Some(425));
+        old.spots = vec![3];
+        let cells = vec![cell("A7", 1.0, Some(0)), cell("A8", 1.0, Some(2)), cell("B8", 0.6, Some(0)), old, g1, cell("G6", 0.7, Some(190)), cell("G7", 0.8, Some(200)), cell("G8", 0.6, Some(205)), cell("H1", 0.0, None), cell("H2", 0.1, Some(182)), h3, cell("H8", 0.55, Some(215))];
+        let lines = scouting_lines(&cells, false);
+        assert!(lines[0].starts_with("scouting (each cell of the map by when units of ours last saw it"));
+        assert_eq!(lines[1], "  his, in H3 (all of it seen 2:57 ago): his commander as last seen, 1 armllt, 2 armmex, 1 armrad");
+        assert_eq!(lines[2], "  nothing of his, in sight now: A7-A8 (all of each); B8 (most of it)");
+        assert_eq!(lines[3], "  nothing of his when seen 3 to 6 min ago: G6-G8, H8 (most of each); H2 (a corner of it)");
+        assert_eq!(lines[4], "  nothing of his when seen over 6 min ago: F1 (part of it, 7:05 ago; spot_3)");
+        assert_eq!(lines[5], "  never seen: G1 (spot_5, spot_10), H1");
+        assert_eq!(lines[6], "  no factory of his has been seen: it stands on ground we have not seen, or was built after we looked; the cells of his box seen least: G1 (never seen), H1 (never seen), H2 (a corner of it seen 3:02 ago), H8 (most of it seen 3:35 ago)");
+        assert_eq!(lines.len(), 7);
+        // With a factory of his on record the last line is not said; before the first survey nothing is.
+        assert_eq!(scouting_lines(&cells, true).len(), 6);
+        assert!(scouting_lines(&[], false).is_empty());
+    }
+
+    #[test]
+    fn cells_are_written_as_runs_down_a_column() {
+        let cells: Vec<CellLook> = ["G4", "G5", "G6", "H2", "H4", "H5"].iter().map(|name| cell(name, 1.0, Some(0))).collect();
+        assert_eq!(cell_runs(&cells.iter().collect::<Vec<_>>()), "G4-G6, H2, H4-H5");
+    }
 }

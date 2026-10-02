@@ -53,6 +53,25 @@ pub struct Place {
     pub z: i32,
 }
 
+/// One named cell of the map as units of ours last saw it. (Player-33: the main group was sent to raid "his
+/// southern strip", where the roving Rover had seen every spot empty three minutes before; the report listed the
+/// spots never seen and nothing said what had been seen, when, or that it was empty.)
+#[derive(Clone, Debug, Default, PartialEq, Serialize)]
+pub struct CellLook {
+    pub cell: String,
+    /// The share of the cell's ground ever within sight of a unit of ours.
+    pub seen_share: f32,
+    /// Game seconds since the look (the middle one of its seen tiles was last in sight); `None` when never seen.
+    pub ago: Option<i32>,
+    /// His buildings remembered in the cell (seen and not seen destroyed): internal name and count.
+    pub his: Vec<(String, usize)>,
+    /// His commander's last sighting was in this cell.
+    pub his_commander: bool,
+    pub in_his_box: bool,
+    /// The metal spots in the cell, by number.
+    pub spots: Vec<usize>,
+}
+
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct Group {
     pub size: usize,
@@ -146,8 +165,9 @@ pub struct Score {
     /// The opponent's lobby start boxes, one per enemy ally team, as grid cell ranges: where its commander was
     /// placed at 0:00 and nothing more (docs/design/2026-09-22-enemy-evidence.md).
     pub enemy_start_boxes: Vec<String>,
-    /// Metal spots never within sight of a unit of ours, nearest home first: number, place, inside an enemy box.
-    pub never_looked: Vec<(usize, Place, bool)>,
+    /// Every named cell of the map as units of ours last saw it, columns A to H and rows 1 to 8 in order (the
+    /// report's `scouting` block, `docs/design/2026-10-01-scouting-glance.md`).
+    pub scouting: Vec<CellLook>,
     /// The opponent's soldiers seen in the last three minutes and not seen to die, and their metal. Older sightings
     /// are left out: most of its soldiers die where we cannot see, and a count that never forgets only grows.
     pub enemy_soldiers_seen: usize,

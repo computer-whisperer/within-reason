@@ -202,6 +202,19 @@ impl Shared {
                     s.enemy_spots.push((*n, place.clone()));
                 }
             }
+            // Each cell as the seat that saw more of it, or saw it later, saw it; his buildings from both.
+            for (cell, other) in s.scouting.iter_mut().zip(&o.scouting) {
+                for (name, count) in &other.his {
+                    match cell.his.iter_mut().find(|(have, _)| have == name) {
+                        Some(have) => have.1 = have.1.max(*count),
+                        None => cell.his.push((name.clone(), *count)),
+                    }
+                }
+                cell.his_commander |= other.his_commander;
+                if other.ago.is_some() && (other.seen_share > cell.seen_share || cell.ago.is_none_or(|ago| other.ago.is_some_and(|theirs| theirs < ago) && other.seen_share >= cell.seen_share)) {
+                    (cell.seen_share, cell.ago) = (other.seen_share, other.ago);
+                }
+            }
             s.soldiers += o.soldiers;
             s.army_metal += o.army_metal;
             s.soldiers_near_home += o.soldiers_near_home;
