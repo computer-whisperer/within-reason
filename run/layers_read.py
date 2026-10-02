@@ -20,7 +20,7 @@ from match_read import Match, clock  # noqa: E402
 
 
 def kind_of(qid):
-    if qid == "worlds.pick":
+    if qid.startswith("worlds."):
         return "pick"
     tail = qid.rsplit(".", 1)[-1]
     if tail in ("answer", "change", "forbidden"):
@@ -54,9 +54,9 @@ def main():
     decodes = [c for c in m.calls if c.get("t") == "decode"]
     calls = [c for c in m.calls if c.get("t") == "call"] + decodes
     tokens = sum((c.get("usage") or {}).get("input_tokens", 0) for c in calls)
-    picks = sum(1 for c in calls if "worlds.pick" in (c.get("questions") or {}))
+    picks = sum(1 for c in calls if any(q.startswith("worlds.") for q in (c.get("questions") or {})))
     plans = [c for c in m.calls if c.get("t") == "plan"]
-    print(f"{gates} gates, {picks} pick calls, {len(plans)} picks ({sum(1 for p in plans if p.get('pick', 1) != 1)} changed something); {tokens / 1e6:.2f}M input tokens, ${tokens * 0.042 / 1e6:.2f}")
+    print(f"{gates} gates, {picks} pick calls, {len(plans)} picks ({sum(1 for p in plans if (p.get('changed') if 'split' in p else p.get('pick', 1) != 1))} changed something); {tokens / 1e6:.2f}M input tokens, ${tokens * 0.042 / 1e6:.2f}")
     if decodes:
         reads = [p for d in decodes for p in (d.get("reads") or {}).values()]
         print(f"the decode: {len(decodes)} requests, {len(reads)} readings ({sum(p < 0.2 for p in reads)} under 0.2, {sum(p >= 0.8 for p in reads)} at 0.8 or over), {sum((d.get('usage') or {}).get('input_tokens', 0) for d in decodes) / 1e6:.2f}M tokens")

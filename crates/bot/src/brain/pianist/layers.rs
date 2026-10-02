@@ -18,9 +18,15 @@ use super::menu::{Kind, Menu};
 pub(super) const RE_ASK: i32 = 20 * FRAMES_PER_SECOND;
 /// The share of what a layer skips that is asked anyway, for its audit.
 const AUDIT_SHARE: f64 = 0.02;
+/// The share of the `split` layer's picks asked the joint pick as well: `AUDIT_SHARE`, or `WITHIN_REASON_SPLIT_AUDIT`
+/// (0 to 1) for a game run to measure the layer.
+pub(super) fn split_audit_share() -> f64 {
+    static SHARE: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
+    *SHARE.get_or_init(|| std::env::var("WITHIN_REASON_SPLIT_AUDIT").ok().and_then(|v| v.parse().ok()).unwrap_or(AUDIT_SHARE))
+}
 /// The layers of the design note, in its order, and those that exist.
 const KNOWN: [&str; 8] = ["news", "same", "fuse", "openers", "split", "tick", "one", "local"];
-const BUILT: [&str; 5] = ["news", "same", "fuse", "openers", "tick"];
+const BUILT: [&str; 6] = ["news", "same", "fuse", "openers", "split", "tick"];
 /// The `tick` layer: a gate that no event calls for waits until this long after the last one.
 pub(super) const TICK: i32 = 2 * FRAMES_PER_SECOND;
 
@@ -37,6 +43,10 @@ pub(crate) struct Layers {
     /// An actor's own moves are not asked while its `change` said no at the last gate, nor a party's answers
     /// while its `answer` said no; the opener is asked every time and the moves follow the second after it opens.
     pub openers: bool,
+    /// The pick is asked per component (the actors whose changes touch each other), every component's two stages
+    /// in one request, in place of the joint worlds' two calls (`compose.rs` `Component`). Its audit: on a share
+    /// of picks the joint pick is asked as well and set beside what the split took.
+    pub split: bool,
     /// A gate that no event calls for waits until `TICK` after the last one; an event still asks at once. It only
     /// delays, so it has no audit.
     pub tick: bool,
@@ -44,14 +54,15 @@ pub(crate) struct Layers {
 
 impl Layers {
     pub(super) fn parse(value: Option<&str>) -> Result<Layers, String> {
-        let Some(value) = value.map(str::trim).filter(|v| !v.is_empty()) else { return Ok(Layers { news: true, same: false, fuse: false, openers: false, tick: false }) };
-        let mut layers = Layers { news: false, same: false, fuse: false, openers: false, tick: false };
+        let Some(value) = value.map(str::trim).filter(|v| !v.is_empty()) else { return Ok(Layers { news: true, same: false, fuse: false, openers: false, split: false, tick: false }) };
+        let mut layers = Layers { news: false, same: false, fuse: false, openers: false, split: false, tick: false };
         for name in value.split(',').map(str::trim).filter(|n| !n.is_empty() && *n != "none") {
             match name {
                 "news" => layers.news = true,
                 "same" => layers.same = true,
                 "fuse" => layers.fuse = true,
                 "openers" => layers.openers = true,
+                "split" => layers.split = true,
                 "tick" => layers.tick = true,
                 _ if KNOWN.contains(&name) => return Err(format!("the hands' layer `{name}` is not built yet (built: {})", BUILT.join(", "))),
                 _ => return Err(format!("`{name}` is not a layer of the hands (the layers: {})", KNOWN.join(", "))),
@@ -66,7 +77,7 @@ impl Layers {
 
     /// The layers that are on, for the log's header.
     pub(super) fn names(&self) -> Vec<&'static str> {
-        [(self.news, "news"), (self.same, "same"), (self.fuse, "fuse"), (self.openers, "openers"), (self.tick, "tick")].into_iter().filter(|(on, _)| *on).map(|(_, name)| name).collect()
+        [(self.news, "news"), (self.same, "same"), (self.fuse, "fuse"), (self.openers, "openers"), (self.split, "split"), (self.tick, "tick")].into_iter().filter(|(on, _)| *on).map(|(_, name)| name).collect()
     }
 }
 
@@ -270,12 +281,13 @@ mod tests {
 
     #[test]
     fn the_layers_are_named_and_an_unbuilt_one_stops_the_start() {
-        let none = Layers { news: false, same: false, fuse: false, openers: false, tick: false };
+        let none = Layers { news: false, same: false, fuse: false, openers: false, split: false, tick: false };
         assert_eq!(Layers::parse(None), Ok(Layers { news: true, ..none.clone() }));
         assert_eq!(Layers::parse(Some("news")), Ok(Layers { news: true, ..none.clone() }));
         assert_eq!(Layers::parse(Some("none")), Ok(none.clone()));
-        assert_eq!(Layers::parse(Some("news, same,fuse,openers,tick")), Ok(Layers { news: true, same: true, fuse: true, openers: true, tick: true }));
-        assert!(Layers::parse(Some("news,split")).unwrap_err().contains("not built yet"));
+        assert_eq!(Layers::parse(Some("news, same,fuse,openers,tick")), Ok(Layers { news: true, same: true, fuse: true, openers: true, split: false, tick: true }));
+        assert_eq!(Layers::parse(Some("split")), Ok(Layers { split: true, ..none.clone() }));
+        assert!(Layers::parse(Some("news,one")).unwrap_err().contains("not built yet"));
         assert!(Layers::parse(Some("gnus")).unwrap_err().contains("not a layer"));
         assert_eq!(Layers { news: true, same: true, ..none }.names(), ["news", "same"]);
     }

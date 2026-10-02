@@ -218,12 +218,18 @@ fn clash(menus: &[Menu], world: &World) -> bool {
 /// joint worlds (the user's one-decider design, restored 2026-09-29): every combination of the best-rated actors'
 /// changes, one per actor, over as many actors as fit under `cap`, ordered by the product of their ranks. None when
 /// nothing opened. Also returns each actor's best candidate, for world 1's line.
+#[cfg(test)]
 pub(super) fn compose(menus: &[Menu], answers: &BTreeMap<String, Answer>, flags: &mut BTreeMap<String, f64>, cap: usize) -> Option<(Vec<World>, Vec<Option<usize>>)> {
     let per_menu = candidates(menus, answers, flags);
     if per_menu.iter().all(Vec::is_empty) {
         return None;
     }
     let next: Vec<Option<usize>> = per_menu.iter().map(|mine| mine.first().map(|(_, ti)| *ti)).collect();
+    Some((worlds_over(menus, &per_menu, cap), next))
+}
+
+/// The worlds over the candidates given: world 1, the single changes round-robin, then the joint worlds.
+fn worlds_over(menus: &[Menu], per_menu: &[Vec<(f64, usize)>], cap: usize) -> Vec<World> {
     let base: World = vec![0; menus.len()];
     let cap = cap.max(2);
     let mut out = vec![base.clone()];
@@ -299,7 +305,142 @@ pub(super) fn compose(menus: &[Menu], answers: &BTreeMap<String, Answer>, flags:
             out.push(w);
         }
     }
-    Some((out, next))
+    out
+}
+
+/// A component's worlds in a split pick: world 1 and at most this many changes, each of which is asked against
+/// world 1 in the same request.
+const SPLIT_CAP: usize = 9;
+
+/// One component of a split pick (the `split` layer, H-HANDS-LAYERS): the actors whose candidate changes touch
+/// each other, the worlds over their changes alone, and each world's line, said over the component's own actors
+/// and parties.
+#[derive(Clone, Debug)]
+pub(crate) struct Component {
+    pub menus: Vec<usize>,
+    pub worlds: Vec<World>,
+    pub lines: Vec<String>,
+}
+
+/// What a component's lines speak of: its actors, and the parties its courses and its changes are aimed at.
+pub(super) struct Scope {
+    menus: BTreeSet<usize>,
+    parties: BTreeSet<String>,
+}
+
+/// The actors with a change on offer, grouped into components: two are of one component when a change of one
+/// names the other (a join, a follow, a help), when a change or the course of each is aimed at the same party, or
+/// when both would build on the same spot. Components share no actor, group, builder, party or spot, so each can
+/// be picked on its own; what they can still share is the metal in the store.
+fn components(menus: &[Menu], per_menu: &[Vec<(f64, usize)>]) -> Vec<Vec<usize>> {
+    let name_of = |id: bot_protocol::UnitId| menus.iter().find(|m| matches!(&m.kind, Kind::Builder(b) | Kind::Factory(b) if *b == id)).map(|m| m.name.clone());
+    let touches: Vec<BTreeSet<String>> = menus
+        .iter()
+        .zip(per_menu)
+        .map(|(menu, mine)| {
+            let mut set: BTreeSet<String> = BTreeSet::from([menu.name.clone()]);
+            set.extend(menu.aimed_at.clone());
+            for (_, ti) in mine {
+                let m = &menu.moves[*ti];
+                set.extend(m.party.clone());
+                match &m.order {
+                    Order::Join(other) | Order::Follow(super::groups::Ward::Group(other)) => {
+                        set.insert(format!("group_{other}"));
+                    }
+                    Order::Follow(super::groups::Ward::Builder(id)) | Order::Help(id) => set.extend(name_of(*id)),
+                    Order::Build(_, Site::Spot(spot)) => {
+                        set.insert(format!("the spot {spot}"));
+                    }
+                    _ => {}
+                }
+            }
+            set
+        })
+        .collect();
+    let active: Vec<usize> = (0..menus.len()).filter(|mi| !per_menu[*mi].is_empty()).collect();
+    let mut of: Vec<usize> = (0..menus.len()).collect();
+    fn root(of: &mut [usize], mut i: usize) -> usize {
+        while of[i] != i {
+            of[i] = of[of[i]];
+            i = of[i];
+        }
+        i
+    }
+    for (k, a) in active.iter().enumerate() {
+        for b in &active[k + 1..] {
+            if !touches[*a].is_disjoint(&touches[*b]) {
+                let (ra, rb) = (root(&mut of, *a), root(&mut of, *b));
+                of[rb] = ra;
+            }
+        }
+    }
+    let mut out: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
+    for mi in active {
+        let r = root(&mut of, mi);
+        out.entry(r).or_default().push(mi);
+    }
+    out.into_values().collect()
+}
+
+/// The split pick's components over what the gate flagged, each with its worlds and their lines.
+fn split(menus: &[Menu], per_menu: &[Vec<(f64, usize)>], said: &Lines) -> Vec<Component> {
+    components(menus, per_menu)
+        .into_iter()
+        .map(|members| {
+            let masked: Vec<Vec<(f64, usize)>> = per_menu.iter().enumerate().map(|(mi, mine)| if members.contains(&mi) { mine.clone() } else { Vec::new() }).collect();
+            let worlds = worlds_over(menus, &masked, SPLIT_CAP);
+            let mut parties: BTreeSet<String> = members.iter().filter_map(|mi| menus[*mi].aimed_at.clone()).collect();
+            parties.extend(members.iter().flat_map(|mi| per_menu[*mi].iter().filter_map(|(_, ti)| menus[*mi].moves[*ti].party.clone())));
+            let scope = Scope { menus: members.iter().copied().collect(), parties };
+            let said = Lines { scope: Some(&scope), ..*said };
+            let lines = worlds.iter().enumerate().map(|(i, w)| consequence(w, menus, &said, (i > 0).then_some(&worlds[0]))).collect();
+            Component { menus: members, worlds, lines }
+        })
+        .collect()
+}
+
+/// The split pick's questions, all for one request: per component a Choice over its changes (when it has more
+/// than one) and, for every change, that change against the component's "nothing changes".
+pub(super) fn split_questions(components: &[Component]) -> BTreeMap<String, Question> {
+    let mut out = BTreeMap::new();
+    for (j, c) in components.iter().enumerate() {
+        if c.lines.len() > 2 {
+            out.insert(format!("worlds.c{j}.pick"), stage_one(&c.lines));
+        }
+        for k in 1..c.lines.len() {
+            out.insert(format!("worlds.c{j}.w{}", k + 1), stage_two(&c.lines, k));
+        }
+    }
+    out
+}
+
+/// The split pick read back: per component the candidate (sampled from its Choice, or its one change) and that
+/// change's own question against "nothing changes"; the world of every change taken, and a record per component.
+pub(super) fn split_pick(answers: &BTreeMap<String, Answer>, components: &[Component], menus: &[Menu], draw: &mut dyn FnMut() -> f64) -> (World, Vec<Value>) {
+    let mut world: World = vec![0; menus.len()];
+    let mut parts = Vec::new();
+    for (j, c) in components.iter().enumerate() {
+        let candidate = if c.lines.len() == 2 { Some((1, 1.0)) } else { sample(answers, &format!("worlds.c{j}.pick"), c.lines.len(), draw()) };
+        let Some((k, p)) = candidate else { continue };
+        let taken = match answers.get(&format!("worlds.c{j}.w{}", k + 1)) {
+            Some(Answer::Choice { choice, confidence, .. }) => Some((*choice == format!("w{}", k + 1), *confidence)),
+            _ => None,
+        };
+        if let Some((true, _)) = taken {
+            for (mi, ti) in c.worlds[k].iter().enumerate().filter(|(_, ti)| **ti != 0) {
+                world[mi] = *ti;
+            }
+        }
+        parts.push(json!({
+            "actors": c.menus.iter().map(|mi| menus[*mi].name.as_str()).collect::<Vec<_>>(),
+            "changes": c.lines.len() - 1,
+            "candidate": k + 1,
+            "sampled_p": p,
+            "taken": taken.map(|(t, _)| t),
+            "confidence": taken.map(|(_, c)| c),
+        }));
+    }
+    (world, parts)
 }
 
 /// What a world's line needs beside the menus: the parties, the gate's word on which need answering, each idle
@@ -311,7 +452,16 @@ pub(super) struct Lines<'a> {
     pub next: &'a [Option<usize>],
     pub store: &'a str,
     pub forbidden: &'a BTreeSet<String>,
+    /// A split pick's component: the lines speak of its actors and parties alone. None: of everything.
+    pub scope: Option<&'a Scope>,
 }
+
+impl Clone for Lines<'_> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+impl Copy for Lines<'_> {}
 
 /// A world's parts beside its moves.
 #[derive(Default)]
@@ -335,7 +485,7 @@ struct Parts {
 /// it can be caught, and a move made at it this second is said as a sending.
 fn parts_of(world: &World, menus: &[Menu], lines: &Lines) -> Parts {
     let mut parts = Parts { moves: menus.iter().zip(world).filter(|(_, i)| **i != 0).map(|(menu, i)| menu.moves[*i].words.clone()).collect(), ..Parts::default() };
-    for party in lines.parties {
+    for party in lines.parties.iter().filter(|p| lines.scope.is_none_or(|s| s.parties.contains(&p.name))) {
         let aimed = |menu: &&Menu| menu.aimed_at.as_deref() == Some(party.name.as_str());
         let staying: Vec<&Menu> = menus.iter().zip(world).filter(|(_, i)| **i == 0).map(|(menu, _)| menu).filter(aimed).collect();
         let sent: Vec<&str> = menus.iter().zip(world).filter(|(menu, i)| **i != 0 && menu.moves[**i].party.as_deref() == Some(party.name.as_str())).map(|(menu, _)| menu.name.as_str()).collect();
@@ -358,7 +508,7 @@ fn parts_of(world: &World, menus: &[Menu], lines: &Lines) -> Parts {
         .iter()
         .zip(world)
         .enumerate()
-        .filter(|(_, (menu, i))| **i == 0 && menu.idle)
+        .filter(|(k, (menu, i))| **i == 0 && menu.idle && lines.scope.is_none_or(|s| s.menus.contains(k)))
         .map(|(k, (menu, _))| match lines.next.get(k).copied().flatten() {
             Some(ti) => format!("{}, with its next move, {}, not ordered", menu.idle_words, menu.moves[ti].said),
             None => menu.idle_words.clone(),
@@ -405,7 +555,7 @@ pub(super) fn consequence(world: &World, menus: &[Menu], lines: &Lines, base: Op
     if !idle.is_empty() {
         // The cost on the option's own words (onepass-smoke-3: "Idle: plant" beside a full store lost to the Blitz
         // rated 0.68 at 0.65 against 0.35).
-        let makers = menus.iter().zip(world).any(|(menu, i)| *i == 0 && menu.idle && !matches!(menu.kind, Kind::Group(_)));
+        let makers = menus.iter().zip(world).enumerate().any(|(k, (menu, i))| *i == 0 && menu.idle && !matches!(menu.kind, Kind::Group(_)) && lines.scope.is_none_or(|s| s.menus.contains(&k)));
         parts.push(format!("{}{}", idle.join("; "), if makers && !lines.store.is_empty() { format!(", while the metal store reads {}", lines.store) } else { String::new() }));
     }
     if base.is_some() {
@@ -439,8 +589,8 @@ pub(super) fn stage_two(lines: &[String], candidate: usize) -> Question {
 }
 
 /// A world drawn from a Choice's probabilities with a uniform draw in `u` (0 to 1): the index and its probability.
-pub(super) fn sample(answers: &BTreeMap<String, Answer>, worlds: usize, u: f64) -> Option<(usize, f64)> {
-    let Some(Answer::Choice { probabilities, choice, .. }) = answers.get("worlds.pick") else { return None };
+pub(super) fn sample(answers: &BTreeMap<String, Answer>, key: &str, worlds: usize, u: f64) -> Option<(usize, f64)> {
+    let Some(Answer::Choice { probabilities, choice, .. }) = answers.get(key) else { return None };
     let index = |k: &str| k.strip_prefix('w').and_then(|n| n.parse::<usize>().ok()).filter(|n| (2..=worlds).contains(n)).map(|n| n - 1);
     let total: f64 = probabilities.iter().filter(|(k, _)| index(k).is_some()).map(|(_, p)| p).sum();
     if total <= 0.0 {
@@ -483,7 +633,7 @@ pub(super) fn run_pick(ask: &dyn Fn(&jev::Request) -> Result<jev::Response, jev:
     } else {
         let request = jev::Request { state: state.clone(), questions: BTreeMap::from([("worlds.pick".to_string(), stage_one(lines))]) };
         let result = ask(&request);
-        let candidate = result.as_ref().ok().and_then(|r| sample(&r.answers, lines.len(), u));
+        let candidate = result.as_ref().ok().and_then(|r| sample(&r.answers, "worlds.pick", lines.len(), u));
         (Some((request, result)), candidate)
     };
     let stage_two = candidate.map(|(c, _)| {
@@ -508,6 +658,8 @@ pub(super) struct Followed {
     pub flags: BTreeMap<String, f64>,
     pub rated: Rated,
     pub worlds: Option<(Vec<World>, Vec<String>, Value)>,
+    /// The same changes as a split pick's components, with the state their one request goes with.
+    pub components: Option<(Vec<Component>, Value)>,
 }
 
 /// After the gate: the worlds over what it flagged, their lines, and the pick's state, cut to what the worlds name
@@ -515,19 +667,30 @@ pub(super) struct Followed {
 pub(super) fn follow_up(menus: &[Menu], parties: &[Party], places: &[super::Place], answers: &BTreeMap<String, Answer>, store: &str, cap: usize, state: &Value) -> Followed {
     let mut flags: BTreeMap<String, f64> = BTreeMap::new();
     let rated = rated(menus, answers);
-    let Some((mut worlds, next)) = compose(menus, answers, &mut flags, cap) else { return Followed { flags, rated, worlds: None } };
+    let per_menu = candidates(menus, answers, &mut flags);
+    if per_menu.iter().all(Vec::is_empty) {
+        return Followed { flags, rated, worlds: None, components: None };
+    }
+    let next: Vec<Option<usize>> = per_menu.iter().map(|mine| mine.first().map(|(_, ti)| *ti)).collect();
+    let mut worlds = worlds_over(menus, &per_menu, cap);
     // The detachments the gate reads as forbidden by the instructions (`FORBIDDEN`): said on their lines.
     // The mark the decode set stands over the second's own reading, which is then asked for the audit alone.
     let decoded = |id: &str| menus.iter().find_map(|menu| menu.moves.iter().find(|m| menu.id(m) == id).and_then(|m| m.marked));
     let mut forbidden: BTreeSet<String> = flags.iter().filter(|(_, p)| **p >= FORBIDDEN).filter_map(|(id, _)| id.strip_suffix(".forbidden").map(str::to_string)).filter(|id| decoded(id).is_none()).collect();
     forbidden.extend(menus.iter().flat_map(|menu| menu.moves.iter().filter(|m| m.marked == Some(true)).map(|m| menu.id(m))));
-    let said = Lines { parties, places, flags: &flags, next: &next, store, forbidden: &forbidden };
+    let said = Lines { parties, places, flags: &flags, next: &next, store, forbidden: &forbidden, scope: None };
     let mut lines: Vec<String> = worlds.iter().enumerate().map(|(i, w)| consequence(w, menus, &said, (i > 0).then_some(&worlds[0]))).collect();
     let keep = fit(&lines, LINE_CHARS);
     worlds.truncate(keep);
     lines.truncate(keep);
+    let components = split(menus, &per_menu, &said);
+    let split_state = {
+        let all: Vec<World> = components.iter().flat_map(|c| c.worlds.iter().cloned()).collect();
+        let text: Vec<String> = components.iter().flat_map(|c| c.lines.iter().cloned()).collect();
+        pick_state(state, menus, &all, &text)
+    };
     let state = pick_state(state, menus, &worlds, &lines);
-    Followed { flags, rated, worlds: Some((worlds, lines, state)) }
+    Followed { flags, rated, worlds: Some((worlds, lines, state)), components: Some((components, split_state)) }
 }
 
 /// How many worlds fit the line budget: world 1 and at least one deviation, then the longest prefix whose
@@ -605,7 +768,7 @@ mod tests {
     }
 
     fn said<'a>(parties: &'a [Party], flags: &'a BTreeMap<String, f64>, next: &'a [Option<usize>], forbidden: &'a BTreeSet<String>) -> Lines<'a> {
-        Lines { parties, places: &[], flags, next, store: "340 of 500 stored", forbidden }
+        Lines { parties, places: &[], flags, next, store: "340 of 500 stored", forbidden, scope: None }
     }
 
     /// One menu per actor, one move per actor a world: a group's own way out stands beside its answers to a party
@@ -680,6 +843,53 @@ mod tests {
         let (small, _) = compose(&menus, &answers, &mut BTreeMap::new(), 6).unwrap();
         assert_eq!(small.len(), 6);
         assert!(small.iter().all(|w| w.iter().filter(|i| **i != 0).count() <= 1), "{small:?}");
+    }
+
+    /// The split pick (the `split` layer): the actors with a change on offer fall into components that share no
+    /// actor, party or spot; each has its own worlds and lines, said over its own actors and parties; one request
+    /// asks every component its best change and every change against "nothing changes"; what comes back is one
+    /// world of the changes taken.
+    #[test]
+    fn the_pick_is_split_into_components_that_touch_nothing_of_each_other() {
+        let menus = vec![
+            group("A", true, vec![mv("attack_party_7", Order::Attack("party_7".into()), Some("party_7")), mv("go_spot_30", Order::Go("spot_30".into()), None)]),
+            group("B", true, vec![mv("send_1_party_7", Order::Send(vec![UnitId(9)], "party_7".into()), Some("party_7"))]),
+            menu("constructor_3", Kind::Builder(UnitId(3)), true, vec![mv("build_armmex_spot_4", Order::Build(UnitDefId(1), Site::Spot(4)), None)]),
+            menu("commander", Kind::Builder(UnitId(4)), true, vec![mv("build_armmex_spot_4", Order::Build(UnitDefId(1), Site::Spot(4)), None)]),
+            menu("plant_5", Kind::Factory(UnitId(5)), true, vec![mv("make_armflash", Order::Make(UnitDefId(1)), None)]),
+            group("C", false, vec![mv("go_spot_31", Order::Go("spot_31".into()), None)]),
+        ];
+        let parties = vec![party("party_7"), party("party_8")];
+        let answers = nouls(&[("party_7.answer", 0.9), ("party_8.answer", 0.9), ("group_A.attack_party_7", 0.8), ("group_A.go_spot_30", 0.6), ("group_B.send_1_party_7", 0.7), ("constructor_3.build_armmex_spot_4", 0.7), ("commander.build_armmex_spot_4", 0.6), ("plant_5.make_armflash", 0.9), ("group_C.change", 0.1), ("group_C.go_spot_31", 0.9)]);
+        let followed = follow_up(&menus, &parties, &[], &answers, "340 of 500 stored", CAP, &json!({}));
+        let (components, _) = followed.components.expect("something opened");
+        // The two groups answer one party, the two builders want one spot, the plant stands alone; group_C is closed.
+        assert_eq!(components.iter().map(|c| c.menus.clone()).collect::<Vec<_>>(), vec![vec![0, 1], vec![2, 3], vec![4]]);
+        let groups = &components[0];
+        assert_eq!(groups.worlds.len(), 1 + 3 + 2, "three single changes and A's two with B's one: {:?}", groups.worlds);
+        assert!(groups.worlds.iter().all(|w| w[2..].iter().all(|i| *i == 0)));
+        // A component's lines speak of its own: the party it answers, its idle actors; party_8 and the builders are another's.
+        assert_eq!(groups.lines[0], "Nothing changes: every actor keeps the course its entry under `actors` describes. Left to nobody: party_7 (2 Ticks, in sight). group_A idle, doing nothing, with its next move, the attack_party_7, not ordered; group_B idle, doing nothing, with its next move, the send_1_party_7, not ordered.");
+        assert_eq!(components[1].worlds, vec![vec![0, 0, 0, 0, 0, 0], vec![0, 0, 1, 0, 0, 0], vec![0, 0, 0, 1, 0, 0]], "two builders on one spot is no world");
+        assert_eq!(components[2].lines.len(), 2);
+        assert!(components[2].lines[0].contains("plant_5 idle, doing nothing, with its next move, the make_armflash, not ordered, while the metal store reads 340 of 500 stored") && !components[2].lines[0].contains("party_"), "{}", components[2].lines[0]);
+        let questions = split_questions(&components);
+        assert_eq!(questions.keys().map(String::as_str).collect::<Vec<_>>(), ["worlds.c0.pick", "worlds.c0.w2", "worlds.c0.w3", "worlds.c0.w4", "worlds.c0.w5", "worlds.c0.w6", "worlds.c1.pick", "worlds.c1.w2", "worlds.c1.w3", "worlds.c2.w2"]);
+        // Read back: the groups' candidate is sampled from their Choice and taken; the builders' is declined; the
+        // plant's one change needs no first stage and is taken.
+        let choice = |pick: &str, p: &[(&str, f64)]| Answer::Choice { choice: pick.to_string(), confidence: 0.7, probabilities: p.iter().map(|(k, v)| (k.to_string(), *v)).collect() };
+        let joint = groups.worlds.iter().position(|w| w[0] == 1 && w[1] == 1).expect("A attacks and B sends") + 1;
+        let answers: BTreeMap<String, Answer> = [
+            ("worlds.c0.pick".to_string(), choice(&format!("w{joint}"), &[(&format!("w{joint}"), 1.0)])),
+            (format!("worlds.c0.w{joint}"), choice(&format!("w{joint}"), &[("w1", 0.3), (&format!("w{joint}"), 0.7)])),
+            ("worlds.c1.pick".to_string(), choice("w2", &[("w2", 1.0)])),
+            ("worlds.c1.w2".to_string(), choice("w1", &[("w1", 0.7), ("w2", 0.3)])),
+            ("worlds.c2.w2".to_string(), choice("w2", &[("w1", 0.3), ("w2", 0.7)])),
+        ]
+        .into();
+        let (world, parts) = split_pick(&answers, &components, &menus, &mut || 0.5);
+        assert_eq!(world, vec![1, 1, 0, 0, 1, 0]);
+        assert_eq!(parts.iter().map(|p| p["taken"].as_bool()).collect::<Vec<_>>(), vec![Some(true), Some(false), Some(true)]);
     }
 
     /// World 1's line: the cost of changing nothing. An idle actor is named with the move the gate rated best for
@@ -767,12 +977,12 @@ mod tests {
         let Question::Choice { criteria, .. } = stage_one(&lines) else { panic!("a choice") };
         assert_eq!(criteria.keys().cloned().collect::<Vec<_>>(), vec!["w2", "w3", "w4"]);
         let answers = BTreeMap::from([("worlds.pick".to_string(), Answer::Choice { choice: "w2".into(), probabilities: BTreeMap::from([("w2".to_string(), 0.5), ("w3".to_string(), 0.3), ("w4".to_string(), 0.2)]), confidence: 0.5 })]);
-        assert_eq!(sample(&answers, 4, 0.10), Some((1, 0.5)));
-        assert_eq!(sample(&answers, 4, 0.55), Some((2, 0.3)));
-        assert_eq!(sample(&answers, 4, 0.95), Some((3, 0.2)));
+        assert_eq!(sample(&answers, "worlds.pick", 4, 0.10), Some((1, 0.5)));
+        assert_eq!(sample(&answers, "worlds.pick", 4, 0.55), Some((2, 0.3)));
+        assert_eq!(sample(&answers, "worlds.pick", 4, 0.95), Some((3, 0.2)));
         // A stray key for world 1 or beyond the worlds is not drawn.
         let stray = BTreeMap::from([("worlds.pick".to_string(), Answer::Choice { choice: "w1".into(), probabilities: BTreeMap::from([("w1".to_string(), 0.9), ("w9".to_string(), 0.05), ("w3".to_string(), 0.05)]), confidence: 0.9 })]);
-        assert_eq!(sample(&stray, 4, 0.5), Some((2, 0.05)));
+        assert_eq!(sample(&stray, "worlds.pick", 4, 0.5), Some((2, 0.05)));
         let Question::Choice { criteria, .. } = stage_two(&lines, 2) else { panic!("a choice") };
         assert_eq!(criteria.keys().cloned().collect::<Vec<_>>(), vec!["w1", "w3"]);
         let worlds: Vec<World> = vec![vec![0], vec![1], vec![2], vec![3]];

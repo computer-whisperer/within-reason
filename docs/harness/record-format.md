@@ -133,6 +133,15 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   mark), "fresh", "fault"}`. With the `openers` layer on, a move held for its opener carries `held: true`, and an
   audit line reads `{"layer": "openers", "id", "opener" (the best of its openers this second), "fresh", "fault"}`;
   an `<actor> opened` or `party_N opened` event says an opener came back at 0.5 or over while its moves were held.
+  With the `split` layer on (2026-10-02), the pick is one request: its questions are `worlds.c<j>.pick` (a Choice
+  over component j's changes, keyed `w2`..; absent when the component has one change) and `worlds.c<j>.w<k>` (a
+  Choice between `w1` and `w<k>`, one for every change); the `worlds_gate` line carries `components` [{`actors`,
+  `worlds`, `lines`}] beside the joint `worlds` and `lines` (still composed, asked only for the audit); the `plan`
+  line carries `split` [{`actors`, `changes`, `candidate`, `sampled_p`, `taken`, `confidence`}] in place of `pick`,
+  `confidence` and `candidate`; and on the audited share of picks with two actors or more the joint pick's two calls
+  are logged as before and an audit line reads `{"layer": "split", "split": [move ids taken], "joint": [move ids of
+  the joint pick's world], "joint_confidence", "fault"}` (a fault: the two sets differ). `WITHIN_REASON_SPLIT_AUDIT`
+  sets that share (default 0.02).
 Size: 15-30 KB a call (3-6k tokens of state and questions), 20-60 calls a minute: 25 MB for a 20-minute game. Logs from
 the first morning (2026-09-21, before the header line) carry `instructions` and `rules` in every state and no `played`;
 the viewer reads those too, taking the decisions from the answers.

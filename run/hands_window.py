@@ -45,8 +45,9 @@ def main():
         pas = next((x for x in lines if x.get("t") == "pass"), None)
         gate = next((x for x in lines if x.get("t") == "worlds_gate"), None)
         plan = next((x for x in lines if x.get("t") == "plan"), None)
-        call = next((x for x in lines if x.get("t") == "call" and "worlds.pick" not in (x.get("questions") or {})), None)
-        pick_call = next((x for x in lines if x.get("t") == "call" and "worlds.pick" in (x.get("questions") or {})), None)
+        is_pick = lambda x: any(q.startswith("worlds.") for q in (x.get("questions") or {}))
+        call = next((x for x in lines if x.get("t") == "call" and not is_pick(x)), None)
+        pick_call = next((x for x in lines if x.get("t") == "call" and is_pick(x)), None)
         out = []
         if pas and pas.get("events"):
             out.append("events: " + "; ".join(pas["events"]))
@@ -89,7 +90,10 @@ def main():
         plays = [f"{p['actor']}: {(p.get('did') or '')[:60]} [{p.get('source')}]" for x in lines for p in (x.get("played") or []) if want(p.get("actor", ""))]
         if plays:
             out.append("PLAYS " + " | ".join(plays))
-        if plan:
+        if plan and "split" in plan:
+            parts = "; ".join(f"{'+'.join(c['actors'])}: {'took' if c.get('taken') else 'kept w1 over'} w{c['candidate']} of {c['changes']} at {c.get('confidence')}" for c in plan["split"])
+            out.append(f"PICK split [{parts}] changed={[c[:50] for c in plan.get('changed') or []]}")
+        elif plan:
             probs = ((pick_call or {}).get("answers") or {}).get("worlds.pick", {}).get("probabilities", {})
             out.append(f"PICK w{plan.get('pick')} p={probs.get('w%s' % plan.get('pick'))} confidence={plan.get('confidence')} changed={[c[:50] for c in plan.get('changed') or []]}")
         elif pas and pas.get("quiet") and not plays:

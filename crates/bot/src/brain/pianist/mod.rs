@@ -294,6 +294,8 @@ struct Follow {
     /// its audit with the answer that stands for each.
     stand: BTreeMap<String, jev::Answer>,
     audited: BTreeMap<String, f64>,
+    /// The `split` layer is on: the pick is asked per component in one request.
+    split: bool,
 }
 
 /// What follows a gate: what the gate flagged, each actor's best-rated moves, the worlds and their lines (None
@@ -303,7 +305,10 @@ struct Followed {
     rated: compose::Rated,
     worlds: Option<Vec<compose::World>>,
     lines: Vec<String>,
+    /// The joint pick's two calls: the pick itself in the base, the audit's under the `split` layer.
     pick: Option<compose::PickRun>,
+    /// The `split` layer's pick: the components and their one request with its answer.
+    split: Option<(Vec<compose::Component>, jev::Request, Result<jev::Response, jev::Error>)>,
 }
 
 /// The worlds over what a gate flagged, and the pick's two calls made at once: by the worker in realtime, in
@@ -313,12 +318,21 @@ fn followed(ask: &dyn Fn(&jev::Request) -> Result<jev::Response, jev::Error>, fo
     let mut all = answers.clone();
     all.extend(follow.stand.clone());
     let next = compose::follow_up(&follow.menus, &follow.parties, &follow.places, &all, &follow.store, follow.cap, state);
-    match next.worlds {
-        Some((worlds, lines, state)) => {
-            let run = compose::run_pick(ask, &state, &lines, compose::draw());
-            Followed { flags: next.flags, rated: next.rated, worlds: Some(worlds), lines, pick: Some(run) }
+    match (next.worlds, next.components) {
+        // The `split` layer: every component's two stages in one request; the joint pick is asked as well on a
+        // share of picks that have something to compare (two actors or more with a change), for the audit.
+        (Some((worlds, lines, state)), Some((components, split_state))) if follow.split => {
+            let request = jev::Request { state: split_state, questions: compose::split_questions(&components) };
+            let result = ask(&request);
+            let several = components.iter().map(|c| c.menus.len()).sum::<usize>() >= 2;
+            let audit = (several && compose::draw() < layers::split_audit_share()).then(|| compose::run_pick(ask, &state, &lines, compose::draw()));
+            Followed { flags: next.flags, rated: next.rated, worlds: Some(worlds), lines, pick: audit, split: Some((components, request, result)) }
         }
-        None => Followed { flags: next.flags, rated: next.rated, worlds: None, lines: Vec::new(), pick: None },
+        (Some((worlds, lines, state)), _) => {
+            let run = compose::run_pick(ask, &state, &lines, compose::draw());
+            Followed { flags: next.flags, rated: next.rated, worlds: Some(worlds), lines, pick: Some(run), split: None }
+        }
+        (None, _) => Followed { flags: next.flags, rated: next.rated, worlds: None, lines: Vec::new(), pick: None, split: None },
     }
 }
 
@@ -983,7 +997,7 @@ impl Brain {
             self.pianist.as_mut().expect("pianist mode").write_log(json!({ "t": "shed", "f": tick.frame, "shed": shed }));
         }
         let request = jev::Request { state, questions: questions.into_iter().collect() };
-        let follow = Follow { menus, parties: picture.parties.clone(), places: picture.places.clone(), store: Self::store_words(picture), cap: self.pianist.as_ref().expect("pianist mode").cap, stand: same.stand, audited: same.audited };
+        let follow = Follow { menus, parties: picture.parties.clone(), places: picture.places.clone(), store: Self::store_words(picture), cap: self.pianist.as_ref().expect("pianist mode").cap, stand: same.stand, audited: same.audited, split: self.pianist.as_ref().expect("pianist mode").layers.split };
         self.call(tick, kit, picture.clone(), request, follow, commands);
     }
 
@@ -1134,8 +1148,17 @@ impl Brain {
         for audit in audits {
             pianist.write_log(audit);
         }
-        pianist.write_log(json!({ "t": "worlds_gate", "f": tick.frame, "flags": followed.flags, "worlds": followed.worlds, "lines": followed.lines }));
+        let mut gate_row = json!({ "t": "worlds_gate", "f": tick.frame, "flags": followed.flags, "worlds": followed.worlds, "lines": followed.lines });
+        if let Some((components, ..)) = &followed.split {
+            gate_row["components"] = json!(components.iter().map(|c| json!({ "actors": c.menus.iter().map(|mi| menus[*mi].name.as_str()).collect::<Vec<_>>(), "worlds": c.worlds, "lines": c.lines })).collect::<Vec<_>>());
+        }
+        pianist.write_log(gate_row);
         pianist.rated.extend(followed.rated);
+        if let Some((components, split_request, result)) = followed.split {
+            self.split_answered(tick, kit, picture, &menus, &components, &split_request, result, followed.worlds.as_deref().zip(followed.pick), commands);
+            return;
+        }
+        let pianist = self.pianist.as_mut().expect("pianist mode");
         let (Some(worlds), Some(run)) = (followed.worlds, followed.pick) else { return };
         pianist.worlds = worlds.clone();
         pianist.candidate = run.candidate;
@@ -1165,6 +1188,59 @@ impl Brain {
             }
             Err(e) => self.call_failed(tick.frame, &e.to_string()),
         }
+    }
+
+    /// The `split` layer's pick, answered: every component's change that was taken is put in force as one world,
+    /// logged as a `plan` line with a record per component. The joint pick asked beside it for the audit is logged
+    /// and never played: an `audit` row sets what it would have changed beside what the split changed.
+    #[allow(clippy::too_many_arguments)]
+    fn split_answered(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, menus: &[menu::Menu], components: &[compose::Component], request: &jev::Request, result: Result<jev::Response, jev::Error>, joint: Option<(&[compose::World], compose::PickRun)>, commands: &mut Vec<Command>) {
+        {
+            let pianist = self.pianist.as_mut().expect("pianist mode");
+            pianist.stats.calls += 1;
+            pianist.stats.questions += request.questions.len() as u32;
+        }
+        let response = match result {
+            Ok(response) => response,
+            Err(e) => return self.call_failed(tick.frame, &e.to_string()),
+        };
+        self.count_call(&response);
+        self.log_call(tick, request, &response);
+        let (world, parts) = compose::split_pick(&response.answers, components, menus, &mut compose::draw);
+        let moves_of = |world: &compose::World| -> Vec<String> { menus.iter().zip(world).filter(|(_, i)| **i != 0).map(|(menu, i)| menu.id(&menu.moves[*i])).collect() };
+        let took = moves_of(&world);
+        // The audit: the joint pick's two calls, counted and logged; what it picked is set beside the split's.
+        if let Some((worlds, run)) = joint {
+            let mut picked: Option<(usize, f64)> = None;
+            for (stage, last) in [(run.stage_one, false), (run.stage_two, true)] {
+                let Some((asked, result)) = stage else { continue };
+                {
+                    let pianist = self.pianist.as_mut().expect("pianist mode");
+                    pianist.stats.calls += 1;
+                    pianist.stats.questions += 1;
+                }
+                match result {
+                    Ok(answer) => {
+                        self.count_call(&answer);
+                        self.log_call(tick, &asked, &answer);
+                        if last {
+                            picked = compose::pick(&answer.answers, worlds);
+                        }
+                    }
+                    Err(e) => self.call_failed(tick.frame, &e.to_string()),
+                }
+            }
+            if let Some((wi, confidence)) = picked {
+                let joint_moves = moves_of(&worlds[wi]);
+                let fault = joint_moves.iter().collect::<BTreeSet<_>>() != took.iter().collect::<BTreeSet<_>>();
+                self.pianist.as_mut().expect("pianist mode").write_log(json!({ "t": "audit", "f": tick.frame, "layer": "split", "split": took, "joint": joint_moves, "joint_confidence": confidence, "fault": fault }));
+            }
+        }
+        let changed = self.apply_world(tick, kit, picture, menus, &world, commands);
+        let pianist = self.pianist.as_mut().expect("pianist mode");
+        let played = std::mem::take(&mut pianist.played);
+        pianist.write_log(json!({ "t": "plan", "f": tick.frame, "split": parts, "changed": changed, "played": played }));
+        self.journal.note_from("plan", tick.frame, "worlds", json!({ "components": components.len() }), json!({ "split": parts, "changed": changed }));
     }
 
     fn count_call(&mut self, response: &jev::Response) {

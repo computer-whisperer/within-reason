@@ -1210,7 +1210,7 @@
         return `${d.inputs.actor}: ${o.played}${params.length ? ` ${params.join(" ")}` : ""}${kept ? ` (kept; it chose ${o.choice})` : ""}`;
       }
       case "global": return `global: ${Object.entries(o).map(([k, v]) => `${k.replace("global.", "")} ${Number(v).toFixed(2)}`).join(", ")}`;
-      case "worlds": return `plan: w${o.pick} at ${Number(o.confidence).toFixed(2)}${Array.isArray(o.changed) && o.changed.length ? `: ${o.changed.join("; ")}` : ", nothing changes"}`;
+      case "worlds": return `plan: ${o.split ? `split over ${o.split.length}` : `w${o.pick} at ${Number(o.confidence).toFixed(2)}`}${Array.isArray(o.changed) && o.changed.length ? `: ${o.changed.join("; ")}` : ", nothing changes"}`;
       default: return `${d.kind}: ${JSON.stringify(o)}`;
     }
   }
@@ -1420,7 +1420,7 @@
     const summary = [WR.clock(pass.f)];
     if (before.length) summary.push(`${before.length} by ${[...new Set(before.map((d) => d.source))].join("/")} before the ask`);
     summary.push(pass.gate ? `asked ${pass.gate.length} nouls` : pass.quiet ? "quiet" : (pass.open || []).length ? "nothing open to ask" : "nothing open");
-    if (plan) summary.push(`picked w${plan.pick} at ${Number(plan.confidence).toFixed(2)}${after.length ? `, ${after.length} started` : ", nothing changed"}`);
+    if (plan) summary.push(`${plan.split ? `split pick over ${plan.split.length}` : `picked w${plan.pick} at ${Number(plan.confidence).toFixed(2)}`}${after.length ? `, ${after.length} started` : ", nothing changed"}`);
     $("pass-summary").textContent = summary.join(" · ");
     if (box.dataset.key === key) return;
     box.dataset.key = key;
@@ -1531,7 +1531,20 @@
           worlds.append(row);
         });
       }
-      const picked = section(plan ? `the pick took w${plan.pick} at ${Number(plan.confidence).toFixed(2)}` : "no pick", "plan");
+      // The split pick (the `split` layer): per component its lines, the candidate and whether it was taken.
+      if (gate && gate.components && plan && plan.split) {
+        gate.components.forEach((c, j) => {
+          const part = plan.split[j] || {};
+          const block = section(`component ${j + 1}: ${c.actors.join(", ")}: ${part.taken ? `took w${part.candidate}` : part.candidate ? `kept w1 over w${part.candidate}` : "no answer"}${part.confidence != null ? ` at ${Number(part.confidence).toFixed(2)}` : ""}`, "worlds");
+          c.lines.forEach((text, i) => {
+            const row = el("div", `world${part.taken && part.candidate === i + 1 ? " picked" : ""}`);
+            row.append(el("div", "id", `w${i + 1}`));
+            row.append(el("div", "ask words", text));
+            block.append(row);
+          });
+        });
+      }
+      const picked = section(plan ? (plan.split ? `the split pick over ${plan.split.length} components` : `the pick took w${plan.pick} at ${Number(plan.confidence).toFixed(2)}`) : "no pick", "plan");
       if (plan) plays(picked, after, "nothing changed: the plan is world 1's courses");
     }
   }

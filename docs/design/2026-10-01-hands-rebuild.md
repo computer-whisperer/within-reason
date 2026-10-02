@@ -542,3 +542,28 @@ told-and-not-in-reach, 0.41 where a group had it in reach; 17 extractors lost (p
 raiding parties lost a unit; Jev $1.17. The churn is where it was (59% of group picks within 10 s of the group's
 last). One game: the win is not shown to be the change's.
 
+## 17. The `split` layer, built (2026-10-02)
+
+The user, after player-36: "We should pursue jev cost optimizations in the foreground." Where player-36's $1.17
+went (27.8M tokens in 17 minutes): the gate 16.7M (the picture 4.5M, the questions 12M), the pick's two calls 9.1M
+(the picture 6.3M, the worlds' lines 2.9M), the decode 2.1M. The picture is sent three times a second with a
+change on offer; the rules text alone is 2.8M.
+
+`split` is §8's row as written, from the budget study's §4: the pick is asked per component, every component's two
+stages in one request. What the code needed that the note did not say:
+
+- *A component* is the actors with a change on offer whose changes touch: a change of one names the other (join,
+  follow, help), a change or the course of each is aimed at the same party, or both would build on the same spot.
+- *Its worlds* are world 1 and at most eight changes (the single changes round-robin, then the joint ones of its
+  own actors), each change asked against the component's "nothing changes" in the same request, so the candidate
+  sampled from the first question always has its answer.
+- *Its lines* speak of its own actors and parties alone: another component's unanswered party or idle plant is
+  not this one's cost.
+- *The audit* asks the joint pick too (its two calls, logged, never played) on a share of the picks with two
+  actors or more, and sets the two sets of moves side by side.
+
+rebuild-smoke-9-split ran it without an error (82 picks, one request each at 4,600 tokens; 4 audits, in 2 of
+which the split took two actors' changes where the joint pick took one of them). The packet game is a poor
+instrument for it (77 of 82 picks had one component) and for anything else: `--place` put it on a start the
+packet's spot names do not fit, and the commander had no plant until minute 7.
+

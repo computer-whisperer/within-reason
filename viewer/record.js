@@ -209,7 +209,7 @@ const WR = (() => {
             f: r.f, ms: r.ms, model: r.model, tokens: r.usage ? r.usage.input_tokens || 0 : 0, retries: r.retries || 0,
             instructions, rules, state: r.state || {}, questions: r.questions || {}, answers: r.answers || {},
             played: r.played || (jev.header && jev.header.version >= 2 ? [] : playedFromAnswers(r)), groups: r.groups || [], places: r.places || [], parties: r.parties || [],
-            pick: "worlds.pick" in (r.questions || {}),
+            pick: Object.keys(r.questions || {}).some((q) => q.startsWith("worlds.")),
           };
           jev.calls.push(call);
           played(call.played, call.f, "jev");
@@ -286,7 +286,7 @@ const WR = (() => {
     for (const p of jev.plans) {
       const r = row(p.f);
       r.picks++;
-      if (p.pick === 1) r.w1++;
+      if (p.split ? !(p.changed || []).length : p.pick === 1) r.w1++;
       r.plan += (p.played || p.changed || []).length;
       r.changes += (p.played || p.changed || []).length;
     }
