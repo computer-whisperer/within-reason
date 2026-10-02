@@ -1,0 +1,160 @@
+{"id": "q001", "verdict": "forbids", "why": "the Stouts and Janus never chase armflash; party_111 is armflash"}
+{"id": "q002", "verdict": "silent", "why": "group_V5 not named; no rule on its Stouts hunting an unidentified party"}
+{"id": "q003", "verdict": "forbids", "why": "the Stouts and Janus never chase armflash; party_111 is armflash"}
+{"id": "q004", "verdict": "forbids", "why": "detachment includes a Stout: the Stouts and Janus never chase armflash"}
+{"id": "q005", "verdict": "silent", "why": "group_U5 not named; nothing on party_119"}
+{"id": "q006", "verdict": "silent", "why": "group_B6 not named; nothing on unidentified party_118"}
+{"id": "q007", "verdict": "silent", "why": "group_A6 not named; nothing on party_117"}
+{"id": "q008", "verdict": "silent", "why": "group_V5 not named; nothing on party_106"}
+{"id": "q009", "verdict": "silent", "why": "group_X5 not named; nothing on party_117"}
+{"id": "q010", "verdict": "forbids", "why": "the Stouts and Janus never chase armflash; party_111 is armflash"}
+{"id": "q011", "verdict": "silent", "why": "group_W5 not named; nothing on party_106"}
+{"id": "q012", "verdict": "silent", "why": "group_W5 not named; nothing on party_119"}
+{"id": "q013", "verdict": "silent", "why": "only group_K5's Blitz detachment of eight is sent after party_111; group_U5 not named"}
+{"id": "q014", "verdict": "silent", "why": "group_X5 not named; nothing on party_119"}
+{"id": "q015", "verdict": "silent", "why": "group_X5 not named; nothing on party_106"}
+{"id": "q016", "verdict": "forbids", "why": "Rovers not in group_J1 never a Pawn party; group_Y1 attacks with the whole group"}
+{"id": "q017", "verdict": "forbids", "why": "Rovers not in group_J1 never a Pawn party; party_8 is armpw"}
+{"id": "q018", "verdict": "tells", "why": "group_T1 attacks Pawns that come within reach of spot_43, spot_38, spot_39 or spot_50; party_8 at spot_38"}
+{"id": "q019", "verdict": "forbids", "why": "any group of our Rovers not in group_J1: never a Pawn party"}
+{"id": "q020", "verdict": "against", "why": "group_T1 stands at spot_43, attacks Pawns near spot_43/38/39/50; party at spot_45 is outside"}
+{"id": "q021", "verdict": "forbids", "why": "Rovers never a Pawn party; group_Y1 attacks with the whole group"}
+{"id": "q022", "verdict": "forbids", "why": "group_W1 Rovers: never a Pawn party"}
+{"id": "q023", "verdict": "forbids", "why": "Rovers not in group_J1 never a Pawn party"}
+{"id": "q024", "verdict": "against", "why": "group_T1 stands at spot_43, attacks Pawns near spot_43/38/39/50; spot_45 outside"}
+{"id": "q025", "verdict": "forbids", "why": "Rovers never a Pawn party; group_Y1 attacks with the whole group"}
+{"id": "q026", "verdict": "forbids", "why": "Rovers not in group_J1 never a Pawn party"}
+{"id": "q027", "verdict": "tells", "why": "group_T1 attacks Pawns that come within reach of spot_38; party_8 at spot_38"}
+{"id": "q028", "verdict": "against", "why": "group_Y2 stands at yard2 and fights beside group_J1 when his army nears spot_63/61; not a detachment"}
+{"id": "q029", "verdict": "against", "why": "his army is fought beside group_J1 near spot_63/61; group_Y2 stands at yard2"}
+{"id": "q030", "verdict": "forbids", "why": "group_Y2 attacks with the whole group any party of one to four raiders"}
+{"id": "q031", "verdict": "forbids", "why": "group_Y2 attacks with the whole group any party of one to four raiders"}
+{"id": "q032", "verdict": "against", "why": "group_Y2 stands at yard2, attacks raider parties with the whole group; unidentified party"}
+{"id": "q033", "verdict": "against", "why": "group_Y2 stands at yard2, attacks with the whole group; unidentified party at spot_44"}
+{"id": "q034", "verdict": "forbids", "why": "group_Y2 attacks with the whole group any party of one to four raiders"}
+{"id": "q035", "verdict": "forbids", "why": "group_Y2 attacks with the whole group any party of one to four raiders"}
+{"id": "q036", "verdict": "against", "why": "group_Y2 stands at yard2, attacks with the whole group; unidentified party"}
+{"id": "q037", "verdict": "against", "why": "group_Y2 stands at yard2, attacks with the whole group; unidentified party"}
+{"id": "q038", "verdict": "forbids", "why": "every group of Stouts joins group_K5; one body, never split off detachments"}
+{"id": "q039", "verdict": "forbids", "why": "every group of Blitzes joins group_W5 and never splits smaller than that"}
+{"id": "q040", "verdict": "forbids", "why": "Blitz groups join group_W5 and never split smaller than that"}
+{"id": "q041", "verdict": "forbids", "why": "group_U5 joins group_W5; never split smaller than that"}
+{"id": "q042", "verdict": "forbids", "why": "group_U5 joins group_W5; never split smaller than that"}
+{"id": "q043", "verdict": "forbids", "why": "Blitz and Stout groups join the two bodies and never split"}
+{"id": "q044", "verdict": "forbids", "why": "never split; the tank body never chases an armflash"}
+{"id": "q045", "verdict": "forbids", "why": "Blitz and Stout groups join the two bodies and never split"}
+{"id": "q046", "verdict": "forbids", "why": "every group of Stouts joins group_K5; never split off detachments"}
+{"id": "q047", "verdict": "forbids", "why": "Blitz groups join group_W5 and never split smaller than that; party_111 killed all together"}
+{"id": "q048", "verdict": "forbids", "why": "every group of Stouts joins group_K5; never split off detachments"}
+{"id": "q049", "verdict": "forbids", "why": "Blitz and Stout groups join the bodies and never split"}
+{"id": "q050", "verdict": "against", "why": "group_K5 attacks party_124 now; nobody walks away from it"}
+{"id": "q051", "verdict": "silent", "why": "group_M6 not named; nothing on party_125"}
+{"id": "q052", "verdict": "against", "why": "group_K5 attacks party_124 now until all three are dead"}
+{"id": "q053", "verdict": "against", "why": "group_Z5 attacks party_124 now until all three are dead"}
+{"id": "q054", "verdict": "against", "why": "group_K5 attacks party_124 now; nobody walks away from it"}
+{"id": "q055", "verdict": "silent", "why": "group_L6 not named; only K5, Z5, W5 and new soldiers attack party_124"}
+{"id": "q056", "verdict": "against", "why": "group_W5 comes by spot_50 and spot_61 and joins the attack on party_124"}
+{"id": "q057", "verdict": "silent", "why": "group_L6 not named; nothing on party_127"}
+{"id": "q058", "verdict": "against", "why": "group_K5 attacks party_124 now until all three are dead"}
+{"id": "q059", "verdict": "against", "why": "group_Z5 attacks party_124 now; nobody walks away from it"}
+{"id": "q060", "verdict": "against", "why": "group_K5 attacks party_124 now; nobody walks away from it"}
+{"id": "q061", "verdict": "forbids", "why": "group_J1: one body, no detachments"}
+{"id": "q062", "verdict": "forbids", "why": "the Rover group (armfav): never a Pawn party; party_61 includes armpw"}
+{"id": "q063", "verdict": "against", "why": "group_Q4 whole body attacks D4 and party_96; never joins the home groups"}
+{"id": "q064", "verdict": "against", "why": "group_Q4's job is D4 and party_96, the whole body, all at once"}
+{"id": "q065", "verdict": "forbids", "why": "The whole body attacks ... party_96; it goes in all at once"}
+{"id": "q066", "verdict": "against", "why": "group_Q4's job is D4; spot_68 is the home guard's"}
+{"id": "q067", "verdict": "against", "why": "group_Q4's job is D4; spot_68 is the home guard's"}
+{"id": "q068", "verdict": "tells", "why": "home guard attacks every armflash party at our extractors at spot_68"}
+{"id": "q069", "verdict": "forbids", "why": "The whole body attacks ... party_96; it goes in all at once"}
+{"id": "q070", "verdict": "forbids", "why": "The whole body attacks ... party_96; it goes in all at once"}
+{"id": "q071", "verdict": "against", "why": "group_T1 gathers at spot_61 and holds; party_13 is group_J1's job; small Blitz groups join group_J1"}
+{"id": "q072", "verdict": "against", "why": "group_T1 holds at spot_61; spot_26 outside; small Blitz groups join group_J1"}
+{"id": "q073", "verdict": "against", "why": "group_T1 gathers at spot_61 and holds there; party_13 is group_J1's job"}
+{"id": "q074", "verdict": "forbids", "why": "group_J1: one body, no detachments"}
+{"id": "q075", "verdict": "forbids", "why": "group_J1: one body, no detachments"}
+{"id": "q076", "verdict": "silent", "why": "group_Y2 not named in this packet; nothing on party_50"}
+{"id": "q077", "verdict": "against", "why": "group_Y2 stands at yard2, attacks with the whole group; unidentified party"}
+{"id": "q078", "verdict": "against", "why": "group_Y2 fights his army beside group_J1 near spot_63/61, not by detachment"}
+{"id": "q079", "verdict": "against", "why": "group_Y2 stands at yard2, attacks with the whole group; unidentified party"}
+{"id": "q080", "verdict": "against", "why": "group_Y2 stands at yard2, attacks with the whole group; unidentified party"}
+{"id": "q081", "verdict": "against", "why": "group_Y2 attacks raider parties with the whole group; armcv party not a raider"}
+{"id": "q082", "verdict": "forbids", "why": "group_Q4 holds at spot_33 as one body; never joins the home groups"}
+{"id": "q083", "verdict": "forbids", "why": "home guard never split; attacks the whole group together"}
+{"id": "q084", "verdict": "forbids", "why": "group_Q4 holds at spot_33 as one body"}
+{"id": "q085", "verdict": "forbids", "why": "group_Q4 holds at spot_33 as one body"}
+{"id": "q086", "verdict": "tells", "why": "any new Stout group joins home guard; attacks every armpw party at spot_71 (A4 assumed new)"}
+{"id": "q087", "verdict": "tells", "why": "any new Stout group joins home guard; attacks every armpw party at spot_71 (A4 assumed new)"}
+{"id": "q088", "verdict": "forbids", "why": "group_U3 attacks every armpw party at spot_61 the whole hunter group together"}
+{"id": "q089", "verdict": "against", "why": "home guard (new Rover groups) covers spot_71/76/69/64/63/home; party at spot_44 outside"}
+{"id": "q090", "verdict": "silent", "why": "group_U3 not named; home guard is Rover/Stout groups only"}
+{"id": "q091", "verdict": "against", "why": "group_J1 sends four of its soldiers (its Blitzes); this is eight Stouts"}
+{"id": "q092", "verdict": "against", "why": "home guard covers spot_71, spot_76, spot_69, spot_64, spot_63, home; spot_66 outside"}
+{"id": "q093", "verdict": "silent", "why": "group_U3 not named in this packet"}
+{"id": "q094", "verdict": "against", "why": "home guard covers spot_71/76/69/64/63/home; party at spot_44 outside"}
+{"id": "q095", "verdict": "against", "why": "against an armfav they send two of their Rovers (Stouts do not); this is a Stout"}
+{"id": "q096", "verdict": "against", "why": "against an armfav send two Rovers; this is one Rover and one Stout; spot_61 outside its spots"}
+{"id": "q097", "verdict": "against", "why": "home guard spots exclude spot_66"}
+{"id": "q098", "verdict": "silent", "why": "group_U3 not named in this packet"}
+{"id": "q099", "verdict": "silent", "why": "group_X3 not named; nothing covering a Blitz group"}
+{"id": "q100", "verdict": "against", "why": "scout-car hunters attack armfav or armflea; party_30 is group_J1's target"}
+{"id": "q101", "verdict": "against", "why": "group_Y2 attacks with the whole group, stands at spot_61; unidentified party"}
+{"id": "q102", "verdict": "forbids", "why": "group_J1: one body, no detachments; never chases a lone armpw"}
+{"id": "q103", "verdict": "silent", "why": "home guard attacks armfav/armflea/lone armpw; unidentified party, nothing decides it"}
+{"id": "q104", "verdict": "tells", "why": "home guard attacks every lone armpw at our extractors in columns A to C"}
+{"id": "q105", "verdict": "tells", "why": "home guard attacks every lone armpw at our extractors in columns A to C"}
+{"id": "q106", "verdict": "silent", "why": "home guard attacks armfav/armflea/lone armpw; unidentified party, nothing decides it"}
+{"id": "q107", "verdict": "forbids", "why": "group_W6 attacks it now as one body ... No detachments"}
+{"id": "q108", "verdict": "tells", "why": "group_H5 goes to spot_52 now and fights party_97 there beside group_Q4"}
+{"id": "q109", "verdict": "tells", "why": "group_H5 goes to spot_52 now and fights party_97 there beside group_Q4"}
+{"id": "q110", "verdict": "against", "why": "group_G5 goes to spot_52 to fight party_97 then joins group_Q4; party_106 at spot_39"}
+{"id": "q111", "verdict": "forbids", "why": "group_Q4 never goes to spot_39"}
+{"id": "q112", "verdict": "silent", "why": "group_I5 not named"}
+{"id": "q113", "verdict": "against", "why": "scout-car hunters attack armfav or armflea; party_68 is line bots"}
+{"id": "q114", "verdict": "silent", "why": "scout-car hunters attack armfav or armflea; unidentified party, nothing decides it"}
+{"id": "q115", "verdict": "against", "why": "group_Y2 attacks with the whole group, stands at spot_61; unidentified party far off"}
+{"id": "q116", "verdict": "forbids", "why": "home guard: one group, never split, the whole group together"}
+{"id": "q117", "verdict": "forbids", "why": "group_Q4 holds at spot_43 as one body; attacks with the whole body"}
+{"id": "q118", "verdict": "forbids", "why": "never walks to spot_33; holds as one body"}
+{"id": "q119", "verdict": "forbids", "why": "It sends no detachments and chases nothing faster than itself"}
+{"id": "q120", "verdict": "silent", "why": "group_Q1 not named; party_12 is group_K's to send four after"}
+{"id": "q121", "verdict": "forbids", "why": "group_Q4 holds at spot_52 as one body; attacks with the whole body"}
+{"id": "q122", "verdict": "against", "why": "group_B5 walks to spot_52 and fights his army there beside group_Q4; party at spot_47"}
+{"id": "q123", "verdict": "forbids", "why": "group_Q4 holds at spot_52 as one body; attacks with the whole body"}
+{"id": "q124", "verdict": "forbids", "why": "group_Q4 holds at spot_52 as one body; attacks with the whole body"}
+{"id": "q125", "verdict": "forbids", "why": "group_Q4 holds at spot_52 as one body"}
+{"id": "q126", "verdict": "forbids", "why": "group_Q4 holds at spot_52 as one body; attacks with the whole body"}
+{"id": "q127", "verdict": "forbids", "why": "group_Q4 holds at spot_52 as one body; attacks with the whole body"}
+{"id": "q128", "verdict": "against", "why": "home guard attacks armfav, armflea or lone armpw; party_30 is group_J1's fight"}
+{"id": "q129", "verdict": "tells", "why": "group_Y2 goes to group_J1's fight NOW and attacks party_30 beside group_J1"}
+{"id": "q130", "verdict": "against", "why": "group_Y2 goes to group_J1's fight NOW and joins group_J1"}
+{"id": "q131", "verdict": "against", "why": "group_Y2 goes to group_J1's fight NOW and joins group_J1"}
+{"id": "q132", "verdict": "against", "why": "home guard attacks armfav, armflea or lone armpw; party_30 is group_J1's fight"}
+{"id": "q133", "verdict": "against", "why": "group_Y2 goes to group_J1's fight NOW and joins group_J1"}
+{"id": "q134", "verdict": "forbids", "why": "group_A4 joins group_J1: ONE body, no detachments ever; never chases armpw"}
+{"id": "q135", "verdict": "silent", "why": "home guard kills small raider parties; unidentified party, nothing decides it"}
+{"id": "q136", "verdict": "silent", "why": "group_U2 not named"}
+{"id": "q137", "verdict": "tells", "why": "group_L2 and group_M2 kill party_22 (the armpw party at spot_66, spot_71)"}
+{"id": "q138", "verdict": "forbids", "why": "Against armwar they never fight: they walk to yard2"}
+{"id": "q139", "verdict": "silent", "why": "group_T2 not named"}
+{"id": "q140", "verdict": "silent", "why": "home guard kills small raider parties; unidentified party, nothing decides it"}
+{"id": "q141", "verdict": "silent", "why": "group_S2 not named"}
+{"id": "q142", "verdict": "silent", "why": "group_S2 not named"}
+{"id": "q143", "verdict": "silent", "why": "group_S2 not named"}
+{"id": "q144", "verdict": "silent", "why": "home guard kills small raider parties; unidentified party, nothing decides it"}
+{"id": "q145", "verdict": "silent", "why": "group_U2 not named"}
+{"id": "q146", "verdict": "silent", "why": "home guard kills small raider parties; unidentified party, nothing decides it"}
+{"id": "q147", "verdict": "silent", "why": "home guard kills small raider parties; unidentified party, nothing decides it"}
+{"id": "q148", "verdict": "silent", "why": "group_S2 not named; party_22 is the home guard's"}
+{"id": "q149", "verdict": "tells", "why": "group_L2 and group_M2 kill party_22 (the armpw party at spot_71)"}
+{"id": "q150", "verdict": "tells", "why": "group_L2 and group_M2 kill party_22 (the armpw party at spot_71)"}
+{"id": "q151", "verdict": "against", "why": "group_T1 stands at spot_61, attacks enemies near spot_61/52/63/64; spot_26 outside"}
+{"id": "q152", "verdict": "forbids", "why": "group_Y1 attacks with the whole group any armpw at our extractors"}
+{"id": "q153", "verdict": "against", "why": "group_T1 stands at spot_61; party_8 at spot_33 outside its spots"}
+{"id": "q154", "verdict": "forbids", "why": "new groups join the home guard: never split; never fight armwar or armrock parties (B5 assumed new)"}
+{"id": "q155", "verdict": "forbids", "why": "home guard never split; never fight armzeus, armwar or armrock parties"}
+{"id": "q156", "verdict": "forbids", "why": "home guard: one group ... never split"}
+{"id": "q157", "verdict": "silent", "why": "group_Y2 kills raider parties of one to three; unidentified party, nothing decides it"}
+{"id": "q158", "verdict": "forbids", "why": "home guard (group_V4): one group ... never split"}
+{"id": "q159", "verdict": "forbids", "why": "group_J6 and group_K6: this is the only group that chases raiders"}
+{"id": "q160", "verdict": "forbids", "why": "home guard never split; never fights armzeus, armwar or armrock parties"}

@@ -1,0 +1,97 @@
+{"id": "q001", "verdict": "yes", "why": "Two unarmed armrectr 487 from W1 at spot_44 by our wrecks; a Rover catches them; Pawn-only ban does not cover them."}
+{"id": "q002", "verdict": "unclear", "why": "Blitzes send one or two at a lone raider, never most; commander 311 from the Pawn is sooner; yet hunt picked 1 s ago."}
+{"id": "q003", "verdict": "no", "why": "Instructions say Blitzes gather at spot_63 and answer raiders; nothing says escort constructor_2891."}
+{"id": "q004", "verdict": "no", "why": "No instruction to escort constructor_9823; not clearly better than course."}
+{"id": "q005", "verdict": "unclear", "why": "4 Blitz hunt 20 s away vs 'one or two, never the whole group' and commander nearer; course chosen 1 s ago."}
+{"id": "q006", "verdict": "no", "why": "Following group_F as a separate group is not the gather into one group the instructions ask; not clearly better."}
+{"id": "q007", "verdict": "yes", "why": "party_7 Pawn 264 from J1, killing our Stout; J1 attacks an out-of-sight party; party in sight within 600 is fought now."}
+{"id": "q008", "verdict": "yes", "why": "Rule: party in sight within 600 of a group that outweighs it is fought now; whole body keeps 'no detachments'."}
+{"id": "q009", "verdict": "yes", "why": "J1 under fire from a Pawn 264 away while attacking an out-of-sight party; it should fight what is in sight."}
+{"id": "q010", "verdict": "no", "why": "2-Rover send reaches party_66 in 10 s; this 4-send with a Stout takes 20 s; soonest answer wins."}
+{"id": "q011", "verdict": "yes", "why": "Plant idle, Stout allowed; 'never idle'; rule: an idle plant builds now, metal short only slows it."}
+{"id": "q012", "verdict": "no", "why": "group_J1: 'one body, no detachments.'"}
+{"id": "q013", "verdict": "yes", "why": "armfav killing our mex and armcv at spot_50; home guard attacks armfav at extractors; 2 Rovers, 10 s, soonest."}
+{"id": "q014", "verdict": "no", "why": "'Every ground group walks to spot_61... a group that is being shot walks on to spot_61'; spot_43 is not that."}
+{"id": "q015", "verdict": "unclear", "why": "R6 already at spot_61 with no order; hold there matches 'holds at spot_61' but is barely different from standing."}
+{"id": "q016", "verdict": "no", "why": "Instructions: walk to spot_61 and join Z5; spot_52 not named."}
+{"id": "q017", "verdict": "no", "why": "V6 walks to spot_61 as ordered ('a group being shot walks on to spot_61'); already walking away."}
+{"id": "q018", "verdict": "no", "why": "Instructions name spot_61 for every group, not spot_50."}
+{"id": "q019", "verdict": "no", "why": "spot_63 is not the named gathering place spot_61."}
+{"id": "q020", "verdict": "yes", "why": "'Nobody hunts, nobody chases anything until they have joined group_Z5'; M6 attacks an out-of-sight party; walk to spot_61."}
+{"id": "q021", "verdict": "no", "why": "Q4 (42, outweighs heavily) is on party_96 as ordered; home guard told never to fight armzeus/armwar."}
+{"id": "q022", "verdict": "no", "why": "W4 attacking the armflash raider at spot_68 is the home guard's job; joining V4 not clearly better."}
+{"id": "q023", "verdict": "no", "why": "Q4 committed to party_96 as whole body; 40 s walk; home guard already on party_92."}
+{"id": "q024", "verdict": "no", "why": "Y4 hunting party_92 is the home guard's job; following W4 not clearly better."}
+{"id": "q025", "verdict": "no", "why": "Following X4 (which follows W4) adds nothing over hunting the raider."}
+{"id": "q026", "verdict": "no", "why": "Q4 attacks party_96 'NOW' as ordered; outweighs heavily, a noticeable share lost is the cost of fighting."}
+{"id": "q027", "verdict": "no", "why": "X4 follows W4; joining it leaves the raider for no gain."}
+{"id": "q028", "verdict": "no", "why": "Home guard 'against armwar never fight: walk to yard2'; a fighting advance is not that walk."}
+{"id": "q029", "verdict": "unclear", "why": "enemies_near says party_27 outweighs U2 (step back to yard2), but it is 719 off and U2's hunt of party_22 is ordered."}
+{"id": "q030", "verdict": "no", "why": "spot_33 is toward the enemy, not a step-back place; outweighed group steps back to yard2."}
+{"id": "q031", "verdict": "no", "why": "U2 (8) already hunts party_22 sooner; L2 is stepping back to yard2 from armwar."}
+{"id": "q032", "verdict": "no", "why": "J1 attacks the armwar line party at C5 with everything, as ordered; we outweigh it."}
+{"id": "q033", "verdict": "unclear", "why": "T2 Rovers have no enemy near; home guard should kill party_22, but walking with L2 to yard2 joins the guard."}
+{"id": "q034", "verdict": "no", "why": "party_27 outweighs L2; 'Against armwar they never fight: they walk to yard2' - what it does."}
+{"id": "q035", "verdict": "no", "why": "group_W6: 'No detachments, never home'; follows the commander."}
+{"id": "q036", "verdict": "unclear", "why": "spot_62 is the first named leg and steps from the armmav, but it drops the spot_14 extractor and waits."}
+{"id": "q037", "verdict": "no", "why": "J3 already attacks party_45; splitting 4 Stouts that cannot catch it adds nothing."}
+{"id": "q038", "verdict": "no", "why": "R3 already hunts party_45; attacking it instead is the same job."}
+{"id": "q039", "verdict": "no", "why": "constructor_1371 is stuck at yard2; helping the nanotc in place is the useful thing it can do."}
+{"id": "q040", "verdict": "no", "why": "Rovers catch raiders, Stouts do not; joining Stouts slows the hunt."}
+{"id": "q041", "verdict": "no", "why": "J3 already on party_45; 2 Stouts cannot catch a Pawn."}
+{"id": "q042", "verdict": "no", "why": "J3 and R3 already on party_45; spot_76 is not in the commander's home list."}
+{"id": "q043", "verdict": "no", "why": "J1 on party_31 as ordered, outweighs it heavily."}
+{"id": "q044", "verdict": "no", "why": "group_J1: 'one body, no detachments.'"}
+{"id": "q045", "verdict": "no", "why": "group_J1: 'one body, no detachments.'"}
+{"id": "q046", "verdict": "no", "why": "No detachments; and the lone Rover is outweighed by the Pawn."}
+{"id": "q047", "verdict": "no", "why": "Attacking party_31 is its named target; outweighs heavily, losses are the cost of fighting."}
+{"id": "q048", "verdict": "no", "why": "Step-back place named is spot_61, not spot_73."}
+{"id": "q049", "verdict": "no", "why": "Step-back place named is spot_61, not spot_54."}
+{"id": "q050", "verdict": "yes", "why": "Fatboy outweighs I5 at spot_39 (forbidden place); 'if a party that outweighs it comes it walks back to spot_61'."}
+{"id": "q051", "verdict": "unclear", "why": "Stepping back from the Fatboy is called for, but spot_68 is not the named place (spot_61)."}
+{"id": "q052", "verdict": "no", "why": "Escorting a constructor is not the named step-back."}
+{"id": "q053", "verdict": "no", "why": "Escorting a constructor 40 s away is not the named step-back."}
+{"id": "q054", "verdict": "unclear", "why": "Stepping back from the Fatboy is called for, but home is not the named place (spot_61)."}
+{"id": "q055", "verdict": "yes", "why": "Idle constructor under fire, raiders 95 away; 'walks to yard2 until it is gone'; home is the same way, better than idle."}
+{"id": "q056", "verdict": "no", "why": "Lone Pawn moving away, killing nothing; 'lone armpw' is the home guard's, not urgent."}
+{"id": "q057", "verdict": "no", "why": "group_J1: 'one body, no detachments.'"}
+{"id": "q058", "verdict": "no", "why": "J1 no detachments; J3 is on party_65; lone Pawn is the home guard's."}
+{"id": "q059", "verdict": "no", "why": "J1 no detachments; lone Pawn is the home guard's."}
+{"id": "q060", "verdict": "yes", "why": "Instructions name party_77 for J1's whole body; it is in sight 420 away and J1 stands with no order."}
+{"id": "q061", "verdict": "no", "why": "J1 no detachments; lone Pawn is the home guard's."}
+{"id": "q062", "verdict": "no", "why": "We outweigh party_30 heavily, 352 away: fought now; noticeable losses are the cost of fighting."}
+{"id": "q063", "verdict": "unclear", "why": "No raider in A-C; gathering a strung-out group is sensible, though orders say stand at spot_61."}
+{"id": "q064", "verdict": "no", "why": "spot_52 is the step-back place, but we outweigh party_30 heavily; no step back."}
+{"id": "q065", "verdict": "no", "why": "Leaves a party it outweighs in sight at 352; no reason to withdraw."}
+{"id": "q066", "verdict": "no", "why": "Advance onto shelling only when instructions say; J1 'never goes east of column D' (shelling at E5)."}
+{"id": "q067", "verdict": "no", "why": "Instructions: E6 joins group_Z5; not a fighting walk to yard2."}
+{"id": "q068", "verdict": "no", "why": "Instructions say join Z5, not follow it as a separate group."}
+{"id": "q069", "verdict": "no", "why": "E6 is home guard: joins Z5, not the tank body K5."}
+{"id": "q070", "verdict": "no", "why": "Instructions: E6 joins Z5, which is right here and outweighs party_124."}
+{"id": "q071", "verdict": "yes", "why": "'group_Z5, group_C6 and group_E6 join into one group (they join group_Z5)'; Z5 right here."}
+{"id": "q072", "verdict": "unclear", "why": "W5 'holds at spot_28' killing raiders at spot_30 etc.; attacking an out-of-sight party near spot_30, maybe north."}
+{"id": "q073", "verdict": "unclear", "why": "Target out of sight, group strung out; front at spot_61 where it stands between hunts, but the hunt may be live."}
+{"id": "q074", "verdict": "yes", "why": "Lone Pawn at spot_68, 284 from our mex, moving toward us; nobody moves for it."}
+{"id": "q075", "verdict": "yes", "why": "F3 is the home guard: 'attack every... lone armpw at our extractors in columns A to C'."}
+{"id": "q076", "verdict": "no", "why": "group_Y2: 'goes to group_J1's fight NOW and joins group_J1'."}
+{"id": "q077", "verdict": "no", "why": "Y2 ordered to J1's fight now; home guard F3/G3 own lone Pawns."}
+{"id": "q078", "verdict": "unclear", "why": "Losses line: losing this fight, last loss after orders (step back); orders say never walk away while party_30 lives."}
+{"id": "q079", "verdict": "no", "why": "Y2 ordered to join J1's fight now."}
+{"id": "q080", "verdict": "no", "why": "Y2 ordered to join J1's fight now, not hunt home Pawns."}
+{"id": "q081", "verdict": "unclear", "why": "'They join each other... never split' favours rejoining, but D5 is the one going for the Pawn at spot_68."}
+{"id": "q082", "verdict": "yes", "why": "Home guard stands at spot_74 and attacks Pawns at spot_68; A5 holds at home while party_99 kills solars."}
+{"id": "q083", "verdict": "unclear", "why": "Hunting the Pawn is the guard's job, but D5 is a split the orders forbid."}
+{"id": "q084", "verdict": "unclear", "why": "Joining B5 heading to spot_68 merges the guard and keeps on the Pawn; marginal over the hunt."}
+{"id": "q085", "verdict": "no", "why": "Home guard 'never split'."}
+{"id": "q086", "verdict": "no", "why": "Escorting a constructor is not in the orders."}
+{"id": "q087", "verdict": "no", "why": "Home guard 'never split'."}
+{"id": "q088", "verdict": "unclear", "why": "Losing this fight, last loss after orders (step back), but orders say close on the lone Fatboy until dead."}
+{"id": "q089", "verdict": "no", "why": "A fighting advance to spot_67 is neither the order nor a walk-away step back."}
+{"id": "q090", "verdict": "unclear", "why": "Orders say attack the Fatboy now, 185 away; losses rule says step back."}
+{"id": "q091", "verdict": "no", "why": "Fighting walk to spot_74 is neither the attack ordered nor a walk-away step back."}
+{"id": "q092", "verdict": "no", "why": "Commander is 40 s away walking; not a group to step back beside."}
+{"id": "q093", "verdict": "no", "why": "Fighting walk home is neither the attack ordered nor a walk-away step back."}
+{"id": "q094", "verdict": "unclear", "why": "Losing this fight favours a walk away, but orders say kill the Fatboy; spot_68 not named for W6."}
+{"id": "q095", "verdict": "no", "why": "Attacking party_77 is its hunter job; fighting walk to spot_43 is the same, not clearly better."}
+{"id": "q096", "verdict": "yes", "why": "13115 is a reclaimer: 'take apart the wreck fields at C7... and never stand idle at yard2'."}
+{"id": "q097", "verdict": "no", "why": "Already attacking party_77; fight-to spot_61 not clearly better."}

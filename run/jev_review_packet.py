@@ -4,6 +4,7 @@ picture and the instructions without seeing Jev's answers (`run/jev_review_score
 
     run/jev_review_packet.py moves <match> <out.jsonl> <arm> <path>      the arm's crossings that asking again did not make, with controls, by gate
     run/jev_review_packet.py forbidden <match> <out.jsonl> <path>         a sample of forbidden questions, by packet
+    run/jev_review_packet.py disagree <match> <out.jsonl> <path> <packets>   questions the file's arms answer on different sides of the bar, as <path>-1.md ...
 
 Writes <path>.md (what the reviewer reads) and <path>.key.json (each item's answers; not for the reviewer)."""
 import json, sys, collections, random, re
@@ -49,9 +50,44 @@ if mode == "moves":
     open(D + label + ".md", "w").write(f"# Review packet {label.rsplit('/', 1)[-1]}\n\nThe rules the hands are given with every question:\n\n> {rules}\n" + "".join(md))
     json.dump(key, open(D + label + ".key.json", "w"))
     print(label.rsplit("/", 1)[-1], "items", len(key), "flips", sum(v["flip"] for v in key.values()), "chars", chars)
+elif mode == "disagree":
+    # Questions on which the file's arms land on different sides of the bar, a few a gate, in <packets> packets.
+    label, packets = sys.argv[4], int(sys.argv[5])
+    MAX_CHARS, PER_GATE = 320_000, 7
+    arms = [a for a in next(iter(rows.values())) if a != "as played"]
+    gates = []
+    for f, r in rows.items():
+        items = []
+        for k, a in r["recorded"]["answers"].items():
+            if a is None or k.endswith(".forbidden"): continue
+            vs = [r[x]["answers"].get(k) for x in arms]
+            if None not in vs and len({v >= J.FLAG for v in vs}) == 2: items.append(k)
+        if items: gates.append((f, items))
+    rng.shuffle(gates)
+    rules = next(iter(by.values()))[1]["rules"]
+    for n in range(packets):
+        md = []; key = {}; chars = 0; i = 0
+        while gates:
+            f, items = gates[-1]
+            c, state = by[f]
+            text = json.dumps({k: v for k, v in state.items() if k != "rules"}, indent=1, ensure_ascii=False)
+            if chars + len(text) > MAX_CHARS: break
+            gates.pop()
+            openers = [k for k in items if J.family(k) == "opener"]; moves = [k for k in items if J.family(k) != "opener"]
+            items = openers[:3] + rng.sample(moves, min(len(moves), PER_GATE - min(3, len(openers)))); rng.shuffle(items)
+            md.append(f"\n\n# Moment {state['clock']} (frame {f})\n\nThe picture and the player's instructions at this second:\n\n```json\n{text}\n```\n\n## Questions at this moment\n")
+            for k in items:
+                i += 1; iid = f"q{i:03d}"
+                md.append(f"\n**{iid}** `{k}`\n\n{c['questions'][k]['instructions']}\n")
+                key[iid] = {"f": f, "k": k, "arms": {x: rows[f][x]["answers"][k] for x in arms}}
+            chars += len(text) + sum(len(c["questions"][k]["instructions"]) for k in items)
+        path = f"{label}-{n + 1}"
+        open(path + ".md", "w").write(f"# Review packet {path.rsplit('/', 1)[-1]}\n\nThe rules the hands are given with every question:\n\n> {rules}\n" + "".join(md))
+        json.dump(key, open(path + ".key.json", "w"))
+        print(path.rsplit("/", 1)[-1], "items", len(key), "chars", chars)
 else:
     label = sys.argv[4]
-    arm = "short forbidden"
+    arm = "short forbidden" if any("short forbidden" in r for r in rows.values()) else "recorded 2"
     items = [(f, k) for f, r in rows.items() for k in r["recorded"]["answers"] if k.endswith(".forbidden") and r[arm]["answers"].get(k) is not None]
     rng.shuffle(items); items = items[:160]
     bypk = collections.defaultdict(list)
@@ -67,7 +103,7 @@ else:
             entry = (state.get("actors") or {}).get(group)
             what = entry.get("is") if isinstance(entry, dict) else None
             md.append(f"\n**{iid}** at {state['clock']}, {group}" + (f" ({what})" if what else "") + f": {move}\n")
-            key[iid] = {"f": f, "k": k, "recorded": rows[f]["recorded"]["answers"][k], "recorded 2": rows[f]["recorded 2"]["answers"][k], "arm": rows[f][arm]["answers"][k], "as played": rows[f]["as played"]["answers"].get(k)}
+            key[iid] = {"f": f, "k": k, "arms": {x: r["answers"].get(k) for x, r in rows[f].items()}}
     open(D + label + ".md", "w").write(f"# Review packet {label.rsplit('/', 1)[-1]}\n" + "".join(md))
     json.dump(key, open(D + label + ".key.json", "w"))
     print(label.rsplit("/", 1)[-1], "items", len(key), "packets", len(bypk), "chars", sum(len(x) for x in md))

@@ -1,0 +1,86 @@
+{"id": "q001", "verdict": "yes", "why": "L2 outweighed by armwar party_27; instructions: 'Against armwar they never fight: they walk to yard2. Their step-back place is yard2.'"}
+{"id": "q002", "verdict": "no", "why": "party_28 is not yet at our extractor; L2's job is party_22 and joining M2; nothing it threatens now."}
+{"id": "q003", "verdict": "no", "why": "Commander helps plant_16399 at yard2 as told; party_22 is three armpw, not a lone raider within its short walk."}
+{"id": "q004", "verdict": "no", "why": "'a constructor with an enemy party within reach walks to home until it is gone': it is doing exactly that."}
+{"id": "q005", "verdict": "unclear", "why": "Killing party_22 is L2's named job and moves away from party_27, but the outweighed rule says walk to yard2."}
+{"id": "q006", "verdict": "no", "why": "Walking to a free spot on the list (spot_22); no enemy near, nothing changed."}
+{"id": "q007", "verdict": "unclear", "why": "P2 walks to yard2 (the named step-back) but instructions say L2 joins M2, and reaching P2 at spot_50 nears party_27."}
+{"id": "q008", "verdict": "no", "why": "7 Rovers+1 Blitz are outweighed by 15 armpw; 'it sends no detachments'."}
+{"id": "q009", "verdict": "no", "why": "J1 with the whole group is told to attack it; nobody else is assigned and J1 outweighs it overall."}
+{"id": "q010", "verdict": "no", "why": "Orders reached after last loss and say 'walking away under its fire is how we lose'; loss is a noticeable share only."}
+{"id": "q011", "verdict": "no", "why": "2 Rovers against 15 armpw are outweighed; 'it sends no detachments'."}
+{"id": "q012", "verdict": "no", "why": "Instructions: attack with the whole group NOW and keep attacking; only walk to spot_61 if the party outweighs J1."}
+{"id": "q013", "verdict": "no", "why": "4 Rovers against 15 armpw are outweighed; 'it sends no detachments'."}
+{"id": "q014", "verdict": "unclear", "why": "Front already at spot_52 and orders say fight party_97 beside Q4 then join; joining now is close to intent but skips the sequence."}
+{"id": "q015", "verdict": "no", "why": "Q4 is already on party_97; H5 is told to fight beside Q4 and join it, not to split hunters east."}
+{"id": "q016", "verdict": "no", "why": "W6 'sends no detachments'; 2 Stouts against an outranging tier-2 Hound is not clearly better."}
+{"id": "q017", "verdict": "no", "why": "W6 'sends no detachments' and must come home as one body to party_147."}
+{"id": "q018", "verdict": "no", "why": "W6 as one body is already told to attack party_147; 'It sends no detachments'."}
+{"id": "q019", "verdict": "no", "why": "W6 'sends no detachments'; its order is to come home to the yard2 party as one body."}
+{"id": "q020", "verdict": "yes", "why": "Armpw at our extractor at spot_54 with nobody on it; a small detachment meets a raider; Y2's job is armpw at extractors."}
+{"id": "q021", "verdict": "unclear", "why": "Answers the raider at spot_54, but 8 is not a small detachment and the instructions want the whole group."}
+{"id": "q022", "verdict": "no", "why": "G3 follows F3 to spot_61, where the Rover hunters stand between hunts."}
+{"id": "q023", "verdict": "unclear", "why": "One Blitz outweighs one armpw and answers it, but instructions say Y2 attacks with the whole group."}
+{"id": "q024", "verdict": "yes", "why": "Plant idle, list allows Stout; 'make exactly what their lists allow, in order; never idle'."}
+{"id": "q025", "verdict": "yes", "why": "Armpw at our extractor at spot_54, nobody on it; a small detachment of Y2 answers soonest."}
+{"id": "q026", "verdict": "yes", "why": "Plant idle, list allows Stout; 'never idle'."}
+{"id": "q027", "verdict": "unclear", "why": "Joining K5 puts Q4 on the Fatboy attack, but first walks toward K5, away from party_65; orders say close straight in."}
+{"id": "q028", "verdict": "yes", "why": "Orders arrived after the last loss: 'Every group near it ... attacks party_106 now ... Nobody walks away from it.' Q4 is walking to spot_61."}
+{"id": "q029", "verdict": "no", "why": "Same as its course; wrecks at C4 are not ones named (solar_field2, C7) and an armpw is 414 away."}
+{"id": "q030", "verdict": "no", "why": "party_63 is in column E; 'It never goes east of column D'."}
+{"id": "q031", "verdict": "no", "why": "Y2 is on it a few seconds away as instructed; nothing else is assigned to it."}
+{"id": "q032", "verdict": "no", "why": "Armpw 579 away; walking to yard2 'until it is gone' matches the instructions."}
+{"id": "q033", "verdict": "no", "why": "party_64 is moving away and not at our extractor; Y2 attacks armpw at extractors with the whole group."}
+{"id": "q034", "verdict": "unclear", "why": "Wrecks at C4 are not the named fields and an armpw is 414 away, but it is moving away and not yet in reach."}
+{"id": "q035", "verdict": "no", "why": "Q4 'holds there as one body' at spot_52 as his army comes; E5/F5 already hunt the pawn, which is moving away."}
+{"id": "q036", "verdict": "unclear", "why": "A Stout reaches it soonest (10 s vs 20 s), but Q4 is told to hold as one body; the pawn is leaving."}
+{"id": "q037", "verdict": "no", "why": "party_102 is at spot_52 killing our Sentry within reach; we outweigh it heavily: fighting it is the order."}
+{"id": "q038", "verdict": "no", "why": "Half of Q4 chasing a leaving pawn breaks 'holds there as one body' while his army comes."}
+{"id": "q039", "verdict": "no", "why": "B2 is outweighed by 11 armpw and walks to spot_61, its named step-back place."}
+{"id": "q040", "verdict": "yes", "why": "Plant idle, list allows Blitz; 'never idle'."}
+{"id": "q041", "verdict": "no", "why": "A lone Blitz under fire and outweighed by 11 armpw, walking away; stepping back is right."}
+{"id": "q042", "verdict": "no", "why": "T1/B2's step-back place is spot_61, not spot_50."}
+{"id": "q043", "verdict": "no", "why": "Hunting an armflash at our extractor at spot_68 is the home guard's job; it has it in reach."}
+{"id": "q044", "verdict": "unclear", "why": "Armpw is killing our solar and Stout with nobody on it, but the home guard is told 'never split'."}
+{"id": "q045", "verdict": "no", "why": "Orders reached after the last loss: 'No detachments, no walking back'; it walks back to spot_39 only against a fresh party that outweighs it."}
+{"id": "q046", "verdict": "no", "why": "Advancing east to spot_43 leaves party_97 and is neither the fight nor a step back."}
+{"id": "q047", "verdict": "yes", "why": "losses line: 'large share: it is losing this fight', last loss after the orders; rule: walk to the named place, spot_63."}
+{"id": "q048", "verdict": "no", "why": "The named step-back place is spot_63, not spot_61."}
+{"id": "q049", "verdict": "no", "why": "It already stands together; gathering only stops the fight."}
+{"id": "q050", "verdict": "no", "why": "The step-back rule says walk (go); advancing while fighting on the way does not step back."}
+{"id": "q051", "verdict": "no", "why": "B5's split must 'stay a group of its own (it does not join group_Q4)'."}
+{"id": "q052", "verdict": "no", "why": "Q4 has 11 of 15 in reach and outweighs it heavily; H5 is also coming."}
+{"id": "q053", "verdict": "no", "why": "A3 is already a few seconds from it; the home guard attacks with the whole group, not detachments."}
+{"id": "q054", "verdict": "no", "why": "'A lone armpw anywhere is NOT its business'; J1 stands at spot_52 and holds."}
+{"id": "q055", "verdict": "no", "why": "A3 is nearer and already on it; the instructions say the whole group."}
+{"id": "q056", "verdict": "no", "why": "J1: 'one body, no detachments'; lone raiders are not its business."}
+{"id": "q057", "verdict": "no", "why": "J1 already stands at spot_52 where it is told to hold; gathering adds nothing."}
+{"id": "q058", "verdict": "yes", "why": "7 at our extractor at spot_64, our constructor building there, nobody moves; J1 attacks parties of four or more at extractors."}
+{"id": "q059", "verdict": "unclear", "why": "'It stands at spot_52 and holds there': hold is literally the order, but standing there already does the same."}
+{"id": "q060", "verdict": "no", "why": "J1 with the whole body is told to attack party_55; no other group is assigned to it."}
+{"id": "q061", "verdict": "yes", "why": "Party_55 is in E4 moving away; J1 follows it only 'anywhere west of column E', and it is under turret fire there."}
+{"id": "q062", "verdict": "no", "why": "Y2 walks to yard2, where it stands between hunts; party_47 is not in sight."}
+{"id": "q063", "verdict": "no", "why": "Armpw on it: 'walks to yard2 until it is gone' is its course."}
+{"id": "q064", "verdict": "no", "why": "party_59 is moving away and killing nothing; the Rover group named for it does not exist yet."}
+{"id": "q065", "verdict": "no", "why": "party_57 is in column D killing our extractor; 'fought when it comes west into column D or C'."}
+{"id": "q066", "verdict": "yes", "why": "Two armpw are killing our constructor at spot_52 with nobody on them; a small Y2 detachment answers soonest."}
+{"id": "q067", "verdict": "no", "why": "J1 is fighting party_57 at our extractor as ordered; leaving it is worse."}
+{"id": "q068", "verdict": "no", "why": "J1: 'one body, no detachments'."}
+{"id": "q069", "verdict": "unclear", "why": "Answers the raiders killing our constructor, but 8 is all of Y2's Blitzes, not a small detachment."}
+{"id": "q070", "verdict": "no", "why": "Q4 'is losing this fight' and walks to spot_39, the place named for stepping back; orders not yet arrived."}
+{"id": "q071", "verdict": "yes", "why": "Plant idle; list allows Blitz; 'never idle'."}
+{"id": "q072", "verdict": "no", "why": "The step back to spot_39 follows the losses rule and the named place; nothing new calls for more."}
+{"id": "q073", "verdict": "yes", "why": "T1 holds near spot_73; the instructions say T1 and B2 stand at spot_61 as one group."}
+{"id": "q074", "verdict": "no", "why": "Their standing place is spot_61, not spot_43."}
+{"id": "q075", "verdict": "unclear", "why": "W1 stands at spot_47 as Rovers do between hunts, but 'Lone Rovers join group_X1' and W1 is one Rover."}
+{"id": "q076", "verdict": "yes", "why": "Y1 is the home guard that 'stands at spot_43'; following J1's raid east is not its job."}
+{"id": "q077", "verdict": "unclear", "why": "Six armpw near our extractor and a 15% constructor at spot_39 with nobody on them, but the party is moving away."}
+{"id": "q078", "verdict": "yes", "why": "Lone Rover outweighed and hit by an armpw (not its quarry); no step-back place named, so it joins a group standing away."}
+{"id": "q079", "verdict": "yes", "why": "'they stand at spot_61'; B2 advancing alone to spot_39 against armpw is outside its order."}
+{"id": "q080", "verdict": "yes", "why": "losses: 'it is losing this fight', last loss 0 s ago, orders not yet arrived; rule: walk to step-back place spot_52."}
+{"id": "q081", "verdict": "no", "why": "The step-back rule says walk (go); advancing to spot_52 fighting on the way keeps it in the fight."}
+{"id": "q082", "verdict": "no", "why": "The named step-back place is spot_52; spot_47 is the later hold place."}
+{"id": "q083", "verdict": "no", "why": "K5 attacks the Fatboy now; 'They chase nothing else on their own'."}
+{"id": "q084", "verdict": "no", "why": "K5 attacks the Fatboy now; 'They chase nothing else on their own'."}
+{"id": "q085", "verdict": "no", "why": "K5 attacks the Fatboy now; 'They chase nothing else on their own'."}
+{"id": "q086", "verdict": "no", "why": "Attacking party_65 (the Fatboy) is exactly the order: 'attacks party_106 now, all at once'."}

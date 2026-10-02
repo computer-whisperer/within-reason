@@ -15,7 +15,7 @@ key=None
 for line in open(os.path.expanduser('~/.config/within-reason/jev.env')):
     if line.startswith('TYPESAFE_API_KEY='): key=line.split('=',1)[1].strip().strip('"')
 assert key
-RULES=open('/home/christian/workspace/playground/bar_bots/crates/bot/src/brain/pianist/rules.md').read().strip()
+RULES=re.sub(r'<</?\w+>>','',open('/home/christian/workspace/playground/bar_bots/crates/bot/src/brain/pianist/rules.md').read()).strip()  # the kind marks (diet.rs `rules_for`) are never sent
 def clock(f): return f"{f//FPS//60}:{f//FPS%60:02d}"
 st=[json.loads(l) for l in open(d+'/strategist-0.jsonl')]
 turns=[];cur=None

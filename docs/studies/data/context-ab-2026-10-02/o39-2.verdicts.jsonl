@@ -1,0 +1,91 @@
+{"id": "q001", "verdict": "no", "why": "Home guard 'otherwise holds at home'; U4 holds at B7 with no party at its listed spots in sight."}
+{"id": "q002", "verdict": "yes", "why": "S4 'as one body', 'never advances on a shooter out of sight'; tail 2595 behind its front while attacking out-of-sight party_60."}
+{"id": "q003", "verdict": "unclear", "why": "S4 is the raid answer and party_69 threatens constructor_17869, but spot_56 is not in S4's list and party_60 sits beside its front."}
+{"id": "q004", "verdict": "yes", "why": "armstump at our extractor at spot_59, 337 from an unarmed constructor walking toward it; nothing there stops it."}
+{"id": "q005", "verdict": "no", "why": "U4's advance to spot_38 (168 to go) fights through party_83 there; it outweighs it heavily."}
+{"id": "q006", "verdict": "no", "why": "group_U4 'never sends detachments'; the whole body is already advancing onto spot_38."}
+{"id": "q007", "verdict": "no", "why": "group_U4 'never sends detachments'."}
+{"id": "q008", "verdict": "no", "why": "Instructions: fight as one body at spot_38 and attack with the whole group; shelling abandons the way."}
+{"id": "q009", "verdict": "no", "why": "Way is spot_38 then spot_43; party_83 stands at spot_38, 168 to go."}
+{"id": "q010", "verdict": "no", "why": "Advancing to spot_38, fighting, is exactly the instructed way."}
+{"id": "q011", "verdict": "yes", "why": "group_V2: 'walks to spot_59 and holds there... never chases a single soldier' — party_65 is one armstump."}
+{"id": "q012", "verdict": "yes", "why": "Home guard: U4, V4, W4 and any single soldier at home join together into one group at home."}
+{"id": "q013", "verdict": "no", "why": "Instructions want V2 at spot_59; gathering short of it is not called for."}
+{"id": "q014", "verdict": "yes", "why": "Home guard: group_V4 named to join U4 into one group at home."}
+{"id": "q015", "verdict": "no", "why": "W4 should join the home guard at home, not hold at spot_67."}
+{"id": "q016", "verdict": "yes", "why": "V2 belongs at spot_59 and never chases a single soldier; either way there beats shelling a lone armstump."}
+{"id": "q017", "verdict": "yes", "why": "Home guard: group_W4 named to join U4 at home."}
+{"id": "q018", "verdict": "no", "why": "'Every small group... joins group_V2'; following Q4 is not that."}
+{"id": "q019", "verdict": "no", "why": "2 Blitzes against ham+war that outweighs them and outranges; V2 answers ham/war parties with the whole group."}
+{"id": "q020", "verdict": "no", "why": "V2 sends 'two Blitzes, never more' and only vs a lone armpw/armflash; party_60 is 5 armpw and outruns stouts."}
+{"id": "q021", "verdict": "no", "why": "Rule says walk to home; spot_64 is not home and is no clear improvement over the current walk."}
+{"id": "q022", "verdict": "no", "why": "V2: 'two Blitzes, never more'; 8 slow soldiers 30 s away cannot catch 5 armpw."}
+{"id": "q023", "verdict": "no", "why": "4 Blitzes, an even fight against an outranging ham+war; outranged group not outweighing waits; small groups join V2."}
+{"id": "q024", "verdict": "no", "why": "Q4's hunt is the instructed two-Blitz answer and already leads away; spot_47 is named by nothing."}
+{"id": "q025", "verdict": "no", "why": "U4 'walks to spot_61 and holds'; a lone armstump gets a small detachment, already out as J5."}
+{"id": "q026", "verdict": "no", "why": "Advancing to spot_61 matches 'walks to spot_61 and holds there'; detachment J5 already out."}
+{"id": "q027", "verdict": "no", "why": "group_J5 (8 soldiers) already split off and hunts party_74; another detachment is redundant."}
+{"id": "q028", "verdict": "no", "why": "group_J5 already hunts party_74."}
+{"id": "q029", "verdict": "no", "why": "J5 already hunts party_74; an attack order changes nothing clearly better."}
+{"id": "q030", "verdict": "no", "why": "group_U4 'never sends detachments'."}
+{"id": "q031", "verdict": "no", "why": "group_U4 'never sends detachments'."}
+{"id": "q032", "verdict": "no", "why": "Advancing to spot_43 is the instructed way; body is not within reach of party_81."}
+{"id": "q033", "verdict": "unclear", "why": "armham killing two of U4's tail Stouts, but it is moving away and the Stouts there fight back."}
+{"id": "q034", "verdict": "no", "why": "Instructions name party_81 for spot_45 on the way; shelling fast armpw abandons the way."}
+{"id": "q035", "verdict": "no", "why": "party_81 outruns the army; the instructions put it at spot_45 on U4's way; spot_43 is 96 away."}
+{"id": "q036", "verdict": "no", "why": "'A constructor with armpw... within reach walks to home'; it is doing that."}
+{"id": "q037", "verdict": "no", "why": "Following M2 abandons the only answer to an armpw killing our extractor at spot_28."}
+{"id": "q038", "verdict": "no", "why": "M2 (10 Blitzes) already answers party_46; walking there leaves party_38 unanswered."}
+{"id": "q039", "verdict": "no", "why": "Attacking party_46 at our extractor is Y1's job; advancing to spot_76 is no clear improvement."}
+{"id": "q040", "verdict": "unclear", "why": "'Whole group on each party' and small Blitz groups join Y1, vs rules' small detachment for a raider at an extractor."}
+{"id": "q041", "verdict": "yes", "why": "Commander in party_42: attack 'only when it outweighs it heavily'; picture says outweigh (not heavily), outranged by turrets."}
+{"id": "q042", "verdict": "no", "why": "L2 is not group_Y1; joining it abandons the raid at spot_28."}
+{"id": "q043", "verdict": "no", "why": "M2 attacking a lone armpw at our extractor is the instructed raider hunt."}
+{"id": "q044", "verdict": "no", "why": "X5 holds a Stout and should join U4; 2 Blitzes make only an even fight; three groups already go."}
+{"id": "q045", "verdict": "no", "why": "'walks to home and goes back when they are gone' — it is walking home from the armstump."}
+{"id": "q046", "verdict": "no", "why": "armstump stands killing our plant; D6 reaches it while it stands; no clearly better job."}
+{"id": "q047", "verdict": "no", "why": "It already stands together; gathering does not serve 'holds at spot_52'."}
+{"id": "q048", "verdict": "yes", "why": "group_U4 'holds at spot_52'; a single armstump is not a U4 target and E6/D6 are closer."}
+{"id": "q049", "verdict": "no", "why": "E6 already goes at party_74 whole; splitting four off adds nothing."}
+{"id": "q050", "verdict": "no", "why": "D6 already hunts party_74; attack is the same job."}
+{"id": "q051", "verdict": "yes", "why": "'constructor_17869, constructor_31791 and constructor_23032 take apart the wreck fields at C7 and D7 while no enemy stands there.'"}
+{"id": "q052", "verdict": "yes", "why": "V2 'walks to spot_59 and holds... never sends detachments: raiders are group_S4's job'."}
+{"id": "q053", "verdict": "unclear", "why": "S4's list names armpw/armham/armwar, not armstump ('nothing to hunt' → spot_64), yet party_65 nears constructor_282 at spot_76."}
+{"id": "q054", "verdict": "no", "why": "Instructions want V2 at spot_59, a few seconds away; gathering is not called for."}
+{"id": "q055", "verdict": "yes", "why": "V2 'walks to spot_59 and holds there'; raiders are S4's job."}
+{"id": "q056", "verdict": "no", "why": "'Every other small group (Stouts...) joins group_U4', which stands at spot_36 beside it."}
+{"id": "q057", "verdict": "no", "why": "Small Stout groups join group_U4; Stouts are not sent after armpw."}
+{"id": "q058", "verdict": "no", "why": "Small Stout groups join group_U4, not X5."}
+{"id": "q059", "verdict": "yes", "why": "Commander 'attacks any armpw at ... spot_76, using its D-gun'; W5 alone is only an even fight."}
+{"id": "q060", "verdict": "no", "why": "Small Stout groups join group_U4, not Z5."}
+{"id": "q061", "verdict": "no", "why": "U4 sends 'two of its soldiers (its Blitzes)'; X5 and Y5 already hunt party_87."}
+{"id": "q062", "verdict": "no", "why": "Blitz-only group attacking an armpw party at spot_76 is the raider hunters' job; even fight is no step-back."}
+{"id": "q063", "verdict": "no", "why": "Instructions: L1 walks to spot_40, out of the beamer's reach; it is already walking away, 56 to go."}
+{"id": "q064", "verdict": "unclear", "why": "4 unidentified moving toward our extractor at spot_43 (653 away) and a constructor there, but not yet killing anything."}
+{"id": "q065", "verdict": "unclear", "why": "Blitz groups stand at spot_61 between raids, but are told to join V2 and party_43 is near."}
+{"id": "q066", "verdict": "no", "why": "group_L1 does not chase raiders; raiders are V2's; four Stouts cannot catch a Blitz."}
+{"id": "q067", "verdict": "unclear", "why": "Z2 should join V2, which stands at spot_69; walking there brings it alongside, not joined."}
+{"id": "q068", "verdict": "no", "why": "Nothing calls for spot_64; Z2 should join V2."}
+{"id": "q069", "verdict": "no", "why": "Walking (runs from everything) onto party_43's spot is not the hunt; Z2 should join V2."}
+{"id": "q070", "verdict": "no", "why": "O1 hunts 'the whole group on each party'; U1 is already on party_36."}
+{"id": "q071", "verdict": "no", "why": "O1 hunts 'the whole group on each party'; U1 is already on party_36."}
+{"id": "q072", "verdict": "no", "why": "O1 hunts 'the whole group on each party'; U1 is already on party_36."}
+{"id": "q073", "verdict": "no", "why": "L1's way is spot_52, spot_47, then spot_44; skipping spot_47 with a 2681 tail breaks one body."}
+{"id": "q074", "verdict": "yes", "why": "Commander 'attacks party_98 (one armham)'; it heads at our extractor at spot_62 and the commander walks home instead."}
+{"id": "q075", "verdict": "no", "why": "J6 never walks past spot_73 or yard2 after a party; party_98 is the commander's."}
+{"id": "q076", "verdict": "no", "why": "Other groups join group_J6, not the reverse."}
+{"id": "q077", "verdict": "unclear", "why": "spot_39 is next in the list, but party_11 (6 unknown) is 685 away moving toward our side."}
+{"id": "q078", "verdict": "no", "why": "group_B stands at spot_69, sending a Blitz against a lone raider; holding at home is neither."}
+{"id": "q079", "verdict": "unclear", "why": "'stands at spot_69' matches, but a lone raider at our extractor calls for sending a Blitz, not walking past it."}
+{"id": "q080", "verdict": "yes", "why": "'His armrectr ... parties at spot_38 it attacks and kills', none with armwar/armham; 106 from our constructor."}
+{"id": "q081", "verdict": "no", "why": "Following C2 drops the only answer to party_38 at our extractor; not instructed."}
+{"id": "q082", "verdict": "yes", "why": "Instructions name group_B2 among the groups that join group_Y1."}
+{"id": "q083", "verdict": "no", "why": "K2 is on it and nothing else is nearer; no one else drives it off sooner."}
+{"id": "q084", "verdict": "unclear", "why": "Small Blitz groups join Y1 and the whole group goes on each party, vs rules' small detachment for an extractor raider."}
+{"id": "q085", "verdict": "no", "why": "B2 is not Y1; joining it drops the hunt on party_38."}
+{"id": "q086", "verdict": "no", "why": "C2 is not Y1; joining it drops the hunt on party_38."}
+{"id": "q087", "verdict": "no", "why": "V2 fights 'all together and never in detachments'."}
+{"id": "q088", "verdict": "yes", "why": "'attacks parties with the whole group, closing to its own reach'; party in sight, outweighed heavily, killing our extractor."}
+{"id": "q089", "verdict": "no", "why": "V2 'never in detachments'; two Blitzes are outweighed."}
+{"id": "q090", "verdict": "yes", "why": "'attacks parties with the whole group, closing to its own reach'; outweighs heavily; losses against a weaker party are the cost."}
+{"id": "q091", "verdict": "unclear", "why": "spot_64 is the next way point near party_48 and fights on the way, but a direct attack fits 'closing' better."}

@@ -66,8 +66,9 @@ fn party_line(party: &Party, places: &[super::Place]) -> String {
 /// The gate's nouls: per party whether it needs answering by someone other than what stands; per asked actor
 /// whether it should change course (an idle actor has no course to keep) and one per move whether it is the move.
 /// A move aimed at a party is asked as an answer to that party; every other move is asked of the actor. A
-/// detachment is asked about a second time, as a reading of the instructions (`FORBIDDEN`).
-pub(super) fn gate_questions(menus: &[Menu], parties: &[Party], places: &[super::Place]) -> Vec<(String, Question)> {
+/// detachment is asked about a second time, as a reading of the instructions (`FORBIDDEN`). With `once` (the diet's
+/// `only_used`), a move of the actor's own says the fight's facts its course has just said as "(as said above)".
+pub(super) fn gate_questions(menus: &[Menu], parties: &[Party], places: &[super::Place], once: bool) -> Vec<(String, Question)> {
     let mut out = Vec::new();
     for party in parties {
         out.push((
@@ -95,7 +96,11 @@ pub(super) fn gate_questions(menus: &[Menu], parties: &[Party], places: &[super:
             let id = menu.id(m);
             let text = match m.party.as_ref().and_then(|name| parties.iter().find(|p| p.name == *name)) {
                 Some(party) => format!("Is this the move to make against {} now, rather than what stands ({})? The move: {}.", party.name, on_it(party, menus), m.words),
-                None => format!("Given `actors.{}`, `economy`, `ours` and the player's `instructions`: is this what {} should do now, rather than {standing}? The move: {}.", menu.name, menu.name, m.words),
+                None => {
+                    let fight = menu.fight.as_ref().zip(menu.near_party.as_ref()).filter(|(fight, _)| once && standing.contains(fight.as_str()));
+                    let words = fight.map_or(m.words.clone(), |(fight, party)| m.words.replacen(fight.as_str(), &format!("{party} (as said above)"), 1));
+                    format!("Given `actors.{}`, `economy`, `ours` and the player's `instructions`: is this what {} should do now, rather than {standing}? The move: {words}.", menu.name, menu.name)
+                }
             };
             out.push((id.clone(), Question::noul(json!(text))));
             // The forbidden mark: asked each second unless the decode has it clearly on or off (the `fuse` layer),
@@ -778,7 +783,7 @@ mod tests {
     fn a_groups_way_out_and_its_answer_to_a_party_are_one_menu() {
         let menus = vec![group("A", false, vec![mv("go_spot_30", Order::Go("spot_30".into()), None), mv("attack_party_7", Order::Attack("party_7".into()), Some("party_7")), mv("go_spot_31", Order::Go("spot_31".into()), None)])];
         let parties = vec![party("party_7")];
-        let ids: Vec<String> = gate_questions(&menus, &parties, &[]).into_iter().map(|(id, _)| id).collect();
+        let ids: Vec<String> = gate_questions(&menus, &parties, &[], false).into_iter().map(|(id, _)| id).collect();
         assert_eq!(ids, ["party_7.answer", "group_A.change", "group_A.go_spot_30", "group_A.attack_party_7", "group_A.go_spot_31"]);
         // The group's own change opens its walk; the party's answer opens the attack on it.
         let answers = nouls(&[("party_7.answer", 0.8), ("group_A.change", 0.9), ("group_A.go_spot_30", 0.7), ("group_A.attack_party_7", 0.6), ("group_A.go_spot_31", 0.2)]);
@@ -938,9 +943,28 @@ mod tests {
         // Taken off the party, and nobody else sent: Jev said it needs answering, so it is left to nobody.
         let line = consequence(&vec![1, 0], &menus, &said(&parties, &flags, &next, &forbidden), Some(&vec![0, 0]));
         assert_eq!(line, "As w1, and: go_spot_30. Left to nobody: party_7 (2 Ticks, in sight).");
-        let qs: BTreeMap<String, Question> = gate_questions(&menus, &parties, &[]).into_iter().collect();
+        let qs: BTreeMap<String, Question> = gate_questions(&menus, &parties, &[], false).into_iter().collect();
         let Question::Noul { instructions, .. } = &qs["party_7.answer"] else { panic!("a noul") };
         assert!(instructions.as_str().unwrap().contains(&format!("by someone other than what stands ({away})?")), "{instructions}");
+    }
+
+    /// The diet's `only_used`: a move of the group's own says the fight's facts its course has just said once;
+    /// the course keeps them, and without the diet the move says them in full.
+    #[test]
+    fn a_moves_question_says_the_fight_its_course_said_once() {
+        let fight = "party_3 (2 armpw): for the 4 of its 7 soldiers near it, we outweigh it heavily; it can follow this group";
+        let mut m = group("A", false, vec![mv("go_home", Order::Go("home".into()), None)]);
+        m.moves[0].words = format!("group_A attacks party_3; near {fight}");
+        m.moves[1].words = format!("group_A walks to home; stepping back from {fight}; leaves party_3");
+        m.near_party = Some("party_3".into());
+        m.fight = Some(fight.to_string());
+        let text = |once: bool| {
+            let qs: BTreeMap<String, Question> = gate_questions(std::slice::from_ref(&m), &[], &[], once).into_iter().collect();
+            let Question::Noul { instructions, .. } = &qs["group_A.go_home"] else { panic!("a noul") };
+            instructions.as_str().unwrap().to_string()
+        };
+        assert!(text(true).ends_with(&format!("rather than group_A attacks party_3; near {fight}? The move: group_A walks to home; stepping back from party_3 (as said above); leaves party_3.")), "{}", text(true));
+        assert!(text(false).ends_with(&format!("The move: group_A walks to home; stepping back from {fight}; leaves party_3.")), "{}", text(false));
     }
 
     /// The forbidden mark: a detachment is asked about a second time, as a reading of the instructions, and one
@@ -950,7 +974,7 @@ mod tests {
     fn a_detachment_the_gate_reads_as_forbidden_says_so_on_its_line() {
         let menus = vec![group("A", false, vec![mv("send_2_party_1", Order::Send(vec![UnitId(9)], "party_1".into()), Some("party_1")), mv("attack_party_1", Order::Attack("party_1".into()), Some("party_1"))])];
         let parties = vec![party("party_1")];
-        let qs: BTreeMap<String, Question> = gate_questions(&menus, &parties, &[]).into_iter().collect();
+        let qs: BTreeMap<String, Question> = gate_questions(&menus, &parties, &[], false).into_iter().collect();
         let Question::Noul { instructions, .. } = &qs["group_A.send_2_party_1.forbidden"] else { panic!("a noul") };
         assert!(instructions.as_str().unwrap().starts_with("Read the player's `instructions` alone: do they forbid this move"));
         assert!(!qs.contains_key("group_A.attack_party_1.forbidden"), "detachments only");
@@ -1013,7 +1037,7 @@ mod tests {
         (audited.quiet, audited.audit) = (true, true);
         let menus = vec![closed, audited];
         let parties = vec![party("party_7")];
-        let ids: Vec<String> = gate_questions(&menus, &parties, &[]).into_iter().map(|(id, _)| id).collect();
+        let ids: Vec<String> = gate_questions(&menus, &parties, &[], false).into_iter().map(|(id, _)| id).collect();
         assert_eq!(ids, ["party_7.answer", "group_A.send_1_party_7", "group_A.send_1_party_7.forbidden", "group_B.change", "group_B.go_spot_30"]);
         let answers = nouls(&[("party_7.answer", 0.2), ("group_A.send_1_party_7", 0.9), ("group_B.change", 0.9), ("group_B.go_spot_30", 0.9)]);
         assert!(compose(&menus, &answers, &mut BTreeMap::new(), CAP).is_none(), "the audit's answers move nobody, and a party that needs no answer opens nothing");

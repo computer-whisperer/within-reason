@@ -405,8 +405,42 @@ used, the short forbidden question and the short decode lose readings the instru
 (2.4% of the gate, 6.3% of the pick) carries nothing a reviewer used and its removal still moves answers twice as
 far as a placebo line; unresolved.
 
-**Open, and larger than any cut.** The order of the picture's sections moves a third of the forbidden marks and
-3.5 times the move answers that asking again does, at no cost in tokens. Which order reads best is not known: it
-needs a sample labelled blind and each order scored against it. The same goes for where the mark's bar sits: by the
-reviewer 159 of 160 sampled detachments were against the instructions, and the mark at 0.7 called 107 of them as played.
+**Built the same day** (the user: "implement the cuts and test section orders"). The law: the picture carries only
+what a question in the request can use. One diet field, `only_used` (on at `lean` and `normal`, off at `full`;
+`pianist/diet.rs` `trim_state`, `rules_for`; `compose.rs` `gate_questions`): the request's state leaves out
+`enemy.buildings_seen`, `never_looked`, `looked_long_ago` and `start_box` and the `produce` hint (the player's
+`situation` tool still shows them); `rules.md` marks its factory, commander and allies sentences
+(`<<kind>>...<</kind>>`) and the picture the wind's, and a request gets the parts whose kind of actor it asks about;
+a group's move says the fight its course has just said as "party_N (as said above)". The fight's rule is the
+menu's own words, not the replay's longest common run, so it was replayed again as built
+(`facts built+no buildings+no scouting+rules by kind`, the same 200 gates): 92.7% of the tokens, 1.23% of move
+answers on the other side against 0.83% asked again and 1.32% for the arm that was reviewed, forbidden marks 8.5%
+against 6.1%. A pick inherits its gate's rules, so it keeps a sentence the replay's pick arm cut when the gate
+asked that kind of actor. Unmeasured in a game.
 
+**Section orders, scored blind.** Five orders and the full reverse against the bot's (sorted by key: actors, allies,
+clock, economy, enemy, instructions, ours, player, recent, rules), the same 200 gates and 148 picks
+(`ORDERS` in `run/jev_context_ab.py`). Every order moves answers: 2.0 to 2.8% of move answers on the other side
+against 0.84% asked again, openers 10 to 16% against 3.8%, forbidden marks 14 to 33% against 6.7%, a pick's second
+stage 5.6 to 10.1% against 2.4%. Four reviewers read 365 questions on which the orders disagreed (309 decided: 65
+yes, 244 no), and one read 160 forbidden questions of player-38 (62 forbidden in words, 48 against the group's job,
+37 silent, 13 told to).
+
+| order | right of 309 | of 65 yeses | of 244 noes | said yes | marks: forbids+against over silent+tells |
+|---|---|---|---|---|---|
+| the bot's | 196 (asked again 192) | 34 | 162 | 116 | 0.83 |
+| rules, picture, instructions | 206 | 43 | 163 | 124 | 0.81 |
+| instructions, rules, picture (actors last) | 189 | 30 | 159 | 115 | 0.75 |
+| rules, instructions, picture (actors last) | 187 | 35 | 152 | 127 | 0.74 |
+| the bot's reversed | 181 | 31 | 150 | 125 | 0.75 |
+| picture, rules, instructions | 177 | 49 | 128 | 165 | 0.84 |
+| picture, instructions, rules | 163 | 44 | 119 | 169 | 0.82 |
+
+The bot's order, which nobody chose, is among the best. Rules first and the instructions last is ahead of it by ten
+questions, eight of them openers that should have said yes (19 of 23 against 11), and that is inside chance (60
+questions right where the bot's order is wrong, 50 the other way, p 0.39). The picture first with the rules and the
+instructions nearest the questions says yes half again as often and is wrong more; the actors last costs the
+moves and drops a third of the forbidden marks. Nothing changed: the order stays, and a new section's name now
+decides where it sits. The forbidden mark, as played in player-38: on 56 of 62 forbidden detachments, 36 of 48
+against the group's job, 6 of 37 the instructions are silent on, and 8 of 13 the instructions order
+(K-jev-the-forbidden-mark-reads-an-ordered-detachment-as-forbidden-beside-a-never, now counted).

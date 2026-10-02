@@ -142,7 +142,7 @@ fn tool_list() -> Value {
     json!([
             overview, map,
             { "name": "situation",
-              "description": "The picture your hands read this second, exactly as Jev sees it (without your instructions and the standing rules): economy, ours, enemy, places by name, every actor with what it is doing, recent events. You are sent a summary of it at the start of every turn; call this to read the whole picture, or a place's entry by name.",
+              "description": "The picture your hands read this second (without your instructions and the standing rules; Jev is sent it without the lines only you can act on: his buildings by place and what was looked at when): economy, ours, enemy, places by name, every actor with what it is doing, recent events. You are sent a summary of it at the start of every turn; call this to read the whole picture, or a place's entry by name.",
               "inputSchema": { "type": "object", "properties": {}, "additionalProperties": false } },
             { "name": "units",
               "description": "The glossary entry for units by internal name, ours or the opponent's (the roster on your first report lists ours; sightings and losses name theirs): what it is for, what it beats and loses to, when to build it, its numbers. Several names at once.",

@@ -88,6 +88,9 @@ pub(crate) struct PartySeen {
 #[derive(Clone)]
 pub(crate) struct Picture {
     pub state: Value,
+    /// The rules text, its parts that bear on one kind of actor marked (`diet::rules_for`): a request's state
+    /// gets the parts its questions can use.
+    pub rules: String,
     pub places: Vec<Place>,
     pub parties: Vec<Party>,
 }
@@ -1549,14 +1552,15 @@ impl Brain {
         }
         let wind = (self.world.hello.map.wind_min + self.world.hello.map.wind_max) / 2.0;
         let rules = format!(
-            "{}This map's wind averages about {wind:.0}: {}.",
+            "{}<<builders>>This map's wind averages about {wind:.0}: {}.<</builders>>",
             crate::texts::read(&crate::texts::HANDS_RULES),
             if wind >= 8.0 { "wind generators (40 metal) beat solar collectors here" } else { "solar collectors are the reliable energy here" }
         );
+        // Jev's answers move with the order of these sections, and the order sent is by key (the JSON map is
+        // sorted): a new section's name decides where it sits (K-jev-answers-move-with-the-order-of-the-pictures-sections).
         let mut state = json!({
             "instructions": instructions,
             "clock": clock(frame),
-            "rules": rules,
             "economy": economy,
             "ours": ours,
             "enemy": enemy,
@@ -1576,7 +1580,7 @@ impl Brain {
                 None => "has not spoken yet".to_string(),
             });
         }
-        Picture { state, places, parties }
+        Picture { state, rules, places, parties }
     }
 
     /// How an actor is named in the picture and the questions.

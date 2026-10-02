@@ -30,14 +30,19 @@ pub(crate) struct Diet {
     pub places_held_too: bool,
     /// Actors not asked in the call get one line, not their full entry.
     pub actors_brief: bool,
+    /// What no question in the request can use is not sent (the law of 2026-10-02, the budget study's §10): the
+    /// lines of the picture that are the player's (`enemy.buildings_seen`, whose buildings a move's own words
+    /// say; the scouting lines; the `produce` hint), the rules' sentences for a kind of actor nobody is asked
+    /// about, and in a move's question the fight's facts its course has just said.
+    pub only_used: bool,
 }
 
 impl Diet {
     pub fn level(level: HandsEffort) -> Diet {
         match level {
-            HandsEffort::Lean => Diet { level, places_reach: Some(1_500.0), places_held_too: false, actors_brief: true },
-            HandsEffort::Normal => Diet { level, places_reach: Some(2_500.0), places_held_too: true, actors_brief: true },
-            HandsEffort::Full => Diet { level, places_reach: None, places_held_too: true, actors_brief: false },
+            HandsEffort::Lean => Diet { level, places_reach: Some(1_500.0), places_held_too: false, actors_brief: true, only_used: true },
+            HandsEffort::Normal => Diet { level, places_reach: Some(2_500.0), places_held_too: true, actors_brief: true, only_used: true },
+            HandsEffort::Full => Diet { level, places_reach: None, places_held_too: true, actors_brief: false, only_used: false },
         }
     }
 
@@ -122,15 +127,66 @@ pub(super) fn spot_runs(text: &str) -> Vec<usize> {
     out
 }
 
+/// The lines of `enemy` that are the player's: what was built where and when it was last looked at. A move at a
+/// place says in its own words what stands there.
+const PLAYERS_ENEMY_LINES: [&str; 4] = ["buildings_seen", "never_looked", "looked_long_ago", "start_box"];
+
+/// The rules text with its marked parts resolved: `<<kind>>...<</kind>>` is a part that bears only on questions
+/// of that kind (`rules.md` marks them; the picture marks the wind's sentence), kept when `keep(kind)` and cut
+/// otherwise, the marks themselves never sent.
+pub(super) fn rules_for(marked: &str, keep: &dyn Fn(&str) -> bool) -> String {
+    let mut out = String::new();
+    let mut rest = marked;
+    while let Some(open) = rest.find("<<") {
+        let Some(close) = rest[open..].find(">>").map(|i| open + i) else { break };
+        let kind = &rest[open + 2..close];
+        let end_mark = format!("<</{kind}>>");
+        let Some(end) = rest[close..].find(&end_mark).map(|i| close + i) else { break };
+        out.push_str(&rest[..open]);
+        if keep(kind) {
+            out.push_str(&rest[close + 2..end]);
+        }
+        rest = &rest[end + end_mark.len()..];
+    }
+    out.push_str(rest);
+    out.trim_end().to_string()
+}
+
+/// Whether a marked part of the rules bears on a request that asks about `asked`: the factory's sentence when a
+/// factory is asked, the commander's when the commander is, the wind's when something that builds is, the allies'
+/// when another seat has a group.
+fn rules_part_used(kind: &str, asked: &BTreeSet<&str>, allies: bool) -> bool {
+    let any = |prefix: &str| asked.iter().any(|n| n.starts_with(prefix));
+    match kind {
+        "factory" => any("plant_"),
+        "commander" => any("commander"),
+        "builders" => any("commander") || any("constructor_") || any("plant_"),
+        "allies" => allies,
+        _ => true,
+    }
+}
+
 impl Brain {
-    /// The request's state: the picture's, with the places block cut to the places in play and the entries of
-    /// actors not asked cut to a line, as the diet says. `asked` is each asked actor and where it stands.
+    /// The request's state: the picture's with the rules, the places block cut to the places in play, the entries
+    /// of actors not asked cut to a line and what no question can use left out, as the diet says. `asked` is each
+    /// asked actor and where it stands.
     pub(super) fn trim_state(&self, diet: &Diet, picture: &Picture, asked: &[(String, Option<Vec3>)]) -> Value {
         let mut state = picture.state.clone();
+        let names_asked: BTreeSet<&str> = asked.iter().map(|(n, _)| n.as_str()).collect();
+        let allies = state["allies"].is_object();
+        state["rules"] = Value::String(rules_for(&picture.rules, &|kind| !diet.only_used || rules_part_used(kind, &names_asked, allies)));
+        if diet.only_used {
+            if let Some(enemy) = state["enemy"].as_object_mut() {
+                enemy.retain(|line, _| !PLAYERS_ENEMY_LINES.contains(&line.as_str()));
+            }
+            // "none (`produce` armrectr: ...)": the hint is the player's, who has the tool.
+            if state["ours"]["resurrection_bots"].as_str().is_some_and(|s| s.starts_with("none")) {
+                state["ours"]["resurrection_bots"] = Value::String("none".into());
+            }
+        }
         if diet.places_reach.is_none() && !diet.actors_brief {
             return state;
         }
-        let names_asked: BTreeSet<&str> = asked.iter().map(|(n, _)| n.as_str()).collect();
         let positions: Vec<Vec3> = asked.iter().filter_map(|(_, p)| *p).collect();
         let instructions = state["instructions"].as_str().unwrap_or_default().to_string();
         let mut text = instructions.clone();
@@ -261,6 +317,32 @@ mod tests {
         assert!(state["actors"]["commander"].is_object(), "the smallest entry stays whole: {cut:?}");
         let mut small = serde_json::json!({"instructions": "x", "recent": ["a"], "places": {}, "actors": {}});
         assert!(shed(&mut small, 6_000).is_empty());
+    }
+
+    #[test]
+    fn a_marked_part_of_the_rules_is_sent_only_when_its_kind_is_asked() {
+        let marked = "Fights first.<<factory>> A factory builds.<</factory>> Groups advance.<<commander>> The commander stays.<</commander>>\n<<allies>>`allies` are theirs; <</allies>>`out_of_sight` parties left sight.\n<<builders>>Wind is 2.<</builders>>";
+        assert_eq!(rules_for(marked, &|_| true), "Fights first. A factory builds. Groups advance. The commander stays.\n`allies` are theirs; `out_of_sight` parties left sight.\nWind is 2.");
+        let groups: BTreeSet<&str> = BTreeSet::from(["group_A", "group_B2"]);
+        assert_eq!(rules_for(marked, &|k| rules_part_used(k, &groups, false)), "Fights first. Groups advance.\n`out_of_sight` parties left sight.");
+        let with_commander: BTreeSet<&str> = BTreeSet::from(["group_A", "commander"]);
+        assert_eq!(rules_for(marked, &|k| rules_part_used(k, &with_commander, true)), "Fights first. Groups advance. The commander stays.\n`allies` are theirs; `out_of_sight` parties left sight.\nWind is 2.");
+        let plant: BTreeSet<&str> = BTreeSet::from(["plant_7"]);
+        assert!(rules_for(marked, &|k| rules_part_used(k, &plant, false)).contains("A factory builds. Groups advance.\n`out_of_sight`"));
+    }
+
+    /// `rules.md` marks the parts the cut knows, each once and closed; unmarked, the cut would silently send all.
+    #[test]
+    fn the_rules_file_marks_every_part_the_cut_knows() {
+        let text = crate::texts::HANDS_RULES.compiled;
+        for kind in ["factory", "commander", "allies"] {
+            assert_eq!(text.matches(&format!("<<{kind}>>")).count(), 1, "{kind}");
+            assert_eq!(text.matches(&format!("<</{kind}>>")).count(), 1, "{kind}");
+        }
+        let all = rules_for(text, &|_| true);
+        assert!(!all.contains("<<") && !all.contains(">>"), "no mark is sent");
+        let none = rules_for(text, &|_| false);
+        assert!(!none.contains("A factory standing idle") && !none.contains("The commander's `enemies_near`") && !none.contains("`allies` are") && none.contains("`out_of_sight` parties"));
     }
 
     #[test]

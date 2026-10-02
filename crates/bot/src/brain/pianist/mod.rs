@@ -906,7 +906,7 @@ impl Brain {
         };
         // The log's header, before the first request of any kind (the decode's may be the first).
         if jev_on && self.pianist.as_ref().is_some_and(|p| !p.header_logged) {
-            let rules = picture.state["rules"].as_str().unwrap_or_default().to_string();
+            let rules = diet::rules_for(&picture.rules, &|_| true);
             let pianist = self.pianist.as_mut().expect("pianist mode");
             pianist.header_logged = true;
             pianist.log_header(self.world.hello.ai_id, &rules);
@@ -918,7 +918,7 @@ impl Brain {
             let pianist = self.pianist.as_ref().expect("pianist mode");
             if pianist.layers.openers { layers::openers(&mut menus, &pianist.opened, frame, compose::FLAG, &mut compose::draw) } else { (0, 0) }
         };
-        let questions = compose::gate_questions(&menus, parties, &picture.places);
+        let questions = compose::gate_questions(&menus, parties, &picture.places, self.pianist.as_ref().is_some_and(|p| p.diet.only_used));
         // The `same` layer: a question in the words of its last ask is not sent again.
         let asked_whole = questions.len();
         let same = {

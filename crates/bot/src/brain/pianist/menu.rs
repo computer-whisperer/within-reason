@@ -205,6 +205,9 @@ pub(crate) struct Menu {
     pub against: Option<Standing>,
     /// The party in the actor's entry (the nearest within `NEAR` of it), for the news rule.
     pub near_party: Option<String>,
+    /// The fight a group is in, in the words its course and each of its moves carry ("party_3 (2 armpw): for the 4
+    /// of its 7 soldiers near it, we outweigh it heavily; ..."): a move's question says them once.
+    pub fight: Option<String>,
     pub at: Option<Vec3>,
     /// World 1's words for the actor while it is idle: "group_A holds at spot_49, a stop it has reached".
     pub idle_words: String,
@@ -982,7 +985,7 @@ impl Brain {
         for m in &mut moves {
             m.reads = self.reads_of(&m.order);
         }
-        Some(Menu { name, kind: Kind::Group(group.name.clone()), moves, idle, queue_ahead: false, course, course_key, course_words, aimed_at, against, near_party: near_party.map(|p| p.name.clone()), at: Some(body.at), idle_words, quiet: false, audit: false })
+        Some(Menu { name, kind: Kind::Group(group.name.clone()), moves, idle, queue_ahead: false, course, course_key, course_words, aimed_at, against, near_party: near_party.map(|p| p.name.clone()), fight: fight.as_ref().map(|(_, words)| words.clone()), at: Some(body.at), idle_words, quiet: false, audit: false })
     }
 
     fn builder_menu(&self, scene: &Scene, unit: &OwnUnit) -> Option<Menu> {
@@ -1219,7 +1222,7 @@ impl Brain {
         for m in &mut moves {
             m.reads = self.reads_of(&m.order);
         }
-        Some(Menu { name, kind: Kind::Builder(unit.id), moves, idle, queue_ahead: queue, course, course_key, course_words, aimed_at, against, near_party: near_party.map(|p| p.name.clone()), at: Some(unit.pos), idle_words, quiet: false, audit: false })
+        Some(Menu { name, kind: Kind::Builder(unit.id), moves, idle, queue_ahead: queue, course, course_key, course_words, aimed_at, against, near_party: near_party.map(|p| p.name.clone()), fight: None, at: Some(unit.pos), idle_words, quiet: false, audit: false })
     }
 
     /// What of the player's instructions bears on a move (`Read`): the place a walk, an advance or a build is aimed
@@ -1297,7 +1300,7 @@ impl Brain {
             ));
         }
         let idle_words = format!("{name} idle, doing nothing");
-        Some(Menu { name, kind: Kind::Factory(unit.id), moves, idle, queue_ahead: on_pad.is_some(), course: if idle { "idle" } else { "make" }, course_key: String::new(), course_words: if idle { "stands idle".to_string() } else { "builds the unit on its pad".to_string() }, aimed_at: None, against: None, near_party: None, at: Some(unit.pos), idle_words, quiet: false, audit: false })
+        Some(Menu { name, kind: Kind::Factory(unit.id), moves, idle, queue_ahead: on_pad.is_some(), course: if idle { "idle" } else { "make" }, course_key: String::new(), course_words: if idle { "stands idle".to_string() } else { "builds the unit on its pad".to_string() }, aimed_at: None, against: None, near_party: None, fight: None, at: Some(unit.pos), idle_words, quiet: false, audit: false })
     }
 }
 
@@ -1312,7 +1315,7 @@ pub(super) mod tests {
     pub(crate) fn menu(name: &str, kind: Kind, idle: bool, moves: Vec<Move>) -> Menu {
         let mut all = vec![mv("stay", Order::Stay, None)];
         all.extend(moves);
-        Menu { name: name.to_string(), kind, moves: all, idle, queue_ahead: false, course: if idle { "idle" } else { "go" }, course_key: String::new(), course_words: "walks".to_string(), aimed_at: None, against: None, near_party: None, at: None, idle_words: format!("{name} idle, doing nothing"), quiet: false, audit: false }
+        Menu { name: name.to_string(), kind, moves: all, idle, queue_ahead: false, course: if idle { "idle" } else { "go" }, course_key: String::new(), course_words: "walks".to_string(), aimed_at: None, against: None, near_party: None, fight: None, at: None, idle_words: format!("{name} idle, doing nothing"), quiet: false, audit: false }
     }
 
     /// The E3 scene (fourteen Blitzes, three Centurions 600 from them, two of his turrets beyond): one menu for the
@@ -1337,6 +1340,7 @@ pub(super) mod tests {
         let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id };
         let place = |name: &str, x: f32, z: f32, spot: Option<usize>| Place { name: name.to_string(), at: at(x, z), spot };
         let picture = Picture {
+            rules: String::new(),
             state: serde_json::json!({ "instructions": "group_A (Blitzes): holds its ground; against a party that outweighs it, it walks to spot_30.", "actors": { "group_A": { "at": "spot_40 (E3)" } }, "places": {} }),
             places: vec![place("home", 500.0, 5000.0, None), place("spot_30", 3000.0, 2600.0, Some(30)), place("spot_31", 2000.0, 2600.0, Some(31)), place("spot_47", 4960.0, 1620.0, Some(47))],
             parties,

@@ -13,8 +13,9 @@ the actors the request's questions name), `no buildings` (`enemy.buildings_seen`
 `looked_long_ago`, `start_box`, and the `produce` hint under `ours.resurrection_bots`), `rules by kind` (the rules'
 factory, commander, allies and wind sentences only when an actor of that kind is asked about), `no rules`.
 Arms on the questions: `no given` (the "Given `actors.x`, ...:" opening), `facts once` (a fight's facts said in the
-course and again in the move: the second replaced by "(as said above)"), `short forbidden` (the forbidden question
+course and again in the move: the second replaced by "(as said above)"; `facts built` is the rule the bot has), `short forbidden` (the forbidden question
 without the move's odds), `preamble in state` (the pick's shared paragraph once, under `choosing`).
+Orders (`order ...`, `ORDERS`): the same picture with its sections in another order than the bot's.
 Placebos, which remove nothing: `placebo order` (the picture's sections in reverse order), `placebo words` (one line
 added that bears on nothing). An arm that moves answers no more than these does what any change of the request does.
 """
@@ -58,6 +59,20 @@ def facts_once(q):
                 party = re.match(r"party_\d+", span)
                 move = move[:b] + (f"{party.group(0)} (as said above)" if party else "(as said above)") + move[b + size:]
                 text = head + sep + move
+        out[k] = {**v, "instructions": text}
+    return out
+
+def facts_built(q):
+    """`facts once` as the bot builds it (`compose.rs` `gate_questions`): the fight's words the course ends on
+    ("; near party_3 (...): ...") are replaced in the move by "party_3 (as said above)", whatever their length."""
+    out = {}
+    for k, v in q.items():
+        text = v["instructions"]
+        head, sep, move = text.partition("? The move: ")
+        i = head.rfind("; near party_")
+        if sep and head.startswith("Given ") and i >= 0 and head[i + 7:] in move:
+            fight = head[i + 7:]
+            text = head + sep + move.replace(fight, re.match(r"party_\d+", fight).group(0) + " (as said above)", 1)
         out[k] = {**v, "instructions": text}
     return out
 
@@ -119,17 +134,35 @@ def placebo_words(state, q, orig):
     """The same picture with one line added that bears on nothing asked."""
     return {**state, "map": "Comet Catcher Remake 1.8, 8192 by 8192"}
 
+ORDERS = {
+    # the law, the orders, the situation, then who can act
+    "order rules-orders-picture": ["rules", "instructions", "clock", "economy", "ours", "enemy", "allies", "places", "recent", "player", "actors"],
+    # the situation, who can act, then the orders and the law nearest the questions
+    "order picture-orders-rules": ["clock", "economy", "ours", "enemy", "allies", "places", "actors", "recent", "player", "instructions", "rules"],
+    # the law first and the orders last
+    "order rules-picture-orders": ["rules", "clock", "economy", "ours", "enemy", "allies", "places", "actors", "recent", "player", "instructions"],
+    # the orders, the law, then the situation with the actors last
+    "order orders-rules-picture": ["instructions", "rules", "clock", "economy", "ours", "enemy", "allies", "places", "recent", "player", "actors"],
+    # the situation, the law, then the orders nearest the questions
+    "order picture-rules-orders": ["clock", "economy", "ours", "enemy", "allies", "places", "actors", "recent", "player", "rules", "instructions"],
+}
+def ordered(keys):
+    def sf(state, q, orig):
+        return {**{k: state[k] for k in keys if k in state}, **{k: v for k, v in state.items() if k not in keys}}
+    return sf
+
 def no_rules(state, q, orig):
     return {k: v for k, v in state.items() if k != "rules"}
 
 same = lambda q: q
 keep = lambda state, q, orig: state
 ARMS = {
-    "recorded": (same, keep), "recorded 2": (same, keep), "no given": (no_given, keep), "facts once": (facts_once, keep), "short forbidden": (short_forbidden, keep),
+    "recorded": (same, keep), "recorded 2": (same, keep), "no given": (no_given, keep), "facts once": (facts_once, keep), "facts built": (facts_built, keep), "short forbidden": (short_forbidden, keep),
     "preamble in state": (preamble_in_state, choosing), "no roving": (same, no_roving), "asked actors": (same, asked_actors),
     "no buildings": (same, no_buildings), "no scouting": (same, no_scouting), "rules by kind": (same, rules_by_kind), "no rules": (same, no_rules),
     "placebo order": (same, placebo_order), "bot order": (same, bot_order), "placebo words": (same, placebo_words),
 }
+ARMS.update({name: (same, ordered(keys)) for name, keys in ORDERS.items()})
 DEFAULT = {
     "gate": ["recorded", "recorded 2", "no given", "facts once", "short forbidden", "no roving", "asked actors", "no buildings", "no scouting", "rules by kind", "no rules"],
     "pick": ["recorded", "recorded 2", "preamble in state", "no roving", "no buildings", "no scouting", "rules by kind"],
