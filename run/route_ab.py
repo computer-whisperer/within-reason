@@ -9,10 +9,21 @@ in five variants (the study: docs/studies/2026-09-28-route-in-prose.md):
   D  as B, and the group's own entry says "reached X, its stop done; the instructions' next stop is Y, not yet ordered".
   E  as B, and the "nothing changes" world's line names the cost: the group holds at a reached stop with the route's
      next stop not ordered (the composer's convention for an idle lab).
+  F  as E, but the line names no next stop: it lists the places the instructions give the group that it has not
+     reached, in no order (the hands' rebuild, docs/design/2026-10-01-hands-rebuild.md: code does not read the order).
+  G  as F, and the prose also names a place off the route to step back to when outweighed; that place is on the
+     menu both ways and in the line's list. The next stop should still be taken, not the fall-back place.
+  H  as F, but the line names the move Jev's own gate rated best for the group ("with its best-rated move, the walk
+     to spot_46, not ordered"): the cost of standing without code reading the route's order.
+  I  as H with G's fall-back place in the prose and on the menu.
+  J  as H in E's own words: "a stop it has reached, with its next move, the advance to spot_46, not ordered".
+  K  as J with G's fall-back place in the prose and on the menu.
 Each variant asks the gate (nouls) over the group's candidates, then the worlds choice over the flagged ones, the way
 the bot does. Measured: the next leg's noul, whether it is the top candidate and at or above the flag, the pick.
 The key comes from TYPESAFE_API_KEY or ~/.config/within-reason/jev.env and is never printed or written.
-usage: run/route_ab.py run/matches/<batch>/<NN> [--repeat N] [--out FILE.jsonl] [--variants A,B,C,D,E]
+With --two-stage the pick is asked as the bot asks it since 2026-09-29 (plan.rs `stage_one`, `stage_two`): the best
+of the changes first, then that change against "nothing changes".
+usage: run/route_ab.py run/matches/<batch>/<NN> [--repeat N] [--out FILE.jsonl] [--variants A,B,C,D,E] [--two-stage]
        run/route_ab.py --summarize FILE.jsonl
 """
 import datetime
@@ -33,6 +44,11 @@ WORLDS_INSTRUCTIONS = ("Given `economy`, `ours`, `enemy`, `actors`, `player` and
     "w1 changes nothing: every actor keeps its course and the idle ones stay idle; every other world is w1 with one actor's course changed (a pair, when two hands go to one build), and its line says only that change. "
     "An idle factory or builder with metal in the store is a cost, not a course, unless the instructions say to wait. "
     "The instructions were written before this picture: where they name a place, a party, a building, a unit or a rule, follow them; where the situation has changed, pick the world they would call for.")
+
+COMMON = ("Given `economy`, `ours`, `enemy`, `actors`, `player` and the player's `instructions`, which plan is best this second? Each option is one world: who changes course to do what, with what it costs and gives up, which enemy parties are met and which are left to nobody, who stays idle. "
+    "An idle factory or builder with metal in the store is a cost, not a course, unless the instructions say to wait. The instructions were written before this picture: where they name a place, a party, a building, a unit or a rule, follow them; where the situation has changed, pick the world they would call for.")
+STAGE_ONE = COMMON + " Every option is a change from what stands (w1, not offered here): one or more actors' courses changed, the line saying only those changes and what they alter. Pick the best of the changes; whether to change at all is asked next."
+STAGE_TWO = COMMON + " w1 changes nothing: every actor keeps its course and the idle ones stay idle. The other option is the best change on offer this second, its line saying only what it changes from w1 and what that alters. Pick one."
 
 LOOP = ["spot_49", "spot_46", "spot_40", "spot_55", "spot_58", "spot_64"]
 SCOUT = ["spot_72", "spot_60", "spot_42", "spot_34", "spot_25", "spot_17", "spot_10", "spot_5"]
@@ -124,7 +140,7 @@ def build(row, rules, instructions, moment, variant):
             if qid.startswith(group + "."):
                 questions[qid] = q
         state["instructions"] = text
-        return state, questions, [qid.split(".", 1)[1] for qid in questions if not qid.endswith(".change")]
+        return state, questions, [qid.split(".", 1)[1] for qid in questions if not qid.endswith(".change")], None
     # B and C: the route in prose, no station rule, the menu of remaining stops.
     entry["standing"] = re.sub(r";? ?station [^;]*(; ?station_mode [a-z]+)?", "", entry["standing"]).replace(":;", ":").strip()
     if entry["standing"].endswith(":"):
@@ -132,7 +148,13 @@ def build(row, rules, instructions, moment, variant):
     text = text.rstrip() + "\n\n" + (LOOP_PROSE if group == "group_A" else SCOUT_PROSE)
     state["instructions"] = text
     done = [s for _, s in reached]
-    if variant in ("B", "D", "E"):
+    fall_back = None
+    if variant in ("G", "I", "K"):
+        spots = [p for p in row["places"] if p.get("spot") is not None and p["name"] not in route]
+        fall_back = min(spots, key=lambda p: math.hypot(p["x"] - at[0], p["z"] - at[1]))["name"]
+        text += f" When a party outweighs it, it steps back to {fall_back} without fighting and waits there."
+        state["instructions"] = text
+    if variant in ("B", "D", "E", "F", "G", "H", "I", "J", "K"):
         state["recent"] = state.get("recent", []) + [f"{c} {group} reached {s}" for c, s in reached]
     if variant == "D" and entry["doing"].startswith("holding"):
         last_clock, last_stop = reached[-1]
@@ -158,6 +180,11 @@ def build(row, rules, instructions, moment, variant):
         fight = ", fighting on the way" if group == "group_A" else " without stopping to fight on the way"
         words = f"{group} {verb} {stop} ({d:.0f} away, {d / speed:.0f} s of walking){fight}{unguarded}"
         candidates.append((f"walk_{stop}", words))
+    if fall_back:
+        px, pz = place_at(row, fall_back)
+        d = math.hypot(px - at[0], pz - at[1])
+        candidates.append((f"walk_{fall_back}", f"{group} walks to {fall_back} ({d:.0f} away, {d / speed:.0f} s of walking) without stopping to fight on the way{unguarded}"))
+        candidates.append((f"advance_{fall_back}", f"{group} advances to {fall_back} ({d:.0f} away, {d / speed:.0f} s of walking), fighting on the way{unguarded}"))
     # The recorded other candidates (retreat, sweep, raids, splits, joins, fall back), re-phrased against the hold.
     for qid, q in row["questions"].items():
         if not qid.startswith(group + ".") or qid.endswith(".change"):
@@ -175,7 +202,7 @@ def build(row, rules, instructions, moment, variant):
     for sid, words in candidates:
         questions[f"{group}.{sid}"] = {"type": "noul", "instructions": (
             f"Given `actors.{group}`, `economy`, `ours` and the player's `instructions`: is this what {group} should do now, rather than {current}? The move: {words}")}
-    return state, questions, [c[0] for c in candidates]
+    return state, questions, [c[0] for c in candidates], fall_back
 
 
 def worlds_of(questions, answers, group, idle_words=None):
@@ -221,7 +248,7 @@ def main():
             text = in_force(instructions, row["f"])
             model = row["model"]
             for variant in variants:
-                state, questions, candidates = build(row, rules, text, moment, variant)
+                state, questions, candidates, fall_back = build(row, rules, text, moment, variant)
                 for rep in range(repeat):
                     gate = ask(key, state, questions, model)
                     answers = gate["answers"]
@@ -229,14 +256,36 @@ def main():
                     idle_words = None
                     if variant == "E" and state["actors"][group]["doing"].startswith("holding"):
                         idle_words = f"{group} holds at {state['actors'][group]['at']}, a stop of its route it has reached, with the route's next stop {nxt} not ordered."
+                    if variant in ("F", "G") and state["actors"][group]["doing"].startswith("holding"):
+                        left = [s for s in route if s not in [x for _, x in reached]] + ([fall_back] if fall_back else [])
+                        idle_words = f"{group} holds at {state['actors'][group]['at']}, a place its instructions give it that it has reached; of the places they give it, it has not been to {', '.join(sorted(left))} since."
+                    if variant in ("H", "I", "J", "K") and state["actors"][group]["doing"].startswith("holding"):
+                        rated = {k: v for k, v in nouls.items() if k != "change"}
+                        best = max(rated, key=rated.get)
+                        kind, place = best.split("_", 1) if "_" in best else (best, "")
+                        said = {"walk": f"the walk to {place}", "advance": f"the advance to {place}"}.get(kind, best.replace("_", " "))
+                        if group == "group_A" and kind == "walk" and place in route:
+                            said = f"the advance to {place}"
+                        idle_words = f"{group} holds at {state['actors'][group]['at']}, a place its instructions give it that it has reached, with its best-rated move, {said}, not ordered."
+                        if variant in ("J", "K"):
+                            idle_words = f"{group} holds at {state['actors'][group]['at']}, a stop it has reached, with its next move, {said}, not ordered."
                     worlds, ids = worlds_of(questions, answers, group, idle_words)
-                    if variant == "E" and len(worlds) == 1 and f"{group}.walk_{nxt}" in questions:
+                    if variant in ("E", "F", "G", "H", "I", "J", "K") and len(worlds) == 1 and f"{group}.walk_{nxt}" in questions:
                         m = re.search(r"The move: (.*)$", questions[f"{group}.walk_{nxt}"]["instructions"], re.S)
                         worlds["w2"] = f"As w1, and: {m.group(1).strip()}."
                         ids["w2"] = f"walk_{nxt}"
                     pick = "w1"
                     probs = {}
-                    if len(worlds) > 1:
+                    if len(worlds) > 1 and "--two-stage" in args:
+                        changes = {k: v for k, v in worlds.items() if k != "w1"}
+                        candidate = next(iter(changes))
+                        if len(changes) > 1:
+                            one = ask(key, state, {"worlds.pick": {"type": "choice", "instructions": STAGE_ONE, "criteria": changes}}, model)
+                            candidate = one["answers"]["worlds.pick"]["choice"]
+                        two = ask(key, state, {"worlds.pick": {"type": "choice", "instructions": STAGE_TWO, "criteria": {"w1": worlds["w1"], candidate: worlds[candidate]}}}, model)
+                        pick = two["answers"]["worlds.pick"]["choice"]
+                        probs = two["answers"]["worlds.pick"].get("probabilities", {})
+                    elif len(worlds) > 1:
                         choice = ask(key, state, {"worlds.pick": {"type": "choice", "instructions": WORLDS_INSTRUCTIONS, "criteria": worlds}}, model)
                         pick = choice["answers"]["worlds.pick"]["choice"]
                         probs = choice["answers"]["worlds.pick"].get("probabilities", {})
@@ -257,7 +306,7 @@ def main():
 
 def summarize(rows):
     print("\nvariant | moment | next leg noul (median) | next is top | next flagged | continues the route (A: w1 plays the default; 3:58: w1 or a route stop) | pick = w1 | change noul")
-    for variant in ("A", "B", "C", "D", "E"):
+    for variant in ("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"):
         for clock in [m[0] for m in MOMENTS]:
             rs = [r for r in rows if r["variant"] == variant and r["clock"] == clock]
             if not rs:
