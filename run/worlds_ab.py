@@ -28,7 +28,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from jev_ab import GLOSSARY, api_key, ask, choice_of, moments_of, requests_of  # noqa: E402
-from floor import NEVER_SPLIT  # noqa: E402
+from jev_ab import NEVER_SPLIT  # noqa: E402
 from match_read import Match, clock  # noqa: E402
 
 FIGHT = ("engage", "send_against", "attack_unit")

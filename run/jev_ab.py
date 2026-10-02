@@ -37,7 +37,10 @@ import urllib.error
 import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from floor import NEVER_SHELLING, NEVER_SPLIT  # noqa: E402
+
+# A packet's "never" clauses, for the detectors over the old hands' logs (`send_against`, `split`, a walk to shelling).
+NEVER_SPLIT = re.compile(r"never (splits|sends? (a )?detachment|sends? detachments)|forbid(s|ding)? detachments|no detachments|never split", re.I)
+NEVER_SHELLING = re.compile(r"never (advances|walks|goes)[^.]*shelling|shelling[^.]*is (banned|forbidden)|never[^.]*called shelling", re.I)
 from match_read import Match, clock  # noqa: E402
 
 URL = "https://api.typesafe.ai/v1/systemone"
