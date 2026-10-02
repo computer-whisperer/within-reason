@@ -195,3 +195,54 @@ exists: the same game at about 3 asks a second gives each actor the attention an
 - The split pick was compared with the joint pick's own probabilities, not with a better answer.
 - Two games, one map, one opponent. Player-32's late game is twice player-33's rate.
 - The 8v8 unit counts are assumed.
+
+## 8. After the rebuild: what was measured on 2026-10-02
+
+The rebuilt hands with `news`, `same`, `fuse`, `openers` and `tick` played player-36 (17 minutes, won) for 27.8M
+tokens, $1.17. `run/jev_bill.py` on its log:
+
+| | Tokens | Share |
+|---|---|---|
+| the gate | 16.7M | 60% (the picture 4.5M, the questions 12M) |
+| the pick's two calls | 9.1M | 33% (the picture 6.3M, the worlds' lines 2.9M) |
+| the decode | 2.1M | 7% |
+
+By the picture's sections over all calls: `actors` 4.2M, the rules text 2.8M, `enemy` 1.5M, the packet 1.2M. The
+gate's question text: a move's own words 46%, the standing course repeated in every question of the actor 21%,
+the preamble 21%, the fight's facts repeated on each move 7%. By whom it is asked of: groups with a course 64%,
+builders with a course 16%, idle groups 14%.
+
+**Built on it.** `split` (§4; the design note §17). `openers` asks the opener first: 16% of the gate's question
+text was the own moves of actors whose `change` came back under 0.5 in the same request (an opener never asked, or
+asked over 20 s ago, had brought the whole menu with it), another 3% moves at a party whose `answer` said no.
+
+**Tried and not built** (each replayed on recorded requests):
+
+- *The standing course cut from each question* (`run/jev_words_ab.py`, 40 gates of player-36, 4,063 own-move
+  answers; `docs/studies/data/words-ab-2026-10-02.jsonl`). "rather than what it does now" in place of the course's
+  words saves 11% of a gate and the actors' strong moves stop being strong: of 56 actors whose best move was at 0.5
+  or over as recorded, 48 kept one there when the gate was asked again unchanged, 29 with the course cut and 33
+  with the course's words moved into the actor's entry. The course in the question is what the move is weighed
+  against; it stays.
+- *The rules text out of the split pick* (`run/jev_pick_rules_ab.py`, 120 picks of player-38): 14% of a pick's
+  tokens, and the changes taken fall from 285 to 248 of 530 (287 asked again unchanged).
+- *The decode for a detachment the packet does not name* (`run/jev_detach_decode.py`, player-36: 81 detachments,
+  4,884 readings): it reads "join its parent" under 0.2 in 63 of 88 readings where the gate rated that join 0.5 or
+  over in 62 of 149 asks, and a join to another group under 0.2 where the gate said yes in 329 of 1,357. Opus does
+  not write about detachments; the decode cannot fuse for them. Fusing a detachment's walks by its parent's
+  readings does not separate either (2.3% of the gate's answers at 0.5 or over where the parent read under 0.2,
+  5.6% where it read over).
+- *More of the `same` layer.* Of the questions asked again within 20 s, the move's own words differ in 82% (the
+  way's seconds, the fight's facts, what a party is killing), so the layer skips 1% whatever is done to the
+  course's words; where only the course's words differ the answer crosses 0.5 in 0.8 to 1.7% of pairs.
+
+**Where the unnamed detachments cost.** 52% of the walk questions to groups in player-36 went to groups the packet
+does not name, nearly all detachments under 30 s old: asked their whole unfused menu at birth (the hunt in force)
+and at every gate once the hunt ends and they stand idle. Asking the opener first takes the first; the second is
+the cost of the churn (95 groups in 17 minutes).
+
+**Left, in the order of what they would save** (player-36's tokens): `one` (the pick rides with the next gate:
+about 3M, and a move lands a second later); an opener for an idle actor ("should it do anything now?" before its
+menu: up to 1.9M, a rule the design does not have); the decode kept across packets for an actor whose paragraphs
+did not change (about 1.5M).
+

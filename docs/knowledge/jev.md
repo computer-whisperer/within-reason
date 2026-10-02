@@ -1743,3 +1743,9 @@ picked a hunt the second after the player wrote "no hunts", which is Jev's readi
 **Status.** observed 2026-10-02, one game; fixed the same day on the user's word: an answer stands only while the counts it was asked over stand (`layers::counts`: our buildings by kind, the army's size word, the economy's lines without their numbers). Unmeasured in a game since.
 **Would be wrong if.** The stale answer and the fresh one agree when the state between them changed (the audit's 2.4% says they mostly do; the opening is where one wrong answer costs the game).
 
+### K-jev-the-course-in-each-question-is-what-the-move-is-weighed-against
+**Claim.** A move's question must carry the course it would replace in its own words ("rather than group_W attacks party_17: ..."). With "rather than what it does now", or with the course's words moved into the actor's entry and referred to, Jev rates fewer moves at 0.5 or over: the repetition is a fifth of the gate's question text and it is not free to cut.
+**Evidence.** `run/jev_words_ab.py` on 40 gates of player-36 (4,063 own-move answers, `docs/studies/data/words-ab-2026-10-02.jsonl`): of 56 actors whose best own move was at 0.5 or over as recorded, asked again unchanged 48 kept a move there; with the course cut 29; with the course in the entry 33. Mean change of an answer 0.018, 0.045, 0.035; answers crossing 0.5: 1.0%, 2.5%, 2.2%. Tokens 89-90% of the gate's. The budget study's §3 found the same of a shorter cut on the old menus (53 of 72 against 66).
+**Status.** measured 2026-10-02, offline, one game's gates.
+**Would be wrong if.** A form that keeps the course's words but says them once per actor (a question type with shared instructions, should the API gain one) moves the answers as little as asking again does.
+
