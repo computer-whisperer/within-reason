@@ -288,8 +288,9 @@ minute differently, the person's reading is the finding and yours is a note unde
   with parties near it is sent after a lone raider on the far side (group_H, two Blitzes at B4, after one Pawn at A1,
   called off ten seconds later). Check the ledger's `answer` column for hunters whose start was over 1,500 from the
   raider while a party stood within 900 of them (`hands_window` `parties` lines).
-- **H6 the pass** [floor's rule%, noop%; docs/design/2026-09-26-one-pass.md]. The share of plays by the rules'
-  defaults, quiet seconds with something open; a late answer (`late` lines) after a session was replaced.
+- **H6 the gate** [floor's noop%; `run/layers_read.py`; docs/design/2026-10-01-hands-rebuild.md §8]. The layers in
+  force and each audit's faults (`news` or `same` over 10% is a finding), the share of quiet passes; a late answer
+  (`late` lines) after a session was replaced.
 
 ### Harness faults (report, never fix)
 

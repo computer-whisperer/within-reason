@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The fundamentals scorecard of a pianist or policy match (the user, 2026-09-22: "floor skill: sloppy execution,
+"""The fundamentals scorecard of a pianist match (the user, 2026-09-22: "floor skill: sloppy execution,
 missed evidence"): what the hands and the player did badly regardless of the result, from the record, the Jev log,
 the transcript and the truth file. One row per match, the same columns every game, so a harness change is judged by
 the scorecard over the recorded games rather than by wins.
@@ -13,13 +13,10 @@ Columns (lower is better unless said):
   idle%      builder-seconds idle (commander and constructors, not being built) over their seconds alive
   e0%        seconds with the energy store under 2% of storage, over the game
   mfull%     seconds with the metal store over 98% of storage (income wasted)
-  react s    median seconds from a party first seen at one of our extractors to the first order against it
-  unanswered raider episodes with no order against the party within 60 s
-  never      orders contradicting a "never splits" / "never advances to shelling" clause of the packet in force
-  noop%      quiet seconds (something open, the picture as at the last ask, nothing asked) over the seconds with something open
-  rule%      plays by the rules' defaults (the base world) over the base's plus the picks' (H-HANDS-ONE-PASS)
-  jev$       the Jev bill from the log's usage (input tokens at $0.042 a million)
-  illegal    policy orders refused (option not offered, place unknown, actor on a list)
+  react s    median seconds from a party first named at one of our extractors to the first order against it (0 when one was already in force)
+  unanswered raider episodes with no order against the party from 60 s before to 60 s after
+  noop%      quiet passes (every question in the words of its last ask, nothing sent) over the passes that had something to ask
+  jev$       the Jev bill from the log's usage, the packet's decode included (input tokens at $0.042 a million)
   stuck s    unit-seconds our mobile units could not move: from a move failure until the unit has moved 80 elmos
   yard min   minutes some factory of ours had a stuck unit in its exit lane (- for records without footprints)
   known%     the player's enemy-army metal as a share of the truth, median over its turns past minute five (higher is better)
@@ -40,9 +37,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from match_read import Match, clock  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-NEVER_SPLIT = re.compile(r"never (splits|sends? (a )?detachment|sends? detachments)|forbid(s|ding)? detachments|no detachments|never split", re.I)
-NEVER_SHELLING = re.compile(r"never (advances|walks|goes)[^.]*shelling|shelling[^.]*is (banned|forbidden)|never[^.]*called shelling", re.I)
 
 
 def med(xs, default=None):
@@ -88,21 +82,12 @@ def scorecard(m):
     # raider episodes: a party first named at one of our extractors, and the first order against it
     episodes = {}
     answered = {}
-    holds = group_asks = 0
-    never = 0
-    illegal = 0
-    packet = ""
+    orders = {}
     fac = None
-    tasks = {}
     for c in m.calls:
-        if "instructions" in c:
-            packet = c["instructions"]
         state = c.get("state") or {}
         if fac is None and isinstance((state.get("enemy") or {}).get("factories_seen"), list):
             fac = c["f"]
-        # A `standing` line's `groups` is the worlds question's candidates by name, not the call's group list.
-        for g in (c.get("groups") if isinstance(c.get("groups"), list) else []) or []:
-            tasks[f"group_{g['name']}"] = (g.get("task") or {}).get("kind")
         for entry in (state.get("actors") or {}).values():
             if not isinstance(entry, dict):
                 continue  # an unasked actor is one line since 2026-09-23
@@ -112,39 +97,23 @@ def scorecard(m):
                     episodes.setdefault(mm.group(1), c["f"])
         for p in c.get("played") or []:
             did = p.get("did") or ""
-            mm = re.search(r"(?:against|attack) (party_\d+)", did)
-            if mm and mm.group(1) in episodes and mm.group(1) not in answered:
-                answered[mm.group(1)] = c["f"]
-            if p["kind"] == "group":
-                group_asks += 1
-                if p["played"] == "hold" and tasks.get(p["actor"]) == "hold":
-                    holds += 1
-            if packet and NEVER_SPLIT.search(packet) and p["played"] in ("send_against", "split"):
-                never += 1
-            if packet and NEVER_SHELLING.search(packet) and p["played"] in ("fight_to", "move_to") and "shelling" in did:
-                never += 1
-    # pass lines (the runtime's own log): the base's plays against the picks', the quiet seconds; the Jev bill
-    # from every call's usage. Logs before 2026-09-26 carry `standing` lines with the executor's plays instead.
-    standing_plays = 0
-    jev_plays = sum(1 for c in m.calls for p in c.get("played") or [] if p.get("source", "jev") == "jev")
-    quiet_s = open_s = 0
-    tokens = 0
-    for line in open(next(os.path.join(m.dir, f) for f in os.listdir(m.dir) if f.startswith("jev-"))):
-        try:
-            r = json.loads(line)
-        except ValueError:
-            continue
-        if r.get("t") == "pass":
-            standing_plays += sum(1 for p in r.get("played") or [] if p.get("source") == "rule")
-            if r.get("open"):
-                open_s += 1
-                quiet_s += 1 if r.get("quiet") else 0
-        if r.get("t") == "plan":
-            jev_plays += len(r.get("played") or r.get("changed") or [])
-        if r.get("t") == "call":
-            tokens += (r.get("usage") or {}).get("input_tokens", 0)
+            # An attack ("attack party_N"), a detachment ("2 of group_A hunt party_N"), shelling or a D-gun.
+            mm = re.search(r"(?:attack|hunt|shell|D-gun) (party_\d+)", did)
+            if mm:
+                orders.setdefault(mm.group(1), []).append(c["f"])
+    # Answered: an order against the party from a minute before it was first named at an extractor (a party
+    # already under attack when it gets there) to a minute after.
+    for party, first in episodes.items():
+        mine = [f for f in orders.get(party, []) if first - 60 * frames <= f <= first + 60 * frames]
+        if mine:
+            answered[party] = max(first, min(mine))
+    # The pass lines: a quiet pass had something to ask and sent nothing; a pass with a `gate` asked. The Jev bill
+    # is every call's and every decode's usage.
+    quiet_s = sum(1 for c in m.calls if c.get("t") == "pass" and c.get("quiet"))
+    open_s = quiet_s + sum(1 for c in m.calls if c.get("t") == "pass" and "gate" in c and not c.get("quiet"))
+    tokens = sum((c.get("usage") or {}).get("input_tokens", 0) for c in m.calls if c.get("t") in ("call", "decode"))
     delays = [(answered[k] - episodes[k]) / frames for k in answered]
-    unanswered = sum(1 for k in episodes if k not in answered or answered[k] - episodes[k] > 60 * frames)
+    unanswered = sum(1 for k in episodes if k not in answered)
     stuck_frames, yard_min = stuck_and_yards(m, defs, positions, frames, sample)
     known = []
     for t in m.turns:
@@ -166,10 +135,7 @@ def scorecard(m):
         "mfull%": round(100 * mfull / total, 1) if total else None,
         "react_s": round(med(delays, 0), 0) if delays else None,
         "unanswered": unanswered, "episodes": len(episodes),
-        "never": never,
-        "noop%": round(100 * quiet_s / open_s, 0) if open_s else (round(100 * holds / group_asks, 0) if group_asks else None),
-        "illegal": illegal,
-        "rule%": round(100 * standing_plays / (standing_plays + jev_plays)) if standing_plays + jev_plays else None,
+        "noop%": round(100 * quiet_s / open_s, 0) if open_s else None,
         "jev$": round(tokens * 0.042 / 1e6, 2),
         "stuck_s": round(stuck_frames / frames),
         "yard_min": yard_min,
@@ -196,7 +162,7 @@ def opening(m):
     return {"fac4": row["fac_units"], "stall4": row["stalled"], "assist4": row["assist_s"]}
 
 
-COLUMNS = ["result", "minutes", "idle%", "e0%", "mfull%", "react_s", "unanswered", "never", "noop%", "illegal", "rule%", "jev$", "stuck_s", "yard_min", "known%", "fac_min", "look_min", "turn_s", "aband", "aband_m", "fac4", "stall4", "assist4"]
+COLUMNS = ["result", "minutes", "idle%", "e0%", "mfull%", "react_s", "unanswered", "noop%", "jev$", "stuck_s", "yard_min", "known%", "fac_min", "look_min", "turn_s", "aband", "aband_m", "fac4", "stall4", "assist4"]
 
 
 def abandoned_builds(m, defs, built_share):

@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """How the player was scheduled in a pianist match: turns per minute, what woke each turn, the time its orders were on
 their way (the think penalty), the idle after they landed, and how long a loss of ours, an extractor lost or an
-engagement waited for the next turn (K-player-idle-after-the-flight-costs-more-than-the-flight). Also the groups'
-choices right after losing a member while the orders were on their way (K-hands-carried-on-while-losing-in-flight).
+attack the hands began waited for the next turn (K-player-idle-after-the-flight-costs-more-than-the-flight).
 
 usage: run/wake_read.py run/matches/<batch>/00 [...]
 """
@@ -22,16 +21,16 @@ def read(d):
         elif e.get('kind')=='turn_end' and cur:
             cur['wall']=e['wall_seconds']; cur['land']=cur['f']+int(e['wall_seconds']*FPS); cur['ended']=e['ended_by']; turns.append(cur); cur=None
     jev=[json.loads(l) for l in open(d+'/jev-0.jsonl')]
-    calls=[c for c in jev if c.get('t')=='call']
+    plans=[c for c in jev if c.get('t')=='plan']
     rec=[json.loads(l) for l in open(d+'/record-0.jsonl')]
     ev=[e for e in rec if e.get('t')=='ev']
-    return turns,calls,ev
+    return turns,plans,ev
 def classify(r):
     for key,name in [('capped at','timer-capped'),('s have passed','timer'),('has lost','loss-wake'),('has met','odds-wake'),('on their way','flight-review'),('your hands say','jev-needs'),('your hands sent','engaged'),('enemies within','near-mex'),('extractor was destroyed','mex-lost'),('said something','chat'),('unassigned soldiers','pool'),('no growth','stagnant'),('game begins','opening')]:
         if key in r: return name
     return 'other:'+r[:40]
 for d in sys.argv[1:]:
-    turns,calls,ev=read(d)
+    turns,plans,ev=read(d)
     end=turns[-1]['land']
     print(f"\n== {d}: {len(turns)} turns over {end/FPS/60:.1f} min = {len(turns)/(end/FPS/60):.2f}/min; wall median {S.median(t['wall'] for t in turns):.1f}s")
     # reasons
@@ -56,24 +55,6 @@ for d in sys.argv[1:]:
     for i in range(1,len(turns)):
         for k in set(classify(r) for r in turns[i]['reasons']): by[k].append((turns[i]['f']-turns[i-1]['land'])/FPS)
     print("  idle before a turn, by reason kind (median s, n):",{k:(round(S.median(v),1),len(v)) for k,v in by.items()})
-    # jev needs_player
-    np_=[(c['f'],c['answers'].get('global.needs_player',{}).get('noul')) for c in calls if 'global.needs_player' in c.get('answers',{})]
-    vals=[v for _,v in np_ if v is not None]
-    print(f"  jev calls {len(calls)}, call gap median {S.median((calls[i+1]['f']-calls[i]['f'])/FPS for i in range(len(calls)-1)):.2f}s; needs_player asked on {len(np_)} calls" + (f": median {S.median(vals):.2f}, >=0.8 on {sum(v>=0.8 for v in vals)} ({sum(v>=0.8 for v in vals)/len(vals):.0%}), >=0.5 on {sum(v>=0.5 for v in vals)}" if vals else " (retired)"))
-    # runs of 3 >=0.8: potential triggers; which were suppressed by cooldown/busy
-    run=0; fires=[]; last=-10**9
-    for f,v in np_:
-        run=run+1 if (v or 0)>=0.8 else 0
-        if run>=3:
-            fires.append(f)
-    if vals: print(f"  calls completing a run of 3 >=0.8: {len(fires)}")
-    # streak lengths
-    streaks=[];run=0
-    for f,v in np_:
-        if (v or 0)>=0.8: run+=1
-        elif run: streaks.append(run); run=0
-    if run: streaks.append(run)
-    if vals: print(f"  streaks of >=0.8: {len(streaks)}, length median {S.median(streaks) if streaks else 0}, max {max(streaks) if streaks else 0}, total calls in streaks of >=3: {sum(s for s in streaks if s>=3)}")
     # event latency: our losses, extractor losses, engagements begun
     defs={}
     hdr=[json.loads(l) for l in open(d+'/record-0.jsonl')][0]
@@ -96,8 +77,5 @@ for d in sys.argv[1:]:
     # first loss of a burst: losses with no loss in the previous 10 s
     bursts=[e for i,e in enumerate(losses) if i==0 or e['f']-losses[i-1]['f']>10*FPS]
     latency(bursts,"first loss of a burst (10 s quiet before)")
-    eng=[]
-    for c in calls:
-        for p in c.get('played',[]):
-            if (p.get('did') or '').startswith('attack '): eng.append({'f':c['f']})
-    latency(eng,"hands began an attack (jev played)")
+    eng=[{'f':f} for f in sorted({c['f'] for c in plans for p in c.get('played') or [] if re.search(r'^attack party_|hunt party_',p.get('did') or '')})]
+    latency(eng,"hands began an attack or sent a detachment (seconds with one)")

@@ -452,6 +452,8 @@ never orders against a "never" clause of the packet; noop% group asks answering 
 orders refused; stuck_s commander move failures up to hands-2, unit-seconds any mobile unit of ours was stuck from yard-1 on (with yard_min, minutes a factory had a stuck unit in its exit lane, in brackets; hands-2 re-read that way: 3,187); known% the player's enemy-army figure over the truth (higher is better);
 base_min when the base first read found; look_min when we first stood at their start; turn_s the player's median turn.
 
+From 2026-10-02 (the rebuilt hands, Jev log version 3): `never`, `illegal` and `rule%` are gone from `run/floor.py` (nothing produces a rules' default, a policy order or a "never splits" contradiction any more: the forbidden mark's audit is in `run/layers_read.py`); `noop%` is the quiet passes over the passes with something to ask; `jev$` includes the packet's decode; an episode is answered by an order against the party (attack, a detachment, shelling, a D-gun) from 60 s before it was first named at an extractor to 60 s after, so `unanswered` no longer counts a party that was already under attack when it got there.
+
 | match | result | min | idle% | e0% | mfull% | react_s | unanswered | never | noop% | illegal | stuck_s | known% | base_min | look_min | turn_s |
 | bank-1 | Loss | 29.2 | 2.0 | 0.1 | 0.4 | 2.0 | 89 | 11 | 33 | 0 | 1219 (yard 14.7) | 24 | - | - | 9.3 | fac4 7, stall4 41, assist4 17 |
 | 2v1-medium | Loss | 12.0 | 1.2 | 3.0 | 1.0 | 4.0 | 28 | 3 | 30 | 0 | 4 (yard 0.0) | 28 | 3.4 | - | 7.1 | fac4 10, stall4 48, assist4 44 |
