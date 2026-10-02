@@ -91,9 +91,16 @@ fn scouting_lines(cells: &[CellLook], factory_known: bool) -> Vec<String> {
     if !old.is_empty() {
         lines.push(format!("  nothing of his when seen over 6 min ago: {}", old.join(", ")));
     }
-    let never: Vec<String> = cells.iter().filter(|c| !holds(c) && c.ago.is_none()).map(|c| if c.spots.is_empty() { c.cell.clone() } else { format!("{} ({})", c.cell, spots(c)) }).collect();
-    if !never.is_empty() {
-        lines.push(format!("  never seen: {}", never.join(", ")));
+    // Never seen: his box's cells one by one with their spots (where a scout is sent), the rest as runs (at the
+    // start that is the whole map).
+    let never = |inside: bool| cells.iter().filter(move |c| !holds(c) && c.ago.is_none() && c.in_his_box == inside);
+    let in_box: Vec<String> = never(true).map(|c| if c.spots.is_empty() { c.cell.clone() } else { format!("{} ({})", c.cell, spots(c)) }).collect();
+    if !in_box.is_empty() {
+        lines.push(format!("  never seen, in his box: {}", in_box.join(", ")));
+    }
+    let elsewhere: Vec<&CellLook> = never(false).collect();
+    if !elsewhere.is_empty() {
+        lines.push(format!("  never seen, elsewhere: {}", cell_runs(&elsewhere)));
     }
     if !factory_known {
         let mut least: Vec<&CellLook> = cells.iter().filter(|c| c.in_his_box).collect();
@@ -383,18 +390,19 @@ mod tests {
         g1.spots = vec![5, 10];
         let mut old = cell("F1", 0.3, Some(425));
         old.spots = vec![3];
-        let cells = vec![cell("A7", 1.0, Some(0)), cell("A8", 1.0, Some(2)), cell("B8", 0.6, Some(0)), old, g1, cell("G6", 0.7, Some(190)), cell("G7", 0.8, Some(200)), cell("G8", 0.6, Some(205)), cell("H1", 0.0, None), cell("H2", 0.1, Some(182)), h3, cell("H8", 0.55, Some(215))];
+        let cells = vec![cell("A7", 1.0, Some(0)), cell("A8", 1.0, Some(2)), cell("B8", 0.6, Some(0)), cell("C1", 0.0, None), cell("C2", 0.0, None), old, g1, cell("G6", 0.7, Some(190)), cell("G7", 0.8, Some(200)), cell("G8", 0.6, Some(205)), cell("H1", 0.0, None), cell("H2", 0.1, Some(182)), h3, cell("H8", 0.55, Some(215))];
         let lines = scouting_lines(&cells, false);
         assert!(lines[0].starts_with("scouting (each cell of the map by when units of ours last saw it"));
         assert_eq!(lines[1], "  his, in H3 (all of it seen 2:57 ago): his commander as last seen, 1 armllt, 2 armmex, 1 armrad");
         assert_eq!(lines[2], "  nothing of his, in sight now: A7-A8 (all of each); B8 (most of it)");
         assert_eq!(lines[3], "  nothing of his when seen 3 to 6 min ago: G6-G8, H8 (most of each); H2 (a corner of it)");
         assert_eq!(lines[4], "  nothing of his when seen over 6 min ago: F1 (part of it, 7:05 ago; spot_3)");
-        assert_eq!(lines[5], "  never seen: G1 (spot_5, spot_10), H1");
-        assert_eq!(lines[6], "  no factory of his has been seen: it stands on ground we have not seen, or was built after we looked; the cells of his box seen least: G1 (never seen), H1 (never seen), H2 (a corner of it seen 3:02 ago), H8 (most of it seen 3:35 ago)");
-        assert_eq!(lines.len(), 7);
+        assert_eq!(lines[5], "  never seen, in his box: G1 (spot_5, spot_10), H1");
+        assert_eq!(lines[6], "  never seen, elsewhere: C1-C2");
+        assert_eq!(lines[7], "  no factory of his has been seen: it stands on ground we have not seen, or was built after we looked; the cells of his box seen least: G1 (never seen), H1 (never seen), H2 (a corner of it seen 3:02 ago), H8 (most of it seen 3:35 ago)");
+        assert_eq!(lines.len(), 8);
         // With a factory of his on record the last line is not said; before the first survey nothing is.
-        assert_eq!(scouting_lines(&cells, true).len(), 6);
+        assert_eq!(scouting_lines(&cells, true).len(), 7);
         assert!(scouting_lines(&[], false).is_empty());
     }
 

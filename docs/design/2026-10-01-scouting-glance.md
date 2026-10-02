@@ -57,13 +57,16 @@ scouting (each cell of the map by when units of ours last saw it; an old look sa
   his: H3, all of it seen 4:25 ago: armcom (his commander), 1 armrad, 1 armllt, 2 armmex
   nothing of his when seen 3 to 6 min ago: G4-G8, H4-H8 (most of each)
   nothing of his, in sight now: A5-A8, B5-B8, C6-C8, D7
-  never seen: G1 (spot_5, spot_10), H1, H2 (spot_12), E1-F2 ...
+  never seen, in his box: G1 (spot_5, spot_10), H1, H2 (spot_12)
+  never seen, elsewhere: E1-E2, F1-F2
   no factory of his has been seen: it stands where we have not looked; the cells of his box seen least: G1, H1 (never), H2 (a corner of it, 3:02 ago)
 ```
 
 - One line per cell that holds something of his; the other cells grouped by age band (in sight now, under 1 min, 1 to 3,
   3 to 6, over 6, never) and by how much, each group written as runs down a column ("G4-G8").
-- Never-seen and long-unseen cells name their metal spots, since spots are what the player orders by.
+- Long-unseen cells and the never-seen cells of his box name their metal spots, since spots are what the player orders
+  by; the never-seen cells elsewhere are runs (at 0:10 that is the whole map: the first block listed sixty cells one
+  by one, glance-smoke-1).
 - The factory line only while no factory of his stands in the record.
 
 `Score::never_looked` and its report words go (the block says it); `enemy_spots` ("known to hold N") stays in the score
