@@ -338,8 +338,8 @@ impl Brain {
                     did = Some("gather on its front".into());
                 }
             }
-            Order::Go(place_name) | Order::FightTo(place_name) => {
-                let fight = matches!(order, Order::FightTo(_));
+            Order::Go(place_name) | Order::FightTo(place_name) | Order::Raid(place_name) => {
+                let fight = !matches!(order, Order::Go(_));
                 if let Some(p) = place(place_name) {
                     let to = self.snap_for(walker, p.at);
                     let group = &mut pianist.groups[index];

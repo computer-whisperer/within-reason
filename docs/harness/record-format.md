@@ -123,6 +123,16 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   holding every noul by id. A `call` line's groups say `task.kind` hold (with `picked`), move_to, fight_to, engage,
   attack_unit, hunt or follow (`ward`: a builder's or a group's name). `plan` lines are unchanged. A gate that
   fails writes an `error` line and is asked again at the next second.
+  With the `same` layer on, the pass line's `layers.same` counts the questions not sent and the audited ones, the
+  `call` line carries only what was sent (the standing answers are in `worlds_gate.flags`), and an audit line reads
+  `{"t": "audit", "layer": "same", "id", "assumed" (the standing answer), "fresh", "fault"}`. With the `fuse` layer
+  on, a `decode` line stands for each decode request: `{"t": "decode", "f", "ms", "usage", "batches", "asked",
+  "reads": {"<actor>|place|<place>" | "<actor>|build|<type>" | "<actor>|join|<group>" | "<actor>|follow|<ward>" |
+  "<actor>|detach|<n>" | "<group>|back": p}}`; a fused move carries `fused: true` (and `audit` when asked anyway)
+  in the pass line's `menus`, and an audit line reads `{"layer": "fuse", "id", "assumed" ("off", or the decoded
+  mark), "fresh", "fault"}`. With the `openers` layer on, a move held for its opener carries `held: true`, and an
+  audit line reads `{"layer": "openers", "id", "opener" (the best of its openers this second), "fresh", "fault"}`;
+  an `<actor> opened` or `party_N opened` event says an opener came back at 0.5 or over while its moves were held.
 Size: 15-30 KB a call (3-6k tokens of state and questions), 20-60 calls a minute: 25 MB for a 20-minute game. Logs from
 the first morning (2026-09-21, before the header line) carry `instructions` and `rules` in every state and no `played`;
 the viewer reads those too, taking the decisions from the answers.

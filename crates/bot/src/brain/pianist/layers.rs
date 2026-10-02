@@ -4,10 +4,12 @@
 //! it asks anyway, in the same request, and the log sets what it assumed beside what came back.
 //!
 //! `WITHIN_REASON_HANDS_LAYERS` (the arena's `--hands-layers`) names the layers that are on, comma-separated;
-//! unset, `news` is on, and `none` switches every layer off. Built so far: `news`. Naming a layer that is not
-//! built stops the bot at its start rather than running a game without it.
+//! unset, `news` is on, and `none` switches every layer off. Built so far: `news`, `same`, `fuse`, `openers`, `tick`. Naming a layer that is
+//! not built stops the bot at its start rather than running a game without it.
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
+
+use jev::{Answer, Question};
 
 use super::super::FRAMES_PER_SECOND;
 use super::menu::{Kind, Menu};
@@ -16,25 +18,42 @@ use super::menu::{Kind, Menu};
 pub(super) const RE_ASK: i32 = 20 * FRAMES_PER_SECOND;
 /// The share of what a layer skips that is asked anyway, for its audit.
 const AUDIT_SHARE: f64 = 0.02;
-/// The layers of the design note, in its order; the first `BUILT` of them exist.
+/// The layers of the design note, in its order, and those that exist.
 const KNOWN: [&str; 8] = ["news", "same", "fuse", "openers", "split", "tick", "one", "local"];
-const BUILT: usize = 1;
+const BUILT: [&str; 5] = ["news", "same", "fuse", "openers", "tick"];
+/// The `tick` layer: a gate that no event calls for waits until this long after the last one.
+pub(super) const TICK: i32 = 2 * FRAMES_PER_SECOND;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Layers {
     /// Ask on change, actor by actor (the user's law, 2026-09-30): an actor with a course is asked when it has
     /// news or after `RE_ASK`; an actor with no course is asked at every gate.
     pub news: bool,
+    /// A noul whose words are those of its last ask, under `RE_ASK` old, is not sent again: its last answer stands.
+    pub same: bool,
+    /// The packet decoded once (`decode.rs`): a move the instructions clearly do not give an actor is fused off,
+    /// and a detachment's forbidden mark the decode reads clearly is set without the second's own question.
+    pub fuse: bool,
+    /// An actor's own moves are not asked while its `change` said no at the last gate, nor a party's answers
+    /// while its `answer` said no; the opener is asked every time and the moves follow the second after it opens.
+    pub openers: bool,
+    /// A gate that no event calls for waits until `TICK` after the last one; an event still asks at once. It only
+    /// delays, so it has no audit.
+    pub tick: bool,
 }
 
 impl Layers {
     pub(super) fn parse(value: Option<&str>) -> Result<Layers, String> {
-        let Some(value) = value.map(str::trim).filter(|v| !v.is_empty()) else { return Ok(Layers { news: true }) };
-        let mut layers = Layers { news: false };
+        let Some(value) = value.map(str::trim).filter(|v| !v.is_empty()) else { return Ok(Layers { news: true, same: false, fuse: false, openers: false, tick: false }) };
+        let mut layers = Layers { news: false, same: false, fuse: false, openers: false, tick: false };
         for name in value.split(',').map(str::trim).filter(|n| !n.is_empty() && *n != "none") {
-            match KNOWN.iter().position(|k| *k == name) {
-                Some(0) => layers.news = true,
-                Some(k) if k >= BUILT => return Err(format!("the hands' layer `{name}` is not built yet (built: {})", KNOWN[..BUILT].join(", "))),
+            match name {
+                "news" => layers.news = true,
+                "same" => layers.same = true,
+                "fuse" => layers.fuse = true,
+                "openers" => layers.openers = true,
+                "tick" => layers.tick = true,
+                _ if KNOWN.contains(&name) => return Err(format!("the hands' layer `{name}` is not built yet (built: {})", BUILT.join(", "))),
                 _ => return Err(format!("`{name}` is not a layer of the hands (the layers: {})", KNOWN.join(", "))),
             }
         }
@@ -47,7 +66,7 @@ impl Layers {
 
     /// The layers that are on, for the log's header.
     pub(super) fn names(&self) -> Vec<&'static str> {
-        [(self.news, "news")].into_iter().filter(|(on, _)| *on).map(|(_, name)| name).collect()
+        [(self.news, "news"), (self.same, "same"), (self.fuse, "fuse"), (self.openers, "openers"), (self.tick, "tick")].into_iter().filter(|(on, _)| *on).map(|(_, name)| name).collect()
     }
 }
 
@@ -113,6 +132,98 @@ pub(super) fn news(menus: &mut [Menu], asked: &BTreeMap<String, Asked>, news: &N
     (skipped, audited)
 }
 
+/// The `openers` layer (H-HANDS-LAYERS): a move's opener is its actor's `change` (a move of its own) or the
+/// `answer` of the party it is aimed at; a move aimed at a party is opened by either. While every opener of a move
+/// said no at its last ask (under `RE_ASK` ago), the move is held: not asked this gate. The openers themselves are
+/// asked every time, and when one comes back at the flag or over the gate goes again the next second with its moves
+/// (`mod.rs`: an "opened" event). An idle actor has no `change` and its own moves are never held. `opened` holds
+/// each opener's last answer and frame. A share of `AUDIT_SHARE` of what is held is asked anyway. Returns the
+/// questions not sent and the moves audited.
+pub(super) fn openers(menus: &mut [Menu], opened: &HashMap<String, (f64, i32)>, frame: i32, flag: f64, draw: &mut dyn FnMut() -> f64) -> (usize, usize) {
+    let said_no = |name: &str| opened.get(name).filter(|(_, f)| frame - f < RE_ASK).is_some_and(|(p, _)| *p < flag);
+    let (mut skipped, mut audited) = (0, 0);
+    for menu in menus.iter_mut() {
+        // The actor's own opener: no when its `change` said no, and no when the `news` layer has closed it.
+        let own_no = !menu.idle && (menu.quiet || said_no(&menu.name));
+        let own_asked = menu.asks_own();
+        for m in menu.moves.iter_mut().skip(1).filter(|m| !m.fused) {
+            let hold = match &m.party {
+                Some(party) => own_no && said_no(party),
+                None => own_asked && !menu.idle && said_no(&menu.name),
+            };
+            if hold {
+                m.held = true;
+                if draw() < AUDIT_SHARE {
+                    m.audit = true;
+                    audited += 1;
+                } else {
+                    skipped += if m.detachment && m.marked.is_none() { 2 } else { 1 };
+                }
+            }
+        }
+    }
+    (skipped, audited)
+}
+
+/// A noul as it was last asked: its words (hashed), when, and what came back.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct Said {
+    pub words: u64,
+    pub frame: i32,
+    pub noul: f64,
+}
+
+fn words_of(question: &Question) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    match question {
+        Question::Noul { instructions, .. } | Question::Choice { instructions, .. } | Question::Score { instructions, .. } => instructions.to_string().hash(&mut hasher),
+    }
+    hasher.finish()
+}
+
+/// What the `same` layer made of a gate's questions: those to send, the answers it lets stand for the rest, and
+/// the audited ones (sent anyway) with the answer it would have let stand.
+pub(super) struct Same {
+    pub send: Vec<(String, Question)>,
+    pub stand: BTreeMap<String, Answer>,
+    pub audited: BTreeMap<String, f64>,
+}
+
+/// The `same` layer (H-HANDS-LAYERS): a noul whose words are exactly those of its last ask, asked under `RE_ASK`
+/// ago, is not sent; its last answer stands for it. The picture beside the question has moved on, which is the
+/// layer's bet: asked again as recorded, an unchanged question's answer crosses 0.5 in 0.1 to 0.7% of asks
+/// (`docs/studies/2026-10-01-jev-token-budget.md`). A share of `AUDIT_SHARE` of what it would skip is sent anyway
+/// and set beside the standing answer; the standing answer is the one played.
+pub(super) fn same(questions: Vec<(String, Question)>, said: &HashMap<String, Said>, frame: i32, draw: &mut dyn FnMut() -> f64) -> Same {
+    let mut out = Same { send: Vec::new(), stand: BTreeMap::new(), audited: BTreeMap::new() };
+    for (id, question) in questions {
+        match said.get(&id).filter(|s| frame - s.frame < RE_ASK && s.words == words_of(&question)) {
+            Some(before) => {
+                out.stand.insert(id.clone(), Answer::Noul { noul: before.noul });
+                if draw() < AUDIT_SHARE {
+                    out.audited.insert(id.clone(), before.noul);
+                    out.send.push((id, question));
+                }
+            }
+            None => out.send.push((id, question)),
+        }
+    }
+    out
+}
+
+/// Remembers a gate's fresh nouls for the `same` layer, and forgets what is too old to stand.
+pub(super) fn remember(said: &mut HashMap<String, Said>, questions: &BTreeMap<String, Question>, answers: &BTreeMap<String, Answer>, skip: &BTreeMap<String, f64>, frame: i32) {
+    said.retain(|_, s| frame - s.frame < RE_ASK);
+    for (id, question) in questions {
+        if let Some(Answer::Noul { noul }) = answers.get(id)
+            && !skip.contains_key(id)
+        {
+            said.insert(id.clone(), Said { words: words_of(question), frame, noul: *noul });
+        }
+    }
+}
+
 /// What the picture looks like to the gate: the parties, and every actor's course by kind. A change asks; the same
 /// picture does not (the gate then goes on events and on the actors' own re-asks, `mod.rs`).
 pub(super) fn signature(menus: &[Menu], parties: &[super::Party]) -> String {
@@ -130,12 +241,60 @@ mod tests {
 
     #[test]
     fn the_layers_are_named_and_an_unbuilt_one_stops_the_start() {
-        assert_eq!(Layers::parse(None), Ok(Layers { news: true }));
-        assert_eq!(Layers::parse(Some("news")), Ok(Layers { news: true }));
-        assert_eq!(Layers::parse(Some("none")), Ok(Layers { news: false }));
-        assert!(Layers::parse(Some("news,same")).unwrap_err().contains("not built yet"));
+        let none = Layers { news: false, same: false, fuse: false, openers: false, tick: false };
+        assert_eq!(Layers::parse(None), Ok(Layers { news: true, ..none.clone() }));
+        assert_eq!(Layers::parse(Some("news")), Ok(Layers { news: true, ..none.clone() }));
+        assert_eq!(Layers::parse(Some("none")), Ok(none.clone()));
+        assert_eq!(Layers::parse(Some("news, same,fuse,openers,tick")), Ok(Layers { news: true, same: true, fuse: true, openers: true, tick: true }));
+        assert!(Layers::parse(Some("news,split")).unwrap_err().contains("not built yet"));
         assert!(Layers::parse(Some("gnus")).unwrap_err().contains("not a layer"));
-        assert_eq!(Layers { news: true }.names(), ["news"]);
+        assert_eq!(Layers { news: true, same: true, ..none }.names(), ["news", "same"]);
+    }
+
+    /// The `openers` layer: a move is held while every opener of its said no at the last gate; an idle actor's own
+    /// moves never are, and a move aimed at a party is asked when either the party or the actor is open.
+    #[test]
+    fn a_move_waits_for_its_opener() {
+        let group = |idle: bool| menu("group_A", Kind::Group("A".into()), idle, vec![mv("go_spot_4", Order::Go("spot_4".into()), None), mv("attack_party_1", Order::Attack("party_1".into()), Some("party_1"))]);
+        let held = |menu: Menu, opened: &[(&str, f64, i32)]| {
+            let opened: HashMap<String, (f64, i32)> = opened.iter().map(|(k, p, f)| (k.to_string(), (*p, *f))).collect();
+            let mut menus = vec![menu];
+            let counts = openers(&mut menus, &opened, 330, 0.5, &mut || 0.5);
+            (menus[0].moves[1].held, menus[0].moves[2].held, counts)
+        };
+        assert_eq!(held(group(false), &[]), (false, false, (0, 0)), "never asked: everything is asked");
+        assert_eq!(held(group(false), &[("group_A", 0.2, 300), ("party_1", 0.1, 300)]), (true, true, (2, 0)), "both openers said no");
+        assert_eq!(held(group(false), &[("group_A", 0.2, 300), ("party_1", 0.8, 300)]), (true, false, (1, 0)), "the party is open: its answers are asked");
+        assert_eq!(held(group(false), &[("group_A", 0.7, 300), ("party_1", 0.1, 300)]), (false, false, (0, 0)), "the actor is open: every move of its is asked");
+        assert_eq!(held(group(false), &[("group_A", 0.2, 330 - RE_ASK), ("party_1", 0.1, 300)]), (false, false, (0, 0)), "an answer too old is no answer");
+        assert_eq!(held(group(true), &[("group_A", 0.2, 300), ("party_1", 0.1, 300)]), (false, false, (0, 0)), "an idle actor has no opener of its own");
+        let mut closed = group(false);
+        closed.quiet = true;
+        assert_eq!(held(closed, &[("party_1", 0.1, 300)]), (false, true, (1, 0)), "closed by the news layer: its own moves are not asked anyway, and its answer waits for the party");
+    }
+
+    /// The `same` layer: a noul asked again in the same words within the re-ask is not sent and its last answer
+    /// stands; changed words, or an answer too old, are sent; an audited one is sent and its standing answer kept.
+    #[test]
+    fn a_question_in_the_same_words_is_not_sent_again() {
+        let q = |text: &str| Question::noul(serde_json::json!(text));
+        let mut said: HashMap<String, Said> = HashMap::new();
+        let asked: BTreeMap<String, Question> = [("a.go_x".to_string(), q("walks to x (near)")), ("a.go_y".to_string(), q("walks to y (far)")), ("a.old".to_string(), q("old"))].into();
+        let answers: BTreeMap<String, Answer> = [("a.go_x".to_string(), Answer::Noul { noul: 0.7 }), ("a.go_y".to_string(), Answer::Noul { noul: 0.2 }), ("a.old".to_string(), Answer::Noul { noul: 0.9 })].into();
+        remember(&mut said, &asked, &answers, &BTreeMap::new(), 300);
+        said.get_mut("a.old").unwrap().frame = 300 - RE_ASK;
+        let next = vec![("a.go_x".to_string(), q("walks to x (near)")), ("a.go_y".to_string(), q("walks to y (some way off)")), ("a.old".to_string(), q("old")), ("a.new".to_string(), q("new"))];
+        let out = same(next.clone(), &said, 330, &mut || 0.5);
+        assert_eq!(out.send.iter().map(|(id, _)| id.as_str()).collect::<Vec<_>>(), ["a.go_y", "a.old", "a.new"]);
+        assert_eq!(out.stand, [("a.go_x".to_string(), Answer::Noul { noul: 0.7 })].into());
+        assert!(out.audited.is_empty());
+        let audit = same(next, &said, 330, &mut || 0.001);
+        assert_eq!(audit.send.len(), 4, "the audited question is sent anyway");
+        assert_eq!(audit.audited, [("a.go_x".to_string(), 0.7)].into());
+        // What stood is not remembered afresh: it expires by its own ask.
+        remember(&mut said, &asked, &answers, &audit.audited, 330);
+        assert_eq!(said["a.go_x"].frame, 300);
+        assert_eq!(said["a.go_y"].frame, 330);
     }
 
     /// Ask on change, actor by actor: an actor with a course is closed until its own course changes, an event

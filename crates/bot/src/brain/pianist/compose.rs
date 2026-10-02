@@ -82,14 +82,16 @@ pub(super) fn gate_questions(menus: &[Menu], parties: &[Party], places: &[super:
                 ))),
             ));
         }
-        for m in menu.moves.iter().skip(1).filter(|m| own || m.party.is_some()) {
+        for m in menu.moves.iter().skip(1).filter(|m| (own || m.party.is_some()) && m.asked()) {
             let id = menu.id(m);
             let text = match m.party.as_ref().and_then(|name| parties.iter().find(|p| p.name == *name)) {
                 Some(party) => format!("Is this the move to make against {} now, rather than what stands ({})? The move: {}.", party.name, on_it(party, menus), m.words),
                 None => format!("Given `actors.{}`, `economy`, `ours` and the player's `instructions`: is this what {} should do now, rather than {standing}? The move: {}.", menu.name, menu.name, m.words),
             };
             out.push((id.clone(), Question::noul(json!(text))));
-            if m.detachment {
+            // The forbidden mark: asked each second unless the decode has it clearly on or off (the `fuse` layer),
+            // and then for its audit alone.
+            if m.detachment && (m.marked.is_none() || m.audit) {
                 out.push((format!("{id}.forbidden"), Question::noul(json!(format!("Read the player's `instructions` alone: do they forbid this move for the group that would make it? The move: {}.", m.words)))));
             }
         }
@@ -101,7 +103,7 @@ pub(super) fn gate_questions(menus: &[Menu], parties: &[Party], places: &[super:
 pub(super) fn rated(menus: &[Menu], answers: &BTreeMap<String, Answer>) -> Rated {
     let mut out = Rated::new();
     for menu in menus.iter().filter(|m| m.open()) {
-        let mut mine: Vec<(String, f64)> = menu.moves.iter().skip(1).filter_map(|m| if let Some(Answer::Noul { noul }) = answers.get(&menu.id(m)) { Some((m.said.clone(), *noul)) } else { None }).collect();
+        let mut mine: Vec<(String, f64)> = menu.moves.iter().skip(1).filter(|m| m.playable()).filter_map(|m| if let Some(Answer::Noul { noul }) = answers.get(&menu.id(m)) { Some((m.said.clone(), *noul)) } else { None }).collect();
         mine.sort_by(|a, b| b.1.total_cmp(&a.1));
         mine.truncate(DEPTH);
         if !mine.is_empty() {
@@ -132,7 +134,7 @@ fn candidates(menus: &[Menu], answers: &BTreeMap<String, Answer>, flags: &mut BT
     // Per party that needs answering, the best-rated moves aimed at it: (menu, move).
     let mut against: BTreeMap<&str, Vec<(f64, usize, usize)>> = BTreeMap::new();
     for (mi, menu) in menus.iter().enumerate() {
-        for (ti, m) in menu.moves.iter().enumerate().skip(1) {
+        for (ti, m) in menu.moves.iter().enumerate().skip(1).filter(|(_, m)| m.playable()) {
             if let Some(party) = m.party.as_deref()
                 && answer_of(party).is_some_and(|a| a >= FLAG)
                 && let Some(r) = noul(&menu.id(m))
@@ -158,6 +160,10 @@ fn candidates(menus: &[Menu], answers: &BTreeMap<String, Answer>, flags: &mut BT
         for (ti, m) in menu.moves.iter().enumerate().skip(1) {
             let Some(r) = noul(&menu.id(m)) else { continue };
             flags.insert(menu.id(m), r);
+            // A fused or held move asked for its layer's audit is logged, not played.
+            if !m.playable() {
+                continue;
+            }
             let by_actor = (opened && r >= bar).then(|| change.unwrap_or(0.0) * r);
             let by_party = m.party.as_deref().and_then(answer_of).filter(|a| *a >= FLAG && (r >= FLAG || put.contains(&(mi, ti)))).map(|a| a * r.max(0.01));
             if let Some(rank) = [by_actor, by_party].into_iter().flatten().reduce(f64::max) {
@@ -471,7 +477,10 @@ pub(super) fn follow_up(menus: &[Menu], parties: &[Party], places: &[super::Plac
     let rated = rated(menus, answers);
     let Some((mut worlds, next)) = compose(menus, answers, &mut flags, cap) else { return Followed { flags, rated, worlds: None } };
     // The detachments the gate reads as forbidden by the instructions (`FORBIDDEN`): said on their lines.
-    let forbidden: BTreeSet<String> = flags.iter().filter(|(_, p)| **p >= FORBIDDEN).filter_map(|(id, _)| id.strip_suffix(".forbidden").map(str::to_string)).collect();
+    // The mark the decode set stands over the second's own reading, which is then asked for the audit alone.
+    let decoded = |id: &str| menus.iter().find_map(|menu| menu.moves.iter().find(|m| menu.id(m) == id).and_then(|m| m.marked));
+    let mut forbidden: BTreeSet<String> = flags.iter().filter(|(_, p)| **p >= FORBIDDEN).filter_map(|(id, _)| id.strip_suffix(".forbidden").map(str::to_string)).filter(|id| decoded(id).is_none()).collect();
+    forbidden.extend(menus.iter().flat_map(|menu| menu.moves.iter().filter(|m| m.marked == Some(true)).map(|m| menu.id(m))));
     let said = Lines { parties, places, flags: &flags, next: &next, store, forbidden: &forbidden };
     let mut lines: Vec<String> = worlds.iter().enumerate().map(|(i, w)| consequence(w, menus, &said, (i > 0).then_some(&worlds[0]))).collect();
     let keep = fit(&lines, LINE_CHARS);
@@ -529,7 +538,7 @@ pub(super) fn log_menus(menus: &[Menu]) -> Value {
                 "course": menu.course,
                 "quiet": menu.quiet,
                 "audit": menu.audit,
-                "moves": menu.moves.iter().map(|m| json!({ "id": menu.id(m), "words": m.words, "party": m.party })).collect::<Vec<_>>(),
+                "moves": menu.moves.iter().map(|m| if !m.playable() { json!({ "id": menu.id(m), "words": m.words, "party": m.party, "fused": m.fused, "held": m.held, "audit": m.audit }) } else { json!({ "id": menu.id(m), "words": m.words, "party": m.party }) }).collect::<Vec<_>>(),
             })
         })
         .collect::<Vec<_>>())

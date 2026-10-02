@@ -78,6 +78,8 @@ pub(crate) enum Order {
     Go(String),
     /// To the place, fighting everything on the way and there.
     FightTo(String),
+    /// The same order aimed at his buildings known at the place: the picture names the place, not the packet.
+    Raid(String),
     /// The whole group, or an armed builder, attacks the party.
     Attack(String),
     /// The long-reach soldiers shell it from their reach, the rest standing between.
@@ -118,6 +120,49 @@ pub(crate) struct Move {
     pub party: Option<String>,
     /// A detachment: the gate also asks whether the player's instructions forbid it (the forbidden mark).
     pub detachment: bool,
+    /// What of the player's instructions bears on the move, for the `fuse` layer's decode (`decode.rs`).
+    pub reads: Vec<Read>,
+    /// Fused off by the decode: the instructions clearly do not give this actor this move, and it is not asked.
+    pub fused: bool,
+    /// Its opener said no at the last gate (the `openers` layer): not asked this gate, and asked the second after
+    /// the opener opens.
+    pub held: bool,
+    /// Fused off or held, and asked anyway for the layer's audit: the answer is logged and not played.
+    pub audit: bool,
+    /// The forbidden mark as the decode has it for a detachment: on or off without asking each second; `None`
+    /// when the decode is unsure or the layer is off, and the gate asks.
+    pub marked: Option<bool>,
+}
+
+/// A fact about the player's instructions alone that bears on a move: the decode asks it once a packet.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum Read {
+    /// The instructions name this place for the actor.
+    Place(String),
+    /// They have the builder build this type (its internal name, and its words).
+    Build(String, String),
+    /// They tell the group to join this group.
+    Join(String),
+    /// They tell the actor to follow this group or builder.
+    Follow(String),
+    /// They forbid the group a detachment of this many.
+    Detach(usize),
+}
+
+impl Move {
+    pub(super) fn new(key: String, order: Order, words: String, said: String, party: Option<String>, detachment: bool) -> Move {
+        Move { key, order, words, said, party, detachment, reads: Vec::new(), fused: false, held: false, audit: false, marked: None }
+    }
+
+    /// Whether the move's question goes out when its menu's own moves are asked.
+    pub(super) fn asked(&self) -> bool {
+        !(self.fused || self.held) || self.audit
+    }
+
+    /// Whether the move may go to the pick this gate.
+    pub(super) fn playable(&self) -> bool {
+        !(self.fused || self.held)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -250,9 +295,15 @@ fn tenths(share: f32) -> f32 {
     (share * 10.0).round() * 10.0
 }
 
-/// A verdict's first clause: "it outweighs us" of "it outweighs us, and it outranges us (...); ...".
-fn verdict(odds: &str) -> &str {
-    odds.split([';', ',', ':']).next().unwrap_or(odds).trim()
+/// A verdict's first clause: "it outweighs us" of "it outweighs us, and it outranges us (...); ...". The odds of a
+/// strung-out group are on the part of it in the fight, and keep saying so: "for the 3 of its 8 soldiers in the
+/// fight, it outweighs us".
+fn verdict(odds: &str) -> String {
+    let first = |text: &str| text.split([';', ',', ':']).next().unwrap_or(text).trim().to_string();
+    match odds.split_once(" in the fight, ") {
+        Some((part, rest)) if odds.starts_with("for the ") => format!("{part} in the fight, {}", first(rest)),
+        _ => first(odds),
+    }
 }
 
 fn ordinal(n: usize) -> String {
@@ -665,10 +716,10 @@ impl Brain {
             GroupTask::Follow { name: ward, .. } => format!("; leaves {ward}"),
         };
         let at = picture.state["actors"][&name]["at"].as_str().unwrap_or("where it stands").to_string();
-        let mut moves = vec![Move { key: "stay".into(), order: Order::Stay, words: format!("{name} {course_words}{keeps}"), said: "its course".into(), party: None, detachment: false }];
+        let mut moves = vec![Move::new("stay".into(), Order::Stay, format!("{name} {course_words}{keeps}"), "its course".into(), None, false)];
         let mut push = |key: String, order: Order, words: String, said: String, party: Option<&Party>, detachment: bool| {
             if key != course_key {
-                moves.push(Move { key, order, words, said, party: party.map(|p| p.name.clone()), detachment });
+                moves.push(Move::new(key, order, words, said, party.map(|p| p.name.clone()), detachment));
             }
         };
 
@@ -713,7 +764,7 @@ impl Brain {
         for (place, words) in scene.his.iter().filter(|(p, _)| p.at.dist2d(body.front) > HERE && self.reachable_for(walker, p.at)) {
             push(
                 format!("fight_to_{}", place.name),
-                Order::FightTo(place.name.clone()),
+                Order::Raid(place.name.clone()),
                 format!("{name} attacks his buildings at {} ({}), fighting on the way: {words}{}{}{leaves}{}", place.name, way_words(body.front.dist2d(place.at), speed), self.end_words(scene, place, &body.core, false, near_party), stands(place.at), undoes(&format!("fight_to_{}", place.name))),
                 format!("the attack on his buildings at {}", place.name),
                 None,
@@ -863,6 +914,9 @@ impl Brain {
         }
         let reached_here = group.reached.last().is_some_and(|(last, _)| picture.places.iter().any(|p| p.name == *last && p.at.dist2d(body.at) < HERE));
         let idle_words = format!("{name} holds at {at}{}", if reached_here { ", a stop it has reached" } else { "" });
+        for m in &mut moves {
+            m.reads = self.reads_of(&m.order);
+        }
         Some(Menu { name, kind: Kind::Group(group.name.clone()), moves, idle, queue_ahead: false, course, course_key, course_words, aimed_at, near_party: near_party.map(|p| p.name.clone()), at: Some(body.at), idle_words, quiet: false, audit: false })
     }
 
@@ -900,10 +954,10 @@ impl Brain {
         };
         let register = pianist.registers.get(&name);
         let undoes = |key: &str| if register.is_some_and(|r| !r.left.is_empty() && r.left == key) { "; this undoes its last pick" } else { "" };
-        let mut moves = vec![Move { key: "stay".into(), order: Order::Stay, words: stay_words, said: "its course".into(), party: None, detachment: false }];
+        let mut moves = vec![Move::new("stay".into(), Order::Stay, stay_words, "its course".into(), None, false)];
         let mut push = |key: String, order: Order, words: String, said: String, party: Option<&Party>| {
             if key != course_key {
-                moves.push(Move { key, order, words, said, party: party.map(|p| p.name.clone()), detachment: false });
+                moves.push(Move::new(key, order, words, said, party.map(|p| p.name.clone()), false));
             }
         };
         let named: Vec<&Place> = scene.named.iter().copied().filter(|p| self.reachable_for(walker, p.at)).collect();
@@ -1092,7 +1146,33 @@ impl Brain {
             }
         }
         let idle_words = format!("{name} idle, doing nothing");
+        for m in &mut moves {
+            m.reads = self.reads_of(&m.order);
+        }
         Some(Menu { name, kind: Kind::Builder(unit.id), moves, idle, queue_ahead: queue, course, course_key, course_words, aimed_at: match task { Some(Task::Attack { party, .. }) => Some(party.clone()), _ => None }, near_party: near_party.map(|p| p.name.clone()), at: Some(unit.pos), idle_words, quiet: false, audit: false })
+    }
+
+    /// What of the player's instructions bears on a move (`Read`): the place a walk, an advance or a build is aimed
+    /// at, the type a builder builds, the group joined, the ward followed, the size of a detachment. An attack on
+    /// his buildings or on a party, and a shooter's estimated place, are the picture's and bear on nothing here.
+    fn reads_of(&self, order: &Order) -> Vec<Read> {
+        match order {
+            Order::Go(place) | Order::FightTo(place) if !place.starts_with("shelling") => vec![Read::Place(place.clone())],
+            Order::Build(def, site) => {
+                let mut reads = vec![Read::Build(self.name(*def).to_string(), self.short_words(*def))];
+                match site {
+                    Site::Spot(i) => reads.push(Read::Place(format!("spot_{i}"))),
+                    Site::Place(place) => reads.push(Read::Place(place.clone())),
+                    Site::Planned => {}
+                }
+                reads
+            }
+            Order::Join(other) => vec![Read::Join(format!("group_{other}"))],
+            Order::Follow(Ward::Group(other)) => vec![Read::Follow(format!("group_{other}"))],
+            Order::Follow(Ward::Builder(id)) => vec![Read::Follow(self.actor_name(*id))],
+            Order::Send(soldiers, _) => vec![Read::Detach(soldiers.len())],
+            _ => Vec::new(),
+        }
     }
 
     /// A factory's menu: one order ahead (H-HANDS-MENU). A factory with a unit ordered ahead has nothing to decide,
@@ -1111,7 +1191,7 @@ impl Brain {
             None => format!("{name} stands idle, building nothing"),
         };
         let then = if on_pad.is_some() { "then " } else { "" };
-        let mut moves = vec![Move { key: "stay".into(), order: Order::Stay, words: stay_words, said: "its course".into(), party: None, detachment: false }];
+        let mut moves = vec![Move::new("stay".into(), Order::Stay, stay_words, "its course".into(), None, false)];
         let allowed = self.allowed_units(&name).filter(|a| !a.units.is_empty());
         let permits = |list: &[String], b: UnitDefId| {
             let unit_name = self.name(b).to_string();
@@ -1137,14 +1217,14 @@ impl Brain {
                 String::new()
             };
             let cost = self.world.def(buildable).map_or(0.0, |d| d.metal_cost);
-            moves.push(Move {
-                key: format!("make_{}", self.name(buildable)),
-                order: Order::Make(buildable),
-                words: format!("{then}{name} makes a {} ({cost:.0} metal; we have {standing}{}): {have}", self.unit_words(buildable), if being_made > 0 { format!(" and {being_made} being made") } else { String::new() }),
-                said: format!("a {}", self.short_words(buildable)),
-                party: None,
-                detachment: false,
-            });
+            moves.push(Move::new(
+                format!("make_{}", self.name(buildable)),
+                Order::Make(buildable),
+                format!("{then}{name} makes a {} ({cost:.0} metal; we have {standing}{}): {have}", self.unit_words(buildable), if being_made > 0 { format!(" and {being_made} being made") } else { String::new() }),
+                format!("a {}", self.short_words(buildable)),
+                None,
+                false,
+            ));
         }
         let idle_words = format!("{name} idle, doing nothing");
         Some(Menu { name, kind: Kind::Factory(unit.id), moves, idle, queue_ahead: on_pad.is_some(), course: if idle { "idle" } else { "make" }, course_key: String::new(), course_words: if idle { "stands idle".to_string() } else { "builds the unit on its pad".to_string() }, aimed_at: None, near_party: None, at: Some(unit.pos), idle_words, quiet: false, audit: false })
@@ -1156,7 +1236,7 @@ pub(super) mod tests {
     use super::*;
 
     pub(crate) fn mv(key: &str, order: Order, party: Option<&str>) -> Move {
-        Move { key: key.to_string(), order, words: key.to_string(), said: format!("the {key}"), party: party.map(str::to_string), detachment: matches!(key.split('_').next(), Some("send")) }
+        Move::new(key.to_string(), order, key.to_string(), format!("the {key}"), party.map(str::to_string), matches!(key.split('_').next(), Some("send")))
     }
 
     pub(crate) fn menu(name: &str, kind: Kind, idle: bool, moves: Vec<Move>) -> Menu {
@@ -1233,6 +1313,7 @@ pub(super) mod tests {
         assert_eq!(age_words(130 * FRAMES_PER_SECOND), "seen minutes ago");
         assert_eq!(verdict("it outweighs us, and it outranges us (460 to our 350); its fastest catch our slowest"), "it outweighs us");
         assert_eq!(verdict("we cannot hit it: nothing in this group shoots at what it is"), "we cannot hit it");
+        assert_eq!(verdict("for the 3 of its 8 soldiers in the fight, it outweighs us; its fastest catch our slowest; the other 5 are 800-1900 behind and not in it yet"), "for the 3 of its 8 soldiers in the fight, it outweighs us");
         assert_eq!(tenths(0.46), 50.0);
     }
 }

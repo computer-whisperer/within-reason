@@ -20,6 +20,7 @@ mod remove;
 pub(crate) mod fixtures;
 mod transfer;
 mod compose;
+mod decode;
 mod diet;
 mod layers;
 mod menu;
@@ -185,6 +186,13 @@ pub struct Pianist {
     /// ask, and the store's extremes when the gate last went.
     pub(super) asked: BTreeMap<String, layers::Asked>,
     pub(super) asked_store: String,
+    /// The `same` layer (`layers::same`): each noul as it was last asked.
+    said: HashMap<String, layers::Said>,
+    /// The `fuse` layer (`decode.rs`): what Jev read of the packet in force.
+    decode: decode::Decode,
+    /// The `openers` layer (`layers::openers`): each actor's `change` and each party's `answer` at its last ask,
+    /// with the frame.
+    opened: HashMap<String, (f64, i32)>,
     /// What the gate in flight took, put back if it fails (`gate_failed`).
     undo: Option<Undo>,
     /// The parties in the picture at the last pass: a new one is an event.
@@ -251,6 +259,8 @@ pub struct Pianist {
     /// What the pass played this second (`execute.rs`, `lists.rs`), for the log line.
     pub(super) played: Vec<serde_json::Value>,
     stats: Stats,
+    /// The log's header line is written (before the first request).
+    header_logged: bool,
     /// The versioned model has been said in the game chat (once, after the first answer).
     announced: bool,
 }
@@ -278,6 +288,10 @@ struct Follow {
     places: Vec<Place>,
     store: String,
     cap: usize,
+    /// The answers the `same` layer lets stand for the questions it did not send, and those it sent anyway for
+    /// its audit with the answer that stands for each.
+    stand: BTreeMap<String, jev::Answer>,
+    audited: BTreeMap<String, f64>,
 }
 
 /// What follows a gate: what the gate flagged, each actor's best-rated moves, the worlds and their lines (None
@@ -293,7 +307,10 @@ struct Followed {
 /// The worlds over what a gate flagged, and the pick's two calls made at once: by the worker in realtime, in
 /// place in lockstep.
 fn followed(ask: &dyn Fn(&jev::Request) -> Result<jev::Response, jev::Error>, follow: &Follow, answers: &BTreeMap<String, jev::Answer>, state: &serde_json::Value) -> Followed {
-    let next = compose::follow_up(&follow.menus, &follow.parties, &follow.places, answers, &follow.store, follow.cap, state);
+    // The standing answers are the ones played, an audited question's too.
+    let mut all = answers.clone();
+    all.extend(follow.stand.clone());
+    let next = compose::follow_up(&follow.menus, &follow.parties, &follow.places, &all, &follow.store, follow.cap, state);
     match next.worlds {
         Some((worlds, lines, state)) => {
             let run = compose::run_pick(ask, &state, &lines, compose::draw());
@@ -310,6 +327,7 @@ struct Pending {
     picture: picture::Picture,
     menus: Vec<menu::Menu>,
     request: jev::Request,
+    audited: BTreeMap<String, f64>,
 }
 
 /// What a gate takes when it goes: put back when it fails.
@@ -541,6 +559,9 @@ impl Pianist {
             sig: None,
             asked: BTreeMap::new(),
             asked_store: String::new(),
+            said: HashMap::new(),
+            decode: decode::Decode::default(),
+            opened: HashMap::new(),
             undo: None,
             parties_seen: BTreeSet::new(),
             events: BTreeSet::new(),
@@ -579,6 +600,7 @@ impl Pianist {
             logged_rules: String::new(),
             played: Vec::new(),
             stats: Stats::default(),
+            header_logged: false,
             announced: false,
         })
     }
@@ -855,6 +877,7 @@ impl Brain {
         });
         let eco = format!("{}|{}|{}", if tick.snapshot.metal.current < 100.0 { "empty" } else if tick.snapshot.metal.current >= tick.snapshot.metal.storage - 1.0 { "full" } else { "" }, picture.state["economy"]["energy"].as_str().is_some_and(|e| e.contains("STALLING")), idle_factory_afford);
         // The `news` layer: the actors with a course and no news are closed this gate.
+        let jev_on = self.pianist.as_ref().is_some_and(|p| p.client.is_some());
         let (skipped, audited) = {
             let pianist = self.pianist.as_ref().expect("pianist mode");
             if pianist.layers.news {
@@ -864,7 +887,28 @@ impl Brain {
                 (0, 0)
             }
         };
+        // The log's header, before the first request of any kind (the decode's may be the first).
+        if jev_on && self.pianist.as_ref().is_some_and(|p| !p.header_logged) {
+            let rules = picture.state["rules"].as_str().unwrap_or_default().to_string();
+            let pianist = self.pianist.as_mut().expect("pianist mode");
+            pianist.header_logged = true;
+            pianist.log_header(self.world.hello.ai_id, &rules);
+        }
+        // The `fuse` layer: what the packet clearly does not give an actor is not asked.
+        let (fused, fuse_audited) = if self.pianist.as_ref().is_some_and(|p| p.layers.fuse && p.client.is_some()) { self.decode_and_fuse(tick, picture, &mut menus) } else { (0, 0) };
+        // The `openers` layer: a move whose openers said no at the last gate waits for one to open.
+        let (held, held_audited) = {
+            let pianist = self.pianist.as_ref().expect("pianist mode");
+            if pianist.layers.openers { layers::openers(&mut menus, &pianist.opened, frame, compose::FLAG, &mut compose::draw) } else { (0, 0) }
+        };
         let questions = compose::gate_questions(&menus, parties, &picture.places);
+        // The `same` layer: a question in the words of its last ask is not sent again.
+        let asked_whole = questions.len();
+        let same = {
+            let pianist = self.pianist.as_ref().expect("pianist mode");
+            if pianist.layers.same { layers::same(questions, &pianist.said, frame, &mut compose::draw) } else { layers::Same { send: questions, stand: BTreeMap::new(), audited: BTreeMap::new() } }
+        };
+        let questions = same.send;
         let sig = format!("{}|{eco}|{}", layers::signature(&menus, parties), self.pianist.as_ref().expect("pianist mode").packet_frame);
         let jev = self.pianist.as_ref().is_some_and(|p| p.client.is_some());
         let (events, changed) = {
@@ -875,22 +919,25 @@ impl Brain {
             let since_ask = pianist.sig.as_ref().map_or(i32::MAX, |(_, f)| frame - *f);
             // A place reached or a first sighting since the last stop asks at once (routes-in-prose §4.3): the next
             // move starts within a second of the arrival.
-            let urgent = events.iter().any(|e| e.contains(" reached ") || e.contains(" met "));
+            // An opener that opened over held moves (the `openers` layer) is asked about again at once, with them.
+            let urgent = events.iter().any(|e| e.contains(" reached ") || e.contains(" met ") || e.ends_with(" opened"));
             // An actor's own re-ask comes due on its own clock, whatever the rest of the picture does.
             let due = menus.iter().any(|m| m.asks_own() && !m.audit && pianist.asked.get(&m.name).is_none_or(|a| frame - a.frame >= layers::RE_ASK));
             let changed = pianist.sig.as_ref().is_none_or(|(s, f)| *s != sig || frame - *f >= layers::RE_ASK) || (!events.is_empty() && since_ask >= EVENT_GAP) || urgent || due;
+            // The `tick` layer: a gate that no event calls for waits until `TICK` after the last one.
+            let changed = changed && (!pianist.layers.tick || !events.is_empty() || since_ask >= layers::TICK);
             (events, changed)
         };
         let pianist = self.pianist.as_mut().expect("pianist mode");
-        if questions.is_empty() || !jev {
+        if asked_whole == 0 || !jev {
             line["played"] = json!(std::mem::take(&mut pianist.played));
             if !line["played"].as_array().is_some_and(Vec::is_empty) || line.get("hunts").is_some() || line.get("rove").is_some() {
                 pianist.write_log(line);
             }
             return;
         }
-        if !changed {
-            line["quiet"] = json!("the picture is as at the last gate: every course stands");
+        if !changed || questions.is_empty() {
+            line["quiet"] = json!(if changed { "every question is in the words of its last ask: its answers stand" } else { "the picture is as at the last gate: every course stands" });
             pianist.stats.quiet += 1;
             line["played"] = json!(std::mem::take(&mut pianist.played));
             pianist.write_log(line);
@@ -911,7 +958,7 @@ impl Brain {
         if !closed.is_empty() {
             line["closed"] = json!(closed);
         }
-        line["layers"] = json!({ "news": { "on": pianist.layers.news, "skipped": skipped, "audited": audited } });
+        line["layers"] = json!({ "news": { "on": pianist.layers.news, "skipped": skipped, "audited": audited }, "same": { "on": pianist.layers.same, "skipped": same.stand.len() - same.audited.len(), "audited": same.audited.len() }, "fuse": { "on": pianist.layers.fuse, "skipped": fused, "audited": fuse_audited }, "openers": { "on": pianist.layers.openers, "skipped": held, "audited": held_audited } });
         line["menus"] = compose::log_menus(&menus);
         line["gate"] = json!(questions.iter().map(|(id, _)| id.clone()).collect::<Vec<_>>());
         if !events.is_empty() {
@@ -933,12 +980,44 @@ impl Brain {
             self.pianist.as_mut().expect("pianist mode").write_log(json!({ "t": "shed", "f": tick.frame, "shed": shed }));
         }
         let request = jev::Request { state, questions: questions.into_iter().collect() };
-        if self.pianist.as_ref().expect("pianist mode").stats.calls == 0 && self.pianist.as_ref().expect("pianist mode").logged_instructions.is_empty() {
-            let rules = picture.state["rules"].as_str().unwrap_or_default().to_string();
-            self.pianist.as_mut().expect("pianist mode").log_header(self.world.hello.ai_id, &rules);
-        }
-        let follow = Follow { menus, parties: picture.parties.clone(), places: picture.places.clone(), store: Self::store_words(picture), cap: self.pianist.as_ref().expect("pianist mode").cap };
+        let follow = Follow { menus, parties: picture.parties.clone(), places: picture.places.clone(), store: Self::store_words(picture), cap: self.pianist.as_ref().expect("pianist mode").cap, stand: same.stand, audited: same.audited };
         self.call(tick, kit, picture.clone(), request, follow, commands);
+    }
+
+    /// The `fuse` layer's turn of the pass (`decode.rs`): the readings the menus need that the decode does not hold
+    /// (all of them when the packet is new) are asked of Jev in one lean request over the instructions alone, made in
+    /// place; then the clear readings are put on the menus. A decode that fails fuses nothing: its questions are
+    /// then the second's own, as in the base. Returns the questions not sent and the moves audited.
+    fn decode_and_fuse(&mut self, tick: &Tick, picture: &picture::Picture, menus: &mut [menu::Menu]) -> (usize, usize) {
+        let instructions = picture.state["instructions"].as_str().unwrap_or_default();
+        let pianist = self.pianist.as_mut().expect("pianist mode");
+        if pianist.decode.packet != instructions {
+            pianist.decode = decode::Decode { packet: instructions.to_string(), reads: BTreeMap::new() };
+        }
+        let what = |actor: &str| {
+            let entry = &picture.state["actors"][actor];
+            entry["units"].as_str().or(entry["is"].as_str()).unwrap_or_default().chars().take(120).collect::<String>()
+        };
+        let asks = decode::needed(menus, &pianist.decode, &what);
+        if !asks.is_empty() {
+            let request = jev::Request { state: json!({ "instructions": instructions }), questions: asks };
+            pianist.stats.calls += 1;
+            pianist.stats.questions += request.questions.len() as u32;
+            match pianist.client.as_ref().expect("the fuse layer needs Jev").ask(&request) {
+                Ok(response) => {
+                    pianist.stats.latencies_ms.push(response.latency.as_secs_f32() * 1000.0);
+                    pianist.stats.tokens += response.usage["input_tokens"].as_u64().unwrap_or(0);
+                    let reads: BTreeMap<String, f64> = response.answers.iter().filter_map(|(k, a)| if let jev::Answer::Noul { noul } = a { Some((k.clone(), *noul)) } else { None }).collect();
+                    pianist.write_log(json!({ "t": "decode", "f": tick.frame, "ms": (response.latency.as_secs_f32() * 1000.0) as u32, "usage": response.usage, "batches": response.batches, "asked": request.questions.len(), "reads": reads }));
+                    pianist.decode.reads.extend(reads);
+                }
+                Err(e) => {
+                    pianist.stats.errors += 1;
+                    pianist.write_log(json!({ "t": "error", "f": tick.frame, "error": format!("the decode: {e}") }));
+                }
+            }
+        }
+        decode::fuse(menus, &pianist.decode, &mut compose::draw)
     }
 
     /// The store's words for the worlds' lines ("340 of 500 stored").
@@ -956,20 +1035,20 @@ impl Brain {
             let id = pianist.next_request;
             pianist.next_request += 1;
             if pianist.worker.as_ref().expect("checked").to.send((id, request.clone(), follow.clone())).is_ok() {
-                pianist.pending = Some(Pending { id, frame: tick.frame, picture, menus: follow.menus, request });
+                pianist.pending = Some(Pending { id, frame: tick.frame, picture, menus: follow.menus, request, audited: follow.audited });
             }
             return;
         }
         let client = pianist.client.as_ref().expect("a call needs Jev");
         let result = client.ask(&request);
         let followed = result.as_ref().ok().map(|response| followed(&|r| client.ask(r), &follow, &response.answers, &request.state));
-        self.gate_answered(tick, kit, &picture, follow.menus, &request, result, followed, commands);
+        self.gate_answered(tick, kit, &picture, follow.menus, &follow.audited, &request, result, followed, commands);
     }
 
     /// The gate's answer: logged, and what followed it (the worlds and the pick's two calls) played. A gate that
     /// failed puts back what it took, so that it is asked again at the next second; every actor keeps its course.
     #[allow(clippy::too_many_arguments)]
-    fn gate_answered(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, menus: Vec<menu::Menu>, request: &jev::Request, result: Result<jev::Response, jev::Error>, followed: Option<Followed>, commands: &mut Vec<Command>) {
+    fn gate_answered(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, menus: Vec<menu::Menu>, same_audited: &BTreeMap<String, f64>, request: &jev::Request, result: Result<jev::Response, jev::Error>, followed: Option<Followed>, commands: &mut Vec<Command>) {
         let response = match result {
             Ok(response) => response,
             Err(e) => {
@@ -983,11 +1062,17 @@ impl Brain {
         self.log_call(tick, request, &response);
         let Some(followed) = followed else { return };
         // The layers' audits: what a layer assumed of an actor it closed, beside what the gate said of it.
-        let noul = |id: &str| match response.answers.get(id) {
+        let fresh = |id: &str| match response.answers.get(id) {
             Some(jev::Answer::Noul { noul }) => Some(*noul),
             _ => None,
         };
-        let audits: Vec<serde_json::Value> = menus
+        // What the gate said of a question, sent this second or standing from its last ask.
+        let noul = |id: &str| followed.flags.get(id).copied().or_else(|| fresh(id));
+        let mut audits: Vec<serde_json::Value> = same_audited
+            .iter()
+            .filter_map(|(id, stood)| fresh(id).map(|fresh| json!({ "t": "audit", "f": tick.frame, "layer": "same", "id": id, "assumed": stood, "fresh": fresh, "fault": (fresh >= compose::FLAG) != (*stood >= compose::FLAG) })))
+            .collect();
+        audits.extend(menus
             .iter()
             .filter(|m| m.audit)
             .map(|m| {
@@ -995,9 +1080,41 @@ impl Brain {
                 let best = m.moves.iter().skip(1).filter_map(|mv| noul(&m.id(mv)).map(|p| (m.id(mv), p))).max_by(|a, b| a.1.total_cmp(&b.1));
                 let fault = change >= compose::FLAG && best.as_ref().is_some_and(|(_, p)| *p >= compose::FLAG);
                 json!({ "t": "audit", "f": tick.frame, "layer": "news", "actor": m.name, "assumed": "no change", "change": change, "best": best.as_ref().map(|(id, _)| id.clone()), "best_p": best.map(|(_, p)| p), "fault": fault })
-            })
+            }));
+        // The `fuse` layer's audits: a fused move asked anyway and rated 0.5 or over, or a decoded mark the
+        // second's own reading puts on the other side of the bar.
+        for m in &menus {
+            for mv in m.moves.iter().filter(|mv| mv.audit) {
+                let id = m.id(mv);
+                if mv.held {
+                    // A held move asked anyway: a fault is one that would have gone to the pick this second.
+                    let opener = [mv.party.as_ref().map(|p| format!("{p}.answer")), Some(format!("{}.change", m.name))].into_iter().flatten().filter_map(|k| noul(&k)).fold(0.0, f64::max);
+                    if let Some(p) = noul(&id) {
+                        audits.push(json!({ "t": "audit", "f": tick.frame, "layer": "openers", "id": id, "assumed": "its opener says no", "opener": opener, "fresh": p, "fault": opener >= compose::FLAG && p >= compose::FLAG }));
+                    }
+                } else if let Some(mark) = mv.marked {
+                    if let Some(p) = noul(&format!("{id}.forbidden")) {
+                        audits.push(json!({ "t": "audit", "f": tick.frame, "layer": "fuse", "id": format!("{id}.forbidden"), "assumed": mark, "fresh": p, "fault": (p >= compose::FORBIDDEN) != mark }));
+                    }
+                } else if let Some(p) = noul(&id) {
+                    audits.push(json!({ "t": "audit", "f": tick.frame, "layer": "fuse", "id": id, "assumed": "off", "fresh": p, "fault": p >= compose::FLAG }));
+                }
+            }
+        }
+        // The openers as they came back; one that opened over held moves asks again the next second, with them.
+        let openers: Vec<(String, f64)> = followed.flags.iter().filter_map(|(k, p)| k.strip_suffix(".change").or_else(|| k.strip_suffix(".answer")).filter(|name| !name.contains('.')).map(|name| (name.to_string(), *p))).collect();
+        let reopened: Vec<String> = openers
+            .iter()
+            .filter(|(name, p)| *p >= compose::FLAG && menus.iter().any(|m| m.moves.iter().any(|mv| mv.held && (m.name == *name || mv.party.as_deref() == Some(name.as_str())))))
+            .map(|(name, _)| format!("{name} opened"))
             .collect();
         let pianist = self.pianist.as_mut().expect("pianist mode");
+        pianist.opened.retain(|_, (_, f)| tick.frame - *f < layers::RE_ASK);
+        for (name, p) in openers {
+            pianist.opened.insert(name, (p, tick.frame));
+        }
+        pianist.events.extend(reopened);
+        layers::remember(&mut pianist.said, &request.questions, &response.answers, same_audited, tick.frame);
         for audit in audits {
             pianist.write_log(audit);
         }
@@ -1148,7 +1265,7 @@ impl Brain {
             pianist.places = pending.picture.places.clone();
             pianist.parties = pending.picture.parties.clone();
         }
-        self.gate_answered(tick, kit, &pending.picture, pending.menus, &pending.request, result, followed, commands);
+        self.gate_answered(tick, kit, &pending.picture, pending.menus, &pending.audited, &pending.request, result, followed, commands);
     }
 
     /// Every tick between thinks: an answer that has come is played now rather than at the next think (the user,
@@ -1431,6 +1548,14 @@ impl Brain {
         for (actor, moves) in &pianist.rated {
             if let Some(entry) = state["actors"].get_mut(actor).filter(|e| e.is_object()) {
                 entry["best_rated"] = json!(moves.iter().map(|(said, p)| format!("{said} ({p:.2})")).collect::<Vec<_>>().join(", "));
+            }
+        }
+        // And, with the `fuse` layer on, what the decode read of the packet for each group.
+        if pianist.layers.fuse && let Some(actors) = state["actors"].as_object_mut() {
+            for (actor, entry) in actors.iter_mut().filter(|(name, e)| name.starts_with("group_") && e.is_object()) {
+                if let Some(words) = decode::reads_words(&pianist.decode, actor) {
+                    entry["reads"] = json!(words);
+                }
             }
         }
         let mut all = shared.hands.lock().unwrap();
