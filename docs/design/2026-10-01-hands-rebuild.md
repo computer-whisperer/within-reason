@@ -405,5 +405,52 @@ What the code needed:
   and is said; the 40 s and 10 s clocks go.
 - **The picture sent** is today's (the diet level, `--hands-effort`, and the pick's cut state): they have a switch
   already and are not counted among §8's layers.
-- **Built first:** the base and the `news` layer with its switch and audit. The other layers follow §8's order, each
-  after the game before it is read. Naming a layer that is not built yet stops the bot at start.
+- **Built first:** the base and the `news` layer with its switch and audit. Naming a layer that is not built yet
+  stops the bot at start. Built since (2026-10-02): `same`, `fuse`, `openers`, `tick`; not built: `split`, `one`,
+  `local`. §15 has the games.
+
+## 15. The first games (2026-10-02)
+
+Rows in `docs/experiments.md`; claims in `docs/knowledge/jev.md`; `run/layers_read.py`, `run/hands_moves.py` and
+`run/hands_thrash.py` read a game's log.
+
+| Game | Layers | Result | Jev |
+|---|---|---|---|
+| rebuild-smoke-1 to -3 (the pianist alone, a fixed packet, 8 to 12 minutes) | `news` | alive at the cap; 7, 4 and 4 extractors (the old hands on the seed: 10 at 12:00) | $1.74, $1.41 for 12 minutes, $0.57 for 8 (the old hands: $0.14 for 12) |
+| player-34-rebuild-base (Opus 5.5 against hard_aggressive) | `news` | lost at 29:01 | $4.65 |
+| rebuild-smoke-4, -5, -6 (10 minutes) | + `same`; + `fuse`; + `openers`, `tick` | alive at the cap; 5, 7 and 3 extractors | $0.84, $0.27, $0.22 |
+
+**Against §10's lines for the base (player-34).**
+- *No walk home that the packet did not order:* 12 walks home by groups in the game; whether each was the packet's
+  is in the game's review.
+- *A named fall-back place taken when the odds are against the group:* 43 walks stepped back from a party that
+  outweighed the group and 11 from an even fight; 106 of 114 attacks on a party were made at "we outweigh it".
+- *A group's course changes at most 4 a minute in its worst minute:* not met. 22 in the worst minute; 785 picks
+  moved a group, 62% within 10 s of that group's last; 184 groups over the game, 180 joins, 115 detachments. The
+  old hands in player-33: 734, 54%, 265 groups, 260 joins, 152 hunts. The churn is the old hands' churn, not cured.
+- *The bill:* $4.65 against a modelled $3. The model was made on games whose builders stood on lists; a builder off
+  a list is asked 150 or more moves, and a builder's builds were 38% of the gate's question characters.
+- *The `news` layer's audit:* 19 faults in 139 (13.7%), against the 2% line: a closed actor whose `change` and best
+  move both came back at 0.5 or over, most of them between 0.5 and 0.6.
+
+**What the layers showed on the fixed packet.** `fuse` is the large saving, as the budget study had it, and more:
+half of the base's questions fused off, 3,263 fused moves audited with 6 faults (five a join or a follow rated 0.50
+to 0.54). It is not only a saving: a join or a follow the packet does not order is no longer offered, and the
+groups' picks fell from 62 in ten minutes to 15 and 30. `same` skipped 13% without `fuse` and 3 to 6% with it
+(1,557 audited, 12 faults). `openers` skipped 4% (243 audited, no fault).
+
+**Found, and the user's to rule.**
+1. *The churn.* An idle group is asked at every gate, world 1's line names its best-rated move as "its next move
+   ... not ordered" whatever that move is, and the pick's second stage takes a change at any confidence (a join at
+   0.15). After a detachment leaves, the body's best-rated move is often to join it, and "send one" becomes the
+   whole group in two picks. Nothing in code holds a move, by ruling; the candidates for a fix in words are the
+   next-move sentence (say it only for a move rated 0.5 or over, or only at a place just reached) and the join's
+   own line.
+2. *Builders re-asked over a build.* The cut line removed the gate that kept a builder walking to a build off the
+   menu; a builder under raids now switches between a spot, the plant and home (an extractor at spot_36 ordered
+   five times in three minutes in rebuild-smoke-1).
+3. *The forbidden mark reads an ordered detachment as forbidden* when its paragraph forbids other sizes
+   (K-jev-the-forbidden-mark-reads-an-ordered-detachment-as-forbidden-beside-a-never); the decode's per-size
+   reading put the ordered size at 0.27 and the forbidden ones at 0.95, so under `fuse` the ordered size is asked
+   each second and the others are marked without asking.
+4. *Which buildings go at which places* (§14): a bound I put on the menu after the first game.
