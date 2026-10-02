@@ -69,7 +69,7 @@ def main():
         print(f"{layer}: {skipped[layer]} questions not sent ({100 * skipped[layer] / max(1, sum(skipped.values()) + total):.0f}% of what the base would ask), {len(mine)} audited, {len(faults)} faults ({share})")
         if "--faults" in sys.argv:
             for a in faults:
-                if layer in ("same", "fuse"):
+                if "id" in a:
                     print(f"  {clock(a['f'])} {a['id']}: assumed {a.get('assumed')}, asked again {a.get('fresh'):.2f}")
                 else:
                     print(f"  {clock(a['f'])} {a['actor']}: change {a.get('change'):.2f}, {a.get('best')} {a.get('best_p'):.2f}")

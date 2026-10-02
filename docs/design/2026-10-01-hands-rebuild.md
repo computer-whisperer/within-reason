@@ -419,6 +419,7 @@ Rows in `docs/experiments.md`; claims in `docs/knowledge/jev.md`; `run/layers_re
 | rebuild-smoke-1 to -3 (the pianist alone, a fixed packet, 8 to 12 minutes) | `news` | alive at the cap; 7, 4 and 4 extractors (the old hands on the seed: 10 at 12:00) | $1.74, $1.41 for 12 minutes, $0.57 for 8 (the old hands: $0.14 for 12) |
 | player-34-rebuild-base (Opus 5.5 against hard_aggressive) | `news` | lost at 29:01 | $4.65 |
 | rebuild-smoke-4, -5, -6 (10 minutes) | + `same`; + `fuse`; + `openers`, `tick` | alive at the cap; 5, 7 and 3 extractors | $0.84, $0.27, $0.22 |
+| player-35-rebuild-layers (Opus 5.5 against hard_aggressive) | `news`, `same`, `fuse`, `openers`, `tick` | lost at 33:30 after an army lead of 6.4 to 1 at 15:00 | $3.26 ($0.097 a minute against player-34's $0.160) |
 
 **Against §10's lines for the base (player-34).**
 - *No walk home that the packet did not order:* 12 walks home by groups in the game; whether each was the packet's
@@ -438,6 +439,17 @@ half of the base's questions fused off, 3,263 fused moves audited with 6 faults 
 to 0.54). It is not only a saving: a join or a follow the packet does not order is no longer offered, and the
 groups' picks fell from 62 in ten minutes to 15 and 30. `same` skipped 13% without `fuse` and 3 to 6% with it
 (1,557 audited, 12 faults). `openers` skipped 4% (243 audited, no fault).
+
+**The layers in a player game (player-35).** The bill fell by two fifths a minute, not to a third as on the
+fixed packet: the gate's questions are a third of the bill now, the picks' two calls another third (25M tokens),
+the decode itself 9M, the picture sent with every call the rest. `fuse` held (111 faults in 14,291 audited), with
+two defects found by the game's review and fixed after it: an actor born after the packet (a detachment) had
+everything the packet does not say fused off, its walk back and its join back to the group it left among them;
+and the join reading was two-way. Group names in the player's packets now outlive the packet (4 paragraphs of 242
+addressed to a group already gone, against 45 of 70), though the picks that move a group are as many as before (27
+a minute). `news` again faulted in 14% of its audits, `same` in 2.4% (most of them a `change`). The remaining
+bill is what `split`, `one` and `local` are for; a decode that leaves out the places an actor must keep away from
+(they read as its places, 265 of 265, and are asked each second) is one more.
 
 **Found, and the user's to rule.**
 1. *The churn.* An idle group is asked at every gate, world 1's line names its best-rated move as "its next move

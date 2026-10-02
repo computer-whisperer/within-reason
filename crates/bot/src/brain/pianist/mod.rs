@@ -188,8 +188,10 @@ pub struct Pianist {
     pub(super) asked_store: String,
     /// The `same` layer (`layers::same`): each noul as it was last asked.
     said: HashMap<String, layers::Said>,
-    /// The `fuse` layer (`decode.rs`): what Jev read of the packet in force.
+    /// The `fuse` layer (`decode.rs`): what Jev read of the packet in force, and the frame each actor was first
+    /// on a menu (one that appeared after the packet landed is not fused).
     decode: decode::Decode,
+    appeared: HashMap<String, i32>,
     /// The `openers` layer (`layers::openers`): each actor's `change` and each party's `answer` at its last ask,
     /// with the frame.
     opened: HashMap<String, (f64, i32)>,
@@ -561,6 +563,7 @@ impl Pianist {
             asked_store: String::new(),
             said: HashMap::new(),
             decode: decode::Decode::default(),
+            appeared: HashMap::new(),
             opened: HashMap::new(),
             undo: None,
             parties_seen: BTreeSet::new(),
@@ -1004,7 +1007,14 @@ impl Brain {
                 None => units,
             }
         };
-        let asks = decode::needed(menus, &pianist.decode, &what);
+        for menu in menus.iter() {
+            pianist.appeared.entry(menu.name.clone()).or_insert(tick.frame);
+        }
+        let landed = pianist.packet_frame;
+        // An actor that appeared after the packet landed and that the packet does not name: the packet could not
+        // have spoken of it.
+        let newer: BTreeSet<String> = menus.iter().filter(|m| pianist.appeared.get(&m.name).is_some_and(|f| *f > landed) && !diet::names(instructions, &m.name)).map(|m| m.name.clone()).collect();
+        let asks = decode::needed(menus, &pianist.decode, &newer, &what);
         if !asks.is_empty() {
             let request = jev::Request { state: json!({ "instructions": instructions }), questions: asks };
             pianist.stats.calls += 1;
@@ -1023,7 +1033,7 @@ impl Brain {
                 }
             }
         }
-        decode::fuse(menus, &pianist.decode, &mut compose::draw)
+        decode::fuse(menus, &pianist.decode, &newer, &mut compose::draw)
     }
 
     /// The store's words for the worlds' lines ("340 of 500 stored").
