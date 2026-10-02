@@ -8,6 +8,7 @@ use serde_json::{Value, json};
 use tiny_http::{Header, Method, Response, Server};
 
 use super::shared::{Allowance, PlanContext, Removal, Shared};
+use crate::brain::pianist::step_id;
 use super::transcript::Transcript;
 
 /// The player's packet at most: Jev reads it every second beside a picture of about 4k tokens, within 64k.
@@ -156,7 +157,7 @@ fn tool_list() -> Value {
               "description": format!("Your standing instructions to your hands: the whole packet, replacing the last one. Jev reads it every second beside the picture and picks each actor's next action from a menu, so write it as standing orders in plain words: the build order per builder as a sequence, what the lab makes and when that changes, where each group stands, when it engages, scouts and attacks, what to do about raids. Name places as the picture does (home, spot_N, passage_N, and any place you marked with `mark`; a spot or passage you name here is always on your hands' menu, however far) and groups as group_A, group_B. No arithmetic for the hands to do: say \"when we have about ten soldiers\", not a formula. At most {INSTRUCTIONS_LIMIT} characters."),
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string" } } } },
             { "name": "queue",
-              "description": "A builder's build list, done exactly and in order by the bot itself without asking your hands: an object of builder name (commander, constructor_N) to a list of steps, or null (or an empty list) to cancel its list; null leaves a build in progress to finish, a list whose first step is \"stop\" (or the bare word \"stop\") drops that build first, its frame decaying, and the rest of the list follows. Steps: \"extractor spot_N\" (or \"extractor\" for the nearest free spot), any building by its internal name as the roster lists it (\"armsolar\", \"armvp\", \"armnanotc\", \"armfus\"), one that stands at a place with the place after it (\"armllt spot_3\", \"armrad home\", \"armmoho spot_3\" over our extractor there); any other building may take a place too (\"armvp spot_39\", \"armnanotc home\") and without one a factory stands beside its builder toward the yard, a generator beside the builder when it stands at home, else in the back field at home (the builder walks: the pros' solars are at base), a construction turret beside the nearest factory (it guards that factory once it stands), \"assist N\" (help the nearest factory for N seconds, then the next step: the pros guard the plant between their own builds), \"assist\" (help the nearest factory, standing or being built: the last step of a list, and only the last; the tool refuses steps after it). Each step is ordered when the one before is 60% built, so nothing idles; a new list replaces the old one whole, starting from its own first step: it takes over a builder that is helping a factory, walking, reclaiming or repairing at once, a build in progress is finished first, and a step the old list had queued behind that build is dropped; a step that cannot be done (the spot taken, a place unknown, a building this builder cannot make) is skipped and said in the hands' report. While a list runs the builder is off your hands' menu unless an enemy is on it, and a builder your hands sent away from an enemy takes no list step while that enemy is still on it; your instructions take over when the list is done. This is how an opening is made to happen as written: the hands do not follow a sequence (comet-1, comet-2: 'three solars, then the plant' got extractors and the plant at 1:45).",
+              "description": "A builder's build list, done exactly and in order by the bot itself without asking your hands: an object of builder name (commander, constructor_N) to a list of steps, or null (or an empty list) to cancel its list; null leaves a build in progress to finish, a list whose first step is \"stop\" (or the bare word \"stop\") drops that build first, its frame decaying, and the rest of the list follows. Steps: \"extractor spot_N\" (or \"extractor\" for the nearest free spot), any building by its internal name as the roster lists it (\"armsolar\", \"armvp\", \"armnanotc\", \"armfus\"), one that stands at a place with the place after it (\"armllt spot_3\", \"armrad home\", \"armmoho spot_3\" over our extractor there); any other building may take a place too (\"armvp spot_39\", \"armnanotc home\") and without one a factory stands beside its builder toward the yard, a generator beside the builder when it stands at home, else in the back field at home (the builder walks: the pros' solars are at base), a construction turret beside the nearest factory (it guards that factory once it stands), \"assist N\" (help the nearest factory for N seconds, then the next step: the pros guard the plant between their own builds), \"assist\" (help the nearest factory, standing or being built: the last step of a list, and only the last; the tool refuses steps after it). Each step is ordered when the one before is 60% built, so nothing idles; a step may end with an id of your choosing (\"armavp avp_yard #avp1\", \"armsolar #s3\"): steps with the same id, on any builders' lists and in a list sent again, are one building: the first builder to reach the step starts it, any other helps build it, and once it stands the step is done, so several constructors raise one factory and a plan sent again builds nothing twice (without ids each step is its own building: the same factory step on three lists is three factories); a new list replaces the old one whole, starting from its own first step: it takes over a builder that is helping a factory, walking, reclaiming or repairing at once, a build in progress is finished first, and a step the old list had queued behind that build is dropped; a step that cannot be done (the spot taken, a place unknown, a building this builder cannot make) is skipped and said in the hands' report. While a list runs the builder is off your hands' menu unless an enemy is on it, and a builder your hands sent away from an enemy takes no list step while that enemy is still on it; your instructions take over when the list is done. This is how an opening is made to happen as written: the hands do not follow a sequence (comet-1, comet-2: 'three solars, then the plant' got extractors and the plant at 1:45).",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "null" }, { "type": "string", "enum": ["stop"] } ] }, "description": "Builder name to steps, null, or \"stop\"." } },
             { "name": "lane",
               "description": "Which footwork rules your hands' code applies to a group's soldiers between your hands' orders, per group name or for \"all\": \"raw\" (none: the group's orders reach the engine exactly as given), \"on\" (all of them, the default), or a list of the rules to keep. The rules: flee (a soldier steps out of the reach of a turret or a fight it was not sent against, or one it would die in), fan (spreads out under a commander's D-gun), kite (a soldier that outranges its enemy steps back while reloading), form (a group's soldiers walk to their own slots in ranks of six across the group's heading, two hulls apart, and stand at contact), march (an advancing group waits for its stragglers so it arrives together). \"rove\" (a group, never \"all\") hands the group's soldiers to the code whole, ten times a second, for fast units (Rover, Tick, Blitz, scout cars): each drives to look at what we know least (his start box and base first, then spots never seen, then the stalest), kills what it finds unguarded (a constructor, an extractor, a radar: nothing armed within reach of it), and never stands inside the reach of anything that can shoot it, stepping off before it is; your hands never move a roving group (no hunt, retreat, join or fall-back) and its new soldiers rove too. The group's entry says what each rover is doing and what it has found (`rove`); \"on\" or any other setting takes it back, holding where each soldier stands. A setting stands until you change it; the group's picture entry shows it when it is not the default.",
@@ -353,8 +354,21 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                     Value::Array(items) => {
                         let steps: Vec<String> = items.iter().map(|v| v.as_str().map(|s| s.trim().to_string()).ok_or_else(|| format!("{name}: steps are strings"))).collect::<Result<_, _>>()?;
                         for (i, step) in steps.iter().enumerate() {
-                            let mut words = step.split_whitespace();
+                            let (body, tag) = step_id(step);
+                            let mut words = body.split_whitespace();
                             let kind = words.next().unwrap_or_default();
+                            // An id is the step's last word (`#avp1`), on a step that builds something.
+                            if body.split_whitespace().any(|w| w.starts_with('#')) {
+                                return Err(format!("{name}: '{step}': an id is one word after everything else in the step (armavp avp_yard #avp1)"));
+                            }
+                            if let Some(tag) = tag {
+                                if matches!(kind, "assist" | "stop") {
+                                    return Err(format!("{name}: '{step}': an id goes on a step that builds something, not on {kind}"));
+                                }
+                                if tag.len() > 24 || !tag.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
+                                    return Err(format!("{name}: '{step}': an id is letters, digits and underscores, 24 at most"));
+                                }
+                            }
                             if kind == "stop" && i > 0 {
                                 return Err(format!("{name}: 'stop' only begins a list (it drops the build in progress, then the list follows)"));
                             }
@@ -376,6 +390,33 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 };
                 parsed.push((name.clone(), list));
             }
+            // Steps carrying the same id are one building, so one id names one thing; and the same factory step on
+            // two builders without an id is two factories (player-33, 12:17: an Advanced Vehicle Plant twice from
+            // three lists with the same step), which the answer says without refusing it.
+            let mut tags: std::collections::BTreeMap<&str, (&str, &str)> = Default::default();
+            let mut untagged: std::collections::BTreeMap<&str, Vec<&str>> = Default::default();
+            for (name, list) in &parsed {
+                for step in list.iter().flatten() {
+                    let (body, tag) = step_id(step);
+                    match tag {
+                        Some(tag) => match tags.get(tag) {
+                            Some((first, on)) if *first != body => return Err(format!("#{tag} names two buildings: '{first}' on {on}'s list and '{body}' on {name}'s; an id is one building, written the same on every list")),
+                            Some(_) => {}
+                            None => {
+                                tags.insert(tag, (body, name));
+                            }
+                        },
+                        None if crate::brain::pianist::glossary::entry(body.split_whitespace().next().unwrap_or_default()).is_some_and(|e| e.class.contains("factory")) => {
+                            let on = untagged.entry(body).or_default();
+                            if !on.contains(&name.as_str()) {
+                                on.push(name);
+                            }
+                        }
+                        None => {}
+                    }
+                }
+            }
+            let twice: Vec<String> = untagged.iter().filter(|(_, on)| on.len() > 1).map(|(step, on)| format!("note: {} each have '{step}' without an id: that is {} factories, one each; for one factory that they build together give the step the same id on every list ('{step} #{}1')", on.join(" and "), on.len(), step.split_whitespace().next().unwrap_or("id"))).collect();
             let mut queues = shared.queues.lock().unwrap();
             let mut said: Vec<String> = Vec::new();
             for (name, list) in parsed {
@@ -387,6 +428,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 });
                 queues.insert(name, list);
             }
+            said.extend(twice);
             Ok(said.join("; "))
         }
         "lane" => {
@@ -804,6 +846,17 @@ mod tests {
         }
         assert!(orders(&json!({ "calls": [{ "tool": "queue", "arguments": { "commander": ["armsolar"] } }] }), &shared).unwrap().contains("1 steps"));
         assert!(call_tool("queue", &json!({ "group_A": ["armsolar"] }), &shared).is_err());
+        // Ids: the last word of a building step; one id is one building, written the same on every list; the same
+        // factory step on two lists without an id is said to be two factories, not refused.
+        shared.publish_field(0, super::super::shared::Field { roster: vec![("armsolar".into(), 155), ("armllt".into(), 85), ("armvp".into(), 590)], ..Default::default() });
+        let one = call_tool("queue", &json!({ "constructor_7": ["armvp home #vp2", "armsolar #s1"], "constructor_8": ["armvp home #vp2"] }), &shared).unwrap();
+        assert!(!one.contains("note:"), "{one}");
+        assert!(call_tool("queue", &json!({ "constructor_7": ["armvp home #vp2"], "constructor_8": ["armsolar #vp2"] }), &shared).unwrap_err().contains("#vp2 names two buildings"));
+        assert!(call_tool("queue", &json!({ "commander": ["armvp", "assist 20 #a"] }), &shared).unwrap_err().contains("an id goes on a step that builds something"));
+        assert!(call_tool("queue", &json!({ "commander": ["armvp #vp2 home"] }), &shared).unwrap_err().contains("an id is one word after everything else"));
+        assert!(call_tool("queue", &json!({ "commander": ["armvp #vp-2"] }), &shared).unwrap_err().contains("letters, digits and underscores"));
+        let two = call_tool("queue", &json!({ "constructor_7": ["armvp home"], "constructor_8": ["armvp home"] }), &shared).unwrap();
+        assert!(two.contains("note: constructor_7 and constructor_8 each have 'armvp home' without an id: that is 2 factories"), "{two}");
         assert!(call_tool("queue", &json!({ "commander": ["windmill"] }), &shared).is_err());
         // The shapes the model actually sent to cancel or replace a list (comet-5).
         for form in [json!({ "commander": "null" }), json!({ "commander": [] }), json!({ "commander": null })] {
@@ -1035,7 +1088,7 @@ mod planning {
             };
             let mut steps = Vec::new();
             for text in items {
-                let mut words = text.split_whitespace();
+                let mut words = crate::brain::pianist::step_id(&text).0.split_whitespace();
                 let kind = words.next().unwrap_or_default();
                 let place = words.next();
                 let site = match place {

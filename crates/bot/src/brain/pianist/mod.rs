@@ -12,6 +12,7 @@ pub mod glossary;
 pub(super) mod groups;
 mod execute;
 mod lists;
+pub(crate) use lists::step_id;
 pub(super) mod picture;
 mod remove;
 #[cfg(test)]
@@ -64,6 +65,34 @@ pub(super) enum Task {
     ReclaimUnit { target: UnitId, since: i32 },
     Repair { target: UnitId, since: i32 },
     Walk { to: Vec3, place: String, since: i32 },
+}
+
+/// A building named by an id on the player's list steps: its type, the builder ordered to start it while no frame
+/// stands yet, and the frame or building once the engine has made it.
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct Tagged {
+    pub def: UnitDefId,
+    pub claim: Option<UnitId>,
+    /// The frame the claim was made: of a builder's claims without a frame yet, the oldest gets its next frame.
+    pub claimed: i32,
+    pub building: Option<UnitId>,
+}
+
+/// What a list step with an id finds (`Pianist::tag_state`).
+#[derive(Clone, Debug, PartialEq)]
+pub(super) enum TagState {
+    /// Nobody builds it and nothing of it stands: this builder starts it.
+    Free,
+    /// The building stands, finished: the step is done.
+    Stands,
+    /// Its frame stands unfinished: this builder helps build it.
+    UnderWay(UnitId),
+    /// Another builder is on its way to start it: this builder helps that builder.
+    Claimed(UnitId),
+    /// This builder is the one building it: the step is the build under way.
+    Mine,
+    /// The id is another type's building.
+    Other(UnitDefId),
 }
 
 impl Task {
@@ -123,6 +152,11 @@ pub struct Pianist {
     /// The builders whose queued task was ordered before the player replaced or cancelled their list: it is dropped
     /// when its turn comes (`take_queued`).
     pub(super) stale_queue: HashSet<UnitId>,
+    /// The buildings the player's lists name by an id (`#name` on a step, `lists::step_id`): one building however
+    /// many builders are sent to it (`tag_state`).
+    pub(super) tagged: HashMap<String, Tagged>,
+    /// The builders helping an id's building up, and which: they take no list step until it stands or is gone.
+    pub(super) helping: HashMap<UnitId, String>,
     /// Units a lab has been told to build and not yet started, oldest first.
     pub(super) lab_queue: HashMap<UnitId, Vec<(UnitDefId, i32)>>,
     pub(super) groups: Vec<Group>,
@@ -359,6 +393,31 @@ mod allowance_tests {
 }
 
 impl Pianist {
+    /// What a step naming the building `id` of type `def` finds for `builder` (the law, 2026-10-01: steps carrying
+    /// the same id are one building: the first builder to reach the step starts it, any other builder reaching a
+    /// step with that id helps build it while it is unfinished, and the step is done once the building stands). An
+    /// id whose building is gone, or whose claiming builder is dead or no longer on that build, is free again.
+    pub(super) fn tag_state(&mut self, id: &str, def: UnitDefId, builder: UnitId, own: &[bot_protocol::OwnUnit]) -> TagState {
+        let Some(tagged) = self.tagged.get(id).cloned() else { return TagState::Free };
+        let building = tagged.building.and_then(|unit| own.iter().find(|u| u.id == unit));
+        let on_it = |b: UnitId| self.tasks.get(&b).into_iter().chain(self.queued.get(&b)).any(|t| matches!(t, Task::Build { def: d, .. } if *d == tagged.def));
+        let claimed = tagged.claim.filter(|b| own.iter().any(|u| u.id == *b) && on_it(*b));
+        if building.is_none() && (tagged.building.is_some() || claimed.is_none()) {
+            self.tagged.remove(id);
+            return TagState::Free;
+        }
+        if tagged.def != def {
+            return TagState::Other(tagged.def);
+        }
+        match (building, claimed) {
+            (Some(unit), _) if !unit.being_built => TagState::Stands,
+            (_, Some(b)) if b == builder => TagState::Mine,
+            (Some(unit), _) => TagState::UnderWay(unit.id),
+            (None, Some(b)) => TagState::Claimed(b),
+            (None, None) => TagState::Free,
+        }
+    }
+
     /// The player has replaced (`new_list`) or cancelled a builder's list: the old list is gone whole. The hold the
     /// pick's way out put on it ends, the step its builder is on no longer returns to a list when the pass diverts
     /// the builder, and what is queued behind the build in progress is marked to be dropped when its turn comes
@@ -366,6 +425,7 @@ impl Pianist {
     pub(super) fn list_replaced(&mut self, builder: UnitId, new_list: bool) {
         self.list_held.remove(&builder);
         self.list_steps.remove(&builder);
+        self.helping.remove(&builder);
         if self.queued.contains_key(&builder) && (new_list || self.queued_steps.contains_key(&builder)) {
             self.stale_queue.insert(builder);
         }
@@ -481,6 +541,8 @@ impl Pianist {
             list_held: HashSet::new(),
             queued_steps: HashMap::new(),
             stale_queue: HashSet::new(),
+            tagged: HashMap::new(),
+            helping: HashMap::new(),
             done: Vec::new(),
             log,
             logged_instructions: String::new(),
@@ -1134,12 +1196,19 @@ impl Brain {
         pianist.queued.retain(|id, _| own.iter().any(|u| u.id == *id));
         pianist.queued_steps.retain(|id, _| own.iter().any(|u| u.id == *id));
         pianist.stale_queue.retain(|id| pianist.queued.contains_key(id));
+        pianist.helping.retain(|id, _| own.iter().any(|u| u.id == *id));
         pianist.lab_queue.retain(|id, _| own.iter().any(|u| u.id == *id));
         for event in &tick.events {
             match *event {
                 Event::UnitCreated { unit, builder: Some(builder) } => {
                     if own.iter().any(|u| u.id == builder && self.world.is_factory_def(u.def)) {
                         pianist.produced_by.insert(unit, builder);
+                    }
+                    // The frame of a building the player's lists name by an id, begun by the builder that claimed it.
+                    if let Some(def) = own.iter().find(|u| u.id == unit).map(|u| u.def) {
+                        if let Some(tagged) = pianist.tagged.values_mut().filter(|t| t.claim == Some(builder) && t.building.is_none() && t.def == def).min_by_key(|t| t.claimed) {
+                            tagged.building = Some(unit);
+                        }
                     }
                     // A frame appearing while the task is a started build is the queued build beginning (the
                     // finished event promoted it already, unless the frame in progress died): promote now.

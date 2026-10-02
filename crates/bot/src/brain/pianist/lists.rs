@@ -14,14 +14,48 @@ use super::super::roster::Kit;
 use super::super::{Brain, FRAMES_PER_SECOND};
 use super::picture::{Picture, clock};
 use super::plan::Response;
-use super::{Pianist, Task};
+use super::{Pianist, TagState, Tagged, Task};
 
 
+
+/// A list step's words and its id: a last word beginning with `#` names the building the step is ("armavp
+/// avp_yard #avp1"), so that steps carrying the same id on several builders' lists, or in a list sent again, are
+/// one building (`Pianist::tag_state`).
+pub(crate) fn step_id(step: &str) -> (&str, Option<&str>) {
+    match step.trim_end().rsplit_once(char::is_whitespace) {
+        Some((words, last)) if last.len() > 1 && last.starts_with('#') => (words.trim_end(), Some(&last[1..])),
+        _ => (step, None),
+    }
+}
 
 /// The seconds of a timed list step `assist N`; None for any other step.
 pub(super) fn timed_assist(step: &str) -> Option<i32> {
     let mut words = step.split_whitespace();
     (words.next() == Some("assist")).then(|| words.next().and_then(|n| n.parse::<i32>().ok())).flatten()
+}
+
+impl Pianist {
+    /// A step with an id has been ordered for `builder`: a build claims the id until the engine makes the frame; a
+    /// help order (the id's frame, or the builder claiming it) makes the builder a helper of the id, and a frame
+    /// being helped is the id's building. The order's words, with the id when it is help.
+    fn note_tag(&mut self, tag: &str, builder: UnitId, own: &[OwnUnit], did: String, queue: bool, frame_now: i32) -> String {
+        let task = if queue { self.queued.get(&builder) } else { self.tasks.get(&builder) }.cloned();
+        match task {
+            Some(Task::Build { def, .. }) => {
+                self.tagged.insert(tag.to_string(), Tagged { def, claim: Some(builder), claimed: frame_now, building: None });
+                format!("{did} (#{tag})")
+            }
+            Some(Task::Repair { target, .. }) | Some(Task::Assist { lab: target, .. }) => {
+                self.helping.insert(builder, tag.to_string());
+                if let Some(frame) = own.iter().find(|u| u.id == target && u.being_built) {
+                    let (claim, claimed) = self.tagged.get(tag).map_or((None, frame_now), |t| (t.claim, t.claimed));
+                    self.tagged.insert(tag.to_string(), Tagged { def: frame.def, claim, claimed, building: Some(frame.id) });
+                }
+                format!("help build #{tag} ({did})")
+            }
+            _ => did,
+        }
+    }
 }
 
 impl Brain {
@@ -34,9 +68,32 @@ impl Brain {
         under_fire.extend(pianist.under_fire(frame));
         let mut steps: Vec<(UnitId, Response, String, bool)> = Vec::new();
         pianist.list_held.retain(|id| own.iter().any(|u| u.id == *id));
+        // A builder helping an id's building up is free when it stands or is gone: its guard or repair order is
+        // ended (a guard never ends by itself), and its list goes on, or the pass has it back.
+        let helpers: Vec<(UnitId, String)> = pianist.helping.iter().map(|(builder, id)| (*builder, id.clone())).collect();
+        for (builder, id) in helpers {
+            let help = |task: Option<&Task>| matches!(task, Some(Task::Repair { .. }) | Some(Task::Assist { .. }));
+            let (queued, doing) = (help(pianist.queued.get(&builder)), help(pianist.tasks.get(&builder)));
+            let def = pianist.tagged.get(&id).map(|t| t.def);
+            let wanted = def.is_some_and(|def| matches!(pianist.tag_state(&id, def, builder, own), TagState::UnderWay(_) | TagState::Claimed(_)));
+            if wanted && (queued || doing) {
+                continue;
+            }
+            pianist.helping.remove(&builder);
+            if queued {
+                // Not begun yet (ordered behind the helper's own build): the help is taken off, the build goes on.
+                pianist.queued.remove(&builder);
+                pianist.queued_steps.remove(&builder);
+            } else if doing {
+                pianist.tasks.remove(&builder);
+                pianist.list_steps.remove(&builder);
+                commands.push(Command::Stop { unit: builder });
+            }
+            // Neither: the pass sent the helper elsewhere, and its step is back on its list (`execute_builder`).
+        }
         for unit in own.iter().filter(|u| !u.being_built && self.world.is_mobile_builder(u.def)) {
             let name = self.actor_name(unit.id);
-            if !pianist.scripts.get(&name).is_some_and(|s| !s.is_empty()) {
+            if !pianist.scripts.get(&name).is_some_and(|s| !s.is_empty()) || pianist.helping.contains_key(&unit.id) {
                 continue;
             }
             let status = self.builder_status(&pianist, unit, picture, &under_fire, own);
@@ -78,6 +135,10 @@ impl Brain {
             match self.execute_builder(tick, kit, picture, id, &response, queue, Some(&step), commands) {
                 Some(did) => {
                     let pianist = self.pianist.as_mut().expect("pianist mode");
+                    let did = match step_id(&step).1 {
+                        Some(tag) => pianist.note_tag(tag, id, own, did, queue, frame),
+                        None => did,
+                    };
                     pianist.done.push(format!("{} {name}: {did} (from its list)", clock(frame)));
                     pianist.played.push(json!({ "actor": name, "kind": "builder", "played": step, "did": did, "source": "list" }));
                     self.journal.note_from("list", frame, "builder", json!({ "actor": name, "step": step }), json!({ "did": did }));
@@ -159,7 +220,8 @@ impl Brain {
         let can = |def: UnitDefId| self.world.def(unit.def).is_some_and(|d| d.build_options.contains(&def));
         loop {
             let step = pianist.scripts.get_mut(name)?.pop_front()?;
-            let mut words = step.split_whitespace();
+            let (body, tag) = step_id(&step);
+            let mut words = body.split_whitespace();
             let kind = words.next().unwrap_or_default();
             // `extractor nearest` is the bare `extractor`: the free spot this builder reaches soonest, whatever the
             // start (the opening list is written before the start is known).
@@ -216,6 +278,26 @@ impl Brain {
                     Some(_) => Err("this builder cannot build it".to_string()),
                     None => Err(format!("'{other}' is not a unit name the game knows")),
                 },
+            };
+            // A step with an id is one building (`Pianist::tag_state`): started by the first builder to reach it,
+            // helped up by any other, done once it stands.
+            let resolved = match (resolved, tag) {
+                (Ok(response), Some(tag)) => {
+                    let def = match &response {
+                        Response::Extractor(_) => Some(kit.extractor),
+                        Response::Building(def) | Response::BuildingAt(def, _) => Some(*def),
+                        _ => None,
+                    };
+                    match def.map(|def| pianist.tag_state(tag, def, unit.id, own)) {
+                        None | Some(TagState::Free) => Ok(response),
+                        Some(TagState::UnderWay(frame)) => Ok(Response::Repair(frame)),
+                        Some(TagState::Claimed(builder)) => Ok(Response::Assist(builder)),
+                        Some(TagState::Stands) => Err(format!("#{tag} stands already")),
+                        Some(TagState::Mine) => Err(format!("#{tag} is the build this builder is on")),
+                        Some(TagState::Other(other)) => Err(format!("#{tag} is a {}: an id is one building", self.name(other))),
+                    }
+                }
+                (resolved, _) => resolved,
             };
             match resolved {
                 Ok(response) => return Some((response, step)),
@@ -281,6 +363,59 @@ mod tests {
             assert!(!pianist.tasks.contains_key(&builder) && !pianist.queued.contains_key(&builder) && !pianist.queued_steps.contains_key(&builder));
         }
         assert!(pianist.done.last().unwrap().contains("commander: dropped the step 'extractor' its old list had queued"), "{:?}", pianist.done);
+    }
+
+    /// A step's last word beginning with `#` is its id; the rest are its words.
+    #[test]
+    fn a_steps_id_is_its_last_word() {
+        use super::step_id;
+        assert_eq!(step_id("armavp avp_yard #avp1"), ("armavp avp_yard", Some("avp1")));
+        assert_eq!(step_id("armsolar #s_2 "), ("armsolar", Some("s_2")));
+        assert_eq!(step_id("extractor spot_5"), ("extractor spot_5", None));
+        assert_eq!(step_id("armsolar #"), ("armsolar #", None));
+        assert_eq!(step_id("#x"), ("#x", None));
+    }
+
+    /// Steps carrying the same id are one building: the first builder to reach the step starts it, another helps
+    /// the builder on its way and then the frame, the step is done once the building stands, and the id is free
+    /// again when the building is gone or the builder that claimed it is off that build.
+    #[test]
+    fn steps_with_the_same_id_are_one_building() {
+        use super::super::{TagState, Tagged, Task};
+        use bot_protocol::{OwnUnit, UnitDefId, Vec3};
+        let unit = |id: i32, def: i32, being_built: bool| OwnUnit { id: UnitId(id), def: UnitDefId(def), pos: Vec3::default(), vel: Vec3::default(), health: 1.0, max_health: 1.0, being_built, idle: false, reload_frame: 0, facing: 0 };
+        let (plant, solar) = (UnitDefId(7), UnitDefId(8));
+        let (first, second, frame) = (UnitId(1), UnitId(2), UnitId(50));
+        let mut pianist = super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        let mut own = vec![unit(1, 3, false), unit(2, 3, false)];
+        assert_eq!(pianist.tag_state("avp1", plant, first, &own), TagState::Free);
+        // The first builder is ordered to build it: the id is its claim while it is on that build.
+        pianist.tasks.insert(first, Task::Build { def: plant, near: Vec3::default(), spot: None, ordered: 100, started: false });
+        assert_eq!(pianist.note_tag("avp1", first, &own, "build a armavp at avp_yard".into(), false, 100), "build a armavp at avp_yard (#avp1)");
+        assert_eq!(pianist.tag_state("avp1", plant, second, &own), TagState::Claimed(first));
+        assert_eq!(pianist.tag_state("avp1", plant, first, &own), TagState::Mine);
+        assert_eq!(pianist.tag_state("avp1", solar, second, &own), TagState::Other(plant));
+        // The second is sent to help the first, and is a helper of the id.
+        pianist.tasks.insert(second, Task::Assist { lab: first, since: 110 });
+        assert_eq!(pianist.note_tag("avp1", second, &own, "help constructor_1 build".into(), false, 110), "help build #avp1 (help constructor_1 build)");
+        assert_eq!(pianist.helping.get(&second).map(String::as_str), Some("avp1"));
+        // The engine makes the frame: another builder helps the frame; the first is on its own build.
+        own.push(unit(50, 7, true));
+        pianist.tagged.get_mut("avp1").unwrap().building = Some(frame);
+        assert_eq!(pianist.tag_state("avp1", plant, second, &own), TagState::UnderWay(frame));
+        assert_eq!(pianist.tag_state("avp1", plant, first, &own), TagState::Mine);
+        // It stands: every step with the id is done, also in a list sent again.
+        own[2].being_built = false;
+        pianist.tasks.remove(&first);
+        assert_eq!(pianist.tag_state("avp1", plant, first, &own), TagState::Stands);
+        assert_eq!(pianist.tag_state("avp1", plant, second, &own), TagState::Stands);
+        // It is destroyed: the id is free, and a step with it builds anew.
+        own.pop();
+        assert_eq!(pianist.tag_state("avp1", plant, second, &own), TagState::Free);
+        assert!(!pianist.tagged.contains_key("avp1"));
+        // A claim lapses when its builder is off the build (diverted, a new list) or dead.
+        pianist.tagged.insert("s1".into(), Tagged { def: solar, claim: Some(first), claimed: 200, building: None });
+        assert_eq!(pianist.tag_state("s1", solar, second, &own), TagState::Free);
     }
 
     /// A unit is under fire for three seconds after its last hit, not for the rest of the game.
