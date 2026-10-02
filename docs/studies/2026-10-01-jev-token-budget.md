@@ -246,3 +246,63 @@ about 3M, and a move lands a second later); an opener for an idle actor ("should
 menu: up to 1.9M, a rule the design does not have); the decode kept across packets for an actor whose paragraphs
 did not change (about 1.5M).
 
+
+## 9. player-38: the split in a game, and the gate by what opens an actor
+
+**The split pick, measured** (player-38-split, 30:30, lost; the audit asked the joint pick as well on 158 picks).
+The split's one request cost 58% of the joint pick's two calls on the same picks (10,206 tokens against 17,451),
+the study's figure. It takes more: 1.12 moves a pick against 0.89, the extra ones groups walking, joining and
+sending. Over the first 17 minutes the picks cost 5.63M against player-36's 9.10M and the game 23.1M against
+27.8M.
+
+**The bill by game minute.** From minute 6 on it is flat: about 53 gates a minute of 120 questions over six actors,
+$0.09 a game minute. A 17-minute game is $1, a 30-minute one $2.10; player-37 (no split) was at $4.73 by minute 38.
+The price of a game is its length more than anything left to trim.
+
+**The gate's question text (85.6M characters) by what opened the actor**, own moves only (`news` reasons read from
+the `pass` rows; the party-aimed moves and the parties' answers are the rest, about 16M):
+
+| what opened it | groups | builders |
+|---|---|---|
+| it stands idle | 10.1M (629 asks) | 3.2M (153) |
+| it was hit | 10.2M (572) | 1.2M (169) |
+| never asked before (newborn) | 4.8M (104) | 1.9M (20) |
+| its course was changed by the pick a second before | 5.0M (272) | 1.3M (144) |
+| it reached a place or met a party | 3.4M (293) | |
+| its `change` said yes the second before | 3.1M (151) | 1.7M (113) |
+| a party came into or left its entry; the store crossed empty | 2.7M (196) | 3.1M (439) |
+| a new packet or list | 2.1M (214) | 2.2M (392) |
+
+No one cause is over an eighth of the gate. Two-thirds of the text (57.6M) is a question that was asked under 5 s
+before, in the same words in 12% of those (answers 0.03 apart, 2.7% crossing 0.5) and with another course or
+another move's words in the rest.
+
+**The walks.** `go_<place>` and `fight_to_<place>` are 40% of the gate's text (34.6M, 60,000 questions): 2% come
+back at 0.5 or over and 277 were played. 14.3M is bodies of eight or more that the packet names, asked every
+place it names for them in both manners each time they are opened; 13.9M is detachments of one to seven that the
+packet does not name (504 answers at 0.5 or over of 29,729, 76 walks played).
+
+**Tried and not built:**
+
+- *One question a place in place of the two manners* (`run/jev_walk_ab.py`, 40 gates, 907 walks, twice): saves
+  10 to 12% of those gates. Of 85 walks at 0.5 or over as recorded, 71 and 75 stayed there asked again unchanged,
+  59 and 62 with both manners said in the one question, 64 with neither said; of 51 actors with such a walk, 47
+  kept one asked again and 39 merged.
+- *The walks as one Choice an actor* among its places and staying (`run/jev_walk_choice_ab.py`, a trial of 12
+  gates, 19 actors): the options still carry each walk's words, so the request is 84 to 88% of the recorded one;
+  of 6 actors with a walk at 0.5 or over, the Choice walked 2 (6 asked again as recorded).
+- *An idle actor not asked again for 5 s after a menu with nothing at 0.5* (counted, not replayed): 5.1M of the
+  text, and for groups something was at 0.5 or over in 185 of the 735 asks it would skip.
+
+With §8's three, every trim of the questions' words tried so far has moved the answers; what is left is asking
+fewer actors or fewer moves.
+
+**Found, not changed.** The design's news for an actor (§4, "When things are asked") is its course *ended*; the
+code's `news` also opens an actor whose course *changed*, and so asks an actor again the second after the pick
+moved it (the fifth row above: 6.2M, 7% of the gate's text; its `change` comes back yes in 558 of 695 asks within
+2 s of its own pick). Of the 702 group picks that followed an earlier pick on the same group, 340 came within 2 s.
+
+**Left, each the user's to rule:** `one`; an opener for an idle actor (the first row: up to 13M of the gate's
+85.6M, and an idle actor's move a second later); the pick's own change taken out of the news (7%, and a pick
+stands until something happens to the actor or 20 s pass); no walks to named places for a detachment the packet
+does not name (16%, 76 walks a game).
