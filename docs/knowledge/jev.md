@@ -1677,3 +1677,20 @@ picked a hunt the second after the player wrote "no hunts", which is Jev's readi
 **Evidence.** player-9-posing's 24 arrivals, four repeats, the two-stage pick (`run/route_ab.py --two-stage`, variants B, E, F, G, H, J, K; `docs/studies/data/route-ab-2026-10-01*.jsonl`): the next leg picked 24 of 24 with code's "next stop" (E), 7 with no cost line (B), 10 with the unordered list (F), 16 with a first wording of the best-rated move (H), 24 with the wording above (J), and 24 with a fall-back place also named in the prose and on the menu (K). At the 3:58 fork K's scout took the fall-back its new sentence ordered.
 **Status.** measured offline 2026-10-01; one game, seven moments. Unbuilt.
 **Would be wrong if.** On a menu with many more moves the gate's best-rated move at an arrival is often not the next stop (here it was, 24 of 24).
+
+### K-jev-half-the-bill-is-the-picture-sent-again
+**Claim.** In a player game 44% of Jev's input tokens are the state, sent whole in the gate and in both pick calls of every second (16,000 characters, of which the rules text 4,500); a group's walks and advances are another 16% and are played about 65 times; a third of the picks play nothing. The cost of asking one actor or party, everything counted, is 4,200 to 6,000 tokens through the whole game: what grows is how many are asked.
+**Evidence.** player-33-hard (37.4M tokens, $1.57) and player-32-hard (74.1M, $3.11), `run/jev_budget.py`; the rates measured against the service on 2026-10-01 (state 0.34 tokens a character, gate questions 0.28, an empty request 280); `docs/studies/2026-10-01-jev-token-budget.md` §1.
+**Status.** measured 2026-10-01 on two games. Seven changes that leave the decisions alone are counted at $0.73 and $1.43 for the two games; unbuilt.
+**Would be wrong if.** A game on another map or tier puts the tokens elsewhere (many more builders off lists, say).
+
+### K-jev-a-pick-split-by-component-costs-less-and-changes-more
+**Claim.** The opened actors' changes fall into components that do not touch (a median 2 a pick, a median 1 candidate each). Asking each component its own two-stage pick, every candidate's second stage at once and all of it in one request, costs 58% of the game's two pick calls, removes one round trip, and changes 1.58 actors a pick against 1.23.
+**Evidence.** player-33-hard, 120 picks of 3 worlds or more (`run/jev_split_ab.py`, `docs/studies/data/split-pick-2026-10-01.jsonl`): 9,700 tokens a pick against 16,700; where a component had a choice (133), the split's best change was the joint pick's most-weighted in 96; both changed a component in 119 cases, to the same change in 92; the split alone in 71, the game alone in 29.
+**Status.** measured offline 2026-10-01, one game; compared with the joint pick's own probabilities, not with a better answer. Unbuilt.
+**Would be wrong if.** In a game the split's extra changes are the ones the joint pick was right to decline (two components spending the same metal, two groups leaving one area).
+
+### K-jev-the-rules-text-steers
+**Claim.** The hands' standing rules text is 1,019 tokens in every call (12% of a game's bill) and it moves answers: with it taken out, or cut to what the words mean, about one in five of the moves the gate rated 0.5 or over as an actor's best falls under 0.5; the pick's choices move less (stage one the same choice in 49 of 60 against 53 re-asked unchanged, stage two 56 against 58). Cutting each question to its actor and its move saves a quarter of a gate and moves about as much.
+**Evidence.** player-33-hard, 50 gates and 120 picks asked again under four arms (`run/jev_trim_ab.py`, `docs/studies/data/trim-2026-10-01.jsonl`): a strong move still 0.5 or over in 66 of 72 re-asked unchanged, 53 with no rules, 48 with short rules, 53 with bare questions.
+**Status.** measured offline 2026-10-01, one game. Not a verdict on whether the moves it lifts are good ones.

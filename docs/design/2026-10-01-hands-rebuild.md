@@ -1,6 +1,7 @@
 # The hands, rebuilt: one menu per actor (target design, 2026-10-01)
 
-**Status.** Draft 4, for the user's review. Nothing is built and nothing is deleted. The draft went through three
+**Status.** Draft 4, for the user's review. Cost: see `docs/studies/2026-10-01-jev-token-budget.md`, which supersedes §8
+and answers question 1. Nothing is built and nothing is deleted. The draft went through three
 reviews and a set of offline replays of recorded seconds before this version; §13 says what each changed. The row by
 row disposition of what the code does today is in `2026-10-01-hands-rebuild-cut-line.md`.
 
@@ -256,11 +257,12 @@ party news (routes in prose §4.4, 2026-09-28); code finding a route's next stop
 
 ## 12. Questions for the user
 
-1. **The price.** The menu the laws give about doubles the bill and the gate's time (§8). Options, cheapest
-   principle first: (a) accept it, with the unsent-question saving; (b) two detachment sizes instead of four;
-   (c) Jev reads once per packet which places are whose and only those are asked. (c) is the cheapest and it is the
-   packet's decompression come back as a filter, which you deleted on 2026-09-27; I do not recommend it unless (a)
-   and (b) leave the bill over what you will pay. What is the ceiling?
+1. **The price.** Answered 2026-10-01: the target is $1 a game or less, and the packet decoded once by Jev is
+   acceptable in principle ("still using jev to decode opus's normal prose, just once per prompt rather than once
+   per second"; it was removed because it was a distraction at the time, not because the principle was bad). So
+   the reading of places per actor is in, and §8 is superseded by `docs/studies/2026-10-01-jev-token-budget.md`:
+   the rebuilt menu is modelled at $0.94 for player-33 and $1.96 for the 40-minute player-32 with seven changes
+   to what is sent and when, and near $1.1 with three more.
 2. The unsent question (§4): agreed as a rule?
 3. Detachment sizes from a fixed ladder for Jev to pick, or the code's "fewest that outweigh it" as today?
 4. `send N` only at a party, or also to a place (pickets from soldiers that already exist)? It multiplies a
