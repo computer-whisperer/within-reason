@@ -144,17 +144,20 @@ pub(super) fn news(menus: &mut [Menu], asked: &BTreeMap<String, Asked>, news: &N
 }
 
 /// The `openers` layer (H-HANDS-LAYERS): a move's opener is its actor's `change` (a move of its own) or the
-/// `answer` of the party it is aimed at; a move aimed at a party is opened by either. While every opener of a move
-/// said no at its last ask (under `RE_ASK` ago), the move is held: not asked this gate. The openers themselves are
-/// asked every time, and when one comes back at the flag or over the gate goes again the next second with its moves
-/// (`mod.rs`: an "opened" event). An idle actor has no `change` and its own moves are never held. `opened` holds
-/// each opener's last answer and frame. A share of `AUDIT_SHARE` of what is held is asked anyway. Returns the
-/// questions not sent and the moves audited.
+/// `answer` of the party it is aimed at; a move aimed at a party is opened by either. A move is asked only while
+/// an opener of its said yes at its last ask (under `RE_ASK` ago); otherwise it is held: not asked this gate. The
+/// openers themselves are asked every time, and when one comes back at the flag or over the gate goes again the
+/// next second with its moves (`mod.rs`: an "opened" event). An opener never asked, or asked too long ago, is no
+/// yes: it is asked first and its moves follow (as first built, such an actor was asked every move beside its
+/// opener: in player-36 16% of the gate's question text was the own moves of actors whose `change` came back
+/// under 0.5 in the same request, a newborn detachment's whole menu the most of it). An idle actor has no
+/// `change` and its own moves are never held. `opened` holds each opener's last answer and frame. A share of
+/// `AUDIT_SHARE` of what is held is asked anyway. Returns the questions not sent and the moves audited.
 pub(super) fn openers(menus: &mut [Menu], opened: &HashMap<String, (f64, i32)>, frame: i32, flag: f64, draw: &mut dyn FnMut() -> f64) -> (usize, usize) {
-    let said_no = |name: &str| opened.get(name).filter(|(_, f)| frame - f < RE_ASK).is_some_and(|(p, _)| *p < flag);
+    let said_no = |name: &str| !opened.get(name).filter(|(_, f)| frame - f < RE_ASK).is_some_and(|(p, _)| *p >= flag);
     let (mut skipped, mut audited) = (0, 0);
     for menu in menus.iter_mut() {
-        // The actor's own opener: no when its `change` said no, and no when the `news` layer has closed it.
+        // The actor's own opener: no unless its `change` said yes, and no when the `news` layer has closed it.
         let own_no = !menu.idle && (menu.quiet || said_no(&menu.name));
         let own_asked = menu.asks_own();
         for m in menu.moves.iter_mut().skip(1).filter(|m| !m.fused) {
@@ -292,8 +295,8 @@ mod tests {
         assert_eq!(Layers { news: true, same: true, ..none }.names(), ["news", "same"]);
     }
 
-    /// The `openers` layer: a move is held while every opener of its said no at the last gate; an idle actor's own
-    /// moves never are, and a move aimed at a party is asked when either the party or the actor is open.
+    /// The `openers` layer: a move is asked only while an opener of its said yes at the last gate; an idle actor's
+    /// own moves always are, and a move aimed at a party is asked when either the party or the actor is open.
     #[test]
     fn a_move_waits_for_its_opener() {
         let group = |idle: bool| menu("group_A", Kind::Group("A".into()), idle, vec![mv("go_spot_4", Order::Go("spot_4".into()), None), mv("attack_party_1", Order::Attack("party_1".into()), Some("party_1"))]);
@@ -303,11 +306,11 @@ mod tests {
             let counts = openers(&mut menus, &opened, 330, 0.5, &mut || 0.5);
             (menus[0].moves[1].held, menus[0].moves[2].held, counts)
         };
-        assert_eq!(held(group(false), &[]), (false, false, (0, 0)), "never asked: everything is asked");
+        assert_eq!(held(group(false), &[]), (true, true, (2, 0)), "never asked: the openers go first, the moves the second after a yes");
         assert_eq!(held(group(false), &[("group_A", 0.2, 300), ("party_1", 0.1, 300)]), (true, true, (2, 0)), "both openers said no");
         assert_eq!(held(group(false), &[("group_A", 0.2, 300), ("party_1", 0.8, 300)]), (true, false, (1, 0)), "the party is open: its answers are asked");
         assert_eq!(held(group(false), &[("group_A", 0.7, 300), ("party_1", 0.1, 300)]), (false, false, (0, 0)), "the actor is open: every move of its is asked");
-        assert_eq!(held(group(false), &[("group_A", 0.2, 330 - RE_ASK), ("party_1", 0.1, 300)]), (false, false, (0, 0)), "an answer too old is no answer");
+        assert_eq!(held(group(false), &[("group_A", 0.9, 330 - RE_ASK), ("party_1", 0.1, 300)]), (true, true, (2, 0)), "a yes too old is no yes");
         assert_eq!(held(group(true), &[("group_A", 0.2, 300), ("party_1", 0.1, 300)]), (false, false, (0, 0)), "an idle actor has no opener of its own");
         let mut closed = group(false);
         closed.quiet = true;
