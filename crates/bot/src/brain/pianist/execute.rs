@@ -398,16 +398,6 @@ impl Brain {
                     did = Brain::start_hunt(&mut pianist, index, hunters, party, own, enemies, frame, commands);
                 }
             }
-            Response::Back(place_name) => {
-                if let Some(p) = place(place_name) {
-                    let group = &mut pianist.groups[index];
-                    commands.extend(group.release_orders(&units));
-                    commands.extend(ids.iter().map(|id| Command::Move { unit: *id, to: p.at, queue: false }));
-                    group.set_task(GroupTask::Move { to: p.at, place: p.name.clone(), fight: false, since: frame }, frame);
-                    group.last_order = frame;
-                    did = Some(format!("fall back to {}{}", p.name, party.map_or(String::new(), |p| format!(" from {}", p.name))));
-                }
-            }
             Response::Walk { place: place_name, fight } => {
                 if let Some(p) = place(place_name) {
                     let to = self.snap_for(self.group_walker(&pianist.groups[index], own), p.at);
@@ -430,14 +420,6 @@ impl Brain {
                     group.last_order = frame;
                     did = Some(format!("escort {ward_name}"));
                 }
-            }
-            Response::Retreat => {
-                let group = &mut pianist.groups[index];
-                commands.extend(group.release_orders(&units));
-                commands.extend(ids.iter().map(|id| Command::Move { unit: *id, to: home, queue: false }));
-                group.set_task(GroupTask::Move { to: home, place: "home".into(), fight: false, since: frame }, frame);
-                group.last_order = frame;
-                did = Some("fall back home".into());
             }
             Response::FallBack => {
                 if let Some(to) = pianist.groups[index].last_hold {

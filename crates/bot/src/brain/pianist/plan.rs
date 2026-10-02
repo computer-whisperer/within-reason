@@ -125,11 +125,8 @@ pub(crate) enum Response {
     Whole,
     /// These members hunt one unit of the party by id (H-MICRO-HUNT).
     Hunt(Vec<UnitId>),
-    /// The group falls back to the named place from the party.
-    Back(String),
     // Groups, their course.
     Walk { place: String, fight: bool },
-    Retreat,
     FallBack,
     Scout,
     Split(usize, String),
@@ -239,7 +236,7 @@ pub(super) struct BuilderStatus {
 impl Brain {
     fn dim_of(&self, response: &Response) -> &'static str {
         match response {
-            Response::Keep | Response::Leave | Response::Whole | Response::Hunt(_) | Response::Back(_) => "threat",
+            Response::Keep | Response::Leave | Response::Whole | Response::Hunt(_) => "threat",
             Response::Extractor(_) => "extractor",
             Response::Building(def) | Response::BuildingAt(def, _) => match self.world.def(*def) {
                 Some(d) if d.energy_make > 0.0 || d.energy_upkeep < 0.0 || d.wind_cap > 0.0 || d.tidal_make > 0.0 => "energy",
@@ -259,7 +256,7 @@ impl Brain {
             Response::Next(def) => {
                 if self.world.is_constructor_def(*def) { "constructor" } else { "soldier" }
             }
-            Response::Walk { .. } | Response::Retreat | Response::FallBack | Response::Escort(_) => "move",
+            Response::Walk { .. } | Response::FallBack | Response::Escort(_) => "move",
             Response::Scout => "scout",
             Response::Split(..) => "split",
             Response::Join(_) => "join",
@@ -882,15 +879,11 @@ impl Brain {
             // only, so "raids his north corner (spot_9, then spot_2, spot_7, spot_14)" put nothing on the menu and
             // the player advanced the station by hand every 30-40 s, game 10).
             // `shelling` is an estimate, never a walk (10.4): the shooter is answered by the states below.
-            let named_spot = |p: &super::Place| p.spot.is_some() && super::diet::names(&instructions, &p.name);
-            // The group's own paragraph: every place it names is on the menu, however far, in the packet's order
-            // (routes-in-prose §4.1: a route's stops); of the other named places, the nearest three.
+            // The group's own paragraph: every place it names is on the menu, however far (routes-in-prose §4.1: a
+            // route's stops); of the other named places, the nearest three.
             let paragraph = super::diet::paragraph(&instructions, &name).unwrap_or(&instructions).to_string();
             let on_route = |p: &super::Place| p.name != "home" && super::diet::names(&paragraph, &p.name);
-            let mut named: Vec<&super::Place> = picture.places.iter().filter(|p| !p.name.starts_with("shelling") && (p.name == "home" || p.spot.is_none() || named_spot(p)) && (p.at.dist2d(centre) < WALK_REACH || named_spot(p) || on_route(p)) && p.at.dist2d(centre) > STATION_SLACK).collect();
-            named.sort_by(|a, b| a.at.dist2d(centre).total_cmp(&b.at.dist2d(centre)));
-            let mut offered: Vec<&super::Place> = named.iter().copied().filter(|p| on_route(p)).collect();
-            offered.extend(named.iter().copied().filter(|p| !on_route(p)).take(3));
+            let (named, offered) = walk_places(&picture.places, &instructions, &name, centre);
             // A route's legs advance (fight on the way) when its paragraph says so, else walk; each leg's words say
             // what is known to stand at its end and the odds on a party there (§4.4: the E3 advance's whole text was
             // its station's name while every state against it carried its cost).
@@ -1047,13 +1040,11 @@ impl Brain {
                     let near: Vec<String> = picture.parties.iter().filter(|p| p.at.dist2d(at) < ALARM).map(|p| format!("{} ({}) is {:.0} from it", p.name, p.composition, p.at.dist2d(at))).collect();
                     if near.is_empty() { String::new() } else { format!("; into fire: {}", near.join(", ")) }
                 };
-                // A walk back in progress is the slot's current state, so the base world keeps it until the pick
-                // changes it or the group arrives.
-                let retreating = matches!(&group.task, GroupTask::Move { fight: false, place, .. } if place == "home");
-                if retreating || (!walking_back && centre.dist2d(self.home) > STATION_SLACK) {
-                    let words = if retreating { format!("{name} keeps falling back to our base ({} away){}", distance_words(centre.dist2d(self.home)), at_point(self.home)) } else { format!("{name} falls back to our base ({} away){}{leave}", distance_words(centre.dist2d(self.home)), at_point(self.home)) };
-                    push("retreat", Response::Retreat, words, retreating);
-                }
+                // No way back to our base of the hands' own (player-33: asked 1,931 times, and the party's answer
+                // beside it walked groups of six and more home 24 times with nothing there to repel): the base is
+                // a walk like any other, offered when the group's paragraph names `home`. A walk back in progress
+                // is the slot's current state, so the base world keeps it until the pick changes it or the group
+                // arrives.
                 if let GroupTask::Move { fight: false, place, to, .. } = &group.task
                     && place.starts_with(super::groups::LAST_HOLD)
                 {
@@ -1140,6 +1131,27 @@ impl Brain {
 /// state whether it should change course (an idle actor is always open), and one per open state whether it is the
 /// move. onepass-smoke-1 asked a noul per kind of action instead and they came back at 0.44-0.60 everywhere, coin
 /// flips that pruned the one state the packet asked for.
+/// The places a group's walks go to, nearest first. `named`: home, the player's marks and passages within reach, every
+/// spot the packet names and every place the group's own paragraph names, however far. `offered`: of those, every
+/// place its own paragraph names, then the nearest three of the rest. `home` counts as named by the group only in
+/// a paragraph of its own (a packet without paragraphs says "home" of every actor), and is never a stop of its
+/// route: a group is not advanced to our base, nor split toward it.
+fn walk_places<'a>(places: &'a [super::Place], instructions: &str, group: &str, centre: Vec3) -> (Vec<&'a super::Place>, Vec<&'a super::Place>) {
+    let named_spot = |p: &super::Place| p.spot.is_some() && super::diet::names(instructions, &p.name);
+    let own = super::diet::paragraph(instructions, group);
+    let its_own = |p: &super::Place| if p.name == "home" { own.is_some_and(|own| super::diet::names(own, "home")) } else { super::diet::names(own.unwrap_or(instructions), &p.name) };
+    let mut named: Vec<&super::Place> = places
+        .iter()
+        .filter(|p| !p.name.starts_with("shelling") && (p.name == "home" || p.spot.is_none() || named_spot(p)))
+        .filter(|p| p.at.dist2d(centre) < WALK_REACH || named_spot(p) || its_own(p))
+        .filter(|p| p.at.dist2d(centre) > STATION_SLACK)
+        .collect();
+    named.sort_by(|a, b| a.at.dist2d(centre).total_cmp(&b.at.dist2d(centre)));
+    let mut offered: Vec<&super::Place> = named.iter().copied().filter(|p| its_own(p)).collect();
+    offered.extend(named.iter().copied().filter(|p| !its_own(p)).take(3));
+    (named, offered)
+}
+
 /// The state's `asking` line: the preamble a group's walk and advance questions leave out.
 pub(super) const ASKING: &str = "Each question below that names an actor and a move without more asks: is that what the actor should do now, rather than the course named after it? Judge it from that actor's entry under `actors`, `economy`, `ours` and the player's `instructions`.";
 
@@ -1579,12 +1591,6 @@ fn parts_of(world: &World, slots: &[Slot], base: Option<&World>) -> (Vec<String>
                 let killing = p.harming.as_ref().map_or(String::new(), |(what, _)| format!(", {what}"));
                 match &s.response {
                     Response::Leave => unmet.push(format!("{} ({composition}, {place}{}{killing})", p.name, under(p))),
-                    Response::Back(..) => {
-                        if !unchanged {
-                            moves.push(s.words.clone());
-                        }
-                        unmet.push(format!("{} ({composition}, {place}{}{killing})", p.name, under(p)));
-                    }
                     _ => {
                         if !unchanged {
                             moves.push(s.words.clone());
@@ -1782,6 +1788,24 @@ mod tests {
 
     fn state(id: &str, actor: &str, response: Response, dim: &'static str, current: bool) -> State {
         State { id: id.to_string(), actor: actor.to_string(), response, words: id.to_string(), metal: 200.0, dim, current, pair_only: false }
+    }
+
+    /// The base is a walk like any other: on a far group's menu when its own paragraph names `home`, not because
+    /// another actor's does (player-33: the hands' two ways back went to the base whatever the packet said, 47
+    /// plays; removed, with nothing of the hands' own in their place).
+    #[test]
+    fn a_far_groups_walk_home_is_offered_when_its_own_paragraph_names_home() {
+        let place = |name: &str, x: f32, spot: Option<usize>| super::super::Place { name: name.to_string(), at: Vec3 { x, y: 0.0, z: 0.0 }, spot };
+        let places = vec![place("home", 0.0, None), place("spot_30", 2000.0, Some(30)), place("spot_31", 4000.0, Some(31)), place("mark_a", 5400.0, None), place("mark_b", 5600.0, None), place("mark_c", 5800.0, None)];
+        let centre = Vec3 { x: 5000.0, y: 0.0, z: 0.0 };
+        let names = |packet: &str| walk_places(&places, packet, "group_A", centre).1.iter().map(|p| p.name.clone()).collect::<Vec<_>>();
+        // Its own paragraph names a spot and home: both on the menu, 3,000 and 5,000 away, before the nearest three.
+        assert_eq!(names("commander: stays at home.\n\ngroup_A (Blitzes): holds at mark_a; against a party that outweighs it, it walks to spot_30, and to home when the base is under attack."), ["mark_a", "spot_30", "home", "mark_b", "mark_c"]);
+        // Another actor's home is not this group's, and a far spot nobody names is not offered.
+        assert_eq!(names("commander: stays at home.\n\ngroup_A (Blitzes): holds at mark_a."), ["mark_a", "mark_b", "mark_c"]);
+        // Within reach, home is one of the nearest three as before.
+        let near = Vec3 { x: 1000.0, y: 0.0, z: 0.0 };
+        assert!(walk_places(&places, "group_A: holds.", "group_A", near).1.iter().any(|p| p.name == "home"));
     }
 
     fn threat(name: &str, states: Vec<State>) -> Slot {

@@ -1,9 +1,9 @@
 //! The threat family of the pass (`docs/design/2026-09-26-threat-response.md` §4-6, folded into
 //! `2026-09-26-one-pass.md`): for each enemy party in our half, near a structure of ours or coming toward home, the
-//! states the groups within reach can execute against it (the whole group, the fastest few hunting it, the way
-//! back), the standing orders pruning and setting defaults. worlds-2 (2026-09-26): four Rovers never caught one
-//! Pawn, the hands vetoed a hand-set station seven times in 22 s, and a detachment became a group with a stranger's
-//! rule; the raid scenario measured the hunt at 11 s to the first kill against 45-100 s without.
+//! states the groups within reach can execute against it (the whole group, the fastest few hunting it, a stand at
+//! the next extractor on its heading). worlds-2 (2026-09-26): four Rovers never caught one Pawn, the hands vetoed
+//! a hand-set station seven times in 22 s, and a detachment became a group with a stranger's rule; the raid
+//! scenario measured the hunt at 11 s to the first kill against 45-100 s without.
 
 use std::collections::BTreeMap;
 
@@ -13,7 +13,7 @@ use serde_json::json;
 
 use super::groups::GroupTask;
 use super::picture::{Party, Picture, Place};
-use super::plan::{ALARM, Kind, Response, Slot, State, under};
+use super::plan::{Kind, Response, Slot, State, under};
 /// The raider states reach this far from the group (the detectors' reach).
 pub(super) const RAIDER_REACH: f32 = 1200.0;
 use super::Brain;
@@ -30,11 +30,9 @@ pub(super) fn place_of(places: &[Place], at: Vec3) -> Option<&str> {
 
 impl Brain {
     /// The threats this second and the states against each: every party in our half, within reach of a structure
-    /// of ours or coming toward home; for each group within reach the whole-group fight when it outweighs the party
-    /// (turrets counted), the hunt by the fastest few that outrun it and outweigh it, the way back when the party
-    /// outweighs the group within the alarm reach. The standing orders prune (`never`, `ignore`, `no_detachments`)
-    /// and set defaults (`whole_group`, `detachment:N`, `engage_party`); a group already engaging or hunting the
-    /// party has that state as current.
+    /// of ours or coming toward home; for each group within reach the whole-group fight, the hunt by the fastest
+    /// few (the fewest that outweigh it) and a stand at the next extractor on its heading, each whatever the odds:
+    /// the words carry them. A group already engaging or hunting the party has that state as current.
     pub(super) fn threat_slots(&self, tick: &Tick, picture: &Picture) -> Vec<Slot> {
         let Some(pianist) = self.pianist.as_ref() else { return Vec::new() };
         let Some(kit) = self.kit else { return Vec::new() };
@@ -116,11 +114,8 @@ impl Brain {
                 }
                 let (_, odds_words) = self.group_odds(&body, party, enemies, &tick.snapshot.allies);
                 let tail = if body.strung_out() { format!(", its tail {:.0} behind its front", body.length) } else { String::new() };
-                // `no_chase`: the whole group goes only after a party within reach of its station (else its last
-                // hold, else home); the course slot's hold ends an engagement the quarry carries beyond it.
-                // The speeds are in the odds words now (`odds_words`); the walk below uses the group's slowest.
+                // The speeds are in the odds words (`odds_words`); the walk below uses the group's slowest.
                 let group_speed = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.speed).fold(f32::INFINITY, f32::min);
-                let outrun = String::new();
                 let standing: f32 = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
                 let hunting_it = matches!(&group.task, GroupTask::Hunt(h) if party.ids.contains(&h.quarry));
                 let engaging_it = matches!(&group.task, GroupTask::Engage { party: ids, .. } if ids.iter().any(|id| party.ids.contains(id)));
@@ -182,7 +177,7 @@ impl Brain {
                         format!("{}.whole_{name}", party.name),
                         name.clone(),
                         Response::Whole,
-                        format!("{name} attacks {} ({}{}) with the whole group ({standing:.0} metal against {theirs}: {odds_words}), {distance:.0} from its front{tail}{walk}{leave}{outrun}", party.name, party.composition, under(party)),
+                        format!("{name} attacks {} ({}{}) with the whole group ({standing:.0} metal against {theirs}: {odds_words}), {distance:.0} from its front{tail}{walk}{leave}", party.name, party.composition, under(party)),
                         standing,
                         engaging_it,
                     ));
@@ -202,19 +197,9 @@ impl Brain {
                         matches!(&group.task, GroupTask::Move { place, fight: true, .. } if place == pl),
                     ));
                 }
-                // The way back.
-                if distance < ALARM {
-                    let to = "home".to_string();
-                    let current = matches!(&group.task, GroupTask::Move { place, fight: false, .. } if *place == to);
-                    states.push(state(
-                        format!("{}.back_{name}", party.name),
-                        name.clone(),
-                        Response::Back(to.clone()),
-                        format!("{name} falls back to {to} from {} ({}{}; {odds_words}), {distance:.0} from its front{tail}", party.name, party.composition, under(party)),
-                        0.0,
-                        current,
-                    ));
-                }
+                // No way back among a party's answers: its one destination was our base, chosen here (player-33: 38
+                // plays, 24 walks home by groups of six or more). Where a group goes when it declines a fight is the
+                // player's to name, and the walk there is a state of the group's own slot (`plan.rs`, walks to named places).
             }
             // An armed builder that outweighs the party alone attacks it: a state for any party within the raider reach,
             // the walk in the words, the pick weighing it. Fixed reaches hid the answer: a Pawn 550 from the commander

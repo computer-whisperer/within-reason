@@ -71,7 +71,8 @@ wait at home between fields; you are woken when 500 metal of wrecks lies in such
 and `resurrection_bots` lines carry the totals. Labs, plants and other factories (`lab_N`, `plant_N`,
 `factory_N`) build any unit of theirs or nothing. Your first report carries the whole roster, one line a unit by internal
 name; `units` gives any unit's full entry, ours or theirs. Groups hold, walk to a place (running
-from everything), advance to a place fighting (arriving together), engage a party in sight, retreat home, split a
+from everything; our base is the place `home`, offered to a group far from it when its own paragraph names it),
+advance to a place fighting (arriving together), engage a party in sight, split a
 detachment to a place, send a detachment of one, two, four or eight against a party in sight (`send_against`: the rest
 carry on), send one scout to a place, join another group of the same kind (ground, hover or air groups never mix),
 escort a builder (it stays beside `constructor_N` or `commander` wherever that goes), or
