@@ -195,6 +195,8 @@ pub struct Pianist {
     /// The `openers` layer (`layers::openers`): each actor's `change` and each party's `answer` at its last ask,
     /// with the frame.
     opened: HashMap<String, (f64, i32)>,
+    /// The `places` layer (`layers::places`): each place's question at its last ask, with the frame.
+    places_open: HashMap<String, (f64, i32)>,
     /// What the gate in flight took, put back if it fails (`gate_failed`).
     undo: Option<Undo>,
     /// The parties in the picture at the last pass: a new one is an event.
@@ -579,6 +581,7 @@ impl Pianist {
             decode: decode::Decode::default(),
             appeared: HashMap::new(),
             opened: HashMap::new(),
+            places_open: HashMap::new(),
             undo: None,
             parties_seen: BTreeSet::new(),
             events: BTreeSet::new(),
@@ -922,7 +925,15 @@ impl Brain {
             let pianist = self.pianist.as_ref().expect("pianist mode");
             if pianist.layers.openers { layers::openers(&mut menus, &pianist.opened, frame, compose::FLAG, &mut compose::draw) } else { (0, 0) }
         };
-        let questions = compose::gate_questions(&menus, parties, &picture.places, self.pianist.as_ref().is_some_and(|p| p.diet.only_used));
+        // The `places` layer: a move aimed at a place whose question said no at the last gate waits for the place.
+        let (blanked, blanked_audited) = {
+            let pianist = self.pianist.as_ref().expect("pianist mode");
+            if pianist.layers.places { layers::places(&mut menus, &pianist.places_open, frame, layers::PLACE_BAR, &mut compose::draw) } else { (0, 0) }
+        };
+        let questions = {
+            let pianist = self.pianist.as_ref().expect("pianist mode");
+            compose::gate_questions(&menus, parties, &picture.places, pianist.diet.only_used, pianist.diet.builder_words, pianist.layers.places)
+        };
         // The `same` layer: a question in the words of its last ask is not sent again.
         let asked_whole = questions.len();
         let same = {
@@ -979,7 +990,7 @@ impl Brain {
         if !closed.is_empty() {
             line["closed"] = json!(closed);
         }
-        line["layers"] = json!({ "news": { "on": pianist.layers.news, "skipped": skipped, "audited": audited }, "same": { "on": pianist.layers.same, "skipped": same.stand.len() - same.audited.len(), "audited": same.audited.len() }, "fuse": { "on": pianist.layers.fuse, "skipped": fused, "audited": fuse_audited }, "openers": { "on": pianist.layers.openers, "skipped": held, "audited": held_audited } });
+        line["layers"] = json!({ "news": { "on": pianist.layers.news, "skipped": skipped, "audited": audited }, "same": { "on": pianist.layers.same, "skipped": same.stand.len() - same.audited.len(), "audited": same.audited.len() }, "fuse": { "on": pianist.layers.fuse, "skipped": fused, "audited": fuse_audited }, "openers": { "on": pianist.layers.openers, "skipped": held, "audited": held_audited }, "places": { "on": pianist.layers.places, "skipped": blanked, "audited": blanked_audited } });
         line["menus"] = compose::log_menus(&menus);
         line["gate"] = json!(questions.iter().map(|(id, _)| id.clone()).collect::<Vec<_>>());
         if !events.is_empty() {
@@ -1126,6 +1137,14 @@ impl Brain {
                     if let Some(p) = noul(&id) {
                         audits.push(json!({ "t": "audit", "f": tick.frame, "layer": "openers", "id": id, "assumed": "its opener says no", "opener": opener, "fresh": p, "fault": opener >= compose::FLAG && p >= compose::FLAG }));
                     }
+                } else if mv.blanked {
+                    // A blanked move asked anyway: a fault is one that would have gone to the pick this second
+                    // (at the flag with its actor open, or an idle actor's best at `IDLE_BAR`).
+                    let place = mv.place().and_then(|p| noul(&format!("{p}.place"))).unwrap_or(0.0);
+                    let open = m.idle || noul(&format!("{}.change", m.name)).is_some_and(|c| c >= compose::FLAG);
+                    if let Some(p) = noul(&id) {
+                        audits.push(json!({ "t": "audit", "f": tick.frame, "layer": "places", "id": id, "assumed": "its place says no", "place": place, "fresh": p, "fault": open && p >= if m.idle { compose::IDLE_BAR } else { compose::FLAG } }));
+                    }
                 } else if let Some(mark) = mv.marked {
                     if let Some(p) = noul(&format!("{id}.forbidden")) {
                         audits.push(json!({ "t": "audit", "f": tick.frame, "layer": "fuse", "id": format!("{id}.forbidden"), "assumed": mark, "fresh": p, "fault": (p >= compose::FORBIDDEN) != mark }));
@@ -1142,12 +1161,24 @@ impl Brain {
             .filter(|(name, p)| *p >= compose::FLAG && menus.iter().any(|m| m.moves.iter().any(|mv| mv.held && (m.name == *name || mv.party.as_deref() == Some(name.as_str())))))
             .map(|(name, _)| format!("{name} opened"))
             .collect();
+        // The places as they came back; one at the bar over blanked moves asks their actors again the next second.
+        let places: Vec<(String, f64)> = followed.flags.iter().filter_map(|(k, p)| k.strip_suffix(".place").map(|place| (place.to_string(), *p))).collect();
+        let place_opened: Vec<String> = menus
+            .iter()
+            .filter(|m| m.moves.iter().any(|mv| mv.blanked && mv.place().is_some_and(|place| places.iter().any(|(name, p)| *name == place && *p >= layers::PLACE_BAR))))
+            .map(|m| format!("{} opened", m.name))
+            .collect();
         let pianist = self.pianist.as_mut().expect("pianist mode");
         pianist.opened.retain(|_, (_, f)| tick.frame - *f < layers::RE_ASK);
         for (name, p) in openers {
             pianist.opened.insert(name, (p, tick.frame));
         }
+        pianist.places_open.retain(|_, (_, f)| tick.frame - *f < layers::RE_ASK);
+        for (name, p) in places {
+            pianist.places_open.insert(name, (p, tick.frame));
+        }
         pianist.events.extend(reopened);
+        pianist.events.extend(place_opened);
         layers::remember(&mut pianist.said, &request.questions, &response.answers, same_audited, layers::counts(&request.state), tick.frame);
         for audit in audits {
             pianist.write_log(audit);

@@ -127,7 +127,10 @@ pub(crate) struct Move {
     /// Its opener said no at the last gate (the `openers` layer): not asked this gate, and asked the second after
     /// the opener opens.
     pub held: bool,
-    /// Fused off or held, and asked anyway for the layer's audit: the answer is logged and not played.
+    /// Its place's question said no at the last gate (the `places` layer): not asked this gate, and asked the
+    /// second after the place opens.
+    pub blanked: bool,
+    /// Fused off, held or blanked, and asked anyway for the layer's audit: the answer is logged and not played.
     pub audit: bool,
     /// The forbidden mark as the decode has it for a detachment: on or off without asking each second; `None`
     /// when the decode is unsure or the layer is off, and the gate asks.
@@ -151,17 +154,27 @@ pub(crate) enum Read {
 
 impl Move {
     pub(super) fn new(key: String, order: Order, words: String, said: String, party: Option<String>, detachment: bool) -> Move {
-        Move { key, order, words, said, party, detachment, reads: Vec::new(), fused: false, held: false, audit: false, marked: None }
+        Move { key, order, words, said, party, detachment, reads: Vec::new(), fused: false, held: false, blanked: false, audit: false, marked: None }
     }
 
     /// Whether the move's question goes out when its menu's own moves are asked.
     pub(super) fn asked(&self) -> bool {
-        !(self.fused || self.held) || self.audit
+        !(self.fused || self.held || self.blanked) || self.audit
     }
 
     /// Whether the move may go to the pick this gate.
     pub(super) fn playable(&self) -> bool {
-        !(self.fused || self.held)
+        !(self.fused || self.held || self.blanked)
+    }
+
+    /// The place a move of the actor's own is aimed at (the `places` layer asks about it once a gate): a walk, an
+    /// advance, a raid or a build at a named place or a spot; not a move aimed at a party, which its party opens.
+    pub(super) fn place(&self) -> Option<String> {
+        match &self.order {
+            Order::Go(p) | Order::FightTo(p) | Order::Raid(p) | Order::Build(_, Site::Place(p)) | Order::Shell(His::Place(p)) => Some(p.clone()),
+            Order::Build(_, Site::Spot(spot)) => Some(format!("spot_{spot}")),
+            _ => None,
+        }
     }
 }
 

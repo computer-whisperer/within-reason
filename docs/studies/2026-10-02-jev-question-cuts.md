@@ -111,9 +111,12 @@ this granularity halves the place-aimed questions; it does not cut them by five.
   stops stalling; whether an idle lab can afford its cheapest unit reopens the lab alone. Counted on player-40,
   about 36M characters of the 56M the store-opened builders cost, about $0.5 of the $4.24; the 73 played moves
   come instead at the builder's own news or its 20-second re-ask. Unmeasured in a game.
-- The place pre-gate at 0.3 (`v0` or `v4`), ridden in the openers' request: net about $0.75 after the first.
-  Not built; the user's call.
-- Builders' questions without the fixed wording: about $0.25 after the first two. Not built.
+- **Built later the same evening (the user: "Let's build these improvements and run a game with it"): the place
+  pre-gate as the `places` layer** at 0.3 with the first wording, ridden in the openers' request (H-HANDS-LAYERS):
+  net about $0.75 after the first. Law: a move aimed at a place is asked only while Jev says, this gate, that
+  someone has a reason to go there; Jev decides per place, code the bar.
+- **Built with it: builders' questions without the fixed wording** (the diet's `builder_words`, H-HANDS-DIET), the
+  course kept as "Rather than: ..." and the framing said once in the rules: about $0.25 after the first two.
 
 Together about $1.5 of the $4.24, and the game at about $3.9. What remains is the menu's breadth times the number
 of actors; the picks and the decodes ($1.13) were not looked at.

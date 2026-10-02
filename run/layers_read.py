@@ -3,7 +3,7 @@
 send, what it asked anyway for its audit, and the audit's faults (`news`: a closed actor whose `change` and whose
 best move both came back at 0.5 or over, so it would have gone to the pick; `same`: a standing answer and the fresh
 one on different sides of 0.5; `fuse`: a fused-off move rated 0.5 or over when asked anyway, or a decoded forbidden
-mark the second's own reading puts on the other side of 0.7). The decode's own calls are counted in the bill. Beside it the game's Jev bill and what the gate
+mark the second's own reading puts on the other side of 0.7; `openers`: a held move at 0.5 or over with its opener open; `places`: a blanked move that would have gone to the pick, at 0.5 with its actor open or an idle actor's at 0.3). The decode's own calls are counted in the bill. Beside it the game's Jev bill and what the gate
 asked, by kind of question.
 
     run/layers_read.py run/matches/<batch>/<NN> [--faults]

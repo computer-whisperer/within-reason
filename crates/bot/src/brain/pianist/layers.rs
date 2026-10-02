@@ -4,8 +4,8 @@
 //! it asks anyway, in the same request, and the log sets what it assumed beside what came back.
 //!
 //! `WITHIN_REASON_HANDS_LAYERS` (the arena's `--hands-layers`) names the layers that are on, comma-separated;
-//! unset, `news` is on, and `none` switches every layer off. Built so far: `news`, `same`, `fuse`, `openers`, `tick`. Naming a layer that is
-//! not built stops the bot at its start rather than running a game without it.
+//! unset, `news` is on, and `none` switches every layer off. Built so far: `news`, `same`, `fuse`, `openers`, `split`,
+//! `tick`, `places`. Naming a layer that is not built stops the bot at its start rather than running a game without it.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
@@ -25,10 +25,14 @@ pub(super) fn split_audit_share() -> f64 {
     *SHARE.get_or_init(|| std::env::var("WITHIN_REASON_SPLIT_AUDIT").ok().and_then(|v| v.parse().ok()).unwrap_or(AUDIT_SHARE))
 }
 /// The layers of the design note, in its order, and those that exist.
-const KNOWN: [&str; 8] = ["news", "same", "fuse", "openers", "split", "tick", "one", "local"];
-const BUILT: [&str; 6] = ["news", "same", "fuse", "openers", "split", "tick"];
+const KNOWN: [&str; 9] = ["news", "same", "fuse", "openers", "split", "tick", "places", "one", "local"];
+const BUILT: [&str; 7] = ["news", "same", "fuse", "openers", "split", "tick", "places"];
 /// The `tick` layer: a gate that no event calls for waits until this long after the last one.
 pub(super) const TICK: i32 = 2 * FRAMES_PER_SECOND;
+/// The `places` layer: a place whose question came back at this or over has its moves asked (the question-cuts
+/// study, `docs/studies/2026-10-02-jev-question-cuts.md` §3: at 0.3 the place question kept 24 of 25 places with
+/// a recorded move at 0.5 and 69 of 83 where an idle actor's move was at 0.3, for 53% of the place-aimed questions).
+pub(super) const PLACE_BAR: f64 = 0.3;
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Layers {
@@ -50,12 +54,16 @@ pub(crate) struct Layers {
     /// A gate that no event calls for waits until `TICK` after the last one; an event still asks at once. It only
     /// delays, so it has no audit.
     pub tick: bool,
+    /// One noul per place a gate ("does any of ours have a reason to go to, fight at or build at spot_43 now"),
+    /// asked with the openers; a move of an actor's own aimed at a place is asked only while the place's question
+    /// said yes (`PLACE_BAR`) at its last ask, and the second after it does.
+    pub places: bool,
 }
 
 impl Layers {
     pub(super) fn parse(value: Option<&str>) -> Result<Layers, String> {
-        let Some(value) = value.map(str::trim).filter(|v| !v.is_empty()) else { return Ok(Layers { news: true, same: false, fuse: false, openers: false, split: false, tick: false }) };
-        let mut layers = Layers { news: false, same: false, fuse: false, openers: false, split: false, tick: false };
+        let Some(value) = value.map(str::trim).filter(|v| !v.is_empty()) else { return Ok(Layers { news: true, same: false, fuse: false, openers: false, split: false, tick: false, places: false }) };
+        let mut layers = Layers { news: false, same: false, fuse: false, openers: false, split: false, tick: false, places: false };
         for name in value.split(',').map(str::trim).filter(|n| !n.is_empty() && *n != "none") {
             match name {
                 "news" => layers.news = true,
@@ -64,6 +72,7 @@ impl Layers {
                 "openers" => layers.openers = true,
                 "split" => layers.split = true,
                 "tick" => layers.tick = true,
+                "places" => layers.places = true,
                 _ if KNOWN.contains(&name) => return Err(format!("the hands' layer `{name}` is not built yet (built: {})", BUILT.join(", "))),
                 _ => return Err(format!("`{name}` is not a layer of the hands (the layers: {})", KNOWN.join(", "))),
             }
@@ -77,7 +86,7 @@ impl Layers {
 
     /// The layers that are on, for the log's header.
     pub(super) fn names(&self) -> Vec<&'static str> {
-        [(self.news, "news"), (self.same, "same"), (self.fuse, "fuse"), (self.openers, "openers"), (self.split, "split"), (self.tick, "tick")].into_iter().filter(|(on, _)| *on).map(|(_, name)| name).collect()
+        [(self.news, "news"), (self.same, "same"), (self.fuse, "fuse"), (self.openers, "openers"), (self.split, "split"), (self.tick, "tick"), (self.places, "places")].into_iter().filter(|(on, _)| *on).map(|(_, name)| name).collect()
     }
 }
 
@@ -176,6 +185,36 @@ pub(super) fn openers(menus: &mut [Menu], opened: &HashMap<String, (f64, i32)>, 
                     audited += 1;
                 } else {
                     skipped += if m.detachment && m.marked.is_none() { 2 } else { 1 };
+                }
+            }
+        }
+    }
+    (skipped, audited)
+}
+
+/// The `places` layer (H-HANDS-LAYERS): a move of an actor's own aimed at a place (`Move::place`) is asked only
+/// while the place's question said yes (`PLACE_BAR`) at its last ask, under `RE_ASK` ago; otherwise it is blanked:
+/// not asked this gate. The place questions themselves (`compose::place_questions`) are asked every gate for every
+/// place with a move of an asked actor, blanked or not, and one that comes back at the bar makes the gate go again
+/// the next second with the moves it blanked (`mod.rs`: an "opened" event for each of their actors). A place never
+/// asked is no yes. A move the `openers` layer holds is left to it. A share of `AUDIT_SHARE` of what is blanked is
+/// asked anyway. Returns the questions not sent and the moves audited.
+pub(super) fn places(menus: &mut [Menu], open: &HashMap<String, (f64, i32)>, frame: i32, bar: f64, draw: &mut dyn FnMut() -> f64) -> (usize, usize) {
+    let said_yes = |place: &str| open.get(place).filter(|(_, f)| frame - f < RE_ASK).is_some_and(|(p, _)| *p >= bar);
+    let (mut skipped, mut audited) = (0, 0);
+    for menu in menus.iter_mut() {
+        if !menu.asks_own() {
+            continue;
+        }
+        for m in menu.moves.iter_mut().skip(1).filter(|m| !m.fused && !m.held && m.party.is_none()) {
+            let Some(place) = m.place() else { continue };
+            if !said_yes(&place) {
+                m.blanked = true;
+                if draw() < AUDIT_SHARE {
+                    m.audit = true;
+                    audited += 1;
+                } else {
+                    skipped += 1;
                 }
             }
         }
@@ -288,11 +327,12 @@ mod tests {
 
     #[test]
     fn the_layers_are_named_and_an_unbuilt_one_stops_the_start() {
-        let none = Layers { news: false, same: false, fuse: false, openers: false, split: false, tick: false };
+        let none = Layers { news: false, same: false, fuse: false, openers: false, split: false, tick: false, places: false };
         assert_eq!(Layers::parse(None), Ok(Layers { news: true, ..none.clone() }));
         assert_eq!(Layers::parse(Some("news")), Ok(Layers { news: true, ..none.clone() }));
         assert_eq!(Layers::parse(Some("none")), Ok(none.clone()));
-        assert_eq!(Layers::parse(Some("news, same,fuse,openers,tick")), Ok(Layers { news: true, same: true, fuse: true, openers: true, split: false, tick: true }));
+        assert_eq!(Layers::parse(Some("news, same,fuse,openers,tick")), Ok(Layers { news: true, same: true, fuse: true, openers: true, split: false, tick: true, places: false }));
+        assert_eq!(Layers::parse(Some("places")), Ok(Layers { places: true, ..none.clone() }));
         assert_eq!(Layers::parse(Some("split")), Ok(Layers { split: true, ..none.clone() }));
         assert!(Layers::parse(Some("news,one")).unwrap_err().contains("not built yet"));
         assert!(Layers::parse(Some("gnus")).unwrap_err().contains("not a layer"));
@@ -319,6 +359,32 @@ mod tests {
         let mut closed = group(false);
         closed.quiet = true;
         assert_eq!(held(closed, &[("party_1", 0.1, 300)]), (false, true, (1, 0)), "closed by the news layer: its own moves are not asked anyway, and its answer waits for the party");
+    }
+
+    /// The `places` layer: a move aimed at a place is asked only while the place said yes at its last ask; a party
+    /// move, a move with no place, a fused or held move and a closed actor's moves are not its to blank.
+    #[test]
+    fn a_move_at_a_place_waits_for_the_place() {
+        let group = || menu("group_A", Kind::Group("A".into()), true, vec![mv("go_spot_4", Order::Go("spot_4".into()), None), mv("fight_to_spot_9", Order::FightTo("spot_9".into()), None), mv("attack_party_1", Order::Attack("party_1".into()), Some("party_1")), mv("gather", Order::Gather, None)]);
+        let blanked = |menu: Menu, open: &[(&str, f64, i32)]| {
+            let open: HashMap<String, (f64, i32)> = open.iter().map(|(k, p, f)| (k.to_string(), (*p, *f))).collect();
+            let mut menus = vec![menu];
+            let counts = places(&mut menus, &open, 330, PLACE_BAR, &mut || 0.5);
+            (menus[0].moves.iter().skip(1).map(|m| m.blanked).collect::<Vec<_>>(), counts)
+        };
+        assert_eq!(blanked(group(), &[]), (vec![true, true, false, false], (2, 0)), "never asked: both places' moves wait; the party move and the gather do not");
+        assert_eq!(blanked(group(), &[("spot_4", 0.4, 300), ("spot_9", 0.1, 300)]), (vec![false, true, false, false], (1, 0)), "spot_4 said yes");
+        assert_eq!(blanked(group(), &[("spot_4", 0.9, 330 - RE_ASK)]), (vec![true, true, false, false], (2, 0)), "a yes too old is no yes");
+        let mut held = group();
+        held.moves[1].held = true;
+        assert_eq!(blanked(held, &[]), (vec![false, true, false, false], (1, 0)), "a move the openers hold is left to them");
+        let mut closed = group();
+        closed.quiet = true;
+        closed.idle = false;
+        assert_eq!(blanked(closed, &[]), (vec![false, false, false, false], (0, 0)), "a closed actor's own moves are not asked anyway");
+        let mut menus = vec![group()];
+        assert_eq!(places(&mut menus, &HashMap::new(), 330, PLACE_BAR, &mut || 0.001), (0, 2), "the audit asks a blanked move anyway");
+        assert!(menus[0].moves[1].blanked && menus[0].moves[1].audit && menus[0].moves[1].asked() && !menus[0].moves[1].playable());
     }
 
     /// The `same` layer: a noul asked again in the same words within the re-ask is not sent and its last answer

@@ -35,14 +35,18 @@ pub(crate) struct Diet {
     /// say; the scouting lines; the `produce` hint), the rules' sentences for a kind of actor nobody is asked
     /// about, and in a move's question the fight's facts its course has just said.
     pub only_used: bool,
+    /// A builder's own move is asked as its words and "Rather than: {course}.", the framing said once in the rules
+    /// (`rules.md` `<<builder_words>>`): the question-cuts study §2 (`docs/studies/2026-10-02-jev-question-cuts.md`),
+    /// 141 of a move question's 467 characters, under which a builder's answers hold and a group's do not.
+    pub builder_words: bool,
 }
 
 impl Diet {
     pub fn level(level: HandsEffort) -> Diet {
         match level {
-            HandsEffort::Lean => Diet { level, places_reach: Some(1_500.0), places_held_too: false, actors_brief: true, only_used: true },
-            HandsEffort::Normal => Diet { level, places_reach: Some(2_500.0), places_held_too: true, actors_brief: true, only_used: true },
-            HandsEffort::Full => Diet { level, places_reach: None, places_held_too: true, actors_brief: false, only_used: false },
+            HandsEffort::Lean => Diet { level, places_reach: Some(1_500.0), places_held_too: false, actors_brief: true, only_used: true, builder_words: true },
+            HandsEffort::Normal => Diet { level, places_reach: Some(2_500.0), places_held_too: true, actors_brief: true, only_used: true, builder_words: true },
+            HandsEffort::Full => Diet { level, places_reach: None, places_held_too: true, actors_brief: false, only_used: false, builder_words: false },
         }
     }
 
@@ -154,13 +158,14 @@ pub(super) fn rules_for(marked: &str, keep: &dyn Fn(&str) -> bool) -> String {
 
 /// Whether a marked part of the rules bears on a request that asks about `asked`: the factory's sentence when a
 /// factory is asked, the commander's when the commander is, the wind's when something that builds is, the allies'
-/// when another seat has a group.
-fn rules_part_used(kind: &str, asked: &BTreeSet<&str>, allies: bool) -> bool {
+/// when another seat has a group, the short questions' framing when a builder is asked in them.
+fn rules_part_used(kind: &str, asked: &BTreeSet<&str>, allies: bool, builder_words: bool) -> bool {
     let any = |prefix: &str| asked.iter().any(|n| n.starts_with(prefix));
     match kind {
         "factory" => any("plant_"),
         "commander" => any("commander"),
         "builders" => any("commander") || any("constructor_") || any("plant_"),
+        "builder_words" => builder_words && (any("commander") || any("constructor_")),
         "allies" => allies,
         _ => true,
     }
@@ -174,7 +179,7 @@ impl Brain {
         let mut state = picture.state.clone();
         let names_asked: BTreeSet<&str> = asked.iter().map(|(n, _)| n.as_str()).collect();
         let allies = state["allies"].is_object();
-        state["rules"] = Value::String(rules_for(&picture.rules, &|kind| !diet.only_used || rules_part_used(kind, &names_asked, allies)));
+        state["rules"] = Value::String(rules_for(&picture.rules, &|kind| if kind == "builder_words" || diet.only_used { rules_part_used(kind, &names_asked, allies, diet.builder_words) } else { true }));
         if diet.only_used {
             if let Some(enemy) = state["enemy"].as_object_mut() {
                 enemy.retain(|line, _| !PLAYERS_ENEMY_LINES.contains(&line.as_str()));
@@ -321,21 +326,22 @@ mod tests {
 
     #[test]
     fn a_marked_part_of_the_rules_is_sent_only_when_its_kind_is_asked() {
-        let marked = "Fights first.<<factory>> A factory builds.<</factory>> Groups advance.<<commander>> The commander stays.<</commander>>\n<<allies>>`allies` are theirs; <</allies>>`out_of_sight` parties left sight.\n<<builders>>Wind is 2.<</builders>>";
-        assert_eq!(rules_for(marked, &|_| true), "Fights first. A factory builds. Groups advance. The commander stays.\n`allies` are theirs; `out_of_sight` parties left sight.\nWind is 2.");
+        let marked = "Fights first.<<factory>> A factory builds.<</factory>> Groups advance.<<commander>> The commander stays.<</commander>>\n<<allies>>`allies` are theirs; <</allies>>`out_of_sight` parties left sight.\n<<builders>>Wind is 2.<</builders>><<builder_words>> A short question.<</builder_words>>";
+        assert_eq!(rules_for(marked, &|_| true), "Fights first. A factory builds. Groups advance. The commander stays.\n`allies` are theirs; `out_of_sight` parties left sight.\nWind is 2. A short question.");
         let groups: BTreeSet<&str> = BTreeSet::from(["group_A", "group_B2"]);
-        assert_eq!(rules_for(marked, &|k| rules_part_used(k, &groups, false)), "Fights first. Groups advance.\n`out_of_sight` parties left sight.");
+        assert_eq!(rules_for(marked, &|k| rules_part_used(k, &groups, false, true)), "Fights first. Groups advance.\n`out_of_sight` parties left sight.");
         let with_commander: BTreeSet<&str> = BTreeSet::from(["group_A", "commander"]);
-        assert_eq!(rules_for(marked, &|k| rules_part_used(k, &with_commander, true)), "Fights first. Groups advance. The commander stays.\n`allies` are theirs; `out_of_sight` parties left sight.\nWind is 2.");
+        assert_eq!(rules_for(marked, &|k| rules_part_used(k, &with_commander, true, true)), "Fights first. Groups advance. The commander stays.\n`allies` are theirs; `out_of_sight` parties left sight.\nWind is 2. A short question.");
+        assert!(rules_for(marked, &|k| rules_part_used(k, &with_commander, true, false)).ends_with("Wind is 2."), "the short questions' framing goes only with the short questions");
         let plant: BTreeSet<&str> = BTreeSet::from(["plant_7"]);
-        assert!(rules_for(marked, &|k| rules_part_used(k, &plant, false)).contains("A factory builds. Groups advance.\n`out_of_sight`"));
+        assert!(rules_for(marked, &|k| rules_part_used(k, &plant, false, true)).contains("A factory builds. Groups advance.\n`out_of_sight`"));
     }
 
     /// `rules.md` marks the parts the cut knows, each once and closed; unmarked, the cut would silently send all.
     #[test]
     fn the_rules_file_marks_every_part_the_cut_knows() {
         let text = crate::texts::HANDS_RULES.compiled;
-        for kind in ["factory", "commander", "allies"] {
+        for kind in ["factory", "commander", "allies", "builder_words"] {
             assert_eq!(text.matches(&format!("<<{kind}>>")).count(), 1, "{kind}");
             assert_eq!(text.matches(&format!("<</{kind}>>")).count(), 1, "{kind}");
         }
