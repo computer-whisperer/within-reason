@@ -1,9 +1,10 @@
 # The hands, rebuilt: one menu per actor (target design, 2026-10-01)
 
-**Status.** Draft 4, for the user's review. Cost: see `docs/studies/2026-10-01-jev-token-budget.md`, which supersedes §8
-and answers question 1. Nothing is built and nothing is deleted. The draft went through three
-reviews and a set of offline replays of recorded seconds before this version; §13 says what each changed. The row by
-row disposition of what the code does today is in `2026-10-01-hands-rebuild-cut-line.md`.
+**Status.** Draft 5, for the user's approval to build. Nothing is built and nothing is deleted. Drafts 1 to 4 went
+through three reviews and a set of offline replays of recorded seconds; draft 5 folds in the user's rulings of
+2026-10-01 on cost and on how to build it (§8); §13 says what each step changed. The row by row disposition of what
+the code does today is in `2026-10-01-hands-rebuild-cut-line.md`; the token budget is in
+`docs/studies/2026-10-01-jev-token-budget.md`.
 
 The user, 2026-10-01, after K-hands-the-only-way-to-decline-a-fight-was-to-walk-home: "why is the only action space
 available for a group not cover basic movement actions?"; "Why do we go from our units out to the enemy in one case,
@@ -48,7 +49,8 @@ From an inventory of the code at e690e5e (`docs/studies/2026-10-01-hands-invento
    names is on the menu of every actor that can use it. No nearest-N, no reach, no "where it last held", no "this
    place is that group's". A move is left out only when the unit cannot do it.
 5. **Code never reads the prose for meaning.** It recognises names (`spot_12`, a mark, `home`, `group_A`). What the
-   instructions mean for which actor is Jev's reading, every second, with the picture beside it.
+   instructions mean for which actor is Jev's reading: every second with the picture beside it, or once per packet
+   where the question is about the instructions alone (§8).
 6. **Facts go in words; no fact adds or removes a move** (unchanged).
 7. **Code carries a picked move to its end and says the end.** It never starts, changes or stops one by itself.
 8. **What Jev needs to remember is printed, never acted on**: what each actor last chose, when, and what it left.
@@ -93,8 +95,9 @@ rest are things aircraft cannot do, as today. A builder on a list has only the m
 seen); how it stands to each party in the actor's entry ("stepping back from party_7"); what it leaves. A fight's
 facts are said once and repeated on every move that keeps it or leaves it, so `stay` and `go` carry the same facts:
 the odds for the part of the group in reach, what each side lost in the last seconds, whether the party can follow.
-Clocks ("for 3 s") live in the actor's entry, not in the move, so that a move's words stay the same from second to
-second (§8).
+Clocks ("for 3 s") live in the actor's entry, not in the move, and distances and times are said in word buckets
+("far", "about 20 s") with the number beside them only where it decides something, so that a move's words stay the
+same from second to second (§8's `same` layer lives on that; K-jev-words-not-numbers).
 
 ## 4. The pass
 
@@ -122,8 +125,6 @@ pick is two questions. The composition is written anew for one slot an actor. Wh
   with no course, and every party, at every gate. A hold that Jev picked is a course. News for an actor: its
   course ended, it was hit or lost a soldier, an event names it, the packet or a list changed, a party came or
   went in its entry, the store crossed empty or full. The exception for a group on a route leg goes.
-- **One more saving, new** (question 2): a question whose words have not changed since it was last asked, less than
-  20 s ago, is not sent again; its last answer stands.
 - **Failure.** A gate that failed is asked again at the next second (today: up to 20 s later).
 
 **Two things at once.** One move per actor a second means a body between two raids answers one this second and the
@@ -139,13 +140,15 @@ the fix is in the words, not a hold in code.
 
 The packet stays prose and no tool is added. The role text gets the verb table as its vocabulary and one new
 instruction: every group's paragraph says where it goes when it should not fight. The report gains, per group, its
-register line (what it last chose and when) and the two moves the gate last rated best for it, so a paragraph that
-is not being read as meant shows within a turn.
+register line (what it last chose and when), the two moves the gate last rated best for it, and, once the decode of
+§8 is on, what the decode read for it ("group_L5 reads: spot_27, spot_18, spot_29; NO place to step back to"), so a
+paragraph that is not being read as meant shows within a turn.
 
-`rules.md` is cut to what the words mean. Its judgments ("a party within 600 of a group that outweighs it is fought
-now, whatever the instructions call it", the fall-back law, the commander's retreat law) move to the brief, where
-the player owns them (K-hands-menu-verdicts-beat-the-packet: the menu states, the packet judges). The two sentences
-that measured as helping on 2026-09-22 are replayed before they go.
+`rules.md` is rewritten in the new verbs, and in the base version it keeps its judgments ("a party within 600 of a
+group that outweighs it is fought now, whatever the instructions call it", the fall-back law, the commander's
+retreat law). They belong in the brief, where the player owns them (K-hands-menu-verdicts-beat-the-packet), but the
+text steers (K-jev-the-rules-text-steers: without it one strong move in five falls under the bar), so cutting it in
+the same game as the new menu would hide which of the two changed the play. It is cut as its own step afterwards.
 
 ## 6. What acts without a pick
 
@@ -182,24 +185,62 @@ any group. Each course's footwork in the micro lane is unchanged and is code's:
 
 Not covered by any verb: fire on one unit inside a party from the hands, choosing soldiers by type, a patrol, stances.
 
-## 8. Cost
+## 8. The base version and its layers
 
-Counted on recorded gates under the game's own asking rule (`run/menu_cost.py`); tokens fitted on each game's gates
-(0.33 a question character). A group's questions are a third of a game's bill today.
+The user, 2026-10-01: "I would lean towards building this as a full version we can run once or twice, then with
+layered optimizations we can disable if we suspect them to be at fault. That's where I see decompression working
+well: using a decode of the opus's existing orders (not a second tool call) to fuse off jev questions that we can
+answer once for the entire span." And on the price: "we really should be aiming for $1 per game or less."
 
-| Group menu | player-33 questions | bill | gates needing two requests or more | player-32 bill |
+**The base version** is §3's menu asked in full: every move of every actor and every party at every gate, the joint
+pick in its two calls, nothing skipped. It is the reference every saving is checked against. Its first games run
+with one layer on, `news`: that rule has four games behind it, and without it the bill is about two and a half
+times higher again (player-29 $5.07 against player-30 $1.98). So run, the base is counted at about $3 for a game
+like player-33 and $5 to $7 for 40 minutes, with late gates of 0.7 s or more. It is run once or twice in lockstep,
+to see whether the menu itself plays right.
+
+**A layer** is a saving with a switch. Three laws:
+
+- A layer changes which questions are sent or when, never the menu, the words or what a move does.
+- A layer audits itself: for a small share of what it skips (2% to begin with) it asks anyway, in the same
+  request, and logs what it assumed beside what came back.
+- **The fuse rule.** A fuse answers only a question about the instructions alone, never one about the picture,
+  and only when the decode's answer is clear.
+
+| Layer | What it does not send | What makes it safe | Its audit | Counted (budget study) |
 |---|---|---|---|---|
-| as played | 109,000 | $1.57 | 44 of 1,132 | $3.11 |
-| the rebuild: every named place both ways, every party at whole and 1, 2, 4, 8 | 420,000 | $3.24 | 629 | $6.63 |
-| the same with walks in the long form | 420,000 | $3.82 | 718 | $7.35 |
-| the same with two sizes (2, 8), walks short | 350,000 | $2.80 | 508 | $5.56 |
-| places only where Jev read them as the group's (question 1c; counted for every group at every gate) | about 160,000 | about $1.9 | not counted | not run |
+| `news` | questions of an actor with a course and no news (the rule of 2026-09-30, in every game since player-30) | the actor is asked again on any event that names it, and after 20 s | a share of quiet actors asked anyway | in the base's figure already |
+| `same` | a question whose words are those of its last ask, under 20 s old | re-asked as recorded, an unchanged question's answer crosses 0.5 in 0.1 to 0.7% | a share re-sent | 5% of the bill; about 9% with word buckets |
+| `fuse` | a move the decode clearly rules out for that actor, and the forbidden question beside each detachment | the fuse rule | a share of fused-off moves asked anyway: a fault is one rated 0.5 or over | walks fall by about 70%; forbidden goes |
+| `openers` | an actor's moves while its own `change` says no; a party's while its `answer` says no | the opener is asked every time; the moves follow one second later | a share of closed actors' moves asked anyway | 16% |
+| `split` | the joint worlds: each component of the pick is asked its own two stages, all in one request | components share no actor, group, builder or party | on a share of seconds the joint pick is asked too and logged beside it | the picks at 58% of their tokens: 16% of the bill; one call less a second |
+| `tick` | a gate with no event, until 2 s after the last one | events still fire at once | none: it only delays | 4% |
+| `one` | the pick's own request: it rides with the next second's gate | the picture is at most one second newer than the worlds' lines | on a share of seconds the pick is asked at once as well | the picks' picture: about a seventh |
+| `local` | the parts of the picture a request's questions do not touch | to be shown: a thinner picture moved the pick's first stage in 4 of 10 (budget study §3) | a share asked with the whole picture | needed for team games, not for 1v1 |
 
-So the menu as the laws have it about doubles the bill, and more than half the gates go out as two requests, which
-takes them from about 0.3 s to 0.7 s or more. That is before the unsent-question saving of §4: today 43 to 49% of a
-group's walk questions repeat their last words within 20 s once the clocks are out of them, and the answer then
-moves a median 0.01 (over 0.2 in 0.1%). What that saves on the rebuilt menu is not yet counted; it needs the new
-words.
+**The decode.** When a packet lands, and when an actor appears, one lean request asks Jev about the packet alone:
+for each actor and each place the packet names, whether the instructions send it there; for each group, whether
+they forbid it to send detachments, which groups they tell it to join, whom to follow, and whether they say where
+it goes when it should not fight; for each builder off a list, which buildings and spots are its. Answers under 0.2
+fuse the matching move off until the next packet; answers of 0.8 or over on the forbidden question put the mark on
+the line without asking each second; everything between is asked each second as in the base. Measured on two games:
+72% of place answers are under 0.2; a place in another actor's paragraph reads as this actor's in 1 to 2%; a
+reading crosses 0.5 between two packets that did not change its sentence in 3.4%. It is no tool call and no new
+syntax: it reads the packet the player already wrote. The player's report shows it (§5).
+
+**Switches and the log.** `--hands-layers news,same,fuse,...` on the arena (an environment variable for the bot),
+written into `batch.json` and the Jev log's header. Each pass row counts what each layer skipped; each audit is a
+row of its own. `run/layers_read.py` prints, per layer, the skipped, the audited and the faults.
+
+**Built into the base, so that the layers can exist:** the words in buckets (§3); one function that says which
+picture goes with a set of questions (the whole picture in the base; `local` swaps it); one function that says
+which questions are due (everything in the base; `news`, `same`, `fuse`, `openers` and `tick` each take some away).
+
+**Order.** The base with `news`, one or two games. Then `same` (exact). Then `fuse`. Then `openers` and `split`. Then `tick` and `one`. Each step is one game with its audit read before the next is switched on. With all
+but `local` the budget study models a game like player-33 at $0.75 to $0.95 and a 40-minute game at $1.4 to $2.0.
+Under $1.2 for 40 minutes also needs "who answers this party" asked as one Choice in place of a noul for every
+group and size (budget study §5): a change of question form, to be replayed before it is proposed as a layer. All
+of these are models until the base has run.
 
 ## 9. Evidence so far
 
@@ -213,7 +254,9 @@ Offline, on recorded seconds; under $0.50 of Jev in all. Scripts in `run/`, data
 | With no place named, a group can still step back | the same 36 seconds, the packet as it was | onto our largest other group: through the gate in 17. To a place nobody gave it: 4 |
 | A route keeps its momentum without code reading its order | player-9's 24 arrivals, two-stage pick (`route_ab.py`) | code's "next stop" in world 1: 24 of 24. No cost line: 7. An unordered list of unreached places: 10. Jev's own best-rated move named there: 24; with a fall-back place named beside the route: 24 |
 | A question whose words did not change gets the same answer | player-32 and player-33, every repeated question | median change 0.01 to 0.04 by kind |
-| Jev can read which places are whose (question 1c) | player-33's 58 packets, 11,935 questions (`jev_read_ab.py`) | in a paragraph headed by the actor's name: 579 of 804 read as its places, the rest nearly all "never past" and lists of ground it answers raids on. Elsewhere in the packet: 34 of 3,375. Between two packets that did not change the sentence: 3.4% cross the bar. Not counted: the groups no paragraph names (20 of 53 in a sample) |
+| The pick can be asked in parts | 120 recorded picks split into components, one request (`jev_split_ab.py`) | 9,700 tokens a pick against 16,700; the same best change as the joint pick's most-weighted in 96 of 133; 1.58 actors changed a pick against 1.23 |
+| A thinner state is not free | 50 gates and 120 picks asked again (`jev_trim_ab.py`) | the rules text out: a strong move still 0.5 or over in 53 of 72 (66 re-asked unchanged); the pick's picture cut to the actors named: stage one the same choice in 36 of 60 (53) |
+| Jev can read which places are whose (the decode) | player-33's 58 packets, 11,935 questions (`jev_read_ab.py`); player-32's 117 packets read alike | in a paragraph headed by the actor's name: 579 of 804 read as its places, the rest nearly all "never past" and lists of ground it answers raids on. Elsewhere in the packet: 34 of 3,375. Between two packets that did not change the sentence: 3.4% cross the bar. Not counted: the groups no paragraph names (20 of 53 in a sample) |
 
 Limits. One game for most rows, two for the cost. The fall-back replays use a place I chose by a rule and a line I
 wrote; the pick replay adds one world to a recorded pick and does not rebuild the menu around it. The first wording
@@ -222,20 +265,21 @@ of the best-move line scored 16 of 24, so the wording carries much of that resul
 ## 10. Before code, the order of work, and what success is
 
 Still to replay, cents each: a raid answered from the ladder against today's hunters, with the mass across sizes;
-the bill with the unsent-question saving on the new words; a builder's way out; situation 12; the two `rules.md`
-sentences.
+a builder's way out; situation 12; the decode's other questions (forbidden, join, follow, the step-back place).
 
 Order: this note and the cut line ruled on; delete (`threats.rs`, the menus and the composition in `plan.rs`, the
-group and party arms of `execute.rs`, the prose readers in `diet.rs` and `groups.rs`); rebuild (`menu.rs`: the verbs,
-what they are aimed at, the words; `compose.rs`; the registers); unit tests; `rules.md`, `default.md`, the role
-text's vocabulary; the registry and the claims (rows retired, the new heuristic and what it rests on); the brief's
-lessons that name deleted options tagged as from the old harness; a pianist-alone game on a fixed packet; a
-realtime rehearsal; one player game on the target.
+group and party arms of `execute.rs`, the prose readers in `diet.rs` and `groups.rs`); rebuild the base (`menu.rs`:
+the verbs, what they are aimed at, the words; `compose.rs`; the registers; the two functions of §8 with nothing
+taken away); unit tests; `rules.md` and `default.md` in the new verbs, the role text's vocabulary; the registry and
+the claims (rows retired, the new heuristic and what it rests on); the brief's lessons that name deleted options
+tagged as from the old harness; a pianist-alone game on a fixed packet; one player game on the target with the
+base; then the layers in §8's order, each with its audit; a realtime rehearsal once `split` and `one` are on.
 
 Success, read from that game's log against player-33: no walk home that the packet did not order; a named
 fall-back place taken in the seconds the odds are against the group; a group's course changes at most 4 a minute
-in its worst minute (player-9 at E3: 13 in 53 s); no builder lost with no way out on its menu; the Jev bill and
-the seconds of calls a game minute as §8 predicts, and under the ceiling the user sets (question 1).
+in its worst minute (player-9 at E3: 13 in 53 s); no builder lost with no way out on its menu. For each layer: its
+audit's faults under 2% of what it skipped, and the game's bill moving as the budget study counts. At the end: $1 a
+game or less.
 
 ## 11. Kept, and why
 
@@ -253,23 +297,21 @@ the seconds of calls a game minute as §8 predicts, and under the ceiling the us
 
 **Reversed, by name:** the party menus (threat response, agreed 2026-09-26); a group on a route leg not asked on
 party news (routes in prose §4.4, 2026-09-28); code finding a route's next stop from the packet's order (same note,
-§4.2), replaced by Jev's own rating; `rules.md` as the hands' voice on how to play; the builders' walk home.
+§4.2), replaced by Jev's own rating; the builders' walk home. **Brought back, by the user's word of 2026-10-01:**
+the packet decoded once by Jev (deleted 2026-09-27), as fuses under the fuse rule. **Later, as its own step:**
+`rules.md` as the hands' voice on how to play.
 
 ## 12. Questions for the user
 
-1. **The price.** Answered 2026-10-01: the target is $1 a game or less, and the packet decoded once by Jev is
-   acceptable in principle ("still using jev to decode opus's normal prose, just once per prompt rather than once
-   per second"; it was removed because it was a distraction at the time, not because the principle was bad). So
-   the reading of places per actor is in, and §8 is superseded by `docs/studies/2026-10-01-jev-token-budget.md`:
-   the rebuilt menu is modelled at $0.94 for player-33 and $1.96 for the 40-minute player-32 with seven changes
-   to what is sent and when, and near $1.1 with three more.
-2. The unsent question (§4): agreed as a rule?
-3. Detachment sizes from a fixed ladder for Jev to pick, or the code's "fewest that outweigh it" as today?
-4. `send N` only at a party, or also to a place (pickets from soldiers that already exist)? It multiplies a
+1. Detachment sizes from a fixed ladder for Jev to pick, or the code's "fewest that outweigh it" as today?
+2. `send N` only at a party, or also to a place (pickets from soldiers that already exist)? It multiplies a
    group's place questions.
-5. Movement to places nobody named. As designed there is none: a group whose packet names nothing can hold, join
+3. Movement to places nobody named. As designed there is none: a group whose packet names nothing can hold, join
    or follow. Is that what you mean by basic movement, or should every spot we hold be a place to go?
-6. The "to rule" rows of the cut line.
+4. The "to rule" rows of the cut line.
+
+Answered 2026-10-01: the price ($1 a game or less); the decode (in, as fuses); how to build (the base first, then
+layers that can be switched off).
 
 ## 13. How the draft changed under review
 
@@ -280,10 +322,10 @@ who would write packets for it; my own pass against the inventory. Replays as in
 | Objection | From | Change |
 |---|---|---|
 | Matching names in "the group's paragraph" is code reading prose, and wrong for 3 groups in 4 | own pass | draft 2: Jev reads which places are whose |
-| That reading is the deleted decompression used as a prune; 20 of 53 groups are named nowhere | owner review | draft 4: no per-actor filter at all (law 4); the reading demoted to an option in question 1, with its price |
+| That reading is the deleted decompression used as a prune; 20 of 53 groups are named nowhere | owner review | draft 4: no per-actor filter at all (law 4); the reading demoted to a priced option (brought back in draft 5 as the `fuse` layer) |
 | Without code's "next stop" a route loses its momentum | replay: 10 of 24 | world 1 names Jev's own best-rated move: 24 of 24 |
 | The ways out open by the weak question and are crowded out by two attack moves | owner review | replayed at the gate: a group in a losing fight opens from its own side 27 of 27; the step back is among its two best 35 of 36 |
-| Movement only where the player named a place: with none, `join` is the new walk home | owner review | `follow` any group; measured 17 of 36; put to the user as question 5 |
+| Movement only where the player named a place: with none, `join` is the new walk home | owner review | `follow` any group; measured 17 of 36; put to the user as question 3 |
 | Nothing on state or thrash, and the one damper removed | owner review, player review | the registers and a reversal said on the line (law 8); a pass line of 4 changes a minute |
 | Parties under a 20 s rule was a new rule called an old one | owner review | parties asked at every gate, as ruled |
 | The cost table mixed asking rules and gave no dollars or time | owner review | §8 recounted under one rule, in dollars and requests |
@@ -295,3 +337,7 @@ who would write packets for it; my own pass against the inventory. Replays as in
 | A group born after the packet had no places | player review | moot: no per-actor filter |
 | No success line; realtime and the docs missing from the order | owner review | §10 |
 | "A group has no plain go there" was wrong | owner review's fact check | §1 corrected: the walks exist and rate a median 0.1 |
+| The menu as the laws have it doubles the bill; the target is $1 a game | the user, 2026-10-01; the budget study | draft 5: §8 |
+| Savings baked into the design cannot be told apart when a game goes wrong | the user, 2026-10-01 | draft 5: a base version that asks everything, and layers with a switch and an audit each |
+| The decode was demoted to an option in draft 4 | the user, 2026-10-01: the principle was not bad; a decode of the existing orders, not a second tool call | draft 5: the decode is the `fuse` layer, held to questions about the instructions alone and to clear answers |
+| Cutting the rules text in the same game as the new menu confounds the two | the budget study: the text steers | draft 5: the base keeps its judgments; the cut is a later step |

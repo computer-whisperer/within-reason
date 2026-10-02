@@ -44,11 +44,11 @@ with it. Proposed; nothing is ruled until the user rules.
 | 27 | Shell: who is artillery (reach 600), the standoff at 0.85 and the screen at 0.55 of the reach | the verb stays. The three numbers: stays, never ruled; they are footwork and belong in the micro engine |
 | 28 | Fall back to where it last held | goes |
 | 29 | One scout out at a time; the scout is the fastest soldier | the cap goes. Which soldier: stays, never ruled, and said on the line |
-| 30 | Split: half the group to the nearest 2 named places | goes, or returns as `send N` to a place (the note's question 4) |
+| 30 | Split: half the group to the nearest 2 named places | goes, or returns as `send N` to a place (the note's question 2) |
 | 31 | Merge target: the nearest group | goes: every group of its kind |
 | 32 | Which parties are threats (within 1,200 of a structure, our side, heading home) | goes: every party |
 | 33 | The nearest 3 groups for a party | goes: every group |
-| 34 | Hunters: the fewest that outweigh, the fastest | the size: goes to the ladder (question 3). Which soldiers (the fastest, nearest first): stays, never ruled, said on the line |
+| 34 | Hunters: the fewest that outweigh, the fastest | the size: goes to the ladder (the note's question 1). Which soldiers (the fastest, nearest first): stays, never ruled, said on the line |
 | 35 | No hunt for air; the no-op "unreachable" state | the first: legality. The second: goes |
 | 36 | The stand at the next extractor on the party's heading | goes. The heading and the extractor on it are words on the party |
 | 37 | The builder's attack and D-gun within 1,200 | the reach goes |
