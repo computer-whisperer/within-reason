@@ -8,10 +8,11 @@ close-up of a raid or a fight (`.claude/skills/bar-review/SKILL.md`), after `run
     run/hands_window.py run/matches/<batch>/<NN> <from m:ss> <to m:ss> [actor ...]
 
 Actors are the picture's names (`commander`, `constructor_N`, `plant_N`, `group_A`); by default the groups and
-the commander. Reads `jev-<ai>.jsonl` of version 2 (the one pass, docs/harness/record-format.md, "The pianist's
-log"): `pass` lines (events, slots, quiet), `worlds_gate` lines (the flags per state), `plan` lines (the pick) and
-`call` lines (parties and groups). A threat slot is printed whoever it belongs to. Seconds with nothing to say for
-the actors named are skipped.
+the commander. Reads `jev-<ai>.jsonl` (docs/harness/record-format.md, "The pianist's log"): `pass` lines (events,
+quiet; the menus of version 3, the slots of version 2), `worlds_gate` lines (the gate's ratings by id), `plan`
+lines (the pick) and `call` lines (parties and groups). Of version 3 every party's `answer` is printed and each
+named actor's menu with its six best-rated moves; of version 2 a threat slot is printed whoever it belongs to.
+Seconds with nothing to say for the actors named are skipped.
 """
 import os
 import sys
@@ -72,6 +73,19 @@ def main():
                 out.append(f"THREAT {s['name']} ({s['kind']}) base={s.get('base')} " + " ".join(states))
             elif want(s["name"]) and states:
                 out.append(f"slot {s['name']} base={s.get('base')} " + " ".join(states))
+        # The rebuilt hands (log version 3): one menu per actor, a move's rating by its id; `~` marks an actor the
+        # news layer closed, `?` one it closed and asked anyway for its audit.
+        for name in sorted(k[: -len(".answer")] for k in flags if k.endswith(".answer")):
+            out.append(f"PARTY {name} answer={flags[name + '.answer']}")
+        for m in (pas or {}).get("menus") or []:
+            if not want(m["name"]):
+                continue
+            rated = [(flags[mv["id"]], mv["id"].split(".", 1)[1]) for mv in m.get("moves") or [] if mv["id"] in flags]
+            rated.sort(reverse=True)
+            mark = "?" if m.get("audit") else "~" if m.get("quiet") else ""
+            change = flags.get(m["name"] + ".change")
+            if rated or change is not None:
+                out.append(f"menu {m['name']}{mark} [{m.get('course')}{', idle' if m.get('idle') else ''}] change={change if change is not None else '-'} of {len(m.get('moves') or []) - 1}: " + " ".join(f"{k}={p}" for p, k in rated[:6]))
         plays = [f"{p['actor']}: {(p.get('did') or '')[:60]} [{p.get('source')}]" for x in lines for p in (x.get("played") or []) if want(p.get("actor", ""))]
         if plays:
             out.append("PLAYS " + " | ".join(plays))

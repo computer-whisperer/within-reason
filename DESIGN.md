@@ -111,6 +111,13 @@ hands read, and the pianist wakes it when Jev judges the situation needs it. Des
 `docs/design/2026-09-21-pianist.md`; the hands' rules are `H-HANDS-*` in `docs/heuristics.md`; what Jev needs is
 `docs/knowledge/jev.md`.
 
+The hands as rebuilt on 2026-10-02 (`docs/design/2026-10-01-hands-rebuild.md`): three deciders (the player, Jev, the
+micro engine); one menu per actor and one move per actor a second, a move being a verb from a short fixed list and
+what it is aimed at (`pianist/menu.rs`); code chooses neither what a move is aimed at nor for whom, and reads the
+packet only for names; enemy parties are questions, never menus; a gate of nouls, worlds joined from the best-rated
+moves, and a pick in two stages (`compose.rs`); what Jev must remember is printed in each actor's entry (the
+registers); and every saving on what is asked is a layer with a switch and an audit (`layers.rs`, `--hands-layers`).
+
 ## Terrain (2026-09-19)
 
 The shim sends the ground once, in `Hello`: heights and slopes at the engine's slope-map resolution (16 elmos), and

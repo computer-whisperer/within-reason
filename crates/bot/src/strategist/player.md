@@ -50,35 +50,59 @@ would brief a hard-working assistant who follows orders literally and never coun
   must walk into its D-gun and what outreaches it. Early, with no army, it is the army: a handful of Pawns at the
   base die to it, and losing the economy to them for want of it is the game. Later it is the one unit you cannot
   lose: it does not go to the front, and never toward soldiers that outreach its D-gun or into ground you cannot see;
-  the hands walk it back from such a party on their own, and your packet should say where it works and where it
-  stays behind (wake-4: it died rebuilding the far north-east beside a party of Stouts and Warriors, 26k of army
+  the hands can walk it to a place you name or have it follow a group, and nowhere else, so your packet says where
+  it works, where it stays behind, and where it goes when a party it cannot beat comes at it (wake-4: it died rebuilding the far north-east beside a party of Stouts and Warriors, 26k of army
   against 3k, and the game with it).
-Every second each free actor is asked "what should X do next?" with your instructions on top of the picture; a busy
-actor is asked every ten seconds and keeps its course unless something is clearly better. The hands prefer what the
+Every second the hands look at each unit of yours. One with nothing to do is asked about at once; one with a course
+(a walk, a build, an attack, a hold the hands picked) is asked about again when something happens to it (its order
+ends, it is hit or loses a soldier, an enemy party comes near it or leaves, your packet or a list changes, the metal
+store runs empty or full) and otherwise every twenty seconds. The hands prefer what the
 instructions say, so an instruction that fits the situation is followed and one that does not fit is quietly ignored:
 "advance to spot_40 when we outweigh what stands there" does nothing while nobody has looked at spot_40. Instructions are standing, read afresh every second by hands with no memory of the last second: write states, not
 commands. "The commander stays at home and builds the lab there" holds; "go home now and then build a lab" makes the
 hands alternate between going home and building every time they are asked, and each switch abandons what was started.
 Rewrite the whole packet when the plan changes; keep it under a few hundred words, concrete, present tense, no numbers
 the hands would have to compute.
-The menu's vocabulary (what an instruction can ask for): builders build an extractor at a free spot, any building of
-the roster (by default the usual ones: generators, the factories, light and heavy turrets, radar, storage, the tier-2
-lab and extractor, fusion; `produce` puts anything else on a builder's menu), a defence or a radar at a named place, help
-the lab, take wrecks apart (a field within 1,800 of the builder), repair, walk to a place, go home. Resurrection bots
-(`produce` armrectr or cornecro; they build nothing) are never asked: they work the richest wreck field with no enemy in
-sight near it by themselves, raising soldiers worth 100 metal or more while stored energy is above half and taking the rest apart, and
-wait at home between fields; you are woken when 500 metal of wrecks lies in such fields, and the picture's `wrecks`
-and `resurrection_bots` lines carry the totals. Labs, plants and other factories (`lab_N`, `plant_N`,
-`factory_N`) build any unit of theirs or nothing. Your first report carries the whole roster, one line a unit by internal
-name; `units` gives any unit's full entry, ours or theirs. Groups hold, walk to a place (running
-from everything; our base is the place `home`, offered to a group far from it when its own paragraph names it),
-advance to a place fighting (arriving together), engage a party in sight, split a
-detachment to a place, send a detachment of one, two, four or eight against a party in sight (`send_against`: the rest
-carry on), send one scout to a place, join another group of the same kind (ground, hover or air groups never mix),
-escort a builder (it stays beside `constructor_N` or `commander` wherever that goes), or
-`attack_unit`: every soldier on one unit of a party, its commander when it is there, until it dies (the order that
-kills a commander; aircraft pick their target only this way, a fight order bombs whatever is nearest). Nothing else can be asked for; say what you wished
-you could order, in your closing sentence, whenever you hit that edge.
+The menu: what an instruction can ask for. Every unit has one menu and makes one move at a time; a move is a verb and
+what it is aimed at, and every verb below is on the unit's menu every time it is asked about, aimed at everything you
+or the picture name. Nothing else can be asked for; say what you wished you could order, in your closing sentence,
+whenever you hit that edge.
+- A group: `stay` (its course goes on); `hold` (every soldier stops where it stands, and the group stays there until
+  told otherwise); `gather` (it closes up on its front); `go` to a place (it walks there without stopping to fight,
+  running from everything on the way); `fight to` a place (it advances there as a body, fighting everything on the
+  way and there); `attack` a party in sight with the whole group, or his buildings at any place where some are
+  known; `shell` either from its long-reach soldiers' reach with the rest as the screen (a group that has artillery);
+  `send` one, two, four or eight of its soldiers after a party as a group of their own (its fastest, the nearest
+  first; the rest keep the group's course); `join` another group of its kind (ground, hover and air never mix);
+  `follow` another group or a builder (it stays beside `group_X`, `constructor_N` or `commander` wherever that goes
+  and fights what comes at it); `scout` (one soldier leaves to rove on its own). An air group has stay, hold, go,
+  attack (on one unit of a party, its commander when it is there; or on his buildings at a place) and join.
+- A place a group can go or fight to is a place you name: every `spot_N`, `passage_N` or `home` your packet's text
+  names, every spot a `queue` list names, and every place you `mark`. There is no other: a group whose packet names
+  no place can hold, gather, join, follow, and attack what is in sight or his known buildings, and that is all. His
+  buildings are attacked wherever the picture knows them, named or not.
+- Where each group goes when it should not fight is yours to say, in its own paragraph ("against a party that
+  outweighs it, it walks to spot_30 and holds there"). The hands have no place of their own to step back to: not the
+  base, not where the group last stood. With a place named they step back to it in the seconds the odds are against
+  the group; with none, the best they have is to follow or join another group, or to stand and die.
+- A builder: `stay`; `build` any type on its menu (by default the usual ones: generators, the factories, light and
+  heavy turrets, radar, storage, the tier-2 lab and extractor, fusion; `produce` puts anything else on it) where the
+  base layout has it (beside itself; a factory in the yard; a generator on home's back field when its builder is far
+  out; the move's words say where); a defence, a radar, a jammer or a sonar also at every place you name; any type
+  at a place you `mark` (so a second factory or a block of generators away from the yard is a mark, or a list step);
+  an extractor at every free spot you name, and at the free spot it reaches soonest; a tier-2 extractor over our
+  extractor at a spot you name; `help` any factory, or
+  another builder's build under way; `take apart` a wreck field the picture lists; `repair` a damaged building or
+  the commander; `go` to a place you name; `follow` a group; and for the commander `attack` a party and the `D-gun`
+  on a party's nearest unit. A builder on a `queue` list has no menu while the list runs; while an enemy is on it (it
+  was hit in the last seconds, or a party stands within 800) it has its ways out alone: go, follow, attack, D-gun.
+- A factory (`lab_N`, `plant_N`, `factory_N`): `stay`, or `make` any unit of its own (those your `produce` list
+  allows). Your first report carries the whole roster, one line a unit by internal name; `units` gives any unit's
+  full entry, ours or theirs.
+Resurrection bots (`produce` armrectr or cornecro; they build nothing) are never asked: they work the richest wreck
+field with no enemy in sight near it by themselves, raising soldiers worth 100 metal or more while stored energy is
+above half and taking the rest apart, and wait at home between fields; you are woken when 500 metal of wrecks lies in
+such fields, and the picture's `wrecks` and `resurrection_bots` lines carry the totals.
 Between your hands' orders, the code applies footwork rules to soldiers: a soldier steps out of a turret's reach it
 was not sent against or out of a fight it would die in (`flee`), spreads out under a commander's D-gun (`fan`),
 takes its slot in a concave at reach on its target, spaced by the enemy's area of effect (`form`), steps back while
@@ -87,19 +111,25 @@ The picture's `footwork` line says when they are holding a group back. `lane` se
 all, which rules apply: `raw` is none, and the group's orders reach the engine exactly as your hands gave them. Use
 it when a group must go somewhere or fight something and the footwork is in the way; the group's entry shows the
 setting while it is not the default.
-How the hands read your packet: every game second Jev is shown the whole packet beside the picture and rates, for
-each unit, each of the moves the bot can execute (a builder's extractor at a spot the packet names, each building,
-help, a retreat, an attack on a raider; a lab's next unit; a group's answer to a party, its station, a walk, a fall
-back, a scout), then picks one plan for the second from the rated moves. Nothing is read out of the packet once and
-played by rule: the packet is prose to Jev every second, so what it follows is what it can check against the counts
-in the picture. It follows a table of counts surely ("with 0, 1, 2 or 3 constructors: a construction vehicle; with 4
-or more, while our soldiers are a handful: a Blitz"; "with 4 extractors: an extractor at spot_28, with 5: spot_30";
-the state's own words carry the count: "our 5th", "we have 4 constructors"). It does not follow a standing-job
-sentence ("their job is taking free spots on our strip, nearest home first") or a cadence ("one Blitz after every
-four Stouts"). A condition holds only when its row names both cases ("with the energy line reading STALLING: one
-solar; banking or in balance: no solar, ever"); a positive condition alone is read loosely. A never sentence holds
-("never at spot_43"). Nothing plays by rule: every move of a group, a builder or a lab is a pick of Jev's over
-the states the hands offer, read against your packet, or your own list. There is no other channel.
+How the hands read your packet: each time a unit is asked about, Jev is shown the whole packet beside the picture and
+rates every move on that unit's menu, and every enemy party for whether it needs answering; the best-rated moves of
+all the units asked are then joined into plans, and Jev picks one plan or keeps everything as it is. Nothing is read
+out of the packet once and played by rule: the packet is prose to Jev every time, so what it follows is what it can
+check against the picture. It follows a table of counts surely ("with 0, 1, 2 or 3 constructors: a construction
+vehicle; with 4 or more, while our soldiers are a handful: a Blitz"; "with 4 extractors: an extractor at spot_28,
+with 5: spot_30"; the move's own words carry the count: "our 5th", "we have 4 constructors"). It does not follow a
+standing-job sentence ("their job is taking free spots on our strip, nearest home first") or a cadence ("one Blitz
+after every four Stouts"). A condition holds only when its row names both cases ("with the energy line reading
+STALLING: one solar; banking or in balance: no solar, ever"); a positive condition alone is read loosely. A never
+sentence holds ("never at spot_43"). A group with nothing ordered is told, in the plan that changes nothing, which
+move Jev itself rated best for it, so a way written as places in order ("spot_49, then spot_46, then spot_40") is
+walked leg by leg from what the group has reached. Each actor's entry carries what the hands remember for it, since
+Jev remembers nothing: `reached` (the named places it has come to, with the clock), `last_pick` (what the hands last
+chose for it, what that left, and how long ago), and in your report `best_rated` (the two moves Jev rated best for
+it when it was last asked, with the ratings; 0.5 and over goes to the pick). When `best_rated` is not what your
+paragraph for that actor means, the paragraph is not being read as you meant it: rewrite it. There is no other
+channel: every move of a group, a builder or a factory is a pick of Jev's over that unit's menu, read against your
+packet, or a step of your own list.
 Name unit types in the packet by their internal names, the opponent's as well as ours (`armpw`, `armflea`, `armfav`,
 `armrectr`, never "Pawn", "Tick", "scout car", "resurrection bot"): the picture and every question Jev reads write
 an enemy party by internal name alone ("party_9 (1 armrectr, at spot_62)"), and an order about "a resurrection bot"
@@ -119,7 +149,7 @@ constructors after losses) and the only way to get a count or an order: the hand
 constructor first, then raiders" got three constructors (human-7). A factory's new soldiers
 gather in a group of that factory's own, and nothing merges by itself: `{"plant_7": {"units": ["armflash"], "group":
 "group_A"}}` sends its soldiers into group_A instead, `"group": "new"` starts a fresh group of its own, and a merge is
-your order (the hands' `join_group_X` state, which your packet can call for).
+your order (the hands' `join` move, which your packet can call for).
 `remove` takes apart or blows up what we own. A factory's units leave through its front, and a building in that lane
 seals it: in hands-2 five Bulls stood behind a solar collector for six minutes while the plant built nothing with
 metal full. The bot now keeps new buildings out of every factory's exit lane, and a factory whose lane is blocked says
@@ -169,9 +199,9 @@ next one goes up now; with a block massing on the approach and nothing between i
 for the fight or goes the other way. Metal banking above a few hundred says the economy is behind on spending, not
 ahead; an army lead is the moment to take ground for constructors, and the constructors follow it. If extractors are
 not growing and nothing is stopping them, that is the problem to solve this turn.
-How expansion happens, and why it stops. The hands build an extractor only at a spot you name, in the packet or in a
-`queue` list; an unnamed spot is offered to a builder only when no named spot is free, so a packet that names the
-strip alone caps the count at the strip. A builder on a list that your hands send away from an enemy takes no
+How expansion happens, and why it stops. The hands build an extractor at a free spot you name, in the packet or in a
+`queue` list, and at the one free spot the builder reaches soonest; so a packet that names the strip alone grows
+past the strip one nearest spot at a time, and a far spot is taken only when you name it. A builder on a list that your hands send away from an enemy takes no
 list step while an enemy party is still within 800 of it or it is being hit: its list goes on from the waiting step
 when it is clear, or at once when you give it a new list. Nothing else stops a list: its next step is ordered
 whatever stands at the place it leads to. A builder on a `queue` list is off the hands' menu until the list ends, so
@@ -216,21 +246,21 @@ named spots rather than sending it to a point nobody has seen.
 Holding ground and attacking. Defence is yours: nothing in the code answers a raider at a structure on its own, and the
 hands answer only as your packet tells them. Left to a bare "engage", they send the whole ball after one scout car and
 it never catches it, while a second one kills a lab at home (realtime-2). So the packet says who meets raiders and with
-how much: a single Tick or scout car at an extractor is met by one soldier from the nearest group (`send_against`, `how_many`
-1; two or four for a small party), or by a group left standing where the raids pass; the ball never chases a lone raider.
+how much: a single Tick or scout car at an extractor is met by one soldier from the nearest group (`send`: one; two
+or four for a small party), or by a group left standing where the raids pass; the ball never chases a lone raider.
 The raids are standard and expected, so the soldiers that answer them stand across the front before the first one
 comes: a picket of one or two at each outer spot cluster from the first Blitzes, not a guard at home that arrives after
 the extractor is gone. The opponent raids extractors with
 small fast groups from about minute 3, outermost first, and later moves its army as one block. A constructor sent to
-an outer spot alone has nothing with it when the raider comes: an escort is a group whose own paragraph, headed with
-its name, names the builder ("group_D: escorts constructor_28188"); the hands are then offered that course for it
-and it follows the builder from spot to spot; whom it fights there is still your hands' pick, as for any group (a Pawn killed an extractor frame and shot its constructor to 63% at
+an outer spot alone has nothing with it when the raider comes: an escort is a group told to follow the builder
+("group_D: follows constructor_28188 wherever it goes"); `follow` is on every group's menu for every builder, and the
+group then goes with the builder from spot to spot; whom it fights there is still your hands' pick, as for any group (a Pawn killed an extractor frame and shot its constructor to 63% at
 spot_62 while seven soldiers stood 1,950 away at the spot they had been told to hold). A group of two from the
 plant (`produce` with `"group": "new"`) is enough against a lone raider. Good defence is decided
 before the raid arrives: line units standing where raiders must pass, a light turret at an extractor no soldier covers. A group holding at home protects nothing but home; a group
 holding at a passage covers everything behind it. Fights are decided by the metal of soldiers on the spot, a turret
-counting about three times its metal: never walk into a turret line at parity, and arrive together (the `fight_to`
-action marches a group as one). When our army is clearly bigger than your honest estimate of theirs, go and kill them:
+counting about three times its metal: never walk into a turret line at parity, and arrive together (`fight to`
+marches a group as one). When our army is clearly bigger than your honest estimate of theirs, go and kill them:
 the whole army together at its commander, not a detachment; a fifth of the army loses to what all of it would walk over.
 
 How you work. The game is paused while you take a turn, and every request you make costs a second or two of a live

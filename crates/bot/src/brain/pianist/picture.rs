@@ -33,8 +33,12 @@ const PARTY_RADIUS: f32 = 400.0;
 const TURRET_MARGIN: f32 = 150.0;
 /// A party whose reach beats the group's longest by this much kills it on the approach (a Bull's 460 or a beamer's 490 against a Stout's 350).
 const OUTRANGE_MARGIN: f32 = 60.0;
-/// A party this near a place or an actor is "near" it.
-const NEAR: f32 = 800.0;
+/// A party this near a place or an actor is "near" it: the party in an actor's entry.
+pub(super) const NEAR: f32 = 800.0;
+/// Wreck fields the picture lists (those with 100 metal or more): the fields a builder can be sent to take apart.
+pub(super) const WRECK_FIELDS: usize = 3;
+/// A point this close to a named place stands at it.
+const AT_PLACE: f32 = 400.0;
 /// A group's own shooter estimate this far from the side's gets its own place, `shelling_<group>`.
 const SHOOTER_APART: f32 = 300.0;
 /// The enemy's soldiers seen within this long count in what we know of its army.
@@ -86,6 +90,24 @@ pub(crate) struct Picture {
     pub state: Value,
     pub places: Vec<Place>,
     pub parties: Vec<Party>,
+}
+
+/// The named place a point stands at (within `AT_PLACE`), if any.
+pub(super) fn place_of(places: &[Place], at: Vec3) -> Option<&str> {
+    places.iter().map(|pl| (pl.at.dist2d(at), pl)).min_by(|a, b| a.0.total_cmp(&b.0)).filter(|(d, _)| *d < AT_PLACE).map(|(_, pl)| pl.name.as_str())
+}
+
+/// The share of a group's metal lost lately, in words: Jev is not a calculator (docs.typesafe.ai/model-jaggedness).
+pub(super) fn loss_share_words(share: f32) -> &'static str {
+    if share < 0.1 {
+        "a few"
+    } else if share < 0.25 {
+        "a noticeable share"
+    } else if share < 0.5 {
+        "a large share: it is losing this fight"
+    } else {
+        "most of it: it is being wiped out"
+    }
 }
 
 pub(crate) fn clock(frame: i32) -> String {
@@ -777,7 +799,11 @@ impl Brain {
             Some(Task::Reclaim { at, since }) => format!("taking apart wrecks at {}, since {}", self.place_words(places, *at), ago(*since)),
             Some(Task::ReclaimUnit { target, since }) => format!("taking apart our {} on the player's order, since {}", self.known_units.get(target).map_or("unit".to_string(), |(def, _)| format!("{}_{}", self.name(*def), target.0)), ago(*since)),
             Some(Task::Repair { target, since }) => format!("repairing our {}, since {}", self.known_units.get(target).map_or("unit", |(def, _)| self.name(*def)), ago(*since)),
+            // The engine has dropped its order when the unit stands idle short of the place: said here until the
+            // housekeeping ends the task.
             Some(Task::Walk { place, to, since }) => format!("walking to {place}, {:.0} to go, since {}", unit.pos.dist2d(*to), ago(*since)),
+            Some(Task::Follow { group, since, .. }) => format!("following group_{group}, since {}", ago(*since)),
+            Some(Task::Attack { party, to, since }) => format!("attacking {party}, {:.0} from it, since {}", unit.pos.dist2d(*to), ago(*since)),
         }
     }
 
@@ -819,6 +845,16 @@ impl Brain {
         listed.extend(theirs.iter().take(ENEMY_SPOTS).map(|(_, i)| *i));
         for i in &listed {
             places.push(Place { name: format!("spot_{i}"), at: spots[*i], spot: Some(*i) });
+        }
+        // Every spot with buildings of his within reach of it is a place, so that an attack can be aimed at all of
+        // them (the list above holds the nearest few of his extractors only).
+        for (_, pos, _) in self.enemy_buildings.values() {
+            if places.iter().any(|p| p.at.dist2d(*pos) < super::menu::HIS_AT) {
+                continue;
+            }
+            if let Some((i, spot)) = spots.iter().enumerate().map(|(i, s)| (i, *s)).filter(|(_, s)| s.dist2d(*pos) < super::menu::HIS_AT).min_by(|a, b| a.1.dist2d(*pos).total_cmp(&b.1.dist2d(*pos))) {
+                places.push(Place { name: format!("spot_{i}"), at: spot, spot: Some(i) });
+            }
         }
         let passages = self.passages();
         for (n, passage) in passages.iter().take(PASSAGES).enumerate() {
@@ -1014,7 +1050,7 @@ impl Brain {
             .fields
             .iter()
             .filter(|f| f.metal >= 100.0)
-            .take(3)
+            .take(WRECK_FIELDS)
             .map(|f| format!("{:.0} metal of wrecks at {}{}", f.metal, self.place_words(&places, f.at), if f.safe { "" } else { " (not safe)" }))
             .collect();
         let (all_wrecks, safe_wrecks): (f32, f32) = self.reclaim.fields.iter().fold((0.0, 0.0), |(a, s), f| (a + f.metal, s + if f.safe { f.metal } else { 0.0 }));
@@ -1090,7 +1126,7 @@ impl Brain {
         // gave a group nothing to go and kill.
         let mut remembered: BTreeMap<String, (BTreeMap<String, usize>, i32, usize)> = BTreeMap::new();
         for (id, (def, pos, seen)) in &self.enemy_buildings {
-            let key = super::threats::place_of(&places, *pos).map_or_else(|| format!("{} (no named place)", self.world.grid(*pos)), |p| format!("{p} ({})", self.world.grid(*pos)));
+            let key = place_of(&places, *pos).map_or_else(|| format!("{} (no named place)", self.world.grid(*pos)), |p| format!("{p} ({})", self.world.grid(*pos)));
             let entry = remembered.entry(key).or_insert((BTreeMap::new(), frame, 0));
             let unfinished = self.enemy_unfinished.contains(id);
             *entry.0.entry(if unfinished { format!("{} (being built)", self.name(*def)) } else { self.name(*def).to_string() }).or_default() += 1;
@@ -1287,6 +1323,9 @@ impl Brain {
             if let Some((_, energy, metal)) = draws.iter().find(|(who, _, _)| *who == name) {
                 entry["draw"] = json!(format!("draws about {energy:.0} energy and {metal:.1} metal a second at full speed on what it builds now"));
             }
+            if let Some(words) = pianist.register_words(&name, frame) {
+                entry["last_pick"] = json!(words);
+            }
             actors.insert(name, entry);
         }
         let scouts: Vec<String> = pianist.groups.iter().filter(|g| g.scout && g.roving).map(|g| format!("group_{} roving: {}", g.name, self.rover_words(g, own, &snapshot.enemies, &places))).collect();
@@ -1297,7 +1336,7 @@ impl Brain {
             // any member is near; the tail; who is still on the way to join.
             let goal = match &group.task {
                 GroupTask::Move { to, .. } => Some(*to),
-                GroupTask::Engage { at, .. } | GroupTask::Escort { at, .. } => Some(*at),
+                GroupTask::Engage { at, .. } | GroupTask::Follow { at, .. } => Some(*at),
                 GroupTask::Hunt(h) => Some(h.at),
                 GroupTask::Hold { .. } => None,
             };
@@ -1317,14 +1356,15 @@ impl Brain {
                 }
             };
             let doing = match &group.task {
-                GroupTask::Hold { since, .. } if group.gathering => format!("gathering here for {}: the front holds until the tail is up ({} of {} within {:.0}; the tail {:.0} behind)", ago(*since), body.core.iter().filter(|u| u.pos.dist2d(body.front) <= super::groups::STRUNG_OUT).count(), body.core.len(), super::groups::STRUNG_OUT, body.length),
-                GroupTask::Hold { since, committed } => format!("holding for {}{}", ago(*since), if *committed { ", fighting everything here, turrets included, since it arrived by advancing" } else { "" }),
+                GroupTask::Hold { since, picked: true, .. } => format!("holding here on your pick for {}", ago(*since)),
+                GroupTask::Hold { since, committed, .. } => format!("standing with no order for {}{}", ago(*since), if *committed { ", fighting everything here, turrets included, since it arrived by advancing" } else { "" }),
+                GroupTask::Move { since, .. } if group.gathering => format!("gathering on its front for {}: the rest close up on it ({} of {} within {:.0}; the tail {:.0} behind)", ago(*since), body.core.iter().filter(|u| u.pos.dist2d(body.front) <= super::groups::STRUNG_OUT).count(), body.core.len(), super::groups::STRUNG_OUT, body.length),
                 GroupTask::Move { to, place, fight, since } => format!("{} to {place}: {}, for {}", if *fight { "advancing" } else { "walking" }, shape(*to), ago(*since)),
                 GroupTask::Engage { party, at, since, target, .. } => {
                     let name = parties.iter().find(|p| p.ids.iter().any(|id| party.contains(id))).map_or("a party now out of sight".to_string(), |p| p.name.clone());
                     format!("attacking {name}{} at {}, for {}", if target.is_some() { " (one named unit of it, until it dies)" } else { "" }, self.place_words(&places, *at), ago(*since))
                 }
-                GroupTask::Escort { name: ward, since, at, .. } => format!("escorting {ward} for {} ({:.0} from it)", ago(*since), body.at.dist2d(*at)),
+                GroupTask::Follow { name: ward, since, at, .. } => format!("following {ward} for {} ({:.0} from it)", ago(*since), body.at.dist2d(*at)),
                 GroupTask::Hunt(hunt) => format!("hunting {} since {} ago (its quarry {} at {})", hunt.party, ago(hunt.since), if frame - hunt.last_seen < FRAMES_PER_SECOND { "seen" } else { "last seen" }, self.place_words(&places, hunt.at)),
             };
             let doing = if group.roving { format!("roving, in code, beyond your hands' reach: {}", self.rover_words(group, own, &snapshot.enemies, &places)) } else { doing };
@@ -1349,10 +1389,13 @@ impl Brain {
                 "health": health,
                 "doing": doing,
             });
-            // The route's facts (routes-in-prose §4.2): the places named for it that it has reached, and what it
-            // has met since the last; Jev reads its place in the packet's route from these.
+            // The registers (law 8): the named places it has reached and what it has met since the last, and what it
+            // last chose; Jev reads where it is on the way its instructions describe from these.
             if !group.reached.is_empty() {
-                entry["route_seen"] = json!(format!("reached {}", group.reached.iter().map(|(p, f)| format!("{p} ({})", clock(*f))).collect::<Vec<_>>().join(", ")));
+                entry["reached"] = json!(group.reached.iter().map(|(p, f)| format!("{p} ({})", clock(*f))).collect::<Vec<_>>().join(", "));
+            }
+            if let Some(words) = pianist.register_words(&format!("group_{}", group.name), frame) {
+                entry["last_pick"] = json!(words);
             }
             if let Some((f, words)) = &group.met {
                 entry["met"] = json!(format!("since its last stop: {words} ({})", clock(*f)));
@@ -1387,7 +1430,7 @@ impl Brain {
             if !lost_lately.is_empty() {
                 let lost_metal: f32 = lost_lately.iter().filter_map(|(_, def)| self.world.def(*def)).map(|d| d.metal_cost).sum();
                 let share = lost_metal / (lost_metal + metal).max(1.0);
-                let words = if share < 0.1 { "a few" } else if share < 0.25 { "a noticeable share" } else if share < 0.5 { "a large share: it is losing this fight" } else { "most of it: it is being wiped out" };
+                let words = loss_share_words(share);
                 let last = lost_lately.iter().map(|(f, _)| *f).max().unwrap_or(frame);
                 entry["losses"] = json!(format!("lost {} of its {} soldiers ({lost_metal:.0} metal, {words}) in the last 30 s, the last {} s ago", lost_lately.len(), units.len() + lost_lately.len(), (frame - last) / FRAMES_PER_SECOND));
             }
@@ -1545,3 +1588,53 @@ impl Brain {
     }
 }
 
+
+#[cfg(test)]
+mod tests {
+    use bot_protocol::{Event, OwnUnit, Resource, Snapshot, Tick, UnitId};
+
+    use super::super::fixtures::{at, brain_of, enemy, own};
+
+    /// A building of ours whose health falls beside an enemy builder, with no hit on it, is said on that builder's
+    /// party as being taken apart, with what is left and when it is gone; a party without a weapon is said unarmed,
+    /// never as outweighing us or choosing the fight.
+    #[test]
+    fn a_builder_taking_a_building_apart_is_said_and_an_unarmed_party_reads_unarmed() {
+        let mut brain = brain_of(&["armflash", "armllt", "armfav"]);
+        // The Rover stands in for a resurrection bot: no weapon, build power, a short build reach.
+        let lazarus = &mut brain.world.hello.unit_defs[2];
+        (lazarus.weapon_count, lazarus.build_speed, lazarus.build_distance) = (0, 200.0, 96.0);
+        let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+        let tick = |frame: i32, health: f32, events: Vec<Event>| Tick {
+            frame,
+            late: 0,
+            events,
+            snapshot: Snapshot {
+                metal: resource(),
+                energy: resource(),
+                wind: 0.0,
+                own_units: vec![OwnUnit { health, max_health: 100.0, ..own(1, 2, at(1000.0, 1000.0)) }, own(2, 1, at(1500.0, 1000.0))],
+                allies: Vec::new(),
+                enemies: vec![enemy(9, 3, at(1100.0, 1000.0))],
+                wrecks: None,
+            },
+        };
+        brain.track_takings(&tick(30, 100.0, Vec::new()));
+        brain.track_takings(&tick(60, 90.0, Vec::new()));
+        let last = tick(90, 80.0, Vec::new());
+        brain.track_takings(&last);
+        let parties = brain.enemy_parties(&last.snapshot.enemies, &[], &std::cell::Cell::new(1));
+        let (what, _) = parties[0].harming.clone().expect("the taking");
+        assert_eq!(what, "taking apart our Sentry (armllt), 80% left and gone in about 8 s");
+        assert!(parties[0].unarmed);
+        let odds = brain.odds_words(&[&last.snapshot.own_units[1]], &parties[0], &last.snapshot.enemies);
+        assert!(odds.starts_with("it is unarmed and cannot fight back") && !odds.contains("chooses the fight") && !odds.contains("outweighs"), "{odds}");
+        // Health lost to a weapon is a hit, not a reclaim: nothing is taken apart.
+        let mut brain = brain_of(&["armflash", "armllt", "armfav"]);
+        let lazarus = &mut brain.world.hello.unit_defs[2];
+        (lazarus.weapon_count, lazarus.build_speed, lazarus.build_distance) = (0, 200.0, 96.0);
+        brain.track_takings(&tick(30, 100.0, Vec::new()));
+        brain.track_takings(&tick(60, 90.0, vec![Event::UnitDamaged { unit: UnitId(1), attacker: None, damage: 10.0, from: None, weapon: None }]));
+        assert!(brain.takings.is_empty());
+    }
+}

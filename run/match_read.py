@@ -24,9 +24,12 @@ def rows(path):
         return
     for line in open(path):
         try:
-            yield json.loads(line)
+            row = json.loads(line)
         except ValueError:
             continue
+        # A torn line can parse as a bare string or number: a row is an object.
+        if isinstance(row, dict):
+            yield row
 
 
 class Match:

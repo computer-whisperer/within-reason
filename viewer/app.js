@@ -1483,6 +1483,37 @@
         asked.append(block);
       }
     }
+    // The rebuilt hands (log version 3): every party is a question, and every actor has one menu of moves.
+    if (pass.menus) {
+      const parties = Object.keys(flags).filter((k) => k.endsWith(".answer")).sort();
+      if (parties.length) {
+        const block = el("div", "slot");
+        block.append(el("div", "id", "enemy parties · does it need answering?"));
+        for (const k of parties) block.append(bar(k.slice(0, -".answer".length), flags[k], false, 1));
+        asked.append(block);
+      }
+      const menus = [...pass.menus].sort((a, b) => (b.name === view.jevActor) - (a.name === view.jevActor));
+      for (const menu of menus) {
+        if (menu.quiet && !menu.audit) continue;
+        const block = el("div", `slot${menu.name === view.jevActor ? " selected" : ""}`);
+        block.append(el("div", "id", `${menu.name} · ${menu.kind} · ${menu.course}${menu.idle ? " · idle" : ""}${menu.audit ? " · closed by the news layer, asked for its audit (not played)" : ""}`));
+        const change = flags[`${menu.name}.change`];
+        if (change != null) block.append(bar("should change course", change, false, 1));
+        const moves = menu.moves.map((mv, i) => ({ mv, i, rated: flags[mv.id] })).sort((a, b) => (b.rated ?? -1) - (a.rated ?? -1) || a.i - b.i);
+        for (const { mv, i, rated } of moves) {
+          const row = el("div", `state${i === 0 ? " base" : ""}`);
+          const label = `${mv.id.split(".").slice(1).join(".")}${i === 0 ? " (its course)" : ""}${mv.party ? ` (an answer to ${mv.party})` : ""}`;
+          if (rated != null) row.append(bar(label, rated, false, 1));
+          else row.append(el("div", "ask", label));
+          const forbidden = flags[`${mv.id}.forbidden`];
+          if (forbidden != null) row.append(bar("forbidden by the instructions", forbidden, false, 1));
+          row.append(el("div", "ask words", mv.words));
+          block.append(row);
+        }
+        asked.append(block);
+      }
+      if (pass.closed && pass.closed.length) asked.append(el("div", "pass-line muted", `closed by the news layer (a course and no news): ${pass.closed.join(", ")}`));
+    }
     if (pass.gate) {
       const worlds = section(gate && gate.worlds ? `${gate.worlds.length} worlds${pickCall ? ", the pick's probabilities" : ", no pick"}` : "the gate opened nothing: no second call", "worlds");
       if (gate && gate.worlds) {

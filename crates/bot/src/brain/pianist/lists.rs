@@ -1,11 +1,11 @@
 //! The player's lists (H-HANDS-SCRIPT, the `queue` tool; and the counted entries of a factory's `produce` list, made
-//! in order, `play_sequences`): a builder with a list from the player is not in the pass;
+//! in order, `play_sequences`): a builder with a list from the player has no menu;
 //! the bot orders the next step when the builder is free, or when the build in progress is 60% done (queued behind
 //! it), and skips a step it cannot do. A new list replaces the old one whole: the build in progress finishes and
-//! what the old list queued behind it is dropped (`Pianist::list_replaced`, `take_queued`). An enemy on the builder puts it back in the pass until that is over, and a
-//! builder the pass has sent away from an enemy takes no step while it is still in the pass for one
-//! (`Pianist::list_is_held`). A bypass, not a decider: nothing in the pass reads a list
-//! (`docs/design/2026-09-26-one-pass.md` §6).
+//! what the old list queued behind it is dropped (`Pianist::list_replaced`, `take_queued`). An enemy on the builder
+//! gives it a menu of its ways out until that is over, and a builder the pick has sent away from an enemy takes no
+//! step while the enemy is still on it (`Pianist::list_is_held`). A bypass, not a decider: nothing in the pass
+//! reads a list beyond the spots its steps name (`docs/design/2026-09-26-one-pass.md` §6).
 
 use bot_protocol::{Command, OwnUnit, Tick, UnitDefId, UnitId};
 use serde_json::json;
@@ -13,7 +13,7 @@ use serde_json::json;
 use super::super::roster::Kit;
 use super::super::{Brain, FRAMES_PER_SECOND};
 use super::picture::{Picture, clock};
-use super::plan::Response;
+use super::menu::{Order, Site};
 use super::{Pianist, TagState, Tagged, Task};
 
 
@@ -66,7 +66,7 @@ impl Brain {
         let Some(mut pianist) = self.pianist.take() else { return };
         let mut under_fire: Vec<UnitId> = tick.events.iter().filter_map(|e| if let bot_protocol::Event::UnitDamaged { unit, .. } = e { Some(*unit) } else { None }).collect();
         under_fire.extend(pianist.under_fire(frame));
-        let mut steps: Vec<(UnitId, Response, String, bool)> = Vec::new();
+        let mut steps: Vec<(UnitId, Order, String, bool)> = Vec::new();
         pianist.list_held.retain(|id| own.iter().any(|u| u.id == *id));
         // A builder helping an id's building up is free when it stands or is gone: its guard or repair order is
         // ended (a guard never ends by itself), and its list goes on, or the pass has it back.
@@ -125,14 +125,14 @@ impl Brain {
             if !ready {
                 continue;
             }
-            if let Some((response, step)) = self.next_list_step(unit, &name, &mut pianist, picture, own, frame, kit) {
-                steps.push((unit.id, response, step, status.queue_ahead));
+            if let Some((order, step)) = self.next_list_step(unit, &name, &mut pianist, picture, own, frame, kit) {
+                steps.push((unit.id, order, step, status.queue_ahead));
             }
         }
         self.pianist = Some(pianist);
-        for (id, response, step, queue) in steps {
+        for (id, order, step, queue) in steps {
             let name = self.actor_name(id);
-            match self.execute_builder(tick, kit, picture, id, &response, queue, Some(&step), commands) {
+            match self.execute_builder(tick, kit, picture, id, &order, queue, Some(&step), commands) {
                 Some(did) => {
                     let pianist = self.pianist.as_mut().expect("pianist mode");
                     let did = match step_id(&step).1 {
@@ -167,7 +167,7 @@ impl Brain {
     }
 
     /// Every factory with a counted entry left on its `produce` list: the next unit ordered, one ahead of the pad,
-    /// without asking. A bypass like the builders' lists: a factory in its sequence has no slot in the pass.
+    /// without asking. A bypass like the builders' lists: a factory in its sequence has no menu.
     pub(super) fn play_sequences(&mut self, tick: &Tick, commands: &mut Vec<Command>) {
         let own = &tick.snapshot.own_units;
         let Some(pianist) = self.pianist.as_ref() else { return };
@@ -178,7 +178,7 @@ impl Brain {
             .collect();
         for (id, def) in next {
             let name = self.actor_name(id);
-            if let Some(did) = self.execute_lab(tick, id, &Response::Next(def), commands) {
+            if let Some(did) = self.execute_factory(tick, id, &Order::Make(def), commands) {
                 let unit = self.name(def).to_string();
                 let pianist = self.pianist.as_mut().expect("pianist mode");
                 pianist.done.push(format!("{} {name}: {did} (from its produce list)", clock(tick.frame)));
@@ -213,10 +213,10 @@ impl Brain {
         format!("spot_{i} is not free")
     }
 
-    /// The next step of a builder's list as a state, its words kept. Steps that cannot be done are dropped and
+    /// The next step of a builder's list as an order, its words kept. Steps that cannot be done are dropped and
     /// said; `assist` before any factory exists waits.
     #[allow(clippy::too_many_arguments)]
-    fn next_list_step(&self, unit: &OwnUnit, name: &str, pianist: &mut Pianist, picture: &Picture, own: &[OwnUnit], frame: i32, kit: &Kit) -> Option<(Response, String)> {
+    fn next_list_step(&self, unit: &OwnUnit, name: &str, pianist: &mut Pianist, picture: &Picture, own: &[OwnUnit], frame: i32, kit: &Kit) -> Option<(Order, String)> {
         let can = |def: UnitDefId| self.world.def(unit.def).is_some_and(|d| d.build_options.contains(&def));
         loop {
             let step = pianist.scripts.get_mut(name)?.pop_front()?;
@@ -228,30 +228,30 @@ impl Brain {
             let place = words.next().filter(|p| !(kind == "extractor" && *p == "nearest")).map(str::to_string);
             let at_place = |def: UnitDefId| match &place {
                 _ if !can(def) => Err("this builder cannot build it".to_string()),
-                Some(p) if picture.places.iter().any(|q| q.name == *p) => Ok(Response::BuildingAt(def, p.clone())),
+                Some(p) if picture.places.iter().any(|q| q.name == *p) => Ok(Order::Build(def, Site::Place(p.clone()))),
                 Some(p) => Err(format!("{p} is not a place in the picture")),
                 None => Err("it needs a place".to_string()),
             };
-            let resolved: Result<Response, String> = match kind {
+            let resolved: Result<Order, String> = match kind {
                 "extractor" if !can(kit.extractor) => Err("this builder cannot build it".to_string()),
                 "extractor" => {
                     let spots = self.free_spots(unit, pianist, picture, own, frame, kit);
                     match &place {
                         Some(p) => match p.strip_prefix("spot_").and_then(|n| n.parse::<usize>().ok()) {
-                            Some(i) if spots.iter().any(|(j, _)| *j == i) => Ok(Response::Extractor(i)),
+                            Some(i) if spots.iter().any(|(j, _)| *j == i) => Ok(Order::Build(kit.extractor, Site::Spot(i))),
                             // Why it is not free (9.3): "not free" covered a spot nothing of ours reached, one the
                             // enemy held, one under wrecks and one another builder was taking (Cape Violet, 333 skips).
                             Some(i) => Err(self.why_not_free(i, unit, pianist, own, kit)),
                             None => Err(format!("{p} is not a spot")),
                         },
                         None => match spots.first() {
-                            Some((i, _)) => Ok(Response::Extractor(*i)),
+                            Some((i, _)) => Ok(Order::Build(kit.extractor, Site::Spot(*i))),
                             None => Err("no free spot in reach".to_string()),
                         },
                     }
                 }
                 "assist" => match own.iter().filter(|u| self.world.is_factory_def(u.def)).min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos))) {
-                    Some(factory) => Ok(Response::Assist(factory.id)),
+                    Some(factory) => Ok(Order::Help(factory.id)),
                     None => {
                         // Nothing to help yet: the step waits at the front of the list.
                         pianist.scripts.get_mut(name)?.push_front(step);
@@ -261,7 +261,7 @@ impl Brain {
                 // `reclaim <handle>`: one unit of ours, taken apart for its metal (the `remove` tool).
                 "reclaim" => match place.as_deref().and_then(|h| self.unit_by_handle(h, own)) {
                     Some(target) if target.id == unit.id => Err("a builder cannot take itself apart".to_string()),
-                    Some(target) => Ok(Response::ReclaimUnit(target.id)),
+                    Some(target) => Ok(Order::TakeApartUnit(target.id)),
                     None => Err(format!("{} no longer stands", place.as_deref().unwrap_or("it"))),
                 },
                 // A defence at a spot whose extractor the engine refused lately waits with its extractor.
@@ -274,7 +274,7 @@ impl Brain {
                 // takes one when given.
                 other => match self.world.def_named(other) {
                     Some(def) if self.placed_at_place(def) || place.is_some() => at_place(def),
-                    Some(def) if can(def) => Ok(Response::Building(def)),
+                    Some(def) if can(def) => Ok(Order::Build(def, Site::Planned)),
                     Some(_) => Err("this builder cannot build it".to_string()),
                     None => Err(format!("'{other}' is not a unit name the game knows")),
                 },
@@ -282,16 +282,15 @@ impl Brain {
             // A step with an id is one building (`Pianist::tag_state`): started by the first builder to reach it,
             // helped up by any other, done once it stands.
             let resolved = match (resolved, tag) {
-                (Ok(response), Some(tag)) => {
-                    let def = match &response {
-                        Response::Extractor(_) => Some(kit.extractor),
-                        Response::Building(def) | Response::BuildingAt(def, _) => Some(*def),
+                (Ok(order), Some(tag)) => {
+                    let def = match &order {
+                        Order::Build(def, _) => Some(*def),
                         _ => None,
                     };
                     match def.map(|def| pianist.tag_state(tag, def, unit.id, own)) {
-                        None | Some(TagState::Free) => Ok(response),
-                        Some(TagState::UnderWay(frame)) => Ok(Response::Repair(frame)),
-                        Some(TagState::Claimed(builder)) => Ok(Response::Assist(builder)),
+                        None | Some(TagState::Free) => Ok(order),
+                        Some(TagState::UnderWay(frame)) => Ok(Order::Repair(frame)),
+                        Some(TagState::Claimed(builder)) => Ok(Order::Help(builder)),
                         Some(TagState::Stands) => Err(format!("#{tag} stands already")),
                         Some(TagState::Mine) => Err(format!("#{tag} is the build this builder is on")),
                         Some(TagState::Other(other)) => Err(format!("#{tag} is a {}: an id is one building", self.name(other))),
@@ -300,7 +299,7 @@ impl Brain {
                 (resolved, _) => resolved,
             };
             match resolved {
-                Ok(response) => return Some((response, step)),
+                Ok(order) => return Some((order, step)),
                 Err(why) => {
                     let text = format!("skipped the step '{step}' of its list: {why}");
                     pianist.done.push(format!("{} {name}: {text}", clock(frame)));

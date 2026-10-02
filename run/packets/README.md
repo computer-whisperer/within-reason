@@ -22,3 +22,8 @@ keyed on our extractor count, the way the plant's paragraph is ("with 4 extracto
 for a lost spot, the turret, the solar (STALLING only) and no converters: the test of whether a job written as a table is
 followed with no standing rules where the job sentence was not (K-jev-a-job-sentence-is-not-a-per-second-signal).
 onepass-norules-hard-7: it is, in the table's order, 10 extractors at 8:00 against 2-4 with the sentence.
+
+`comet-west-rebuild-1.md` (2026-10-02) is `comet-west-hold-table-1.md` with group_A's paragraph written for the rebuilt
+hands (`docs/design/2026-10-01-hands-rebuild.md`): its station as a place it walks to and holds at, one-soldier
+detachments (`send 1`) and no larger, a named place to step back to (`home`), and the detachments told to join the
+group again. The first pianist-alone game of the rebuilt menu, rebuild-smoke-1.

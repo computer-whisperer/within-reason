@@ -14,6 +14,7 @@
 //!              [--claude-config-dir DIR]   (subscription for the player's sessions; default ~/.claude2)
 //!              [--effort low|medium|high|xhigh|max]   (the LLM session's `claude --effort`; default high)
 //!              [--hands-effort lean|normal|full]      (the hands' Jev token diet; default lean, the bulk games' level)
+//!              [--hands-layers a,b|none]   (the hands' savings that are on: news is the default; none is the base version alone)
 //!              [--opponent-opening any|bots|vehicles]   (pins BARb's first factory by disabling the other; default any)
 //!              [--think-penalty X]   (the player's or commander's orders land X game seconds late per wall second it thought; 1 = as in a live game; default 1 with --player, else 0)
 //!              [--think-cap S]   (the penalty's delay is at most S game seconds a turn, so a slow provider does not decide the game; default 7 with --player, 0 = no cap)
@@ -98,6 +99,9 @@ struct Options {
     effort: Option<String>,
     /// The hands' token diet: lean (the default here), normal or full (`WITHIN_REASON_HANDS_EFFORT`).
     hands_effort: Option<String>,
+    /// `--hands-layers a,b`: the hands' savings that are on (`WITHIN_REASON_HANDS_LAYERS`; unset, `news`; `none` for
+    /// the base version alone). `docs/design/2026-10-01-hands-rebuild.md` §8.
+    hands_layers: Option<String>,
     /// `--think-penalty X`: the player's orders land X game seconds late per wall second it thought (`WITHIN_REASON_THINK_PENALTY`).
     think_penalty: Option<String>,
     /// `--think-cap S`: the penalty's delay is at most S game seconds a turn (`WITHIN_REASON_THINK_CAP`; default 7 with `--player`).
@@ -169,7 +173,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("BARb {}", options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "commander_model": options.commander_model, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "commander_model": options.commander_model, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 
@@ -313,6 +317,7 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         .envs(options.claude_config_dir.as_ref().map(|dir| ("WITHIN_REASON_CLAUDE_CONFIG_DIR", dir)))
         .envs(options.effort.as_ref().map(|effort| ("WITHIN_REASON_EFFORT", effort)))
         .env("WITHIN_REASON_HANDS_EFFORT", options.hands_effort.as_deref().unwrap_or("lean"))
+        .envs(options.hands_layers.as_ref().map(|layers| ("WITHIN_REASON_HANDS_LAYERS", layers)))
         .envs(options.commander_model.as_ref().map(|model| ("WITHIN_REASON_MODEL", model)))
         .envs(options.objective.as_ref().map(|text| ("WITHIN_REASON_OBJECTIVE", text)))
         // A player game is played as a live one unless told otherwise: its orders land as late as it thought.
@@ -589,6 +594,7 @@ fn parse_args() -> Options {
         opponent_opening: "any".into(),
         effort: None,
         hands_effort: None,
+        hands_layers: None,
         think_penalty: None,
         think_cap: None,
         turn_limit: None,
@@ -645,6 +651,7 @@ fn parse_args() -> Options {
             "--claude-config-dir" => options.claude_config_dir = Some(value()),
             "--effort" => options.effort = Some(value()),
             "--hands-effort" => options.hands_effort = Some(value()),
+            "--hands-layers" => options.hands_layers = Some(value()),
             "--commander-model" => options.commander_model = Some(value()),
             "--objective" => options.objective = Some(value()),
             "--think-penalty" => options.think_penalty = Some(value()),

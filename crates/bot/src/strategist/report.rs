@@ -335,7 +335,9 @@ pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, fights
             if let Some(health) = field("health").filter(|h| !h.starts_with("full")) {
                 parts.push(format!("health {health}"));
             }
-            for key in ["allowed", "lane", "progress", "stuck", "yard", "footwork", "reinforcements", "enemies_near", "enemies_at_our_extractors", "under_fire", "unseen_shooter", "rove", "scouts_out", "detachments_out", "split_from", "nanos"] {
+            // `last_pick` and `reached` are the hands' registers; `best_rated` is what the gate last rated best for the
+            // actor: a paragraph that is not being read as meant shows here within a turn.
+            for key in ["allowed", "lane", "progress", "stuck", "yard", "footwork", "reinforcements", "enemies_near", "enemies_at_our_extractors", "under_fire", "unseen_shooter", "rove", "scouts_out", "detachments_out", "split_from", "nanos", "reached", "last_pick", "best_rated"] {
                 match &entry[key] {
                     serde_json::Value::String(text) => parts.push(format!("{key}: {text}")),
                     serde_json::Value::Array(items) => parts.push(format!("{key}: {}", items.iter().filter_map(|i| i.as_str()).collect::<Vec<_>>().join("; "))),

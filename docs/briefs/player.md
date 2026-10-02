@@ -201,8 +201,8 @@ Thug `corthud` 140/1100/45/380 line unit; Trasher `corcrash` anti-air only; Grav
   standing on an approach also stops a lone enemy raider; chasing raiders with the army does not. [K-units-dont-chase-raiders]
 - Defence is the player's: nothing in the code answers a raider at a structure on its own, and told only "engage", the
   hands send the whole ball after one scout car and never catch it while another kills a lab at home (realtime-2, won
-  anyway on hard). A single Tick or scout car at an extractor is met by one soldier from the nearest group (`send_against`
-  with `how_many` 1; two or four for a small party) or by a group left where the raids pass; the packet says which,
+  anyway on hard). A single Tick or scout car at an extractor is met by one soldier from the nearest group (`send`:
+  one; two or four for a small party) or by a group left where the raids pass; the packet says which,
   before the ball leaves. The raids are standard and expected (Ticks from 5:00 on Comet Catcher, outermost spots
   first), so the answer stands across the front before they come: pickets of one or two Blitzes at each outer spot
   cluster from the first Blitzes out of the plant, told in words to attack on sight, with a light turret beside each
@@ -280,25 +280,35 @@ go up everywhere at once (the case in the tier-2 decision above), and a dead sea
 before the game's ending rules take them; a commander can be reclaimed by another builder for its metal (`remove`),
 but a starting store holds 1,000 of its 2,700, so spend as it comes. Say in chat which seat is which by colour.
 
-**What your hands can do on their own (2026-09-27 evening).** A group's menu carries its own initiative, offered every
-second and never forced: `raid` on his buildings known within reach (the words say what stands there, when seen, the
-turrets among them and the income it takes), `sweep` of the spots nothing of ours has looked at, `gather` when the
-group is strung out (the front holds until the tail is up), `close_on_shooter` or `pull_out` when fire comes from out
-of sight (each group reads its own shooter from the hits on its own soldiers: the place `shelling_<group>` when it
-stands apart from the side's `shelling`), `shell` from a standoff when it has long-reach soldiers, and against a moving raider `next_extractor`
-(stand at the next extractor of ours on its heading). A group is a body: its entry says the front, the tail, who is
-arrived and who is on the way from the plant, and the odds are priced on the part in the fight. A route is prose in
-`instruct`: "group_A: spot_49, then spot_46, spot_40, spot_55, spot_58, back to spot_64, in that order, advancing; on his
-buildings in sight it kills what is undefended; on a party it does not outweigh it holds out of its reach". Every
-place a group's own paragraph names is on its menu, its entry says which it has reached (`route_seen`) and what it
-has met since the last stop (`met`), an arrival asks the hands at once, and they pick the next leg or the fight from
-your sentence: name the whole route and its exits in one turn, since your orders land about five seconds after the
-picture you read and a group at a stop with no next place named waits for your next turn. `station` is one place, the
-group's post. A scout's sentence that held under the enemy commander's eyes: "it is a scout: it runs from what can
-catch it and otherwise keeps to its route; being seen is its job". The enemy section lists his buildings by place with their guards, the parties that left sight with where and
-when, his biggest party known, and the first of each tier-2 or air type of his the moment it is seen. The commander
-has a D-gun state against any party whose nearest unit is inside its reach. Every constructor's extractor menu holds
-the nearest free spots beside the ones you name.
+**What your hands can do (rebuilt 2026-10-02; `docs/design/2026-10-01-hands-rebuild.md`).** Every unit has one menu
+and makes one move at a time; the role text lists the verbs. What matters for writing a packet:
+- A group's moves are aimed at what you name and at what the picture sees: `go` and `fight to` at every place your
+  packet, a list or a mark names; `attack`, `shell` and `send` at every enemy party in sight; `attack` and `shell`
+  at his buildings wherever the picture knows them; `join` and `follow` at every other group, `follow` at every
+  builder. Nothing is cut to "the nearest few" any more, and nothing is offered because code thought it fit.
+- The hands have no destination of their own. There is no fall back to where a group last held, no walk home, no
+  pull-out place, no sweep of unseen spots, no stand at the next extractor on a raider's heading: each of those was
+  a place code chose. Where a group goes when it should not fight is a place its paragraph names; where it scouts
+  is a place its paragraph names, or `rove`.
+- A way through several places is prose: "group_A: spot_49, then spot_46, spot_40, spot_55, spot_58, back to spot_64,
+  in that order, advancing; his buildings in sight it kills when they are undefended; from a party it does not
+  outweigh it walks to spot_64". The group's entry says which named places it has reached (`reached`) and what it
+  has met since the last (`met`); an arrival asks the hands at once, and a group standing with nothing ordered is
+  told which move Jev itself rated best for it. Name the whole way and its exits in one turn, since your orders land
+  about five seconds after the picture you read.
+- A group is a body: its entry says the front, the tail, who has arrived and who is on the way from the plant, and
+  the odds are priced on the part in the fight. Every move's words carry the fight the group is in (the odds, what
+  it lost in the last 30 s, whether the party can follow), on the moves that keep the fight and on those that leave it.
+- A scout's sentence that held under the enemy commander's eyes: "it is a scout: it runs from what can catch it and
+  otherwise keeps to its route; being seen is its job".
+- The enemy section lists his buildings by place with their guards, the parties that left sight with where and
+  when, his biggest party known, and the first of each tier-2 or air type of his the moment it is seen.
+Lessons below that were learned before 2026-10-02 name the old hands' options. Read them as the new menu's nearest
+move: `send_against` with `how_many` is `send` (one, two, four or eight); `attack_unit` is an air group's `attack`,
+and for a ground group the plain `attack`; `raid` is `attack` on his buildings at a place; `advance` and `fight_to`
+are `fight to`; `walk` and `station` are `go` and `hold`; `escort` is `follow`; `hunt` is what a `send` detachment
+does; `route_seen` is `reached`; `fall_back`, `retreat_home`, `sweep`, `pull_out`, `close_on_shooter` and
+`next_extractor` are gone, and a place you name takes their place.
 Nothing of this plays without a pick: say in the packet what you want done and the hands weigh it.
 
 **Scouting and raiding with fast units: `rove` (2026-09-27).** `lane` with `{"group_R": "rove"}` hands a group of
@@ -311,7 +321,7 @@ and kills nothing (player-20, player-21); a body sent to do damage goes with the
 Your hands never move a roving group (no hunt, retreat or join), which is what killed the scouts before: in
 player-9 three scouts went at his base and none arrived (one turned home by the hands at the first sight of his
 commander, one into two Pawns, one onto a hunt). The group's entry says what each rover is doing and what it has
-found (`rove`); `"on"` takes it back. Your hands' `scout` state now makes a rover of a group's fastest soldier.
+found (`rove`); `"on"` takes it back. Your hands' `scout` move makes a rover of a group's fastest soldier.
 [K-micro-a-rover-outruns-what-it-cannot-fight]
 
 **Which map.** Four maps have sections here, Quicksilver Remake, Comet Catcher Remake, Cape Violet V1 and Great Divide V1.

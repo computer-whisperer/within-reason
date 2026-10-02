@@ -58,7 +58,7 @@ should write through the same journal with its own `source` (`Note::source`; `Jo
 ## The pianist's log
 `jev-<ai_id>.jsonl` beside the record, written when the bot runs `--pianist` with `WITHIN_REASON_JEV_LOG=1` (the arena
 sets it); the record header names it under `siblings.decision_logs`. JSON Lines; readers skip a torn last line.
-- `{"t":"header","format":"within-reason-jev","version":1|2,"ai_id","model","interval_frames","rules"}` first: `rules` is
+- `{"t":"header","format":"within-reason-jev","version":1|2|3,"ai_id","model","interval_frames","rules"}` first: `rules` is
   the standing text every call's picture carried (it is left out of the calls).
 - `{"t":"call","f","ms","model","usage":{input_tokens,...},"retries","state","questions","answers","played","groups","places","parties"}`
   per request: `state` is the picture without `instructions` and `rules`; `instructions` (the player's packet) is a
@@ -108,6 +108,21 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   the group's task: `groups` in a `call` line say `{"kind": "plan", "plan", "phase", "to"}`, and a `pass` line's
   `played` carries the taking with source `engagement`. The planner, `bot --plan-replay` and `run/plan_replay.py`
   were deleted on 2026-09-29 (ccc7858): logs from then on carry no such line.
+- From 2026-10-02 (version 3, the rebuilt hands, `docs/design/2026-10-01-hands-rebuild.md`, H-HANDS-MENU) there are
+  no slots and no threat slots: every actor has one menu and every enemy party is a question. The header carries
+  `layers` (the layers that are on, `--hands-layers`). A `pass` line on a second that asks carries `menus` ([{name,
+  kind: builder|lab|group, idle, course (the course in force by kind), quiet (closed by the `news` layer), audit
+  (closed and asked anyway for the layer's audit), moves: [{id: `<actor>.<verb>_<what it is aimed at>`, words, party
+  (the party the move is an answer to, or null)}]}], index 0 the actor's `stay`), `open` and `closed` (actor
+  names), `layers` ({news: {on, skipped (questions the layer did not send), audited (actors it asked anyway)}}),
+  `gate` (the noul ids: `party_N.answer` for every party in the picture; per asked actor `<actor>.change` unless it
+  is idle and one id per move; `<move id>.forbidden` beside every `send_N_party_M`), and `events`. An `audit` line
+  per audited actor follows the gate's answer: `{"t": "audit", "f", "layer", "actor", "assumed", "change", "best"
+  (its best-rated move's id), "best_p", "fault" (both at 0.5 or over: the layer would have been wrong to close it)}`.
+  `worlds_gate` is as before with `worlds` [[move index per menu]] (0 is `stay`; world 1 is all zeros) and `flags`
+  holding every noul by id. A `call` line's groups say `task.kind` hold (with `picked`), move_to, fight_to, engage,
+  attack_unit, hunt or follow (`ward`: a builder's or a group's name). `plan` lines are unchanged. A gate that
+  fails writes an `error` line and is asked again at the next second.
 Size: 15-30 KB a call (3-6k tokens of state and questions), 20-60 calls a minute: 25 MB for a 20-minute game. Logs from
 the first morning (2026-09-21, before the header line) carry `instructions` and `rules` in every state and no `played`;
 the viewer reads those too, taking the decisions from the answers.

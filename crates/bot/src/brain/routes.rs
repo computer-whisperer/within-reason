@@ -3,17 +3,11 @@
 
 use std::collections::HashMap;
 
-use bot_protocol::{MoveClass, MoveKind, UnitDefId, UnitId, Vec3};
+use bot_protocol::{MoveClass, MoveKind, UnitDefId, Vec3};
 
 use super::Brain;
 use super::roster::Kit;
 use terrain::Field;
-
-/// A turret has this much beyond its range for the approach: a unit walking past at the edge of its range is shot.
-const TURRET_MARGIN: f32 = 100.0;
-/// The enemy commander's ground: nothing of ours walks within this of where it was last seen unless priced to
-/// (its reach and a margin).
-const COMMANDER_GROUND: f32 = 1000.0;
 
 /// The enemy-side field is rebuilt when our estimate of where an enemy lives has moved this far.
 const ENEMY_MOVED: f32 = 600.0;
@@ -58,15 +52,6 @@ pub struct Routes {
     /// thread at the survey (10 ms a field); empty until they arrive.
     spot_fields: HashMap<Walker, Vec<Option<Field>>>,
     spot_fields_pending: Option<std::sync::mpsc::Receiver<HashMap<Walker, Vec<Option<Field>>>>>,
-    /// The commander's costs, for the safe field home.
-    commander_costs: Option<Vec<u32>>,
-    /// The commander's way home round every known armed building's reach and their commander's ground (the safe
-    /// flavour): the one place a waypoint is given, for deliberate avoidance (the user, 2026-09-20). Rebuilt on
-    /// the thread when the known threats change; `None` (the plain way) until it arrives.
-    safe_home: Option<Field>,
-    safe_home_pending: Option<std::sync::mpsc::Receiver<Option<Field>>>,
-    /// The threats the safe field was last built against: armed building ids and the commander's place.
-    safe_home_against: (Vec<UnitId>, Option<(i32, i32)>),
 }
 
 impl Brain {
@@ -105,7 +90,6 @@ impl Brain {
         let cut_off: Vec<String> =
             spots.iter().filter(|s| from_home.distance(**s).is_none()).map(|s| format!("({:.0}, {:.0})", s.x, s.z)).collect();
         eprintln!("[ai {}] terrain: spots we cannot walk to: {}", self.ai(), cut_off.join(" "));
-        let commander_class = self.world.def(kit.commander).and_then(|d| d.move_class);
         // Every movement class among the units the commander reaches by build lists, the raider's included.
         let mut distinct: Vec<(Walker, MoveClass)> = Vec::new();
         for id in self.world.reachable_from(kit.commander) {
@@ -144,7 +128,6 @@ impl Brain {
         self.routes = Some(Routes {
             soldiers: Walker::Class(ClassKey::of(class)),
             from_home, classes, from_enemy, enemy_origins, passable, spot_fields: HashMap::new(), spot_fields_pending: Some(receiver),
-            commander_costs: commander_class.map(|c| terrain::costs(terrain, c)), safe_home: None, safe_home_pending: None, safe_home_against: (Vec::new(), None),
         });
         for p in self.passages() {
             eprintln!("[ai {}] terrain: passage at {} ({:.0}, {:.0}), {:.0} wide, {:.0} % of the way to the enemy", self.ai(), self.world.grid(p.at), p.at.x, p.at.z, p.width, p.along * 100.0);
@@ -168,8 +151,7 @@ impl Brain {
         }
     }
 
-    /// Takes the spot fields once the thread has built them; call every think tick. Also keeps the commander's safe
-    /// way home current against the known threats.
+    /// Takes the spot fields once the thread has built them; call every think tick.
     pub(super) fn receive_spot_fields(&mut self) {
         let Some(routes) = &mut self.routes else { return };
         if let Some(receiver) = &routes.spot_fields_pending
@@ -178,79 +160,6 @@ impl Brain {
             routes.spot_fields = fields;
             routes.spot_fields_pending = None;
         }
-        if let Some(receiver) = &routes.safe_home_pending
-            && let Ok(field) = receiver.try_recv()
-        {
-            routes.safe_home = field;
-            routes.safe_home_pending = None;
-        }
-        self.refresh_safe_home();
-    }
-
-    /// Rebuilds the commander's safe field home on the thread when the known armed buildings or their commander's
-    /// place have changed since the last build, and none is in progress.
-    fn refresh_safe_home(&mut self) {
-        let rules = self.sim.rules.clone();
-        let mut walls: Vec<(UnitId, Vec3, f32)> = self.enemy_buildings.iter().filter_map(|(id, (def, pos, _))| {
-            let d = self.world.def(*def)?;
-            (d.weapon_count > 0 && !self.enemy_unfinished.contains(id)).then_some(())?;
-            let reach = rules.units.list[*self.sim.defs.get(def)?].reach();
-            Some((*id, *pos, reach + TURRET_MARGIN))
-        }).collect();
-        walls.sort_by_key(|(id, _, _)| *id);
-        let commander = self.enemy_commander_seen.map(|(p, _)| (p.x as i32, p.z as i32));
-        let against = (walls.iter().map(|(id, _, _)| *id).collect::<Vec<_>>(), commander);
-        let Some(routes) = &mut self.routes else { return };
-        if routes.safe_home_pending.is_some() || routes.safe_home_against == against {
-            return;
-        }
-        let Some(base) = routes.commander_costs.clone() else { return };
-        routes.safe_home_against = against;
-        let terrain = self.world.hello.terrain.clone();
-        let home = self.home;
-        let mut zones: Vec<(Vec3, f32)> = walls.into_iter().map(|(_, pos, reach)| (pos, reach)).collect();
-        if let Some((pos, _)) = self.enemy_commander_seen {
-            zones.push((pos, COMMANDER_GROUND));
-        }
-        let (sender, receiver) = std::sync::mpsc::channel();
-        routes.safe_home_pending = Some(receiver);
-        std::thread::spawn(move || {
-            let mut costs = base;
-            let (cell, width) = (terrain.cell, terrain.width as usize);
-            for (index, cost) in costs.iter_mut().enumerate() {
-                let centre = Vec3 { x: ((index % width) as f32 + 0.5) * cell, y: 0.0, z: ((index / width) as f32 + 0.5) * cell };
-                if zones.iter().any(|(at, radius)| at.dist2d(centre) < *radius) {
-                    *cost = terrain::IMPASSABLE;
-                }
-            }
-            let _ = sender.send(Field::from_costs(&terrain, &costs, &[home]));
-        });
-    }
-
-    /// The commander's way home round known threats, as one waypoint: the first place the safe way turns by more
-    /// than a right angle's third from the straight line home, if the safe way parts from the straight one at
-    /// all. `None`: go straight home.
-    pub(super) fn commander_waypoint_home(&self, from: Vec3) -> Option<Vec3> {
-        let field = self.routes.as_ref()?.safe_home.as_ref()?;
-        let route = field.route(from);
-        if route.len() < 3 {
-            return None;
-        }
-        let (dx, dz) = (self.home.x - from.x, self.home.z - from.z);
-        let straight = dz.atan2(dx);
-        // The route's first cell is where the commander stands; a turning is where the way's direction from the
-        // start leaves the straight line's by more than 30 degrees.
-        for point in route.iter().skip(2) {
-            let heading = (point.z - from.z).atan2(point.x - from.x);
-            let off = (heading - straight).abs().min(std::f32::consts::TAU - (heading - straight).abs());
-            if off > 30f32.to_radians() && point.dist2d(from) > 100.0 {
-                // The waypoint is the farthest point on the way that is still within a straight-line clear of
-                // the walls' ground: the route itself is safe, so the point halfway along it serves.
-                let midway = route[route.len() / 2];
-                return Some(midway);
-            }
-        }
-        None
     }
 
     /// How a unit of this type gets about: straight for aircraft, else by its own movement class; a building or an

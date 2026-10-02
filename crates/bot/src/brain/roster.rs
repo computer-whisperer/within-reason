@@ -8,7 +8,6 @@ use crate::world::World;
 pub struct Roster {
     pub commander: &'static str,
     extractor: &'static str,
-    solar: &'static str,
     converter: &'static str,
     lab: &'static str,
     turret: &'static str,
@@ -30,14 +29,14 @@ pub struct Roster {
 
 pub const ROSTERS: [Roster; 2] = [
     Roster {
-        commander: "armcom", extractor: "armmex", solar: "armsolar",
+        commander: "armcom", extractor: "armmex",
         converter: "armmakr", lab: "armlab", turret: "armllt", constructor: "armck",
         plant: "armvp", vehicle_constructor: "armcv",
         advanced_lab: "armalab", advanced_constructor: "armack", advanced_extractor: "armmoho",
         raider: "armpw", line: "armham", resurrector: "armrectr",
     },
     Roster {
-        commander: "corcom", extractor: "cormex", solar: "corsolar",
+        commander: "corcom", extractor: "cormex",
         converter: "cormakr", lab: "corlab", turret: "corllt", constructor: "corck",
         plant: "corvp", vehicle_constructor: "corcv",
         advanced_lab: "coralab", advanced_constructor: "corack", advanced_extractor: "cormoho",
@@ -77,7 +76,6 @@ pub fn usual_menu(builder_name: &str) -> &'static [&'static str] {
 pub struct Kit {
     pub commander: UnitDefId,
     pub extractor: UnitDefId,
-    pub solar: UnitDefId,
     pub converter: UnitDefId,
     pub lab: UnitDefId,
     pub turret: UnitDefId,
@@ -113,7 +111,6 @@ impl Roster {
         Ok(Kit {
             commander: id(self.commander)?,
             extractor: id(self.extractor)?,
-            solar: id(self.solar)?,
             converter: id(self.converter)?,
             lab: id(self.lab)?,
             turret: id(self.turret)?,

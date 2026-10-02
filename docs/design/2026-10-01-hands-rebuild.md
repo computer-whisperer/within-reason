@@ -374,6 +374,27 @@ What the code needed:
   spot_9: ..."). It is one order with one footwork; two moves for it would be near-synonyms.
 - **No-ops are left out as things the unit cannot do**: `go` to where it stands, `hold` for a group already holding
   by a pick, `join` with itself. `gather` is always listed for a group of two or more; its words say how far the tail is.
+- **Which buildings go at which places** (corrected after rebuild-smoke-1, 2026-10-02). §3's "build a type, at a
+  place or beside itself" was first built as every type at every named place: a constructor's menu was 507 moves,
+  93% of the gate's questions in the game's first five minutes were a build at a place, the bill ran at $0.28 a game
+  minute, and a builder's two best moves were often one building at two places. As built now: every type where the
+  base layout has it (the move's words say where); an extractor at every free named spot and at the free spot the
+  builder reaches soonest; a tier-2 extractor over ours at a named spot; a type that stands at a place (a defence,
+  a radar, a jammer, a sonar) at every named place; and any type at every mark the player made. A solar or a
+  factory at a metal spot is ordered by a mark or by a list step, as today. This is a bound on the menu and so the
+  user's to strike.
+- **A party's answers are asked at every gate, whatever the `news` layer closed** (corrected after
+  rebuild-smoke-1). §4 says every party is asked at every gate; under the rule of 2026-09-30 that meant the party
+  and the states against it, since a threat slot was never closed. As first built here the `news` layer closed a
+  holding group whole, its moves aimed at a party with it: at 4:39-4:47 a Pawn shot a constructor 300 from a
+  holding group_A for eight seconds, the party's `answer` at 0.7 to 0.8 every second, and no answer of the group
+  was a question. Now the layer skips an actor's `change` and its own moves only; its moves aimed at a party are
+  asked at every gate and go to the pick by the party's `answer`. Skipping them while the party's answer says no is
+  the `openers` layer's saving, with its audit.
+- **The D-gun is a move only at a party with a unit inside its reach.** Beyond it the commander cannot fire it,
+  and walking in is `attack`. (rebuild-smoke-1: the shot was picked five times at parties 900 away under words
+  that could not say what the engine would then do.) The shot ends the builder's task, since it takes the place
+  of its order in the engine.
 - **Named places** are: every mark; every spot, passage or `home` the packet's text names; every spot a list step
   names. The picture gains a place for every spot with buildings of his within 500, so that `attack` and `shell`
   can be aimed at all of them.

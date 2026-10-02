@@ -1,9 +1,10 @@
 //! The pianist (`docs/design/2026-09-21-pianist.md`): Opus plays the game, Jev plays the keyboard. Once a game
-//! second the brain writes a picture of the game (`picture.rs`), enumerates every actor's executable states
-//! (`plan.rs`, `threats.rs`), puts the base world in force, and when the picture changed asks Jev twice: the
-//! pre-pass's nouls, then one Choice over the composed worlds (`docs/design/2026-09-26-one-pass.md`). The pick runs
-//! through the actuators (`execute.rs`, `groups.rs`) until the picture changes again. No decision heuristic runs
-//! beneath it; the control lane (`micro.rs`) and the tracking do.
+//! second the brain writes a picture of the game (`picture.rs`) and lists every actor's moves (`menu.rs`: one menu
+//! per actor, a move being a verb and what it is aimed at), and when the picture changed it asks Jev: a gate of
+//! nouls, then a pick over the worlds joined from the best-rated moves (`compose.rs`,
+//! `docs/design/2026-10-01-hands-rebuild.md`). The savings on what is asked are layers with a switch and an audit
+//! each (`layers.rs`). The pick runs through the actuators (`execute.rs`, `groups.rs`) until an order ends or the
+//! next pick changes it. No decision heuristic runs beneath it; the control lane (`micro.rs`) and the tracking do.
 //!
 //! In lockstep the calls hold the game (the arena's shim waits for the reply); against a live engine they cost a
 //! late tick a second. A call fails safe: every actor keeps its task until the next answer.
@@ -18,10 +19,11 @@ mod remove;
 #[cfg(test)]
 pub(crate) mod fixtures;
 mod transfer;
+mod compose;
 mod diet;
-mod plan;
+mod layers;
+mod menu;
 mod schedule;
-mod threats;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 
@@ -65,6 +67,10 @@ pub(super) enum Task {
     ReclaimUnit { target: UnitId, since: i32 },
     Repair { target: UnitId, since: i32 },
     Walk { to: Vec3, place: String, since: i32 },
+    /// Walking beside a group of ours wherever it goes; `at`: where the group stood at the builder's last order.
+    Follow { group: String, at: Vec3, since: i32 },
+    /// Attacking a party; `to`: where the party stood at the builder's last order.
+    Attack { party: String, to: Vec3, since: i32 },
 }
 
 /// A building named by an id on the player's list steps: its type, the builder ordered to start it while no frame
@@ -99,7 +105,7 @@ impl Task {
     pub(super) fn since(&self) -> i32 {
         match self {
             Task::Build { ordered, .. } => *ordered,
-            Task::Assist { since, .. } | Task::Reclaim { since, .. } | Task::ReclaimUnit { since, .. } | Task::Repair { since, .. } | Task::Walk { since, .. } => *since,
+            Task::Assist { since, .. } | Task::Reclaim { since, .. } | Task::ReclaimUnit { since, .. } | Task::Repair { since, .. } | Task::Walk { since, .. } | Task::Follow { since, .. } | Task::Attack { since, .. } => *since,
         }
     }
 }
@@ -130,10 +136,10 @@ pub struct Pianist {
     next_request: u64,
     interval_frames: i32,
     last_ask_frame: i32,
-    /// Worlds in the second call at most (`WITHIN_REASON_WORLDS`).
+    /// Worlds in the pick at most (`WITHIN_REASON_WORLDS`).
     cap: usize,
-    /// The told noul beside each builder state's move noul (`WITHIN_REASON_TOLD=1`; `plan::TOLD_BAR`).
-    told: bool,
+    /// The layers that are on (`WITHIN_REASON_HANDS_LAYERS`, `layers.rs`).
+    layers: layers::Layers,
     /// Builders' and labs' tasks, by unit.
     pub(super) tasks: HashMap<UnitId, Task>,
     /// A builder's next task, already ordered behind the one in progress (H-HANDS-QUEUE): it becomes the task when
@@ -169,19 +175,28 @@ pub struct Pianist {
     /// Each factory's own group, by factory: the group its soldiers gather in unless `produce` names another; made
     /// on the first soldier and remade when it has died out.
     pub(super) rally: HashMap<UnitId, String>,
-    /// The pass (`plan.rs`): the slots of the last ask, the worlds of its second call, the picture's signature and
-    /// frame at the last ask (ask on change), and the events since (`schedule.rs`).
-    pub(super) slots: Vec<plan::Slot>,
-    pub(super) worlds: Vec<plan::World>,
+    /// The pass (`compose.rs`): the worlds of the last pick, the picture's signature and frame at the last gate,
+    /// and the events since (`schedule.rs`).
+    pub(super) worlds: Vec<compose::World>,
     /// The pick's candidate this second: the world stage one's sample drew, and its probability (for the log).
     pub(super) candidate: Option<(usize, f64)>,
     pub(super) sig: Option<(String, i32)>,
-    /// Ask on change, actor by actor (`plan::settle`): each actor's course and frame at its last ask, and the
-    /// threats' parties and the store's extremes when the gate last went.
-    pub(super) asked: BTreeMap<String, (String, i32)>,
-    pub(super) asked_parties: BTreeSet<String>,
+    /// The `news` layer (`layers::news`): each actor's course, the party in its entry and the frame at its last
+    /// ask, and the store's extremes when the gate last went.
+    pub(super) asked: BTreeMap<String, layers::Asked>,
     pub(super) asked_store: String,
+    /// What the gate in flight took, put back if it fails (`gate_failed`).
+    undo: Option<Undo>,
+    /// The parties in the picture at the last pass: a new one is an event.
+    parties_seen: BTreeSet<String>,
     pub(super) events: BTreeSet<String>,
+    /// The registers (law 8): what each actor last chose, when, and what it left; printed in its entry.
+    pub(super) registers: BTreeMap<String, menu::Register>,
+    /// The two moves the gate last rated best for each actor, for the player's report.
+    pub(super) rated: compose::Rated,
+    /// The names of the places a move can be aimed at as of the last picture (`menu::named_places`): a group that
+    /// comes to one has reached it (`groups.rs`).
+    pub(super) named: BTreeSet<String>,
     /// The hunts' ends since the last pass line (`groups.rs` `tick_hunt`), for the log.
     pub(super) hunt_events: Vec<String>,
     /// Hunts that ended without a kill: the party, when, and why, said when a hunt of it is offered again.
@@ -241,7 +256,7 @@ pub struct Pianist {
 }
 
 /// The pianist's log format version (`docs/harness/record-format.md`).
-const LOG_VERSION: u32 = 2;
+const LOG_VERSION: u32 = 3;
 /// Realtime: an answer older than this judges a picture too old to play.
 const STALE_FRAMES: i32 = 3 * FRAMES_PER_SECOND;
 /// An event alone (a hit, a sighting, an alarm) asks again no oftener than this.
@@ -251,24 +266,41 @@ const EVENT_GAP: i32 = 5 * FRAMES_PER_SECOND;
 /// request carries what the worker needs to compose the worlds and make the pick the instant the gate answers
 /// (the user, 2026-09-27: the two calls as fast as they can be made), so the pick is not held for the next tick.
 struct Worker {
-    to: std::sync::mpsc::Sender<(u64, jev::Request, Option<Follow>)>,
+    to: std::sync::mpsc::Sender<(u64, jev::Request, Follow)>,
     from: std::sync::mpsc::Receiver<(u64, Result<jev::Response, jev::Error>, Option<Followed>)>,
 }
 
 /// What composing the worlds after a gate takes, sent along with the gate request.
+#[derive(Clone)]
 struct Follow {
-    slots: Vec<plan::Slot>,
+    menus: Vec<menu::Menu>,
+    parties: Vec<Party>,
+    places: Vec<Place>,
     store: String,
     cap: usize,
 }
 
-/// The worker's follow-up to a gate: what the gate flagged, the worlds and their lines (None when nothing opened),
-/// and the pick's two stages with their answers.
+/// What follows a gate: what the gate flagged, each actor's best-rated moves, the worlds and their lines (None
+/// when nothing opened), and the pick's two stages with their answers.
 struct Followed {
     flags: BTreeMap<String, f64>,
-    worlds: Option<Vec<plan::World>>,
+    rated: compose::Rated,
+    worlds: Option<Vec<compose::World>>,
     lines: Vec<String>,
-    pick: Option<plan::PickRun>,
+    pick: Option<compose::PickRun>,
+}
+
+/// The worlds over what a gate flagged, and the pick's two calls made at once: by the worker in realtime, in
+/// place in lockstep.
+fn followed(ask: &dyn Fn(&jev::Request) -> Result<jev::Response, jev::Error>, follow: &Follow, answers: &BTreeMap<String, jev::Answer>, state: &serde_json::Value) -> Followed {
+    let next = compose::follow_up(&follow.menus, &follow.parties, &follow.places, answers, &follow.store, follow.cap, state);
+    match next.worlds {
+        Some((worlds, lines, state)) => {
+            let run = compose::run_pick(ask, &state, &lines, compose::draw());
+            Followed { flags: next.flags, rated: next.rated, worlds: Some(worlds), lines, pick: Some(run) }
+        }
+        None => Followed { flags: next.flags, rated: next.rated, worlds: None, lines: Vec::new(), pick: None },
+    }
 }
 
 /// A gate request in flight: what it was built from, so its answer can be played when it comes.
@@ -276,12 +308,20 @@ struct Pending {
     id: u64,
     frame: i32,
     picture: picture::Picture,
-    slots: Vec<plan::Slot>,
+    menus: Vec<menu::Menu>,
     request: jev::Request,
 }
 
+/// What a gate takes when it goes: put back when it fails.
+struct Undo {
+    sig: Option<(String, i32)>,
+    asked: BTreeMap<String, layers::Asked>,
+    asked_store: String,
+    events: BTreeSet<String>,
+}
+
 fn spawn_worker(client: jev::Client) -> Worker {
-    let (to, requests) = std::sync::mpsc::channel::<(u64, jev::Request, Option<Follow>)>();
+    let (to, requests) = std::sync::mpsc::channel::<(u64, jev::Request, Follow)>();
     let (answers, from) = std::sync::mpsc::channel();
     std::thread::spawn(move || {
         while let Ok((mut id, mut request, mut follow)) = requests.recv() {
@@ -291,21 +331,8 @@ fn spawn_worker(client: jev::Client) -> Worker {
                 (id, request, follow) = (newer_id, newer, newer_follow);
             }
             let result = client.ask(&request);
-            let followed = match (&result, follow) {
-                (Ok(response), Some(f)) => {
-                    let (flags, next) = plan::follow_up(&f.slots, &response.answers, &f.store, f.cap, &request.state);
-                    let (worlds, lines, pick) = match next {
-                        Some((worlds, lines, state)) => {
-                            let run = plan::run_pick(&|r| client.ask(r), &state, &lines, plan::draw());
-                            (Some(worlds), lines, Some(run))
-                        }
-                        None => (None, Vec::new(), None),
-                    };
-                    Some(Followed { flags, worlds, lines, pick })
-                }
-                _ => None,
-            };
-            if answers.send((id, result, followed)).is_err() {
+            let after = result.as_ref().ok().map(|response| followed(&|r| client.ask(r), &follow, &response.answers, &request.state));
+            if answers.send((id, result, after)).is_err() {
                 break;
             }
         }
@@ -469,7 +496,7 @@ impl Pianist {
                 *since = frame;
                 order = Some(Command::ReclaimUnit { unit: builder, target: *target, queue: false });
             }
-            Task::Reclaim { since, .. } | Task::Repair { since, .. } | Task::Walk { since, .. } => *since = frame,
+            Task::Reclaim { since, .. } | Task::Repair { since, .. } | Task::Walk { since, .. } | Task::Follow { since, .. } | Task::Attack { since, .. } => *since = frame,
         }
         self.tasks.insert(builder, next);
         order
@@ -489,8 +516,8 @@ impl Pianist {
             Some(path) => Some(std::fs::read_to_string(&path).map_err(|e| format!("the packet file {} cannot be read: {e}", path.to_string_lossy()))?),
             None => None,
         };
-        let cap = std::env::var("WITHIN_REASON_WORLDS").ok().and_then(|v| v.parse::<usize>().ok()).filter(|n| *n >= 2).unwrap_or(plan::CAP);
-        let told = std::env::var("WITHIN_REASON_TOLD").ok().is_some_and(|v| matches!(v.trim(), "1" | "on" | "yes"));
+        let cap = std::env::var("WITHIN_REASON_WORLDS").ok().and_then(|v| v.parse::<usize>().ok()).filter(|n| *n >= 2).unwrap_or(compose::CAP);
+        let layers = layers::Layers::from_env()?;
         Ok(Pianist {
             client,
             packet,
@@ -500,7 +527,7 @@ impl Pianist {
             interval_frames: ((seconds * FRAMES_PER_SECOND as f32) as i32).max(super::BRAIN_FRAMES),
             last_ask_frame: i32::MIN / 2,
             cap,
-            told,
+            layers,
             tasks: HashMap::new(),
             queued: HashMap::new(),
             lab_queue: HashMap::new(),
@@ -509,14 +536,17 @@ impl Pianist {
             seat_tag: String::new(),
             produced_by: HashMap::new(),
             rally: HashMap::new(),
-            slots: Vec::new(),
             worlds: Vec::new(),
             candidate: None,
             sig: None,
             asked: BTreeMap::new(),
-            asked_parties: BTreeSet::new(),
             asked_store: String::new(),
+            undo: None,
+            parties_seen: BTreeSet::new(),
             events: BTreeSet::new(),
+            registers: BTreeMap::new(),
+            rated: compose::Rated::new(),
+            named: BTreeSet::new(),
             hunt_events: Vec::new(),
             hunts_failed: Vec::new(),
             rove_events: Vec::new(),
@@ -560,7 +590,7 @@ impl Pianist {
         if let Some(log) = &mut self.log {
             let line = json!({
                 "t": "header", "format": "within-reason-jev", "version": LOG_VERSION, "ai_id": ai_id, "model": model,
-                "interval_frames": self.interval_frames, "rules": rules, "hands_effort": self.diet.level_name(), "worlds_cap": self.cap,
+                "interval_frames": self.interval_frames, "rules": rules, "hands_effort": self.diet.level_name(), "worlds_cap": self.cap, "layers": self.layers.names(),
             });
             let _ = writeln!(log, "{line}");
         }
@@ -585,7 +615,12 @@ impl Pianist {
         self.recent.iter().filter(|(f, _)| frame - f < RECENT_FRAMES).map(|(f, text)| format!("{} {text}", picture::clock(*f))).collect()
     }
 
-    /// A new group's name: A, B, C, ...
+    /// An actor's register as its entry prints it: "14:02 picked the walk to spot_30, leaving its course (attacks
+    /// party_7); 6 s ago".
+    pub(super) fn register_words(&self, actor: &str, frame: i32) -> Option<String> {
+        self.registers.get(actor).map(|r| format!("{} {}; {} s ago", picture::clock(r.frame), r.words, (frame - r.frame) / FRAMES_PER_SECOND))
+    }
+
     /// Whether this builder's list waits this second (H-HANDS-SCRIPT, 2026-10-01): the pick sent it away from an
     /// enemy (`execute_builder`) and it is still threatened, which is while the pass still asks about it. The hold
     /// ends when the enemy is off it; a new list from the player ends it too.
@@ -605,6 +640,7 @@ impl Pianist {
         self.hits.iter().filter(move |(_, hit)| frame - **hit <= UNDER_FIRE_FRAMES).map(|(id, _)| *id)
     }
 
+    /// A new group's name: A, B, C, ...
     pub(super) fn new_group_name(&mut self) -> String {
         let n = self.next_group;
         self.next_group += 1;
@@ -706,8 +742,13 @@ impl Brain {
                 pianist.events.insert("places".to_string());
             }
             pianist.places_seen = place_set;
+            pianist.named = menu::named_places(&picture.places, instructions, &pianist.scripts).into_iter().map(|p| p.name.clone()).collect();
             pianist.places = picture.places.clone();
             pianist.parties = picture.parties.clone();
+            // The registers and the gate's ratings of actors that are gone go with them.
+            let actors = picture.state["actors"].as_object();
+            pianist.registers.retain(|name, _| actors.is_some_and(|a| a.contains_key(name)));
+            pianist.rated.retain(|name, _| actors.is_some_and(|a| a.contains_key(name)));
         }
         self.play_lists(tick, kit, &picture, commands);
         self.play_sequences(tick, commands);
@@ -781,22 +822,23 @@ impl Brain {
         }
     }
 
-    /// The pass (`plan.rs`): the slots this second, and when something is open and the picture changed since the
-    /// last ask (or `RE_ASK` passed), the pre-pass's nouls sent for the actors something has happened to
-    /// (`plan::settle`); the worlds question follows in `after_gate`.
+    /// The pass (`menu.rs`, `compose.rs`): the menus this second, and when the picture changed since the last gate
+    /// (or an event, or an actor's re-ask, calls for it) the gate's nouls go out for every party and for the actors
+    /// the layers leave open (`layers.rs`); the worlds and the pick follow in `gate_answered`.
     fn pass(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, commands: &mut Vec<Command>) {
         let frame = tick.frame;
-        let mut slots = self.slots(tick, kit, picture);
+        let mut menus = self.menus(tick, kit, picture);
+        let parties = &picture.parties;
         let mut line = json!({ "t": "pass", "f": frame });
         {
             let pianist = self.pianist.as_mut().expect("pianist mode");
-            // A party with a threat slot this second and none last second: said among the events, so the log
-            // shows what opened the ask (onepass-hard-4, 5:04: the reader could not tell why group_A moved).
-            let threat = |slots: &[plan::Slot]| -> BTreeSet<String> { slots.iter().filter_map(|s| match &s.kind { plan::Kind::Threat(p, _) => Some(p.name.clone()), _ => None }).collect() };
-            let before = threat(&pianist.slots);
-            for name in threat(&slots).difference(&before) {
+            // A party in the picture this second and not the last: said among the events, so the log shows what
+            // opened the ask (onepass-hard-4, 5:04: the reader could not tell why group_A moved).
+            let now: BTreeSet<String> = parties.iter().map(|p| p.name.clone()).collect();
+            for name in now.difference(&pianist.parties_seen) {
                 pianist.events.insert(format!("{name} appeared"));
             }
+            pianist.parties_seen = now;
             if !pianist.hunt_events.is_empty() {
                 line["hunts"] = json!(std::mem::take(&mut pianist.hunt_events));
             }
@@ -804,38 +846,26 @@ impl Brain {
                 line["rove"] = json!(std::mem::take(&mut pianist.rove_events));
             }
         }
-        if slots.is_empty() {
-            let pianist = self.pianist.as_mut().expect("pianist mode");
-            line["played"] = json!(std::mem::take(&mut pianist.played));
-            if !line["played"].as_array().is_some_and(Vec::is_empty) || line.get("hunts").is_some() || line.get("rove").is_some() {
-                pianist.write_log(line);
-            }
-            return;
-        }
         // The economy at its extremes only: the stock words' five buckets flapped at their edges (onepass-medium-3:
-        // 58 of 663 asks); and whether the store now covers the cheapest unit an idle lab could make: the store
-        // crossing that cost is what an idle lab waits for (onepass-norules-hard-4: each Stout cycle ran 5 s of
-        // building and 21 s of waiting, the pick having kept w1 at 138 metal and the pass staying quiet for the 20 s
-        // re-ask).
-        let idle_lab_afford = slots.iter().any(|s| {
-            matches!(s.kind, plan::Kind::Lab(_))
-                && s.base() == 0
-                && s.states.iter().filter_map(|st| if let plan::Response::Next(def) = &st.response { self.world.def(*def).map(|d| d.metal_cost) } else { None }).fold(f32::INFINITY, f32::min) <= tick.snapshot.metal.current
+        // 58 of 663 asks); and whether the store now covers the cheapest unit an idle factory could make: the store
+        // crossing that cost is what an idle factory waits for (onepass-norules-hard-4: each Stout cycle ran 5 s of
+        // building and 21 s of waiting).
+        let idle_factory_afford = menus.iter().any(|m| {
+            matches!(m.kind, menu::Kind::Factory(_)) && m.idle && m.moves.iter().filter_map(|mv| if let menu::Order::Make(def) = &mv.order { self.world.def(*def).map(|d| d.metal_cost) } else { None }).fold(f32::INFINITY, f32::min) <= tick.snapshot.metal.current
         });
-        let eco = format!("{}|{}|{}", if tick.snapshot.metal.current < 100.0 { "empty" } else if tick.snapshot.metal.current >= tick.snapshot.metal.storage - 1.0 { "full" } else { "" }, picture.state["economy"]["energy"].as_str().is_some_and(|e| e.contains("STALLING")), idle_lab_afford);
-        let parties: BTreeSet<String> = slots.iter().filter(|s| matches!(s.kind, plan::Kind::Threat(..))).map(|s| s.name.clone()).collect();
-        // Ask on change, actor by actor (`plan::settle`): the busy actors nothing has happened to are closed.
-        {
+        let eco = format!("{}|{}|{}", if tick.snapshot.metal.current < 100.0 { "empty" } else if tick.snapshot.metal.current >= tick.snapshot.metal.storage - 1.0 { "full" } else { "" }, picture.state["economy"]["energy"].as_str().is_some_and(|e| e.contains("STALLING")), idle_factory_afford);
+        // The `news` layer: the actors with a course and no news are closed this gate.
+        let (skipped, audited) = {
             let pianist = self.pianist.as_ref().expect("pianist mode");
-            let news = plan::News { frame, events: &pianist.events, orders: ["packet", "lists"].iter().any(|e| pianist.events.contains(*e)), parties: parties != pianist.asked_parties, store: eco != pianist.asked_store };
-            plan::settle(&mut slots, &pianist.asked, &news);
-        }
-        let mut base: plan::World = slots.iter().map(plan::Slot::base).collect();
-        plan::resolve(&slots, &mut base);
-        let open: Vec<&str> = slots.iter().filter(|s| s.open()).map(|s| s.name.as_str()).collect();
-        line["open"] = json!(open);
-        let questions = plan::gate_questions(&slots, self.pianist.as_ref().is_some_and(|p| p.told));
-        let sig = format!("{}|{eco}|{}", plan::signature(&slots), self.pianist.as_ref().expect("pianist mode").packet_frame);
+            if pianist.layers.news {
+                let news = layers::News { frame, events: &pianist.events, orders: ["packet", "lists"].iter().any(|e| pianist.events.contains(*e)), store: eco != pianist.asked_store };
+                layers::news(&mut menus, &pianist.asked, &news, &mut compose::draw)
+            } else {
+                (0, 0)
+            }
+        };
+        let questions = compose::gate_questions(&menus, parties, &picture.places);
+        let sig = format!("{}|{eco}|{}", layers::signature(&menus, parties), self.pianist.as_ref().expect("pianist mode").packet_frame);
         let jev = self.pianist.as_ref().is_some_and(|p| p.client.is_some());
         let (events, changed) = {
             let pianist = self.pianist.as_ref().expect("pianist mode");
@@ -844,68 +874,59 @@ impl Brain {
             // second, 118 of 663 asks on "hit" alone).
             let since_ask = pianist.sig.as_ref().map_or(i32::MAX, |(_, f)| frame - *f);
             // A place reached or a first sighting since the last stop asks at once (routes-in-prose §4.3): the next
-            // leg starts within a second of the arrival, not at the 20-s re-ask.
+            // move starts within a second of the arrival.
             let urgent = events.iter().any(|e| e.contains(" reached ") || e.contains(" met "));
             // An actor's own re-ask comes due on its own clock, whatever the rest of the picture does.
-            let due = slots.iter().any(|s| !matches!(s.kind, plan::Kind::Threat(..)) && s.open() && pianist.asked.get(&s.name).is_none_or(|(_, f)| frame - *f >= plan::RE_ASK));
-            let changed = pianist.sig.as_ref().is_none_or(|(s, f)| *s != sig || frame - *f >= plan::RE_ASK) || (!events.is_empty() && since_ask >= EVENT_GAP) || urgent || due;
+            let due = menus.iter().any(|m| m.asks_own() && !m.audit && pianist.asked.get(&m.name).is_none_or(|a| frame - a.frame >= layers::RE_ASK));
+            let changed = pianist.sig.as_ref().is_none_or(|(s, f)| *s != sig || frame - *f >= layers::RE_ASK) || (!events.is_empty() && since_ask >= EVENT_GAP) || urgent || due;
             (events, changed)
         };
         let pianist = self.pianist.as_mut().expect("pianist mode");
         if questions.is_empty() || !jev {
             line["played"] = json!(std::mem::take(&mut pianist.played));
-            pianist.write_log(line);
+            if !line["played"].as_array().is_some_and(Vec::is_empty) || line.get("hunts").is_some() || line.get("rove").is_some() {
+                pianist.write_log(line);
+            }
             return;
         }
         if !changed {
-            line["quiet"] = json!("the picture is as at the last ask: the plan stands");
+            line["quiet"] = json!("the picture is as at the last gate: every course stands");
             pianist.stats.quiet += 1;
             line["played"] = json!(std::mem::take(&mut pianist.played));
             pianist.write_log(line);
             return;
         }
+        // What a failed gate puts back, so that it is asked again at the next second.
+        pianist.undo = Some(Undo { sig: pianist.sig.clone(), asked: pianist.asked.clone(), asked_store: pianist.asked_store.clone(), events: pianist.events.clone() });
         pianist.sig = Some((sig, frame));
         pianist.events.clear();
         pianist.worlds.clear();
-        pianist.asked.retain(|_, (_, f)| frame - *f < plan::RE_ASK);
-        for s in slots.iter().filter(|s| s.open() && !matches!(s.kind, plan::Kind::Threat(..))) {
-            pianist.asked.insert(s.name.clone(), (plan::course(s), frame));
+        pianist.asked.retain(|_, a| frame - a.frame < layers::RE_ASK);
+        for m in menus.iter().filter(|m| m.open()) {
+            pianist.asked.insert(m.name.clone(), layers::Asked { course: layers::course(m), party: m.near_party.clone(), frame });
         }
-        pianist.asked_parties = parties;
         pianist.asked_store = eco;
-        let closed: Vec<&str> = slots.iter().filter(|s| s.quiet).map(|s| s.name.as_str()).collect();
+        line["open"] = json!(menus.iter().filter(|m| m.open()).map(|m| m.name.as_str()).collect::<Vec<_>>());
+        let closed: Vec<&str> = menus.iter().filter(|m| m.quiet).map(|m| m.name.as_str()).collect();
         if !closed.is_empty() {
             line["closed"] = json!(closed);
         }
-        line["slots"] = plan::log_slots(&slots);
+        line["layers"] = json!({ "news": { "on": pianist.layers.news, "skipped": skipped, "audited": audited } });
+        line["menus"] = compose::log_menus(&menus);
         line["gate"] = json!(questions.iter().map(|(id, _)| id.clone()).collect::<Vec<_>>());
         if !events.is_empty() {
             line["events"] = json!(events);
         }
         line["played"] = json!(std::mem::take(&mut pianist.played));
         pianist.write_log(line);
-        // The state: the picture trimmed to the asked actors and the places in play.
-        let own = &tick.snapshot.own_units;
-        let asked: Vec<(String, Option<Vec3>)> = slots
-            .iter()
-            .filter(|s| s.open())
-            .map(|s| {
-                let at = match &s.kind {
-                    plan::Kind::Builder(id) | plan::Kind::Lab(id) => own.iter().find(|u| u.id == *id).map(|u| u.pos),
-                    plan::Kind::Group(g) => pianist.groups.iter().find(|x| x.name == *g).and_then(|x| groups::centre_of(&x.units(own))),
-                    plan::Kind::Threat(p, _) => Some(p.at),
-                };
-                (s.name.clone(), at)
-            })
-            .collect();
+        // The state: the picture trimmed to the asked actors (`diet.rs`). Jev is not sent `places` (offline on
+        // player-28, 24 gate calls: without it a noul moved 0.023 against 0.017 re-asked and 48 flags flipped
+        // against 36, for 18% fewer tokens): a move's words say its place's distance and what stands at it.
+        let asked: Vec<(String, Option<Vec3>)> = menus.iter().filter(|m| m.asked()).map(|m| (m.name.clone(), m.at)).collect();
         let diet = pianist.diet.clone();
         let mut state = self.trim_state(&diet, picture, &asked);
-        // Jev is not sent `places` (offline on player-28, 24 gate calls: without it a noul moved 0.023 against 0.017
-        // re-asked and 48 flags flipped against 36, for 18% fewer tokens; the words name each place's distance and
-        // what stands at it), and reads the bulk questions' preamble once (plan::ASKING).
         if let Some(obj) = state.as_object_mut() {
             obj.remove("places");
-            obj.insert("asking".to_string(), json!(plan::ASKING));
         }
         let shed = diet::shed(&mut state, diet::STATE_CHARS);
         if !shed.is_empty() {
@@ -916,8 +937,8 @@ impl Brain {
             let rules = picture.state["rules"].as_str().unwrap_or_default().to_string();
             self.pianist.as_mut().expect("pianist mode").log_header(self.world.hello.ai_id, &rules);
         }
-        let follow = self.pianist.as_ref().is_some_and(|p| p.worker.is_some()).then(|| Follow { slots: slots.clone(), store: Self::store_words(picture), cap: self.pianist.as_ref().expect("pianist mode").cap });
-        self.call(tick, kit, picture.clone(), slots, request, follow, commands);
+        let follow = Follow { menus, parties: picture.parties.clone(), places: picture.places.clone(), store: Self::store_words(picture), cap: self.pianist.as_ref().expect("pianist mode").cap };
+        self.call(tick, kit, picture.clone(), request, follow, commands);
     }
 
     /// The store's words for the worlds' lines ("340 of 500 stored").
@@ -927,96 +948,74 @@ impl Brain {
 
     /// The gate call to Jev: through the worker in realtime (its answer lands in `collect_answer`), in place in
     /// lockstep.
-    fn call(&mut self, tick: &Tick, kit: &Kit, picture: picture::Picture, slots: Vec<plan::Slot>, request: jev::Request, follow: Option<Follow>, commands: &mut Vec<Command>) {
+    fn call(&mut self, tick: &Tick, kit: &Kit, picture: picture::Picture, request: jev::Request, follow: Follow, commands: &mut Vec<Command>) {
         let pianist = self.pianist.as_mut().expect("pianist mode");
         pianist.stats.calls += 1;
         pianist.stats.questions += request.questions.len() as u32;
         if pianist.worker.is_some() {
             let id = pianist.next_request;
             pianist.next_request += 1;
-            if pianist.worker.as_ref().expect("checked").to.send((id, request.clone(), follow)).is_ok() {
-                pianist.pending = Some(Pending { id, frame: tick.frame, picture, slots, request });
+            if pianist.worker.as_ref().expect("checked").to.send((id, request.clone(), follow.clone())).is_ok() {
+                pianist.pending = Some(Pending { id, frame: tick.frame, picture, menus: follow.menus, request });
             }
             return;
         }
-        let result = pianist.client.as_ref().expect("a call needs Jev").ask(&request);
-        self.answered(tick, kit, &picture, slots, None, &request, result, None, commands);
+        let client = pianist.client.as_ref().expect("a call needs Jev");
+        let result = client.ask(&request);
+        let followed = result.as_ref().ok().map(|response| followed(&|r| client.ask(r), &follow, &response.answers, &request.state));
+        self.gate_answered(tick, kit, &picture, follow.menus, &request, result, followed, commands);
     }
 
-    /// A call's answer: the pre-pass's composes the worlds and makes the second call; the pick's puts the plan in force.
+    /// The gate's answer: logged, and what followed it (the worlds and the pick's two calls) played. A gate that
+    /// failed puts back what it took, so that it is asked again at the next second; every actor keeps its course.
     #[allow(clippy::too_many_arguments)]
-    fn answered(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, slots: Vec<plan::Slot>, worlds: Option<Vec<plan::World>>, request: &jev::Request, result: Result<jev::Response, jev::Error>, followed: Option<Followed>, commands: &mut Vec<Command>) {
-        let ai = self.world.hello.ai_id;
-        match result {
-            Ok(response) => {
-                {
-                    let pianist = self.pianist.as_mut().expect("pianist mode");
-                    pianist.stats.latencies_ms.push(response.latency.as_secs_f32() * 1000.0);
-                    pianist.stats.tokens += response.usage["input_tokens"].as_u64().unwrap_or(0);
-                }
-                self.announce_hands(&response, commands);
-                self.log_call(tick, request, &response);
-                match worlds {
-                    None => self.after_gate(tick, kit, picture, slots, request, &response.answers, followed, commands),
-                    Some(ws) => self.after_pick(tick, kit, picture, &slots, &ws, &response.answers, commands),
-                }
-            }
+    fn gate_answered(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, menus: Vec<menu::Menu>, request: &jev::Request, result: Result<jev::Response, jev::Error>, followed: Option<Followed>, commands: &mut Vec<Command>) {
+        let response = match result {
+            Ok(response) => response,
             Err(e) => {
-                let pianist = self.pianist.as_mut().expect("pianist mode");
-                pianist.stats.errors += 1;
-                pianist.write_log(json!({ "t": "error", "f": tick.frame, "error": e.to_string() }));
-                eprintln!("[ai {ai}] f={} pianist: {e}; every actor keeps its course", tick.frame);
-            }
-        }
-    }
-
-    /// After the pre-pass: the worlds over the flagged states as the second call, or nothing to ask. Logs what the
-    /// gate said and the worlds' lines.
-    #[allow(clippy::too_many_arguments)]
-    fn after_gate(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, slots: Vec<plan::Slot>, request: &jev::Request, answers: &BTreeMap<String, jev::Answer>, followed: Option<Followed>, commands: &mut Vec<Command>) {
-        let cap = self.pianist.as_ref().expect("pianist mode").cap;
-        // Realtime: the worker composed the worlds and made the pick's two calls as soon as the gate answered;
-        // lockstep: here.
-        let (flags, composed) = match followed {
-            Some(f) => (
-                f.flags,
-                match (f.worlds, f.pick) {
-                    (Some(worlds), Some(run)) => Some((worlds, f.lines, run)),
-                    _ => None,
-                },
-            ),
-            None => {
-                let (flags, next) = plan::follow_up(&slots, answers, &Self::store_words(picture), cap, &request.state);
-                let run = next.map(|(worlds, lines, state)| {
-                    let client = self.pianist.as_ref().expect("pianist mode").client.as_ref().expect("a call needs Jev");
-                    let run = plan::run_pick(&|r| client.ask(r), &state, &lines, plan::draw());
-                    (worlds, lines, run)
-                });
-                (flags, run)
+                self.gate_failed(tick.frame, &e.to_string());
+                return;
             }
         };
+        self.pianist.as_mut().expect("pianist mode").undo = None;
+        self.count_call(&response);
+        self.announce_hands(&response, commands);
+        self.log_call(tick, request, &response);
+        let Some(followed) = followed else { return };
+        // The layers' audits: what a layer assumed of an actor it closed, beside what the gate said of it.
+        let noul = |id: &str| match response.answers.get(id) {
+            Some(jev::Answer::Noul { noul }) => Some(*noul),
+            _ => None,
+        };
+        let audits: Vec<serde_json::Value> = menus
+            .iter()
+            .filter(|m| m.audit)
+            .map(|m| {
+                let change = noul(&format!("{}.change", m.name)).unwrap_or(0.0);
+                let best = m.moves.iter().skip(1).filter_map(|mv| noul(&m.id(mv)).map(|p| (m.id(mv), p))).max_by(|a, b| a.1.total_cmp(&b.1));
+                let fault = change >= compose::FLAG && best.as_ref().is_some_and(|(_, p)| *p >= compose::FLAG);
+                json!({ "t": "audit", "f": tick.frame, "layer": "news", "actor": m.name, "assumed": "no change", "change": change, "best": best.as_ref().map(|(id, _)| id.clone()), "best_p": best.map(|(_, p)| p), "fault": fault })
+            })
+            .collect();
         let pianist = self.pianist.as_mut().expect("pianist mode");
-        pianist.write_log(json!({ "t": "worlds_gate", "f": tick.frame, "flags": flags, "worlds": composed.as_ref().map(|c| c.0.clone()), "lines": composed.as_ref().map(|c| c.1.clone()).unwrap_or_default() }));
-        let Some((ws, _, run)) = composed else { return };
-        pianist.worlds = ws.clone();
-        pianist.slots = slots.clone();
+        for audit in audits {
+            pianist.write_log(audit);
+        }
+        pianist.write_log(json!({ "t": "worlds_gate", "f": tick.frame, "flags": followed.flags, "worlds": followed.worlds, "lines": followed.lines }));
+        pianist.rated.extend(followed.rated);
+        let (Some(worlds), Some(run)) = (followed.worlds, followed.pick) else { return };
+        pianist.worlds = worlds.clone();
         pianist.candidate = run.candidate;
         // Stage one's call, logged; stage two's answer is the pick.
         if let Some((first, result)) = run.stage_one {
             match result {
                 Ok(response) => {
-                    let pianist = self.pianist.as_mut().expect("pianist mode");
-                    pianist.stats.calls += 1;
-                    pianist.stats.questions += 1;
-                    pianist.stats.latencies_ms.push(response.latency.as_secs_f32() * 1000.0);
-                    pianist.stats.tokens += response.usage["input_tokens"].as_u64().unwrap_or(0);
+                    self.pianist.as_mut().expect("pianist mode").stats.calls += 1;
+                    self.pianist.as_mut().expect("pianist mode").stats.questions += 1;
+                    self.count_call(&response);
                     self.log_call(tick, &first, &response);
                 }
-                Err(e) => {
-                    let pianist = self.pianist.as_mut().expect("pianist mode");
-                    pianist.stats.errors += 1;
-                    pianist.write_log(json!({ "t": "error", "f": tick.frame, "error": e.to_string() }));
-                }
+                Err(e) => self.call_failed(tick.frame, &e.to_string()),
             }
         }
         let Some((second, result)) = run.stage_two else { return };
@@ -1025,18 +1024,48 @@ impl Brain {
             pianist.stats.calls += 1;
             pianist.stats.questions += 1;
         }
-        self.answered(tick, kit, picture, slots, Some(ws), &second, result, None, commands);
+        match result {
+            Ok(response) => {
+                self.count_call(&response);
+                self.log_call(tick, &second, &response);
+                self.after_pick(tick, kit, picture, &menus, &worlds, &response.answers, commands);
+            }
+            Err(e) => self.call_failed(tick.frame, &e.to_string()),
+        }
     }
 
-    /// The second call's pick put in force, and logged as a `plan` line.
+    fn count_call(&mut self, response: &jev::Response) {
+        let pianist = self.pianist.as_mut().expect("pianist mode");
+        pianist.stats.latencies_ms.push(response.latency.as_secs_f32() * 1000.0);
+        pianist.stats.tokens += response.usage["input_tokens"].as_u64().unwrap_or(0);
+    }
+
+    fn call_failed(&mut self, frame: i32, error: &str) {
+        let pianist = self.pianist.as_mut().expect("pianist mode");
+        pianist.stats.errors += 1;
+        pianist.write_log(json!({ "t": "error", "f": frame, "error": error }));
+        eprintln!("[ai {}] f={frame} pianist: {error}; every actor keeps its course", self.world.hello.ai_id);
+    }
+
+    /// A gate that failed or whose answer came too late: what it took is put back (who was asked, the events it
+    /// cleared, the signature), so the next second asks it again.
+    fn gate_failed(&mut self, frame: i32, error: &str) {
+        self.call_failed(frame, error);
+        let pianist = self.pianist.as_mut().expect("pianist mode");
+        if let Some(undo) = pianist.undo.take() {
+            pianist.sig = undo.sig;
+            pianist.asked = undo.asked;
+            pianist.asked_store = undo.asked_store;
+            pianist.events.extend(undo.events);
+        }
+    }
+
+    /// The pick put in force, and logged as a `plan` line.
     #[allow(clippy::too_many_arguments)]
-    fn after_pick(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, slots: &[plan::Slot], worlds: &[plan::World], answers: &BTreeMap<String, jev::Answer>, commands: &mut Vec<Command>) {
-        let Some((wi, confidence)) = plan::pick(answers, worlds) else { return };
+    fn after_pick(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, menus: &[menu::Menu], worlds: &[compose::World], answers: &BTreeMap<String, jev::Answer>, commands: &mut Vec<Command>) {
+        let Some((wi, confidence)) = compose::pick(answers, worlds) else { return };
         let candidate = self.pianist.as_ref().expect("pianist mode").candidate;
-        // A pick below the bar moves no group that is fighting (player-17 21:34: "attack party_25 (2 armstump)"
-        // 1,300 behind the front at confidence 0.03, after picks at 0.09 and 0.15, turned the army from its fight
-        // at D1; 40 to 23 units, 6,900 lost for 1,284 in engagements #16, #17 and #22).
-        let changed = self.apply_plan(tick, kit, picture, slots, &worlds[wi], "plan", commands);
+        let changed = self.apply_world(tick, kit, picture, menus, &worlds[wi], commands);
         let pianist = self.pianist.as_mut().expect("pianist mode");
         let played = std::mem::take(&mut pianist.played);
         pianist.write_log(json!({ "t": "plan", "f": tick.frame, "pick": wi + 1, "confidence": confidence, "candidate": candidate.map(|(c, _)| c + 1), "sampled_p": candidate.map(|(_, p)| p), "changed": changed, "played": played }));
@@ -1053,11 +1082,11 @@ impl Brain {
                 let units = g.units(own);
                 let centre = groups::centre_of(&units);
                 let task = match &g.task {
-                    GroupTask::Hold { .. } => json!({ "kind": "hold" }),
+                    GroupTask::Hold { picked, .. } => json!({ "kind": "hold", "picked": picked }),
                     GroupTask::Move { to, place, fight, .. } => json!({ "kind": if *fight { "fight_to" } else { "move_to" }, "place": place, "to": [to.x as i32, to.z as i32] }),
                     GroupTask::Engage { at, target, .. } => json!({ "kind": if target.is_some() { "attack_unit" } else { "engage" }, "to": [at.x as i32, at.z as i32] }),
                     GroupTask::Hunt(h) => json!({ "kind": "hunt", "party": h.party, "quarry": h.quarry.0, "to": [h.at.x as i32, h.at.z as i32] }),
-                    GroupTask::Escort { name, at, .. } => json!({ "kind": "escort", "ward": name, "to": [at.x as i32, at.z as i32] }),
+                    GroupTask::Follow { name, at, .. } => json!({ "kind": "follow", "ward": name, "to": [at.x as i32, at.z as i32] }),
                 };
                 json!({ "name": g.name, "members": g.members.iter().map(|id| id.0).collect::<Vec<_>>(), "at": centre.map(|c| [c.x as i32, c.z as i32]), "task": task })
             })
@@ -1085,7 +1114,7 @@ impl Brain {
     /// Realtime: plays the answer to the request in flight when it has come, and drops a request whose answer is too
     /// late to judge the picture it was built from.
     fn collect_answer(&mut self, tick: &Tick, kit: &Kit, commands: &mut Vec<Command>) {
-        let ai = self.world.hello.ai_id;
+        let mut stale: Option<String> = None;
         let arrived = {
             let pianist = self.pianist.as_mut().expect("pianist mode");
             let Some(worker) = &pianist.worker else { return };
@@ -1103,20 +1132,23 @@ impl Brain {
                         && tick.frame - p.frame > STALE_FRAMES
                     {
                         pianist.stats.dropped += 1;
-                        eprintln!("[ai {ai}] f={} pianist: the answer to the request of frame {} has not come in {} s; dropped", tick.frame, p.frame, STALE_FRAMES / FRAMES_PER_SECOND);
+                        stale = Some(format!("the answer to the request of frame {} has not come in {} s; dropped", p.frame, STALE_FRAMES / FRAMES_PER_SECOND));
                         pianist.pending = None;
                     }
                     None
                 }
             }
         };
+        if let Some(why) = stale {
+            self.gate_failed(tick.frame, &why);
+        }
         let Some((pending, result, followed)) = arrived else { return };
         {
             let pianist = self.pianist.as_mut().expect("pianist mode");
             pianist.places = pending.picture.places.clone();
             pianist.parties = pending.picture.parties.clone();
         }
-        self.answered(tick, kit, &pending.picture, pending.slots, None, &pending.request, result, followed, commands);
+        self.gate_answered(tick, kit, &pending.picture, pending.menus, &pending.request, result, followed, commands);
     }
 
     /// Every tick between thinks: an answer that has come is played now rather than at the next think (the user,
@@ -1292,34 +1324,50 @@ impl Brain {
                 Some(Task::Reclaim { since, .. }) | Some(Task::ReclaimUnit { since, .. }) | Some(Task::Repair { since, .. }) if frame - since > super::economy::ORDER_GRACE_FRAMES => {
                     pianist.tasks.remove(&unit.id);
                 }
-                Some(Task::Walk { to, since, place }) if unit.pos.dist2d(*to) < 150.0 || frame - since > 40 * FRAMES_PER_SECOND || (place.starts_with("party_") && frame - since > 10 * FRAMES_PER_SECOND) => {
+                // A walk ends where the builder arrives. Standing idle short of the place, the engine has dropped
+                // the order: that is the walk's end too, and it is said (the clocks that ended a walk after 40 s
+                // and an attack after 10 s are gone: the wait is words in the builder's entry).
+                Some(Task::Walk { to, .. }) if unit.pos.dist2d(*to) < 150.0 => {
+                    pianist.tasks.remove(&unit.id);
+                }
+                Some(Task::Walk { to, since, place }) if frame - since > super::economy::ORDER_GRACE_FRAMES => {
+                    done.push(format!("{} {}: its walk to {place} ended {:.0} short of it: the engine gave the order up", picture::clock(frame), self.actor_name(unit.id), unit.pos.dist2d(*to)));
                     pianist.tasks.remove(&unit.id);
                 }
                 _ => {}
             }
         }
-        // A walker the engine has given up on (`yards.rs` `stuck`) for 20 s is not walking: its task goes, and the
-        // pass sees it free (onepass-medium-1: three constructors "walking to home" for six minutes wedged 440 from it).
-        let wedged: Vec<UnitId> = pianist.tasks.iter().filter(|(id, t)| matches!(t, Task::Walk { .. }) && self.stuck.get(id).is_some_and(|s| frame - s.since > 20 * FRAMES_PER_SECOND)).map(|(id, _)| *id).collect();
-        for id in wedged {
-            pianist.tasks.remove(&id);
-            commands.push(Command::Stop { unit: id });
-        }
         // A builder attacking a party follows it: the fight order is to where the party stood when the pick was made,
-        // and a raider moves (the state stays current, so the pass does not re-issue it).
-        let moved: Vec<(UnitId, Vec3)> = pianist
-            .tasks
-            .iter()
-            .filter_map(|(id, t)| match t {
-                Task::Walk { to, place, .. } if place.starts_with("party_") => pianist.parties.iter().find(|p| p.name == *place).filter(|p| p.at.dist2d(*to) > 150.0).map(|p| (*id, p.at)),
-                _ => None,
-            })
-            .collect();
-        for (id, at) in moved {
-            if let Some(Task::Walk { to, .. }) = pianist.tasks.get_mut(&id) {
-                *to = at;
+        // and a raider moves. A builder following a group goes after it when the group has moved on.
+        let bodies: Vec<(String, Vec3)> = pianist.groups.iter().filter_map(|g| g.body(own, None).map(|b| (g.name.clone(), b.at))).collect();
+        let mut moved: Vec<(UnitId, Command)> = Vec::new();
+        let mut left: Vec<UnitId> = Vec::new();
+        for (id, task) in pianist.tasks.iter_mut() {
+            match task {
+                Task::Attack { party, to, .. } => {
+                    if let Some(p) = pianist.parties.iter().find(|p| p.name == *party).filter(|p| p.at.dist2d(*to) > 150.0) {
+                        *to = p.at;
+                        moved.push((*id, Command::Fight { unit: *id, to: p.at, queue: false }));
+                    }
+                }
+                Task::Follow { group, at, .. } => match bodies.iter().find(|(name, _)| name == group) {
+                    Some((_, body)) => {
+                        if let Some(to) = groups::follow_step(*body, *at) {
+                            *at = to;
+                            moved.push((*id, Command::Move { unit: *id, to, queue: false }));
+                        }
+                    }
+                    None => left.push(*id),
+                },
+                _ => {}
             }
-            commands.push(Command::Fight { unit: id, to: at, queue: false });
+        }
+        commands.extend(moved.into_iter().map(|(_, command)| command));
+        for id in left {
+            if let Some(Task::Follow { group, .. }) = pianist.tasks.remove(&id) {
+                commands.push(Command::Stop { unit: id });
+                done.push(format!("{} {}: group_{group}, which it followed, is gone; it stops where it is", picture::clock(frame), self.actor_name(id)));
+            }
         }
         // A party that is gone (dead or out of sight) ends the attack at once: the builder stops where it is and
         // the pass sees it free this second, instead of walking to where the party was and idling there
@@ -1328,7 +1376,7 @@ impl Brain {
         let gone: Vec<UnitId> = pianist
             .tasks
             .iter()
-            .filter(|(_, t)| matches!(t, Task::Walk { place, .. } if place.starts_with("party_") && !pianist.parties.iter().any(|p| p.name == *place)))
+            .filter(|(_, t)| matches!(t, Task::Attack { party, .. } if !pianist.parties.iter().any(|p| p.name == *party)))
             .map(|(id, _)| *id)
             .collect();
         for id in gone {
@@ -1377,6 +1425,13 @@ impl Brain {
         if let Some(fields) = state.as_object_mut() {
             fields.remove("instructions");
             fields.remove("rules");
+        }
+        // For the player alone: the two moves the gate last rated best for each actor, so that a paragraph that is
+        // not being read as meant shows within a turn.
+        for (actor, moves) in &pianist.rated {
+            if let Some(entry) = state["actors"].get_mut(actor).filter(|e| e.is_object()) {
+                entry["best_rated"] = json!(moves.iter().map(|(said, p)| format!("{said} ({p:.2})")).collect::<Vec<_>>().join(", "));
+            }
         }
         let mut all = shared.hands.lock().unwrap();
         let hands = all.entry(self.world.hello.team).or_default();

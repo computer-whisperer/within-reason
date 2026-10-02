@@ -21,7 +21,7 @@ const ARRIVED: f32 = 300.0;
 /// Enemies this close to a group's body are what it met since its last stop (the route's `met` fact).
 const MET_REACH: f32 = 1200.0;
 /// Places reached kept per group, the oldest dropped: the words stay short.
-const REACHED_KEPT: usize = 12;
+const REACHED_KEPT: usize = 6;
 /// A party nobody has seen for this long is gone; a ground group holds where it stands, an air group searches its
 /// target's last position once and holds only after `AIR_LOST_FRAMES` (H-HANDS-AIR-TARGET: evidence-1-bombers, where
 /// the hold after six seconds out of sight cancelled every strike).
@@ -37,12 +37,6 @@ const STALL_FRAMES: i32 = 45 * FRAMES_PER_SECOND;
 /// Hounds for 7 to 37 s until the timer; Jev's `needs_player` Noul was a constant 0.77 with noise, retired).
 const LOSS_WAKE_COUNT: usize = 2;
 const LOSS_WAKE_SHARE: f32 = 0.25;
-/// How a `fall_back` walk names its destination in the group's task (H-HANDS-FALL-BACK); not a mark's name.
-pub(super) const LAST_HOLD: &str = "where it last held,";
-/// A hold this long is a station worth falling back to (wake-2: a one-second pause at the front became "where it
-/// last held", and group_L fell back to where it stood, held, retreated, and fell back again, eleven times in 30 s).
-pub(super) const STATION_FRAMES: i32 = 15 * FRAMES_PER_SECOND;
-
 /// A hunt (`docs/design/2026-09-26-threat-response.md` §1; the user, 2026-09-29: a hunt is a group of its own, never
 /// part of the mass it left): the group's members attack one unit of a party by id, raw (no formation, no flee, no
 /// march), until the quarry dies, is out of sight and radar for `HUNT_LOST_FRAMES`, or the leash ends. Whether the
@@ -62,13 +56,20 @@ pub(crate) struct Hunt {
 /// A hunt this far from where it began ends (threats-smoke-1: anchored on the group's station, a hunt begun 900
 /// from the station ended on its first tick, 12 of 16 hunts one order long). The engine judges it (H-MICRO-HUNT).
 pub(crate) const HUNT_LEASH: f32 = 900.0;
-/// An escort is sent after its ward again when the ward has moved this far from where the escort was last sent.
-const ESCORT_STEP: f32 = 150.0;
+/// A follower is sent after its ward again when the ward has moved this far from where the follower was last sent.
+const FOLLOW_STEP: f32 = 150.0;
 
-/// Where an escort is sent this second (H-HANDS-ESCORT), or nowhere while its last order still fits: after its ward
-/// when the ward has moved `ESCORT_STEP` from where the escort was last sent (`at`).
-pub(super) fn escort_step(ward_at: Vec3, at: Vec3) -> Option<Vec3> {
-    (ward_at.dist2d(at) > ESCORT_STEP).then_some(ward_at)
+/// Where a follower is sent this second (H-HANDS-FOLLOW), or nowhere while its last order still fits: after its
+/// ward when the ward has moved `FOLLOW_STEP` from where the follower was last sent (`at`).
+pub(super) fn follow_step(ward_at: Vec3, at: Vec3) -> Option<Vec3> {
+    (ward_at.dist2d(at) > FOLLOW_STEP).then_some(ward_at)
+}
+
+/// Whom a group or a builder follows: another group of ours, or a builder.
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) enum Ward {
+    Group(String),
+    Builder(UnitId),
 }
 /// A roving group's log keeps this many lines.
 const ROVE_LOG: usize = 10;
@@ -76,7 +77,8 @@ const ROVE_LOG: usize = 10;
 #[derive(Clone, Debug)]
 pub(crate) enum GroupTask {
     /// `committed`: the hold an advance arrives in, still committed to everything there (H-HANDS-GROUPS).
-    Hold { since: i32, committed: bool },
+    /// `picked`: a hold Jev picked, which is a course; a hold an order ended in is none, and the group is idle.
+    Hold { since: i32, committed: bool, picked: bool },
     Move { to: Vec3, place: String, fight: bool, since: i32 },
     /// `target`: one unit of the party every member attacks directly (`attack_unit`, and every air group's
     /// engagement): re-issued while it is seen, the group holds when it is lost or dead.
@@ -84,16 +86,10 @@ pub(crate) enum GroupTask {
     Engage { party: Vec<UnitId>, at: Vec3, since: i32, last_seen: i32, target: Option<UnitId>, searched: bool },
     /// A hunt (H-MICRO-HUNT): the whole group after one unit of a party, the micro engine's to run.
     Hunt(Hunt),
-    /// An escort (H-HANDS-ESCORT): the group stays beside one builder of ours wherever it goes. `at`: where the
-    /// ward stood at the group's last order to follow. Whom it fights is the pick's (the threat slots) and the
+    /// Following (H-HANDS-FOLLOW): the group stays beside a builder or another group of ours wherever it goes.
+    /// `at`: where the ward stood at the group's last order to follow. Whom it fights is the pick's and the
     /// engine's on its fight orders, never this task's.
-    Escort { ward: UnitId, name: String, at: Vec3, since: i32 },
-}
-
-impl GroupTask {
-    pub(crate) fn busy(&self) -> bool {
-        !matches!(self, GroupTask::Hold { .. })
-    }
+    Follow { ward: Ward, name: String, at: Vec3, since: i32 },
 }
 
 #[derive(Debug)]
@@ -117,26 +113,18 @@ pub(crate) struct Group {
     pub losses: Vec<(i32, UnitDefId)>,
     pub losses_since: i32,
     pub loss_warned: bool,
-    /// Where the group last stood holding: the `fall_back` option's destination (H-HANDS-FALL-BACK).
-    pub last_hold: Option<Vec3>,
     /// Members still on their way to join (a plant's output walking to the body): not the front, not the tail,
     /// not counted as arrived; said in the picture as reinforcements on the way (H-HANDS-GROUP-BODY).
     pub joining: HashSet<UnitId>,
-    /// Gathering: holding where it arrived until its tail is up (the `gather` state, H-HANDS-GROUP-STATES).
+    /// Gathering: closing up on its front (the `gather` move); the walk there is its task.
     pub gathering: bool,
     /// Shelling a party from a standoff: the long-reach members at the standoff, the rest between (`shell`).
     pub shelling: bool,
-    /// The places named for this group in the packet that its body has come within `ARRIVED` of, in order, with
-    /// the frame: the facts of a route the packet wrote in prose, said in the picture and in `recent` and never
-    /// acted on by code (docs/design/2026-09-28-routes-in-prose.md §4.2; the station list they replace was a
-    /// mechanic Jev only said yes or no to).
+    /// The named places its body has come within `ARRIVED` of, in order, with the frame: facts said in the picture
+    /// and in `recent` and never acted on by code (the registers; docs/design/2026-09-28-routes-in-prose.md §4.2).
     pub reached: Vec<(String, i32)>,
     /// The first enemies in sight near the body since the last place reached: the frame and the words.
     pub met: Option<(i32, String)>,
-    /// The places its paragraph names, in the packet's order, as of the last look: the route `reached` and `met`
-    /// are the facts of. A different set of places is a new route and the facts begin again (player-10 18:20: a
-    /// group's `route_seen` listed every arrival since 3:09 and none of the route it was on).
-    pub route: Vec<String>,
     /// Made by the hands' `scout` state: it roves unless the player's `lane` says otherwise for it (H-MICRO-ROVE).
     pub scout: bool,
     /// Roving as of the last look (`keep_groups`): a change hands the group to the lane or takes it back.
@@ -183,7 +171,7 @@ pub(crate) const STRUNG_OUT: f32 = 600.0;
 
 impl Group {
     pub(crate) fn new(name: String, domain: Domain, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, members, task, last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, last_hold: None, joining: HashSet::new(), gathering: false, shelling: false, reached: Vec::new(), met: None, route: Vec::new(), scout: false, roving: false, rove_log: Vec::new() }
+        Group { name, domain, members, task, last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, joining: HashSet::new(), gathering: false, shelling: false, reached: Vec::new(), met: None, scout: false, roving: false, rove_log: Vec::new() }
     }
 
     /// The group's body toward `toward` (the goal of a walk, the nearest enemy, or nothing: then the front is the
@@ -206,19 +194,15 @@ impl Group {
         Some(Body { length: front.dist2d(tail), core, joining, front, tail, at, arrived })
     }
 
-    /// Orders for members rejoining the task: what the task would give them now. A holding group's members walk back
-    /// to where it holds (onepass-norules-hard-3, 4:47: a hunter released 850 from its holding group was told to
-    /// stand where it was, and stood there for the rest of the game).
+    /// Orders for members rejoining the task (a newcomer that has reached the body): what the task would give
+    /// them now.
     pub(crate) fn rejoin_orders(&self, units: &[&OwnUnit]) -> Vec<Command> {
         match &self.task {
-            GroupTask::Hold { .. } => match self.last_hold {
-                Some(to) => units.iter().map(|u| Command::Move { unit: u.id, to, queue: false }).collect(),
-                None => self.hold_orders(units),
-            },
+            GroupTask::Hold { .. } => self.hold_orders(units),
             GroupTask::Move { to, fight, .. } => units.iter().map(|u| if *fight { Command::Fight { unit: u.id, to: *to, queue: false } } else { Command::Move { unit: u.id, to: *to, queue: false } }).collect(),
             GroupTask::Engage { at, target, .. } => units.iter().map(|u| match target { Some(t) => Command::Attack { unit: u.id, target: *t, queue: false }, None => Command::Fight { unit: u.id, to: *at, queue: false } }).collect(),
             GroupTask::Hunt(h) => units.iter().map(|u| Command::Attack { unit: u.id, target: h.quarry, queue: false }).collect(),
-            GroupTask::Escort { at, .. } => units.iter().map(|u| Command::Fight { unit: u.id, to: *at, queue: false }).collect(),
+            GroupTask::Follow { at, .. } => units.iter().map(|u| Command::Fight { unit: u.id, to: *at, queue: false }).collect(),
         }
     }
 
@@ -316,7 +300,7 @@ impl Brain {
                     GroupTask::Move { place, fight, .. } => format!("{} to {place}", if *fight { "advancing" } else { "walking" }),
                     GroupTask::Engage { .. } => "attacking a party".to_string(),
                     GroupTask::Hunt(h) => format!("hunting {}", h.party),
-                    GroupTask::Escort { name, .. } => format!("escorting {name}"),
+                    GroupTask::Follow { name, .. } => format!("following {name}"),
                 };
                 loss_wakes.push(format!(
                     "group_{} has lost {} of its {} soldiers ({lost:.0} metal) since your last orders, {doing} at {}",
@@ -335,8 +319,8 @@ impl Brain {
         }
         // H-HANDS-GROUPS: a newcomer joins the group the player named for its factory (`produce` ... `group`), else its
         // factory's own group (made on its first soldier, remade when it has died out); a soldier of no factory (the
-        // start, a resurrection) forms a group of its own. Nothing merges by proximity: a merge is the player's order
-        // (`join_group_X`, the standing rule `join`). Standing-2: 22 groups lived a median 1.3 minutes under the old
+        // start, a resurrection) forms a group of its own. Nothing merges by proximity: a merge is a move Jev picks
+        // (`join`). Standing-2: 22 groups lived a median 1.3 minutes under the old
         // adoption and merge, and the tool's rules died with them.
         let mut loose: Vec<&OwnUnit> = soldiers.iter().copied().filter(|u| !pianist.groups.iter().any(|g| g.members.contains(&u.id))).collect();
         loose.sort_by_key(|u| u.id.0);
@@ -354,7 +338,7 @@ impl Brain {
             for (domain, members) in by_domain {
                 let name = pianist.new_group_name();
                 let units: Vec<&OwnUnit> = given.iter().copied().filter(|u| members.contains(&u.id)).collect();
-                let group = Group::new(name.clone(), domain, members, GroupTask::Hold { since: frame, committed: false }, frame);
+                let group = Group::new(name.clone(), domain, members, GroupTask::Hold { since: frame, committed: false, picked: false }, frame);
                 commands.extend(group.hold_orders(&units));
                 pianist.groups.push(group);
                 pianist.done.push(format!("{} group_{name} formed from the {} soldiers given to this seat", super::picture::clock(frame), units.len()));
@@ -398,7 +382,7 @@ impl Brain {
                             a.group = None;
                         }
                     }
-                    let group = Group::new(name, domain, vec![unit.id], GroupTask::Hold { since: frame, committed: false }, frame);
+                    let group = Group::new(name, domain, vec![unit.id], GroupTask::Hold { since: frame, committed: false, picked: false }, frame);
                     commands.extend(group.hold_orders(&[unit]));
                     pianist.groups.push(group);
                 }
@@ -408,7 +392,9 @@ impl Brain {
         let mut stalled: Vec<String> = Vec::new();
         let mut hunt_ends: Vec<String> = Vec::new();
         let mut route_news: Vec<String> = Vec::new();
-        let mut escort_ends: Vec<String> = Vec::new();
+        let mut follow_ends: Vec<String> = Vec::new();
+        // Where each group's body stands, for the groups that follow another.
+        let bodies: Vec<(String, Vec3)> = pianist.groups.iter().filter_map(|g| g.body(own, None).map(|b| (g.name.clone(), b.at))).collect();
         let roving: Vec<bool> = pianist.groups.iter().map(|g| self.roves(g)).collect();
         let mut rove_changes: Vec<String> = Vec::new();
         for (index, group) in pianist.groups.iter_mut().enumerate() {
@@ -418,7 +404,7 @@ impl Brain {
                 group.roving = roving[index];
                 (group.gathering, group.shelling) = (false, false);
                 group.joining.clear();
-                group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
+                group.set_task(GroupTask::Hold { since: frame, committed: false, picked: false }, frame);
                 if group.roving {
                     rove_changes.push(format!("group_{} roves: its soldiers look at what we know least, kill what they find unguarded and keep out of every reach, in code, until the lane is set otherwise", group.name));
                 } else {
@@ -433,7 +419,7 @@ impl Brain {
             let units = group.units(own);
             group.joining.retain(|id| group.members.contains(id));
             // A newcomer that has reached the body is of it (or was sent nowhere: nothing stands to reach).
-            let goal = match &group.task { GroupTask::Move { to, .. } => Some(*to), GroupTask::Engage { at, .. } | GroupTask::Escort { at, .. } => Some(*at), GroupTask::Hunt(h) => Some(h.at), GroupTask::Hold { .. } => None };
+            let goal = match &group.task { GroupTask::Move { to, .. } => Some(*to), GroupTask::Engage { at, .. } | GroupTask::Follow { at, .. } => Some(*at), GroupTask::Hunt(h) => Some(h.at), GroupTask::Hold { .. } => None };
             if let Some(body) = group.body(own, goal) {
                 let core_at = body.at;
                 let joined: Vec<UnitId> = body.joining.iter().filter(|u| u.pos.dist2d(core_at) <= ADOPT_RADIUS || self.stuck.contains_key(&u.id)).map(|u| u.id).collect();
@@ -448,18 +434,10 @@ impl Brain {
             // The body's place, not the centre of every member: the stream still joining from the plants would drag
             // the centre home (player-10 18:20: a front at spot_40 with 34 waiting at the yard read "0 of 59 arrived").
             let Some(centre) = group.body(own, goal).map(|b| b.at) else { continue };
-            // The route's facts (routes-in-prose §4.2-4.3): a place the packet names for this group that the body
-            // comes within `ARRIVED` of is reached, said in `recent` and asked about at once; the first enemies in
-            // sight since the last stop are kept until the next. Code records; Jev picks the next leg. The facts
-            // are the current route's: a paragraph naming a different set of places begins them again.
-            let text = super::diet::paragraph(&pianist.packet_seen, &format!("group_{}", group.name)).unwrap_or(&pianist.packet_seen);
-            let route: Vec<String> = super::diet::named_in_order(text, pianist.places.iter().map(|p| p.name.as_str()).filter(|n| *n != "home")).into_iter().map(str::to_string).collect();
-            if route != group.route {
-                group.route = route;
-                group.reached.clear();
-                group.met = None;
-            }
-            let here = pianist.places.iter().find(|p| p.name != "home" && super::diet::names(text, &p.name) && p.at.dist2d(centre) < ARRIVED).map(|p| p.name.clone());
+            // The registers' facts: a named place (`menu::named_places`) the body comes within `ARRIVED` of is
+            // reached, said in `recent` and asked about at once; the first enemies in sight since the last stop are
+            // kept until the next. Code records; Jev picks the next move.
+            let here = pianist.places.iter().find(|p| pianist.named.contains(&p.name) && p.at.dist2d(centre) < ARRIVED).map(|p| p.name.clone());
             if let Some(place) = here
                 && group.reached.last().is_none_or(|(last, _)| *last != place)
             {
@@ -484,19 +462,10 @@ impl Brain {
                     group.met = Some((frame, words));
                 }
             }
-            // A gather ends when the tail is up: the group is a body again and holds where it gathered.
-            if group.gathering
-                && let Some(body) = group.body(own, None)
-                && !body.strung_out()
-            {
-                group.gathering = false;
-            }
+            // A gather ends when the tail is up, wherever the front then stands.
+            let together = group.gathering && group.body(own, None).is_some_and(|body| !body.strung_out());
             match &mut group.task {
-                GroupTask::Hold { since, .. } => {
-                    if frame - *since >= STATION_FRAMES {
-                        group.last_hold = Some(centre);
-                    }
-                }
+                GroupTask::Hold { .. } => {}
                 GroupTask::Move { to, fight, place, .. } => {
                     // Arrival and "to go" by the members, not the centre: a group split by a cliff never got its
                     // centre within 300 of its goal, so a fall-back walk stayed the base world for two minutes and
@@ -510,12 +479,10 @@ impl Brain {
                     if to_go < group.best_to_go - PROGRESS_STEP {
                         (group.best_to_go, group.progressed) = (to_go, frame);
                     }
-                    if to_go < ARRIVED {
-                        let gathering = group.gathering;
-                        let shelling = group.shelling;
-                        group.task = GroupTask::Hold { since: frame, committed: *fight || shelling };
-                        group.gathering = gathering;
-                        group.shelling = shelling;
+                    if to_go < ARRIVED || together {
+                        // An arrival ends the order in a hold nobody picked: the group is idle and is asked.
+                        let committed = *fight;
+                        group.set_task(GroupTask::Hold { since: frame, committed, picked: false }, frame);
                     } else if *fight {
                         if frame - group.progressed >= STALL_FRAMES && !group.stall_warned {
                             group.stall_warned = true;
@@ -540,7 +507,7 @@ impl Brain {
                             }
                         } else if air && frame - *last_seen > AIR_LOST_FRAMES {
                             commands.extend(group.hold_orders(&units));
-                            group.task = GroupTask::Hold { since: frame, committed: false };
+                            group.task = GroupTask::Hold { since: frame, committed: false, picked: false };
                         } else if air && frame - *last_seen > LOST_FRAMES && !*searched {
                             *searched = true;
                             group.last_order = frame;
@@ -548,14 +515,14 @@ impl Brain {
                             commands.extend(units.iter().map(|u| Command::Fight { unit: u.id, to, queue: false }));
                         } else if !air && frame - *last_seen > LOST_FRAMES {
                             commands.extend(group.hold_orders(&units));
-                            group.task = GroupTask::Hold { since: frame, committed: false };
+                            group.task = GroupTask::Hold { since: frame, committed: false, picked: false };
                         }
                     } else if let Some(now) = centre_of_enemies(&seen) {
                         *last_seen = frame;
                         *at = now;
                     } else if frame - *last_seen > LOST_FRAMES {
                         commands.extend(group.hold_orders(&units));
-                        group.task = GroupTask::Hold { since: frame, committed: false };
+                        group.task = GroupTask::Hold { since: frame, committed: false, picked: false };
                     }
                 }
                 // The hunt's book: the quarry's last sighting for the words; the chase and its ends are the engine's
@@ -569,25 +536,32 @@ impl Brain {
                         hunt_ends.push(format!("group_{}'s hunt of {} ended after {} s: every hunter dead", group.name, hunt.party, (frame - hunt.since) / FRAMES_PER_SECOND));
                     }
                 }
-                // The escort (H-HANDS-ESCORT): the group follows its ward when it has moved on. A dead ward ends it in
-                // a hold, said, and the group is asked at once.
-                GroupTask::Escort { ward, name: ward_name, at, since } => match own.iter().find(|u| u.id == *ward) {
-                    Some(w) => {
-                        if let Some(to) = escort_step(w.pos, *at) {
-                            *at = to;
-                            group.last_order = frame;
-                            commands.extend(units.iter().map(|u| Command::Fight { unit: u.id, to, queue: false }));
+                // Following (H-HANDS-FOLLOW): the group goes after its ward when it has moved on. A ward that is
+                // gone (a builder dead, a group dead or merged away) ends it in a hold, said, and the group is asked
+                // at once.
+                GroupTask::Follow { ward, name: ward_name, at, since } => {
+                    let ward_at = match ward {
+                        Ward::Builder(id) => own.iter().find(|u| u.id == *id).map(|u| u.pos),
+                        Ward::Group(other) => bodies.iter().find(|(name, _)| name == other).map(|(_, at)| *at),
+                    };
+                    match ward_at {
+                        Some(ward_at) => {
+                            if let Some(to) = follow_step(ward_at, *at) {
+                                *at = to;
+                                group.last_order = frame;
+                                commands.extend(units.iter().map(|u| Command::Fight { unit: u.id, to, queue: false }));
+                            }
+                        }
+                        None => {
+                            follow_ends.push(format!("group_{} followed {ward_name} for {} s: {ward_name} is gone; the group holds where it is", group.name, (frame - *since) / FRAMES_PER_SECOND));
+                            commands.extend(group.hold_orders(&units));
+                            group.task = GroupTask::Hold { since: frame, committed: false, picked: false };
                         }
                     }
-                    None => {
-                        escort_ends.push(format!("group_{}'s escort of {ward_name} ended after {} s: {ward_name} is dead; the group holds where it is", group.name, (frame - *since) / FRAMES_PER_SECOND));
-                        commands.extend(group.hold_orders(&units));
-                        group.task = GroupTask::Hold { since: frame, committed: false };
-                    }
-                },
+                }
             }
         }
-        for text in escort_ends {
+        for text in follow_ends {
             pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
             pianist.note(frame, text.clone());
             pianist.events.insert(text);
@@ -672,7 +646,7 @@ impl Brain {
         let (party, since) = (hunt.party.clone(), hunt.since);
         let units = group.units(own);
         commands.extend(group.hold_orders(&units));
-        group.set_task(GroupTask::Hold { since: frame, committed: false }, frame);
+        group.set_task(GroupTask::Hold { since: frame, committed: false, picked: false }, frame);
         let why = match event.why {
             "dead" => "the quarry is dead".to_string(),
             "lost" => format!("{party} out of sight for 6 s"),
@@ -766,7 +740,7 @@ mod tests {
     fn a_hunt_splits_its_hunters_into_a_group_of_their_own_and_ends_in_a_hold() {
         let (_, ours, enemies, parties) = e3();
         let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
-        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { since: 0, committed: false }, 0));
+        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { since: 0, committed: false, picked: false }, 0));
         let hunters: Vec<UnitId> = ours.iter().take(3).map(|u| u.id).collect();
         let mut commands = Vec::new();
         let did = Brain::start_hunt(&mut pianist, 0, &hunters, &parties[0], &ours, &enemies, 30, &mut commands).expect("a hunt");
@@ -794,17 +768,16 @@ mod tests {
         let _ = own;
     }
 
-    /// An escort is sent after its ward when the ward has moved on, and nowhere while its last order still fits; a
+    /// A follower is sent after its ward when the ward has moved on, and nowhere while its last order still fits; a
     /// member rejoining gets the same order.
     #[test]
-    fn an_escort_follows_its_ward() {
+    fn a_follower_goes_after_its_ward() {
         let at = |x: f32| Vec3 { x, y: 0.0, z: 0.0 };
-        assert_eq!(escort_step(at(100.0), at(0.0)), None);
-        assert_eq!(escort_step(at(200.0), at(0.0)), Some(at(200.0)));
+        assert_eq!(follow_step(at(100.0), at(0.0)), None);
+        assert_eq!(follow_step(at(200.0), at(0.0)), Some(at(200.0)));
         let soldier = own(1, 1, at(0.0));
-        let group = Group::new("A".into(), Domain::Ground, vec![soldier.id], GroupTask::Escort { ward: UnitId(9), name: "constructor_9".into(), at: at(300.0), since: 0 }, 0);
+        let group = Group::new("A".into(), Domain::Ground, vec![soldier.id], GroupTask::Follow { ward: Ward::Builder(UnitId(9)), name: "constructor_9".into(), at: at(300.0), since: 0 }, 0);
         assert!(matches!(group.rejoin_orders(&[&soldier])[..], [Command::Fight { to, .. }] if to.x == 300.0));
-        assert!(group.task.busy());
     }
 
     #[test]

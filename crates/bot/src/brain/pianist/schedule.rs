@@ -1,5 +1,5 @@
-//! Events that ask the pass again out of turn (H-HANDS-SCHEDULE's events, feeding the one pass's ask-on-change:
-//! `docs/design/2026-09-26-one-pass.md` §5): a member of a group hit or killed, an enemy come into sight within a
+//! Events that ask the pass again out of turn (H-HANDS-SCHEDULE's events, the news of the `news` layer:
+//! `layers.rs`): a member of a group hit or killed, an enemy come into sight within a
 //! group's alarm reach, a builder under fire, a party entering a builder's alarm reach. The events of the ticks
 //! between calls are kept until the next ask (fixes-1: the player's retreat reached the group six seconds after it
 //! was written; the user: "RTS actions on the front line and on scouting units need to be frequently second-scale").
@@ -9,7 +9,9 @@ use std::collections::HashSet;
 use bot_protocol::{Event, Tick, UnitId};
 
 use super::super::Brain;
-use super::plan::ALARM;
+
+/// An enemy party this close to a group or a builder is an event for it.
+const ALARM: f32 = 600.0;
 
 impl Brain {
     /// Every tick: remembers this tick's hits (the pass reads them at the next call, whatever tick that is) and

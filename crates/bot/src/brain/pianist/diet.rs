@@ -63,23 +63,6 @@ fn parse(value: Option<&str>) -> HandsEffort {
     }
 }
 
-/// The paragraph of the instructions addressed to `actor` ("group_A (Blitzes): ..." or "group_A: ..."): the
-/// packet's convention is one paragraph per actor, so a route or a job written there is that actor's alone
-/// (docs/design/2026-09-28-routes-in-prose.md §4.1).
-pub(super) fn paragraph<'a>(text: &'a str, actor: &str) -> Option<&'a str> {
-    text.split("\n\n").map(str::trim).find(|p| {
-        let head = p.split(':').next().unwrap_or("");
-        head.split('(').next().unwrap_or("").trim() == actor
-    })
-}
-
-/// The places named in `text`, in the order they are first named: a route's stops as the packet wrote them.
-pub(super) fn named_in_order<'a>(text: &str, places: impl Iterator<Item = &'a str>) -> Vec<&'a str> {
-    let mut found: Vec<(usize, &str)> = places.filter_map(|p| first_named(text, p).map(|i| (i, p))).collect();
-    found.sort();
-    found.into_iter().map(|(_, p)| p).collect()
-}
-
 fn first_named(text: &str, place: &str) -> Option<usize> {
     let mut from = 0;
     while let Some(i) = text[from..].find(place) {
@@ -263,7 +246,7 @@ mod tests {
             "recent": (0..40).map(|i| format!("{i}:00 something happened at spot_{i} with many words in it to take room")).collect::<Vec<_>>(),
             "places": (0..60).map(|i| (format!("spot_{i}"), serde_json::json!({"what": "x".repeat(200)}))).collect::<serde_json::Map<_, _>>(),
             "actors": {
-                "group_A": {"units": "10 Blitz", "at": "spot_1", "doing": "y".repeat(3000), "route_seen": "reached spot_1"},
+                "group_A": {"units": "10 Blitz", "at": "spot_1", "doing": "y".repeat(3000), "reached": "spot_1 (3:10)"},
                 "group_B": {"units": "3 Stout", "at": "home", "doing": "z".repeat(5000)},
                 "commander": {"units": "commander", "at": "home", "doing": "w".repeat(100)}
             }
@@ -294,16 +277,6 @@ mod tests {
         assert!(names_spot("spot_10, 5, 6", 6));
         assert!(!names_spot("spot_10, 5 constructors", 5));
         assert!(names_spot("go to spot_45", 45));
-    }
-
-    #[test]
-    fn the_actors_paragraph_and_its_places_in_order() {
-        let packet = "Plan: hold.\n\ngroup_A (Blitzes): spot_49, then spot_46, spot_40 and back to spot_64.\n\ngroup_B: scouts spot_72, then spot_60.\n\nconstructors: spot_69, spot_62.";
-        assert_eq!(paragraph(packet, "group_A"), Some("group_A (Blitzes): spot_49, then spot_46, spot_40 and back to spot_64."));
-        assert_eq!(paragraph(packet, "group_B"), Some("group_B: scouts spot_72, then spot_60."));
-        assert_eq!(paragraph(packet, "group_C"), None);
-        let places = ["spot_64", "spot_40", "spot_4", "spot_49", "spot_46", "spot_69"];
-        assert_eq!(named_in_order(paragraph(packet, "group_A").unwrap(), places.iter().copied()), vec!["spot_49", "spot_46", "spot_40", "spot_64"], "the route's stops in the packet's order; spot_4 is not named by spot_40 or spot_49");
     }
 
     #[test]

@@ -172,7 +172,8 @@ const WR = (() => {
   // The pianist's log, jev-<ai_id>.jsonl (docs/harness/record-format.md, "The pianist's log"): a header line, then
   // `call` lines (one per request: the state, the questions, the answers, and the groups, places and parties by
   // name), `error` lines, and from version 2 (2026-09-26, the one pass) a `pass` line per second the pass had
-  // anything to say (`open`, `plan`, `gate`/`quiet`, `events`, `hunts`, `slots` on an asking second, `played` with
+  // anything to say (`open`, `plan`, `gate`/`quiet`, `events`, `hunts`, `slots` on an asking second (version 2) or
+  // `menus`, `closed` and `layers` (version 3, the rebuilt hands), `played` with
   // sources rule/list), `worlds_gate` lines (the pre-pass's `flags`, the composed `worlds`, their `lines`) and
   // `plan` lines (the pick, its confidence, `changed`, `played` with source plan). Version-1 logs carried `played` on
   // the calls and `standing` lines (the executor's plays); the first day's logs carried no `played` at all. Every
