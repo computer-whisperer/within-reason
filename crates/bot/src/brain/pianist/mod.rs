@@ -909,7 +909,7 @@ impl Brain {
         let asked_whole = questions.len();
         let same = {
             let pianist = self.pianist.as_ref().expect("pianist mode");
-            if pianist.layers.same { layers::same(questions, &pianist.said, frame, &mut compose::draw) } else { layers::Same { send: questions, stand: BTreeMap::new(), audited: BTreeMap::new() } }
+            if pianist.layers.same { layers::same(questions, &pianist.said, layers::counts(&picture.state), frame, &mut compose::draw) } else { layers::Same { send: questions, stand: BTreeMap::new(), audited: BTreeMap::new() } }
         };
         let questions = same.send;
         let sig = format!("{}|{eco}|{}", layers::signature(&menus, parties), self.pianist.as_ref().expect("pianist mode").packet_frame);
@@ -1130,7 +1130,7 @@ impl Brain {
             pianist.opened.insert(name, (p, tick.frame));
         }
         pianist.events.extend(reopened);
-        layers::remember(&mut pianist.said, &request.questions, &response.answers, same_audited, tick.frame);
+        layers::remember(&mut pianist.said, &request.questions, &response.answers, same_audited, layers::counts(&request.state), tick.frame);
         for audit in audits {
             pianist.write_log(audit);
         }

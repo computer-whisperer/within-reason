@@ -165,7 +165,8 @@ pub(super) fn openers(menus: &mut [Menu], opened: &HashMap<String, (f64, i32)>, 
     (skipped, audited)
 }
 
-/// A noul as it was last asked: its words (hashed), when, and what came back.
+/// A noul as it was last asked: its words and the counts it was asked over (hashed together), when, and what
+/// came back.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Said {
     pub words: u64,
@@ -173,11 +174,38 @@ pub(crate) struct Said {
     pub noul: f64,
 }
 
-fn words_of(question: &Question) -> u64 {
+fn words_of(question: &Question, counts: u64) -> u64 {
     use std::hash::{Hash, Hasher};
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     match question {
         Question::Noul { instructions, .. } | Question::Choice { instructions, .. } | Question::Score { instructions, .. } => instructions.to_string().hash(&mut hasher),
+    }
+    counts.hash(&mut hasher);
+    hasher.finish()
+}
+
+/// What a packet's tables key on, as the picture says it: how many extractors, generators, labs, constructors,
+/// radars and turrets stand, the army's size as its word, and the economy's lines without their numbers ("low",
+/// "STALLING", "in balance"). An answer of the `same` layer stands only while these are what they were when it
+/// was given: rebuild-smoke-7, 0:22, "a solar" rated 0.28 with one extractor standing was played with two, against
+/// a packet that says "with 2 extractors and 0 solar collectors: a solar collector", and the game was lost
+/// without a soldier made (K-hands-the-same-layer-keeps-an-answer-the-picture-has-outdated).
+pub(super) fn counts(state: &serde_json::Value) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    if let Some(ours) = state["ours"].as_object() {
+        for (key, value) in ours.iter().filter(|(key, _)| *key != "wrecks") {
+            key.hash(&mut hasher);
+            match value.as_str() {
+                // "a group: 11 worth 894 metal (...)": the size's word, not the count.
+                Some(text) => text.split(':').next().unwrap_or(text).hash(&mut hasher),
+                None => value.to_string().hash(&mut hasher),
+            }
+        }
+    }
+    for line in ["metal", "energy"] {
+        let words: String = state["economy"][line].as_str().unwrap_or_default().chars().filter(|c| !c.is_ascii_digit()).collect();
+        words.hash(&mut hasher);
     }
     hasher.finish()
 }
@@ -191,14 +219,14 @@ pub(super) struct Same {
 }
 
 /// The `same` layer (H-HANDS-LAYERS): a noul whose words are exactly those of its last ask, asked under `RE_ASK`
-/// ago, is not sent; its last answer stands for it. The picture beside the question has moved on, which is the
-/// layer's bet: asked again as recorded, an unchanged question's answer crosses 0.5 in 0.1 to 0.7% of asks
-/// (`docs/studies/2026-10-01-jev-token-budget.md`). A share of `AUDIT_SHARE` of what it would skip is sent anyway
-/// and set beside the standing answer; the standing answer is the one played.
-pub(super) fn same(questions: Vec<(String, Question)>, said: &HashMap<String, Said>, frame: i32, draw: &mut dyn FnMut() -> f64) -> Same {
+/// ago over the same `counts`, is not sent; its last answer stands for it. The rest of the picture beside the
+/// question has moved on, which is the layer's bet: asked again as recorded, an unchanged question's answer
+/// crosses 0.5 in 0.1 to 0.7% of asks (`docs/studies/2026-10-01-jev-token-budget.md`). A share of `AUDIT_SHARE` of
+/// what it would skip is sent anyway and set beside the standing answer; the standing answer is the one played.
+pub(super) fn same(questions: Vec<(String, Question)>, said: &HashMap<String, Said>, counts: u64, frame: i32, draw: &mut dyn FnMut() -> f64) -> Same {
     let mut out = Same { send: Vec::new(), stand: BTreeMap::new(), audited: BTreeMap::new() };
     for (id, question) in questions {
-        match said.get(&id).filter(|s| frame - s.frame < RE_ASK && s.words == words_of(&question)) {
+        match said.get(&id).filter(|s| frame - s.frame < RE_ASK && s.words == words_of(&question, counts)) {
             Some(before) => {
                 out.stand.insert(id.clone(), Answer::Noul { noul: before.noul });
                 if draw() < AUDIT_SHARE {
@@ -213,13 +241,13 @@ pub(super) fn same(questions: Vec<(String, Question)>, said: &HashMap<String, Sa
 }
 
 /// Remembers a gate's fresh nouls for the `same` layer, and forgets what is too old to stand.
-pub(super) fn remember(said: &mut HashMap<String, Said>, questions: &BTreeMap<String, Question>, answers: &BTreeMap<String, Answer>, skip: &BTreeMap<String, f64>, frame: i32) {
+pub(super) fn remember(said: &mut HashMap<String, Said>, questions: &BTreeMap<String, Question>, answers: &BTreeMap<String, Answer>, skip: &BTreeMap<String, f64>, counts: u64, frame: i32) {
     said.retain(|_, s| frame - s.frame < RE_ASK);
     for (id, question) in questions {
         if let Some(Answer::Noul { noul }) = answers.get(id)
             && !skip.contains_key(id)
         {
-            said.insert(id.clone(), Said { words: words_of(question), frame, noul: *noul });
+            said.insert(id.clone(), Said { words: words_of(question, counts), frame, noul: *noul });
         }
     }
 }
@@ -275,25 +303,34 @@ mod tests {
     }
 
     /// The `same` layer: a noul asked again in the same words within the re-ask is not sent and its last answer
-    /// stands; changed words, or an answer too old, are sent; an audited one is sent and its standing answer kept.
+    /// stands; changed words, an answer too old, or a change in the counts it was asked over (a second extractor
+    /// stands, the store's word is another) are sent; an audited one is sent and its standing answer kept.
     #[test]
     fn a_question_in_the_same_words_is_not_sent_again() {
         let q = |text: &str| Question::noul(serde_json::json!(text));
         let mut said: HashMap<String, Said> = HashMap::new();
         let asked: BTreeMap<String, Question> = [("a.go_x".to_string(), q("walks to x (near)")), ("a.go_y".to_string(), q("walks to y (far)")), ("a.old".to_string(), q("old"))].into();
         let answers: BTreeMap<String, Answer> = [("a.go_x".to_string(), Answer::Noul { noul: 0.7 }), ("a.go_y".to_string(), Answer::Noul { noul: 0.2 }), ("a.old".to_string(), Answer::Noul { noul: 0.9 })].into();
-        remember(&mut said, &asked, &answers, &BTreeMap::new(), 300);
+        let picture = |extractors: i32, metal: &str| serde_json::json!({ "ours": { "extractors": extractors, "soldiers": "a group: 11 worth 894 metal", "wrecks": [extractors] }, "economy": { "metal": metal, "energy": "25 of 1600 stored (nearly empty)" } });
+        let at = counts(&picture(1, "171 of 1650 stored (low)"));
+        assert_eq!(at, counts(&picture(1, "188 of 1650 stored (low)")), "the numbers move every second; the words do not");
+        remember(&mut said, &asked, &answers, &BTreeMap::new(), at, 300);
         said.get_mut("a.old").unwrap().frame = 300 - RE_ASK;
         let next = vec![("a.go_x".to_string(), q("walks to x (near)")), ("a.go_y".to_string(), q("walks to y (some way off)")), ("a.old".to_string(), q("old")), ("a.new".to_string(), q("new"))];
-        let out = same(next.clone(), &said, 330, &mut || 0.5);
+        let out = same(next.clone(), &said, at, 330, &mut || 0.5);
         assert_eq!(out.send.iter().map(|(id, _)| id.as_str()).collect::<Vec<_>>(), ["a.go_y", "a.old", "a.new"]);
         assert_eq!(out.stand, [("a.go_x".to_string(), Answer::Noul { noul: 0.7 })].into());
         assert!(out.audited.is_empty());
-        let audit = same(next, &said, 330, &mut || 0.001);
+        // A second extractor stands, or the store's word changed: nothing stands.
+        for moved in [counts(&picture(2, "171 of 1650 stored (low)")), counts(&picture(1, "900 of 1650 stored (plenty in store)"))] {
+            let fresh = same(next.clone(), &said, moved, 330, &mut || 0.5);
+            assert!(fresh.stand.is_empty() && fresh.send.len() == 4);
+        }
+        let audit = same(next, &said, at, 330, &mut || 0.001);
         assert_eq!(audit.send.len(), 4, "the audited question is sent anyway");
         assert_eq!(audit.audited, [("a.go_x".to_string(), 0.7)].into());
         // What stood is not remembered afresh: it expires by its own ask.
-        remember(&mut said, &asked, &answers, &audit.audited, 330);
+        remember(&mut said, &asked, &answers, &audit.audited, at, 330);
         assert_eq!(said["a.go_x"].frame, 300);
         assert_eq!(said["a.go_y"].frame, 330);
     }
