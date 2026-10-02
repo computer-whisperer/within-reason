@@ -96,9 +96,12 @@ pub(super) struct News<'a> {
     pub events: &'a BTreeSet<String>,
     /// The packet or a list changed.
     pub orders: bool,
-    /// The store crossed empty or full, energy began or stopped stalling, or the store came to cover an idle
-    /// factory's cheapest unit.
+    /// The store crossed empty or full, or energy began or stopped stalling: news for a builder and a factory.
     pub store: bool,
+    /// The store came to cover an idle factory's cheapest unit, or stopped covering it: news for a factory alone
+    /// (player-40, `docs/studies/2026-10-02-jev-question-cuts.md`: as one flag with `store` it reopened every
+    /// constructor twice a lab cycle, 112,000 questions for 73 moves played).
+    pub afford: bool,
 }
 
 /// An actor's course as the news rule sees it: its kind, and its idleness. The kind, not the move: a constructor
@@ -112,8 +115,8 @@ pub(super) fn course(menu: &Menu) -> String {
 /// `change` nor its own moves are asked and the pick does not change its course by them. Its moves aimed at a party
 /// are not the layer's to skip: a party is asked about at every gate, and so are its answers. News for an actor: its course changed or ended, an event
 /// names it (a hit, a lost soldier, a sighting, a place reached), the packet or a list changed, a party came into
-/// its entry or left it, the store crossed empty or full (a builder or a factory), or `RE_ASK` has passed since it
-/// was last asked. Of the actors it closes, a share of `AUDIT_SHARE` are asked anyway (`draw` gives each a number in
+/// its entry or left it, the store crossed empty or full (a builder or a factory), an idle factory came to afford
+/// its cheapest unit or ceased to (a factory), or `RE_ASK` has passed since it was last asked. Of the actors it closes, a share of `AUDIT_SHARE` are asked anyway (`draw` gives each a number in
 /// 0 to 1) and marked for the audit. player-29-hard (`docs/studies/2026-09-30-jev-load.md`): without the rule
 /// every option of every actor was re-asked 58-60 times a minute, and the builders' 258,000 option questions bought
 /// 194 moves. Returns the questions the closed actors would have been asked, and how many were audited.
@@ -127,7 +130,8 @@ pub(super) fn news(menus: &mut [Menu], asked: &BTreeMap<String, Asked>, news: &N
         let named = news.events.iter().any(|e| e.strip_prefix(menu.name.as_str()).is_some_and(|rest| rest.starts_with(' ')));
         let outside = match menu.kind {
             Kind::Group(_) => false,
-            _ => news.store,
+            Kind::Builder(_) => news.store,
+            Kind::Factory(_) => news.store || news.afford,
         };
         if before.course == course(menu) && before.party == menu.near_party && news.frame - before.frame < RE_ASK && !named && !outside {
             menu.quiet = true;
@@ -359,7 +363,7 @@ mod tests {
         let builder = || menu("constructor_3", Kind::Builder(UnitId(3)), false, vec![mv("go_spot_4", Order::Go("spot_4".into()), None), mv("send_1_party_1", Order::Send(Vec::new(), "party_1".into()), Some("party_1"))]);
         let group = || menu("group_A", Kind::Group("A".into()), false, vec![mv("go_spot_4", Order::Go("spot_4".into()), None)]);
         let none = BTreeSet::new();
-        let calm = |frame: i32| News { frame, events: &none, orders: false, store: false };
+        let calm = |frame: i32| News { frame, events: &none, orders: false, store: false, afford: false };
         let closed = |menu: Menu, asked: &BTreeMap<String, Asked>, news_: &News| {
             let mut menus = vec![menu];
             let counts = news(&mut menus, asked, news_, &mut || 0.5);
@@ -380,6 +384,10 @@ mod tests {
         assert!(closed(builder(), &asked, &News { events: &other, ..calm(330) }).0, "another actor's event");
         assert!(!closed(builder(), &asked, &News { orders: true, ..calm(330) }).0, "the orders changed");
         assert!(!closed(builder(), &asked, &News { store: true, ..calm(330) }).0 && closed(group(), &asked, &News { store: true, ..calm(330) }).0, "the store opens a builder, not a group");
+        let lab = || menu("plant_5", Kind::Factory(UnitId(5)), false, vec![mv("make_armflash", Order::Make(bot_protocol::UnitDefId(1)), None)]);
+        let with_lab: BTreeMap<String, Asked> = [("constructor_3".to_string(), at("go", None)), ("plant_5".to_string(), at("make", None))].into();
+        assert!(closed(builder(), &with_lab, &News { afford: true, ..calm(330) }).0 && !closed(lab(), &with_lab, &News { afford: true, ..calm(330) }).0, "an idle lab coming to afford its unit opens the lab alone");
+        assert!(!closed(lab(), &with_lab, &News { store: true, ..calm(330) }).0, "the store opens a lab too");
         let mut near = group();
         near.near_party = Some("party_7".into());
         assert!(!closed(near, &asked, &calm(330)).0, "a party came into its entry");

@@ -1,0 +1,77 @@
+24 gates, 19362 questions; the control alone about 4.71M tokens
+recorded: 4.47M tokens, 9.79M question chars; spent: control 4.57M, short 2.83M, places 0.53M; total $0.33
+  control  question chars 9.79M (100%); nouls 19362 (own moves 18068); crossing 0.5 against the record 42 (0.22%; own moves 27): now yes 27, now no 15; yes in the record 535, in the arm 547; mean |diff| 0.010
+  short    question chars 5.68M (58%); nouls 19362 (own moves 18068); crossing 0.5 against the record 78 (0.40%; own moves 63): now yes 22, now no 56; yes in the record 535, in the arm 501; mean |diff| 0.038
+  places   question chars 0.93M (10% of the record's); 1324 place questions standing for 16356 move questions
+    pre-gate bar 0.1: keeps 1323 places (100%), 16319 move questions (100%); of 25 places with a recorded move at 0.5, caught 25 (100%)
+    pre-gate bar 0.2: keeps 907 places (69%), 12865 move questions (79%); of 25 places with a recorded move at 0.5, caught 25 (100%)
+    pre-gate bar 0.3: keeps 585 places (44%), 8625 move questions (53%); of 25 places with a recorded move at 0.5, caught 24 (96%)
+    pre-gate bar 0.5: keeps 141 places (11%), 1731 move questions (11%); of 25 places with a recorded move at 0.5, caught 16 (64%)
+    missed: 19:04 passage_2 pre-gate 0.21, best recorded move 0.56, control's best 0.57
+    the control's own repeat: of 25 places with a recorded move at 0.5, the control repeats one at 0.5 in 21
+24 gates, 19362 questions; the control alone about 4.71M tokens
+recorded: 4.47M tokens, 9.79M question chars; spent: short2 3.58M; total $0.15
+  short2   question chars 7.34M (75%); nouls 19362 (own moves 18068); crossing 0.5 against the record 93 (0.48%; own moves 80): now yes 52, now no 41; yes in the record 535, in the arm 546; mean |diff| 0.037
+24 gates, 19362 questions; the control alone about 4.71M tokens
+recorded: 4.47M tokens, 9.79M question chars; spent: places:v1 0.58M, places:v2 0.53M, places:v3 0.53M, places:v4 0.48M, places:v5 0.58M; total $0.11
+  places:v1:
+    question chars 1.14M (12% of the record's); 1324 place questions standing for 16356 move questions
+    pre-gate bar 0.1: keeps 997 places (75%), 14327 move questions (88%); of 25 places with a recorded move at 0.5, caught 25 (100%)
+    pre-gate bar 0.2: keeps 587 places (44%), 8536 move questions (52%); of 25 places with a recorded move at 0.5, caught 24 (96%)
+    pre-gate bar 0.3: keeps 218 places (16%), 2918 move questions (18%); of 25 places with a recorded move at 0.5, caught 14 (56%)
+    pre-gate bar 0.5: keeps 9 places (1%), 77 move questions (0%); of 25 places with a recorded move at 0.5, caught 2 (8%)
+    missed: 31:32 spot_36 pre-gate 0.28, best recorded move 0.70, control's best None
+    missed: 27:37 spot_39 pre-gate 0.22, best recorded move 0.64, control's best None
+    missed: 31:26 spot_64 pre-gate 0.26, best recorded move 0.60, control's best None
+    missed: 34:36 spot_59 pre-gate 0.21, best recorded move 0.59, control's best None
+    missed: 19:04 passage_2 pre-gate 0.12, best recorded move 0.56, control's best None
+    missed: 25:57 spot_67 pre-gate 0.22, best recorded move 0.54, control's best None
+    missed: 34:34 home pre-gate 0.26, best recorded move 0.52, control's best None
+    missed: 12:59 spot_13 pre-gate 0.28, best recorded move 0.51, control's best None
+    missed: 31:26 spot_63 pre-gate 0.20, best recorded move 0.51, control's best None
+    missed: 33:06 spot_61 pre-gate 0.28, best recorded move 0.50, control's best None
+    missed: 33:06 D5 pre-gate 0.25, best recorded move 0.50, control's best None
+  places:v2:
+    question chars 0.90M (9% of the record's); 1324 place questions standing for 16356 move questions
+    pre-gate bar 0.1: keeps 1159 places (88%), 15721 move questions (96%); of 25 places with a recorded move at 0.5, caught 25 (100%)
+    pre-gate bar 0.2: keeps 807 places (61%), 12561 move questions (77%); of 25 places with a recorded move at 0.5, caught 25 (100%)
+    pre-gate bar 0.3: keeps 520 places (39%), 8114 move questions (50%); of 25 places with a recorded move at 0.5, caught 22 (88%)
+    pre-gate bar 0.5: keeps 132 places (10%), 1964 move questions (12%); of 25 places with a recorded move at 0.5, caught 11 (44%)
+    missed: 19:04 passage_2 pre-gate 0.20, best recorded move 0.56, control's best None
+    missed: 25:57 party_65 pre-gate 0.26, best recorded move 0.53, control's best None
+    missed: 31:26 spot_63 pre-gate 0.25, best recorded move 0.51, control's best None
+  places:v3:
+    question chars 0.91M (9% of the record's); 1324 place questions standing for 16356 move questions
+    pre-gate bar 0.1: keeps 1299 places (98%), 16272 move questions (99%); of 25 places with a recorded move at 0.5, caught 25 (100%)
+    pre-gate bar 0.2: keeps 540 places (41%), 7074 move questions (43%); of 25 places with a recorded move at 0.5, caught 22 (88%)
+    pre-gate bar 0.3: keeps 109 places (8%), 798 move questions (5%); of 25 places with a recorded move at 0.5, caught 11 (44%)
+    pre-gate bar 0.5: keeps 5 places (0%), 28 move questions (0%); of 25 places with a recorded move at 0.5, caught 2 (8%)
+    missed: 31:32 spot_36 pre-gate 0.23, best recorded move 0.70, control's best None
+    missed: 27:37 spot_39 pre-gate 0.17, best recorded move 0.64, control's best None
+    missed: 31:38 spot_59 pre-gate 0.26, best recorded move 0.62, control's best None
+    missed: 31:26 spot_64 pre-gate 0.19, best recorded move 0.60, control's best None
+    missed: 34:36 spot_59 pre-gate 0.24, best recorded move 0.59, control's best None
+    missed: 31:32 spot_47 pre-gate 0.26, best recorded move 0.58, control's best None
+    missed: 19:04 passage_2 pre-gate 0.17, best recorded move 0.56, control's best None
+    missed: 20:43 E4 pre-gate 0.29, best recorded move 0.56, control's best None
+    missed: 25:57 spot_67 pre-gate 0.23, best recorded move 0.54, control's best None
+    missed: 31:38 spot_47 pre-gate 0.28, best recorded move 0.53, control's best None
+    missed: 31:26 spot_59 pre-gate 0.27, best recorded move 0.52, control's best None
+    missed: 12:59 spot_13 pre-gate 0.24, best recorded move 0.51, control's best None
+  places:v4:
+    question chars 0.74M (8% of the record's); 1324 place questions standing for 16356 move questions
+    pre-gate bar 0.1: keeps 1161 places (88%), 15690 move questions (96%); of 25 places with a recorded move at 0.5, caught 25 (100%)
+    pre-gate bar 0.2: keeps 846 places (64%), 13092 move questions (80%); of 25 places with a recorded move at 0.5, caught 25 (100%)
+    pre-gate bar 0.3: keeps 541 places (41%), 8768 move questions (54%); of 25 places with a recorded move at 0.5, caught 24 (96%)
+    pre-gate bar 0.5: keeps 149 places (11%), 2327 move questions (14%); of 25 places with a recorded move at 0.5, caught 13 (52%)
+    missed: 31:26 spot_63 pre-gate 0.29, best recorded move 0.51, control's best None
+  places:v5:
+    question chars 1.11M (11% of the record's); 1324 place questions standing for 16356 move questions
+    pre-gate bar 0.1: keeps 1112 places (84%), 15346 move questions (94%); of 25 places with a recorded move at 0.5, caught 25 (100%)
+    pre-gate bar 0.2: keeps 842 places (64%), 12974 move questions (79%); of 25 places with a recorded move at 0.5, caught 25 (100%)
+    pre-gate bar 0.3: keeps 534 places (40%), 7670 move questions (47%); of 25 places with a recorded move at 0.5, caught 21 (84%)
+    pre-gate bar 0.5: keeps 91 places (7%), 988 move questions (6%); of 25 places with a recorded move at 0.5, caught 7 (28%)
+    missed: 31:26 spot_64 pre-gate 0.29, best recorded move 0.60, control's best None
+    missed: 34:36 spot_59 pre-gate 0.28, best recorded move 0.59, control's best None
+    missed: 25:57 spot_67 pre-gate 0.28, best recorded move 0.54, control's best None
+    missed: 31:26 spot_63 pre-gate 0.24, best recorded move 0.51, control's best None

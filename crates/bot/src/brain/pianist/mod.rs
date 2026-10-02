@@ -892,13 +892,17 @@ impl Brain {
         let idle_factory_afford = menus.iter().any(|m| {
             matches!(m.kind, menu::Kind::Factory(_)) && m.idle && m.moves.iter().filter_map(|mv| if let menu::Order::Make(def) = &mv.order { self.world.def(*def).map(|d| d.metal_cost) } else { None }).fold(f32::INFINITY, f32::min) <= tick.snapshot.metal.current
         });
-        let eco = format!("{}|{}|{}", if tick.snapshot.metal.current < 100.0 { "empty" } else if tick.snapshot.metal.current >= tick.snapshot.metal.storage - 1.0 { "full" } else { "" }, picture.state["economy"]["energy"].as_str().is_some_and(|e| e.contains("STALLING")), idle_factory_afford);
-        // The `news` layer: the actors with a course and no news are closed this gate.
+        let store_words = format!("{}|{}", if tick.snapshot.metal.current < 100.0 { "empty" } else if tick.snapshot.metal.current >= tick.snapshot.metal.storage - 1.0 { "full" } else { "" }, picture.state["economy"]["energy"].as_str().is_some_and(|e| e.contains("STALLING")));
+        let eco = format!("{store_words}|{idle_factory_afford}");
+        // The `news` layer: the actors with a course and no news are closed this gate. The store's news is the
+        // two parts apart: what an idle lab can afford reopens the labs alone (player-40: every lab cycle flipped
+        // it twice and reopened every constructor, 21% of the gate text for 73 moves played).
         let jev_on = self.pianist.as_ref().is_some_and(|p| p.client.is_some());
         let (skipped, audited) = {
             let pianist = self.pianist.as_ref().expect("pianist mode");
             if pianist.layers.news {
-                let news = layers::News { frame, events: &pianist.events, orders: ["packet", "lists"].iter().any(|e| pianist.events.contains(*e)), store: eco != pianist.asked_store };
+                let (store, afford) = pianist.asked_store.rsplit_once('|').map_or((true, true), |(s, a)| (s != store_words, a != idle_factory_afford.to_string()));
+                let news = layers::News { frame, events: &pianist.events, orders: ["packet", "lists"].iter().any(|e| pianist.events.contains(*e)), store, afford };
                 layers::news(&mut menus, &pianist.asked, &news, &mut compose::draw)
             } else {
                 (0, 0)
