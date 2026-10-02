@@ -994,9 +994,15 @@ impl Brain {
         if pianist.decode.packet != instructions {
             pianist.decode = decode::Decode { packet: instructions.to_string(), reads: BTreeMap::new() };
         }
+        // What the actor is, for the decode's questions: its units, and for a detachment the group it left (who an
+        // actor is, not what the picture shows of it: "soldiers that left group_A join it again" is about such a group).
         let what = |actor: &str| {
             let entry = &picture.state["actors"][actor];
-            entry["units"].as_str().or(entry["is"].as_str()).unwrap_or_default().chars().take(120).collect::<String>()
+            let units: String = entry["units"].as_str().or(entry["is"].as_str()).unwrap_or_default().chars().take(120).collect();
+            match entry["split_from"].as_str().and_then(|s| s.split(',').next()) {
+                Some(parent) => format!("{units}; a detachment that left {parent}"),
+                None => units,
+            }
         };
         let asks = decode::needed(menus, &pianist.decode, &what);
         if !asks.is_empty() {
