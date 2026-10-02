@@ -196,7 +196,7 @@ pub struct Pianist {
     /// with the frame.
     opened: HashMap<String, (f64, i32)>,
     /// The `places` layer (`layers::places`): each place's question at its last ask, with the frame.
-    places_open: HashMap<String, (f64, i32)>,
+    places_open: HashMap<String, layers::PlaceSaid>,
     /// What the gate in flight took, put back if it fails (`gate_failed`).
     undo: Option<Undo>,
     /// The parties in the picture at the last pass: a new one is an event.
@@ -928,7 +928,7 @@ impl Brain {
         // The `places` layer: a move aimed at a place whose question said no at the last gate waits for the place.
         let (blanked, blanked_audited) = {
             let pianist = self.pianist.as_ref().expect("pianist mode");
-            if pianist.layers.places { layers::places(&mut menus, &pianist.places_open, frame, layers::PLACE_BAR, &mut compose::draw) } else { (0, 0) }
+            if pianist.layers.places { layers::places(&mut menus, &pianist.places_open, frame, &mut compose::draw) } else { (0, 0) }
         };
         let questions = {
             let pianist = self.pianist.as_ref().expect("pianist mode");
@@ -1161,11 +1161,16 @@ impl Brain {
             .filter(|(name, p)| *p >= compose::FLAG && menus.iter().any(|m| m.moves.iter().any(|mv| mv.held && (m.name == *name || mv.party.as_deref() == Some(name.as_str())))))
             .map(|(name, _)| format!("{name} opened"))
             .collect();
-        // The places as they came back; one at the bar over blanked moves asks their actors again the next second.
-        let places: Vec<(String, f64)> = followed.flags.iter().filter_map(|(k, p)| k.strip_suffix(".place").map(|place| (place.to_string(), *p))).collect();
+        // The places as they came back; one at the bar over blanked moves asks their actors again the next second,
+        // when the actor is open now (idle, or its `change` at the flag): a closed actor's moves wait for its own
+        // opener, and the place's yes stands for it (player-41, the first ten minutes: every actor with a move at
+        // an opened place was re-asked, 524 "opened" events against player-40's 118, and the gate went every second).
+        let places_open: &HashMap<String, layers::PlaceSaid> = &self.pianist.as_ref().expect("pianist mode").places_open;
+        let places: Vec<(String, layers::PlaceSaid)> = followed.flags.iter().filter_map(|(k, p)| k.strip_suffix(".place").map(|place| (place.to_string(), layers::PlaceSaid { noul: *p, frame: tick.frame, open: layers::place_open(places_open.get(place), *p, tick.frame) }))).collect();
         let place_opened: Vec<String> = menus
             .iter()
-            .filter(|m| m.moves.iter().any(|mv| mv.blanked && mv.place().is_some_and(|place| places.iter().any(|(name, p)| *name == place && *p >= layers::PLACE_BAR))))
+            .filter(|m| m.idle || noul(&format!("{}.change", m.name)).is_some_and(|c| c >= compose::FLAG))
+            .filter(|m| m.moves.iter().any(|mv| mv.blanked && mv.place().is_some_and(|place| places.iter().any(|(name, said)| *name == place && said.open))))
             .map(|m| format!("{} opened", m.name))
             .collect();
         let pianist = self.pianist.as_mut().expect("pianist mode");
@@ -1173,9 +1178,9 @@ impl Brain {
         for (name, p) in openers {
             pianist.opened.insert(name, (p, tick.frame));
         }
-        pianist.places_open.retain(|_, (_, f)| tick.frame - *f < layers::RE_ASK);
-        for (name, p) in places {
-            pianist.places_open.insert(name, (p, tick.frame));
+        pianist.places_open.retain(|_, s| tick.frame - s.frame < layers::RE_ASK);
+        for (name, said) in places {
+            pianist.places_open.insert(name, said);
         }
         pianist.events.extend(reopened);
         pianist.events.extend(place_opened);

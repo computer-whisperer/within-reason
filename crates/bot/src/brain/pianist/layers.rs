@@ -33,6 +33,24 @@ pub(super) const TICK: i32 = 2 * FRAMES_PER_SECOND;
 /// study, `docs/studies/2026-10-02-jev-question-cuts.md` §3: at 0.3 the place question kept 24 of 25 places with
 /// a recorded move at 0.5 and 69 of 83 where an idle actor's move was at 0.3, for 53% of the place-aimed questions).
 pub(super) const PLACE_BAR: f64 = 0.3;
+/// An open place closes only under this (player-41, the first eleven minutes: a quarter of the place answers fell
+/// in 0.25 to 0.35, and 61 places crossed 0.3 923 times in 390 gates, each crossing up a gate the next second; with
+/// this floor 270 times).
+pub(super) const PLACE_CLOSE: f64 = 0.2;
+
+/// A place at its last ask: what it said, when, and whether it is open (`place_open`).
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct PlaceSaid {
+    pub noul: f64,
+    pub frame: i32,
+    pub open: bool,
+}
+
+/// Whether a place is open after an answer: at `PLACE_BAR` or over, or at `PLACE_CLOSE` or over when it was open
+/// at its last ask under `RE_ASK` ago.
+pub(super) fn place_open(before: Option<&PlaceSaid>, noul: f64, frame: i32) -> bool {
+    noul >= if before.is_some_and(|b| b.open && frame - b.frame < RE_ASK) { PLACE_CLOSE } else { PLACE_BAR }
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Layers {
@@ -193,14 +211,14 @@ pub(super) fn openers(menus: &mut [Menu], opened: &HashMap<String, (f64, i32)>, 
 }
 
 /// The `places` layer (H-HANDS-LAYERS): a move of an actor's own aimed at a place (`Move::place`) is asked only
-/// while the place's question said yes (`PLACE_BAR`) at its last ask, under `RE_ASK` ago; otherwise it is blanked:
+/// while the place is open (`place_open`) as of its last ask, under `RE_ASK` ago; otherwise it is blanked:
 /// not asked this gate. The place questions themselves (`compose::place_questions`) are asked every gate for every
 /// place with a move of an asked actor, blanked or not, and one that comes back at the bar makes the gate go again
 /// the next second with the moves it blanked (`mod.rs`: an "opened" event for each of their actors). A place never
 /// asked is no yes. A move the `openers` layer holds is left to it. A share of `AUDIT_SHARE` of what is blanked is
 /// asked anyway. Returns the questions not sent and the moves audited.
-pub(super) fn places(menus: &mut [Menu], open: &HashMap<String, (f64, i32)>, frame: i32, bar: f64, draw: &mut dyn FnMut() -> f64) -> (usize, usize) {
-    let said_yes = |place: &str| open.get(place).filter(|(_, f)| frame - f < RE_ASK).is_some_and(|(p, _)| *p >= bar);
+pub(super) fn places(menus: &mut [Menu], open: &HashMap<String, PlaceSaid>, frame: i32, draw: &mut dyn FnMut() -> f64) -> (usize, usize) {
+    let said_yes = |place: &str| open.get(place).is_some_and(|s| s.open && frame - s.frame < RE_ASK);
     let (mut skipped, mut audited) = (0, 0);
     for menu in menus.iter_mut() {
         if !menu.asks_own() {
@@ -367,9 +385,9 @@ mod tests {
     fn a_move_at_a_place_waits_for_the_place() {
         let group = || menu("group_A", Kind::Group("A".into()), true, vec![mv("go_spot_4", Order::Go("spot_4".into()), None), mv("fight_to_spot_9", Order::FightTo("spot_9".into()), None), mv("attack_party_1", Order::Attack("party_1".into()), Some("party_1")), mv("gather", Order::Gather, None)]);
         let blanked = |menu: Menu, open: &[(&str, f64, i32)]| {
-            let open: HashMap<String, (f64, i32)> = open.iter().map(|(k, p, f)| (k.to_string(), (*p, *f))).collect();
+            let open: HashMap<String, PlaceSaid> = open.iter().map(|(k, p, f)| (k.to_string(), PlaceSaid { noul: *p, frame: *f, open: *p >= PLACE_BAR })).collect();
             let mut menus = vec![menu];
-            let counts = places(&mut menus, &open, 330, PLACE_BAR, &mut || 0.5);
+            let counts = places(&mut menus, &open, 330, &mut || 0.5);
             (menus[0].moves.iter().skip(1).map(|m| m.blanked).collect::<Vec<_>>(), counts)
         };
         assert_eq!(blanked(group(), &[]), (vec![true, true, false, false], (2, 0)), "never asked: both places' moves wait; the party move and the gather do not");
@@ -383,8 +401,13 @@ mod tests {
         closed.idle = false;
         assert_eq!(blanked(closed, &[]), (vec![false, false, false, false], (0, 0)), "a closed actor's own moves are not asked anyway");
         let mut menus = vec![group()];
-        assert_eq!(places(&mut menus, &HashMap::new(), 330, PLACE_BAR, &mut || 0.001), (0, 2), "the audit asks a blanked move anyway");
+        assert_eq!(places(&mut menus, &HashMap::new(), 330, &mut || 0.001), (0, 2), "the audit asks a blanked move anyway");
         assert!(menus[0].moves[1].blanked && menus[0].moves[1].audit && menus[0].moves[1].asked() && !menus[0].moves[1].playable());
+        // Hysteresis: a place opens at the bar and closes only under the floor; an old open state does not count.
+        let was = |open: bool, f: i32| PlaceSaid { noul: 0.3, frame: f, open };
+        assert!(place_open(None, 0.3, 330) && !place_open(None, 0.25, 330));
+        assert!(place_open(Some(&was(true, 300)), 0.25, 330) && !place_open(Some(&was(true, 300)), 0.15, 330));
+        assert!(!place_open(Some(&was(false, 300)), 0.25, 330) && !place_open(Some(&was(true, 330 - RE_ASK)), 0.25, 330));
     }
 
     /// The `same` layer: a noul asked again in the same words within the re-ask is not sent and its last answer
