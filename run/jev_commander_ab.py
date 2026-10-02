@@ -25,7 +25,7 @@ The key comes from TYPESAFE_API_KEY or ~/.config/within-reason/jev.env and is ne
 import argparse, collections, json, math, os, re, statistics, sys, time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from jev_ab import api_key, ask, choice_of  # noqa: E402
+from jev_ab import api_key, ask, choice_of, requests_of  # noqa: E402
 from match_read import Match, clock  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -109,24 +109,6 @@ def new_line(entry, g, scale):
     if unknown:
         line += f"; {unknown} of unknown type"
     return line, {"ratio": ratio, "words": words, "old_words": old_words, "theirs": theirs, "worth": worth, "n_out": n_out, "n_in": n_in}
-
-
-def requests_of(m):
-    """Every call as (call, state_as_sent): the logged state with the packet and the rules in force put back (as
-    `run/jev_ab.py`, skipping the log's error and policy lines that carry no state)."""
-    rules = (m.jev_header or {}).get("rules", "")
-    packet = ""
-    for c in m.calls:
-        if "instructions" in c:
-            packet = c["instructions"]
-        if "rules" in c:
-            rules = c["rules"]
-        if not isinstance(c.get("state"), dict) or "questions" not in c:
-            continue
-        state = dict(c["state"])
-        state["instructions"] = packet
-        state["rules"] = rules
-        yield c, state, packet
 
 
 def moments_of(m, g, scale):

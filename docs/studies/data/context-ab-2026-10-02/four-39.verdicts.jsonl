@@ -1,0 +1,57 @@
+{"id": "q001", "verdict": "unclear", "used": [], "why": "'walk away from enemies within reach': party_98 559 away, unidentified, moving toward us; group_Q6 attacking it; reach unknown."}
+{"id": "q002", "verdict": "yes", "used": [], "why": "Instructions: wreck fields at spot_67/yard2 first, then avp_yard; it builds a Sentry at 0 metal with 6 unidentified approaching."}
+{"id": "q003", "verdict": "no", "used": [], "why": "Already attacking party_98 inside the base, outweighs heavily; the move leaves party_98, against 'closes on every enemy party'."}
+{"id": "q004", "verdict": "yes", "used": [], "why": "'group_P6 (the Bull) and every new soldier join group_Q6'; lone Stout standing at home."}
+{"id": "q005", "verdict": "no", "used": [], "why": "'It attacks party_98 ... with the whole group now'; outweighs heavily; course is the instruction."}
+{"id": "q006", "verdict": "no", "used": [], "why": "Raider hunters 'from armwar, armham or armfido walk back to spot_61'; 2 Blitzes against an 11-Mace party that outweighs them."}
+{"id": "q007", "verdict": "unclear", "used": [], "why": "Instructions say join group_U4; rule says a group walking away from a party that outweighs it carries on; home is near party_74's path."}
+{"id": "q008", "verdict": "no", "used": [], "why": "party_38 is killing our extractor at spot_28, a hunt-list place; group_B2 is joining M2's hunt on party_46 already."}
+{"id": "q009", "verdict": "yes", "used": [], "why": "'attacks that party only when it outweighs it heavily, all together': only 'we outweigh it', commander and turrets in it, body strung out."}
+{"id": "q010", "verdict": "no", "used": [], "why": "spot_47 is the fallback only for a party it does not outweigh; it outweighs, so waiting for the body fits better than a 40 s walk."}
+{"id": "q011", "verdict": "unclear", "used": [], "why": "Losing a large share, so it must step back; instructions name spot_59, and U4 holds 50 s away at spot_67, not the named place."}
+{"id": "q012", "verdict": "no", "used": [], "why": "spot_44 is right here with party_76 under turrets at it; not a step back from a fight it is losing."}
+{"id": "q013", "verdict": "no", "used": [], "why": "Losing a large share: steps back to spot_59; the move goes deeper to spot_34 under a turret."}
+{"id": "q014", "verdict": "no", "used": [], "why": "Losing, must step back; 'never walks into his turrets at spot_23'; shelling there is not stepping back."}
+{"id": "q015", "verdict": "no", "used": [], "why": "Losing rule says walk (go) back toward spot_59; advancing and fighting at spot_44 under turrets is the opposite."}
+{"id": "q016", "verdict": "yes", "used": [], "why": "'losing this fight', last loss after orders: walk back; spot_56 is our side near the named spot_59; far better than advancing to shelling."}
+{"id": "q017", "verdict": "unclear", "used": [], "why": "'closes on every enemy party with the whole body' at spot_67; avp_yard's path may not close on party_96 at B7."}
+{"id": "q018", "verdict": "yes", "used": [], "why": "'Inside our base it closes on every enemy party with the whole body'; party_96 at spot_67 by home; standoff shelling is not closing."}
+{"id": "q019", "verdict": "unclear", "used": [], "why": "Instruction says join group_M2, now gone; following the Blitz hunt on party_43 fits the spirit, but the raider outruns it and is far."}
+{"id": "q020", "verdict": "no", "used": [], "why": "Nothing instructs an advance to spot_56; Blitz groups join the raider hunter and stand at spot_61 between raids."}
+{"id": "q021", "verdict": "no", "used": [], "why": "X2 and Y2 already hunt party_43, which outruns them; 'the whole group on each party', not more detachments."}
+{"id": "q022", "verdict": "no", "used": [], "why": "Following an idle group abandons the hunt of a raider killing our constructor in the hunt zone."}
+{"id": "q023", "verdict": "no", "used": [], "why": "'never sends detachments'; attacks party_105 with the whole group now."}
+{"id": "q024", "verdict": "no", "used": ["commander_enemies_near"], "why": "Instructions: commander follows group_Q6; an 80 s walk to D5 wrecks contradicts them."}
+{"id": "q025", "verdict": "no", "used": [], "why": "'never sends detachments'."}
+{"id": "q026", "verdict": "no", "used": [], "why": "'never sends detachments'."}
+{"id": "q027", "verdict": "yes", "used": ["commander_enemies_near"], "why": "'it follows group_Q6 and D-guns what group_Q6 is fighting'; armmar outweighs and outranges its D-gun, so no lone attack."}
+{"id": "q028", "verdict": "no", "used": [], "why": "Orders arrived 7 s ago, after the last loss 12 s ago; they stand: 'it never walks away from a party there'."}
+{"id": "q029", "verdict": "no", "used": [], "why": "group_S4 is on it, outweighs heavily and is the raid answer; the raider is moving away."}
+{"id": "q030", "verdict": "no", "used": [], "why": "Order list puts spot_36 before spot_37; abandoning a mex at spot_36 for a 60 s walk east is not called for."}
+{"id": "q031", "verdict": "unclear", "used": [], "why": "Should close on party_98 inside the base; spot_68 is toward it and guards the extractor, but stops short of spot_62."}
+{"id": "q032", "verdict": "no", "used": [], "why": "Steps back from party_98, against 'closes on every enemy party with the whole body'."}
+{"id": "q033", "verdict": "yes", "used": [], "why": "party_98 at spot_62, inside the base; 'closes on every enemy party with the whole body'; the group stands with no order."}
+{"id": "q034", "verdict": "no", "used": [], "why": "group_M4 already hunts it; V2 'sends two Blitzes, never more'; Stouts cannot catch a Pawn."}
+{"id": "q035", "verdict": "no", "used": [], "why": "Same: two Blitzes only, M4 already on it, Stouts are slower than the Pawn."}
+{"id": "q036", "verdict": "no", "used": [], "why": "Whole army chasing a lone Pawn 40 s away abandons holding spot_59; the Pawn outruns it."}
+{"id": "q037", "verdict": "no", "used": [], "why": "'It never sends detachments'; the Pawns outrun Stouts."}
+{"id": "q038", "verdict": "no", "used": [], "why": "'It never sends detachments'."}
+{"id": "q039", "verdict": "unclear", "used": [], "why": "Way says spot_43 next; party_81 is said 181 from its nearest soldier (the 600 rule) but 0 within 800, so the distance is contradictory."}
+{"id": "q040", "verdict": "no", "used": [], "why": "'It never sends detachments'."}
+{"id": "q041", "verdict": "no", "used": [], "why": "group_U4 is 'the army, one body'; 2 Blitzes against a Stout is an even fight; spot_54 is not in its list."}
+{"id": "q042", "verdict": "yes", "used": [], "why": "'attacks with the whole group any party within reach of ... spot_69 ..., walking straight in ... never walks to shelling'."}
+{"id": "q043", "verdict": "yes", "used": [], "why": "North picket 'never goes east of spot_38', holds at spot_43; its chase is out in D4; spot_38 brings it back into its zone."}
+{"id": "q044", "verdict": "yes", "used": [], "why": "A lone Blitz hunting at D4, outside the picket zones; 'any other new small group joins' group_G."}
+{"id": "q045", "verdict": "no", "used": [], "why": "It already stands together at spot_52, where it is told to hold; gathering changes nothing."}
+{"id": "q046", "verdict": "no", "used": [], "why": "'Every soldier standing at home ... joins group_U4'; no instruction sends it to spot_62."}
+{"id": "q047", "verdict": "no", "used": [], "why": "Joining a 1-Stout group that follows V2 is circular; instructions want it closing to its own reach on party_48."}
+{"id": "q048", "verdict": "no", "used": [], "why": "'never in detachments'; 2 Blitzes against a 7-Mace army that outweighs them."}
+{"id": "q049", "verdict": "unclear", "used": [], "why": "Chasing an out-of-sight party at spot_47, not in its extractor list, strung out 2595; yet party_60 heads our way."}
+{"id": "q050", "verdict": "unclear", "used": [], "why": "Lone Stout at spot_56 is moving away and killing nothing; but our constructor walks toward it and no group is told to answer there."}
+{"id": "q051", "verdict": "no", "used": [], "why": "Instructions: V2 walks to spot_59 and holds; spot_50 is nowhere in its orders."}
+{"id": "q052", "verdict": "yes", "used": [], "why": "'group_U4, group_V4, group_W4 and any other single soldier standing at home join together into one group at home'."}
+{"id": "q053", "verdict": "no", "used": [], "why": "Instructions: attack party_74 behind the Stouts, or help plant_1321 at avp_yard; helping the moho is neither."}
+{"id": "q054", "verdict": "unclear", "used": [], "why": "'With no enemy near home it helps plant_1321 at avp_yard'; but party_74 was last seen 3 s ago at spot_73 near home."}
+{"id": "q055", "verdict": "no", "used": [], "why": "Orders arrived after the last loss and stand: 'it never walks away from a party there'; it outweighs party_105 heavily."}
+{"id": "q056", "verdict": "no", "used": [], "why": "'never sends detachments'."}
+{"id": "q057", "verdict": "unclear", "used": [], "why": "'walk away from enemies within reach': party_107 is 379 away (Mace reach about 380) and moving away; extractor 70% built."}

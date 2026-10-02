@@ -1,0 +1,67 @@
+{"id": "q001", "verdict": "no", "others": [], "why": "group_V2: 'one body, never sends detachments and never chases a single soldier'."}
+{"id": "q002", "verdict": "no", "others": [], "why": "group_S4: 'It never sends detachments'; party_74 is by V2's tail at spot_33, not at S4's extractors."}
+{"id": "q003", "verdict": "no", "others": [], "why": "group_V2 never sends detachments."}
+{"id": "q004", "verdict": "no", "others": [], "why": "group_S4 'never sends detachments'; 8 of 9 split off is still a detachment."}
+{"id": "q005", "verdict": "no", "others": [], "why": "V2 outweighs party_59, which is hitting it: 'Against a party of his it outweighs on the way it attacks with the whole group'."}
+{"id": "q006", "verdict": "no", "others": [], "why": "group_V2 never sends detachments."}
+{"id": "q007", "verdict": "no", "others": [], "why": "Leaving party_59, which it outweighs and which is hitting it, for one extractor contradicts 'attacks with the whole group'."}
+{"id": "q008", "verdict": "yes", "others": [], "why": "party_98 at spot_62 is inside base: 'Inside our base (... spot_62 ...) it closes on every enemy party with the whole body'."}
+{"id": "q009", "verdict": "no", "others": [], "why": "spot_63 is only 'while an armfboy shells us'; Q6 is not under fire and party_98 is in the base."}
+{"id": "q010", "verdict": "no", "others": [], "why": "Its way is spot_64 first, then spot_59; this move does not close on party_48, which it outweighs heavily."}
+{"id": "q011", "verdict": "yes", "others": [], "why": "'attacks parties with the whole group, closing to its own reach'; spot_64 is next on its way and closes on party_48, which is killing our extractor."}
+{"id": "q012", "verdict": "no", "others": [], "why": "'never in detachments'; the 2 Blitzes alone are outweighed by party_48."}
+{"id": "q013", "verdict": "no", "others": [], "why": "1 armpw moving away, killing nothing listed; S4 is already on it and faster."}
+{"id": "q014", "verdict": "no", "others": [], "why": "group_S4: 'It never sends detachments.'"}
+{"id": "q015", "verdict": "no", "others": [], "why": "group_S4: 'It never sends detachments.'"}
+{"id": "q016", "verdict": "unclear", "others": [], "why": "spot_47 is next on its way and fights party_62 there, but the course already fights it ('fought now' within 600); 'never chases a single soldier' favours the move."}
+{"id": "q017", "verdict": "no", "others": [], "why": "party_63 is a lone armwar far off at spot_44; small groups join U4, which never goes east of spot_59."}
+{"id": "q018", "verdict": "no", "others": [], "why": "party_90 outweighs J6; the rule says step back to home, and H6 stands at the party, not away from it."}
+{"id": "q019", "verdict": "no", "others": [], "why": "For a party it does not outweigh, the instructions name home, not spot_69."}
+{"id": "q020", "verdict": "no", "others": [], "why": "M6 is outweighed and already walking home as told; I6 is hunting party_90, not standing away from it."}
+{"id": "q021", "verdict": "no", "others": [], "why": "party_72 is at spot_31 under turrets, east of spot_47; U4 'never goes east of spot_47' and is fighting party_75."}
+{"id": "q022", "verdict": "no", "others": [], "why": "Outweighs party_75 heavily within 600: 'fought now'; noticeable losses against a party it outweighs are 'the cost of fighting'."}
+{"id": "q023", "verdict": "no", "others": [], "why": "Leaving a party it outweighs heavily, which is killing our Stout, is against the 600 rule; spot_64 has nothing."}
+{"id": "q024", "verdict": "no", "others": [], "why": "Home is only for a party it does not outweigh; it outweighs heavily."}
+{"id": "q025", "verdict": "no", "others": [], "why": "Home is only for a party it does not outweigh; it outweighs heavily."}
+{"id": "q026", "verdict": "no", "others": [], "why": "U4 is on it and outweighs it heavily; nobody else is needed."}
+{"id": "q027", "verdict": "no", "others": [], "why": "'It attacks party_98 ... with the whole group now'; it outweighs heavily and is doing exactly that."}
+{"id": "q028", "verdict": "no", "others": [], "why": "Q6 is on it and outweighs it heavily, as instructed."}
+{"id": "q029", "verdict": "yes", "others": [], "why": "'Every small group split from group_S4 joins group_S4 again.'"}
+{"id": "q030", "verdict": "no", "others": [], "why": "The move ends at party_65, the same target as the course; it is not clearly better."}
+{"id": "q031", "verdict": "unclear", "others": [], "why": "Reclaim is named for three other constructors, and 'others' build extractors when lists end; but metal is stalled and the hands picked reclaim 4 s ago."}
+{"id": "q032", "verdict": "no", "others": [], "why": "It already stands together at spot_61 as instructed; gathering changes nothing."}
+{"id": "q033", "verdict": "no", "others": [], "why": "Its way kills extractors at each place; a `go` walk runs from everything and fights nothing."}
+{"id": "q034", "verdict": "no", "others": [], "why": "The course already attacks spot_34, where party_2 stands; party_2 is leaving and the move is not clearly better."}
+{"id": "q035", "verdict": "no", "others": [], "why": "group_Q6: 'never sends detachments'."}
+{"id": "q036", "verdict": "no", "others": [], "why": "group_Q6: 'never sends detachments'."}
+{"id": "q037", "verdict": "no", "others": [], "why": "spot_63 is only 'while an armfboy shells us'; nothing shells Q6 now, and it outweighs the armham heavily."}
+{"id": "q038", "verdict": "no", "others": [], "why": "group_Q6: 'never sends detachments'."}
+{"id": "q039", "verdict": "no", "others": ["group_V2"], "why": "W2 is named to join group_V2; spot_62 is not its job."}
+{"id": "q040", "verdict": "no", "others": ["group_V2"], "why": "X2 is named to join group_V2; spot_71 has no raider."}
+{"id": "q041", "verdict": "unclear", "others": [], "why": "Instructions say X2 joins V2 and the whole group takes each party; following V2 approximates that, but X2 alone is on the raider party_43."}
+{"id": "q042", "verdict": "no", "others": ["group_V2"], "why": "Z2 is named to join V2; spot_30 has no raider."}
+{"id": "q043", "verdict": "no", "others": ["group_V2"], "why": "Y2 is named to join group_V2, which stands at spot_69, not spot_61."}
+{"id": "q044", "verdict": "no", "others": ["group_V2"], "why": "Y2 is named to join group_V2; a walk to spot_61 is not that."}
+{"id": "q045", "verdict": "yes", "others": [], "why": "'Between raids it stands at spot_61'; spot_61 also sits nearest the raiders at spot_52 and spot_43."}
+{"id": "q046", "verdict": "no", "others": ["group_V2", "group_X2"], "why": "Y2 is named to join V2, the whole group on each party; X2 is already on party_43, which is leaving."}
+{"id": "q047", "verdict": "no", "others": [], "why": "V2 stands at spot_61 between raids; spot_68 has no raider."}
+{"id": "q048", "verdict": "no", "others": ["group_V2", "group_X2"], "why": "Y2 is named to join V2; X2 is already on party_43."}
+{"id": "q049", "verdict": "no", "others": [], "why": "Q2 is following X2: a circular follow that leaves the instruction to join V2."}
+{"id": "q050", "verdict": "no", "others": ["group_V2"], "why": "Z2 is named to join group_V2 (now at spot_69), not to walk to spot_61 alone."}
+{"id": "q051", "verdict": "no", "others": [], "why": "'It never goes east of spot_44'; spot_21 is enemy turret ground."}
+{"id": "q052", "verdict": "no", "others": ["group_V2"], "why": "X2 is named to join group_V2, not to follow Z2."}
+{"id": "q053", "verdict": "no", "others": [], "why": "V2 is the named body the others join; it does not join them."}
+{"id": "q054", "verdict": "no", "others": [], "why": "V2 is the named body the others join; it does not join them."}
+{"id": "q055", "verdict": "no", "others": ["group_V2"], "why": "W2 is named to join group_V2; spot_71 has no raider."}
+{"id": "q056", "verdict": "yes", "others": [], "why": "'group_Y2 ... and every small Blitz group join group_V2.'"}
+{"id": "q057", "verdict": "no", "others": [], "why": "'constructor_6469 and constructor_31791 ... take apart the wreck fields at D4 and D5', not the tier-2 plant."}
+{"id": "q058", "verdict": "unclear", "others": ["group_V2"], "why": "The D5 wrecks at spot_47 are named for it, but 'while no enemy stands there': party_61 was seen at spot_47 1 s ago and V2 attacks there."}
+{"id": "q059", "verdict": "no", "others": ["group_U4"], "why": "V2 'holds at spot_44'; U4 is beside party_56."}
+{"id": "q060", "verdict": "no", "others": ["group_U4"], "why": "group_V2 'never sends detachments'; U4 is far nearer to party_56."}
+{"id": "q062", "verdict": "yes", "others": [], "why": "party_56 is 343 from U4, which outweighs it heavily, and is killing our extractor: 'in sight within 600 ... is fought now, whatever the instructions'."}
+{"id": "q061", "verdict": "no", "others": [], "why": "The parenthetical names spot_47/spot_44; the D4 field sits by spot_37, where an armfido was seen 12 s ago."}
+{"id": "q063", "verdict": "unclear", "others": ["group_U4"], "why": "It is killing our extractor at spot_69 with nothing there, but 'one army, no detachments' and U4 is in the main fight."}
+{"id": "q064", "verdict": "no", "others": [], "why": "U4 is on it and outweighs it heavily at spot_61/spot_52, as instructed."}
+{"id": "q065", "verdict": "no", "others": ["group_M2"], "why": "M2 (9 Blitz) is already on party_46; O2 is the only answer to party_38 killing our extractor."}
+{"id": "q066", "verdict": "no", "others": [], "why": "Nothing is at spot_64; dropping the hunt leaves party_38 killing our extractor."}
+{"id": "q067", "verdict": "no", "others": ["group_M2"], "why": "L2 heads for party_46, which M2 already has; joining abandons the only answer to party_38."}

@@ -357,9 +357,9 @@ def requests_of(m):
         # The log's error and policy lines carry no state (run/jev_commander_ab.py skips them the same way).
         if not isinstance(c.get("state"), dict) or "questions" not in c:
             continue
-        state = dict(c["state"])
-        state["instructions"] = packet
-        state["rules"] = rules
+        # In the bot's order: its JSON maps are sorted by key, and Jev's answers move with the order of the picture's
+        # sections (the sections reversed: 2.9% of a gate's move answers cross 0.5 against 0.8% asked again).
+        state = dict(sorted({**c["state"], "instructions": packet, "rules": rules}.items()))
         yield c, state, packet
 
 

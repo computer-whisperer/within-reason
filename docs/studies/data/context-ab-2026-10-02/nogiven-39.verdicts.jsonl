@@ -1,0 +1,64 @@
+{"id": "q001", "verdict": "no", "why": "Orders 2 s old postdate last loss (17 s ago), so 'attacks party_105 with the whole group now' stands; yard2 walk steps away from a party inside the base."}
+{"id": "q002", "verdict": "unclear", "why": "Explicit order is party_105, but it is fleeing and the plant is lost; 'closes on every enemy party' in base favours killing party_107 at spot_68."}
+{"id": "q003", "verdict": "no", "why": "avp_yard is where the Marauder (party_105) stands, 296 away; instructions say walk away from enemies to home, not toward the armmar."}
+{"id": "q004", "verdict": "no", "why": "A 'go' walk runs from everything; 'it never walks away from a party there'; the instruction postdates the last loss."}
+{"id": "q005", "verdict": "no", "why": "Steps back from party_105 against the fresh order 'attacks party_105 with the whole group now'."}
+{"id": "q006", "verdict": "no", "why": "Walks out of the base away from parties; contradicts 'never walks away from a party there'."}
+{"id": "q007", "verdict": "no", "why": "A walk that does not fight, leaving party_105; the order to attack it is fresher than the last loss."}
+{"id": "q008", "verdict": "no", "why": "party_96 is inside the base (spot_67); 'closes on every enemy party with the whole body'; we outweigh it heavily; a go walk runs."}
+{"id": "q009", "verdict": "no", "why": "party_96 is 460 away, not within reach; home is toward it (121 from it); keep taking apart wrecks."}
+{"id": "q010", "verdict": "no", "why": "'It holds at spot_52'; no party near; spot_61 is only for a party it does not outweigh."}
+{"id": "q011", "verdict": "no", "why": "party_61 is far, near E5 under a turret, not near group_U4; 'never goes east of spot_47'; holds at spot_52."}
+{"id": "q012", "verdict": "no", "why": "'Every soldier standing at home ... joins group_U4'; going to avp_yard is not joining."}
+{"id": "q013", "verdict": "unclear", "why": "armpw 353 away, not yet 'within reach' but contact in 4 s; the Sentry is 75-80% built and could protect it."}
+{"id": "q014", "verdict": "unclear", "why": "'Never chases a single soldier past those spots' (spot_36 not listed, strung out) vs the rule: an in-sight party within 600 is fought now."}
+{"id": "q015", "verdict": "yes", "why": "Pawn at spot_45 heading for spot_50 where a constructor builds an unfinished Sentry; spot_50 is in group_U4's attack list; nobody moves."}
+{"id": "q016", "verdict": "no", "why": "group_K2 already hunts it; instructions want 'the whole group on each party', not more detachments."}
+{"id": "q017", "verdict": "no", "why": "'New Stouts and Shellshockers from the plants join group_L1'; spot_74 is not that."}
+{"id": "q018", "verdict": "yes", "why": "'group_B2 ... and every small Blitz group join group_Y1'; following Y1 keeps it with the hunter."}
+{"id": "q019", "verdict": "yes", "why": "'Every Stout, Janus or Shellshocker standing at home joins group_U4'; a lone idle Stout at yard2."}
+{"id": "q020", "verdict": "no", "why": "Nothing in the instructions sends a lone Stout to spot_76; it should join group_U4."}
+{"id": "q021", "verdict": "no", "why": "Its way is 'spot_59, then spot_47, then spot_44 ...'; advancing to spot_44 is what the instructions want."}
+{"id": "q022", "verdict": "no", "why": "Going back to spot_59 undoes the instructed way to spot_44; no party it fails to outweigh."}
+{"id": "q023", "verdict": "no", "why": "spot_50 is not named; Blitz groups join the hunter, which stands at spot_61 between raids."}
+{"id": "q024", "verdict": "yes", "why": "Q2 and R2 are both told to join group_M2, which is gone; merging the Blitz splinters beats a lone idle Blitz."}
+{"id": "q025", "verdict": "no", "why": "Hunting the armflash at our extractor is the hunter's job; following an idle group abandons it."}
+{"id": "q026", "verdict": "yes", "why": "'group_U4, group_V4, group_W4 ... join together into one group at home'."}
+{"id": "q027", "verdict": "yes", "why": "'group_U4, group_V4, group_W4 ... join together into one group at home'."}
+{"id": "q028", "verdict": "no", "why": "It already stands at home; the instructions want it to join group_U4, which a hold does not do."}
+{"id": "q029", "verdict": "unclear", "why": "'group_R2 ... join group_V2' vs V2 is one idle Blitz and R2 is already doing the hunter's job on party_43."}
+{"id": "q030", "verdict": "no", "why": "W2 should join group_V2; advancing to spot_69 alone is not that."}
+{"id": "q031", "verdict": "unclear", "why": "V2 is the named hunter that others join; joining X2 dissolves it, though it puts V2 on the raider party_43."}
+{"id": "q032", "verdict": "unclear", "why": "'Between raids it stands at spot_61', but raiders (party_43, party_34) are in our half now."}
+{"id": "q033", "verdict": "yes", "why": "'group_W2 ... join group_V2'; W2 stands idle at home."}
+{"id": "q034", "verdict": "unclear", "why": "Named to join group_V2, but X2 is near party_43 at our extractor, which is the hunter's own job."}
+{"id": "q035", "verdict": "no", "why": "Instructions say join group_V2, not T2; leaves the raider."}
+{"id": "q036", "verdict": "no", "why": "Q2 should join group_V2; spot_61 is only for between raids."}
+{"id": "q037", "verdict": "no", "why": "T2 is advancing toward the raider at spot_52; a go walk to spot_61 abandons it during a raid."}
+{"id": "q038", "verdict": "no", "why": "Same target as the course (party_43 at spot_52); not clearly better, and it undoes its last pick."}
+{"id": "q039", "verdict": "no", "why": "W2 should join group_V2, not go alone into an even fight."}
+{"id": "q040", "verdict": "no", "why": "'New Stouts and Shellshockers join it [group_L1] there' at spot_40, not spot_59."}
+{"id": "q041", "verdict": "no", "why": "Leaving the hunt of a raider at our extractor for spot_61 during a raid is not called for."}
+{"id": "q042", "verdict": "no", "why": "spot_68 already has a Sentry; constructors take the listed spots; armllt only beside spot_43, 47, 38."}
+{"id": "q043", "verdict": "no", "why": "W2 should join group_V2; holding at home does not."}
+{"id": "q044", "verdict": "no", "why": "The armzeus is 584-761 away, not within reach; keep repairing."}
+{"id": "q045", "verdict": "no", "why": "spot_56 is far outside the base; 'never walks past spot_54, spot_69 or yard2'; party_107 is in the base."}
+{"id": "q046", "verdict": "no", "why": "We outweigh party_107 heavily within 600: it is fought now; the instructions name no step-back place; spot_54 is a limit."}
+{"id": "q047", "verdict": "yes", "why": "Target is out of sight near spot_47, not on S4's extractor list; 'with nothing to hunt it holds at spot_64'; tail 2595 behind."}
+{"id": "q048", "verdict": "unclear", "why": "Badly strung out, so gathering is sound, but the instructions send it to hold at spot_64 rather than gather at spot_47."}
+{"id": "q049", "verdict": "no", "why": "J6 'never sends detachments'; the commander is told to attack party_98."}
+{"id": "q050", "verdict": "no", "why": "'Every other group ... joins group_J6'; J6 joining a lone Blitz reverses that."}
+{"id": "q051", "verdict": "no", "why": "Extractor at 91% at spot_68 (a listed spot); party_98 is 604 away, not within reach; metal is stalling."}
+{"id": "q052", "verdict": "unclear", "why": "'While an armfboy shells us ... fights to spot_63' vs no fire now (Fatboy unseen 26 s), and party_98 sits in our base at spot_62."}
+{"id": "q053", "verdict": "no", "why": "It already stands together at spot_61 as instructed; a gather changes nothing."}
+{"id": "q054", "verdict": "no", "why": "Home guard 'stands at spot_61'; raiding spot_35 is group_L's job."}
+{"id": "q055", "verdict": "no", "why": "We outweigh party_90 at spot_69 (a listed spot); home is only for a party it does not outweigh."}
+{"id": "q056", "verdict": "no", "why": "party_90 is at spot_69 killing our constructor; the instructions say attack it, not walk away."}
+{"id": "q057", "verdict": "no", "why": "group_U4 is 'the army, one body'; 2 Blitzes against a Stout is only an even fight; spot_54 is not on its list."}
+{"id": "q058", "verdict": "no", "why": "Six groups already chase this one Pawn; instructions want 'the whole group on each party', not more splits."}
+{"id": "q059", "verdict": "no", "why": "The instructions list extractors at named spots and armllt beside three; no Overwatch, and spot_63 is not listed."}
+{"id": "q060", "verdict": "yes", "why": "'Its way ... spot_47, spot_49, spot_58 (killing the armwar and armrock party there)'; it stands idle with no order."}
+{"id": "q061", "verdict": "no", "why": "'The body does not chase it'; two Blitzes are enough for a lone raider."}
+{"id": "q062", "verdict": "no", "why": "Walking 60 s just to wait does not take a spot in the listed order; not clearly better than idle."}
+{"id": "q063", "verdict": "unclear", "why": "Finishing the 96% Mauser is right now, but 'never idle' wants a Bull queued after; the plant is near death and metal is stalling."}
+{"id": "q064", "verdict": "yes", "why": "The armmar (reach 600) is 554 away, so it is within reach: 'walk away from enemies within reach to home'; wrecks come first anyway."}

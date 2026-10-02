@@ -1,0 +1,160 @@
+{"id": "q001", "verdict": "against", "why": "group_U4: the army, one body. It holds at spot_52; only detachment given is two Blitzes against armpw, not Stouts on an armstump."}
+{"id": "q002", "verdict": "against", "why": "Against one or two armpw it sends two of its soldiers (its Blitzes); this sends 8 Stouts."}
+{"id": "q003", "verdict": "against", "why": "sends two of its soldiers (its Blitzes) against armpw; this sends 4 Stouts; holds at spot_52."}
+{"id": "q004", "verdict": "against", "why": "X5 is not named; Every other small group joins group_U4 (or, if all-Blitz, raider hunters attack with the whole group)."}
+{"id": "q005", "verdict": "against", "why": "Every other small group joins group_U4; raider hunters, if X5 is one, attack with the whole group."}
+{"id": "q006", "verdict": "against", "why": "sends two of its soldiers (its Blitzes) against one or two armpw; this sends 8 Stouts."}
+{"id": "q007", "verdict": "against", "why": "Every other small group (Stouts, Janus, Shellshockers) joins group_U4."}
+{"id": "q008", "verdict": "against", "why": "sends two of its soldiers (its Blitzes); this sends 8 Stouts after one armpw."}
+{"id": "q009", "verdict": "against", "why": "sends two of its soldiers (its Blitzes); this sends 1 Stout."}
+{"id": "q010", "verdict": "against", "why": "Every other small group (Stouts, Janus, Shellshockers) joins group_U4."}
+{"id": "q011", "verdict": "against", "why": "Every other small group (Stouts, Janus, Shellshockers) joins group_U4."}
+{"id": "q012", "verdict": "against", "why": "group_T2 ... join group_M2; M2 never goes east of spot_44; the commander is group_L1's job."}
+{"id": "q013", "verdict": "against", "why": "every small Blitz group join group_M2, which hunts the whole group on each party."}
+{"id": "q014", "verdict": "against", "why": "every small Blitz group join group_M2, which hunts the whole group on each party."}
+{"id": "q015", "verdict": "against", "why": "group_R2 ... join group_M2."}
+{"id": "q016", "verdict": "forbids", "why": "group_L1: attacks ... with the whole group at once ...; no detachments."}
+{"id": "q017", "verdict": "against", "why": "group_T2 ... join group_M2."}
+{"id": "q018", "verdict": "against", "why": "every small Blitz group join group_M2; M2 never goes east of spot_44; commander is group_L1's."}
+{"id": "q019", "verdict": "against", "why": "every small Blitz group join group_M2; M2 never goes east of spot_44; commander is group_L1's."}
+{"id": "q020", "verdict": "against", "why": "every small Blitz group join group_M2, the whole group on each party."}
+{"id": "q021", "verdict": "against", "why": "every small Blitz group join group_M2, the whole group on each party."}
+{"id": "q022", "verdict": "against", "why": "group_V2 with group_Y2 walk to spot_59 and join group_J3; group_F3 is the only raider hunter."}
+{"id": "q023", "verdict": "against", "why": "Plan: We fight it ONE time, all together, at spot_59; his army is not a Blitz detachment's job."}
+{"id": "q024", "verdict": "forbids", "why": "group_J3 fights his army party when it comes within reach, all together, and it stays on spot_59."}
+{"id": "q025", "verdict": "against", "why": "Plan: We fight it ONE time, all together, at spot_59."}
+{"id": "q026", "verdict": "forbids", "why": "group_J3 fights his army party ... all together, and it stays on spot_59."}
+{"id": "q027", "verdict": "against", "why": "group_F3 (four Blitzes) is the only raider hunter while the army gathers."}
+{"id": "q028", "verdict": "against", "why": "group_D3 ... walk to spot_59 and join group_J3; F3 is the only raider hunter."}
+{"id": "q029", "verdict": "against", "why": "group_D3 ... walk to spot_59 and join group_J3; F3 is the only raider hunter."}
+{"id": "q030", "verdict": "against", "why": "group_V2 with group_Y2 walk to spot_59 and join group_J3."}
+{"id": "q031", "verdict": "against", "why": "group_F3 (four Blitzes) is the only raider hunter while the army gathers."}
+{"id": "q032", "verdict": "against", "why": "group_D3 ... join group_J3; We fight it ONE time, all together, at spot_59."}
+{"id": "q033", "verdict": "against", "why": "Plan: We fight it ONE time, all together, at spot_59."}
+{"id": "q034", "verdict": "against", "why": "group_J3 walks to spot_59 and holds there; group_F3 is the only raider hunter."}
+{"id": "q035", "verdict": "against", "why": "group_V2 with group_Y2 walk to spot_59 and join group_J3."}
+{"id": "q036", "verdict": "against", "why": "group_V2 ... join group_J3; group_F3 is the only raider hunter."}
+{"id": "q037", "verdict": "against", "why": "group_V2 ... join group_J3; We fight it ONE time, all together, at spot_59."}
+{"id": "q038", "verdict": "against", "why": "group_F3 (four Blitzes) is the only raider hunter while the army gathers."}
+{"id": "q039", "verdict": "against", "why": "group_V2 with group_Y2 walk to spot_59 and join group_J3; F3 is the only raider hunter."}
+{"id": "q040", "verdict": "against", "why": "group_J3 walks to spot_59 and holds there; group_F3 is the only raider hunter."}
+{"id": "q041", "verdict": "against", "why": "group_Y2 ... join group_J3; We fight it ONE time, all together, at spot_59."}
+{"id": "q042", "verdict": "against", "why": "group_A3 ... walk to spot_59 and join group_J3."}
+{"id": "q043", "verdict": "against", "why": "group_F3 (four Blitzes) is the only raider hunter while the army gathers."}
+{"id": "q044", "verdict": "forbids", "why": "group_J3 fights his army party ... all together, and it stays on spot_59."}
+{"id": "q045", "verdict": "against", "why": "Plan: We fight it ONE time, all together, at spot_59."}
+{"id": "q046", "verdict": "against", "why": "group_L1: it walks to spot_40 now and holds there ... At spot_40 it fights what comes to it."}
+{"id": "q047", "verdict": "against", "why": "group_Y2 ... join group_V2, the whole group on each party."}
+{"id": "q048", "verdict": "against", "why": "group_L1: walks to spot_40 now and holds there; fights what comes to it."}
+{"id": "q049", "verdict": "against", "why": "group_L1: walks to spot_40 now and holds there; fights what comes to it."}
+{"id": "q050", "verdict": "against", "why": "group_T2 ... join group_V2."}
+{"id": "q051", "verdict": "against", "why": "group_L1 holds at spot_40; raider hunting is group_V2's (the whole group on each party)."}
+{"id": "q052", "verdict": "against", "why": "group_R2 ... join group_V2."}
+{"id": "q053", "verdict": "against", "why": "group_X2 ... join group_V2."}
+{"id": "q054", "verdict": "against", "why": "group_L1 holds at spot_40; raider hunting is group_V2's."}
+{"id": "q055", "verdict": "against", "why": "group_T2 ... join group_V2."}
+{"id": "q056", "verdict": "against", "why": "group_U2 ... join group_V2."}
+{"id": "q057", "verdict": "against", "why": "group_Y2 ... join group_V2."}
+{"id": "q058", "verdict": "against", "why": "group_T2 ... join group_V2."}
+{"id": "q059", "verdict": "against", "why": "group_L1: walks to spot_40 now and holds there; fights what comes to it."}
+{"id": "q060", "verdict": "against", "why": "group_L1 holds at spot_40; raider hunting is group_V2's."}
+{"id": "q061", "verdict": "against", "why": "group_L1: walks to spot_40 now and holds there; fights what comes to it."}
+{"id": "q062", "verdict": "against", "why": "group_L1: walks to spot_40 now and holds there; fights what comes to it."}
+{"id": "q063", "verdict": "against", "why": "group_L1: walks to spot_40 now and holds there; fights what comes to it."}
+{"id": "q064", "verdict": "against", "why": "group_Z2 ... join group_V2."}
+{"id": "q065", "verdict": "against", "why": "group_R2 ... join group_V2."}
+{"id": "q066", "verdict": "against", "why": "group_Z2 ... join group_V2."}
+{"id": "q067", "verdict": "against", "why": "group_Y2 ... join group_V2."}
+{"id": "q068", "verdict": "against", "why": "group_H1 and every small group join group_G."}
+{"id": "q069", "verdict": "against", "why": "every small group join group_G; raiders get two Blitzes sent from group_G."}
+{"id": "q070", "verdict": "against", "why": "every small group join group_G; raiders get two Blitzes sent from group_G."}
+{"id": "q071", "verdict": "against", "why": "every small group join group_G; the two-Blitz detachment comes from group_G."}
+{"id": "q072", "verdict": "against", "why": "every small group join group_G; two Blitzes from group_G, never more."}
+{"id": "q073", "verdict": "against", "why": "every small group join group_G."}
+{"id": "q074", "verdict": "against", "why": "every small group join group_G; two Blitzes from group_G, never more."}
+{"id": "q075", "verdict": "against", "why": "every small group join group_G; two Blitzes from group_G, never more."}
+{"id": "q076", "verdict": "against", "why": "group_H1 and every small group join group_G."}
+{"id": "q077", "verdict": "against", "why": "every small group join group_G."}
+{"id": "q078", "verdict": "against", "why": "Every small group of ours except group_C6 joins group_U4."}
+{"id": "q079", "verdict": "against", "why": "Every small group of ours except group_C6 joins group_U4."}
+{"id": "q080", "verdict": "against", "why": "Every small group of ours except group_C6 joins group_U4."}
+{"id": "q081", "verdict": "against", "why": "Every small group of ours except group_C6 joins group_U4."}
+{"id": "q082", "verdict": "against", "why": "Every small group of ours except group_C6 joins group_U4."}
+{"id": "q083", "verdict": "against", "why": "Every small group of ours except group_C6 joins group_U4."}
+{"id": "q084", "verdict": "against", "why": "Every small group of ours except group_C6 joins group_U4."}
+{"id": "q085", "verdict": "against", "why": "Every small group of ours except group_C6 joins group_U4."}
+{"id": "q086", "verdict": "against", "why": "Every small group of ours except group_C6 joins group_U4."}
+{"id": "q087", "verdict": "against", "why": "Every small group of ours except group_C6 joins group_U4."}
+{"id": "q088", "verdict": "against", "why": "Every small group of ours except group_C6 joins group_U4."}
+{"id": "q089", "verdict": "against", "why": "Every small group of ours except group_C6 joins group_U4."}
+{"id": "q090", "verdict": "against", "why": "Every small group of ours except group_C6 joins group_U4."}
+{"id": "q091", "verdict": "against", "why": "Every small group of ours except group_C6 joins group_U4."}
+{"id": "q092", "verdict": "against", "why": "Every small group of ours except group_C6 joins group_U4; U4 never goes east of spot_59."}
+{"id": "q093", "verdict": "against", "why": "Every small group of ours except group_C6 joins group_U4."}
+{"id": "q094", "verdict": "against", "why": "Every small group of ours except group_C6 joins group_U4."}
+{"id": "q095", "verdict": "against", "why": "Every small group of ours except group_C6 joins group_U4."}
+{"id": "q096", "verdict": "against", "why": "Every small group of ours except group_C6 joins group_U4."}
+{"id": "q097", "verdict": "against", "why": "Every small group of ours except group_C6 joins group_U4; U4 never goes east of spot_59."}
+{"id": "q098", "verdict": "against", "why": "Every small group of ours except group_C6 joins group_U4; U4 never goes east of spot_59."}
+{"id": "q099", "verdict": "against", "why": "Every small group of ours except group_C6 joins group_U4."}
+{"id": "q100", "verdict": "forbids", "why": "group_G ... It moves as one body; the only detachment is two Blitzes for one or two armpw."}
+{"id": "q101", "verdict": "forbids", "why": "group_G ... It moves as one body; the only detachment is two Blitzes for one or two armpw."}
+{"id": "q102", "verdict": "forbids", "why": "one or two armpw gets a detachment of two Blitzes, and nothing more; It moves as one body."}
+{"id": "q103", "verdict": "forbids", "why": "It moves as one body; spot_39 is not among the places where the two-Blitz detachment applies."}
+{"id": "q104", "verdict": "forbids", "why": "a party of several armpw or armflash ... group_G attacks that party with the whole group."}
+{"id": "q105", "verdict": "forbids", "why": "It moves as one body; detachment only two Blitzes, and nothing more."}
+{"id": "q106", "verdict": "forbids", "why": "A party of one or two armpw ... gets a detachment of two Blitzes, and nothing more."}
+{"id": "q107", "verdict": "forbids", "why": "group_G ... It moves as one body; the only detachment is two Blitzes for one or two armpw."}
+{"id": "q108", "verdict": "against", "why": "group_U1 and every small Blitz group join group_O1, the whole group on each party."}
+{"id": "q109", "verdict": "forbids", "why": "Every group made only of Blitzes ... attack with the whole group any party of ... a single armstump at spot_64."}
+{"id": "q110", "verdict": "silent", "why": "Mixed Blitz/Stout group_J5 not named; Stouts join group_U4 only when standing at home or yard2."}
+{"id": "q111", "verdict": "against", "why": "Against a single armstump ... at one of our extractors it sends four soldiers; this sends one."}
+{"id": "q112", "verdict": "against", "why": "Against a single armstump ... it sends four soldiers; this sends one."}
+{"id": "q113", "verdict": "against", "why": "every small Blitz group join group_Y1; Y1 never goes east of spot_44."}
+{"id": "q114", "verdict": "forbids", "why": "group_Y1 hunts armpw ... at our extractors ..., the whole group on each party."}
+{"id": "q115", "verdict": "against", "why": "every small Blitz group join group_Y1; never goes east of spot_44."}
+{"id": "q116", "verdict": "against", "why": "group_B2 ... join group_Y1."}
+{"id": "q117", "verdict": "against", "why": "group_C2 ... join group_Y1."}
+{"id": "q118", "verdict": "against", "why": "every small Blitz group join group_Y1."}
+{"id": "q119", "verdict": "against", "why": "group_C2 ... join group_Y1; Y1 never goes east of spot_44."}
+{"id": "q120", "verdict": "against", "why": "New Stouts ... join group_L1; raiders are group_Y1's."}
+{"id": "q121", "verdict": "against", "why": "every small Blitz group join group_Y1."}
+{"id": "q122", "verdict": "against", "why": "group_U4: its place is spot_59 ... at spot_59 it holds; spot_44 is not among its places."}
+{"id": "q123", "verdict": "against", "why": "group_U4 holds at spot_59; spot_76 is not among its places; armpw parties are the picket's."}
+{"id": "q124", "verdict": "against", "why": "group_U4 holds at spot_59; spot_41 is not among its places."}
+{"id": "q125", "verdict": "against", "why": "group_U4 holds at spot_59; spot_44 is not among its places."}
+{"id": "q126", "verdict": "forbids", "why": "group_U4: the army, one body ... It never sends detachments."}
+{"id": "q127", "verdict": "forbids", "why": "group_X5 is a raider hunter ... from armwar, armham or armfido it walks back to spot_61."}
+{"id": "q128", "verdict": "forbids", "why": "group_X5 is a raider hunter ... from armwar, armham or armfido it walks back to spot_61."}
+{"id": "q129", "verdict": "forbids", "why": "group_B6 ... joins group_U4 and never hunts on its own."}
+{"id": "q130", "verdict": "against", "why": "Every small group and every new soldier from the plants joins group_V2."}
+{"id": "q131", "verdict": "forbids", "why": "Against a lone armpw ... it sends two Blitzes, never more; this sends 4 Stouts."}
+{"id": "q132", "verdict": "against", "why": "Every small group and every new soldier from the plants joins group_V2."}
+{"id": "q133", "verdict": "forbids", "why": "group_O1 ... the whole group on each party; never fights armwar, armham or armrock."}
+{"id": "q134", "verdict": "forbids", "why": "group_O1 ... the whole group on each party."}
+{"id": "q135", "verdict": "forbids", "why": "group_O1 hunts armpw ..., the whole group on each party."}
+{"id": "q136", "verdict": "forbids", "why": "group_O1 hunts armpw ..., the whole group on each party."}
+{"id": "q137", "verdict": "forbids", "why": "group_U4: one body ... attacks with the whole group any party within reach of ... spot_69."}
+{"id": "q138", "verdict": "against", "why": "group_U4: the army, one body. It holds at spot_52; a lone armstump at yard2 is not among its parties."}
+{"id": "q139", "verdict": "against", "why": "X5 unnamed; if all-Blitz, from armstump it walks back to spot_61; else joins group_U4."}
+{"id": "q140", "verdict": "forbids", "why": "None of them attacks party_81 (the armpw) or sends detachments."}
+{"id": "q141", "verdict": "forbids", "why": "group_Y1 hunts armpw ..., the whole group on each party."}
+{"id": "q142", "verdict": "against", "why": "every small Blitz group join group_Y1; Y1 never goes east of spot_44."}
+{"id": "q143", "verdict": "against", "why": "group_L2 ... join group_M2, the whole group on each party."}
+{"id": "q144", "verdict": "forbids", "why": "group_M2 hunts armflash ..., the whole group on each party."}
+{"id": "q145", "verdict": "forbids", "why": "group_L1 ... does not stop for anything else and sends no detachments."}
+{"id": "q146", "verdict": "against", "why": "every small Blitz group join group_M2; M2 never goes east of spot_44."}
+{"id": "q147", "verdict": "forbids", "why": "group_M2 hunts armpw ..., the whole group on each party."}
+{"id": "q148", "verdict": "against", "why": "group_A3 ... walks to spot_47 and joins group_E3."}
+{"id": "q149", "verdict": "against", "why": "Every group that is Stouts ... and stands away from group_E3 ... walks to spot_47 and joins group_E3."}
+{"id": "q150", "verdict": "against", "why": "Every group that is Stouts ... and stands away from group_E3 ... joins group_E3."}
+{"id": "q151", "verdict": "against", "why": "Every group that is Stouts ... and stands away from group_E3 ... joins group_E3."}
+{"id": "q152", "verdict": "against", "why": "group_U4: the home guard. It holds at home; shelling is not among its spots."}
+{"id": "q153", "verdict": "against", "why": "group_A1 ... joins group_G; it does not chase single armpw (the picket does)."}
+{"id": "q154", "verdict": "against", "why": "group_A1 ... joins group_G."}
+{"id": "q155", "verdict": "against", "why": "group_U4 advances to spot_59 as one body and holds there behind group_V2."}
+{"id": "q156", "verdict": "against", "why": "group_U4 advances to spot_59 as one body and holds there behind group_V2."}
+{"id": "q157", "verdict": "against", "why": "group_U4 advances to spot_59 as one body and holds there behind group_V2."}
+{"id": "q158", "verdict": "against", "why": "it sends one Blitz against a lone raider; this sends two."}
+{"id": "q159", "verdict": "against", "why": "home guard attacks any party at spot_73 ... or home ..., and otherwise holds at home; spot_78 not listed."}
+{"id": "q160", "verdict": "against", "why": "group_C5 ... join group_U4. It holds at home."}

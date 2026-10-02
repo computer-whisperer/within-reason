@@ -1,0 +1,160 @@
+{"id": "q001", "verdict": "no", "why": "group_V2 walks to spot_59 and joins group_J3; spot_69 is only the commander's limit."}
+{"id": "q002", "verdict": "no", "why": "group_Y2 walks to spot_59 to join group_J3; spot_50 is group_F3's stand."}
+{"id": "q003", "verdict": "no", "why": "Constructor spot list: 36, 28, 30, 47, 38, 39, 66, 19, 22; never east of spot_44. No spot_45."}
+{"id": "q004", "verdict": "no", "why": "group_H3 walks to spot_59 and joins group_J3; spot_69 is the commander's."}
+{"id": "q005", "verdict": "unclear", "why": "group_Y2 joins group_J3; 'it does not chase east of spot_47' is said of group_J3 once together."}
+{"id": "q006", "verdict": "no", "why": "Both group_G3 and group_Y2 join group_J3 at spot_59; neither joins the other."}
+{"id": "q007", "verdict": "no", "why": "Constructors follow lists and walk home; nothing about group_Y2."}
+{"id": "q008", "verdict": "no", "why": "Commander follows build list, helps plant; no group_D3."}
+{"id": "q009", "verdict": "no", "why": "yard2 does not appear in this packet."}
+{"id": "q010", "verdict": "no", "why": "group_H3 and group_A3 both join group_J3."}
+{"id": "q011", "verdict": "no", "why": "group_V2 walks to spot_59 and joins group_J3, not group_G3."}
+{"id": "q012", "verdict": "yes", "why": "constructors: 'take free metal spots in this order: ... spot_39'."}
+{"id": "q013", "verdict": "unclear", "why": "'every small Blitz group join group_O1' (spot_56 in O1's list); 10 Blitzes may not be 'small'."}
+{"id": "q014", "verdict": "yes", "why": "group_L1 way: 'spot_44, spot_40, spot_35...'."}
+{"id": "q015", "verdict": "unclear", "why": "Small Blitz group joins group_O1; spot_47 is in group_O1's hunt list, named for the joined group."}
+{"id": "q016", "verdict": "yes", "why": "group_L1 way: '... spot_35, spot_34, spot_29...'."}
+{"id": "q017", "verdict": "unclear", "why": "Joins group_O1, which 'hunts raiders at home' (plan); home named only for the joined group."}
+{"id": "q018", "verdict": "unclear", "why": "If a 'small Blitz group', joins group_O1 which 'walks to spot_61'; 10 Blitzes, membership and joined-group rule both uncertain."}
+{"id": "q019", "verdict": "no", "why": "his_lab is on group_L1's way only; Blitz groups join group_O1."}
+{"id": "q020", "verdict": "unclear", "why": "spot_50 in group_O1's hunt list; group_Y1 joins only if a 'small Blitz group'."}
+{"id": "q021", "verdict": "no", "why": "Constructors follow lists; nothing about group_Y1."}
+{"id": "q022", "verdict": "unclear", "why": "spot_43 in group_O1's hunt list; group_Y1 joins only if a 'small Blitz group'."}
+{"id": "q023", "verdict": "unclear", "why": "spot_54 in group_O1's hunt list; group_Y1 joins only if a 'small Blitz group'."}
+{"id": "q024", "verdict": "unclear", "why": "Only 'group_P1 and new Stouts from the plant join group_L1'; S1 unnamed; his_lab is L1's."}
+{"id": "q025", "verdict": "no", "why": "spot_69 is only in the commander's line."}
+{"id": "q026", "verdict": "yes", "why": "group_L1 way: 'spot_52, spot_47, spot_44...'."}
+{"id": "q027", "verdict": "no", "why": "No advanced solar mentioned anywhere."}
+{"id": "q028", "verdict": "no", "why": "Constructor list starts spot_61, spot_52...; spot_62 is the commander's."}
+{"id": "q029", "verdict": "no", "why": "'group_P1 and new Stouts ... join group_L1'; S1 not told to join P1."}
+{"id": "q030", "verdict": "no", "why": "group_W1 not mentioned; constructors follow lists."}
+{"id": "q031", "verdict": "no", "why": "spot_69 is only in the commander's line."}
+{"id": "q032", "verdict": "no", "why": "spot_69 is only in the commander's line."}
+{"id": "q033", "verdict": "no", "why": "group_L1 way lists 52, 47, 44, 40, 35, 34, 29, 18, his_lab; spot_28 is group_O1's."}
+{"id": "q034", "verdict": "no", "why": "group_R1 joins group_O1; spot_69 is only the commander's."}
+{"id": "q035", "verdict": "no", "why": "spot_62 is only in the commander's line."}
+{"id": "q036", "verdict": "yes", "why": "group_L1 way: '... spot_34, spot_29, spot_18...'."}
+{"id": "q037", "verdict": "unclear", "why": "group_O3 'walks to home and joins group_V2'; spot_73 named for group_V2's fighting area."}
+{"id": "q038", "verdict": "no", "why": "Janus groups walk home and join group_V2; nothing about following group_T3."}
+{"id": "q039", "verdict": "no", "why": "spot_19 not in this packet."}
+{"id": "q040", "verdict": "no", "why": "group_T3 way: spot_66, spot_71, spot_76, home; no spot_22."}
+{"id": "q041", "verdict": "unclear", "why": "group_Y2 joins group_V2; spot_67 named for group_V2's fight places."}
+{"id": "q042", "verdict": "unclear", "why": "group_O3 joins group_V2; spot_67 named for group_V2's fight places."}
+{"id": "q043", "verdict": "unclear", "why": "Blitz group joins group_V2, which fights 'all together beside the commander'; not an explicit follow/escort."}
+{"id": "q044", "verdict": "no", "why": "group_Y2 joins group_V2, not group_V3."}
+{"id": "q045", "verdict": "no", "why": "No constructor_17869 in this packet."}
+{"id": "q046", "verdict": "no", "why": "spot_39 not in this packet."}
+{"id": "q047", "verdict": "unclear", "why": "Blitz groups walk to home and join group_V2; 'fight at home... nowhere else' but no explicit fall-back."}
+{"id": "q048", "verdict": "unclear", "why": "Blitz group joins group_V2, which fights 'beside the commander and turrets'; not explicit follow."}
+{"id": "q049", "verdict": "yes", "why": "'group_A3 ... walks to home and joins group_V2 there'."}
+{"id": "q050", "verdict": "no", "why": "Janus groups walk to home; spot_76 is only on group_T3/J3's southern way."}
+{"id": "q051", "verdict": "yes", "why": "constructors: 'Never east of spot_61 while his army is in our half'."}
+{"id": "q052", "verdict": "unclear", "why": "group_L3 joins group_V2; spot_73 named for group_V2's fight places."}
+{"id": "q053", "verdict": "yes", "why": "group_T3: 'spot_66, then spot_71, then spot_76, then home'."}
+{"id": "q054", "verdict": "unclear", "why": "group_O3 walks home and joins group_V2; no explicit retreat place stated."}
+{"id": "q055", "verdict": "unclear", "why": "group_N3 joins group_V2; spot_67 named for group_V2's fight places."}
+{"id": "q056", "verdict": "unclear", "why": "group_N3 joins group_V2; spot_69 among group_V2's fight places."}
+{"id": "q057", "verdict": "yes", "why": "'Others, when a list ends: extractors at ... spot_43'; 10629 not among the three wreck constructors."}
+{"id": "q058", "verdict": "yes", "why": "'Others ... extractors at ... spot_39'."}
+{"id": "q059", "verdict": "yes", "why": "'Others, when a list ends: extractors at spot_76, ...'."}
+{"id": "q060", "verdict": "no", "why": "group_V2 at spot_59 covering 63, 64, 56, 52, 47, 61; no spot_36."}
+{"id": "q061", "verdict": "yes", "why": "'Others ... extractors at ... spot_36'."}
+{"id": "q062", "verdict": "no", "why": "group_U4 not mentioned; group_P4 joins group_V2."}
+{"id": "q063", "verdict": "unclear", "why": "'constructor_17869 never stands in front of plant_31603'; plant type not stated in this packet."}
+{"id": "q064", "verdict": "no", "why": "spot_62 is only in the commander's line."}
+{"id": "q065", "verdict": "yes", "why": "group_G way: 'spot_47, spot_49, spot_58...'."}
+{"id": "q066", "verdict": "no", "why": "Constructor list has no spot_49; that is group_G's way."}
+{"id": "q067", "verdict": "no", "why": "spot_62 is only in the commander's line."}
+{"id": "q068", "verdict": "no", "why": "spot_69 is only in the commander's line."}
+{"id": "q069", "verdict": "no", "why": "spot_69 is only in the commander's line."}
+{"id": "q070", "verdict": "no", "why": "spot_18 is on group_G's way only."}
+{"id": "q071", "verdict": "yes", "why": "group_G way: '... spot_40, spot_35, spot_34...'."}
+{"id": "q072", "verdict": "no", "why": "spot_62 is only in the commander's line."}
+{"id": "q073", "verdict": "unclear", "why": "'group_H1 ... join group_G'; spot_47 named for group_G's way and fall-back."}
+{"id": "q074", "verdict": "unclear", "why": "'every Blitz group except group_A join group_L1'; spot_61 fall-back named for the joined group."}
+{"id": "q075", "verdict": "unclear", "why": "Joins group_L1 as a Blitz group; 'walks to spot_61' named for group_L1."}
+{"id": "q076", "verdict": "unclear", "why": "Blitz group joins group_L1; spot_64 in group_L1's hunt list."}
+{"id": "q077", "verdict": "no", "why": "spot_62 is only in the commander's line."}
+{"id": "q078", "verdict": "no", "why": "group_N1 is told to join group_L1, not to follow or escort it."}
+{"id": "q079", "verdict": "no", "why": "spot_69 is only in the commander's line."}
+{"id": "q080", "verdict": "unclear", "why": "Joins group_L1, which 'never goes east of spot_44'; named for the joined group."}
+{"id": "q081", "verdict": "no", "why": "Constructor list: 52, 43, 61, 47, 38, 39, 26, 28, 30, 66, 19, 22, 44; no spot_45."}
+{"id": "q082", "verdict": "no", "why": "spot_69 is only in the commander's line."}
+{"id": "q083", "verdict": "unclear", "why": "Joins group_L1 as a Blitz group; spot_61 is group_L1's fall-back."}
+{"id": "q084", "verdict": "yes", "why": "group_L1 hunts at '... spot_47, spot_56, spot_64'."}
+{"id": "q085", "verdict": "unclear", "why": "Joins group_L1; spot_54 in group_L1's hunt list."}
+{"id": "q086", "verdict": "unclear", "why": "Joins group_L1; spot_47 in group_L1's hunt list."}
+{"id": "q087", "verdict": "no", "why": "spot_69 is only in the commander's line."}
+{"id": "q088", "verdict": "no", "why": "spot_62 is only in the commander's line."}
+{"id": "q089", "verdict": "yes", "why": "Commander: enemy at '... spot_61 or home ... walks there'; 'never walks past ... spot_61'."}
+{"id": "q090", "verdict": "unclear", "why": "'group_B6 ... joins group_U4'; 'walks back to home' is group_U4's fall-back."}
+{"id": "q091", "verdict": "no", "why": "group_U4's spots: 61, 43, 47, 52, 59, 63, 50, 64; no spot_62."}
+{"id": "q092", "verdict": "no", "why": "group_B6 joins group_U4; nothing has group_U4 follow it."}
+{"id": "q093", "verdict": "yes", "why": "'group_X5, is a raider hunter ... attacks ... at ... spot_76'."}
+{"id": "q094", "verdict": "no", "why": "group_C6 joins group_U4; no follow."}
+{"id": "q095", "verdict": "unclear", "why": "group_B6 joins group_U4; spot_59 in group_U4's reach list."}
+{"id": "q096", "verdict": "yes", "why": "group_U4: 'within reach of ... spot_47'; 'never goes east of spot_47'."}
+{"id": "q097", "verdict": "yes", "why": "'No constructor stands in front of plant_1321 at avp_yard'."}
+{"id": "q098", "verdict": "unclear", "why": "group_D6 joins group_U4; spot_52 in group_U4's reach list."}
+{"id": "q099", "verdict": "no", "why": "group_D6 joins group_U4; no follow."}
+{"id": "q100", "verdict": "no", "why": "group_C6 joins group_U4; nothing about the commander."}
+{"id": "q101", "verdict": "unclear", "why": "group_C6 joins group_U4, which never goes 'north of spot_43'."}
+{"id": "q102", "verdict": "no", "why": "group_C6 joins group_U4; not the reverse or a follow."}
+{"id": "q103", "verdict": "no", "why": "Light turrets are in the constructors' line only."}
+{"id": "q104", "verdict": "no", "why": "Extractors are in the constructors' line only."}
+{"id": "q105", "verdict": "no", "why": "his_lab not in this packet."}
+{"id": "q106", "verdict": "unclear", "why": "'group_P6 with the Bull ... joins group_J6'; avp_yard named for group_J6."}
+{"id": "q107", "verdict": "no", "why": "Constructors walk to avp_yard from enemies; no follow of group_J6."}
+{"id": "q108", "verdict": "no", "why": "Commander spots: spot_54, spot_62, spot_68, avp_yard; yard2 is group_J6's."}
+{"id": "q109", "verdict": "no", "why": "group_L6 joins group_J6; group_Q6 not mentioned."}
+{"id": "q110", "verdict": "no", "why": "spot_69 appears only in the constructors' extractor list."}
+{"id": "q111", "verdict": "unclear", "why": "group_C6 attacks then joins group_F6; 'group_F6 holds at home' named for the joined group."}
+{"id": "q112", "verdict": "no", "why": "spot_63 appears only in the constructors' list."}
+{"id": "q113", "verdict": "no", "why": "No Nettle mentioned."}
+{"id": "q114", "verdict": "no", "why": "group_F6 holds at home; 'our soldiers fight beside it' is a condition on the commander."}
+{"id": "q115", "verdict": "unclear", "why": "'stays at home beside plant_13472'; plant type not stated in this packet."}
+{"id": "q116", "verdict": "yes", "why": "'A constructor with enemy soldiers within reach walks to avp_yard'."}
+{"id": "q117", "verdict": "no", "why": "No Nettle mentioned."}
+{"id": "q118", "verdict": "no", "why": "Constructors: yard2, spot_73, spot_69, spot_63; spot_68 is a party location / commander's."}
+{"id": "q119", "verdict": "yes", "why": "Commander: 'stays at home beside plant_13472 and avp_yard'."}
+{"id": "q120", "verdict": "no", "why": "his_lab not in this packet."}
+{"id": "q121", "verdict": "no", "why": "Only light turrets (armllt) named."}
+{"id": "q122", "verdict": "no", "why": "No aircraft plant mentioned."}
+{"id": "q123", "verdict": "no", "why": "spot_69 is only in the commander's line."}
+{"id": "q124", "verdict": "yes", "why": "'When a list ends: extractors at ... spot_47'."}
+{"id": "q125", "verdict": "yes", "why": "'... spot_36, spot_38, in that order'."}
+{"id": "q126", "verdict": "unclear", "why": "'group_P6 and every new soldier join group_Q6'; group_V6 is neither named nor clearly new."}
+{"id": "q127", "verdict": "no", "why": "No Nettle mentioned."}
+{"id": "q128", "verdict": "yes", "why": "group_J6 attacks within reach of '... spot_69 or yard2'."}
+{"id": "q129", "verdict": "no", "why": "Each 'joins group_J6'; not group_M6."}
+{"id": "q130", "verdict": "no", "why": "spot_45 not in this packet."}
+{"id": "q131", "verdict": "no", "why": "Each joins group_J6."}
+{"id": "q132", "verdict": "no", "why": "Each joins group_J6."}
+{"id": "q133", "verdict": "unclear", "why": "In group_U4's paragraph: 'Every Stout ... standing at home or yard2 joins group_U4'; home is not U4's own destination."}
+{"id": "q134", "verdict": "yes", "why": "'Others ... extractors at spot_63, spot_64'; 19795 not one of the two plant helpers."}
+{"id": "q135", "verdict": "yes", "why": "'Others ... extractors at spot_63, spot_64'; 6469 not one of the two plant helpers."}
+{"id": "q136", "verdict": "unclear", "why": "Only 23551/30342 help the tier-2 plant; plan says 'tier-2 plant ... is the priority build' generally."}
+{"id": "q137", "verdict": "no", "why": "spot_62 is only in the commander's line."}
+{"id": "q138", "verdict": "no", "why": "spot_45 is only in group_M2's hunt list."}
+{"id": "q139", "verdict": "no", "why": "spot_56 is only in group_M2's hunt list."}
+{"id": "q140", "verdict": "yes", "why": "'A constructor with ... within reach walks to home'."}
+{"id": "q141", "verdict": "yes", "why": "'Others ... extractors at ... spot_59'; 7674 not among the wreck pair."}
+{"id": "q142", "verdict": "yes", "why": "'Others ... extractors at ... spot_36'."}
+{"id": "q143", "verdict": "unclear", "why": "Constructors: 'When home is clear: repair...'; home names a condition, not a place it goes."}
+{"id": "q144", "verdict": "yes", "why": "'Others ... extractors at spot_63, spot_64, spot_76, spot_71'."}
+{"id": "q145", "verdict": "no", "why": "Small groups join group_U4; group_K6 not mentioned."}
+{"id": "q146", "verdict": "no", "why": "group_C6 is excepted and follows constructor_17470."}
+{"id": "q147", "verdict": "no", "why": "avp_yard appears in the plan, commander and constructor lines, not group_U4's."}
+{"id": "q148", "verdict": "no", "why": "group_Q4 not mentioned."}
+{"id": "q149", "verdict": "no", "why": "group_U4 joins the home guard at home; group_C5 not mentioned."}
+{"id": "q150", "verdict": "no", "why": "group_C5 not mentioned."}
+{"id": "q151", "verdict": "no", "why": "Commander: home, spot_69, spot_62; spot_61 is group_V2's."}
+{"id": "q152", "verdict": "yes", "why": "group_U4: 'never goes ... north of spot_43'."}
+{"id": "q153", "verdict": "no", "why": "Constructors walk to avp_yard; home not named for them."}
+{"id": "q154", "verdict": "unclear", "why": "Plan: 'Energy is full: no solars' (general); commander's own line says nothing about solars."}
+{"id": "q155", "verdict": "yes", "why": "'Others ... extractors at ... spot_28'; 23551 not among the wreck trio."}
+{"id": "q156", "verdict": "no", "why": "group_S6 not mentioned."}
+{"id": "q157", "verdict": "no", "why": "group_B3 not mentioned."}
+{"id": "q158", "verdict": "yes", "why": "'Inside our base (... avp_yard, yard2) group_Q6 outweighs every party'."}
+{"id": "q159", "verdict": "no", "why": "spot_39 not in this packet."}
+{"id": "q160", "verdict": "no", "why": "Constructors follow lists and help plants; group_Z3 not mentioned."}

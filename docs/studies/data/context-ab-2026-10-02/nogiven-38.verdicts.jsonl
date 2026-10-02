@@ -1,0 +1,71 @@
+{"id": "q001", "verdict": "no", "why": "Nothing in the instructions puts group_L6 beside a constructor; it is already answering party_125's raid on our extractors."}
+{"id": "q002", "verdict": "no", "why": "W5 is told to join the attack on party_124; J6 and L6 already hunt party_125, and Stouts are outrun by it."}
+{"id": "q003", "verdict": "no", "why": "Holding at yard2 is no different from standing there; D2 is told to join the home guard at spot_43."}
+{"id": "q004", "verdict": "yes", "why": "'group_Y1 (the home guard; group_D2 joins it): stands at spot_43'; Y1 is gone, so D2 goes to the guard's post."}
+{"id": "q005", "verdict": "no", "why": "Freezing in place gains nothing; party_111 is 369 away and heavily outweighed, so it must be fought."}
+{"id": "q006", "verdict": "yes", "why": "Rule: a party in sight within 600 of a group that outweighs it is fought now; party_111 is 369 away and Q4 outweighs it heavily."}
+{"id": "q007", "verdict": "no", "why": "'group_J1: one body, no detachments'; also party_68 outweighs the 4 Blitz on their own."}
+{"id": "q008", "verdict": "yes", "why": "The constructor is idle; the instructions call for a Sentry beside each spot taken, and spot_73 heads the list."}
+{"id": "q009", "verdict": "no", "why": "The hunt of party_22 is already the home guard's instructed job and leads away from party_27; walking there without fighting is worse."}
+{"id": "q010", "verdict": "no", "why": "Joining 4 Rovers walking to yard2 is not clearly better than standing; no instruction names this."}
+{"id": "q011", "verdict": "no", "why": "spot_66 is empty and unnamed; leaving the instructed hunt of party_22 for it gains nothing."}
+{"id": "q012", "verdict": "unclear", "why": "A Stout joining the main army fits 'Stouts in front', but a lone unit walking 20 s into J1's fight is a trickle."}
+{"id": "q013", "verdict": "no", "why": "A 30 s march to spot_56 is unnamed; party_117 is 445 away and outweighed, so it should be fought now."}
+{"id": "q014", "verdict": "yes", "why": "party_117 is at spot_36, 445 away and outweighed (fight-now rule); 'Stouts and Janus never chase armflash' ends the hunt of party_111."}
+{"id": "q015", "verdict": "unclear", "why": "Joining K5's body follows the instructions for Stouts, but it steps back from party_117, which the fight-now rule says to fight."}
+{"id": "q016", "verdict": "unclear", "why": "U5 is outweighed and must step back; no place is named, and the commander is not a group but does stand away from the party."}
+{"id": "q017", "verdict": "no", "why": "The step-back rule says walk (`go`); advancing to yard2 is not the prescribed step-back and is not a named place."}
+{"id": "q018", "verdict": "yes", "why": "U5's enemies_near says party_111 outweighs it, so the rule requires it to step back."}
+{"id": "q019", "verdict": "no", "why": "B6 outweighs party_117 at 340, so it must fight now; walking away is wrong."}
+{"id": "q020", "verdict": "no", "why": "B6 outweighs party_117 at 340, so it must fight now; walking to spot_43 runs from it."}
+{"id": "q021", "verdict": "no", "why": "A long walk away from a party it outweighs at 340; the fight-now rule applies."}
+{"id": "q022", "verdict": "no", "why": "spot_28 lies near party_111 and is not a named step-back place."}
+{"id": "q023", "verdict": "no", "why": "Nothing calls for Stouts to hunt the unknown party_106 30 s away toward D-column areas."}
+{"id": "q024", "verdict": "no", "why": "K5 body must close on the armfboy as one body; no detachment of Stouts is ordered."}
+{"id": "q025", "verdict": "no", "why": "Gathering in place leaves the outweighed group beside party_111 instead of stepping back."}
+{"id": "q026", "verdict": "unclear", "why": "Stepping back is required and spot_61 is safe ground with a Sentry, but it is not a named place and no group stands there."}
+{"id": "q027", "verdict": "unclear", "why": "Following K5 suits the Stouts' instructions, but it steps back from party_117 at 340, which the fight-now rule says to fight."}
+{"id": "q028", "verdict": "no", "why": "'the Stouts and Janus never chase armflash'; this walks Stouts onto party_111."}
+{"id": "q029", "verdict": "no", "why": "A6 is chasing armflash, which Stouts are forbidden; following it continues the wrong job."}
+{"id": "q030", "verdict": "unclear", "why": "Merged with W5 the Blitzes outweigh party_111, but the rule says an outweighed group joins one standing away from the party."}
+{"id": "q031", "verdict": "no", "why": "party_103 is at spot_56, not one of the home guard's listed spots, and is 40 s away."}
+{"id": "q032", "verdict": "no", "why": "Home guard 'one group, never split'; spot_52 is not on its list, and Q4 covers it."}
+{"id": "q033", "verdict": "unclear", "why": "Q4 is strung out, its tail at forbidden spot_39, chasing an armpw it cannot catch; but armwar is 213 away and the order is hold at spot_43."}
+{"id": "q034", "verdict": "yes", "why": "The armwar is killing our Stout 213 from Q4, which outweighs it heavily, yet nobody is set on it (fight-now rule)."}
+{"id": "q035", "verdict": "no", "why": "G3 following F3 already takes it to spot_61, its between-hunts post; no gain."}
+{"id": "q036", "verdict": "no", "why": "Y2 should attack party_45 (armpw near extractors, outweighed, 293 away), not retreat home."}
+{"id": "q037", "verdict": "no", "why": "Gathering does not attack party_45, the armpw raid the home guard is told to answer."}
+{"id": "q038", "verdict": "no", "why": "Losing a noticeable share to a party it outweighs heavily is the cost of fighting; the instructions say to stay on the kill."}
+{"id": "q039", "verdict": "unclear", "why": "A Blitz can catch the armpw where O6's Stouts cannot, but idle J6 sits 351 from it and L6 is hurt; nothing clearly names it."}
+{"id": "q040", "verdict": "no", "why": "New soldiers join the attack on party_124 or go to spot_52; spot_43 is not named."}
+{"id": "q041", "verdict": "yes", "why": "'every ground group ... walks to spot_61 and joins group_W6 there.'"}
+{"id": "q042", "verdict": "no", "why": "The instructions require joining group_W6, not holding at yard2."}
+{"id": "q043", "verdict": "no", "why": "group_F 'holds at spot_61', not at spot_64."}
+{"id": "q044", "verdict": "yes", "why": "'group_F (Blitzes): holds at spot_61'; it is wrongly following a constructor at spot_64."}
+{"id": "q045", "verdict": "yes", "why": "'every new Blitz or Rover group joins it' (group_U3)."}
+{"id": "q046", "verdict": "no", "why": "Stout groups join group_J1, which never chases armpw; spot_43 armpw is the hunters' job."}
+{"id": "q047", "verdict": "yes", "why": "The armflash raider is 294 away, contact in 3 s; 'a constructor with an enemy party within reach walks to yard2'."}
+{"id": "q048", "verdict": "unclear", "why": "The raider is 399 away, contact in 4 s: arguably within reach of an unarmed builder, arguably not yet."}
+{"id": "q049", "verdict": "no", "why": "O4 outweighs party_92 heavily at 568; the fight-now rule applies and the home guard hunts armflash at home spots."}
+{"id": "q050", "verdict": "no", "why": "Scout hunters attack armfav or armflea at our extractors; party_70 is far, unknown and not at our extractors."}
+{"id": "q051", "verdict": "no", "why": "J1 is ordered onto party_30 as the whole body, and party_30 is moving away; no other group is assigned."}
+{"id": "q052", "verdict": "no", "why": "'It fights its way to it as one body, never splitting.'"}
+{"id": "q053", "verdict": "no", "why": "T1's job is spot_43 and its Pawns; following the Blitz guard east is not instructed."}
+{"id": "q054", "verdict": "no", "why": "The instructions say kill party_8 and follow it; advancing to a spot drops the attack."}
+{"id": "q055", "verdict": "unclear", "why": "Chasing party_8 near spot_50 fits 'attack Pawns within reach of ... spot_50', but it outruns T1, which is strung out and told to stand at spot_43."}
+{"id": "q056", "verdict": "no", "why": "S2 is outweighed by party_27; this walk closes on it rather than stepping back."}
+{"id": "q057", "verdict": "no", "why": "The near-dead constructor walking home from party_22 is exactly what the instructions say."}
+{"id": "q058", "verdict": "no", "why": "'it sends no more detachments.'"}
+{"id": "q059", "verdict": "yes", "why": "'group_L2 and group_M2 ... kill party_22'; L2 stands idle, and this also leaves armwar party_27, which outweighs it."}
+{"id": "q060", "verdict": "no", "why": "Groups go to spot_52 and fight party_97 beside Q4; a Blitz detachment in an even fight is not called for."}
+{"id": "q061", "verdict": "yes", "why": "'fight party_97 there beside group_Q4, then join group_Q4'; H5's no-fight walk is worse than merging with Q4's attack."}
+{"id": "q062", "verdict": "no", "why": "Q4 is already on party_97 with 11 of 15 in reach; it holds and fights as one body."}
+{"id": "q063", "verdict": "no", "why": "B5's groups go to spot_52 to fight beside Q4; spot_63 is not named for them."}
+{"id": "q064", "verdict": "unclear", "why": "The losses line says a large share lost after the orders, so step back; but this is an advance, not a walk, and the slow armfboy is at 185."}
+{"id": "q065", "verdict": "yes", "why": "'losing this fight' with the last loss after the latest orders: the rule says step back whatever the instructions said."}
+{"id": "q066", "verdict": "no", "why": "The Blitzes chasing armflash raiders is the instructed detachment job, and they outweigh party_111."}
+{"id": "q067", "verdict": "yes", "why": "Idle, strung-out K5 Stouts rejoin the body's front at spot_43 while party_117, which they outweigh, kills our constructor."}
+{"id": "q068", "verdict": "no", "why": "Following idle Stouts drops the instructed Blitz hunt of party_111."}
+{"id": "q069", "verdict": "unclear", "why": "T5 is being wiped out and must step back to a group away from the party; W5 is at the party, though merged they outweigh it."}
+{"id": "q070", "verdict": "no", "why": "party_111 is moving away and W5's Blitzes are on it; no one else is needed."}
+{"id": "q071", "verdict": "no", "why": "Following K5 drops the instructed Blitz hunt of party_111."}

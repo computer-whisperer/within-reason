@@ -1,0 +1,86 @@
+{"id": "q001", "verdict": "no", "why": "party_28 is not at our extractor and outweighs the two Rovers; T2 is already stepping back to yard2 as told"}
+{"id": "q002", "verdict": "no", "why": "'Against armwar they never fight: they walk to yard2. Their step-back place is yard2'; L2 is already walking there"}
+{"id": "q003", "verdict": "no", "why": "Home guard 'kill party_22'; the hunt is the job, and walking there without fighting is worse"}
+{"id": "q004", "verdict": "no", "why": "Q1 already stands together; gathering does nothing about party_12 or rejoining group_K"}
+{"id": "q005", "verdict": "unclear", "why": "Q1 should hunt party_12 (Rovers sent after armfav); a walk toward it is closer to the job but does not fight"}
+{"id": "q006", "verdict": "no", "why": "Holding at spot_61 is no better than standing; the job is party_12 or rejoining group_K at spot_59"}
+{"id": "q007", "verdict": "no", "why": "group_J1 'one body, no detachments'; party_45 is group_Y2's job"}
+{"id": "q008", "verdict": "no", "why": "Walking to an unidentified contact without fighting is no better than advancing on the raiders at spot_61"}
+{"id": "q009", "verdict": "no", "why": "J1 'first it kills party_8... follows it anywhere west of column F'; the attack is its course"}
+{"id": "q010", "verdict": "no", "why": "Attacking party_8 is exactly what the instructions want; nothing changed"}
+{"id": "q011", "verdict": "no", "why": "Instructions say to follow party_8 until it is dead; a fight-to toward spot_43 drops the target"}
+{"id": "q012", "verdict": "no", "why": "T1 attacks pawns near spot_50; the full T1 outweighs party_8 (1125 vs 378), so there is no reason to follow Y1 east"}
+{"id": "q013", "verdict": "unclear", "why": "Dropping the forbidden armflash chase is good, but a lone battered 4-Stout advance into the armfboy area at spot_39 is risky"}
+{"id": "q014", "verdict": "no", "why": "W5's job is party_111; party_119 is an unidentified contact, not at our extractor"}
+{"id": "q015", "verdict": "no", "why": "'the Stouts and Janus never chase armflash'"}
+{"id": "q016", "verdict": "yes", "why": "Stouts never chase armflash; B6's Stouts belong in K5's body"}
+{"id": "q017", "verdict": "no", "why": "Walking alone into the armfboy area without fighting while party_117 is hitting it"}
+{"id": "q018", "verdict": "no", "why": "Party outweighs U5, so it steps back, but yard2 is not named for it; the rule says follow or join a group away from the party"}
+{"id": "q019", "verdict": "no", "why": "K5 'attacks the party with the armfboy... as one body'; joining L5's walk abandons that"}
+{"id": "q020", "verdict": "no", "why": "party_117 is within 600 and A6 outweighs it, so it is fought now; a walk away runs from it"}
+{"id": "q021", "verdict": "no", "why": "W5 is the Blitz detachment on party_111 in an even fight; walking to spot_38 abandons its job"}
+{"id": "q022", "verdict": "yes", "why": "party_111 outweighs U5; with no named place, it 'follows or joins another group of ours that stands away from that party'"}
+{"id": "q023", "verdict": "no", "why": "A6 outweighs party_117 within 600, so it is fought now; walking off to spot_52 runs from it"}
+{"id": "q024", "verdict": "yes", "why": "Stouts never chase armflash; the body is K5's tanks as one body"}
+{"id": "q025", "verdict": "unclear", "why": "It ends the forbidden chase and fights on the way near K5's front, but does not close on party_117"}
+{"id": "q026", "verdict": "unclear", "why": "L5 heads to spot_52 to join K5; this ends the forbidden chase but is weaker than joining K5 directly"}
+{"id": "q027", "verdict": "no", "why": "party_117 is hitting B6 at 340 and B6 outweighs it; a walk away contradicts 'fought now'"}
+{"id": "q028", "verdict": "no", "why": "Nothing in the instructions sends Stouts to the commander"}
+{"id": "q029", "verdict": "yes", "why": "party_117 is in sight within 600 and A6 outweighs it: 'fought now, whatever the instructions call it'; this also ends the forbidden armflash chase"}
+{"id": "q030", "verdict": "no", "why": "The step-back form is a walk to a named place, else follow or join a group; an advance to spot_63 is neither"}
+{"id": "q031", "verdict": "no", "why": "Following W5 keeps the Stouts chasing armflash, which is forbidden"}
+{"id": "q032", "verdict": "yes", "why": "Ends the forbidden armflash chase and keeps the Stouts with the K5 body"}
+{"id": "q033", "verdict": "no", "why": "The step-back must be toward a group 'that stands away from that party'; W5 is in the fight with party_111"}
+{"id": "q034", "verdict": "no", "why": "Its list builds at spot_14 on the north-west way; waiting at spot_30 drops the extractor"}
+{"id": "q035", "verdict": "no", "why": "group_W6: 'No detachments'; it follows the commander and is losing"}
+{"id": "q036", "verdict": "unclear", "why": "Losses say it is losing, so it steps back, but it outweighs the shooter, which is in reach, and the instructions say close on the armfboy"}
+{"id": "q037", "verdict": "no", "why": "Shelling one extractor 30 s away serves no instruction mid-fight"}
+{"id": "q038", "verdict": "no", "why": "Walking forward to spot_27 is neither a step back to spot_39 nor the fight"}
+{"id": "q039", "verdict": "unclear", "why": "spot_39 is the named step-back and it is losing a large share, but new orders say no walking back and it outweighs the party"}
+{"id": "q040", "verdict": "no", "why": "'The whole body attacks... NOW'; it outweighs heavily and losses are only noticeable"}
+{"id": "q041", "verdict": "unclear", "why": "The home guard should 'join each other', but X4 follows W4, so the merge changes little against the armflash"}
+{"id": "q042", "verdict": "no", "why": "Y4 is nearest to party_92 and drives it off soonest; following the farther W4 is worse"}
+{"id": "q043", "verdict": "yes", "why": "Home guard attacks every armflash at our extractors at spot_68; O4 is nearest and outweighs heavily"}
+{"id": "q044", "verdict": "no", "why": "V4 is 30 s away; O4 is far sooner, and the soonest answer wins"}
+{"id": "q045", "verdict": "yes", "why": "It attacks an out-of-sight armfido party while party_106, which the instructions name first, is hitting it at 289"}
+{"id": "q046", "verdict": "yes", "why": "party_106 is killing our Stout and nobody is on it; instructions: 'first it kills party_106'"}
+{"id": "q047", "verdict": "no", "why": "Rovers hunt armfav and armflea only; party_14 outweighs W1, which is being wiped out and stepping back to spot_47"}
+{"id": "q048", "verdict": "unclear", "why": "party_14 is unanswered at our extractor, but this is 30 s away and small Blitz groups are told to join J1"}
+{"id": "q049", "verdict": "no", "why": "party_14 outweighs one Rover; Rovers hunt armfav and armflea"}
+{"id": "q050", "verdict": "no", "why": "group_J1: 'one body, no detachments'"}
+{"id": "q051", "verdict": "unclear", "why": "Y2 handles one to four raiders, but 'with the whole group'; a detachment answers the dying armcv sooner"}
+{"id": "q052", "verdict": "no", "why": "Gathering at its front near spot_38 is not spot_43, the hold the instructions name"}
+{"id": "q053", "verdict": "no", "why": "Walking off from an armwar it outweighs heavily, which is hitting it within 600"}
+{"id": "q054", "verdict": "yes", "why": "'holds at spot_43'; it closes on party_104, which it outweighs within 600, instead of chasing an armpw it cannot catch"}
+{"id": "q055", "verdict": "unclear", "why": "L5 is named among the Blitz hunters on party_111, but it is all Stouts, which cannot catch armflash, and the Stouts are told to join K5"}
+{"id": "q056", "verdict": "yes", "why": "The body attacks party_117 at spot_36; L5 outweighs it within 600, so it is fought now; every Stout group joins that fight"}
+{"id": "q057", "verdict": "unclear", "why": "spot_43 is the body's place and fighting beats walking away, but it does not close on party_117"}
+{"id": "q058", "verdict": "no", "why": "Sending Stouts 30 s after an unidentified contact is not called for; the Stouts join the body"}
+{"id": "q059", "verdict": "no", "why": "Waiting at spot_68 serves no instruction; constructors build the armavp, then take free spots"}
+{"id": "q060", "verdict": "unclear", "why": "Losses say it is losing, so it steps back, but spot_61 is not named for that case and the instructions say 'does not walk away'"}
+{"id": "q061", "verdict": "no", "why": "H5 is told to go to spot_52 and fight beside Q4; guarding a constructor is not called for"}
+{"id": "q062", "verdict": "no", "why": "spot_43 is east, toward the enemy; the named step-back place is spot_63"}
+{"id": "q063", "verdict": "no", "why": "spot_76 is already ours; waiting there takes no free spot"}
+{"id": "q064", "verdict": "yes", "why": "The list allows Stout open-ended; 'never idle'"}
+{"id": "q065", "verdict": "no", "why": "The armfboy outweighs the two Stouts; Q4 'never goes to spot_39' and fights as a body"}
+{"id": "q066", "verdict": "no", "why": "The step-back is to join a group of ours; the commander is 30 s off at the base"}
+{"id": "q067", "verdict": "no", "why": "Guarding a constructor is not the named step-back; rejoin Q4"}
+{"id": "q068", "verdict": "no", "why": "spot_22 is off-task, 30 s away"}
+{"id": "q069", "verdict": "no", "why": "The armfboy outweighs the detachment; Q4 never goes to spot_39"}
+{"id": "q070", "verdict": "no", "why": "A 70 s raid on his extractors is not in the instructions"}
+{"id": "q071", "verdict": "no", "why": "Guarding constructor_26122 at spot_36 is not the step-back; rejoin Q4"}
+{"id": "q072", "verdict": "no", "why": "With no named place, the step-back is to follow or join a group; an advance to yard2 is neither"}
+{"id": "q073", "verdict": "yes", "why": "The armfboy outweighs I5 at forbidden spot_39; 'follows or joins another group of ours' away from it, Q4 being its own body"}
+{"id": "q074", "verdict": "no", "why": "spot_30 is not the step-back; rejoin Q4"}
+{"id": "q075", "verdict": "no", "why": "Not the step-back form; rejoining Q4 is the rule's answer"}
+{"id": "q076", "verdict": "no", "why": "spot_28 is not named; rejoin Q4"}
+{"id": "q077", "verdict": "no", "why": "spot_63 is not named for this case; the rule says follow or join a group of ours (Q4)"}
+{"id": "q078", "verdict": "no", "why": "Advancing to spot_26 is not the step-back and goes near the forbidden ground"}
+{"id": "q079", "verdict": "no", "why": "Gathering in place leaves it under an armfboy that outweighs it"}
+{"id": "q080", "verdict": "no", "why": "Q4 'never goes to spot_39'; the answer is I5 stepping back, not sending more into the armfboy"}
+{"id": "q081", "verdict": "no", "why": "A 60 s raid on his lab is not in the instructions"}
+{"id": "q082", "verdict": "no", "why": "spot_54 is not named; rejoin Q4"}
+{"id": "q083", "verdict": "no", "why": "Home is not named for this; rejoin Q4"}
+{"id": "q084", "verdict": "no", "why": "spot_26 is not named; rejoin Q4"}
+{"id": "q085", "verdict": "no", "why": "spot_28 is not named; rejoin Q4"}
+{"id": "q086", "verdict": "no", "why": "spot_62 is not named; rejoin Q4"}

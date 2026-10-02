@@ -1749,3 +1749,21 @@ picked a hunt the second after the player wrote "no hunts", which is Jev's readi
 **Status.** measured 2026-10-02, offline, one game's gates.
 **Would be wrong if.** A form that keeps the course's words but says them once per actor (a question type with shared instructions, should the API gain one) moves the answers as little as asking again does.
 
+
+### K-jev-answers-move-with-the-order-of-the-pictures-sections
+**Claim.** The same request with the picture's sections in another order gets other answers, far beyond what asking again does; a line added that bears on nothing does not. An offline replay must send the sections in the bot's order (its JSON maps are sorted by key), or its "as played" comparison is off.
+**Evidence.** `run/jev_context_ab.py`, 100 gates each of player-39 and player-38 (`docs/studies/data/context-ab-2026-10-02/`): sections reversed, 2.91% of 24,059 move answers on the other side of 0.5 against 0.82% asked again, openers 15.4% against 4.1%, forbidden marks 34.8% against 6.1% (376 of 1,211 fell under 0.7); 148 picks, second stage 10.1% another choice against 3.0%. One irrelevant line added: 0.92% against 0.82%. With `instructions` and `rules` moved to the end (the replay scripts' order until 2026-10-02) the answers as played came back in 132 of 11,682 crossings against 86 in the bot's order.
+**Status.** measured 2026-10-02, offline, two games' gates. Which order reads best is not measured.
+**Would be wrong if.** Another reordering (not the full reverse) moves the answers no more than asking again does.
+
+### K-jev-small-picture-cuts-cost-a-coin-and-larger-ones-cost-answers
+**Claim.** What a blind reader never uses can be cut from the picture at the cost of answers near the bar landing either way: `enemy.buildings_seen`, the scouting lines (`never_looked`, `looked_long_ago`, `start_box`), the rules' sentences for kinds of actor not asked about, and a fight's facts said a second time in a question. What a reader does use cannot: the other actors' entries, the "Given ..." opening of a question, the move's odds in the forbidden question, the lists and the actor's description in the decode's questions.
+**Evidence.** The budget study §10 (`docs/studies/2026-10-01-jev-token-budget.md`): the four cuts together, 7.0% of a gate's tokens and 10.3% of a pick's, put 1.32% of move answers on the other side of 0.5 against 0.83% asked again and 0.89% for a placebo line; blind Opus reviewers sided with the cut in 36 of 72 decided crossings and used a removed part in 2 of 133 questions. "Given" cut: wrong in 46 of 67. Picture cut to the asked actors: wrong in 29 of 42. The short forbidden question: 10 of 29 forbidden detachments marked against 22. The short decode: 14 of 90 newly fused readings were things the instructions say.
+**Status.** measured 2026-10-02, offline; the cuts are not built.
+**Would be wrong if.** In a game with the four cuts built, the layers' audits or a review show answers the full picture would not have given.
+
+### K-jev-a-yes-near-the-bar-is-mostly-wrong-to-a-blind-reader
+**Claim.** Of the gate's answers that a small change of the request carries across 0.5, a careful reader of the same picture, instructions and rules says no to about four in five: Jev's marginal yeses (walks, follows, joins and detachments rated just over the bar) are moves the instructions do not call for.
+**Evidence.** Seven blind review packets of 2026-10-02 (`docs/studies/data/context-ab-2026-10-02/*.verdicts.jsonl`): of 263 decided crossings the reviewers said yes to 56; on controls far from the bar they agreed with Jev in 152 of 160. Whichever arm said yes at a crossing was wrong in most (`no given`: 7 of 42 added yeses right; `asked actors` 2 of 27; `no roving` 3 of 23).
+**Status.** conjectured 2026-10-02: one reviewer a packet, a model's reading and not a person's; the sample is crossings, not all answers near the bar.
+**Would be wrong if.** A person's reading of the same packets says yes to half or more, or a sample of answers between 0.5 and 0.6 that did not cross reads yes as often as answers over 0.7.

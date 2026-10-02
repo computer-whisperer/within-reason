@@ -1,0 +1,71 @@
+{"id": "q001", "verdict": "no", "roving": false, "why": "O2 is the small detachment on party_38 killing our extractor at spot_28 (rules: raider met by a small detachment); joining L2 abandons it."}
+{"id": "q002", "verdict": "no", "roving": false, "why": "party_46 already has M2's 9 Blitzes on it; O2 walking there leaves party_38 at spot_28 unanswered."}
+{"id": "q003", "verdict": "no", "roving": false, "why": "Same as q002: spot_76/party_46 is covered by M2; O2's hunt of party_38 is the needed answer."}
+{"id": "q004", "verdict": "yes", "roving": false, "why": "Idle constructor; 'constructors: take free metal spots in this order: spot_68, spot_62...'; spot_62 is the free spot it reaches soonest."}
+{"id": "q005", "verdict": "no", "roving": false, "why": "Walking to spot_62 and waiting does nothing; building the extractor there (q004) is what the list wants."}
+{"id": "q006", "verdict": "yes", "roving": false, "why": "losses: 'lost 9 of 35, losing this fight'; instructions name spot_59 to fall back to; rules say step back. Better than advancing on shelling."}
+{"id": "q007", "verdict": "no", "roving": false, "why": "party_76 is 50 s off under two turrets and outweighs four Stouts; U4 holds as the second army, not a raid hunter."}
+{"id": "q008", "verdict": "unclear", "roving": false, "why": "Stepping back is required (losing a large share), but the instructions name spot_59, not spot_56; spot_56 is close by."}
+{"id": "q009", "verdict": "no", "roving": false, "why": "A place is named for this case (spot_59), so the fallback to joining another group doesn't apply. U4 is 50 s away at home."}
+{"id": "q010", "verdict": "no", "roving": false, "why": "spot_32 is deeper toward his turrets while losing a large share; rules say step back."}
+{"id": "q011", "verdict": "no", "roving": false, "why": "spot_44 is right here, where party_76 and the turrets are killing it; this does not step back as the losses rule requires."}
+{"id": "q012", "verdict": "unclear", "roving": false, "why": "It steps back, as the losing rule wants, but to spot_56 rather than the named spot_59, and as an advance rather than a walk."}
+{"id": "q013", "verdict": "no", "roving": false, "why": "'Against a single armstump... it sends four soldiers': J5, M5 and N5 are already on it; shelling abandons spot_61."}
+{"id": "q014", "verdict": "no", "roving": false, "why": "'Every group made only of Blitzes... never join group_U4. They hold at spot_63'; following U4 contradicts this."}
+{"id": "q015", "verdict": "no", "roving": false, "why": "'Every other small group (Stouts...) joins group_U4'; against armpw 'two fast soldiers, never the whole army'. Merging Stout hunters is neither."}
+{"id": "q016", "verdict": "no", "roving": false, "why": "'Against one or two armpw... sends two of its soldiers'; X5 and Y5 are already on party_87."}
+{"id": "q017", "verdict": "no", "roving": false, "why": "'Every soldier standing at home... joins group_U4'; advancing a lone Stout to spot_59 near the snipers isn't the join."}
+{"id": "q018", "verdict": "no", "roving": false, "why": "Nothing is at spot_62; the instruction is to join group_U4."}
+{"id": "q019", "verdict": "no", "roving": false, "why": "'walks to spot_47 and joins group_E3'; its course is that walk. Following lone E3 toward spot_40 under fire abandons it."}
+{"id": "q020", "verdict": "yes", "roving": false, "why": "Raids are on: party_34 (3 armpw) at spot_45 is killing a constructor and party_38 is at spot_74. 'Between raids it stands at spot_61', so V2 should hunt."}
+{"id": "q021", "verdict": "no", "roving": false, "why": "'It holds at spot_52'; nothing is at spot_45."}
+{"id": "q022", "verdict": "no", "roving": false, "why": "'It holds at spot_52'; spot_61 is only for a party it does not outweigh, which is not the case."}
+{"id": "q023", "verdict": "no", "roving": false, "why": "'Every small group... joins group_U4'; walking to avp_yard isn't that."}
+{"id": "q024", "verdict": "no", "roving": false, "why": "'Hounds (armfido) it closes on at once with the whole body'; a standoff shelling against the Hound's reach contradicts this."}
+{"id": "q025", "verdict": "unclear", "roving": false, "why": "'Hounds it closes on at once' supports it, but party_61 is 30 s away near spot_32 under an armllt, and 'never goes east of spot_47' argues waiting."}
+{"id": "q026", "verdict": "yes", "roving": false, "why": "'It holds at spot_52'; the group stands there with no order, and hold makes it the instructed state."}
+{"id": "q027", "verdict": "no", "roving": false, "why": "group_U4 (7395 metal, outweighs heavily, 17 of 33 within 800) is already attacking party_74 as instructed."}
+{"id": "q028", "verdict": "no", "roving": false, "why": "'Against Maces... it attacks with the whole group'; U4 just left the standoff for the attack, and shelling goes back."}
+{"id": "q029", "verdict": "yes", "roving": false, "why": "'Every small group... joins group_V2'; N4 chasing an out-of-sight party at spot_39 is not wanted. Raids get 'two Blitzes, never more'."}
+{"id": "q030", "verdict": "yes", "roving": false, "why": "It brings N4 back to V2's hold at spot_59 ('right here') instead of chasing an unseen party; this is close to the join the instructions call for."}
+{"id": "q031", "verdict": "no", "roving": false, "why": "party_64 (ham+war) outweighs two Blitzes; instructions give ham/war parties to V2's whole group."}
+{"id": "q032", "verdict": "no", "roving": false, "why": "Only 'a lone armpw... two Blitzes' is allowed; eight mostly-slow Stouts 30 s after outrunning pawns, while party_64 needs V2's body."}
+{"id": "q033", "verdict": "no", "roving": false, "why": "group_S4 'never sends detachments'; party_72 at spot_49 is not one of its listed extractors."}
+{"id": "q034", "verdict": "no", "roving": false, "why": "group_V2 'never sends detachments and never chases a single soldier'."}
+{"id": "q035", "verdict": "no", "roving": false, "why": "group_S4 'never sends detachments'."}
+{"id": "q036", "verdict": "unclear", "roving": false, "why": "Instructions have Blitz groups join V2, not V2 join others; but V2 stands idle while 'the whole group on each party' wants it on party_43."}
+{"id": "q037", "verdict": "no", "roving": false, "why": "Both hunt party_43; following Z2 gains nothing and drops Y2's own hunt."}
+{"id": "q038", "verdict": "no", "roving": false, "why": "spot_68 is 30 s back at home with nothing there; X2 is the nearest hunter on party_43 at our extractor."}
+{"id": "q039", "verdict": "no", "roving": false, "why": "Nothing is at spot_74; it leaves the raider hunt the instructions call for."}
+{"id": "q040", "verdict": "no", "roving": false, "why": "X2 already attacks party_43; advancing to spot_56 is not clearly better than the attack it is on."}
+{"id": "q041", "verdict": "no", "roving": false, "why": "Nothing is at spot_76; T2 is to join V2 or hunt party_43."}
+{"id": "q042", "verdict": "no", "roving": false, "why": "'Every small Blitz group join group_V2'; joining Q2 (one Blitz following X2) isn't that and drops the attack."}
+{"id": "q043", "verdict": "no", "roving": false, "why": "A walk runs from everything; the go leaves the attack on party_43 and won't fight it on arrival."}
+{"id": "q044", "verdict": "no", "roving": false, "why": "'Between raids it stands at spot_61', but a raid (party_43) is on now."}
+{"id": "q045", "verdict": "no", "roving": false, "why": "Nothing is at spot_63; it leaves party_43."}
+{"id": "q046", "verdict": "no", "roving": false, "why": "L1 is losing a large share and told to hold at spot_40; raiders belong to the Blitzes, five groups of which are on it."}
+{"id": "q047", "verdict": "unclear", "roving": false, "why": "'group_T2... join group_V2' is named, and follow approximates that; but V2 is one idle Blitz and T2's way leads to the raider's spot_52."}
+{"id": "q048", "verdict": "no", "roving": false, "why": "L1 holds at spot_40 and is losing; eight Stouts after a Blitz they can't catch, already chased by Blitz groups."}
+{"id": "q049", "verdict": "unclear", "roving": false, "why": "'group_Y2... join group_V2' is literal, but V2 is one idle Blitz at spot_69 and joining pulls four hunters off party_43."}
+{"id": "q050", "verdict": "no", "roving": false, "why": "spot_61 is the between-raids place; a raid is on now."}
+{"id": "q051", "verdict": "no", "roving": false, "why": "It walks away from party_43 to an empty spot_69; the raid needs hunting."}
+{"id": "q052", "verdict": "no", "roving": false, "why": "'any other single soldier standing at home join together into one group at home' (with U4); following the commander isn't that."}
+{"id": "q053", "verdict": "yes", "roving": false, "why": "party_64 is 93 away at our extractor spot_71 and hitting S4, which outweighs it heavily; 'attacks... any party at our extractors, nearest first'."}
+{"id": "q054", "verdict": "yes", "roving": false, "why": "'home guard: group_U4, group_V4, group_W4... join together into one group at home'."}
+{"id": "q055", "verdict": "yes", "roving": false, "why": "group_W4 is named: 'group_U4, group_V4, group_W4... join together into one group'."}
+{"id": "q056", "verdict": "no", "roving": false, "why": "The home guard holds at home; party_64 at spot_71 is S4's job, and a walk won't fight."}
+{"id": "q057", "verdict": "no", "roving": false, "why": "W4 is named to join U4's home guard, not to follow the commander."}
+{"id": "q058", "verdict": "unclear", "roving": false, "why": "'X2... join group_V2' is named, but X2 is the hunter nearest the raider and V2 is one idle Blitz; leaving the hunt costs the answer."}
+{"id": "q059", "verdict": "unclear", "roving": false, "why": "Idle near a raider it should hunt, but advancing to spot_39 nears party_34 (4 unidentified) and his 13-unit army near spot_44 that Blitzes must not fight."}
+{"id": "q060", "verdict": "no", "roving": false, "why": "spot_61 is the between-raids stand; party_43 is raiding now, 981 away."}
+{"id": "q061", "verdict": "no", "roving": false, "why": "V2 is the named body that others join; merging it into Q2 reverses the instruction."}
+{"id": "q062", "verdict": "unclear", "roving": false, "why": "group_M2, the named body, is gone; consolidating Blitzes fits the spirit, but R2 stands idle and doesn't hunt party_43."}
+{"id": "q063", "verdict": "no", "roving": false, "why": "W2 is a small Blitz group meant to join the hunter; holding at home fixes it out of the job."}
+{"id": "q064", "verdict": "no", "roving": false, "why": "party_48 at spot_33 isn't at our extractor; the hunter hunts raiders at our buildings, and an even fight 30 s away is not called for."}
+{"id": "q065", "verdict": "no", "roving": false, "why": "Losing a large share and already walking to spot_59 (the named place); 'never walks into his turrets'. spot_34 is 70 s deep."}
+{"id": "q066", "verdict": "no", "roving": false, "why": "losses: 'losing this fight', last loss 1 s ago; 'A group already walking away... carries on with its walk' to spot_59."}
+{"id": "q067", "verdict": "yes", "roving": false, "why": "'group_U4... walks to spot_61 and holds there'; it is advancing to spot_43 and stalled for 23 s."}
+{"id": "q068", "verdict": "no", "roving": false, "why": "'Against a single armstump... at one of our extractors (party_74) it sends four soldiers'; J5 hunting it is that job."}
+{"id": "q069", "verdict": "unclear", "roving": false, "why": "'Inside our base it closes on every enemy party with the whole body' beats the standoff, but party_96 heads west to spot_68 while this goes to spot_73."}
+{"id": "q070", "verdict": "no", "roving": false, "why": "'never sends detachments'."}
+{"id": "q071", "verdict": "no", "roving": false, "why": "A walk runs from everything; the instructions want the whole body to close on and kill the party."}

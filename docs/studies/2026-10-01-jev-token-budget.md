@@ -310,3 +310,103 @@ moved it (the fifth row above: 6.2M, 7% of the gate's text; its `change` comes b
 85.6M, and an idle actor's move a second later); the pick's own change taken out of the news (7%, and a pick
 stands until something happens to the actor or 20 s pass); no walks to named places for a detachment the packet
 does not name (16%, 76 walks a game).
+
+## 10. Context cuts replayed against a placebo, and reviewed blind (2026-10-02)
+
+The user read full requests of player-39 (six samples on a page) and asked for the candidate cuts as offline A/B
+tests, with a review of any that changed the answers. `run/jev_context_ab.py` asks recorded gates and picks again with
+one cut each; every arm is read against the same request asked again (`recorded`), the noise is a second ask
+(`recorded 2`), and an answer counts as changed when it lands on the other side of what the code does with it (0.5
+for a move or an opener, 0.7 for a forbidden mark, another choice in a pick). 100 gates each of player-39 and
+player-38 (24,059 move answers), 150 and then 300 picks of player-39, 150 decodes. Data:
+`docs/studies/data/context-ab-2026-10-02/`. The replays cost about $6.70 of Jev.
+
+**Two findings about the method first.**
+
+- *Jev's answers move with the order of the picture's sections.* The same request with its sections in reverse
+  order (`placebo order`, nothing removed): 2.91% of move answers on the other side of 0.5 against 0.82% asked again,
+  openers 15.4% against 4.1%, forbidden marks 34.8% against 6.1% (376 of 1,211 fell under 0.7), a pick's second
+  stage 10.1% against 3.0%. One line added that bears on nothing (`placebo words`): 0.92% against 0.82%, no more
+  than asking again.
+- *The replay scripts sent the sections in another order than the bot.* `requests_of` put `instructions` and `rules`
+  back at the end of the logged state; the bot's JSON maps are sorted by key, so `instructions` sits sixth of
+  eleven. In the bot's order the answers as played come back closer (move answers across 0.5: 86 of 11,682 against
+  132; forbidden marks across 0.7: 39 of 504 against 63, the replay's order reading them 0.017 higher). Fixed in
+  `run/jev_ab.py`; every earlier replay in this study compared its arms within the replay's order, so its
+  comparisons stand and its "asked again against as played" figures are too high. The confirmation run below is in
+  the bot's order.
+
+**The cuts.** Share is of the game's gate or pick text (`sizes`); the gate is 72% of player-39's bill, the pick
+21%, the decode 6%. "Moves" is the share of move answers on the other side of 0.5, 200 gates, against 0.82-0.83%
+asked again and 0.89-0.92% for the placebo line.
+
+| cut | share | moves | read |
+|---|---|---|---|
+| `enemy.buildings_seen` out (`no buildings`) | gate 1.7%, pick 4.3% | 0.95% | at the placebo's level |
+| `enemy.never_looked`, `looked_long_ago`, `start_box` and the `produce` hint out (`no scouting`) | gate 0.8%, pick 2.0% | 0.95% | at the placebo's level |
+| the rules' factory, commander, allies and wind sentences only when such an actor is asked (`rules by kind`) | gate 1.1%, pick 3.0% | 0.92% | at the placebo's level; forbidden marks 8.1% against 6.1% |
+| those three together | gate 3.7%, pick 10.3% | 1.08% | above the placebo (+0.25 points, 95% +0.13 to +0.39); 300 picks: 2.9% against 2.2%, inside the noise |
+| a fight's facts said in the course and again in the move, the second cut to "(as said above)" (`facts once`) | gate 3.8% | 1.01% | +0.18 points (+0.04 to +0.31); openers unchanged; reviewed |
+| all four together | gate 7.0%, pick 10.3% | 1.32% | +0.49 points; reviewed |
+| the roving scouts' entry out (`no roving`) | gate 2.4%, pick 6.3% | 1.16-1.58% | moved: forbidden marks 9.4% against 6.1%, a pick's second stage 4.8% against 2.2%; reviewed |
+| only the actors the questions name (`asked actors`) | gate 4.4% | 1.87% | moved; reviewed |
+| "Given `actors.x`, `economy`, ...:" off the front of every question (`no given`) | gate 8.8% | 1.27% | moved, toward yes (191 up, 114 down): more walks, follows and holds; reviewed |
+| the forbidden question without the move's odds (`short forbidden`) | gate 1.5% | | 48.8% of marks on the other side, 243 of 246 of them falling under 0.7; reviewed |
+| the pick's shared paragraph once, in the state (`preamble in state`) | pick 6.9% | | first stage 12.3% another choice against 5.5% (placebo 8.0%), 163 picks |
+| the rules out | gate 6.2% | 1.79% | moved, as before (§3) |
+| the decode in shorter words (`short`) | decode 23% | | 4.3% of readings on the other side of the fuse's bars against 2.0%; 249 fused off by it alone (72 asked again); reviewed |
+| the decode without the actor's description (`no what`) | decode 32% | | 3.8% against 2.0%; 191 fused off by it alone |
+
+**The reviews.** An Opus subagent a packet, blind: it read the picture, the instructions and the rules for a sample of
+the questions an arm moved across the bar where asking again did not, mixed with controls, and said yes, no or
+unclear without seeing any answer of Jev's (`run/jev_review_packet.py`, `run/jev_review_score.py`). On the controls
+(answers far from the bar in every arm) the reviewers agreed with Jev in 152 of 160 decided.
+
+| arm | decided crossings | arm right | recorded right | the arm's yeses right | its noes right |
+|---|---|---|---|---|---|
+| `no given`, player-39 | 32 | 13 | 19 | 2 of 15 | 11 of 17 |
+| `no given`, player-38 | 35 | 8 | 27 | 5 of 27 | 3 of 8 |
+| `asked actors`, player-39 | 42 | 13 | 29 | 2 of 27 | 11 of 15 |
+| `no roving`, player-39 | 37 | 13 | 24 | 3 of 23 | 10 of 14 |
+| `facts once`, player-38 | 45 | 27 | 18 | 5 of 18 | 22 of 27 |
+| all four together, player-39 | 28 | 14 | 14 | 3 of 14 | 11 of 14 |
+| all four together, player-38 | 44 | 22 | 22 | 7 of 27 | 15 of 17 |
+
+The reviewers said no four times in five, so an arm is right where it turns a yes into a no and wrong where it adds
+a yes: by them, Jev's yeses near the bar are mostly wrong whatever the wording. `no given` adds yeses and is wrong in
+46 of 67. `asked actors` is wrong in 29 of 42, and in 7 of the 9 where the reviewer leaned on another actor's entry
+(the body a small group is told to join, the group already on the raider). `no roving`: the reviewer never once
+used the roving entry (0 of 71 questions), and the cut's crossings are no better than a coin once the sample's
+excess of yeses is taken out; it is a perturbation the size of twice the placebo, not a loss of information.
+`facts once` turns more yeses into noes and the reviewer sides with it. The four cuts together are a coin (36 right,
+36 wrong), and of the 133 questions in their two packets the reviewers used a removed part in 2: the rules'
+commander sentence, on two commander questions, where the cut keeps it.
+
+*The forbidden mark* (160 marks of player-39, `forbidden-39`): by the reviewer the instructions forbid the detachment
+in words in 29, give the group a job it contradicts in 130 (91 of them a group told to join another), and
+are silent in 1. The recorded wording marks 22 of the 29 and 97 of the 130 at 0.7 or over; the short one 10 and 29.
+The short wording loses marks the instructions support. Neither wording tells "forbids" from "against" (the mark's
+rank of one over the other: 0.58 and 0.53, where 0.5 is chance), and with one silent item in 160 this game cannot
+say whether the mark tells either from an allowed detachment.
+
+*The decode* (`decode-39`, 160 readings): of 90 the short wording fuses off and the code's wording keeps, the
+instructions do not say it in 46, do say it in 14 and are unclear in 30 (26 of them something said to the group the
+actor is told to join). A reading wrongly under the bar takes a move off the menu until the next packet; one
+wrongly over it costs a question. Not worth 1.4% of the bill.
+
+**What it comes to.** Four cuts survive: `enemy.buildings_seen`; the three scouting lines and the `produce` hint; the
+rules' factory, commander, allies and wind sentences sent only when such an actor is asked; and a fight's facts said
+once in a question. Together 7.0% of the gate's tokens and 10.3% of the pick's (the three picture cuts; `facts once`
+is a gate cut), about 7% of a game's bill ($0.15 of player-39's $2.05). They put 1.32% of move answers on the other
+side of 0.5 where asking again puts 0.83%, and blind reviewers call those crossings a coin. Not built: a change to
+what the hands are shown is the user's to approve. Everything larger moved the answers for the worse or for no
+gain: the "Given" opening (8.8% of the gate) adds wrong yeses, the actors not asked about carry what the reviewer
+used, the short forbidden question and the short decode lose readings the instructions support. The roving entry
+(2.4% of the gate, 6.3% of the pick) carries nothing a reviewer used and its removal still moves answers twice as
+far as a placebo line; unresolved.
+
+**Open, and larger than any cut.** The order of the picture's sections moves a third of the forbidden marks and
+3.5 times the move answers that asking again does, at no cost in tokens. Which order reads best is not known: it
+needs a sample labelled blind and each order scored against it. The same goes for where the mark's bar sits: by the
+reviewer 159 of 160 sampled detachments were against the instructions, and the mark at 0.7 called 107 of them as played.
+

@@ -1,0 +1,76 @@
+{"id": "q001", "verdict": "no", "used": [], "why": "We outweigh party_30 heavily; a noticeable share lost against a party we outweigh is no reason to step back; J1 fights line bots as one body."}
+{"id": "q002", "verdict": "no", "used": [], "why": "F3 and G3 already stand together at spot_61 as instructed (G3 follows F3); joining changes nothing clearly better."}
+{"id": "q003", "verdict": "no", "used": [], "why": "ONE ARMY: every group walks to spot_61 and joins group_Z5; T6 is at spot_61, nothing in sight; spot_52 not called for."}
+{"id": "q004", "verdict": "no", "used": [], "why": "Commander 'stays at home, spot_74 and spot_68'; it is already at spot_74 with nothing near; walking to spot_68 not clearly better."}
+{"id": "q005", "verdict": "no", "used": [], "why": "Home guard 'stand at spot_63'; no armzeus/armwar party near V4; walking to yard2 has no reason."}
+{"id": "q006", "verdict": "no", "used": [], "why": "V4 (one Janus) is 30 s away; group_O4 at spot_67 is far nearer and the commander's job covers spot_68; soonest answer wins."}
+{"id": "q007", "verdict": "no", "used": [], "why": "40 s advance with one slow Janus after an armflash that outruns it; nearer answers (O4, commander) exist."}
+{"id": "q008", "verdict": "no", "used": [], "why": "J1 'fights its way to it as one body, never splitting'; 4 Rovers alone are outweighed by 8 armpw."}
+{"id": "q009", "verdict": "no", "used": [], "why": "J1 (2795 metal) is already told to attack party_8 per the instructions; party_8 is not yet killing anything."}
+{"id": "q010", "verdict": "unclear", "used": [], "why": "party_97 is killing our Stouts and we outweigh it, but it stands at D4 under the Gauntlet the instructions forbid ('never walks to spot_33... D4')."}
+{"id": "q011", "verdict": "unclear", "used": [], "why": "Instructions hold at spot_43, and chasing an uncatchable armpw is futile, but a walk runs from party_104, which is hitting us within 213 and should be fought."}
+{"id": "q012", "verdict": "yes", "used": [], "why": "'holds at spot_43 as one body, gathering its reinforcements'; current course chases an armpw it cannot catch while the tail sits in D4."}
+{"id": "q013", "verdict": "yes", "used": [], "why": "party_104 is killing a Stout 213 from Q4, which outweighs it heavily: 'fought now, whatever the instructions call it'; Q4's order targets party_98."}
+{"id": "q014", "verdict": "no", "used": [], "why": "J6 belongs to W5, which joins the attack on party_124; walking to spot_45 is neither the hunt nor the ordered attack."}
+{"id": "q015", "verdict": "no", "used": [], "why": "W5 is ordered to join the attack on party_124; Stouts cannot catch armflash; J6/L6 Blitzes already hunt party_125."}
+{"id": "q016", "verdict": "no", "used": [], "why": "Instructions: Z5 attacks party_124, 'nobody walks away from it'; following the commander home walks away and leaves the kill."}
+{"id": "q017", "verdict": "no", "used": [], "why": "J1 'never splitting' until party_8 is dead; a Sentry at spot_22 is 95% built beside the raider."}
+{"id": "q018", "verdict": "yes", "used": [], "why": "Constructor idle far from home; the armrectr cannot hurt it; helping finish the spot_59 extractor (first in the order) beats standing idle."}
+{"id": "q019", "verdict": "unclear", "used": [], "why": "Pawn is killing an extractor and an armcv at spot_22 with no soldier near, but the Sentry there is 95% built and should finish it soon."}
+{"id": "q020", "verdict": "yes", "used": [], "why": "Q4 lost 24 of 48 ('losing this fight'), the last loss after orders written 6 s ago; the named fall-back is 'walk back to spot_39'."}
+{"id": "q021", "verdict": "no", "used": [], "why": "spot_28 is a 50 s advance nowhere in the instructions; the named fall-back is spot_39."}
+{"id": "q022", "verdict": "no", "used": [], "why": "Home guard stands at spot_69; party_79 is at spot_61, outside its list; spot_64 is not its stand place."}
+{"id": "q023", "verdict": "no", "used": [], "why": "X3 is J1's Blitz detachment sent to the raiders at spot_61; following the home guard after a fleeing pawn is not instructed."}
+{"id": "q024", "verdict": "yes", "used": [], "why": "V3 (home guard) strung out 1525 with no order, front near spot_69 where the home guard stands; gathering pulls it together there."}
+{"id": "q025", "verdict": "unclear", "used": [], "why": "Blitzes catch the pawns of party_80 while the Stouts hunting it cannot, but U3's Blitzes already cover party_79 and the instruction sends four Blitzes."}
+{"id": "q026", "verdict": "no", "used": [], "why": "Home guard 'join each other', stands at spot_69; joining J1's Blitz detachment toward spot_61 is outside its role."}
+{"id": "q027", "verdict": "no", "used": [], "why": "U3 and S3 already go for party_79 at spot_61; merging changes nothing clearly better."}
+{"id": "q028", "verdict": "no", "used": [], "why": "X3 is J1's detachment; joining the home guard's chase of a pawn leaving at E7 is not instructed."}
+{"id": "q029", "verdict": "no", "used": [], "why": "V3 is home guard (Rovers, stands at spot_69); the home guard joins each other, not the main army."}
+{"id": "q030", "verdict": "no", "used": [], "why": "party_77 is an unidentified contact at spot_44 on his side, not at our extractors; U3 was sent for party_79."}
+{"id": "q031", "verdict": "no", "used": [], "why": "J1 sends 'its Blitzes, the fastest'; Stouts cannot catch an armfav, and six Blitzes already go for it."}
+{"id": "q032", "verdict": "no", "used": [], "why": "W3 hunts party_80 at spot_52, a raider at our extractor; leaving it to join S3 toward party_79 is not clearly better."}
+{"id": "q033", "verdict": "no", "used": [], "why": "Same as q032: following S3 abandons party_80 for a target already covered."}
+{"id": "q034", "verdict": "no", "used": [], "why": "Home guard stands at spot_69; walking to spot_68 has no basis."}
+{"id": "q035", "verdict": "no", "used": [], "why": "party_65 is a lone pawn leaving at E7, not at our extractors; X3 was sent for party_79."}
+{"id": "q036", "verdict": "unclear", "used": [], "why": "Blitzes catch party_80's pawns, which only slow Stouts chase, while party_79 already has six Blitzes; still, S3's course to spot_61 is instructed."}
+{"id": "q037", "verdict": "no", "used": [], "why": "'a Blitz group never splits and never sends a detachment'."}
+{"id": "q038", "verdict": "no", "used": [], "why": "J1 is the nearest Blitz group to the armfav at spot_59, so it is the one to attack; yard2 is not its place."}
+{"id": "q039", "verdict": "no", "used": [], "why": "Constructors walk spot_62..spot_14 and build at spot_14; walking to spot_30 and waiting drops that build."}
+{"id": "q040", "verdict": "no", "used": [], "why": "group_W6: 'follows the commander... No detachments, never home'."}
+{"id": "q041", "verdict": "unclear", "used": [], "why": "W6 is being wiped out, so the rule says step back, but this move is an advance, not a walk, and the instructions order attacking the Fatboy."}
+{"id": "q042", "verdict": "no", "used": [], "why": "'No detachments'; 2 Stouts alone are outweighed by the armfboy."}
+{"id": "q043", "verdict": "no", "used": [], "why": "U3 is on party_88 and in reach; the commander is 40 s away, 'only when nothing sooner is at hand'."}
+{"id": "q044", "verdict": "no", "used": [], "why": "U3 (13 near, outweighs heavily) is already on it, as the instructions direct."}
+{"id": "q045", "verdict": "no", "used": [], "why": "Body first 'attacks the party with the armfboy near spot_38 and spot_39', then holds at spot_52; current course follows that."}
+{"id": "q046", "verdict": "no", "used": [], "why": "B6 outweighs party_117, which is hitting it at 340: fought now; walking away runs from it."}
+{"id": "q047", "verdict": "no", "used": [], "why": "A6 outweighs party_117 within 445; retreating to yard2 is not called for."}
+{"id": "q048", "verdict": "no", "used": [], "why": "W5 is the Blitz detachment after party_111 per instructions, in an even fight in reach; walking off abandons it."}
+{"id": "q049", "verdict": "unclear", "used": [], "why": "U5's line says party_111 outweighs it, so it must step back, but the rule's form is to join or follow a group (W5 is right there), not walk to yard2."}
+{"id": "q050", "verdict": "no", "used": [], "why": "One Stout after an unidentified contact at spot_47; detachments are only the Blitzes after party_111."}
+{"id": "q051", "verdict": "unclear", "used": [], "why": "Step-back is due (outweighed), but following a constructor is not 'another group of ours'; joining W5 fits the rule better."}
+{"id": "q052", "verdict": "no", "used": [], "why": "K5's body attacks the Fatboy party; a lone Stout in an even fight with a contact is not instructed."}
+{"id": "q053", "verdict": "no", "used": [], "why": "Walking 30 s to spot_74 away from a party B6 outweighs and that is hitting it."}
+{"id": "q054", "verdict": "no", "used": [], "why": "W5 is the instructed Blitz detachment in an even fight; following a far constructor abandons it."}
+{"id": "q055", "verdict": "unclear", "used": [], "why": "U5 is outweighed so it steps back, but a 20 s follow of a far constructor is not the rule's join-a-group form."}
+{"id": "q056", "verdict": "yes", "used": [], "why": "Stouts 'never chase armflash'; A6 outweighs party_117 within 445: 'fought now, whatever the instructions call it'."}
+{"id": "q057", "verdict": "no", "used": [], "why": "Walking away from party_117, which A6 outweighs and should fight now."}
+{"id": "q058", "verdict": "no", "used": [], "why": "Steps back from party_117 rather than fighting it; spot_50 is not the instructed place."}
+{"id": "q059", "verdict": "no", "used": [], "why": "K5 attacks the Fatboy party near spot_38/39 before holding spot_52; walking away gives the armfboy free shots."}
+{"id": "q060", "verdict": "no", "used": [], "why": "Retreat to yard2 from a party A6 outweighs."}
+{"id": "q061", "verdict": "no", "used": [], "why": "Instructions name spot_38 and spot_39 alike; the current advance to spot_38 already serves; switching is not clearly better."}
+{"id": "q062", "verdict": "no", "used": [], "why": "A walk runs from party_117, which is hitting B6 and is outweighed by it; should fight."}
+{"id": "q063", "verdict": "yes", "used": [], "why": "Stouts 'never chase armflash'; rejoining K5's body, which fights on its way, beats a futile chase."}
+{"id": "q064", "verdict": "no", "used": [], "why": "'the Stouts and Janus never chase armflash'."}
+{"id": "q065", "verdict": "no", "used": [], "why": "The detachment of eight is 'its Blitzes'; Stouts never chase armflash."}
+{"id": "q066", "verdict": "no", "used": [], "why": "W5's Blitzes are already on party_105; the pair includes a Stout, and Stouts never chase armflash."}
+{"id": "q067", "verdict": "no", "used": [], "why": "New soldiers 'walk to spot_52 and join group_K5'."}
+{"id": "q068", "verdict": "no", "used": [], "why": "X5 is mostly Stouts; 'the Stouts and Janus never chase armflash'."}
+{"id": "q069", "verdict": "no", "used": [], "why": "U5 Blitzes are the raider detachment; merging into a Stout holding group is not instructed or clearly better."}
+{"id": "q070", "verdict": "yes", "used": [], "why": "V5 is K5's Stouts standing with no order; the body attacks 'as one body'; rejoining fights party_117 on the way."}
+{"id": "q071", "verdict": "no", "used": [], "why": "Walking away from party_117, which V5 outweighs within 462."}
+{"id": "q072", "verdict": "yes", "used": [], "why": "V5 outweighs party_117 within 462 while it kills our armcv: 'fought now, whatever the instructions call it'."}
+{"id": "q073", "verdict": "no", "used": [], "why": "Walking 4 Blitzes onto party_117, which outweighs them."}
+{"id": "q074", "verdict": "no", "used": [], "why": "party_119 is at spot_33/D4: 'never goes toward spot_44, spot_33, D3, D4'."}
+{"id": "q075", "verdict": "yes", "used": [], "why": "'new soldiers... walk to spot_52 and join group_K5'; Z5 stands idle at home."}
+{"id": "q076", "verdict": "no", "used": [], "why": "L5 is already walking to spot_52 as instructed, away from party_117; 'a group already walking away carries on'."}
