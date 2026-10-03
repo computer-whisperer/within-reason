@@ -314,3 +314,22 @@ hands now help a frame of the asked type already standing within 900).
 **Would be wrong if.** Metal sent between seats were lost to the receiver's store cap faster than a second advanced
 plant would cost, or an advanced constructor given away could not build the receiving seat's mohos.
 **Used by.** the brief's tier-2 case (7), the Several seats paragraph and the Great Divide plan; [[H-PLAYER-TRANSFER]].
+
+### K-eco-advanced-solar-is-tier-one-and-cheaper-per-energy
+**Claim.** The advanced solar is built by every tier-1 constructor (not the commander) and gives energy for 44% less
+metal and 24% less build time than the basic solar (Armada: 350 metal, 5,000 energy, build time 7,950 for 80 a
+second, against 155 metal, 0 energy, 2,600 for 20; Cortex 370 / 4,000 / 8,150 against 150 / 0 / 2,800). Its energy
+cost is drawn over the build (a constructor vehicle, build power 90: 88 s, 57 energy a second) and equals 62 s of its
+output, so it is the better generator whenever energy is not stalling; in a stall or an empty store the basic solar,
+which costs no energy, is.
+**Status.** arithmetic from the unit files, 2026-10-03; the user's belief ("advanced solar collectors are just better
+after a certain point") checked against them. Not measured: where the pool's players switch, and a game of ours
+played with it.
+**Evidence.** `upstream/Beyond-All-Reason/units/` `armsolar.lua`, `armadvsol.lua`, `corsolar.lua`, `coradvsol.lua`,
+`armcv.lua` (its build list and `workertime` 90). player-49 (`run/matches/1791038139-player-49`): 39 basic solars,
+25 from 8:00, none advanced, with `armadvsol` on the hands' menus and the player ordering `armsolar` by id at 10:25
+and 11:21 (the reviewer's reading of the strategist log); the brief had tied the advanced solar to tier 2 and its
+5,000 to "the store above a third".
+**Would be wrong if.** The pool's strong sides on a solar map stay on basic solars through minute 10 (`run/replays/card.py`
+can count it), or a game of ours with advanced solars stalls on energy while they build.
+**Used by.** the brief's advanced-solar bullet and the Comet energy line; [[H-PLAYER-ADVANCED-SOLAR]].

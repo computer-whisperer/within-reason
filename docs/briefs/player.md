@@ -108,10 +108,25 @@ have the same shape and opposite answers, the difference between them is the thi
   moho in turn, the nearest home first and the ones under turrets as they are, with an advanced solar beside home
   for every four of them, and the `produce` list of the advanced plant keeps an advanced constructor on it until
   every seat has one (several seats: one plant, its constructors given away, as the bullet above says). Two things
-  the games showed: an advanced solar costs 5,000 energy to build, so it goes up with the store above a third and
-  never in an empty store (the note below, a game whose advanced solars crawled at 18:22 in an empty store: plain
-  solars then); and a seat that reaches tier 2 and builds no moho has spent the plant for nothing. Say in the packet how many mohos stand and how many are next, the way you count
+  the games showed: an advanced solar costs 5,000 energy to build, drawn over the build, so it is never started
+  with the energy line STALLING or the store empty (the note below, a game whose advanced solars crawled at 18:22
+  in an empty store: plain solars then); and a seat that reaches tier 2 and builds no moho has spent the plant for
+  nothing. The advanced solar itself does not wait for tier 2: the next bullet. Say in the packet how many mohos stand and how many are next, the way you count
   extractors.
+
+- **After the opening a constructor's generator is the advanced solar, not the basic one** (the user, 2026-10-03,
+  from player-49: 39 basic solars, 25 of them after 8:00, and no advanced one, about 1,700 metal of soldiers; "we
+  keep using just basic solar collectors"). The advanced solar (`armadvsol`/`coradvsol`) is a tier-1 building:
+  every tier-1 constructor builds it and no advanced plant is needed; the commander cannot. Armada: 350 metal and
+  5,000 energy for 80 a second, against the basic solar's 155 metal for 20, which is 44% less metal and 24% less
+  build time for the same energy (Cortex: 370 and 4,000 against 150). The 5,000 is not held up front: it is drawn
+  while it is built (one constructor vehicle alone: 88 s, about 57 energy and 4 metal a second) and is 62 s of the
+  generator's own output. So the basic solars are the opening's and the commander's, and the answer to an energy
+  line reading STALLING or an empty store (they cost no energy to build); every other generator, from the moment a
+  constructor is free and energy is not stalling, is an advanced solar written by its id in that constructor's list
+  (`armadvsol`), and the packet's energy rule for constructors names it ("energy under half and not STALLING: an
+  armadvsol at home; STALLING: an armsolar"). Four basic solars in a constructor's list after the opening is the
+  mistake. The arithmetic is the unit files'; where the pros switch is not measured in the pool yet.
 
 - **The unit mix is a message to him, and his to you.** Cases: (1) game 10: many Lashers said "no pressure on your
   spots", he teched, and Tzars and Tigers beat the Lashers; "brutes would have given you the ability to apply more
@@ -429,7 +444,8 @@ K-maps-comet-barb-opens-bots, the tempo model]
   carries each seat's constructors beside its extractors. The midline is not a wall: the free spots past it are
   named with their walk and their risk (the nearest party of his, the nearest turret), and the expand job takes
   them by walk, nearest first; "never go to the enemy's strip" means his strip, not the middle of the map.
-- Wind is dead: 1 to 4. Solar collectors only (155 metal, a steady 20 energy a second each, no energy to build). A
+- Wind is dead: 1 to 4. Solar only: the basic collector in the opening (155 metal, a steady 20 energy a second
+  each, no energy to build), a constructor's advanced solars after it (the advanced-solar bullet above). A
   factory draws about 80 energy a second while it is being built, and vehicles cost eight to fourteen energy per
   metal (Blitz 900 for 110, Stout 2100 for 225, Mason 1950 for 135), so a plant running steadily wants about eight
   solars behind it; build them beside the commander before and while the plant goes up.
