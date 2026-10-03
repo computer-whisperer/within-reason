@@ -90,6 +90,10 @@ impl Shared {
         let mut seats = self.seats.lock().unwrap();
         let seat = seats.entry(team).or_default();
         (seat.frame, seat.home, seat.briefing) = (briefing.frame, home, briefing);
+        // The commander's side keeps each seat's history, for its report (`command.rs`).
+        if self.commander.load(std::sync::atomic::Ordering::Relaxed) {
+            self.direction.lock().unwrap().sample(team, seat);
+        }
     }
 
     pub fn publish_field(&self, team: i32, field: Field) {

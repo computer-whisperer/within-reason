@@ -48,6 +48,64 @@ pub struct Direction {
     turn: Option<(i32, Instant)>,
     /// How many of each player's notes the commander has been shown, by the player's lead team.
     notes_seen: BTreeMap<i32, usize>,
+    /// Each seat every `SAMPLE_FRAMES`, oldest first: the commander is shown the last `HISTORY_ROWS` of them, so a
+    /// figure of this second is read against where it has been (duel-split-1: nine directions in ten turns, each
+    /// answering the report's momentary energy or bank, and the economy swung between them).
+    history: BTreeMap<i32, Vec<Sample>>,
+}
+
+/// A seat's economy at a frame.
+#[derive(Clone, Debug)]
+struct Sample {
+    frame: i32,
+    metal: (f32, f32, f32),
+    energy: (f32, f32, f32),
+    counts: super::shared::Counts,
+    soldiers: usize,
+    army_metal: u32,
+}
+
+const SAMPLE_FRAMES: i32 = 30 * FRAMES_PER_SECOND;
+const HISTORY_ROWS: usize = 14;
+/// How many of its earlier directions to a part the commander is shown beside the one in force.
+const DIRECTIONS_SHOWN: usize = 4;
+
+impl Direction {
+    /// Seats side: a seat has published; its history gains a row when the last is `SAMPLE_FRAMES` old.
+    pub fn sample(&mut self, team: i32, seat: &super::seats::SeatView) {
+        let rows = self.history.entry(team).or_default();
+        if rows.last().is_some_and(|last| seat.frame - last.frame < SAMPLE_FRAMES) {
+            return;
+        }
+        let b = &seat.briefing;
+        rows.push(Sample {
+            frame: seat.frame,
+            metal: (b.metal.current, b.metal.income, b.metal.usage),
+            energy: (b.energy.current, b.energy.income, b.energy.usage),
+            counts: b.counts.clone(),
+            soldiers: seat.field.score.soldiers,
+            army_metal: seat.field.score.army_metal,
+        });
+    }
+
+    /// The seat's last rows as a table, with the commander's own directions marked where they came into force.
+    fn history_lines(&self, team: i32) -> Vec<String> {
+        let Some(rows) = self.history.get(&team).filter(|rows| rows.len() > 1) else { return Vec::new() };
+        let rows = &rows[rows.len().saturating_sub(HISTORY_ROWS)..];
+        let landed: Vec<i32> = self.plan.iter().chain(self.seats.get(&team).into_iter().flatten()).map(|w| w.due).collect();
+        let mut lines = vec![format!("  t{team} every 30 s (clock | metal banked, income, spending | energy stored, income, spending | extractors, generators, converters, constructors, factories, turrets | soldiers, army metal); `<` marks where a direction of yours came into force:")];
+        let mut previous = rows.first().map_or(0, |r| r.frame) - SAMPLE_FRAMES;
+        for r in rows {
+            let mark = if landed.iter().any(|due| *due > previous && *due <= r.frame) { " <" } else { "" };
+            previous = r.frame;
+            lines.push(format!(
+                "    {} | {:.0}, +{:.0}, -{:.0} | {:.0}, +{:.0}, -{:.0} | {}, {}, {}, {}, {}, {} | {}, {}{mark}",
+                clock(r.frame), r.metal.0, r.metal.1, r.metal.2, r.energy.0, r.energy.1, r.energy.2,
+                r.counts.extractors, r.counts.generators, r.counts.converters, r.counts.constructors, r.counts.labs, r.counts.turrets, r.soldiers, r.army_metal
+            ));
+        }
+        lines
+    }
 }
 
 /// The newest of `parts` in force at `frame`.
@@ -234,6 +292,7 @@ fn report(side: &Shared, first: bool) -> String {
             }
         }
         lines.push(format!("  builders of t{team} (its commander unit and constructors): {builders}, of them {idle} idle and {helping} helping a factory or another builder"));
+        lines.extend(side.direction.lock().unwrap().history_lines(*team));
     }
     // What the players wrote since the last report: their notes, and the opening paragraph of each standing packet.
     let players: Vec<(i32, Arc<Shared>)> = side.players.lock().unwrap().iter().filter_map(|(team, p)| p.upgrade().map(|p| (*team, p))).collect();
@@ -256,16 +315,24 @@ fn report(side: &Shared, first: bool) -> String {
         *seen = notes.len();
     }
     // Its own direction, as it stands and as it is on its way.
-    let part = |label: String, parts: &[Written]| -> Option<String> {
-        let last = parts.last()?;
-        Some(format!("  {label} (from your report of {}{}): {}", clock(last.frame), if last.due > frame { format!(", in force from {}", clock(last.due)) } else { String::new() }, last.text))
+    // Every part with the ones before it, newest last: what it has said over the game is beside what the game did.
+    let part = |label: String, parts: &[Written]| -> Vec<String> {
+        let shown = &parts[parts.len().saturating_sub(DIRECTIONS_SHOWN)..];
+        shown
+            .iter()
+            .enumerate()
+            .map(|(n, w)| {
+                let standing = n + 1 == shown.len();
+                format!("  {label}, from your report of {}{}{}: {}", clock(w.frame), if w.due > frame { format!(", in force from {}", clock(w.due)) } else { String::new() }, if standing { " (the one that stands)" } else { " (replaced)" }, w.text)
+            })
+            .collect()
     };
-    let mut own: Vec<String> = part("plan".to_string(), &direction.plan).into_iter().collect();
-    own.extend(direction.seats.iter().filter_map(|(team, parts)| part(format!("t{team}"), parts)));
+    let mut own: Vec<String> = part("plan".to_string(), &direction.plan);
+    own.extend(direction.seats.iter().flat_map(|(team, parts)| part(format!("t{team}"), parts)));
     if own.is_empty() {
         lines.push("your direction: none yet. The players are playing their seats by their own judgement.".to_string());
     } else {
-        lines.push("your direction as it stands:".to_string());
+        lines.push(format!("your direction, with up to {} earlier ones of each part, oldest first:", DIRECTIONS_SHOWN - 1));
         lines.extend(own);
     }
     lines.push(format!("your next report comes {} s of game after this one (`wait` changes it)", side.wake.lock().unwrap().max_seconds));
