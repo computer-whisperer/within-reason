@@ -1,6 +1,6 @@
 ## What this opponent's games look like: BARb hard_aggressive on Comet Catcher Remake 1.8
 
-- **The games:** 107 of ours against it that lasted 6 minutes or more (Loss 55, Timeout 34, Win 14, None 4 for us), 11:39 / 22:28 / 30:10 long; the starts 6356 / 6422 / 7347 apart. Read from the truth file: everything he had, seen by us or not.
+- **The games:** 107 of ours against it that lasted 6 minutes or more, across many versions of our side, 11:39 / 22:28 / 30:10 long; the starts 6356 / 6422 / 7347 apart. Read from the truth file: everything he had, seen by us or not.
 - This is what he does, against the play we gave him. It is the opponent to expect, not a pace to match: the reference game is the people's.
 - **His first factory:** armlab (97), armvp (10), started 0:52 / 0:54 / 0:58. His second: 9:55 / 10:41 / 11:44 (80 of 107 games; armalab (70), armavp (10)).
 - **His first soldier in our half:** 1:48 / 1:50 / 1:56 (armflea (97), armfav (10)). Our first extractor lost: 2:44 / 3:09 / 3:42.
@@ -20,9 +20,9 @@
 | 9 | 92 | 13 / 14 / 16 | 10 / 11 / 12 | 12 / 14 / 16 | 1629 / 2058 / 2411 | 17 / 21 / 26 | 1 / 2 / 6 | armpw 30%, armwar 29%, armrock 22%, armham 6% |
 | 10 | 88 | 14 / 16 / 17 | 11 / 12 / 13 | 15 / 18 / 19 | 2099 / 2590 / 3095 | 20 / 25 / 29 | 1 / 4 / 9 | armwar 30%, armpw 25%, armrock 22%, armham 8% |
 | 12 | 80 | 17 / 18 / 20 | 11 / 13 / 14 | 20 / 22 / 25 | 2280 / 3302 / 3851 | 18 / 27 / 34 | 1 / 7 / 14 | armwar 28%, armpw 21%, armrock 18%, armham 12% |
-| 14 | 74 | 18 / 20 / 23 | 12 / 14 / 15 | 22 / 27 / 31 | 1889 / 3019 / 4360 | 11 / 23 / 31 | 1 / 6 / 13 | armwar 21%, armpw 16%, armrock 12%, armfido 11%, armham 11%, armmav 10%, armflash 7% |
+| 14 | 75 | 18 / 20 / 22 | 12 / 14 / 15 | 22 / 27 / 30 | 1898 / 2999 / 4359 | 12 / 23 / 31 | 1 / 6 / 13 | armwar 21%, armpw 16%, armrock 11%, armfido 11%, armham 11%, armmav 9%, armflash 7% |
 | 16 | 71 | 19 / 22 / 24 | 13 / 15 / 17 | 26 / 30 / 34 | 2008 / 2852 / 4413 | 10 / 19 / 26 | 1 / 5 / 11 | armwar 16%, armsnipe 13%, armpw 12%, armfido 10%, armmav 10%, armham 10%, armflash 8%, armrock 6%, armzeus 6% |
-| 18 | 68 | 19 / 24 / 26 | 15 / 18 / 20 | 28 / 32 / 40 | 3101 / 3791 / 5252 | 12 / 19 / 28 | 1 / 5 / 11 | armsnipe 18%, armfboy 14%, armwar 13%, armham 9%, armpw 8%, armflash 7%, armfido 6%, armzeus 6% |
+| 18 | 69 | 19 / 24 / 26 | 15 / 18 / 20 | 28 / 33 / 40 | 3118 / 3732 / 5157 | 12 / 19 / 28 | 1 / 5 / 11 | armsnipe 18%, armfboy 14%, armwar 13%, armham 9%, armpw 8%, armflash 7%, armfido 6%, armzeus 6%, armbull 5% |
 | 20 | 62 | 20 / 25 / 27 | 19 / 25 / 31 | 30 / 36 / 43 | 3572 / 5069 / 6349 | 16 / 24 / 33 | 1 / 6 / 15 | armfboy 22%, armsnipe 14%, armwar 10%, armham 9%, armflash 8%, armfido 7%, armstump 6%, armpw 6%, armzeus 6% |
 | 25 | 46 | 23 / 27 / 31 | 28 / 34 / 40 | 39 / 45 / 55 | 6248 / 9389 / 11536 | 23 / 31 / 40 | 6 / 14 / 22 | armfboy 24%, armstump 15%, armraz 9%, armsnipe 8%, armfido 8%, armflash 6%, armzeus 6% |
 | 30 | 28 | 26 / 32 / 35 | 38 / 49 / 60 | 48 / 55 / 65 | 11095 / 16360 / 21509 | 26 / 42 / 52 | 9 / 22 / 35 | armraz 25%, armfboy 17%, armstump 12%, armvang 11%, armfido 7%, armsnipe 5% |

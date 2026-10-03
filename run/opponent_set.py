@@ -128,8 +128,8 @@ def main():
         sys.exit("no game matches")
     P = print
     P(f"## What this opponent's games look like: BARb {a.profile} on {a.map}\n")
-    res = collections.Counter(g["result"] for g in games)
-    P(f"- **The games:** {len(games)} of ours against it that lasted {a.min_minutes:.0f} minutes or more ({', '.join(f'{k} {n}' for k, n in res.most_common())} for us), {q3([g['minutes'] * 60 for g in games], 'clock')} long; "
+    # Our results are left out: the games span every version of our side, and a tally over them says nothing of now.
+    P(f"- **The games:** {len(games)} of ours against it that lasted {a.min_minutes:.0f} minutes or more, across many versions of our side, {q3([g['minutes'] * 60 for g in games], 'clock')} long; "
       f"the starts {q3([g['apart'] for g in games])} apart. Read from the truth file: everything he had, seen by us or not.")
     P("- This is what he does, against the play we gave him. It is the opponent to expect, not a pace to match: the reference game is the people's.")
     first = collections.Counter(g["factories"][0][1] for g in games)
