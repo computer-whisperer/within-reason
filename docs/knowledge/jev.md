@@ -1827,7 +1827,7 @@ rating about 0.015). group_O 12:48, 430 past spot_23 after a fight: the advance 
 0.54 / 0.66 / 0.69 / 0.46 with the reached fact in the move, the move as "goes back to", the rather-than clause, an
 entry `route` line, the packet's sentence marked "(reached 12:20, done)"; the next stop spot_18 0.26-0.39 throughout;
 over 41 gates the 197 reached-place moves shifted 0.02 or less on average. The route sentence without "now", and as
-"the place on the way after the last one in its `reached`, never back": spot_23 over the 8 gates that asked it
+"the place on the way after the last one in its `reached`, never back": spot_23 over the 7 gates that asked it
 0.51 -> 0.39 and 0.35 on average, spot_18 never over 0.5 between stops, 0.51-0.55 at the stop (12:20-12:21).
 **Evidence.** `run/matches/1791038139-player-49/00/jev-0.jsonl` replayed with `run/jev_ab.py`'s `requests_of` and
 `ask`; the scripts were scratch and are not kept. The user's reading (2026-10-03): "Jev operates mostly statelessly,
