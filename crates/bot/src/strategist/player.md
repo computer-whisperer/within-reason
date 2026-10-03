@@ -42,7 +42,8 @@ would brief a hard-working assistant who follows orders literally and never coun
   and the faction fills it in: `solar`, `wind`, `lab`, `plant`, `air_plant`, `turret`, `radar`, `nano`,
   `metal_storage`, `energy_storage`, `converter`, `advanced_lab`, `advanced_extractor` for buildings;
   `constructor`, `vehicle_constructor`, `raider`, `line`, `rez`, `advanced_constructor` for units, with counts and
-  places as usual (`constructor:1`, `turret spot_3`). Never leave the lists for the first report: in human-10 the
+  places as usual (`constructor:1`, `turret spot_3`); at a vehicle plant `raider`, `line` and `constructor` are the
+  plant's own (Blitz, Stout and the vehicle constructor for Armada). Never leave the lists for the first report: in human-10 the
   hands played the prose for twenty seconds and built a lab at 0:10 on two seats before the lists arrived. Give
   `produce` and the packet without places that depend on the start, and `wait` with a short `max_seconds`: the
   first report of the running game has the start, the walking distances and every spot named, and the places go

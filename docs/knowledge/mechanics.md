@@ -488,3 +488,15 @@ supports).
 **Would be wrong if.** The income steps were short for another reason (energy: the steps were read with energy in
 the store).
 **Used by.** [[H-ECO-SPOT-CENTROID]] (amended).
+
+### K-hands-a-role-word-named-a-unit-the-plant-cannot-build
+**Claim.** The role words of a `produce` list were the bot lab's units whatever the factory: `raider:5` written before
+the game was `armpw:5` at an Armada vehicle plant, which builds no Pawn; the tool took it without a word and the plant
+stood idle until the next list.
+**Status.** demonstrated (sonnet-low-1, the list of 0:00 and the plant idle 1:58-2:11, from the model review, the
+list verified in the transcript; sonnet-medium-1 wrote the same list); fixed 2026-10-03 for `raider`, `line` and
+`constructor` at a vehicle plant.
+**Evidence.** `run/matches/1791050868-sonnet-low-1/00/strategist-0.jsonl`, the first `produce` call.
+**Would be wrong if.** The plant's idle seconds had another cause (not checked beyond the review).
+**Used by.** [[H-PLAYER-ROLE-WORDS-AT-THE-PLANT]].
+

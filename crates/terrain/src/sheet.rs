@@ -94,7 +94,15 @@ pub fn sheet(input: &Input) -> Value {
     values.sort_by(f32::total_cmp);
     let water = ground.heights.iter().filter(|h| **h < 0).count() as f32 / cells.max(1) as f32;
     let (low, high) = (ground.heights.iter().min().copied().unwrap_or(0), ground.heights.iter().max().copied().unwrap_or(0));
-    let field = |class: MoveClass, from: Vec3| Field::from_costs(ground, &costs(ground, class), &[from]);
+    // A class that cannot stand at a start (a ship from a start on land) is priced from the nearest ground it
+    // stands on, and the row says how far that is.
+    let seed = |class: MoveClass, from: Vec3| -> Option<(Vec3, f32)> {
+        let ok = passable(ground, class);
+        let width = ground.width as usize;
+        let centre = |i: usize| Vec3 { x: ((i % width) as f32 + 0.5) * ground.cell, y: 0.0, z: ((i / width) as f32 + 0.5) * ground.cell };
+        (0..ok.len()).filter(|i| ok[*i]).map(|i| (centre(i), (centre(i).x - from.x).hypot(centre(i).z - from.z))).min_by(|a, b| a.1.total_cmp(&b.1))
+    };
+    let field = |class: MoveClass, from: Vec3| seed(class, from).and_then(|(at, _)| Field::from_costs(ground, &costs(ground, class), &[at]));
 
     let mut classes = Vec::new();
     for (label, units) in CLASSES {
@@ -102,9 +110,10 @@ pub fn sheet(input: &Input) -> Value {
         let open = passable(ground, class).iter().filter(|ok| **ok).count() as f32 / cells.max(1) as f32;
         let from: Vec<Option<Field>> = starts.iter().map(|(_, p)| field(class, *p)).collect();
         let Some(home) = from.first().and_then(Option::as_ref) else {
-            classes.push(json!({ "class": label, "ground_it_can_stand_on": format!("{:.0}%", open * 100.0), "from_our_start": "it cannot stand at our start" }));
+            classes.push(json!({ "class": label, "ground_it_can_stand_on": format!("{:.0}%", open * 100.0), "from_our_start": "no ground on this map it can stand on" }));
             continue;
         };
+        let off = starts.first().and_then(|(_, p)| seed(class, *p)).map(|(_, d)| d).filter(|d| *d > ground.cell * 6.0);
         let mut to = Vec::new();
         for ((whose, p), far) in starts.iter().zip(&from).skip(1) {
             let walk = home.distance(*p);
@@ -135,6 +144,7 @@ pub fn sheet(input: &Input) -> Value {
         classes.push(json!({
             "class": label, "max_slope": class.max_slope, "wades": class.depth,
             "ground_it_can_stand_on": format!("{:.0}%", open * 100.0),
+            "nearest_ground_it_stands_on_from_our_start": off.map(|d| d as i32),
             "spots_it_reaches_from_our_start": spots.iter().filter(|(s, _)| home.distance(*s).is_some()).count(),
             "to_each_other_start": to,
         }));
@@ -190,6 +200,10 @@ pub fn markdown(s: &Value) -> String {
             out += &format!("| {} | {} | {} | | | | | |\n", text(&c["class"]), text(&c["ground_it_can_stand_on"]), text(&c["from_our_start"]));
             continue;
         };
+        let ground = match &c["nearest_ground_it_stands_on_from_our_start"] {
+            Value::Null => text(&c["ground_it_can_stand_on"]),
+            d => format!("{} (the nearest {} from our start)", text(&c["ground_it_can_stand_on"]), text(d)),
+        };
         for t in to {
             let seconds = t["seconds"].as_object().map(|o| o.iter().map(|(u, t)| format!("{u} {}", text(t))).collect::<Vec<_>>().join(", ")).unwrap_or_default();
             let narrow = match &t["the_ways_at_their_tightest"] {
@@ -198,7 +212,7 @@ pub fn markdown(s: &Value) -> String {
             };
             out += &format!(
                 "| {} | {} | {} | {} | {} | {} | {} | {} |\n",
-                text(&c["class"]), text(&c["ground_it_can_stand_on"]), text(&c["spots_it_reaches_from_our_start"]), text(&t["to"]), text(&t["walk"]), seconds,
+                text(&c["class"]), ground, text(&c["spots_it_reaches_from_our_start"]), text(&t["to"]), text(&t["walk"]), seconds,
                 list(&t["spots_nearer_us_nearer_him_contested_unreachable"], " / "), narrow
             );
         }

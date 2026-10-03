@@ -23,6 +23,9 @@ pub struct Roster {
     raider: &'static str,
     /// The unit the line is made of (K-units-duel-*).
     line: &'static str,
+    /// What `raider` and `line` name at the vehicle plant, which builds neither of the lab's.
+    vehicle_raider: &'static str,
+    vehicle_line: &'static str,
     /// Raises wrecks and takes them apart (`reclaim.rs`).
     resurrector: &'static str,
     /// The rest of what a role word names (`ROLE_WORDS`): the generators, the air plant, the radar, the
@@ -76,6 +79,19 @@ impl Roster {
         })
     }
 
+    /// A `produce` entry for the vehicle plant: `raider`, `line` and `constructor` are the plant's own there (the
+    /// lab's cannot be built at it: sonnet-low-1, `raider:5` in the list before the game was `armpw:5` at an Armada
+    /// vehicle plant, taken without a word, and the plant stood idle from 1:58 to 2:11).
+    pub fn resolve_words_at_the_plant(&self, entry: &str) -> String {
+        let (head, rest) = entry.split_at(entry.find([' ', ':']).unwrap_or(entry.len()));
+        match head {
+            "raider" => format!("{}{rest}", self.vehicle_raider),
+            "line" => format!("{}{rest}", self.vehicle_line),
+            "constructor" => format!("{}{rest}", self.vehicle_constructor),
+            _ => self.resolve_words(entry),
+        }
+    }
+
     /// A list step or a `produce` entry with its role word, if it has one, replaced by the unit's internal name:
     /// "solar" to "armsolar", "turret spot_3" to "armllt spot_3", "constructor:1" to "armck:1".
     pub fn resolve_words(&self, entry: &str) -> String {
@@ -93,7 +109,7 @@ pub static ROSTERS: [Roster; 2] = [
         converter: "armmakr", lab: "armlab", turret: "armllt", constructor: "armck",
         plant: "armvp", vehicle_constructor: "armcv",
         advanced_lab: "armalab", advanced_constructor: "armack", advanced_extractor: "armmoho",
-        raider: "armpw", line: "armham", resurrector: "armrectr",
+        raider: "armpw", line: "armham", vehicle_raider: "armflash", vehicle_line: "armstump", resurrector: "armrectr",
         solar: "armsolar", wind: "armwin", air_plant: "armap", radar: "armrad", nano: "armnanotc", metal_storage: "armmstor", energy_storage: "armestor",
     },
     Roster {
@@ -101,7 +117,7 @@ pub static ROSTERS: [Roster; 2] = [
         converter: "cormakr", lab: "corlab", turret: "corllt", constructor: "corck",
         plant: "corvp", vehicle_constructor: "corcv",
         advanced_lab: "coralab", advanced_constructor: "corack", advanced_extractor: "cormoho",
-        raider: "corak", line: "corthud", resurrector: "cornecro",
+        raider: "corak", line: "corthud", vehicle_raider: "corgator", vehicle_line: "corraid", resurrector: "cornecro",
         solar: "corsolar", wind: "corwin", air_plant: "corap", radar: "corrad", nano: "cornanotc", metal_storage: "cormstor", energy_storage: "corestor",
     },
 ];
@@ -209,6 +225,10 @@ mod tests {
         assert_eq!(cor.resolve_words("constructor:1"), "corck:1");
         assert_eq!(arm.resolve_words("lab #l1"), "armlab #l1");
         assert_eq!(arm.resolve_words("corsolar"), "corsolar");
+        assert_eq!(arm.resolve_words_at_the_plant("raider:5"), "armflash:5");
+        assert_eq!(cor.resolve_words_at_the_plant("constructor:1"), "corcv:1");
+        assert_eq!(arm.resolve_words_at_the_plant("line"), "armstump");
+        assert_eq!(arm.resolve_words_at_the_plant("rez"), "armrectr");
         // The list's own words are not touched: `extractor` is a step of its own, not a unit.
         for step in ["extractor spot_4", "extractor", "extractor nearest", "assist 40", "assist", "stop", "reclaim constructor_3"] {
             assert_eq!(arm.resolve_words(step), step, "{step}");

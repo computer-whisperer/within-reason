@@ -322,7 +322,8 @@ impl Brain {
         let mut allowance = allowed.get(actor).or_else(|| if builder { allowed.get("all_builders") } else { None }).or_else(|| allowed.get("all")).cloned()?;
         // A role word in an entry ("constructor:1", "raider") is the faction's unit from here on.
         if let Some(kit) = self.kit {
-            allowance.units = allowance.units.iter().map(|e| kit.roster.resolve_words(e)).collect();
+            let plant = actor.starts_with("plant_");
+            allowance.units = allowance.units.iter().map(|e| if plant { kit.roster.resolve_words_at_the_plant(e) } else { kit.roster.resolve_words(e) }).collect();
         }
         Some(allowance)
     }
