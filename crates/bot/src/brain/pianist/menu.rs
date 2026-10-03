@@ -1350,7 +1350,7 @@ pub(super) mod tests {
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
         let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies, wrecks: None } };
         let id = UnitDefId(1);
-        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id };
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let place = |name: &str, x: f32, z: f32, spot: Option<usize>| Place { name: name.to_string(), at: at(x, z), spot };
         let picture = Picture {
             rules: String::new(),

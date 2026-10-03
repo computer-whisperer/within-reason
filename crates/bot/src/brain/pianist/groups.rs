@@ -826,7 +826,7 @@ mod tests {
         pianist.groups.push(group);
         brain.pianist = Some(pianist);
         let none = UnitDefId(99);
-        let kit = Kit { commander: none, extractor: none, converter: none, lab: none, turret: none, constructor: none, plant: none, vehicle_constructor: none, advanced_lab: none, advanced_constructor: none, advanced_extractor: none, raider: none, line: none, resurrector: none };
+        let kit = Kit { commander: none, extractor: none, converter: none, lab: none, turret: none, constructor: none, plant: none, vehicle_constructor: none, advanced_lab: none, advanced_constructor: none, advanced_extractor: none, raider: none, line: none, resurrector: none, roster: &crate::brain::roster::ROSTERS[0] };
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
         let tick = |frame: i32, ours: &[OwnUnit], enemies: &[bot_protocol::EnemyUnit]| Tick { frame, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.to_vec(), allies: Vec::new(), enemies: enemies.to_vec(), wrecks: None } };
         // The party has not moved: no order. The joiners are sent after the body, which is not where they were sent.

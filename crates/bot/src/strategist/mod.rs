@@ -579,8 +579,8 @@ fn opening_prompt(seats: &[String], map: &Value) -> String {
     let mut prompt = String::from(
         "[before the game] The game has not begun: the starts are being placed and the countdown has not run. This turn costs nothing: no game time passes while you think, and what you order is in force from the first second.\n\n\
 What is known now: the map, the seats and our start box. What is not: where inside the box each commander will stand (the game or a teammate places it), so no spot can be called nearest home yet. Write the opening so that it holds from any start in the box:\n\
-- `queue` for each commander with a bare `extractor` for every opening extractor: the hands take the free spot it reaches soonest when the step comes up. A building given without a place (a solar, the plant, by their internal names) stands beside it.\n\
-- `produce` with `all`, and `instruct` with the plan and each kind of actor's standing job, naming no place that depends on the start.\n\
+- `queue` for each commander with a bare `extractor` for every opening extractor: the hands take the free spot it reaches soonest when the step comes up. A building given without a place (a solar, the plant) stands beside it. When a seat's faction is not known yet, write the steps as role words and the faction fills them in at the start: `solar`, `wind`, `lab` (the bot lab), `plant` (the vehicle plant), `air_plant`, `turret`, `radar`, `nano`, `metal_storage`, `energy_storage`, `converter`, `advanced_lab`, `advanced_extractor`.\n\
+- `produce` with `all`, by role words when the faction is unknown (`constructor`, `vehicle_constructor`, `raider`, `line`, `rez`, `advanced_constructor`; with counts as usual, `constructor:1`), and `instruct` with the plan and each kind of actor's standing job, naming no place that depends on the start.\n\
 - then `wait` with a short `max_seconds` (10): your first report of the running game comes then, with the start, the walking distances and every spot named, and you refine from it.\n\n",
     );
     if realtime() {

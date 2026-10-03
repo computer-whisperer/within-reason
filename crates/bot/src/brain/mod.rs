@@ -16,7 +16,7 @@ mod scout;
 mod reclaim;
 mod shelling;
 mod wake;
-mod roster;
+pub(crate) mod roster;
 mod routes;
 mod nanos;
 mod yards;

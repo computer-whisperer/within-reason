@@ -255,7 +255,12 @@ impl Brain {
         let shared = self.strategist.as_ref()?;
         let allowed = shared.allowed.lock().unwrap();
         let builder = actor.starts_with("commander") || actor.starts_with("constructor_");
-        allowed.get(actor).or_else(|| if builder { allowed.get("all_builders") } else { None }).or_else(|| allowed.get("all")).cloned()
+        let mut allowance = allowed.get(actor).or_else(|| if builder { allowed.get("all_builders") } else { None }).or_else(|| allowed.get("all")).cloned()?;
+        // A role word in an entry ("constructor:1", "raider") is the faction's unit from here on.
+        if let Some(kit) = self.kit {
+            allowance.units = allowance.units.iter().map(|e| kit.roster.resolve_words(e)).collect();
+        }
+        Some(allowance)
     }
 
     /// What each rover of a roving group is doing this second, from the lane (H-MICRO-ROVE).

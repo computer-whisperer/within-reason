@@ -805,7 +805,10 @@ impl Brain {
     /// The player's `queue` calls since the last pass: lists set or cancelled per builder.
     fn take_lists(&mut self, tick: &Tick, commands: &mut Vec<Command>) {
         let Some(shared) = &self.strategist else { return };
-        let lists = std::mem::take(&mut *shared.queues.lock().unwrap());
+        // The lists wait for the faction: a role word in a step ("solar", "lab", "turret spot_3") is resolved
+        // against it here, once, so the rest of the bot sees internal names only.
+        let Some(kit) = self.kit else { return };
+        let lists: BTreeMap<String, Option<Vec<String>>> = std::mem::take(&mut *shared.queues.lock().unwrap()).into_iter().map(|(name, list)| (name, list.map(|steps| steps.iter().map(|step| kit.roster.resolve_words(step)).collect()))).collect();
         let mut others: BTreeMap<String, Option<Vec<String>>> = BTreeMap::new();
         for (name, list) in lists {
             // A list is for the seat that owns the builder: another seat's stays for it (bluegecko-2v1-great-divide:

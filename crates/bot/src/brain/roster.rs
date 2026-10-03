@@ -25,15 +25,75 @@ pub struct Roster {
     line: &'static str,
     /// Raises wrecks and takes them apart (`reclaim.rs`).
     resurrector: &'static str,
+    /// The rest of what a role word names (`ROLE_WORDS`): the generators, the air plant, the radar, the
+    /// construction turret, the storages.
+    solar: &'static str,
+    wind: &'static str,
+    air_plant: &'static str,
+    radar: &'static str,
+    nano: &'static str,
+    metal_storage: &'static str,
+    energy_storage: &'static str,
 }
 
-pub const ROSTERS: [Roster; 2] = [
+/// The role words a list step or a `produce` entry may use in place of a unit's internal name, resolved against
+/// the seat's faction when the step or entry is used (human-10, 2026-10-02: on a lobby whose factions are set at
+/// the start, the player could write no pre-game lists because `queue` and `produce` took internal names only,
+/// and the hands played prose for the first twenty seconds).
+pub const ROLE_WORDS: [&str; 21] = [
+    "commander", "extractor", "solar", "wind", "lab", "plant", "air_plant", "turret", "radar", "nano", "constructor", "vehicle_constructor", "raider", "line", "rez", "converter", "advanced_lab", "advanced_constructor", "advanced_extractor", "metal_storage", "energy_storage",
+];
+/// The role words that name a factory (the `queue` tool's note on a factory step without an id).
+pub const FACTORY_ROLES: [&str; 4] = ["lab", "plant", "air_plant", "advanced_lab"];
+
+impl Roster {
+    /// The unit a role word names in this faction; None for anything else, a unit's internal name included.
+    pub fn role(&self, word: &str) -> Option<&'static str> {
+        Some(match word {
+            "commander" => self.commander,
+            "extractor" => self.extractor,
+            "solar" => self.solar,
+            "wind" => self.wind,
+            "lab" => self.lab,
+            "plant" => self.plant,
+            "air_plant" => self.air_plant,
+            "turret" => self.turret,
+            "radar" => self.radar,
+            "nano" => self.nano,
+            "constructor" => self.constructor,
+            "vehicle_constructor" => self.vehicle_constructor,
+            "raider" => self.raider,
+            "line" => self.line,
+            "rez" => self.resurrector,
+            "converter" => self.converter,
+            "advanced_lab" => self.advanced_lab,
+            "advanced_constructor" => self.advanced_constructor,
+            "advanced_extractor" => self.advanced_extractor,
+            "metal_storage" => self.metal_storage,
+            "energy_storage" => self.energy_storage,
+            _ => return None,
+        })
+    }
+
+    /// A list step or a `produce` entry with its role word, if it has one, replaced by the unit's internal name:
+    /// "solar" to "armsolar", "turret spot_3" to "armllt spot_3", "constructor:1" to "armck:1".
+    pub fn resolve_words(&self, entry: &str) -> String {
+        let (head, rest) = entry.split_at(entry.find([' ', ':']).unwrap_or(entry.len()));
+        match self.role(head) {
+            Some(name) => format!("{name}{rest}"),
+            None => entry.to_string(),
+        }
+    }
+}
+
+pub static ROSTERS: [Roster; 2] = [
     Roster {
         commander: "armcom", extractor: "armmex",
         converter: "armmakr", lab: "armlab", turret: "armllt", constructor: "armck",
         plant: "armvp", vehicle_constructor: "armcv",
         advanced_lab: "armalab", advanced_constructor: "armack", advanced_extractor: "armmoho",
         raider: "armpw", line: "armham", resurrector: "armrectr",
+        solar: "armsolar", wind: "armwin", air_plant: "armap", radar: "armrad", nano: "armnanotc", metal_storage: "armmstor", energy_storage: "armestor",
     },
     Roster {
         commander: "corcom", extractor: "cormex",
@@ -41,6 +101,7 @@ pub const ROSTERS: [Roster; 2] = [
         plant: "corvp", vehicle_constructor: "corcv",
         advanced_lab: "coralab", advanced_constructor: "corack", advanced_extractor: "cormoho",
         raider: "corak", line: "corthud", resurrector: "cornecro",
+        solar: "corsolar", wind: "corwin", air_plant: "corap", radar: "corrad", nano: "cornanotc", metal_storage: "cormstor", energy_storage: "corestor",
     },
 ];
 
@@ -89,6 +150,8 @@ pub struct Kit {
     pub raider: UnitDefId,
     pub line: UnitDefId,
     pub resurrector: UnitDefId,
+    /// The roster this kit was resolved from, for the role words (`Roster::role`).
+    pub roster: &'static Roster,
 }
 
 impl Kit {
@@ -106,7 +169,7 @@ impl Kit {
 
 impl Roster {
     /// `Err` names the first unit this game does not define.
-    pub fn resolve(&self, world: &World) -> Result<Kit, &'static str> {
+    pub fn resolve(&'static self, world: &World) -> Result<Kit, &'static str> {
         let id = |name: &'static str| world.def_named(name).ok_or(name);
         Ok(Kit {
             commander: id(self.commander)?,
@@ -123,6 +186,29 @@ impl Roster {
             raider: id(self.raider)?,
             line: id(self.line)?,
             resurrector: id(self.resurrector)?,
+            roster: self,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A role word names the faction's unit; a step or an entry keeps what follows the word; an internal name or
+    /// anything else is left as it is.
+    #[test]
+    fn a_role_word_is_the_factions_unit() {
+        let (arm, cor) = (&ROSTERS[0], &ROSTERS[1]);
+        for word in ROLE_WORDS {
+            assert!(arm.role(word).is_some_and(|n| n.starts_with("arm")) && cor.role(word).is_some_and(|n| n.starts_with("cor")), "{word}");
+        }
+        assert_eq!(arm.resolve_words("solar"), "armsolar");
+        assert_eq!(cor.resolve_words("turret spot_3"), "corllt spot_3");
+        assert_eq!(cor.resolve_words("constructor:1"), "corck:1");
+        assert_eq!(arm.resolve_words("lab #l1"), "armlab #l1");
+        assert_eq!(arm.resolve_words("corsolar"), "corsolar");
+        assert_eq!(arm.resolve_words("extractor spot_4"), "armmex spot_4");
+        assert!(FACTORY_ROLES.iter().all(|w| ROLE_WORDS.contains(w)));
     }
 }
