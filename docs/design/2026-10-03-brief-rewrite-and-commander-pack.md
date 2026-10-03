@@ -133,3 +133,11 @@ Not build orders. What it needs to work out why and when:
 - **The players' quoted advice stays**, quoted and attributed, in the brief.
 - **BARb's own curves are shown** as the description of this opponent (not as our target: the ruling on pressure and
   pace stands).
+- **One brief for every situation, with nearly everything in it always** (2026-10-03 night, during human-15): "I
+  lean towards having most of the information there in all cases rather than swapping out cards, since we need to
+  maximize how much advantage out of each piece of experience." So the two briefs behind a flag are scaffolding for
+  the comparison only. The target is one document holding every map's sheet and reference game, every opponent's
+  description, the team material and all the cases, whatever the game; what changes per game is a short opening
+  that says which of it is this game's own (the map, the seats, the opponent) and what is carried from elsewhere,
+  and the report's live lines. Nothing is swapped out for relevance.
+
