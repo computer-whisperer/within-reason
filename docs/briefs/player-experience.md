@@ -284,6 +284,40 @@ The commander's buildings up to the first factory, the orders most played:
 
 Before the factory: 2 / 2 / 3 extractors and 2 / 2 / 2 generators.
 
+**The same orders by result**, with what each side's extractors and army were at 4:00 (medians):
+
+| Order | Sides | Won | Extractors at 4:00 | Constructors at 4:00 | Army metal at 4:00 |
+|---|---|---|---|---|---|
+| armmex → armmex → armsolar → armsolar → armvp | 22 | 11 | 7 | 3 | 561 |
+| armmex → armmex → armsolar → armllt → armmex → armsolar → armvp | 4 | 4 | 8 | 3 | 485 |
+| armmex → armmex → armmex → armsolar → armsolar → armsolar → armvp | 4 | 3 | 4 | 2 | 437 |
+| armmex → armmex → armsolar → armllt → armmex → armmex → armvp | 2 | 0 | 6 | 2 | 719 |
+| armmex → armmex → armsolar → armmex → armsolar → armvp | 2 | 1 | 10 | 3 | 840 |
+
+**What the factory made first** (its first seven units), most played and by result:
+
+| The factory's first units | Sides | Won | Extractors at 4:00 | Army metal in his half at 4:00 |
+|---|---|---|---|---|
+| 2 armfav, 2 armcv, 3 armfav | 4 | 4 | 8 | 46 |
+| armcv, 6 armfav | 4 | 3 | 6 | 310 |
+| 2 armflash, 3 armfav, 2 armcv | 3 | 1 | 7 | 31 |
+| armfav, armflash, 3 armfav, armcv, armfav | 3 | 3 | 9 | 62 |
+| 2 armfav, 3 armcv, 2 armfav | 3 | 2 | 10 | 0 |
+| 2 armflash, 5 armfav | 3 | 0 | 5 | 93 |
+
+**The quarter of sides with the most extractors at 4:00** (10 sides, 10 extractors at the median, 7 of them won):
+
+| Side | Result | Commander's order | The factory's first units | Extractors at 4:00 / 8:00 | First constructor |
+|---|---|---|---|---|---|
+| [MADO]fins (OS 41.09) | won at 10:20 | armmex → armmex → armsolar → armsolar → armvp | 2 armfav, 2 armcv, 3 armfav | 11 / 25 | 1:05 |
+| [MADO]Artur91 (OS 43.4) | won at 17:14 | armmex → armmex → armsolar → armsolar → armvp | armfav, 2 armcv, 4 armfav | 10 / 27 | 1:01 |
+| [MADO]Artur91 (OS 43.4) | lost at 9:15 | armmex → armmex → armsolar → armsolar → armvp | 2 armfav, 3 armcv, 2 armfav | 10 / 25 | 1:09 |
+| [MADO]Artur91 (OS 43.4) | won at 18:18 | armmex → armmex → armsolar → armmex → armsolar → armvp | 2 armfav, 3 armcv, 2 armfav | 10 / 22 | 1:25 |
+| Immort (OS 43.21) | lost at 6:44 | armmex → armmex → armsolar → armsolar → armvp | armcv, 5 armfav, armcv | 10 / - | 0:53 |
+| [MADO]Artur91 (OS 43.4) | won at 14:31 | armmex → armmex → armsolar → armsolar → armvp | armfav, armflash, 3 armfav, armcv, armfav | 9 / 16 | 1:29 |
+| [MADO]Artur91 (OS 43.4) | won at 14:52 | armmex → armmex → armsolar → armsolar → armvp | armfav, armflash, 3 armfav, armcv, armfav | 9 / 20 | 1:30 |
+| BM_chickentasty (OS 44.89) | lost at 15:32 | armmex → armmex → armsolar → armmex → armsolar → armvp | 2 armcv, armfav, 4 armflash | 9 / 16 | 1:12 |
+
 First factory: armvp (40), armlab (1).
 
 | Milestone | Lower quartile / median / upper quartile | Winners' median | Losers' median |
@@ -400,6 +434,40 @@ The commander's buildings up to the first factory, the orders most played:
 | 2 | cormex → corsolar → cormex → corlab |
 
 Before the factory: 2 / 3 / 3 extractors and 1 / 2 / 2 generators.
+
+**The same orders by result**, with what each side's extractors and army were at 4:00 (medians):
+
+| Order | Sides | Won | Extractors at 4:00 | Constructors at 4:00 | Army metal at 4:00 |
+|---|---|---|---|---|---|
+| cormex → cormex → corsolar → corllt → cormex → corsolar → corvp | 11 | 5 | 8 | 3 | 500 |
+| cormex → cormex → corsolar → corlab | 4 | 3 | 9 | 3 | 602 |
+| cormex → cormex → corsolar → corsolar → corlab | 3 | 2 | 7 | 3 | 688 |
+| cormex → cormex → corsolar → corsolar → corvp | 2 | 2 | 12 | 4 | 495 |
+| cormex → corsolar → cormex → corlab | 2 | 0 | 11 | 4 | 322 |
+
+**What the factory made first** (its first seven units), most played and by result:
+
+| The factory's first units | Sides | Won | Extractors at 4:00 | Army metal in his half at 4:00 |
+|---|---|---|---|---|
+| 2 corck, 5 corak | 10 | 3 | 8 | 150 |
+| corcv, 2 corfav, corcv, 3 corfav | 8 | 3 | 9 | 65 |
+| corcv, 6 corfav | 4 | 3 | 9 | 78 |
+| corcv, 5 corfav, corcv | 2 | 2 | 6 | 138 |
+| corck, 6 corak | 2 | 1 | 5 | 129 |
+| corcv, 4 corfav, corcv, corfav | 1 | 1 | 8 | 26 |
+
+**The quarter of sides with the most extractors at 4:00** (9 sides, 10 extractors at the median, 7 of them won):
+
+| Side | Result | Commander's order | The factory's first units | Extractors at 4:00 / 8:00 | First constructor |
+|---|---|---|---|---|---|
+| Chronopolize (OS 47.16) | won at 7:59 | cormex → cormex → corsolar → corsolar → corvp | corcv, 6 corfav | 12 / - | 0:59 |
+| [MADO]Baldric (OS 45.22) | lost at 10:20 | cormex → corsolar → cormex → corlab | 2 corck, 5 corak | 12 / 21 | 0:46 |
+| RAM_Noctis (OS 42.71) | won at 21:46 | cormex → cormex → corsolar → corsolar → corvp | corfav, 2 corcv, 4 corfav | 11 / 23 | 1:07 |
+| [MADO]f1sher (OS 50.07) | won at 10:06 | cormex → cormex → corsolar → corsolar → corsolar → corvp | corcv, 6 corfav | 10 / 22 | 1:07 |
+| [APM]Hellontoast (OS 41.15) | won at 7:35 | cormex → cormex → corllt → corsolar → cormex → corvp | corcv, 2 corfav, corcv, 3 corfav | 10 / - | 1:26 |
+| TehHardStuckOS25erer (OS 43.22) | won at 15:32 | cormex → cormex → corsolar → corlab | 2 corck, 5 corak | 10 / 21 | 0:47 |
+| [MADO]Baldric (OS 45.23) | lost at 18:18 | cormex → corsolar → cormex → corlab | 2 corck, 4 corak, corck | 10 / 23 | 0:46 |
+| [MADO]Baldric (OS 44.65) | won at 17:22 | cormex → cormex → corsolar → corlab | corck, corak, corck, 4 corak | 10 / 19 | 0:46 |
 
 First factory: corvp (24), corlab (15).
 
@@ -591,32 +659,32 @@ files. It has no resource or vision cheats.
 
 ## What this opponent's games look like: BARb hard_aggressive on Comet Catcher Remake 1.8
 
-- **The games:** 107 of ours against it that lasted 6 minutes or more, across many versions of our side, 11:39 / 22:44 / 30:23 long; the starts 6356 / 6422 / 7347 apart. Read from the truth file: everything he had, seen by us or not.
+- **The games:** 110 of ours against it that lasted 6 minutes or more, across many versions of our side, 12:01 / 22:36 / 30:24 long; the starts 6351 / 6420 / 7347 apart. Read from the truth file: everything he had, seen by us or not.
 - This is what he does, against the play we gave him. It is the opponent to expect, not a pace to match: the reference game is the people's.
-- **His first factory:** armlab (97), armvp (10), started 0:52 / 0:54 / 0:58. His second: 9:55 / 10:41 / 11:44 (80 of 107 games; armalab (70), armavp (10)).
-- **His first soldier in our half:** 1:48 / 1:50 / 1:56 (armflea (97), armfav (10)). Our first extractor lost: 2:44 / 3:09 / 3:42.
-- **His tier 2:** an advanced factory in 80 of 107 games (74 of the 75 that lasted 15 minutes), started 9:55 / 10:41 / 11:44: armalab (70), armavp (10).
-  When he started it he had 15 / 16 / 17 extractors and 2160 / 2542 / 3296 army metal.
+- **His first factory:** armlab (97), armvp (13), started 0:52 / 0:54 / 0:58. His second: 9:57 / 10:44 / 11:45 (83 of 110 games; armalab (70), armavp (13)).
+- **His first soldier in our half:** 1:48 / 1:50 / 1:56 (armflea (97), armfav (13)). Our first extractor lost: 2:44 / 3:11 / 4:04.
+- **His tier 2:** an advanced factory in 83 of 110 games (75 of the 76 that lasted 15 minutes), started 9:57 / 10:44 / 11:45: armalab (70), armavp (13).
+  When he started it he had 15 / 16 / 17 extractors and 2154 / 2568 / 3307 army metal.
 
 | Minute | Games | Extractors | Constructors | Turrets | Army metal | Soldiers | Soldiers in our half | Army made of (share of metal, 5% and over) |
 |---|---|---|---|---|---|---|---|---|
-| 1 | 107 | 2 / 2 / 2 | 0 / 0 / 0 | 0 / 0 / 0 | 0 / 0 / 0 | 0 / 0 / 0 | 0 / 0 / 0 |  |
-| 2 | 107 | 2 / 3 / 3 | 1 / 1 / 2 | 0 / 0 / 0 | 75 / 75 / 75 | 2 / 2 / 2 | 1 / 1 / 1 | armpw 66%, armflea 25%, armflash 5% |
-| 3 | 107 | 5 / 5 / 5 | 3 / 4 / 4 | 0 / 1 / 1 | 108 / 129 / 129 | 2 / 3 / 3 | 1 / 2 / 2 | armpw 73%, armflash 16%, armflea 11% |
-| 4 | 107 | 6 / 7 / 8 | 5 / 5 / 5 | 1 / 2 / 3 | 216 / 237 / 291 | 4 / 5 / 5 | 0 / 1 / 1 | armpw 80%, armflash 16% |
-| 5 | 107 | 7 / 8 / 9 | 6 / 6 / 6 | 3 / 4 / 5 | 333 / 399 / 486 | 6 / 8 / 9 | 1 / 2 / 2 | armpw 80%, armflash 13%, armflea 6% |
-| 6 | 107 | 8 / 10 / 11 | 6 / 8 / 9 | 6 / 7 / 7 | 430 / 519 / 754 | 8 / 10 / 12 | 1 / 2 / 3 | armpw 68%, armflash 9%, armflea 6%, armrock 5% |
-| 7 | 106 | 10 / 12 / 13 | 8 / 9 / 11 | 7 / 8 / 10 | 629 / 1048 / 1344 | 10 / 13 / 17 | 1 / 2 / 5 | armpw 45%, armwar 19%, armrock 18%, armflash 6% |
-| 8 | 106 | 11 / 13 / 15 | 9 / 10 / 12 | 10 / 12 / 13 | 1154 / 1567 / 1989 | 14 / 18 / 21 | 1 / 2 / 6 | armpw 34%, armwar 25%, armrock 23% |
-| 9 | 92 | 13 / 14 / 16 | 10 / 11 / 12 | 12 / 14 / 16 | 1629 / 2058 / 2411 | 17 / 21 / 26 | 1 / 2 / 6 | armpw 30%, armwar 29%, armrock 22%, armham 6% |
-| 10 | 88 | 14 / 16 / 17 | 11 / 12 / 13 | 15 / 18 / 19 | 2099 / 2590 / 3095 | 20 / 25 / 29 | 1 / 4 / 9 | armwar 30%, armpw 25%, armrock 22%, armham 8% |
-| 12 | 80 | 17 / 18 / 20 | 11 / 13 / 14 | 20 / 22 / 25 | 2280 / 3302 / 3851 | 18 / 27 / 34 | 1 / 7 / 14 | armwar 28%, armpw 21%, armrock 18%, armham 12% |
-| 14 | 75 | 18 / 20 / 22 | 12 / 14 / 15 | 22 / 27 / 30 | 1898 / 2999 / 4359 | 12 / 23 / 31 | 1 / 6 / 13 | armwar 21%, armpw 16%, armrock 11%, armfido 11%, armham 11%, armmav 9%, armflash 7% |
-| 16 | 72 | 19 / 22 / 24 | 13 / 15 / 17 | 26 / 30 / 33 | 1996 / 2847 / 4396 | 10 / 19 / 25 | 1 / 5 / 11 | armwar 16%, armsnipe 13%, armpw 12%, armfido 10%, armmav 10%, armham 10%, armflash 8%, armrock 6%, armzeus 6% |
-| 18 | 70 | 19 / 24 / 26 | 15 / 18 / 20 | 28 / 32 / 40 | 3068 / 3728 / 5146 | 11 / 18 / 28 | 1 / 5 / 11 | armsnipe 18%, armfboy 14%, armwar 13%, armham 9%, armpw 8%, armflash 7%, armfido 6%, armzeus 6%, armbull 5% |
-| 20 | 64 | 20 / 25 / 27 | 19 / 25 / 31 | 30 / 36 / 43 | 3566 / 5046 / 6342 | 16 / 23 / 33 | 1 / 5 / 14 | armfboy 22%, armsnipe 14%, armwar 10%, armham 9%, armflash 8%, armfido 7%, armstump 7%, armpw 6%, armzeus 6% |
-| 25 | 47 | 24 / 27 / 31 | 28 / 33 / 40 | 40 / 45 / 55 | 6250 / 9196 / 11416 | 23 / 31 / 40 | 6 / 14 / 22 | armfboy 23%, armstump 15%, armraz 9%, armsnipe 8%, armfido 8%, armflash 6%, armzeus 6% |
-| 30 | 29 | 26 / 32 / 35 | 36 / 49 / 59 | 49 / 55 / 65 | 10904 / 16352 / 21443 | 25 / 41 / 51 | 6 / 19 / 34 | armraz 26%, armfboy 17%, armstump 12%, armvang 11%, armfido 6%, armsnipe 5% |
+| 1 | 110 | 2 / 2 / 2 | 0 / 0 / 0 | 0 / 0 / 0 | 0 / 0 / 0 | 0 / 0 / 0 | 0 / 0 / 0 |  |
+| 2 | 110 | 2 / 3 / 3 | 1 / 1 / 2 | 0 / 0 / 1 | 75 / 75 / 75 | 2 / 2 / 2 | 1 / 1 / 1 | armpw 63%, armflea 24%, armflash 9% |
+| 3 | 110 | 5 / 5 / 5 | 3 / 4 / 4 | 0 / 1 / 1 | 113 / 129 / 129 | 2 / 3 / 3 | 1 / 2 / 2 | armpw 69%, armflash 19%, armflea 10% |
+| 4 | 110 | 6 / 7 / 8 | 5 / 5 / 5 | 1 / 2 / 3 | 216 / 237 / 291 | 4 / 5 / 5 | 0 / 1 / 1 | armpw 75%, armflash 21% |
+| 5 | 110 | 7 / 8 / 9 | 6 / 6 / 6 | 3 / 4 / 5 | 333 / 399 / 493 | 6 / 8 / 9 | 1 / 2 / 2 | armpw 77%, armflash 17%, armflea 6% |
+| 6 | 110 | 8 / 10 / 11 | 6 / 8 / 9 | 6 / 7 / 7 | 432 / 538 / 765 | 8 / 10 / 12 | 1 / 2 / 3 | armpw 65%, armflash 11%, armflea 6%, armjanus 6%, armrock 5% |
+| 7 | 109 | 10 / 11 / 12 | 8 / 9 / 11 | 7 / 8 / 10 | 636 / 1077 / 1362 | 10 / 13 / 17 | 1 / 2 / 4 | armpw 43%, armwar 18%, armrock 18%, armflash 8% |
+| 8 | 109 | 11 / 13 / 15 | 9 / 10 / 12 | 10 / 12 / 13 | 1167 / 1572 / 1992 | 14 / 17 / 21 | 1 / 2 / 6 | armpw 33%, armwar 24%, armrock 22%, armflash 6% |
+| 9 | 95 | 13 / 14 / 16 | 10 / 11 / 12 | 12 / 14 / 16 | 1628 / 2048 / 2394 | 16 / 21 / 26 | 1 / 2 / 6 | armpw 29%, armwar 28%, armrock 22%, armflash 6%, armham 5% |
+| 10 | 91 | 14 / 16 / 17 | 10 / 12 / 13 | 15 / 17 / 19 | 2086 / 2591 / 3072 | 19 / 24 / 29 | 1 / 4 / 9 | armwar 29%, armpw 25%, armrock 21%, armham 8% |
+| 12 | 83 | 16 / 18 / 20 | 11 / 13 / 14 | 19 / 22 / 25 | 2342 / 3304 / 3854 | 18 / 26 / 34 | 1 / 7 / 14 | armwar 27%, armpw 20%, armrock 17%, armham 12% |
+| 14 | 77 | 18 / 20 / 22 | 12 / 14 / 15 | 22 / 26 / 30 | 1914 / 3039 / 4357 | 12 / 22 / 31 | 1 / 6 / 13 | armwar 21%, armpw 15%, armrock 11%, armfido 10%, armham 10%, armmav 9%, armflash 7% |
+| 16 | 73 | 19 / 22 / 24 | 13 / 15 / 17 | 25 / 29 / 33 | 1970 / 2842 / 4379 | 10 / 19 / 25 | 1 / 5 / 11 | armwar 16%, armsnipe 13%, armpw 12%, armfido 10%, armmav 10%, armham 10%, armflash 8%, armrock 6%, armzeus 6% |
+| 18 | 71 | 19 / 24 / 26 | 15 / 18 / 20 | 28 / 32 / 40 | 3021 / 3724 / 5135 | 11 / 18 / 28 | 1 / 5 / 11 | armsnipe 18%, armfboy 14%, armwar 13%, armham 9%, armpw 8%, armflash 7%, armfido 6%, armzeus 6%, armbull 5% |
+| 20 | 65 | 20 / 25 / 27 | 18 / 25 / 31 | 30 / 36 / 43 | 3570 / 5032 / 6339 | 14 / 23 / 33 | 1 / 5 / 14 | armfboy 21%, armsnipe 14%, armwar 10%, armham 9%, armflash 8%, armstump 7%, armfido 7%, armpw 6%, armzeus 6% |
+| 25 | 48 | 24 / 28 / 31 | 28 / 33 / 40 | 40 / 45 / 55 | 6230 / 9064 / 11297 | 22 / 30 / 39 | 6 / 14 / 22 | armfboy 23%, armstump 15%, armraz 9%, armsnipe 8%, armfido 8%, armflash 6%, armzeus 6% |
+| 30 | 30 | 26 / 32 / 35 | 36 / 49 / 59 | 49 / 56 / 65 | 10562 / 15562 / 21365 | 24 / 39 / 51 | 6 / 18 / 33 | armraz 25%, armfboy 16%, armstump 12%, armvang 11%, armfido 6%, armsnipe 5%, armmar 5% |
 
 
 ## Units and costs
