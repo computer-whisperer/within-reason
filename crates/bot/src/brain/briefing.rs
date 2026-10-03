@@ -101,7 +101,7 @@ impl Brain {
                 continue;
             }
             self.trade_log.push((tick.frame, cost, 0.0));
-            self.unit_losses.push_back((tick.frame, *unit, def));
+            self.unit_losses.push_back((tick.frame, *unit, def, attacker.and_then(|id| self.enemy_defs.get(&id).map(|d| (id, *d)))));
             if kit.is_extractor(def)
                 && let Some(index) = self.world.hello.metal_spots.iter().position(|s| s.dist2d(pos) < self.spot_occupied_radius())
             {

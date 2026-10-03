@@ -112,7 +112,7 @@ impl Brain {
                 self.wake.landed = Some(tick.frame);
                 let mut kinds: BTreeMap<&str, usize> = BTreeMap::new();
                 let mut metal = 0.0;
-                for (_, _, def) in self.unit_losses.iter().filter(|(f, ..)| *f >= turn) {
+                for (_, _, def, _) in self.unit_losses.iter().filter(|(f, ..)| *f >= turn) {
                     *kinds.entry(self.name(*def)).or_default() += 1;
                     metal += self.world.def(*def).map_or(0.0, |d| d.metal_cost);
                 }

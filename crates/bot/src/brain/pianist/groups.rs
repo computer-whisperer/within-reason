@@ -112,7 +112,8 @@ pub(crate) struct Group {
     pub born: i32,
     /// Soldiers lost in the last minute (frame, type); the turn frame the wake counts from, and whether the player has
     /// been woken for them this turn (H-HANDS-LOSS-WAKE). The picture says the last 30 s.
-    pub losses: Vec<(i32, UnitDefId)>,
+    /// (frame, the type lost, the killer and its type when known): the picture's `losses` line says to whom.
+    pub losses: Vec<(i32, UnitDefId, Option<(UnitId, UnitDefId)>)>,
     pub losses_since: i32,
     pub loss_warned: bool,
     /// Members still on their way to join (a plant's output walking to the body, the soldiers of a group that
@@ -212,8 +213,8 @@ impl Group {
 
     /// The soldiers lost since `since`, and their metal.
     pub(crate) fn lost_since(&self, since: i32, world: &crate::world::World) -> (usize, f32) {
-        let lost: Vec<&(i32, UnitDefId)> = self.losses.iter().filter(|(f, _)| *f >= since).collect();
-        (lost.len(), lost.iter().filter_map(|(_, def)| world.def(*def)).map(|d| d.metal_cost).sum())
+        let lost: Vec<&(i32, UnitDefId, Option<(UnitId, UnitDefId)>)> = self.losses.iter().filter(|(f, ..)| *f >= since).collect();
+        (lost.len(), lost.iter().filter_map(|(_, def, _)| world.def(*def)).map(|d| d.metal_cost).sum())
     }
 
     /// A group split from another.
@@ -287,10 +288,10 @@ impl Brain {
             if group.losses_since != turn_frame {
                 (group.losses_since, group.loss_warned) = (turn_frame, false);
             }
-            group.losses.retain(|(f, _)| frame - f <= 60 * FRAMES_PER_SECOND);
-            for (f, id, def) in self.unit_losses.iter().rev().take_while(|(f, ..)| *f == frame) {
+            group.losses.retain(|(f, ..)| frame - f <= 60 * FRAMES_PER_SECOND);
+            for (f, id, def, killer) in self.unit_losses.iter().rev().take_while(|(f, ..)| *f == frame) {
                 if group.members.contains(id) {
-                    group.losses.push((*f, *def));
+                    group.losses.push((*f, *def, *killer));
                 }
             }
             group.members.retain(|id| soldiers.iter().any(|u| u.id == *id));

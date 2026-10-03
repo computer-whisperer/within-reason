@@ -37,7 +37,9 @@ pub(crate) struct Diet {
     pub only_used: bool,
     /// A builder's own move is asked as its words and "Rather than: {course}.", the framing said once in the rules
     /// (`rules.md` `<<builder_words>>`): the question-cuts study §2 (`docs/studies/2026-10-02-jev-question-cuts.md`),
-    /// 141 of a move question's 467 characters, under which a builder's answers hold and a group's do not.
+    /// 141 of a move question's 467 characters, under which a builder's answers hold and a group's do not. At lean
+    /// alone, where it was tested: at normal (the human games) a newborn idle constructor's answers moved with it
+    /// (human-11, 6:14 and 6:51: the long form put the instruction's wreck fields first and the lab third).
     pub builder_words: bool,
 }
 
@@ -45,7 +47,7 @@ impl Diet {
     pub fn level(level: HandsEffort) -> Diet {
         match level {
             HandsEffort::Lean => Diet { level, places_reach: Some(1_500.0), places_held_too: false, actors_brief: true, only_used: true, builder_words: true },
-            HandsEffort::Normal => Diet { level, places_reach: Some(2_500.0), places_held_too: true, actors_brief: true, only_used: true, builder_words: true },
+            HandsEffort::Normal => Diet { level, places_reach: Some(2_500.0), places_held_too: true, actors_brief: true, only_used: true, builder_words: false },
             HandsEffort::Full => Diet { level, places_reach: None, places_held_too: true, actors_brief: false, only_used: false, builder_words: false },
         }
     }

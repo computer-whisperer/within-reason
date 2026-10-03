@@ -845,6 +845,12 @@ impl Brain {
                     steps = None;
                 }
             }
+            // A list for a unit still being built waits for it (`lists.rs` runs lists for standing builders alone):
+            // said so, since the player cannot tell a staged list from a dropped one.
+            if let Some(unit) = self.unit_by_handle(&name, &tick.snapshot.own_units).filter(|u| u.being_built) {
+                let pianist = self.pianist.as_mut().expect("pianist mode");
+                pianist.done.push(format!("{} {name}: staged; it is {:.0}% built and the list runs when it stands", picture::clock(tick.frame), unit.health / unit.max_health.max(1.0) * 100.0));
+            }
             // A new list is the player's order now: it ends the hold the pick's retreat put on the old one.
             let listed = tick.snapshot.own_units.iter().find(|u| self.actor_name(u.id) == name).map(|u| u.id);
             let pianist = self.pianist.as_mut().expect("pianist mode");

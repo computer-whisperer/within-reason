@@ -765,7 +765,14 @@ K-maps-comet-barb-opens-bots, the tempo model]
   names: `corsolar` and `corvp` for a Cortex seat, `armsolar` and `armvp` for an Armada one, or role words
   (`solar`, `plant`) that each seat's faction fills in, which is the way to write the lists before the lobby has
   set the factions (human-10: with internal names only, the lists waited for the first report and the hands played
-  the prose meanwhile).
+  the prose meanwhile). (16) A constructor without a list belongs to the hands, and the hands' first pick for a
+  newborn is to help the lab: in human-11 four constructors in a row went to the lab at birth, two under "constructors:
+  work their lists" with no list to work. So the packet always names the listless constructor's standing job ("a
+  constructor with no list takes the free spot nearest home, then the next"), and better, the list is given before
+  the constructor stands: the lab's line names the unit on its pad ("building a Construction Bot (28% built; it will
+  be constructor_4321 ...)"), and a `queue` for that name now waits for it and runs the second it stands. The same
+  for a plant going up: its builder's line names it, and its `produce` and the constructors' lists can be staged
+  before it is finished.
   From the fourth game (bluegecko-3v1-comet-catcher-4, lost about 20:30 with the trade 85k to 30k in our favour;
   the opponent [Stud]Irishstud14, OS 48, Cortex, with thebluegecko spectating and advising): (15) The push at 8:00 into his Pounders (riot tanks that beat Blitzes and Incisors head on)
   stopped at his base, and from 11:00 his Incisor swarms of ten to fifteen slipped past the Brute ball and took our

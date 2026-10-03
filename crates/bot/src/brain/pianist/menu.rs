@@ -17,7 +17,7 @@ use bot_protocol::{EnemyUnit, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
 use super::super::roster::Kit;
 use super::super::{Brain, FRAMES_PER_SECOND};
 use super::groups::{Group, Ward};
-use super::picture::{NEAR, Party, Picture, Place, distance_words, loss_share_words, place_of};
+use super::picture::{NEAR, Party, Picture, Place, distance_words, place_of};
 use super::{GroupTask, Pianist, Task};
 use crate::strategist::shared::Allowance;
 use crate::world::Domain;
@@ -758,12 +758,12 @@ impl Brain {
         // part of the group in reach, what the group lost in the last seconds, whether the party can follow.
         let fight: Option<(&Party, String)> = near_party.map(|p| {
             let odds = self.group_odds(&body, p, enemies, &scene.tick.snapshot.allies).1;
-            let lost: Vec<&(i32, UnitDefId)> = group.losses.iter().filter(|(f, _)| scene.frame - f <= 30 * FRAMES_PER_SECOND).collect();
+            let lost: Vec<&(i32, UnitDefId, Option<(UnitId, UnitDefId)>)> = group.losses.iter().filter(|(f, ..)| scene.frame - f <= 30 * FRAMES_PER_SECOND).collect();
             let losses = if lost.is_empty() {
                 String::new()
             } else {
-                let lost_metal: f32 = lost.iter().filter_map(|(_, def)| self.world.def(*def)).map(|d| d.metal_cost).sum();
-                format!("; this group has lost {} in the last 30 s", loss_share_words(lost_metal / (lost_metal + metal).max(1.0)))
+                let w = self.loss_words(&lost, metal, Some(p), &picture.parties);
+                format!("; this group has lost {}{} in the last 30 s: {}", w.share, w.verdict, w.to_whom)
             };
             let their_fastest = p.ids.iter().filter_map(|id| enemies.iter().find(|e| e.id == *id).and_then(|e| e.def)).filter_map(|d| self.world.def(d)).map(|d| d.speed).fold(0.0, f32::max);
             let follow = if p.unarmed || their_fastest <= 0.0 || !speed.is_finite() {
@@ -1176,7 +1176,12 @@ impl Brain {
                     Some(draw) if m.current < 100.0 && m.income < draw => "the plant is starved (it would spend more than comes in, and the store is empty): helping adds nothing until metal comes".to_string(),
                     Some(_) if m.current >= m.storage - 1.0 => "the store is full: helping spends it".to_string(),
                     Some(_) => "helping makes its unit sooner while the store lasts".to_string(),
-                    None => "it adds its build power to whatever the factory makes (metal must be coming in faster than the factory spends it)".to_string(),
+                    // The fact, not an argument (human-11: four newborn constructors went to the lab on "it adds its
+                    // build power to whatever the factory makes" against instructions that named their spots).
+                    None => match own.iter().find(|u| u.being_built && u.pos.dist2d(lab.pos) < 120.0 && self.world.def(u.def).is_some_and(|d| d.speed > 0.0)) {
+                        Some(on_pad) => format!("its build power goes to the lab's unit, a {} ({:.0}% built)", self.short_words(on_pad.def), on_pad.health / on_pad.max_health.max(1.0) * 100.0),
+                        None => "the lab makes nothing at the moment: its build power would wait there".to_string(),
+                    },
                 };
                 push(format!("help_{lab_name}"), Order::Help(lab.id), format!("{then}{name} helps {lab_name} build ({}): {worth}{}{leaves}", way_words(unit.pos.dist2d(lab.pos), speed), stands(lab.pos)), format!("helping {lab_name}"), None);
             }

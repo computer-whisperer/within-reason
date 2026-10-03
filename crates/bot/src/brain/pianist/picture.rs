@@ -101,15 +101,77 @@ pub(super) fn place_of(places: &[Place], at: Vec3) -> Option<&str> {
 }
 
 /// The share of a group's metal lost lately, in words: Jev is not a calculator (docs.typesafe.ai/model-jaggedness).
-pub(super) fn loss_share_words(share: f32) -> &'static str {
+pub(super) fn share_words(share: f32) -> &'static str {
     if share < 0.1 {
         "a few"
     } else if share < 0.25 {
         "a noticeable share"
     } else if share < 0.5 {
-        "a large share: it is losing this fight"
+        "a large share"
     } else {
-        "most of it: it is being wiped out"
+        "most of it"
+    }
+}
+
+/// The fight's verdict from the share lost to the party in question and the turrets covering it: the step-back
+/// rule's input ("whose `losses` line says it is losing this fight"). Losses to anything else carry no verdict
+/// (human-11, 6:37: three Pawns a Sentry had killed, the Sentry dead for five seconds, read as "losing this fight"
+/// against the one unarmed constructor in sight, and the raid walked home).
+pub(super) fn fight_verdict(share_to_this_fight: f32) -> &'static str {
+    if share_to_this_fight < 0.25 {
+        ""
+    } else if share_to_this_fight < 0.5 {
+        ": it is losing this fight"
+    } else {
+        ": it is being wiped out"
+    }
+}
+
+/// A group's losses of the last while, said with the killers: "162 metal, a large share, to a Sentry (dead now),
+/// none to this party" and the verdict against `party` (the party in the group's entry) from the losses to it and
+/// to turrets. `metal` is what the group still stands at.
+pub(super) struct LossWords {
+    pub count: usize,
+    pub metal: f32,
+    pub share: &'static str,
+    pub to_whom: String,
+    pub verdict: &'static str,
+}
+
+impl Brain {
+    pub(super) fn loss_words(&self, lost: &[&(i32, UnitDefId, Option<(bot_protocol::UnitId, UnitDefId)>)], standing_metal: f32, party: Option<&Party>, parties: &[Party]) -> LossWords {
+        let cost = |def: UnitDefId| self.world.def(def).map_or(0.0, |d| d.metal_cost);
+        let metal: f32 = lost.iter().map(|(_, def, _)| cost(*def)).sum();
+        let mut to_fight = 0.0;
+        let mut by: BTreeMap<String, usize> = BTreeMap::new();
+        for (_, def, killer) in lost {
+            let words = match killer {
+                None => "something unseen".to_string(),
+                Some((id, kdef)) => {
+                    let building = self.world.def(*kdef).is_some_and(|d| d.speed <= 0.0);
+                    let this = party.is_some_and(|p| p.ids.contains(id));
+                    if this || building {
+                        to_fight += cost(*def);
+                    }
+                    if this {
+                        "this party".to_string()
+                    } else if building {
+                        format!("a {}{}", self.short_words(*kdef), if self.enemy_buildings.contains_key(id) { "" } else { " (dead now)" })
+                    } else if let Some(other) = parties.iter().find(|p| p.ids.contains(id)) {
+                        other.name.clone()
+                    } else {
+                        format!("a {} out of sight now", self.short_words(*kdef))
+                    }
+                }
+            };
+            *by.entry(words).or_default() += 1;
+        }
+        let mut to_whom: Vec<String> = by.iter().map(|(who, n)| if *n == 1 { who.clone() } else { format!("{n} to {who}") }).collect();
+        if party.is_some() && !by.contains_key("this party") {
+            to_whom.push("none to this party".to_string());
+        }
+        let share = metal / (metal + standing_metal).max(1.0);
+        LossWords { count: lost.len(), metal, share: share_words(share), to_whom: to_whom.join(", "), verdict: if party.is_some() { fight_verdict(to_fight / (metal + standing_metal).max(1.0)) } else { "" } }
     }
 }
 
@@ -813,8 +875,11 @@ impl Brain {
                 if *started {
                     // How far along, from the frame on the ground (games 7, 9: "armavp ordered 200 s ago" with no
                     // percentage was believed standing at 14:45 and finished at 16:12).
-                    let percent = own.iter().filter(|u| u.being_built && u.def == *def && u.pos.dist2d(*near) < 200.0).map(|u| u.health / u.max_health.max(1.0) * 100.0).fold(None, |acc: Option<f32>, p| Some(acc.map_or(p, |a| a.max(p))));
-                    format!("building a {what} at {} ({}), ordered {}", self.place_words(places, *near), percent.map_or("not yet started".to_string(), |p| format!("{p:.0} % built")), ago(*ordered))
+                    let frame_unit = own.iter().filter(|u| u.being_built && u.def == *def && u.pos.dist2d(*near) < 200.0).max_by(|a, b| (a.health / a.max_health.max(1.0)).total_cmp(&(b.health / b.max_health.max(1.0))));
+                    let percent = frame_unit.map(|u| u.health / u.max_health.max(1.0) * 100.0);
+                    // Its name once it stands, so a list or a `produce` for it can be staged now.
+                    let named = frame_unit.and_then(|u| self.future_name(u)).map_or(String::new(), |n| format!("; it will be {n}: a `queue` or `produce` for it now waits for it to stand"));
+                    format!("building a {what} at {} ({}), ordered {}{named}", self.place_words(places, *near), percent.map_or("not yet started".to_string(), |p| format!("{p:.0} % built")), ago(*ordered))
                 } else if walk > 120.0 {
                     format!("walking to build a {what} at {}, {walk:.0} to go, ordered {}", self.place_words(places, *near), ago(*ordered))
                 } else {
@@ -1264,7 +1329,7 @@ impl Brain {
                 let queue = pianist.lab_queue.get(&unit.id).map(Vec::as_slice).unwrap_or_default();
                 // What stands on its pad now (the queue holds only what is not yet started, human-6: "building "
                 // with the queue empty and a Grunt on the pad).
-                let on_pad = own.iter().filter(|u| u.being_built && u.pos.dist2d(unit.pos) < 120.0 && self.world.def(u.def).is_some_and(|d| d.speed > 0.0)).map(|u| format!("{} ({:.0}% built)", self.short_words(u.def), u.health / u.max_health.max(1.0) * 100.0)).next();
+                let on_pad = own.iter().filter(|u| u.being_built && u.pos.dist2d(unit.pos) < 120.0 && self.world.def(u.def).is_some_and(|d| d.speed > 0.0)).map(|u| format!("{} ({:.0}% built{})", self.short_words(u.def), u.health / u.max_health.max(1.0) * 100.0, self.future_name(u).map_or(String::new(), |n| format!("; it will be {n}: a `queue` for it now waits for it to stand")))).next();
                 entry["doing"] = json!(match (on_pad, queue.is_empty()) {
                     (None, true) if unit.idle => "idle: building nothing".to_string(),
                     (None, true) => "starting a unit".to_string(),
@@ -1456,13 +1521,13 @@ impl Brain {
             // The last 30 s, not "since the player's last orders": turns come every ten seconds now, and the line read
             // "lost 1" while the ball had lost eleven in eleven seconds (wake-1, 18:14). A share in words beside the
             // number: Jev is not a calculator (docs.typesafe.ai/model-jaggedness).
-            let lost_lately: Vec<&(i32, UnitDefId)> = group.losses.iter().filter(|(f, _)| frame - f <= 30 * FRAMES_PER_SECOND).collect();
+            let lost_lately: Vec<&(i32, UnitDefId, Option<(bot_protocol::UnitId, UnitDefId)>)> = group.losses.iter().filter(|(f, ..)| frame - f <= 30 * FRAMES_PER_SECOND).collect();
             if !lost_lately.is_empty() {
-                let lost_metal: f32 = lost_lately.iter().filter_map(|(_, def)| self.world.def(*def)).map(|d| d.metal_cost).sum();
-                let share = lost_metal / (lost_metal + metal).max(1.0);
-                let words = loss_share_words(share);
-                let last = lost_lately.iter().map(|(f, _)| *f).max().unwrap_or(frame);
-                entry["losses"] = json!(format!("lost {} of its {} soldiers ({lost_metal:.0} metal, {words}) in the last 30 s, the last {} s ago", lost_lately.len(), units.len() + lost_lately.len(), (frame - last) / FRAMES_PER_SECOND));
+                // To whom, and the verdict against the party in its entry alone (`loss_words`).
+                let near = parties.iter().map(|p| (nearest_to_any(p), p)).filter(|(d, _)| *d < NEAR).min_by(|a, b| a.0.total_cmp(&b.0)).map(|(_, p)| p);
+                let w = self.loss_words(&lost_lately, metal, near, &parties);
+                let last = lost_lately.iter().map(|(f, ..)| *f).max().unwrap_or(frame);
+                entry["losses"] = json!(format!("lost {} of its {} soldiers ({:.0} metal, {}{}) in the last 30 s, the last {} s ago: {}", w.count, units.len() + lost_lately.len(), w.metal, w.share, w.verdict, (frame - last) / FRAMES_PER_SECOND, w.to_whom));
             }
             if let Some(seconds) = group.stalled_seconds(frame).filter(|s| *s >= 20) {
                 entry["progress"] = json!(format!("its body has not got nearer its goal for {seconds} s: stalled"));
@@ -1506,7 +1571,10 @@ impl Brain {
                 // (wake-3: "killing 3 of our Blitz" on a group's line read as its own, and it retreated from a party it
                 // outweighed in 7 of 51 such asks, 0 of 69 without the clause).
                 let own_ids: Vec<bot_protocol::UnitId> = units.iter().map(|u| u.id).collect();
+                // An unarmed party that damages ours is taking them apart (a constructor reclaiming a Pawn, human-11
+                // 6:37: "it is unarmed and cannot fight back ... it is hitting this group now" in one line).
                 let killing = match (self.killing_words(&p.ids, Some(&own_ids)), &p.harming) {
+                    (Some((what, metal)), _) if p.unarmed => format!("; it is taking apart {what} ({metal:.0} metal) of this group now, which an unarmed unit can do to what stands still beside it"),
                     (Some((what, metal)), _) => format!("; it is hitting this group now: {what} ({metal:.0} metal)"),
                     (None, Some((what, metal))) => format!("; it is {what} ({metal:.0} metal) elsewhere, not this group"),
                     (None, None) => String::new(),
@@ -1606,6 +1674,21 @@ impl Brain {
         Picture { state, rules, places, parties }
     }
 
+    /// The name a unit still being built will answer to once it stands (a builder or a factory; None for a soldier):
+    /// the picture says it on its builder's or its lab's line, so a `queue` or `produce` for it can be given now and
+    /// waits for it (the user, 2026-10-03: "a mechanic for staging build order lists for units that are currently
+    /// under construction").
+    pub(crate) fn future_name(&self, unit: &OwnUnit) -> Option<String> {
+        let def = unit.def;
+        if self.world.is_factory_def(def) {
+            Some(if self.name(def).ends_with("vp") { format!("plant_{}", unit.id.0) } else if self.name(def).contains("lab") { format!("lab_{}", unit.id.0) } else { format!("factory_{}", unit.id.0) })
+        } else if self.world.is_mobile_builder(def) {
+            Some(format!("constructor_{}", unit.id.0))
+        } else {
+            None
+        }
+    }
+
     /// How an actor is named in the picture and the questions.
     pub(crate) fn actor_name(&self, unit: bot_protocol::UnitId) -> String {
         // By what the definition is, not by the Kit: a captured factory of the other faction is played like ours.
@@ -1622,13 +1705,43 @@ impl Brain {
 
 #[cfg(test)]
 mod tests {
-    use bot_protocol::{Event, OwnUnit, Resource, Snapshot, Tick, UnitId};
+    use bot_protocol::{Event, OwnUnit, Resource, Snapshot, Tick, UnitDefId, UnitId};
 
     use super::super::fixtures::{at, brain_of, enemy, own};
 
     /// A building of ours whose health falls beside an enemy builder, with no hit on it, is said on that builder's
     /// party as being taken apart, with what is left and when it is gone; a party without a weapon is said unarmed,
     /// never as outweighing us or choosing the fight.
+    #[test]
+    /// The losses line says to whom, and "losing this fight" counts only the losses to the party in the entry and
+    /// to turrets: three Blitzes a dead Sentry killed are no verdict against an unrelated party; the same three to
+    /// the party are.
+    #[test]
+    fn losses_are_said_with_their_killers_and_the_verdict_is_the_partys_alone() {
+        let (brain, _, _, parties) = super::super::fixtures::e3();
+        let party = &parties[0];
+        let sentry = UnitId(10);
+        let dead_sentry = UnitId(99);
+        let flash = UnitDefId(1);
+        let lost = vec![(60, flash, Some((dead_sentry, UnitDefId(3)))), (70, flash, Some((dead_sentry, UnitDefId(3)))), (80, flash, None)];
+        let refs: Vec<&(i32, UnitDefId, Option<(UnitId, UnitDefId)>)> = lost.iter().collect();
+        let w = brain.loss_words(&refs, 300.0, Some(party), &parties);
+        assert_eq!(w.count, 3);
+        assert_eq!(w.to_whom, "2 to a Sentry (armllt) (dead now), something unseen, none to this party");
+        assert_eq!(w.verdict, ": it is losing this fight", "turrets count as the fight, dead or standing");
+        let to_party = vec![(60, flash, Some((party.ids[0], UnitDefId(2)))), (70, flash, Some((party.ids[1], UnitDefId(2))))];
+        let refs: Vec<&(i32, UnitDefId, Option<(UnitId, UnitDefId)>)> = to_party.iter().collect();
+        let w = brain.loss_words(&refs, 300.0, Some(party), &parties);
+        assert_eq!((w.to_whom.as_str(), w.verdict), ("2 to this party", ": it is losing this fight"));
+        let elsewhere = vec![(60, flash, Some((UnitId(77), UnitDefId(2)))), (70, flash, Some((UnitId(78), UnitDefId(2))))];
+        let refs: Vec<&(i32, UnitDefId, Option<(UnitId, UnitDefId)>)> = elsewhere.iter().collect();
+        let w = brain.loss_words(&refs, 300.0, Some(party), &parties);
+        assert_eq!((w.to_whom.as_str(), w.verdict), ("2 to a Centurion (armwar) out of sight now, none to this party", ""), "losses to something else carry no verdict");
+        let standing = brain.loss_words(&refs, 300.0, Some(party), &parties);
+        assert_eq!(standing.share, "a large share");
+        let _ = sentry;
+    }
+
     #[test]
     fn a_builder_taking_a_building_apart_is_said_and_an_unarmed_party_reads_unarmed() {
         let mut brain = brain_of(&["armflash", "armllt", "armfav"]);

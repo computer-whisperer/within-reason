@@ -182,7 +182,8 @@ pub struct Brain {
     extractor_losses: VecDeque<i32>,
     /// Every unit of ours destroyed by the enemy in the last three minutes: frame, unit, type. The wakes read it (a
     /// group's losses since the player's last orders, losses while its orders were on their way, the wait floor).
-    pub(crate) unit_losses: VecDeque<(i32, UnitId, UnitDefId)>,
+    /// (frame, the unit, its type, the killer and its type when the attacker was known and identified).
+    pub(crate) unit_losses: VecDeque<(i32, UnitId, UnitDefId, Option<(UnitId, UnitDefId)>)>,
     /// Metal spots (by index) where an extractor offset toward the builder was refused: the exact centre from then on.
     centre_only: HashSet<usize>,
     dropped_orders: u32,
