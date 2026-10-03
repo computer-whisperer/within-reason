@@ -39,6 +39,26 @@ const DAMAGED: f32 = 0.7;
 const FIELD_METAL: f32 = 100.0;
 /// The D-gun's shot costs this much energy.
 const DGUN_ENERGY: f32 = 500.0;
+/// The places `named` in the order the paragraph of `packet` headed by `group` first names each (`Brain::way_of`).
+fn way_in<'a>(packet: &str, group: &str, named: impl Iterator<Item = &'a str>) -> Vec<String> {
+    let is_word = |text: &str, at: usize, len: usize| {
+        let before = text[..at].chars().next_back().is_none_or(|c| !c.is_alphanumeric() && c != '_');
+        let after = text[at + len..].chars().next().is_none_or(|c| !c.is_alphanumeric() && c != '_');
+        before && after
+    };
+    let find = |text: &str, word: &str| text.match_indices(word).map(|(at, _)| at).find(|at| is_word(text, *at, word.len()));
+    let Some(paragraph) = packet.lines().find(|line| line.split_once(':').is_some_and(|(head, _)| find(head, group).is_some())) else {
+        return Vec::new();
+    };
+    let body = paragraph.split_once(':').map_or("", |(_, body)| body);
+    let mut places: Vec<(usize, String)> = named.filter_map(|name| Some((find(body, name)?, name.to_string()))).collect();
+    places.sort();
+    places.dedup_by(|a, b| a.1 == b.1);
+    places.into_iter().map(|(_, name)| name).collect()
+}
+
+/// A place this much further from his base than the group stands is said to lie back toward our side.
+const BACK: f32 = 400.0;
 /// The sizes a detachment comes in, below the group's own size.
 const LADDER: [usize; 4] = [1, 2, 4, 8];
 /// A party moving slower than this stands still.
@@ -722,7 +742,17 @@ impl Brain {
             parts.push(words.clone());
         }
         if let Some(p) = scene.picture.parties.iter().filter(|p| p.at.dist2d(place.at) < AT_END && entry.is_none_or(|e| e.name != p.name)).min_by(|a, b| a.at.dist2d(place.at).total_cmp(&b.at.dist2d(place.at))) {
-            parts.push(format!("{} ({}{}) stands at it: {}", p.name, p.composition, under(p), verdict(&self.odds_words(units, p, scene.enemies))));
+            // What the party is worth beside the body sent at it, and whether the body can catch it.
+            let theirs: Vec<&bot_protocol::UnitDefInfo> = p.ids.iter().filter_map(|id| scene.enemies.iter().find(|e| e.id == *id)).filter_map(|e| self.world.def(e.def?)).collect();
+            let (his_metal, his_speed) = (theirs.iter().map(|d| d.metal_cost).sum::<f32>(), theirs.iter().map(|d| d.speed).fold(0.0, f32::max));
+            let ours_metal: f32 = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
+            let ours_speed = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.speed).fold(f32::INFINITY, f32::min);
+            let worth = if his_metal > 0.0 && ours_metal > his_metal * 4.0 {
+                format!(", {his_metal:.0} metal of his for the {ours_metal:.0} sent at it{}", if his_speed > ours_speed { ", and it is faster than them: it leaves when they come" } else { "" })
+            } else {
+                String::new()
+            };
+            parts.push(format!("{} ({}{}) stands at it: {}{worth}", p.name, p.composition, under(p), verdict(&self.odds_words(units, p, scene.enemies))));
         }
         if parts.is_empty() && !scene.his.iter().any(|(p, _)| p.name == place.name) && let Some(spot) = place.spot {
             match self.spot_seen(spot) {
@@ -827,9 +857,34 @@ impl Brain {
             push("gather".into(), Order::Gather, format!("{name} gathers: its front stops and the rest close up on it ({tail}), and it holds there{keeps}{leaves}"), "gathering on its front".into(), None, false);
         }
 
+        // The group's way as its paragraph of the packet names it, and the first place of it not yet reached.
+        let way = self.way_of(&name, scene.named.iter().map(|p| p.name.as_str()));
+        let next = way.iter().find(|w| !group.reached.iter().any(|(r, _)| r == *w)).cloned();
         // Go and fight to: every named place, both ways; a place where his buildings are known is attacked.
         for place in scene.named.iter().copied().filter(|p| p.at.dist2d(body.at) > HERE && self.reachable_for(walker, p.at)) {
-            let way = way_words(body.at.dist2d(place.at), speed);
+            // Which way the place lies: a walk that ends further from his base than the group stands is a walk
+            // back (player-56, 6:11: ten Blitzes at spot_53 on their way into his base were turned to spot_59,
+            // 2,200 behind them on our side, where one Rover stood at an extractor; the move's words said "some
+            // way off" and "we outweigh it heavily" and nothing of the direction).
+            let his_base = self.enemy_base(self.home);
+            let back = place.at.dist2d(his_base) - body.at.dist2d(his_base);
+            let way_here = if back > BACK {
+                format!("{}; it lies {back:.0} further from his base than the group stands now: a walk back toward our side", way_words(body.at.dist2d(place.at), speed))
+            } else {
+                way_words(body.at.dist2d(place.at), speed)
+            };
+            // Where the place stands on the group's way as the player wrote it (`way_of`): the next place of it,
+            // or no part of it. Replayed on player-56's pick at 6:11: the turn back fell from 0.64 to 0.13 with
+            // these two, and to 0.07 with the direction and the worth beside them.
+            let way = match way.iter().position(|w| *w == place.name) {
+                _ if way.len() < 2 => way_here,
+                Some(_) if next.as_deref() == Some(place.name.as_str()) => match group.reached.last() {
+                    Some((last, _)) => format!("{way_here}; the next place of its way as the instructions give it (it has reached {last})"),
+                    None => format!("{way_here}; the first place of its way as the instructions give it"),
+                },
+                Some(_) => way_here,
+                None => format!("{way_here}; a place that is not on its way in the instructions"),
+            };
             let his = scene.his.iter().any(|(p, _)| p.name == place.name);
             push(
                 format!("go_{}", place.name),
@@ -1313,6 +1368,16 @@ impl Brain {
         }
     }
 
+    /// The places a group's paragraph of the player's packet names, in the order it names them: its way, as far
+    /// as code can read one (a place it falls back to stands in it too, usually last). The paragraph is the one
+    /// whose head, before its first colon, names the group; none, and the way is empty.
+    fn way_of<'a>(&self, group: &str, named: impl Iterator<Item = &'a str>) -> Vec<String> {
+        let Some(packet) = self.strategist.as_ref().map(|s| s.instructions.lock().unwrap().clone()).filter(|i| !i.trim().is_empty()).or_else(|| self.pianist.as_ref().and_then(|p| p.packet.clone())) else {
+            return Vec::new();
+        };
+        way_in(&packet, group, named)
+    }
+
     /// A factory's menu: one order ahead (H-HANDS-MENU). A factory with a unit ordered ahead has nothing to decide,
     /// and one with a counted entry left on its `produce` list makes it without asking (`sequence_next`).
     fn factory_menu(&self, scene: &Scene, unit: &OwnUnit) -> Option<Menu> {
@@ -1371,6 +1436,14 @@ impl Brain {
 
 #[cfg(test)]
 pub(super) mod tests {
+    #[test]
+    fn a_groups_way_is_the_places_its_paragraph_names_in_order() {
+        let packet = "Constructors: spot_64, spot_59.\ngroup_C (Blitzes): the raid. It fights near spot_53 first, then goes on by spot_53, spot_57, spot_60, spot_51; from a party that outweighs it, it goes to spot_46.\ngroup_CX: spot_1.";
+        let named = ["spot_5", "spot_51", "spot_53", "spot_57", "spot_59", "spot_60", "spot_46", "home"];
+        assert_eq!(super::way_in(packet, "group_C", named.iter().copied()), vec!["spot_53", "spot_57", "spot_60", "spot_51", "spot_46"]);
+        assert!(super::way_in(packet, "group_Z", named.iter().copied()).is_empty());
+    }
+
     use super::*;
 
     pub(crate) fn mv(key: &str, order: Order, party: Option<&str>) -> Move {

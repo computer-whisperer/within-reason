@@ -1884,3 +1884,23 @@ out of sight (the attribution not traced in the code).
 **Would be wrong if.** A group out of a nest's reach still takes its fall-back from a party standing under the nest
 with the words as fixed, at the old rate.
 **Used by.** [[H-HANDS-TURRETS-WHERE-THEY-REACH]]; the odds' narrow-win word ([[H-HANDS-ODDS-NARROW]]).
+
+### K-jev-the-next-place-of-a-way-said-on-the-move-keeps-a-body-on-it
+**Claim.** At an arrival the pick is between changes described one line each, and a line that names a party at its
+end beat the line of the way's next stop: player-56 at 6:11, ten Blitzes at spot_53 on a way written "spot_53,
+spot_57, spot_60, spot_51 ... it never sends soldiers after an armfav" were turned to spot_59, 2,200 behind them on
+our side, where one Rover stood at an extractor (the pick: spot_59 at 0.65 over spot_57, whose own rating was the
+higher, 0.67 against 0.57). The lines said "near ... nothing of his was there when last looked at" and "some way
+off ... party_6 (1 armfav) stands at it: we outweigh it heavily": neither said which place the way names next, that
+the other is not on it, which way it lies, or what the party is worth. Replayed on that pick, four asks an arm, the
+share for the turn back: as recorded 0.61-0.68; the direction said 0.54-0.63; the worth said 0.46-0.51; both
+0.52-0.58; "the next place of its way" on the way's stop 0.36-0.41; that and "not on its way" on the other
+0.11-0.16; all four 0.04-0.08. This is also the between-stops resume left open on 2026-10-03 afternoon ("last
+visited" words did not move it: K-jev-a-now-in-a-route-holds-until-the-next-packet): the words that work are on the
+move, not in the actor's entry.
+**Status.** demonstrated offline on one pick (2026-10-03 night, `run/matches/1791062625-player-56-experience`,
+frame 11,130; the user saw the turn in the running game); built as words, unmeasured in play.
+**Would be wrong if.** Other arrivals do not follow (one pick replayed), or the way read from the paragraph is wrong
+where a paragraph names places that are not stops (a fall-back place counts as its last).
+**Used by.** [[H-HANDS-WAY-WORDS]].
+
