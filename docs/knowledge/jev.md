@@ -1816,3 +1816,22 @@ picked a hunt the second after the player wrote "no hunts", which is Jev's readi
 **Status.** Fixed 2026-10-03 (`groups.rs` `group_for_newcomer(named, call, rally)`, `rally: HashMap<UnitId, (u64, String)>`, the picture's `output_joins` words); test `a_newcomer_joins_the_named_group_else_its_factorys_own_and_new_starts_a_fresh_one`. Unmeasured in a game. The same clobber is the likeliest cause of human-11's group renaming churn under standing orders (open there).
 **Would be wrong if.** A plant with a `new` list still restarts its sequence in the next game (then another allowance change is in play: the `call` or the role-word resolution), or `new` lists stop founding a fresh group on a second `produce` call.
 
+### K-jev-a-now-in-a-route-holds-until-the-next-packet
+**Claim.** Jev reads a packet's "now" as true at every ask, and the entry's `reached` register does not undo it: a
+group between stops is sent back to the stop the packet names "now" although its entry says it reached it. Saying the
+stop was reached in the move's words, in the rather-than clause, in a new entry line or in the route sentence does not
+make the next stop the best-rated move; taking the "now" out of the route sentence lowers the passed stop and leaves
+the next stop under the bar. Standing at a reached stop, the next leg is picked (the routes study's 24 of 24).
+**Status.** measured offline on player-49's recorded gates, 2026-10-03, one ask an arm (Jev asked again moves a
+rating about 0.015). group_O 12:48, 430 past spot_23 after a fight: the advance to spot_23 0.69-0.71 recorded; 0.70 /
+0.54 / 0.66 / 0.69 / 0.46 with the reached fact in the move, the move as "goes back to", the rather-than clause, an
+entry `route` line, the packet's sentence marked "(reached 12:20, done)"; the next stop spot_18 0.26-0.39 throughout;
+over 41 gates the 197 reached-place moves shifted 0.02 or less on average. The route sentence without "now", and as
+"the place on the way after the last one in its `reached`, never back": spot_23 over the 8 gates that asked it
+0.51 -> 0.39 and 0.35 on average, spot_18 never over 0.5 between stops, 0.51-0.55 at the stop (12:20-12:21).
+**Evidence.** `run/matches/1791038139-player-49/00/jev-0.jsonl` replayed with `run/jev_ab.py`'s `requests_of` and
+`ask`; the scripts were scratch and are not kept. The user's reading (2026-10-03): "Jev operates mostly statelessly,
+so if you say to do something now it will do it always until the next frame."
+**Would be wrong if.** A game played under the prompt's paragraph still shows a group sent back to a passed stop with
+no "now" in its packet, at ratings over the bar.
+**Used by.** the player prompt's "nearly stateless" paragraph; [[H-PLAYER-NO-NOW-IN-A-WAY]].

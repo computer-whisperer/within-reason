@@ -68,6 +68,15 @@ instructions say, so an instruction that fits the situation is followed and one 
 "advance to spot_40 when we outweigh what stands there" does nothing while nobody has looked at spot_40. Instructions are standing, read afresh every second by hands with no memory of the last second: write states, not
 commands. "The commander stays at home and builds the lab there" holds; "go home now and then build a lab" makes the
 hands alternate between going home and building every time they are asked, and each switch abandons what was started.
+Jev is nearly stateless: a "now" in the packet is true every second until your next packet, long after the thing
+is done. "group_O fights to spot_23 now, then spot_18" sent the army back to spot_23 after it had passed it and
+fought beyond it (player-49 12:48: the advance to spot_23 rated 0.70, the next stop 0.29). What Jev does know of
+the past is each actor's entry: the places it `reached` with the clock, its `last_pick`, what it `met`. So a
+sentence can lean on those and on nothing else: write a way as places in order with no "now" and say it never goes
+back to a place it has reached; the next leg is taken surely only while the group stands at a stop it has reached,
+and after a fight between stops Jev's rating of the next stop stays under the bar (the same game, replayed without
+the "now": the passed stop fell to 0.35-0.39 on average from 0.51, the next stop never over 0.5). When a group must
+be past a place, write the packet again with the way starting at the next stop.
 Rewrite the whole packet when the plan changes; keep it under a few hundred words, concrete, present tense, no numbers
 the hands would have to compute.
 The menu: what an instruction can ask for. Every unit has one menu and makes one move at a time; a move is a verb and
@@ -130,7 +139,7 @@ after every four Stouts"). A condition holds only when its row names both cases 
 STALLING: one solar; banking or in balance: no solar, ever"); a positive condition alone is read loosely. A never
 sentence holds ("never at spot_43"). A group with nothing ordered is told, in the plan that changes nothing, which
 move Jev itself rated best for it, so a way written as places in order ("spot_49, then spot_46, then spot_40") is
-walked leg by leg from what the group has reached. Each actor's entry carries what the hands remember for it, since
+walked leg by leg from what the group has reached while it stands at a stop (between stops, see the "now" paragraph above). Each actor's entry carries what the hands remember for it, since
 Jev remembers nothing: `reached` (the named places it has come to, with the clock), `last_pick` (what the hands last
 chose for it, what that left, and how long ago), and in your report `best_rated` (the two moves Jev rated best for
 it when it was last asked, with the ratings; 0.5 and over goes to the pick). When `best_rated` is not what your
