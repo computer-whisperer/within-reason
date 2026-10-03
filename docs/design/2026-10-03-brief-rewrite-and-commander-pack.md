@@ -115,9 +115,24 @@ Not build orders. What it needs to work out why and when:
 3. The pack's tables (economy arithmetic, the matrix, the timing distributions).
 4. The commander seat itself: its own design, after 1-3 are read.
 
-## 6. Open, the user's
+## 6. Rulings (the user, 2026-10-03 evening)
 
-- Whether the stripped brief is played before the commander exists (it will likely play worse with one model: the
-  tuning is load-bearing today), or only with it.
+- **The brief is tested on its own before the third seat exists.** "We do still want to build this for
+  non-commander games since the concept hasn't been fully proven out, so the general brief improvements should be
+  tested independently before we add the third tier." So the rewritten brief is played by one model (player-N games)
+  against the old brief on the same seed, and the commander comes after.
+- **Tier 2 is a decision, not a plan.** "We honestly don't have the experience for it yet ... that transition really
+  needs to be a player or commander decision when to make and what to do with it. The later in the game we go the
+  less we can rely on cookie-cutter game plans, which is what drives me towards adding the third slot." The pool
+  agrees that it cannot teach it: one Armada side of 41 and three Cortex sides of 39 started an advanced factory
+  (duels at OS 40+ on Comet last 12 to 15 minutes at the median). So the brief gives the arithmetic and the cases we
+  have, labelled as few, and no timing rule; the user is looking for game modes where tier 2 is the right call.
+- **The arena starts where the pool does.** `--starts 1420,3550:7290,3600` (B5 against H5, the pool's commonest
+  pair) in place of the game's placement of an AI at an end of its strip, which is a quarter further apart; the
+  ledger's player games before player-54 are from the corner start.
+
+## 7. Open, the user's
+
+
 - Whether the players' advice stays as quoted words in the player's brief, moves to the commander, or both.
 - Whether BARb's own curves may be shown to the player as the opponent's description.

@@ -3,7 +3,7 @@
 //! the start script, engine log, bot log and replay.
 //!
 //! usage: arena [--matches N] [--parallel N] [--speed N] [--realtime] [--profile easy|medium|hard|hard_aggressive]
-//!              [--map NAME] [--max-minutes N] [--label TEXT] [--mirror] [--place] [--swap-corners] [--play-out]
+//!              [--map NAME] [--max-minutes N] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out]
 //!              [--side armada|cortex] [--corner nw|se]   (default: alternate; `nw` is the first start box of the layout, W on Comet)
 //!              [--ours N] [--allies N] [--enemies N] [--ffa]   (seats of ours, allied BARb seats, enemy BARb seats, default 1 0 1;
 //!                                                               --ffa: every enemy seat is its own team)
@@ -64,6 +64,10 @@ struct Options {
     mirror: bool,
     /// `--place`: the arena chooses our commander's start inside its box by the opening search (`place.rs`).
     place: bool,
+    /// `--starts X,Z:X,Z`: our commander's start and the opponent's, written into the start script (a 1v1 only).
+    /// The pool's duels on Comet Catcher start mid-strip, (1420, 3550) against (7290, 3600), where the game's own
+    /// placement puts an AI at an end of its strip, a quarter further apart.
+    starts: Option<((f32, f32), (f32, f32))>,
     swap_corners: bool,
     /// End a game once it is settled (see [`Settled`]); `--play-out` turns it off.
     call_settled: bool,
@@ -173,7 +177,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("BARb {}", options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "commander_model": options.commander_model, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "commander_model": options.commander_model, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 
@@ -279,6 +283,13 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         match place::choose_starts(repo, &options.map, setup.our_rect(), setup.their_rect(), &setup.our_side.to_lowercase()[..3]) {
             Ok((ours, theirs)) => setup.starts = if setup.we_are_first { vec![ours, theirs] } else { vec![theirs, ours] },
             Err(why) => eprintln!("match {index}: not placed: {why}"),
+        }
+    }
+    if let Some((ours, theirs)) = options.starts {
+        if options.ours == 1 && options.allies == 0 && options.enemies == 1 {
+            setup.starts = if setup.we_are_first { vec![ours, theirs] } else { vec![theirs, ours] };
+        } else {
+            eprintln!("match {index}: --starts is for one seat against one; the game places the seats");
         }
     }
     copy_tree(&repo.join("run/match-template"), &dir)?;
@@ -572,6 +583,7 @@ fn parse_args() -> Options {
         label: "batch".into(),
         mirror: false,
         place: false,
+        starts: None,
         swap_corners: false,
         call_settled: true,
         pianist: false,
@@ -672,6 +684,11 @@ fn parse_args() -> Options {
                     _ => usage("--side takes armada or cortex"),
                 })
             }
+            "--starts" => {
+                let text = value();
+                let point = |t: &str| t.split_once(',').and_then(|(x, z)| Some((x.trim().parse::<f32>().ok()?, z.trim().parse::<f32>().ok()?)));
+                options.starts = Some(text.split_once(':').and_then(|(a, b)| Some((point(a)?, point(b)?))).unwrap_or_else(|| usage("--starts takes X,Z:X,Z (ours, then the opponent's)")));
+            }
             "--corner" => {
                 options.corner = Some(match value().to_lowercase().as_str() {
                     "nw" => true,
@@ -708,7 +725,7 @@ fn parse_args() -> Options {
 }
 
 fn usage(problem: &str) -> ! {
-    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--label TEXT] [--mirror] [--place] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--commander-model ID] [--objective TEXT] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N]");
+    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--commander-model ID] [--objective TEXT] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N]");
     std::process::exit(2)
 }
 
