@@ -342,7 +342,8 @@ impl Brain {
     /// The `map` tool's answer before the game: what does not depend on where we start.
     fn map_before_the_game(&self) -> serde_json::Value {
         let hello = &self.world.hello;
-        let spots: Vec<_> = hello.metal_spots.iter().enumerate().map(|(n, s)| json!({ "n": n, "grid": self.world.grid(*s), "x": s.x as i32, "z": s.z as i32 })).collect();
+        let spots: Vec<_> = hello.metal_spots.iter().enumerate().map(|(n, s)| json!({
+            "people": self.people_description(), "n": n, "grid": self.world.grid(*s), "x": s.x as i32, "z": s.z as i32 })).collect();
         json!({
             "name": hello.map.name, "width": hello.map.width, "height": hello.map.height,
             "grid": "8x8 cells; columns A-H run west to east (x), rows 1-8 run north to south (z)",
@@ -411,6 +412,7 @@ impl Brain {
             "metal_spots": spots,
             "metal_spots_note": "n is the spot's number for the `expansion` tool; walk_from_home is the walking distance for our bots (null: they cannot walk there) beside straight_from_home; a spot marked `alcove` is far longer on foot than straight, and a group sent at it by the straight line huddles short of it",
             "terrain": self.terrain_sketch(),
+            "people": self.people_description(),
             "sheet": self.map_sheet(),
             "sheet_note": "the map in the numbers the decisions turn on, the same table for every map (the brief holds other maps' sheets to set this one against): what each way of moving can stand on, the walk and the seconds to each place his start may be, whose spots are whose by walk, how wide the ways there are at their tightest against their median (a pass is a fraction of the median), and how many spots each kind of builder reaches in 30, 60, 90 and 120 seconds",
             "water": self.water_description(),

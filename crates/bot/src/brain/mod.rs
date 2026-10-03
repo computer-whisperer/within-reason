@@ -10,6 +10,7 @@ mod combat;
 mod economy;
 pub mod journal;
 mod micro;
+mod people;
 pub mod pianist;
 mod planner;
 mod scout;
@@ -348,7 +349,7 @@ impl Brain {
                     continue;
                 }
                 eprintln!("[ai {}] f={} chat from player {player}: {text}", self.world.hello.ai_id, tick.frame);
-                shared.chat_in.lock().unwrap().push((tick.frame, *player, text.clone()));
+                shared.chat_in.lock().unwrap().push((tick.frame, *player, format!("{}: {text}", self.speaker(*player))));
                 self.heard_chat_at = tick.frame;
             }
         }

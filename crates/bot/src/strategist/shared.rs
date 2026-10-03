@@ -389,7 +389,7 @@ pub struct Shared {
     /// The `transfer` tool's orders, taken by the seat that owns what is sent.
     pub transfers: Mutex<Vec<Transfer>>,
     pub wake: Mutex<Wake>,
-    /// Chat from people in the game, unread by the player: (frame, player number, text).
+    /// Chat from people in the game, unread by the player: (frame, player number, the line with who said it).
     pub chat_in: Mutex<Vec<(i32, i32, String)>>,
     /// What the player wants said in the game chat (`say` tool), sent by the brain on its next tick.
     pub chat_out: Mutex<Vec<String>>,
