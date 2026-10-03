@@ -5,13 +5,13 @@
 # game. The match's record, transcripts and Jev log land in run/matches/<unix time>-<label>/00, which
 # run/view_match.py and run/debrief.py read like an arena match. The sessions run on ~/.claude2 (weekly allotment
 # only) unless WITHIN_REASON_CLAUDE_CONFIG_DIR says otherwise; a usage snapshot is taken first for `--since`.
-# usage: run/human_game.sh [label] [effort] [hands-effort] [model]     (defaults: human, low, normal, claude-opus-5-5; hands-effort is the Jev
+# usage: run/human_game.sh [label] [effort] [hands-effort] [model]     (defaults: human, medium, normal, claude-opus-5-5; hands-effort is the Jev
 # token diet, lean | normal | full: a match worth every token takes full). The hands' layers are the full set
 # (WITHIN_REASON_HANDS_LAYERS, set beforehand to choose otherwise; human-10 ran `news` alone for $6.91 over three seats).
 set -eu
 root=$(cd "$(dirname "$0")/.." && pwd)
 label=${1:-human}
-effort=${2:-low}
+effort=${2:-medium}
 hands=${3:-normal}
 model=${4:-claude-opus-5-5}
 dir="$root/run/matches/$(date +%s)-$label/00"
