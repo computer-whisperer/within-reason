@@ -35,8 +35,9 @@ const DEFAULT_EFFORT: &str = "high";
 /// (paid credits) disabled, so it can be blocked but never charged (`docs/harness/claude-p.md`).
 const DEFAULT_CLAUDE_CONFIG_DIR: &str = ".claude2";
 
-/// `WITHIN_REASON_MODEL` (the arena's `--commander-model`) overrides the player's usual model.
-fn model() -> String {
+/// `WITHIN_REASON_MODEL` (the arena's `--commander-model`) overrides the player's usual model. The game-chat banner
+/// (`main.rs`) says this too: it had its own default, `claude-opus-5`, and announced that while the player ran 5.5.
+pub(crate) fn model() -> String {
     std::env::var("WITHIN_REASON_MODEL").ok().filter(|m| !m.is_empty()).unwrap_or_else(|| "claude-opus-5-5".into())
 }
 

@@ -92,7 +92,7 @@ fn session(mut stream: UnixStream, player: bool, pianist: bool) -> io::Result<()
     let mut banner = format!("Within Reason {} | {mode_name}", env!("WITHIN_REASON_COMMIT"));
     if strategist.is_some() {
         let cli = std::process::Command::new("claude").arg("--version").output().ok().map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string()).filter(|v| !v.is_empty());
-        banner += &format!(" ({}{}{})", setting("WITHIN_REASON_MODEL").unwrap_or_else(|| "claude-opus-5".into()), setting("WITHIN_REASON_EFFORT").map_or(String::new(), |e| format!(", effort {e}")), cli.map_or(String::new(), |v| format!(", {v}")));
+        banner += &format!(" ({}{}{})", strategist::model(), setting("WITHIN_REASON_EFFORT").map_or(String::new(), |e| format!(", effort {e}")), cli.map_or(String::new(), |v| format!(", {v}")));
     }
     if let Some(disabled) = setting("WITHIN_REASON_DISABLE") {
         banner += &format!(" | off: {disabled}");
