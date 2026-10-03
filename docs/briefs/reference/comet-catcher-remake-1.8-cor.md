@@ -45,7 +45,7 @@ First factory: corvp (24), corlab (15).
 
 **Where the numbers come from.**
 - *The factory at 0:59:* it is started after 3 extractors and 2 generators, every one within the commander's reach of the start (the sheet: 5 spots within 30 s of the commander).
-- *The first soldier in his half:* the unit was corfav (23), corak (15), corgator (1); it crossed into his half 36 / 60 / 94 s after it was made. The pool's starts are 6416 apart at the median, and half of that at full speed is corcv 63 s, corfav 21 s, corgator 38 s. The start the sheet was made from is 7346 from his (+15%): every crossing there is that much longer.
+- *The first soldier in his half:* the unit was corfav (23), corak (15), corgator (1); it crossed into his half 36 / 60 / 94 s after it was made. The pool's starts are 6416 apart at the median, and half of that at full speed is corcv 63 s, corfav 21 s, corgator 38 s. The start the sheet was made from is 5870 from his (-9%): every crossing there is that much longer.
 - *Income per extractor:* 2.00 / 2.10 / 2.29 metal a second over minutes 3 to 8 (income less the commander's 2, over the extractors standing); the sheet's figure for a spot here is 2.30. Below it means energy short or extractors still going up.
 
 ### The game by the minute

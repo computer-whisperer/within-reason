@@ -165,6 +165,10 @@ fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
         briefing.metal.current, briefing.metal.income, briefing.metal.usage, e.current, e.storage,
         e.income - e.usage, if stalling { " STALLING: the energy store is empty and everything that needs it builds slowly" } else { "" }, briefing.wind, briefing.wind_range.0, briefing.wind_range.1, c.extractors, c.constructors, c.labs, c.turrets, c.converters
     ));
+    // Where we stand against the experienced players' games on this map, in a duel (H-PLAYER-REFERENCE-LINE).
+    if briefing.sides.iter().all(|side| side.seats.len() == 1) && briefing.sides.len() == 2 {
+        lines.extend(super::reference::line(briefing, s));
+    }
     if !field.wreck_fields.is_empty() || field.resurrection_bots > 0 {
         let fields: Vec<String> = field.wreck_fields.iter().take(5).map(|(at, metal, safe)| format!("{} {metal} metal{}", at.grid, if *safe { "" } else { " (not safe)" })).collect();
         lines.push(format!("wrecks: {} | resurrection bots {}", if fields.is_empty() { "none known".to_string() } else { fields.join(", ") }, field.resurrection_bots));

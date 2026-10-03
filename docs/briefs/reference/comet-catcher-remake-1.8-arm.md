@@ -45,7 +45,7 @@ First factory: armvp (40), armlab (1).
 
 **Where the numbers come from.**
 - *The factory at 0:34:* it is started after 2 extractors and 2 generators, every one within the commander's reach of the start (the sheet: 5 spots within 30 s of the commander).
-- *The first soldier in his half:* the unit was armfav (37), armflash (3), armpw (1); it crossed into his half 26 / 29 / 44 s after it was made. The pool's starts are 5928 apart at the median, and half of that at full speed is armcv 55 s, armfav 18 s, armflash 29 s, armstump 40 s. The start the sheet was made from is 7346 from his (+24%): every crossing there is that much longer.
+- *The first soldier in his half:* the unit was armfav (37), armflash (3), armpw (1); it crossed into his half 26 / 29 / 44 s after it was made. The pool's starts are 5928 apart at the median, and half of that at full speed is armcv 55 s, armfav 18 s, armflash 29 s, armstump 40 s. The start the sheet was made from is 5870 from his (-1%): every crossing there is that much longer.
 - *Income per extractor:* 2.01 / 2.20 / 2.30 metal a second over minutes 3 to 8 (income less the commander's 2, over the extractors standing); the sheet's figure for a spot here is 2.30. Below it means energy short or extractors still going up.
 
 ### The game by the minute

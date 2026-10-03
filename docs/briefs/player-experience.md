@@ -234,7 +234,7 @@ First factory: armvp (40), armlab (1).
 
 **Where the numbers come from.**
 - *The factory at 0:34:* it is started after 2 extractors and 2 generators, every one within the commander's reach of the start (the sheet: 5 spots within 30 s of the commander).
-- *The first soldier in his half:* the unit was armfav (37), armflash (3), armpw (1); it crossed into his half 26 / 29 / 44 s after it was made. The pool's starts are 5928 apart at the median, and half of that at full speed is armcv 55 s, armfav 18 s, armflash 29 s, armstump 40 s. The start the sheet was made from is 7346 from his (+24%): every crossing there is that much longer.
+- *The first soldier in his half:* the unit was armfav (37), armflash (3), armpw (1); it crossed into his half 26 / 29 / 44 s after it was made. The pool's starts are 5928 apart at the median, and half of that at full speed is armcv 55 s, armfav 18 s, armflash 29 s, armstump 40 s. The start the sheet was made from is 5870 from his (-1%): every crossing there is that much longer.
 - *Income per extractor:* 2.01 / 2.20 / 2.30 metal a second over minutes 3 to 8 (income less the commander's 2, over the extractors standing); the sheet's figure for a spot here is 2.30. Below it means energy short or extractors still going up.
 
 ### The game by the minute
@@ -351,7 +351,7 @@ First factory: corvp (24), corlab (15).
 
 **Where the numbers come from.**
 - *The factory at 0:59:* it is started after 3 extractors and 2 generators, every one within the commander's reach of the start (the sheet: 5 spots within 30 s of the commander).
-- *The first soldier in his half:* the unit was corfav (23), corak (15), corgator (1); it crossed into his half 36 / 60 / 94 s after it was made. The pool's starts are 6416 apart at the median, and half of that at full speed is corcv 63 s, corfav 21 s, corgator 38 s. The start the sheet was made from is 7346 from his (+15%): every crossing there is that much longer.
+- *The first soldier in his half:* the unit was corfav (23), corak (15), corgator (1); it crossed into his half 36 / 60 / 94 s after it was made. The pool's starts are 6416 apart at the median, and half of that at full speed is corcv 63 s, corfav 21 s, corgator 38 s. The start the sheet was made from is 5870 from his (-9%): every crossing there is that much longer.
 - *Income per extractor:* 2.00 / 2.10 / 2.29 metal a second over minutes 3 to 8 (income less the commander's 2, over the extractors standing); the sheet's figure for a spot here is 2.30. Below it means energy short or extractors still going up.
 
 ### The game by the minute
@@ -515,11 +515,11 @@ files. It has no resource or vision cheats.
 
 ## What this opponent's games look like: BARb hard_aggressive on Comet Catcher Remake 1.8
 
-- **The games:** 107 of ours against it that lasted 6 minutes or more, across many versions of our side, 11:39 / 22:28 / 30:10 long; the starts 6356 / 6422 / 7347 apart. Read from the truth file: everything he had, seen by us or not.
+- **The games:** 107 of ours against it that lasted 6 minutes or more, across many versions of our side, 11:39 / 22:44 / 30:23 long; the starts 6356 / 6422 / 7347 apart. Read from the truth file: everything he had, seen by us or not.
 - This is what he does, against the play we gave him. It is the opponent to expect, not a pace to match: the reference game is the people's.
 - **His first factory:** armlab (97), armvp (10), started 0:52 / 0:54 / 0:58. His second: 9:55 / 10:41 / 11:44 (80 of 107 games; armalab (70), armavp (10)).
 - **His first soldier in our half:** 1:48 / 1:50 / 1:56 (armflea (97), armfav (10)). Our first extractor lost: 2:44 / 3:09 / 3:42.
-- **His tier 2:** an advanced factory in 80 of 107 games (73 of the 74 that lasted 15 minutes), started 9:55 / 10:41 / 11:44: armalab (70), armavp (10).
+- **His tier 2:** an advanced factory in 80 of 107 games (74 of the 75 that lasted 15 minutes), started 9:55 / 10:41 / 11:44: armalab (70), armavp (10).
   When he started it he had 15 / 16 / 17 extractors and 2160 / 2542 / 3296 army metal.
 
 | Minute | Games | Extractors | Constructors | Turrets | Army metal | Soldiers | Soldiers in our half | Army made of (share of metal, 5% and over) |
@@ -536,11 +536,11 @@ files. It has no resource or vision cheats.
 | 10 | 88 | 14 / 16 / 17 | 11 / 12 / 13 | 15 / 18 / 19 | 2099 / 2590 / 3095 | 20 / 25 / 29 | 1 / 4 / 9 | armwar 30%, armpw 25%, armrock 22%, armham 8% |
 | 12 | 80 | 17 / 18 / 20 | 11 / 13 / 14 | 20 / 22 / 25 | 2280 / 3302 / 3851 | 18 / 27 / 34 | 1 / 7 / 14 | armwar 28%, armpw 21%, armrock 18%, armham 12% |
 | 14 | 75 | 18 / 20 / 22 | 12 / 14 / 15 | 22 / 27 / 30 | 1898 / 2999 / 4359 | 12 / 23 / 31 | 1 / 6 / 13 | armwar 21%, armpw 16%, armrock 11%, armfido 11%, armham 11%, armmav 9%, armflash 7% |
-| 16 | 71 | 19 / 22 / 24 | 13 / 15 / 17 | 26 / 30 / 34 | 2008 / 2852 / 4413 | 10 / 19 / 26 | 1 / 5 / 11 | armwar 16%, armsnipe 13%, armpw 12%, armfido 10%, armmav 10%, armham 10%, armflash 8%, armrock 6%, armzeus 6% |
-| 18 | 69 | 19 / 24 / 26 | 15 / 18 / 20 | 28 / 33 / 40 | 3118 / 3732 / 5157 | 12 / 19 / 28 | 1 / 5 / 11 | armsnipe 18%, armfboy 14%, armwar 13%, armham 9%, armpw 8%, armflash 7%, armfido 6%, armzeus 6%, armbull 5% |
-| 20 | 62 | 20 / 25 / 27 | 19 / 25 / 31 | 30 / 36 / 43 | 3572 / 5069 / 6349 | 16 / 24 / 33 | 1 / 6 / 15 | armfboy 22%, armsnipe 14%, armwar 10%, armham 9%, armflash 8%, armfido 7%, armstump 6%, armpw 6%, armzeus 6% |
-| 25 | 46 | 23 / 27 / 31 | 28 / 34 / 40 | 39 / 45 / 55 | 6248 / 9389 / 11536 | 23 / 31 / 40 | 6 / 14 / 22 | armfboy 24%, armstump 15%, armraz 9%, armsnipe 8%, armfido 8%, armflash 6%, armzeus 6% |
-| 30 | 28 | 26 / 32 / 35 | 38 / 49 / 60 | 48 / 55 / 65 | 11095 / 16360 / 21509 | 26 / 42 / 52 | 9 / 22 / 35 | armraz 25%, armfboy 17%, armstump 12%, armvang 11%, armfido 7%, armsnipe 5% |
+| 16 | 72 | 19 / 22 / 24 | 13 / 15 / 17 | 26 / 30 / 33 | 1996 / 2847 / 4396 | 10 / 19 / 25 | 1 / 5 / 11 | armwar 16%, armsnipe 13%, armpw 12%, armfido 10%, armmav 10%, armham 10%, armflash 8%, armrock 6%, armzeus 6% |
+| 18 | 70 | 19 / 24 / 26 | 15 / 18 / 20 | 28 / 32 / 40 | 3068 / 3728 / 5146 | 11 / 18 / 28 | 1 / 5 / 11 | armsnipe 18%, armfboy 14%, armwar 13%, armham 9%, armpw 8%, armflash 7%, armfido 6%, armzeus 6%, armbull 5% |
+| 20 | 64 | 20 / 25 / 27 | 19 / 25 / 31 | 30 / 36 / 43 | 3566 / 5046 / 6342 | 16 / 23 / 33 | 1 / 5 / 14 | armfboy 22%, armsnipe 14%, armwar 10%, armham 9%, armflash 8%, armfido 7%, armstump 7%, armpw 6%, armzeus 6% |
+| 25 | 47 | 24 / 27 / 31 | 28 / 33 / 40 | 40 / 45 / 55 | 6250 / 9196 / 11416 | 23 / 31 / 40 | 6 / 14 / 22 | armfboy 23%, armstump 15%, armraz 9%, armsnipe 8%, armfido 8%, armflash 6%, armzeus 6% |
+| 30 | 29 | 26 / 32 / 35 | 36 / 49 / 59 | 49 / 55 / 65 | 10904 / 16352 / 21443 | 25 / 41 / 51 | 6 / 19 / 34 | armraz 26%, armfboy 17%, armstump 12%, armvang 11%, armfido 6%, armsnipe 5% |
 
 
 ## Units and costs

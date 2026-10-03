@@ -594,6 +594,8 @@ impl Brain {
             (sum(&|t| t.1), sum(&|t| t.2))
         };
         let score = Score {
+            map: self.world.hello.map.name.clone(),
+            faction: self.faction().to_lowercase().chars().take(3).collect(),
             extractors: own.iter().filter(|u| kit.is_extractor(u.def) && !u.being_built).count(),
             extractor_peak: self.wake.extractor_peak,
             seconds_since_growth: (tick.frame - self.wake.growth_frame) / FRAMES_PER_SECOND,

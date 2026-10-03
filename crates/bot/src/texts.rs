@@ -41,6 +41,12 @@ fn root() -> Option<&'static PathBuf> {
     .as_ref()
 }
 
+/// A file of the checkout that has no compiled copy (the reference tables): its contents, or None away from a
+/// checkout or when it is not there.
+pub fn read_file(path: &str) -> Option<String> {
+    std::fs::read_to_string(root()?.join(path)).ok()
+}
+
 /// The text as it is on disk now, else as compiled. Says once per file where it reads from, and once per file when a
 /// read fails.
 pub fn read(text: &Text) -> String {

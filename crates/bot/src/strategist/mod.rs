@@ -8,6 +8,7 @@
 
 mod api;
 mod mcp;
+mod reference;
 mod report;
 pub mod seats;
 pub mod shared;
@@ -45,11 +46,31 @@ pub(crate) fn model() -> String {
 /// project knows (`docs/README.md`: the brief is rewritten from the knowledge base), then the game's objective.
 fn system_prompt() -> String {
     use crate::texts::{read, PLAYER_BRIEF, PLAYER_BRIEF_EXPERIENCE, PLAYER_PROMPT};
-    let brief = match std::env::var("WITHIN_REASON_BRIEF").as_deref() {
-        Ok("experience") => &PLAYER_BRIEF_EXPERIENCE,
-        _ => &PLAYER_BRIEF,
-    };
-    read(&PLAYER_PROMPT) + &read(brief) + &objective()
+    let experience = std::env::var("WITHIN_REASON_BRIEF").as_deref() == Ok("experience");
+    let brief = if experience { &PLAYER_BRIEF_EXPERIENCE } else { &PLAYER_BRIEF };
+    for_brief(&read(&PLAYER_PROMPT), if experience { "experience" } else { "standard" }) + &read(brief) + &objective()
+}
+
+/// The role text for one brief: a passage between `<!--brief:NAME-->` and `<!--/brief-->` is kept for the brief of
+/// that name and dropped for any other, the markers themselves always dropped.
+fn for_brief(text: &str, name: &str) -> String {
+    const OPEN: &str = "<!--brief:";
+    const CLOSE: &str = "<!--/brief-->";
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(start) = rest.find(OPEN) {
+        out.push_str(&rest[..start]);
+        let after = &rest[start + OPEN.len()..];
+        let Some(tag_end) = after.find("-->") else { break };
+        let (tag, body) = (&after[..tag_end], &after[tag_end + 3..]);
+        let end = body.find(CLOSE).unwrap_or(body.len());
+        if tag == name {
+            out.push_str(&body[..end]);
+        }
+        rest = body.get(end + CLOSE.len()..).unwrap_or("");
+    }
+    out.push_str(rest);
+    out
 }
 
 /// Turns are taken with the game held still (the brain asks for them, `brain/wake.rs`), unless the game is realtime.
@@ -596,6 +617,14 @@ What is known now: the map, the seats and our start box. What is not: where insi
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn the_role_text_keeps_the_passages_of_its_brief() {
+        let text = "a <!--brief:standard-->old<!--/brief--><!--brief:experience-->new<!--/brief--> b";
+        assert_eq!(super::for_brief(text, "standard"), "a old b");
+        assert_eq!(super::for_brief(text, "experience"), "a new b");
+        assert_eq!(super::for_brief("plain", "standard"), "plain");
+    }
+
     use super::*;
 
     /// The opening turn's prompt comes once, with the seats and the map and no report; the report after it is a

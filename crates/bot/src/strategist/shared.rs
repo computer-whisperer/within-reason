@@ -162,6 +162,9 @@ pub struct Score {
     pub enemy_deaths: Vec<(u32, i32, u32)>,
     /// The frame this score was taken at.
     pub frame: i32,
+    /// The map's name and this seat's faction ("arm", "cor"), for the report's reference line.
+    pub map: String,
+    pub faction: String,
     /// Metal of his buildings seen and not seen destroyed: with the deaths and the soldiers seen, a floor on what
     /// he has spent.
     pub enemy_buildings_metal: u32,

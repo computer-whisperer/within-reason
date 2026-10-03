@@ -66,10 +66,21 @@ def main():
     ap.add_argument("--floor", type=float, default=40)
     ap.add_argument("--sheet-from", required=True)
     ap.add_argument("--manifest", default=os.path.join(REPO, "run/data/replays/manifest.jsonl"))
+    ap.add_argument("--json-out", help="also write the by-minute table as JSON here: the bot's report reads it (`brain/reference.rs`)")
     a = ap.parse_args()
     sides = load(a.manifest, a.map, a.floor, a.faction)
     if not sides:
         sys.exit("no carded side matches")
+    if a.json_out:
+        table = {}
+        for minute in MINUTES:
+            have = [s for s in sides if minute in s["curve"]]
+            if len(have) < 6:
+                break
+            table[str(minute)] = {key: {**{k: round(v, 1) for k, v in (quartiles([s["curve"][minute].get(key) for s in have]) or {}).items()},
+                                        "won": med([s["curve"][minute].get(key) for s in have if s.get("won")])} for key, _ in CURVES}
+        apart = med([math.hypot(s["start"]["x"] - s["his_start"]["x"], s["start"]["z"] - s["his_start"]["z"]) for s in sides if s["his_start"]])
+        json.dump({"map": a.map, "faction": a.faction, "floor": a.floor, "sides": len(sides), "games": len({s["id"] for s in sides}), "starts_apart": round(apart), "minutes": table}, open(a.json_out, "w"), indent=1)
     record = sorted(f for f in os.listdir(a.sheet_from) if f.startswith("record-"))[0]
     header = json.loads(open(os.path.join(a.sheet_from, record)).readline())
     defs = {d["name"]: d for d in header["unit_defs"]}
