@@ -4977,7 +4977,7 @@
    "air": "",
    "sight": 273,
    "flags": [],
-   "gloss": "40-metal wind generator; output follows the map's wind, average 12 on Quicksilver; costs energy to build",
+   "gloss": "40-metal wind generator; output follows the map's wind (the picture's economy line says this map's average); costs energy to build",
    "prose": "The Wind Turbine makes whatever the wind gives, up to 25 energy a second, for 40 metal and 175 energy, 196 health. On a windy map it is the cheapest energy there is (about 3 metal per energy a second at an average of 12) and the bulk of a tier-1 economy; where the wind is weak the Solar Collector (armsolar) is the better buy. It costs energy to build, so a first turbine from an empty store stalls, and its output swings minute to minute, which is what storage and a solar or two are for."
   },
   "armyork": {
@@ -9963,7 +9963,7 @@
    "air": "",
    "sight": 273,
    "flags": [],
-   "gloss": "43-metal wind generator; output follows the map's wind, average 12 on Quicksilver; costs energy to build",
+   "gloss": "43-metal wind generator; output follows the map's wind (the picture's economy line says this map's average); costs energy to build",
    "prose": "The Wind Turbine makes whatever the wind gives, up to 25 energy a second, for 43 metal and 175 energy, 220 health. On a windy map it is the cheapest energy there is (about 3.5 metal per energy a second at an average of 12) and the bulk of a tier-1 economy; where the wind is weak the Solar Collector (corsolar) is the better buy. It costs energy to build, so a first turbine from an empty store stalls, and its output swings minute to minute, which is what storage and a solar or two are for."
   },
   "corwolv": {

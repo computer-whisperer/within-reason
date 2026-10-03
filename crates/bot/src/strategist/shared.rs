@@ -575,6 +575,13 @@ impl Shared {
         self.gate.lock().unwrap().in_progress
     }
 
+    /// Brain side, realtime: a turn is asked for or in hand, so the game is running on orders the player is still
+    /// writing: the thinking window, which lockstep's think penalty makes explicit (`brain/wake.rs`, the flight).
+    pub fn turn_in_hand(&self) -> bool {
+        let gate = self.gate.lock().unwrap();
+        gate.in_progress || gate.requested.is_some()
+    }
+
     /// MCP side, at the commander's `wait`: the game runs on and the rest of this response is refused.
     pub fn end_turn_at_wait(&self) {
         self.turn_over.store(true, std::sync::atomic::Ordering::Relaxed);
@@ -621,6 +628,26 @@ pub struct Side {
 mod tests {
     use super::*;
     use std::sync::atomic::Ordering::Relaxed;
+
+    /// Realtime: a turn is in hand from the brain's request to its end, and a request made meanwhile is dropped
+    /// (the next report carries the state); the wake logic keeps its reasons for after the turn (`brain/wake.rs`).
+    #[test]
+    fn a_realtime_turn_is_in_hand_from_its_request_to_its_end() {
+        let shared = Shared::default();
+        assert!(!shared.turn_in_hand());
+        shared.request_turn("a raid".into());
+        assert!(shared.turn_in_hand());
+        shared.request_turn("another".into());
+        assert_eq!(shared.gate.lock().unwrap().requested.as_deref(), Some("a raid"), "a second request while one waits is dropped");
+        {
+            let mut gate = shared.gate.lock().unwrap();
+            gate.requested = None;
+            gate.in_progress = true;
+        }
+        assert!(shared.turn_in_hand());
+        shared.end_turn();
+        assert!(!shared.turn_in_hand());
+    }
 
     /// The opening turn (`docs/design/2026-09-30-opening-turn.md`): asked for when the last seat of ours says Hello,
     /// the lockstep tick held and the hands waiting until a turn ends or the session is gone.

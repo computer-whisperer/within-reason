@@ -93,8 +93,12 @@ impl Brain {
         }
         let last_turn_frame = shared.last_turn_frame.load(Ordering::Relaxed);
         // A commander still "thinking" (its last orders not yet in force) cannot be asked again; what happens meanwhile
-        // is kept for its next turn.
-        let busy = shared.apply_delayed(tick.frame);
+        // is kept for its next turn. In lockstep that is the think penalty's window; in realtime it is the turn
+        // itself, from the request to its end, while the game runs on (the user, 2026-10-03: the thinking window
+        // "should be symmetric with the thinking penalty we run in lockstep mode"; human-10 and -11 had no flight
+        // review at all, and the reasons raised during a turn went to `request_turn`, which drops them while a turn
+        // is in hand: 4 loss wakes for 68 units lost in human-11).
+        let busy = shared.apply_delayed(tick.frame) || (!shared.lockstep.load(Ordering::Relaxed) && shared.turn_in_hand());
         let wake = shared.wake.lock().unwrap().clone();
         let field = shared.field();
         let mut reasons: Vec<String> = std::mem::take(&mut self.wake.pending);
