@@ -219,3 +219,24 @@ at 22:21). Fixed: a release re-sends nothing the host gave this tick (`crates/mi
 **Evidence.** `run/matches/1790646080-player-22-commit/00/record-0.jsonl` (the `cmd` rows of minute 22); the review
 agent's report on the game.
 **Status.** fixed 2026-09-28. It cost nothing in play by itself; it doubled every order storm and the counts.
+
+### K-form-the-form-up-rank-assumed-flat-ground-and-a-compact-body
+**Claim.** The march's form-up block (ranks 300 ahead of the body's centre, the same slot indices as at the
+destination) breaks a body that is strung out or standing on broken ground: units ahead of the block are sent back to
+it, points land on ground the units cannot climb, the units with a short way reach their points and go on alone, and
+the rest arrive one by one.
+**Status.** observed in one game (the user watching the replay, 2026-10-03), measured from its record. player-49
+12:33 (f 22590), group_O, 25 units with a chained pair of fight orders: the body lay over about 760 elmos with its
+centre (4412, 2349) in a crater (x 4290-4520, z 2200-2400, rim to height 322 on a floor of 237); 8 of the 25 form-up
+points on rim cells of slope 57-104 against the tank classes' limit of 28 (the snap used the Pawn's field, limit 105);
+four Stouts at x 4580-4735 given form-up points 290-360 behind them; the tail given points 640-800 away. 11 of 25
+ever reached their form-up point (12:33-12:45), the destination points were reached singly 12:43-12:49, two of the
+group died at 12:37 and 12:39. The chain was sent three times in four seconds (the hands' shell / attack / shell at
+12:33, 12:35, 12:36), each from a moved centre.
+**Evidence.** `run/matches/1791038139-player-49/00/record-0.jsonl` (`cmd` rows at f 22590, the `s` rows after),
+`terrain-0.bin`; `crates/micro/src/lib.rs` `form` (the march), `crates/bot/src/brain/routes.rs` `survey` (the home
+field is the raider's class).
+**Would be wrong if.** A game after the 2026-10-03 fixes shows a body still arriving one by one from a march with no
+re-orders in it (then the cause is the strung-out body itself or the centre-based contact test, both left as they are).
+**Used by.** H-MICRO-FORM (the 2026-10-03 amendment). Open: "engaged" is judged from the body's centre, so a strung-out
+body whose head is in contact still marches; a strung-out body is not gathered before it forms.

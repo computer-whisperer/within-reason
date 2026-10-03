@@ -212,8 +212,8 @@ impl View for BrainView<'_> {
         self.brain.passable()
     }
 
-    fn snap(&self, pos: Vec3) -> Vec3 {
-        self.brain.snap_to_reachable(pos)
+    fn snap(&self, def: UnitDefId, pos: Vec3) -> Vec3 {
+        self.brain.snap_for(self.brain.walker_of(def), pos)
     }
 
     fn home(&self) -> Vec3 {

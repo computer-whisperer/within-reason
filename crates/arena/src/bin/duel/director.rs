@@ -850,7 +850,7 @@ impl View for DuelView<'_> {
         None
     }
 
-    fn snap(&self, pos: Vec3) -> Vec3 {
+    fn snap(&self, _def: UnitDefId, pos: Vec3) -> Vec3 {
         pos
     }
 

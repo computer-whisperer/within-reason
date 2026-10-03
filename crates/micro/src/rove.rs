@@ -262,7 +262,7 @@ impl Lane {
                 let reorder = rover.evading.is_none_or(|(sent, at)| (sent.dist2d(cell) > REORDER_DISTANCE || arrived) && frame - at >= REORDER_FRAMES);
                 if reorder {
                     // Stretched past the cell so the engine does not brake short of it, unless that runs into a margin.
-                    let far = view.snap(Vec3 { x: unit.pos.x + (cell.x - unit.pos.x) * STEP_REACH, y: 0.0, z: unit.pos.z + (cell.z - unit.pos.z) * STEP_REACH });
+                    let far = view.snap(unit.def, Vec3 { x: unit.pos.x + (cell.x - unit.pos.x) * STEP_REACH, y: 0.0, z: unit.pos.z + (cell.z - unit.pos.z) * STEP_REACH });
                     let to = if depth(&danger, far, 0.0) > depth(&danger, cell, 0.0) { cell } else { far };
                     rover.evading = Some((cell, frame));
                     rover.sent = Some((Order::Move(to), frame));
@@ -327,7 +327,7 @@ impl Lane {
                 let (dx, dz) = (unit.pos.x - at.x, unit.pos.z - at.z);
                 let d = dx.hypot(dz);
                 let short = (sight * LOOK_SHARE).min(d);
-                if d < 1.0 { at } else { view.snap(Vec3 { x: at.x + dx / d * short, y: 0.0, z: at.z + dz / d * short }) }
+                if d < 1.0 { at } else { view.snap(unit.def, Vec3 { x: at.x + dx / d * short, y: 0.0, z: at.z + dz / d * short }) }
             };
             if let Some(goal) = rover.goal.as_mut() {
                 let now = goals.iter().find(|g| g.name == goal.name);
@@ -447,6 +447,8 @@ mod tests {
         defs: Vec<UnitDefInfo>,
         buildings: Vec<(UnitId, UnitDefId, Vec3)>,
         goals: Vec<RoveGoal>,
+        /// Ground nothing stands on: a point inside it snaps to its edge.
+        pit: Option<(Vec3, f32)>,
     }
 
     impl Host {
@@ -458,7 +460,7 @@ mod tests {
                 def(EXTRACTOR, "armmex", 0.0, 0, 0.0, 0.002),
                 def(CONSTRUCTOR, "armck", 36.0, 0, 80.0, 0.0),
             ];
-            Host { defs, buildings: Vec::new(), goals }
+            Host { defs, buildings: Vec::new(), goals, pit: None }
         }
     }
 
@@ -482,8 +484,14 @@ mod tests {
         fn passable(&self) -> Option<&[bool]> {
             None
         }
-        fn snap(&self, pos: Vec3) -> Vec3 {
-            pos
+        fn snap(&self, _def: UnitDefId, pos: Vec3) -> Vec3 {
+            match self.pit {
+                Some((centre, radius)) if pos.dist2d(centre) < radius => {
+                    let d = pos.dist2d(centre).max(1.0);
+                    Vec3 { x: centre.x + (pos.x - centre.x) / d * radius, y: pos.y, z: centre.z + (pos.z - centre.z) / d * radius }
+                }
+                _ => pos,
+            }
         }
         fn home(&self) -> Vec3 {
             at(200.0, 200.0)
@@ -648,6 +656,51 @@ mod tests {
         assert!(!first.is_empty(), "the Rover is ordered");
         let ahead = first[0].x - 1000.0;
         assert!(ahead < 700.0 && first[0].dist2d(goal) > 2000.0, "the Rover's first point is a rank {ahead:.0} ahead of the body, not the goal: {first:?}");
+    }
+
+    /// A strung-out body's form-up rank lies among its own units: one already past its point is not sent back to
+    /// it (player-49 12:33: four Stouts ahead of the block were sent 290-360 back).
+    #[test]
+    fn the_march_sends_no_unit_back_to_form_up() {
+        let host = Host::new(Vec::new());
+        let mut lane = Lane::default();
+        let ids: Vec<i32> = (10..22).collect();
+        let marching = crate::Footwork { flee: false, fan: false, kite: false, form: true, march: true, rove: false };
+        lane.set_commitments(HashMap::new(), ids.iter().map(|id| (UnitId(*id), marching)).collect());
+        // Twelve Pawns in a file 880 long toward the goal: the rank 300 ahead of its centre lies behind its head.
+        let mut body: Vec<OwnUnit> = ids.iter().enumerate().map(|(i, id)| rover(*id, 1000.0 + 80.0 * i as f32, 1000.0)).collect();
+        for u in body.iter_mut() {
+            u.def = PAWN;
+        }
+        let goal = at(4000.0, 1000.0);
+        let mut host_orders: Vec<Command> = ids.iter().map(|id| Command::Fight { unit: UnitId(*id), to: goal, queue: false }).collect();
+        lane.note_standing_orders(&host_orders, 30, |_| true);
+        let out = lane.tick(&host, &tick(30, body.clone(), Vec::new()), &mut host_orders, false);
+        for unit in &body {
+            let first = host_orders.iter().chain(out.commands.iter()).find_map(|c| match c { Command::Fight { unit: u, to, queue: false } | Command::Move { unit: u, to, queue: false } if *u == unit.id => Some(*to), _ => None });
+            let first = first.expect("every unit is ordered");
+            assert!(first.x > unit.pos.x, "unit {:?} at x {:.0} is sent back to {first:?}", unit.id, unit.pos.x);
+        }
+    }
+
+    /// A form-up rank with a point its unit cannot stand on is not walked to: the body takes its points at the
+    /// destination alone (player-49 12:33: the block lay over a crater).
+    #[test]
+    fn the_march_skips_a_form_up_rank_that_does_not_fit_the_ground() {
+        let mut host = Host::new(Vec::new());
+        host.pit = Some((at(1544.0, 1040.0), 150.0));
+        let mut lane = Lane::default();
+        let ids = [10, 11, 12, 13, 14, 15];
+        let marching = crate::Footwork { flee: false, fan: false, kite: false, form: true, march: true, rove: false };
+        lane.set_commitments(HashMap::new(), ids.iter().map(|id| (UnitId(*id), marching)).collect());
+        let body: Vec<OwnUnit> = ids.iter().enumerate().map(|(i, id)| rover(*id, 1000.0 + 40.0 * (i % 3) as f32, 1000.0 + 40.0 * (i / 3) as f32)).collect();
+        let goal = at(4000.0, 1000.0);
+        let mut host_orders: Vec<Command> = ids.iter().map(|id| Command::Fight { unit: UnitId(*id), to: goal, queue: false }).collect();
+        lane.note_standing_orders(&host_orders, 30, |_| true);
+        let out = lane.tick(&host, &tick(30, body, Vec::new()), &mut host_orders, false);
+        let all: Vec<&Command> = host_orders.iter().chain(out.commands.iter()).collect();
+        assert!(all.iter().all(|c| !matches!(c, Command::Fight { queue: true, .. } | Command::Move { queue: true, .. })), "no chained order: {all:?}");
+        assert!(all.iter().all(|c| match c { Command::Fight { to, .. } | Command::Move { to, .. } => to.dist2d(goal) < 600.0, _ => true }), "every point is at the destination: {all:?}");
     }
 
     #[test]

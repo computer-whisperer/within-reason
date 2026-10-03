@@ -284,8 +284,9 @@ pub trait View {
     fn grid_spec(&self) -> (f32, usize, usize);
     /// One flag a cell in the grid's order: whether our soldiers can stand there; `None` when not known.
     fn passable(&self) -> Option<&[bool]>;
-    /// The reachable ground nearest `pos`; `pos` itself when the host cannot tell.
-    fn snap(&self, pos: Vec3) -> Vec3;
+    /// The ground a unit of this type can reach nearest `pos` (its own movement class: a point a bot stands on can
+    /// be a slope no tank climbs); `pos` itself when the host cannot tell.
+    fn snap(&self, def: UnitDefId, pos: Vec3) -> Vec3;
     fn home(&self) -> Vec3;
     /// Armed buildings of theirs the host remembers, in sight or not: id, type, place.
     fn remembered_buildings(&self) -> Vec<(UnitId, UnitDefId, Vec3)>;
@@ -806,7 +807,7 @@ impl Lane {
                         if state.sent_to_sighting.get(&unit.id) != Some(&at) {
                             state.sent_to_sighting.insert(unit.id, at);
                             let ahead = (frame - at) as f32;
-                            let to = view.snap(Vec3 { x: pos.x + vel.x * ahead, y: pos.y, z: pos.z + vel.z * ahead });
+                            let to = view.snap(unit.def, Vec3 { x: pos.x + vel.x * ahead, y: pos.y, z: pos.z + vel.z * ahead });
                             self.claims.insert(unit.id, Claim { rule: Rule::Hunt, sent_to: to, target: Some(quarry), frame, stance: None, kind: None });
                             self.counts.1 += 1;
                             commands.push(Command::Move { unit: unit.id, to, queue: false });
@@ -880,7 +881,7 @@ impl Lane {
                 // The order goes further along the step's direction than the cell, so the unit is not held in the
                 // engine's braking zone; the cell is what the claim remembers.
                 let (dx, dz) = (cell.x - unit.pos.x, cell.z - unit.pos.z);
-                let to = view.snap(Vec3 { x: unit.pos.x + dx * STEP_REACH, y: 0.0, z: unit.pos.z + dz * STEP_REACH });
+                let to = view.snap(unit.def, Vec3 { x: unit.pos.x + dx * STEP_REACH, y: 0.0, z: unit.pos.z + dz * STEP_REACH });
                 self.claims.insert(unit.id, Claim { rule: Rule::Flee, sent_to: cell, target: None, frame, stance: None, kind: None });
                 commands.push(Command::Move { unit: unit.id, to, queue: false });
             }
@@ -934,7 +935,7 @@ impl Lane {
                 let left = inside.iter().filter(|f| f.id != unit.id && f.pos.dist2d(unit.pos) < 2.0 * step_len && across(f) > across(unit)).count();
                 let right = inside.iter().filter(|f| f.id != unit.id && f.pos.dist2d(unit.pos) < 2.0 * step_len && across(f) < across(unit)).count();
                 let side = if left <= right { 1.0 } else { -1.0 };
-                let step = view.snap(Vec3 { x: unit.pos.x + -uz * step_len * side, y: 0.0, z: unit.pos.z + ux * step_len * side });
+                let step = view.snap(unit.def, Vec3 { x: unit.pos.x + -uz * step_len * side, y: 0.0, z: unit.pos.z + ux * step_len * side });
                 let fresh = claim.is_none_or(|c| c.rule != Rule::Fan);
                 let reorder = claim.is_none_or(|c| c.sent_to.dist2d(step) > REORDER_DISTANCE / 2.0 && frame - c.frame >= REORDER_FRAMES);
                 if fresh {
@@ -1002,7 +1003,7 @@ impl Lane {
         let (dx, dz) = (unit.pos.x - enemy.pos.x, unit.pos.z - enemy.pos.z);
         let len = dx.hypot(dz).max(1.0);
         let back = (reach - KITE_EDGE - distance).max(0.0) + KITE_STEP;
-        let step = view.snap(Vec3 { x: unit.pos.x + dx / len * back, y: 0.0, z: unit.pos.z + dz / len * back });
+        let step = view.snap(unit.def, Vec3 { x: unit.pos.x + dx / len * back, y: 0.0, z: unit.pos.z + dz / len * back });
         if claim.is_some_and(|c| c.0 == Rule::Kite && c.2.is_none() && c.1.dist2d(step) < REORDER_DISTANCE / 2.0 && frame - c.3 < REORDER_FRAMES) {
             return true;
         }
@@ -1106,7 +1107,7 @@ impl Lane {
                 for (i, member) in body.iter().enumerate() {
                     let Some(unit) = by_id.get(&member.id) else { continue };
                     let unit_reach = view.stats(unit.def).map_or(0.0, |s| s.reach);
-                    let slot = view.snap(slots[slot_of[i]]);
+                    let slot = view.snap(unit.def, slots[slot_of[i]]);
                     let nearest = enemies.iter().min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)));
                     let distance = nearest.map_or(f32::INFINITY, |e| e.pos.dist2d(unit.pos));
                     let claim = self.claims.get(&unit.id).filter(|c| c.rule == Rule::Form);
@@ -1153,14 +1154,24 @@ impl Lane {
             let fastest = body.iter().filter_map(|m| by_id.get(&m.id)).filter_map(|u| view.stats(u.def)).map(|s| s.speed).fold(0.0, f32::max);
             let ahead = FORM_UP_LEAD.max(fastest * FORM_UP_SECONDS).min(goal.dist2d(centre) * 0.5);
             let form_up = form::slots(Vec3 { x: centre.x + h.0 * ahead, y: centre.y, z: centre.z + h.1 * ahead }, h, body.len(), spacing, form::FILES);
+            // The form-up rank is for ground it fits on: when a point of it is not where its unit can stand (the
+            // snap moves it), the body takes its points at the destination alone (player-49 12:33: the block lay
+            // over a crater, eight of 25 points on its rim, and the body milled round it while the units with a
+            // short way went on alone).
+            let fits = body.iter().enumerate().all(|(i, member)| by_id.get(&member.id).is_none_or(|u| view.snap(u.def, form_up[slot_of[i]]).dist2d(form_up[slot_of[i]]) <= ARRIVED));
             for (i, member) in body.iter().enumerate() {
                 let Some(unit) = by_id.get(&member.id) else { continue };
-                let slot = view.snap(slots[slot_of[i]]);
+                let slot = view.snap(unit.def, slots[slot_of[i]]);
                 let make = |to: Vec3, queue: bool| match order {
                     form::Order::Move(_) => Command::Move { unit: unit.id, to, queue },
                     _ => Command::Fight { unit: unit.id, to, queue },
                 };
-                let first = Some(view.snap(form_up[slot_of[i]])).filter(|f| f.dist2d(slot) > ARRIVED && f.dist2d(unit.pos) > ARRIVED);
+                // A unit already past its form-up point is never sent back to it: it walks to its point at the
+                // destination (the same game: four Stouts ahead of the block were sent 290-360 back to its rear).
+                let first = Some(view.snap(unit.def, form_up[slot_of[i]]))
+                    .filter(|_| fits)
+                    .filter(|f| f.dist2d(slot) > ARRIVED && f.dist2d(unit.pos) > ARRIVED)
+                    .filter(|f| (f.x - unit.pos.x) * h.0 + (f.z - unit.pos.z) * h.1 > 0.0);
                 let form_order = match first {
                     Some(first) => FormOrder { stance: Stance::March, command: Some(make(first, false)), then: Some(make(slot, true)), at: slot, target: None },
                     None => FormOrder { stance: Stance::March, command: Some(make(slot, false)), then: None, at: slot, target: None },
