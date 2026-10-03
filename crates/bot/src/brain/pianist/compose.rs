@@ -29,7 +29,7 @@ pub(super) const FLAG: f64 = 0.5;
 /// its soldiers; this noul rated the ball's hunts a median 0.84 against the early ordered hunts' 0.53, and with the
 /// sentence on the line the forbidden hunts beat world 1 in 10 of 181 picks for 172).
 pub(super) const FORBIDDEN: f64 = 0.7;
-/// An actor's moves in the worlds at most: its best by the gate. A party that needs answering puts forward as many.
+/// An actor's moves in the worlds at most: its best by the gate.
 const DEPTH: usize = 2;
 /// An idle actor with no move at the flag still puts its best move to the pick when it is rated this high
 /// (onepass-medium-2: the commander idled six minutes on an extractor rated 0.48).
@@ -194,9 +194,10 @@ pub(super) fn rated(menus: &[Menu], answers: &BTreeMap<String, Answer>) -> Rated
 
 /// Per menu, the moves that go to the pick, best first: (rank, move index). A move goes when Jev rated it at the
 /// flag or over and its opener is open (the actor's `change`, or the `answer` of the party it is aimed at); an idle
-/// actor's best move goes at `IDLE_BAR` when none reaches the flag; and a party Jev says needs answering puts
-/// forward the `DEPTH` best-rated moves aimed at it whatever their rating (K-jev-a-response-opens-by-the-party-
-/// noul-not-its-own). Of an actor's moves the `DEPTH` best go on. `flags` receives what the gate said.
+/// actor's best move goes at `IDLE_BAR` when none reaches the flag. A party's `answer` opens a move in place of the
+/// actor's `change`, never in place of the move's own rating (until 2026-10-03 the `DEPTH` best-rated moves aimed at
+/// a party that needs answering went whatever their rating: K-jev-a-partys-answer-carries-low-rated-moves-and-they-
+/// move-armies). Of an actor's moves the `DEPTH` best go on. `flags` receives what the gate said.
 fn candidates(menus: &[Menu], answers: &BTreeMap<String, Answer>, flags: &mut BTreeMap<String, f64>) -> Vec<Vec<(f64, usize)>> {
     let noul = |id: &str| match answers.get(id) {
         Some(Answer::Noul { noul }) => Some(*noul),
@@ -210,25 +211,8 @@ fn candidates(menus: &[Menu], answers: &BTreeMap<String, Answer>, flags: &mut BT
         }
     }
     let answer_of = |party: &str| noul(&format!("{party}.answer"));
-    // Per party that needs answering, the best-rated moves aimed at it: (menu, move).
-    let mut against: BTreeMap<&str, Vec<(f64, usize, usize)>> = BTreeMap::new();
-    for (mi, menu) in menus.iter().enumerate() {
-        for (ti, m) in menu.moves.iter().enumerate().skip(1).filter(|(_, m)| m.playable()) {
-            if let Some(party) = m.party.as_deref()
-                && answer_of(party).is_some_and(|a| a >= FLAG)
-                && let Some(r) = noul(&menu.id(m))
-            {
-                against.entry(party).or_default().push((r, mi, ti));
-            }
-        }
-    }
-    let mut put: BTreeSet<(usize, usize)> = BTreeSet::new();
-    for list in against.values_mut() {
-        list.sort_by(|a, b| b.0.total_cmp(&a.0));
-        put.extend(list.iter().take(DEPTH).map(|(_, mi, ti)| (*mi, *ti)));
-    }
     let mut out = Vec::new();
-    for (mi, menu) in menus.iter().enumerate() {
+    for menu in menus {
         let mut mine: Vec<(f64, usize)> = Vec::new();
         // A closed actor's own moves stay out (an audited one's answers are logged, not played); its moves aimed at
         // a party go by the party's answer.
@@ -244,7 +228,10 @@ fn candidates(menus: &[Menu], answers: &BTreeMap<String, Answer>, flags: &mut BT
                 continue;
             }
             let by_actor = (opened && r >= bar).then(|| change.unwrap_or(0.0) * r);
-            let by_party = m.party.as_deref().and_then(answer_of).filter(|a| *a >= FLAG && (r >= FLAG || put.contains(&(mi, ti)))).map(|a| a * r.max(0.01));
+            // The party's answer opens the move in place of the actor's `change`; the move's own rating still has
+            // to reach the flag (the user, 2026-10-03, after player-49: 23 of group_O's picks were moves rated
+            // under 0.5 carried by a party's answer, the army sent to shell one Blitz 3,900 away at 0.28-0.39).
+            let by_party = m.party.as_deref().and_then(answer_of).filter(|a| *a >= FLAG && r >= FLAG).map(|a| a * r);
             if let Some(rank) = [by_actor, by_party].into_iter().flatten().reduce(f64::max) {
                 mine.push((rank, ti));
             }
@@ -871,11 +858,11 @@ mod tests {
         // The group's change says no and the party needs no answer: nothing of the group goes, whatever its moves rate.
         let quiet = rank(&nouls(&[("party_7.answer", 0.2), ("group_A.change", 0.3), ("group_A.go_spot_30", 0.9), ("group_A.attack_party_7", 0.9), ("constructor_3.build_armmex_spot_4", 0.2), ("constructor_3.build_armsolar", 0.1)]));
         assert!(quiet[0].is_empty() && quiet[2].is_empty(), "{quiet:?}");
-        // The party needs answering: its two best answers go though under the flag, the third does not; the walk
-        // stays closed with the group's own change.
-        let raid = rank(&nouls(&[("party_7.answer", 0.9), ("group_A.change", 0.3), ("group_A.go_spot_30", 0.9), ("group_A.attack_party_7", 0.4), ("group_A.send_2_party_7", 0.45), ("group_B.attack_party_7", 0.1), ("group_B.change", 0.1)]));
-        assert_eq!(raid[0].iter().map(|(_, ti)| *ti).collect::<Vec<_>>(), vec![3, 2], "{raid:?}");
-        assert!(raid[1].is_empty(), "the third-best answer to the party stays home: {raid:?}");
+        // The party needs answering: that opens the group in place of its own change, for the answers at the flag
+        // or over; the ones under it stay home however much the party needs answering.
+        let raid = rank(&nouls(&[("party_7.answer", 0.9), ("group_A.change", 0.3), ("group_A.go_spot_30", 0.9), ("group_A.attack_party_7", 0.4), ("group_A.send_2_party_7", 0.55), ("group_B.attack_party_7", 0.1), ("group_B.change", 0.1)]));
+        assert_eq!(raid[0].iter().map(|(_, ti)| *ti).collect::<Vec<_>>(), vec![3], "{raid:?}");
+        assert!(raid[1].is_empty(), "{raid:?}");
         // An idle builder with nothing at the flag: its moves at the low bar or over go.
         let idle = rank(&nouls(&[("constructor_3.build_armmex_spot_4", 0.35), ("constructor_3.build_armsolar", 0.31)]));
         assert_eq!(idle[2].iter().map(|(_, ti)| *ti).collect::<Vec<_>>(), vec![1, 2]);
@@ -1074,7 +1061,7 @@ mod tests {
         let Question::Noul { instructions, .. } = &qs["group_A.attack_party_1"] else { panic!("a noul") };
         assert!(instructions.as_str().unwrap().starts_with("Is this the move to make against party_1 now, rather than what stands (nobody moves for it)?"), "a move aimed at a party is asked as an answer to it");
         let line_of = |forbidden: f64| {
-            let answers = nouls(&[("party_1.answer", 0.8), ("group_A.change", 0.2), ("group_A.send_2_party_1", 0.6), ("group_A.attack_party_1", 0.4), ("group_A.send_2_party_1.forbidden", forbidden)]);
+            let answers = nouls(&[("party_1.answer", 0.8), ("group_A.change", 0.2), ("group_A.send_2_party_1", 0.6), ("group_A.attack_party_1", 0.55), ("group_A.send_2_party_1.forbidden", forbidden)]);
             let followed = follow_up(&menus, &parties, &[], &answers, "", CAP, &json!({}));
             assert_eq!(followed.flags["group_A.send_2_party_1.forbidden"], forbidden);
             let (worlds, lines, _) = followed.worlds.expect("the party opened");
@@ -1134,7 +1121,7 @@ mod tests {
         assert_eq!(ids, ["party_7.answer", "group_A.send_1_party_7", "group_A.send_1_party_7.forbidden", "group_B.change", "group_B.go_spot_30"]);
         let answers = nouls(&[("party_7.answer", 0.2), ("group_A.send_1_party_7", 0.9), ("group_B.change", 0.9), ("group_B.go_spot_30", 0.9)]);
         assert!(compose(&menus, &answers, &mut BTreeMap::new(), CAP).is_none(), "the audit's answers move nobody, and a party that needs no answer opens nothing");
-        let answers = nouls(&[("party_7.answer", 0.8), ("group_A.send_1_party_7", 0.4), ("group_B.change", 0.9), ("group_B.go_spot_30", 0.9)]);
+        let answers = nouls(&[("party_7.answer", 0.8), ("group_A.send_1_party_7", 0.6), ("group_B.change", 0.9), ("group_B.go_spot_30", 0.9)]);
         let (worlds, _) = compose(&menus, &answers, &mut BTreeMap::new(), CAP).expect("the party opens its answers");
         assert_eq!(worlds, vec![vec![0, 0], vec![2, 0]]);
     }

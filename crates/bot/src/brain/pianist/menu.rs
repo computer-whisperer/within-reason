@@ -898,7 +898,7 @@ impl Brain {
                 push(
                     format!("shell_{}", party.name),
                     Order::Shell(His::Party(party.name.clone())),
-                    format!("{name} shells {party_words} with its {arty_words} from their reach, its other {screen} soldiers standing between as the screen: {}{other}{leaves}", verdict(&odds)),
+                    format!("{name} shells {party_words} ({}) with its {arty_words} from their reach, its other {screen} soldiers standing between as the screen: {}{other}{leaves}", way_words(distance, speed), verdict(&odds)),
                     format!("shelling {}", party.name),
                     Some(party),
                     false,

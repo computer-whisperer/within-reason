@@ -1716,7 +1716,16 @@ picked a hunt the second after the player wrote "no hunts", which is Jev's readi
 ### K-jev-a-partys-answer-carries-low-rated-moves-and-they-move-armies
 **Claim.** When a party's `answer` opens the moves aimed at it, the moves that go to the pick are mostly ones Jev itself rated under 0.5, and the pick's second stage takes them: an army on a course is turned onto one raider, or flips between attacking a party and walking from it.
 **Evidence.** player-34-rebuild-base: 122 of 291 picks that sent a group at a party were of a move rated under 0.5; at 12:56 the main army of 45, advancing and closed by the `news` layer, was turned to shell one Pawn (the move 0.35, the Pawn's `answer` 0.53) and walked from C6 to B3 a minute before the fight that decided the game. player-35-rebuild-layers: 130 of 281, 105 of them carried by the party's `answer` alone and 47 of those on a body of twenty or more; 16:03-16:23 nine picks at three Hounds under a nest (six rated 0.34 to 0.48), ten Stouts lost; 28:46-28:58 eleven picks in thirteen seconds between attacking a Razorback (0.26 to 0.40, the `answer` 0.71 to 0.74) and walking from it (0.51 to 0.66). Counts from the logs (`worlds_gate.flags` beside each `plan` line's played move); the cases from the games' reviews.
-**Status.** observed 2026-10-02 in two games. The rule is the rebuild note's §4 ("a move aimed at a party is also a candidate when that party's `answer` is 0.5 or over") as built in §14 (the two best-rated moves aimed at the party go whatever their rating); the old party menus had the same rule over the three nearest groups. Not changed: the user's to rule.
+**Status.** observed 2026-10-02 in two games. The rule is the rebuild note's §4 ("a move aimed at a party is also a candidate when that party's `answer` is 0.5 or over") as built in §14 (the two best-rated moves aimed at the party go whatever their rating); the old party menus had the same rule over the three nearest groups. Not changed then: the user's to rule.
+**Ruled and built 2026-10-03 (the user, after player-49):** a party's `answer` opens a move in place of the actor's
+`change`, and the move's own rating must reach 0.5 (`compose.rs` `candidates`; the top-two rule deleted). Chose because:
+in player-49 23 of group_O's 74 picks at a party were moves under 0.5 (18 of them shells; the army sent to shell one
+Blitz 3,900 away at 0.28-0.39 four times), and words alone did not stop it (the walking distance added to the shell
+move lowers a far shell 0.04 on average, 61 moves replayed, and what took its place in the top two at 14:03 was a
+forbidden detachment of the same army). Rejected because: the top-two rule was built so a raid always had an answer
+(K-jev-a-response-opens-by-the-party-noul-not-its-own: a builder's attack on a raider rated 0.31-0.43). The cost to
+watch: in the same game the bar would also have held back 51 of the small groups' 124 picks at a party (28 attacks,
+18 detachments) and both of the builders'. Unmeasured in a game.
 **Would be wrong if.** With party-aimed moves held to their own 0.5, raids on extractors go unanswered (the reason the rule exists: K-jev-a-response-opens-by-the-party-noul-not-its-own), or the armies' turns come as often from moves rated 0.5 and over.
 
 ### K-jev-reads-a-packet-once-well-enough-to-fuse-for-the-actors-it-names
