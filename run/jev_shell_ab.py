@@ -46,6 +46,18 @@ def arm_request(arm, state, questions, actor, party):
         qs = {k: v for k, v in qs.items() if not k.startswith(actor + ".shell_")}
     if arm == "named":
         st["instructions"] = st["instructions"].rstrip() + f"\n\n{actor} attacks {party} now with the whole group and keeps attacking until it is dead."
+    if arm in ("tail", "dup"):
+        # Position within the instructions: the actor's own paragraph said again at the end (`dup`), or only its
+        # first sentence, the player's own words for the fight, as the last line (`tail`).
+        paras = st["instructions"].split("\n\n")
+        own = [p for p in paras if p.lstrip().startswith(actor)]
+        if own:
+            first = re.match(r"(.*?\.)(\s|$)", own[0].replace(f"{actor} is the army. ", f"{actor} ", 1))
+            add = own if arm == "dup" else [first.group(1) if first else own[0]]
+            st["instructions"] = "\n\n".join(paras + add)
+    if arm == "last":
+        # Section order: `instructions` after `rules`, the last key of the state (K-jev-answers-move-with-the-order-of-the-pictures-sections scored this order blind on 2026-10-02).
+        ins = st.pop("instructions"); st["instructions"] = ins
     if arm in ("course", "noshell_course"):
         clause = whole_group(st, actor, party)
         if clause:
