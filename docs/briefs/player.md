@@ -80,6 +80,23 @@ have the same shape and opposite answers, the difference between them is the thi
   building other units while doing t2 transition", thebluegecko, game 10). Say which scenario you are in before you
   choose.
 
+- **Income past the spot count is tier-2 extractors and advanced solars: build a lot more of both** (the user,
+  2026-10-02, from human-10, player-40 and player-42: "we need to be building a lot more t2 mexes and advanced
+  solar"). A side that holds its half of the spots has reached its tier-1 income: player-42 held 27 to 35
+  extractors from 15:00 and never passed 128 a second, human-10's three seats had 35 extractors and 70 a second at
+  12:00 while the opponent said "not a unit choice problem, a not enough mex problem". The tier-2 extractor
+  (`armmoho`/`cormoho`, the role word `advanced_extractor`: `advanced_extractor spot_N` over our extractor there)
+  gives four times the metal of the spot it replaces for 620 metal and 20 energy a second, and the advanced solar
+  (`armadvsol`/`coradvsol`, 80 energy a second for 350 metal) is the energy for them and for the tier-2 plant: one
+  per four mohos, and more for the plant. So from the moment an advanced constructor stands, every held spot is a
+  moho in turn, the nearest home first and the ones under turrets as they are, with an advanced solar beside home
+  for every four of them, and the `produce` list of the advanced plant keeps an advanced constructor on it until
+  every seat has one (several seats: one plant, its constructors given away, as the bullet above says). Two things
+  the games showed: an advanced solar costs 5,000 energy to build, so it goes up with the store above a third and
+  never in an empty store (the note below, a game whose advanced solars crawled at 18:22 in an empty store: plain
+  solars then); and a seat that reaches tier 2 and builds no moho has spent the plant for nothing. Say in the packet how many mohos stand and how many are next, the way you count
+  extractors.
+
 - **The unit mix is a message to him, and his to you.** Cases: (1) game 10: many Lashers said "no pressure on your
   spots", he teched, and Tzars and Tigers beat the Lashers; "brutes would have given you the ability to apply more
   pressures" (thebluegecko). (2) games 3-5: from about 7:30 a person switches to Pounders against a light-tank
