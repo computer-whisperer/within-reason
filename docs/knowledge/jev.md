@@ -1863,4 +1863,4 @@ group's course as an attack on the party, the event "group_X hit", and `shell_<t
 **Would be wrong if.** In a game with the sentence the attack / shell alternation on one party goes on at the old rate
 (player-49: 34 of group_O's picks), or a shell that was right under fire (a turret outranging the screen) is no longer
 taken.
-**Used by.** nothing yet (the user's cause 3 of the thrash, 2026-10-03).
+**Used by.** [[H-HANDS-PARTY-MOVES-AT-THE-BAR]] (the first wording, built 2026-10-03 on the shell move of a group attacking that party with a member under fire; first game player-50).

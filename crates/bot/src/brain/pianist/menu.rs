@@ -895,10 +895,18 @@ impl Brain {
             let key = format!("attack_{}", party.name);
             push(key.clone(), Order::Attack(party.name.clone()), format!("{name} attacks {party_words} with the whole group ({}): {odds}{tail}{other}{leaves}{}", way_words(distance, speed), undoes(&key)), format!("the attack on {}", party.name), Some(party), false);
             if !air && !long_reach.is_empty() {
+                // What the switch does to a group fighting this party under fire, as a fact on the move
+                // (K-jev-the-cost-of-leaving-a-fight-under-fire-said-on-the-shell-move-stops-the-switch: attack and
+                // shell on one party rate alike and the group flipped between them every second or two).
+                let leaving_the_fight = if course == "attack" && aimed_at.as_deref() == Some(party.name.as_str()) && units.iter().any(|u| scene.under_fire.contains(&u.id)) {
+                    format!("; {name} is under his fire now, and this takes every soldier out of the fight it is in: they turn and walk to the standoff and the screen point, shooting less while they walk and bunching where they arrive")
+                } else {
+                    String::new()
+                };
                 push(
                     format!("shell_{}", party.name),
                     Order::Shell(His::Party(party.name.clone())),
-                    format!("{name} shells {party_words} ({}) with its {arty_words} from their reach, its other {screen} soldiers standing between as the screen: {}{other}{leaves}", way_words(distance, speed), verdict(&odds)),
+                    format!("{name} shells {party_words} ({}) with its {arty_words} from their reach, its other {screen} soldiers standing between as the screen: {}{other}{leaves}{leaving_the_fight}", way_words(distance, speed), verdict(&odds)),
                     format!("shelling {}", party.name),
                     Some(party),
                     false,
