@@ -433,6 +433,7 @@ fn header(hello: &Hello, mode: &str, session: bool, pianist: bool) -> Value {
         "start_pos_type": hello.start_pos_type,
         "grid": { "columns": 8, "rows": 8 },
         "metal_spots": spots,
+        "metal_spots_amount": "worth",
         "terrain": {
             "file": terrain_file(hello), "cell": hello.terrain.cell, "width": hello.terrain.width, "height": hello.terrain.height,
             "layout": "heights as little-endian i16 (elmos, water level 0), row-major north to south; then slopes as u8 (engine slope x 255); then, when `metal` is true, the raw metal map as u8 per cell",

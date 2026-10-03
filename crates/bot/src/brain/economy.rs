@@ -18,11 +18,9 @@ const BUILDING_GAP: i32 = 5;
 const LAB_GAP: i32 = 8;
 /// Distances from the start point along the line to the enemy: generators behind, labs ahead, turrets beyond them.
 const BACK_FIELD: f32 = 150.0;
-/// A metal-map square is 16 elmos; an extractor offset is tried in steps of this and keeps this margin inside the
-/// game's allowance (its rule is strict and its spot centre may differ from the engine's).
+/// A metal-map square is 16 elmos; an extractor offset is tried in steps of `MEX_STEP`.
 const MEX_SQUARE: f32 = 16.0;
 const MEX_STEP: f32 = 8.0;
-const MEX_MARGIN: f32 = 6.0;
 /// How far off its centre an extractor still counts as refused for that spot (the dropped-order fallback).
 pub(super) const MEX_PATCH: f32 = 130.0;
 /// How far around a site the engine refused for a building the next search for that type keeps away.
@@ -128,9 +126,13 @@ impl Brain {
         if wanted <= 0.0 || d <= 0.0 {
             return spot;
         }
-        // The game's rule (cmd_mex_denier.lua, IsBuildingPositionValid): the position must lie within the extractor
-        // radius plus one metal square of every square of the patch. Tried from the offset wanted down to nothing.
-        let allowed = hello.map.extractor_radius + MEX_SQUARE - MEX_MARGIN;
+        // The engine draws only the squares whose centres lie within the extractor radius of the extractor
+        // (ExtractorBuilding.cpp), which is stricter than what the game allows to be built (cmd_mex_denier.lua: the
+        // radius plus one metal square of every square of the patch). So every square of the patch stays within the
+        // radius, less a square for the build grid's snap: player-52's extractors stood 101 off centre at the median
+        // under the game's rule and drew 1.9 a second from patches worth 2.3. Tried from the offset wanted down to
+        // nothing.
+        let allowed = hello.map.extractor_radius - MEX_SQUARE;
         let valid = |p: Vec3| squares.iter().all(|(sx, sz)| (p.x - sx).hypot(p.z - sz) < allowed);
         let mut offset = wanted.min(hello.map.extractor_radius);
         while offset > 0.0 {

@@ -471,3 +471,20 @@ for `constructor_2328` and `constructor_8612`); fixed the same night (the seed i
 build constructors and expand with mexes like normal, and that didn't happen last game."
 **Would be wrong if.** The ships had been offered spots and declined them; they were not offered any.
 **Used by.** [[H-HANDS-WATER-START]] (amended).
+
+### K-mech-an-extractor-draws-only-the-squares-within-its-radius
+**Claim.** An extractor draws the metal squares whose centres lie within the map's extractor radius of where it
+stands, and the game lets one be built a square further out than that: an extractor placed off the patch's centre
+under the game's rule loses the far squares. Ours were placed toward the builder, up to the whole allowance: in
+player-52 the 64 extractors stood 101 elmos off centre at the median (BARb's 39: 0) and each drew 1.9 metal a second
+from a patch worth 2.3 (Comet Catcher: 12 squares of 255, `maxMetal` 0.75, `extractsMetal` 0.001), a sixth of the
+metal income of every game since the offset was written; the pool's income per extractor at 8:00 is 2.3.
+**Status.** demonstrated and fixed 2026-10-03 (`mex-centre-smoke`: 13 extractors 0 to 80 off centre, 2.3 a second
+each at 30 s, 60 s, 180 s, 210 s, 240 s with energy in the store).
+**Evidence.** `upstream/RecoilEngine/rts/Sim/Units/UnitTypes/ExtractorBuilding.cpp` (`sqrCenterDistance <
+Square(extractionRange)`); the income steps of player-52's first four minutes (6.2, 8.1, 10.0, 11.9, 13.7 at 2 to 6
+extractors); found while checking the map sheet's figure against the brief's "about 2.6" (which no measurement
+supports).
+**Would be wrong if.** The income steps were short for another reason (energy: the steps were read with energy in
+the store).
+**Used by.** [[H-ECO-SPOT-CENTROID]] (amended).

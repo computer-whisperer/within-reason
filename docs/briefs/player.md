@@ -447,7 +447,7 @@ K-maps-comet-barb-opens-bots, the tempo model]
   spot_72, spot_77), 52 in the open middle; which strip is ours the `map` tool says (the arena's `--corner nw` games
   were west, every game with people so far east). Write spot names in full in the packet, as here. Our start is placed within reach of two spots. The opponent's strip is 5,500 to 6,500 elmos east; the
   game puts the AI at an end of its strip (the north-east (6899, 681) or the south-west (1286, 5421), diagonal from
-  ours, not straight across), so scout the strip, not the mirror point. Each extractor gives about 2.6 metal a
+  ours, not straight across), so scout the strip, not the mirror point. Each extractor gives 2.3 metal a
   second here.
 - Constructors are the pace: a constructor a minute from each plant to four a seat by 4:00 and eight by 8:00 (the
   person's count), the allowances written so (`armcv` never capped at one or two); the report's `seats:` line

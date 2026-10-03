@@ -160,6 +160,16 @@ impl Engine {
                 }
             }
         }
+        // A spot's amount is its patch's worth: the squares' metal times the map's scale (`maxMetal`), what an
+        // extractor standing where it covers the whole patch draws when multiplied by its `extractsMetal`. The
+        // engine's own figure (the y of its spot list) is the same sum round its spot point, which is off the patch
+        // and can miss squares of it.
+        let scale = f64::from(call!(self, Map_getMaxResource(self.metal)));
+        for (spot, (_, _, sw)) in metal_spots.iter_mut().zip(&weighted) {
+            if *sw > 0.0 {
+                spot.y = (sw * scale) as f32;
+            }
+        }
         let differing = metal_spots.iter().filter(|g| engine_spots.iter().all(|e| e.dist2d(**g) > 130.0)).count();
         eprintln!(
             "[wreason ai={}] metal spots: {} from {} (the engine's list has {}, {differing} of ours nowhere within 130 of one of its)",
