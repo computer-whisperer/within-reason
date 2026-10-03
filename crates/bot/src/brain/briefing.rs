@@ -356,6 +356,27 @@ impl Brain {
         })
     }
 
+    /// The map sheet (`terrain::sheet`) from our start to each place his start may be.
+    fn map_sheet(&self) -> serde_json::Value {
+        let hello = &self.world.hello;
+        let rate = hello.unit_defs.iter().map(|d| d.extracts_metal).filter(|r| *r > 0.0).min_by(f32::total_cmp).unwrap_or(0.0);
+        let mut starts = vec![("ours".to_string(), self.home)];
+        let theirs = self.live_enemy_bases();
+        let several = theirs.len() > 1;
+        starts.extend(theirs.into_iter().enumerate().map(|(n, at)| (if several { format!("where his start may be, {}", n + 1) } else { "where his start may be".to_string() }, at)));
+        terrain::sheet::sheet(&terrain::sheet::Input {
+            name: &hello.map.name,
+            terrain: &hello.terrain,
+            size: (hello.map.width, hello.map.height),
+            grid: (8.0, 8.0),
+            wind: (hello.map.wind_min, hello.map.wind_max),
+            tidal: hello.map.tidal,
+            spots: hello.metal_spots.iter().map(|s| (*s, Some(s.y * rate))).collect(),
+            movers: hello.unit_defs.iter().filter_map(|d| Some(terrain::sheet::Mover { name: d.name.clone(), speed: d.speed, class: d.move_class? })).collect(),
+            starts,
+        })
+    }
+
     fn map_description(&self) -> serde_json::Value {
         let map = &self.world.hello.map;
         let spots: Vec<_> = self
@@ -390,6 +411,8 @@ impl Brain {
             "metal_spots": spots,
             "metal_spots_note": "n is the spot's number for the `expansion` tool; walk_from_home is the walking distance for our bots (null: they cannot walk there) beside straight_from_home; a spot marked `alcove` is far longer on foot than straight, and a group sent at it by the straight line huddles short of it",
             "terrain": self.terrain_sketch(),
+            "sheet": self.map_sheet(),
+            "sheet_note": "the map in the numbers the decisions turn on, the same table for every map (the brief holds other maps' sheets to set this one against): what each way of moving can stand on, the walk and the seconds to each place his start may be, whose spots are whose by walk, how wide the ways there are at their tightest against their median (a pass is a fraction of the median), and how many spots each kind of builder reaches in 30, 60, 90 and 120 seconds",
             "water": self.water_description(),
             "passages": self.passages().iter().map(|p| json!({ "at": self.place(p.at), "width": p.width as i32, "share_of_the_way_from_our_start": (p.along * 100.0) as i32 })).collect::<Vec<_>>(),
             "passages_note": "narrow places every walking route between our start and the opponent's goes through (cliffs or water on both sides), the narrowest first: whoever holds one decides who crosses, and soldiers and turrets there cover everything behind them",
