@@ -315,7 +315,12 @@ the user hosts the AI's chat lines appear under the host's name, so the script i
 headers (`run/matches/1789929416-replay-ben-vs-medium/*.sdfz`, `1790122851-replay-vak-vs-artur-comet`).
 **Evidence.** The scripts named; `crates/ai-shim/src/script.rs` tests parse both shapes.
 **Would be wrong if.** A lobby wrote AI seats without a `team` or people without a `name`.
-**Used by.** H-PLAYER-SIDES; the record header's `seats`.
+**Amended 2026-10-03.** The AI's chat under the host's name is verified: the engine takes an AI's text only as a
+slash command and `/say` is chat from the player hosting the AI (`ai-shim/src/engine.rs`, `Command::Say`); in
+human-12 our line "Hi, good luck! ..." came back as a chat event from player 0, and `[player0]` of that script is
+`computer_whisperer` (the user's name, with an underscore in the script). Spectators are `[PLAYERn]` sections with
+`spectator=1`.
+**Used by.** H-PLAYER-SIDES; H-PLAYER-PEOPLE; the record header's `seats`.
 
 
 ### K-engine-a-shot-is-refused-across-a-friend
