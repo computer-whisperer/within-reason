@@ -39,6 +39,8 @@ const DAMAGED: f32 = 0.7;
 const FIELD_METAL: f32 = 100.0;
 /// The D-gun's shot costs this much energy.
 const DGUN_ENERGY: f32 = 500.0;
+/// A group this many times a party's metal is offered detachments against it, not its whole-group attack.
+const WHOLE_GROUP_OVER: f32 = 4.0;
 /// A place this much further from his base than the group stands is said to lie back toward our side.
 const BACK: f32 = 400.0;
 /// The sizes a detachment comes in, below the group's own size.
@@ -919,7 +921,21 @@ impl Brain {
             let other = if fight.as_ref().is_some_and(|(p, _)| p.name != party.name) { stands(party.at) } else { String::new() };
             let tail = if body.strung_out() { "; its tail is strung out behind its front" } else { "" };
             let key = format!("attack_{}", party.name);
-            push(key.clone(), Order::Attack(party.name.clone()), format!("{name} attacks {party_words} with the whole group ({}): {odds}{tail}{other}{leaves}{}", way_words(distance, speed), undoes(&key)), format!("the attack on {}", party.name), Some(party), false);
+            // A party the whole body outweighs four times over is a detachment's work, not the body's (the user,
+            // 2026-10-03, watching player-57 at 6:04: "if jev insists on sending units back from the front to
+            // address the threat, it should be a small detachment rather than the full group"). At 5:31 eleven
+            // Blitzes left their course for one Rover: the detachment of two beside it on the menu carried the
+            // instructions' forbidden mark (read at 0.75) and the whole-group attack carried none (the same
+            // question asked of it read 0.45 to 0.57 on a packet that said "No Blitz group ever attacks, hunts or
+            // sends soldiers after a Rover"), so the pick took the whole group at 0.92. The whole-group attack
+            // stays for the party the body is already fighting, and for a group too small to detach from.
+            let theirs: f32 = party.ids.iter().filter_map(|id| enemies.iter().find(|e| e.id == *id)).filter_map(|e| self.world.def(e.def?)).map(|d| d.metal_cost).sum();
+            let ours: f32 = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
+            let fighting_it = fight.as_ref().is_some_and(|(p, _)| p.name == party.name);
+            let detachments_work = theirs > 0.0 && ours >= theirs * WHOLE_GROUP_OVER && armed.len() > 2 && !fighting_it;
+            if !detachments_work {
+                push(key.clone(), Order::Attack(party.name.clone()), format!("{name} attacks {party_words} with the whole group ({}): {odds}{tail}{other}{leaves}{}", way_words(distance, speed), undoes(&key)), format!("the attack on {}", party.name), Some(party), false);
+            }
             if !air && !long_reach.is_empty() {
                 // What the switch does to a group fighting this party under fire, as a fact on the move
                 // (K-jev-the-cost-of-leaving-a-fight-under-fire-said-on-the-shell-move-stops-the-switch: attack and

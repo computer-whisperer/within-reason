@@ -1910,3 +1910,21 @@ pick's own instruction did nothing (0.55-0.66 with three different sentences). T
 goes higher.
 **Used by.** [[H-HANDS-WAY-WORDS]] (the direction and the worth only).
 
+### K-jev-a-rule-against-a-kind-of-party-marked-the-detachment-and-not-the-whole-group
+**Claim.** The forbidden mark (what the instructions forbid a group) is asked of detachments only. A packet that
+says a body leaves a kind of party alone therefore marks the body's detachment and leaves its whole-group attack
+unmarked, and the pick, choosing between the two, takes the whole group: player-57 at 5:31, the packet "No Blitz
+group ever attacks, hunts or sends soldiers after a Rover (armfav)", the detachment of two on party_7 (one Rover)
+read forbidden at 0.74 to 0.80 and said so on its line, the whole-group attack rated the same 0.59 at the gate with
+nothing on its line, and the pick took the whole group at 0.92; eleven Blitzes left their way into his base. The
+same went on through 6:04 (the user, watching: the army thrashing between its advance and single units at home).
+Asked the forbidden question of the whole-group attack, Jev read 0.48 to 0.57 (under the mark's 0.7), in three
+wordings 0.31 to 0.59; with the mark put on the line by hand the change fell from 0.78 to 0.16-0.22, and the
+party's worth said alone moved nothing (0.86-0.90). So the reading is too weak to carry a mark, and the menu was
+changed instead (H-HANDS-DETACHMENTS-FOR-SMALL-PARTIES).
+**Status.** demonstrated (2026-10-03 night, `run/matches/1791063866-player-57-experience`, frame 9,930, replayed
+offline, four asks an arm).
+**Would be wrong if.** A body needs its whole-group attack on a party it outweighs four to one in cases the
+detachments do not cover (a party of raiders faster than every detachment is one: it is not caught either way).
+**Used by.** [[H-HANDS-DETACHMENTS-FOR-SMALL-PARTIES]].
+
