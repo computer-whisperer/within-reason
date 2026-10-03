@@ -172,6 +172,21 @@ Every map we have a recorded game on, in one table each. The first start is ours
 | the opponent's | armck (36) | 4 / 11 / 15 / 20 | 34 / 57 / 88 |
 | the opponent's | armcv (54) | 6 / 14 / 20 / 23 | 24 / 40 / 62 |
 
+### Coast To Coast BAR v1.0
+
+- 6144 by 4096 elmos; wind 5 to 20; tidal 16; 60% under water; ground height -86 to 116.
+- 24 metal spots; a tier-1 extractor draws 1.41 / 2.16 / 2.17 metal a second (lowest / median / highest spot).
+- Starts: ours G4 (4996, 1684; 0 from ours).
+
+| Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
+|---|---|---|---|---|---|---|---|
+
+| Start | Taken by (speed) | Spots within 30 / 60 / 90 / 120 s | Seconds to the 5th / 10th / 15th spot |
+|---|---|---|---|
+| ours | armcom (37.50) | 4 / 11 / 16 / 21 | 33 / 56 / 80 |
+| ours | armck (36) | 2 / 5 / 6 / 6 | 40 / - / - |
+| ours | armcv (54) | 4 / 6 / 6 / 6 | 33 / - / - |
+
 ### Gecko Isle Remake v1.2.1
 
 - 8192 by 9216 elmos; wind 2 to 16; tidal 25; 30% under water; ground height -110 to 299.
@@ -1185,6 +1200,10 @@ against one of them on Comet Catcher unless said (2026-09-27 and 28). The full l
 - "Mongonals are better than t1 arty because they outrange things. They can't get in a straight fight, so you want
   1-3 of them with other units in front. Same with t1 artillery -- it shouldn't be the primary unit body."
   (thebluegecko, after game 11, on water)
+
+- "Hovers are good for harass, bad for army bulk. Only build a handful of the rocket ones. The harass units needed
+  to not exist or be harassing the enemy." (thebluegecko, after human-17 on Coast To Coast, 2026-10-03, relayed by
+  the user: our hover seat had made 13 Crocodiles, 13 Possums, the rocket hover, and 3 Seekers)
 
 **On using a lead**
 - "Up by almost 400% army value, time to go fight and win; if you dont use that army advantage this will soon go

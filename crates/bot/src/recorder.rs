@@ -107,6 +107,17 @@ impl Recorder {
         }
     }
 
+    /// The session's end, as the bot saw it: the engine closed the connection (the game was over, or the engine
+    /// went away). In the arena the referee's `result` row follows; in a game with people this is the record's
+    /// last row, and what stood then is all the bot knows of how it ended (human-17: the records stopped at a
+    /// sample and the process waited on for a game that was over).
+    pub fn ended(&mut self, frame: i32, own_units: usize, why: &str) {
+        self.line(&json!({ "t": "end", "f": frame, "own_units": own_units, "why": why }));
+        let _ = self.out.write_all(self.buffer.as_bytes());
+        self.buffer.clear();
+        let _ = self.out.flush();
+    }
+
     /// Records one tick: the events, the brain's journal, the commands it answered with, and a sample when due.
     pub fn tick(&mut self, tick: &Tick, journal: Journal, role: impl Fn(UnitId) -> u8, commands: &[Command], decide_ms: f32) -> io::Result<()> {
         if let Some(mut header) = self.header.take() {

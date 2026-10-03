@@ -41,11 +41,21 @@ fn main() -> io::Result<()> {
     }
     let listener = UnixListener::bind(&path)?;
     eprintln!("listening on {}", path.display());
+    // Sessions running now. With `WITHIN_REASON_EXIT_WHEN_OVER` (`run/human_game.sh`: one game a process) the bot
+    // leaves when its last session ends; otherwise it listens on for the next game.
+    static LIVE: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+    let leave_when_over = std::env::var_os("WITHIN_REASON_EXIT_WHEN_OVER").is_some();
     for stream in listener.incoming() {
         let stream = stream?;
+        LIVE.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         std::thread::spawn(move || {
             if let Err(e) = session(stream, player, pianist) {
                 eprintln!("session ended: {e}");
+            }
+            if LIVE.fetch_sub(1, std::sync::atomic::Ordering::SeqCst) == 1 && leave_when_over {
+                eprintln!("every session has ended: the game is over; leaving");
+                let _ = std::fs::remove_file(socket_path());
+                std::process::exit(0);
             }
         });
     }
@@ -104,10 +114,20 @@ fn session(mut stream: UnixStream, player: bool, pianist: bool) -> io::Result<()
     // The opening turn is asked for now, before the game's first tick (`docs/design/2026-09-30-opening-turn.md`).
     brain.before_the_game();
     write_frame(&mut stream, &Commands::default())?;
+    let (mut last_frame, mut last_own) = (0, 0);
     loop {
-        let ToBot::Tick(tick) = next()? else {
-            return Err(io::Error::other("unexpected second Hello"));
+        let tick = match next() {
+            Ok(ToBot::Tick(tick)) => tick,
+            Ok(_) => return Err(io::Error::other("unexpected second Hello")),
+            Err(e) => {
+                // The engine closed the connection: the game is over as far as this seat can know.
+                if let Some(r) = &mut recorder {
+                    r.ended(last_frame, last_own, &e.to_string());
+                }
+                return Err(e);
+            }
         };
+        (last_frame, last_own) = (tick.frame, tick.snapshot.own_units.len());
         let started = std::time::Instant::now();
         let commands = brain.decide(&tick);
         let decide_ms = started.elapsed().as_secs_f32() * 1000.0;
