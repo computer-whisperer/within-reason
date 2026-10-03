@@ -6,7 +6,8 @@ had played and watched a few hundred would.
 
 How it is built:
 
-- **Nothing here is an order.** There are no rules of the form "always" or "never". There is what experienced
+- **Almost nothing here is an order.** One part, "What winning seems to take", is prose and argues: it is ordinary
+  good practice, stated plainly. The rest has no rules of the form "always" or "never". There is what experienced
   players' games look like (the reference game), what this opponent does, what particular decisions cost or bought
   (the cases), what units cost and do (the tables), and what players said, in their words. The judgement is yours.
 - **Every number has a map.** Most of what we know is from Comet Catcher. A number from there is true of that
@@ -21,5 +22,5 @@ How it is built:
 - **Say when the game contradicts this.** A `note` that a table or a case did not hold in your game is worth more to
   the project than a win.
 
-The order: the map sheets; the reference game and whole games; this opponent; units and costs; how your hands work;
+The order: what winning seems to take; the map sheets; the reference game and whole games; this opponent; units and costs; how your hands work;
 the cases; what players said.

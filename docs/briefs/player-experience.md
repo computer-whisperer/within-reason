@@ -8,7 +8,8 @@ had played and watched a few hundred would.
 
 How it is built:
 
-- **Nothing here is an order.** There are no rules of the form "always" or "never". There is what experienced
+- **Almost nothing here is an order.** One part, "What winning seems to take", is prose and argues: it is ordinary
+  good practice, stated plainly. The rest has no rules of the form "always" or "never". There is what experienced
   players' games look like (the reference game), what this opponent does, what particular decisions cost or bought
   (the cases), what units cost and do (the tables), and what players said, in their words. The judgement is yours.
 - **Every number has a map.** Most of what we know is from Comet Catcher. A number from there is true of that
@@ -23,8 +24,63 @@ How it is built:
 - **Say when the game contradicts this.** A `note` that a table or a case did not hold in your game is worth more to
   the project than a win.
 
-The order: the map sheets; the reference game and whole games; this opponent; units and costs; how your hands work;
+The order: what winning seems to take; the map sheets; the reference game and whole games; this opponent; units and costs; how your hands work;
 the cases; what players said.
+
+
+## What winning seems to take
+
+This part is prose, and it is the one place the brief argues. It is ordinary practice in real-time strategy games,
+checked against what the tables and cases here show. It says what wins; how hard to lean on any of it in the game
+in front of you is your judgement.
+
+**The game is won by destroying him, and an army is the only thing that does it.** Extractors, constructors and
+factories are means. A side with the larger economy and the larger army that has not attacked has not yet done
+anything toward winning; it has only become able to. In our own games the commonest way to lose from ahead is to
+stand: player-50 held five to ten times his army for twenty minutes in the middle of the map and was called
+undecided; player-54 under this brief had the larger army from 8:00, none of it in his half at 14:00, and was
+undecided at 34:00, while the same seed under the older brief had 4,100 metal of army in his half at 14:00 and won
+at 14:33.
+
+**An army is used or it is wasted.** Every second a soldier stands where it threatens nothing, its metal is doing
+no work, exactly as metal sitting in the store does none. The experienced players keep a third to a half of their
+army in his half from the sixth minute on (winners 376 of 1,070 at 6:00, 1,540 of 4,444 at 12:00), and losers a
+fifth or less. Soldiers at home answer raids; everything beyond what that takes belongs forward.
+
+**A lead is a moment, not a possession.** He is building too. Among experienced players a Comet Catcher duel ends
+3.4 minutes, at the median, after one side first holds twice the other's army. Against this opponent the moment is
+dated: his army stands still or shrinks from about 10:40 while he pays for tier 2, and from 20:00 it doubles every
+five minutes. A lead held past its moment becomes his.
+
+**Pressure starts with the first units and does not stop.** The first soldiers across are what tell you where he
+is and what he has, and what makes a greedy opening cost him something. A raid that kills two constructors at
+3:00 is worth more than the same raid at 6:00. Pressure that pauses lets him rebuild behind it.
+
+**Attack what he cannot afford to lose, where he is weak.** His extractors, constructors, factories and commander
+are the game; his turret posts are not. A fortified post in the middle of the map can be gone round: on open
+ground the ways past it are thousands wide (the map sheet says how wide), and what lies behind it is what he was
+protecting. The player-54 game under this brief spent 9:00 to 14:00 reducing a Beamer post, two Sentries and an
+Overwatch in the middle one after another, lost about 2,000 metal doing it, and never reached a building he
+needed.
+
+**Fight where you outweigh him, with everything that is there.** A fight is decided by the value on the spot.
+Arrive together, or wait until together; leave a fight that has turned rather than feed it. A turret counts about
+three times its metal for what stands in its reach and nothing for what does not.
+
+**Look before you go.** An army sent at a place nothing of yours has seen is a guess. Scouts are cheap, and being
+seen is their job.
+
+**Defence is what lets the army leave.** Raiders will come for extractors whatever you do; experienced players
+lose one to two a minute and win. What answers them is cheap and stays put (a turret beside the outer spots, a few
+fast units), so that the army does not have to. An army recalled to chase raiders has been taken out of the game
+by a few units worth a twentieth of it.
+
+**Spend.** Metal in the store, a factory idle and a constructor standing are the same loss as an idle army. Income
+matters only as what it is turned into, and when.
+
+**Finish.** The game ends when his commander or his ability to produce is gone. Once his army is broken, what is
+left is to go there and do it, by the shortest route that avoids what can still hurt you; every minute after that
+is a minute he rebuilds in.
 
 
 ## The map sheets
@@ -83,18 +139,28 @@ Every map we have a recorded game on, in one table each. The first start is ours
 
 ### Cape_Violet_V1
 
-- 10240 by 5120 elmos; wind 8 to 20; tidal 0; 40% under water; ground height -303 to 493.
+- 10240 by 5120 elmos; wind 8 to 20; tidal 20; 40% under water; ground height -303 to 493.
 - 72 metal spots; a tier-1 extractor draws 1.99 / 2.07 / 2.24 metal a second (lowest / median / highest spot).
-- Starts: ours H6 (9320, 3829; 0 from ours).
+- Starts: ours A5 (357, 2703; 0 from ours), the opponent's H6 (9319, 3833; 9032 from ours).
 
 | Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
 |---|---|---|---|---|---|---|---|
+| bots | 58% | 44 | the opponent's | 10192 | armck 283, armpw 117, armrock 201, corak 126, corck 295 | 21 / 22 / 1 / 28 | 680 at G6, 85% of the way (median 2112) |
+| vehicles | 51% | 44 | the opponent's | 10724 | armcv 199, armfav 64, armflash 106, armstump 143, corcv 210, corfav 70, corgator 126 | 21 / 22 / 1 / 28 | 728 at G6, 84% of the way (median 1664) |
+| commander | 89% | 70 | the opponent's | 9792 | armcom 261, corcom 261 | 32 / 35 / 3 / 2 | 2412 at G6, 84% of the way (median 4060) |
+| all-terrain bots | 66% | 44 | the opponent's | 10192 | armscab 200, cortermite 204 | 21 / 22 / 1 / 28 | 1240 at G6, 85% of the way (median 2592) |
+| amphibious tanks | 89% | 70 | the opponent's | 10724 | armcroc 199, corseal 149 | 31 / 34 / 5 / 2 | 2088 at E6, 63% of the way (median 3460) |
+| hovercraft | 87% | 70 | the opponent's | 10960 | armch 164, armsh 96, corch 180, corsh 100 | 31 / 33 / 6 / 2 | 1648 at E6, 63% of the way (median 3044) |
+| ships | 39% (the nearest 951 from our start) | 26 | the opponent's | - | armcs -, armpt -, corcs -, corpt - | 21 / 4 / 1 / 46 | - |
 
 | Start | Taken by (speed) | Spots within 30 / 60 / 90 / 120 s | Seconds to the 5th / 10th / 15th spot |
 |---|---|---|---|
-| ours | armcom (37.50) | 4 / 13 / 21 / 29 | 33 / 42 / 71 |
-| ours | armck (36) | 4 / 11 / 15 / 20 | 34 / 57 / 88 |
-| ours | armcv (54) | 6 / 14 / 20 / 23 | 24 / 40 / 62 |
+| ours | armcom (37.50) | 3 / 11 / 21 / 29 | 42 / 48 / 71 |
+| ours | armck (36) | 3 / 10 / 15 / 19 | 44 / 56 / 84 |
+| ours | armcv (54) | 4 / 15 / 20 / 22 | 31 / 40 / 60 |
+| the opponent's | armcom (37.50) | 4 / 13 / 21 / 29 | 33 / 42 / 71 |
+| the opponent's | armck (36) | 4 / 11 / 15 / 20 | 34 / 57 / 88 |
+| the opponent's | armcv (54) | 6 / 14 / 20 / 23 | 24 / 40 / 62 |
 
 ### Gecko Isle Remake v1.2.1
 
@@ -123,7 +189,7 @@ Every map we have a recorded game on, in one table each. The first start is ours
 
 ### Great Divide V1
 
-- 3072 by 4096 elmos; wind 0 to 20; tidal 0; 0% under water; ground height 243 to 682.
+- 3072 by 4096 elmos; wind 0 to 20; tidal 16; 0% under water; ground height 243 to 682.
 - 22 metal spots; a tier-1 extractor draws 2.12 / 2.17 / 2.32 metal a second (lowest / median / highest spot).
 - Starts: ours A1 (320, 315; 0 from ours), the opponent's B8 (639, 3748; 3447 from ours).
 

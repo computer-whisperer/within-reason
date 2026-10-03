@@ -72,7 +72,7 @@ def main():
         open(f"{REF}/comet-catcher-remake-1.8-arm-games.md", "w").write(subprocess.run(["python3", "run/timelines.py", "--map", COMET, "--faction", "arm"], capture_output=True, text=True, check=True).stdout)
         open(f"{REF}/comet-catcher-remake-1.8-barb-hard_aggressive.md", "w").write(subprocess.run(["python3", "run/opponent_set.py", "--map", COMET, "--profile", "hard_aggressive"], capture_output=True, text=True, check=True).stdout)
     read = lambda p: open(p).read().strip() + "\n"
-    parts = [read(f"{EXP}/intro.md"), sheets(), read(f"{REF}/comet-catcher-remake-1.8-arm.md"), read(f"{REF}/comet-catcher-remake-1.8-cor.md"), read(f"{REF}/comet-catcher-remake-1.8-arm-games.md"),
+    parts = [read(f"{EXP}/intro.md"), read(f"{EXP}/winning.md"), sheets(), read(f"{REF}/comet-catcher-remake-1.8-arm.md"), read(f"{REF}/comet-catcher-remake-1.8-cor.md"), read(f"{REF}/comet-catcher-remake-1.8-arm-games.md"),
              read(f"{EXP}/opponent-barb.md"), read(f"{REF}/comet-catcher-remake-1.8-barb-hard_aggressive.md"), read(f"{EXP}/units.md"), read(f"{EXP}/hands.md"), read(f"{EXP}/cases.md"), read(f"{EXP}/players-words.md")]
     text = "\n\n" + "\n\n".join(parts)
     open("docs/briefs/player-experience.md", "w").write(text)
