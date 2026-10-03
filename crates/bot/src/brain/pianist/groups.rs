@@ -353,8 +353,10 @@ impl Brain {
         for unit in loose {
             let domain = self.world.domain_of(unit.def);
             let factory = pianist.produced_by.get(&unit.id).copied();
-            let named = factory.and_then(|f| self.allowed_units(&self.actor_name(f))).and_then(|a| a.group);
-            let wanted = group_for_newcomer(named.as_deref(), factory.and_then(|f| pianist.rally.get(&f)).map(String::as_str));
+            let allowance = factory.and_then(|f| self.allowed_units(&self.actor_name(f)));
+            let named = allowance.as_ref().and_then(|a| a.group.clone());
+            let call = allowance.as_ref().map_or(0, |a| a.call);
+            let wanted = group_for_newcomer(named.as_deref(), call, factory.and_then(|f| pianist.rally.get(&f)).map(|(c, g)| (*c, g.as_str())));
             let target = wanted.and_then(|name| pianist.groups.iter().position(|g| g.name == name && g.domain == domain));
             match target {
                 Some(i) => {
@@ -378,14 +380,8 @@ impl Brain {
                 None => {
                     let name = pianist.new_group_name();
                     if let Some(f) = factory {
-                        pianist.rally.insert(f, name.clone());
-                        // `new` asked for one fresh group, not one per soldier: from now the factory's own.
-                        if named.as_deref() == Some("new")
-                            && let Some(shared) = &self.strategist
-                            && let Some(a) = shared.allowed.lock().unwrap().get_mut(&self.actor_name(f))
-                        {
-                            a.group = None;
-                        }
+                        // `new` asked for one fresh group, not one per soldier: the call's later soldiers join this one.
+                        pianist.rally.insert(f, (call, name.clone()));
                     }
                     let group = Group::new(name, domain, vec![unit.id], GroupTask::Hold { since: frame, committed: false, picked: false }, frame);
                     commands.extend(group.hold_orders(&[unit]));
@@ -744,13 +740,14 @@ pub(crate) fn centre_of_enemies(units: &[&bot_protocol::EnemyUnit]) -> Option<Ve
     Some(units.iter().fold(Vec3::default(), |sum, u| Vec3 { x: sum.x + u.pos.x / n, y: 0.0, z: sum.z + u.pos.z / n }))
 }
 
-/// The group a newcomer wants (H-HANDS-GROUPS): the one the player named for its factory, none for `new` (a fresh
-/// group), else the factory's own; a soldier of no factory forms its own.
-fn group_for_newcomer(named: Option<&str>, factory_group: Option<&str>) -> Option<String> {
+/// The group a newcomer wants (H-HANDS-GROUPS): the one the player named for its factory; for `new`, the factory's
+/// own group when that was founded under this `produce` call, else none (a fresh group, which founds it); else the
+/// factory's own; a soldier of no factory forms its own.
+fn group_for_newcomer(named: Option<&str>, call: u64, factory_group: Option<(u64, &str)>) -> Option<String> {
     match named {
-        Some("new") => None,
+        Some("new") => factory_group.filter(|(founded, _)| *founded == call).map(|(_, g)| g.to_string()),
         Some(name) => Some(name.trim_start_matches("group_").to_string()),
-        None => factory_group.map(str::to_string),
+        None => factory_group.map(|(_, g)| g.to_string()),
     }
 }
 
@@ -859,9 +856,13 @@ mod tests {
 
     #[test]
     fn a_newcomer_joins_the_named_group_else_its_factorys_own_and_new_starts_a_fresh_one() {
-        assert_eq!(group_for_newcomer(Some("group_A"), Some("B")), Some("A".to_string()));
-        assert_eq!(group_for_newcomer(None, Some("B")), Some("B".to_string()));
-        assert_eq!(group_for_newcomer(Some("new"), Some("B")), None);
-        assert_eq!(group_for_newcomer(None, None), None);
+        assert_eq!(group_for_newcomer(Some("group_A"), 3, Some((3, "B"))), Some("A".to_string()));
+        assert_eq!(group_for_newcomer(None, 3, Some((2, "B"))), Some("B".to_string()));
+        // `new` founds one group per `produce` call: the first soldier of call 3 starts afresh, the next join it,
+        // and a later call's `new` starts afresh again.
+        assert_eq!(group_for_newcomer(Some("new"), 3, Some((2, "B"))), None);
+        assert_eq!(group_for_newcomer(Some("new"), 3, Some((3, "C"))), Some("C".to_string()));
+        assert_eq!(group_for_newcomer(Some("new"), 4, Some((3, "C"))), None);
+        assert_eq!(group_for_newcomer(None, 1, None), None);
     }
 }
