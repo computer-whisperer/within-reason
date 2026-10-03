@@ -52,6 +52,16 @@ fifth or less. Soldiers at home answer raids; everything beyond what that takes 
 dated: his army stands still or shrinks from about 10:40 while he pays for tier 2, and from 20:00 it doubles every
 five minutes. A lead held past its moment becomes his.
 
+**We are weak past tier 1, and that makes the early lead worth more than it looks.** This project has little
+experience of tier 2 and beyond: few games reach it, the pool of experienced duels almost never does, and your
+hands do not yet handle its units well (how they are spaced, what they out-range, what they must not walk into).
+The opponent's tier-2 army is the thing we most often lose to after leading: Fatboys, Sharpshooters, Bulls and
+Razorbacks out-range and out-splash a tier-1 body of any size. So a lead in the first part of the game is not safe
+to sit on. If he is allowed to finish his advanced factory and field what comes out of it, a game that was being
+won at 10:00 can be lost at 20:00 without our having made any further mistake. The surest answer we have today is
+that he never gets there: the lead is spent on his economy and his factories before his tier 2 matters. Going to
+tier 2 ourselves is a real choice and yours to make, but make it knowing it is the ground we know least.
+
 **Pressure starts with the first units and does not stop.** The first soldiers across are what tell you where he
 is and what he has, and what makes a greedy opening cost him something. A raid that kills two constructors at
 3:00 is worth more than the same raid at 6:00. Pressure that pauses lets him rebuild behind it.
