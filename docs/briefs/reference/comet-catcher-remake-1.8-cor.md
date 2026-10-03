@@ -19,6 +19,40 @@ The commander's buildings up to the first factory, the orders most played:
 
 Before the factory: 2 / 3 / 3 extractors and 1 / 2 / 2 generators.
 
+**The same orders by result**, with what each side's extractors and army were at 4:00 (medians):
+
+| Order | Sides | Won | Extractors at 4:00 | Constructors at 4:00 | Army metal at 4:00 |
+|---|---|---|---|---|---|
+| cormex → cormex → corsolar → corllt → cormex → corsolar → corvp | 11 | 5 | 8 | 3 | 500 |
+| cormex → cormex → corsolar → corlab | 4 | 3 | 9 | 3 | 602 |
+| cormex → cormex → corsolar → corsolar → corlab | 3 | 2 | 7 | 3 | 688 |
+| cormex → cormex → corsolar → corsolar → corvp | 2 | 2 | 12 | 4 | 495 |
+| cormex → corsolar → cormex → corlab | 2 | 0 | 11 | 4 | 322 |
+
+**What the factory made first** (its first seven units), most played and by result:
+
+| The factory's first units | Sides | Won | Extractors at 4:00 | Army metal in his half at 4:00 |
+|---|---|---|---|---|
+| 2 corck, 5 corak | 10 | 3 | 8 | 150 |
+| corcv, 2 corfav, corcv, 3 corfav | 8 | 3 | 9 | 65 |
+| corcv, 6 corfav | 4 | 3 | 9 | 78 |
+| corcv, 5 corfav, corcv | 2 | 2 | 6 | 138 |
+| corck, 6 corak | 2 | 1 | 5 | 129 |
+| corcv, 4 corfav, corcv, corfav | 1 | 1 | 8 | 26 |
+
+**The quarter of sides with the most extractors at 4:00** (9 sides, 10 extractors at the median, 7 of them won):
+
+| Side | Result | Commander's order | The factory's first units | Extractors at 4:00 / 8:00 | First constructor |
+|---|---|---|---|---|---|
+| Chronopolize (OS 47.16) | won at 7:59 | cormex → cormex → corsolar → corsolar → corvp | corcv, 6 corfav | 12 / - | 0:59 |
+| [MADO]Baldric (OS 45.22) | lost at 10:20 | cormex → corsolar → cormex → corlab | 2 corck, 5 corak | 12 / 21 | 0:46 |
+| RAM_Noctis (OS 42.71) | won at 21:46 | cormex → cormex → corsolar → corsolar → corvp | corfav, 2 corcv, 4 corfav | 11 / 23 | 1:07 |
+| [MADO]f1sher (OS 50.07) | won at 10:06 | cormex → cormex → corsolar → corsolar → corsolar → corvp | corcv, 6 corfav | 10 / 22 | 1:07 |
+| [APM]Hellontoast (OS 41.15) | won at 7:35 | cormex → cormex → corllt → corsolar → cormex → corvp | corcv, 2 corfav, corcv, 3 corfav | 10 / - | 1:26 |
+| TehHardStuckOS25erer (OS 43.22) | won at 15:32 | cormex → cormex → corsolar → corlab | 2 corck, 5 corak | 10 / 21 | 0:47 |
+| [MADO]Baldric (OS 45.23) | lost at 18:18 | cormex → corsolar → cormex → corlab | 2 corck, 4 corak, corck | 10 / 23 | 0:46 |
+| [MADO]Baldric (OS 44.65) | won at 17:22 | cormex → cormex → corsolar → corlab | corck, corak, corck, 4 corak | 10 / 19 | 0:46 |
+
 First factory: corvp (24), corlab (15).
 
 | Milestone | Lower quartile / median / upper quartile | Winners' median | Losers' median |
@@ -45,7 +79,7 @@ First factory: corvp (24), corlab (15).
 
 **Where the numbers come from.**
 - *The factory at 0:59:* it is started after 3 extractors and 2 generators, every one within the commander's reach of the start (the sheet: 5 spots within 30 s of the commander).
-- *The first soldier in his half:* the unit was corfav (23), corak (15), corgator (1); it crossed into his half 36 / 60 / 94 s after it was made. The pool's starts are 6416 apart at the median, and half of that at full speed is corcv 63 s, corfav 21 s, corgator 38 s. The start the sheet was made from is 5870 from his (-9%): every crossing there is that much longer.
+- *The first soldier in his half:* the unit was corfav (23), corak (15), corgator (1); it crossed into his half 36 / 60 / 94 s after it was made. The pool's starts are 6416 apart at the median, and half of that at full speed is corcv 63 s, corfav 21 s, corgator 38 s. The start the sheet was made from is 7346 from his (+15%): every crossing there is that much longer.
 - *Income per extractor:* 2.00 / 2.10 / 2.29 metal a second over minutes 3 to 8 (income less the commander's 2, over the extractors standing); the sheet's figure for a spot here is 2.30. Below it means energy short or extractors still going up.
 
 ### The game by the minute

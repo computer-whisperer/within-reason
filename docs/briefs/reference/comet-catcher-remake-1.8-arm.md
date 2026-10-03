@@ -19,6 +19,40 @@ The commander's buildings up to the first factory, the orders most played:
 
 Before the factory: 2 / 2 / 3 extractors and 2 / 2 / 2 generators.
 
+**The same orders by result**, with what each side's extractors and army were at 4:00 (medians):
+
+| Order | Sides | Won | Extractors at 4:00 | Constructors at 4:00 | Army metal at 4:00 |
+|---|---|---|---|---|---|
+| armmex → armmex → armsolar → armsolar → armvp | 22 | 11 | 7 | 3 | 561 |
+| armmex → armmex → armsolar → armllt → armmex → armsolar → armvp | 4 | 4 | 8 | 3 | 485 |
+| armmex → armmex → armmex → armsolar → armsolar → armsolar → armvp | 4 | 3 | 4 | 2 | 437 |
+| armmex → armmex → armsolar → armllt → armmex → armmex → armvp | 2 | 0 | 6 | 2 | 719 |
+| armmex → armmex → armsolar → armmex → armsolar → armvp | 2 | 1 | 10 | 3 | 840 |
+
+**What the factory made first** (its first seven units), most played and by result:
+
+| The factory's first units | Sides | Won | Extractors at 4:00 | Army metal in his half at 4:00 |
+|---|---|---|---|---|
+| 2 armfav, 2 armcv, 3 armfav | 4 | 4 | 8 | 46 |
+| armcv, 6 armfav | 4 | 3 | 6 | 310 |
+| 2 armflash, 3 armfav, 2 armcv | 3 | 1 | 7 | 31 |
+| armfav, armflash, 3 armfav, armcv, armfav | 3 | 3 | 9 | 62 |
+| 2 armfav, 3 armcv, 2 armfav | 3 | 2 | 10 | 0 |
+| 2 armflash, 5 armfav | 3 | 0 | 5 | 93 |
+
+**The quarter of sides with the most extractors at 4:00** (10 sides, 10 extractors at the median, 7 of them won):
+
+| Side | Result | Commander's order | The factory's first units | Extractors at 4:00 / 8:00 | First constructor |
+|---|---|---|---|---|---|
+| [MADO]fins (OS 41.09) | won at 10:20 | armmex → armmex → armsolar → armsolar → armvp | 2 armfav, 2 armcv, 3 armfav | 11 / 25 | 1:05 |
+| [MADO]Artur91 (OS 43.4) | won at 17:14 | armmex → armmex → armsolar → armsolar → armvp | armfav, 2 armcv, 4 armfav | 10 / 27 | 1:01 |
+| [MADO]Artur91 (OS 43.4) | lost at 9:15 | armmex → armmex → armsolar → armsolar → armvp | 2 armfav, 3 armcv, 2 armfav | 10 / 25 | 1:09 |
+| [MADO]Artur91 (OS 43.4) | won at 18:18 | armmex → armmex → armsolar → armmex → armsolar → armvp | 2 armfav, 3 armcv, 2 armfav | 10 / 22 | 1:25 |
+| Immort (OS 43.21) | lost at 6:44 | armmex → armmex → armsolar → armsolar → armvp | armcv, 5 armfav, armcv | 10 / - | 0:53 |
+| [MADO]Artur91 (OS 43.4) | won at 14:31 | armmex → armmex → armsolar → armsolar → armvp | armfav, armflash, 3 armfav, armcv, armfav | 9 / 16 | 1:29 |
+| [MADO]Artur91 (OS 43.4) | won at 14:52 | armmex → armmex → armsolar → armsolar → armvp | armfav, armflash, 3 armfav, armcv, armfav | 9 / 20 | 1:30 |
+| BM_chickentasty (OS 44.89) | lost at 15:32 | armmex → armmex → armsolar → armmex → armsolar → armvp | 2 armcv, armfav, 4 armflash | 9 / 16 | 1:12 |
+
 First factory: armvp (40), armlab (1).
 
 | Milestone | Lower quartile / median / upper quartile | Winners' median | Losers' median |
@@ -45,7 +79,7 @@ First factory: armvp (40), armlab (1).
 
 **Where the numbers come from.**
 - *The factory at 0:34:* it is started after 2 extractors and 2 generators, every one within the commander's reach of the start (the sheet: 5 spots within 30 s of the commander).
-- *The first soldier in his half:* the unit was armfav (37), armflash (3), armpw (1); it crossed into his half 26 / 29 / 44 s after it was made. The pool's starts are 5928 apart at the median, and half of that at full speed is armcv 55 s, armfav 18 s, armflash 29 s, armstump 40 s. The start the sheet was made from is 5870 from his (-1%): every crossing there is that much longer.
+- *The first soldier in his half:* the unit was armfav (37), armflash (3), armpw (1); it crossed into his half 26 / 29 / 44 s after it was made. The pool's starts are 5928 apart at the median, and half of that at full speed is armcv 55 s, armfav 18 s, armflash 29 s, armstump 40 s. The start the sheet was made from is 7346 from his (+24%): every crossing there is that much longer.
 - *Income per extractor:* 2.01 / 2.20 / 2.30 metal a second over minutes 3 to 8 (income less the commander's 2, over the extractors standing); the sheet's figure for a spot here is 2.30. Below it means energy short or extractors still going up.
 
 ### The game by the minute

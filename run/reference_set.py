@@ -123,6 +123,53 @@ def main():
     for seq, n in seqs.most_common(5):
         P(f"| {n} | {seq} |")
     P(f"\nBefore the factory: {q3(before['extractor'])} extractors and {q3(before['energy'])} generators.\n")
+    # The most played order is not the best one: the same orders by who won, and what the sides that expanded
+    # fastest did (the user, 2026-10-03, after player-55 copied the commonest order and stood behind our own).
+    def opening(s):
+        seq = []
+        for step in s["build_order"]:
+            if step.get("by") != "commander":
+                continue
+            seq.append(step["unit"])
+            if step["unit"] in ("armvp", "armlab", "armap", "corvp", "corlab", "corap"):
+                break
+        return " → ".join(seq)
+
+    def first_units(s, n=7):
+        made = [b["unit"] for b in s["build_order"] if b.get("by", "").startswith("factory")][:n]
+        out, last, count = [], None, 0
+        for u in made + [None]:
+            if u == last:
+                count += 1
+                continue
+            if last:
+                out.append(f"{count} {last}" if count > 1 else last)
+            last, count = u, 1
+        return ", ".join(out)
+
+    at4 = lambda s: (s["curve"].get(4) or {}).get("extractors", 0)
+    P("**The same orders by result**, with what each side's extractors and army were at 4:00 (medians):\n")
+    P("| Order | Sides | Won | Extractors at 4:00 | Constructors at 4:00 | Army metal at 4:00 |\n|---|---|---|---|---|---|")
+    groups = collections.defaultdict(list)
+    for s in sides:
+        groups[opening(s)].append(s)
+    for seq, group in sorted(groups.items(), key=lambda g: -len(g[1]))[:5]:
+        c4 = lambda key: num(med([(s["curve"].get(4) or {}).get(key) for s in group]))
+        P(f"| {seq} | {len(group)} | {sum(1 for s in group if s.get('won'))} | {c4('extractors')} | {c4('constructors')} | {c4('army_metal')} |")
+    P("\n**What the factory made first** (its first seven units), most played and by result:\n")
+    P("| The factory's first units | Sides | Won | Extractors at 4:00 | Army metal in his half at 4:00 |\n|---|---|---|---|---|")
+    units = collections.defaultdict(list)
+    for s in sides:
+        units[first_units(s)].append(s)
+    for seq, group in sorted(units.items(), key=lambda g: -len(g[1]))[:6]:
+        P(f"| {seq} | {len(group)} | {sum(1 for s in group if s.get('won'))} | {num(med([at4(s) for s in group]))} | {num(med([(s['curve'].get(4) or {}).get('army_metal_in_his_half') for s in group]))} |")
+    fast = sorted(sides, key=at4, reverse=True)[: max(4, len(sides) // 4)]
+    P(f"\n**The quarter of sides with the most extractors at 4:00** ({len(fast)} sides, {num(med([at4(s) for s in fast]))} extractors at the median, {sum(1 for s in fast if s.get('won'))} of them won):\n")
+    P("| Side | Result | Commander's order | The factory's first units | Extractors at 4:00 / 8:00 | First constructor |\n|---|---|---|---|---|---|")
+    for s in fast[:8]:
+        first_con = next((b["clock"] for b in s["build_order"] if b.get("by", "").startswith("factory") and classify(b["unit"]) == "builder"), "-")
+        P(f"| {s['player']} | {'won' if s.get('won') else 'lost'} at {clock(s['duration'])} | {opening(s)} | {first_units(s)} | {at4(s)} / {(s['curve'].get(8) or {}).get('extractors', '-')} | {first_con} |")
+    P("")
     ms = [(s, milestones(s["build_order"], s.get("factories") or [], s.get("first_extractor_lost"), classify, s.get("pressure") or {})) for s in sides]
     kinds = collections.Counter(m["first_factory_kind"] for _, m in ms)
     P(f"First factory: {', '.join(f'{k} ({n})' for k, n in kinds.most_common())}.\n")

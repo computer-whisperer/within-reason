@@ -518,3 +518,13 @@ Lashers 22% on dry ground) include slow reloads and targets the weapon cannot hi
 the line); not checked against the engine's code.
 **Used by.** [[H-HANDS-CANNOT-FIRE]].
 
+### K-hands-the-d-gun-was-fired-through-our-own-plant
+**Claim.** The D-gun destroys everything on its line, and the hands' D-gun move said nothing of what of ours stood
+on it: in player-55 at 3:35 the commander D-gunned a Rover beside our vehicle plant, and the plant and the
+constructor on its pad were destroyed (19,824 of friendly-fire damage by the commander in that second; the plant's
+`destroyed` event names the commander). Production stood until the plant was rebuilt.
+**Status.** demonstrated (2026-10-03, `run/matches/1791061704-player-55-experience/00/record-0.jsonl`); the move's
+words now name what of ours the line crosses.
+**Would be wrong if.** The plant died to something else in the same second; the record's attacker is the commander.
+**Used by.** [[H-HANDS-DGUN-LINE]].
+

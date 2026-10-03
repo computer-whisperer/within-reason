@@ -1017,6 +1017,29 @@ impl Brain {
         Some(Menu { name, kind: Kind::Group(group.name.clone()), moves, idle, queue_ahead: false, course, course_key, course_words, aimed_at, against, near_party: near_party.map(|p| p.name.clone()), fight: fight.as_ref().map(|(_, words)| words.clone()), at: Some(body.at), idle_words, quiet: false, audit: false })
     }
 
+    /// What of ours stands on a D-gun shot's line from `shooter` towards `target`, out to the weapon's reach: the
+    /// shot runs on past its target. A unit is on the line when the line passes within half its footprint and a
+    /// margin of its centre.
+    fn ours_on_the_line(&self, shooter: &OwnUnit, target: Vec3, reach: f32, own: &[OwnUnit]) -> Vec<String> {
+        const MARGIN: f32 = 24.0;
+        let (dx, dz) = (target.x - shooter.pos.x, target.z - shooter.pos.z);
+        let length = dx.hypot(dz);
+        if length < 1.0 {
+            return Vec::new();
+        }
+        let (ux, uz) = (dx / length, dz / length);
+        let mut kinds: BTreeMap<String, usize> = BTreeMap::new();
+        for other in own.iter().filter(|o| o.id != shooter.id) {
+            let (ox, oz) = (other.pos.x - shooter.pos.x, other.pos.z - shooter.pos.z);
+            let along = ox * ux + oz * uz;
+            let half = self.world.def(other.def).map_or(16.0, |d| d.footprint.0.max(d.footprint.1) as f32 * 4.0);
+            if along > 0.0 && along < reach + half && (ox * uz - oz * ux).abs() < half + MARGIN {
+                *kinds.entry(self.short_words(other.def)).or_default() += 1;
+            }
+        }
+        kinds.into_iter().map(|(kind, n)| if n > 1 { format!("{n} {kind}") } else { kind }).collect()
+    }
+
     fn builder_menu(&self, scene: &Scene, unit: &OwnUnit) -> Option<Menu> {
         let (own, enemies, picture, pianist, kit, frame) = (scene.own, scene.enemies, scene.picture, scene.pianist, scene.kit, scene.frame);
         let name = self.actor_name(unit.id);
@@ -1249,6 +1272,14 @@ impl Brain {
             let inside = party.ids.iter().filter_map(|id| enemies.iter().find(|e| e.id == *id)).filter(|e| e.pos.dist2d(unit.pos) <= dgun).count();
             if dgun > 0.0 && inside > 0 {
                 let energy = if scene.tick.snapshot.energy.current >= DGUN_ENERGY { "the energy for it is stored" } else { "the energy store is too low for it now" };
+                // The shot destroys everything on its line, ours too (player-55 at 3:35: the commander D-gunned a
+                // Rover beside our vehicle plant and the plant and the constructor on its pad went with it).
+                let target = party.ids.iter().filter_map(|id| enemies.iter().find(|e| e.id == *id)).min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)));
+                let crossed = target.map(|t| self.ours_on_the_line(unit, t.pos, dgun, own)).filter(|c| !c.is_empty());
+                let energy = match &crossed {
+                    Some(ours) => format!("{energy}; THE SHOT'S LINE CROSSES OUR OWN {}: the D-gun destroys everything on its line, ours as well", ours.join(", ")),
+                    None => energy.to_string(),
+                };
                 push(format!("dgun_{}", party.name), Order::DGun(party.name.clone()), format!("{name} D-guns the nearest unit of {party_words}: {inside} of its {} stand inside the D-gun's reach; one shot kills; {energy}{leaves}", party.ids.len()), format!("the D-gun on {}", party.name), Some(party));
             }
         }
