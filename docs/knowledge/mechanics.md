@@ -505,3 +505,16 @@ list verified in the transcript; sonnet-medium-1 wrote the same list); fixed 202
 **Would be wrong if.** The plant's idle seconds had another cause (not checked beyond the review).
 **Used by.** [[H-PLAYER-ROLE-WORDS-AT-THE-PLANT]].
 
+### K-mech-a-low-muzzle-does-not-fire-from-shallow-water
+**Claim.** A unit standing in shallow water can be unable to fire, depending on where its muzzle sits: in human-16
+(Cape Violet, three seats of ours against a person) our Incisors standing in water 10 to 20 deep had an enemy in
+sight inside 90% of their reach for 86 unit-seconds and fired in 2% of them. They counted in the fight's odds and
+did nothing in it.
+**Status.** observed (the user, watching human-16, 2026-10-03; the record's `shots` against `en` and the terrain
+file's heights). Which units and what depth is not mapped: the same record's other low firing shares (Wolverines 11%,
+Lashers 22% on dry ground) include slow reloads and targets the weapon cannot hit, and were not separated.
+**Evidence.** `run/matches/1791059154-human-16/00/record-0.jsonl`, e.g. 6:27-6:28 at (5260, 2450), ground -14.
+**Would be wrong if.** The Incisors were held from firing by something else there (a hold-fire state, friends in
+the line); not checked against the engine's code.
+**Used by.** [[H-HANDS-CANNOT-FIRE]].
+

@@ -313,6 +313,16 @@ impl Brain {
         counts.iter().map(|(name, n)| format!("{n} {name}")).collect::<Vec<_>>().join(", ")
     }
 
+    /// The ground's height at a place (water level 0: negative is that deep under water); 0 without terrain.
+    pub(super) fn ground_height(&self, pos: Vec3) -> f32 {
+        let t = &self.world.hello.terrain;
+        if t.width == 0 || t.cell <= 0.0 {
+            return 0.0;
+        }
+        let (x, z) = (((pos.x / t.cell) as u32).min(t.width - 1), ((pos.z / t.cell) as u32).min(t.height.saturating_sub(1)));
+        t.heights.get((z * t.width + x) as usize).map_or(0.0, |h| f32::from(*h))
+    }
+
     /// The player's whitelist for an actor (`produce`, H-HANDS-PRODUCE): its own, else `all_builders` for a builder,
     /// else `all`, else none.
     pub(super) fn allowed_units(&self, actor: &str) -> Option<Allowance> {
@@ -1596,6 +1606,29 @@ impl Brain {
                     units.len(),
                     clock(longest),
                     match yard { Some(name) => format!(", standing in {name}'s exit lane"), None => format!(", at {}", self.place_words(&places, stuck[0].pos)) }
+                ));
+            }
+            // Soldiers standing with an enemy in their reach that have not fired: where and, when the ground says
+            // it, why (H-HANDS-CANNOT-FIRE).
+            let silent: Vec<(&&OwnUnit, i32)> = units.iter().filter_map(|u| Some((u, pianist.silent(u.id, self.world.def(u.def)?.reload, frame)?))).collect();
+            if !silent.is_empty() {
+                let depth = |u: &OwnUnit| -self.ground_height(u.pos);
+                let wet: Vec<&(&&OwnUnit, i32)> = silent.iter().filter(|(u, _)| depth(u) > 0.0).collect();
+                let longest = silent.iter().map(|(_, s)| *s).max().unwrap_or(0);
+                let mut kinds: BTreeMap<String, usize> = BTreeMap::new();
+                for (u, _) in &silent {
+                    *kinds.entry(self.short_words(u.def)).or_default() += 1;
+                }
+                let why = if wet.len() == silent.len() {
+                    format!("all of them stand in water {:.0} to {:.0} deep, where a weapon mounted low is under the surface", wet.iter().map(|(u, _)| depth(u)).fold(f32::INFINITY, f32::min), wet.iter().map(|(u, _)| depth(u)).fold(0.0, f32::max))
+                } else if !wet.is_empty() {
+                    format!("{} of them stand in water up to {:.0} deep, where a weapon mounted low is under the surface; the others on dry ground have a friend in their line of fire or a target their weapon cannot hit", wet.len(), wet.iter().map(|(u, _)| depth(u)).fold(0.0, f32::max))
+                } else {
+                    "they stand on dry ground: a friend in their line of fire, or a target their weapon cannot hit".to_string()
+                };
+                entry["cannot_fire"] = json!(format!(
+                    "{} of its {} soldiers ({}) have had an enemy inside their own reach for up to {longest} s and have not fired a shot: {why}; they are in the fight's count and do nothing in it where they stand",
+                    silent.len(), units.len(), kinds.iter().map(|(k, n)| format!("{n} {k}")).collect::<Vec<_>>().join(", ")
                 ));
             }
             let fleeing = units.iter().filter(|u| self.lane.fleeing(u.id)).count();

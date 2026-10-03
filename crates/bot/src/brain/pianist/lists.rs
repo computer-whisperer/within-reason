@@ -423,6 +423,15 @@ mod tests {
         let mut pianist = super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
         pianist.hits.insert(UnitId(1), 100);
         assert_eq!(pianist.under_fire(160).collect::<Vec<_>>(), vec![UnitId(1)]);
+        // A soldier with an enemy in its reach since frame 100 is silent after six seconds without a shot, not
+        // before, and not when it has fired since.
+        pianist.in_reach.insert(UnitId(1), 100);
+        assert_eq!(pianist.silent(UnitId(1), 0.3, 100 + 5 * 30), None);
+        assert_eq!(pianist.silent(UnitId(1), 0.3, 100 + 7 * 30), Some(7));
+        assert_eq!(pianist.silent(UnitId(1), 4.0, 100 + 7 * 30), None);
+        pianist.fired.insert(UnitId(1), 130);
+        assert_eq!(pianist.silent(UnitId(1), 0.3, 100 + 7 * 30), None);
+        assert_eq!(pianist.silent(UnitId(2), 0.3, 500), None);
         assert_eq!(pianist.under_fire(100 + super::super::UNDER_FIRE_FRAMES + 1).count(), 0);
     }
 }

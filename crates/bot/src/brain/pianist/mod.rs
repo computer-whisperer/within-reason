@@ -55,6 +55,10 @@ const RECENT_FRAMES: i32 = 90 * FRAMES_PER_SECOND;
 const REFUSED_FRAMES: i32 = 90 * FRAMES_PER_SECOND;
 /// A unit of ours is under fire this long after its last hit (the brain's own `HIT_MEMORY` for what a party shoots).
 pub(super) const UNDER_FIRE_FRAMES: i32 = 3 * FRAMES_PER_SECOND;
+/// How long a soldier stands with an enemy in its reach and no shot fired before the picture says it cannot fire.
+pub(super) const SILENT_FRAMES: i32 = 6 * FRAMES_PER_SECOND;
+/// The share of its reach an enemy must stand inside for that: at the edge a unit is still closing.
+pub(super) const SILENT_REACH: f32 = 0.9;
 /// What a builder or a lab is committed to.
 #[derive(Clone, Debug)]
 pub(super) enum Task {
@@ -231,6 +235,10 @@ pub struct Pianist {
     /// Our units hit in the last `UNDER_FIRE_FRAMES`, with the frame of the last hit: the pass's and the lists'
     /// under-fire set (`under_fire`), across the ticks between calls.
     pub(super) hits: HashMap<UnitId, i32>,
+    /// The frame each soldier of ours last fired, and the frame since which an enemy in sight has stood inside its
+    /// own reach without a break: a soldier long in reach that has not fired cannot fire (`silent`).
+    pub(super) fired: HashMap<UnitId, i32>,
+    pub(super) in_reach: HashMap<UnitId, i32>,
     /// (builder, party name) pairs with the party inside the builder's alarm reach: a party's arrival is an event once.
     pub(super) alarmed: HashSet<(UnitId, String)>,
     /// The token diet's level and knobs (H-HANDS-DIET).
@@ -600,6 +608,8 @@ impl Pianist {
             packet_frame: 0,
             diet: diet::Diet::from_env(),
             hits: HashMap::new(),
+            fired: HashMap::new(),
+            in_reach: HashMap::new(),
             alarmed: HashSet::new(),
             places_seen: BTreeSet::new(),
             packet_seen: String::new(),
@@ -685,6 +695,15 @@ impl Pianist {
     /// party 2,679 away.
     pub(super) fn under_fire(&self, frame: i32) -> impl Iterator<Item = UnitId> + '_ {
         self.hits.iter().filter(move |(_, hit)| frame - **hit <= UNDER_FIRE_FRAMES).map(|(id, _)| *id)
+    }
+
+    /// Whether a soldier has had an enemy inside its reach for [`SILENT_FRAMES`] or three reloads, whichever is
+    /// longer, and has not fired since that began: it stands where it cannot shoot (human-16, Cape Violet: Incisors
+    /// in water 10 to 20 deep fired in 2% of 86 seconds with an enemy in reach, their muzzles under the surface).
+    pub(super) fn silent(&self, unit: UnitId, reload: f32, frame: i32) -> Option<i32> {
+        let since = *self.in_reach.get(&unit)?;
+        let needed = SILENT_FRAMES.max((reload * 3.0 * FRAMES_PER_SECOND as f32) as i32);
+        (frame - since >= needed && self.fired.get(&unit).is_none_or(|at| *at < since)).then_some((frame - since) / FRAMES_PER_SECOND)
     }
 
     /// A new group's name: A, B, C, ...

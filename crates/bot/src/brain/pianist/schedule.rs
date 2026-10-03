@@ -26,6 +26,9 @@ impl Brain {
         for event in &tick.events {
             match event {
                 Event::UnitDamaged { unit, .. } => hit.push(*unit),
+                Event::WeaponFired { unit, .. } => {
+                    pianist.fired.insert(*unit, frame);
+                }
                 Event::UnitDestroyed { unit, .. } => gone.push(*unit),
                 Event::EnemyEnterLos { enemy } => seen.push(*enemy),
                 _ => {}
@@ -35,6 +38,20 @@ impl Brain {
             pianist.hits.insert(*unit, frame);
         }
         pianist.hits.retain(|_, at| frame - *at <= super::UNDER_FIRE_FRAMES);
+        // Who has an enemy in sight inside its own reach, and since when (`Pianist::silent`).
+        let seen_enemies: Vec<bot_protocol::Vec3> = tick.snapshot.enemies.iter().filter(|e| e.def.is_some()).map(|e| e.pos).collect();
+        let mut in_reach = std::mem::take(&mut pianist.in_reach);
+        in_reach.retain(|id, _| own.iter().any(|u| u.id == *id));
+        for unit in own.iter().filter(|u| !u.being_built) {
+            let reach = self.world.def(unit.def).map_or(0.0, |d| d.reach) * super::SILENT_REACH;
+            if reach > 0.0 && seen_enemies.iter().any(|e| e.dist2d(unit.pos) <= reach) {
+                in_reach.entry(unit.id).or_insert(frame);
+            } else {
+                in_reach.remove(&unit.id);
+            }
+        }
+        pianist.in_reach = in_reach;
+        pianist.fired.retain(|id, _| own.iter().any(|u| u.id == *id));
         // A party entering a builder's alarm reach (the parties are the last picture's; their place is where their
         // units stand now) is an event once, and again when it comes back after leaving.
         let mut alarmed: HashSet<(UnitId, String)> = HashSet::new();
