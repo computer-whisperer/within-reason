@@ -130,9 +130,6 @@ Not build orders. What it needs to work out why and when:
 - **The arena starts where the pool does.** `--starts 1420,3550:7290,3600` (B5 against H5, the pool's commonest
   pair) in place of the game's placement of an AI at an end of its strip, which is a quarter further apart; the
   ledger's player games before player-54 are from the corner start.
-
-## 7. Open, the user's
-
-
-- Whether the players' advice stays as quoted words in the player's brief, moves to the commander, or both.
-- Whether BARb's own curves may be shown to the player as the opponent's description.
+- **The players' quoted advice stays**, quoted and attributed, in the brief.
+- **BARb's own curves are shown** as the description of this opponent (not as our target: the ruling on pressure and
+  pace stands).
