@@ -342,9 +342,9 @@ impl Brain {
     /// The `map` tool's answer before the game: what does not depend on where we start.
     fn map_before_the_game(&self) -> serde_json::Value {
         let hello = &self.world.hello;
-        let spots: Vec<_> = hello.metal_spots.iter().enumerate().map(|(n, s)| json!({
-            "people": self.people_description(), "n": n, "grid": self.world.grid(*s), "x": s.x as i32, "z": s.z as i32 })).collect();
+        let spots: Vec<_> = hello.metal_spots.iter().enumerate().map(|(n, s)| json!({ "n": n, "grid": self.world.grid(*s), "x": s.x as i32, "z": s.z as i32 })).collect();
         json!({
+            "people": self.people_description(),
             "name": hello.map.name, "width": hello.map.width, "height": hello.map.height,
             "grid": "8x8 cells; columns A-H run west to east (x), rows 1-8 run north to south (z)",
             "our_start": "not known before the game begins",
