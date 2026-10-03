@@ -1,6 +1,7 @@
 # The brief as game experience, and the commander's pack
 
-Status: draft 1, 2026-10-03, in discussion with the user. Nothing built. The old brief stays as it is until this is
+Status: draft 2, 2026-10-03, in discussion with the user. The map sheet (§3a) is approved to start; nothing else is
+built. The old brief stays as it is until this is
 ratified.
 
 The user, 2026-10-03: "my main goal is to enrich game experience with what typical games against BARbs and against
@@ -39,9 +40,38 @@ The closed loop that the brief's tuning prose stood in for moves to the commande
 the reference and corrects in numbers ("18 extractors and 9 constructors by 8:00, 5 turrets on the outer spots"), so
 how hard a model leans on a sentence stops mattering.
 
+## 3a. General between maps (the user, 2026-10-03)
+
+"We have a lot of experience on comet catcher, but very little elsewhere. We want to extract as much general
+knowledge as possible from the comet catcher specific experiences, and one of the best ways to do that is probably to
+just keep the information in the brief ... both sonnet and opus can happily crunch through a 100k opening context ...
+We do need to make sure the llm agents are fully aware of the map details that inform those decisions though, so when
+they see a new map they can react accordingly."
+
+The pool: Comet 68 carded duels (254 listed), Great Divide 4 carded of 40 duels and 20 team games, Full Metal Plate 2,
+Gasbag Grabens 1; our games with people about twenty on Comet and a handful each on Quicksilver, Great Divide and Cape
+Violet. So the experience is Comet's, and the reader generalises it on a new map from the facts. For that:
+
+1. **The map sheet**: one structure for every map, computed by code from the map, never written by hand. Size; the
+   walk between the starts in seconds for each movement class; the spots within 30, 60 and 90 seconds' walk of each
+   start, the total and the spot value; the wind range (and tidal); the share of the ground each class can cross;
+   the passages and their widths; water. The sheets of the known maps stand side by side in the brief with the
+   current map's, so the difference is on the page.
+2. **Every table states its derivation beside its number** ("first soldier in his half 1:40: the factory 0:34, the
+   first soldier 0:55, 45 s of walking"), so the number scales with the sheet.
+3. **Every case carries its map conditions** as a tag from the sheet.
+4. **Logistics stay per map**: spot ids and named places for the map being played only.
+5. **A scaling rule is called general only when it has been tested**: card the Great Divide duels, predict their
+   milestones from Comet's rules and Great Divide's sheet, compare with what the pool did. What fails stays labelled
+   Comet.
+
+The size is not the limit (the prompt is cached; the turn time at 100k is to be measured, not assumed); attention is:
+at 27,000 words under one heading Sonnet already dropped the conditions round each headline, so the rewrite is
+sections, tables and one case format.
+
 ## 3. The player's brief: what games look like
 
-Generated per game for this map, this start, these opponents; no other map's section. Parts:
+All the experience on every map, with the current map's sheet and logistics. Parts:
 
 1. **The reference game**, as tables from the pool: the milestones and the by-minute quartiles with the winners'
    median; the report then carries where we stand against it each turn.
@@ -59,7 +89,7 @@ Generated per game for this map, this start, these opponents; no other map's sec
 7. **How the hands work and what the tools do**: operational, stays.
 
 Removed: every sentence whose job is to push harder or softer than the reader would otherwise go, the correctives
-aimed at one model's habits, the harness history ("until 2026-09-28 the list's ..."), the other maps.
+aimed at one model's habits, the harness history ("until 2026-09-28 the list's ..."), the other maps' spot lists.
 
 ## 4. The commander's pack: deciding from first principles
 
@@ -79,7 +109,8 @@ Not build orders. What it needs to work out why and when:
 
 ## 5. Order of work
 
-1. The generated reference tables and timelines for Comet 1v1 (read-only on existing data), shown to the user.
+1. The map sheet (§3a), then the generated reference tables and timelines for Comet 1v1 with their derivations, and
+   the Great Divide check (read-only on existing data), shown to the user.
 2. The player's brief for Comet 1v1 from them, beside the old brief, chosen by a flag so the ledger stays comparable.
 3. The pack's tables (economy arithmetic, the matrix, the timing distributions).
 4. The commander seat itself: its own design, after 1-3 are read.
@@ -89,5 +120,4 @@ Not build orders. What it needs to work out why and when:
 - Whether the stripped brief is played before the commander exists (it will likely play worse with one model: the
   tuning is load-bearing today), or only with it.
 - Whether the players' advice stays as quoted words in the player's brief, moves to the commander, or both.
-- Whether the first version is Comet 1v1 only.
 - Whether BARb's own curves may be shown to the player as the opponent's description.

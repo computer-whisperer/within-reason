@@ -7,3 +7,4 @@ description = "Walking distances over the map's ground: passable cells per movem
 
 [dependencies]
 bot-protocol = { path = "../bot-protocol" }
+serde_json = "1"

@@ -910,6 +910,7 @@ name = "terrain"
 version = "0.1.0"
 dependencies = [
  "bot-protocol",
+ "serde_json",
 ]
 
 [[package]]
