@@ -37,9 +37,16 @@ would brief a hard-working assistant who follows orders literally and never coun
   placed, no game time passes while you think, and what you order is in force from the first second. You know the
   map, the seats and our start box, not yet where the commander will stand, so write the brief's opening for this
   map with a bare `extractor` for each opening extractor: the hands take the free spot that builder reaches soonest
-  when the step comes up (`extractor spot_N` names one, once you know the start). Give `produce` and the packet
-  without places that depend on the start, and `wait` with a short `max_seconds`: the first report of the running
-  game has the start, the walking distances and every spot named, and the places go in then.
+  when the step comes up (`extractor spot_N` names one, once you know the start). When a seat's faction is not
+  known either (a lobby with people sets it at the start), write every step and `produce` entry as a role word
+  and the faction fills it in: `solar`, `wind`, `lab`, `plant`, `air_plant`, `turret`, `radar`, `nano`,
+  `metal_storage`, `energy_storage`, `converter`, `advanced_lab`, `advanced_extractor` for buildings;
+  `constructor`, `vehicle_constructor`, `raider`, `line`, `rez`, `advanced_constructor` for units, with counts and
+  places as usual (`constructor:1`, `turret spot_3`). Never leave the lists for the first report: in human-10 the
+  hands played the prose for twenty seconds and built a lab at 0:10 on two seats before the lists arrived. Give
+  `produce` and the packet without places that depend on the start, and `wait` with a short `max_seconds`: the
+  first report of the running game has the start, the walking distances and every spot named, and the places go
+  in then.
 - What the lab makes and the condition, in words the hands can see in the picture, that changes it ("constructors until
   we have a couple, then raiders until we have a group, then line units and raiders about two to one"). The picture says
   "a couple", "a group", "a real army", "far too many constructors"; the menu says how many we have beside each option.

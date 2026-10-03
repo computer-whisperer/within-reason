@@ -695,7 +695,25 @@ impl Brain {
                 let behind = body.core.len() - in_fight.len();
                 let farthest = body.core.iter().map(|u| u.pos.dist2d(party.at)).fold(0.0, f32::max);
                 let verdict = self.odds_words(&in_fight, party, enemies);
-                let words = format!("for the {} of its {} soldiers near it, {verdict}; the other {behind} are {:.0}-{farthest:.0} behind and not near it yet", in_fight.len(), body.core.len(), NEAR);
+                // The whole group's weight beside the near soldiers' (human-10, the D4 outpost: "for the 6 of its 51
+                // soldiers near it, it outweighs us" over a group of 4,930 metal against 340 and four turrets, and the
+                // rules' step-back sentence walked the column back on alternate seconds; offline with this clause and
+                // the rule's exception the walk back was offered at the bar in 1 of 15 advancing moments against 7,
+                // `docs/studies/2026-10-02-thrash-words.md`).
+                let mut theirs = super::super::combat::Force::default();
+                for enemy in enemies.iter().filter(|e| party.ids.contains(&e.id)) {
+                    match enemy.def {
+                        Some(def) => theirs.add(def),
+                        None => theirs.unidentified += 1,
+                    }
+                }
+                theirs.turret_metal += party.turret_metal;
+                theirs.turret_metal_air += party.turret_metal_air;
+                let ratio = self.odds(&Brain::force_of(&body.core), &theirs);
+                let whole = if ratio >= 2.5 { "outweighs it heavily" } else if ratio >= 1.3 { "outweighs it" } else if ratio >= 0.8 { "matches it" } else { "is outweighed by it" };
+                let metal: f32 = body.core.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
+                let against = if party.turret_metal > 0.0 { format!("the party and the turrets covering it ({:.0} and {:.0}, the turrets counted three times: {:.0})", party.metal, party.turret_metal, party.metal + 3.0 * party.turret_metal) } else { format!("the party ({:.0})", party.metal) };
+                let words = format!("for the {} of its {} soldiers near it, {verdict}; the whole group, {} soldiers worth {metal:.0} metal, against {against} {whole} ({ratio:.1} to 1); the other {behind} are {:.0}-{farthest:.0} behind and not near it yet", in_fight.len(), body.core.len(), body.core.len(), NEAR);
                 (verdict, words)
             }
         };

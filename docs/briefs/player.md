@@ -445,7 +445,9 @@ K-maps-comet-barb-opens-bots, the tempo model]
   the game the start inside the box is not known yet: write the same list with a bare `extractor` for each named
   spot (`["extractor", "extractor", "extractor", "armsolar", "armsolar", "armsolar", "armvp", "assist 20",
   "armsolar", "assist 60", "extractor", "assist 60", "armsolar", "assist"]`), the hands taking the free spot the
-  commander reaches soonest at each. The plant's first unit is a
+  commander reaches soonest at each; and when the faction is not known either, with role words in place of the
+  internal names (`solar`, `plant`, `lab`, `turret`, `constructor:1`, `raider`: the faction fills them in at the
+  start), so the lists exist before the first second. The plant's first unit is a
   constructor vehicle (the third solar is there to power it: thebluegecko, game 5 of 2026-09-27, "the reason to make
   3 solar rather than 2 is so you have enough e to make a fast con"), then Rovers as scouts and Tick-catchers
   (`armfav`, 31 metal, speed 168: the only tier-1 vehicle that catches a Tick at 132; a Blitz at 101 never does),
@@ -743,7 +745,10 @@ K-maps-comet-barb-opens-bots, the tempo model]
   time all game and each was worn down alone. (13) Name places, not parties, when the party's name has changed
   (four attack orders were refused on a stale party name); the hands attack what stands at the place. (14) When the
   seats are of two factions (the `seats:` line says which), each seat's lists and limits take its own faction's
-  names: `corsolar` and `corvp` for a Cortex seat, `armsolar` and `armvp` for an Armada one.
+  names: `corsolar` and `corvp` for a Cortex seat, `armsolar` and `armvp` for an Armada one, or role words
+  (`solar`, `plant`) that each seat's faction fills in, which is the way to write the lists before the lobby has
+  set the factions (human-10: with internal names only, the lists waited for the first report and the hands played
+  the prose meanwhile).
   From the fourth game (bluegecko-3v1-comet-catcher-4, lost about 20:30 with the trade 85k to 30k in our favour;
   the opponent [Stud]Irishstud14, OS 48, Cortex, with thebluegecko spectating and advising): (15) The push at 8:00 into his Pounders (riot tanks that beat Blitzes and Incisors head on)
   stopped at his base, and from 11:00 his Incisor swarms of ten to fifteen slipped past the Brute ball and took our
