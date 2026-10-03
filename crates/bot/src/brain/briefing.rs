@@ -336,7 +336,7 @@ impl Brain {
             },
         };
         let line = format!("{} (team {}): {faction}; {start}", self.commander_handle(), hello.team);
-        shared.seat_said_hello(hello.team, self.seats_of_ours(), line, self.map_before_the_game());
+        shared.seat_said_hello(hello.team, self.seats_of_the_player(), line, self.map_before_the_game());
     }
 
     /// The `map` tool's answer before the game: what does not depend on where we start.
@@ -452,6 +452,8 @@ impl Brain {
         ally_teams
             .into_iter()
             .map(|ally_team| {
+                // With a player a seat the other seats of ours are allies with players of their own.
+                let sibling = if crate::strategist::player_per_seat() { "another seat of this bot, with its own player as you are this seat's: it reads its own report and orders its own units" } else { "another seat of this bot" };
                 let seats = hello
                     .teams
                     .iter()
@@ -461,8 +463,8 @@ impl Brain {
                             _ if t.team == hello.team => "you (WReason)".to_string(),
                             Controller::Person { name, skill: Some(skill) } => format!("{name} (a person, lobby skill {skill:.0})"),
                             Controller::Person { name, skill: None } => format!("{name} (a person)"),
-                            Controller::Ai { short_name, profile: Some(profile), .. } if short_name.eq_ignore_ascii_case("wreason") => format!("Within Reason {profile} (another seat of this bot)"),
-                            Controller::Ai { short_name, .. } if short_name.eq_ignore_ascii_case("wreason") => "Within Reason (another seat of this bot)".to_string(),
+                            Controller::Ai { short_name, profile: Some(profile), .. } if short_name.eq_ignore_ascii_case("wreason") => format!("Within Reason {profile} ({})", sibling),
+                            Controller::Ai { short_name, .. } if short_name.eq_ignore_ascii_case("wreason") => format!("Within Reason ({sibling})"),
                             Controller::Ai { short_name, profile: Some(profile), .. } => format!("{short_name} {profile} (an AI)"),
                             Controller::Ai { short_name, .. } => format!("{short_name} (an AI)"),
                             Controller::Gaia => unreachable!("filtered above"),

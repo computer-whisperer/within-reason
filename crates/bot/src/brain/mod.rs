@@ -613,6 +613,12 @@ impl Brain {
     }
 
     /// How many seats of ours the start script lists on our side.
+    /// The seats this seat's player plays: all of ours with one player for the team, this one alone with a player
+    /// a seat.
+    pub(crate) fn seats_of_the_player(&self) -> usize {
+        if crate::strategist::player_per_seat() { 1 } else { self.seats_of_ours() }
+    }
+
     pub(crate) fn seats_of_ours(&self) -> usize {
         let h = &self.world.hello;
         h.teams.iter().filter(|t| t.ally_team == h.ally_team && matches!(&t.controller, bot_protocol::Controller::Ai { short_name, .. } if short_name == "WReason")).count()

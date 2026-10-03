@@ -1947,3 +1947,19 @@ estimated by hand); built as words, unmeasured in play. The margin was not built
 every move of a body that has turned twice, holds it where a turn is right.
 **Used by.** [[H-HANDS-TURNS]].
 
+
+### K-llm-one-player-over-three-seats-falls-behind-the-game
+**Claim.** One player session over three seats of ours reads the game rightly and minutes late. human-18 (Opus 5.5
+medium, All That Glitters Extended, against thebluegecko): its turn went from 15.7 s at the median in minutes 0-5
+to 30.3 s in minutes 20-25 and its report from 10,000 to 48,000 characters (71 actor entries, 27 groups at 17:54),
+with one packet of 1,900 to 3,400 characters for every seat's hands. Its own notes: 12:14 "95 extractors flat for 3
+min with ~48 constructors mostly helping plants/standing in lanes"; 16:13 "Army 38.5k vs ~5k seen: the lead is
+unspent because groups never gather"; 17:54 "Energy STALLING with 6.2k metal banked and ~20 constructors idling";
+one seat banked 3,200 to 3,900 metal for five minutes; 18 production calls in 28 minutes over up to seven plants.
+human-17 (three seats, Coast To Coast): the red seat's factory had six production changes after 3:26 and the two
+shipyards three between them; a commander in its factory's exit lane was reported on 47 of 69 turns.
+**Status.** observed in two games with a person (2026-10-03); the user's reading of human-18. Whether a player a
+seat mends it is not measured.
+**Would be wrong if.** A player a seat on the same kind of game is as late on its own seat's housekeeping, or the
+lateness is the report's size and not the three seats.
+**Used by.** [[H-PLAYER-PER-SEAT]]; `docs/design/2026-10-03-commander-seat.md`.

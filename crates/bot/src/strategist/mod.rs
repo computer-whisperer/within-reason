@@ -36,7 +36,14 @@ const DEFAULT_EFFORT: &str = "high";
 /// (paid credits) disabled, so it can be blocked but never charged (`docs/harness/claude-p.md`).
 const DEFAULT_CLAUDE_CONFIG_DIR: &str = ".claude2";
 
-/// `WITHIN_REASON_MODEL` (the arena's `--commander-model`) overrides the player's usual model. The game-chat banner
+/// `WITHIN_REASON_PLAYERS=seat` (the arena's `--players seat`): every seat of ours has its own player session, its
+/// own report and its own packet, in place of one session for the team (`docs/design/2026-10-03-commander-seat.md`,
+/// after human-18: one player's turn over three seats took 30 s and its report 48,000 characters by minute 20).
+pub fn player_per_seat() -> bool {
+    std::env::var("WITHIN_REASON_PLAYERS").as_deref() == Ok("seat")
+}
+
+/// `WITHIN_REASON_MODEL` (the arena's `--player-model`) overrides the player's usual model. The game-chat banner
 /// (`main.rs`) says this too: it had its own default, `claude-opus-5`, and announced that while the player ran 5.5.
 pub(crate) fn model() -> String {
     std::env::var("WITHIN_REASON_MODEL").ok().filter(|m| !m.is_empty()).unwrap_or_else(|| "claude-opus-5-5".into())

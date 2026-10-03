@@ -19,7 +19,8 @@ use world::World;
 /// usage: bot [--player] [--pianist]
 /// `--pianist`: Jev plays every unit from the player's instructions (`docs/design/2026-09-21-pianist.md`).
 /// `--player`: a Claude Code session beside the brains (see `DESIGN.md`), the Opus player whose lever is the
-/// pianist's instructions; one session serves every seat we play on a team (`strategist/seats.rs`).
+/// pianist's instructions; one session serves every seat we play on a team (`strategist/seats.rs`), or each seat
+/// has its own (`strategist::player_per_seat`).
 /// Transcripts go to `$WITHIN_REASON_LOG_DIR`, else the current directory.
 fn main() -> io::Result<()> {
     let mut player = false;
@@ -66,7 +67,7 @@ pub(crate) fn log_dir() -> std::path::PathBuf {
     std::env::var_os("WITHIN_REASON_LOG_DIR").map_or_else(|| ".".into(), Into::into)
 }
 
-/// `player`: whether the Opus player's session is started (one per team, `strategist/seats.rs`).
+/// `player`: whether the Opus player's session is started (one per team, `strategist/seats.rs`, or one a seat).
 fn session(mut stream: UnixStream, player: bool, pianist: bool) -> io::Result<()> {
     let mut input = stream.try_clone()?;
     let mut reader = FrameReader::default();
@@ -78,7 +79,10 @@ fn session(mut stream: UnixStream, player: bool, pianist: bool) -> io::Result<()
     // A player session that fails to start is not fatal: the hands play alone.
     let board = team::TeamBoard::of(&hello);
     let strategist = player
-        .then(|| board.strategist(|| Strategist::start(&log_dir(), hello.ai_id).map(std::sync::Arc::new)))
+        .then(|| {
+            let start = || Strategist::start(&log_dir(), hello.ai_id).map(std::sync::Arc::new);
+            if strategist::player_per_seat() { start() } else { board.strategist(start) }
+        })
         .and_then(|started| started.inspect_err(|e| eprintln!("the player's session failed to start: {e}")).ok());
     let mode_name = match (player, pianist) {
         (true, _) => "player",

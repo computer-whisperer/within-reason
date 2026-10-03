@@ -200,7 +200,7 @@ impl Brain {
         // ... and its field (roster, faction): bluegecko-3v1-comet-catcher-7's first turn came at frame 1 with the
         // other seats' faction "chosen at start", the player wrote both factions' names in one list, and the
         // whole list was refused.
-        let seats_in = (shared.live_seats().len() >= self.seats_of_ours() && shared.field().factions.len() >= self.seats_of_ours()) || tick.frame >= SEATS_WAIT_FRAMES;
+        let seats_in = (shared.live_seats().len() >= self.seats_of_the_player() && shared.field().factions.len() >= self.seats_of_the_player()) || tick.frame >= SEATS_WAIT_FRAMES;
         let first_turn = last_turn_frame == 0 && seats_in;
         if first_turn {
             reasons.push("the game begins: the opening is yours".into());

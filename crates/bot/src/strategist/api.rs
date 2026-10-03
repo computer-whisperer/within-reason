@@ -1,5 +1,5 @@
 //! The API backend (`docs/design/2026-09-27-api-backend.md`): an OpenAI-compatible chat-completions client with tools
-//! for models billed per token on an API key, Fireworks.ai first (`--commander-model fw:<model id>`) and any
+//! for models billed per token on an API key, Fireworks.ai first (`--player-model fw:<model id>`) and any
 //! OpenAI-compatible endpoint (`api:<model>`). The session owns its message list; the tools are the MCP tool list in
 //! OpenAI's shape, dispatched in-process through the same path as the MCP server; the turn ends at the `orders`
 //! call's `wait` with no closing request. The key is read from `~/.config/within-reason/fireworks.env` (`api.env`)
