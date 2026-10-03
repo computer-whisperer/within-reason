@@ -1844,3 +1844,23 @@ so if you say to do something now it will do it always until the next frame."
 **Would be wrong if.** A game played under the prompt's paragraph still shows a group sent back to a passed stop with
 no "now" in its packet, at ratings over the bar.
 **Used by.** the player prompt's "nearly stateless" paragraph; [[H-PLAYER-NO-NOW-IN-A-WAY]].
+
+### K-jev-the-cost-of-leaving-a-fight-under-fire-said-on-the-shell-move-stops-the-switch
+**Claim.** A group attacking a party and hit this second rates the shell on that same party near the bar, and the
+switch goes to the pick about a third of the time; one sentence on the shell move saying what the switch does to a
+group under fire takes every such shell under the bar and moves nothing else.
+**Status.** measured offline 2026-10-03, one ask an arm, on the recorded gates of two games. player-49 (20 gates): the
+shell's mean rating 0.46, 8 at 0.5 or over, 7 going to the pick; with "; group_X is under his fire now, and this takes
+every soldier out of the fight it is in: they turn and walk to the standoff and the screen point, shooting less while
+they walk and bunching where they arrive" 0.32, none; with "; this ends the attack group_X is making under fire: a group
+that changes between attacking and shelling walks instead of shooting, and loses soldiers for it" 0.32, none.
+player-46-pressure (22 gates): 0.39, 7 and 4; 0.28 and 0.31, none. The groups' other shell moves and every other
+question moved by Jev's ask-again noise (0.013-0.015 mean absolute). Not built; not in a game. The other half of the
+flip (shelling to attack, 16 of group_O's 103 picks in player-49) is not tested.
+**Evidence.** `jev-0.jsonl` of `run/matches/1791038139-player-49/00` and `1791006737-player-46-pressure/00`, replayed
+with `run/jev_ab.py`'s `requests_of` and `ask` (the script was scratch); the gates are those whose `pass` line has the
+group's course as an attack on the party, the event "group_X hit", and `shell_<that party>` among the questions.
+**Would be wrong if.** In a game with the sentence the attack / shell alternation on one party goes on at the old rate
+(player-49: 34 of group_O's picks), or a shell that was right under fire (a turret outranging the screen) is no longer
+taken.
+**Used by.** nothing yet (the user's cause 3 of the thrash, 2026-10-03).
