@@ -12,7 +12,7 @@ use super::super::economy::Plan;
 use super::super::roster::Kit;
 use super::compose::World;
 use super::groups::Ward;
-use super::menu::{ARTILLERY_REACH, His, Kind, Menu, Order, Register, Site};
+use super::menu::{His, Kind, Menu, Order, Register, Site};
 use super::picture::{Party, Picture, clock};
 use super::{Group, GroupTask, Task};
 
@@ -372,7 +372,7 @@ impl Brain {
                 if let Some((at, what)) = aim {
                     let group = &mut pianist.groups[index];
                     let reach_of = |u: &&OwnUnit| self.world.def(u.def).map_or(0.0, |d| d.reach);
-                    let long: Vec<&OwnUnit> = units.iter().copied().filter(|u| reach_of(u) >= ARTILLERY_REACH).collect();
+                    let long: Vec<&OwnUnit> = units.iter().copied().filter(|u| self.artillery(u)).collect();
                     let reach = long.iter().map(reach_of).fold(0.0, f32::max);
                     let from = centre.unwrap_or(at);
                     let (dx, dz) = (from.x - at.x, from.z - at.z);
@@ -382,7 +382,7 @@ impl Brain {
                     let screen = self.snap_for(walker, point(reach * SCREEN));
                     commands.extend(group.release_orders(&units));
                     for u in &units {
-                        let to = if reach_of(u) >= ARTILLERY_REACH { standoff } else { screen };
+                        let to = if self.artillery(u) { standoff } else { screen };
                         commands.push(Command::Fight { unit: u.id, to, queue: false });
                     }
                     group.set_task(GroupTask::Move { to: standoff, place: format!("standoff from {what}"), fight: true, since: frame }, frame);

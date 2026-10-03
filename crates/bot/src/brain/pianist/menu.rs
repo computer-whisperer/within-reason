@@ -33,8 +33,6 @@ const HERE: f32 = 300.0;
 pub(super) const HIS_AT: f32 = 500.0;
 /// A party this close to a place is said in the words of a move that ends there.
 const AT_END: f32 = 800.0;
-/// A soldier with this reach or more is artillery: it shells from a standoff.
-pub(super) const ARTILLERY_REACH: f32 = 600.0;
 /// A unit of ours under this share of its health is damaged: a builder can repair it.
 const DAMAGED: f32 = 0.7;
 /// A wreck field with this much metal is worth a builder's walk (the picture lists the same fields).
@@ -869,7 +867,7 @@ impl Brain {
         }
 
         // Attack, shell, send: every party in the picture.
-        let long_reach: Vec<&OwnUnit> = units.iter().copied().filter(|u| self.world.def(u.def).is_some_and(|d| d.reach >= ARTILLERY_REACH && d.speed > 0.0)).collect();
+        let long_reach: Vec<&OwnUnit> = units.iter().copied().filter(|u| self.artillery(u)).collect();
         let arty_words = {
             let kinds: BTreeMap<&str, usize> = long_reach.iter().fold(BTreeMap::new(), |mut m, u| {
                 *m.entry(self.name(u.def)).or_default() += 1;

@@ -6,7 +6,7 @@
 
 use std::collections::HashMap;
 
-use bot_protocol::UnitDefId;
+use bot_protocol::{OwnUnit, UnitDefId};
 
 use super::Brain;
 
@@ -14,6 +14,8 @@ use super::Brain;
 /// Over the decisive engagements of v18 the prediction improved steadily as this rose (right 92 % at 1.5, 93 % at
 /// 2.5, 95 % at 4; correlation 0.86 to 0.91), and waves that passed the gate at 1.5 were wiped 5:1 by turret lines.
 pub const TURRET_WORTH: f32 = 3.0;
+/// A soldier with this reach or more against the ground is artillery: it shells from a standoff (`Brain::artillery`).
+const ARTILLERY_REACH: f32 = 600.0;
 
 /// `margin[(unit, against)]` at equal metal, -1..1, by unit name.
 pub struct Matchups(HashMap<(String, String), f32>);
@@ -74,6 +76,13 @@ impl Brain {
             Some(unit) => if air { unit.reach_air() > 0.0 } else { unit.reach() > 0.0 },
             None => !air && self.world.def(def).is_some_and(|d| d.weapon_count > 0),
         }
+    }
+
+    /// Whether one of ours is artillery for the shell move: mobile, its reach `ARTILLERY_REACH` or more, and able to
+    /// hit the ground. A Crossbow (armjeth, anti-air only, reach 760) is not: human-12's group_T shelled four
+    /// Centurions "with 6 long-reach soldiers" at 8:28-9:21 and nothing fired.
+    pub(super) fn artillery(&self, unit: &OwnUnit) -> bool {
+        self.world.def(unit.def).is_some_and(|d| d.reach >= ARTILLERY_REACH && d.speed > 0.0) && self.can_hit(unit.def, false)
     }
 
     /// Whether a unit of this type has a water weapon (a torpedo, a depth charge): the engine lets nothing else fire
@@ -210,6 +219,18 @@ mod tests {
         assert!(com / pawns >= 1.3, "five Pawns: {}", com / pawns);
         assert!(com / line < 0.8, "two Stouts and three Warriors: {}", com / line);
         assert_eq!(worth_of(unit(&units, "armck"), scale), 0.0, "an unarmed constructor fights nothing");
+    }
+
+    /// A Crossbow (anti-air only) has no reach against the ground, so `artillery` (which asks `can_hit` the ground)
+    /// leaves it out of the shell move however long its missiles fly; a Luger (armmart, the tier-1 artillery vehicle) is in.
+    #[test]
+    fn a_crossbow_is_not_artillery() {
+        let units = Units::default();
+        let jeth = unit(&units, "armjeth");
+        assert_eq!(jeth.reach(), 0.0, "a Crossbow's ground reach");
+        assert!(jeth.reach_air() >= ARTILLERY_REACH, "its reach against aircraft {}", jeth.reach_air());
+        let mart = unit(&units, "armmart");
+        assert!(mart.reach() >= ARTILLERY_REACH && mart.mobile(), "a Luger's ground reach {}", mart.reach());
     }
 }
 
