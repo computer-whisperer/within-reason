@@ -64,16 +64,26 @@ impl Plan {
         1 + self.factories.len() + nth
     }
 
+    /// A queue past the plan's constructors is empty: the simulator numbers a state's builders itself, and a plan
+    /// sized from another count of them (player-43: a constructor in the state, none in the plan) must not panic
+    /// (the panic killed the player's tool server for the rest of the game).
     pub fn queue(&self, queue: usize) -> &Vec<Step> {
+        static EMPTY: Vec<Step> = Vec::new();
         match queue {
             0 => &self.commander,
             q if q <= self.factories.len() => &self.factories[q - 1],
-            q => &self.constructors[q - 1 - self.factories.len()],
+            q => self.constructors.get(q - 1 - self.factories.len()).unwrap_or(&EMPTY),
         }
     }
 
+    /// The queue, grown to exist when it is past the plan's constructors.
     pub fn queue_mut(&mut self, queue: usize) -> &mut Vec<Step> {
         let factories = self.factories.len();
+        if queue > factories {
+            while self.constructors.len() < queue - factories {
+                self.constructors.push(Vec::new());
+            }
+        }
         match queue {
             0 => &mut self.commander,
             q if q <= factories => &mut self.factories[q - 1],
@@ -149,5 +159,23 @@ impl Plan {
             }
         }
         Ok(plan)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A queue past the plan's constructors reads as empty and is grown when written: the simulator numbers a
+    /// state's builders itself (player-43's `plan` call panicked here and took the tool server with it).
+    #[test]
+    fn a_queue_past_the_constructors_is_empty_and_grows_when_written() {
+        let mut plan = Plan::empty(1, 0);
+        assert_eq!(plan.queue_count(), 2);
+        assert!(plan.queue(2).is_empty() && plan.queue(5).is_empty());
+        plan.queue_mut(3).push(Step::build(0));
+        assert_eq!(plan.queue_count(), 4);
+        assert_eq!(plan.queue(3).len(), 1);
+        assert!(plan.queue(2).is_empty());
     }
 }

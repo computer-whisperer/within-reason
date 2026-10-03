@@ -36,7 +36,19 @@ impl McpServer {
                 }
                 let mut body = String::new();
                 let _ = request.as_reader().read_to_string(&mut body);
-                let reply = serde_json::from_str::<Value>(&body).ok().and_then(|call| handle(&call, &shared, &transcript));
+                // A panic in a tool is the tool's error, not the server's end (player-43: the `plan` tool panicked
+                // at 1:00 and no call of the player's reached the bot for the rest of the game).
+                let reply = serde_json::from_str::<Value>(&body).ok().and_then(|call| {
+                    let id = call.get("id").cloned();
+                    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| handle(&call, &shared, &transcript))) {
+                        Ok(reply) => reply,
+                        Err(payload) => {
+                            let what = payload.downcast_ref::<&str>().map(|s| s.to_string()).or_else(|| payload.downcast_ref::<String>().cloned()).unwrap_or_else(|| "a panic".to_string());
+                            eprintln!("[mcp] a tool panicked: {what}");
+                            id.map(|id| json!({ "jsonrpc": "2.0", "id": id, "result": { "content": [{ "type": "text", "text": format!("the tool failed inside the bot ({what}); the bot is still running, your other tools work") }], "isError": true } }))
+                        }
+                    }
+                });
                 let _ = match reply {
                     Some(reply) => request.respond(
                         Response::from_string(reply.to_string())

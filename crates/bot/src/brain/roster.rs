@@ -40,8 +40,11 @@ pub struct Roster {
 /// the seat's faction when the step or entry is used (human-10, 2026-10-02: on a lobby whose factions are set at
 /// the start, the player could write no pre-game lists because `queue` and `produce` took internal names only,
 /// and the hands played prose for the first twenty seconds).
-pub const ROLE_WORDS: [&str; 21] = [
-    "commander", "extractor", "solar", "wind", "lab", "plant", "air_plant", "turret", "radar", "nano", "constructor", "vehicle_constructor", "raider", "line", "rez", "converter", "advanced_lab", "advanced_constructor", "advanced_extractor", "metal_storage", "energy_storage",
+/// `extractor` is not among them: it is a list step of its own (`lists.rs`: a spot, or the nearest free one), and
+/// player-43 lost in its first minute when it was turned into `armmex spot_67`, which the list reader takes for a
+/// tier-2 upgrade over a standing extractor.
+pub const ROLE_WORDS: [&str; 19] = [
+    "solar", "wind", "lab", "plant", "air_plant", "turret", "radar", "nano", "constructor", "vehicle_constructor", "raider", "line", "rez", "converter", "advanced_lab", "advanced_constructor", "advanced_extractor", "metal_storage", "energy_storage",
 ];
 /// The role words that name a factory (the `queue` tool's note on a factory step without an id).
 pub const FACTORY_ROLES: [&str; 4] = ["lab", "plant", "air_plant", "advanced_lab"];
@@ -50,8 +53,6 @@ impl Roster {
     /// The unit a role word names in this faction; None for anything else, a unit's internal name included.
     pub fn role(&self, word: &str) -> Option<&'static str> {
         Some(match word {
-            "commander" => self.commander,
-            "extractor" => self.extractor,
             "solar" => self.solar,
             "wind" => self.wind,
             "lab" => self.lab,
@@ -208,7 +209,10 @@ mod tests {
         assert_eq!(cor.resolve_words("constructor:1"), "corck:1");
         assert_eq!(arm.resolve_words("lab #l1"), "armlab #l1");
         assert_eq!(arm.resolve_words("corsolar"), "corsolar");
-        assert_eq!(arm.resolve_words("extractor spot_4"), "armmex spot_4");
+        // The list's own words are not touched: `extractor` is a step of its own, not a unit.
+        for step in ["extractor spot_4", "extractor", "extractor nearest", "assist 40", "assist", "stop", "reclaim constructor_3"] {
+            assert_eq!(arm.resolve_words(step), step, "{step}");
+        }
         assert!(FACTORY_ROLES.iter().all(|w| ROLE_WORDS.contains(w)));
     }
 }
