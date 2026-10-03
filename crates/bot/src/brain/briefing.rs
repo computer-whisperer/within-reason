@@ -61,6 +61,33 @@ impl Brain {
         shared.trigger(text);
     }
 
+    /// Under a commander: a death of ours, or of his that we saw, with what stood near it, for the side's fights
+    /// block (`strategist/fights.rs`).
+    fn publish_death(&self, tick: &Tick, kit: &Kit, unit: u32, ours: bool, name: &str, metal: f32, at: Vec3) {
+        use crate::strategist::fights::{Death, THERE};
+        let Some(side) = self.strategist.as_ref().and_then(|s| s.side.get()) else { return };
+        let soldiers: Vec<f32> = tick.snapshot.own_units.iter().filter(|u| !u.being_built && self.is_army(u, kit) && u.pos.dist2d(at) <= THERE).map(|u| self.world.def(u.def).map_or(0.0, |d| d.metal_cost)).collect();
+        let mut his: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
+        let mut his_metal = 0.0;
+        for enemy in tick.snapshot.enemies.iter().filter(|e| !e.being_built && e.pos.dist2d(at) <= THERE) {
+            let Some(def) = enemy.def.and_then(|d| self.world.def(d)) else { continue };
+            *his.entry(def.name.clone()).or_default() += 1;
+            his_metal += def.metal_cost;
+        }
+        side.deaths.lock().unwrap().push(Death {
+            frame: tick.frame,
+            unit,
+            ours,
+            name: name.to_string(),
+            metal,
+            at: (at.x, at.z),
+            cell: self.world.grid(at),
+            ours_there: (soldiers.len(), soldiers.iter().sum()),
+            his_there: his.into_iter().collect(),
+            his_there_metal: his_metal,
+        });
+    }
+
     /// Notes our own losses by name, and wakes the strategist when extractors go down in numbers.
     pub(super) fn track_losses(&mut self, tick: &Tick, kit: &Kit) {
         const LOSSES_WORTH_WAKING_FOR: usize = 2;
@@ -69,6 +96,7 @@ impl Brain {
             if let Some(def) = enemy.def {
                 self.enemy_defs.insert(enemy.id, def);
             }
+            self.enemy_places.insert(enemy.id, enemy.pos);
         }
         for event in &tick.events {
             if let Event::EnemyDestroyed { enemy } = event {
@@ -76,7 +104,11 @@ impl Brain {
                 let worth = def.and_then(|d| self.world.def(d)).map_or(0.0, |d| d.metal_cost);
                 self.trade_log.push((tick.frame, 0.0, worth));
                 self.enemy_deaths.push((enemy.0 as u32, tick.frame, worth as u32));
+                let place = self.enemy_places.remove(enemy);
                 let name = def.map_or("unseen", |d| self.name(d));
+                if let Some(at) = place {
+                    self.publish_death(tick, kit, enemy.0 as u32, false, name, worth, at);
+                }
                 let line = format!("killed {name}");
                 if let Some(shared) = &self.strategist {
                     shared.fight(&line);
@@ -101,6 +133,7 @@ impl Brain {
                 continue;
             }
             self.trade_log.push((tick.frame, cost, 0.0));
+            self.publish_death(tick, kit, unit.0 as u32, true, self.name(def), cost, pos);
             self.unit_losses.push_back((tick.frame, *unit, def, attacker.and_then(|id| self.enemy_defs.get(&id).map(|d| (id, *d)))));
             if kit.is_extractor(def)
                 && let Some(index) = self.world.hello.metal_spots.iter().position(|s| s.dist2d(pos) < self.spot_occupied_radius())

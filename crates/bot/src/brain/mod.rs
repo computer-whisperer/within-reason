@@ -168,6 +168,8 @@ pub struct Brain {
     abandoned_now: HashMap<UnitId, f32>,
     /// Every enemy unit's type once seen, so a killer that has left sight still has a name.
     enemy_defs: HashMap<UnitId, UnitDefId>,
+    /// Where each enemy was last seen, for the place of its death (`briefing.rs` `publish_death`).
+    enemy_places: HashMap<UnitId, Vec3>,
     /// This minute's fight ledger for the log: "lost X to Y near home" and "killed Y", with counts.
     fight_ledger: std::collections::BTreeMap<String, u32>,
     /// (frame, metal of ours destroyed, metal of theirs we saw destroyed), one entry per death: what the fighting costs
@@ -315,6 +317,7 @@ impl Brain {
             unfinished: HashMap::new(),
             abandoned_now: HashMap::new(),
             enemy_defs: HashMap::new(),
+            enemy_places: HashMap::new(),
             fight_ledger: Default::default(),
             trade_log: Vec::new(),
             enemy_deaths: Vec::new(),

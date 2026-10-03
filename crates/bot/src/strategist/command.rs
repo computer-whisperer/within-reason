@@ -258,6 +258,7 @@ fn report(side: &Shared, first: bool) -> String {
     lines.push(format!("[{}] the side's report", briefing.game_time));
     lines.extend(super::report::front(&briefing, &field, &fights, false));
     lines.extend(super::report::contact(&briefing, &field));
+    lines.extend(super::fights::lines(&side.deaths.lock().unwrap(), frame));
     // A line a seat, then its groups and what its builders and factories are at, from the picture its hands read.
     let seats = side.seats.lock().unwrap().clone();
     let hands = side.hands.lock().unwrap().clone();

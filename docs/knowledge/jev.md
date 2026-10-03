@@ -1963,3 +1963,20 @@ seat mends it is not measured.
 **Would be wrong if.** A player a seat on the same kind of game is as late on its own seat's housekeeping, or the
 lateness is the report's size and not the three seats.
 **Used by.** [[H-PLAYER-PER-SEAT]]; `docs/design/2026-10-03-commander-seat.md`.
+
+### K-llm-a-commander-shown-one-second-corrects-the-minute
+**Claim.** A commander woken every 90 s with the economy as it stands that second writes a correction of that
+second, and a Sonnet player carries each correction out in full. duel-split-1 (Sonnet 5.5 medium under Opus 5.5
+high, the standing Comet duel): nine of ten commander turns wrote a paragraph to the seat; "energy comes first"
+(1:55), "not more solars" (3:25), "energy is the bottleneck: 3 constructors on solars" (6:25, the player queued
+26 solars over five builders), "metal is now the bottleneck: all 7 constructors to extractors" (7:55), solars
+again (10:55); 11 extractors at 8:00 against 19 for Opus alone on the seed (player-59). It also called a fight
+it could not see the outcome of: Blitzes (reach 180) into six Janus (380), a turret and his commander at F5 at
+10:55 and 11:55 after noting at 9:25 that the Janus were killing Blitzes; the first loss reached it as a tally
+line. The user's ruling: more information, not less (the fluctuation shown, the fights as records) and the
+instruction that the player balances its own economy.
+**Status.** observed in one game (2026-10-03); the remedy built, unmeasured. No Sonnet-alone game on this build
+and start exists to say what the commander cost.
+**Would be wrong if.** With the history and the fights in its report the commander still writes a correction a
+turn, or Sonnet alone on this seed does no better.
+**Used by.** [[H-COMMANDER-SEAT]], [[H-COMMANDER-FIGHTS]].

@@ -421,6 +421,8 @@ pub struct Shared {
     pub side: std::sync::OnceLock<std::sync::Arc<Shared>>,
     /// The side's: the players under the commander, for their notes and packets.
     pub players: Mutex<super::command::Players>,
+    /// The side's: every death the seats have published, for the commander's fights block (`fights.rs`).
+    pub deaths: Mutex<Vec<super::fights::Death>>,
     /// The side's: the commander's direction.
     pub direction: Mutex<super::command::Direction>,
 }

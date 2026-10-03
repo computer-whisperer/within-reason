@@ -9,6 +9,7 @@
 
 mod api;
 pub mod command;
+pub mod fights;
 mod mcp;
 mod reference;
 mod report;
