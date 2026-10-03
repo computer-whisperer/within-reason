@@ -44,6 +44,9 @@ pub struct Routes {
     classes: HashMap<Walker, (Vec<bool>, Field)>,
     /// Distance from the nearest live enemy base.
     from_enemy: Option<Field>,
+    /// The narrow places between home and the enemy's bases: of the two fields, so computed when `from_enemy` is
+    /// (every picture asked for them, and computing them was 9% of the bot's time in player-51's profile).
+    passages: Vec<terrain::Passage>,
     enemy_origins: Vec<Vec3>,
     passable: Vec<bool>,
     /// One field per metal spot (the map's order) per class, in effective elmos (slopes priced by the engine's
@@ -127,6 +130,7 @@ impl Brain {
         }
         self.routes = Some(Routes {
             soldiers: Walker::Class(ClassKey::of(class)),
+            passages: from_enemy.as_ref().map(|enemy| terrain::passages(&from_home, enemy)).unwrap_or_default(),
             from_home, classes, from_enemy, enemy_origins, passable, spot_fields: HashMap::new(), spot_fields_pending: Some(receiver),
         });
         for p in self.passages() {
@@ -147,6 +151,7 @@ impl Brain {
             && (routes.enemy_origins.len() != origins.len() || routes.enemy_origins.iter().zip(&origins).any(|(a, b)| a.dist2d(*b) > ENEMY_MOVED))
         {
             routes.from_enemy = Field::from_many(terrain, &routes.passable, &origins);
+            routes.passages = routes.from_enemy.as_ref().map(|enemy| terrain::passages(&routes.from_home, enemy)).unwrap_or_default();
             routes.enemy_origins = origins;
         }
     }
@@ -259,7 +264,7 @@ impl Brain {
 
     /// The narrow places on the ways between home and the nearest enemy bases, the narrowest first.
     pub(super) fn passages(&self) -> Vec<terrain::Passage> {
-        self.routes.as_ref().and_then(|r| r.from_enemy.as_ref().map(|enemy| terrain::passages(&r.from_home, enemy))).unwrap_or_default()
+        self.routes.as_ref().map(|r| r.passages.clone()).unwrap_or_default()
     }
 
     /// Where our soldiers can stand, one flag per terrain cell (`Terrain` order); `None` without terrain data.

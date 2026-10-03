@@ -17,7 +17,10 @@ impl Transcript {
     }
 
     pub fn record(&self, entry: Value) {
-        let mut file = self.file.lock().unwrap();
-        let _ = writeln!(file, "{entry}");
+        // One write a line: a `Value` written straight to the file is a system call a fragment (player-51's
+        // profile: a quarter of the bot's time).
+        let mut line = entry.to_string();
+        line.push('\n');
+        let _ = self.file.lock().unwrap().write_all(line.as_bytes());
     }
 }

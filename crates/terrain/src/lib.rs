@@ -210,7 +210,7 @@ impl Field {
 }
 
 /// A passage on the way between two places: where it is and how wide.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Passage {
     pub at: Vec3,
     pub width: f32,

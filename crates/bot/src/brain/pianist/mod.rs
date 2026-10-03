@@ -637,7 +637,9 @@ impl Pianist {
                 "t": "header", "format": "within-reason-jev", "version": LOG_VERSION, "ai_id": ai_id, "model": model,
                 "interval_frames": self.interval_frames, "rules": rules, "hands_effort": self.diet.level_name(), "worlds_cap": self.cap, "layers": self.layers.names(),
             });
-            let _ = writeln!(log, "{line}");
+            let mut text = line.to_string();
+            text.push('\n');
+            let _ = log.write_all(text.as_bytes());
         }
     }
 
@@ -696,7 +698,11 @@ impl Pianist {
 
     fn write_log(&mut self, line: serde_json::Value) {
         if let Some(log) = &mut self.log {
-            let _ = writeln!(log, "{line}");
+            // One write a line: a `Value` written straight to the file is a system call a fragment, and the
+            // pass's line is about a megabyte (player-51's profile: a quarter of the bot's time).
+            let mut text = line.to_string();
+            text.push('\n');
+            let _ = log.write_all(text.as_bytes());
         }
     }
 }
