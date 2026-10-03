@@ -772,7 +772,15 @@ K-maps-comet-barb-opens-bots, the tempo model]
   the constructor stands: the lab's line names the unit on its pad ("building a Construction Bot (28% built; it will
   be constructor_4321 ...)"), and a `queue` for that name now waits for it and runs the second it stands. The same
   for a plant going up: its builder's line names it, and its `produce` and the constructors' lists can be staged
-  before it is finished.
+  before it is finished. (17) A commit is one plain sentence with nothing else in it: "group_G1 attacks party_8 now
+  with the whole group and keeps attacking until it is dead." In human-12 the sentence "It attacks party_8 (the
+  Centurions at home, spot_13, spot_11) with the whole group until they are dead", followed by "Against a party that
+  outweighs it, it walks to spot_11 and holds", had 28 Maces against two Centurions walking to spot_11 and back every
+  other second for a minute while the lab died; the same gates asked again with the plain sentence added kept the
+  attack (walks offered 6 to 1). The hands read every place named in a sentence as a place to go, so the attack
+  sentence names the party and nothing else, "now" and "keeps attacking" are the words that hold it, and the
+  fall-back clause stays a separate sentence that names a place no enemy is at. Where the sentence sits in the packet
+  makes no difference (measured: last line, repeated, section last).
   From the fourth game (bluegecko-3v1-comet-catcher-4, lost about 20:30 with the trade 85k to 30k in our favour;
   the opponent [Stud]Irishstud14, OS 48, Cortex, with thebluegecko spectating and advising): (15) The push at 8:00 into his Pounders (riot tanks that beat Blitzes and Incisors head on)
   stopped at his base, and from 11:00 his Incisor swarms of ten to fifteen slipped past the Brute ball and took our
