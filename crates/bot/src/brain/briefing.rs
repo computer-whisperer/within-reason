@@ -79,7 +79,7 @@ impl Brain {
                 let name = def.map_or("unseen", |d| self.name(d));
                 let line = format!("killed {name}");
                 if let Some(shared) = &self.strategist {
-                    *shared.fights.lock().unwrap().entry(line.clone()).or_default() += 1;
+                    shared.fight(&line);
                 }
                 *self.fight_ledger.entry(line).or_default() += 1;
             }
@@ -93,7 +93,7 @@ impl Brain {
                 self.trade_log.push((tick.frame, cost * share, 0.0));
                 let line = format!("abandoned an unfinished {} ({:.0}% built)", self.name(def), share * 100.0);
                 if let Some(shared) = &self.strategist {
-                    *shared.fights.lock().unwrap().entry(line.clone()).or_default() += 1;
+                    shared.fight(&line);
                 }
                 *self.fight_ledger.entry(line).or_default() += 1;
                 let (name, grid) = (self.name(def).to_string(), self.world.grid(pos));
@@ -111,7 +111,7 @@ impl Brain {
             let place = if pos.dist2d(self.home) < BASE_RADIUS { "at home" } else if pos.dist2d(self.home) < pos.dist2d(self.world.mirrored(self.home)) { "in our half" } else { "in their half" };
             let line = format!("lost {} to {killer} {place}", self.name(def));
             if let Some(shared) = &self.strategist {
-                *shared.fights.lock().unwrap().entry(line.clone()).or_default() += 1;
+                shared.fight(&line);
             }
             *self.fight_ledger.entry(line).or_default() += 1;
             if self.world.def(def).is_some_and(|d| d.speed > 0.0 && d.build_speed == 0.0) {
@@ -224,6 +224,9 @@ impl Brain {
         let snapshot = &tick.snapshot;
         if tick.frame <= super::TICK_FRAMES_HINT {
             *shared.map.lock().unwrap() = self.map_description();
+            if let Some(side) = shared.side.get() {
+                *side.map.lock().unwrap() = self.map_description();
+            }
         }
         let count = |def: UnitDefId| snapshot.own_units.iter().filter(|u| u.def == def && !u.being_built).count();
         let soldiers: Vec<&OwnUnit> = snapshot.own_units.iter().filter(|u| !u.being_built && self.is_army(u, kit)).collect();
@@ -289,6 +292,10 @@ impl Brain {
             enemy_buildings_remembered,
             recent_events: self.recent_events.iter().cloned().collect(),
         };
+        // Under a commander the side is published what the player is (`strategist/command.rs`).
+        if let Some(side) = shared.side.get() {
+            side.publish_briefing(self.world.hello.team, self.home, briefing.clone());
+        }
         shared.publish_briefing(self.world.hello.team, self.home, briefing);
     }
 

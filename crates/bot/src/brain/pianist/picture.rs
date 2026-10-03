@@ -433,7 +433,8 @@ impl Brain {
         }
         // The side's registry (H-HANDS-SIDE-PARTIES): a party another seat has named keeps that name here, and a
         // fresh number comes from the side's counter, so the two seats' pictures and the player's report say one name.
-        let registry = self.strategist.as_ref().map(|s| s.parties.lock().unwrap());
+        // Under a commander the names are the side's, one registry for every seat whatever its player.
+        let registry = self.strategist.as_ref().map(|s| s.side.get().unwrap_or(s).parties.lock().unwrap());
         match registry {
             Some(mut registry) => {
                 for party in parties.iter_mut().filter(|p| p.name.is_empty()) {

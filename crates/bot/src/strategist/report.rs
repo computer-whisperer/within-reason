@@ -11,6 +11,8 @@ const DONE_LINES: usize = 40;
 /// What the last report showed, to say only what differs.
 #[derive(Default)]
 pub struct Seen {
+    /// The frame the newest part of the commander's direction shown in full came into force.
+    pub direction: i32,
     extractors: Vec<String>,
     hands: Vec<String>,
 }
@@ -112,7 +114,8 @@ fn scouting_lines(cells: &[CellLook], factory_known: bool) -> Vec<String> {
 }
 
 /// The lines every report opens with, changed or not: what is not shown is not weighed.
-fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
+/// `seats_line`: the line a seat of a player with several (the commander's report writes its own).
+pub(super) fn front(briefing: &Briefing, field: &Field, fights: &[String], seats_line: bool) -> Vec<String> {
     let mut lines = Vec::new();
     let c = &briefing.counts;
     let s = &field.score;
@@ -187,7 +190,7 @@ fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
             if theirs.is_empty() { "nobody".to_string() } else { theirs.iter().map(|s| s.seats.join(", ")).collect::<Vec<_>>().join(" | ") }
         ));
     }
-    if briefing.seats.len() > 1 {
+    if seats_line && briefing.seats.len() > 1 {
         let seats: Vec<String> = briefing
             .seats
             .iter()
@@ -239,7 +242,7 @@ fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
 }
 
 /// Enemies in sight and our extractors with enemies near them.
-fn contact(briefing: &Briefing, field: &Field) -> Vec<String> {
+pub(super) fn contact(briefing: &Briefing, field: &Field) -> Vec<String> {
     let mut lines = Vec::new();
     for cluster in &briefing.enemies_visible {
         lines.push(format!(
@@ -321,7 +324,7 @@ fn roster_lines(field: &Field) -> String {
 }
 
 pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, fights: &[String], hands: &Hands, chat: &[String], full: bool) -> String {
-    let mut lines = front(briefing, field, fights);
+    let mut lines = front(briefing, field, fights, true);
     lines.extend(contact(briefing, field));
     extractor_lines(seen, field, full, &mut lines);
     if full {

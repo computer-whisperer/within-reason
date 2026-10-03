@@ -370,6 +370,13 @@ impl Brain {
             && shared.lockstep.load(std::sync::atomic::Ordering::Relaxed)
         {
             shared.hold_for_opening();
+            // ... and, under a commander, never gets further ahead of a commander's turn in hand than that turn's
+            // wall time is worth: the lockstep game runs many times faster than the wall between the player's
+            // turns, and a direction written in 20 s would land a minute and a half of game late (commander-smoke:
+            // the direction from the report of 0:25 was first shown at 2:00).
+            if let Some(side) = shared.side.get() {
+                side.pace_with_the_commander(tick.frame);
+            }
         }
         if tick.late > 0 {
             self.late_ticks = (self.late_ticks.0 + 1, self.late_ticks.1.max(tick.late));

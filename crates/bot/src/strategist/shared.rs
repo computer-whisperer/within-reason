@@ -414,6 +414,15 @@ pub struct Shared {
     pub opening: Mutex<Opening>,
     /// The first turn of the game has ended, however it ended: the hands may ask and order.
     pub opening_over: std::sync::atomic::AtomicBool,
+    /// This is the state of the side's commander (`command.rs`), not of a player: its tools are the commander's.
+    pub commander: std::sync::atomic::AtomicBool,
+    /// A player's: the side's state, when the game has a commander. The brain publishes there what it publishes
+    /// here, and the player's report opens with the direction written there.
+    pub side: std::sync::OnceLock<std::sync::Arc<Shared>>,
+    /// The side's: the players under the commander, for their notes and packets.
+    pub players: Mutex<super::command::Players>,
+    /// The side's: the commander's direction.
+    pub direction: Mutex<super::command::Direction>,
 }
 
 /// The opening turn's book: asked for when every seat of ours has said Hello, before any tick.
@@ -430,6 +439,14 @@ pub struct Opening {
 }
 
 impl Shared {
+    /// Brain side: a loss or a kill, counted for the player's next report and for the commander's.
+    pub fn fight(&self, line: &str) {
+        *self.fights.lock().unwrap().entry(line.to_string()).or_default() += 1;
+        if let Some(side) = self.side.get() {
+            *side.fights.lock().unwrap().entry(line.to_string()).or_default() += 1;
+        }
+    }
+
     pub fn trigger(&self, text: String) {
         self.triggers.lock().unwrap().push(text);
     }

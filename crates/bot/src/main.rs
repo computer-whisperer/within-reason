@@ -84,6 +84,13 @@ fn session(mut stream: UnixStream, player: bool, pianist: bool) -> io::Result<()
             if strategist::player_per_seat() { start() } else { board.strategist(start) }
         })
         .and_then(|started| started.inspect_err(|e| eprintln!("the player's session failed to start: {e}")).ok());
+    // The side's commander, when the game is to have one (`WITHIN_REASON_COMMANDER`): held by every seat's session,
+    // and each seat's player joins it. One that fails to start is not fatal: the players play by their own judgement.
+    let commander = strategist.as_ref().filter(|_| strategist::command::model().is_some()).and_then(|player| {
+        let commander = board.commander(|| strategist::command::Commander::start(&log_dir())).inspect_err(|e| eprintln!("the commander's session failed to start: {e}")).ok()?;
+        commander.attach(hello.team, &player.shared);
+        Some(commander)
+    });
     let mode_name = match (player, pianist) {
         (true, _) => "player",
         (false, true) => "pianist",
@@ -119,6 +126,7 @@ fn session(mut stream: UnixStream, player: bool, pianist: bool) -> io::Result<()
     brain.before_the_game();
     write_frame(&mut stream, &Commands::default())?;
     let (mut last_frame, mut last_own) = (0, 0);
+    let _commander = commander;
     loop {
         let tick = match next() {
             Ok(ToBot::Tick(tick)) => tick,

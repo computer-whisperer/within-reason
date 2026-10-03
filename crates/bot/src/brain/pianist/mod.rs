@@ -770,6 +770,9 @@ impl Brain {
         if let Some(shared) = self.strategist.clone() {
             let soldiers: Vec<&bot_protocol::OwnUnit> = tick.snapshot.own_units.iter().filter(|u| !u.being_built && self.is_army(u, kit)).collect();
             self.publish_field(tick, kit, &soldiers, &shared);
+            if let Some(side) = shared.side.get() {
+                self.publish_field(tick, kit, &soldiers, side);
+            }
             self.publish_cards(tick, &shared);
             self.take_removals(tick, commands, &shared);
             self.take_transfers(tick, commands, &shared);
@@ -1726,6 +1729,9 @@ impl Brain {
                     entry["reads"] = json!(words);
                 }
             }
+        }
+        if let Some(side) = shared.side.get() {
+            side.hands.lock().unwrap().entry(self.world.hello.team).or_default().picture = state.clone();
         }
         let mut all = shared.hands.lock().unwrap();
         let hands = all.entry(self.world.hello.team).or_default();

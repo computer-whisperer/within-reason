@@ -1,12 +1,14 @@
 //! The Claude Code session beside the brain: it watches the game through our MCP server and pulls the levers the
-//! brain exposes. Never in the control loop; see `DESIGN.md`. Two ways to run it:
+//! brain exposes. Never in the control loop; see `DESIGN.md`. The sessions:
 //!
-//! - **Strategist**: Opus, a turn every 45 s of game time or on a trigger, standing directives only.
-//! - **Commander**: Sonnet, turns back to back at game speed 1, with squads, the unit mix and turret requests.
 //! - **Player**: Opus over the pianist (`docs/design/2026-09-21-pianist.md`): turns when woken, the game held
-//!   still meanwhile, and one lever, the standing instructions in prose that Jev reads every second.
+//!   still meanwhile, and one lever, the standing instructions in prose that Jev reads every second. One for the
+//!   team's seats, or one a seat (`player_per_seat`).
+//! - **Commander** (`command.rs`, `docs/design/2026-10-03-commander-seat.md`): one a side above the players, when
+//!   asked for; it orders no unit and writes a direction in prose the players read.
 
 mod api;
+pub mod command;
 mod mcp;
 mod reference;
 mod report;
@@ -55,7 +57,15 @@ fn system_prompt() -> String {
     use crate::texts::{read, PLAYER_BRIEF, PLAYER_BRIEF_EXPERIENCE, PLAYER_PROMPT};
     let experience = std::env::var("WITHIN_REASON_BRIEF").as_deref() == Ok("experience");
     let brief = if experience { &PLAYER_BRIEF_EXPERIENCE } else { &PLAYER_BRIEF };
-    for_brief(&read(&PLAYER_PROMPT), if experience { "experience" } else { "standard" }) + &read(brief) + &objective()
+    let under_command = if command::model().is_some() { read(&crate::texts::PLAYER_UNDER_COMMAND) } else { String::new() };
+    for_brief(&read(&PLAYER_PROMPT), if experience { "experience" } else { "standard" }) + &under_command + &read(brief) + &objective()
+}
+
+/// The commander's: its role, then the experience brief whole (the user, 2026-10-03: everything in it always), then
+/// the game's objective.
+fn commander_prompt() -> String {
+    use crate::texts::{read, COMMANDER_PROMPT, PLAYER_BRIEF_EXPERIENCE};
+    read(&COMMANDER_PROMPT) + &read(&PLAYER_BRIEF_EXPERIENCE) + &objective()
 }
 
 /// The role text for one brief: a passage between `<!--brief:NAME-->` and `<!--/brief-->` is kept for the brief of
@@ -116,6 +126,9 @@ struct Launch {
     mcp_url: String,
     transcript: Arc<Transcript>,
     shared: Arc<Shared>,
+    model: String,
+    /// The session's system prompt, read again at every start.
+    prompt: fn() -> String,
 }
 
 /// What runs the model, chosen by the model's name: Claude Code for Claude models, the Codex CLI for OpenAI ones
@@ -173,19 +186,7 @@ impl Strategist {
         // How late the commander's orders land, in game seconds per wall second of thought (arena `--think-penalty`).
         *shared.think_penalty.lock().unwrap() = std::env::var("WITHIN_REASON_THINK_PENALTY").ok().and_then(|v| v.parse().ok()).unwrap_or(0.0);
         *shared.think_cap.lock().unwrap() = std::env::var("WITHIN_REASON_THINK_CAP").ok().and_then(|v| v.parse().ok()).unwrap_or(0.0);
-        let transcript = Arc::new(Transcript::create(&dir.join(format!("strategist-{ai_id}.jsonl")))?);
-        let server = McpServer::start(shared.clone(), transcript.clone())?;
-        // An empty working directory: nothing for the session to discover.
-        let cwd = dir.join(format!("strategist-{ai_id}-cwd"));
-        std::fs::create_dir_all(&cwd)?;
-        let mcp_config = json!({ "mcpServers": { "wreason": { "type": "http", "url": format!("http://127.0.0.1:{}/mcp", server.port) } } });
-        let config_dir = std::env::var_os("WITHIN_REASON_CLAUDE_CONFIG_DIR").map_or_else(
-            || PathBuf::from(std::env::var_os("HOME").unwrap_or_default()).join(DEFAULT_CLAUDE_CONFIG_DIR),
-            Into::into,
-        );
-        let effort = std::env::var("WITHIN_REASON_EFFORT").ok().filter(|e| !e.is_empty()).unwrap_or_else(|| DEFAULT_EFFORT.into());
-        let mcp_url = format!("http://127.0.0.1:{}/mcp", server.port);
-        let launch = Launch { cwd, config_dir, effort, mcp_config: mcp_config.to_string(), mcp_url, transcript, shared: shared.clone() };
+        let (launch, server) = Launch::prepare(dir, &format!("strategist-{ai_id}"), shared.clone(), model(), effort_of_the_player(), system_prompt)?;
         let session = launch.spawn()?;
         eprintln!(
             "[ai {ai_id}] the player started ({}, effort {}, {}, MCP on port {})",
@@ -211,13 +212,35 @@ impl Drop for Strategist {
     }
 }
 
+fn effort_of_the_player() -> String {
+    std::env::var("WITHIN_REASON_EFFORT").ok().filter(|e| !e.is_empty()).unwrap_or_else(|| DEFAULT_EFFORT.into())
+}
+
 impl Launch {
+    /// The tool server and what a session of `name` starts from: `dir` receives `<name>.jsonl`, the session's
+    /// working directory `<name>-cwd` and its `<name>-stderr.log`.
+    fn prepare(dir: &Path, name: &str, shared: Arc<Shared>, model: String, effort: String, prompt: fn() -> String) -> std::io::Result<(Launch, McpServer)> {
+        let transcript = Arc::new(Transcript::create(&dir.join(format!("{name}.jsonl")))?);
+        let server = McpServer::start(shared.clone(), transcript.clone())?;
+        // An empty working directory: nothing for the session to discover.
+        let cwd = dir.join(format!("{name}-cwd"));
+        std::fs::create_dir_all(&cwd)?;
+        let mcp_config = json!({ "mcpServers": { "wreason": { "type": "http", "url": format!("http://127.0.0.1:{}/mcp", server.port) } } });
+        let config_dir = std::env::var_os("WITHIN_REASON_CLAUDE_CONFIG_DIR").map_or_else(
+            || PathBuf::from(std::env::var_os("HOME").unwrap_or_default()).join(DEFAULT_CLAUDE_CONFIG_DIR),
+            Into::into,
+        );
+        let mcp_url = format!("http://127.0.0.1:{}/mcp", server.port);
+        Ok((Launch { cwd, config_dir, effort, mcp_config: mcp_config.to_string(), mcp_url, transcript, shared, model, prompt }, server))
+    }
+
     fn spawn(&self) -> std::io::Result<Session> {
-        let prompt = system_prompt();
+        let prompt = (self.prompt)();
+        let model = || self.model.clone();
         if Backend::for_model(&model()) == Backend::Api {
             let endpoint = api::Endpoint::for_model(&model())?;
             let (turn_done_tx, turn_done) = channel();
-            let session = api::ApiSession::start(endpoint, &self.effort, &prompt, mcp::openai_tools(), self.shared.clone(), self.transcript.clone(), turn_done_tx);
+            let session = api::ApiSession::start(endpoint, &self.effort, &prompt, mcp::openai_tools(self.shared.commander.load(Ordering::Relaxed)), self.shared.clone(), self.transcript.clone(), turn_done_tx);
             return Ok(Session { kind: SessionKind::Api(session), turn_done, prompt: crate::texts::digest(&prompt) });
         }
         if Backend::for_model(&model()) == Backend::Codex {
@@ -411,7 +434,7 @@ fn drive(launch: Launch, mut session: Session, shared: &Shared, stop: &AtomicBoo
         }
         // A fresh session at the cap, and as soon as the prompt on disk has been edited (the user, 2026-09-22: text
         // updates without a rebuild); either way the new session is handed the notes.
-        let edited = crate::texts::digest(&system_prompt()) != session.prompt;
+        let edited = crate::texts::digest(&(launch.prompt)()) != session.prompt;
         if edited {
             eprintln!("[ai {ai_id}] the prompt on disk has changed: a fresh session reads it");
         }
@@ -598,8 +621,10 @@ fn player_prompt(game_time: &str, headline: &str, shared: &Shared, seen: &mut re
             String::new()
         }
     };
+    // Under a commander the report opens with its direction (`command.rs`).
+    let direction = shared.side.get().map(|side| side.direction_for(&shared.live_seats(), briefing.frame, &mut seen.direction, first_report)).unwrap_or_default();
     prompt += &format!(
-        "[{game_time}] Woken because: {headline}\n{landing}{}\nwake conditions in force: {wake}",
+        "[{game_time}] Woken because: {headline}\n{landing}{direction}{}\nwake conditions in force: {wake}",
         report::player_report(seen, &briefing, &field, &fights, &hands, &chat, first_report)
     );
     prompt

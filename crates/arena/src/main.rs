@@ -13,6 +13,7 @@
 //!              [--ab-disable H-ID,H-ID]   (interleaved A/B: arm B also switches these off; blocks of four matches)
 //!              [--claude-config-dir DIR]   (subscription for the player's sessions; default ~/.claude2)
 //!              [--players one|seat]   (with --player and several seats of ours: one player for all of them, the default, or one a seat; docs/design/2026-10-03-commander-seat.md)
+//!              [--commander MODEL] [--commander-effort LEVEL]   (with --player: a commander session above the players, which orders no unit and writes them a direction in prose; default none, effort high)
 //!              [--player-effort low|medium|high|xhigh|max]   (the LLM session's `claude --effort`; default high)
 //!              [--hands-effort lean|normal|full]      (the hands' Jev token diet; default lean, the bulk games' level)
 //!              [--hands-layers a,b|none]   (the hands' savings that are on: news is the default; none is the base version alone)
@@ -81,6 +82,9 @@ struct Options {
     brief: Option<String>,
     /// `seat`: one player session a seat of ours instead of one for all of them.
     players: Option<String>,
+    /// The model of the side's commander above the players, and its effort.
+    commander: Option<String>,
+    commander_effort: Option<String>,
     /// A requirement for the player, appended to its role text (`WITHIN_REASON_OBJECTIVE`).
     objective: Option<String>,
     /// Play every match as this faction instead of alternating.
@@ -183,7 +187,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("BARb {}", options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief, "players": options.players.as_deref().unwrap_or("one"), "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief, "players": options.players.as_deref().unwrap_or("one"), "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 
@@ -338,6 +342,8 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         .envs(options.player_model.as_ref().map(|model| ("WITHIN_REASON_MODEL", model)))
         .envs(options.brief.as_ref().map(|brief| ("WITHIN_REASON_BRIEF", brief)))
         .envs(options.players.as_ref().map(|players| ("WITHIN_REASON_PLAYERS", players)))
+        .envs(options.commander.as_ref().map(|model| ("WITHIN_REASON_COMMANDER", model)))
+        .envs(options.commander_effort.as_ref().map(|effort| ("WITHIN_REASON_COMMANDER_EFFORT", effort)))
         .envs(options.objective.as_ref().map(|text| ("WITHIN_REASON_OBJECTIVE", text)))
         // A player game is played as a live one unless told otherwise: its orders land as late as it thought.
         .envs(options.think_penalty.as_deref().or(options.player.then_some("1")).map(|penalty| ("WITHIN_REASON_THINK_PENALTY", penalty.to_string())))
@@ -599,6 +605,8 @@ fn parse_args() -> Options {
         player_model: None,
         brief: None,
         players: None,
+        commander: None,
+        commander_effort: None,
         objective: None,
         side: None,
         corner: None,
@@ -675,6 +683,8 @@ fn parse_args() -> Options {
             "--hands-effort" => options.hands_effort = Some(value()),
             "--hands-layers" => options.hands_layers = Some(value()),
             "--player-model" => options.player_model = Some(value()),
+            "--commander" => options.commander = Some(value()),
+            "--commander-effort" => options.commander_effort = Some(value()),
             "--players" => {
                 options.players = Some(match value().as_str() {
                     "one" => "one".to_string(),
@@ -749,7 +759,7 @@ fn parse_args() -> Options {
 }
 
 fn usage(problem: &str) -> ! {
-    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--player-model ID] [--brief standard|experience] [--objective TEXT] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N]");
+    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--player-model ID] [--brief standard|experience] [--objective TEXT] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N]");
     std::process::exit(2)
 }
 

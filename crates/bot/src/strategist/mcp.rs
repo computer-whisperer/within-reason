@@ -78,7 +78,7 @@ fn handle(call: &Value, shared: &Arc<Shared>, transcript: &Transcript) -> Option
             "capabilities": { "tools": {} },
             "serverInfo": { "name": "within-reason", "version": env!("CARGO_PKG_VERSION") },
         })),
-        "tools/list" => Ok(json!({ "tools": tool_list() })),
+        "tools/list" => Ok(json!({ "tools": if shared.commander.load(Ordering::Relaxed) { super::command::tool_list() } else { tool_list() } })),
         "tools/call" => {
             let name = call["params"]["name"].as_str().unwrap_or_default();
             let arguments = &call["params"]["arguments"];
@@ -117,8 +117,8 @@ pub(super) fn call_recorded(name: &str, arguments: &Value, shared: &Arc<Shared>,
 }
 
 /// The same tools in OpenAI's shape for the API backend: `function` with the MCP `inputSchema` as `parameters`.
-pub(super) fn openai_tools() -> Vec<Value> {
-    tool_list()
+pub(super) fn openai_tools(commander: bool) -> Vec<Value> {
+    if commander { super::command::tool_list() } else { tool_list() }
         .as_array()
         .map(|tools| tools.iter().map(|t| json!({ "type": "function", "function": { "name": t["name"], "description": t["description"], "parameters": t["inputSchema"] } })).collect())
         .unwrap_or_default()
@@ -237,7 +237,11 @@ fn orders(arguments: &Value, shared: &Arc<Shared>) -> Result<String, String> {
 }
 
 fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<String, String> {
-    if !tool_list().as_array().is_some_and(|tools| tools.iter().any(|t| t["name"] == name)) {
+    if shared.commander.load(Ordering::Relaxed) {
+        if let Some(outcome) = super::command::call_tool(name, arguments, shared) {
+            return outcome;
+        }
+    } else if !tool_list().as_array().is_some_and(|tools| tools.iter().any(|t| t["name"] == name)) {
         return Err(format!("{name} is not a tool in this mode"));
     }
     match name {

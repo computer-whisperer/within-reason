@@ -105,12 +105,12 @@ What the direction is, by example (human-18 at 12:14, written as the commander w
 The commander never holds the game. In a game with people that is the whole of it: its direction lands when it is
 written.
 
-In the arena's lockstep the game is held for the player's turn and not for the commander's, and the game runs far
-faster than the wall. So the commander's turn is charged in game time as the player's think penalty is: its report
-is taken at frame F, the game goes on, and its direction comes into force at F plus the wall seconds its turn took,
-uncapped (`hold_for_turn` and `apply_delayed` already do this for the player's outputs). A turn of 45 s on high
-effort is then 45 s of game, as it would be against a person. Without this an arena commander would answer in no
-game time at all and the arena would flatter it.
+In the arena's lockstep the game is held for the player's turn and runs many times faster than the wall between
+them, so a commander that took 20 s of wall would see a minute and a half of game go by (commander-smoke: the
+direction from the report of 0:25 was first shown to the player at 2:00). So while a commander's turn is in hand the
+lockstep game runs no faster than the wall, counted from the frame of the turn's report
+(`Shared::pace_with_the_commander`): a turn of 20 s costs 20 s of game, as it does against a person. The direction
+is dated the same way (`due`), and a player is shown it from that frame.
 
 ## 7. Configurations
 

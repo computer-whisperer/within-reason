@@ -20,6 +20,8 @@ pub struct TeamBoard {
     inner: Mutex<Board>,
     /// The team's one LLM session, alive while a seat's session holds it.
     strategist: Mutex<Weak<crate::strategist::Strategist>>,
+    /// The side's commander, when the game has one, alive while a seat's session holds it.
+    commander: Mutex<Weak<crate::strategist::command::Commander>>,
 }
 
 #[derive(Default)]
@@ -82,6 +84,17 @@ impl TeamBoard {
             return Ok(running);
         }
         let started = start()?;
+        *held = Arc::downgrade(&started);
+        Ok(started)
+    }
+
+    /// The side's commander, started by the first seat to ask.
+    pub fn commander(&self, start: impl FnOnce() -> std::io::Result<crate::strategist::command::Commander>) -> std::io::Result<Arc<crate::strategist::command::Commander>> {
+        let mut held = self.commander.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(running) = held.upgrade() {
+            return Ok(running);
+        }
+        let started = Arc::new(start()?);
         *held = Arc::downgrade(&started);
         Ok(started)
     }

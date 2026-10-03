@@ -63,6 +63,7 @@ allied BARb plays the other faction. One bot process serves all our seats of a m
 team board (`crates/bot/src/team.rs`); each seat writes its own `record-<ai>.jsonl`. A human ally cannot be scripted
 headless; an allied BARb is the same code path for us. The referee's balance line counts our whole ally team against every enemy.
 `--player` gives our seats one LLM session between them (transcript `strategist-<first seat's ai>.jsonl`);
+`--commander MODEL` (with `--commander-effort`, default high) adds the side's commander above the players (`commander.jsonl`; it orders no unit and writes the players a direction in prose);
 `--players seat` gives every seat of ours its own session, report and packet instead (`strategist-<ai>.jsonl` each; `docs/design/2026-10-03-commander-seat.md`);
 `--player-model claude-opus-5-5` replaces the player's usual model. (The commander and strategist modes were deleted
 2026-09-25, `docs/design/2026-09-25-one-decider.md`.) `fw:<model id>` runs the player on Fireworks.ai and `api:<model>` on any OpenAI-compatible endpoint through the bot's own API client (`docs/harness/api-backend.md`: the key file, the turn shape, the transcript).

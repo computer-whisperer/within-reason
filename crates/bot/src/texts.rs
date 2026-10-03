@@ -15,6 +15,10 @@ pub struct Text {
 }
 
 pub const PLAYER_PROMPT: Text = Text { path: "crates/bot/src/strategist/player.md", compiled: include_str!("strategist/player.md") };
+/// Added to the player's role text in a game with a commander above it (`strategist/command.rs`).
+pub const PLAYER_UNDER_COMMAND: Text = Text { path: "crates/bot/src/strategist/player-under-command.md", compiled: include_str!("strategist/player-under-command.md") };
+/// The role text of the side's commander.
+pub const COMMANDER_PROMPT: Text = Text { path: "crates/bot/src/strategist/commander.md", compiled: include_str!("strategist/commander.md") };
 pub const PLAYER_BRIEF: Text = Text { path: "docs/briefs/player.md", compiled: include_str!("../../../docs/briefs/player.md") };
 /// The brief as game experience (`arena --brief experience`, `WITHIN_REASON_BRIEF=experience`): assembled by
 /// `run/build_brief.py` from `docs/briefs/experience/` and the generated reference sets
@@ -86,7 +90,7 @@ mod tests {
     #[test]
     fn the_checkout_is_found_from_the_test_binary_and_its_files_match_the_compiled_copies() {
         assert!(super::root().is_some(), "the test binary runs under target/, below the checkout");
-        for text in [&super::PLAYER_PROMPT, &super::PLAYER_BRIEF, &super::PLAYER_BRIEF_EXPERIENCE, &super::HANDS_RULES, &super::HANDS_DEFAULT] {
+        for text in [&super::PLAYER_PROMPT, &super::PLAYER_UNDER_COMMAND, &super::COMMANDER_PROMPT, &super::PLAYER_BRIEF, &super::PLAYER_BRIEF_EXPERIENCE, &super::HANDS_RULES, &super::HANDS_DEFAULT] {
             assert_eq!(super::read(text), text.compiled, "{} on disk differs from the copy compiled into this test binary", text.path);
         }
     }
