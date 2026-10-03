@@ -227,6 +227,9 @@ impl Brain {
         }
         let count = |def: UnitDefId| snapshot.own_units.iter().filter(|u| u.def == def && !u.being_built).count();
         let soldiers: Vec<&OwnUnit> = snapshot.own_units.iter().filter(|u| !u.being_built && self.is_army(u, kit)).collect();
+        if snapshot.own_units.iter().any(|u| !u.being_built && self.his_half(u.pos)) {
+            self.ours_in_his_half = Some(tick.frame);
+        }
 
         // A frame is said as one ("armguard 1 (being built)"): player-16's 13:19 packet read a Gauntlet at 8% health
         // as "the F2 fortress" and banned F2 to the end; it was gone at 13:54 and the first standing one came 16:52.
@@ -586,6 +589,9 @@ impl Brain {
             soldiers: soldiers.len(),
             army_metal: soldiers.iter().map(metal).sum::<f32>() as u32,
             soldiers_near_home: soldiers.iter().filter(|u| u.pos.dist2d(self.home) < SCORE_AT_HOME).count(),
+            soldiers_in_his_half: soldiers.iter().filter(|u| self.his_half(u.pos)).count(),
+            army_metal_in_his_half: soldiers.iter().filter(|u| self.his_half(u.pos)).map(metal).sum::<f32>() as u32,
+            seconds_since_ours_in_his_half: self.ours_in_his_half.map(|f| (tick.frame - f) / FRAMES_PER_SECOND),
             metal_income: tick.snapshot.metal.income,
             trend: [3, 6].into_iter().filter_map(|m| self.minutes_ago(tick.frame, m).map(|(x, income, army)| (m, x, income, army))).collect(),
             extractors_lost_3_min: self.wake.losses.len(),

@@ -142,6 +142,11 @@ pub struct Score {
     pub soldiers: usize,
     pub army_metal: u32,
     pub soldiers_near_home: usize,
+    /// Our soldiers standing in his half now, and their metal; and how long since anything of ours last stood there
+    /// (None: never). The pressure the players ask for, as a fact beside the floor on his army (H-PLAYER-HIS-HALF).
+    pub soldiers_in_his_half: usize,
+    pub army_metal_in_his_half: u32,
+    pub seconds_since_ours_in_his_half: Option<i32>,
     /// Opponent extractors seen and not known to be dead: a floor, since we see little of their side.
     pub metal_income: f32,
     /// (minutes ago, extractors, metal income, army metal) for 3 and 6 minutes ago, when the game is that old.

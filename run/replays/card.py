@@ -26,6 +26,7 @@ def clock(frame):
 
 class Record:
     def __init__(self, path):
+        self.path = path
         lines = open(path).readlines()
         self.header = json.loads(lines[0])
         self.defs = self.header["unit_defs"]
@@ -106,6 +107,70 @@ def side_of(order, header_side):
     """The faction from what was built (the replay records' header `side` was wrong on 22 of 58 sides)."""
     prefixes = Counter(o["unit"][:3] for o in order if o["unit"][:3] in ("arm", "cor", "leg"))
     return prefixes.most_common(1)[0][0] if prefixes else header_side
+
+
+NEAR_HIS_START = 1500.0
+
+
+def enemy_start(rec, truth_path=None):
+    """Where his commander stood first: a replay's records see everything, so the first sample's enemies carry it;
+    one of our own records needs the truth file beside it (`truth-<ai>.jsonl`, the arena's), else nothing."""
+    for s in rec.samples[:3]:
+        for e in s.get("en", []):
+            if rec.name(e[1]).endswith("com"):
+                return (e[2], e[3])
+    if truth_path and os.path.exists(truth_path):
+        with open(truth_path) as fh:
+            for line in fh:
+                o = json.loads(line)
+                for e in o.get("enemy", []):
+                    if str(e[1]).endswith("com"):
+                        return (e[2], e[3])
+                if o.get("f", 0) > 60 * FPS:
+                    break
+    return None
+
+
+def pressure(rec, his_start, our_start):
+    """The first army's pressure on him (the players, 2026-10-03: "the first handful of units need to run to the
+    other side of the map to harass the opponent"): the first soldier in his half (nearer his start than ours), the
+    first within `NEAR_HIS_START` of his start, the first building and the first extractor of his killed, and by
+    minute the army metal and soldiers standing in his half. None of it when his start is unknown."""
+    out = {"first_soldier_in_his_half": None, "first_soldier_near_his_start": None, "first_his_building_killed": None, "first_his_extractor_killed": None, "in_his_half": {}}
+    if his_start is None or our_start is None:
+        return out
+    hx, hz = his_start
+    ox, oz = our_start
+    his_half = lambda x, z: (x - hx) ** 2 + (z - hz) ** 2 < (x - ox) ** 2 + (z - oz) ** 2
+    near = lambda x, z: ((x - hx) ** 2 + (z - hz) ** 2) ** 0.5 < NEAR_HIS_START
+    last_minute = -1
+    for s in rec.samples:
+        soldiers = [u for u in s.get("own", []) if rec.is_soldier(u[1])]
+        there = [u for u in soldiers if his_half(u[2], u[3])]
+        if out["first_soldier_in_his_half"] is None and there:
+            u = there[0]
+            out["first_soldier_in_his_half"] = {"clock": clock(s["f"]), "unit": rec.name(u[1]), "grid": rec.grid(u[2], u[3]), "soldiers": len(there)}
+        if out["first_soldier_near_his_start"] is None and any(near(u[2], u[3]) for u in soldiers):
+            u = next(u for u in soldiers if near(u[2], u[3]))
+            out["first_soldier_near_his_start"] = {"clock": clock(s["f"]), "unit": rec.name(u[1]), "grid": rec.grid(u[2], u[3])}
+        minute = s["f"] // (60 * FPS)
+        if minute != last_minute and s["f"] % (60 * FPS) <= 2 * FPS:
+            last_minute = minute
+            out["in_his_half"][minute] = {"army_metal_in_his_half": round(sum(rec.d(u[1]).get("metal") or 0 for u in there)), "soldiers_in_his_half": len(there)}
+    for e in rec.events:
+        if e.get("k") != "enemy_destroyed" or e.get("d") is None or "x" not in e:
+            continue
+        d = rec.d(e["d"])
+        if (d.get("speed") or 0) > 0:
+            continue
+        if out["first_his_building_killed"] is None:
+            out["first_his_building_killed"] = {"clock": clock(e["f"]), "unit": rec.name(e["d"]), "grid": rec.grid(e["x"], e["z"])}
+        if out["first_his_extractor_killed"] is None and rec.is_extractor(e["d"]):
+            spot = rec.spot_of(e["x"], e["z"])
+            out["first_his_extractor_killed"] = {"clock": clock(e["f"]), "spot": spot, "grid": rec.grid(e["x"], e["z"])}
+        if out["first_his_building_killed"] and out["first_his_extractor_killed"]:
+            break
+    return out
 
 
 def team_card(rec, until_frames):
@@ -204,11 +269,15 @@ def team_card(rec, until_frames):
         for u in rec.samples[0].get("own", []):
             if rec.name(u[1]).endswith("com"):
                 start = {"x": u[2], "z": u[3], "grid": rec.grid(u[2], u[3])}
+    press = pressure(rec, enemy_start(rec), (start["x"], start["z"]) if start else None)
+    for c in curves:
+        c.update(press["in_his_half"].get(c["minute"], {}))
     return {
         "team": rec.header.get("team"), "ally_team": rec.header.get("ally_team"), "side": side_of(order, rec.header.get("side")), "start": start,
         "build_order": order, "factories": sorted(factories.values(), key=lambda f: secs(f["started"])), "first_tier2": first_t2, "first_tier2_unit": first_t2_unit,
         "spots_taken": spots_taken, "curves": curves, "army_by_type": composition,
         "first_extractor_lost": first_extractor_lost,
+        "pressure": {k: v for k, v in press.items() if k != "in_his_half"},
         "losses": dict(losses.most_common()), "kills": dict(kills.most_common()), "end_kills": dict(end_kills.most_common()), "fights": fights_out,
     }
 
@@ -225,6 +294,13 @@ def markdown(card):
         out.append("Factories: " + ", ".join(f"{f['unit']} {f['started']}-{f['finished'] or '?'} at {f['at']}" for f in t["factories"]) + (f". First tier 2: {t['first_tier2']['unit']} at {t['first_tier2']['clock']}" + (f", first tier-2 unit {t['first_tier2_unit']['unit']} at {t['first_tier2_unit']['clock']}" if t.get("first_tier2_unit") else "") + "." if t["first_tier2"] else ". No tier 2."))
         out.append("By minute (extractors / constructors / metal income / army metal): " + " ".join(f"{c['minute']}:{c['extractors']}/{c['constructors']}/{c['metal_income']:.0f}/{c['army_metal']}" for c in t["curves"] if c["minute"] % 2 == 0))
         out.append("Army every two minutes: " + "; ".join(f"{c['minute']}: " + ", ".join(f"{n} {k}" for k, n in c["army"].items()) for c in t["army_by_type"] if c["army"]))
+        pr = t.get("pressure") or {}
+        if pr.get("first_soldier_in_his_half"):
+            a, b, c, d = pr["first_soldier_in_his_half"], pr.get("first_soldier_near_his_start"), pr.get("first_his_building_killed"), pr.get("first_his_extractor_killed")
+            out.append(f"Pressure: first soldier in his half {a['clock']} ({a['unit']} at {a['grid']})" + (f", within 1,500 of his start {b['clock']}" if b else ", never within 1,500 of his start")
+                       + (f"; first building of his killed {c['clock']} ({c['unit']} at {c['grid']})" if c else "; no building of his killed")
+                       + (f"; first extractor of his killed {d['clock']} (spot_{d['spot']} {d['grid']})" if d and d.get("spot") is not None else "")
+                       + ". Army metal in his half by minute: " + " ".join(f"{c2['minute']}:{c2.get('army_metal_in_his_half', 0)}" for c2 in t["curves"] if c2["minute"] % 2 == 0) + ".")
         if t["first_extractor_lost"]:
             out.append(f"First extractor lost {t['first_extractor_lost']['clock']} at spot_{t['first_extractor_lost']['spot']} ({t['first_extractor_lost'].get('grid', '?')}) to a {t['first_extractor_lost']['by']}.")
         out.append("Spots taken: " + " ".join(f"{s['clock']} spot_{s['spot']}({s['grid']})" for s in t["spots_taken"]))

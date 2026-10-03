@@ -82,3 +82,13 @@
   extractors from 15:00 with income 52-128 and no tier-2 extractor line in the ledger; human-10's income was 70 at
   12:00 on 35 extractors. The brief's Comet line names mohos by 10:00 on the pass-camp maps (item 59) and not as a
   standing rule; advanced solars appear once (item 681, their energy cost in an empty store).
+
+## 2026-10-03, the user, relaying what the experienced players tell him "time and time again", after player-45
+
+- **"The first handful of units need to run to the other side of the map to harass the opponent. In an RTS like
+  this the open space of what the enemy may have is so broad that you need some kind of pressure to stop them from
+  extremely greedy economic openings."** Measured the same day in the pool (K-pro-the-first-soldiers-are-in-his-half-by-two-minutes:
+  every strong side on Comet is in his half by about 2:00 and kills a building by about 3:50; ours 3:10 to never) and
+  written into the brief's rules with the reason first. He would not bake in expectations of BARb hard_aggressive
+  ("our target really is human play at a much higher level, and BARb's build is very weak from what they tell me").
+

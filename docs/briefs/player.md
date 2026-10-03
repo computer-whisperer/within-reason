@@ -13,6 +13,22 @@ situation from another map still teaches).** Each case: the situation as your re
 what came of it, and why, with who said so (a person's word outranks our own reading of a record). Where two cases
 have the same shape and opposite answers, the difference between them is the thing to learn.
 
+- **The first handful of soldiers runs to the other side of the map.** The experienced players, time and time
+  again (relayed by the user, 2026-10-03): "the first handful of units need to run to the other side of the map to
+  harass the opponent. In an RTS like this the open space of what the enemy may have is so broad that you need some
+  kind of pressure to stop them from extremely greedy economic openings." The pool bears it out as the floor of strong
+  play, not a style: of 80 sides in 40 Comet duels at OS 40+, every one had a soldier in his half by 2:06 (median;
+  Armada 1:40, Cortex 2:48), every one but one killed a building of his, the first at 3:49 (Armada 2:48), and the
+  winners were 40 s earlier than the losers with 78 of their 280 army metal in his half at 3:00. They lose extractors
+  to the same pressure coming back (1.85 a game-minute) and win anyway. Our games: the first soldiers are written as
+  the strip's picket ("the raid answer for our strip", "enemy parties far away in his half are not its business",
+  player-45 at 2:25 and 3:46) and the first building of his dies at 3:10, never (player-41, eleven minutes), 9:24,
+  5:56, 8:20 (player-40 to -45). What the first handful meets at 2:00-4:00 is a commander and constructors out on
+  spots with one or two light turrets among them; what it buys is the look at his half the report otherwise lacks
+  ("its army is at least that and may be much more" is the sound of nobody having been there). So the first raiders'
+  job from the plant is his nearest spots and his constructors, as one group with a route, and the picket is the
+  turret beside each outer extractor, not the army. [K-pro-the-first-soldiers-are-in-his-half-by-two-minutes,
+  the players' notes 2026-10-03]
 - **A lead is spent within two minutes or it is gone.** The pros end a Comet Catcher duel 3.4 minutes (median) after
   first holding twice the other's army. Cases: (1) player-9, Comet duel vs BARb hard_aggressive, lost 36:32: at 5:00
   the report read army 801 against 270 seen, 14 extractors to 10, his lab unseen; the order was a raid loop through

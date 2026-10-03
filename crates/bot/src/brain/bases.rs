@@ -260,6 +260,15 @@ impl super::Brain {
         self.live_enemy_bases().into_iter().min_by(|a, b| a.dist2d(from).total_cmp(&b.dist2d(from))).unwrap_or_else(|| self.world.mirrored(self.home))
     }
 
+    /// Where his side begins for the report's pressure line: nearer his start than ours. His start is the centre of
+    /// the enemy start box nearest the map's far side from home, else the far side itself (the pros' first soldiers
+    /// are there by 2:00, K-pro-the-first-soldiers-are-in-his-half-by-two-minutes).
+    pub(super) fn his_half(&self, pos: Vec3) -> bool {
+        let far = self.world.mirrored(self.home);
+        let his = self.world.hello.start_boxes.iter().filter(|b| b.ally_team != self.world.hello.ally_team).map(|b| b.centre()).min_by(|a, b| a.dist2d(far).total_cmp(&b.dist2d(far))).unwrap_or(far);
+        pos.dist2d(his) < pos.dist2d(self.home)
+    }
+
     /// The found, live base nearest home, if any base has been found.
     pub(super) fn found_enemy_base(&self) -> Option<Vec3> {
         self.enemy_bases.iter().filter(|b| b.found && !b.dead).map(|b| b.at).min_by(|a, b| a.dist2d(self.home).total_cmp(&b.dist2d(self.home)))

@@ -30,7 +30,7 @@ import statistics
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "replays"))
-from card import Record, secs as card_secs  # noqa: E402
+from card import Record, enemy_start, pressure, secs as card_secs  # noqa: E402
 
 
 def secs(c):
@@ -41,7 +41,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FPS = 30
 MINUTES = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20)
 CURVE_KEYS = (("extractors", "extractors"), ("constructors", "constructors"), ("metal_income", "income"),
-              ("army_metal", "army metal"), ("soldiers", "soldiers"), ("metal_stored", "metal stored"))
+              ("army_metal", "army metal"), ("soldiers", "soldiers"), ("metal_stored", "metal stored"), ("army_metal_in_his_half", "army metal in his half"))
 LLT = ("armllt", "corllt")
 SOLAR = ("armsolar", "corsolar")
 RADAR = ("armrad", "corrad")
@@ -67,9 +67,13 @@ def mirror(cell, columns=8, rows=8):
 
 # ---------------------------------------------------------------- milestones from a build order
 
-def milestones(order, factories, first_lost, classify):
-    """Milestone clocks (seconds) from a card-shaped build order: [{clock, unit, by}], factories [{started, finished}]."""
+def milestones(order, factories, first_lost, classify, press=None):
+    """Milestone clocks (seconds) from a card-shaped build order: [{clock, unit, by}], factories [{started, finished}],
+    and the card's `pressure` block (the first army in his half, `card.py` `pressure`)."""
     out = {}
+    press = press or {}
+    for key in ("first_soldier_in_his_half", "first_soldier_near_his_start", "first_his_building_killed", "first_his_extractor_killed"):
+        out[key] = secs((press.get(key) or {}).get("clock"))
     ff = factories[0] if factories else {}
     out["first_factory_started"] = secs(ff.get("started"))
     out["first_factory_finished"] = secs(ff.get("finished"))
@@ -98,6 +102,8 @@ MILESTONE_ROWS = (
     ("first_factory_started", "first factory started", "clock"), ("first_factory_finished", "first factory standing", "clock"),
     ("first_factory_unit_at", "its first unit", "clock"), ("first_soldier", "first soldier", "clock"),
     ("first_constructor", "first constructor", "clock"), ("second_factory_started", "second factory started", "clock"),
+    ("first_soldier_in_his_half", "first soldier in his half", "clock"), ("first_soldier_near_his_start", "first soldier within 1,500 of his start", "clock"),
+    ("first_his_building_killed", "first building of his killed", "clock"), ("first_his_extractor_killed", "first extractor of his killed", "clock"),
     ("first_extractor_lost", "first extractor lost", "clock"), ("solars_before_plant", "solars before the plant", "count"),
     ("units_by_4", "factory units by 4:00", "count"), ("constructors_by_8", "constructors made by 8:00", "count"),
     ("turrets_by_8", "light turrets by 8:00", "count"), ("solars_by_8", "solars by 8:00", "count"),
@@ -143,10 +149,18 @@ def our_side(rec):
                           "metal_income": round(s["m"][1], 1), "metal_stored": round(s["m"][0]), "army_metal": round(sum(rec.d(u[1]).get("metal") or 0 for u in soldiers)),
                           "soldiers": len(soldiers)}
     start = None
+    start_at = None
     for u in (rec.samples[0].get("own", []) if rec.samples else []):
         if rec.d(u[1]).get("class") == "commander":
             start = rec.grid(u[2], u[3])
-    return {"build_order": order, "factories": sorted(factories.values(), key=lambda f: secs(f["started"])), "first_extractor_lost": first_lost, "curves": curves, "start": start}
+            start_at = (u[2], u[3])
+    # His start from the truth file beside the record (our records see only what our units see).
+    truth = os.path.join(os.path.dirname(rec.path), os.path.basename(rec.path).replace("record-", "truth-"))
+    press = pressure(rec, enemy_start(rec, truth), start_at)
+    for minute, c in curves.items():
+        c.update(press["in_his_half"].get(minute, {}))
+    return {"build_order": order, "factories": sorted(factories.values(), key=lambda f: secs(f["started"])), "first_extractor_lost": first_lost, "curves": curves, "start": start,
+            "pressure": {k: v for k, v in press.items() if k != "in_his_half"}}
 
 
 # ---------------------------------------------------------------- the pool
@@ -165,7 +179,7 @@ def pool_sides(manifest, map_name, floor):
         for t in card["teams"]:
             yield {"id": r["id"], "won": bool(t.get("won")), "start": (t.get("start") or {}).get("grid"), "side": t.get("side"), "curves": {c["minute"]: c for c in t.get("curves") or []},
                    "build_order": t.get("build_order") or [], "factories": t.get("factories") or [], "first_extractor_lost": t.get("first_extractor_lost"),
-                   "duration": card.get("duration")}
+                   "pressure": t.get("pressure") or {}, "duration": card.get("duration")}
 
 
 def compare(match_dir, manifest, floor, start_cell, all_starts, faction, until):
@@ -182,8 +196,8 @@ def compare(match_dir, manifest, floor, start_cell, all_starts, faction, until):
     sides = [s for s in pool_sides(manifest, map_name, floor) if (starts is None or s["start"] in starts) and (faction is None or s["side"] == faction)]
     if not sides:
         sys.exit(f"{match_dir}: no carded side on {map_name} at OS {floor}+ from {sorted(starts) if starts else 'any start'} as {faction or 'any faction'} (run/replays/card.py; --all-starts, --faction any?)")
-    our_m = milestones(ours["build_order"], ours["factories"], ours["first_extractor_lost"], classify)
-    pool_m = [milestones(s["build_order"], s["factories"], s["first_extractor_lost"], classify) for s in sides]
+    our_m = milestones(ours["build_order"], ours["factories"], ours["first_extractor_lost"], classify, ours["pressure"])
+    pool_m = [milestones(s["build_order"], s["factories"], s["first_extractor_lost"], classify, s["pressure"]) for s in sides]
     last_minute = max(ours["curves"]) if ours["curves"] else 0
     out = {"match": match_dir, "map": map_name, "floor": floor, "our_start": ours["start"], "pool_starts": sorted(starts) if starts else "all", "faction": faction or "any",
            "pool_sides": len(sides), "pool_games": len({s["id"] for s in sides}), "pool_winners": sum(1 for s in sides if s["won"]),
@@ -229,7 +243,8 @@ def print_report(o):
     print(f"   {'milestone':<28} {'ours':>7}   {'pool p25':>8} {'median':>7} {'p75':>7}   {'winners':>7}  flag")
     for key, m in o["milestones"].items():
         q, w = m["pool"], m["winners"]
-        high_bad = key in ("first_factory_started", "first_factory_finished", "first_factory_unit_at", "first_soldier", "first_constructor", "second_factory_started", "solars_before_plant")
+        high_bad = key in ("first_factory_started", "first_factory_finished", "first_factory_unit_at", "first_soldier", "first_constructor", "second_factory_started", "solars_before_plant",
+                           "first_soldier_in_his_half", "first_soldier_near_his_start", "first_his_building_killed", "first_his_extractor_killed")
         f = ""
         if m["ours"] is not None and q:
             f = (">p75 (late)" if high_bad and m["ours"] > q["p75"] else "<p25 (early)" if high_bad and m["ours"] < q["p25"] else "") if high_bad else flag(m["ours"], q)

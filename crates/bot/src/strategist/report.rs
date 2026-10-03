@@ -117,7 +117,7 @@ fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
     let c = &briefing.counts;
     let s = &field.score;
     lines.push(format!(
-        "score: extractors {} (most held {}, no new high for {}; free spots we can walk to {}, nearest on foot: {}; the opponent is known to hold {}) | army {} soldiers worth {} metal, {} of them within 800 of our start | opponent: we see only what our units see. Its soldiers seen in the last 3 min and not seen to die: {} worth {} metal; its army is at least that and may be much more",
+        "score: extractors {} (most held {}, no new high for {}; free spots we can walk to {}, nearest on foot: {}; the opponent is known to hold {}) | army {} soldiers worth {} metal, {} of them within 800 of our start, {} | opponent: we see only what our units see. Its soldiers seen in the last 3 min and not seen to die: {} worth {} metal; its army is at least that and may be much more; {}",
         s.extractors,
         s.extractor_peak,
         clock(s.seconds_since_growth),
@@ -127,8 +127,14 @@ fn front(briefing: &Briefing, field: &Field, fights: &[String]) -> Vec<String> {
         s.soldiers,
         s.army_metal,
         s.soldiers_near_home,
+        if s.soldiers_in_his_half > 0 { format!("{} worth {} in his half", s.soldiers_in_his_half, s.army_metal_in_his_half) } else { "none in his half".to_string() },
         s.enemy_soldiers_seen,
-        s.enemy_soldiers_seen_metal
+        s.enemy_soldiers_seen_metal,
+        match s.seconds_since_ours_in_his_half {
+            None => "nothing of ours has stood in his half yet".to_string(),
+            Some(ago) if ago < 30 => "ours stand in his half now".to_string(),
+            Some(ago) => format!("the last of ours stood in his half {} ago", clock(ago)),
+        }
     ));
     lines.push(format!(
         "traded: in the last 3 min we lost {} metal of units and buildings and destroyed {} of theirs that we saw die (each death counted once across our seats); whole game {} lost, {} destroyed{}",

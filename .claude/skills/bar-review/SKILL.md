@@ -97,6 +97,18 @@ minute differently, the person's reading is the finding and yours is a note unde
 - **O5 a turret for the scout cars** [K-open-comet-rascals-lose-to-the-commander, K-map-comet-catcher-remake-1-8-turret-at-0-27].
   A light turret at the plant by about 2:00 kills the first Rascals/Ticks; the Cortex opening puts one at 0:27.
   Check the first `armllt` clock (fable-1: 3:19, after five extractors had died).
+- **O6 the first handful runs across the map** [the players, 2026-10-03 ("the first handful of units need to run to the
+  other side of the map to harass the opponent ... you need some kind of pressure to stop them from extremely greedy
+  economic openings"); K-pro-the-first-soldiers-are-in-his-half-by-two-minutes; player-45]. Pool (80 sides of 40 Comet
+  duels at OS 40+, every one of them): first soldier in his half 1:38 / 2:06 / 2:56 (p25 / median / p75; Armada 1:40,
+  Cortex 2:48, its Rovers being slower to come), first building of his killed 2:25 / 3:49 / 5:08 (Armada 2:48, Cortex
+  4:35); winners are 40 s earlier into his half than losers, and army metal in his half at 3:00 is 78 of 280 for the
+  winners. Ours: player-45 2:59 into his half, 8:20 the first kill, nothing in his half at 4:00 or 5:00; player-41
+  never killed a building in eleven minutes. Read `pro_baseline`'s four pressure rows (`first soldier in his half`,
+  `within 1,500 of his start`, `first building of his killed`, `first extractor of his killed`) and the `army metal in
+  his half` column; a first kill past the pool's p75 is the finding, and the player's instructs say whether the first
+  soldiers were told to go or to picket (player-45 2:25: "the raid answer for our strip"; 3:46: "enemy parties far
+  away in his half are not its business").
 
 ### Expansion, 2:00 to 8:00
 

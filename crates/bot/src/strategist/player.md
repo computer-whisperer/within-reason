@@ -324,6 +324,10 @@ The rules in one place. The paragraphs above explain them; these hold whatever e
   second factory, on soldiers, or on constructors, that turn.
 - Raiders are answered by units that can catch them: Rovers and Blitzes against Ticks and Pawns, never Hammers,
   Maces or Stouts on their own. Line units and raiders about two to one. A turret beside every outer extractor.
+- The first handful of soldiers runs to the other side of the map and harasses (the experienced players, every
+  game): the open space of what he may be doing is so broad that pressure is what stops a greedy opening, and the
+  strong players' first soldiers are in his half by 2:00 and killing his buildings by 3:00-4:00. The picket for our
+  extractors is the turret beside each, not the first army.
 - Energy: a solar collector when the energy line reads STALLING and the metal store holds 150 or more, and never
   write "no solars, ever" while the store can still empty. In the first four minutes behind the assisted plant
   the stall is the plant working (the Comet opening's line): the solars of the opening list and no more.

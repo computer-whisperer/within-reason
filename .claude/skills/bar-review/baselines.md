@@ -38,6 +38,16 @@ are not the bot's, is stale.
 | radars by 8:00 | 1 / 2 / 2 | 2 | 2 / 2 / 3 | 2 |
 | nano turrets by 8:00 | 1 / 2 / 2 | 2 | 0 / 1 / 2 | 1 |
 
+Pressure (the first army in his half; `card.py` `pressure`, computed 2026-10-03 over 80 sides of 40 Comet duels at OS 40+, all
+starts and factions; winners / losers, medians): first soldier in his half 1:48 / 2:26, within 1,500 of his start 2:06 / 2:57,
+first building of his killed 4:02 / 3:41, first extractor of his killed 4:22 / 3:58, first extractor lost 3:58 / 4:22; army
+metal in his half at 3:00 78 / 43 (of 280 / 334), at 5:00 142 / 171 (of 844 / 876), at 8:00 486 / 440. Every side was in his
+half and all but one killed a building: the behaviour is the floor of strong play, not what separates winners (they are
+40 s earlier). Quartiles, all 80 sides: in his half 1:38 / 2:06 / 2:56, first building killed 2:25 / 3:49 / 5:08. By
+faction: Armada (41 sides) in his half 1:22 / 1:40 / 1:49, within 1,500 1:36 / 1:54 / 2:08, first building killed
+2:18 / 2:48 / 4:14, first extractor killed 2:19 / 3:04 / 4:42; Cortex (39) in his half 2:16 / 2:48 / 3:24, first building
+killed 3:33 / 4:35 / 5:35.
+
 The A4 Armada pool at 40+ is thebluegecko's line (three solars, the plant at 0:58; `K-map-comet-catcher-remake-1-8-two-solars-before-the-plant`):
 both openings are in the pool, the count of solars is not what separates winners from losers, and nobody builds a
 fourth before the plant. The commander guards the plant 50 s of the first 4:00 (median; thebluegecko 140 s), and the
