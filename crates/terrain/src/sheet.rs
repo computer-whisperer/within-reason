@@ -5,7 +5,7 @@
 use bot_protocol::{MoveClass, Terrain, Vec3};
 use serde_json::{Value, json};
 
-use crate::{Field, costs, passable, passages};
+use crate::{Field, costs, passable};
 
 /// The ways of moving the sheet prices, each with the units whose speeds turn its distances into seconds (the first
 /// of them that the game has gives the class).
@@ -23,9 +23,37 @@ const TAKERS: &[&str] = &["armcom", "armck", "armcv"];
 const WITHIN: &[f32] = &[30.0, 60.0, 90.0, 120.0];
 /// Two walks this close to each other (the longer over the shorter) make a spot neither side's.
 const CONTESTED: f32 = 1.25;
-/// A narrow place wider than this is open ground, not a passage: a body of twenty in ranks of six stands about 500
-/// wide (`crates/micro`, RANK_GAP 96).
-const PASSAGE: f32 = 600.0;
+/// The ways between two starts are every cell on a route at most this many times the shortest.
+const DETOUR: f32 = 1.3;
+/// Depth of a band of the ways, in flat cells; the ends of the way (this share at each) are the bases, not the way.
+const BAND: u32 = 4;
+const ENDS: f32 = 0.15;
+
+/// How wide the ways between two starts are where they are tightest and at the median, in elmos, with the place
+/// and the share of the way of the tightest: the ways' cells in bands by distance from the first start, a band's
+/// width its cells over its depth. On open ground the ways are an ellipse a good part of the distance wide; a
+/// pass shows as a tightest band a fraction of the median.
+fn cross_section(from: &Field, to: &Field) -> Option<(f32, f32, Vec3, f32)> {
+    let both = |i: usize| (from.cost[i] != u32::MAX && to.cost[i] != u32::MAX).then(|| from.cost[i] + to.cost[i]);
+    let shortest = (0..from.cost.len()).filter_map(both).min()?;
+    let limit = (shortest as f32 * DETOUR) as u32;
+    let depth = BAND * 10;
+    let mut bands: Vec<(u32, f64, f64)> = vec![(0, 0.0, 0.0); (shortest / depth) as usize + 1];
+    for i in (0..from.cost.len()).filter(|i| both(*i).is_some_and(|sum| sum <= limit)) {
+        if let Some(band) = bands.get_mut((from.cost[i] / depth) as usize) {
+            let at = from.centre(i);
+            *band = (band.0 + 1, band.1 + f64::from(at.x), band.2 + f64::from(at.z));
+        }
+    }
+    let count = bands.len();
+    let middle: Vec<(usize, &(u32, f64, f64))> = bands.iter().enumerate().filter(|(n, b)| b.0 > 0 && (*n as f32) >= count as f32 * ENDS && (*n as f32) <= count as f32 * (1.0 - ENDS)).collect();
+    let width = |cells: u32| cells as f32 / BAND as f32 * from.cell;
+    let (n, tightest) = middle.iter().min_by_key(|(_, b)| b.0)?;
+    let mut widths: Vec<u32> = middle.iter().map(|(_, b)| b.0).collect();
+    widths.sort_unstable();
+    let at = Vec3 { x: (tightest.1 / f64::from(tightest.0)) as f32, y: 0.0, z: (tightest.2 / f64::from(tightest.0)) as f32 };
+    Some((width(tightest.0), *n as f32 / count as f32, at, width(widths[widths.len() / 2])))
+}
 
 /// A unit the sheet turns distances into seconds with.
 pub struct Mover {
@@ -82,12 +110,7 @@ pub fn sheet(input: &Input) -> Value {
             let walk = home.distance(*p);
             let seconds: serde_json::Map<String, Value> =
                 units.iter().filter_map(|u| mover(u)).filter(|m| m.speed > 0.0).map(|m| (m.name.clone(), json!(walk.map(|w| (w / m.speed).round() as i32)))).collect();
-            let found = match far {
-                Some(far) if walk.is_some() => passages(home, far),
-                _ => Vec::new(),
-            };
-            let narrowest = found.iter().map(|p| p.width).min_by(f32::total_cmp);
-            let tight: Vec<Value> = found.iter().filter(|p| p.width <= PASSAGE).take(4).map(|p| json!({ "at": cell_name(p.at), "width": p.width as i32, "share_of_the_way": (p.along * 100.0) as i32 })).collect();
+            let ways = far.as_ref().filter(|_| walk.is_some()).and_then(|far| cross_section(home, far));
             let mut split = [0usize; 4];
             if let Some(far) = far {
                 for (s, _) in spots {
@@ -104,7 +127,9 @@ pub fn sheet(input: &Input) -> Value {
             to.push(json!({
                 "to": whose, "walk": walk.map(|w| w as i32), "seconds": seconds,
                 "spots_nearer_us_nearer_him_contested_unreachable": split,
-                "passages": tight, "narrowest_place_on_the_way": narrowest.map(|w| w as i32),
+                "the_ways_at_their_tightest": ways.map(|(width, along, at, median)| json!({
+                    "width": width as i32, "at": cell_name(at), "share_of_the_way": (along * 100.0) as i32, "median_width_of_the_ways": median as i32,
+                })),
             }));
         }
         classes.push(json!({
@@ -138,7 +163,7 @@ pub fn sheet(input: &Input) -> Value {
             "straight_from_ours": ours.map(|o| ((p.x - o.x).hypot(p.z - o.z)) as i32),
         })).collect::<Vec<_>>(),
         "seconds_within": WITHIN,
-        "a_passage_is_narrower_than": PASSAGE,
+        "the_ways_note": format!("the ways between two starts are every route at most {DETOUR} times the shortest; their width is given where it is tightest and at the median, the ends of the way left out: a pass is a tightest width a fraction of the median"),
         "classes": classes,
         "expansion": expansion,
     })
@@ -159,7 +184,7 @@ pub fn markdown(s: &Value) -> String {
         text(&s["spots"]["count"]), list(&s["spots"]["metal_a_second_each_low_median_high"], " / "),
         s["starts"].as_array().map(|a| a.iter().map(|p| format!("{} {} ({}, {}; {} from ours)", text(&p["whose"]), text(&p["cell"]), text(&p["x"]), text(&p["z"]), text(&p["straight_from_ours"]))).collect::<Vec<_>>().join(", ")).unwrap_or_default(),
     );
-    out += "| Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | Passages (cell, width, % of the way) |\n|---|---|---|---|---|---|---|---|\n";
+    out += "| Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |\n|---|---|---|---|---|---|---|---|\n";
     for c in s["classes"].as_array().into_iter().flatten() {
         let Some(to) = c["to_each_other_start"].as_array() else {
             out += &format!("| {} | {} | {} | | | | | |\n", text(&c["class"]), text(&c["ground_it_can_stand_on"]), text(&c["from_our_start"]));
@@ -167,11 +192,10 @@ pub fn markdown(s: &Value) -> String {
         };
         for t in to {
             let seconds = t["seconds"].as_object().map(|o| o.iter().map(|(u, t)| format!("{u} {}", text(t))).collect::<Vec<_>>().join(", ")).unwrap_or_default();
-            let narrow = t["passages"].as_array().map(|a| a.iter().map(|p| format!("{} {} {}%", text(&p["at"]), text(&p["width"]), text(&p["share_of_the_way"]))).collect::<Vec<_>>().join("; ")).filter(|x| !x.is_empty());
-            let narrow = narrow.unwrap_or_else(|| match &t["narrowest_place_on_the_way"] {
-                Value::Null => "-".into(),
-                w => format!("open (narrowest {})", text(w)),
-            });
+            let narrow = match &t["the_ways_at_their_tightest"] {
+                Value::Null => "-".to_string(),
+                w => format!("{} at {}, {}% of the way (median {})", text(&w["width"]), text(&w["at"]), text(&w["share_of_the_way"]), text(&w["median_width_of_the_ways"])),
+            };
             out += &format!(
                 "| {} | {} | {} | {} | {} | {} | {} | {} |\n",
                 text(&c["class"]), text(&c["ground_it_can_stand_on"]), text(&c["spots_it_reaches_from_our_start"]), text(&t["to"]), text(&t["walk"]), seconds,
