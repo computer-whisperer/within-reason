@@ -29,6 +29,16 @@ have the same shape and opposite answers, the difference between them is the thi
   job from the plant is his nearest spots and his constructors, as one group with a route, and the picket is the
   turret beside each outer extractor, not the army. [K-pro-the-first-soldiers-are-in-his-half-by-two-minutes,
   the players' notes 2026-10-03]
+  **A light post is overrun, not walked round** (the user, 2026-10-03, from player-50's replay): one to three light
+  turrets with a raider beside them die to the handful arriving as one body. The simulator, sixteen fights each on
+  open ground with the group together: 4 Blitzes on one Sentry keep 72% of their value, 8 on two 64%, 8 on three
+  58%, 8 on a Beamer 67%, 8 on one heavy laser tower 62%, 7 on a Blitz under two Sentries 53%; six Rovers on one
+  Sentry all die (Rovers look, they do not take posts). So the raid's paragraph never says "never attacks turrets":
+  it says which posts the group takes (light turrets, up to three together, the whole group at once) and what it
+  leaves (a nest with soldiers in it, the ring at his plant), and its step-back clause names a party that outweighs
+  it, never a post it has just razed. player-50, 6:14-6:28: eight Blitzes razed the Sentry at F1, were written
+  "It never attacks turrets", and walked 900 back to their fall-back place from one Blitz, with an extractor and two
+  solars of his ten seconds on and no turret left near them. [K-raid-a-light-post-is-overrun]
 - **A lead is spent within two minutes or it is gone.** The pros end a Comet Catcher duel 3.4 minutes (median) after
   first holding twice the other's army. Cases: (1) player-9, Comet duel vs BARb hard_aggressive, lost 36:32: at 5:00
   the report read army 801 against 270 seen, 14 extractors to 10, his lab unseen; the order was a raid loop through

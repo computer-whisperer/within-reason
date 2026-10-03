@@ -748,3 +748,17 @@ fault is target choice alone).
 **Status.** measured 2026-10-03 on one map's pool; the brief's rules carry it (the players' words first, the numbers as the case); the report tells the player how old its last look into his half is and whether any soldier of ours has been there. To verify: the next games' pressure rows, and whether a human game (no truth file: his start from the first commander sighting is not yet computed) shows the same.
 **Would be wrong if.** A pool on another map (Avalanche, Gecko Isle) shows strong players holding their first soldiers home past 3:00, or our games with the first handful across lose more extractors than the pool's loss rate pays for (K-map-comet-catcher-remake-1-8-first-extractor-lost: the pros lose 1.85 a minute and win anyway).
 
+### K-raid-a-light-post-is-overrun
+**Claim.** A handful of raiders arriving as one body overruns a light post (one to three light turrets, with a raider
+beside them) and keeps most of its value; Rovers do not.
+**Status.** the user's reading of player-50's replay (2026-10-03: "light encampments can be overrun"), with the
+simulator's numbers; not measured in the pool. `combatsim`, sixteen fights each, open ground, the group together: 4
+Blitzes on one Sentry keep 72% of their value, 6 on one 83%, 5 on two 42%, 8 on two 64%, 8 on three 58%, 8 on a Beamer
+67%, 8 on one heavy laser tower 62%, 12 on one 79%, 7 on a Blitz under two Sentries 53%, 8 Pawns on two Sentries 32%;
+six Rovers on one Sentry lose all sixteen.
+**Evidence.** player-50 (`run/matches/1791042814-player-50`), 6:14-6:28: group_D, eight Blitzes, razed the Sentry at
+F1 (truth: id 26467 at 44% at 6:14, gone by 6:16) and walked 900 back to its fall-back place from one Blitz, under a
+packet reading "It never attacks turrets", with an extractor and two solars of his ten seconds on.
+**Would be wrong if.** In games the handful sent at a post of one to three light turrets loses more than it kills
+(the simulator has no terrain and brings the group in together), or the pool's raids are seen to walk round such posts.
+**Used by.** the brief's first-handful case ("A light post is overrun, not walked round"); [[H-PLAYER-LIGHT-POSTS]].

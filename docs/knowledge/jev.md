@@ -1864,3 +1864,23 @@ group's course as an attack on the party, the event "group_X hit", and `shell_<t
 (player-49: 34 of group_O's picks), or a shell that was right under fire (a turret outranging the screen) is no longer
 taken.
 **Used by.** [[H-HANDS-PARTY-MOVES-AT-THE-BAR]] (the first wording, built 2026-10-03 on the shell move of a group attacking that party with a member under fire; first game player-50).
+
+### K-hands-a-partys-turrets-were-counted-against-a-group-out-of-their-reach
+**Claim.** The turrets covering a party's place were part of that party's odds for every group with a soldier within
+800 of it, on the group's course, its `change` question, its entry and every walk ("stepping back from"), wherever the
+group stood; a group out of the turrets' reach was told of a fight under them and took its fall-back.
+**Status.** observed in player-50 and replayed offline, 2026-10-03; fixed the same day (`picture.rs`
+`party_where_we_stand`: the turrets count in the group's own fight only when one reaches a soldier of it; the entry
+says where they stand; the moves that go to the party keep them). player-50 6:17: group_D, 7 Blitzes at (5012, 611),
+"near party_3 (1 armflash, under 2 turrets: 2 armllt): an even fight, and it outranges us"; the Sentries stood at E3,
+about 1,000 from the group (truth), the one at F1 razed at 6:14-6:16. The walk to the fall-back place rated 0.68 as
+recorded, 0.52-0.53 with the odds word alone changed to a win, 0.39 with the turrets off the course, the `change`
+question and the entry (four asks an arm); no forward move rose (the attack on his undefended extractor 0.31-0.34),
+and the advance on the unseen shooter's place stood at 0.49-0.50. The same seconds' fire on the group (eight units hit
+at 6:16) was said to be a Sentry's; no live Sentry was within 980, his Shellshocker and two Janus were 740-930 away
+out of sight (the attribution not traced in the code).
+**Evidence.** `jev-0.jsonl`, `truth-0.jsonl` and the record of `run/matches/1791042814-player-50/00`; replays with
+`run/jev_ab.py`'s `requests_of` and `ask` (scratch scripts).
+**Would be wrong if.** A group out of a nest's reach still takes its fall-back from a party standing under the nest
+with the words as fixed, at the old rate.
+**Used by.** [[H-HANDS-TURRETS-WHERE-THEY-REACH]]; the odds' narrow-win word ([[H-HANDS-ODDS-NARROW]]).

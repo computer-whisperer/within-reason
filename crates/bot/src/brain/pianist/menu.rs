@@ -761,7 +761,11 @@ impl Brain {
         // The fight it is in, said once and repeated on every move that keeps it or leaves it: the odds for the
         // part of the group in reach, what the group lost in the last seconds, whether the party can follow.
         let fight: Option<(&Party, String)> = near_party.map(|p| {
-            let odds = self.group_odds(&body, p, enemies, &scene.tick.snapshot.allies).1;
+            // As the group meets it where the group stands: without the turrets of the party's place when none of
+            // them reaches the group (player-50 6:17: a raid of eight took its fall-back from one Blitz "under 2
+            // turrets: an even fight", the turrets 1,000 away).
+            let here = self.party_where_we_stand(p, &body.core).0;
+            let odds = self.group_odds(&body, &here, enemies, &scene.tick.snapshot.allies).1;
             let lost: Vec<&(i32, UnitDefId, Option<(UnitId, UnitDefId)>)> = group.losses.iter().filter(|(f, ..)| scene.frame - f <= 30 * FRAMES_PER_SECOND).collect();
             let losses = if lost.is_empty() {
                 String::new()
@@ -777,7 +781,7 @@ impl Brain {
             } else {
                 "; it cannot keep up with this group"
             };
-            (p, format!("{} ({}{}): {}{losses}{follow}", p.name, p.composition, under(p), verdict(&odds)))
+            (p, format!("{} ({}{}): {}{losses}{follow}", p.name, p.composition, under(&here), verdict(&odds)))
         });
         let keeps = fight.as_ref().map_or(String::new(), |(_, words)| format!("; near {words}"));
         // Where it stands against the party its course is aimed at, on the course's own words: a group told to

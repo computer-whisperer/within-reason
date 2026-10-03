@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from match_read import Match, clock  # noqa: E402
 
 VERBS = ("fight_to", "take_apart", "go", "attack", "send", "shell", "join", "follow", "build", "help", "repair", "dgun", "make", "hold", "gather", "scout")
-ODDS = ("we outweigh it heavily", "we outweigh it", "an even fight", "it outweighs us", "it is unarmed", "we cannot hit it", "it cannot hit us")
+ODDS = ("we outweigh it heavily", "we outweigh it narrowly", "we outweigh it", "an even fight", "it outweighs us", "it is unarmed", "we cannot hit it", "it cannot hit us")
 
 
 def verb_of(move_id):

@@ -31,6 +31,8 @@ const SUBMERGED_Y: f32 = -5.0;
 const PARTY_RADIUS: f32 = 400.0;
 /// A turret whose reach ends this short of a party's centre still covers its edge.
 const TURRET_MARGIN: f32 = 150.0;
+/// Odds at this ratio or over, and under 1.3, are a narrow win and said so; under it down to 0.8, an even fight.
+const NARROW: f32 = 1.1;
 /// A party whose reach beats the group's longest by this much kills it on the approach (a Bull's 460 or a beamer's 490 against a Stout's 350).
 const OUTRANGE_MARGIN: f32 = 60.0;
 /// A party this near a place or an actor is "near" it: the party in an actor's entry.
@@ -709,6 +711,11 @@ impl Brain {
             format!("we outweigh it heavily{reach_words}{more}")
         } else if ratio >= 1.3 {
             format!("we outweigh it{reach_words}{more}")
+        } else if ratio >= NARROW {
+            // A win, said as one: by the square law 1.1 to 1.3 leaves the winner 40 to 65% of its force, and the
+            // simulator agrees (7 Blitzes on a Blitz under two Sentries, 1.24: 16 of 16 won, 53% left). Under
+            // "an even fight" a raid of eight took its fall-back from 280 metal (player-50 6:17).
+            format!("we outweigh it narrowly: a win that costs about half the group{reach_words}{more}")
         } else if ratio >= 0.8 {
             format!("an even fight{reach_words}{more}")
         } else {
@@ -728,7 +735,7 @@ impl Brain {
                 let mut theirs = super::super::combat::Force::default();
                 theirs.add(def);
                 let ratio = self.odds(&Brain::force_of(units), &theirs);
-                let verdict = if ratio >= 2.5 { "we outweigh it heavily" } else if ratio >= 1.3 { "we outweigh it" } else if ratio >= 0.8 { "an even fight" } else { "it outweighs us" };
+                let verdict = if ratio >= 2.5 { "we outweigh it heavily" } else if ratio >= 1.3 { "we outweigh it" } else if ratio >= NARROW { "we outweigh it narrowly" } else if ratio >= 0.8 { "an even fight" } else { "it outweighs us" };
                 format!("counted as one {} ({:.0} metal): {verdict}{outranges}", self.short_words(def), self.world.def(def).map_or(0.0, |d| d.metal_cost))
             }
             None => format!("of a type not seen, a {} with range {:.0}{outranges}", self.weapon_words(&shelling.weapon), shelling.range),
@@ -772,7 +779,7 @@ impl Brain {
                 theirs.turret_metal += party.turret_metal;
                 theirs.turret_metal_air += party.turret_metal_air;
                 let ratio = self.odds(&Brain::force_of(&body.core), &theirs);
-                let whole = if ratio >= 2.5 { "outweighs it heavily" } else if ratio >= 1.3 { "outweighs it" } else if ratio >= 0.8 { "matches it" } else { "is outweighed by it" };
+                let whole = if ratio >= 2.5 { "outweighs it heavily" } else if ratio >= 1.3 { "outweighs it" } else if ratio >= NARROW { "outweighs it narrowly" } else if ratio >= 0.8 { "matches it" } else { "is outweighed by it" };
                 let metal: f32 = body.core.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
                 let against = if party.turret_metal > 0.0 { format!("the party and the turrets covering it ({:.0} and {:.0}, the turrets counted three times: {:.0})", party.metal, party.turret_metal, party.metal + 3.0 * party.turret_metal) } else { format!("the party ({:.0})", party.metal) };
                 let words = format!("for the {} of its {} soldiers near it, {verdict}; the whole group, {} soldiers worth {metal:.0} metal, against {against} {whole} ({ratio:.1} to 1); the other {behind} are {:.0}-{farthest:.0} behind and not near it yet", in_fight.len(), body.core.len(), body.core.len(), NEAR);
@@ -795,7 +802,7 @@ impl Brain {
             theirs.turret_metal += party.turret_metal;
             theirs.turret_metal_air += party.turret_metal_air;
             let ratio = self.odds(&ours, &theirs);
-            let together = if ratio >= 2.5 { "together we outweigh it heavily" } else if ratio >= 1.3 { "together we outweigh it" } else if ratio >= 0.8 { "together an even fight" } else { "even together it outweighs us" };
+            let together = if ratio >= 2.5 { "together we outweigh it heavily" } else if ratio >= 1.3 { "together we outweigh it" } else if ratio >= NARROW { "together we outweigh it narrowly" } else if ratio >= 0.8 { "together an even fight" } else { "even together it outweighs us" };
             let metal: f32 = beside.iter().filter_map(|a| self.world.def(a.def)).map(|d| d.metal_cost).sum();
             let seats: BTreeSet<i32> = beside.iter().map(|a| a.team).collect();
             words.push_str(&format!("; with {} allied soldiers of seat {} ({metal:.0} metal) within reach of it: {together}", beside.len(), seats.iter().map(|t| format!("t{t}")).collect::<Vec<_>>().join(" and ")));
@@ -826,6 +833,34 @@ impl Brain {
         let n: usize = counts.values().sum();
         let words = if n == 0 { String::new() } else { format!("{n} turret{}: {}", if n == 1 { "" } else { "s" }, counts.iter().map(|(k, v)| format!("{v} {k}")).collect::<Vec<_>>().join(", ")) };
         (ground, air, words)
+    }
+
+    /// A party as a group that is not at it meets it (K-hands-a-partys-turrets-were-counted-against-a-group-out-of-
+    /// their-reach): the turrets covering the party's place count in the group's fight only when one of them
+    /// reaches a soldier of the group where it stands. When none does, the party comes back without them and
+    /// with words saying where they are; the moves that go to the party (attack, shell, a detachment) keep them.
+    pub(super) fn party_where_we_stand(&self, party: &Party, units: &[&OwnUnit]) -> (Party, String) {
+        if party.turrets.is_empty() || units.is_empty() {
+            return (party.clone(), String::new());
+        }
+        let mut nearest = f32::INFINITY;
+        for (id, (def, pos, _)) in &self.enemy_buildings {
+            let Some(d) = self.world.def(*def) else { continue };
+            if d.weapon_count == 0 || d.reach <= 0.0 || pos.dist2d(party.at) > d.reach + TURRET_MARGIN || self.enemy_unfinished.contains(id) {
+                continue;
+            }
+            let to_us = units.iter().map(|u| u.pos.dist2d(*pos)).fold(f32::INFINITY, f32::min);
+            if to_us <= d.reach + TURRET_MARGIN {
+                return (party.clone(), String::new());
+            }
+            nearest = nearest.min(to_us);
+        }
+        if !nearest.is_finite() {
+            return (party.clone(), String::new());
+        }
+        let here = Party { turret_metal: 0.0, turret_metal_air: 0.0, turrets: String::new(), ..party.clone() };
+        let away = format!("; the {} covering it stand where it is now, {} from this group, and shoot only what goes there", party.turrets, (nearest / 50.0).round() * 50.0);
+        (here, away)
     }
 
     /// Enemy parties at our extractors, for a group's entry: which spot, how far from the group.
@@ -1582,9 +1617,11 @@ impl Brain {
                     (None, Some((what, metal))) => format!("; it is {what} ({metal:.0} metal) elsewhere, not this group"),
                     (None, None) => String::new(),
                 };
-                let under = if p.turrets.is_empty() { String::new() } else { format!(", under {}", p.turrets) };
+                // The party's turrets are in this line only when they reach the group where it stands.
+                let (here, away) = self.party_where_we_stand(p, &body.core);
+                let under = if here.turrets.is_empty() { String::new() } else { format!(", under {}", here.turrets) };
                 let touching = body.within(p.at, NEAR).len();
-                entry["enemies_near"] = json!(format!("{} ({}{under}) {d:.0} from its nearest soldier, within {NEAR:.0} of {touching} of its {}: {}{killing}", p.name, p.composition, body.core.len(), self.group_odds(&body, p, &snapshot.enemies, &snapshot.allies).1));
+                entry["enemies_near"] = json!(format!("{} ({}{under}) {d:.0} from its nearest soldier, within {NEAR:.0} of {touching} of its {}: {}{away}{killing}", p.name, p.composition, body.core.len(), self.group_odds(&body, &here, &snapshot.enemies, &snapshot.allies).1));
             }
             let threats = self.threats_words(&parties, &places, own, kit, centre);
             if !threats.is_empty() {
@@ -1712,10 +1749,23 @@ mod tests {
 
     use super::super::fixtures::{at, brain_of, enemy, own};
 
-    /// A building of ours whose health falls beside an enemy builder, with no hit on it, is said on that builder's
-    /// party as being taken apart, with what is left and when it is gone; a party without a weapon is said unarmed,
-    /// never as outweighing us or choosing the fight.
+    /// A party's turrets count against a group only where they reach it: a group out of their reach meets the party
+    /// without them and is told where they stand; one beside them meets the party as it is.
     #[test]
+    fn a_partys_turrets_count_only_where_they_reach_the_group() {
+        let (brain, ours, _, parties) = super::super::fixtures::e3();
+        let (ground, air, words) = brain.turrets_covering(parties[0].at);
+        let party = super::Party { turret_metal: ground, turret_metal_air: air, turrets: words, ..parties[0].clone() };
+        assert!(party.turret_metal > 0.0 && party.turrets == "2 turrets: 2 armllt", "{}", party.turrets);
+        let far: Vec<&OwnUnit> = ours.iter().collect();
+        let (here, away) = brain.party_where_we_stand(&party, &far);
+        assert!(here.turret_metal == 0.0 && here.turrets.is_empty(), "{here:?}");
+        assert!(away.starts_with("; the 2 turrets: 2 armllt covering it stand where it is now, ") && away.ends_with(" from this group, and shoot only what goes there"), "{away}");
+        let beside = super::super::fixtures::own(901, 1, super::super::fixtures::at(4700.0, 1600.0));
+        let (here, away) = brain.party_where_we_stand(&party, &[&beside]);
+        assert!(here.turret_metal == party.turret_metal && away.is_empty(), "{here:?} {away}");
+    }
+
     /// The losses line says to whom, and "losing this fight" counts only the losses to the party in the entry and
     /// to turrets: three Blitzes a dead Sentry killed are no verdict against an unrelated party; the same three to
     /// the party are.
@@ -1745,6 +1795,9 @@ mod tests {
         let _ = sentry;
     }
 
+    /// A building of ours whose health falls beside an enemy builder, with no hit on it, is said on that builder's
+    /// party as being taken apart, with what is left and when it is gone; a party without a weapon is said unarmed,
+    /// never as outweighing us or choosing the fight.
     #[test]
     fn a_builder_taking_a_building_apart_is_said_and_an_unarmed_party_reads_unarmed() {
         let mut brain = brain_of(&["armflash", "armllt", "armfav"]);
