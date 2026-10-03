@@ -594,7 +594,13 @@ impl Brain {
             GroupTask::Hold { picked: true, .. } => ("hold", "hold".to_string(), format!("holds at {at}"), None),
             GroupTask::Hold { committed, .. } => ("idle", String::new(), format!("stands at {at} with no order{}", if *committed { ", fighting everything there since it arrived by advancing" } else { "" }), None),
             GroupTask::Move { .. } if group.gathering => ("gather", "gather".to_string(), "gathers on its front".to_string(), None),
-            GroupTask::Move { place, .. } if group.shelling => ("shell", String::new(), format!("shells from a {place}"), None),
+            // The key is the shell move's own (`shell_party_N`, `shell_spot_N`), so the menu leaves out the shell the
+            // group is already on (player-49 11:20-11:22: an empty key left it on the menu, it was picked each
+            // second and the whole group ordered again each time; 18 of group_O's 103 picks).
+            GroupTask::Move { place, .. } if group.shelling => {
+                let aimed = place.strip_prefix("standoff from ").unwrap_or(place);
+                ("shell", format!("shell_{}", aimed.strip_prefix("his buildings at ").unwrap_or(aimed)), format!("shells from a {place}"), None)
+            }
             GroupTask::Move { place, fight: true, .. } => ("fight_to", format!("fight_to_{place}"), format!("advances to {place}, fighting on the way"), None),
             GroupTask::Move { place, .. } => ("go", format!("go_{place}"), format!("walks to {place} without stopping to fight"), None),
             GroupTask::Engage { party, .. } => {
@@ -1396,6 +1402,13 @@ pub(super) mod tests {
         let menus = brain.menus(&tick, &kit, &picture);
         let back = menus[0].moves.iter().find(|m| m.key == "go_spot_30").unwrap();
         assert!(back.words.ends_with("; this undoes its last pick"), "{}", back.words);
+        // A shelling group's course carries the shell move's own key, so the menu leaves that move out.
+        for (place, key) in [("standoff from party_12", "shell_party_12"), ("standoff from his buildings at spot_47", "shell_spot_47")] {
+            let mut shelling = Group::new("S".into(), Domain::Ground, vec![UnitId(900)], GroupTask::Move { to: at(4000.0, 2000.0), place: place.into(), fight: true, since: 0 }, 0);
+            shelling.shelling = true;
+            let (course, course_key, ..) = brain.group_course(&shelling, &picture);
+            assert_eq!((course, course_key.as_str()), ("shell", key));
+        }
     }
 
     #[test]
