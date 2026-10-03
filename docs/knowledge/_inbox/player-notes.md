@@ -73,3 +73,12 @@
   macro line again, the Rover mass is snippet (0) with this note.
 - The Rover rush "is not the kind of macro game I was intending for us to pursue"; the games he meant for review
   were thebluegecko's games against us (the human games of 2026-09-27).
+
+## 2026-10-02, the user, from the recent games (human-10, player-40, player-42)
+
+- **"We need to be building a lot more t2 mexes and advanced solar."** Two play comments to fold into the brief:
+  tier-2 extractors (`armmoho`/`cormoho`, the role word `advanced_extractor`) over our held spots, and advanced
+  solars (`armadvsol`/`coradvsol`) for the energy. Untested as numbers; what the games show: player-42 held 27-35
+  extractors from 15:00 with income 52-128 and no tier-2 extractor line in the ledger; human-10's income was 70 at
+  12:00 on 35 extractors. The brief's Comet line names mohos by 10:00 on the pass-camp maps (item 59) and not as a
+  standing rule; advanced solars appear once (item 681, their energy cost in an empty store).
