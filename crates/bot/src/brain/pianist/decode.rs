@@ -16,8 +16,13 @@ use serde_json::json;
 
 use super::menu::{Kind, Menu, Read};
 
-/// A reading under this is clearly no: the move is fused off.
+/// A reading under this is clearly no, for the forbidden mark (off without asking).
 pub(super) const OFF: f64 = 0.2;
+/// A move whose reading is under this is fused off: the instructions do not give the actor this move, and it is
+/// not asked. Raised from 0.2 on 2026-10-03 (the user: the cut stays, for pruning, and goes higher): player-56 at
+/// 6:11, the reading for a body's walk back to one of our own extractors was 0.22, the move stayed on the menu and
+/// was played. Over six games 62 of 995 place moves played had a reading of 0.2 to 0.3, and one under 0.2.
+pub(super) const FUSE: f64 = 0.3;
 /// A reading at this or over is clearly yes (the forbidden mark is on without asking).
 pub(super) const ON: f64 = 0.8;
 /// The share of what the layer fuses that is asked anyway, for its audit.
@@ -113,7 +118,7 @@ pub(super) fn fuse(menus: &mut [Menu], decode: &Decode, newer: &BTreeSet<String>
                 }
                 continue;
             }
-            if m.reads.iter().filter_map(|r| reading(r)).any(|p| p < OFF) {
+            if m.reads.iter().filter_map(|r| reading(r)).any(|p| p < FUSE) {
                 m.fused = true;
                 if draw() < AUDIT_SHARE {
                     m.audit = true;
