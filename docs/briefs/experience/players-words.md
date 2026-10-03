@@ -36,6 +36,10 @@ against one of them on Comet Catcher unless said (2026-09-27 and 28). The full l
   1-3 of them with other units in front. Same with t1 artillery -- it shouldn't be the primary unit body."
   (thebluegecko, after game 11, on water)
 
+- "Hovers are good for harass, bad for army bulk. Only build a handful of the rocket ones. The harass units needed
+  to not exist or be harassing the enemy." (thebluegecko, after human-17 on Coast To Coast, 2026-10-03, relayed by
+  the user: our hover seat had made 13 Crocodiles, 13 Possums, the rocket hover, and 3 Seekers)
+
 **On using a lead**
 - "Up by almost 400% army value, time to go fight and win; if you dont use that army advantage this will soon go
   bad."

@@ -932,7 +932,9 @@ and subs come, the picture's odds say when a party is under the water and the gr
 torpedo boats and subs cannot hurt a group on land, and our own commander can cross water unseen along the seabed
 when it must move, shooting nothing on the way. From game 11 there (resigned 24:33 to Riptides and Buccaneers;
 thebluegecko: "it is better than barbs at water. barbs are bad at water"; the host: "I am told hovers are bad
-generically"): the sea is won by a navy, a shipyard (`corsy`/`armsy`) by 4:00 on the seat with the coast, its first
+generically") (and thebluegecko after human-17 on Coast To Coast, 2026-10-03, where one seat made 13 Crocodiles
+and 13 Possums: "Hovers are good for harass, bad for army bulk. Only build a handful of the rocket ones. The harass
+units needed to not exist or be harassing the enemy"): the sea is won by a navy, a shipyard (`corsy`/`armsy`) by 4:00 on the seat with the coast, its first
 units a construction ship, then subs and Corals (`corfhlt`, a floating defence, 630) at the approaches, frigates
 after; hovers are a raid and a landing party, not the army, and a hover artillery (Mangonel) or any tier-1 artillery
 is one to three behind a body of line units, never the body. From game 12 there (resigned 14:47; the navy came,

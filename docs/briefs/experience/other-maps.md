@@ -67,6 +67,19 @@ sheets; set it beside Comet Catcher's before carrying a number across.
   construction ships built tidal generators, floating converters, torpedo launchers and three extractors between
   them.
 
+### Coast To Coast (6,144 by 4,096, water, 24 metal spots, wind 5 to 20, tidal 16)
+
+- **One game, human-17** (2026-10-03, three seats of ours against thebluegecko, lost at 16:00; a map we had not
+  played, and the user's word at 0:36: "this is a tiny map with water"). One seat built a hover platform and the
+  other two a shipyard each. At 8:00 the seats had 7, 2 and 1 extractors and 16, 6 and 4 metal a second; at 16:00,
+  3, 0 and 0. The hover seat made 13 Crocodiles, 13 Possums (the rocket hover) and 3 Seekers and lost 40 units;
+  the two shipyard seats made three construction ships each and eight and seven warships. Told at 13:29 to make
+  resurrection submarines; at 14:07 we said his destroyers owned the water.
+- **thebluegecko afterwards:** "Hovers are good for harass, bad for army bulk. Only build a handful of the rocket
+  ones. The harass units needed to not exist or be harassing the enemy."
+- With 24 spots for four seats, a seat with one or two extractors for eight minutes had no economy to build
+  anything with; SailAway's game 12 had the same shape (every seat a yard before expanding, 14 extractors at 8:00).
+
 ### Great Divide V1 (3,072 by 4,096, north against south, no water, wind 0 to 20)
 
 - **The ground.** Rows 1 to 3 and 6 to 8 are open; rows 4 and 5 are a cliff from edge to edge with one pass at E5,

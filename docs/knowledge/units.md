@@ -303,3 +303,18 @@ facing south on a west-east axis, so every army begins with a 90-degree turn.
 bias results unless cleared).
 **Would be wrong if.** n/a (scope statement). Retire items as the harness gains stand-off orders, mixed armies or sizes.
 **Used by.** Every K-units-duel-* claim.
+
+### K-units-hovers-are-for-harass-not-the-army
+**Claim.** Hovercraft are harassers, not an army's bulk, and the rocket hover is made a handful at a time; a harass
+unit that is not harassing should not have been made. thebluegecko (OS about 48) after human-17, relayed by the
+user: "Hovers are good for harass, bad for army bulk. Only build a handful of the rocket ones. The harass units
+needed to not exist or be harassing the enemy."
+**Status.** a player's word (2026-10-03), with one game behind it: human-17 on Coast To Coast, our hover seat made
+13 Crocodiles, 13 Possums and 3 Seekers, lost 40 units, and the side lost at 16:00 from 7, 2 and 1 extractors at
+8:00. The host of SailAway game 11 had said "I am told hovers are bad generically"; game 11's thirteen Mangonels
+lost to frigates.
+**Evidence.** `run/matches/1791065145-human-17/00` (the three records' `finished` events).
+**Would be wrong if.** The game was lost on the economy alone (it may have been: no seat could afford an army of
+anything) and the hovers' part in it is not separated.
+**Used by.** the standing brief's water section; `docs/briefs/experience/players-words.md`, `other-maps.md`.
+
