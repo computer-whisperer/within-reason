@@ -1902,5 +1902,11 @@ move, not in the actor's entry.
 frame 11,130; the user saw the turn in the running game); built as words, unmeasured in play.
 **Would be wrong if.** Other arrivals do not follow (one pick replayed), or the way read from the paragraph is wrong
 where a paragraph names places that are not stops (a fall-back place counts as its last).
-**Used by.** [[H-HANDS-WAY-WORDS]].
+**Ruling (the user, 2026-10-03 night).** The way words were built by code reading the group's paragraph and were
+removed: "Code parsing the group's paragraph is the recurring anti-pattern." Jev had the reading itself: the decode
+of the packet in force read spot_57 for group_C at 0.96 and spot_59 at 0.22, over the fuse's cut of 0.2 by a hair
+(0.06, 0.52, 0.26, 0.22, 0.07 on five near-identical packets), and nothing used it above the cut. Strengthening the
+pick's own instruction did nothing (0.55-0.66 with three different sentences). The cut stays, for pruning, and
+goes higher.
+**Used by.** [[H-HANDS-WAY-WORDS]] (the direction and the worth only).
 
