@@ -1,0 +1,28 @@
+32 moments, 12 controls, 5 arms: about 19.0M tokens ($0.80)
+spent: control 3.86M, odds 4.02M, override 3.86M, standing 3.86M, all 4.03M; $0.82
+
+group_O_t1 at the moments (bar 0.5 on the move, with `change` at 0.5):
+  arm       | advancing: n, walk back offered at the bar, best walk back (median), best advance | walking: n, advance offered, best advance, best walk back | change (median)
+  recorded  | 15, 7, 0.53, 0.30 | 13, 8, 0.51, 0.54 | 0.77
+  control   | 15, 7, 0.54, 0.35 | 13, 7, 0.50, 0.53 | 0.77
+  odds      | 15, 8, 0.53, 0.35 | 13, 10, 0.61, 0.51 | 0.73
+  override  | 15, 4, 0.42, 0.32 | 13, 11, 0.57, 0.46 | 0.72
+  standing  | 15, 10, 0.54, 0.33 | 13, 9, 0.52, 0.53 | 0.78
+  all       | 15, 1, 0.43, 0.40 | 13, 12, 0.65, 0.44 | 0.67
+
+the controls (other group gates): answers crossing 0.5 against the record
+  control   nouls 4387, crossing 22 (0.50%), mean |diff| 0.012
+  odds      nouls 4387, crossing 20 (0.46%), mean |diff| 0.012
+  override  nouls 4387, crossing 21 (0.48%), mean |diff| 0.014
+  standing  nouls 4387, crossing 28 (0.64%), mean |diff| 0.016
+  all       nouls 4387, crossing 30 (0.68%), mean |diff| 0.017
+32 moments, 12 controls, 1 arms: about 3.8M tokens ($0.16)
+spent: pair 4.02M; $0.17
+
+group_O_t1 at the moments (bar 0.5 on the move, with `change` at 0.5):
+  arm       | advancing: n, walk back offered at the bar, best walk back (median), best advance | walking: n, advance offered, best advance, best walk back | change (median)
+  recorded  | 15, 7, 0.53, 0.30 | 13, 8, 0.51, 0.54 | 0.77
+  pair      | 15, 1, 0.40, 0.40 | 13, 11, 0.64, 0.45 | 0.68
+
+the controls (other group gates): answers crossing 0.5 against the record
+  pair      nouls 4387, crossing 24 (0.55%), mean |diff| 0.014
