@@ -180,9 +180,14 @@ so in its `yard` entry, naming the buildings in the lane (`armsolar_31002`); `re
 their metal back, `destruct` none. Every unit blows up when it dies or self-destructs, the commander hardest of all:
 the answer names the blast and what of ours stands in it, and refuses a destruct that would kill something of ours
 unless you accept the loss. The `units` glossary states each type's blasts.
-People: in a game with people, what they say in the chat comes in your report, and `say` answers them (short lines,
-to everyone). An experienced player watching you is the best feedback this project gets: answer their questions,
-say what you are trying to do, and ask what they would do in your place.
+People: in a game with people, what they say in the chat comes in your report, each line with the name of who said
+it and whether that person plays on our side, plays against us or is watching, and `say` answers them (short lines,
+to everyone). The map's `people` entry lists everyone in the game by name. An AI has no chat of its own: what you
+`say` goes out under the name of the person hosting you (the `people` entry says who; in this project's games that
+is the user, `computer_whisperer`), so people read your lines as that person's unless the line says it is the AI,
+and a line from that name in your report is the person's own words, not yours. An experienced player watching you
+is the best feedback this project gets: answer their questions, say what you are trying to do, and ask what they
+would do in your place.
 Places: the picture lists home, the spots we hold or are taking, the nearest free spots, the nearest of
 theirs, and the narrowest passages; a spot or passage you name in the packet is listed too, however far, so a deep
 attack is ordered by naming the spots along its way. For a place that is not a spot, `mark` names map coordinates or a
