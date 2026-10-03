@@ -49,6 +49,7 @@ fn on_it(party: &Party, menus: &[Menu]) -> String {
         .filter(|m| m.aimed_at.as_deref() == Some(party.name.as_str()))
         .map(|m| match &m.against {
             Some(s) if s.met() => format!("{} on it: {}", m.name, s.words()),
+            Some(s) if s.young.is_some() => format!("{} is told to attack it: {}", m.name, s.words()),
             Some(s) => format!("{} is told to attack it, but {}", m.name, s.words()),
             None => format!("{} is told to attack it", m.name),
         })
@@ -555,7 +556,7 @@ fn parts_of(world: &World, menus: &[Menu], lines: &Lines) -> Parts {
             parts.sent.push(format!("{line} by {}", sent.join(" and ")));
         }
         if there.is_empty() && !away.is_empty() {
-            parts.not_met.push(format!("{line}: {}", away.iter().map(|m| format!("{} is told to attack it, but {}", m.name, m.against.as_ref().map_or(String::new(), |s| s.words()))).collect::<Vec<_>>().join("; ")));
+            parts.not_met.push(format!("{line}: {}", away.iter().map(|m| format!("{} is told to attack it{} {}", m.name, if m.against.as_ref().is_some_and(|s| s.young.is_some()) { ":" } else { ", but" }, m.against.as_ref().map_or(String::new(), |s| s.words()))).collect::<Vec<_>>().join("; ")));
         }
         if there.is_empty() && away.is_empty() && sent.is_empty() && lines.flags.get(&format!("{}.answer", party.name)).is_some_and(|a| *a >= FLAG) {
             parts.unmet.push(line);
@@ -958,7 +959,7 @@ mod tests {
         a.moves[1].said = "the advance to spot_46".into();
         let mut b = group("B", false, vec![mv("follow_group_A", Order::Follow(Ward::Group("A".into())), None)]);
         b.aimed_at = Some("party_8".into());
-        b.against = Some(Standing { in_reach: 2, of: 3, way: "right here, a few seconds of walking".into(), idle: 0, catches: Some(false) });
+        b.against = Some(Standing { in_reach: 2, of: 3, way: "right here, a few seconds of walking".into(), idle: 0, catches: Some(false), young: None });
         let menus = vec![a, b, menu("plant_5", Kind::Factory(UnitId(5)), true, vec![mv("make_armflash", Order::Make(UnitDefId(1)), None)])];
         let parties = vec![party("party_7"), party("party_8"), party("party_9")];
         let flags: BTreeMap<String, f64> = [("party_7.answer".to_string(), 0.8), ("party_8.answer".to_string(), 0.9), ("party_9.answer".to_string(), 0.2)].into();
@@ -982,7 +983,7 @@ mod tests {
     fn a_party_is_met_only_by_what_has_it_in_reach() {
         let mut w = group("W", false, vec![mv("go_spot_30", Order::Go("spot_30".into()), None)]);
         w.aimed_at = Some("party_7".into());
-        w.against = Some(Standing { in_reach: 0, of: 9, way: "near, about 10 s of walking".into(), idle: 9, catches: Some(false) });
+        w.against = Some(Standing { in_reach: 0, of: 9, way: "near, about 10 s of walking".into(), idle: 9, catches: Some(false), young: None });
         let menus = vec![w, group("A", false, vec![mv("attack_party_7", Order::Attack("party_7".into()), Some("party_7"))])];
         let parties = vec![party("party_7")];
         let flags: BTreeMap<String, f64> = [("party_7.answer".to_string(), 0.8)].into();

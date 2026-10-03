@@ -310,6 +310,14 @@ impl Brain {
         let ids: Vec<UnitId> = units.iter().map(|u| u.id).collect();
         let centre = super::groups::centre_of(&units);
         let walker = self.group_walker(&pianist.groups[index], own);
+        // A change of the whole group's course, remembered for the words of the next (H-HANDS-TURNS).
+        if !matches!(order, Order::Send(..) | Order::Stay)
+            && let Some(stood) = centre
+        {
+            let group = &mut pianist.groups[index];
+            group.turns.retain(|(at, _)| frame - *at <= super::groups::TURN_MEMORY);
+            group.turns.push((frame, stood));
+        }
         let mut did: Option<String> = None;
         match order {
             Order::Hold => {

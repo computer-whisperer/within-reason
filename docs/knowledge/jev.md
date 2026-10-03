@@ -1928,3 +1928,22 @@ offline, four asks an arm).
 detachments do not cover (a party of raiders faster than every detachment is one: it is not caught either way).
 **Used by.** [[H-HANDS-DETACHMENTS-FOR-SMALL-PARTIES]].
 
+### K-jev-a-bodys-turns-said-on-the-move-stop-the-turn-that-has-no-reason
+**Claim.** The pick has no hysteresis of its own: stage one's candidate is sampled, stage two takes it on any
+preference, and each second is a fresh trial (player-58: of 226 group draws with several changes on offer the
+candidate had under 0.5 in 103; 213 of 294 candidates were taken, 87 of them at a confidence under 0.5; half of
+all group changes in five games came within 10 s of the group's last). A confidence bar that decays after a change
+was replayed and removes the weak flips only (player-58's main body, 5:55-6:50: 18 changes, 10 left at 0.7 over
+20 s), because most turns were taken confidently, each for a different thing. What moves them is the cost said as
+fact: on player-58's 5:59, the whole body's fourth turn in five seconds, the change fell from 0.86-0.89 to 0.41-0.50
+with the turn count on the change's line and to 0.30-0.35 with the standing order also described as one second old
+and on its way (it read "told to attack it, but nothing of it has the party in reach"); the detachments of 6:00
+and 6:21, which keep the body's course, held at 0.62-0.73 and 0.72-0.76; a switch to a nearer real target at 6:07
+at 0.62-0.69. As with the shell move's under-fire sentence
+(K-jev-the-cost-of-leaving-a-fight-under-fire-said-on-the-shell-move-stops-the-switch).
+**Status.** demonstrated offline on four picks of one minute (2026-10-03 night, the numbers in the test sentences
+estimated by hand); built as words, unmeasured in play. The margin was not built (the user).
+**Would be wrong if.** The measured counts read differently from the estimated ones, or the sentence, standing on
+every move of a body that has turned twice, holds it where a turn is right.
+**Used by.** [[H-HANDS-TURNS]].
+

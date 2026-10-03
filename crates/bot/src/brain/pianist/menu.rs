@@ -280,7 +280,15 @@ pub(crate) struct Standing {
     pub idle: usize,
     /// Whether the actor's fastest outpaces the party's slowest; none while the party's speed is unknown.
     pub catches: Option<bool>,
+    /// Seconds since the actor was given this course, when that is `YOUNG` or less: an order that has had no time
+    /// to arrive is on its way, not failing (player-58, 5:55-5:59: a body ordered at a party a second before was
+    /// described "told to attack it, but nothing of it has the party in reach", and was turned four times in
+    /// five seconds).
+    pub young: Option<i32>,
 }
+
+/// An order this many seconds old or younger is said to be on its way.
+const YOUNG: i32 = 8;
 
 impl Standing {
     /// Whether anything of the actor has the party in reach: the one case in which the party is "met".
@@ -305,7 +313,10 @@ impl Standing {
             None => "",
         };
         let who = if self.of == 1 { "it is".to_string() } else { format!("the nearest of its {} soldiers is", self.of) };
-        format!("nothing of it has the party in reach ({who} {} away{idle}){catches}", self.way)
+        match self.young {
+            Some(seconds) => format!("it took this course {seconds} s ago and is on its way ({who} {} away{idle}): it has not had the time to arrive{catches}", self.way),
+            None => format!("nothing of it has the party in reach ({who} {} away{idle}){catches}", self.way),
+        }
     }
 }
 
@@ -586,7 +597,7 @@ impl Brain {
         let their_slowest = members.iter().filter_map(|e| e.def).filter_map(|d| self.world.def(d)).map(|d| d.speed).filter(|s| *s > 0.0).fold(f32::INFINITY, f32::min);
         let our_fastest = units.iter().filter_map(|u| def(u)).map(|d| d.speed).fold(0.0, f32::max);
         let catches = their_slowest.is_finite().then_some(our_fastest > their_slowest);
-        Standing { in_reach, of: units.len(), way, idle: units.iter().filter(|u| u.idle).count(), catches }
+        Standing { in_reach, of: units.len(), way, idle: units.iter().filter(|u| u.idle).count(), catches, young: None }
     }
 
     /// A group's course without its clocks: its kind, its key as a move would have it, its words, and the party
@@ -800,7 +811,10 @@ impl Brain {
         let keeps = fight.as_ref().map_or(String::new(), |(_, words)| format!("; near {words}"));
         // Where it stands against the party its course is aimed at, on the course's own words: a group told to
         // attack is not thereby fighting.
-        let against = aimed_at.as_ref().and_then(|name| picture.parties.iter().find(|p| p.name == *name)).map(|p| self.standing(&body.core, p, enemies));
+        let against = aimed_at.as_ref().and_then(|name| picture.parties.iter().find(|p| p.name == *name)).map(|p| {
+            let age = (scene.frame - group.last_order) / FRAMES_PER_SECOND;
+            Standing { young: (age <= YOUNG).then_some(age), ..self.standing(&body.core, p, enemies) }
+        });
         let against_words = against.as_ref().map_or(String::new(), |s| format!(": {}", s.words()));
         let stands = |to: Vec3| {
             fight.as_ref().map_or(String::new(), |(p, words)| {
@@ -820,8 +834,22 @@ impl Brain {
         };
         let at = picture.state["actors"][&name]["at"].as_str().unwrap_or("where it stands").to_string();
         let mut moves = vec![Move::new("stay".into(), Order::Stay, format!("{name} {course_words}{against_words}{keeps}"), "its course".into(), None, false)];
+        // What the body's recent turns have come to, said on every move that would turn the whole body again: the
+        // real cost of a change (the user, 2026-10-03: "focus on the actual reasons for hysteresis and ensure the
+        // language reinforces it"). Replayed on player-58's 5:59, the body's fourth turn in five seconds: the
+        // change fell from 0.87 to 0.45 with this and to 0.33 with the standing's words beside it; a detachment
+        // that kept the body's course held at 0.74 to 0.67.
+        let recent: Vec<&(i32, Vec3)> = group.turns.iter().filter(|(at, _)| scene.frame - *at <= super::groups::TURN_MEMORY).collect();
+        let turned = match recent.first() {
+            Some((first, stood)) if recent.len() >= 2 => format!(
+                "; {name} has changed course {} times in the last {} s and stands {:.0} from where it stood at the first of them: a body that keeps turning walks and does not arrive or fight",
+                recent.len(), ((scene.frame - *first) / FRAMES_PER_SECOND).max(1), body.at.dist2d(*stood)
+            ),
+            _ => String::new(),
+        };
         let mut push = |key: String, order: Order, words: String, said: String, party: Option<&Party>, detachment: bool| {
             if key != course_key {
+                let words = if detachment { words } else { format!("{words}{turned}") };
                 moves.push(Move::new(key, order, words, said, party.map(|p| p.name.clone()), detachment));
             }
         };
@@ -1473,6 +1501,9 @@ pub(super) mod tests {
         let standing = brain.standing(&core, &picture.parties[0], &tick.snapshot.enemies);
         assert_eq!((standing.in_reach, standing.of, standing.idle, standing.catches), (0, 14, 0, Some(true)), "{standing:?}");
         assert!(standing.words().starts_with("nothing of it has the party in reach (the nearest of its 14 soldiers is near, ") && standing.words().ends_with("; it is faster than the party"), "{}", standing.words());
+        // An order a few seconds old is on its way, not failing.
+        let young = Standing { young: Some(2), ..standing.clone() };
+        assert!(young.words().starts_with("it took this course 2 s ago and is on its way (the nearest of its 14 soldiers is near, ") && young.words().contains("it has not had the time to arrive"), "{}", young.words());
         let beside = super::super::fixtures::own(901, 1, at(4420.0, 1240.0));
         assert_eq!(brain.standing(&[&beside], &picture.parties[0], &tick.snapshot.enemies).words(), "it has the party in reach");
         // The other group holds by a pick: that is a course, and its menu has no second `hold`.
