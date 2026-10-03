@@ -23,7 +23,7 @@
 //!              [--packet PATH]   (the pianist plays this packet text when no player writes one: the arena instrument of the A/Bs)
 //!              [--objective TEXT]   (a requirement for the player, appended to its role text: "kill the commander with Thunder bombers")
 //!              [--base-port N]   (default 9100; match i uses N+2i and N+2i+1, so a second arena needs another range)
-//!              [--commander-model ID] [--objective TEXT]   (the session's model instead of the role's usual one, e.g. claude-opus-5)
+//!              [--commander-model ID] [--brief standard|experience] [--objective TEXT]   (the session's model instead of the role's usual one, e.g. claude-opus-5)
 //!              [--pianist]      (Jev plays every unit from a prose packet in place of the decision heuristics)
 //!              [--player]       (with --pianist: an Opus player writes the packet; turns hold the game still unless --realtime)
 
@@ -75,6 +75,9 @@ struct Options {
     /// With `pianist`: the Opus player over it (`docs/design/2026-09-21-pianist.md`, "The player").
     player: bool,
     commander_model: Option<String>,
+    /// `--brief experience`: the player reads the brief as game experience (`docs/briefs/player-experience.md`) in
+    /// place of the standing one.
+    brief: Option<String>,
     /// A requirement for the player, appended to its role text (`WITHIN_REASON_OBJECTIVE`).
     objective: Option<String>,
     /// Play every match as this faction instead of alternating.
@@ -177,7 +180,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("BARb {}", options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "commander_model": options.commander_model, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "commander_model": options.commander_model, "brief": options.brief, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 
@@ -330,6 +333,7 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         .env("WITHIN_REASON_HANDS_EFFORT", options.hands_effort.as_deref().unwrap_or("lean"))
         .envs(options.hands_layers.as_ref().map(|layers| ("WITHIN_REASON_HANDS_LAYERS", layers)))
         .envs(options.commander_model.as_ref().map(|model| ("WITHIN_REASON_MODEL", model)))
+        .envs(options.brief.as_ref().map(|brief| ("WITHIN_REASON_BRIEF", brief)))
         .envs(options.objective.as_ref().map(|text| ("WITHIN_REASON_OBJECTIVE", text)))
         // A player game is played as a live one unless told otherwise: its orders land as late as it thought.
         .envs(options.think_penalty.as_deref().or(options.player.then_some("1")).map(|penalty| ("WITHIN_REASON_THINK_PENALTY", penalty.to_string())))
@@ -589,6 +593,7 @@ fn parse_args() -> Options {
         pianist: false,
         player: false,
         commander_model: None,
+        brief: None,
         objective: None,
         side: None,
         corner: None,
@@ -665,6 +670,13 @@ fn parse_args() -> Options {
             "--hands-effort" => options.hands_effort = Some(value()),
             "--hands-layers" => options.hands_layers = Some(value()),
             "--commander-model" => options.commander_model = Some(value()),
+            "--brief" => {
+                options.brief = Some(match value().as_str() {
+                    "experience" => "experience".to_string(),
+                    "standard" => "standard".to_string(),
+                    _ => usage("--brief takes standard or experience"),
+                })
+            }
             "--objective" => options.objective = Some(value()),
             "--think-penalty" => options.think_penalty = Some(value()),
             "--think-cap" => options.think_cap = Some(value()),
@@ -725,7 +737,7 @@ fn parse_args() -> Options {
 }
 
 fn usage(problem: &str) -> ! {
-    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--commander-model ID] [--objective TEXT] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N]");
+    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--commander-model ID] [--brief standard|experience] [--objective TEXT] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N]");
     std::process::exit(2)
 }
 

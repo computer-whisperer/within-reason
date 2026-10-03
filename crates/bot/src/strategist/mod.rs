@@ -44,8 +44,12 @@ pub(crate) fn model() -> String {
 /// Read from the checkout at every session start (`crate::texts`): an edit needs no rebuild. The role, then what the
 /// project knows (`docs/README.md`: the brief is rewritten from the knowledge base), then the game's objective.
 fn system_prompt() -> String {
-    use crate::texts::{read, PLAYER_BRIEF, PLAYER_PROMPT};
-    read(&PLAYER_PROMPT) + &read(&PLAYER_BRIEF) + &objective()
+    use crate::texts::{read, PLAYER_BRIEF, PLAYER_BRIEF_EXPERIENCE, PLAYER_PROMPT};
+    let brief = match std::env::var("WITHIN_REASON_BRIEF").as_deref() {
+        Ok("experience") => &PLAYER_BRIEF_EXPERIENCE,
+        _ => &PLAYER_BRIEF,
+    };
+    read(&PLAYER_PROMPT) + &read(brief) + &objective()
 }
 
 /// Turns are taken with the game held still (the brain asks for them, `brain/wake.rs`), unless the game is realtime.

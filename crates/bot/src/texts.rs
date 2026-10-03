@@ -16,6 +16,11 @@ pub struct Text {
 
 pub const PLAYER_PROMPT: Text = Text { path: "crates/bot/src/strategist/player.md", compiled: include_str!("strategist/player.md") };
 pub const PLAYER_BRIEF: Text = Text { path: "docs/briefs/player.md", compiled: include_str!("../../../docs/briefs/player.md") };
+/// The brief as game experience (`arena --brief experience`, `WITHIN_REASON_BRIEF=experience`): assembled by
+/// `run/build_brief.py` from `docs/briefs/experience/` and the generated reference sets
+/// (docs/design/2026-10-03-brief-rewrite-and-commander-pack.md). Played against `PLAYER_BRIEF` on the same seeds
+/// until one of them goes.
+pub const PLAYER_BRIEF_EXPERIENCE: Text = Text { path: "docs/briefs/player-experience.md", compiled: include_str!("../../../docs/briefs/player-experience.md") };
 pub const HANDS_RULES: Text = Text { path: "crates/bot/src/brain/pianist/rules.md", compiled: include_str!("brain/pianist/rules.md") };
 pub const HANDS_DEFAULT: Text = Text { path: "crates/bot/src/brain/pianist/default.md", compiled: include_str!("brain/pianist/default.md") };
 
@@ -75,7 +80,7 @@ mod tests {
     #[test]
     fn the_checkout_is_found_from_the_test_binary_and_its_files_match_the_compiled_copies() {
         assert!(super::root().is_some(), "the test binary runs under target/, below the checkout");
-        for text in [&super::PLAYER_PROMPT, &super::PLAYER_BRIEF, &super::HANDS_RULES, &super::HANDS_DEFAULT] {
+        for text in [&super::PLAYER_PROMPT, &super::PLAYER_BRIEF, &super::PLAYER_BRIEF_EXPERIENCE, &super::HANDS_RULES, &super::HANDS_DEFAULT] {
             assert_eq!(super::read(text), text.compiled, "{} on disk differs from the copy compiled into this test binary", text.path);
         }
     }

@@ -100,7 +100,7 @@ this will soon go bad." (thebluegecko, spectating the 3v1s of 2026-09-27)
 ### How many of one unit
 
 **The pool** (`docs/studies/2026-09-28-body-sizes.md`). The largest body of one type in a typical game is a dozen
-raiders or line tanks, eight Stouts, seven of a long-range type, four Hammers or Levelers. Bodies over thirty come
+raiders or line tanks, eight Stouts, seven of a long-range type, four Maces or Pounders. Bodies over thirty come
 late and are always two or three types together.
 
 **The simulator, at equal metal.** Six Stouts beat one Fatboy (+0.12); twenty-five lose to four (-0.54). Eight
