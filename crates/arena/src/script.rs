@@ -57,6 +57,8 @@ pub struct MatchSetup<'a> {
     /// The game's full name, not a rapid tag: the lobby reads it from a replay's header and cannot resolve a tag.
     pub game: &'a str,
     pub map: &'a str,
+    /// The enemy seats' AI as the engine knows it, `ShortName:Version` (`BARb:stable`); allied seats are always BARb.
+    pub opponent: &'a str,
     pub opponent_profile: &'a str,
     /// BARb's `disabledunits` option (`name+name`), empty for none: how its opening is pinned.
     pub opponent_disabled_units: &'a str,
@@ -127,7 +129,10 @@ impl MatchSetup<'_> {
         // `random_seed` is read by BARb (CircuitAI.cpp) though the lobby does not offer it. It does NOT make BARb
         // repeatable: it draws from the C library's `rand()`, which the whole engine process shares, and the same seed
         // gave a bot lab in one run and a vehicle plant in the next. It is set so that the clock is at least not an input.
-        let barb = format!("ShortName=BARb; Version=stable; [OPTIONS] {{ profile={}; random_seed={}; disabledunits={}; }}", self.opponent_profile, self.seed, self.opponent_disabled_units);
+        let seat = |name: &str, version: &str| format!("ShortName={name}; Version={version}; [OPTIONS] {{ profile={}; random_seed={}; disabledunits={}; }}", self.opponent_profile, self.seed, self.opponent_disabled_units);
+        let barb = seat("BARb", "stable");
+        let (name, version) = self.opponent.split_once(':').unwrap_or((self.opponent, "stable"));
+        let enemy = seat(name, version);
         let other_side = match (self.mirror, self.our_side) {
             (true, side) => side,
             (false, "Armada") => "Cortex",
@@ -140,7 +145,7 @@ impl MatchSetup<'_> {
         seats.extend((0..self.ours).map(|_| Seat { ai: ours.clone(), ally_team: us, side: self.our_side }));
         // An allied BARb plays the other faction, so nothing of ours may assume an ally's units are our kind.
         seats.extend((0..self.allies).map(|_| Seat { ai: barb.clone(), ally_team: us, side: other_side }));
-        seats.extend((0..self.enemies).map(|nth| Seat { ai: barb.clone(), ally_team: enemy_ally_team(if self.free_for_all { nth } else { 0 }), side: other_side }));
+        seats.extend((0..self.enemies).map(|nth| Seat { ai: enemy.clone(), ally_team: enemy_ally_team(if self.free_for_all { nth } else { 0 }), side: other_side }));
         // Teams in ally-team order, as the 1v1 script always had them (team 0 is ally team 0's).
         seats.sort_by_key(|seat| seat.ally_team);
 
@@ -196,7 +201,7 @@ mod tests {
 
     fn setup(ours: usize, allies: usize, enemies: usize, free_for_all: bool, we_are_first: bool) -> MatchSetup<'static> {
         MatchSetup {
-            game: "g", map: "m", opponent_profile: "medium", opponent_disabled_units: "", host_port: 1, autohost_port: 2, seed: 3,
+            game: "g", map: "m", opponent: "BARb:stable", opponent_profile: "medium", opponent_disabled_units: "", host_port: 1, autohost_port: 2, seed: 3,
             ours, allies, enemies, free_for_all, boxes: Boxes::Corners, we_are_first, swap_corners: false, our_side: "Armada", mirror: false, starts: Vec::new(),
         }
     }

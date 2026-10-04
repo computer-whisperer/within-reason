@@ -17,6 +17,7 @@
 //!              [--player-effort low|medium|high|xhigh|max]   (the LLM session's `claude --effort`; default high)
 //!              [--hands-effort lean|normal|full]      (the hands' Jev token diet; default lean, the bulk games' level)
 //!              [--hands-layers a,b|none]   (the hands' savings that are on: news is the default; none is the base version alone)
+//!              [--opponent NAME:VERSION]   (the enemy seats' AI, as installed under the engine's AI/Skirmish; default BARb:stable)
 //!              [--opponent-opening any|bots|vehicles]   (pins BARb's first factory by disabling the other; default any)
 //!              [--think-penalty X]   (the player's or commander's orders land X game seconds late per wall second it thought; 1 = as in a live game; default 1 with --player, else 0)
 //!              [--think-cap S]   (the penalty's delay is at most S game seconds a turn, so a slow provider does not decide the game; default 7 with --player, 0 = no cap)
@@ -110,6 +111,8 @@ struct Options {
     packet: Option<String>,
     /// `bots`, `vehicles` or `any` (BARb's own choice, about 70 % bots on Quicksilver).
     opponent_opening: String,
+    /// `--opponent NAME:VERSION`: the enemy seats' AI as installed in the engine's `AI/Skirmish` (default `BARb:stable`).
+    opponent: String,
     effort: Option<String>,
     /// The hands' token diet: lean (the default here), normal or full (`WITHIN_REASON_HANDS_EFFORT`).
     hands_effort: Option<String>,
@@ -177,15 +180,15 @@ fn main() -> io::Result<()> {
     let batch_dir = repo.join(format!("run/matches/{stamp}-{}", options.label));
     fs::create_dir_all(&batch_dir)?;
     println!(
-        "{} matches vs BARb {} on {}, speed {}, {} parallel -> {}",
-        options.matches, options.profile, options.map, options.speed, options.parallel, batch_dir.display()
+        "{} matches vs {} {} on {}, speed {}, {} parallel -> {}",
+        options.matches, opponent_name(&options.opponent), options.profile, options.map, options.speed, options.parallel, batch_dir.display()
     );
 
     let commit = git_commit(&repo);
     fs::write(
         batch_dir.join("batch.json"),
         serde_json::to_string_pretty(&serde_json::json!({
-            "label": options.label, "commit": commit, "opponent": format!("BARb {}", options.profile),
+            "label": options.label, "commit": commit, "opponent": format!("{} {}", opponent_name(&options.opponent), options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
             "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief, "players": options.players.as_deref().unwrap_or("one"), "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
@@ -261,6 +264,7 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
     let setup = MatchSetup {
         game: &game,
         map: &options.map,
+        opponent: &options.opponent,
         opponent_profile: &options.profile,
         // Its first factory decides the kind of game (K-barb-opening-varies); taking the other away pins it.
         opponent_disabled_units: match options.opponent_opening.as_str() {
@@ -404,7 +408,7 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         opponent_first_factory: first_factory(&dir),
         reason: fs::read_to_string(dir.join("stop")).map(|t| t.lines().skip(1).collect::<Vec<_>>().join(" ").trim().to_string()).unwrap_or_default(),
     };
-    if let Err(e) = record::finish(&dir, &result, &options.profile) {
+    if let Err(e) = record::finish(&dir, &result, &format!("{} {}", opponent_name(&options.opponent), options.profile)) {
         eprintln!("match {index}: could not close the match record: {e}");
     }
     Ok(result)
@@ -622,6 +626,7 @@ fn parse_args() -> Options {
         seed_base: 1,
         packet: None,
         opponent_opening: "any".into(),
+        opponent: "BARb:stable".into(),
         effort: None,
         hands_effort: None,
         hands_layers: None,
@@ -703,6 +708,7 @@ fn parse_args() -> Options {
             "--think-penalty" => options.think_penalty = Some(value()),
             "--think-cap" => options.think_cap = Some(value()),
             "--turn-limit" => options.turn_limit = Some(value()),
+            "--opponent" => options.opponent = value(),
             "--opponent-opening" => {
                 options.opponent_opening = value();
                 if !["any", "bots", "vehicles"].contains(&options.opponent_opening.as_str()) {
@@ -759,7 +765,11 @@ fn parse_args() -> Options {
 }
 
 fn usage(problem: &str) -> ! {
-    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--player-model ID] [--brief standard|experience] [--objective TEXT] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N]");
+    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--player-model ID] [--brief standard|experience] [--objective TEXT] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent NAME:VERSION] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N]");
     std::process::exit(2)
 }
 
+/// The opponent's name for the ledger and the record: its short name, with the version when it is not `stable`.
+fn opponent_name(opponent: &str) -> String {
+    opponent.strip_suffix(":stable").unwrap_or(opponent).replace(':', " ")
+}

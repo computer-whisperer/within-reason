@@ -10,7 +10,7 @@ use serde_json::json;
 use crate::MatchResult;
 
 /// Appends a `result` line to every `record-*.jsonl` in the match directory. The bot has exited by now.
-pub fn finish(dir: &Path, result: &MatchResult, opponent_profile: &str) -> io::Result<()> {
+pub fn finish(dir: &Path, result: &MatchResult, opponent: &str) -> io::Result<()> {
     let replay = fs::read_dir(dir.join("demos")).ok().and_then(|entries| {
         let name = entries.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).find(|n| n.ends_with(".sdfz"))?;
         Some(format!("demos/{name}"))
@@ -20,7 +20,7 @@ pub fn finish(dir: &Path, result: &MatchResult, opponent_profile: &str) -> io::R
         if !(name.starts_with("record-") && name.ends_with(".jsonl")) {
             continue;
         }
-        let line = json!({ "t": "result", "result": result, "opponent": format!("BARb {opponent_profile}"), "replay": replay });
+        let line = json!({ "t": "result", "result": result, "opponent": opponent, "replay": replay });
         // A killed bot can leave half a line behind; start on a fresh one.
         let ragged = fs::read(entry.path())?.last().is_some_and(|&b| b != b'\n');
         let mut file = OpenOptions::new().append(true).open(entry.path())?;
