@@ -1396,7 +1396,7 @@ impl Brain {
         }
         pianist.announced = true;
         let tail = format!("'s hands: Jev {} ({} ms to the first answer)", response.model, response.latency.as_millis());
-        self.said.push(tail.clone());
+        self.remember_said(tail.clone());
         commands.push(Command::Say { text: format!("{{name}}{tail}") });
     }
 

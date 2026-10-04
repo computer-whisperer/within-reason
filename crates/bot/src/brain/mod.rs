@@ -386,6 +386,16 @@ impl Brain {
         }
     }
 
+    /// A line this seat is about to say by itself (its banner, its hands' line): its echo is not chat, to this
+    /// seat's player or, under a commander, to the side (human-19: the banners of both seats reached the commander
+    /// as four lines of chat from the host, and the hands' line woke it at 1:34).
+    pub(crate) fn remember_said(&mut self, line: String) {
+        if let Some(side) = self.strategist.as_ref().and_then(|s| s.side.get()) {
+            side.said.lock().unwrap().push(line.clone());
+        }
+        self.said.push(line);
+    }
+
     /// One tick: the control lane every time, the whole brain (`think`) on the frames due at its own interval, with
     /// every event since it last ran.
     pub fn decide(&mut self, tick: &Tick) -> Vec<Command> {
@@ -452,7 +462,7 @@ impl Brain {
             let tail = format!(" is {banner} | seat ai{} team {} {side}", self.world.hello.ai_id, self.world.hello.team);
             // The echo comes back with the name filled in, so the tail is what `relay_chat` drops (comet-1: the
             // banner woke the player at 0:05 as "someone in the game said something").
-            self.said.push(tail.clone());
+            self.remember_said(tail.clone());
             commands.push(Command::Say { text: format!("{{name}}{tail}") });
         }
         self.track_shelling(tick);

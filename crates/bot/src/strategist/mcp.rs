@@ -509,6 +509,15 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                         }
                         Some((x, z))
                     }
+                    // The pair as the model sometimes writes it, in a string ("[1264, 2832]": human-19).
+                    Value::String(pair) if pair.trim_start().starts_with('[') => {
+                        let xz: Vec<f32> = serde_json::from_str(pair).map_err(|_| format!("{name}: [x, z] are two numbers"))?;
+                        let [x, z] = xz[..] else { return Err(format!("{name}: [x, z] are two numbers")) };
+                        if width > 0.0 && (x < 0.0 || z < 0.0 || x > width || z > height) {
+                            return Err(format!("{name}: ({x:.0}, {z:.0}) is off the map, which is {width:.0} by {height:.0}"));
+                        }
+                        Some((x, z))
+                    }
                     Value::String(cell) => {
                         let mut chars = cell.chars();
                         let column = chars.next().map(|c| c.to_ascii_uppercase()).filter(|c| ('A'..='H').contains(c)).ok_or(format!("{name}: a grid cell is A1 to H8"))?;
