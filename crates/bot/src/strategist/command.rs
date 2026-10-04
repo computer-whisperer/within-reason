@@ -415,7 +415,8 @@ fn drive(launch: Launch, mut session: Session, side: &Shared, stop: &std::sync::
             Some(last) => last + side.wake.lock().unwrap().max_seconds as i32 * FRAMES_PER_SECOND,
         };
         // A person's chat wakes it at once: an answer a minute late is no answer.
-        let spoken_to = last_turn.is_some() && !side.chat_in.lock().unwrap().is_empty();
+        // Before its first turn too, once the game runs (human-20: "gl hf" at 0:01 answered at 0:20).
+        let spoken_to = frame > 0 && !side.chat_in.lock().unwrap().is_empty();
         if frame < due && !spoken_to {
             continue;
         }
