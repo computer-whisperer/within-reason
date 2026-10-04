@@ -762,3 +762,19 @@ packet reading "It never attacks turrets", with an extractor and two solars of h
 **Would be wrong if.** In games the handful sent at a post of one to three light turrets loses more than it kills
 (the simulator has no terrain and brings the group in together), or the pool's raids are seen to walk round such posts.
 **Used by.** the brief's first-handful case ("A light post is overrun, not walked round"); [[H-PLAYER-LIGHT-POSTS]].
+
+### K-commander-gather-conditions-held-a-leading-army
+**Claim.** Under the commander seat a leading army stood in our half because the direction gave it a place to gather
+and a count or clock to wait for, and each seat below passed that on faithfully. human-23 first game (a person who
+announced a tier-2 gunship rush): the direction named the window at 0:01 and 5:19 and said gather (five at 3:10,
+eight at 5:19); the player's packet said "stands at spot_20; with nine there it fights to ..."; group_B had 9 at
+5:41, 18 at 6:15, 23 at 6:45 at E3-E4, left at 7:20 on `go_west`, held at B6 at 8:21 and entered A8 at 9:51 as
+his gunships came out. human-23 second game: the next raid held "until 8 extractors stand" from 4:47 to 11:00 with
+2.2-9.3x his seen army at home. packet-example-1: one body, five signals set minutes ahead (5:50, 9:00, 12:00,
+14:30, 18:00). The user on the first game: "if we had simply attacked into his base for the middle 50% of the
+game we would have just won."
+**Status.** observed in three games (2026-10-04); the first game's reading is the user's, the traces are from the
+commander's and the hands' logs. Whether the hands also rated the advance under the bar in those minutes is not
+measured.
+**Exploited by.** H-COMMANDER-GOING.
+

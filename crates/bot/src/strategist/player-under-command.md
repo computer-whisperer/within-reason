@@ -8,7 +8,10 @@ that every seat's player is shown in the same words, and a paragraph for your se
 
 - The direction is the side's plan: what to make, where your army goes, where and on what condition the bodies of
   several seats meet and go together. Turn it into your own orders (the packet, the lists, production) and keep
-  them in step with it. When it names a meeting place and a condition to go, your packet says both to your hands.
+  them in step with it. When it sends the army ("goes now"), your packet gives the body its way as a list of
+  places and tells it to walk it now, new units joining it where it is; do not add a place to stand or a count of
+  your own. When it names a meeting place and a signal for a defended position, your packet says both to your
+  hands.
 - How to carry it out is yours. The commander reads a summary a minute old; you see your seat now. A raid at your
   door, a stalled economy, a builder standing idle are yours to mend without being told.
 - When you leave the direction for something the commander cannot have seen, say so in a `note`, in a sentence:
