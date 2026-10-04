@@ -89,6 +89,10 @@ pub struct TeamInfo {
     /// seat; `None` from a shim older than 2026-09-27 or a script without one.
     #[serde(default)]
     pub color: Option<[f32; 3]>,
+    /// The factor on the metal and energy the seat's units make (the lobby's bonus: 1.5 at +50 %), as the engine
+    /// holds it; `None` from a shim older than 2026-10-04.
+    #[serde(default)]
+    pub income_multiplier: Option<f32>,
 }
 
 /// Who plays a seat, read from the start script's `[PLAYERn]` and `[AIn]` sections (human-9: the player could not

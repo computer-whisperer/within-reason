@@ -213,6 +213,7 @@ impl Engine {
                 side: self.string(call!(self, Game_getTeamSide(team))),
                 start_pos: starts.iter().find(|(t, _, _)| *t == team).map(|(_, x, z)| Vec3 { x: *x, y: 0.0, z: *z }),
                 color: self.shown_color(team, colors.iter().find(|(t, _)| *t == team).map(|(_, c)| *c)),
+                income_multiplier: unsafe { (*self.callback).Game_getTeamIncomeMultiplier }.is_some().then(|| call!(self, Game_getTeamIncomeMultiplier(team))),
                 controller: if !scripted_teams.is_empty() && !scripted_teams.contains(&team) {
                     Controller::Gaia
                 } else {

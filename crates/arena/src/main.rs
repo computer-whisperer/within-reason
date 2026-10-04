@@ -357,7 +357,6 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         .envs(options.commander.as_ref().map(|model| ("WITHIN_REASON_COMMANDER", model)))
         .envs(options.commander_effort.as_ref().map(|effort| ("WITHIN_REASON_COMMANDER_EFFORT", effort)))
         .envs(options.objective.as_ref().map(|text| ("WITHIN_REASON_OBJECTIVE", text)))
-        .envs((options.our_bonus != 0 || options.enemy_bonus != 0).then(|| ("WITHIN_REASON_BONUS", format!("{},{}", options.our_bonus, options.enemy_bonus))))
         // A player game is played as a live one unless told otherwise: its orders land as late as it thought.
         .envs(options.think_penalty.as_deref().or(options.player.then_some("1")).map(|penalty| ("WITHIN_REASON_THINK_PENALTY", penalty.to_string())))
         // The user, 2026-09-27: a cap on the penalty keeps the arena stable while the providers' speed fluctuates.

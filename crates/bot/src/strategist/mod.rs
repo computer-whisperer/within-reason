@@ -111,16 +111,55 @@ fn objective() -> String {
     }
 }
 
-/// The lobby's income bonus on this game's seats (`arena --our-bonus`, `--enemy-bonus`, as `WITHIN_REASON_BONUS=ours,theirs`
-/// in percent), said in the role text: the engine scales the income and nothing in the report shows the factor.
-fn bonus() -> String {
-    let Ok(text) = std::env::var("WITHIN_REASON_BONUS") else { return String::new() };
-    let Some((ours, theirs)) = text.split_once(',').and_then(|(a, b)| Some((a.trim().parse::<i32>().ok()?, b.trim().parse::<i32>().ok()?))) else { return String::new() };
-    let said = |who: &str, percent: i32| match percent {
-        0 => format!("{who} receive the income their buildings make, unchanged"),
-        p => format!("{who} receive {} % of the metal and energy their buildings make (a bonus of {p:+} %)", 100 + p),
+/// This game's bonus paragraph, written once from the first seat's hello (`note_bonuses`).
+static BONUS: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+
+/// Reads the lobby's income bonus of every seat from the hello (the engine's own figure, so a lobby game and an
+/// arena game with `--our-bonus`/`--enemy-bonus` are told alike) and writes the paragraph the role texts carry.
+/// The engine scales the income and nothing in the report shows the factor, and every game the brief was learnt
+/// from was played without one. No paragraph when no seat has a bonus, or the shim does not report it.
+pub fn note_bonuses(hello: &bot_protocol::Hello) {
+    BONUS.get_or_init(|| {
+        let percent = |ours: bool| -> Vec<(i32, i32)> {
+            hello.teams.iter()
+                .filter(|t| t.controller != bot_protocol::Controller::Gaia && (t.ally_team == hello.ally_team) == ours)
+                .filter_map(|t| Some((t.team, ((t.income_multiplier? - 1.0) * 100.0).round() as i32)))
+                .collect()
+        };
+        let (ours, theirs) = (percent(true), percent(false));
+        if ours.iter().chain(&theirs).all(|(_, p)| *p == 0) {
+            return String::new();
+        }
+        bonus_text(&ours, &theirs)
+    });
+}
+
+/// The paragraph for seats given as (team, bonus in percent), ours and the opponent's.
+fn bonus_text(ours: &[(i32, i32)], theirs: &[(i32, i32)]) -> String {
+    let one = |percent: i32| match percent {
+        0 => "no bonus (100 % of what its buildings make)".to_string(),
+        p => format!("a bonus of {p:+} % ({} % of what its buildings make)", 100 + p),
     };
-    format!("\n\n**This game's handicap, set in the lobby:** {}; {}. An opponent's economy read from the extractors seen is scaled by its figure.\n", said("our seats", ours), said("the opponent's seats", theirs))
+    // One figure for a side when its seats agree, else each seat's own.
+    let uniform = |seats: &[(i32, i32)]| seats.first().map(|(_, p)| *p).filter(|p| seats.iter().all(|(_, q)| q == p));
+    let said = |who: &str, seats: &[(i32, i32)]| match uniform(seats) {
+        Some(p) => format!("{who}: {}", one(p)),
+        None => format!("{who}: {}", seats.iter().map(|(team, p)| format!("team {team} {}", one(*p))).collect::<Vec<_>>().join(", ")),
+    };
+    let compared = match (uniform(ours), uniform(theirs)) {
+        (Some(o), Some(t)) if o == t => format!("The two sides are even with each other, and both run at {} % of the pace the brief describes: the same extractors pay for {} % of the plants, builders and soldiers by each clock.", 100 + o, 100 + o),
+        (Some(0), Some(t)) => format!("We play at the brief's pace; the opponent's income is {} % of what the same buildings gave in those games, so an economy read from the extractors seen is scaled by that, and his army and his tier 2 come {} than the brief's clocks say.", 100 + t, if t > 0 { "sooner" } else { "later" }),
+        (Some(o), Some(t)) => format!("Our income is {} % of what the brief's games had from the same buildings and the opponent's is {} %, so an economy read from the extractors seen is scaled by that.", 100 + o, 100 + t),
+        _ => "An economy read from the extractors seen is scaled by that seat's figure.".to_string(),
+    };
+    format!(
+        "\n\n**This game's bonus, set in the lobby.** A bonus multiplies all the metal and energy a seat's units make: extractors, solars, wind, converters and the commander's own income. It does not change what is reclaimed, what anything costs, or how fast builders build. In this game {}; {}. Every game in the brief (the reference tables, the timelines, the cases, the players' advice) was played with no bonus on either side: its clocks, counts and incomes are those of a game at +0. {compared} The report's income and bank figures are the real ones, after the bonus.\n",
+        said("our seats", ours), said("the opponent's seats", theirs)
+    )
+}
+
+fn bonus() -> String {
+    BONUS.get().cloned().unwrap_or_default()
 }
 
 pub struct Strategist {
@@ -664,6 +703,18 @@ What is known now: the map, the seats and our start box. What is not: where insi
 
 #[cfg(test)]
 mod tests {
+    /// The bonus paragraph says each side's figure and how the game compares with the brief's games at +0.
+    #[test]
+    fn the_bonus_paragraph_compares_the_game_with_the_brief() {
+        let even = super::bonus_text(&[(0, 50)], &[(1, 50)]);
+        assert!(even.contains("our seats: a bonus of +50 % (150 % of what its buildings make)"));
+        assert!(even.contains("both run at 150 % of the pace the brief describes"));
+        let his = super::bonus_text(&[(0, 0)], &[(1, -30), (2, -30)]);
+        assert!(his.contains("our seats: no bonus") && his.contains("the opponent's income is 70 %") && his.contains("later than the brief"));
+        let mixed = super::bonus_text(&[(0, 0), (1, 20)], &[(2, 0)]);
+        assert!(mixed.contains("team 1 a bonus of +20 %"));
+    }
+
     #[test]
     fn the_role_text_keeps_the_passages_of_its_brief() {
         let text = "a <!--brief:standard-->old<!--/brief--><!--brief:experience-->new<!--/brief--> b";

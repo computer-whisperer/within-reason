@@ -78,6 +78,7 @@ fn session(mut stream: UnixStream, player: bool, pianist: bool) -> io::Result<()
     };
     // A player session that fails to start is not fatal: the hands play alone.
     let board = team::TeamBoard::of(&hello);
+    strategist::note_bonuses(&hello);
     let strategist = player
         .then(|| {
             let start = || Strategist::start(&log_dir(), hello.ai_id).map(std::sync::Arc::new);
