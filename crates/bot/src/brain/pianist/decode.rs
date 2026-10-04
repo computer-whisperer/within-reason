@@ -76,7 +76,7 @@ pub(super) fn needed(menus: &[Menu], decode: &Decode, newer: &BTreeSet<String>, 
     let mut out = BTreeMap::new();
     for menu in menus.iter().filter(|m| !newer.contains(&m.name)) {
         let words = what(&menu.name);
-        for read in menu.moves.iter().flat_map(|m| &m.reads) {
+        for read in menu.moves.iter().filter(|m| !m.far).flat_map(|m| &m.reads) {
             let k = key(&menu.name, read);
             if !decode.reads.contains_key(&k) && !out.contains_key(&k) {
                 out.insert(k, question(&menu.name, &words, read));
@@ -102,7 +102,7 @@ pub(super) fn fuse(menus: &mut [Menu], decode: &Decode, newer: &BTreeSet<String>
     let (mut skipped, mut audited) = (0, 0);
     for menu in menus.iter_mut().filter(|m| !newer.contains(&m.name)) {
         let name = menu.name.clone();
-        for m in menu.moves.iter_mut().skip(1) {
+        for m in menu.moves.iter_mut().skip(1).filter(|m| !m.far) {
             let reading = |read: &Read| decode.reads.get(&key(&name, read)).copied();
             if m.detachment {
                 // The mark, never a fuse: the detachment itself stays a question.

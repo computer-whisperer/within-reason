@@ -9,6 +9,8 @@
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
+use bot_protocol::{UnitDefId, UnitId};
+
 use jev::{Answer, Question};
 
 use super::super::FRAMES_PER_SECOND;
@@ -25,8 +27,8 @@ pub(super) fn split_audit_share() -> f64 {
     *SHARE.get_or_init(|| std::env::var("WITHIN_REASON_SPLIT_AUDIT").ok().and_then(|v| v.parse().ok()).unwrap_or(AUDIT_SHARE))
 }
 /// The layers of the design note, in its order, and those that exist.
-const KNOWN: [&str; 10] = ["news", "same", "fuse", "openers", "split", "tick", "places", "again", "one", "local"];
-const BUILT: [&str; 8] = ["news", "same", "fuse", "openers", "split", "tick", "places", "again"];
+const KNOWN: [&str; 11] = ["news", "same", "fuse", "openers", "split", "tick", "places", "again", "near", "one", "local"];
+const BUILT: [&str; 9] = ["news", "same", "fuse", "openers", "split", "tick", "places", "again", "near"];
 /// The `tick` layer: a gate that no event calls for waits until this long after the last one.
 pub(super) const TICK: i32 = 2 * FRAMES_PER_SECOND;
 /// How old an answer may be to stand for an actor asked again only because something of its opened (the `again`
@@ -82,12 +84,15 @@ pub(crate) struct Layers {
     /// An actor asked again only because a place or an opener of its opened is asked what is new alone: its
     /// questions answered under `AGAIN` ago are not sent again and those answers stand.
     pub again: bool,
+    /// A code decision (H-HANDS-NEAR-BUILDER, the roster in `docs/code-decisions.md`): a builder is offered a
+    /// metal spot only while fewer than `NEAR` free builders of its own type reach the spot sooner.
+    pub near: bool,
 }
 
 impl Layers {
     pub(super) fn parse(value: Option<&str>) -> Result<Layers, String> {
-        let Some(value) = value.map(str::trim).filter(|v| !v.is_empty()) else { return Ok(Layers { news: true, same: false, fuse: false, openers: false, split: false, tick: false, places: false, again: false }) };
-        let mut layers = Layers { news: false, same: false, fuse: false, openers: false, split: false, tick: false, places: false, again: false };
+        let Some(value) = value.map(str::trim).filter(|v| !v.is_empty()) else { return Ok(Layers { news: true, same: false, fuse: false, openers: false, split: false, tick: false, places: false, again: false, near: false }) };
+        let mut layers = Layers { news: false, same: false, fuse: false, openers: false, split: false, tick: false, places: false, again: false, near: false };
         for name in value.split(',').map(str::trim).filter(|n| !n.is_empty() && *n != "none") {
             match name {
                 "news" => layers.news = true,
@@ -98,6 +103,7 @@ impl Layers {
                 "tick" => layers.tick = true,
                 "places" => layers.places = true,
                 "again" => layers.again = true,
+                "near" => layers.near = true,
                 _ if KNOWN.contains(&name) => return Err(format!("the hands' layer `{name}` is not built yet (built: {})", BUILT.join(", "))),
                 _ => return Err(format!("`{name}` is not a layer of the hands (the layers: {})", KNOWN.join(", "))),
             }
@@ -111,7 +117,7 @@ impl Layers {
 
     /// The layers that are on, for the log's header.
     pub(super) fn names(&self) -> Vec<&'static str> {
-        [(self.news, "news"), (self.same, "same"), (self.fuse, "fuse"), (self.openers, "openers"), (self.split, "split"), (self.tick, "tick"), (self.places, "places"), (self.again, "again")].into_iter().filter(|(on, _)| *on).map(|(_, name)| name).collect()
+        [(self.news, "news"), (self.same, "same"), (self.fuse, "fuse"), (self.openers, "openers"), (self.split, "split"), (self.tick, "tick"), (self.places, "places"), (self.again, "again"), (self.near, "near")].into_iter().filter(|(on, _)| *on).map(|(_, name)| name).collect()
     }
 }
 
@@ -379,6 +385,63 @@ pub(super) fn remember(said: &mut HashMap<String, Said>, questions: &BTreeMap<St
     }
 }
 
+/// How many free builders of its own type may reach a spot sooner than a builder that is still offered it.
+pub(super) const NEAR: usize = 2;
+
+/// A builder as the `near` layer needs it: its unit type, whether the packet names it, and its walking seconds to
+/// a metal spot by its own route.
+pub(super) struct Walks<'a> {
+    pub kind: &'a dyn Fn(UnitId) -> Option<UnitDefId>,
+    pub named: &'a dyn Fn(&str) -> bool,
+    pub seconds: &'a dyn Fn(UnitId, usize) -> f32,
+}
+
+/// The `near` layer (H-HANDS-NEAR-BUILDER), a decision made by code and not by Jev (the user, 2026-10-04: "this is
+/// a code decision heuristic that I want to try ... jev's own ability to filter for that is going to be weak"): a
+/// builder's move at a metal spot (a build there, a walk there) is shut while `NEAR` or more free builders of its
+/// own unit type reach the spot sooner by their own routes. Free is idle or helping; a builder on a list has no
+/// menu and is not counted. Not shut: the moves of a builder the packet names (the player spoke to it), of one
+/// with a party beside it (its walks are its ways out), and moves at named places and at parties. A shut move is
+/// not asked, not read by the decode and not picked; a share of `AUDIT_SHARE` is asked anyway, a fault being one
+/// rated at the flag or over. In three games the pick sent a builder past two or more nearer free ones of its
+/// type in 40 to 60% of its builder moves at a spot, the one sent 1.7 to 2.3 times as far
+/// (K-jev-sends-a-far-builder-past-nearer-free-ones). Returns the moves shut and the moves audited.
+pub(super) fn near(menus: &mut [Menu], walks: &Walks, draw: &mut dyn FnMut() -> f64) -> (usize, usize) {
+    let spot_of = |m: &super::menu::Move| m.party.is_none().then(|| m.place()).flatten().and_then(|p| p.strip_prefix("spot_").and_then(|n| n.parse::<usize>().ok()));
+    let free: Vec<(UnitId, UnitDefId)> = menus
+        .iter()
+        .filter(|m| m.idle || m.course == "help")
+        .filter_map(|m| if let Kind::Builder(id) = m.kind { (walks.kind)(id).map(|def| (id, def)) } else { None })
+        .collect();
+    let (mut skipped, mut audited) = (0, 0);
+    let mut sooner: HashMap<(UnitId, usize), bool> = HashMap::new();
+    for menu in menus.iter_mut() {
+        let Kind::Builder(id) = menu.kind else { continue };
+        let Some(def) = (walks.kind)(id) else { continue };
+        if menu.near_party.is_some() || (walks.named)(&menu.name) {
+            continue;
+        }
+        for m in menu.moves.iter_mut().skip(1) {
+            let Some(spot) = spot_of(m) else { continue };
+            let far = *sooner.entry((id, spot)).or_insert_with(|| {
+                let mine = (walks.seconds)(id, spot);
+                free.iter().filter(|(other, kind)| *other != id && *kind == def && (walks.seconds)(*other, spot) < mine).count() >= NEAR
+            });
+            if far {
+                m.far = true;
+                m.fused = true;
+                if draw() < AUDIT_SHARE {
+                    m.audit = true;
+                    audited += 1;
+                } else {
+                    skipped += 1;
+                }
+            }
+        }
+    }
+    (skipped, audited)
+}
+
 /// What the picture looks like to the gate: the parties, and every actor's course by kind, with whether an actor
 /// aimed at a party has it in reach. A change asks; the same picture does not (the gate then goes on events and on
 /// the actors' own re-asks, `mod.rs`).
@@ -397,12 +460,13 @@ mod tests {
 
     #[test]
     fn the_layers_are_named_and_an_unbuilt_one_stops_the_start() {
-        let none = Layers { news: false, same: false, fuse: false, openers: false, split: false, tick: false, places: false, again: false };
+        let none = Layers { news: false, same: false, fuse: false, openers: false, split: false, tick: false, places: false, again: false, near: false };
         assert_eq!(Layers::parse(None), Ok(Layers { news: true, ..none.clone() }));
         assert_eq!(Layers::parse(Some("news")), Ok(Layers { news: true, ..none.clone() }));
         assert_eq!(Layers::parse(Some("none")), Ok(none.clone()));
-        assert_eq!(Layers::parse(Some("news, same,fuse,openers,tick")), Ok(Layers { news: true, same: true, fuse: true, openers: true, split: false, tick: true, places: false, again: false }));
+        assert_eq!(Layers::parse(Some("news, same,fuse,openers,tick")), Ok(Layers { news: true, same: true, fuse: true, openers: true, split: false, tick: true, places: false, again: false, near: false }));
         assert_eq!(Layers::parse(Some("again")), Ok(Layers { again: true, ..none.clone() }));
+        assert_eq!(Layers::parse(Some("near")), Ok(Layers { near: true, ..none.clone() }));
         assert_eq!(Layers::parse(Some("places")), Ok(Layers { places: true, ..none.clone() }));
         assert_eq!(Layers::parse(Some("split")), Ok(Layers { split: true, ..none.clone() }));
         assert!(Layers::parse(Some("news,one")).unwrap_err().contains("not built yet"));
@@ -461,6 +525,34 @@ mod tests {
         assert!(place_open(None, 0.3, 330) && !place_open(None, 0.25, 330));
         assert!(place_open(Some(&was(true, 300)), 0.25, 330) && !place_open(Some(&was(true, 300)), 0.15, 330));
         assert!(!place_open(Some(&was(false, 300)), 0.25, 330) && !place_open(Some(&was(true, 330 - RE_ASK)), 0.25, 330));
+    }
+
+    /// The `near` layer: a spot is offered to the two free builders of a type that reach it soonest, and to any
+    /// builder with fewer than two free ones nearer; a named builder, one with a party beside it, another type and
+    /// a move at a named place are left alone.
+    #[test]
+    fn a_spot_is_offered_to_the_nearest_free_builders_of_a_type() {
+        let builder = |id: i32, idle: bool| menu(&format!("constructor_{id}"), Kind::Builder(UnitId(id)), idle, vec![mv("build_armmex_spot_4", Order::Build(bot_protocol::UnitDefId(7), super::super::menu::Site::Spot(4)), None), mv("go_spot_4", Order::Go("spot_4".into()), None), mv("go_south_yard", Order::Go("south_yard".into()), None), mv("attack_party_1", Order::Attack("party_1".into()), Some("party_1"))]);
+        // Seconds to spot_4 are the builder's id; 9 is of another type; 5 is busy (walking), the rest free.
+        let kind = |id: UnitId| Some(bot_protocol::UnitDefId(if id.0 == 9 { 2 } else { 1 }));
+        let seconds = |id: UnitId, _: usize| id.0 as f32;
+        let shut = |named: &dyn Fn(&str) -> bool, party: bool, draw: f64| {
+            let mut menus = vec![builder(1, true), builder(2, true), builder(3, true), builder(5, false), builder(9, true)];
+            if party {
+                menus[3].near_party = Some("party_1".into());
+            }
+            let counts = near(&mut menus, &Walks { kind: &kind, named, seconds: &seconds }, &mut || draw);
+            (menus.iter().map(|m| m.moves.iter().filter(|mv| mv.far).map(|mv| mv.key.clone()).collect::<Vec<_>>()).collect::<Vec<_>>(), counts, menus)
+        };
+        let both = vec!["build_armmex_spot_4".to_string(), "go_spot_4".to_string()];
+        let (far, counts, menus) = shut(&|_| false, false, 0.5);
+        assert_eq!(far, [vec![], vec![], both.clone(), both.clone(), vec![]], "the third free one and the busy one behind them are shut; the other type is not");
+        assert_eq!(counts, (4, 0));
+        assert!(menus[2].moves[1].fused && !menus[2].moves[1].playable() && !menus[2].moves[3].far);
+        assert_eq!(shut(&|name| name == "constructor_3", false, 0.5).0[2], Vec::<String>::new(), "a builder the packet names keeps its spots");
+        assert_eq!(shut(&|_| false, true, 0.5).0[3], Vec::<String>::new(), "a builder with a party beside it keeps its ways out");
+        let (_, counts, menus) = shut(&|_| false, false, 0.001);
+        assert!(counts == (0, 4) && menus[2].moves[1].audit && menus[2].moves[1].asked() && !menus[2].moves[1].playable());
     }
 
     /// The `same` layer: a noul asked again in the same words within the re-ask is not sent and its last answer

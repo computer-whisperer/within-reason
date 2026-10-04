@@ -972,6 +972,21 @@ impl Brain {
             pianist.header_logged = true;
             pianist.log_header(self.world.hello.ai_id, &rules);
         }
+        // The `near` layer (a code decision, H-HANDS-NEAR-BUILDER): a spot is offered to the builders of a type
+        // that reach it soonest.
+        let (far, far_audited) = if self.pianist.as_ref().is_some_and(|p| p.layers.near) {
+            let instructions = picture.state["instructions"].as_str().unwrap_or_default();
+            let own = &tick.snapshot.own_units;
+            let unit = |id: UnitId| own.iter().find(|u| u.id == id);
+            let walks = layers::Walks {
+                kind: &|id| unit(id).map(|u| u.def),
+                named: &|name| diet::names(instructions, name),
+                seconds: &|id, spot| unit(id).map_or(f32::INFINITY, |u| self.seconds_to_spot(u.def, spot, u.pos)),
+            };
+            layers::near(&mut menus, &walks, &mut compose::draw)
+        } else {
+            (0, 0)
+        };
         // The `fuse` layer: what the packet clearly does not give an actor is not asked.
         let (fused, fuse_audited) = if self.pianist.as_ref().is_some_and(|p| p.layers.fuse && p.client.is_some()) { self.decode_and_fuse(tick, picture, &mut menus) } else { (0, 0) };
         // The `openers` layer: a move whose openers said no at the last gate waits for one to open.
@@ -1046,7 +1061,7 @@ impl Brain {
         if !closed.is_empty() {
             line["closed"] = json!(closed);
         }
-        line["layers"] = json!({ "news": { "on": pianist.layers.news, "skipped": skipped, "audited": audited }, "same": { "on": pianist.layers.same, "skipped": same.stand.len() - same.again - same.audited.values().filter(|s| s.layer == "same").count(), "audited": same.audited.values().filter(|s| s.layer == "same").count() }, "again": { "on": pianist.layers.again, "skipped": same.again - same.audited.values().filter(|s| s.layer == "again").count(), "audited": same.audited.values().filter(|s| s.layer == "again").count() }, "fuse": { "on": pianist.layers.fuse, "skipped": fused, "audited": fuse_audited }, "openers": { "on": pianist.layers.openers, "skipped": held, "audited": held_audited }, "places": { "on": pianist.layers.places, "skipped": blanked, "audited": blanked_audited } });
+        line["layers"] = json!({ "news": { "on": pianist.layers.news, "skipped": skipped, "audited": audited }, "same": { "on": pianist.layers.same, "skipped": same.stand.len() - same.again - same.audited.values().filter(|s| s.layer == "same").count(), "audited": same.audited.values().filter(|s| s.layer == "same").count() }, "again": { "on": pianist.layers.again, "skipped": same.again - same.audited.values().filter(|s| s.layer == "again").count(), "audited": same.audited.values().filter(|s| s.layer == "again").count() }, "fuse": { "on": pianist.layers.fuse, "skipped": fused, "audited": fuse_audited }, "openers": { "on": pianist.layers.openers, "skipped": held, "audited": held_audited }, "places": { "on": pianist.layers.places, "skipped": blanked, "audited": blanked_audited }, "near": { "on": pianist.layers.near, "skipped": far, "audited": far_audited } });
         line["menus"] = compose::log_menus(&menus);
         line["gate"] = json!(questions.iter().map(|(id, _)| id.clone()).collect::<Vec<_>>());
         if !events.is_empty() {
@@ -1187,7 +1202,12 @@ impl Brain {
         for m in &menus {
             for mv in m.moves.iter().filter(|mv| mv.audit) {
                 let id = m.id(mv);
-                if mv.held {
+                if mv.far {
+                    // A move the `near` layer shut, asked anyway: a fault is one rated at the flag or over.
+                    if let Some(p) = noul(&id) {
+                        audits.push(json!({ "t": "audit", "f": tick.frame, "layer": "near", "id": id, "assumed": "two free builders of its type are nearer", "fresh": p, "fault": p >= compose::FLAG }));
+                    }
+                } else if mv.held {
                     // A held move asked anyway: a fault is one that would have gone to the pick this second.
                     let opener = [mv.party.as_ref().map(|p| format!("{p}.answer")), Some(format!("{}.change", m.name))].into_iter().flatten().filter_map(|k| noul(&k)).fold(0.0, f64::max);
                     if let Some(p) = noul(&id) {

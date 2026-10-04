@@ -132,6 +132,9 @@ pub(crate) struct Move {
     /// Its place's question said no at the last gate (the `places` layer): not asked this gate, and asked the
     /// second after the place opens.
     pub blanked: bool,
+    /// Shut by the `near` layer (H-HANDS-NEAR-BUILDER): two free builders of its type reach the spot sooner. Set
+    /// with `fused`: the move is not asked, not read by the decode and not picked.
+    pub far: bool,
     /// Fused off, held or blanked, and asked anyway for the layer's audit: the answer is logged and not played.
     pub audit: bool,
     /// The forbidden mark as the decode has it for a detachment: on or off without asking each second; `None`
@@ -156,7 +159,7 @@ pub(crate) enum Read {
 
 impl Move {
     pub(super) fn new(key: String, order: Order, words: String, said: String, party: Option<String>, detachment: bool) -> Move {
-        Move { key, order, words, said, party, detachment, reads: Vec::new(), fused: false, held: false, blanked: false, audit: false, marked: None }
+        Move { key, order, words, said, party, detachment, reads: Vec::new(), fused: false, far: false, held: false, blanked: false, audit: false, marked: None }
     }
 
     /// Whether the move's question goes out when its menu's own moves are asked.
