@@ -47,6 +47,26 @@ macro_rules! call {
     };
 }
 
+impl Engine {
+    /// The colour a team is drawn in on the machine this AI runs on (the host's): the engine's own, which the
+    /// game's AutoColorPicker gadget sets over the lobby's `rgbcolor` (`luarules/gadgets/game_autocolors.lua`:
+    /// blues and greens for the first ally team, reds and yellows for the second, whatever the lobby said). The
+    /// user, human-22: the colours the player names do not match the ones in the game. Falls back to the
+    /// script's when the engine has none. A client with "simple team colors" on sees its own three colours, which
+    /// nothing here can know.
+    fn shown_color(&self, team: i32, scripted: Option<[f32; 3]>) -> Option<[f32; 3]> {
+        let mut rgb = [0i16; 3];
+        if unsafe { (*self.callback).Game_getTeamColor }.is_some() {
+            call!(self, Game_getTeamColor(team, rgb.as_mut_ptr()));
+        }
+        let shown = rgb.iter().any(|c| *c != 0).then(|| rgb.map(|c| (c as f32 / 255.0).clamp(0.0, 1.0)));
+        if shown != scripted {
+            eprintln!("[shim] team {team} colour: the script's {scripted:?}, the engine's {shown:?}");
+        }
+        shown.or(scripted)
+    }
+}
+
 impl Spawner {
     /// A finished unit of type `def` at `at` for this AI's team; `Err` carries the engine's result code. Cheat
     /// access is on for this one command only, as in [`Engine::enemy_census`].
@@ -192,7 +212,7 @@ impl Engine {
                 ally_team: call!(self, Game_getTeamAllyTeam(team)),
                 side: self.string(call!(self, Game_getTeamSide(team))),
                 start_pos: starts.iter().find(|(t, _, _)| *t == team).map(|(_, x, z)| Vec3 { x: *x, y: 0.0, z: *z }),
-                color: colors.iter().find(|(t, _)| *t == team).map(|(_, c)| *c),
+                color: self.shown_color(team, colors.iter().find(|(t, _)| *t == team).map(|(_, c)| *c)),
                 controller: if !scripted_teams.is_empty() && !scripted_teams.contains(&team) {
                     Controller::Gaia
                 } else {
