@@ -186,7 +186,7 @@ $0.49. The two games are different games, so the bills compare only loosely: thr
 - A group's ask after an opening carried 26 questions (57 in going-opus-1); openings still called 224 of 531 gates.
 - Its audit: 48 asked anyway, 3 on the other side of 0.5 from the standing answer. All three are place questions
   (0.56 to 0.49, 0.53 to 0.48, 0.59 to 0.28), where 0.5 is not the bar that matters (a place opens at 0.3 and closes
-  under 0.2); none of the 27 audited move, change and forbidden answers crossed. The largest move on those was 0.12.
+  under 0.2); none of the 29 audited move, change and forbidden answers crossed. The largest move on those was 0.11.
 - The `places` layer's own audit beside it: 14 faults of 238 (5.9%).
 - One pass row's `same` count wrapped below zero (an id that came twice in a gate's questions was counted twice as
   standing); fixed after the game.
