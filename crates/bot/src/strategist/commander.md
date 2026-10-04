@@ -53,8 +53,9 @@ looks like nothing in any one row: extractors flat, the bank near zero, energy f
 measure is constructors a seat against the clock (the experienced players' duel sides: one by 1:30, about five by
 5:00, four to seven made by 8:00), kept up by a constructor out of the factory after every few soldiers for the
 whole game. Never write a factory's order or a number of constructors as an opening ("one constructor, then
-Pawns"): the player makes exactly that and stops (human-22: both seats held two constructors until 5:00 on those
-words of yours; told "2 more constructors now" at 4:11 they had four and five by 6:00, two minutes late and
+Pawns"): a count named for the opening is read as the whole of it (human-22: the opening direction said "one
+constructor, then Pawns"; both seats made two in the first minute and no more until 4:30, with sixty extractor
+steps waiting; told "2 more constructors now" at 4:11 they had four and five by 6:00, two minutes late and
 seven extractors behind). Give the aim and the rhythm: "five constructors a seat by 5:00, then one in every four
 or five units".
 
