@@ -175,3 +175,18 @@ A seat's bill is groups times (places plus parties), plus builders times spots i
 times the requests. A team seat sees more parties and more places than a duel seat and there are eight of them.
 The cuts that remove a product (2 and 5 above, and the place rank) matter more there than the ones that trim a
 constant.
+
+## 9. The `again` layer in a game (again-opus-1)
+
+The same launch as going-opus-1 with `again` added to the layers. Won at 14:53 (going-opus-1: 20:19), 11.6M tokens,
+$0.49. The two games are different games, so the bills compare only loosely: through 14:53 going-opus-1 had spent
+18.3M ($0.77).
+
+- `again` let 2,959 answers stand, 7.7% of the 38,442 questions the gate would otherwise have sent.
+- A group's ask after an opening carried 26 questions (57 in going-opus-1); openings still called 224 of 531 gates.
+- Its audit: 48 asked anyway, 3 on the other side of 0.5 from the standing answer. All three are place questions
+  (0.56 to 0.49, 0.53 to 0.48, 0.59 to 0.28), where 0.5 is not the bar that matters (a place opens at 0.3 and closes
+  under 0.2); none of the 27 audited move, change and forbidden answers crossed. The largest move on those was 0.12.
+- The `places` layer's own audit beside it: 14 faults of 238 (5.9%).
+- One pass row's `same` count wrapped below zero (an id that came twice in a gate's questions was counted twice as
+  standing); fixed after the game.

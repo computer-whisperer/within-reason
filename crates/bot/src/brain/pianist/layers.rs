@@ -339,8 +339,9 @@ pub(super) fn same(questions: Vec<(String, Question)>, said: &HashMap<String, Sa
         };
         match (layer, before) {
             (Some(layer), Some(before)) => {
-                out.stand.insert(id.clone(), Answer::Noul { noul: before.noul });
-                out.again += usize::from(layer == "again");
+                // An id can come twice in one gate's questions; it stands once.
+                let first = out.stand.insert(id.clone(), Answer::Noul { noul: before.noul }).is_none();
+                out.again += usize::from(first && layer == "again");
                 if draw() < AUDIT_SHARE {
                     out.audited.insert(id.clone(), Stood { noul: before.noul, layer });
                     out.send.push((id, question));
