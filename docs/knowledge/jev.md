@@ -2034,3 +2034,10 @@ attacks his buildings at his_base now" read 0.47-0.49 on this moment, so the who
 session's scratchpad); the user's question whether a push launched at a timestamp would be followed.
 **Would be wrong if.** Other moments, or a clock condition posed some other way, separate before from after.
 **Used by.** (nothing yet: the joint push's go signal is undecided.)
+
+**Addendum to K-jev-a-clock-condition-in-the-packet-is-not-followed (the same night).** A `signals` section in the
+state does what the clock does not: with the packet "waits there until the signal go_west is given; once go_west
+is given it attacks", the move read 0.19-0.24 under `"go_west": "not yet given (set for 6:00, in 57 s)"` and
+0.44-0.49 under `"given 5 s ago (at 6:00)"` or `"given 95 s ago"`, whether or not the question named `signals`
+among its givens; the same words appended to the packet read 0.36-0.43, and inside the group's own actor entry
+0.30-0.34 (`signal_test.py`). Used by [[H-COMMANDER-SIGNAL-AND-TRANSFER]].

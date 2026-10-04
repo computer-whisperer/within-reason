@@ -1721,6 +1721,14 @@ impl Brain {
             "allies": if allies.is_empty() { json!("no other seat of ours has a group") } else { json!(allies) },
             "recent": pianist.recent(frame),
         });
+        // The signals as they stand: a fact the hands act on where they do not act on a time written in the
+        // packet (K-jev-a-clock-condition-in-the-packet-is-not-followed). Absent when none is set.
+        if let Some(shared) = &self.strategist {
+            let (signals, _) = shared.signals_all(frame);
+            if !signals.is_empty() {
+                state["signals"] = json!(signals);
+            }
+        }
         // H-HANDS-FALL-BACK: whether the player can answer now. Under the think penalty its orders land as long after
         // the turn as it took to decide, and nothing new comes from it meanwhile.
         if let Some(shared) = &self.strategist {

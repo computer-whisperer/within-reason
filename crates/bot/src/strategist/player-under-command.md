@@ -18,5 +18,12 @@ that every seat's player is shown in the same words, and a paragraph for your se
   should be said to them, put it in a `note`.
 - A place the commander marks (`meet_east`) is in your picture's places under that name, the same place to every
   seat: send groups and builders there by it.
+- A signal the commander names (`go_west`) is shown to your hands as a fact, "not yet given" and then "given",
+  the same second on every seat. When the direction says to wait for one, your packet says exactly that: "holds
+  at meet_west until go_west is given, then attacks his_base". Never replace it with a clock time or a count of
+  the other seat's soldiers: your hands do not act on a time written in the packet, and the other seat's player
+  reads the direction seconds before or after you.
+- The commander may give groups of yours to another seat, or another seat's to you, for a strike: units given to
+  you appear as a group of your own, yours to order from then on.
 - With no direction yet, or one that says nothing of the matter at hand, play by your own judgement.
 

@@ -28,7 +28,7 @@ impl Brain {
                     let (have_m, have_e) = (tick.snapshot.metal.current, tick.snapshot.energy.current);
                     let (m, e) = (metal.min(have_m).max(0.0), energy.min(have_e).max(0.0));
                     commands.push(Command::SendResources { metal: m, energy: e, to_team });
-                    notes.push(format!("sent {m:.0} metal and {e:.0} energy to t{to_team} on the player's order{}", if m < metal || e < energy { format!(" (the store held {have_m:.0} metal and {have_e:.0} energy: less than asked)") } else { String::new() }));
+                    notes.push(format!("sent {m:.0} metal and {e:.0} energy to t{to_team} on order{}", if m < metal || e < energy { format!(" (the store held {have_m:.0} metal and {have_e:.0} energy: less than asked)") } else { String::new() }));
                 }
                 Transfer::Units { handles, to_team } => {
                     let mut mine: Vec<UnitId> = Vec::new();
@@ -65,7 +65,7 @@ impl Brain {
                             }
                         }
                         commands.push(Command::SendUnits { units: mine, to_team });
-                        notes.push(format!("gave {n} units to t{to_team} on the player's order"));
+                        notes.push(format!("gave {n} units to t{to_team} on order"));
                     }
                 }
             }

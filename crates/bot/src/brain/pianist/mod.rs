@@ -247,6 +247,8 @@ pub struct Pianist {
     pub(super) places_seen: BTreeSet<String>,
     /// The packet text `packet_frame` was set for, so one change sets it once.
     packet_seen: String,
+    /// The signals given as of the last look: one more given is news to every actor, as a new packet is.
+    signals_given: Vec<String>,
     /// Units each lab has started since its allowance was set, by unit name (`produce` caps, "corck:1").
     pub(super) produced: HashMap<(UnitId, String), usize>,
     /// The allowance each lab (by name) was last seen with; a change restarts its counts.
@@ -613,6 +615,7 @@ impl Pianist {
             alarmed: HashSet::new(),
             places_seen: BTreeSet::new(),
             packet_seen: String::new(),
+            signals_given: Vec::new(),
             produced: HashMap::new(),
             allowed_seen: HashMap::new(),
             places: Vec::new(),
@@ -774,6 +777,10 @@ impl Brain {
                 self.publish_field(tick, kit, &soldiers, side);
             }
             self.publish_cards(tick, &shared);
+            if let Some(side) = shared.side.get() {
+                self.publish_cards(tick, side);
+                self.take_transfers(tick, commands, side);
+            }
             self.take_removals(tick, commands, &shared);
             self.take_transfers(tick, commands, &shared);
         }
@@ -807,6 +814,13 @@ impl Brain {
             let instructions = picture.state["instructions"].as_str().unwrap_or_default();
             if !instructions.is_empty() && instructions != pianist.logged_instructions && instructions != pianist.packet_seen {
                 pianist.packet_seen = instructions.to_string();
+                pianist.packet_frame = tick.frame;
+                pianist.events.insert("packet".to_string());
+            }
+            // A signal given (or taken back) since the last look: what the packet makes wait on it is due now.
+            let given = self.strategist.as_ref().map(|s| s.signals_all(tick.frame).1).unwrap_or_default();
+            if given != pianist.signals_given {
+                pianist.signals_given = given;
                 pianist.packet_frame = tick.frame;
                 pianist.events.insert("packet".to_string());
             }

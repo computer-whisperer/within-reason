@@ -213,6 +213,10 @@ pub(super) fn tool_list() -> Value {
         { "name": "say",
           "description": "Say something in the game's chat, to everyone playing. Chat is yours alone on our side: the players cannot speak or hear. Short lines: the game shows 127 characters a line, the bot prefixes `[WReason] ` (never write it yourself) and splits a longer text. Your lines go out under the name of the person hosting the bot (the map's `people`). When an experienced player offers advice or asks what we are doing, answer, ask what they would do, and put what you take from it into your direction.",
           "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "maxLength": 240 } } } },
+        super::mcp::signal_tool(),
+        { "name": "transfer",
+          "description": "Move metal, energy or units between seats of ours: {\"metal\": 800, \"energy\": 0, \"from\": \"t2\", \"to\": \"t1\"} sends what the receiving seat's store can hold, or {\"units\": [\"group_A_t2\"], \"to\": \"t1\"} gives those units (a group by its name as the report writes it) to that seat: its player and hands take them as a group of their own from their next look, and the seat that gave them no longer has them. For a strike of two seats' bodies that are about to hit one place, giving one body to the other seat puts both under one player and one pair of hands; the giving seat's new units stay its own. Say in your direction what was given and why.",
+          "inputSchema": { "type": "object", "properties": { "metal": { "type": "number" }, "energy": { "type": "number" }, "units": { "type": "array", "items": { "type": "string" } }, "from": { "type": "string" }, "to": { "type": "string" } }, "required": ["to"] } },
         super::mcp::surrender_tool(),
         { "name": "situation",
           "description": "The picture the players' hands read this second, every seat's together: economy, ours, enemy, places by name, every actor with what it is doing. Your report carries a summary; call this to read the whole of it. It is large.",
@@ -247,7 +251,8 @@ pub(super) fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> 
             Ok(format!("your next report comes {} s of game after this one began", wake.max_seconds))
         }),
         "surrender" => Some(super::mcp::surrender(arguments, shared)),
-        "situation" | "overview" | "map" | "units" | "note" | "say" | "mark" => None,
+        "signal" => Some(super::mcp::signal(arguments, shared)),
+        "situation" | "overview" | "map" | "units" | "note" | "say" | "mark" | "transfer" => None,
         other => Some(Err(format!("{other} is not a tool of the commander's: you direct the players in words (`direct`); the units are theirs"))),
     }
 }
@@ -290,6 +295,10 @@ fn report(side: &Shared, first: bool) -> String {
     if !chat.is_empty() {
         lines.push("chat since your last report (people in the game; `say` answers them, and only you hear or speak for our side):".to_string());
         lines.extend(chat);
+    }
+    let (signals, _) = side.signals_all(frame);
+    if !signals.is_empty() {
+        lines.push(format!("your signals: {}", signals.iter().map(|(name, status)| format!("{name}: {status}")).collect::<Vec<_>>().join("; ")));
     }
     let marks = side.marks.lock().unwrap();
     if !marks.is_empty() {
@@ -553,6 +562,21 @@ mod tests {
             assert!(!tool_list().as_array().unwrap().iter().any(|t| t["name"] == tool));
         }
         assert!(call_tool("situation", &json!({}), &side).is_none());
+        // A signal is not yet given until its clock, the same words to every player under the side, and a
+        // player's own signals stand beside the side's.
+        side.publish_briefing(0, Default::default(), Briefing { frame: 9000, ..Briefing::default() });
+        assert!(call_tool("signal", &json!({ "go_west": "6:00", "go_now": "now" }), &side).unwrap().unwrap().contains("go_west will be given at 6:00 (60 s from now)"));
+        assert!(call_tool("signal", &json!({ "Go West": "now" }), &side).unwrap().is_err());
+        let player = Arc::new(Shared::default());
+        let _ = player.side.set(side.clone());
+        player.signals.lock().unwrap().insert("mine".into(), 0);
+        let (before, given) = player.signals_all(10000);
+        assert_eq!(before["go_west"], "not yet given (set for 6:00)");
+        assert_eq!(before["go_now"], "given, at 5:00");
+        assert_eq!(given, ["go_now", "mine"]);
+        assert_eq!(player.signals_all(10800).0["go_west"], "given, at 6:00");
+        call_tool("signal", &json!({ "go_now": null }), &side).unwrap().unwrap();
+        assert!(!player.signals_all(10800).0.contains_key("go_now"));
         // Giving the game up is the commander's, with a reason, and sets the side's flag for every seat.
         assert!(call_tool("surrender", &json!({}), &side).unwrap().is_err());
         assert!(!side.surrender.load(Ordering::Relaxed));

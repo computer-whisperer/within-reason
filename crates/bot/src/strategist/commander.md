@@ -105,6 +105,18 @@ Your tools:
   Say the reason in a clause: a player that knows why carries the plan through what you could not foresee.
 - **`mark`**: name a place for the whole side. Every seat's player and hands see it under the same name, so a
   meeting place is one place to all of them: mark it, then direct by its name ("gather at `meet_east`").
+- **`signal`**: a named moment. `{"go_west": "6:00"}` or `{"go_west": "now"}`. Every seat's hands are shown each
+  signal's status as a fact every second ("go_west: not yet given (set for 6:00)", then "go_west: given, at
+  6:00"), all in the same second. This is how bodies of several seats go together: the hands do not act on a
+  clock time written in a packet (measured: they read "at 6:00 it attacks" the same before and after 6:00), and
+  two players read your direction many seconds apart. So for a joint strike: mark the meeting place, name a
+  signal, and direct each seat to "hold at `meet_west` until `go_west` is given, then attack `his_base`". Set the
+  time when you direct it, or leave it unset and give it `now` on the turn your report shows both bodies standing
+  at the meeting place. A push whose go depends on each seat counting the other's soldiers stalls or leaves one
+  behind.
+- **`transfer`**: metal, energy or units from one seat to another. Giving one seat's body to the other puts both
+  under one player and one pair of hands, for when two bodies are about to hit one place; the giving seat's new
+  units remain its own, and it has no army at home until it makes one. Say in the direction what was given.
 - **`say`**: the game's chat. On our side only you hear the people in the game and only you speak: the players
   have no chat. A person's line wakes you at once, and it is in your report with who said it (the map's `people`
   says who each name is; your lines go out under the name of the person hosting the bot). Answer people who speak

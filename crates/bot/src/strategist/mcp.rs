@@ -196,11 +196,58 @@ fn tool_list() -> Value {
             { "name": "say",
               "description": "Say something in the game's chat, to everyone playing. Short lines: the game shows 127 characters a line, the bot prefixes `[WReason] ` to each (never write it yourself) and splits a longer text into lines that fit. The report shows what people say to you; when an experienced player offers advice or asks what you are doing, answer, and ask them what they would do: their feedback is what this project learns from.",
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "maxLength": 240 } } } },
+            signal_tool(),
             surrender_tool(),
             orders(&["instruct", "queue", "lane", "mark", "produce", "remove", "transfer", "say", "note", "wait"], "your instructions or policy, build lists, footwork settings, marked places, what labs may build, removals, a chat line, a note and when to be woken"),
             wait("A group of ours starts fighting an enemy party.", "Woken when this many soldiers of each named unit type are alive, e.g. {\"armham\": 6}. {} clears it."),
             note,
     ])
+}
+
+/// The `signal` tool, the player's and the commander's alike.
+pub(super) fn signal_tool() -> Value {
+    json!({ "name": "signal",
+        "description": "A named signal: the moment a waiting group goes, given as a fact the hands can see. An object of name to when it is given: \"now\", a game clock (\"6:00\"), or null to forget it. The hands' picture states every signal's status each second (\"go_west: not yet given (set for 6:00)\", then \"go_west: given, at 6:00\"), and they act on that where they do not act on a time written in a packet. So the packet says \"holds at spot_24 until go_west is given, then attacks his_base\", and the signal is set here. Setting a given signal's time again un-gives it. Names are lower-case words with underscores.",
+        "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "string" }, { "type": "null" } ] }, "description": "Signal name to \"now\", a clock such as \"6:00\", or null." } })
+}
+
+/// The `signal` tool's work, on the caller's own state.
+pub(super) fn signal(arguments: &Value, shared: &Shared) -> Result<String, String> {
+    let entries = arguments.as_object().filter(|o| !o.is_empty()).ok_or("signal takes an object: signal name to \"now\", a game clock such as \"6:00\", or null to forget it")?;
+    let frame = shared.briefing().frame;
+    let mut parsed: Vec<(String, Option<i32>)> = Vec::new();
+    for (name, value) in entries {
+        if name.is_empty() || !name.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_') || !name.chars().next().is_some_and(|c| c.is_ascii_lowercase()) {
+            return Err(format!("{name}: a signal's name is lower-case words with underscores"));
+        }
+        let at = match value {
+            Value::Null => None,
+            Value::String(s) if s.trim() == "now" => Some(frame),
+            Value::String(s) => {
+                let (m, sec) = s.trim().split_once(':').ok_or(format!("{name}: \"now\" or a game clock such as \"6:00\""))?;
+                let (m, sec): (i32, i32) = (m.parse().map_err(|_| format!("{name}: {s} is not a clock"))?, sec.parse().map_err(|_| format!("{name}: {s} is not a clock"))?);
+                Some((m * 60 + sec) * 30)
+            }
+            _ => return Err(format!("{name}: \"now\", a game clock such as \"6:00\", or null")),
+        };
+        parsed.push((name.clone(), at));
+    }
+    let clock = |f: i32| format!("{}:{:02}", f / 30 / 60, f / 30 % 60);
+    let mut signals = shared.signals.lock().unwrap();
+    let mut said = Vec::new();
+    for (name, at) in parsed {
+        match at {
+            None => {
+                signals.remove(&name);
+                said.push(format!("{name} forgotten"));
+            }
+            Some(at) => {
+                signals.insert(name.clone(), at);
+                said.push(if at <= frame { format!("{name} is given now ({}): the hands see it from their next look", clock(frame)) } else { format!("{name} will be given at {} ({} s from now); until then the hands read it as not yet given", clock(at), (at - frame) / 30) });
+            }
+        }
+    }
+    Ok(said.join("; "))
 }
 
 /// The `surrender` tool, the player's and the commander's alike.
@@ -567,6 +614,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             }
             Ok(format!("marked: {}; your hands see the place from their next look", said.join("; ")))
         }
+        "signal" => signal(arguments, shared),
         "surrender" => surrender(arguments, shared),
         "say" => {
             let text = arguments["text"].as_str().map(str::trim).filter(|t| !t.is_empty()).ok_or("say needs text")?;
@@ -699,6 +747,9 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
         }
         "transfer" => {
             use super::shared::Transfer;
+            // Under a commander the side's state knows every seat (a player with one seat knows its own alone),
+            // and every seat's brain takes its transfers from there.
+            let shared = shared.side.get().unwrap_or(shared);
             let team_of = |v: &Value| -> Result<i32, String> {
                 let text = v.as_str().ok_or("from and to are seat tags such as \"t2\"")?;
                 text.trim().trim_start_matches('t').parse::<i32>().map_err(|_| format!("{text}: a seat tag is t<team>, as the seats line writes it"))
@@ -883,7 +934,7 @@ mod tests {
     #[test]
     fn the_player_has_its_lever_and_none_of_the_commanders() {
         let player: Vec<String> = tool_list().as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap().to_string()).collect();
-        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "produce", "transfer", "remove", "say", "surrender", "orders", "wait", "note"]);
+        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "produce", "transfer", "remove", "say", "signal", "surrender", "orders", "wait", "note"]);
         for tool in batchable() {
             assert!(player.contains(&tool.to_string()));
         }

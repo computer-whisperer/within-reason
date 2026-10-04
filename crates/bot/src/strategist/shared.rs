@@ -476,6 +476,10 @@ pub struct Shared {
     /// `commander` then means in its tools (human-19: a seat's opening list was written to `commander`, accepted,
     /// and dropped two seconds later for naming nobody; the hands opened with the plant and no extractor).
     pub own_commander: Mutex<Option<String>>,
+    /// Named signals (`signal` tool): the frame each is given at. The time's counterpart of a mark: the hands'
+    /// picture states each one's status as a fact ("not yet given", "given at 6:00"), and a packet waits on the
+    /// name. The commander's are the side's, the same to every seat in the same second.
+    pub signals: Mutex<BTreeMap<String, i32>>,
     /// The `surrender` tool was called (the commander's on the side's state, a player's on its own): every seat
     /// that reads this state gives the game up by self-destructing what it owns.
     pub surrender: std::sync::atomic::AtomicBool,
@@ -510,6 +514,18 @@ pub struct Opening {
 }
 
 impl Shared {
+    /// The signals this player's hands are shown, its own and the side's, each with its status at `frame` in
+    /// words; and the names of those given by then.
+    pub fn signals_all(&self, frame: i32) -> (BTreeMap<String, String>, Vec<String>) {
+        let mut all = self.signals.lock().unwrap().clone();
+        if let Some(side) = self.side.get() {
+            all.extend(side.signals.lock().unwrap().iter().map(|(name, at)| (name.clone(), *at)));
+        }
+        let clock = |f: i32| format!("{}:{:02}", f / 30 / 60, f / 30 % 60);
+        let given = all.iter().filter(|(_, at)| **at <= frame).map(|(name, _)| name.clone()).collect();
+        (all.into_iter().map(|(name, at)| (name, if at <= frame { format!("given, at {}", clock(at)) } else { format!("not yet given (set for {})", clock(at)) })).collect(), given)
+    }
+
     /// A builder's name as the player wrote it, with `commander` read as its one commander unit (`own_commander`).
     pub fn actor_name(&self, name: &str) -> String {
         match (name, self.own_commander.lock().unwrap().as_ref()) {
