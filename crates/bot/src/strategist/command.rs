@@ -250,6 +250,25 @@ pub(super) fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> 
     }
 }
 
+/// A seat's build power on a line: what it has, and how much of it stands in reach of each factory now.
+fn build_power_line(team: i32, power: &super::shared::BuildPower) -> String {
+    let own: f32 = power.factories.iter().map(|f| f.own).fold(0.0, |a, b| a + b);
+    let mut line = format!(
+        "  build power of t{team} (what turns metal into things; a factory builds at its own power plus what helps it): {:.0} in builders that walk ({} of them), {:.0} in {} construction turrets, {own:.0} in the factories themselves",
+        power.mobile.1, power.mobile.0, power.turrets.1, power.turrets.0
+    );
+    for f in &power.factories {
+        line += &format!(
+            "; in reach of {}: {:.0} (itself {:.0}, {} construction turrets {:.0}, {} walking builders {:.0})",
+            f.name, f.own + f.turrets.1 + f.mobile.1, f.own, f.turrets.0, f.turrets.1, f.mobile.0, f.mobile.1
+        );
+    }
+    if !power.factories.is_empty() {
+        line += &format!("; {:.0} of the walking builders' power stands in reach of no factory", power.mobile_away);
+    }
+    line
+}
+
 /// The commander's report: the side as one game, a line a seat, a line a group, what the players wrote, and its own
 /// direction. `first`: with the map.
 fn report(side: &Shared, first: bool) -> String {
@@ -309,6 +328,7 @@ fn report(side: &Shared, first: bool) -> String {
             }
         }
         lines.push(format!("  builders of t{team} (its commander unit and constructors): {builders}, of them {idle} idle and {helping} helping a factory or another builder"));
+        lines.push(build_power_line(*team, &b.build_power));
         lines.extend(side.direction.lock().unwrap().history_lines(*team));
     }
     // What the players wrote since the last report: their notes, and the opening paragraph of each standing packet.

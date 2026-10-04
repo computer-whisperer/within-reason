@@ -32,6 +32,32 @@ pub struct Briefing {
     pub recent_events: Vec<String>,
     /// Our seats in this game, one line each; filled by the merge (`seats.rs`).
     pub seats: Vec<super::seats::SeatLine>,
+    /// This seat's build power and where it stands, for the commander's report.
+    pub build_power: BuildPower,
+}
+
+/// A seat's build power (the sum of its builders' build speeds: what turns banked metal into things), by kind,
+/// and how much of it stands in reach of each factory. The user, during human-22: build power is a resource to
+/// surface to the commander, quantified by how much of it is in reach of each production structure.
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct BuildPower {
+    /// The commander unit and the constructors: how many, their power.
+    pub mobile: (usize, f32),
+    /// Construction turrets.
+    pub turrets: (usize, f32),
+    pub factories: Vec<FactoryPower>,
+    /// Mobile builders' power that stands in reach of no factory (out building, or walking).
+    pub mobile_away: f32,
+}
+
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct FactoryPower {
+    /// The factory's type and unit id (`armvp_13578`; the picture's actor for it ends in the same id).
+    pub name: String,
+    pub own: f32,
+    /// Construction turrets and mobile builders whose build range reaches it now: how many, their power.
+    pub turrets: (usize, f32),
+    pub mobile: (usize, f32),
 }
 
 #[derive(Clone, Debug, Default, Serialize)]

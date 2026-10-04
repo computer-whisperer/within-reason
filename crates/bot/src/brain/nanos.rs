@@ -50,6 +50,33 @@ impl Brain {
     }
 
     /// (turrets within reach of this factory, of them idle) for the picture's factory entry.
+    /// The seat's build power by kind, and what of it stands in reach of each factory now (a builder is in reach
+    /// when its build range covers the factory, with the slack `nanos_on` allows).
+    pub(super) fn build_power(&self, own: &[OwnUnit]) -> crate::strategist::shared::BuildPower {
+        use crate::strategist::shared::{BuildPower, FactoryPower};
+        let power = |u: &OwnUnit| self.world.def(u.def).map_or(0.0, |d| d.build_speed);
+        let reaches = |builder: &OwnUnit, factory: &OwnUnit| builder.pos.dist2d(factory.pos) <= self.world.def(builder.def).map_or(0.0, |d| d.build_distance) + FACTORY_REACH_SLACK;
+        let standing: Vec<&OwnUnit> = own.iter().filter(|u| !u.being_built && power(u) > 0.0).collect();
+        let factories: Vec<&OwnUnit> = standing.iter().copied().filter(|u| self.world.is_factory_def(u.def)).collect();
+        let turrets: Vec<&OwnUnit> = standing.iter().copied().filter(|u| self.is_static_builder(u.def)).collect();
+        let mobile: Vec<&OwnUnit> = standing.iter().copied().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed > 0.0)).collect();
+        let sum = |units: &[&OwnUnit]| (units.len(), units.iter().map(|u| power(u)).fold(0.0, |a, b| a + b));
+        BuildPower {
+            mobile: sum(&mobile),
+            turrets: sum(&turrets),
+            mobile_away: sum(&mobile.iter().copied().filter(|b| !factories.iter().any(|f| reaches(b, f))).collect::<Vec<_>>()).1,
+            factories: factories
+                .iter()
+                .map(|f| FactoryPower {
+                    name: format!("{}_{}", self.world.def(f.def).map_or("factory", |d| d.name.as_str()), f.id.0),
+                    own: power(f),
+                    turrets: sum(&turrets.iter().copied().filter(|b| reaches(b, f)).collect::<Vec<_>>()),
+                    mobile: sum(&mobile.iter().copied().filter(|b| reaches(b, f)).collect::<Vec<_>>()),
+                })
+                .collect(),
+        }
+    }
+
     pub(super) fn nanos_on(&self, factory: &OwnUnit, own: &[OwnUnit]) -> (usize, usize) {
         let mut near = 0;
         let mut idle = 0;

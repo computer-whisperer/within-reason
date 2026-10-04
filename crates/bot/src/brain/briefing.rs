@@ -299,6 +299,7 @@ impl Brain {
         let briefing = Briefing {
             sides,
             seats: Vec::new(),
+            build_power: self.build_power(&snapshot.own_units),
             game_time: clock(tick.frame),
             frame: tick.frame,
             metal: snapshot.metal,
