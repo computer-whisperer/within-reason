@@ -1988,7 +1988,7 @@ then four Blitzes at our base from 4:20 to 4:30; at 4:32 they were out of sight 
 his half (unit 13963), which still carried `party_4` in the registry from long before, took the name; the raiders
 seen again at 4:33 found it taken and became `party_11`. The player's packet written from the 4:27 report said
 "group_B attacks party_4 now"; it landed at 4:43, and at 4:50 the hands played `group_B.attack_party_4` against a
-constructor and three Blitzes at B2 while `party_11` killed the vehicle plant (5:01). Beside it: the packet in
+constructor and three Blitzes at B2 while `party_11` shot the vehicle plant (5:01; it stood, at 72% health, and was destroyed at 14:02: corrected from "killed" after the review of the game). Beside it: the packet in
 force until 4:43 said the body "never comes home ... after lone raiders", the player's turn took 16 s, and the
 commander's direction landing at 5:13 sent the recalled body west again; it fought nowhere.
 **Status.** observed and traced in one game (2026-10-03 night); the registry fixed, unit-tested, unmeasured in play.

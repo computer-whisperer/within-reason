@@ -297,7 +297,7 @@ three or more at our buildings: the nearest group that outweighs it fights it th
 route when the party is dead or gone". It has to stand in the packet beforehand, because your next packet lands
 ten to twenty seconds after you see the raid and until then the hands act on the one they have (human-21: four
 Blitzes came in behind the base at 4:27; the seven Incisors standing 1,500 in front of it were under "never comes
-home for a lone raider", were sent west at 4:42, and the plant died at 5:01 with nothing fighting for it). And name
+home for a lone raider", were sent west at 4:42, and at 5:01 the raiders were shooting the plant with nothing fighting them; three extractors of seven were left a minute later). And name
 the enemy by what it is and where ("the Blitzes at our home extractors"), not by its party number alone: you write
 from a report that is seconds old, and the hands read the name against the picture as it is when they act.
 The raids are standard and expected, so the soldiers that answer them stand across the front before the first one

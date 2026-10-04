@@ -316,7 +316,7 @@ impl PartyRegistry {
     /// and is not among them has left it, and cannot bring the name to another party later. (human-21: `party_4`
     /// was four Blitzes raiding our base at 4:27; the rest of the group they had left stood in his half still
     /// carrying the name, took it when the raiders passed out of sight, and the packet's "attack party_4" sent
-    /// seven Incisors west at 4:50 while the raiders, now `party_11`, killed the plant.)
+    /// seven Incisors west at 4:50 while the raiders, now `party_11`, shot up the base.)
     pub fn record(&mut self, name: &str, ids: &[bot_protocol::UnitId]) {
         self.by_unit.retain(|id, held| held != name || ids.contains(id));
         for id in ids {

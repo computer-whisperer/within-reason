@@ -69,7 +69,7 @@ metal is the limit and more build power buys nothing.
 
 A fight under way is the same. It is over before your words arrive; whether a body stays in it or leaves is the
 player's and its hands'. So is a body the player has just turned to meet a raid in its own base: do not send it
-back out with your next direction (human-21: the player recalled seven Incisors at 5:01 for four Blitzes killing
+back out with your next direction (human-21: the player recalled seven Incisors at 5:01 for four Blitzes shooting
 its plant, the direction landing at 5:13 said "do not bring them home", and the body walked west, east and west
 again and fought nowhere). Say what the army is for once the base is safe. Yours is what the army is for in the next minutes, what it is made of, and what it does
 not walk into: check the reach of what you send against the reach of what it will meet (`units`) before you name
