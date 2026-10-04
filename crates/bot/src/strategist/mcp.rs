@@ -619,11 +619,13 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 if factory && !factories.contains(name) {
                     return Err(format!("{name}: not a factory in the picture ({}); use its name as the report gives it, or \"all\"", if factories.is_empty() { "none named yet".to_string() } else { factories.join(", ") }));
                 }
-                // A list written as a JSON string, as `queue` takes it (models-medium-sonnet5: eight refusals).
+                // A list written as a JSON string, as `queue` takes it (models-medium-sonnet5: eight refusals), and the
+                // object form or a null likewise (human-21 13:57: the object as a string was cut at its commas and
+                // refused as unit names).
                 let unpacked;
                 let value = match value {
                     Value::String(s) => {
-                        unpacked = serde_json::from_str::<Value>(s).ok().filter(Value::is_array).unwrap_or_else(|| Value::Array(s.split(',').map(|u| Value::String(u.trim().to_string())).filter(|u| u != "").collect()));
+                        unpacked = serde_json::from_str::<Value>(s).ok().filter(|v| v.is_array() || v.is_object() || v.is_null()).unwrap_or_else(|| Value::Array(s.split(',').map(|u| Value::String(u.trim().to_string())).filter(|u| u != "").collect()));
                         &unpacked
                     }
                     other => other,
@@ -984,6 +986,16 @@ mod tests {
         assert!(call_tool("mark", &json!({ "x": "Z9" }), &shared).is_err());
         assert!(call_tool("mark", &json!({ "south_gate": null }), &shared).is_ok());
         assert!(!shared.marks.lock().unwrap().contains_key("south_gate"));
+    }
+
+    /// The object form written as a JSON string is the object (human-21 13:57: it was cut at its commas and
+    /// refused as unit names).
+    #[test]
+    fn produce_takes_its_object_form_written_in_a_string() {
+        let shared = Arc::new(Shared::default());
+        shared.hands.lock().unwrap().entry(0).or_default().picture = json!({ "actors": { "lab_7": {} } });
+        call_tool("produce", &json!({ "lab_7": "{\"units\": [\"armpw\"], \"group\": \"new\"}" }), &shared).unwrap();
+        assert_eq!(shared.allowed.lock().unwrap()["lab_7"].units, vec!["armpw".to_string()]);
     }
 
     #[test]
