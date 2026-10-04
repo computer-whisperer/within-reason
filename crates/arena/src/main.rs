@@ -18,6 +18,7 @@
 //!              [--hands-effort lean|normal|full]      (the hands' Jev token diet; default lean, the bulk games' level)
 //!              [--hands-layers a,b|none]   (the hands' savings that are on: news is the default; none is the base version alone)
 //!              [--opponent NAME:VERSION]   (the enemy seats' AI, as installed under the engine's AI/Skirmish; default BARb:stable)
+//!              [--our-bonus N] [--enemy-bonus N]   (the lobby's bonus in percent of income for our seats and the enemy's: -50 halves, +50 adds half; default 0)
 //!              [--opponent-opening any|bots|vehicles]   (pins BARb's first factory by disabling the other; default any)
 //!              [--think-penalty X]   (the player's or commander's orders land X game seconds late per wall second it thought; 1 = as in a live game; default 1 with --player, else 0)
 //!              [--think-cap S]   (the penalty's delay is at most S game seconds a turn, so a slow provider does not decide the game; default 7 with --player, 0 = no cap)
@@ -29,6 +30,8 @@
 //!              [--player-model ID] [--brief standard|experience] [--objective TEXT]   (the session's model instead of the role's usual one, e.g. claude-opus-5)
 //!              [--pianist]      (Jev plays every unit from a prose packet in place of the decision heuristics)
 //!              [--player]       (with --pianist: an Opus player writes the packet; turns hold the game still unless --realtime)
+// The batch's settings are one `json!` object, past the default limit of its macro's recursion.
+#![recursion_limit = "256"]
 
 mod place;
 mod record;
@@ -113,6 +116,9 @@ struct Options {
     opponent_opening: String,
     /// `--opponent NAME:VERSION`: the enemy seats' AI as installed in the engine's `AI/Skirmish` (default `BARb:stable`).
     opponent: String,
+    /// `--our-bonus N`, `--enemy-bonus N`: the lobby's bonus in percent of income, for our seats and the enemy's.
+    our_bonus: i32,
+    enemy_bonus: i32,
     effort: Option<String>,
     /// The hands' token diet: lean (the default here), normal or full (`WITHIN_REASON_HANDS_EFFORT`).
     hands_effort: Option<String>,
@@ -190,7 +196,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("{} {}", opponent_name(&options.opponent), options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief, "players": options.players.as_deref().unwrap_or("one"), "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief, "players": options.players.as_deref().unwrap_or("one"), "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "our_bonus": options.our_bonus, "enemy_bonus": options.enemy_bonus, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 
@@ -265,6 +271,8 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         game: &game,
         map: &options.map,
         opponent: &options.opponent,
+        our_bonus: options.our_bonus,
+        enemy_bonus: options.enemy_bonus,
         opponent_profile: &options.profile,
         // Its first factory decides the kind of game (K-barb-opening-varies); taking the other away pins it.
         opponent_disabled_units: match options.opponent_opening.as_str() {
@@ -349,6 +357,7 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         .envs(options.commander.as_ref().map(|model| ("WITHIN_REASON_COMMANDER", model)))
         .envs(options.commander_effort.as_ref().map(|effort| ("WITHIN_REASON_COMMANDER_EFFORT", effort)))
         .envs(options.objective.as_ref().map(|text| ("WITHIN_REASON_OBJECTIVE", text)))
+        .envs((options.our_bonus != 0 || options.enemy_bonus != 0).then(|| ("WITHIN_REASON_BONUS", format!("{},{}", options.our_bonus, options.enemy_bonus))))
         // A player game is played as a live one unless told otherwise: its orders land as late as it thought.
         .envs(options.think_penalty.as_deref().or(options.player.then_some("1")).map(|penalty| ("WITHIN_REASON_THINK_PENALTY", penalty.to_string())))
         // The user, 2026-09-27: a cap on the penalty keeps the arena stable while the providers' speed fluctuates.
@@ -627,6 +636,8 @@ fn parse_args() -> Options {
         packet: None,
         opponent_opening: "any".into(),
         opponent: "BARb:stable".into(),
+        our_bonus: 0,
+        enemy_bonus: 0,
         effort: None,
         hands_effort: None,
         hands_layers: None,
@@ -709,6 +720,8 @@ fn parse_args() -> Options {
             "--think-cap" => options.think_cap = Some(value()),
             "--turn-limit" => options.turn_limit = Some(value()),
             "--opponent" => options.opponent = value(),
+            "--our-bonus" => options.our_bonus = value().parse().ok().filter(|n| (-100..=1000).contains(n)).unwrap_or_else(|| usage("--our-bonus takes a percent, -100 to 1000")),
+            "--enemy-bonus" => options.enemy_bonus = value().parse().ok().filter(|n| (-100..=1000).contains(n)).unwrap_or_else(|| usage("--enemy-bonus takes a percent, -100 to 1000")),
             "--opponent-opening" => {
                 options.opponent_opening = value();
                 if !["any", "bots", "vehicles"].contains(&options.opponent_opening.as_str()) {
@@ -765,7 +778,7 @@ fn parse_args() -> Options {
 }
 
 fn usage(problem: &str) -> ! {
-    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--player-model ID] [--brief standard|experience] [--objective TEXT] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent NAME:VERSION] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N]");
+    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--player-model ID] [--brief standard|experience] [--objective TEXT] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent NAME:VERSION] [--our-bonus N] [--enemy-bonus N] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N]");
     std::process::exit(2)
 }
 

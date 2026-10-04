@@ -59,14 +59,14 @@ fn system_prompt() -> String {
     let experience = std::env::var("WITHIN_REASON_BRIEF").as_deref() == Ok("experience");
     let brief = if experience { &PLAYER_BRIEF_EXPERIENCE } else { &PLAYER_BRIEF };
     let under_command = if command::model().is_some() { read(&crate::texts::PLAYER_UNDER_COMMAND) } else { String::new() };
-    for_brief(&read(&PLAYER_PROMPT), if experience { "experience" } else { "standard" }) + &under_command + &read(brief) + &objective()
+    for_brief(&read(&PLAYER_PROMPT), if experience { "experience" } else { "standard" }) + &under_command + &read(brief) + &bonus() + &objective()
 }
 
 /// The commander's: its role, then the experience brief whole (the user, 2026-10-03: everything in it always), then
 /// the game's objective.
 fn commander_prompt() -> String {
     use crate::texts::{read, COMMANDER_PROMPT, PLAYER_BRIEF_EXPERIENCE};
-    read(&COMMANDER_PROMPT) + &read(&PLAYER_BRIEF_EXPERIENCE) + &objective()
+    read(&COMMANDER_PROMPT) + &read(&PLAYER_BRIEF_EXPERIENCE) + &bonus() + &objective()
 }
 
 /// The role text for one brief: a passage between `<!--brief:NAME-->` and `<!--/brief-->` is kept for the brief of
@@ -109,6 +109,18 @@ fn objective() -> String {
         }
         _ => String::new(),
     }
+}
+
+/// The lobby's income bonus on this game's seats (`arena --our-bonus`, `--enemy-bonus`, as `WITHIN_REASON_BONUS=ours,theirs`
+/// in percent), said in the role text: the engine scales the income and nothing in the report shows the factor.
+fn bonus() -> String {
+    let Ok(text) = std::env::var("WITHIN_REASON_BONUS") else { return String::new() };
+    let Some((ours, theirs)) = text.split_once(',').and_then(|(a, b)| Some((a.trim().parse::<i32>().ok()?, b.trim().parse::<i32>().ok()?))) else { return String::new() };
+    let said = |who: &str, percent: i32| match percent {
+        0 => format!("{who} receive the income their buildings make, unchanged"),
+        p => format!("{who} receive {} % of the metal and energy their buildings make (a bonus of {p:+} %)", 100 + p),
+    };
+    format!("\n\n**This game's handicap, set in the lobby:** {}; {}. An opponent's economy read from the extractors seen is scaled by its figure.\n", said("our seats", ours), said("the opponent's seats", theirs))
 }
 
 pub struct Strategist {

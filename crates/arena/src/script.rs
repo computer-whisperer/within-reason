@@ -60,6 +60,10 @@ pub struct MatchSetup<'a> {
     /// The enemy seats' AI as the engine knows it, `ShortName:Version` (`BARb:stable`); allied seats are always BARb.
     pub opponent: &'a str,
     pub opponent_profile: &'a str,
+    /// The lobby's bonus for our seats and for the enemy seats, in percent of income (`Handicap` in a team's
+    /// section: +50 adds half again to the metal and energy the team receives, -50 halves it); 0 writes nothing.
+    pub our_bonus: i32,
+    pub enemy_bonus: i32,
     /// BARb's `disabledunits` option (`name+name`), empty for none: how its opening is pinned.
     pub opponent_disabled_units: &'a str,
     pub host_port: u16,
@@ -85,6 +89,7 @@ pub struct MatchSetup<'a> {
 
 struct Seat {
     ai: String,
+    bonus: i32,
     ally_team: usize,
     side: &'static str,
 }
@@ -142,10 +147,10 @@ impl MatchSetup<'_> {
         // Enemy ally teams take the numbers ours leaves free: 1 (or 0), then 2, 3.
         let enemy_ally_team = |nth: usize| if nth == 0 { 1 - us } else { nth + 1 };
         let mut seats: Vec<Seat> = Vec::new();
-        seats.extend((0..self.ours).map(|_| Seat { ai: ours.clone(), ally_team: us, side: self.our_side }));
+        seats.extend((0..self.ours).map(|_| Seat { ai: ours.clone(), bonus: self.our_bonus, ally_team: us, side: self.our_side }));
         // An allied BARb plays the other faction, so nothing of ours may assume an ally's units are our kind.
-        seats.extend((0..self.allies).map(|_| Seat { ai: barb.clone(), ally_team: us, side: other_side }));
-        seats.extend((0..self.enemies).map(|nth| Seat { ai: enemy.clone(), ally_team: enemy_ally_team(if self.free_for_all { nth } else { 0 }), side: other_side }));
+        seats.extend((0..self.allies).map(|_| Seat { ai: barb.clone(), bonus: 0, ally_team: us, side: other_side }));
+        seats.extend((0..self.enemies).map(|nth| Seat { ai: enemy.clone(), bonus: self.enemy_bonus, ally_team: enemy_ally_team(if self.free_for_all { nth } else { 0 }), side: other_side }));
         // Teams in ally-team order, as the 1v1 script always had them (team 0 is ally team 0's).
         seats.sort_by_key(|seat| seat.ally_team);
 
@@ -156,7 +161,8 @@ impl MatchSetup<'_> {
         }
         for (team, seat) in seats.iter().enumerate() {
             let start = self.starts.get(team).map_or(String::new(), |(x, z)| format!(" StartPosX={x:.0}; StartPosZ={z:.0};"));
-            sections += &format!("\t[TEAM{team}] {{ TeamLeader=0; AllyTeam={}; Side={};{start} }}\n", seat.ally_team, seat.side);
+            let bonus = if seat.bonus == 0 { String::new() } else { format!(" Handicap={};", seat.bonus) };
+            sections += &format!("\t[TEAM{team}] {{ TeamLeader=0; AllyTeam={}; Side={};{start}{bonus} }}\n", seat.ally_team, seat.side);
         }
         let rects = self.rects();
         for ally_team in 0..ally_teams {
@@ -201,7 +207,7 @@ mod tests {
 
     fn setup(ours: usize, allies: usize, enemies: usize, free_for_all: bool, we_are_first: bool) -> MatchSetup<'static> {
         MatchSetup {
-            game: "g", map: "m", opponent: "BARb:stable", opponent_profile: "medium", opponent_disabled_units: "", host_port: 1, autohost_port: 2, seed: 3,
+            game: "g", map: "m", opponent: "BARb:stable", opponent_profile: "medium", our_bonus: 0, enemy_bonus: 0, opponent_disabled_units: "", host_port: 1, autohost_port: 2, seed: 3,
             ours, allies, enemies, free_for_all, boxes: Boxes::Corners, we_are_first, swap_corners: false, our_side: "Armada", mirror: false, starts: Vec::new(),
         }
     }
@@ -239,5 +245,16 @@ mod tests {
         assert!(Boxes::Standard.rects("Comet Catcher Remake 1.8", 3).is_none());
         assert!(Boxes::Standard.rects("No Such Map", 2).is_none());
         assert!(Boxes::NorthSouth.rects("m", 3).is_none());
+    }
+
+    /// The bonus is the team section's `Handicap`, on the seats it was set for and on no other.
+    #[test]
+    fn a_bonus_is_written_on_its_side_s_teams_only() {
+        let mut two = setup(1, 0, 2, false, true);
+        assert!(!two.render().contains("Handicap"));
+        two.enemy_bonus = -40;
+        let script = two.render();
+        assert_eq!(script.matches("Handicap=-40;").count(), 2);
+        assert!(script.contains("[TEAM0] { TeamLeader=0; AllyTeam=0; Side=Armada; }"));
     }
 }
