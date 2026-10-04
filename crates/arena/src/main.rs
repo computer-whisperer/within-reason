@@ -3,7 +3,8 @@
 //! the start script, engine log, bot log and replay.
 //!
 //! usage: arena [--matches N] [--parallel N] [--speed N] [--realtime] [--profile easy|medium|hard|hard_aggressive]
-//!              [--map NAME] [--max-minutes N] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out]
+//!              [--map NAME] [--max-minutes N] [--jev-budget DOLLARS]   (a match is called once its Jev bill passes it: 10 by default, 0 for no limit)
+//!              [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out]
 //!              [--side armada|cortex] [--corner nw|se]   (default: alternate; `nw` is the first start box of the layout, W on Comet)
 //!              [--ours N] [--allies N] [--enemies N] [--ffa]   (seats of ours, allied BARb seats, enemy BARb seats, default 1 0 1;
 //!                                                               --ffa: every enemy seat is its own team)
@@ -48,7 +49,7 @@ use serde::Serialize;
 
 use arena::autohost::{Autohost, Event};
 use arena::harness::{
-    ENGINE_MEMORY_GB, GAME_TAG, LOAD_ALLOWANCE, REPO, available_memory_gb, copy_tree, git_commit, last_frame,
+    ENGINE_MEMORY_GB, GAME_TAG, JevMeter, LOAD_ALLOWANCE, REPO, available_memory_gb, copy_tree, git_commit, last_frame,
     refresh_cache_template, resolve_game, stop,
 };
 use script::{Boxes, MatchSetup};
@@ -77,6 +78,9 @@ struct Options {
     swap_corners: bool,
     /// End a game once it is settled (see [`Settled`]); `--play-out` turns it off.
     call_settled: bool,
+    /// `--jev-budget N`: a match whose Jev bill passes N dollars is called (undecided), with the bill as the reason;
+    /// 0 for no limit. The user, 2026-10-04: "over $10 in jev costs should terminate the game early".
+    jev_budget: f64,
     pianist: bool,
     /// With `pianist`: the Opus player over it (`docs/design/2026-09-21-pianist.md`, "The player").
     player: bool,
@@ -198,7 +202,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("{} {}", opponent_name(&options.opponent), options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief, "players": options.players.as_deref().unwrap_or("one"), "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "packet_example": options.packet_example, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "our_bonus": options.our_bonus, "enemy_bonus": options.enemy_bonus, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "jev_budget": options.jev_budget, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief, "players": options.players.as_deref().unwrap_or("one"), "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "packet_example": options.packet_example, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "our_bonus": options.our_bonus, "enemy_bonus": options.enemy_bonus, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 
@@ -459,6 +463,7 @@ fn referee(
     let mut deadline = Instant::now() + LOAD_ALLOWANCE;
     let frame_limit = options.max_minutes * 60 * 30;
     let mut last_seen_frame = 0;
+    let mut jev = JevMeter::default();
     loop {
         if engine.try_wait()?.is_some() {
             return Ok((Outcome::Aborted, false));
@@ -478,6 +483,11 @@ fn referee(
             }
             if options.call_settled && let Some(outcome) = settled.judge(engine_log) {
                 return Ok((outcome, true));
+            }
+            // The cost fuse: the Jev bill past the budget calls the match through the same `stop` file.
+            jev.poll(engine_log.parent().unwrap_or(Path::new(".")));
+            if options.jev_budget > 0.0 && jev.dollars() > options.jev_budget && !engine_log.with_file_name("stop").exists() {
+                fs::write(engine_log.with_file_name("stop"), format!("\nthe Jev bill passed the budget of ${:.2}: ${:.2} ({:.1}M tokens) at {}:{:02}", options.jev_budget, jev.dollars(), jev.tokens as f64 / 1e6, frame / 1800, frame % 1800 / 30))?;
             }
             // The hand-operated kill switch (`run/stop_match.py`): a file `stop` in the match directory ends the match
             // the way every other match ends, the engine told to quit and given time to write its replay.
@@ -619,6 +629,7 @@ fn parse_args() -> Options {
         starts: None,
         swap_corners: false,
         call_settled: true,
+        jev_budget: 10.0,
         pianist: false,
         player: false,
         player_model: None,
@@ -696,6 +707,7 @@ fn parse_args() -> Options {
             "--parallel" => options.parallel = value().parse().unwrap_or_else(|_| usage("--parallel")),
             "--base-port" => options.base_port = value().parse().unwrap_or_else(|_| usage("--base-port")),
             "--speed" => options.speed = value().parse().unwrap_or_else(|_| usage("--speed")),
+            "--jev-budget" => options.jev_budget = value().parse().ok().filter(|n: &f64| *n >= 0.0).unwrap_or_else(|| usage("--jev-budget takes dollars, 0 for no limit")),
             "--max-minutes" => options.max_minutes = value().parse().unwrap_or_else(|_| usage("--max-minutes")),
             "--profile" => options.profile = value(),
             "--bot" => options.bot = Some(value().into()),
@@ -786,7 +798,7 @@ fn parse_args() -> Options {
 }
 
 fn usage(problem: &str) -> ! {
-    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--player-model ID] [--brief standard|experience] [--objective TEXT] [--packet-example] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent NAME:VERSION] [--our-bonus N] [--enemy-bonus N] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N]");
+    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--jev-budget DOLLARS] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--player-model ID] [--brief standard|experience] [--objective TEXT] [--packet-example] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent NAME:VERSION] [--our-bonus N] [--enemy-bonus N] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N]");
     std::process::exit(2)
 }
 

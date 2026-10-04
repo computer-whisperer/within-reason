@@ -2,7 +2,7 @@
 
 use std::fs::{self, File};
 use std::io::{self, Read, Seek, SeekFrom};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command};
 use std::time::{Duration, Instant};
 
@@ -56,6 +56,49 @@ pub fn last_frame(engine_log: &Path) -> u32 {
         })
     };
     number_after("[f=").max(number_after("heartbeat f=")).unwrap_or(0)
+}
+
+/// Jev's price: dollars a million input tokens (the output is free).
+pub const JEV_DOLLARS_PER_MILLION: f64 = 0.042;
+
+/// A match's Jev bill so far, read from every seat's `jev-<ai>.jsonl` as the bot writes them: the `input_tokens` of
+/// each request's usage, summed. The logs run to gigabytes, so each poll reads only what was written since the last
+/// one, up to the last whole line.
+#[derive(Default)]
+pub struct JevMeter {
+    read: std::collections::HashMap<PathBuf, u64>,
+    pub tokens: u64,
+}
+
+impl JevMeter {
+    pub fn dollars(&self) -> f64 {
+        self.tokens as f64 * JEV_DOLLARS_PER_MILLION / 1e6
+    }
+
+    /// Reads what the seats' logs in `dir` gained since the last poll.
+    pub fn poll(&mut self, dir: &Path) {
+        let Ok(entries) = fs::read_dir(dir) else { return };
+        for path in entries.flatten().map(|e| e.path()) {
+            let name = path.file_name().and_then(|n| n.to_str()).unwrap_or_default();
+            if !(name.starts_with("jev-") && name.ends_with(".jsonl")) {
+                continue;
+            }
+            let from = self.read.get(&path).copied().unwrap_or(0);
+            let Ok(mut file) = File::open(&path) else { continue };
+            let mut fresh = Vec::new();
+            if file.seek(SeekFrom::Start(from)).is_err() || file.read_to_end(&mut fresh).is_err() {
+                continue;
+            }
+            let Some(end) = fresh.iter().rposition(|b| *b == b'\n') else { continue };
+            let text = String::from_utf8_lossy(&fresh[..=end]);
+            const KEY: &str = "\"input_tokens\":";
+            for (at, _) in text.match_indices(KEY) {
+                let digits: String = text[at + KEY.len()..].chars().skip_while(|c| *c == ' ').take_while(char::is_ascii_digit).collect();
+                self.tokens += digits.parse::<u64>().unwrap_or(0);
+            }
+            self.read.insert(path, from + end as u64 + 1);
+        }
+    }
 }
 
 pub fn available_memory_gb() -> io::Result<u64> {
@@ -115,3 +158,31 @@ pub fn git_commit(repo: &Path) -> String {
     format!("{}{}", hash.unwrap_or_else(|| "unknown".into()), if dirty { "+" } else { "" })
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+
+    /// The meter adds each seat's usage once, reads only whole lines, and takes up where it left off.
+    #[test]
+    fn the_jev_meter_reads_what_is_new_in_every_seat_s_log() {
+        let dir = std::env::temp_dir().join(format!("jev-meter-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let line = |tokens: u32| format!("{{\"t\":\"call\",\"usage\":{{\"input_tokens\":{tokens},\"output_tokens\":7}}}}\n");
+        fs::write(dir.join("jev-0.jsonl"), format!("{}{}", line(1_000_000), &line(500)[..20])).unwrap();
+        fs::write(dir.join("jev-1.jsonl"), line(250_000)).unwrap();
+        fs::write(dir.join("bot.log"), line(9)).unwrap();
+        let mut meter = JevMeter::default();
+        meter.poll(&dir);
+        assert_eq!(meter.tokens, 1_250_000, "the half-written line waits");
+        let mut log = fs::OpenOptions::new().append(true).open(dir.join("jev-0.jsonl")).unwrap();
+        log.write_all(line(500)[20..].as_bytes()).unwrap();
+        log.write_all(line(3).as_bytes()).unwrap();
+        meter.poll(&dir);
+        meter.poll(&dir);
+        assert_eq!(meter.tokens, 1_250_503);
+        assert!((meter.dollars() - 1.250503 * JEV_DOLLARS_PER_MILLION).abs() < 1e-9);
+        fs::remove_dir_all(&dir).unwrap();
+    }
+}
