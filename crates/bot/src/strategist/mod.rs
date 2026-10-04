@@ -59,7 +59,9 @@ fn system_prompt() -> String {
     let experience = std::env::var("WITHIN_REASON_BRIEF").as_deref() == Ok("experience");
     let brief = if experience { &PLAYER_BRIEF_EXPERIENCE } else { &PLAYER_BRIEF };
     let under_command = if command::model().is_some() { read(&crate::texts::PLAYER_UNDER_COMMAND) } else { String::new() };
-    for_brief(&read(&PLAYER_PROMPT), if experience { "experience" } else { "standard" }) + &under_command + &read(brief) + &bonus() + &objective()
+    // Last before the game's own lines, where it is read nearest the first turn.
+    let packet_example = if std::env::var_os("WITHIN_REASON_PACKET_EXAMPLE").is_some() { read(&crate::texts::PACKET_EXAMPLE) } else { String::new() };
+    for_brief(&read(&PLAYER_PROMPT), if experience { "experience" } else { "standard" }) + &under_command + &read(brief) + &packet_example + &bonus() + &objective()
 }
 
 /// The commander's: its role, then the experience brief whole (the user, 2026-10-03: everything in it always), then
