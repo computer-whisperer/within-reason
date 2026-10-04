@@ -1,11 +1,12 @@
 //! The layers (`docs/design/2026-10-01-hands-rebuild.md` §8): the base version asks every move of every asked actor
 //! and every party at every gate, and a layer is a saving with a switch. A layer changes which questions are sent or
-//! when, never the menu, the words or what a move does; and it audits itself: for a small share of what it skips
+//! when, never the menu, the words or what a move does (`near` is the exception: a code decision that shuts moves,
+//! `docs/code-decisions.md`); and it audits itself: for a small share of what it skips
 //! it asks anyway, in the same request, and the log sets what it assumed beside what came back.
 //!
 //! `WITHIN_REASON_HANDS_LAYERS` (the arena's `--hands-layers`) names the layers that are on, comma-separated;
 //! unset, `news` is on, and `none` switches every layer off. Built so far: `news`, `same`, `fuse`, `openers`, `split`,
-//! `tick`, `places`. Naming a layer that is not built stops the bot at its start rather than running a game without it.
+//! `tick`, `places`, `again`, `near`. Naming a layer that is not built stops the bot at its start rather than running a game without it.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 

@@ -81,3 +81,9 @@ quiet gate (nothing changed since the last ask: do not ask) and FLAG/IDLE_BAR, w
 Write the target (this doc) → delete the category A/B/C sites in one commit per module, tests updated → run the
 E3/F3 harness arms and the 37 bot tests → one arena game on the target (player-23) → review against player-22 on
 the same numbers (orders a minute, plays by source, the 2:17 shape).
+
+## The roster (2026-10-04)
+
+What code still decides is kept as a roster in `docs/code-decisions.md`, audited against the code that day. A code
+decision above the micro engine is built only on the user's explicit word, as a layer with a switch and an audit, and
+entered there in the same commit; the first is the `near` layer (H-HANDS-NEAR-BUILDER).
