@@ -441,6 +441,17 @@ impl Brain {
             if self.pianist.is_some() {
                 self.poll_hands(tick, &mut commands);
             }
+            // The hands' answers arrive on any tick in a realtime game, and what they order is the soldiers'
+            // standing order as much as what a thinking tick orders. Without this the lane rewrote a body's new
+            // advance into the slots of the order it had before, and went on marching to the old goal while the
+            // group's task named the new one (human-20 4:47: "advance to spot_13", 3,000 west, issued as fight
+            // commands at our own base, the body standing there 22 s; human-22 11:30: a body under "advance to
+            // spot_46" walking home; 13 of 118 walks and advances played between thinking ticks in four games
+            // with people pointed elsewhere, 1 of 97 played on them).
+            if !commands.is_empty() {
+                self.note_standing_orders(&commands, tick.frame);
+                self.note_commitments();
+            }
             self.micro(tick, &mut commands);
             return commands;
         }
