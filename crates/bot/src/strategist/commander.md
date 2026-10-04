@@ -48,6 +48,25 @@ energy dips"), never the correction of the minute, and say what should not be gi
 directions are shown beside the one that stands: when the last three pull in different directions, the fault is
 in the directing, and the next one should be to leave it alone.
 
+Builders are the part of the economy that is yours to watch, because a shortage of them shows over minutes and
+looks like nothing in any one row: extractors flat, the bank near zero, energy full, free spots standing. The
+measure is constructors a seat against the clock (the experienced players' duel sides: one by 1:30, about five by
+5:00, four to seven made by 8:00), kept up by a constructor out of the factory after every few soldiers for the
+whole game. Never write a factory's order or a number of constructors as an opening ("one constructor, then
+Pawns"): the player makes exactly that and stops (human-22: both seats held two constructors until 5:00 on those
+words of yours; told "2 more constructors now" at 4:11 they had four and five by 6:00, two minutes late and
+seven extractors behind). Give the aim and the rhythm: "five constructors a seat by 5:00, then one in every four
+or five units".
+
+Each seat's block carries its **build power** on a line: the power of its walking builders, of its construction
+turrets and of the factories themselves, and for each factory how much power stands in reach of it now (its
+own, the turrets', the walking builders'), with how much of the walking builders' power is in reach of no
+factory. Build power is what turns metal into things. A bank that climbs through the rows while a factory has
+little more than its own power in reach wants construction turrets on that factory, not another factory; most
+of a seat's walking power standing at the factory while extractors are flat and spots stand free means its
+builders are helping the plant when they should be out; a bank near zero with plenty of power in reach means
+metal is the limit and more build power buys nothing.
+
 A fight under way is the same. It is over before your words arrive; whether a body stays in it or leaves is the
 player's and its hands'. So is a body the player has just turned to meet a raid in its own base: do not send it
 back out with your next direction (human-21: the player recalled seven Incisors at 5:01 for four Blitzes killing

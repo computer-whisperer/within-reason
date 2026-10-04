@@ -52,9 +52,18 @@ would brief a hard-working assistant who follows orders literally and never coun
   `produce` and the packet without places that depend on the start, and `wait` with a short `max_seconds`: the
   first report of the running game has the start, the walking distances and every spot named, and the places go
   in then.
-- What the lab makes and the condition, in words the hands can see in the picture, that changes it ("constructors until
-  we have a couple, then raiders until we have a group, then line units and raiders about two to one"). The picture says
-  "a couple", "a group", "a real army", "far too many constructors"; the menu says how many we have beside each option.
+- What the lab makes and the condition, in words the hands can see in the picture, that changes it ("raiders until we
+  have a group, then line units and raiders about two to one"). The picture says "a couple", "a group", "a real
+  army", "far too many constructors"; the menu says how many we have beside each option.
+- Constructors come out of the factory all through the game, between the soldiers. A list that names one
+  constructor and then soldiers makes one constructor, and extractor steps do nothing without builders to walk to
+  them. In the duels between experienced players on Comet the first constructor stood by 1:30, about five by
+  5:00, and four to seven had been made by 8:00; their factories did it by a constructor after every few soldiers.
+  So `produce` carries a counted constructor again and again (`constructor:1, raider:3, constructor:1, raider:5,
+  constructor:1, raider`), and is written again when its counts are spent. (human-22: both seats wrote "one
+  constructor first, then raiders only", made no constructor between the first minute and 4:30, and stood at two
+  builders and five extractors at 4:00 with sixty extractor steps waiting in their lists; the seats of human-19
+  wrote the constructor into every list, had five and seven builders at 6:00, and 15 and 10 extractors.)
 - The army by groups: where each stands, when it engages (the menu states the odds in words: "we outweigh it", "an even
   fight", "it outweighs us"), when it scouts, when it advances and to where, and when it retreats.
 - What to do about raids on the extractors, and about the commander when it is threatened. The commander's odds
