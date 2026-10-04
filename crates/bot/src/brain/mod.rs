@@ -343,6 +343,27 @@ impl Brain {
     /// experienced players").
     fn relay_chat(&mut self, tick: &Tick, commands: &mut Vec<Command>) {
         let Some(shared) = &self.strategist else { return };
+        // Under a commander chat is the commander's: people's lines go to it and its lines go out here, by
+        // whichever seat comes first (`docs/design/2026-10-03-commander-seat.md`).
+        if let Some(side) = shared.side.get() {
+            for event in &tick.events {
+                if let Event::Chat { player, text } = event
+                    && side.hear(tick.frame, *player, text, format!("{}: {text}", self.speaker(*player)))
+                {
+                    eprintln!("[ai {}] f={} chat from player {player}: {text}", self.world.hello.ai_id, tick.frame);
+                }
+            }
+            for text in std::mem::take(&mut *side.chat_out.lock().unwrap()) {
+                for line in chat_lines(&text) {
+                    let mut said = side.said.lock().unwrap();
+                    said.push(line.clone());
+                    let excess = said.len().saturating_sub(16);
+                    said.drain(..excess);
+                    commands.push(Command::Say { text: line });
+                }
+            }
+            return;
+        }
         for event in &tick.events {
             if let Event::Chat { player, text } = event {
                 // The game cuts a chat line at about 120 characters, so a long line of ours is known by its first

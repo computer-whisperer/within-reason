@@ -207,6 +207,12 @@ pub(super) fn tool_list() -> Value {
           "inputSchema": { "type": "object", "additionalProperties": false, "properties": {
               "plan": { "type": "string" },
               "seats": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Seat (t0, t1, ...) to its paragraph." } } } },
+        { "name": "mark",
+          "description": "Name a place for the whole side: an object of name to [x, z] map coordinates or a grid cell (\"E7\": its centre), or null to forget it. Every seat's player and hands see it under the same name from their next look, so a meeting place is one place to all of them (\"gather at meet_east\"). Names are lower-case words with underscores; home, spot_N, passage_N and group_N are taken.",
+          "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }, { "type": "string" }, { "type": "null" } ] } } },
+        { "name": "say",
+          "description": "Say something in the game's chat, to everyone playing. Chat is yours alone on our side: the players cannot speak or hear. Short lines: the game shows 127 characters a line, the bot prefixes `[WReason] ` (never write it yourself) and splits a longer text. Your lines go out under the name of the person hosting the bot (the map's `people`). When an experienced player offers advice or asks what we are doing, answer, ask what they would do, and put what you take from it into your direction.",
+          "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "maxLength": 240 } } } },
         { "name": "situation",
           "description": "The picture the players' hands read this second, every seat's together: economy, ours, enemy, places by name, every actor with what it is doing. Your report carries a summary; call this to read the whole of it. It is large.",
           "inputSchema": empty },
@@ -239,7 +245,7 @@ pub(super) fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> 
             }
             Ok(format!("your next report comes {} s of game after this one began", wake.max_seconds))
         }),
-        "situation" | "overview" | "map" | "units" | "note" => None,
+        "situation" | "overview" | "map" | "units" | "note" | "say" | "mark" => None,
         other => Some(Err(format!("{other} is not a tool of the commander's: you direct the players in words (`direct`); the units are theirs"))),
     }
 }
@@ -259,6 +265,16 @@ fn report(side: &Shared, first: bool) -> String {
     lines.extend(super::report::front(&briefing, &field, &fights, false));
     lines.extend(super::report::contact(&briefing, &field));
     lines.extend(super::fights::lines(&side.deaths.lock().unwrap(), frame));
+    let chat: Vec<String> = std::mem::take(&mut *side.chat_in.lock().unwrap()).into_iter().map(|(at, _, text)| format!("  {} {text}", clock(at))).collect();
+    if !chat.is_empty() {
+        lines.push("chat since your last report (people in the game; `say` answers them, and only you hear or speak for our side):".to_string());
+        lines.extend(chat);
+    }
+    let marks = side.marks.lock().unwrap();
+    if !marks.is_empty() {
+        lines.push(format!("your marks (places every seat knows by these names): {}", marks.iter().map(|(name, (x, z))| format!("{name} ({x:.0}, {z:.0})")).collect::<Vec<_>>().join(", ")));
+    }
+    drop(marks);
     // A line a seat, then its groups and what its builders and factories are at, from the picture its hands read.
     let seats = side.seats.lock().unwrap().clone();
     let hands = side.hands.lock().unwrap().clone();
@@ -398,7 +414,9 @@ fn drive(launch: Launch, mut session: Session, side: &Shared, stop: &std::sync::
             None => FIRST_TURN_FRAME,
             Some(last) => last + side.wake.lock().unwrap().max_seconds as i32 * FRAMES_PER_SECOND,
         };
-        if frame < due {
+        // A person's chat wakes it at once: an answer a minute late is no answer.
+        let spoken_to = last_turn.is_some() && !side.chat_in.lock().unwrap().is_empty();
+        if frame < due && !spoken_to {
             continue;
         }
         if turns_this_session >= super::TURNS_PER_SESSION {
@@ -501,6 +519,12 @@ mod tests {
     #[test]
     fn the_commander_has_no_tool_that_orders_a_unit() {
         let side = side_at(0);
+        // People's chat reaches the commander once however many seats heard it, and its own line is not chat.
+        assert!(side.hear(900, 0, "push now", "thebluegecko: push now".into()));
+        assert!(!side.hear(905, 0, "push now", "thebluegecko: push now".into()), "the second seat's copy");
+        side.said.lock().unwrap().push("on our way".into());
+        assert!(!side.hear(950, 0, "on our way", "computer_whisperer: on our way".into()), "its own line coming back");
+        assert_eq!(side.chat_in.lock().unwrap().len(), 1);
         for tool in ["instruct", "queue", "produce", "remove", "lane", "orders"] {
             assert!(call_tool(tool, &json!({}), &side).is_some_and(|r| r.is_err()), "{tool}");
             assert!(!tool_list().as_array().unwrap().iter().any(|t| t["name"] == tool));

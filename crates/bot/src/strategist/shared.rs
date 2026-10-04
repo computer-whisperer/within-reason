@@ -421,6 +421,10 @@ pub struct Shared {
     pub side: std::sync::OnceLock<std::sync::Arc<Shared>>,
     /// The side's: the players under the commander, for their notes and packets.
     pub players: Mutex<super::command::Players>,
+    /// The side's: the chat lines sent for the commander (each seat hears them back and must not take them for a
+    /// person's), and the lines of people already heard (every seat hears each).
+    pub said: Mutex<Vec<String>>,
+    pub heard: Mutex<Vec<(i32, i32, String)>>,
     /// The side's: every death the seats have published, for the commander's fights block (`fights.rs`).
     pub deaths: Mutex<Vec<super::fights::Death>>,
     /// The side's: the commander's direction.
@@ -441,6 +445,33 @@ pub struct Opening {
 }
 
 impl Shared {
+    /// The places named for this player's hands: its own marks and, under a commander, the side's (the same name
+    /// to every seat; the side's wins a clash).
+    pub fn marks_all(&self) -> BTreeMap<String, (f32, f32)> {
+        let mut marks = self.marks.lock().unwrap().clone();
+        if let Some(side) = self.side.get() {
+            marks.extend(side.marks.lock().unwrap().iter().map(|(name, at)| (name.clone(), *at)));
+        }
+        marks
+    }
+
+    /// Brain side, under a commander: a chat line heard by this seat. `false` when it is the commander's own line
+    /// coming back or another seat has already passed it on; else it is put before the commander.
+    pub fn hear(&self, frame: i32, player: i32, text: &str, line: String) -> bool {
+        if self.said.lock().unwrap().iter().any(|s| s == text || text.contains(s.get(..24).unwrap_or(s.as_str()))) {
+            return false;
+        }
+        let mut heard = self.heard.lock().unwrap();
+        if heard.iter().any(|(f, p, t)| *p == player && t == text && (frame - f).abs() <= 90) {
+            return false;
+        }
+        heard.push((frame, player, text.to_string()));
+        let excess = heard.len().saturating_sub(32);
+        heard.drain(..excess);
+        self.chat_in.lock().unwrap().push((frame, player, line));
+        true
+    }
+
     /// Brain side: a loss or a kill, counted for the player's next report and for the commander's.
     pub fn fight(&self, line: &str) {
         *self.fights.lock().unwrap().entry(line.to_string()).or_default() += 1;

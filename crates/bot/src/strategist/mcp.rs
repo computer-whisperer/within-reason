@@ -78,7 +78,14 @@ fn handle(call: &Value, shared: &Arc<Shared>, transcript: &Transcript) -> Option
             "capabilities": { "tools": {} },
             "serverInfo": { "name": "within-reason", "version": env!("CARGO_PKG_VERSION") },
         })),
-        "tools/list" => Ok(json!({ "tools": if shared.commander.load(Ordering::Relaxed) { super::command::tool_list() } else { tool_list() } })),
+        "tools/list" => Ok(json!({ "tools": if shared.commander.load(Ordering::Relaxed) {
+            super::command::tool_list()
+        } else if shared.side.get().is_some() {
+            // Under a commander chat is the commander's.
+            Value::Array(tool_list().as_array().into_iter().flatten().filter(|t| t["name"] != "say").cloned().collect())
+        } else {
+            tool_list()
+        } })),
         "tools/call" => {
             let name = call["params"]["name"].as_str().unwrap_or_default();
             let arguments = &call["params"]["arguments"];
@@ -241,6 +248,8 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
         if let Some(outcome) = super::command::call_tool(name, arguments, shared) {
             return outcome;
         }
+    } else if name == "say" && shared.side.get().is_some() {
+        return Err("chat is the commander's in this game: it hears the people and answers them. Write a `note` when there is something it should say".into());
     } else if !tool_list().as_array().is_some_and(|tools| tools.iter().any(|t| t["name"] == name)) {
         return Err(format!("{name} is not a tool in this mode"));
     }
@@ -288,7 +297,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
         }
         "plan" => {
             let context = shared.plan_context.lock().unwrap().clone().ok_or("the simulator has no picture of the game yet: try again in a few seconds")?;
-            let marks = shared.marks.lock().unwrap().clone();
+            let marks = shared.marks_all();
             planning::run(name, arguments, 0.0, &context, &marks)
         }
         "search" => {
@@ -296,7 +305,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             // cap is the mode's: lockstep holds the game anyway, realtime does not (the user, 2026-09-22: in-game
             // thinking time can cost games).
             let context = shared.plan_context.lock().unwrap().clone().ok_or("the simulator has no picture of the game yet: try again in a few seconds")?;
-            let marks = shared.marks.lock().unwrap().clone();
+            let marks = shared.marks_all();
             // The objective is checked now, not on the thread, so a wrong one is refused at once.
             let text = arguments["objective"].as_str().ok_or("search takes an objective in words")?.trim();
             if text.starts_with("target") {

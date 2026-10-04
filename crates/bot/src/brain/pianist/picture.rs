@@ -1036,7 +1036,7 @@ impl Brain {
                 }
             }
         }
-        let marks: BTreeMap<String, (f32, f32)> = self.strategist.as_ref().map(|s| s.marks.lock().unwrap().clone()).unwrap_or_default();
+        let marks: BTreeMap<String, (f32, f32)> = self.strategist.as_ref().map(|s| s.marks_all()).unwrap_or_default();
         for (name, (x, z)) in &marks {
             if !places.iter().any(|p| p.name == *name) {
                 places.push(Place { name: name.clone(), at: Vec3 { x: *x, y: 0.0, z: *z }, spot: None });
