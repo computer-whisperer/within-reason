@@ -1995,3 +1995,29 @@ commander's direction landing at 5:13 sent the recalled body west again; it foug
 **Would be wrong if.** A name still moves between groups after the fix (the per-seat overlap with the last picture
 is a second path, unchanged).
 **Used by.** [[H-HANDS-PARTY-NAME-STAYS]].
+
+### K-hands-a-redirected-body-marched-to-its-old-goal
+**Claim.** In a realtime game an order the hands played between thinking ticks reached the engine rewritten into
+the march's points for the group's previous order: the lane's standing orders were noted on thinking ticks only
+(`Brain::decide`), and the formation transform takes its goal from them. human-20 4:47: `group_C.fight_to_spot_13`
+(3872, 880) went out as fight commands at (6936-7176, 456-712), our own base, and the body stood 22 s; human-22
+11:30: `group_A_t1.fight_to_spot_46` went to (4920, 2776), 1,516 from the spot, and the body walked home. Over
+human-19 to human-22, of the walks and advances played between thinking ticks 13 of 118 had no command within
+400 of the named place, against 1 of 97 played on a thinking tick (lockstep games ask inside the thinking tick).
+**Status.** observed and traced (2026-10-03 night, from the review of human-20); fixed; the rehearsal's count
+pending.
+**Would be wrong if.** The share of misdirected plays between ticks does not fall in a realtime game on the fix.
+**Used by.** [[H-HANDS-STANDING-BETWEEN-TICKS]].
+
+### K-hands-a-body-joined-its-own-detachment
+**Claim.** The `join` move took the joiner into the joined group whatever their sizes, and a body that joined a
+detachment took its name, its place and its order. human-22, the Cortex seat: at 12:32 `group_R1_t2` (33
+soldiers, advancing to spot_39 on the commander's push) joined `group_A2_t2` (8 Grunts split from it 19 s before,
+hunting at home): one group of 37 at H2 "standing with no order", held there until 12:52; at 14:48 `group_L2_t2`
+(31) joined `group_Q2_t2` (2 Thugs). The move's words said it ("one body of N soldiers on group_X's course") and
+Jev picked it.
+**Status.** observed in one game (the review, confirmed from the player's reports); the join made symmetric on the
+user's word; unmeasured.
+**Would be wrong if.** Bodies still lose their order at a join, or a small group meant to lead a larger one to
+its place no longer can (the larger's course now wins).
+**Used by.** [[H-HANDS-JOIN-SYMMETRIC]].

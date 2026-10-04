@@ -401,15 +401,22 @@ impl Brain {
             }
             Order::Join(other) => {
                 if let Some(target) = pianist.groups.iter().position(|g| g.name == *other && g.domain == pianist.groups[index].domain) {
-                    // Its soldiers walk to the other group's body and take that group's order when they reach it
-                    // (H-HANDS-JOINERS): until then they are on their way, not of its front or its odds.
-                    let members = std::mem::take(&mut pianist.groups[index].members);
-                    let to = pianist.groups[target].body(own, None).map(|b| b.at).or(centre).unwrap_or(home);
-                    commands.extend(members.iter().map(|id| Command::Move { unit: *id, to, queue: false }));
-                    pianist.groups[target].joining.extend(members.iter().map(|id| (*id, to)));
-                    pianist.groups[target].members.extend(members);
-                    pianist.groups.remove(index);
-                    did = Some(format!("join group_{other}"));
+                    // The two become one body, and the join is the same whichever of them picked it: the smaller
+                    // group's soldiers walk to the larger's body, which keeps its name, its order and its place
+                    // (the user, 2026-10-03, after human-22: at 12:32 a body of 33 advancing on the push joined its
+                    // own detachment of 8 standing at home, took its name and stood with no order; again at 14:48,
+                    // 31 into 2). The walkers take the body's order when they reach it (H-HANDS-JOINERS): until
+                    // then they are on their way, not of its front or its odds.
+                    let larger = pianist.groups[index].members.len() > pianist.groups[target].members.len();
+                    let (keep, gone) = if larger { (index, target) } else { (target, index) };
+                    let to = pianist.groups[keep].body(own, None).map(|b| b.at).or(centre).unwrap_or(home);
+                    let absorbed = pianist.groups.remove(gone);
+                    let keep = if gone < keep { keep - 1 } else { keep };
+                    commands.extend(absorbed.members.iter().map(|id| Command::Move { unit: *id, to, queue: false }));
+                    let body = &mut pianist.groups[keep];
+                    body.joining.extend(absorbed.members.iter().map(|id| (*id, to)));
+                    body.members.extend(absorbed.members);
+                    did = Some(if larger { format!("take in group_{other}: its soldiers walk to this body, which keeps its name and its course") } else { format!("join group_{other}") });
                 }
             }
             Order::Follow(ward) => {

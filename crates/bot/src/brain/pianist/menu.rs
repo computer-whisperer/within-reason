@@ -1036,7 +1036,12 @@ impl Brain {
                 push(
                     format!("join_group_{}", other.name),
                     Order::Join(other.name.clone()),
-                    format!("{name} ({}) joins group_{} ({}, {way}; it {other_course}): one body of {} soldiers on group_{}'s course{}{leaves}", self.composition_words(&units), other.name, self.composition_words(theirs), both.len(), other.name, stands(*other_at)),
+                    // The larger of the two keeps its name, course and place (`execute.rs`, the join).
+                    if units.len() > theirs.len() {
+                        format!("{name} ({}) and group_{} ({}, {way}; it {other_course}) become one body of {} soldiers: {name} is the larger, so it keeps its name and its course, and group_{}'s soldiers leave theirs and walk to it{leaves}", self.composition_words(&units), other.name, self.composition_words(theirs), both.len(), other.name)
+                    } else {
+                        format!("{name} ({}) joins group_{} ({}, {way}; it {other_course}): one body of {} soldiers on group_{}'s course{}{leaves}", self.composition_words(&units), other.name, self.composition_words(theirs), both.len(), other.name, stands(*other_at))
+                    },
                     format!("joining group_{}", other.name),
                     None,
                     false,
