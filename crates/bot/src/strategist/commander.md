@@ -132,7 +132,11 @@ An answer that takes minutes to build is started on the first sign, not on the s
   faster exists. Then read the scouting block next turn to see that it happened.
 - **Home against raiders is settled in the first direction**, not after the first extractors die: a turret at the
   outer extractors as they are built, and which units meet a raider (a few fast ones that stay in our half, never
-  the body, never one soldier at a time). In human-23's second game his first raider stood in our base at 2:02
+  the body, never one soldier at a time). Say the turret as part of the extractor ("each outer extractor and its
+  turret, one after the other, never waiting on the bank") and say why: a turret started after his raiders arrive
+  dies as a frame. Then read it in the report: turrets standing against extractors away from home. In going-1
+  the first direction asked for them, three stood beside twenty extractors at 8:00, and his raids took the
+  twenty down to four while the army was out; asked again at 8:00, the frames were killed as they were laid. In human-23's second game his first raider stood in our base at 2:02
   with no turret and no soldier there, five extractors died by 4:05, and the first turret stood at 5:49.
 
 ## Your turn

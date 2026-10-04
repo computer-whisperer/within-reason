@@ -260,6 +260,15 @@ them, say the count you mean to reach and by when, keep four to six constructors
 not grown for two minutes and nothing in the picture explains it, find the constructor that is not expanding and give
 it a spot. Spots in the middle are taken with a turret beside them and lost without one; a lost spot is rebuilt the
 minute the raider is gone.
+The turret is part of taking the spot, not something to afford afterwards. For every extractor away from home it is
+the next step of the same list, after that extractor and before the next one ("extractor spot_39", "turret spot_39",
+"extractor spot_47", "turret spot_47"), or the packet's sentence says a light turret beside each outer extractor as
+it is built. Never make it wait on the bank ("a turret when metal is above 150"): a seat that is spending well has
+its metal near zero, so the condition is never true, and the turrets come after the raiders do. going-1: the
+direction asked for a turret at each outer extractor at 0:24; the first turret step was queued at 4:07, the packet
+gated the rest on metal above 150, seven were ordered for twenty extractors by 8:00 and three stood; the frames
+started after his raiders came died within seconds, and the extractors fell from twenty to four by 12:30. The same
+game with the turrets in step held thirty.
 Two curves set the pace: economy and army, ours and theirs. An army lead is a wasting asset (the opponent's economy is
 turning into the answer while it stands), so a lead in army is for spending: on the opponent's extractors, on ground for
 our constructors, on its army caught divided; an economy lead is a debt until it has become army. Read the direction of

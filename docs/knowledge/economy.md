@@ -333,3 +333,15 @@ and 11:21 (the reviewer's reading of the strategist log); the brief had tied the
 **Would be wrong if.** The pool's strong sides on a solar map stay on basic solars through minute 10 (`run/replays/card.py`
 can count it), or a game of ours with advanced solars stalls on energy while they build.
 **Used by.** the brief's advanced-solar bullet and the Comet energy line; [[H-PLAYER-ADVANCED-SOLAR]].
+
+### K-player-turrets-gated-on-the-bank-came-after-the-raiders
+**Claim.** A Sonnet player asked at 0:24 for a turret at each outer extractor queued its first turret step at 4:07,
+wrote "a light turret beside outer extractor pairs when metal is above 150" into its packet from 5:11, and had seven
+turret steps in lists beside twenty extractors at 8:00; five were built, two of those were dead by 8:09, three
+stood. From 8:00 to 12:00 four frames started under his raids died unfinished, and the extractors went from twenty
+to four (going-1, lost 30:42). The orders that were given were carried out: 31 build commands at 15 sites gave 21
+frames and 16 finished turrets by 18:00; one site had commands and no frame. The same game with Opus as the player
+(going-opus-1) held 26 to 32 extractors through the same raids.
+**Status.** observed in one game, traced from the record (2026-10-04); the comparison is one game each.
+**Exploited by.** H-PLAYER-TURRET-WITH-THE-SPOT.
+

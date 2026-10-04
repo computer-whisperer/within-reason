@@ -131,6 +131,22 @@ Every map we have a recorded game on, in one table each. The first start is ours
 | the arena's old corner start of his (G1) | armck (36) | 4 / 12 / 24 / 37 | 31 / 51 / 65 |
 | the arena's old corner start of his (G1) | armcv (54) | 7 / 24 / 43 / 68 | 21 / 34 / 43 |
 
+### All That Glitters Extended v1.0.2
+
+- 15360 by 10240 elmos; wind 0 to 16; tidal 0; 0% under water; ground height 163 to 554.
+- 437 metal spots; a tier-1 extractor draws 1.83 / 1.84 / 3.18 metal a second (lowest / median / highest spot).
+- Starts: ours F8 (11503, 9622; 0 from ours).
+
+| Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
+|---|---|---|---|---|---|---|---|
+| ships | 0% | no ground on this map it can stand on | | | | | |
+
+| Start | Taken by (speed) | Spots within 30 / 60 / 90 / 120 s | Seconds to the 5th / 10th / 15th spot |
+|---|---|---|---|
+| ours | armcom (37.50) | 8 / 28 / 51 / 84 | 15 / 34 / 41 |
+| ours | armck (36) | 6 / 26 / 49 / 79 | 15 / 36 / 43 |
+| ours | armcv (54) | 17 / 48 / 93 / 151 | 10 / 24 / 29 |
+
 ### Avalanche 3.4
 
 - 4096 by 4096 elmos; wind 3 to 19; tidal 20; 0% under water; ground height 130 to 696.
@@ -171,6 +187,31 @@ Every map we have a recorded game on, in one table each. The first start is ours
 | the opponent's | armcom (37.50) | 4 / 13 / 21 / 29 | 33 / 42 / 71 |
 | the opponent's | armck (36) | 4 / 11 / 15 / 20 | 34 / 57 / 88 |
 | the opponent's | armcv (54) | 6 / 14 / 20 / 23 | 24 / 40 / 62 |
+
+### Carrot Mountains v2.0
+
+- 12288 by 12288 elmos; wind 6 to 12; tidal 20; 0% under water; ground height 383 to 771.
+- 172 metal spots; a tier-1 extractor draws 1.85 / 2.37 / 2.39 metal a second (lowest / median / highest spot).
+- Starts: ours B5 (2162, 7312; 0 from ours), the opponent's H5 (10825, 7134; 8664 from ours).
+
+| Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
+|---|---|---|---|---|---|---|---|
+| bots | 99% | 172 | the opponent's | 9132 | armck 254, armpw 105, armrock 180, corak 113, corck 265 | 77 / 73 / 22 / 0 | 5172 at C5, 19% of the way (median 6104) |
+| vehicles | 95% | 172 | the opponent's | 10174 | armcv 188, armfav 61, armflash 101, armstump 136, corcv 199, corfav 66, corgator 120 | 78 / 71 / 23 / 0 | 4076 at C5, 21% of the way (median 5404) |
+| commander | 99% | 172 | the opponent's | 9132 | armcom 244, corcom 244 | 77 / 73 / 22 / 0 | 5172 at C5, 19% of the way (median 6104) |
+| all-terrain bots | 100% | 172 | the opponent's | 9132 | armscab 179, cortermite 183 | 77 / 73 / 22 / 0 | 5208 at B5, 18% of the way (median 6312) |
+| amphibious tanks | 99% | 172 | the opponent's | 10174 | armcroc 188, corseal 141 | 78 / 73 / 21 / 0 | 4300 at B5, 20% of the way (median 5708) |
+| hovercraft | 97% | 172 | the opponent's | 10523 | armch 157, armsh 93, corch 173, corsh 96 | 78 / 72 / 22 / 0 | 3992 at B5, 21% of the way (median 5444) |
+| ships | 0% | no ground on this map it can stand on | | | | | |
+
+| Start | Taken by (speed) | Spots within 30 / 60 / 90 / 120 s | Seconds to the 5th / 10th / 15th spot |
+|---|---|---|---|
+| ours | armcom (37.50) | 5 / 20 / 34 / 50 | 25 / 50 / 57 |
+| ours | armck (36) | 5 / 17 / 32 / 45 | 26 / 52 / 59 |
+| ours | armcv (54) | 6 / 27 / 44 / 72 | 21 / 40 / 46 |
+| the opponent's | armcom (37.50) | 5 / 13 / 30 / 45 | 30 / 42 / 63 |
+| the opponent's | armck (36) | 4 / 12 / 29 / 43 | 31 / 44 / 66 |
+| the opponent's | armcv (54) | 6 / 20 / 42 / 69 | 27 / 34 / 52 |
 
 ### Coast To Coast BAR v1.0
 
@@ -216,26 +257,42 @@ Every map we have a recorded game on, in one table each. The first start is ours
 
 - 3072 by 4096 elmos; wind 0 to 20; tidal 16; 0% under water; ground height 243 to 682.
 - 22 metal spots; a tier-1 extractor draws 2.12 / 2.17 / 2.32 metal a second (lowest / median / highest spot).
-- Starts: ours A1 (320, 315; 0 from ours), the opponent's B8 (639, 3748; 3447 from ours).
+- Starts: ours E2 (1736, 665; 0 from ours), the opponent's B8 (639, 3748; 3272 from ours).
 
 | Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
 |---|---|---|---|---|---|---|---|
-| bots | 94% | 22 | the opponent's | 4100 | armck 114, armpw 47, armrock 81, corak 51, corck 119 | 11 / 11 / 0 / 0 | 856 at E5, 56% of the way (median 1788) |
-| vehicles | 87% | 22 | the opponent's | 4153 | armcv 77, armfav 25, armflash 41, armstump 55, corcv 81, corfav 27, corgator 49 | 11 / 11 / 0 / 0 | 724 at E5, 56% of the way (median 1716) |
-| commander | 94% | 22 | the opponent's | 4100 | armcom 109, corcom 109 | 11 / 11 / 0 / 0 | 856 at E5, 56% of the way (median 1788) |
-| all-terrain bots | 100% | 22 | the opponent's | 4100 | armscab 80, cortermite 82 | 11 / 11 / 0 / 0 | 1580 at B2, 15% of the way (median 1980) |
-| amphibious tanks | 94% | 22 | the opponent's | 4153 | armcroc 77, corseal 58 | 11 / 11 / 0 / 0 | 816 at E5, 56% of the way (median 1788) |
-| hovercraft | 89% | 22 | the opponent's | 4168 | armch 62, armsh 37, corch 68, corsh 38 | 11 / 11 / 0 / 0 | 760 at E5, 57% of the way (median 1764) |
+| bots | 94% | 22 | the opponent's | 3529 | armck 98, armpw 41, armrock 70, corak 44, corck 102 | 11 / 9 / 2 / 0 | 820 at E5, 48% of the way (median 1800) |
+| vehicles | 87% | 22 | the opponent's | 3529 | armcv 65, armfav 21, armflash 35, armstump 47, corcv 69, corfav 23, corgator 42 | 11 / 9 / 2 / 0 | 744 at E5, 46% of the way (median 1700) |
+| commander | 94% | 22 | the opponent's | 3529 | armcom 94, corcom 94 | 11 / 9 / 2 / 0 | 820 at E5, 48% of the way (median 1800) |
+| all-terrain bots | 100% | 22 | the opponent's | 3529 | armscab 69, cortermite 71 | 11 / 9 / 2 / 0 | 1372 at D5, 48% of the way (median 2224) |
+| amphibious tanks | 94% | 22 | the opponent's | 3529 | armcroc 65, corseal 49 | 11 / 9 / 2 / 0 | 792 at E5, 48% of the way (median 1848) |
+| hovercraft | 89% | 22 | the opponent's | 3529 | armch 53, armsh 31, corch 58, corsh 32 | 11 / 9 / 2 / 0 | 752 at E5, 46% of the way (median 1728) |
 | ships | 0% | no ground on this map it can stand on | | | | | |
 
 | Start | Taken by (speed) | Spots within 30 / 60 / 90 / 120 s | Seconds to the 5th / 10th / 15th spot |
 |---|---|---|---|
-| ours | armcom (37.50) | 4 / 9 / 14 / 21 | 32 / 61 / 95 |
-| ours | armck (36) | 4 / 7 / 12 / 20 | 33 / 63 / 99 |
-| ours | armcv (54) | 5 / 12 / 22 / 22 | 22 / 42 / 67 |
+| ours | armcom (37.50) | 6 / 12 / 17 / 22 | 24 / 38 / 74 |
+| ours | armck (36) | 6 / 12 / 16 / 22 | 26 / 39 / 78 |
+| ours | armcv (54) | 10 / 16 / 22 / 22 | 17 / 26 / 52 |
 | the opponent's | armcom (37.50) | 5 / 10 / 13 / 22 | 20 / 60 / 91 |
 | the opponent's | armck (36) | 5 / 9 / 13 / 22 | 21 / 62 / 95 |
 | the opponent's | armcv (54) | 7 / 13 / 22 / 22 | 14 / 42 / 65 |
+
+### Isidis crack 1.1
+
+- 7168 by 7168 elmos; wind 2 to 20; tidal 0; 0% under water; ground height 103 to 458.
+- 82 metal spots; a tier-1 extractor draws 1.84 / 1.84 / 1.84 metal a second (lowest / median / highest spot).
+- Starts: ours F3 (5144, 2014; 0 from ours).
+
+| Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
+|---|---|---|---|---|---|---|---|
+| ships | 0% | no ground on this map it can stand on | | | | | |
+
+| Start | Taken by (speed) | Spots within 30 / 60 / 90 / 120 s | Seconds to the 5th / 10th / 15th spot |
+|---|---|---|---|
+| ours | armcom (37.50) | 9 / 24 / 39 / 51 | 24 / 31 / 46 |
+| ours | armck (36) | 8 / 23 / 38 / 46 | 25 / 33 / 47 |
+| ours | armcv (54) | 11 / 35 / 53 / 69 | 17 / 26 / 33 |
 
 ### Quicksilver Remake 1.24
 
