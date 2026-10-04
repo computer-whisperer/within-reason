@@ -414,6 +414,10 @@ pub struct Shared {
     pub opening: Mutex<Opening>,
     /// The first turn of the game has ended, however it ended: the hands may ask and order.
     pub opening_over: std::sync::atomic::AtomicBool,
+    /// A player with one seat among several of ours: its commander unit's name (`commander_t2`), which the bare
+    /// `commander` then means in its tools (human-19: a seat's opening list was written to `commander`, accepted,
+    /// and dropped two seconds later for naming nobody; the hands opened with the plant and no extractor).
+    pub own_commander: Mutex<Option<String>>,
     /// This is the state of the side's commander (`command.rs`), not of a player: its tools are the commander's.
     pub commander: std::sync::atomic::AtomicBool,
     /// A player's: the side's state, when the game has a commander. The brain publishes there what it publishes
@@ -445,6 +449,14 @@ pub struct Opening {
 }
 
 impl Shared {
+    /// A builder's name as the player wrote it, with `commander` read as its one commander unit (`own_commander`).
+    pub fn actor_name(&self, name: &str) -> String {
+        match (name, self.own_commander.lock().unwrap().as_ref()) {
+            ("commander", Some(own)) => own.clone(),
+            _ => name.to_string(),
+        }
+    }
+
     /// The places named for this player's hands: its own marks and, under a commander, the side's (the same name
     /// to every seat; the side's wins a clash).
     pub fn marks_all(&self) -> BTreeMap<String, (f32, f32)> {

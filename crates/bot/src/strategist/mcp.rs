@@ -360,6 +360,11 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             let lists = arguments.as_object().filter(|o| !o.is_empty()).ok_or("queue takes an object: builder name (commander or constructor_N) to a list of steps, or null to cancel")?;
             let mut parsed: Vec<(String, Option<Vec<String>>)> = Vec::new();
             for (name, value) in lists {
+                let name = &shared.actor_name(name);
+                // Refused now, not accepted and dropped by the hands seconds into the game.
+                if let Some(own) = shared.own_commander.lock().unwrap().as_ref().filter(|own| name.starts_with("commander") && name != *own) {
+                    return Err(format!("{name}: your seat's commander is {own} (or `commander`); another seat's is its own player's"));
+                }
                 if !name.starts_with("commander") && !name.starts_with("constructor_") {
                     return Err(format!("{name}: lists are by builder name (commander, or commander_tN beside other seats of ours, or constructor_N)"));
                 }
@@ -572,8 +577,11 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 }
             }
             for (name, value) in lists {
+                let name = &shared.actor_name(name);
                 let factory = ["lab_", "plant_", "factory_"].iter().any(|p| name.starts_with(p));
-                if !matches!(name.as_str(), "all" | "all_builders" | "commander") && !factory && !name.starts_with("constructor_") {
+                // `commander_tN` beside other seats of ours: the bare word alone was let through, and a seat's tagged
+                // commander could be given no allowance.
+                if !matches!(name.as_str(), "all" | "all_builders") && !name.starts_with("commander") && !factory && !name.starts_with("constructor_") {
                     return Err(format!("{name}: lists are by actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" or \"all\""));
                 }
                 // A factory the picture does not name gets nothing (models-medium-gpt56-terra: five lists for "lab_1",
@@ -898,6 +906,18 @@ mod tests {
         }
         assert!(call_tool("queue", &json!({ "commander": "[\"assist\"]" }), &shared).unwrap().contains("1 steps"));
         assert!(call_tool("queue", &json!({ "commander": "assist" }), &shared).unwrap().contains("1 steps"));
+    }
+
+    /// A player with one seat among several of ours writes `commander` and means its own (human-19).
+    #[test]
+    fn a_single_seats_player_may_call_its_commander_by_the_bare_word() {
+        let shared = Arc::new(Shared::default());
+        *shared.own_commander.lock().unwrap() = Some("commander_t2".into());
+        call_tool("queue", &json!({ "commander": ["extractor", "solar"] }), &shared).unwrap();
+        assert_eq!(shared.queues.lock().unwrap().keys().cloned().collect::<Vec<_>>(), ["commander_t2"]);
+        call_tool("queue", &json!({ "commander_t2": ["solar"] }), &shared).unwrap();
+        assert_eq!(shared.queues.lock().unwrap().len(), 1);
+        assert!(call_tool("queue", &json!({ "commander_t1": ["solar"] }), &shared).unwrap_err().contains("your seat's commander is commander_t2"));
     }
 
     #[test]

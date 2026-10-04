@@ -375,6 +375,10 @@ impl Brain {
                 None => "its start is not known".to_string(),
             },
         };
+        // A player with this seat alone may call its one commander `commander`, whatever the seat's tag.
+        if self.seats_of_the_player() == 1 {
+            *shared.own_commander.lock().unwrap() = Some(self.commander_handle());
+        }
         let line = format!("{} (team {}): {faction}; {start}", self.commander_handle(), hello.team);
         shared.seat_said_hello(hello.team, self.seats_of_the_player(), line, self.map_before_the_game());
     }
