@@ -190,3 +190,28 @@ $0.49. The two games are different games, so the bills compare only loosely: thr
 - The `places` layer's own audit beside it: 14 faults of 238 (5.9%).
 - One pass row's `same` count wrapped below zero (an id that came twice in a gate's questions was counted twice as
   standing); fixed after the game.
+
+## 10. The products in the costliest games (`run/jev_products.py`)
+
+The three costliest games under the current layers: human-18 (three seats, $7.40, 32 min), player-54-experience
+($3.58, 34 min), 1v2-easy-1 ($2.53, 27.5 min).
+
+| Product | human-18 | player-54 | 1v2-easy-1 | Largest in one gate |
+|---|---|---|---|---|
+| The picture in the gate: every actor's entry in every request, a large gate split in up to 8 requests | 24.9% | 17.5% | 19.9% | 48 actors x 7 requests |
+| Groups x parties (a detachment of 1, 2, 4, 8 with its forbidden mark, the attack, the shelling) | 20.1% | 7.5% | 15.2% | 35 x 16, 597 questions; 1.9 to 3.4 questions a pair |
+| Groups x places (the walk and the advance) | 10.9% | 15.3% | 13.1% | 32 x 44 |
+| The pick (the picture again) | 15.4% | 15.1% | 16.1% | |
+| The decode (all of these once a packet) | 8.0% | 11.5% | 12.1% | |
+| A place, once a gate | 7.3% | 12.3% | 7.9% | |
+| Builders x types x spots, and builders x places | 4.2% | 10.8% | 3.8% | 23 x 48, 1,089 questions |
+| Groups x groups and builders (join, follow) | 2.6% | 3.7% | 5.5% | 27 x 48, 402 questions |
+
+The count of groups is the multiplier, and it is made of single soldiers. At human-18's costliest gate (27:31, 330,000
+tokens, 887 questions) the seat had 31 groups, 23 of them one soldier, and every one was asked about every party,
+place and other group (27 questions at the median). 1v2-easy-1 at 22:32: 24 groups, 12 of them one or two soldiers,
+34 questions each. player-54 at 25:00: 17 groups, 12 of one or two. A detachment is a group of its own from the
+moment it is sent, with the whole menu, and it stays one.
+
+The second multiplier is the request split: a gate of 887 questions goes out as 7 requests and each carries the
+picture, so the picture's cost follows the question count.
