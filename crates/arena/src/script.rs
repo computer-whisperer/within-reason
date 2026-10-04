@@ -60,6 +60,10 @@ pub struct MatchSetup<'a> {
     /// The enemy seats' AI as the engine knows it, `ShortName:Version` (`BARb:stable`); allied seats are always BARb.
     pub opponent: &'a str,
     pub opponent_profile: &'a str,
+    /// The other options of the opponent's and of BARb's `AIOptions.lua` at their defaults, as `key=value; ` runs:
+    /// a lobby writes every option, and an AI need not fall back to the default of one the script leaves out.
+    pub opponent_defaults: &'a str,
+    pub barb_defaults: &'a str,
     /// The lobby's bonus for our seats and for the enemy seats, in percent of income (`Handicap` in a team's
     /// section: +50 adds half again to the metal and energy the team receives, -50 halves it); 0 writes nothing.
     pub our_bonus: i32,
@@ -86,6 +90,11 @@ pub struct MatchSetup<'a> {
     /// Start positions chosen before the game (`place.rs`), per team in team order; none means the game's own placement.
     pub starts: Vec<(f32, f32)>,
 }
+
+/// Units a team may hold, as a lobby game has it (BAR's `maxunits` mod option, default 2000). A script without
+/// it plays at the engine's 32,000, and an AI that sizes anything off the limit plays another game (the Apex
+/// bot's author measured its factory quotas doing so).
+const MAX_UNITS: u32 = 2000;
 
 struct Seat {
     ai: String,
@@ -134,10 +143,10 @@ impl MatchSetup<'_> {
         // `random_seed` is read by BARb (CircuitAI.cpp) though the lobby does not offer it. It does NOT make BARb
         // repeatable: it draws from the C library's `rand()`, which the whole engine process shares, and the same seed
         // gave a bot lab in one run and a vehicle plant in the next. It is set so that the clock is at least not an input.
-        let seat = |name: &str, version: &str| format!("ShortName={name}; Version={version}; [OPTIONS] {{ profile={}; random_seed={}; disabledunits={}; }}", self.opponent_profile, self.seed, self.opponent_disabled_units);
-        let barb = seat("BARb", "stable");
+        let seat = |name: &str, version: &str, defaults: &str| format!("ShortName={name}; Version={version}; [OPTIONS] {{ profile={}; random_seed={}; disabledunits={}; {defaults}}}", self.opponent_profile, self.seed, self.opponent_disabled_units);
+        let barb = seat("BARb", "stable", self.barb_defaults);
         let (name, version) = self.opponent.split_once(':').unwrap_or((self.opponent, "stable"));
-        let enemy = seat(name, version);
+        let enemy = seat(name, version, self.opponent_defaults);
         let other_side = match (self.mirror, self.our_side) {
             (true, side) => side,
             (false, "Armada") => "Cortex",
@@ -189,6 +198,7 @@ impl MatchSetup<'_> {
 	NumTeams={teams};
 	NumAllyTeams={ally_teams};
 	[PLAYER0] {{ Name=arena; Spectator=1; }}
+	[MODOPTIONS] {{ maxunits={MAX_UNITS}; }}
 {sections}}}
 ",
             game = self.game,
@@ -207,7 +217,7 @@ mod tests {
 
     fn setup(ours: usize, allies: usize, enemies: usize, free_for_all: bool, we_are_first: bool) -> MatchSetup<'static> {
         MatchSetup {
-            game: "g", map: "m", opponent: "BARb:stable", opponent_profile: "medium", our_bonus: 0, enemy_bonus: 0, opponent_disabled_units: "", host_port: 1, autohost_port: 2, seed: 3,
+            game: "g", map: "m", opponent: "BARb:stable", opponent_profile: "medium", opponent_defaults: "", barb_defaults: "", our_bonus: 0, enemy_bonus: 0, opponent_disabled_units: "", host_port: 1, autohost_port: 2, seed: 3,
             ours, allies, enemies, free_for_all, boxes: Boxes::Corners, we_are_first, swap_corners: false, our_side: "Armada", mirror: false, starts: Vec::new(),
         }
     }
@@ -256,5 +266,18 @@ mod tests {
         let script = two.render();
         assert_eq!(script.matches("Handicap=-40;").count(), 2);
         assert!(script.contains("[TEAM0] { TeamLeader=0; AllyTeam=0; Side=Armada; }"));
+    }
+
+    /// The lobby's unit limit and each AI's other options at their defaults are written out.
+    #[test]
+    fn the_unit_limit_and_option_defaults_are_written() {
+        let mut one = setup(1, 1, 1, false, true);
+        one.opponent = "Apex:Unstable";
+        one.opponent_defaults = "cheating=0; ally_base=1; ";
+        one.barb_defaults = "comm_merge=0; ";
+        let script = one.render();
+        assert!(script.contains("[MODOPTIONS] { maxunits=2000; }"));
+        assert!(script.contains("ShortName=Apex; Version=Unstable; [OPTIONS] { profile=medium; random_seed=3; disabledunits=; cheating=0; ally_base=1; }"));
+        assert!(script.contains("ShortName=BARb; Version=stable; [OPTIONS] { profile=medium; random_seed=3; disabledunits=; comm_merge=0; }"));
     }
 }

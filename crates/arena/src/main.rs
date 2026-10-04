@@ -39,7 +39,7 @@ mod script;
 
 use std::fs::{self, File};
 use std::io::{self, Read, Seek, SeekFrom, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -273,6 +273,8 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         game: &game,
         map: &options.map,
         opponent: &options.opponent,
+        opponent_defaults: &option_defaults(repo, &options.opponent),
+        barb_defaults: &option_defaults(repo, "BARb:stable"),
         our_bonus: options.our_bonus,
         enemy_bonus: options.enemy_bonus,
         opponent_profile: &options.profile,
@@ -321,6 +323,7 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
     if cache_template.is_dir() {
         copy_tree(&cache_template, &dir.join("cache"))?;
     }
+    copy_state(&opponent_state(repo, &options.opponent), &dir.join(ai_dir(&options.opponent)));
     let script_path = dir.join("script.txt");
     fs::write(&script_path, setup.render())?;
 
@@ -419,6 +422,7 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         opponent_first_factory: first_factory(&dir),
         reason: fs::read_to_string(dir.join("stop")).map(|t| t.lines().skip(1).collect::<Vec<_>>().join(" ").trim().to_string()).unwrap_or_default(),
     };
+    copy_state(&dir.join(ai_dir(&options.opponent)), &opponent_state(repo, &options.opponent));
     if let Err(e) = record::finish(&dir, &result, &format!("{} {}", opponent_name(&options.opponent), options.profile)) {
         eprintln!("match {index}: could not close the match record: {e}");
     }
@@ -784,6 +788,59 @@ fn parse_args() -> Options {
 fn usage(problem: &str) -> ! {
     eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--player-model ID] [--brief standard|experience] [--objective TEXT] [--packet-example] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent NAME:VERSION] [--our-bonus N] [--enemy-bonus N] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N]");
     std::process::exit(2)
+}
+
+/// The directory of an AI (`ShortName:Version`) below `AI/Skirmish`.
+fn ai_dir(ai: &str) -> PathBuf {
+    let (name, version) = ai.split_once(':').unwrap_or((ai, "stable"));
+    Path::new("AI/Skirmish").join(name).join(version)
+}
+
+/// Every option of an AI's `AIOptions.lua` at its default, as `key=value; ` runs for the start script, without the
+/// ones the arena sets itself. Booleans are written 0 and 1 as a lobby does; an empty default is left out.
+fn option_defaults(repo: &Path, ai: &str) -> String {
+    let Ok(text) = fs::read_to_string(repo.join("run/engine").join(ai_dir(ai)).join("AIOptions.lua")) else { return String::new() };
+    let quoted = |line: &str| line.split_once('=').map(|(_, v)| v.split("--").next().unwrap_or("").trim().trim_end_matches(',').trim().trim_matches(|c| c == '\'' || c == '"').to_string());
+    let (mut depth, mut out) = (0i32, String::new());
+    let (mut key, mut kind, mut default) = (None::<String>, None::<String>, None::<String>);
+    for line in text.lines().map(str::trim).filter(|l| !l.starts_with("--")) {
+        let code = line.split("--").next().unwrap_or("");
+        // An option's own fields stand two braces deep: the table's, then the entry's (a list's items are deeper).
+        if depth == 2 {
+            match code.split('=').next().map(str::trim) {
+                Some("key") => key = quoted(code),
+                Some("type") => kind = quoted(code),
+                Some("def") => default = quoted(code),
+                _ => {}
+            }
+        }
+        depth += code.matches('{').count() as i32 - code.matches('}').count() as i32;
+        if depth == 1 {
+            if let (Some(key), Some(kind), Some(default)) = (key.take(), kind.take(), default.take()) {
+                let value = match default.as_str() { "true" => "1", "false" => "0", other => other };
+                if kind != "section" && !value.is_empty() && !["profile", "disabledunits", "random_seed"].contains(&key.as_str()) {
+                    out += &format!("{key}={value}; ");
+                }
+            }
+            (key, kind, default) = (None, None, None);
+        }
+    }
+    out
+}
+
+/// What an opponent keeps between games (the Apex bot's `apex-record.txt`, its exchange matrix): the arena gives
+/// every match a data directory of its own, so the files are brought in before the game and taken back after it,
+/// under `run/data/opponent-state/<ShortName>-<Version>`. Logs are not kept. Matches run side by side take the
+/// same start and the last to end is the one kept.
+fn opponent_state(repo: &Path, ai: &str) -> PathBuf {
+    repo.join("run/data/opponent-state").join(ai.replace(':', "-"))
+}
+
+fn copy_state(from: &Path, to: &Path) {
+    let Ok(entries) = fs::read_dir(from) else { return };
+    for entry in entries.flatten().filter(|e| e.path().is_file() && e.path().extension().is_none_or(|x| x != "log")) {
+        let _ = fs::create_dir_all(to).and_then(|()| fs::copy(entry.path(), to.join(entry.file_name())));
+    }
 }
 
 /// The opponent's name for the ledger and the record: its short name, with the version when it is not `stable`.
