@@ -222,6 +222,8 @@ pub(super) fn signal(arguments: &Value, shared: &Shared) -> Result<String, Strin
         }
         let at = match value {
             Value::Null => None,
+            // null as the model sometimes writes it, in a string (signal-rehearsal 3:20).
+            Value::String(s) if s.trim() == "null" => None,
             Value::String(s) if s.trim() == "now" => Some(frame),
             Value::String(s) => {
                 let (m, sec) = s.trim().split_once(':').ok_or(format!("{name}: \"now\" or a game clock such as \"6:00\""))?;
@@ -569,6 +571,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 }
                 let at = match value {
                     Value::Null => None,
+                    Value::String(null) if null.trim() == "null" => None,
                     Value::Array(xz) if xz.len() == 2 => {
                         let (x, z) = (xz[0].as_f64().ok_or(format!("{name}: [x, z] are numbers"))? as f32, xz[1].as_f64().ok_or(format!("{name}: [x, z] are numbers"))? as f32);
                         if width > 0.0 && (x < 0.0 || z < 0.0 || x > width || z > height) {
@@ -1037,6 +1040,12 @@ mod tests {
         assert!(call_tool("mark", &json!({ "x": "Z9" }), &shared).is_err());
         assert!(call_tool("mark", &json!({ "south_gate": null }), &shared).is_ok());
         assert!(!shared.marks.lock().unwrap().contains_key("south_gate"));
+        // null written in a string forgets a mark and a signal alike (signal-rehearsal 3:20, 4:50).
+        assert!(call_tool("mark", &json!({ "far_east": "null" }), &shared).is_ok());
+        assert!(!shared.marks.lock().unwrap().contains_key("far_east"));
+        assert!(call_tool("signal", &json!({ "go": "6:00" }), &shared).is_ok());
+        assert!(call_tool("signal", &json!({ "go": "null" }), &shared).is_ok());
+        assert!(shared.signals.lock().unwrap().is_empty());
     }
 
     /// The object form written as a JSON string is the object (human-21 13:57: it was cut at its commas and
