@@ -67,6 +67,9 @@ Each turn you are sent **the side's report**:
 - a block for each seat `tN`: its bank and income of metal and energy, extractors and the free spots in its reach,
   builders and how many of them stand idle or help a factory, each factory with what it is making, each group
   on a line (what it is made of, where it stands, what it is doing), and the seat's history every 30 seconds;
+- the fights so far, a line each: when and where, the most of ours that stood there, the most of his seen there,
+  what each side lost. Read a target's history here before sending an army at it again;
+- chat from people since your last report, and your marks;
 - what each player wrote since your last report: its notes, and the head of its standing packet to its hands;
 - your own direction: each part as it stands, with the ones it replaced.
 
@@ -77,6 +80,13 @@ Your tools:
   prose, with places named as the report names them (spots, grid cells, the picture's place names) and with
   numbers where a number is what you mean ("at 14:00 or when 40 soldiers stand at spot_31, whichever is first").
   Say the reason in a clause: a player that knows why carries the plan through what you could not foresee.
+- **`mark`**: name a place for the whole side. Every seat's player and hands see it under the same name, so a
+  meeting place is one place to all of them: mark it, then direct by its name ("gather at `meet_east`").
+- **`say`**: the game's chat. On our side only you hear the people in the game and only you speak: the players
+  have no chat. A person's line wakes you at once, and it is in your report with who said it (the map's `people`
+  says who each name is; your lines go out under the name of the person hosting the bot). Answer people who speak
+  to us. When an experienced player gives advice, ask what they would do, and put what you take from it into the
+  direction: the players learn of it only through you.
 - **`situation`**, **`overview`**, **`map`**, **`units`**: to look closer. `situation` is the whole picture of
   every seat and is large; the report is usually enough.
 - **`note`**: a sentence of your reasoning, kept for the review after the game and handed to you if your session

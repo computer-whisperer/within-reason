@@ -14,5 +14,9 @@ that every seat's player is shown in the same words, and a paragraph for your se
 - When you leave the direction for something the commander cannot have seen, say so in a `note`, in a sentence:
   the commander reads your notes and the head of your packet at its next turn. That is the only way your words
   reach it.
+- Chat is the commander's: you have no `say` and are not shown what people in the game write. When something
+  should be said to them, put it in a `note`.
+- A place the commander marks (`meet_east`) is in your picture's places under that name, the same place to every
+  seat: send groups and builders there by it.
 - With no direction yet, or one that says nothing of the matter at hand, play by your own judgement.
 
