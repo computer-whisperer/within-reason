@@ -2021,3 +2021,16 @@ user's word; unmeasured.
 **Would be wrong if.** Bodies still lose their order at a join, or a small group meant to lead a larger one to
 its place no longer can (the larger's course now wins).
 **Used by.** [[H-HANDS-JOIN-SYMMETRIC]].
+
+### K-jev-a-clock-condition-in-the-packet-is-not-followed
+**Claim.** Jev does not act on a time written in the packet by comparing it with the picture's clock. One moment
+of human-19 replayed offline (frame 9111, `group_B_t1.fight_to_his_base`, four asks an arm): under "At 6:00 on the
+game clock, not before, it attacks his buildings at his_base" the move read 0.25-0.28 with the clock at 5:03,
+0.27-0.31 at 6:00 and 0.27-0.29 at 6:30, the same as under "It never attacks his buildings at his_base"
+(0.26-0.29); naming `clock` among the question's givens changed nothing (0.25-0.33 at every clock). With the fact
+said in words it moved: "It is past 6:00 now: it attacks ..." 0.39-0.42, "It is not 6:00 yet" 0.28-0.29. "It
+attacks his buildings at his_base now" read 0.47-0.49 on this moment, so the whole range here is 0.27 to 0.48.
+**Status.** measured on one recorded moment (2026-10-03 night; `clock_test.py`, `clock_controls.py` in the
+session's scratchpad); the user's question whether a push launched at a timestamp would be followed.
+**Would be wrong if.** Other moments, or a clock condition posed some other way, separate before from after.
+**Used by.** (nothing yet: the joint push's go signal is undecided.)
