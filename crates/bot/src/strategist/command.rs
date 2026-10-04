@@ -213,6 +213,7 @@ pub(super) fn tool_list() -> Value {
         { "name": "say",
           "description": "Say something in the game's chat, to everyone playing. Chat is yours alone on our side: the players cannot speak or hear. Short lines: the game shows 127 characters a line, the bot prefixes `[WReason] ` (never write it yourself) and splits a longer text. Your lines go out under the name of the person hosting the bot (the map's `people`). When an experienced player offers advice or asks what we are doing, answer, ask what they would do, and put what you take from it into your direction.",
           "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "maxLength": 240 } } } },
+        super::mcp::surrender_tool(),
         { "name": "situation",
           "description": "The picture the players' hands read this second, every seat's together: economy, ours, enemy, places by name, every actor with what it is doing. Your report carries a summary; call this to read the whole of it. It is large.",
           "inputSchema": empty },
@@ -245,6 +246,7 @@ pub(super) fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> 
             }
             Ok(format!("your next report comes {} s of game after this one began", wake.max_seconds))
         }),
+        "surrender" => Some(super::mcp::surrender(arguments, shared)),
         "situation" | "overview" | "map" | "units" | "note" | "say" | "mark" => None,
         other => Some(Err(format!("{other} is not a tool of the commander's: you direct the players in words (`direct`); the units are theirs"))),
     }
@@ -551,6 +553,11 @@ mod tests {
             assert!(!tool_list().as_array().unwrap().iter().any(|t| t["name"] == tool));
         }
         assert!(call_tool("situation", &json!({}), &side).is_none());
+        // Giving the game up is the commander's, with a reason, and sets the side's flag for every seat.
+        assert!(call_tool("surrender", &json!({}), &side).unwrap().is_err());
+        assert!(!side.surrender.load(Ordering::Relaxed));
+        assert!(call_tool("surrender", &json!({ "reason": "no factory left, his army in our base" }), &side).unwrap().is_ok());
+        assert!(side.surrender.load(Ordering::Relaxed));
         assert!(call_tool("wait", &json!({ "max_seconds": 5 }), &side).unwrap().unwrap().contains("30 s"));
     }
 }

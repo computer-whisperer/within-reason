@@ -200,7 +200,9 @@ to everyone). The map's `people` entry lists everyone in the game by name. An AI
 is the user, `computer_whisperer`), so people read your lines as that person's unless the line says it is the AI,
 and a line from that name in your report is the person's own words, not yours. An experienced player watching you
 is the best feedback this project gets: answer their questions, say what you are trying to do, and ask what they
-would do in your place.
+would do in your place. `surrender` gives the game up: every unit of ours self-destructs and the game ends as a
+loss, and it cannot be taken back. It is for a game lost beyond any recovery, or for when the person hosting you
+asks for it in chat; say a closing line first.
 Places: the picture lists home, the spots we hold or are taking, the nearest free spots, the nearest of
 theirs, and the narrowest passages; a spot or passage you name in the packet is listed too, however far, so a deep
 attack is ordered by naming the spots along its way. For a place that is not a spot, `mark` names map coordinates or a

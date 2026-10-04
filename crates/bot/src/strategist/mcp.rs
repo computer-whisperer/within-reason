@@ -82,7 +82,7 @@ fn handle(call: &Value, shared: &Arc<Shared>, transcript: &Transcript) -> Option
             super::command::tool_list()
         } else if shared.side.get().is_some() {
             // Under a commander chat is the commander's.
-            Value::Array(tool_list().as_array().into_iter().flatten().filter(|t| t["name"] != "say").cloned().collect())
+            Value::Array(tool_list().as_array().into_iter().flatten().filter(|t| t["name"] != "say" && t["name"] != "surrender").cloned().collect())
         } else {
             tool_list()
         } })),
@@ -196,10 +196,28 @@ fn tool_list() -> Value {
             { "name": "say",
               "description": "Say something in the game's chat, to everyone playing. Short lines: the game shows 127 characters a line, the bot prefixes `[WReason] ` to each (never write it yourself) and splits a longer text into lines that fit. The report shows what people say to you; when an experienced player offers advice or asks what you are doing, answer, and ask them what they would do: their feedback is what this project learns from.",
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "maxLength": 240 } } } },
+            surrender_tool(),
             orders(&["instruct", "queue", "lane", "mark", "produce", "remove", "transfer", "say", "note", "wait"], "your instructions or policy, build lists, footwork settings, marked places, what labs may build, removals, a chat line, a note and when to be woken"),
             wait("A group of ours starts fighting an enemy party.", "Woken when this many soldiers of each named unit type are alive, e.g. {\"armham\": 6}. {} clears it."),
             note,
     ])
+}
+
+/// The `surrender` tool, the player's and the commander's alike.
+pub(super) fn surrender_tool() -> Value {
+    json!({ "name": "surrender",
+        "description": "Give the game up: every unit of ours self-destructs within seconds and the game ends as a loss. It cannot be taken back. Only when the game is lost beyond any recovery (no factory and no means to build one, or an army and economy a small fraction of his with his army in our base), or when the person hosting us asks for it in chat. Say a closing line in chat first (`say`), then call this with the reason.",
+        "inputSchema": { "type": "object", "additionalProperties": false, "required": ["reason"], "properties": { "reason": { "type": "string" } } } })
+}
+
+/// The `surrender` tool's work, on the caller's own state.
+pub(super) fn surrender(arguments: &Value, shared: &Shared) -> Result<String, String> {
+    let reason = arguments["reason"].as_str().map(str::trim).filter(|r| !r.is_empty()).ok_or("surrender needs its reason under \"reason\"")?;
+    let time = shared.briefing().game_time;
+    shared.notes.lock().unwrap().push(format!("[{time}] surrendered: {reason}"));
+    shared.surrender.store(true, Ordering::Relaxed);
+    eprintln!("[strategist] surrender at {time}: {reason}");
+    Ok("surrendered: every unit of ours is self-destructing and the game will end. Nothing more is needed from you".into())
 }
 
 /// What `orders` may batch.
@@ -248,6 +266,8 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
         if let Some(outcome) = super::command::call_tool(name, arguments, shared) {
             return outcome;
         }
+    } else if name == "surrender" && shared.side.get().is_some() {
+        return Err("giving the game up is the commander's in this game. Write a `note` when you think it is lost: the commander reads it".into());
     } else if name == "say" && shared.side.get().is_some() {
         return Err("chat is the commander's in this game: it hears the people and answers them. Write a `note` when there is something it should say".into());
     } else if !tool_list().as_array().is_some_and(|tools| tools.iter().any(|t| t["name"] == name)) {
@@ -547,6 +567,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             }
             Ok(format!("marked: {}; your hands see the place from their next look", said.join("; ")))
         }
+        "surrender" => surrender(arguments, shared),
         "say" => {
             let text = arguments["text"].as_str().map(str::trim).filter(|t| !t.is_empty()).ok_or("say needs text")?;
             let text: String = text.chars().take(240).collect();
@@ -860,7 +881,7 @@ mod tests {
     #[test]
     fn the_player_has_its_lever_and_none_of_the_commanders() {
         let player: Vec<String> = tool_list().as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap().to_string()).collect();
-        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "produce", "transfer", "remove", "say", "orders", "wait", "note"]);
+        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "produce", "transfer", "remove", "say", "surrender", "orders", "wait", "note"]);
         for tool in batchable() {
             assert!(player.contains(&tool.to_string()));
         }

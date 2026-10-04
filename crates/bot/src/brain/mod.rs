@@ -143,6 +143,8 @@ pub struct Brain {
     /// Chat lines of ours not yet seen back from the engine, which echoes every line as a chat event from our own
     /// host player (human-1: the player was woken by its own "gl hf").
     said: Vec<String>,
+    /// Units told to self-destruct for a surrender: the engine's order is a toggle, so each is told once.
+    conceded: std::collections::HashSet<UnitId>,
     /// The frame of the last chat line that was not our own echo (the wake reads it; comet-2: the banner's echo woke the player).
     heard_chat_at: i32,
     /// Buildings `forget_razed_buildings` dropped this tick, for the team board.
@@ -306,6 +308,7 @@ impl Brain {
             yard_warned: HashSet::new(),
             nano_guards: HashMap::new(),
             said: Vec::new(),
+            conceded: std::collections::HashSet::new(),
             heard_chat_at: -1,
             razed: Vec::new(),
             enemy_factories_gone: Vec::new(),
@@ -386,6 +389,23 @@ impl Brain {
         }
     }
 
+    /// The `surrender` tool: once the player (or, under a commander, the commander) has given the game up, every
+    /// unit of this seat self-destructs, the commander unit among them, which ends the seat in any game-end mode.
+    /// (human-21: asked by the host to surrender, the commander answered that it had no way to; human-22: it had
+    /// to direct each player to destruct its commander unit, and waited for their turns.)
+    fn concede(&mut self, tick: &Tick, commands: &mut Vec<Command>) {
+        use std::sync::atomic::Ordering::Relaxed;
+        let Some(shared) = &self.strategist else { return };
+        if !shared.surrender.load(Relaxed) && !shared.side.get().is_some_and(|side| side.surrender.load(Relaxed)) {
+            return;
+        }
+        for unit in &tick.snapshot.own_units {
+            if self.conceded.insert(unit.id) {
+                commands.push(Command::SelfDestruct { unit: unit.id });
+            }
+        }
+    }
+
     /// A line this seat is about to say by itself (its banner, its hands' line): its echo is not chat, to this
     /// seat's player or, under a commander, to the side (human-19: the banners of both seats reached the commander
     /// as four lines of chat from the host, and the hands' line woke it at 1:34).
@@ -454,6 +474,7 @@ impl Brain {
         let mut commands = Vec::new();
         self.tend_nanos(tick, &mut commands);
         self.relay_chat(tick, &mut commands);
+        self.concede(tick, &mut commands);
         // The game names AIs at random (ai_namer.lua), so the bot says who it is, once the engine takes orders.
         if tick.frame >= 2 * FRAMES_PER_SECOND
             && let Some(banner) = self.banner.take()

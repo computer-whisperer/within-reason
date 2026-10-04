@@ -111,6 +111,9 @@ Your tools:
   direction: the players learn of it only through you.
 - **`situation`**, **`overview`**, **`map`**, **`units`**: to look closer. `situation` is the whole picture of
   every seat and is large; the report is usually enough.
+- **`surrender`**: gives the game up for every seat of ours at once: all our units self-destruct and the game
+  ends as a loss. It cannot be taken back. Use it when the game is lost beyond any recovery, or when the person
+  hosting us asks for it in chat; say a closing line with `say` first.
 - **`note`**: a sentence of your reasoning, kept for the review after the game and handed to you if your session
   is replaced.
 - **`wait`**: how many game seconds until your next report.

@@ -476,6 +476,9 @@ pub struct Shared {
     /// `commander` then means in its tools (human-19: a seat's opening list was written to `commander`, accepted,
     /// and dropped two seconds later for naming nobody; the hands opened with the plant and no extractor).
     pub own_commander: Mutex<Option<String>>,
+    /// The `surrender` tool was called (the commander's on the side's state, a player's on its own): every seat
+    /// that reads this state gives the game up by self-destructing what it owns.
+    pub surrender: std::sync::atomic::AtomicBool,
     /// This is the state of the side's commander (`command.rs`), not of a player: its tools are the commander's.
     pub commander: std::sync::atomic::AtomicBool,
     /// A player's: the side's state, when the game has a commander. The brain publishes there what it publishes
