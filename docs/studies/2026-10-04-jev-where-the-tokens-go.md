@@ -215,3 +215,33 @@ moment it is sent, with the whole menu, and it stays one.
 
 The second multiplier is the request split: a gate of 887 questions goes out as 7 requests and each carries the
 picture, so the picture's cost follows the question count.
+
+## 11. Two menu cuts for groups, replayed (`run/jev_group_menus.py`)
+
+**A short menu for small groups** (keeps `change`, `hold`, the moves against parties and the joins; drops the walks
+and advances to places, the shelling of places, detachments of its own, the rove, the gather, the follows):
+
+| Game | For a detachment of 8 or fewer | Their played moves shut | For a group of 1 or 2 | Their played moves shut |
+|---|---|---|---|---|
+| human-18 | 1.8% of the game | 84 of 165 | 3.9% | 131 of 406 |
+| 1v2-easy-1 | 14.3% | 282 of 505 | 7.7% | 175 of 391 |
+| player-54-experience | 6.4% | 106 of 216 | 7.3% | 134 of 424 |
+| going-2 | 5.9% | 135 of 269 | 8.9% | 182 of 596 |
+
+What is shut is mostly walks to places (27 to 89 a game), follows, gathers and detachments of detachments. The
+army itself often carries a `split_from` from long ago, so origin alone does not mark a detachment; size does.
+
+Asking a group of 1 or 2 only about its nearest party saves 0.6 to 3.2% more and shuts 4 to 16 of 33 to 60 plays;
+its two nearest, 0.2 to 2.3% and 0 to 8.
+
+**Joins and follows with the nearest groups only**: 1 to 3% of the game at the three nearest, shutting 69 to 165 of
+311 to 436 played (20 to 53%). The joins the pick plays go to far groups about as often as near ones; rank by
+distance is not what it chooses by. Not worth building.
+
+**Where the group cost sits, by size** (all of a group's questions, share of the game): human-18: over 20 soldiers
+12.8%, 9-20 7.2%, 3-8 7.4%, 1-2 8.6%; 1v2-easy-1: 3-8 14.7%, 1-2 11.2%, over 20 6.6%, 9-20 4.7%. So small groups are
+a third to two thirds of the group cost, not all of it (§10 said "the multiplier": at the costliest gates, yes; over
+the game, in part).
+
+**Groups against parties by question** (human-18 / 1v2-easy-1, share of the game): the detachment ladder (1, 2, 4, 8)
+10.0% / 6.8%; the whole-group attack 4.9% / 3.5%; shelling 3.8% / 0.5%; the forbidden mark 1.4% / 4.4%.
