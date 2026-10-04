@@ -267,6 +267,38 @@ pub struct PartyRegistry {
     pub next: usize,
 }
 
+impl PartyRegistry {
+    /// The name for a party of `ids` that the last picture did not name: the one most of its units were last in,
+    /// unless another party has it in this picture; else a fresh number.
+    pub fn name_for(&mut self, ids: &[bot_protocol::UnitId], taken: &[String]) -> String {
+        let mut votes: BTreeMap<&String, usize> = BTreeMap::new();
+        for id in ids {
+            if let Some(name) = self.by_unit.get(id).filter(|name| !taken.contains(name)) {
+                *votes.entry(name).or_default() += 1;
+            }
+        }
+        match votes.into_iter().max_by_key(|(_, n)| *n) {
+            Some((name, _)) => name.clone(),
+            None => {
+                self.next += 1;
+                format!("party_{}", self.next)
+            }
+        }
+    }
+
+    /// A party as it stands in this picture. A name is the units it was last seen as: a unit that carried the name
+    /// and is not among them has left it, and cannot bring the name to another party later. (human-21: `party_4`
+    /// was four Blitzes raiding our base at 4:27; the rest of the group they had left stood in his half still
+    /// carrying the name, took it when the raiders passed out of sight, and the packet's "attack party_4" sent
+    /// seven Incisors west at 4:50 while the raiders, now `party_11`, killed the plant.)
+    pub fn record(&mut self, name: &str, ids: &[bot_protocol::UnitId]) {
+        self.by_unit.retain(|id, held| held != name || ids.contains(id));
+        for id in ids {
+            self.by_unit.insert(*id, name.to_string());
+        }
+    }
+}
+
 /// Lockstep turns: the brain asks for a turn and holds the game (its reply to the engine) until the turn is over.
 #[derive(Default)]
 pub struct Gate {
@@ -696,6 +728,28 @@ pub struct Side {
 
 #[cfg(test)]
 mod tests {
+    /// A name stays with the units last seen under it: the part of a group that walked off out of sight does not
+    /// take the name over when the named part passes out of sight in its turn.
+    #[test]
+    fn a_party_name_does_not_pass_to_the_units_that_left_it() {
+        use bot_protocol::UnitId;
+        let mut registry = super::PartyRegistry::default();
+        let all: Vec<UnitId> = (1..=7).map(UnitId).collect();
+        let name = registry.name_for(&all, &[]);
+        registry.record(&name, &all);
+        // Four of them come to our base and are seen there alone, still under the name.
+        let raiders = &all[..4];
+        assert_eq!(registry.name_for(raiders, &[]), name);
+        registry.record(&name, raiders);
+        // The three left behind are seen later, the raiders out of sight: a fresh name.
+        let rest = &all[4..];
+        let other = registry.name_for(rest, &[]);
+        assert_ne!(other, name);
+        registry.record(&other, rest);
+        // The raiders seen again are the name's still.
+        assert_eq!(registry.name_for(raiders, &[]), name);
+    }
+
     use super::*;
     use std::sync::atomic::Ordering::Relaxed;
 

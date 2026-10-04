@@ -1980,3 +1980,18 @@ and start exists to say what the commander cost.
 **Would be wrong if.** With the history and the fights in its report the commander still writes a correction a
 turn, or Sonnet alone on this seed does no better.
 **Used by.** [[H-COMMANDER-SEAT]], [[H-COMMANDER-FIGHTS]].
+
+### K-hands-a-party-name-passed-to-other-units
+**Claim.** A party name could pass from one group of his units to another, and the player's packet, which names
+parties, then sent a body at the wrong one. human-21 (the hands' log, `parties` by the second): `party_4` was three
+then four Blitzes at our base from 4:20 to 4:30; at 4:32 they were out of sight for a second and a constructor in
+his half (unit 13963), which still carried `party_4` in the registry from long before, took the name; the raiders
+seen again at 4:33 found it taken and became `party_11`. The player's packet written from the 4:27 report said
+"group_B attacks party_4 now"; it landed at 4:43, and at 4:50 the hands played `group_B.attack_party_4` against a
+constructor and three Blitzes at B2 while `party_11` killed the vehicle plant (5:01). Beside it: the packet in
+force until 4:43 said the body "never comes home ... after lone raiders", the player's turn took 16 s, and the
+commander's direction landing at 5:13 sent the recalled body west again; it fought nowhere.
+**Status.** observed and traced in one game (2026-10-03 night); the registry fixed, unit-tested, unmeasured in play.
+**Would be wrong if.** A name still moves between groups after the fix (the per-seat overlap with the last picture
+is a second path, unchanged).
+**Used by.** [[H-HANDS-PARTY-NAME-STAYS]].

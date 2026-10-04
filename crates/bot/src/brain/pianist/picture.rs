@@ -438,25 +438,11 @@ impl Brain {
         match registry {
             Some(mut registry) => {
                 for party in parties.iter_mut().filter(|p| p.name.is_empty()) {
-                    let mut votes: BTreeMap<String, usize> = BTreeMap::new();
-                    for id in &party.ids {
-                        if let Some(name) = registry.by_unit.get(id) && !taken.contains(name) {
-                            *votes.entry(name.clone()).or_default() += 1;
-                        }
-                    }
-                    party.name = match votes.into_iter().max_by_key(|(_, n)| *n) {
-                        Some((name, _)) => name,
-                        None => {
-                            registry.next += 1;
-                            format!("party_{}", registry.next)
-                        }
-                    };
+                    party.name = registry.name_for(&party.ids, &taken);
                     taken.push(party.name.clone());
                 }
                 for party in &parties {
-                    for id in &party.ids {
-                        registry.by_unit.insert(*id, party.name.clone());
-                    }
+                    registry.record(&party.name, &party.ids);
                 }
             }
             None => {
