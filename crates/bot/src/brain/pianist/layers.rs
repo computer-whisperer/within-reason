@@ -25,10 +25,13 @@ pub(super) fn split_audit_share() -> f64 {
     *SHARE.get_or_init(|| std::env::var("WITHIN_REASON_SPLIT_AUDIT").ok().and_then(|v| v.parse().ok()).unwrap_or(AUDIT_SHARE))
 }
 /// The layers of the design note, in its order, and those that exist.
-const KNOWN: [&str; 9] = ["news", "same", "fuse", "openers", "split", "tick", "places", "one", "local"];
-const BUILT: [&str; 7] = ["news", "same", "fuse", "openers", "split", "tick", "places"];
+const KNOWN: [&str; 10] = ["news", "same", "fuse", "openers", "split", "tick", "places", "again", "one", "local"];
+const BUILT: [&str; 8] = ["news", "same", "fuse", "openers", "split", "tick", "places", "again"];
 /// The `tick` layer: a gate that no event calls for waits until this long after the last one.
 pub(super) const TICK: i32 = 2 * FRAMES_PER_SECOND;
+/// How old an answer may be to stand for an actor asked again only because something of its opened (the `again`
+/// layer).
+pub(super) const AGAIN: i32 = 3 * FRAMES_PER_SECOND;
 /// The `places` layer: a place whose question came back at this or over has its moves asked (the question-cuts
 /// study, `docs/studies/2026-10-02-jev-question-cuts.md` §3: at 0.3 the place question kept 24 of 25 places with
 /// a recorded move at 0.5 and 69 of 83 where an idle actor's move was at 0.3, for 53% of the place-aimed questions).
@@ -76,12 +79,15 @@ pub(crate) struct Layers {
     /// asked with the openers; a move of an actor's own aimed at a place is asked only while the place's question
     /// said yes (`PLACE_BAR`) at its last ask, and the second after it does.
     pub places: bool,
+    /// An actor asked again only because a place or an opener of its opened is asked what is new alone: its
+    /// questions answered under `AGAIN` ago are not sent again and those answers stand.
+    pub again: bool,
 }
 
 impl Layers {
     pub(super) fn parse(value: Option<&str>) -> Result<Layers, String> {
-        let Some(value) = value.map(str::trim).filter(|v| !v.is_empty()) else { return Ok(Layers { news: true, same: false, fuse: false, openers: false, split: false, tick: false, places: false }) };
-        let mut layers = Layers { news: false, same: false, fuse: false, openers: false, split: false, tick: false, places: false };
+        let Some(value) = value.map(str::trim).filter(|v| !v.is_empty()) else { return Ok(Layers { news: true, same: false, fuse: false, openers: false, split: false, tick: false, places: false, again: false }) };
+        let mut layers = Layers { news: false, same: false, fuse: false, openers: false, split: false, tick: false, places: false, again: false };
         for name in value.split(',').map(str::trim).filter(|n| !n.is_empty() && *n != "none") {
             match name {
                 "news" => layers.news = true,
@@ -91,6 +97,7 @@ impl Layers {
                 "split" => layers.split = true,
                 "tick" => layers.tick = true,
                 "places" => layers.places = true,
+                "again" => layers.again = true,
                 _ if KNOWN.contains(&name) => return Err(format!("the hands' layer `{name}` is not built yet (built: {})", BUILT.join(", "))),
                 _ => return Err(format!("`{name}` is not a layer of the hands (the layers: {})", KNOWN.join(", "))),
             }
@@ -104,7 +111,7 @@ impl Layers {
 
     /// The layers that are on, for the log's header.
     pub(super) fn names(&self) -> Vec<&'static str> {
-        [(self.news, "news"), (self.same, "same"), (self.fuse, "fuse"), (self.openers, "openers"), (self.split, "split"), (self.tick, "tick"), (self.places, "places")].into_iter().filter(|(on, _)| *on).map(|(_, name)| name).collect()
+        [(self.news, "news"), (self.same, "same"), (self.fuse, "fuse"), (self.openers, "openers"), (self.split, "split"), (self.tick, "tick"), (self.places, "places"), (self.again, "again")].into_iter().filter(|(on, _)| *on).map(|(_, name)| name).collect()
     }
 }
 
@@ -154,13 +161,17 @@ pub(super) fn news(menus: &mut [Menu], asked: &BTreeMap<String, Asked>, news: &N
             continue;
         }
         let Some(before) = asked.get(&menu.name) else { continue };
-        let named = news.events.iter().any(|e| e.strip_prefix(menu.name.as_str()).is_some_and(|rest| rest.starts_with(' ')));
+        let mine = || news.events.iter().filter_map(|e| e.strip_prefix(menu.name.as_str()).and_then(|rest| rest.strip_prefix(' ')));
+        let named = mine().next().is_some();
         let outside = match menu.kind {
             Kind::Group(_) => false,
             Kind::Builder(_) => news.store,
             Kind::Factory(_) => news.store || news.afford,
         };
-        if before.course == course(menu) && before.party == menu.near_party && news.frame - before.frame < RE_ASK && !named && !outside {
+        let calm = before.course == course(menu) && before.party == menu.near_party && news.frame - before.frame < RE_ASK && !outside;
+        // Its only news is that something of its opened at the last gate: the gate goes again for what opened.
+        menu.reopened = calm && named && mine().all(|rest| rest == "opened");
+        if calm && !named {
             menu.quiet = true;
             if draw() < AUDIT_SHARE {
                 menu.audit = true;
@@ -285,38 +296,78 @@ pub(super) fn counts(state: &serde_json::Value) -> u64 {
     hasher.finish()
 }
 
-/// What the `same` layer made of a gate's questions: those to send, the answers it lets stand for the rest, and
-/// the audited ones (sent anyway) with the answer it would have let stand.
+/// An answer a layer let stand for a question it audited: the answer, and the layer (`same` or `again`).
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct Stood {
+    pub noul: f64,
+    pub layer: &'static str,
+}
+
+/// What the `same` and `again` layers made of a gate's questions: those to send, the answers they let stand for
+/// the rest, the audited ones (sent anyway) with the answer that stood, and how many stand by `again`.
 pub(super) struct Same {
     pub send: Vec<(String, Question)>,
     pub stand: BTreeMap<String, Answer>,
-    pub audited: BTreeMap<String, f64>,
+    pub audited: BTreeMap<String, Stood>,
+    pub again: usize,
 }
 
 /// The `same` layer (H-HANDS-LAYERS): a noul whose words are exactly those of its last ask, asked under `RE_ASK`
 /// ago over the same `counts`, is not sent; its last answer stands for it. The rest of the picture beside the
 /// question has moved on, which is the layer's bet: asked again as recorded, an unchanged question's answer
-/// crosses 0.5 in 0.1 to 0.7% of asks (`docs/studies/2026-10-01-jev-token-budget.md`). A share of `AUDIT_SHARE` of
-/// what it would skip is sent anyway and set beside the standing answer; the standing answer is the one played.
-pub(super) fn same(questions: Vec<(String, Question)>, said: &HashMap<String, Said>, counts: u64, frame: i32, draw: &mut dyn FnMut() -> f64) -> Same {
-    let mut out = Same { send: Vec::new(), stand: BTreeMap::new(), audited: BTreeMap::new() };
+/// crosses 0.5 in 0.1 to 0.7% of asks (`docs/studies/2026-10-01-jev-token-budget.md`).
+///
+/// The `again` layer: a noul answered under `AGAIN` ago stands whatever its words when `again` says its actor is
+/// asked this gate only because something of its opened at the last one (`Menu::reopened`): the gate goes again
+/// for the moves that opened, and those alone are sent. As first built the second gate sent the actor's whole
+/// menu again: in going-opus-1 416 such gates repeated 12,855 questions of the second before (6.0% of the game's
+/// tokens), whose answers moved 0.02 at the median and crossed 0.5 in 2.1%
+/// (K-jev-the-gate-after-an-opening-asked-the-second-before-again).
+///
+/// A share of `AUDIT_SHARE` of what either would skip is sent anyway and set beside the standing answer; the
+/// standing answer is the one played.
+pub(super) fn same(questions: Vec<(String, Question)>, said: &HashMap<String, Said>, counts: u64, frame: i32, words: bool, again: &dyn Fn(&str) -> bool, draw: &mut dyn FnMut() -> f64) -> Same {
+    let mut out = Same { send: Vec::new(), stand: BTreeMap::new(), audited: BTreeMap::new(), again: 0 };
     for (id, question) in questions {
-        match said.get(&id).filter(|s| frame - s.frame < RE_ASK && s.words == words_of(&question, counts)) {
-            Some(before) => {
+        let before = said.get(&id);
+        let layer = if words && before.is_some_and(|s| frame - s.frame < RE_ASK && s.words == words_of(&question, counts)) {
+            Some("same")
+        } else if before.is_some_and(|s| frame - s.frame <= AGAIN) && again(&id) {
+            Some("again")
+        } else {
+            None
+        };
+        match (layer, before) {
+            (Some(layer), Some(before)) => {
                 out.stand.insert(id.clone(), Answer::Noul { noul: before.noul });
+                out.again += usize::from(layer == "again");
                 if draw() < AUDIT_SHARE {
-                    out.audited.insert(id.clone(), before.noul);
+                    out.audited.insert(id.clone(), Stood { noul: before.noul, layer });
                     out.send.push((id, question));
                 }
             }
-            None => out.send.push((id, question)),
+            _ => out.send.push((id, question)),
         }
     }
     out
 }
 
+/// Whose questions the `again` layer lets stand this gate: those of an actor that is asked again only because
+/// something of its opened (a question's id starts with its actor's name), and a place's question when every
+/// actor it is asked for (`compose::place_questions`) is such an actor.
+pub(super) fn reopened(menus: &[Menu]) -> impl Fn(&str) -> bool + '_ {
+    |id| {
+        let Some((name, rest)) = id.split_once('.') else { return false };
+        if rest == "place" {
+            let mut movers = menus.iter().filter(|m| m.asks_own() && m.moves.iter().skip(1).any(|mv| !mv.fused && !mv.held && mv.party.is_none() && mv.place().as_deref() == Some(name)));
+            return movers.clone().next().is_some() && movers.all(|m| m.reopened);
+        }
+        menus.iter().any(|m| m.reopened && m.name == name)
+    }
+}
+
 /// Remembers a gate's fresh nouls for the `same` layer, and forgets what is too old to stand.
-pub(super) fn remember(said: &mut HashMap<String, Said>, questions: &BTreeMap<String, Question>, answers: &BTreeMap<String, Answer>, skip: &BTreeMap<String, f64>, counts: u64, frame: i32) {
+pub(super) fn remember(said: &mut HashMap<String, Said>, questions: &BTreeMap<String, Question>, answers: &BTreeMap<String, Answer>, skip: &BTreeMap<String, Stood>, counts: u64, frame: i32) {
     said.retain(|_, s| frame - s.frame < RE_ASK);
     for (id, question) in questions {
         if let Some(Answer::Noul { noul }) = answers.get(id)
@@ -345,11 +396,12 @@ mod tests {
 
     #[test]
     fn the_layers_are_named_and_an_unbuilt_one_stops_the_start() {
-        let none = Layers { news: false, same: false, fuse: false, openers: false, split: false, tick: false, places: false };
+        let none = Layers { news: false, same: false, fuse: false, openers: false, split: false, tick: false, places: false, again: false };
         assert_eq!(Layers::parse(None), Ok(Layers { news: true, ..none.clone() }));
         assert_eq!(Layers::parse(Some("news")), Ok(Layers { news: true, ..none.clone() }));
         assert_eq!(Layers::parse(Some("none")), Ok(none.clone()));
-        assert_eq!(Layers::parse(Some("news, same,fuse,openers,tick")), Ok(Layers { news: true, same: true, fuse: true, openers: true, split: false, tick: true, places: false }));
+        assert_eq!(Layers::parse(Some("news, same,fuse,openers,tick")), Ok(Layers { news: true, same: true, fuse: true, openers: true, split: false, tick: true, places: false, again: false }));
+        assert_eq!(Layers::parse(Some("again")), Ok(Layers { again: true, ..none.clone() }));
         assert_eq!(Layers::parse(Some("places")), Ok(Layers { places: true, ..none.clone() }));
         assert_eq!(Layers::parse(Some("split")), Ok(Layers { split: true, ..none.clone() }));
         assert!(Layers::parse(Some("news,one")).unwrap_err().contains("not built yet"));
@@ -425,18 +477,27 @@ mod tests {
         remember(&mut said, &asked, &answers, &BTreeMap::new(), at, 300);
         said.get_mut("a.old").unwrap().frame = 300 - RE_ASK;
         let next = vec![("a.go_x".to_string(), q("walks to x (near)")), ("a.go_y".to_string(), q("walks to y (some way off)")), ("a.old".to_string(), q("old")), ("a.new".to_string(), q("new"))];
-        let out = same(next.clone(), &said, at, 330, &mut || 0.5);
+        let none = |_: &str| false;
+        let out = same(next.clone(), &said, at, 330, true, &none, &mut || 0.5);
         assert_eq!(out.send.iter().map(|(id, _)| id.as_str()).collect::<Vec<_>>(), ["a.go_y", "a.old", "a.new"]);
         assert_eq!(out.stand, [("a.go_x".to_string(), Answer::Noul { noul: 0.7 })].into());
         assert!(out.audited.is_empty());
         // A second extractor stands, or the store's word changed: nothing stands.
         for moved in [counts(&picture(2, "171 of 1650 stored (low)")), counts(&picture(1, "900 of 1650 stored (plenty in store)"))] {
-            let fresh = same(next.clone(), &said, moved, 330, &mut || 0.5);
+            let fresh = same(next.clone(), &said, moved, 330, true, &none, &mut || 0.5);
             assert!(fresh.stand.is_empty() && fresh.send.len() == 4);
         }
-        let audit = same(next, &said, at, 330, &mut || 0.001);
+        let audit = same(next.clone(), &said, at, 330, true, &none, &mut || 0.001);
         assert_eq!(audit.send.len(), 4, "the audited question is sent anyway");
-        assert_eq!(audit.audited, [("a.go_x".to_string(), 0.7)].into());
+        assert_eq!(audit.audited, [("a.go_x".to_string(), Stood { noul: 0.7, layer: "same" })].into());
+        // The `again` layer: an actor asked again because something of its opened keeps the answers of the gate
+        // before whatever their words; what was never asked or is older than `AGAIN` is sent.
+        let mine = |id: &str| id.starts_with("a.");
+        let out = same(next.clone(), &said, at, 330, false, &mine, &mut || 0.5);
+        assert_eq!(out.send.iter().map(|(id, _)| id.as_str()).collect::<Vec<_>>(), ["a.old", "a.new"]);
+        assert_eq!((out.stand.len(), out.again), (2, 2));
+        assert_eq!(same(next.clone(), &said, at, 300 + AGAIN + 1, false, &mine, &mut || 0.5).send.len(), 4, "too old to stand");
+        assert_eq!(same(next, &said, at, 330, false, &mine, &mut || 0.001).audited["a.go_y"], Stood { noul: 0.2, layer: "again" });
         // What stood is not remembered afresh: it expires by its own ask.
         remember(&mut said, &asked, &answers, &audit.audited, at, 330);
         assert_eq!(said["a.go_x"].frame, 300);
@@ -469,6 +530,27 @@ mod tests {
         assert!(!closed(idle, &asked, &calm(330)).0, "an idle actor is asked at every gate");
         let hit: BTreeSet<String> = ["constructor_3 hit".to_string()].into();
         assert!(!closed(builder(), &asked, &News { events: &hit, ..calm(330) }).0, "an event names it");
+        let reopened = |events: &[&str]| {
+            let events: BTreeSet<String> = events.iter().map(|e| e.to_string()).collect();
+            let mut menus = vec![builder()];
+            news(&mut menus, &asked, &News { events: &events, ..calm(330) }, &mut || 0.5);
+            (menus[0].reopened, super::reopened(&menus)("constructor_3.go_x"), super::reopened(&menus)("constructor_30.go_x"))
+        };
+        assert_eq!(reopened(&["constructor_3 opened"]), (true, true, false), "its only news is an opening");
+        {
+            // A place's question stands with its actors: every actor with a move there is asked again for an opening.
+            let events: BTreeSet<String> = ["constructor_3 opened".to_string()].into();
+            let mut menus = vec![builder(), group()];
+            news(&mut menus, &asked, &News { events: &events, ..calm(330) }, &mut || 0.5);
+            let places: Vec<String> = menus.iter().flat_map(|m| m.moves.iter().filter_map(|mv| mv.place())).collect();
+            for place in &places {
+                let asked_for: Vec<&Menu> = menus.iter().filter(|m| m.asks_own() && m.moves.iter().any(|mv| mv.place().as_deref() == Some(place))).collect();
+                assert_eq!(super::reopened(&menus)(&format!("{place}.place")), !asked_for.is_empty() && asked_for.iter().all(|m| m.reopened), "{place}");
+            }
+            assert!(!super::reopened(&menus)("nowhere.place"));
+        }
+        assert_eq!(reopened(&["constructor_3 opened", "constructor_3 hit"]), (false, false, false), "an event of its own beside the opening asks it whole");
+        assert_eq!(reopened(&["constructor_30 opened"]), (false, false, false));
         let other: BTreeSet<String> = ["constructor_30 hit".to_string(), "group_A hit".to_string()].into();
         assert!(closed(builder(), &asked, &News { events: &other, ..calm(330) }).0, "another actor's event");
         assert!(!closed(builder(), &asked, &News { orders: true, ..calm(330) }).0, "the orders changed");

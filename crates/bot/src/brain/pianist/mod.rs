@@ -308,7 +308,7 @@ struct Follow {
     /// The answers the `same` layer lets stand for the questions it did not send, and those it sent anyway for
     /// its audit with the answer that stands for each.
     stand: BTreeMap<String, jev::Answer>,
-    audited: BTreeMap<String, f64>,
+    audited: BTreeMap<String, layers::Stood>,
     /// The `split` layer is on: the pick is asked per component in one request.
     split: bool,
 }
@@ -358,7 +358,7 @@ struct Pending {
     picture: picture::Picture,
     menus: Vec<menu::Menu>,
     request: jev::Request,
-    audited: BTreeMap<String, f64>,
+    audited: BTreeMap<String, layers::Stood>,
 }
 
 /// What a gate takes when it goes: put back when it fails.
@@ -992,7 +992,9 @@ impl Brain {
         let asked_whole = questions.len();
         let same = {
             let pianist = self.pianist.as_ref().expect("pianist mode");
-            if pianist.layers.same { layers::same(questions, &pianist.said, layers::counts(&picture.state), frame, &mut compose::draw) } else { layers::Same { send: questions, stand: BTreeMap::new(), audited: BTreeMap::new() } }
+            let reopened = layers::reopened(&menus);
+            let again = |id: &str| pianist.layers.again && reopened(id);
+            layers::same(questions, &pianist.said, layers::counts(&picture.state), frame, pianist.layers.same, &again, &mut compose::draw)
         };
         let questions = same.send;
         let sig = format!("{}|{eco}|{}", layers::signature(&menus, parties), self.pianist.as_ref().expect("pianist mode").packet_frame);
@@ -1044,7 +1046,7 @@ impl Brain {
         if !closed.is_empty() {
             line["closed"] = json!(closed);
         }
-        line["layers"] = json!({ "news": { "on": pianist.layers.news, "skipped": skipped, "audited": audited }, "same": { "on": pianist.layers.same, "skipped": same.stand.len() - same.audited.len(), "audited": same.audited.len() }, "fuse": { "on": pianist.layers.fuse, "skipped": fused, "audited": fuse_audited }, "openers": { "on": pianist.layers.openers, "skipped": held, "audited": held_audited }, "places": { "on": pianist.layers.places, "skipped": blanked, "audited": blanked_audited } });
+        line["layers"] = json!({ "news": { "on": pianist.layers.news, "skipped": skipped, "audited": audited }, "same": { "on": pianist.layers.same, "skipped": same.stand.len() - same.again - same.audited.values().filter(|s| s.layer == "same").count(), "audited": same.audited.values().filter(|s| s.layer == "same").count() }, "again": { "on": pianist.layers.again, "skipped": same.again - same.audited.values().filter(|s| s.layer == "again").count(), "audited": same.audited.values().filter(|s| s.layer == "again").count() }, "fuse": { "on": pianist.layers.fuse, "skipped": fused, "audited": fuse_audited }, "openers": { "on": pianist.layers.openers, "skipped": held, "audited": held_audited }, "places": { "on": pianist.layers.places, "skipped": blanked, "audited": blanked_audited } });
         line["menus"] = compose::log_menus(&menus);
         line["gate"] = json!(questions.iter().map(|(id, _)| id.clone()).collect::<Vec<_>>());
         if !events.is_empty() {
@@ -1147,7 +1149,7 @@ impl Brain {
     /// The gate's answer: logged, and what followed it (the worlds and the pick's two calls) played. A gate that
     /// failed puts back what it took, so that it is asked again at the next second; every actor keeps its course.
     #[allow(clippy::too_many_arguments)]
-    fn gate_answered(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, menus: Vec<menu::Menu>, same_audited: &BTreeMap<String, f64>, request: &jev::Request, result: Result<jev::Response, jev::Error>, followed: Option<Followed>, commands: &mut Vec<Command>) {
+    fn gate_answered(&mut self, tick: &Tick, kit: &Kit, picture: &picture::Picture, menus: Vec<menu::Menu>, same_audited: &BTreeMap<String, layers::Stood>, request: &jev::Request, result: Result<jev::Response, jev::Error>, followed: Option<Followed>, commands: &mut Vec<Command>) {
         let response = match result {
             Ok(response) => response,
             Err(e) => {
@@ -1169,7 +1171,7 @@ impl Brain {
         let noul = |id: &str| followed.flags.get(id).copied().or_else(|| fresh(id));
         let mut audits: Vec<serde_json::Value> = same_audited
             .iter()
-            .filter_map(|(id, stood)| fresh(id).map(|fresh| json!({ "t": "audit", "f": tick.frame, "layer": "same", "id": id, "assumed": stood, "fresh": fresh, "fault": (fresh >= compose::FLAG) != (*stood >= compose::FLAG) })))
+            .filter_map(|(id, stood)| fresh(id).map(|fresh| json!({ "t": "audit", "f": tick.frame, "layer": stood.layer, "id": id, "assumed": stood.noul, "fresh": fresh, "fault": (fresh >= compose::FLAG) != (stood.noul >= compose::FLAG) })))
             .collect();
         audits.extend(menus
             .iter()
