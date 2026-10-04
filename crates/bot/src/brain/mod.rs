@@ -170,6 +170,9 @@ pub struct Brain {
     abandoned_now: HashMap<UnitId, f32>,
     /// Every enemy unit's type once seen, so a killer that has left sight still has a name.
     enemy_defs: HashMap<UnitId, UnitDefId>,
+    /// What each other team has been seen to field: team to (faction prefix to the units of it seen), and the
+    /// faction of its commander unit once seen (`briefing.rs` `seen_faction`).
+    factions_seen: HashMap<i32, (HashMap<&'static str, std::collections::HashSet<UnitId>>, Option<&'static str>)>,
     /// Where each enemy was last seen, for the place of its death (`briefing.rs` `publish_death`).
     enemy_places: HashMap<UnitId, Vec3>,
     /// This minute's fight ledger for the log: "lost X to Y near home" and "killed Y", with counts.
@@ -321,6 +324,7 @@ impl Brain {
             abandoned_now: HashMap::new(),
             enemy_defs: HashMap::new(),
             enemy_places: HashMap::new(),
+            factions_seen: HashMap::new(),
             fight_ledger: Default::default(),
             trade_log: Vec::new(),
             enemy_deaths: Vec::new(),

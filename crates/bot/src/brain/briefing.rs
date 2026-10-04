@@ -97,6 +97,17 @@ impl Brain {
                 self.enemy_defs.insert(enemy.id, def);
             }
             self.enemy_places.insert(enemy.id, enemy.pos);
+            // What each team fields, by its units' names (`sides`): a person picks the faction at the start, after
+            // the script was written.
+            if let (Some(team), Some(def)) = (enemy.team, enemy.def.and_then(|d| self.world.def(d)))
+                && let Some(faction) = ["arm", "cor", "leg"].into_iter().find(|p| def.name.starts_with(p))
+            {
+                let seen = self.factions_seen.entry(team).or_default();
+                seen.0.entry(faction).or_default().insert(enemy.id);
+                if self.world.is_commander_def(enemy.def.expect("matched above")) {
+                    seen.1 = Some(faction);
+                }
+            }
         }
         for event in &tick.events {
             if let Event::EnemyDestroyed { enemy } = event {
@@ -486,6 +497,14 @@ impl Brain {
         }
     }
 
+    /// The faction a team has been seen to field: its commander unit's when that was seen, else the one most of
+    /// its units seen belong to (a resurrected unit of ours fights for him under our faction's name).
+    fn seen_faction(&self, team: i32) -> Option<String> {
+        let (counts, commander) = self.factions_seen.get(&team)?;
+        let prefix = commander.or_else(|| counts.iter().max_by_key(|(_, ids)| ids.len()).map(|(p, _)| *p))?;
+        Some(match prefix { "arm" => "Armada", "cor" => "Cortex", _ => "Legion" }.to_string())
+    }
+
     /// Every ally team of the game with its seats in words, ours first (from the start script's controllers).
     pub(super) fn sides(&self) -> Vec<crate::strategist::shared::Side> {
         use bot_protocol::Controller;
@@ -523,7 +542,15 @@ impl Brain {
                             if t.ally_team == hello.ally_team { "faction in the seats line".to_string() } else { "faction chosen at start (Random in the lobby)".to_string() }
                         } else {
                             let mut side = t.side.chars();
-                            side.next().map(|c| c.to_ascii_uppercase().to_string() + side.as_str()).unwrap_or_default()
+                            let lobby = side.next().map(|c| c.to_ascii_uppercase().to_string() + side.as_str()).unwrap_or_default();
+                            // The lobby's word stands only until the seat's units are seen (human-19, human-22:
+                            // "Armada" all game of a person who took Cortex at the start).
+                            match self.seen_faction(t.team) {
+                                Some(seen) if seen == lobby => lobby,
+                                Some(seen) => format!("{seen} by the units seen (the lobby said {lobby}: a person may change faction at the start)"),
+                                None if t.ally_team != hello.ally_team && matches!(t.controller, Controller::Person { .. }) => format!("{lobby} in the lobby (a person may change faction at the start; none of its units seen yet)"),
+                                None => lobby,
+                            }
                         };
                         let colour = t.color.map(|c| format!(", {} in the lobby's colours", colour_name(c))).unwrap_or_default();
                         if side.is_empty() { format!("{who}{colour}") } else { format!("{who}, {side}{colour}") }
