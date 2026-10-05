@@ -14,7 +14,11 @@ the actors the request's questions name), `no buildings` (`enemy.buildings_seen`
 factory, commander, allies and wind sentences only when an actor of that kind is asked about), `no rules`.
 Arms on the questions: `no given` (the "Given `actors.x`, ...:" opening), `facts once` (a fight's facts said in the
 course and again in the move: the second replaced by "(as said above)"; `facts built` is the rule the bot has), `short forbidden` (the forbidden question
-without the move's odds), `preamble in state` (the pick's shared paragraph once, under `choosing`).
+without the move's odds), `preamble in state` (the pick's shared paragraph once, under `choosing`), `preambles once`
+(a question's opening, up to "The move:", when two questions or more of the request open with it: said once under
+`said_once` and named in the question by its mark), `clauses once` (the same for every clause over 40 characters that
+the request says twice or more), `maxims to rules` (the place and party questions' closing "no when ..." sentence said
+once in the rules).
 Orders (`order ...`, `ORDERS`): the same picture with its sections in another order than the bot's.
 Placebos, which remove nothing: `placebo order` (the picture's sections in reverse order), `placebo words` (one line
 added that bears on nothing). An arm that moves answers no more than these does what any change of the request does.
@@ -90,6 +94,53 @@ def preamble_in_state(q):
         out[k] = {**v, "instructions": "Given `economy`, `ours`, `enemy`, `actors`, `player`, the player's `instructions` and `choosing`, which plan is best this second? " + v["instructions"][m.end():]} if m else v
     return out
 
+CLAUSE = re.compile(r"(?<=[:;.?]) ")
+MARK = re.compile(r"\[(c[0-9a-f]{5})\]")
+SAID = {}
+HOW = "A mark such as [c1a2b3] in a question stands for the words under that mark here; read the question with them in its place."
+
+def mark_of(text):
+    import hashlib
+    tag = "c" + hashlib.md5(text.encode()).hexdigest()[:5]
+    SAID[tag] = text
+    return tag
+
+def preambles_once(q):
+    def head(text):
+        i = text.find(" The move: ")
+        return text[:i + 10] if i >= 0 else CLAUSE.split(text)[0]
+    n = collections.Counter(head(v["instructions"]) for v in q.values())
+    out = {}
+    for k, v in q.items():
+        h = head(v["instructions"])
+        out[k] = {**v, "instructions": f"[{mark_of(h)}]" + v["instructions"][len(h):]} if n[h] >= 2 and len(h) > 40 else v
+    return out
+
+def clauses_once(q):
+    n = collections.Counter(p for v in q.values() for p in set(CLAUSE.split(v["instructions"])))
+    return {k: {**v, "instructions": " ".join(f"[{mark_of(p)}]" if n[p] >= 2 and len(p) > 40 else p for p in CLAUSE.split(v["instructions"]))} for k, v in q.items()}
+
+MAXIMS = {
+    " No when nothing there needs doing now or the instructions send everyone elsewhere.": "A question about a place is no when nothing there needs doing now or the instructions send everyone elsewhere.",
+    " no when a turret handles it, it is leaving, or the instructions say to leave such a party.": "A question whether a party needs answering is no when a turret handles it, it is leaving, or the instructions say to leave such a party.",
+}
+
+def maxims_out(q):
+    out = {}
+    for k, v in q.items():
+        text = v["instructions"]
+        for m in MAXIMS: text = text.replace(m, "")
+        out[k] = {**v, "instructions": text}
+    return out
+
+def maxims_in_rules(state, q, orig):
+    used = [rule for m, rule in MAXIMS.items() if any(m in v["instructions"] for v in orig.values())]
+    return {**state, "rules": state.get("rules", "") + "".join(" " + r for r in used)} if used else state
+
+def said_once(state, q, orig):
+    marks = sorted({m for v in q.values() for m in MARK.findall(v["instructions"])})
+    return {**state, "said_once": {"how to read": HOW, **{m: SAID[m] for m in marks}}} if marks else state
+
 def choosing(state, q, orig):
     for v in orig.values():
         m = PICK_HEAD.match(v["instructions"])
@@ -158,7 +209,7 @@ same = lambda q: q
 keep = lambda state, q, orig: state
 ARMS = {
     "recorded": (same, keep), "recorded 2": (same, keep), "no given": (no_given, keep), "facts once": (facts_once, keep), "facts built": (facts_built, keep), "short forbidden": (short_forbidden, keep),
-    "preamble in state": (preamble_in_state, choosing), "no roving": (same, no_roving), "asked actors": (same, asked_actors),
+    "preamble in state": (preamble_in_state, choosing), "preambles once": (preambles_once, said_once), "clauses once": (clauses_once, said_once), "maxims to rules": (maxims_out, maxims_in_rules), "no roving": (same, no_roving), "asked actors": (same, asked_actors),
     "no buildings": (same, no_buildings), "no scouting": (same, no_scouting), "rules by kind": (same, rules_by_kind), "no rules": (same, no_rules),
     "placebo order": (same, placebo_order), "bot order": (same, bot_order), "placebo words": (same, placebo_words),
 }

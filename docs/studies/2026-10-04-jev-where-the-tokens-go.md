@@ -245,3 +245,27 @@ the game, in part).
 
 **Groups against parties by question** (human-18 / 1v2-easy-1, share of the game): the detachment ladder (1, 2, 4, 8)
 10.0% / 6.8%; the whole-group attack 4.9% / 3.5%; shelling 3.8% / 0.5%; the forbidden mark 1.4% / 4.4%.
+
+## 12. The 8 against 8 bill, and two cuts that did not hold (2026-10-04 night)
+
+glitters-8v8-hard-1: 155.8M tokens, $6.54 over eight seats. Cut four new ways (the script is not kept; the figures
+are scaled from characters as `run/jev_bill.py` does):
+
+| | tokens | of the bill |
+|---|---|---|
+| clauses over 40 characters said twice or more inside one gate | 31.1M | 20% |
+| the rules, on every request | 22.7M | 15% |
+| the picture in gates of 20 questions or fewer (3,790 of 10,229 gates) | 14.3M | 9% |
+| picks in which nothing was taken (2,358 of 5,197) | 12.4M | 8% |
+| gates after which no actor changed course (7,441) | 73.8M | 47% |
+
+Answers by family: a place 72% under 0.2 and 5% at 0.5 or over; group x place 60% and 3%; builder x party 90% and
+0%; builder x type x spot 50% and 1%; group x party 36% and 29%. The walk to a party does not separate the party
+questions: "far" is answered at 0.5 or over 25% of the time, "right here" 33%.
+
+**Skipping the pick on the gate's rating: not built.** K-jev-the-gates-rating-does-not-foretell-the-pick
+(`run/jev_pick_predict.py`): the ratings sit at 0.5 to 0.6 and the pick takes half of those.
+
+**Words said once: does not hold.** K-jev-does-not-read-a-mark-for-words-said-once: the marks save 10 to 16% of a
+gate and the forbidden answers collapse. What holds is small: the "Given ...:" opening dropped (5.1%, the openers
+move 1.3 points) and the closing "no when ..." sentence of the place and party questions said in the rules (2.2%).
