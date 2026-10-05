@@ -83,7 +83,7 @@ the bot process can be killed and restarted mid-game without stalling the match.
 The bot process, which sees everything the brain sees, writes a JSON Lines record per match (`crates/bot/src/recorder.rs`,
 format in `docs/harness/record-format.md`): state samples once a game second, engine events, commands, and decision
 records in one source-agnostic shape (source, frame, inputs, outputs, latency) fed by the brain's journal
-(`brain/journal.rs`). `viewer/` is a static page that replays it beside the LLM transcript and the census.
+(`brain/journal.rs`). `viewer/` is a static page that replays every seat's record beside the commander's and the players' transcripts, the hands' logs and the opponent's truth.
 Chose-because: the shim and the protocol stay untouched, and the record is complete for our side by construction.
 Rejected: parsing the engine's `.sdfz` (it re-simulates in the engine and holds none of our decisions); scraping `bot.log`
 (free text, per-minute granularity).

@@ -23,7 +23,7 @@ a web page and knows nothing of our decisions; the record names it (`result.repl
 | `t` | When | Fields |
 |---|---|---|
 | `header` | first tick | `format` ("within-reason-record"), `version`, `ai_id`, `team`, `ally_team`, `side` (first three letters of our first unit's name: `arm`, `cor`), `mode` (`heuristic`, `strategist`, `commander`, `pianist`, `player`: the pianist with an Opus player over it), `start_frame`, `seats` [{`team`, `ally_team`, `side`, `controller`: "Unknown" | {`Person`: {name, skill}} | {`Ai`: {name, short_name, version, profile}}}] (who plays every seat, from the start script; records from 2026-09-23 on), `first_tick_frame`, `frames_per_second`, `sample_frames`, `tick_frames` (frames between ticks; absent before 2026-09-20 evening, when it was 15), `wall_start` (unix s), `map` {`name`, `width`, `height`, `wind_min`, `wind_max`, from 2026-09-28 `tidal`}, `start_pos_type` (the script's, from 2026-09-28; `script.txt` beside the record holds the whole start script of every game from then), `grid` {`columns`, `rows`} (the A-H / 1-8 cells of `World::grid`), `metal_spots` [[x, z, amount]] (amount: from 2026-10-03 evening, marked by the header's `metal_spots_amount`: "worth", the patch's worth, its squares' metal times the map's `maxMetal`, so that amount times an extractor's `extracts_metal` is what it draws a second; before that the engine's own figure for its spot point, a raw sum round a point off the patch and without the scale, 2,295 on Comet Catcher where the worth is 1,900; records before 2026-09-20 lack it; from 2026-09-23 the position is the metal-weighted centroid of the patch's squares, not the engine's spot point, H-ECO-SPOT-CENTROID; from 2026-09-24 the game's own list (`mex_count`/`mex_x<i>`/`mex_z<i>` rules params) when the game publishes one, which the replay cards use too, so their spot numbers match), `unit_defs` [{`id` (engine's), `name`, `class`, `metal`, `energy`, `speed`, `weapons`; from 2026-09-28 `tidal_make`, `sonar_range`, `hits_submerged`, `water_only` (the sea: what a tidal generator makes, what a sonar sees, whether any or every weapon is a water weapon; a `submerges` field stood in records of 2026-09-28 only: the engine's isAbleToSubmerge is true for seaplanes and false for submarines); and, in records from 2026-09-20 on, the numbers the build-order simulator reads: `build_time`, `build_speed`, `build_distance`, `builds` [engine ids], `extracts_metal`, `metal_make`, `energy_make`, `energy_upkeep` (negative for solar collectors), `wind_cap`, `metal_storage`, `energy_storage`, `radar_range` (records from 2026-09-20 evening on), `footprint` [xsize, zsize in 8-elmo squares], `death_blast` and `selfd_blast` [radius, damage] or null, `selfd_seconds` (records from 2026-09-22 late night on), `reach` and `reload` (the range and seconds between shots of the type's longest ordinary weapon, manual-fire weapons such as the D-gun left out; 0 unarmed; records from 2026-09-24 on), `blast_radius` (the largest area of effect among its ordinary weapons, a radius as the engine gives it: the Fatboy 150 where its unit file says 300, the Bull 65, the Stout 24; records from 2026-09-28 on), `converter` [energy/s taken, metal per energy] or null, `move` [kind as in `move_classes`, max_slope, depth, slope_mod (records from 2026-09-20 night on)] or null}], `siblings` {`bot_log`, `engine_log`, `replay` (glob), `decision_logs` [file names; the LLM transcript when a session runs]} |
-| `s` | every `sample_frames` (30) | state sample. `m`, `e`: [current, income, usage, storage]. `own`: [[id, def, x, z, health %, flags]], flags 1 being built, 2 idle, 4 attacker (committed wave), 8 in a commander's squad. `en`: enemies in sight or radar [[id, def, x, z, health, being built 0/1]] (absolute health; the protocol has no maximum for enemies; the sixth field from 2026-09-28 on, records before it have five). `al`: allied units (other seats of ours, other players on our side) [[id, def, x, z, team, being built]]; each seat of ours writes its own record, and any one of them shows the whole side through this. `dmg`: [[own unit id, damage taken since the last sample]]. `ms`: slowest `Brain::decide` since the last sample, wall milliseconds (in lockstep mode this includes the commander's thinking time). `late`: the most frames a tick of the interval was sent after it fell due, waiting for the bot's previous answer (always 0 in lockstep; absent before 2026-09-20 evening). `lane`: [claims ended, path walked while held, net displacement, reversals over ninety degrees] summed over the control lane's claims that ended since the last sample (the milling instrument, H-HANDS-LANE; absent when none ended). The fire instrument (records from 2026-09-24 on; `run/fire.py` reads it): `dealt`: [[own unit id, damage it dealt to enemies since the last sample]] (the engine's enemy-damaged event, sent to the attacker's own team only and only while the enemy is in sight or on radar, so a replay's spectator seat gets none); `shots`: [[own unit id, shots fired]] (the weapon-fired event); `ff`: [[own unit id, damage it did to our own side]] (friendly fire: the engine refuses a shot across a friend, `avoidFriendly`, but a shell already flying and any splash still land); `xo`: [[our type, enemy type, damage]] our hits on them by type pair; `xi`: [[enemy type, our type, damage]] their hits on us (-1 for a type never seen: fire from out of sight). Types are indices into `unit_defs`, as `d` `xf` (records from 2026-09-24 evening on): friendly fire by type pair [[shooter's type, victim's type, damage]], the victims the `ff` totals by shooter do not name. |
+| `s` | every `sample_frames` (30) | state sample. `m`, `e`: [current, income, usage, storage]. `own`: [[id, def, x, z, health %, flags]], flags 1 being built, 2 idle (4 and 8 were the heuristic army's attacker and squad roles; the recorder is passed no roles since that bot was deleted, so they are never set). `en`: enemies in sight or radar [[id, def, x, z, health, being built 0/1]] (absolute health; the protocol has no maximum for enemies; the sixth field from 2026-09-28 on, records before it have five). `al`: allied units (other seats of ours, other players on our side) [[id, def, x, z, team, being built]]; each seat of ours writes its own record, and any one of them shows the whole side through this. `dmg`: [[own unit id, damage taken since the last sample]]. `ms`: slowest `Brain::decide` since the last sample, wall milliseconds (in lockstep mode this includes the commander's thinking time). `late`: the most frames a tick of the interval was sent after it fell due, waiting for the bot's previous answer (always 0 in lockstep; absent before 2026-09-20 evening). `lane`: [claims ended, path walked while held, net displacement, reversals over ninety degrees] summed over the control lane's claims that ended since the last sample (the milling instrument, H-HANDS-LANE; absent when none ended). The fire instrument (records from 2026-09-24 on; `run/fire.py` reads it): `dealt`: [[own unit id, damage it dealt to enemies since the last sample]] (the engine's enemy-damaged event, sent to the attacker's own team only and only while the enemy is in sight or on radar, so a replay's spectator seat gets none); `shots`: [[own unit id, shots fired]] (the weapon-fired event); `ff`: [[own unit id, damage it did to our own side]] (friendly fire: the engine refuses a shot across a friend, `avoidFriendly`, but a shell already flying and any splash still land); `xo`: [[our type, enemy type, damage]] our hits on them by type pair; `xi`: [[enemy type, our type, damage]] their hits on us (-1 for a type never seen: fire from out of sight). Types are indices into `unit_defs`, as `d` `xf` (records from 2026-09-24 evening on): friendly fire by type pair [[shooter's type, victim's type, damage]], the victims the `ff` totals by shooter do not name. |
 | `end` | when the engine closes the connection | from 2026-10-03 night: `f` the last frame ticked, `own_units` what this seat had then, `why` the read error. The bot's own last row; in the arena the referee's `result` row follows it, in a game with people nothing does (no referee: who won is not in the record). |
 | `ev` | as they happen | engine event. `k`: `created` (+`by` builder id), `finished` (+`facing`: the engine's building facing, 0 south +z, 1 east, 2 north, 3 west; a factory's units leave through its front; records from 2026-09-22 late night on), `destroyed` (+`by` attacker id, `by_d` its type), `move_failed`, `enemy_seen`, `enemy_lost`, `enemy_destroyed`, `no_site` (+`what` def), `rejected` (+`code`), `chat` (+`player`, `text`: a line from a person in the game), and from 2026-09-27 evening `given` and `taken` (+`from_team`, `to_team`: a unit that came to this seat from another team, or left it; the transfer tool, a capture). `u` unit id, `d` its type, `x`, `z` its last known place (0, 0 when never seen). Not recorded singly: `UnitIdle` (it is a flag) and `UnitDamaged` (summed into `dmg`) |
 | `cmd` | ticks with commands | `c`: [["build", unit, def, x, z] or ["build", unit, def] for a factory, ["move", unit, x, z], ["fight", unit, x, z], ["stop", unit], ["repeat", unit, 0 or 1], ["guard", unit, target unit], ["repair", unit, target unit], ["reclaim", unit, x, z, radius] (an area; records before 2026-09-20 only), ["reclaim_feature", unit, feature], ["resurrect", unit, feature], ["say", text] (the game chat: the bot's banner at its first orders), ["attack", unit, target unit] (a turret, deliberately, or the unit an `attack_unit` group was given), ["movestate", unit, 0 hold position / 1 manoeuvre / 2 roam] (air groups hold by it, docs/design/2026-09-22-domains.md); from the duel harness only: ["give", def, x, z], ["selfdestruct", unit], ["firestate", unit, 0 hold fire / 1 return fire / 2 fire at will]; from 2026-09-27 evening (H-PLAYER-TRANSFER, H-HANDS-DGUN): ["send_resources", metal, energy, to team], ["send_units", [unit ids], to team], ["dgun", unit, target unit]] |
@@ -43,6 +43,9 @@ One shape for every decision source, so a new layer slots in without a format ch
 | `source` | `kind` | `inputs` / `outputs` |
 |---|---|---|
 | `heuristic` | `rules` | outputs: {heuristic ID (docs/heuristics.md): firings} over the sample interval ending at `f`. Same counts as the `rules:` line of `bot.log`, per second instead of per minute |
+| `plan` | `builder`, `lab`, `group` | the hands' play the pick put in force (the rebuilt hands, 2026-10-02 on). inputs {`actor`, `move` (the move's id, `<actor>.<verb>_<what>`)}; outputs {`did` (a sentence)} |
+| `plan` | `worlds` | one per pick. inputs {`components`}; outputs {`changed` ["actor: what"], `split` (as the Jev log's `plan` row)} |
+| `list` | `builder`, `lab` | a step of the player's build list begun by code. inputs {`actor`, `step`}; outputs {`did`} |
 | `heuristic` | `wave` | inputs {`home_group`}; outputs {`wave`, `target` {grid, x, z}, `first_stop`} |
 | `heuristic` | `contact` | H-ARMY-CONTACT, when the number answering a party changes. inputs {`party` (units), `metal`, `at` [x, z], `forced` (at the lab or the commander), `within_reach` (soldiers asked about), `burned_if_nobody` (metal, the simulator's)}; outputs {`sent`, `worth` (metal gained over sending nobody), `caught` (share of runs)} |
 | `heuristic` | `scout` | H-SCOUT-ROUTE, a raider sent on a route. inputs {`unit`, `route` ([x, z] per spot)}; outputs {`squares` (grid names)} |
@@ -61,8 +64,9 @@ should write through the same journal with its own `source` (`Note::source`; `Jo
 sets it); the record header names it under `siblings.decision_logs`. JSON Lines; readers skip a torn last line.
 - `{"t":"header","format":"within-reason-jev","version":1|2|3,"ai_id","model","interval_frames","rules"}` first: `rules` is
   the standing text every call's picture carried (it is left out of the calls).
-- `{"t":"call","f","ms","model","usage":{input_tokens,...},"retries","state","questions","answers","played","groups","places","parties"}`
-  per request: `state` is the picture without `instructions` and `rules`; `instructions` (the player's packet) is a
+- `{"t":"call","f","ms","model","usage":{input_tokens,...},"retries","batches","state","questions","answers","groups","places","parties"}`
+  per request (`batches`: how many requests a large gate was split into, each carrying the picture; `rules` is a
+  field of the call only when the standing text changed; `played` stood here in version 1 only): `state` is the picture without `instructions` and `rules`; `instructions` (the player's packet) is a
   field of the call only when it changed since the last logged call, so a reader carries it forward; `questions` and
   `answers` are the API's own shapes (`docs/harness/jev.md`); `played` is one entry per menu answered, the decision
   record's fields plus `kept` (a busy actor held its course); `groups` [{`name`, `members` [unit ids], `at` [x, z],
@@ -143,7 +147,21 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   are logged as before and an audit line reads `{"layer": "split", "split": [move ids taken], "joint": [move ids of
   the joint pick's world], "joint_confidence", "fault"}` (a fault: the two sets differ). `WITHIN_REASON_SPLIT_AUDIT`
   sets that share (default 0.02).
-Size: 15-30 KB a call (3-6k tokens of state and questions), 20-60 calls a minute: 25 MB for a 20-minute game. Logs from
+  Later layers, as the logs of 2026-10-04 stand (read off `crates/bot/src/brain/pianist/mod.rs` and the logs): the
+  pass line's `layers` holds `news`, `same`, `again`, `fuse`, `openers`, `places`, `near`, each {`on`, `skipped`,
+  `audited`}. The `places` layer: the gate asks `<place>.place` once a place, a move whose place said no carries
+  `blanked: true`, and its audit reads `{"layer": "places", "id", "place", "fresh", "fault"}`. The `again` layer's
+  audits read as `same`'s with `"layer": "again"`. The `near` layer (code, H-HANDS-NEAR-BUILDER) sets `fused: true`
+  on the moves it shuts: the menus do not carry its own mark (`far`), so a reader cannot tell a move `near` shut from
+  one the decode fused except by the audit rows (`{"layer": "near", "id", "assumed", "fresh", "fault"}`) and the
+  absence of a decode reading under the fuse bar. A `shed` line (`{"t": "shed", "f", "shed"}`) says what the
+  picture dropped to fit its size. In a realtime game the gate's `call`, `audit`, `worlds_gate` and `plan` lines
+  carry the frame the answer landed (10 to 30 frames after the `pass` line that asked), and no second gate goes out
+  while one is pending: a gate is its `pass` line and every line up to the next `pass` line with `gate`. A `decode`
+  line is written before the `pass` line of its second.
+Size (2026-10-04): a `pass` line that asks is 150 KB to 1.4 MB (its `menus`: every move of every actor in words, nine
+tenths of the file), a `call` line 15 to 75 KB: 230 MB for a 15-minute duel, 0.8 to 2.4 GB a seat in a team game.
+`run/viewer_index.py` indexes a log without parsing the menus; nothing should read one whole into memory. Logs from
 the first morning (2026-09-21, before the header line) carry `instructions` and `rules` in every state and no `played`;
 the viewer reads those too, taking the decisions from the answers.
 
@@ -160,66 +178,84 @@ The header is 60 KB (the unit table). Wall-clock cost was not measurable: 14 gam
 
 ## Ground truth about the opponent
 The record holds the bot's fair view only. With `WITHIN_REASON_OBSERVE=1` the shim writes the once-a-minute census of
-both sides into `engine.log` (see `arena.md`); the viewer reads those lines next to the record and draws them as faint
-markers and as the "theirs" series. Census positions are the mean of all units of a type, so a marker for scattered
-extractors sits between them.
+both sides into `engine.log` (see `arena.md`) and the truth file (below). The viewer reads the truth file alone
+(2026-10-04; it read the census as a fallback before): the seats of one match write byte-identical truth files (one
+ally team sees one enemy), so it loads the first.
 
 ## Viewer
 `run/view_match.py` (the matches directory, the default) serves `viewer/` and every match under `run/matches/` (the batches of 2026-09-19 and 2026-09-20 live in `/ceph/christian/within-reason/run/matches-archive/`, see the ledger's head; give the viewer that directory to see them) at
 `/matches/` and opens on a **match browser**: every batch newest first with its label, opponent, map, commit, hands
-(player, pianist, packet) and each match's result (a batch without a results line is still being played), a filter
+(the team sizes, the players' model and whether there is one a seat, the commander's model) and each match's result
+(whether it was called, and its Jev bill as bot.log's minute lines sum it, a little under the logs' own total; a
+batch without a results line is still being played), a filter
 box, and a link per match (`?match=matches/<batch>/<NN>/`); "matches" in the header goes back. Given one batch it
 lists that batch; given one match (`run/view_match.py run/matches/<batch>/<NN>`, the old form) it opens on it. It
 listens on `::` (every interface, IPv6 and IPv4) so another machine on the network can open it; `--bind 127.0.0.1`
 keeps it to this machine.
 Plain HTML, CSS and JS, no build step, nothing fetched from outside. `viewer/record.js` is the parser and model (also
-runs under node), `viewer/app.js` the page. URL parameters: `t=<seconds>` start position, `record=<file>`, `bg=<image URL>`.
+runs under node), `viewer/app.js` the loading, the map, the timeline and the playhead, `viewer/panels.js` the side
+panels. URL parameters: `t=<seconds>` start position, `seat=<team>` the seat the page opens narrowed to, `bg=<image URL>`.
 Terrain: an image at `viewer/maps/<map name>.png` (whole map, north up) is drawn under the map when present; none ship.
-Live: a record with no `result` line is a match still being played. The page then asks the server every 3 s for each
-file's new bytes (`<file>?from=<byte offset>`, answered by `run/view_match.py` with an `X-From` header; any other server
-sends the whole file and the page copes), parses up to the last complete line, and with "follow live" ticked stays on the
-newest sample. Scrubbing, stepping or playing unticks it; ticking it again jumps to the newest sample. Opened details and
-the scroll position of the decision list survive each refresh. Polling stops when the result line arrives.
-The side pane is tabs (2026-09-21 evening, the user: too much at the top level): **Decisions** (the list with its
-filters), **Rules & log** (heuristic firings this minute, bot.log near the playhead), and **Pianist** for a match with a
-`jev-<ai_id>.jsonl`. The tab and the two modes below are remembered in the browser. "⟷ wide" (key `w`) gives the side
-pane most of the window and the map a third; "▾ charts" (key `c`) folds the timeline's charts away and keeps the lanes.
-The layer switches and the legend fold into one corner box over the map.
-The Pianist tab: "each actor now" lists every actor of the call at the playhead with what it was doing and its last
-decision (its source beside it: `rule` the base world, `plan` a pick, `list` the player's list, `jev` a menu answer of
-the older logs; a kept course said in amber); click one to open its entry in the picture and its last twelve decisions,
-and to narrow the Decisions tab to it. "The pass at the playhead" (logs of version 2, the one pass) is the `pass` line
-at or before the playhead, as numbered steps in the order the second ran: what happened (events, hunts' ends, what
-was open); what code started before any ask (the rules' defaults and the lists' steps, each with its source); what the
-gate asked, every open slot with its states (the gate's noul per state as a bar, the base, current and default states
-marked, each state's words) or the quiet; the worlds composed with the pick's probabilities and the picked one marked
-(world 1's row says what code started this second, since "nothing changes" keeps that too); what the pick started. The
-pianist lanes of the timeline count the pick's plays apart from code's and draw code's in grey; the timeline's hover
-lists the plays within five seconds with their sources. "The call at the playhead" is every question with its answer as bars (the played
-option marked), the options as worded, and beside it the picture by section (in the wide mode side by side; the
-selected actor's questions first); "pianist per minute" is calls, latency, tokens, questions, and for version 2 the
-asking and quiet seconds, the picks and how many took w1, the plays by source (rule, plan, list), and failures. The
-Decisions tab and the timeline's pianist lanes take every play of the pass with its source. The timeline gains
-lanes for the pianist's builders, labs and army (a change of course solid, a continue faint); the map draws the named
-places, the parties and the groups with a line to where each is going (the `pianist` layer); the decision list takes
-"pianist" and "changes only" filters and an actor select, and shows at most 4,000 rows.
+The refresh of 2026-10-04 (`docs/design/2026-10-04-viewer-refresh.md`) made it a viewer of the match, not of one seat:
+
+**Every seat.** The page loads every `record-<n>.jsonl` of the match directory, the players' transcripts
+(`strategist-<n>.jsonl`: one a seat, or one for all seats), `commander.jsonl`, one truth file and `bot.log`. Each file
+is a feed: the page asks for its new bytes (`<file>?from=<byte offset>`, answered by `run/view_match.py` with an
+`X-From` header; any other server sends the whole file and the page takes what is new), parses the complete lines
+once and adds the rows to the model. A sample's `al` rows of a seat that is loaded are dropped at parse time. Units
+are tinted by seat; the enemy is the truth layer and what any seat sees, once per unit. The **seat selector** (all,
+or one) scopes the stats, the lanes, the charts and the panels, and dims the other seats on the map. With all seats
+a chart is the seats stacked (the top edge is the side's sum, the opponent's truth a line over it); with one seat it
+is that seat's line against the others' faint ones. A chart's axis ends a little over its 99th percentile.
+Live: a match with no `result` line (and not every seat's `end` line) is still being played; the page polls every 3 s
+and with "follow live" ticked stays on the newest sample. Scrubbing, stepping or playing unticks it. Opened details
+and the scroll position of the decision list survive each refresh.
+
+**The hands' logs are never fetched whole.** The server indexes each `jev-<n>.jsonl` once (`run/viewer_index.py`:
+it reads the log without parsing the menus and keeps the index in a `.viewer-jev-<n>.json` sidecar beside it, the only
+file the viewer's server writes) and answers `?index` (per game minute the tokens by request kind and question
+family, calls, gates, audits; the frames of the gates and the calls), `?gate=<frame>` (the gate at or before the
+frame, whole, with the decode's readings in force and the packet as the hands had it) and `?picture=<frame>` (the
+groups, places, parties and actors of the last call). Measured 2026-10-04: human-18's three logs (5.9 GB) are indexed
+in 8 s the first time (from the page cache) and at once after; a gate comes back in 10 to 20 ms (3 MB, 200 KB
+gzipped) and is on the page 50 to 175 ms after a seek; the 8v8 (eight records of 21 MB) opens in 2 s.
+
+**Tabs, by who decides**: **Commander** (the direction in force: the plan and each seat's paragraph with its age;
+signals and whether each is given; marks; transfers; chat; notes; its turn at the playhead), **Player** (with several
+players a line a seat; for one seat the packet in force, a packet being written, the commander's words to it, the
+build lists as last given with the steps begun since, the produce allowances, footwork settings, its notes and its
+turn), **Hands** (the gate at the playhead: what opened it, the layers' counts, the party and place questions, every
+actor's menu with each move's state in words, the pick by component, what was played, the audits, the picture Jev was
+sent; logs older than version 3 get a notice), **Cost** (Jev in dollars and tokens by seat, request kind, question
+family and game minute), **Unit**, **Decisions** (the commander's turns, the players' turns, the hands' plays, the
+brain's events; narrowed to the hands' actor in focus) and **Log** (the footwork rules fired this minute, the build
+order of the first eight minutes, bot.log near the playhead). A move's state is worked out by `gateView` in
+`record.js`: asked and answered; asked for a layer's audit; or not asked because its actor is closed by news, the
+decode fused it (the reading is shown), `near` shut it (inferred, see the log's section above), its opener holds it,
+its place blanked it, or an earlier answer stands (`same` or `again`: the log does not say which per question).
+Clicking an actor in the Hands tab rings its units on the map and narrows the decision list to it; clicking a unit
+opens the Unit tab with its actor's entry in the picture, that actor's plays and a button to its menu. The tab and
+the two modes are remembered in the browser: "⟷ wide" (key `w`) gives the side pane most of the window, "▾ charts"
+(key `c`) folds the timeline's charts away and keeps the lanes.
+The timeline's lanes: unit, building and extractor losses, kills (a kill every seat saw is one), the commander's
+turns and the players' (as wide as the turn took, in a realtime game), the hands' gates, and the hands' plays by
+builders, plants and army (the pick's solid, the lists' faint). The charts: metal income, energy income, extractors,
+army metal, Jev dollars a minute.
 The map (2026-09-24, docs/design/2026-09-24-viewer-overhaul.md): every unit is the game's own minimap icon
 (`viewer/icons.json` and `viewer/icons/`, exported unmodified from BAR's `gamedata/icontypes.lua` by `run/icons.py`;
-CC BY-NC-ND, tinted by side on the canvas as the engine tints them by team; a unit without an icon keeps its class
+CC BY-NC-ND, tinted by seat on the canvas as the engine tints them by team; a unit without an icon keeps its class
 glyph). The wheel zooms about the cursor (1x to 32x the fitted scale), a drag pans, a double-click or `0` resets,
 `+`/`-` step. From 4x buildings show their footprints (`footprint` x 8 elmos, turned by the `finished` facing, a
 factory's front edge heavier) and units their names, from 8x their ids, and every unit's standing order (the last
 command the bot sent it, ended by a `stop` or the idle flag: a line to the point or target, a square at a build
-site); below 4x the last 3 s of orders as before. A click selects a unit (ring; `Escape` clears) and opens the
-**Unit** tab: type, health, flags, place, created and destroyed by what, its standing order, its part in the
-pianist's picture at the playhead (its actor entry or its group and the group's task, its last decisions, a button
-to open it in the Pianist tab) and its history (orders and events, click to seek). The Pianist tab's **Build order**
-strip lists every unit begun in the first eight minutes with the clock, the builder and the place (click to seek and
-select). The model has `ordersAt(match, frame)`, `unitHistory(match, id)` and `facings(match)` for this.
-Tests: `node viewer/test/smoke.js <match dir>` (model, truncated file, the Jev log's calls, passes and plans) and
+site); below 4x the last 3 s of orders. The `marks` layer draws the commander's marks, each player's own and the
+seats' starts; the `hands` layer the named places, the parties and the groups with a line to where each is going,
+for the seats in scope. A click selects a unit (ring; `Escape` clears).
+Tests: `node viewer/test/smoke.js <match dir>` (every seat loaded as the page loads them, the transcripts' parsers,
+the truth, and through `run/viewer_index.py` each Jev log's index, a gate and its view, a picture) and
 `node viewer/test/browser.js <url> [shot.png]` (the real page in headless Chromium: the match browser when the url
-is the server's root, then load, follow a live match if it is one, scrub, play, hover, toggles, the pianist's panels
-and the pass panel when the match has a log; fails on any page error; saves a screenshot when asked).
+is the server's root, then load, follow a live match if it is one, scrub, play, hover, zoom, select, the seat
+selector, and every panel the match has; fails on any page error; saves a screenshot when asked).
 
 ## Terrain
 

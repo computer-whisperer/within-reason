@@ -799,7 +799,7 @@ pub(super) fn log_menus(menus: &[Menu]) -> Value {
                 "course": menu.course,
                 "quiet": menu.quiet,
                 "audit": menu.audit,
-                "moves": menu.moves.iter().map(|m| if !m.playable() { json!({ "id": menu.id(m), "words": m.words, "party": m.party, "fused": m.fused, "held": m.held, "blanked": m.blanked, "audit": m.audit }) } else { json!({ "id": menu.id(m), "words": m.words, "party": m.party }) }).collect::<Vec<_>>(),
+                "moves": menu.moves.iter().map(|m| if !m.playable() { json!({ "id": menu.id(m), "words": m.words, "party": m.party, "fused": m.fused, "far": m.far, "held": m.held, "blanked": m.blanked, "audit": m.audit }) } else { json!({ "id": menu.id(m), "words": m.words, "party": m.party }) }).collect::<Vec<_>>(),
             })
         })
         .collect::<Vec<_>>())

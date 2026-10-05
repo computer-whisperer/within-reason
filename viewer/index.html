@@ -12,7 +12,7 @@
   <span id="subtitle"></span>
   <a id="browse" class="replay" href="?" hidden title="Back to the list of matches">matches</a>
   <a id="replay" class="replay" hidden download title="Download the engine's replay (.sdfz) of this match; copy it into BAR's demos folder to watch it in the game">replay ⤓</a>
-  <label class="open">Open files <input type="file" id="files" multiple></label>
+  <label class="open" title="Without run/view_match.py: pick a match's record-*.jsonl files and their siblings (strategist-*.jsonl, commander.jsonl, truth-*.jsonl, bot.log). The hands' logs need the server.">Open files <input type="file" id="files" multiple></label>
 </header>
 
 <section id="browser" class="panel" hidden></section>
@@ -32,11 +32,10 @@
       <label><input type="checkbox" data-layer="grid" checked> grid</label>
       <label><input type="checkbox" data-layer="spots" checked> metal spots</label>
       <label><input type="checkbox" data-layer="truth" checked> opponent (truth)</label>
-      <label><input type="checkbox" data-layer="census" checked> census (if no truth)</label>
       <label><input type="checkbox" data-layer="orders" checked> orders</label>
-      <label><input type="checkbox" data-layer="intent" checked> intent</label>
+      <label><input type="checkbox" data-layer="marks" checked> marks: the commander's, the players', the starts</label>
       <label><input type="checkbox" data-layer="deaths" checked> deaths</label>
-      <label><input type="checkbox" data-layer="pianist" checked> pianist: groups, places, parties</label>
+      <label><input type="checkbox" data-layer="hands" checked> hands: groups, places, parties</label>
     </fieldset>
     <ul id="map-legend" class="legend"></ul>
     <div class="hint">wheel zooms, drag pans, double-click or 0 resets; click a unit to inspect it, Esc clears</div>
@@ -44,45 +43,39 @@
   </section>
 
   <section id="side-pane">
+    <div id="seats" class="panel" hidden></div>
     <div id="now" class="panel"></div>
     <nav id="tabs" class="panel">
-      <button data-tab="pianist" hidden>Pianist</button>
+      <button data-tab="commander" hidden>Commander</button>
+      <button data-tab="player" hidden>Player</button>
+      <button data-tab="hands" hidden>Hands</button>
+      <button data-tab="cost" hidden>Cost</button>
       <button data-tab="unit" id="tab-unit" hidden>Unit</button>
       <button data-tab="decisions">Decisions</button>
-      <button data-tab="rules">Rules &amp; log</button>
+      <button data-tab="log">Log</button>
       <button id="wide" title="give the side pane most of the window (w)">⟷ wide</button>
     </nav>
-    <div class="tab panel" data-tab="pianist" hidden>
-      <div class="tab-head">
-        <h2>Each actor now <span id="pianist-summary" class="muted"></span></h2>
-        <span class="muted">click an actor for its history and its entry in the picture</span>
-      </div>
-      <div id="pianist-actors"></div>
-      <details id="build-order-box">
-        <summary>Build order: the first eight minutes (click to seek and select)</summary>
-        <ol id="build-order"></ol>
-      </details>
-      <h2 class="call-title" id="pass-title" hidden>The pass at the playhead <span id="pass-summary" class="muted"></span></h2>
-      <div id="pass" hidden></div>
-      <h2 class="call-title">The call at the playhead <span id="call-summary" class="muted"></span></h2>
-      <div id="call"></div>
-      <details id="pianist-stats">
-        <summary>Pianist per minute</summary>
-        <table id="pianist-minutes"></table>
-      </details>
+    <div class="tab panel" data-tab="commander" hidden><div id="commander"></div></div>
+    <div class="tab panel" data-tab="player" hidden><div id="player"></div></div>
+    <div class="tab panel" data-tab="hands" hidden>
+      <div id="hands-head"></div>
+      <div id="hands"></div>
     </div>
-    <div class="tab panel" data-tab="unit" hidden>
-      <div id="unit"></div>
-    </div>
+    <div class="tab panel" data-tab="cost" hidden><div id="cost"></div></div>
+    <div class="tab panel" data-tab="unit" hidden><div id="unit"></div></div>
     <div class="tab panel" data-tab="decisions" hidden>
       <div class="tab-head">
         <h2>Decisions <span class="filters" id="decision-filters"></span></h2>
       </div>
       <ol id="decisions"></ol>
     </div>
-    <div class="tab panel" data-tab="rules" hidden>
-      <h2>Rules fired this minute <span id="rules-minute" class="muted"></span></h2>
+    <div class="tab panel" data-tab="log" hidden>
+      <h2>Footwork rules fired this minute <span id="rules-minute" class="muted"></span></h2>
       <div id="rules"></div>
+      <details id="build-order-box">
+        <summary>Build order: the first eight minutes (click to seek and select)</summary>
+        <ol id="build-order"></ol>
+      </details>
       <h2 class="call-title">bot.log near the playhead</h2>
       <pre id="botlog"></pre>
     </div>
@@ -113,5 +106,6 @@
 
 <script src="record.js"></script>
 <script src="app.js"></script>
+<script src="panels.js"></script>
 </body>
 </html>

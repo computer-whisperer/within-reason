@@ -12,8 +12,26 @@ directories (logs, records, transcripts) to that network; `--bind 127.0.0.1` kee
 
 A match still being played can be watched: the viewer asks for each file's new bytes (`?from=<byte offset>`) every few
 seconds and follows the newest sample. The browser lists a batch without a results line as still being played.
+
+What the page asks for, beside the files themselves:
+
+    /matches/index.json                    the browser's listing: every batch with its options, results and Jev bill
+    <match>/index.json                     the match's files with their sizes, its batch's options, its result line
+    <match>/<file>?from=<offset>           the file from a byte offset on (a tail: the header X-From repeats the offset)
+    <match>/jev-<n>.jsonl?index            the log's index (run/viewer_index.py): per game minute the tokens by request
+                                           kind and question family, calls, gates, audits; the frames of its gates.
+                                           {"ready": false, "progress": 0..1} while a big log is first read
+    <match>/jev-<n>.jsonl?gate=<frame>     the gate at or before the frame, whole: its pass row, the calls, audits,
+                                           worlds_gate and plan that followed, the decode's readings in force
+    <match>/jev-<n>.jsonl?picture=<frame>  the groups, places, parties and actors of the last call at or before the frame
+
+A Jev log is never sent whole to the page (a team game's are gigabytes); its index is cached in a sidecar
+`.viewer-jev-<n>.json` beside it, the only file this server writes.
 """
-import argparse, http.server, json, os, socket, sys, time, webbrowser
+import argparse, gzip, http.server, json, os, re, socket, sys, time, webbrowser
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import viewer_index
 
 VIEWER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "viewer")
 
@@ -48,6 +66,22 @@ def read_jsonl(path):
     return out
 
 
+def jev_bill(match_dir):
+    """A match's Jev bill in dollars from its bot.log (the hands' line each minute, every seat's): cheap to read
+    where the logs themselves are gigabytes. None when the log has no such line."""
+    tokens, found = 0, False
+    try:
+        with open(os.path.join(match_dir, "bot.log"), errors="replace") as f:
+            for line in f:
+                m = re.search(r"pianist this minute: .* (\d+) tokens in", line)
+                if m:
+                    tokens += int(m.group(1))
+                    found = True
+    except OSError:
+        return None
+    return tokens * viewer_index.PRICE / 1e6 if found else None
+
+
 def batch_entry(root, name):
     """One batch for the browser: its options from batch.json, each match's result from results.jsonl, and which match
     directories hold a record."""
@@ -60,7 +94,7 @@ def batch_entry(root, name):
         matches.append({
             "index": sub, "record": is_match(os.path.join(path, sub)),
             "outcome": r.get("outcome"), "minutes": r.get("game_minutes"), "corner": r.get("our_corner"), "side": r.get("our_side"),
-            "arm": r.get("arm") or None, "called": r.get("called"),
+            "arm": r.get("arm") or None, "called": r.get("called"), "jev_dollars": jev_bill(os.path.join(path, sub)),
         })
     try:
         started = os.path.getmtime(os.path.join(path, "batch.json")) if options else os.path.getmtime(path)
@@ -80,7 +114,9 @@ def batch_entry(root, name):
     return {
         "batch": name, "started": started, "label": options.get("label"), "commit": options.get("commit"),
         "opponent": options.get("opponent"), "map": options.get("map"), "profile": options.get("profile"),
-        "pianist": options.get("pianist"), "player": options.get("player"), "rules": options.get("rules"), "packet": os.path.basename(options["packet"]) if options.get("packet") else None,
+        "pianist": options.get("pianist"), "player": options.get("player"), "packet": os.path.basename(options["packet"]) if options.get("packet") else None,
+        "ours": options.get("ours"), "enemies": options.get("enemies"), "allies": options.get("allies"), "players": options.get("players"),
+        "player_model": options.get("player_model"), "commander": options.get("commander"), "realtime": options.get("realtime"),
         "max_minutes": options.get("max_minutes"), "matches": matches, "finished": bool(results) or quiet,
     }
 
@@ -103,12 +139,34 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         return super().translate_path(path)
 
     def send_json(self, body):
-        body = json.dumps(body).encode()
+        """`body`: a value, or JSON already as bytes. Compressed when it is big and the reader takes gzip (a gate is
+        about a megabyte of words)."""
+        if not isinstance(body, bytes):
+            body = json.dumps(body).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
+        if len(body) > 4096 and "gzip" in self.headers.get("Accept-Encoding", ""):
+            body = gzip.compress(body, compresslevel=1)
+            self.send_header("Content-Encoding", "gzip")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def send_jev(self, path, query):
+        """The index of a Jev log, a gate or a picture out of it (run/viewer_index.py)."""
+        file = self.translate_path(path)
+        if not os.path.isfile(file):
+            return self.send_error(404)
+        index, reading = viewer_index.index_of(file)
+        if index is None:
+            return self.send_json({"ready": False, "progress": reading.progress()})
+        try:
+            if query == "index":
+                return self.send_json(index.summary())
+            what, _, frame = query.partition("=")
+            return self.send_json(index.gate(int(float(frame))) if what == "gate" else index.picture(int(float(frame))))
+        except (OSError, ValueError):
+            return self.send_error(400)
 
     def do_GET(self):
         path = self.path.split("?")[0]
@@ -118,11 +176,19 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             directory = self.translate_path(path[: -len("index.json")])
             if not os.path.isdir(directory):
                 return self.send_error(404)
-            files = sorted(f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f)))
+            files = sorted(f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f)) and not f.startswith(".viewer-"))
+            sizes = {f: os.path.getsize(os.path.join(directory, f)) for f in files}
+            # The batch the match belongs to (its directory's parent): how it was played, and how it ended.
+            parent = os.path.dirname(directory.rstrip("/"))
+            number = os.path.basename(directory.rstrip("/"))
+            result = next((r for r in read_jsonl(os.path.join(parent, "results.jsonl")) if isinstance(r, dict) and number.isdigit() and r.get("index") == int(number)), None)
             # The engine's own replay (demos/*.sdfz), for the viewer's download link; the match dir is served whole.
             demos = os.path.join(directory, "demos")
             replays = sorted(f"demos/{f}" for f in os.listdir(demos) if f.endswith(".sdfz")) if os.path.isdir(demos) else []
-            return self.send_json({"dir": directory, "files": files, "replays": replays})
+            return self.send_json({"dir": directory, "files": files, "sizes": sizes, "replays": replays, "batch": read_json(os.path.join(parent, "batch.json"), None), "result": result})
+        query = self.path.partition("?")[2]
+        if re.fullmatch(r".*/jev-[^/]*\.jsonl", path) and (query == "index" or re.fullmatch(r"(gate|picture)=-?[\d.]+", query)) and (path.startswith("/matches/") or path.startswith("/match/")):
+            return self.send_jev(path, query)
         if (path.startswith("/matches/") or path.startswith("/match/")) and "?from=" in self.path:
             return self.send_tail()
         super().do_GET()
