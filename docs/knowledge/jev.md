@@ -2089,3 +2089,9 @@ among its givens; the same words appended to the packet read 0.36-0.43, and insi
 **Evidence.** `run/jev_context_ab.py` on 150 gates and 197 picks of glitters-8v8-hard-1 seat 0, 2026-10-04 (the tokens study's §14). The forbidden answers move more under the rewritten rules (4.3 to 6.4% against 2.1% asked again) than under none (3.2%).
 **Status.** built 2026-10-04 as H-HANDS-STANDING-CUT; a crossing says an answer changed, not which is right: no game has judged it yet.
 **Would be wrong if.** Games with the cut show the gate opening moves the full rules held shut (a group trickling into a party that outranges it, the commander walking to a fight) at a rate the pick does not stop.
+
+### K-hands-a-chained-party-becomes-the-front
+**Claim.** Enemy parties formed by chaining within 400 become the front itself in a large game: two thirds of the enemies in sight stand in a party wider than 800 and a fifth to a third of a party's metal is more than 600 from its centre. A shorter chain does not mend it; cutting wide parties each second does and renames 10 to 16% of units a second; a party kept from second to second (members within 400 to 500 of its centre) is bounded and renames 2.5 to 5% (1.0% in a duel against today's 3.5%). Under every bounded rule a quarter to a third of the enemy metal within 600 of a party's centre is a neighbour's, so a fight cannot be weighed on the party alone.
+**Evidence.** `run/party_rules.py` on glitters-8v8-hard-1 seat 0 from minute 10, the human 8v8 replay on the same map from minute 15 and same-opus-2 from minute 3, 2026-10-04 (`docs/design/2026-10-04-fronts-parties-and-lanes.md` §1).
+**Status.** measured offline; nothing built.
+**Would be wrong if.** A game with kept parties shows names changing at a front as often as the cut rules', or the hands stepping back from parties whose neighbours were never in the fight.
