@@ -7,7 +7,7 @@ Ratified 2026-09-19. Findings live under `docs/` (start at `docs/README.md`).
 ```
  Recoil engine client (spring / spring-headless)          bot process (Rust binary)
  ┌───────────────────────────────────────────┐            ┌──────────────────────────────┐
- │ libSkirmishAI.so  = crates/ai-shim        │   Unix     │ crates/bot                   │
+ │ libSkirmishAI.so  = crates/ai-shim        │   Unix     │ crates/bot  (the flagship)   │
  │  engine thread only:                      │  socket    │  one thread per AI instance  │
  │   events ──► buffer                       │ ─────────► │  Hello, then Tick → Commands │
  │   every N frames: snapshot via callbacks  │ ◄───────── │  brain: world model + pianist │
@@ -15,14 +15,29 @@ Ratified 2026-09-19. Findings live under `docs/` (start at `docs/README.md`).
  └───────────────────────────────────────────┘            └──────────────────────────────┘
 ```
 
-The shim is the only code that touches the engine. It is dumb on purpose: no strategy, no blocking.
-The bot process never calls into the engine; everything it knows arrives in `Hello` and `Tick`.
+The host (`crates/ai-host`) is the only code that touches the engine. It is dumb on purpose: no strategy, no blocking.
+The bot never calls into the engine; everything it knows arrives in `Hello` and `Tick`.
+
+Where the bot is, is the library's choice of transport (2026-10-05), not the bot's nature:
+- **Behind the socket** (above): `crates/ai-shim` is the host over a Unix socket to the bot process. The flagship's:
+  its deciders are models, which block, and a bot process can be restarted or crash without the game.
+- **Inside the library**: `ai_host::InProcess<B>` calls a `bot_protocol::Bot` on the engine thread, the same `Hello`,
+  `Tick` and `Commands` with no socket and no second process. For heuristic bots (`bots/`), which answer inside a
+  frame and are shipped as one file. `bots/template` is the skeleton.
+
+Two regimes, kept apart by directory: `crates/bot` is the flagship, where no code decides a live game without Jev or
+the player (`docs/code-decisions.md` is its roster); `bots/*` are heuristic bots, which decide in code and cost no
+tokens (`bots/README.md`).
 
 ## Crates
 - `recoil-ai-sys` — bindgen over vendored engine headers (`rts/ExternalAI/Interface/*.h`, `System/{Export,Main}Defines.h`,
   GPL-2.0-or-later, so this crate and the shim are too). Header version is pinned by the vendored copy; re-vendor on engine bumps.
-- `bot-protocol` — serde message types + length-prefixed postcard framing. Shared by shim and bot. No engine types leak into it.
-- `ai-shim` — cdylib. `engine.rs` is the safe wrapper over the callback table, exposing only what the snapshot and commands need.
+- `bot-protocol` — serde message types + length-prefixed postcard framing, and the `Bot` trait an in-library bot implements. Shared by host and bot. No engine types leak into it.
+- `ai-host` — the engine's side of any AI library: `engine.rs` is the safe wrapper over the callback table, exposing only
+  what the snapshot and commands need; `lib.rs` the instance (ticks, credit, build sites, the arena's heartbeat, census and
+  truth lines), the `Transport` it speaks through, `InProcess`, and `export!`, which writes a library's three exports.
+- `ai-shim` — cdylib, the flagship's library: the host over the socket (`link.rs`).
+- `bots/template` — cdylib, lobby name `WRTemplate`: the host over a bot inside the library; the skeleton to copy.
 - `bot` — the bot binary. Listens on the socket; the world model, the pianist and the player's session.
 - `buildorder` — offline study tool, not part of the running system: a tier-1 economy simulator and a simulated-annealing
   build-order search over it (`docs/studies/build-order.md`). Depends on nothing else in the workspace.

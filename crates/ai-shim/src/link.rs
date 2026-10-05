@@ -5,6 +5,7 @@ use std::io;
 use std::os::unix::net::UnixStream;
 use std::time::Duration;
 
+use ai_host::Transport;
 use bot_protocol::{Commands, FrameReader, ToBot, socket_path, write_frame};
 
 const WRITE_TIMEOUT: Duration = Duration::from_millis(250);
@@ -14,19 +15,19 @@ pub struct Link {
     reader: FrameReader,
 }
 
-impl Link {
-    pub fn connect() -> io::Result<Self> {
+impl Transport for Link {
+    fn connect() -> io::Result<Self> {
         let stream = UnixStream::connect(socket_path())?;
         stream.set_write_timeout(Some(WRITE_TIMEOUT))?;
         Ok(Link { stream, reader: FrameReader::default() })
     }
 
-    pub fn send(&mut self, message: &ToBot) -> io::Result<()> {
-        write_frame(&mut self.stream, message)
+    fn send(&mut self, message: ToBot) -> io::Result<()> {
+        write_frame(&mut self.stream, &message)
     }
 
     /// Returns the bot's reply if one has fully arrived.
-    pub fn poll(&mut self) -> io::Result<Option<Commands>> {
+    fn poll(&mut self) -> io::Result<Option<Commands>> {
         self.stream.set_nonblocking(true)?;
         let result = self.reader.read(&mut self.stream);
         self.stream.set_nonblocking(false)?;
@@ -34,7 +35,7 @@ impl Link {
     }
 
     /// Blocks until the bot's reply has arrived. Lockstep mode: the game stands still while the bot thinks.
-    pub fn wait(&mut self) -> io::Result<Commands> {
+    fn wait(&mut self) -> io::Result<Commands> {
         loop {
             if let Some(commands) = self.reader.read(&mut self.stream)? {
                 return Ok(commands);

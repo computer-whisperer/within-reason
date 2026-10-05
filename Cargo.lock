@@ -18,11 +18,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "ai-shim"
+name = "ai-host"
 version = "0.1.0"
 dependencies = [
  "bot-protocol",
  "recoil-ai-sys",
+]
+
+[[package]]
+name = "ai-shim"
+version = "0.1.0"
+dependencies = [
+ "ai-host",
+ "bot-protocol",
 ]
 
 [[package]]
@@ -107,6 +115,14 @@ version = "0.1.0"
 dependencies = [
  "postcard",
  "serde",
+]
+
+[[package]]
+name = "bot-template"
+version = "0.1.0"
+dependencies = [
+ "ai-host",
+ "bot-protocol",
 ]
 
 [[package]]

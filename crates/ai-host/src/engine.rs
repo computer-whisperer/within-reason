@@ -1,4 +1,4 @@
-//! Safe wrapper over the engine's callback table, exposing only what the shim needs.
+//! Safe wrapper over the engine's callback table, exposing only what the host needs.
 //!
 //! Every method must be called on the engine thread, from inside one of the library's exports.
 

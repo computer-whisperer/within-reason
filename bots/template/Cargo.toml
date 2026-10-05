@@ -1,0 +1,13 @@
+[package]
+name = "bot-template"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-2.0-or-later"
+description = "Template for a heuristic bot that runs inside the AI library: no bot process, no socket, no model"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ai-host = { path = "../../crates/ai-host" }
+bot-protocol = { path = "../../crates/bot-protocol" }

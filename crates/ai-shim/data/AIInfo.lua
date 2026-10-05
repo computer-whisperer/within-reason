@@ -30,7 +30,7 @@ local infos = {
 	},
 	{
 		key    = 'description',
-		value  = 'Event-logging skeleton; issues no commands.',
+		value  = 'Model-driven player; needs the Within Reason bot process running beside the game.',
 		desc   = 'this should help noobs to find out whether this AI is what they want',
 	},
 	{

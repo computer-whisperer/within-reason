@@ -9,6 +9,8 @@
 //!              [--ours N] [--allies N] [--enemies N] [--ffa]   (seats of ours, allied BARb seats, enemy BARb seats, default 1 0 1;
 //!                                                               --ffa: every enemy seat is its own team)
 //!              [--boxes standard|corners|north-south|west-east]   (where the ally teams start; default the lobby's boxes for the map)
+//!              [--our-ai NAME:VERSION]   (the AI on our seats; default WReason:0.1, the flagship, played by the bot process; a bot of
+//!                                         bots/ (WRTemplate:0.1) plays inside its library: no bot process, no bot.log, no record)
 //!              [--bot PATH]   (bot binary from another build, for A/B runs)
 //!              [--disable H-ID,H-ID]   (ablation: switch heuristics off by registry ID)
 //!              [--ab-disable H-ID,H-ID]   (interleaved A/B: arm B also switches these off; blocks of four matches)
@@ -55,6 +57,8 @@ use arena::harness::{
 use script::{Boxes, MatchSetup};
 
 const BASE_PORT: u16 = 9100;
+/// The flagship's library: the one AI of ours that is played by the bot process.
+const FLAGSHIP_AI: &str = "WReason:0.1";
 /// Backstop for a match whose game clock stops advancing.
 const STALL_ALLOWANCE: Duration = Duration::from_secs(120);
 
@@ -106,6 +110,9 @@ struct Options {
     enemies: usize,
     free_for_all: bool,
     boxes: Boxes,
+    /// `--our-ai NAME:VERSION`: the AI on our seats. The flagship's library by default, played by the bot process;
+    /// any other is a bot inside its own library (`bots/`), and no bot process is started.
+    our_ai: String,
     /// Bot binary to run instead of this workspace's, for A/B runs against an older build.
     bot: Option<std::path::PathBuf>,
     /// Comma-separated heuristic IDs the bot should switch off (ablation).
@@ -202,7 +209,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("{} {}", opponent_name(&options.opponent), options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "jev_budget": options.jev_budget, "swap_corners": options.swap_corners, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief, "players": options.players.as_deref().unwrap_or("one"), "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "packet_example": options.packet_example, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "our_bonus": options.our_bonus, "enemy_bonus": options.enemy_bonus, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "jev_budget": options.jev_budget, "swap_corners": options.swap_corners, "our_ai": options.our_ai, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief, "players": options.players.as_deref().unwrap_or("one"), "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "packet_example": options.packet_example, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "our_bonus": options.our_bonus, "enemy_bonus": options.enemy_bonus, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 
@@ -276,6 +283,7 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
     let setup = MatchSetup {
         game: &game,
         map: &options.map,
+        our_ai: &options.our_ai,
         opponent: &options.opponent,
         opponent_defaults: &option_defaults(repo, &options.opponent),
         barb_defaults: &option_defaults(repo, "BARb:stable"),
@@ -345,36 +353,41 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         (Some(extra), "B") => format!("{},{extra}", options.disable),
         _ => options.disable.clone(),
     };
-    let mut bot = Command::new(options.bot.clone().unwrap_or_else(|| repo.join("target/release/bot")))
-        .args(options.pianist.then_some("--pianist"))
-        .args(options.player.then_some("--player"))
-        // The pianist's every request and answer, for study (`docs/design/2026-09-21-pianist.md`).
-        .envs(options.pianist.then_some(("WITHIN_REASON_JEV_LOG", "1")))
-        .env("WITHIN_REASON_SOCKET", &socket)
-        .env("WITHIN_REASON_LOG_DIR", &dir)
-        .env("WITHIN_REASON_DISABLE", &disable)
-        .envs(options.packet.as_ref().map(|path| ("WITHIN_REASON_PACKET", path)))
-        // Every match leaves a record for `run/view_match.py`: 0.1-0.3 MB per game minute (docs/harness/record-format.md).
-        .env("WITHIN_REASON_RECORD", "1")
-        .envs(options.claude_config_dir.as_ref().map(|dir| ("WITHIN_REASON_CLAUDE_CONFIG_DIR", dir)))
-        .envs(options.effort.as_ref().map(|effort| ("WITHIN_REASON_EFFORT", effort)))
-        .env("WITHIN_REASON_HANDS_EFFORT", options.hands_effort.as_deref().unwrap_or("lean"))
-        .envs(options.hands_layers.as_ref().map(|layers| ("WITHIN_REASON_HANDS_LAYERS", layers)))
-        .envs(options.player_model.as_ref().map(|model| ("WITHIN_REASON_MODEL", model)))
-        .envs(options.brief.as_ref().map(|brief| ("WITHIN_REASON_BRIEF", brief)))
-        .envs(options.players.as_ref().map(|players| ("WITHIN_REASON_PLAYERS", players)))
-        .envs(options.commander.as_ref().map(|model| ("WITHIN_REASON_COMMANDER", model)))
-        .envs(options.commander_effort.as_ref().map(|effort| ("WITHIN_REASON_COMMANDER_EFFORT", effort)))
-        .envs(options.objective.as_ref().map(|text| ("WITHIN_REASON_OBJECTIVE", text)))
-        .envs(options.packet_example.then_some(("WITHIN_REASON_PACKET_EXAMPLE", "1")))
-        // A player game is played as a live one unless told otherwise: its orders land as late as it thought.
-        .envs(options.think_penalty.as_deref().or(options.player.then_some("1")).map(|penalty| ("WITHIN_REASON_THINK_PENALTY", penalty.to_string())))
-        // The user, 2026-09-27: a cap on the penalty keeps the arena stable while the providers' speed fluctuates.
-        .envs(options.think_cap.as_deref().or(options.player.then_some("7")).map(|cap| ("WITHIN_REASON_THINK_CAP", cap.to_string())))
-        .envs(options.turn_limit.as_ref().map(|limit| ("WITHIN_REASON_TURN_LIMIT", limit)))
-        .envs(options.realtime.then_some(("WITHIN_REASON_REALTIME", "1")))
-        .stderr(File::create(dir.join("bot.log"))?)
-        .spawn()?;
+    let mut bot = match options.our_ai == FLAGSHIP_AI {
+        false => None,
+        true => Some(
+            Command::new(options.bot.clone().unwrap_or_else(|| repo.join("target/release/bot")))
+            .args(options.pianist.then_some("--pianist"))
+            .args(options.player.then_some("--player"))
+            // The pianist's every request and answer, for study (`docs/design/2026-09-21-pianist.md`).
+            .envs(options.pianist.then_some(("WITHIN_REASON_JEV_LOG", "1")))
+            .env("WITHIN_REASON_SOCKET", &socket)
+            .env("WITHIN_REASON_LOG_DIR", &dir)
+            .env("WITHIN_REASON_DISABLE", &disable)
+            .envs(options.packet.as_ref().map(|path| ("WITHIN_REASON_PACKET", path)))
+            // Every match leaves a record for `run/view_match.py`: 0.1-0.3 MB per game minute (docs/harness/record-format.md).
+            .env("WITHIN_REASON_RECORD", "1")
+            .envs(options.claude_config_dir.as_ref().map(|dir| ("WITHIN_REASON_CLAUDE_CONFIG_DIR", dir)))
+            .envs(options.effort.as_ref().map(|effort| ("WITHIN_REASON_EFFORT", effort)))
+            .env("WITHIN_REASON_HANDS_EFFORT", options.hands_effort.as_deref().unwrap_or("lean"))
+            .envs(options.hands_layers.as_ref().map(|layers| ("WITHIN_REASON_HANDS_LAYERS", layers)))
+            .envs(options.player_model.as_ref().map(|model| ("WITHIN_REASON_MODEL", model)))
+            .envs(options.brief.as_ref().map(|brief| ("WITHIN_REASON_BRIEF", brief)))
+            .envs(options.players.as_ref().map(|players| ("WITHIN_REASON_PLAYERS", players)))
+            .envs(options.commander.as_ref().map(|model| ("WITHIN_REASON_COMMANDER", model)))
+            .envs(options.commander_effort.as_ref().map(|effort| ("WITHIN_REASON_COMMANDER_EFFORT", effort)))
+            .envs(options.objective.as_ref().map(|text| ("WITHIN_REASON_OBJECTIVE", text)))
+            .envs(options.packet_example.then_some(("WITHIN_REASON_PACKET_EXAMPLE", "1")))
+            // A player game is played as a live one unless told otherwise: its orders land as late as it thought.
+            .envs(options.think_penalty.as_deref().or(options.player.then_some("1")).map(|penalty| ("WITHIN_REASON_THINK_PENALTY", penalty.to_string())))
+            // The user, 2026-09-27: a cap on the penalty keeps the arena stable while the providers' speed fluctuates.
+            .envs(options.think_cap.as_deref().or(options.player.then_some("7")).map(|cap| ("WITHIN_REASON_THINK_CAP", cap.to_string())))
+            .envs(options.turn_limit.as_ref().map(|limit| ("WITHIN_REASON_TURN_LIMIT", limit)))
+            .envs(options.realtime.then_some(("WITHIN_REASON_REALTIME", "1")))
+            .stderr(File::create(dir.join("bot.log"))?)
+            .spawn()?,
+        ),
+    };
     // The engine's watchdog kills a game whose main thread stalls for HangTimeout seconds (60 by default). In lockstep
     // the game stalls for every turn of a session; a hung session held pianist-player-10 past it and the engine died.
     // The engine reads springsettings.cfg from its write-dir at start and appends its own defaults after ours.
@@ -406,10 +419,12 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         .spawn()?;
 
     let started = Instant::now();
-    let result = referee(&mut autohost, &mut engine, &mut bot, options, &setup, &dir.join("engine.log"));
+    let result = referee(&mut autohost, &mut engine, bot.as_mut(), options, &setup, &dir.join("engine.log"));
     stop(&mut engine, &mut autohost);
-    let _ = bot.kill();
-    let _ = bot.wait();
+    if let Some(bot) = &mut bot {
+        let _ = bot.kill();
+        let _ = bot.wait();
+    }
     let _ = fs::remove_file(&socket);
     let (outcome, called) = result?;
     let game_minutes = last_frame(&dir.join("engine.log")) as f32 / (30.0 * 60.0);
@@ -451,7 +466,7 @@ fn first_factory(dir: &Path) -> String {
 fn referee(
     autohost: &mut Autohost,
     engine: &mut Child,
-    bot: &mut Child,
+    mut bot: Option<&mut Child>,
     options: &Options,
     setup: &MatchSetup,
     engine_log: &Path,
@@ -468,7 +483,7 @@ fn referee(
         if engine.try_wait()?.is_some() {
             return Ok((Outcome::Aborted, false));
         }
-        if let Some(status) = bot.try_wait()? {
+        if let Some(status) = bot.as_mut().map(|bot| bot.try_wait()).transpose()?.flatten() {
             // Without its bot our team stands idle; the result would be meaningless.
             return Err(io::Error::other(format!("bot process exited ({status}); see bot.log")));
         }
@@ -646,6 +661,7 @@ fn parse_args() -> Options {
         enemies: 1,
         free_for_all: false,
         boxes: Boxes::Standard,
+        our_ai: FLAGSHIP_AI.into(),
         bot: None,
         disable: String::new(),
         ab_disable: None,
@@ -710,6 +726,7 @@ fn parse_args() -> Options {
             "--jev-budget" => options.jev_budget = value().parse().ok().filter(|n: &f64| *n >= 0.0).unwrap_or_else(|| usage("--jev-budget takes dollars, 0 for no limit")),
             "--max-minutes" => options.max_minutes = value().parse().unwrap_or_else(|_| usage("--max-minutes")),
             "--profile" => options.profile = value(),
+            "--our-ai" => options.our_ai = value(),
             "--bot" => options.bot = Some(value().into()),
             "--disable" => options.disable = value(),
             "--ab-disable" => options.ab_disable = Some(value()),
@@ -791,6 +808,9 @@ fn parse_args() -> Options {
         usage(&format!("no start boxes for {ally_teams} ally teams on {} with --boxes {:?}: the lobby has none saved for that count, or the layout has no room (--ffa takes at most 3 enemies, with corners)", options.map, options.boxes));
     }
     // `--player` is the pianist's player.
+    if options.our_ai != FLAGSHIP_AI && (options.pianist || options.player || options.bot.is_some() || options.packet.is_some()) {
+        usage("--our-ai names a bot that plays inside its library: --pianist, --player, --packet and --bot are the flagship's");
+    }
     if options.player {
         options.pianist = true;
     }
@@ -798,7 +818,7 @@ fn parse_args() -> Options {
 }
 
 fn usage(problem: &str) -> ! {
-    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--jev-budget DOLLARS] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--player-model ID] [--brief standard|experience] [--objective TEXT] [--packet-example] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent NAME:VERSION] [--our-bonus N] [--enemy-bonus N] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N]");
+    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--jev-budget DOLLARS] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--player-model ID] [--brief standard|experience] [--objective TEXT] [--packet-example] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--our-ai NAME:VERSION] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent NAME:VERSION] [--our-bonus N] [--enemy-bonus N] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N]");
     std::process::exit(2)
 }
 

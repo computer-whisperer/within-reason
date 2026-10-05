@@ -202,7 +202,7 @@ mod tests {
 
 #[cfg(test)]
 mod probe {
-    /// `WR_SCRIPT=<file> cargo test -p ai-shim -- --ignored probe` prints what the parser reads from a real script.
+    /// `WR_SCRIPT=<file> cargo test -p ai-host -- --ignored probe` prints what the parser reads from a real script.
     #[test]
     #[ignore]
     fn sections_of_a_recorded_script() {

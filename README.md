@@ -26,7 +26,9 @@ written, restarted and debugged like any ordinary program, and slow decision-mak
 |---|---|
 | `recoil-ai-sys` | bindgen bindings over the engine's AI interface headers (vendored) |
 | `bot-protocol` | messages and framing between shim and bot |
-| `ai-shim` | the library the engine loads |
+| `ai-host` | the engine's side of an AI library: snapshots out, commands in, over any transport |
+| `ai-shim` | the library the engine loads for the flagship: the host over a socket to the bot process |
+| `bots/*` | heuristic bots that run inside their own library, with no bot process ([`bots/README.md`](bots/README.md)) |
 | `bot` | the bot process and its heuristic brain |
 | `arena` | batch evaluation: parallel headless matches against BARb, win rates, logs and replays per match |
 

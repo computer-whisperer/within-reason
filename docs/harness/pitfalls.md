@@ -153,3 +153,17 @@ Each match takes two ports from `--base-port` upward by its index, not by its pa
 ports. Three arenas started 30 apart (9600, 9630, 9660) collided at indices 15-23 of the second with 0-8 of the
 third, and two matches aborted with "Address already in use" (lane-ab-old). Space concurrent arenas by
 `2 x matches`, and keep the last index inside the range you were given.
+
+## The bot process without `--pianist` plays nothing and panics every second (found 2026-10-05)
+
+`bot` with neither flag (the arena's default) builds a brain with no pianist, and the brain's first `think` panics
+at `pianist/mod.rs` `end_timed_assists` (`expect("pianist mode")`); the session dies, the shim reconnects a second
+later, and the seat stands idle for the whole game (shim-refactor-smoke: 350 connections in three minutes). The
+heuristic brain that mode used to run was deleted on 2026-09-25. Pass `--pianist` (with `--packet` or `--player`).
+
+## Two libraries of ours in one game both write `balance` lines
+
+Every library built on `crates/ai-host` prints the arena's `heartbeat`, `census` and `balance` lines under the same
+`[wreason ai=N]` prefix, each from its own seat's side. With a bot of `bots/` as the `--opponent` of the flagship,
+the referee's settled-game call reads whichever `balance` line is newest, ours or theirs: pass `--play-out` (no
+settled call) for such a game until the lines carry the side.

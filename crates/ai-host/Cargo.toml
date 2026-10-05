@@ -1,0 +1,10 @@
+[package]
+name = "ai-host"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-2.0-or-later"
+description = "The engine's side of a skirmish AI library for the Recoil engine: snapshots out, commands in, over a socket or to a bot inside the library"
+
+[dependencies]
+bot-protocol = { path = "../bot-protocol" }
+recoil-ai-sys = { path = "../recoil-ai-sys" }

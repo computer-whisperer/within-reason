@@ -9,5 +9,5 @@ description = "Skirmish AI library loaded by the Recoil engine; relays between t
 crate-type = ["cdylib"]
 
 [dependencies]
+ai-host = { path = "../ai-host" }
 bot-protocol = { path = "../bot-protocol" }
-recoil-ai-sys = { path = "../recoil-ai-sys" }

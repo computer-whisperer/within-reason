@@ -9,6 +9,14 @@ mod messages;
 pub use framing::{FrameReader, write_frame};
 pub use messages::*;
 
+/// A bot as a host runs it inside the AI library (`ai_host::InProcess`): made from the `Hello`, then one
+/// [`Commands`] per [`Tick`], on the engine thread, so `tick` must return well inside a frame (33 ms at speed 1).
+/// The flagship (`crates/bot`) is not one: it sits behind the socket and answers the same messages from there.
+pub trait Bot: Send {
+    fn start(hello: Hello) -> Self;
+    fn tick(&mut self, tick: Tick) -> Commands;
+}
+
 use std::path::PathBuf;
 
 /// Socket the bot listens on: `$WITHIN_REASON_SOCKET`, else `$XDG_RUNTIME_DIR/within-reason.sock`.
