@@ -4,7 +4,7 @@
 
 use std::collections::BTreeMap;
 
-use bot_protocol::{BuildSite, Command, Lane, OwnUnit, Placement, Tick, UnitDefId, UnitId, Vec3};
+use bot_protocol::{BuildSite, Command, Lane, OwnUnit, Placement, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
 
 use crate::{Distilled, MINUTE, SECOND};
 
@@ -23,8 +23,22 @@ const SPOT_DANGER: f32 = 600.0;
 /// Builders on energy at one time: two, and one more for every four constructors.
 const ENERGY_BUILDERS: usize = 2;
 const ENERGY_BUILDERS_PER: usize = 4;
-/// Plants at the most.
+/// Plants at the most, and construction turrets a plant: one before another plant is built, three once the plants
+/// are all there. A plant's yard has to clear between units, so build power piled on one plant stops paying
+/// (distilled-v1-hard game 1: one plant with six turrets, the metal store full for four minutes).
 const PLANTS: usize = 8;
+const TURRETS_A_PLANT: usize = 1;
+const TURRETS_A_PLANT_AT_MOST: usize = 3;
+/// The plants should be able to spend this share of the metal income on soldiers (D-BUILD-POWER); the rest is buildings.
+const SOLDIERS_SHARE: f32 = 0.85;
+/// Energy income is kept this much over what the soldiers being made draw (D-ENERGY).
+const ENERGY_MARGIN: f32 = 1.25;
+/// A constructor builds the advanced solar instead of the solar from this metal income.
+const ADVANCED_FROM: f32 = 15.0;
+const BUILD_POWER_FROM: i32 = 5 * MINUTE / 2;
+const TURRET_RETELL: i32 = 10 * SECOND;
+/// A construction turret is built within this of its plant's middle, inside its own reach of it.
+const TURRET_REACH: f32 = 330.0;
 /// The factory makes raiders until this frame and tanks with artillery after (D-PRODUCTION).
 const TANKS_FROM: i32 = 8 * MINUTE;
 const SCOUTS_FIRST: usize = 4;
@@ -33,7 +47,10 @@ const SCOUTS_FIRST: usize = 4;
 pub(crate) enum Job {
     Extractor(usize),
     Solar,
+    AdvancedSolar,
     Plant,
+    /// A construction turret beside this plant.
+    Turret(UnitId),
     Assist,
 }
 
@@ -47,6 +64,7 @@ pub(crate) struct Economy {
     /// Per metal spot, the frame until which it is left alone.
     refused: Vec<i32>,
     factory_ordered: BTreeMap<UnitId, i32>,
+    turret_told: BTreeMap<UnitId, i32>,
     /// What the factories have been told to make: all, the scouts, and soldiers since the last constructor and scout.
     made: usize,
     scouts_made: usize,
@@ -56,11 +74,16 @@ pub(crate) struct Economy {
 
 impl Economy {
     pub(crate) fn new(spots: usize) -> Self {
-        Economy { orders: BTreeMap::new(), refused: vec![0; spots], factory_ordered: BTreeMap::new(), made: 0, scouts_made: 0, since_constructor: 0, since_scout: 0 }
+        Economy { orders: BTreeMap::new(), refused: vec![0; spots], factory_ordered: BTreeMap::new(), turret_told: BTreeMap::new(), made: 0, scouts_made: 0, since_constructor: 0, since_scout: 0 }
     }
 
-    fn working_on(&self, job: Job) -> usize {
-        self.orders.values().filter(|o| o.job == job).count()
+    /// Units the factories have been told to make.
+    pub(crate) fn made(&self) -> usize {
+        self.made
+    }
+
+    fn working_on(&self, job: impl Fn(Job) -> bool) -> usize {
+        self.orders.values().filter(|o| job(o.job)).count()
     }
 }
 
@@ -100,7 +123,8 @@ impl Distilled {
     /// D-OPENING, D-COMMANDER, D-EXPAND, D-ENERGY, D-PLANTS: what a builder with nothing to do does next.
     fn next_job(&self, unit: &OwnUnit, tick: &Tick) -> Option<Job> {
         let commander = Some(unit.def) != self.kit.constructor;
-        let energy = self.energy_short(tick) && self.economy.working_on(Job::Solar) < ENERGY_BUILDERS + self.count(self.kit.constructor) / ENERGY_BUILDERS_PER;
+        let on_energy = self.economy.working_on(|job| matches!(job, Job::Solar | Job::AdvancedSolar));
+        let energy = self.energy_short(tick) && on_energy < ENERGY_BUILDERS + self.count(self.kit.constructor) / ENERGY_BUILDERS_PER;
         let assist = || self.finished(self.kit.plant).next().map(|_| Job::Assist);
         if commander {
             // The opening, read off what stands: two extractors, two solars, the plant.
@@ -121,31 +145,70 @@ impl Distilled {
             return self.free_spot(unit, tick, COMMANDER_WALK).map(Job::Extractor).or_else(assist);
         }
         if energy {
-            return Some(Job::Solar);
+            return Some(if tick.snapshot.metal.income >= ADVANCED_FROM && self.kit.advanced_solar.is_some() { Job::AdvancedSolar } else { Job::Solar });
         }
-        if self.economy.working_on(Job::Plant) == 0 && self.count(self.kit.plant) < self.plants_wanted(tick) {
-            return Some(Job::Plant);
+        if self.economy.working_on(|job| matches!(job, Job::Plant | Job::Turret(_))) == 0
+            && let Some(job) = self.build_power_job(tick)
+        {
+            return Some(job);
         }
         self.free_spot(unit, tick, f32::MAX).map(Job::Extractor).or_else(assist)
     }
 
-    /// D-ENERGY: the store is low, or it is falling and not full.
-    fn energy_short(&self, tick: &Tick) -> bool {
-        let energy = tick.snapshot.energy;
-        energy.current < 0.3 * energy.storage || (energy.income < energy.usage && energy.current < 0.6 * energy.storage)
+    /// The soldier the plants make now.
+    fn soldier(&self) -> Option<&UnitDefInfo> {
+        let def = if self.frame < TANKS_FROM { self.kit.raider.or(self.kit.tank) } else { self.kit.tank.or(self.kit.raider) };
+        def.and_then(|def| self.def(def))
     }
 
-    /// D-PLANTS: a second plant from 6:30 and a third from 10:30 when the income carries them, and one more whenever
-    /// metal piles up in the store.
-    fn plants_wanted(&self, tick: &Tick) -> usize {
+    /// Metal a second the plants and their turrets can turn into soldiers, working without a pause: build power
+    /// times the soldier's metal over its build time (the engine's own arithmetic). Those still being built count;
+    /// turrets beyond three a plant do not.
+    pub(crate) fn can_spend(&self) -> f32 {
+        let Some(soldier) = self.soldier() else { return 0.0 };
+        let power = |def: Option<UnitDefId>| def.and_then(|d| self.def(d)).map_or(0.0, |d| d.build_speed);
+        let (plants, turrets) = (self.count(self.kit.plant), self.count(self.kit.turret));
+        let total = plants as f32 * power(self.kit.plant) + turrets.min(TURRETS_A_PLANT_AT_MOST * plants) as f32 * power(self.kit.turret);
+        total * soldier.metal_cost / soldier.build_time.max(1.0)
+    }
+
+    /// D-ENERGY: the store is low, or it is falling and not full, or the income is under what the soldiers the metal
+    /// income pays for would draw.
+    fn energy_short(&self, tick: &Tick) -> bool {
+        let (metal, energy) = (tick.snapshot.metal, tick.snapshot.energy);
+        let soldiers_draw = self.soldier().map_or(0.0, |s| self.can_spend().min(metal.income) * s.energy_cost / s.metal_cost.max(1.0));
+        energy.current < 0.3 * energy.storage || (energy.income < energy.usage && energy.current < 0.6 * energy.storage) || energy.income < ENERGY_MARGIN * soldiers_draw
+    }
+
+    /// D-BUILD-POWER: while the plants cannot spend the soldiers' share of the income, or metal piles up in the
+    /// store, a construction turret beside the plant with the fewest, and another plant when each has two.
+    fn build_power_job(&self, tick: &Tick) -> Option<Job> {
         let metal = tick.snapshot.metal;
-        let by_clock = match self.frame {
-            f if f >= 21 * MINUTE / 2 && metal.income >= 22.0 => 3,
-            f if f >= 13 * MINUTE / 2 && metal.income >= 10.0 => 2,
-            _ => 1,
-        };
-        let piling = self.frame > 3 * MINUTE && metal.current > 0.5 * metal.storage;
-        (by_clock.max(self.count(self.kit.plant) + piling as usize)).min(PLANTS)
+        let short = self.can_spend() < SOLDIERS_SHARE * metal.income || metal.current > 0.5 * metal.storage;
+        if self.frame < BUILD_POWER_FROM || !short {
+            return None;
+        }
+        let plants: Vec<&OwnUnit> = self.finished(self.kit.plant).collect();
+        // A turret is its nearest plant's, wherever the site search put it.
+        let nearest = |at: Vec3| plants.iter().min_by(|a, b| a.pos.dist2d(at).total_cmp(&b.pos.dist2d(at))).map(|p| p.id);
+        let turrets_at = |plant: &OwnUnit| self.own.values().filter(|u| Some(u.def) == self.kit.turret && nearest(u.pos) == Some(plant.id)).count();
+        let fewest = plants.iter().map(|p| (turrets_at(p), p.id)).min();
+        match fewest {
+            Some((n, plant)) if self.kit.turret.is_some() && n < TURRETS_A_PLANT => Some(Job::Turret(plant)),
+            _ if self.count(self.kit.plant) < PLANTS => Some(Job::Plant),
+            Some((n, plant)) if self.kit.turret.is_some() && n < TURRETS_A_PLANT_AT_MOST => Some(Job::Turret(plant)),
+            _ => None,
+        }
+    }
+
+    /// D-BUILD-POWER: an idle construction turret helps the nearest plant in its reach, told again every ten seconds.
+    pub(crate) fn run_turrets(&mut self, commands: &mut Vec<Command>) {
+        let idle: Vec<(UnitId, Vec3)> = self.finished(self.kit.turret).filter(|t| t.idle && self.economy.turret_told.get(&t.id).is_none_or(|at| self.frame - at >= TURRET_RETELL)).map(|t| (t.id, t.pos)).collect();
+        for (turret, at) in idle {
+            let Some(plant) = self.finished(self.kit.plant).filter(|p| p.pos.dist2d(at) < TURRET_REACH).min_by(|a, b| a.pos.dist2d(at).total_cmp(&b.pos.dist2d(at))).map(|p| p.id) else { continue };
+            self.economy.turret_told.insert(turret, self.frame);
+            commands.push(Command::Guard { unit: turret, target: plant });
+        }
     }
 
     /// D-EXPAND: the free spot that is nearest, counting the walk from the builder whole and the distance from home half.
@@ -179,7 +242,15 @@ impl Distilled {
                     commands.extend(build(self.kit.sentry, BuildSite { near: self.toward_enemy(at, 120.0), search_radius: 200.0, min_dist: 1, placements: Vec::new() }, true));
                 }
             }
-            Job::Solar => commands.extend(build(self.kit.solar, BuildSite { near: self.toward_enemy(self.home, -250.0), search_radius: 1200.0, min_dist: 3, placements: placements() }, false)),
+            Job::Solar | Job::AdvancedSolar => {
+                let def = if job == Job::Solar { self.kit.solar } else { self.kit.advanced_solar };
+                commands.extend(build(def, BuildSite { near: self.toward_enemy(self.home, -250.0), search_radius: 1200.0, min_dist: 3, placements: placements() }, false));
+            }
+            Job::Turret(plant) => {
+                let Some(plant) = self.own.get(&plant) else { return };
+                // Behind the plant, away from its front.
+                commands.extend(build(self.kit.turret, BuildSite { near: self.toward_enemy(plant.pos, -150.0), search_radius: 150.0, min_dist: 1, placements: placements() }, false));
+            }
             Job::Plant => commands.extend(build(self.kit.plant, BuildSite { near: self.toward_enemy(self.home, 350.0), search_radius: 900.0, min_dist: 8, placements: placements() }, false)),
             Job::Assist => {
                 let nearest = self.finished(self.kit.plant).min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)));

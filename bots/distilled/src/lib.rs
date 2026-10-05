@@ -23,6 +23,9 @@ pub(crate) const MINUTE: i32 = 60 * SECOND;
 pub(crate) struct Kit {
     pub extractor: Option<UnitDefId>,
     pub solar: Option<UnitDefId>,
+    pub advanced_solar: Option<UnitDefId>,
+    /// The construction turret: build power that stands beside a plant.
+    pub turret: Option<UnitDefId>,
     pub plant: Option<UnitDefId>,
     pub sentry: Option<UnitDefId>,
     pub constructor: Option<UnitDefId>,
@@ -78,6 +81,8 @@ impl Distilled {
             // The cheapest extractor the commander can build.
             extractor: commander.build_options.iter().filter_map(|id| self.def(*id)).filter(|d| d.extracts_metal > 0.0).min_by(|a, b| a.metal_cost.total_cmp(&b.metal_cost)).map(|d| d.id),
             solar: named("solar"),
+            advanced_solar: named("advsol"),
+            turret: named("nanotc"),
             plant: named("vp"),
             sentry: named("llt"),
             constructor: named("cv"),
@@ -97,7 +102,7 @@ impl Distilled {
         self.enemy_home = self.hello.start_boxes.iter().find(|b| b.ally_team != ours).map_or(Vec3 { x: map.x - self.home.x, y: 0.0, z: map.z - self.home.z }, |b| b.centre());
         self.kit = self.def(commander.def).map(|d| self.kit_of(d)).unwrap_or_default();
         let kit = &self.kit;
-        let missing: Vec<&str> = [("extractor", kit.extractor), ("solar", kit.solar), ("plant", kit.plant), ("sentry", kit.sentry), ("constructor", kit.constructor), ("scout", kit.scout), ("raider", kit.raider), ("tank", kit.tank), ("artillery", kit.artillery)]
+        let missing: Vec<&str> = [("extractor", kit.extractor), ("solar", kit.solar), ("advanced solar", kit.advanced_solar), ("construction turret", kit.turret), ("plant", kit.plant), ("sentry", kit.sentry), ("constructor", kit.constructor), ("scout", kit.scout), ("raider", kit.raider), ("tank", kit.tank), ("artillery", kit.artillery)]
             .iter()
             .filter(|(_, def)| def.is_none())
             .map(|(name, _)| *name)
@@ -137,6 +142,7 @@ impl Bot for Distilled {
         // Twice a second for the economy, once for the army: nothing here needs the tick's 10 Hz.
         if tick.due() % (SECOND / 2) == 0 {
             self.run_builders(&tick, &mut commands);
+            self.run_turrets(&mut commands);
             self.run_factories(&mut commands);
         }
         if tick.due() % SECOND == 0 {
@@ -144,10 +150,10 @@ impl Bot for Distilled {
         }
         if tick.due() % MINUTE == 0 && tick.frame > 0 {
             eprintln!(
-                "[distilled ai={}] f={} extractors={} solars={} plants={} constructors={} sentries={} home_guard={} strike={} his_buildings_known={} metal {:.0}/{:.0} +{:.1} energy {:.0}/{:.0} +{:.0} -{:.0}",
-                self.hello.ai_id, tick.frame, self.count(self.kit.extractor), self.count(self.kit.solar), self.count(self.kit.plant), self.count(self.kit.constructor), self.count(self.kit.sentry),
-                self.army.home_guard.len(), self.army.strike.len(), self.army.his_buildings.len(),
-                tick.snapshot.metal.current, tick.snapshot.metal.storage, tick.snapshot.metal.income, tick.snapshot.energy.current, tick.snapshot.energy.storage, tick.snapshot.energy.income, tick.snapshot.energy.usage
+                "[distilled ai={}] f={} extractors={} solars={}+{} plants={} turrets={} constructors={} sentries={} can_spend={:.1} home_guard={} strike={} his_buildings_known={} made={} metal {:.0}/{:.0} +{:.1} -{:.1} energy {:.0}/{:.0} +{:.0} -{:.0}",
+                self.hello.ai_id, tick.frame, self.count(self.kit.extractor), self.count(self.kit.solar), self.count(self.kit.advanced_solar), self.count(self.kit.plant), self.count(self.kit.turret), self.count(self.kit.constructor), self.count(self.kit.sentry), self.can_spend(),
+                self.army.home_guard.len(), self.army.strike.len(), self.army.his_buildings.len(), self.economy.made(),
+                tick.snapshot.metal.current, tick.snapshot.metal.storage, tick.snapshot.metal.income, tick.snapshot.metal.usage, tick.snapshot.energy.current, tick.snapshot.energy.storage, tick.snapshot.energy.income, tick.snapshot.energy.usage
             );
         }
         Commands(commands)
