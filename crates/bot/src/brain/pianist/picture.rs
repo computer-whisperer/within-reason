@@ -1604,7 +1604,7 @@ impl Brain {
             let doing = match &group.task {
                 GroupTask::Hold { since, picked: true, .. } => format!("holding here on your pick for {}", ago(*since)),
                 GroupTask::Hold { since, committed, .. } => format!("standing with no order for {}{}", ago(*since), if *committed { ", fighting everything here, turrets included, since it arrived by advancing" } else { "" }),
-                GroupTask::Move { since, .. } if group.gathering => format!("gathering on its front for {}: the rest close up on it ({} of {} within {:.0}; the tail {:.0} behind)", ago(*since), body.core.iter().filter(|u| u.pos.dist2d(body.front) <= super::groups::STRUNG_OUT).count(), body.core.len(), super::groups::STRUNG_OUT, body.length),
+                GroupTask::Move { since, .. } if group.gathering => format!("gathering on its front for {}: the rest close up on it ({} of {} within {:.0}; the tail {:.0} behind)", ago(*since), body.core.iter().filter(|u| u.pos.dist2d(body.front) <= super::groups::STRUNG_OUT).count(), body.core.len() + body.stragglers.len(), super::groups::STRUNG_OUT, body.whole),
                 GroupTask::Move { to, place, fight, since } => format!("{} to {place}: {}, for {}", if *fight { "advancing" } else { "walking" }, shape(*to), ago(*since)),
                 // Told to attack is not attacking: the entry says where the group stands against the party
                 // (H-HANDS-STANDING).
@@ -1662,6 +1662,10 @@ impl Brain {
                     body.joining.len(),
                     from.iter().map(|(p, n)| format!("{n} from {p}")).collect::<Vec<_>>().join(", ")
                 ));
+            }
+            if !body.stragglers.is_empty() {
+                let farthest = body.stragglers.iter().map(|u| u.pos.dist2d(body.at)).fold(0.0, f32::max);
+                entry["stragglers"] = json!(format!("{} of its soldiers are stragglers, up to {farthest:.0} from the body; they are not in its fights yet", body.stragglers.len()));
             }
             // The lane as it plays: a hands' scout roves without a setting; an air group never roves (H-MICRO-ROVE).
             let footwork = if group.roving { crate::strategist::shared::Footwork::rove() } else { self.footwork_of(&group.name) };

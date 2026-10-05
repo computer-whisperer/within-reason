@@ -150,10 +150,17 @@ pub(crate) struct Group {
 pub(crate) struct Body<'a> {
     pub core: Vec<&'a OwnUnit>,
     pub joining: Vec<&'a OwnUnit>,
+    /// Under the `stragglers` layer (H-HANDS-STRAGGLERS): the members of the farthest fifth that stand over
+    /// `STRUNG_OUT` from the body's place. Out of the core, as the joiners are: four fifths of a large body stood
+    /// within 330 to 520 of its middle while its front-to-tail length was over `STRUNG_OUT` in 84 to 100% of seconds
+    /// (`run/group_shape.py`), so every large group was said strung out and priced in part.
+    pub stragglers: Vec<&'a OwnUnit>,
     pub front: Vec3,
     pub tail: Vec3,
     /// From the front to the tail.
     pub length: f32,
+    /// From the front to the farthest member, stragglers counted: what a gather closes.
+    pub whole: f32,
     /// Where the body stands: the `BODY_SHARE`-th member from the front.
     pub at: Vec3,
     pub arrived: usize,
@@ -161,6 +168,8 @@ pub(crate) struct Body<'a> {
 
 /// The body is measured at this share of the core, counted from the front (the march's own measure).
 const BODY_SHARE: f32 = 0.6;
+/// One member in this many, the farthest from the body's place, can be a straggler.
+const STRAGGLER_SHARE: usize = 5;
 
 impl Body<'_> {
     /// The core members within `reach` of `at`: the part of the group that is in a fight there.
@@ -188,6 +197,11 @@ impl Group {
     /// The group's body toward `toward` (the goal of a walk, the nearest enemy, or nothing: then the front is the
     /// centre and the tail the member farthest from it). `None` when no member stands.
     pub(crate) fn body<'a>(&self, own: &'a [OwnUnit], toward: Option<Vec3>) -> Option<Body<'a>> {
+        self.body_with(own, toward, super::layers::stragglers())
+    }
+
+    /// `body`, with the `stragglers` layer on or off.
+    pub(crate) fn body_with<'a>(&self, own: &'a [OwnUnit], toward: Option<Vec3>, stragglers: bool) -> Option<Body<'a>> {
         let units = self.units(own);
         let (joining, mut core): (Vec<&OwnUnit>, Vec<&OwnUnit>) = units.iter().copied().partition(|u| self.joining.contains_key(&u.id));
         if core.is_empty() {
@@ -197,12 +211,22 @@ impl Group {
         let centre = centre_of(&core)?;
         let toward = toward.unwrap_or(centre);
         core.sort_by(|a, b| a.pos.dist2d(toward).total_cmp(&b.pos.dist2d(toward)));
+        let place = |core: &[&OwnUnit]| core.get(((core.len() as f32 * BODY_SHARE) as usize).min(core.len() - 1)).map_or(centre, |u| u.pos);
+        let whole = core.first().zip(core.last()).map_or(0.0, |(front, tail)| front.pos.dist2d(tail.pos));
+        let joining: Vec<&OwnUnit> = joining.into_iter().filter(|u| !core.iter().any(|c| c.id == u.id)).collect();
+        let mut apart: Vec<&OwnUnit> = Vec::new();
+        if stragglers {
+            let at = place(&core);
+            let mut farthest: Vec<&OwnUnit> = core.clone();
+            farthest.sort_by(|a, b| b.pos.dist2d(at).total_cmp(&a.pos.dist2d(at)));
+            apart = farthest.into_iter().take(core.len() / STRAGGLER_SHARE).filter(|u| u.pos.dist2d(at) > STRUNG_OUT).collect();
+            core.retain(|u| !apart.iter().any(|a| a.id == u.id));
+        }
         let front = core.first().map_or(centre, |u| u.pos);
         let tail = core.last().map_or(centre, |u| u.pos);
-        let at = core.get(((core.len() as f32 * BODY_SHARE) as usize).min(core.len() - 1)).map_or(centre, |u| u.pos);
+        let at = place(&core);
         let arrived = core.iter().filter(|u| u.pos.dist2d(toward) < ARRIVED).count();
-        let joining: Vec<&OwnUnit> = joining.into_iter().filter(|u| !core.iter().any(|c| c.id == u.id)).collect();
-        Some(Body { length: front.dist2d(tail), core, joining, front, tail, at, arrived })
+        Some(Body { length: front.dist2d(tail), whole, core, joining, stragglers: apart, front, tail, at, arrived })
     }
 
     /// Orders for members rejoining the task (a newcomer that has reached the body): what the task would give
@@ -481,8 +505,8 @@ impl Brain {
                     group.met = Some((frame, words));
                 }
             }
-            // A gather ends when the tail is up, wherever the front then stands.
-            let together = group.gathering && group.body(own, None).is_some_and(|body| !body.strung_out());
+            // A gather ends when the tail is up, the stragglers with it, wherever the front then stands.
+            let together = group.gathering && group.body(own, None).is_some_and(|body| body.whole <= STRUNG_OUT);
             match &mut group.task {
                 GroupTask::Hold { .. } => {}
                 GroupTask::Move { to, fight, place, .. } => {
@@ -761,6 +785,26 @@ fn group_for_newcomer(named: Option<&str>, call: u64, factory_group: Option<(u64
 mod tests {
     use super::super::fixtures::{e3, own};
     use super::*;
+
+    /// Sixteen soldiers together and four far behind: by the old measure the group is strung out; under the
+    /// `stragglers` layer the four are stragglers, out of the core, the body is not strung out, and the whole length a
+    /// gather closes still reaches them. A column with every soldier 100 behind the last stays strung out.
+    #[test]
+    fn a_few_far_behind_are_stragglers_and_the_body_is_not_strung_out() {
+        let spot = |x: f32| Vec3 { x, y: 0.0, z: 1000.0 };
+        let mut ours: Vec<OwnUnit> = (0..16).map(|i| own(i, 1, spot(3000.0 + 20.0 * i as f32))).collect();
+        ours.extend((0..4).map(|i| own(16 + i, 1, spot(2000.0 - 300.0 * i as f32))));
+        let group = Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { since: 0, committed: false, picked: false }, 0);
+        let toward = Some(spot(4000.0));
+        let old = group.body_with(&ours, toward, false).expect("a body");
+        assert!(old.strung_out() && old.stragglers.is_empty() && old.core.len() == 20);
+        let body = group.body_with(&ours, toward, true).expect("a body");
+        assert_eq!((body.stragglers.len(), body.core.len()), (4, 16));
+        assert!(!body.strung_out() && body.whole > STRUNG_OUT && body.whole == old.length, "{} {}", body.length, body.whole);
+        let column: Vec<OwnUnit> = (0..20).map(|i| own(i, 1, spot(3000.0 - 100.0 * i as f32))).collect();
+        let body = group.body_with(&column, toward, true).expect("a body");
+        assert!(body.strung_out() && body.stragglers.len() == 4, "{} {}", body.length, body.stragglers.len());
+    }
 
     /// A hunt is a group of its own: three of fourteen sent after a party split off under a new name with the hunt
     /// as their task, the parent keeps eleven; the whole of a group hunting keeps its name; the hunt's end is a hold.

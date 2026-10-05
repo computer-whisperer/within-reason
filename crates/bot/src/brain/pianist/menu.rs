@@ -863,11 +863,11 @@ impl Brain {
         // Hold and gather.
         push("hold".into(), Order::Hold, format!("{name} holds: every soldier stops where it stands, at {at}, and the group stays there until told otherwise{keeps}{leaves}{}", undoes("hold")), format!("the hold at {at}"), None, false);
         if !air && units.len() >= 2 {
-            let tail = if body.length < HERE {
+            let tail = if body.whole < HERE {
                 "it stands together already"
-            } else if body.length < super::groups::STRUNG_OUT {
+            } else if body.whole < super::groups::STRUNG_OUT {
                 "its tail is a little behind"
-            } else if body.length < 2.0 * super::groups::STRUNG_OUT {
+            } else if body.whole < 2.0 * super::groups::STRUNG_OUT {
                 "its tail is strung out behind"
             } else {
                 "its tail is far behind"

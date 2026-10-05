@@ -232,7 +232,8 @@ Each is played before the next is started.
    `beside`; built 2026-10-04). The old rule's parties need no log of their own: `run/party_rules.py` forms them
    from the game's record. Test: the standing duel, then a 3-seat game; the
    forbidden and step-back answers at a front, read by a person.
-2. **The body's length read on its four fifths, stragglers said** (§3.1; measured 2026-10-05), then the parted body
+2. **The body's length read on its four fifths, stragglers said** (§3.1; measured 2026-10-05; built the same day
+   as the layer `stragglers`: of the farthest fifth, those over 600 from the body's place), then the parted body
    if games ask for it.
 3. **`lanes` with lanes and roles; the lane line in the commander's and players' reports; the hands' picture by
    lane.** Test: glitters 8v8 against the same opponent, beside glitters-8v8-hard-1: transfers of units, gate sizes

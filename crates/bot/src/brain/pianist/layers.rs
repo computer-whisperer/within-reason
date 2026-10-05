@@ -27,9 +27,14 @@ pub(super) fn split_audit_share() -> f64 {
     static SHARE: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
     *SHARE.get_or_init(|| std::env::var("WITHIN_REASON_SPLIT_AUDIT").ok().and_then(|v| v.parse().ok()).unwrap_or(AUDIT_SHARE))
 }
+/// Whether the `stragglers` layer is on, for `Group::body`, which is called where no `Layers` is at hand.
+pub(crate) fn stragglers() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| Layers::from_env().is_ok_and(|l| l.stragglers))
+}
 /// The layers of the design note, in its order, and those that exist.
-const KNOWN: [&str; 13] = ["news", "same", "fuse", "openers", "split", "tick", "places", "again", "near", "kept", "beside", "one", "local"];
-const BUILT: [&str; 11] = ["news", "same", "fuse", "openers", "split", "tick", "places", "again", "near", "kept", "beside"];
+const KNOWN: [&str; 14] = ["news", "same", "fuse", "openers", "split", "tick", "places", "again", "near", "kept", "beside", "stragglers", "one", "local"];
+const BUILT: [&str; 12] = ["news", "same", "fuse", "openers", "split", "tick", "places", "again", "near", "kept", "beside", "stragglers"];
 /// The `tick` layer: a gate that no event calls for waits until this long after the last one.
 pub(super) const TICK: i32 = 2 * FRAMES_PER_SECOND;
 /// How old an answer may be to stand for an actor asked again only because something of its opened (the `again`
@@ -94,12 +99,15 @@ pub(crate) struct Layers {
     /// The picture's (H-HANDS-PARTY-BESIDE): a fight with a party is weighed with the enemies of other parties
     /// within `BESIDE` of its centre, and the party's line names them.
     pub beside: bool,
+    /// The picture's (H-HANDS-STRAGGLERS): the members of a group's farthest fifth that stand over `STRUNG_OUT` from
+    /// its body are stragglers, out of the body's length, its words and its odds as the joiners are.
+    pub stragglers: bool,
 }
 
 impl Layers {
     pub(super) fn parse(value: Option<&str>) -> Result<Layers, String> {
-        let Some(value) = value.map(str::trim).filter(|v| !v.is_empty()) else { return Ok(Layers { news: true, same: false, fuse: false, openers: false, split: false, tick: false, places: false, again: false, near: false, kept: false, beside: false }) };
-        let mut layers = Layers { news: false, same: false, fuse: false, openers: false, split: false, tick: false, places: false, again: false, near: false, kept: false, beside: false };
+        let Some(value) = value.map(str::trim).filter(|v| !v.is_empty()) else { return Ok(Layers { news: true, same: false, fuse: false, openers: false, split: false, tick: false, places: false, again: false, near: false, kept: false, beside: false, stragglers: false }) };
+        let mut layers = Layers { news: false, same: false, fuse: false, openers: false, split: false, tick: false, places: false, again: false, near: false, kept: false, beside: false, stragglers: false };
         for name in value.split(',').map(str::trim).filter(|n| !n.is_empty() && *n != "none") {
             match name {
                 "news" => layers.news = true,
@@ -113,6 +121,7 @@ impl Layers {
                 "near" => layers.near = true,
                 "kept" => layers.kept = true,
                 "beside" => layers.beside = true,
+                "stragglers" => layers.stragglers = true,
                 _ if KNOWN.contains(&name) => return Err(format!("the hands' layer `{name}` is not built yet (built: {})", BUILT.join(", "))),
                 _ => return Err(format!("`{name}` is not a layer of the hands (the layers: {})", KNOWN.join(", "))),
             }
@@ -126,7 +135,7 @@ impl Layers {
 
     /// The layers that are on, for the log's header.
     pub(super) fn names(&self) -> Vec<&'static str> {
-        [(self.news, "news"), (self.same, "same"), (self.fuse, "fuse"), (self.openers, "openers"), (self.split, "split"), (self.tick, "tick"), (self.places, "places"), (self.again, "again"), (self.near, "near"), (self.kept, "kept"), (self.beside, "beside")].into_iter().filter(|(on, _)| *on).map(|(_, name)| name).collect()
+        [(self.news, "news"), (self.same, "same"), (self.fuse, "fuse"), (self.openers, "openers"), (self.split, "split"), (self.tick, "tick"), (self.places, "places"), (self.again, "again"), (self.near, "near"), (self.kept, "kept"), (self.beside, "beside"), (self.stragglers, "stragglers")].into_iter().filter(|(on, _)| *on).map(|(_, name)| name).collect()
     }
 }
 
@@ -484,11 +493,11 @@ mod tests {
 
     #[test]
     fn the_layers_are_named_and_an_unbuilt_one_stops_the_start() {
-        let none = Layers { news: false, same: false, fuse: false, openers: false, split: false, tick: false, places: false, again: false, near: false, kept: false, beside: false };
+        let none = Layers { news: false, same: false, fuse: false, openers: false, split: false, tick: false, places: false, again: false, near: false, kept: false, beside: false, stragglers: false };
         assert_eq!(Layers::parse(None), Ok(Layers { news: true, ..none.clone() }));
         assert_eq!(Layers::parse(Some("news")), Ok(Layers { news: true, ..none.clone() }));
         assert_eq!(Layers::parse(Some("none")), Ok(none.clone()));
-        assert_eq!(Layers::parse(Some("news, same,fuse,openers,tick")), Ok(Layers { news: true, same: true, fuse: true, openers: true, split: false, tick: true, places: false, again: false, near: false, kept: false, beside: false }));
+        assert_eq!(Layers::parse(Some("news, same,fuse,openers,tick")), Ok(Layers { news: true, same: true, fuse: true, openers: true, split: false, tick: true, places: false, again: false, near: false, kept: false, beside: false, stragglers: false }));
         assert_eq!(Layers::parse(Some("again")), Ok(Layers { again: true, ..none.clone() }));
         assert_eq!(Layers::parse(Some("near")), Ok(Layers { near: true, ..none.clone() }));
         assert_eq!(Layers::parse(Some("places")), Ok(Layers { places: true, ..none.clone() }));

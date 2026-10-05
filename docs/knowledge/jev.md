@@ -2095,3 +2095,9 @@ among its givens; the same words appended to the packet read 0.36-0.43, and insi
 **Evidence.** `run/party_rules.py` on glitters-8v8-hard-1 seat 0 from minute 10, the human 8v8 replay on the same map from minute 15 and same-opus-2 from minute 3, 2026-10-04 (`docs/design/2026-10-04-fronts-parties-and-lanes.md` §1).
 **Status.** built 2026-10-04 as H-HANDS-PARTIES-KEPT and H-HANDS-PARTY-BESIDE (layers `kept`, `beside`); no game has judged them yet.
 **Would be wrong if.** A game with kept parties shows names changing at a front as often as the cut rules', or the hands stepping back from parties whose neighbours were never in the fight.
+
+### K-hands-a-few-stragglers-set-a-bodys-length
+**Claim.** A large group's body is compact and a few members set its length: in groups of 20 or more, four fifths of the body stand within 330 to 520 of its middle (median), while its front-to-tail length is over 600 in 84 to 100% of seconds, so `strung_out` holds nearly always and says nothing. A body in two real clumps is about a tenth of the time. The soldiers still walking to the group are already left out and said (`reinforcements`): 5% of soldiers in the 8v8, a third in two duels.
+**Evidence.** `run/group_shape.py` on glitters-8v8-hard-1, same-opus-2, going-2 and kept-1, 2026-10-05 (`docs/design/2026-10-04-fronts-parties-and-lanes.md` §3). The body there is an estimate: the log gives how many members are joining, not which.
+**Status.** built 2026-10-05 as H-HANDS-STRAGGLERS (layer `stragglers`); no game has judged it yet.
+**Would be wrong if.** With the layer on, `strung_out` still holds for most of a large group's seconds, or groups are sent into fights their stragglers were needed for.
