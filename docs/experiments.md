@@ -11,6 +11,9 @@ the 274 batches of 2026-09-19 and 2026-09-20 (directory names `1789841014-trial`
 `/ceph/christian/within-reason/run/matches-archive/<batch>` when the root filesystem reached 94%. The tools take a
 path, so `run/analyze_match.py /ceph/christian/within-reason/run/matches-archive/<batch>/00` reads an archived
 batch as before; later moves go to the same archive and get a line here.
+On 2026-10-05 the 338 batches of 2026-09-21 through 2026-10-01 (`1789963458-cmd-opus-low-6` through
+`1790902690-glance-smoke-1`, 19 GB: the rolling planner through scouting-glance and player-33) followed, the root
+filesystem at 96%. Everything from 2026-10-02 on (player-34 and later) is still in `run/matches/`.
 
 | Batch label | Commit | Opponent | n | W-L-T | Testing | Outcome |
 |---|---|---|---|---|---|---|
