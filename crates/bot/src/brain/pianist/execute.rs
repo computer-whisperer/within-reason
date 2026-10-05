@@ -209,7 +209,7 @@ impl Brain {
             }
             Order::DGun(party_name) => {
                 if let Some(party) = picture.parties.iter().find(|p| p.name == *party_name)
-                    && let Some(target) = party.ids.iter().filter_map(|id| tick.snapshot.enemies.iter().find(|e| e.id == *id)).min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)))
+                    && let Some(target) = self.dgun_targets(party, unit, &tick.snapshot.enemies).into_iter().next()
                 {
                     commands.push(Command::DGun { unit: id, target: target.id });
                     // The shot takes the place of the builder's order in the engine: its task ends with it.

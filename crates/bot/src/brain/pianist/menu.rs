@@ -1346,18 +1346,18 @@ impl Brain {
             push(key.clone(), Order::Attack(party.name.clone()), format!("{name} attacks {party_words} ({}): against it alone, {odds}{chase}{range}{leaves}{}", way_words(distance, speed), undoes(&key)), format!("the attack on {}", party.name), Some(party));
             // The D-gun reaches what stands inside its reach: beyond it the commander cannot fire it, and walking
             // in is the attack above (rebuild-smoke-1: the shot was picked five times at parties 900 away).
-            let inside = party.ids.iter().filter_map(|id| enemies.iter().find(|e| e.id == *id)).filter(|e| e.pos.dist2d(unit.pos) <= dgun).count();
+            let inside = self.dgun_targets(party, unit, enemies).len();
             if dgun > 0.0 && inside > 0 {
                 let energy = if scene.tick.snapshot.energy.current >= DGUN_ENERGY { "the energy for it is stored" } else { "the energy store is too low for it now" };
                 // The shot destroys everything on its line, ours too (player-55 at 3:35: the commander D-gunned a
                 // Rover beside our vehicle plant and the plant and the constructor on its pad went with it).
-                let target = party.ids.iter().filter_map(|id| enemies.iter().find(|e| e.id == *id)).min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)));
+                let target = self.dgun_targets(party, unit, enemies).into_iter().next();
                 let crossed = target.map(|t| self.ours_on_the_line(unit, t.pos, dgun, own)).filter(|c| !c.is_empty());
                 let energy = match &crossed {
                     Some(ours) => format!("{energy}; THE SHOT'S LINE CROSSES OUR OWN {}: the D-gun destroys everything on its line, ours as well", ours.join(", ")),
                     None => energy.to_string(),
                 };
-                push(format!("dgun_{}", party.name), Order::DGun(party.name.clone()), format!("{name} D-guns the nearest unit of {party_words}: {inside} of its {} stand inside the D-gun's reach; one shot kills; {energy}{leaves}", party.ids.len()), format!("the D-gun on {}", party.name), Some(party));
+                push(format!("dgun_{}", party.name), Order::DGun(party.name.clone()), format!("{name} D-guns the nearest unit of {party_words}: {inside} of its {} stand on the ground inside the D-gun's reach; one shot kills; {energy}{leaves}", party.ids.len()), format!("the D-gun on {}", party.name), Some(party));
             }
         }
         let idle_words = format!("{name} idle, doing nothing");
@@ -1443,6 +1443,21 @@ impl Brain {
         }
         let idle_words = format!("{name} idle, doing nothing");
         Some(Menu { name, kind: Kind::Factory(unit.id), moves, idle, queue_ahead: on_pad.is_some(), course: if idle { "idle" } else { "make" }, course_key: String::new(), course_words: if idle { "stands idle".to_string() } else { "builds the unit on its pad".to_string() }, aimed_at: None, against: None, near_party: None, fight: None, at: Some(unit.pos), idle_words, quiet: false, audit: false, reopened: false })
+    }
+}
+
+impl Brain {
+    /// What of a party the commander's D-gun can hit from where it stands, the nearest first: the members inside its
+    /// reach that are not aircraft. The shot runs along the ground and passes under anything flying
+    /// (glitters-8v8-kept-1, seat 3 at 4:06: the shot was offered and fired at a Shuriken overhead; the user's review).
+    pub(super) fn dgun_targets<'a>(&self, party: &Party, unit: &OwnUnit, enemies: &'a [bot_protocol::EnemyUnit]) -> Vec<&'a bot_protocol::EnemyUnit> {
+        let reach = self.dgun_reach(unit.def);
+        let mut targets: Vec<&bot_protocol::EnemyUnit> = enemies
+            .iter()
+            .filter(|e| party.ids.contains(&e.id) && e.pos.dist2d(unit.pos) <= reach && e.def.is_none_or(|d| self.world.domain_of(d) != crate::world::Domain::Air))
+            .collect();
+        targets.sort_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)));
+        targets
     }
 }
 
