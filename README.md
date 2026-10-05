@@ -60,7 +60,9 @@ As of early October 2026 ([`docs/experiments.md`](docs/experiments.md) is the ru
   game. These are one-game rows on one seed, not a win rate.
 - **Large team games:** two 8v8 games against `hard_aggressive` on All That Glitters were lost.
 - **Against people:** mostly losses. An experienced player beats it in 1v1; one 2v1 was won.
-- **Heuristic bots:** only the template exists (`bots/template`, which builds extractors and nothing else).
+- **Heuristic bots:** `bots/distilled` (lobby name `WRDistilled`), a first rule set read from the flagship's winning
+  games, won 8 of 8 against BARb `easy` and 8 of 8 against `medium` on Comet Catcher and 1 of 8 against
+  `hard_aggressive` ([`bots/distilled/README.md`](bots/distilled/README.md)).
 
 A flagship game needs a TypeSafe API key for Jev and a Claude Code subscription for the player, so it is not something
 to drop into a lobby as it stands.

@@ -23,4 +23,5 @@ install() {
 install WReason/0.1 crates/ai-shim/data/AIInfo.lua libai_shim.so
 if [ $# -eq 0 ]; then
     install WRTemplate/0.1 bots/template/data/AIInfo.lua libbot_template.so
+    install WRDistilled/0.1 bots/distilled/data/AIInfo.lua libbot_distilled.so
 fi

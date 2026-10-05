@@ -1,0 +1,13 @@
+[package]
+name = "bot-distilled"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-2.0-or-later"
+description = "Heuristic bot fitted to the flagship's winning games: its opening, expansion and production as rules, a simple army over them; no model, no bot process"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ai-host = { path = "../../crates/ai-host" }
+bot-protocol = { path = "../../crates/bot-protocol" }

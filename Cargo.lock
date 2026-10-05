@@ -110,6 +110,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "bot-distilled"
+version = "0.1.0"
+dependencies = [
+ "ai-host",
+ "bot-protocol",
+]
+
+[[package]]
 name = "bot-protocol"
 version = "0.1.0"
 dependencies = [

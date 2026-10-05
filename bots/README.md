@@ -7,7 +7,8 @@ implements `bot_protocol::Bot` (`start` from the `Hello`, then `tick` to `Comman
 **This is a different regime from the flagship.** In `crates/bot` no code decides a live game without Jev or the
 player (`docs/code-decisions.md`, `docs/design/2026-09-28-no-live-heuristics.md`). That rule stands there and does not
 govern this directory: here heuristics are the product. Keep the two apart: a rule written for a bot of `bots/` never
-goes into `crates/bot`, and each bot here registers its own rules in its own directory, not in `docs/heuristics.md`.
+goes into `crates/bot`, and each bot here registers its own rules in its own directory (`D-` ids for `distilled`), not
+in `docs/heuristics.md`.
 
 Why they exist (the user, 2026-10-05): now that the flagship's games show what decent play looks like, fit a bot to
 that shape which anyone in the BAR community can run for nothing.
@@ -17,6 +18,7 @@ that shape which anyone in the BAR community can run for nothing.
 | Directory | Lobby name | What it is |
 |---|---|---|
 | `template` | `WRTemplate` | The skeleton to copy. One rule: an idle builder builds an extractor on the nearest metal spot it has not been sent to. |
+| `distilled` | `WRDistilled` | The flagship's opening, expansion and production as rules, read from seven games it won, and a simple army over them. Its rules, their sources and its results: `distilled/README.md`. |
 
 ## Running one
 
