@@ -141,7 +141,7 @@ A lane's line, the same words for all of them:
 
 > west (t0, t7): contact at A5. At the line ours 3,400 (t0 group_B 2,100, t7 group_A 1,300) against 2,900 of his
 > seen and 2 turrets; behind his line 1,200 seen 2:10 ago in A6-A7; behind ours 14 extractors, 6 turrets, 9 spots
-> free. In our rows: party_446 (1 Bulldog) at our extractor at spot_44.
+> free. In our rows: party_446 (1 Stout) at our extractor at spot_44.
 
 "Contact" is the cell where the nearest soldiers of the two sides in the lane face each other; "at the line" is
 within 1,200 of it. Both are sums of what is seen, as the report's other lines are; nothing here chooses a move.
