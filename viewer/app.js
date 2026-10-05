@@ -55,6 +55,7 @@ const WV = (() => {
 
   function status(text) {
     $("status").textContent = text;
+    $("status").title = text;
   }
 
   // ---------------------------------------------------------------- loading

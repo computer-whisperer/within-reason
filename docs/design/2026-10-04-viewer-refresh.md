@@ -80,6 +80,18 @@ the heuristic bot's lanes and marks, the squad posts and the old sources are del
   panels are not empty, scrubbing stays responsive (the time from a seek to the Hands panel showing its gate).
 - The cost view's totals against `run/jev_products.py` on the same match.
 
-## 4. Status
+## 4. Status (2026-10-04 night)
 
-See the commit log of the branch and the final report; this section is rewritten when the branch lands.
+Built and run against the duel (again-opus-1), the two 4v5 games, the 8v8 while it was live and after, and human-18:
+the multi-seat loading with the seat selector and the stacked charts (A1, A2), the browser's columns (A3), the
+server's index with the gate and picture endpoints (A4), the Commander, Player, Hands and Cost panels (B1 to B4), the
+unit and actor tie (B5), the node and headless-Chromium tests. Measured: section "Viewer" of
+`docs/harness/record-format.md`.
+
+Not built: files opened by hand ("Open files") get no Hands or Cost panels (the logs need the server's index); the
+player's wake settings and the `remove` tool have no panel; the per-question split of `same` against `again` (not in
+the log); a seat's hands in the all-seats view are one line a seat, not a merged gate.
+
+Open, for the bot's side: `compose::log_menus` does not write a move's `far` mark, so the viewer infers `near` (the
+page reads `far` when a log carries it). `Recorder::tick`'s `role` argument and `ROLE_SHIFT` are dead since the
+heuristic bot went (`main.rs` passes `|_| 0`).

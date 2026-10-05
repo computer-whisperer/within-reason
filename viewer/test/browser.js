@@ -116,15 +116,18 @@ function run(socket) {
     // a click selects it and opens the Unit tab; Escape clears; a double-click resets the zoom. The protocol
     // truncates event coordinates to whole pixels, so the cursor is put on whole pixels first (a real cursor is
     // its own anchor; a fractional one here drifted 10 px over four steps).
-    await mouse("mouseMoved", Math.round(ux), Math.round(uy));
-    [ux, uy] = [Math.round(ux), Math.round(uy)];
+    // The unit's place on the page is read again here: the hands' indexes arriving meanwhile may have moved the
+    // map by a pixel, which is eleven after the zoom.
+    const unitOnPage = "(() => { const u = viewer.state.own[0], b = viewer.mapBox, r = document.getElementById('map').getBoundingClientRect(); return [r.left + b.x + u.x * b.scale, r.top + b.y + u.z * b.scale]; })()";
+    [ux, uy] = (await evaluate(unitOnPage)).map(Math.round);
+    await mouse("mouseMoved", ux, uy);
     for (let i = 0; i < 4; i++) await send("Input.dispatchMouseEvent", { type: "mouseWheel", x: ux, y: uy, deltaX: 0, deltaY: -400 });
     await sleep(100);
     const zoom = await evaluate("viewer.zoom");
     if (!(zoom >= 4)) fail(`the wheel did not zoom (${zoom})`);
     // The unit is still (nearly) under the cursor: on a tall map in a low pane a fitted pixel is 30 elmos, so the
     // whole-pixel cursor may sit a few zoomed pixels off the unit; the cursor then goes onto it.
-    const [nx, ny] = await evaluate("(() => { const u = viewer.state.own[0], b = viewer.mapBox, r = document.getElementById('map').getBoundingClientRect(); return [r.left + b.x + u.x * b.scale, r.top + b.y + u.z * b.scale]; })()");
+    const [nx, ny] = await evaluate(unitOnPage);
     if (Math.hypot(nx - ux, ny - uy) > 16) fail(`the zoom was not about the cursor: the unit moved ${Math.hypot(nx - ux, ny - uy).toFixed(1)} px`);
     [ux, uy] = [Math.round(nx), Math.round(ny)];
     await mouse("mouseMoved", ux, uy);

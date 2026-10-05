@@ -891,7 +891,7 @@
         const a = el("a", `match ${m.record ? "" : "norecord"} ${(m.outcome || "").toLowerCase()}`);
         a.href = `?match=${path}`;
         const words = m.outcome ? `${m.outcome}${m.called ? " (called)" : ""}${m.minutes != null ? ` ${m.minutes.toFixed(1)} min` : ""}` : b.finished ? "ended, no result recorded" : "playing";
-        a.textContent = `${m.index || "match"}: ${words}${m.arm ? ` (${m.arm})` : ""}${m.jev_dollars != null ? ` · Jev ${money(m.jev_dollars)}` : ""}${m.record ? "" : " · no record"}`;
+        a.textContent = `${m.index || "match"}: ${words}${m.arm ? ` (${m.arm})` : ""}${m.jev_dollars != null ? ` · Jev ~${money(m.jev_dollars)}` : ""}${m.record ? "" : " · no record"}`;
         a.title = `${b.batch}/${m.index}`;
         cell.append(a);
       }

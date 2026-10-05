@@ -224,3 +224,5 @@ table.grid tr.fault td { color: var(--critical); }
 .pass-line .source, .hist .source { display: inline-block; min-width: 34px; padding: 0 4px; margin-right: 4px; border-radius: 3px; background: var(--surface-2); color: var(--muted); font-size: 10.5px; text-align: center; }
 .chip { margin-left: 8px; padding: 0 6px; font-size: 11px; text-transform: none; letter-spacing: 0; }
 #unit .hist { cursor: pointer; }
+/* One line, whatever it says: a status that wraps would change the footer's height and with it the map's scale. */
+#status { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

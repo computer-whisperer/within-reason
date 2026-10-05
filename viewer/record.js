@@ -198,17 +198,11 @@ const WR = (() => {
     return transcript;
   }
 
-  /// Whether the game ran on while its players thought (a realtime game): the batch says so; without a batch (a
-  /// game with people) it did unless a turn's wall time is longer than the game time to the next turn.
+  /// Whether the game ran on while its players thought (a realtime game): the batch says so; a match without a
+  /// batch is a game with people, which is realtime. (Not worked out from the turns: human-18's game ran slower
+  /// than the wall clock at times, and a turn's wall seconds then exceed the game time to the next turn.)
   function inferRealtime(match) {
-    if (match.batch && match.batch.realtime != null) return !!match.batch.realtime;
-    for (const t of [match.commander, ...match.players.values()].filter(Boolean)) {
-      for (let i = 0; i + 1 < t.turns.length; i++) {
-        const turn = t.turns[i];
-        if (turn.wallSeconds != null && (t.turns[i + 1].f - turn.f) / FPS < turn.wallSeconds - 2) return false;
-      }
-    }
-    return true;
+    return match.batch && match.batch.realtime != null ? !!match.batch.realtime : true;
   }
 
   /// The frame a turn's orders are in force from: its end in a realtime game (the hands read them "once your turn
