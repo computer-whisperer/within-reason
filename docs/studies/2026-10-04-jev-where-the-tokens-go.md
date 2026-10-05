@@ -269,3 +269,27 @@ questions: "far" is answered at 0.5 or over 25% of the time, "right here" 33%.
 **Words said once: does not hold.** K-jev-does-not-read-a-mark-for-words-said-once: the marks save 10 to 16% of a
 gate and the forbidden answers collapse. What holds is small: the "Given ...:" opening dropped (5.1%, the openers
 move 1.3 points) and the closing "no when ..." sentence of the place and party questions said in the rules (2.2%).
+
+## 13. What "the same question" could mean (`run/jev_same_replay.py`, 2026-10-04 night)
+
+Twelve gates sampled at random from glitters-8v8-hard-1: nearly every actor, party and place asked about had been
+asked 1 to 2 s before, and the answers had not moved. The `same` layer had been letting nothing stand
+(K-hands-the-same-layer-stood-nothing-for-two-days, fixed). Replayed over the recorded gates, a question standing
+when its key and its counts are those of its last fresh ask under 20 s ago; a fault is a standing answer on the other
+side of 0.5 from the recorded one:
+
+| key | counts tied to | 8v8: of the bill | faults | again-opus-1: of the bill | faults |
+|---|---|---|---|---|---|
+| the words | as built (every question) | 5.8% | 1.99% | 2.4% | 2.63% |
+| the words | the energy line without who draws | 6.4% | 2.15% | 2.7% | 2.82% |
+| the words | builders' and plants' questions only | 9.9% | 1.96% | 5.3% | 3.23% |
+| the words | nothing | 10.8% | 2.89% | 6.1% | 3.52% |
+| numbers replaced | builders' and plants' questions only | 14.9% | 2.18% | 10.8% | 3.04% |
+| numbers replaced | nothing | 16.2% | 2.81% | 12.0% | 3.03% |
+| numbers and a party's heading left out | builders' and plants' only | 16.6% | 2.05% | | |
+| and the party's composition and "in sight / at spot" | builders' and plants' only | 19.6% | 2.02% | | |
+
+For scale: of all questions asked again within 20 s in that game, 2.9% (by tokens) crossed 0.5, and the same request
+asked twice crosses in 0.9 to 1.6%. What makes a held question new, by size: a party's list of types gaining or
+losing one, its heading turning one compass point, the place question's list of who is asked and how far each stands,
+"at spot_N" against "in sight", a walk crossing from seconds to minutes.
