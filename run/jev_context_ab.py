@@ -11,7 +11,10 @@ as recorded (the ask-again noise every arm is read against). The key is read, ne
 Arms on the picture: `no roving` (the entries of groups roving in code, which take no orders), `asked actors` (only
 the actors the request's questions name), `no buildings` (`enemy.buildings_seen`), `no scouting` (`enemy.never_looked`,
 `looked_long_ago`, `start_box`, and the `produce` hint under `ours.resurrection_bots`), `rules by kind` (the rules'
-factory, commander, allies and wind sentences only when an actor of that kind is asked about), `no rules`.
+factory, commander, allies and wind sentences only when an actor of that kind is asked about), `no rules`, `rules
+short` and `rules terse` (the rules rewritten at a third and a tenth of their length), `economy short` (the energy
+line without what production would draw), `no wrecks` (`ours.wrecks`), `no out of sight` (`enemy.out_of_sight`,
+`biggest_party_known`, `army_known`), `no recent`.
 Arms on the questions: `no given` (the "Given `actors.x`, ...:" opening), `facts once` (a fight's facts said in the
 course and again in the move: the second replaced by "(as said above)"; `facts built` is the rule the bot has), `short forbidden` (the forbidden question
 without the move's odds), `preamble in state` (the pick's shared paragraph once, under `choosing`), `preambles once`
@@ -202,6 +205,43 @@ def ordered(keys):
         return {**{k: state[k] for k in keys if k in state}, **{k: v for k, v in state.items() if k not in keys}}
     return sf
 
+RULES_SHORT = (
+    "We win by killing the enemy commander and lose when ours dies. Extractors are the income, income becomes soldiers, and the bigger army wins. "
+    "Fights are decided by the metal of soldiers on the spot, a turret counting three times its metal; a group outranged by a party or its turrets goes in as one body when it outweighs it and otherwise waits. "
+    "A raider at our extractors is met by a small detachment (`send`) or by whatever reaches it soonest, not the whole group; the commander only when nothing sooner is at hand. "
+    "An idle factory builds now, the instructions choosing the unit. `fight to` fights through everything on the way; `go` runs from everything. "
+    "An actor's course goes on unless a move is clearly better. An enemy party in sight within 600 of a group that outweighs it is fought now, whatever the instructions call it. "
+    "The instructions were written before what the picture shows now. A group whose `enemies_near` line says the party outweighs it, or whose `losses` line says it is losing this fight or being wiped out, steps back: "
+    "it walks (`go`) to the place the instructions name for that case, else follows or joins another group of ours away from that party, unless the instructions speak to this very fight by name or reached the hands after the group's last loss. "
+    "Losing a few against a party it outweighs is no reason to step back. The commander fights only what comes to it and never walks toward a party that outreaches or outweighs it. "
+    "`shelling` is where a weapon hitting us from out of sight likeliest stands; a group advances onto it only when the instructions say so. "
+    "A group with nothing in sight may attack his buildings known at a place, or `gather` when it is strung out. `allies` are the other seats' groups: their odds count with ours, but they are not ours to order. "
+    "You remember nothing: `last_pick` and `reached` say what an actor chose and where it has been. "
+    "A question that begins with the name of one of ours is a move for it: is that what it should do now, rather than what its `doing` line says?")
+RULES_TERSE = (
+    "Follow the player's `instructions`, read against what the picture shows now. An actor keeps its course unless a move is clearly better. "
+    "Fights go to the side with more metal on the spot, a turret counting three times. A group that is outweighed or losing steps back to the place the instructions name; one that outweighs a party within 600 fights it. "
+    "A raider is met by a small detachment (`send`), not the whole group. The commander never walks toward a fight. "
+    "A question that begins with the name of one of ours is a move for it: is that what it should do now, rather than what it does?")
+
+def rules_short(state, q, orig): return {**state, "rules": RULES_SHORT}
+def rules_terse(state, q, orig): return {**state, "rules": RULES_TERSE}
+
+def economy_short(state, q, orig):
+    """The energy line without what production would draw and what would cover it."""
+    eco = dict(state.get("economy") or {})
+    if isinstance(eco.get("energy"), str): eco["energy"] = eco["energy"].split(" Our production at full speed would draw")[0]
+    return {**state, "economy": eco}
+
+def no_wrecks(state, q, orig):
+    return {**state, "ours": {k: v for k, v in (state.get("ours") or {}).items() if k != "wrecks"}}
+
+def no_out_of_sight(state, q, orig):
+    return {**state, "enemy": {k: v for k, v in (state.get("enemy") or {}).items() if k not in ("out_of_sight", "biggest_party_known", "army_known")}}
+
+def no_recent(state, q, orig):
+    return {k: v for k, v in state.items() if k != "recent"}
+
 def no_rules(state, q, orig):
     return {k: v for k, v in state.items() if k != "rules"}
 
@@ -211,6 +251,7 @@ ARMS = {
     "recorded": (same, keep), "recorded 2": (same, keep), "no given": (no_given, keep), "facts once": (facts_once, keep), "facts built": (facts_built, keep), "short forbidden": (short_forbidden, keep),
     "preamble in state": (preamble_in_state, choosing), "preambles once": (preambles_once, said_once), "clauses once": (clauses_once, said_once), "maxims to rules": (maxims_out, maxims_in_rules), "no roving": (same, no_roving), "asked actors": (same, asked_actors),
     "no buildings": (same, no_buildings), "no scouting": (same, no_scouting), "rules by kind": (same, rules_by_kind), "no rules": (same, no_rules),
+    "rules short": (same, rules_short), "rules terse": (same, rules_terse), "economy short": (same, economy_short), "no wrecks": (same, no_wrecks), "no out of sight": (same, no_out_of_sight), "no recent": (same, no_recent),
     "placebo order": (same, placebo_order), "bot order": (same, bot_order), "placebo words": (same, placebo_words),
 }
 ARMS.update({name: (same, ordered(keys)) for name, keys in ORDERS.items()})

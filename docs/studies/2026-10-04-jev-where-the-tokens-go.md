@@ -293,3 +293,24 @@ For scale: of all questions asked again within 20 s in that game, 2.9% (by token
 asked twice crosses in 0.9 to 1.6%. What makes a held question new, by size: a party's list of types gaining or
 losing one, its heading turning one compass point, the place question's list of who is asked and how far each stands,
 "at spot_N" against "in sight", a walk crossing from seconds to minutes.
+
+## 14. The rules and the other standing context, cut (`run/jev_context_ab.py`, 2026-10-04 night)
+
+150 gates and 197 picks of glitters-8v8-hard-1 seat 0, each arm read against the request asked again (`again`) and a
+placebo. The rules are 5,272 characters and about 990 tokens a request (prose runs 5.3 characters a token, the
+picture's JSON 3.5, so `run/jev_bill.py`'s share by characters overstates them: about 10% of the bill, not 15%).
+`rules short` is 2,034 characters, `rules terse` 588 (both in the script).
+
+| arm | gate tokens | moves: other side (again 0.94%) | openers (1.63%) | forbidden (2.12%) | pick tokens | change or not (again 2.28%, placebo 3.85%) |
+|---|---|---|---|---|---|---|
+| no rules | 93.8% | 2.48% | 4.11% | 3.23% | 84.1% | 9.46% |
+| rules terse | 94.8% | 1.76% | 3.06% | 6.36% | 86.5% | 9.11% |
+| rules short | 96.9% | 1.36% | 2.96% | 4.33% | 91.9% | 6.13% |
+| no out of sight (`out_of_sight`, `biggest_party_known`, `army_known`) | 97.4% | 1.12% | 3.15% | 2.58% | 93.5% | 2.28% |
+| no recent | 98.1% | 1.35% | 2.39% | 2.49% | 95.6% | 2.98% |
+| no wrecks | 99.3% | 0.88% | 2.39% | 2.21% | 98.4% | 3.15% |
+| economy short (no "would draw") | 99.3% | 0.90% | 2.01% | 1.75% | 98.4% | 3.68% |
+
+The gate answers nearly as it did with no rules at all (97.5% of move answers on the same side against 99.1% asked
+again); the pick leans on them (90.5% against 97.7%). In the pick the enemy's out-of-sight lines, `recent` and the
+wrecks go without moving anything: 12% of a pick. A crossing says the answer changed, not which is right.
