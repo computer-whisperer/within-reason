@@ -1260,7 +1260,10 @@ impl Brain {
         }
         pianist.events.extend(reopened);
         pianist.events.extend(place_opened);
-        layers::remember(&mut pianist.said, &request.questions, &response.answers, same_audited, layers::counts(&request.state), tick.frame);
+        // The counts are the picture's, as at the ask: the request's state is the picture trimmed (`trim_state` cuts
+        // the `ours.resurrection_bots` hint), and hashed from it no remembered answer ever matched its next ask (from
+        // 2026-10-02 to 2026-10-04 the `same` layer let nothing stand in any game).
+        layers::remember(&mut pianist.said, &request.questions, &response.answers, same_audited, layers::counts(&picture.state), tick.frame);
         for audit in audits {
             pianist.write_log(audit);
         }

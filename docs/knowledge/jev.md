@@ -2077,3 +2077,9 @@ among its givens; the same words appended to the packet read 0.36-0.43, and insi
 **Evidence.** `run/jev_pick_predict.py` on glitters-8v8-hard-1 (3,028 such components; picks made only of them 2,013 of 5,149, 9.4M of 28.7M pick tokens), glitters-4v5-1 (1,642) and again-opus-1 (129), 2026-10-04.
 **Status.** measured 2026-10-04 from the logs; the pick is not skipped anywhere.
 **Would be wrong if.** A rating of the change with its consequences in the gate question itself separates the taken from the left.
+
+### K-hands-the-same-layer-stood-nothing-for-two-days
+**Claim.** From 2026-10-02 (`2556fac`, the `only_used` diet) to 2026-10-04 the `same` layer let no answer stand in any game: it hashed the picture's counts at the ask and the trimmed request's at the answer, and the trim cuts the `ours.resurrection_bots` hint, so the two never matched. In glitters-8v8-hard-1 (seats 0, 4, 6, 7) 17% of the gates' question tokens were questions asked again within 3 s in the same words with the answer held (under 0.1 moved, 0.5 not crossed), 9% more with only numbers changed, 36% with other words changed and the answer held; 17.5% were first asks.
+**Evidence.** Every pass row's `layers.same.skipped` is 0 in 60 games from player-46 to glitters-8v8-hard-1 (human-16 excepted, 637). The counts' economy lines change between gates 3 s apart in 32% (energy: the "would draw" clause names who draws) and 10% (metal).
+**Status.** fixed 2026-10-04 (the counts are the picture's on both sides); not yet in a game.
+**Would be wrong if.** The next game's pass rows still read `same` 0.
