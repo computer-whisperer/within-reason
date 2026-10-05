@@ -14,7 +14,9 @@ the actors the request's questions name), `no buildings` (`enemy.buildings_seen`
 factory, commander, allies and wind sentences only when an actor of that kind is asked about), `no rules`, `rules
 short` and `rules terse` (the rules rewritten at a third and a tenth of their length), `economy short` (the energy
 line without what production would draw), `no wrecks` (`ours.wrecks`), `no out of sight` (`enemy.out_of_sight`,
-`biggest_party_known`, `army_known`), `no recent`.
+`biggest_party_known`, `army_known`), `no recent`. On the form (`run/jev_token_probe.py`: a digit, a backtick, a key
+and a list item each cost tokens of their own): `no backticks`, `short ids` (constructor_10655 as constructor_A),
+`flat state` (an actor's entry and every list as one string).
 Arms on the questions: `no given` (the "Given `actors.x`, ...:" opening), `facts once` (a fight's facts said in the
 course and again in the move: the second replaced by "(as said above)"; `facts built` is the rule the bot has), `short forbidden` (the forbidden question
 without the move's odds), `preamble in state` (the pick's shared paragraph once, under `choosing`), `preambles once`
@@ -242,6 +244,48 @@ def no_out_of_sight(state, q, orig):
 def no_recent(state, q, orig):
     return {k: v for k, v in state.items() if k != "recent"}
 
+def deep(v, f):
+    """`f` over every string in a JSON value, keys of maps too."""
+    if isinstance(v, str): return f(v)
+    if isinstance(v, list): return [deep(x, f) for x in v]
+    if isinstance(v, dict): return {f(k): deep(x, f) for k, x in v.items()}
+    return v
+
+def over_questions(f):
+    return lambda q: {k: {**v, "instructions": f(v["instructions"])} for k, v in q.items()}
+
+def no_ticks(text): return text.replace("`", "")
+
+UNIT = re.compile(r"\b(constructor|plant|lab|factory)_(\d+)\b")
+ALIAS = {}
+def short_ids(text):
+    """A unit's engine number (five digits, a token each) replaced by letters, the same unit the same letters."""
+    def alias(m):
+        key = m.group(0)
+        if key not in ALIAS:
+            n = len(ALIAS); name = ""
+            while True:
+                name = chr(65 + n % 26) + name; n = n // 26 - 1
+                if n < 0: break
+            ALIAS[key] = f"{m.group(1)}_{name}"
+        return ALIAS[key]
+    return UNIT.sub(alias, text)
+
+def flat(v):
+    if isinstance(v, dict): return "; ".join(f"{k}: {flat(x)}" for k, x in v.items())
+    if isinstance(v, list): return " | ".join(flat(x) for x in v)
+    return v if isinstance(v, str) else json.dumps(v)
+
+def flat_state(state, q, orig):
+    """Every actor's entry as one string, and every list as one string: a key or a list item costs tokens of its own."""
+    out = {}
+    for k, v in state.items():
+        if k == "actors" and isinstance(v, dict): out[k] = {a: flat(e) for a, e in v.items()}
+        elif isinstance(v, dict): out[k] = {a: flat(e) if isinstance(e, list) else e for a, e in v.items()}
+        elif isinstance(v, list): out[k] = flat(v)
+        else: out[k] = v
+    return out
+
 def no_rules(state, q, orig):
     return {k: v for k, v in state.items() if k != "rules"}
 
@@ -251,6 +295,7 @@ ARMS = {
     "recorded": (same, keep), "recorded 2": (same, keep), "no given": (no_given, keep), "facts once": (facts_once, keep), "facts built": (facts_built, keep), "short forbidden": (short_forbidden, keep),
     "preamble in state": (preamble_in_state, choosing), "preambles once": (preambles_once, said_once), "clauses once": (clauses_once, said_once), "maxims to rules": (maxims_out, maxims_in_rules), "no roving": (same, no_roving), "asked actors": (same, asked_actors),
     "no buildings": (same, no_buildings), "no scouting": (same, no_scouting), "rules by kind": (same, rules_by_kind), "no rules": (same, no_rules),
+    "no backticks": (over_questions(no_ticks), lambda state, q, orig: deep(state, no_ticks)), "short ids": (over_questions(short_ids), lambda state, q, orig: deep(state, short_ids)), "flat state": (same, flat_state),
     "rules short": (same, rules_short), "rules terse": (same, rules_terse), "economy short": (same, economy_short), "no wrecks": (same, no_wrecks), "no out of sight": (same, no_out_of_sight), "no recent": (same, no_recent),
     "placebo order": (same, placebo_order), "bot order": (same, bot_order), "placebo words": (same, placebo_words),
 }

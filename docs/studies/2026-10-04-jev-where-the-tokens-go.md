@@ -314,3 +314,27 @@ picture's JSON 3.5, so `run/jev_bill.py`'s share by characters overstates them: 
 The gate answers nearly as it did with no rules at all (97.5% of move answers on the same side against 99.1% asked
 again); the pick leans on them (90.5% against 97.7%). In the pick the enemy's out-of-sight lines, `recent` and the
 wrecks go without moving anything: 12% of a pick. A crossing says the answer changed, not which is right.
+
+## 15. What the meter counts (`run/jev_token_probe.py`, 2026-10-04 night)
+
+Small requests that differ in one thing. Jev's tokenizer is not published; these are its meter's readings.
+
+- The body's own whitespace is not counted: the same request pretty-printed reads the same 277 tokens. The bot sends
+  compact JSON in any case.
+- An empty request is 277 tokens (15,400 requests in the 8 against 8 game: 2.7% of its bill).
+- A question's id is not counted: 40 questions cost the same under `a0` as under
+  `constructor_10655.build_armguard_spot_0`. A question costs about 7 tokens beyond its words.
+- Prose runs 4.7 characters a token. A digit is a token: a four-digit number 5, `constructor_10655` 7, `party_291` 5,
+  `spot_40` 4. In a sample of the game's requests one token in seven is a digit.
+- A backtick is a token (`` `go` `` 3 against 1). An internal unit name is 3 (`armflash`, `corgator`) against 1 for
+  "Blitz", 5 in parentheses.
+- A key of the state costs about 5 tokens beyond its name, a list item about 4.
+
+Replayed on the 150 gates of §14 (moves on the other side: again 0.94%):
+
+| arm | gate tokens | moves | openers (1.63%) | forbidden (2.12%) |
+|---|---|---|---|---|
+| no backticks | 98.1% | 1.33% | 2.77% | 2.67% |
+| short ids (constructor_10655 as constructor_A) | 98.5% | 1.21% | 2.96% | 2.12% |
+| flat state (an actor's entry and every list as one string) | 98.8% | 1.48% | 3.25% | 2.49% |
+| the three together | 95.1% | 1.91% | 4.11% | 4.06% |
