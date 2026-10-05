@@ -1,6 +1,7 @@
 # Fronts: bounded parties, lanes and seat roles
 
-Status: draft 2, 2026-10-04 (transfers kept and the share slider, at the user's word). Written at the user's word after glitters-8v8-hard-1 and the human 8v8 replay; nothing
+Status: draft 3, 2026-10-05 (draft 2: transfers kept and the share slider, at the user's word; draft 3: §3 rewritten
+on its measurement). Written at the user's word after glitters-8v8-hard-1 and the human 8v8 replay; nothing
 is built. It takes up §10's "whose army is it" of `2026-10-03-commander-seat.md`.
 
 A word on names. "Lane" here is a strip of the map a seat is responsible for, as the players of large team games use
@@ -95,19 +96,46 @@ Not in this: the count of names (30 to 45 new a minute in an 8v8, `party_517` by
 
 ## 3. Our groups
 
-The body already says front, tail and length, and the odds are already priced on the part near the party when the
-body is strung out. Two things are missing, and both are words, not decisions:
+Measured 2026-10-05 (`run/group_shape.py`: groups of 20 soldiers or more at every second the hands logged; the body
+is the members left when those the picture called "on the way to join" are taken out, the farthest from the group's
+place first, an estimate since the log does not name them):
 
-- **The stream is said as a stream.** A group's entry says how many of its soldiers are with the body and how many
-  are on the way, with where the nearest and farthest of those are ("31 with the body at D5, 17 on the way between
-  the plant and D3"). Today the joiners are out of the core and out of the words.
-- **A body in two fights is said as two.** When the core stands near two parties more than 600 apart, each part is
-  priced against its own (the `within` the strung-out case already uses), not the whole against each.
+| game | group-seconds | soldiers on the way | body wider than 600 | body's median width | four fifths of the body within (median) | that over 600 | parted | two fights |
+|---|---|---|---|---|---|---|---|---|
+| glitters-8v8-hard-1 | 2,160 | 5% | 88% | 1,105 | 380 | 22% | 9% | 5% |
+| same-opus-2 (duel) | 441 | 36% | 100% | 1,872 | 522 | 40% | 14% | 12% |
+| going-2 (duel) | 1,235 | 10% | 84% | 960 | 332 | 11% | 12% | 2% |
+| kept-1 (duel) | 140 | 36% | 96% | 1,303 | 349 | 18% | 10% | 0% |
+
+"Four fifths within": the distance from the middle of the body's largest clump that holds four fifths of the body.
+"Parted": a second clump of three or more and a fifth of the body, over 600 from the first. "Two fights": a fifth of
+the body within 800 of each of two parties more than 1,200 apart.
+
+What it says:
+
+- **The stream is already said.** Draft 1 had this wrong: a group's entry carries `reinforcements` ("17 of its
+  soldiers are on the way to join the body, the farthest 2,100 behind (from 17 from plant_3); they are not in its
+  fights yet", H-HANDS-GROUP-BODY), and those soldiers are out of the body and its odds. Nothing to build there.
+  In the duels a third of a large group's soldiers were on the way at any second; whether they die on the way is
+  not measured here.
+- **The body is compact and a few stragglers set its length.** Four fifths of a body stands within 330 to 520 of its
+  middle, while its front-to-tail length, which is what `strung_out` reads (over 600), is over 600 in 84 to 100% of
+  seconds. A flag that is on nearly always says nothing: "its tail is strung out behind its front" is in nearly
+  every large group's words, and the odds of a strung-out group are priced on "the part near the party" nearly
+  always.
+- **A body in two real pieces is a tenth of the time, and in two fights less.** Worth saying when it happens; not
+  where most of the fault is.
+
+Proposed, in the order of what the measure supports:
+
+1. **The body's length is read on its four fifths.** The farthest fifth from the body's place are stragglers: said
+   as such ("5 stragglers up to 1,400 behind"), left out of the length and of `strung_out`, kept in the group. By
+   the table `strung_out` then holds for 11 to 40% of a large group's seconds in place of 84 to 100%. A change to
+   what is said and to which soldiers the odds are priced on, as the joiners already are; no move is chosen.
+2. **A parted body is said as two parts**, each with its count and place, and each priced against the party it
+   stands near. After 1, and only if games show the tenth of the time mattering.
 
 Not proposed: a cap on a group's size, or the code cutting a group. The groups are the player's.
-
-First step before either: the same measurement on the core alone (the hands' log does not carry who is joining; the
-picture does), to know how much of the width is the stream and how much is the body.
 
 ## 4. Lanes
 
@@ -204,7 +232,8 @@ Each is played before the next is started.
    `beside`; built 2026-10-04). The old rule's parties need no log of their own: `run/party_rules.py` forms them
    from the game's record. Test: the standing duel, then a 3-seat game; the
    forbidden and step-back answers at a front, read by a person.
-2. **The stream and the two fights in a group's words** (§3), after its measurement.
+2. **The body's length read on its four fifths, stragglers said** (§3.1; measured 2026-10-05), then the parted body
+   if games ask for it.
 3. **`lanes` with lanes and roles; the lane line in the commander's and players' reports; the hands' picture by
    lane.** Test: glitters 8v8 against the same opponent, beside glitters-8v8-hard-1: transfers of units, gate sizes
    by seat, extractors by seat at 10:00 and 20:00, Jev's bill.
