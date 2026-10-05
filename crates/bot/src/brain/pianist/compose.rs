@@ -814,7 +814,7 @@ mod tests {
     use bot_protocol::{UnitDefId, UnitId, Vec3};
 
     fn party(name: &str) -> Party {
-        Party { name: name.to_string(), ids: vec![UnitId(1)], at: Vec3::default(), metal: 100.0, composition: "2 Ticks".into(), has_commander: false, harming: None, unarmed: false, turret_metal: 0.0, turret_metal_air: 0.0, turrets: String::new() }
+        Party { name: name.to_string(), ids: vec![UnitId(1)], at: Vec3::default(), metal: 100.0, composition: "2 Ticks".into(), has_commander: false, harming: None, unarmed: false, turret_metal: 0.0, turret_metal_air: 0.0, turrets: String::new(), beside: Vec::new(), beside_words: String::new() }
     }
 
     fn nouls(list: &[(&str, f64)]) -> BTreeMap<String, Answer> {

@@ -29,6 +29,13 @@ const PASSAGES: usize = 3;
 /// A unit whose position is this far below the water's surface is under it: seen by sonar only, hit by water weapons only.
 const SUBMERGED_Y: f32 = -5.0;
 const PARTY_RADIUS: f32 = 400.0;
+/// A kept party (H-HANDS-PARTIES-KEPT): a member stays while it stands this near the party's centre, and an enemy
+/// without a party joins one whose centre is this near.
+const KEPT_RADIUS: f32 = 400.0;
+/// Two kept parties whose centres come this near are one.
+const KEPT_MERGE: f32 = 250.0;
+/// The enemies of other parties this near a party's centre are in a fight with it (H-HANDS-PARTY-BESIDE).
+const BESIDE: f32 = 600.0;
 /// A turret whose reach ends this short of a party's centre still covers its edge.
 const TURRET_MARGIN: f32 = 150.0;
 /// Odds at this ratio or over, and under 1.3, are a narrow win and said so; under it down to 0.8, an even fight.
@@ -53,6 +60,18 @@ pub(crate) struct Place {
     pub spot: Option<usize>,
 }
 
+impl Party {
+    /// The enemy unit is in a fight with this party: a member, or one of another party beside it.
+    pub(crate) fn in_fight(&self, id: bot_protocol::UnitId) -> bool {
+        self.ids.contains(&id) || self.beside.contains(&id)
+    }
+
+    /// How many units a fight with it meets.
+    pub(crate) fn fighters(&self) -> usize {
+        self.ids.len() + self.beside.len()
+    }
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct Party {
     pub name: String,
@@ -73,6 +92,11 @@ pub(crate) struct Party {
     /// 2 armllt"; empty under none).
     pub turret_metal: f32,
     pub turret_metal_air: f32,
+    /// The mobile enemies of other parties within `BESIDE` of its centre, and words naming their parties with what
+    /// stands there in all ("with party_500 and party_513 within 600, 6900 metal of his stands there"); empty
+    /// without the `beside` layer or with nobody there.
+    pub beside: Vec<bot_protocol::UnitId>,
+    pub beside_words: String,
     pub turrets: String,
 }
 
@@ -372,31 +396,16 @@ impl Brain {
         }
     }
 
-    /// Enemy mobile units in sight, grouped into parties, nearest home first. A party keeps the name it had in the
+    /// Enemy mobile units in sight, grouped into parties (`chained_parties`, or `kept_parties` under the `kept` layer),
+    /// nearest home first. A party keeps the name it had in the
     /// last picture while any member of it is still in it (H-HANDS-PARTY-NAMES: named by distance from home, the
     /// names shuffled as parties moved, and the player's "party_2" in its orders meant another party by the next
     /// ask); a new party takes a number never used in this game.
-    pub(super) fn enemy_parties(&self, enemies: &[EnemyUnit], previous: &[Party], next_name: &std::cell::Cell<usize>) -> Vec<Party> {
+    pub(super) fn enemy_parties(&self, enemies: &[EnemyUnit], previous: &[Party], next_name: &std::cell::Cell<usize>, kept: bool, beside: bool) -> Vec<Party> {
         let mobile: Vec<&EnemyUnit> = enemies.iter().filter(|e| e.def.is_none_or(|d| self.world.def(d).is_some_and(|d| d.speed > 0.0))).collect();
-        let mut party_of: Vec<Option<usize>> = vec![None; mobile.len()];
+        let groups = if kept { Self::kept_parties(&mobile, previous) } else { Self::chained_parties(&mobile) };
         let mut parties: Vec<Party> = Vec::new();
-        for start in 0..mobile.len() {
-            if party_of[start].is_some() {
-                continue;
-            }
-            party_of[start] = Some(parties.len());
-            let mut members = vec![start];
-            let mut next = 0;
-            while next < members.len() {
-                let from = mobile[members[next]].pos;
-                for other in 0..mobile.len() {
-                    if party_of[other].is_none() && mobile[other].pos.dist2d(from) < PARTY_RADIUS {
-                        party_of[other] = Some(parties.len());
-                        members.push(other);
-                    }
-                }
-                next += 1;
-            }
+        for members in groups {
             let n = members.len() as f32;
             let at = members.iter().fold(Vec3::default(), |sum, i| Vec3 { x: sum.x + mobile[*i].pos.x / n, y: 0.0, z: sum.z + mobile[*i].pos.z / n });
             let mut counts: BTreeMap<&str, usize> = BTreeMap::new();
@@ -412,7 +421,7 @@ impl Brain {
             let harming = self.harm_words(&ids);
             let (turret_metal, turret_metal_air, turrets) = self.turrets_covering(at);
             let unarmed = turret_metal == 0.0 && turret_metal_air == 0.0 && members.iter().all(|i| mobile[*i].def.and_then(|d| self.world.def(d)).is_some_and(|d| d.weapon_count == 0));
-            parties.push(Party { name: String::new(), ids, at, metal, composition, has_commander, harming, unarmed, turret_metal, turret_metal_air, turrets });
+            parties.push(Party { name: String::new(), ids, at, metal, composition, has_commander, harming, unarmed, turret_metal, turret_metal_air, turrets, beside: Vec::new(), beside_words: String::new() });
         }
         parties.sort_by(|a, b| a.at.dist2d(self.home).total_cmp(&b.at.dist2d(self.home)));
         // Names: the last picture's for a party sharing a member with one of them (the larger overlap wins a name
@@ -452,7 +461,116 @@ impl Brain {
                 }
             }
         }
+        if beside {
+            let others: Vec<(String, f32, Vec<bot_protocol::UnitId>)> = parties
+                .iter()
+                .map(|p| {
+                    let near: Vec<&&EnemyUnit> = mobile.iter().filter(|e| !p.ids.contains(&e.id) && e.pos.dist2d(p.at) < BESIDE).collect();
+                    let names: Vec<&str> = parties.iter().filter(|o| near.iter().any(|e| o.ids.contains(&e.id))).map(|o| o.name.as_str()).collect();
+                    let metal: f32 = near.iter().map(|e| e.def.and_then(|d| self.world.def(d)).map_or(110.0, |d| d.metal_cost)).sum();
+                    (names.join(" and "), metal, near.iter().map(|e| e.id).collect())
+                })
+                .collect();
+            for (party, (names, metal, ids)) in parties.iter_mut().zip(others) {
+                if !ids.is_empty() {
+                    party.beside_words = format!("with {names} within {BESIDE:.0}, {:.0} metal of his stands there", party.metal + metal);
+                    party.beside = ids;
+                }
+            }
+        }
         parties
+    }
+
+    /// Today's rule: every mobile enemy within `PARTY_RADIUS` of a member is a member.
+    fn chained_parties(mobile: &[&EnemyUnit]) -> Vec<Vec<usize>> {
+        let mut taken = vec![false; mobile.len()];
+        let mut groups = Vec::new();
+        for start in 0..mobile.len() {
+            if taken[start] {
+                continue;
+            }
+            taken[start] = true;
+            let mut members = vec![start];
+            let mut next = 0;
+            while next < members.len() {
+                let from = mobile[members[next]].pos;
+                for other in 0..mobile.len() {
+                    if !taken[other] && mobile[other].pos.dist2d(from) < PARTY_RADIUS {
+                        taken[other] = true;
+                        members.push(other);
+                    }
+                }
+                next += 1;
+            }
+            groups.push(members);
+        }
+        groups
+    }
+
+    /// Parties kept from the last picture (H-HANDS-PARTIES-KEPT). A chain makes one party of a front (two thirds of
+    /// the enemies in sight in a party wider than 800 in glitters-8v8-hard-1, a fifth of its metal over 600 from the
+    /// place the picture gave it), and cutting a wide party each second renames a tenth of the units a second
+    /// (`run/party_rules.py`). So a party lasts: its members still within `KEPT_RADIUS` of its centre stay; two
+    /// parties whose centres come within `KEPT_MERGE` are one; an enemy without a party joins the nearest whose
+    /// centre is within `KEPT_RADIUS`; the rest seed new ones, the unit with the most others within `KEPT_RADIUS`
+    /// first.
+    fn kept_parties(mobile: &[&EnemyUnit], previous: &[Party]) -> Vec<Vec<usize>> {
+        let centre = |members: &[usize]| {
+            let n = members.len() as f32;
+            members.iter().fold(Vec3::default(), |sum, i| Vec3 { x: sum.x + mobile[*i].pos.x / n, y: 0.0, z: sum.z + mobile[*i].pos.z / n })
+        };
+        let mut taken = vec![false; mobile.len()];
+        let mut groups: Vec<(Vec<usize>, Vec3)> = Vec::new();
+        for old in previous {
+            let here: Vec<usize> = (0..mobile.len()).filter(|i| !taken[*i] && old.ids.contains(&mobile[*i].id)).collect();
+            if here.is_empty() {
+                continue;
+            }
+            let at = centre(&here);
+            let stay: Vec<usize> = here.into_iter().filter(|i| mobile[*i].pos.dist2d(at) < KEPT_RADIUS).collect();
+            if stay.is_empty() {
+                continue;
+            }
+            for i in &stay {
+                taken[*i] = true;
+            }
+            let at = centre(&stay);
+            groups.push((stay, at));
+        }
+        for a in 0..groups.len() {
+            for b in a + 1..groups.len() {
+                if groups[a].0.is_empty() || groups[b].0.is_empty() || groups[a].1.dist2d(groups[b].1) >= KEPT_MERGE {
+                    continue;
+                }
+                let (big, small) = if groups[a].0.len() >= groups[b].0.len() { (a, b) } else { (b, a) };
+                let moved = std::mem::take(&mut groups[small].0);
+                groups[big].0.extend(moved);
+                groups[big].1 = centre(&groups[big].0);
+            }
+        }
+        groups.retain(|(members, _)| !members.is_empty());
+        for i in 0..mobile.len() {
+            if taken[i] {
+                continue;
+            }
+            let nearest = groups.iter_mut().map(|g| (g.1.dist2d(mobile[i].pos), g)).filter(|(d, _)| *d < KEPT_RADIUS).min_by(|a, b| a.0.total_cmp(&b.0));
+            if let Some((_, group)) = nearest {
+                group.0.push(i);
+                taken[i] = true;
+            }
+        }
+        let mut groups: Vec<Vec<usize>> = groups.into_iter().map(|(members, _)| members).collect();
+        loop {
+            let free: Vec<usize> = (0..mobile.len()).filter(|i| !taken[*i]).collect();
+            let around = |i: usize| free.iter().copied().filter(|o| mobile[*o].pos.dist2d(mobile[i].pos) < KEPT_RADIUS).collect::<Vec<usize>>();
+            let Some(seed) = free.iter().copied().max_by_key(|i| around(*i).len()) else { break };
+            let members = around(seed);
+            for i in &members {
+                taken[*i] = true;
+            }
+            groups.push(members);
+        }
+        groups
     }
 
     /// What the units `ids` are doing to us now, the verb with it: "killing" what they have hit in the last seconds
@@ -585,7 +703,7 @@ impl Brain {
 
     pub(super) fn odds_words(&self, units: &[&OwnUnit], party: &Party, enemies: &[EnemyUnit]) -> String {
         let mut theirs = super::super::combat::Force::default();
-        for enemy in enemies.iter().filter(|e| party.ids.contains(&e.id)) {
+        for enemy in enemies.iter().filter(|e| party.in_fight(e.id)) {
             match enemy.def {
                 Some(def) => theirs.add(def),
                 None => theirs.unidentified += 1,
@@ -604,7 +722,7 @@ impl Brain {
         // under "we outweigh it"; the user: dozens of bad trades by the wrong unit in the wrong place).
         let reach_of = |def: UnitDefId| self.world.def(def).map_or(0.0, |d| d.reach);
         let our_reach = units.iter().map(|u| reach_of(u.def)).fold(0.0, f32::max);
-        let party_reach = enemies.iter().filter(|e| party.ids.contains(&e.id)).filter_map(|e| e.def).map(reach_of).fold(0.0, f32::max);
+        let party_reach = enemies.iter().filter(|e| party.in_fight(e.id)).filter_map(|e| e.def).map(reach_of).fold(0.0, f32::max);
         let turret_reach = self
             .enemy_buildings
             .values()
@@ -629,7 +747,7 @@ impl Brain {
         // radar blip priced as a Pawn while the Welders ran at 48 (Cape Violet 10:20); eleven Incisors walked into a
         // commander's D-gun and thirteen Brutes into its death blast (game 7); a mixed party's air part was chased
         // by tanks that could not hit it (game 3 14:21).
-        let identified: Vec<(bot_protocol::UnitId, UnitDefId, Vec3)> = enemies.iter().filter(|e| party.ids.contains(&e.id)).filter_map(|e| e.def.map(|d| (e.id, d, e.pos))).collect();
+        let identified: Vec<(bot_protocol::UnitId, UnitDefId, Vec3)> = enemies.iter().filter(|e| party.in_fight(e.id)).filter_map(|e| e.def.map(|d| (e.id, d, e.pos))).collect();
         let tier_of = |def: UnitDefId| glossary::entry(self.name(def)).map_or(1, |e| e.tier);
         let their_tier = identified.iter().map(|(_, d, _)| tier_of(*d)).max().unwrap_or(1);
         let our_tier = units.iter().map(|u| tier_of(u.def)).max().unwrap_or(1);
@@ -651,7 +769,7 @@ impl Brain {
         let their_fastest = identified.iter().map(|(_, d, _)| speed_of(*d)).fold(0.0, f32::max);
         let our_fastest = units.iter().map(|u| speed_of(u.def)).fold(0.0, f32::max);
         let our_slowest = units.iter().map(|u| speed_of(u.def)).filter(|s| *s > 0.0).fold(f32::INFINITY, f32::min);
-        let unidentified = party.ids.len() - identified.len();
+        let unidentified = party.fighters() - identified.len();
         if identified.is_empty() {
             more.push_str("; its speed is unknown (radar contacts only)");
         } else {
@@ -679,14 +797,14 @@ impl Brain {
             }
         }
         let air_in_it = identified.iter().filter(|(_, d, _)| self.world.domain_of(*d) == crate::world::Domain::Air).count();
-        if air_in_it > 0 && air_in_it < party.ids.len() && !self.force_can_hit(&ours, true) {
+        if air_in_it > 0 && air_in_it < party.fighters() && !self.force_can_hit(&ours, true) {
             more.push_str(&format!("; {air_in_it} of it are aircraft nothing in this group hits"));
         }
         // Under the water (the engine: a unit below the surface is seen by sonar only and hit by water weapons
         // only; a shooter under the surface hits only what is in the water): what the odds say of it.
-        let submerged_in_it = enemies.iter().filter(|e| party.ids.contains(&e.id) && e.pos.y < SUBMERGED_Y).count();
+        let submerged_in_it = enemies.iter().filter(|e| party.in_fight(e.id) && e.pos.y < SUBMERGED_Y).count();
         let ours_in_water = units.iter().filter(|u| u.pos.y <= 0.0).count();
-        if submerged_in_it > 0 && submerged_in_it < party.ids.len() && !self.force_can_hit_submerged(&ours) {
+        if submerged_in_it > 0 && submerged_in_it < party.fighters() && !self.force_can_hit_submerged(&ours) {
             more.push_str(&format!("; {submerged_in_it} of it {} under the water, where only torpedoes and depth charges reach, and this group has none", if submerged_in_it == 1 { "is" } else { "are" }));
         }
         let their_water_only = !identified.is_empty() && identified.iter().all(|(_, d, _)| self.world.def(*d).is_some_and(|x| x.water_only));
@@ -695,7 +813,7 @@ impl Brain {
         }
         if units.is_empty() {
             "we have nobody to send".to_string()
-        } else if submerged_in_it > 0 && submerged_in_it == party.ids.len() && !self.force_can_hit_submerged(&ours) {
+        } else if submerged_in_it > 0 && submerged_in_it == party.fighters() && !self.force_can_hit_submerged(&ours) {
             format!("we cannot hit it: it is under the water, where only torpedoes and depth charges reach, and this group has none{more}")
         } else if !self.force_can_hit(&ours, self.all_air(&theirs)) {
             format!("we cannot hit it: nothing in this group shoots at what it is{more}")
@@ -768,7 +886,7 @@ impl Brain {
                 // the rule's exception the walk back was offered at the bar in 1 of 15 advancing moments against 7,
                 // `docs/studies/2026-10-02-thrash-words.md`).
                 let mut theirs = super::super::combat::Force::default();
-                for enemy in enemies.iter().filter(|e| party.ids.contains(&e.id)) {
+                for enemy in enemies.iter().filter(|e| party.in_fight(e.id)) {
                     match enemy.def {
                         Some(def) => theirs.add(def),
                         None => theirs.unidentified += 1,
@@ -791,7 +909,7 @@ impl Brain {
                 ours.add(a.def);
             }
             let mut theirs = super::super::combat::Force::default();
-            for enemy in enemies.iter().filter(|e| party.ids.contains(&e.id)) {
+            for enemy in enemies.iter().filter(|e| party.in_fight(e.id)) {
                 match enemy.def {
                     Some(def) => theirs.add(def),
                     None => theirs.unidentified += 1,
@@ -1048,8 +1166,8 @@ impl Brain {
             }
         }
         let parties = match self.pianist.as_ref() {
-            Some(p) => self.enemy_parties(&snapshot.enemies, &p.parties, &p.next_party),
-            None => self.enemy_parties(&snapshot.enemies, &[], &std::cell::Cell::new(1)),
+            Some(p) => self.enemy_parties(&snapshot.enemies, &p.parties, &p.next_party, p.layers.kept, p.layers.beside),
+            None => self.enemy_parties(&snapshot.enemies, &[], &std::cell::Cell::new(1), false, false),
         };
 
         let mut place_entries: BTreeMap<String, Value> = BTreeMap::new();
@@ -1223,7 +1341,8 @@ impl Brain {
                     .min_by(|a, b| a.0.total_cmp(&b.0))
                     .map(|(d, u)| format!("; {d:.0} from our {}", self.name(u.def)));
                 let under = if p.turrets.is_empty() { String::new() } else { format!(" under {} ({:.0} metal)", p.turrets, p.turret_metal) };
-                format!("{}: {} worth {:.0} metal at {}{under}, {} from home, {heading}{}{}", p.name, p.composition, p.metal, self.place_words(&places, p.at), distance_words(p.at.dist2d(self.home)), near_ours.unwrap_or_default(), p.harming.as_ref().map_or(String::new(), |(what, metal)| format!("; {what} ({metal:.0} metal) now")))
+                let beside = if p.beside_words.is_empty() { String::new() } else { format!("; {}", p.beside_words) };
+                format!("{}: {} worth {:.0} metal at {}{under}{beside}, {} from home, {heading}{}{}", p.name, p.composition, p.metal, self.place_words(&places, p.at), distance_words(p.at.dist2d(self.home)), near_ours.unwrap_or_default(), p.harming.as_ref().map_or(String::new(), |(what, metal)| format!("; {what} ({metal:.0} metal) now")))
             })
             .collect();
         // The parties' memory (H-HANDS-ENEMY-MEMORY): every party in sight refreshes its entry; one gone from sight
@@ -1824,6 +1943,31 @@ mod tests {
         let _ = sentry;
     }
 
+    /// A front of enemies 250 apart is one party by the chain; kept, it is several, none with a member over
+    /// `KEPT_RADIUS` from its place, each unit under the same name a second later when the front has walked on, and
+    /// with `beside` a party's fight counts its neighbours within `BESIDE` and its words name them.
+    #[test]
+    fn a_front_is_kept_as_bounded_parties_under_steady_names() {
+        let brain = brain_of(&["armflash"]);
+        let front = |shift: f32| (0..11).map(|i| enemy(100 + i, 1, at(1000.0 + shift + 250.0 * i as f32, 1000.0))).collect::<Vec<_>>();
+        let enemies = front(0.0);
+        let next = std::cell::Cell::new(1);
+        assert_eq!(brain.enemy_parties(&enemies, &[], &next, false, false).len(), 1);
+        let first = brain.enemy_parties(&enemies, &[], &next, true, true);
+        assert!(first.len() > 2, "{}", first.len());
+        for party in &first {
+            assert!(enemies.iter().filter(|e| party.ids.contains(&e.id)).all(|e| e.pos.dist2d(party.at) < super::KEPT_RADIUS), "{party:?}");
+            assert!(party.fighters() > party.ids.len() && party.beside_words.contains("within 600"), "{party:?}");
+        }
+        assert_eq!(first.iter().map(|p| p.ids.len()).sum::<usize>(), 11);
+        let walked = front(60.0);
+        let second = brain.enemy_parties(&walked, &first, &next, true, true);
+        for enemy in &walked {
+            let name = |parties: &[super::Party]| parties.iter().find(|p| p.ids.contains(&enemy.id)).map(|p| p.name.clone());
+            assert_eq!(name(&first), name(&second));
+        }
+    }
+
     /// A building of ours whose health falls beside an enemy builder, with no hit on it, is said on that builder's
     /// party as being taken apart, with what is left and when it is gone; a party without a weapon is said unarmed,
     /// never as outweighing us or choosing the fight.
@@ -1852,7 +1996,7 @@ mod tests {
         brain.track_takings(&tick(60, 90.0, Vec::new()));
         let last = tick(90, 80.0, Vec::new());
         brain.track_takings(&last);
-        let parties = brain.enemy_parties(&last.snapshot.enemies, &[], &std::cell::Cell::new(1));
+        let parties = brain.enemy_parties(&last.snapshot.enemies, &[], &std::cell::Cell::new(1), false, false);
         let (what, _) = parties[0].harming.clone().expect("the taking");
         assert_eq!(what, "taking apart our Sentry (armllt), 80% left and gone in about 8 s");
         assert!(parties[0].unarmed);

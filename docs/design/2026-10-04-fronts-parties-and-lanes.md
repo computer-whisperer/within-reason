@@ -184,10 +184,14 @@ that level goes to allies with room. What the engine has (Recoil 2026.07.04, rea
 - The game's `tax_resource_sharing_amount` and `easytax` options tax what is shared, by either road.
 
 So for a seat of ours the slider is rebuilt on our side: a level for metal and for energy, set by the commander in
-`lanes` (or by a seat's player for its own seat), and each second the bot sends what its store holds above the level
+`lanes` (or by a seat's player for its own seat), and the bot sends what its store holds above the level
 to the seats named, or to every ally with room when none is named. A level is the same kind of thing as a person's
 slider: a setting the agent chose, carried out mechanically. Naming who receives is more than the engine's slider
 gives a person and is what lets a side feed its tech seat.
+
+A send shows as a popup to everyone watching and in the replay (the user, 2026-10-04), so the bot does not send each
+second: the excess is gathered and sent as one gift when it passes an amount or an interval, both to be set with
+the first trial.
 
 To check in the engine before building: that the default overflow reaches allied seats of ours as the source says
 (the records' `m` and `e` rows of glitters-8v8-hard-1 would show it), and what a send to a full ally does.
@@ -196,8 +200,9 @@ To check in the engine before building: that the default overflow reaches allied
 
 Each is played before the next is started.
 
-1. **Parties kept and fights weighed by neighbourhood** (§2.1, §2.2), as layers that can be switched, with the
-   old rule's parties logged beside the new for a game. Test: the standing duel, then a 3-seat game; the
+1. **Parties kept and fights weighed by neighbourhood** (§2.1, §2.2), as layers that can be switched (`kept`,
+   `beside`; built 2026-10-04). The old rule's parties need no log of their own: `run/party_rules.py` forms them
+   from the game's record. Test: the standing duel, then a 3-seat game; the
    forbidden and step-back answers at a front, read by a person.
 2. **The stream and the two fights in a group's words** (§3), after its measurement.
 3. **`lanes` with lanes and roles; the lane line in the commander's and players' reports; the hands' picture by
