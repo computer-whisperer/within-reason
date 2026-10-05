@@ -98,7 +98,7 @@ mod tests {
     #[test]
     fn the_checkout_is_found_from_the_test_binary_and_its_files_match_the_compiled_copies() {
         assert!(super::root().is_some(), "the test binary runs under target/, below the checkout");
-        for text in [&super::PLAYER_PROMPT, &super::PLAYER_UNDER_COMMAND, &super::PACKET_EXAMPLE, &super::COMMANDER_PROMPT, &super::PLAYER_BRIEF, &super::PLAYER_BRIEF_EXPERIENCE, &super::HANDS_RULES, &super::HANDS_DEFAULT] {
+        for text in [&super::PLAYER_PROMPT, &super::PLAYER_UNDER_COMMAND, &super::PACKET_EXAMPLE, &super::COMMANDER_PROMPT, &super::PLAYER_BRIEF, &super::PLAYER_BRIEF_EXPERIENCE, &super::HANDS_RULES, &super::HANDS_RULES_GATE, &super::HANDS_DEFAULT] {
             assert_eq!(super::read(text), text.compiled, "{} on disk differs from the copy compiled into this test binary", text.path);
         }
     }
