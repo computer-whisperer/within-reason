@@ -1,6 +1,6 @@
 # Fronts: bounded parties, lanes and seat roles
 
-Status: draft 1, 2026-10-04. Written at the user's word after glitters-8v8-hard-1 and the human 8v8 replay; nothing
+Status: draft 2, 2026-10-04 (transfers kept and the share slider, at the user's word). Written at the user's word after glitters-8v8-hard-1 and the human 8v8 replay; nothing
 is built. It takes up §10's "whose army is it" of `2026-10-03-commander-seat.md`.
 
 A word on names. "Lane" here is a strip of the map a seat is responsible for, as the players of large team games use
@@ -122,8 +122,8 @@ One tool, `lanes` (the name is open, §8): the whole arrangement at once, replac
   - `air`: fighters and bombers for the whole side, scouting, anti-air cover. Reads every lane.
   - `tech`: goes to tier 2 (and on) first on the side's metal, builds what the side shares (constructors of the
     higher tier given to the lane seats, the costly buildings). Reads every lane.
-- **Feeding**: which seats send what share of their metal and energy income to which seat, and until when ("every
-  lane seat sends 25% of its metal to t6 until its advanced plant stands"). §6.
+- **Feeding**: each seat's share levels for metal and energy and who receives the excess ("every lane seat shares
+  metal above 30% of its store to t6"). §6.
 
 The direction stays prose and stays the place for everything else. The structured part is only what code must know
 to draw each seat's view.
@@ -148,14 +148,16 @@ within 1,200 of it. Both are sums of what is seen, as the report's other lines a
 
 ### Whose army
 
-Proposed ruling for §10 of the commander-seat design: **each seat's army stays its own.** Two seats in a lane are
-two bodies told one place; the hands already see "with 12 allied soldiers of seat t2 beside it: together we outweigh
-it" in the odds. The commander's prompt stops recommending `transfer` of a body to make one of two (the twelve
-transfers of glitters-8v8-hard-1 made the largest gates of the game) and keeps it for what a role hands over: the
-tech seat's constructors to a lane seat, a lane seat's leftovers to its lane partner when it changes role.
+Ruled 2026-10-04 (the user): **transfers stay, and are the way the back seats feed the front.** A large game becomes
+four or five lanes, each a forward seat's; the seats behind develop economy or tech and give their units to the
+forward seat of a lane. So a lane's army is one seat's, and it grows by gifts. (Draft 1 proposed each seat keeping
+its own army and no transfers of bodies; rejected because that is not how the game is played at this size.)
 
-Rejected because: one seat holding a lane's whole army is one player and one pair of hands for 100 and more
-soldiers, which is where both the player's turn time (human-18) and Jev's bill (the square) went wrong.
+What follows for the build: the forward seat's hands hold a lane's whole army, and the gates of
+glitters-8v8-hard-1 grew with the square of what a seat held after its twelve transfers. The lane view (a seat's
+hands see its lane's parties, not the map's) and the bounded parties are what must hold that size; the measure in
+"Cost" below is done on a seat after transfers, before step 3 is built. A given unit joins the group the forward
+seat's player names for arrivals, as a plant's new units do, so that a gift is not a new actor.
 
 ### Cost
 
@@ -170,10 +172,25 @@ is the steadier names (1.0% of units renamed a second against 3.5%).
 
 ## 6. Feeding
 
-The roles need metal to move on a standing rule, not on a commander's turn each time. `transfer` is one gift when it
-is called. Proposed: a standing share, declared in `lanes` and carried out by the harness each second (a seat sends
-the stated share of its income while the condition holds). It is the commander's stated rule executed, not a choice
-of the code's; whether that reading stands under the ruling on code decisions is the user's to say (§8).
+The players' mechanic is the share slider: a level on each of a team's two stores, and whatever the store holds above
+that level goes to allies with room. What the engine has (Recoil 2026.07.04, read in source, not yet tried):
+
+- Each team has a share level for metal and for energy, a fraction of its storage; every slow update the excess above
+  it is spread over the allies whose stores are under 99% (`CTeam::SlowUpdate`). The default is 0.99 for metal and
+  0.95 for energy, so a seat of ours already overflows to its allies when it is full.
+- A person's slider sets it by a net message (`Spring.SetShareLevel`, unsynced Lua). A gadget can set any team's
+  (`Spring.SetTeamShareLevel`, synced Lua). **The skirmish-AI interface has no command for it**: it can read the
+  level (`Economy_getShare`) and send an amount (`COMMAND_SEND_RESOURCES`, which our `transfer` uses), nothing more.
+- The game's `tax_resource_sharing_amount` and `easytax` options tax what is shared, by either road.
+
+So for a seat of ours the slider is rebuilt on our side: a level for metal and for energy, set by the commander in
+`lanes` (or by a seat's player for its own seat), and each second the bot sends what its store holds above the level
+to the seats named, or to every ally with room when none is named. A level is the same kind of thing as a person's
+slider: a setting the agent chose, carried out mechanically. Naming who receives is more than the engine's slider
+gives a person and is what lets a side feed its tech seat.
+
+To check in the engine before building: that the default overflow reaches allied seats of ours as the source says
+(the records' `m` and `e` rows of glitters-8v8-hard-1 would show it), and what a send to a full ally does.
 
 ## 7. Steps
 
@@ -192,7 +209,7 @@ Each is played before the next is started.
 
 - **The tool's name**: `lanes` beside the player's `lane` (footwork) invites a mistake; renaming the footwork tool
   (`footwork`) is the cleaner way.
-- **Standing shares carried out by code** (§6): allowed as the commander's rule, or must each gift be a call?
+- **Share levels carried out by the bot** (§6): proposed as a setting, like a person's slider; the user's to confirm under the ruling on code decisions.
 - **Cells or drawn lines** for a lane's ground: cells are coarse on a small map and on a map whose lanes bend.
 - **Who declares in a game without a commander** (one player for three seats): the player, with the same tool, or
   nobody.
