@@ -31,7 +31,7 @@
 //!              [--objective TEXT]   (a requirement for the player, appended to its role text: "kill the commander with Thunder bombers")
 //!              [--base-port N]   (default 9100; match i uses N+2i and N+2i+1, so a second arena needs another range)
 //!              [--player-model ID] [--brief standard|experience] [--objective TEXT]   (the session's model instead of the role's usual one, e.g. claude-opus-5)
-//!              [--pianist]      (Jev plays every unit from a prose packet in place of the decision heuristics)
+//!              [--pianist]      (Jev plays every unit from a prose packet; the flagship plays no other way, so it is required unless --our-ai names another bot)
 //!              [--player]       (with --pianist: an Opus player writes the packet; turns hold the game still unless --realtime)
 // The batch's settings are one `json!` object, past the default limit of its macro's recursion.
 #![recursion_limit = "256"]
@@ -813,6 +813,9 @@ fn parse_args() -> Options {
     }
     if options.player {
         options.pianist = true;
+    }
+    if options.our_ai == FLAGSHIP_AI && !options.pianist {
+        usage("the flagship plays only as the pianist: give --pianist with --packet PATH, or --player (or --our-ai for a bot of bots/)");
     }
     options
 }

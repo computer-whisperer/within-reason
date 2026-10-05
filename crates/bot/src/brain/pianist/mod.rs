@@ -130,7 +130,7 @@ struct Stats {
 }
 
 pub struct Pianist {
-    /// Jev, when `--pianist`; without it only the lists and the rules' defaults play.
+    /// Jev. None only in tests, where the lists alone play.
     client: Option<jev::Client>,
     /// A fixed packet from a file (`WITHIN_REASON_PACKET`, the arena's `--packet`): what the hands play from when no
     /// player writes one, the arena instrument of the micro A/Bs (`docs/design/2026-09-25-one-decider.md`, §2).

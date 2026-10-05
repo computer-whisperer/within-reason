@@ -1,7 +1,8 @@
 # Arena — batch evaluation
 
 `target/release/arena [--matches N] [--parallel N] [--speed N] [--realtime] [--profile easy|medium|hard|hard_aggressive] [--map NAME]
-[--max-minutes N] [--label TEXT] [--base-port N] [--think-cap S] [--turn-limit S]`
+[--max-minutes N] [--label TEXT] [--base-port N] [--think-cap S] [--turn-limit S]`, with `--pianist` (and `--packet PATH` or
+`--player`) for the flagship, which plays no other way, or `--our-ai NAME:VERSION` for a bot of `bots/`.
 
 Per match: a directory `run/matches/<unix-stamp>-<label>/NN/` holding `script.txt`, `engine.log`, `bot.log`, the match record
 `record-<ai_id>.jsonl` (`record-format.md`; open it with `run/view_match.py`, which browses every batch, or `run/view_match.py <match dir>`), the replay under `demos/`, and the engine's write-dir litter; `results.jsonl` per batch. The arena rebuilds and reinstalls the AI first

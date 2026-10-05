@@ -18,5 +18,6 @@ Two regimes, by directory. Know which one you are in before adding a decision:
   (`bots/README.md`). The flagship's rule does not govern them, and nothing written for them goes into `crates/bot`.
 Shared crates (`ai-host`, `bot-protocol`, `micro`, `combatsim`, `terrain`) serve both; a change there is a change to both.
 
-Build: `cargo build --release`. Evaluate: `target/release/arena --matches 24 --parallel 8 --speed 50 --label <what-you-test>`.
+Build: `cargo build --release`. Evaluate: `target/release/arena --pianist --player --map "<map>" --speed 50 --label <what-you-test>`
+(the flagship plays only with `--pianist`; a bot of `bots/` is seated with `--our-ai NAME:VERSION` and no model flags).
 Never touch `~/.local/share/BeyondAllReason` (the user's BAR install) except through `run/install_to_bar.sh`, and only when the user asks.

@@ -154,12 +154,14 @@ ports. Three arenas started 30 apart (9600, 9630, 9660) collided at indices 15-2
 third, and two matches aborted with "Address already in use" (lane-ab-old). Space concurrent arenas by
 `2 x matches`, and keep the last index inside the range you were given.
 
-## The bot process without `--pianist` plays nothing and panics every second (found 2026-10-05)
+## The flagship plays only with `--pianist` (refused without it since 2026-10-05)
 
-`bot` with neither flag (the arena's default) builds a brain with no pianist, and the brain's first `think` panics
-at `pianist/mod.rs` `end_timed_assists` (`expect("pianist mode")`); the session dies, the shim reconnects a second
-later, and the seat stands idle for the whole game (shim-refactor-smoke: 350 connections in three minutes). The
-heuristic brain that mode used to run was deleted on 2026-09-25. Pass `--pianist` (with `--packet` or `--player`).
+From 2026-09-25, when the heuristic brain was deleted, to 2026-10-05, `bot` with neither flag (the arena's default)
+built a brain with no pianist whose first `think` panicked (`expect("pianist mode")`); the session died, the shim
+reconnected a second later, and the seat stood idle for the whole game (shim-refactor-smoke: 350 connections in
+three minutes). A flagship row in the ledger from those days without `--pianist` or `--player` is a void game. Now
+`bot` does not start without `--pianist`, and the arena stops at its arguments when the flagship is seated without
+it (`--packet PATH` or `--player` gives the hands something to play; `--our-ai` seats a bot of `bots/` instead).
 
 ## Two libraries of ours in one game both write `balance` lines
 

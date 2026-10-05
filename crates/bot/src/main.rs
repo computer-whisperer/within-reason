@@ -16,8 +16,9 @@ use brain::Brain;
 use strategist::Strategist;
 use world::World;
 
-/// usage: bot [--player] [--pianist]
-/// `--pianist`: Jev plays every unit from the player's instructions (`docs/design/2026-09-21-pianist.md`).
+/// usage: bot --pianist [--player]
+/// `--pianist`: Jev plays every unit from the player's instructions (`docs/design/2026-09-21-pianist.md`). It is the
+/// one way the bot plays since the heuristic brain was deleted (2026-09-25), and the bot does not start without it.
 /// `--player`: a Claude Code session beside the brains (see `DESIGN.md`), the Opus player whose lever is the
 /// pianist's instructions; one session serves every seat we play on a team (`strategist/seats.rs`), or each seat
 /// has its own (`strategist::player_per_seat`).
@@ -29,11 +30,11 @@ fn main() -> io::Result<()> {
         match argument.as_str() {
             "--player" => player = true,
             "--pianist" => pianist = true,
-            other => return Err(io::Error::other(format!("unknown argument {other}; usage: bot [--player] [--pianist]"))),
+            other => return Err(io::Error::other(format!("unknown argument {other}; usage: bot --pianist [--player]"))),
         }
     }
-    if player && !pianist {
-        return Err(io::Error::other("--player is the pianist's player: give --pianist too"));
+    if !pianist {
+        return Err(io::Error::other("the bot plays only as the pianist: give --pianist (with --player, or a packet in WITHIN_REASON_PACKET)"));
     }
     let path = socket_path();
     // A previous run may have left its socket file behind; nothing can be listening on it.
@@ -50,7 +51,7 @@ fn main() -> io::Result<()> {
         let stream = stream?;
         LIVE.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         std::thread::spawn(move || {
-            if let Err(e) = session(stream, player, pianist) {
+            if let Err(e) = session(stream, player) {
                 eprintln!("session ended: {e}");
             }
             if LIVE.fetch_sub(1, std::sync::atomic::Ordering::SeqCst) == 1 && leave_when_over {
@@ -68,7 +69,7 @@ pub(crate) fn log_dir() -> std::path::PathBuf {
 }
 
 /// `player`: whether the Opus player's session is started (one per team, `strategist/seats.rs`, or one a seat).
-fn session(mut stream: UnixStream, player: bool, pianist: bool) -> io::Result<()> {
+fn session(mut stream: UnixStream, player: bool) -> io::Result<()> {
     let mut input = stream.try_clone()?;
     let mut reader = FrameReader::default();
     let mut next = move || reader.read::<ToBot>(&mut input).map(|m| m.expect("blocking socket"));
@@ -92,24 +93,11 @@ fn session(mut stream: UnixStream, player: bool, pianist: bool) -> io::Result<()
         commander.attach(hello.team, &player.shared);
         Some(commander)
     });
-    let mode_name = match (player, pianist) {
-        (true, _) => "player",
-        (false, true) => "pianist",
-        (false, false) => "none",
-    };
-    // No key, no pianist: the process says so and the seat is not played at all rather than by the heuristics,
-    // which would pass for the pianist in the ledger.
-    let pianist = match pianist {
-        false => None,
-        true => match brain::pianist::Pianist::new(true, &log_dir(), hello.ai_id) {
-            Ok(pianist) => {
-                eprintln!("[ai {}] pianist: {} plays from the player's instructions", hello.ai_id, pianist.model());
-                Some(pianist)
-            }
-            Err(e) => return Err(io::Error::other(format!("pianist mode asked for but {e}"))),
-        },
-    };
-    let mut recorder = recorder::Recorder::from_env(&log_dir(), &hello, mode_name, strategist.is_some(), pianist.is_some());
+    let mode_name = if player { "player" } else { "pianist" };
+    // No key, no pianist: the session says so and the seat is not played at all.
+    let pianist = brain::pianist::Pianist::new(true, &log_dir(), hello.ai_id).map_err(|e| io::Error::other(format!("the pianist cannot start: {e}")))?;
+    eprintln!("[ai {}] pianist: {} plays from the player's instructions", hello.ai_id, pianist.model());
+    let mut recorder = recorder::Recorder::from_env(&log_dir(), &hello, mode_name, strategist.is_some(), true);
     let setting = |name: &str| std::env::var(name).ok().filter(|v| !v.is_empty());
     let mut banner = format!("Within Reason {} | {mode_name}", env!("WITHIN_REASON_COMMIT"));
     if strategist.is_some() {
@@ -119,10 +107,8 @@ fn session(mut stream: UnixStream, player: bool, pianist: bool) -> io::Result<()
     if let Some(disabled) = setting("WITHIN_REASON_DISABLE") {
         banner += &format!(" | off: {disabled}");
     }
-    if pianist.is_some() {
-        banner += &format!(" | hands: {}", pianist.as_ref().map_or(String::new(), |p| p.model()));
-    }
-    let mut brain = Brain::new(World::new(hello), strategist.as_ref().map(|s| s.shared.clone()), board, banner, pianist);
+    banner += &format!(" | hands: {}", pianist.model());
+    let mut brain = Brain::new(World::new(hello), strategist.as_ref().map(|s| s.shared.clone()), board, banner, Some(pianist));
     // The opening turn is asked for now, before the game's first tick (`docs/design/2026-09-30-opening-turn.md`).
     brain.before_the_game();
     write_frame(&mut stream, &Commands::default())?;
