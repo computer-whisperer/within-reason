@@ -2083,3 +2083,9 @@ among its givens; the same words appended to the packet read 0.36-0.43, and insi
 **Evidence.** Every pass row's `layers.same.skipped` is 0 in 60 games from player-46 to glitters-8v8-hard-1 (human-16 excepted, 637). The counts' economy lines change between gates 3 s apart in 32% (energy: the "would draw" clause names who draws) and 10% (metal).
 **Status.** fixed 2026-10-04 (the counts are the picture's on both sides); not yet in a game.
 **Would be wrong if.** The next game's pass rows still read `same` 0.
+
+### K-jev-the-gate-answers-nearly-the-same-without-rules
+**Claim.** A gate's answers lean little on the rules and a pick's lean on them: with no rules at all 97.5% of a gate's move answers stay on their side of 0.5 (99.1% asked again), a pick's "this change or not" 90.5% (97.7%). A 588-character rules text in the gate saves 5.2% of a gate's tokens for 1.8% of move answers crossing; the pick answers the same without the enemy's out-of-sight lines, `recent` and the wrecks (12% of a pick), the gate the same without the wrecks and the energy line's draw (1.4%). The rules are about 990 tokens a request: prose runs 5.3 characters a token against the picture's 3.5, and a share by characters overstates them.
+**Evidence.** `run/jev_context_ab.py` on 150 gates and 197 picks of glitters-8v8-hard-1 seat 0, 2026-10-04 (the tokens study's §14). The forbidden answers move more under the rewritten rules (4.3 to 6.4% against 2.1% asked again) than under none (3.2%).
+**Status.** built 2026-10-04 as H-HANDS-STANDING-CUT; a crossing says an answer changed, not which is right: no game has judged it yet.
+**Would be wrong if.** Games with the cut show the gate opening moves the full rules held shut (a group trickling into a party that outranges it, the commander walking to a fight) at a rate the pick does not stop.

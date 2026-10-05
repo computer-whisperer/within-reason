@@ -41,14 +41,20 @@ pub(crate) struct Diet {
     /// alone, where it was tested: at normal (the human games) a newborn idle constructor's answers moved with it
     /// (human-11, 6:14 and 6:51: the long form put the instruction's wreck fields first and the lab third).
     pub builder_words: bool,
+    /// The standing context cut by request kind (`gate_cut`, `pick_cut`; the tokens study's §14, replayed on 150
+    /// gates and 197 picks of glitters-8v8-hard-1): a gate goes with the short rules (`rules_gate.md`), without
+    /// `ours.wrecks` and without what production would draw on the energy line; a pick keeps the rules whole and
+    /// the energy line, and goes without the enemy's out-of-sight lines, `recent` and the wrecks. At lean, where
+    /// it was replayed.
+    pub standing_cut: bool,
 }
 
 impl Diet {
     pub fn level(level: HandsEffort) -> Diet {
         match level {
-            HandsEffort::Lean => Diet { level, places_reach: Some(1_500.0), places_held_too: false, actors_brief: true, only_used: true, builder_words: true },
-            HandsEffort::Normal => Diet { level, places_reach: Some(2_500.0), places_held_too: true, actors_brief: true, only_used: true, builder_words: false },
-            HandsEffort::Full => Diet { level, places_reach: None, places_held_too: true, actors_brief: false, only_used: false, builder_words: false },
+            HandsEffort::Lean => Diet { level, places_reach: Some(1_500.0), places_held_too: false, actors_brief: true, only_used: true, builder_words: true, standing_cut: true },
+            HandsEffort::Normal => Diet { level, places_reach: Some(2_500.0), places_held_too: true, actors_brief: true, only_used: true, builder_words: false, standing_cut: false },
+            HandsEffort::Full => Diet { level, places_reach: None, places_held_too: true, actors_brief: false, only_used: false, builder_words: false, standing_cut: false },
         }
     }
 
@@ -170,6 +176,45 @@ fn rules_part_used(kind: &str, asked: &BTreeSet<&str>, allies: bool, builder_wor
         "builder_words" => builder_words && (any("commander") || any("constructor_")),
         "allies" => allies,
         _ => true,
+    }
+}
+
+/// The lines of the enemy a pick goes without under `standing_cut`: what is out of sight is in no world's line.
+const PICK_ENEMY_LINES: [&str; 3] = ["out_of_sight", "biggest_party_known", "army_known"];
+/// Where the energy line turns to what production would draw and what would cover it.
+const ENERGY_DRAW: &str = " Our production at full speed would draw";
+
+/// The gate's side of `standing_cut`: `rules` in place of the state's, the wrecks and the energy line's draw
+/// left out. Returns what the pick is given back (`pick_cut`): the rules and the economy as they were.
+pub(super) fn gate_cut(state: &mut Value, rules: &str) -> serde_json::Map<String, Value> {
+    let mut kept = serde_json::Map::new();
+    for line in ["rules", "economy"] {
+        kept.insert(line.into(), state[line].clone());
+    }
+    state["rules"] = Value::String(rules.trim().to_string());
+    if let Some(ours) = state["ours"].as_object_mut() {
+        ours.remove("wrecks");
+    }
+    if let Some(energy) = state["economy"]["energy"].as_str().and_then(|e| e.split_once(ENERGY_DRAW)).map(|(head, _)| head.to_string()) {
+        state["economy"]["energy"] = Value::String(energy);
+    }
+    kept
+}
+
+/// The pick's side of `standing_cut`: what the gate's cut `kept` put back, and the enemy's out-of-sight lines,
+/// `recent` and the wrecks left out.
+pub(super) fn pick_cut(state: &mut Value, kept: &serde_json::Map<String, Value>) {
+    for (line, value) in kept {
+        state[line.as_str()] = value.clone();
+    }
+    if let Some(enemy) = state["enemy"].as_object_mut() {
+        enemy.retain(|line, _| !PICK_ENEMY_LINES.contains(&line.as_str()));
+    }
+    if let Some(ours) = state["ours"].as_object_mut() {
+        ours.remove("wrecks");
+    }
+    if let Some(fields) = state.as_object_mut() {
+        fields.remove("recent");
     }
 }
 
@@ -324,6 +369,28 @@ mod tests {
         assert!(state["actors"]["commander"].is_object(), "the smallest entry stays whole: {cut:?}");
         let mut small = serde_json::json!({"instructions": "x", "recent": ["a"], "places": {}, "actors": {}});
         assert!(shed(&mut small, 6_000).is_empty());
+    }
+
+    /// The standing cut: the gate goes with the short rules and without the wrecks and the energy line's draw; the
+    /// pick has the rules and the energy line back and goes without what is out of sight, `recent` and the wrecks.
+    #[test]
+    fn the_gate_and_the_pick_each_go_without_what_they_do_not_read() {
+        let mut state = serde_json::json!({
+            "rules": "the long rules", "recent": ["0:10 a met b"],
+            "economy": { "metal": "low", "energy": "5 of 100 stored (low); in balance. Our production at full speed would draw 40 a second (plant_1 40)" },
+            "ours": { "extractors": 2, "wrecks": ["90 metal of wrecks at home"] },
+            "enemy": { "in_sight": ["party_1"], "out_of_sight": ["party_2"], "biggest_party_known": "party_2", "army_known": "3 soldiers", "commander": "never seen" },
+        });
+        let whole = state.clone();
+        let kept = gate_cut(&mut state, "the short rules\n");
+        assert_eq!(state["rules"], "the short rules");
+        assert_eq!(state["economy"]["energy"], "5 of 100 stored (low); in balance.");
+        assert!(state["ours"].get("wrecks").is_none() && state["ours"]["extractors"] == 2);
+        assert_eq!(state["enemy"], whole["enemy"], "the gate keeps the enemy whole");
+        pick_cut(&mut state, &kept);
+        assert_eq!((&state["rules"], &state["economy"]), (&whole["rules"], &whole["economy"]));
+        assert_eq!(state["enemy"], serde_json::json!({ "in_sight": ["party_1"], "commander": "never seen" }));
+        assert!(state.get("recent").is_none() && state["ours"].get("wrecks").is_none());
     }
 
     #[test]

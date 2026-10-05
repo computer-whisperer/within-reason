@@ -30,6 +30,10 @@ pub const PLAYER_BRIEF: Text = Text { path: "docs/briefs/player.md", compiled: i
 /// until one of them goes.
 pub const PLAYER_BRIEF_EXPERIENCE: Text = Text { path: "docs/briefs/player-experience.md", compiled: include_str!("../../../docs/briefs/player-experience.md") };
 pub const HANDS_RULES: Text = Text { path: "crates/bot/src/brain/pianist/rules.md", compiled: include_str!("brain/pianist/rules.md") };
+/// The rules a gate is sent under the lean diet's `standing_cut` (`pianist/diet.rs`): the gate answers nearly as it
+/// does with no rules at all, the pick does not, so the pick keeps `HANDS_RULES`
+/// (`docs/studies/2026-10-04-jev-where-the-tokens-go.md` §14).
+pub const HANDS_RULES_GATE: Text = Text { path: "crates/bot/src/brain/pianist/rules_gate.md", compiled: include_str!("brain/pianist/rules_gate.md") };
 pub const HANDS_DEFAULT: Text = Text { path: "crates/bot/src/brain/pianist/default.md", compiled: include_str!("brain/pianist/default.md") };
 
 /// The file that marks a checkout.

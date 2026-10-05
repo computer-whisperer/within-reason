@@ -311,6 +311,8 @@ struct Follow {
     audited: BTreeMap<String, layers::Stood>,
     /// The `split` layer is on: the pick is asked per component in one request.
     split: bool,
+    /// Under the diet's `standing_cut`: what the gate's state went without and the pick's has back (`diet::pick_cut`).
+    pick_keeps: Option<serde_json::Map<String, serde_json::Value>>,
 }
 
 /// What follows a gate: what the gate flagged, each actor's best-rated moves, the worlds and their lines (None
@@ -332,7 +334,12 @@ fn followed(ask: &dyn Fn(&jev::Request) -> Result<jev::Response, jev::Error>, fo
     // The standing answers are the ones played, an audited question's too.
     let mut all = answers.clone();
     all.extend(follow.stand.clone());
-    let next = compose::follow_up(&follow.menus, &follow.parties, &follow.places, &all, &follow.store, follow.cap, state);
+    // The pick's state is the gate's, with the standing context a pick reads in place of the gate's.
+    let mut state = state.clone();
+    if let Some(kept) = &follow.pick_keeps {
+        diet::pick_cut(&mut state, kept);
+    }
+    let next = compose::follow_up(&follow.menus, &follow.parties, &follow.places, &all, &follow.store, follow.cap, &state);
     match (next.worlds, next.components) {
         // The `split` layer: every component's two stages in one request; the joint pick is asked as well on a
         // share of picks that have something to compare (two actors or more with a change), for the audit.
@@ -1078,12 +1085,13 @@ impl Brain {
         if let Some(obj) = state.as_object_mut() {
             obj.remove("places");
         }
+        let pick_keeps = diet.standing_cut.then(|| diet::gate_cut(&mut state, &crate::texts::read(&crate::texts::HANDS_RULES_GATE)));
         let shed = diet::shed(&mut state, diet::STATE_CHARS);
         if !shed.is_empty() {
             self.pianist.as_mut().expect("pianist mode").write_log(json!({ "t": "shed", "f": tick.frame, "shed": shed }));
         }
         let request = jev::Request { state, questions: questions.into_iter().collect() };
-        let follow = Follow { menus, parties: picture.parties.clone(), places: picture.places.clone(), store: Self::store_words(picture), cap: self.pianist.as_ref().expect("pianist mode").cap, stand: same.stand, audited: same.audited, split: self.pianist.as_ref().expect("pianist mode").layers.split };
+        let follow = Follow { menus, parties: picture.parties.clone(), places: picture.places.clone(), store: Self::store_words(picture), cap: self.pianist.as_ref().expect("pianist mode").cap, stand: same.stand, audited: same.audited, split: self.pianist.as_ref().expect("pianist mode").layers.split, pick_keeps };
         self.call(tick, kit, picture.clone(), request, follow, commands);
     }
 
