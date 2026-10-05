@@ -25,6 +25,7 @@ mod diet;
 mod layers;
 mod menu;
 mod schedule;
+mod wire;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 
@@ -561,13 +562,19 @@ impl Pianist {
     /// The hands: Jev from the environment (the key file or `TYPESAFE_API_KEY`) when `jev`; `Err` says why Jev cannot
     /// be had. Without Jev the lists and the rules' defaults still play.
     pub fn new(jev: bool, log_dir: &Path, ai_id: i32) -> Result<Pianist, String> {
-        let client = if jev { Some(jev::Client::from_env().map_err(|e| e.to_string())?) } else { None };
+        // One wire for the seat's two clients, so a unit has the same letters in the worker's requests.
+        let wire = diet::Diet::from_env().wire_cut.then(wire::wire);
+        let wired = |client: jev::Client| match &wire {
+            Some(wire) => client.with_wire(wire.clone()),
+            None => client,
+        };
+        let client = if jev { Some(wired(jev::Client::from_env().map_err(|e| e.to_string())?)) } else { None };
         let seconds: f32 = std::env::var("WITHIN_REASON_JEV_INTERVAL").ok().and_then(|v| v.parse().ok()).unwrap_or(INTERVAL_SECONDS);
         let log = match std::env::var("WITHIN_REASON_JEV_LOG").ok().filter(|v| !v.is_empty() && v != "0") {
             Some(_) => File::create(log_dir.join(format!("jev-{ai_id}.jsonl"))).ok(),
             None => None,
         };
-        let worker = if jev && crate::strategist::realtime() { jev::Client::from_env().ok().map(spawn_worker) } else { None };
+        let worker = if jev && crate::strategist::realtime() { jev::Client::from_env().ok().map(wired).map(spawn_worker) } else { None };
         let packet = match std::env::var_os("WITHIN_REASON_PACKET") {
             Some(path) => Some(std::fs::read_to_string(&path).map_err(|e| format!("the packet file {} cannot be read: {e}", path.to_string_lossy()))?),
             None => None,
@@ -656,6 +663,8 @@ impl Pianist {
             let line = json!({
                 "t": "header", "format": "within-reason-jev", "version": LOG_VERSION, "ai_id": ai_id, "model": model,
                 "interval_frames": self.interval_frames, "rules": rules, "hands_effort": self.diet.level_name(), "worlds_cap": self.cap, "layers": self.layers.names(),
+                // The calls are logged as built; under these Jev was sent them cut (`diet::gate_cut` is in the logged state, `wire.rs` is not).
+                "standing_cut": self.diet.standing_cut, "wire_cut": self.diet.wire_cut,
             });
             let mut text = line.to_string();
             text.push('\n');

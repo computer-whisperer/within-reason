@@ -64,6 +64,11 @@ should write through the same journal with its own `source` (`Note::source`; `Jo
 sets it); the record header names it under `siblings.decision_logs`. JSON Lines; readers skip a torn last line.
 - `{"t":"header","format":"within-reason-jev","version":1|2|3,"ai_id","model","interval_frames","rules"}` first: `rules` is
   the standing text every call's picture carried (it is left out of the calls).
+- From 2026-10-04 the header also carries `standing_cut` and `wire_cut` (the lean diet's two cuts, H-HANDS-STANDING-CUT and
+  H-HANDS-WIRE-CUT). A call's `state` and `questions` are the request as the hands built it: under `standing_cut` a
+  gate's `rules` are the short ones and the pick's the whole (so `rules` is logged again on each change of kind); under
+  `wire_cut` Jev was sent the same request without backticks and with unit numbers as letters, which the log does not
+  show, and `usage` counts what was sent (`run/jev_context_ab.py`'s `no backticks+short ids` rebuilds it).
 - `{"t":"call","f","ms","model","usage":{input_tokens,...},"retries","batches","state","questions","answers","groups","places","parties"}`
   per request (`batches`: how many requests a large gate was split into, each carrying the picture; `rules` is a
   field of the call only when the standing text changed; `played` stood here in version 1 only): `state` is the picture without `instructions` and `rules`; `instructions` (the player's packet) is a

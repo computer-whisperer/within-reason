@@ -149,10 +149,15 @@ impl std::fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
+/// What every string of a request is rewritten by as it is sent: the words of the state (its keys too) and of
+/// the questions. A question's id goes as it is, since the answers come back under it.
+pub type Wire = std::sync::Arc<dyn Fn(&str) -> String + Send + Sync>;
+
 pub struct Client {
     key: String,
     model: String,
     agent: ureq::Agent,
+    wire: Option<Wire>,
 }
 
 impl std::fmt::Debug for Client {
@@ -189,7 +194,13 @@ impl Client {
 
     pub fn new(key: String, model: String) -> Client {
         let config = ureq::Agent::config_builder().timeout_global(Some(TIMEOUT)).http_status_as_error(false).user_agent("within-reason").build();
-        Client { key, model, agent: ureq::Agent::new_with_config(config) }
+        Client { key, model, agent: ureq::Agent::new_with_config(config), wire: None }
+    }
+
+    /// The same client, sending every request through `wire`.
+    pub fn with_wire(mut self, wire: Wire) -> Client {
+        self.wire = Some(wire);
+        self
     }
 
     pub fn model(&self) -> &str {
@@ -231,7 +242,13 @@ impl Client {
     }
 
     fn ask_one(&self, request: &Request) -> Result<Response, Error> {
-        let body = serde_json::json!({ "model": self.model, "state": request.state, "questions": request.questions });
+        let body = match &self.wire {
+            Some(wire) => {
+                let questions: serde_json::Map<String, Value> = request.questions.iter().map(|(id, question)| (id.clone(), rewritten(&serde_json::json!(question), wire.as_ref()))).collect();
+                serde_json::json!({ "model": self.model, "state": rewritten(&request.state, wire.as_ref()), "questions": questions })
+            }
+            None => serde_json::json!({ "model": self.model, "state": request.state, "questions": request.questions }),
+        };
         let started = Instant::now();
         let mut retries = 0;
         loop {
@@ -289,6 +306,16 @@ impl Client {
 enum Retry {
     After(Duration),
     Never(Error),
+}
+
+/// `value` with every string in it, a map's keys too, as `wire` rewrites it.
+fn rewritten(value: &Value, wire: &dyn Fn(&str) -> String) -> Value {
+    match value {
+        Value::String(text) => Value::String(wire(text)),
+        Value::Array(items) => Value::Array(items.iter().map(|item| rewritten(item, wire)).collect()),
+        Value::Object(map) => Value::Object(map.iter().map(|(key, item)| (wire(key), rewritten(item, wire))).collect()),
+        other => other.clone(),
+    }
 }
 
 /// The request's questions in batches whose body (the state and the batch's questions) fits `budget`, in the map's

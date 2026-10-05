@@ -47,14 +47,16 @@ pub(crate) struct Diet {
     /// the energy line, and goes without the enemy's out-of-sight lines, `recent` and the wrecks. At lean, where
     /// it was replayed.
     pub standing_cut: bool,
+    /// The request goes without its backticks and with a unit's engine number as letters (`wire.rs`). At lean.
+    pub wire_cut: bool,
 }
 
 impl Diet {
     pub fn level(level: HandsEffort) -> Diet {
         match level {
-            HandsEffort::Lean => Diet { level, places_reach: Some(1_500.0), places_held_too: false, actors_brief: true, only_used: true, builder_words: true, standing_cut: true },
-            HandsEffort::Normal => Diet { level, places_reach: Some(2_500.0), places_held_too: true, actors_brief: true, only_used: true, builder_words: false, standing_cut: false },
-            HandsEffort::Full => Diet { level, places_reach: None, places_held_too: true, actors_brief: false, only_used: false, builder_words: false, standing_cut: false },
+            HandsEffort::Lean => Diet { level, places_reach: Some(1_500.0), places_held_too: false, actors_brief: true, only_used: true, builder_words: true, standing_cut: true, wire_cut: true },
+            HandsEffort::Normal => Diet { level, places_reach: Some(2_500.0), places_held_too: true, actors_brief: true, only_used: true, builder_words: false, standing_cut: false, wire_cut: false },
+            HandsEffort::Full => Diet { level, places_reach: None, places_held_too: true, actors_brief: false, only_used: false, builder_words: false, standing_cut: false, wire_cut: false },
         }
     }
 
