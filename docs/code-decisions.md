@@ -64,7 +64,7 @@ The hands' layers (H-HANDS-LAYERS) are each a switch; which are on is set at lau
 | `tick`: a gate no event calls for waits 2 s | `TICK` 2 s | `P/layers.rs` |
 | Events: a party within 600 of a builder or group, a hit, a death; under fire lasts 3 s | `ALARM = 600`, `UNDER_FIRE_FRAMES` 3 s | `P/schedule.rs` |
 | `news`: an actor with a course and no news is closed for up to 20 s | | `P/layers.rs` |
-| `same`, `again`: an answer in the same words under 20 s old stands; after an opening, answers under 3 s old stand | `AGAIN` 3 s | `P/layers.rs` |
+| `same`, `again`: an answer in the same words (numbers left out; for a builder or a plant, over the same counts) under 20 s old stands; after an opening, answers under 3 s old stand | `AGAIN` 3 s | `P/layers.rs` |
 | `openers`: a move is asked only while its actor's `change` or its party's `answer` was at 0.5 | `FLAG = 0.5` | `P/layers.rs` |
 | `places`: a place opens its moves at 0.3 and closes under 0.2 | `PLACE_BAR = 0.3`, `PLACE_CLOSE = 0.2` | `P/layers.rs` |
 | `fuse`: a decode reading under 0.3 removes the move until the next packet; a detachment's forbidden mark is on at 0.8 and off under 0.2 | `FUSE = 0.3`, `ON = 0.8`, `OFF = 0.2` | `P/decode.rs` |

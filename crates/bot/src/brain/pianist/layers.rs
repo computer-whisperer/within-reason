@@ -267,20 +267,35 @@ pub(crate) struct Said {
     pub noul: f64,
 }
 
-fn words_of(question: &Question, counts: u64) -> u64 {
+/// What a question's standing answer is tied to: its words with every number left out, and the counts when the
+/// question is a builder's or a plant's. The numbers (seconds of walking, distances, how many soldiers) move every
+/// second under an answer that does not, and the counts are what a packet's build tables key on, which no group's,
+/// party's or place's question reads (glitters-8v8-hard-1 replayed, `run/jev_same_replay.py`: the words and the
+/// counts for every question let 5.8% of the bill stand, the counts for builders and plants alone 9.9%, with the
+/// numbers left out 14.9%, a standing answer on the other side of 0.5 from the fresh one in 2.0 to 2.2% each).
+fn words_of(id: &str, question: &Question, counts: u64) -> u64 {
     use std::hash::{Hash, Hasher};
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     match question {
-        Question::Noul { instructions, .. } | Question::Choice { instructions, .. } | Question::Score { instructions, .. } => instructions.to_string().hash(&mut hasher),
+        Question::Noul { instructions, .. } | Question::Choice { instructions, .. } | Question::Score { instructions, .. } => {
+            // A number is its digits and a point between two of them ("16.7"); a sentence's full stop stays.
+            let text = instructions.to_string();
+            let chars: Vec<char> = text.chars().collect();
+            let digit = |i: usize| chars.get(i).is_some_and(char::is_ascii_digit);
+            let kept: String = chars.iter().enumerate().filter(|(i, c)| !(c.is_ascii_digit() || (**c == '.' && *i > 0 && digit(i - 1) && digit(i + 1)))).map(|(_, c)| *c).collect();
+            kept.hash(&mut hasher);
+        }
     }
-    counts.hash(&mut hasher);
+    if ["constructor_", "commander", "plant_", "lab_", "factory_"].iter().any(|kind| id.starts_with(kind)) {
+        counts.hash(&mut hasher);
+    }
     hasher.finish()
 }
 
 /// What a packet's tables key on, as the picture says it: how many extractors, generators, labs, constructors,
 /// radars and turrets stand, the army's size as its word, and the economy's lines without their numbers ("low",
-/// "STALLING", "in balance"). An answer of the `same` layer stands only while these are what they were when it
-/// was given: rebuild-smoke-7, 0:22, "a solar" rated 0.28 with one extractor standing was played with two, against
+/// "STALLING", "in balance"). A builder's or a plant's answer of the `same` layer stands only while these are what
+/// they were when it was given (`words_of`): rebuild-smoke-7, 0:22, "a solar" rated 0.28 with one extractor standing was played with two, against
 /// a packet that says "with 2 extractors and 0 solar collectors: a solar collector", and the game was lost
 /// without a soldier made (K-hands-the-same-layer-keeps-an-answer-the-picture-has-outdated).
 pub(super) fn counts(state: &serde_json::Value) -> u64 {
@@ -337,7 +352,7 @@ pub(super) fn same(questions: Vec<(String, Question)>, said: &HashMap<String, Sa
     let mut out = Same { send: Vec::new(), stand: BTreeMap::new(), audited: BTreeMap::new(), again: 0 };
     for (id, question) in questions {
         let before = said.get(&id);
-        let layer = if words && before.is_some_and(|s| frame - s.frame < RE_ASK && s.words == words_of(&question, counts)) {
+        let layer = if words && before.is_some_and(|s| frame - s.frame < RE_ASK && s.words == words_of(&id, &question, counts)) {
             Some("same")
         } else if before.is_some_and(|s| frame - s.frame <= AGAIN) && again(&id) {
             Some("again")
@@ -381,7 +396,7 @@ pub(super) fn remember(said: &mut HashMap<String, Said>, questions: &BTreeMap<St
         if let Some(Answer::Noul { noul }) = answers.get(id)
             && !skip.contains_key(id)
         {
-            said.insert(id.clone(), Said { words: words_of(question, counts), frame, noul: *noul });
+            said.insert(id.clone(), Said { words: words_of(id, question, counts), frame, noul: *noul });
         }
     }
 }
@@ -557,8 +572,9 @@ mod tests {
     }
 
     /// The `same` layer: a noul asked again in the same words within the re-ask is not sent and its last answer
-    /// stands; changed words, an answer too old, or a change in the counts it was asked over (a second extractor
-    /// stands, the store's word is another) are sent; an audited one is sent and its standing answer kept.
+    /// stands, whatever its numbers; changed words, an answer too old, or for a builder's or a plant's question a
+    /// change in the counts it was asked over (a second extractor stands, the store's word is another) are sent; an
+    /// audited one is sent and its standing answer kept.
     #[test]
     fn a_question_in_the_same_words_is_not_sent_again() {
         let q = |text: &str| Question::noul(serde_json::json!(text));
@@ -576,10 +592,19 @@ mod tests {
         assert_eq!(out.send.iter().map(|(id, _)| id.as_str()).collect::<Vec<_>>(), ["a.go_y", "a.old", "a.new"]);
         assert_eq!(out.stand, [("a.go_x".to_string(), Answer::Noul { noul: 0.7 })].into());
         assert!(out.audited.is_empty());
-        // A second extractor stands, or the store's word changed: nothing stands.
+        // A second extractor stands, or the store's word changed: a group's answers stand all the same, a builder's
+        // or a plant's are asked afresh.
+        let built: BTreeMap<String, Question> = [("constructor_7.build_x".to_string(), q("builds x (12 s of walking, 3.5 a second)")), ("group_A.go_x".to_string(), q("walks to x (12 s of walking)"))].into();
+        let rated: BTreeMap<String, Answer> = built.keys().map(|id| (id.clone(), Answer::Noul { noul: 0.6 })).collect();
+        let mut both: HashMap<String, Said> = HashMap::new();
+        remember(&mut both, &built, &rated, &BTreeMap::new(), at, 300);
+        // The numbers have moved under both; the words have not.
+        let later = vec![("constructor_7.build_x".to_string(), q("builds x (9 s of walking, 3.25 a second)")), ("group_A.go_x".to_string(), q("walks to x (9 s of walking)"))];
+        assert_eq!(same(later.clone(), &both, at, 330, true, &none, &mut || 0.5).stand.len(), 2, "a number alone does not make a question new");
         for moved in [counts(&picture(2, "171 of 1650 stored (low)")), counts(&picture(1, "900 of 1650 stored (plenty in store)"))] {
-            let fresh = same(next.clone(), &said, moved, 330, true, &none, &mut || 0.5);
-            assert!(fresh.stand.is_empty() && fresh.send.len() == 4);
+            let fresh = same(later.clone(), &both, moved, 330, true, &none, &mut || 0.5);
+            assert_eq!(fresh.send.iter().map(|(id, _)| id.as_str()).collect::<Vec<_>>(), ["constructor_7.build_x"]);
+            assert_eq!(fresh.stand.keys().map(String::as_str).collect::<Vec<_>>(), ["group_A.go_x"]);
         }
         let audit = same(next.clone(), &said, at, 330, true, &none, &mut || 0.001);
         assert_eq!(audit.send.len(), 4, "the audited question is sent anyway");
