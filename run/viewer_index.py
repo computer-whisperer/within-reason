@@ -250,7 +250,7 @@ class JevIndex:
             return {
                 "ready": True, "header": header, "version": (self.header or {}).get("version", 1), "size": self.scanned, "lines": len(self.off),
                 "price": PRICE, "tokens": tokens, "dollars": tokens * PRICE / 1e6,
-                "gates": [self.frame[n] for n in self.gates], "minutes": minutes,
+                "gates": [self.frame[n] for n in self.gates], "calls": [self.frame[n] for n in self.calls], "minutes": minutes,
             }
 
     def gate(self, frame):
