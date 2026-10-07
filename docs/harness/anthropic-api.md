@@ -11,6 +11,11 @@ The key goes in `~/.config/within-reason/anthropic.env` (`chmod 600`), one line:
 The environment variable of the same name overrides the file. Nothing in the repository prints or writes it: the
 repository is public.
 
+**One exchange a frame.** `run/haiku_one_pass.py JEV_LOG` replays a frame's Jev sequence as one call (the standing
+text and the packet cached, the picture and per-actor menus as the turn, one decision per actor back) and prints
+Haiku's picks beside Jev's plan; `--no-thinking --why` is the arm that answers in about a second. Findings:
+`docs/studies/2026-10-07-haiku-one-pass.md`.
+
 **Rate probe.** `run/haiku_rate_probe.py JEV_LOG` replays recorded Jev calls (`jev-<n>.jsonl` beside a record) as
 streamed requests, the standing text as a cached system block, the picture and questions as the turn, one JSON object
 of answers back, and reports input tokens, cache reads, time to first output token, output tokens a second, wall time
