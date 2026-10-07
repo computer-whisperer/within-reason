@@ -11,7 +11,8 @@ Four scenario kinds, random instances by seed, each rendered four ways and score
 
 Encodings: `coords` (x, z numbers), `cells` (512-elmo grid cells like the picture's "G7"), `ascii` (coords plus a
 32x32 character map), `facts` (coords plus the distances and coverages code computed: the "code computes, the model
-picks" ceiling).
+picks" ceiling), `image` (a 1024-pixel PNG of the map with named markers, no numbers), `image_coords` (the PNG and the
+numbers), `image_reach` (the PNG with the turrets' reach drawn as circles, and the numbers).
 
     run/haiku_spatial.py                      # 12 instances a kind, every encoding, 8 calls at once
     run/haiku_spatial.py --kinds gap,route --encodings coords,facts --n 6 --show
@@ -19,7 +20,7 @@ picks" ceiling).
 
 Key: `ANTHROPIC_API_KEY` or `~/.config/within-reason/anthropic.env`.
 """
-import argparse, concurrent.futures, json, math, random, re, statistics, sys, os
+import argparse, base64, concurrent.futures, io, json, math, random, re, statistics, sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from haiku_rate_probe import api_key, stream, cost, DEFAULT_MODEL
 
@@ -257,7 +258,83 @@ SCHEMAS = {
 }
 KINDS = {"gap": (gen_gap, render_gap, score_gap), "cover": (gen_cover, render_cover, score_cover),
          "rally": (gen_rally, render_rally, score_rally), "route": (gen_route, render_route, score_route)}
-ENCODINGS = ["coords", "cells", "ascii", "facts"]
+ENCODINGS = ["coords", "cells", "ascii", "facts", "image", "image_coords", "image_reach"]
+IMAGE_PX = 1024  # the map at 8 elmos a pixel
+
+
+def image_of(s, reach):
+    """A PNG of the scenario: markers with their names; with `reach`, the turrets' reach as circles. Base64."""
+    from PIL import Image, ImageDraw, ImageFont
+    img = Image.new("RGB", (IMAGE_PX, IMAGE_PX), (235, 230, 215))
+    d = ImageDraw.Draw(img)
+    font = ImageFont.load_default(size=16)
+    k = IMAGE_PX / MAP
+    for g in range(0, MAP + 1, 1024):
+        d.line([(g * k, 0), (g * k, IMAGE_PX)], fill=(210, 205, 190)); d.line([(0, g * k), (IMAGE_PX, g * k)], fill=(210, 205, 190))
+    def dot(p, color, name=None, size=6):
+        x, z = p[0] * k, p[1] * k
+        d.ellipse([x - size, z - size, x + size, z + size], fill=color, outline=(0, 0, 0))
+        if name:
+            d.text((x + size + 2, z - 9), name, fill=(0, 0, 0), font=font)
+    def circle(p, r, color):
+        x, z = p[0] * k, p[1] * k
+        d.ellipse([x - r * k, z - r * k, x + r * k, z + r * k], outline=color, width=2)
+    kind = s["kind"]
+    if kind == "gap":
+        for i, x in enumerate(s["turrets"]):
+            if reach:
+                circle((x, s["z"]), R, (200, 60, 60))
+            dot((x, s["z"]), (200, 60, 60), f"t{i + 1}")
+        for name, p in s["cands"].items():
+            dot(p, (60, 90, 220), name)
+        d.text((10, 10), "north (the enemy's side) is up; x grows right, z grows down", fill=(0, 0, 0), font=font)
+    elif kind == "cover":
+        for j, e in enumerate(s["ext"]):
+            dot(e, (60, 160, 60), f"e{j + 1}")
+        for name, p in s["cands"].items():
+            if reach:
+                circle(p, R, (60, 90, 220))
+            dot(p, (60, 90, 220), name)
+    elif kind == "rally":
+        for name, p in s["units"].items():
+            dot(p, (60, 160, 60), name)
+        dot(s["enemy"], (200, 60, 60), "enemy party", 9)
+        dot(s["base"], (120, 120, 120), "our base", 9)
+        for name, p in s["cands"].items():
+            dot(p, (60, 90, 220), name, 5)
+    elif kind == "route":
+        for name, w in s["ways"].items():
+            d.line([(s["g"][0] * k, s["g"][1] * k), (w[0] * k, w[1] * k), (s["t"][0] * k, s["t"][1] * k)], fill=(150, 150, 150), width=1)
+            dot(w, (60, 90, 220), name)
+        for p in s["turrets"]:
+            if reach:
+                circle(p, R, (200, 60, 60))
+            dot(p, (200, 60, 60))
+        dot(s["g"], (60, 160, 60), "our group", 8)
+        dot(s["t"], (120, 120, 120), "target", 8)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode()
+
+
+LEGEND = {"gap": "red dots are our turrets t1..t6, blue dots the candidate spots s1..s6",
+          "cover": "green dots are our extractors e1..e8, blue dots the candidate sites s1..s10",
+          "rally": "green dots are our units u1..u10, the red dot the enemy party, the grey dot our base, blue dots the rally points p1..p5",
+          "route": "the green dot is our group, the grey dot the target, red dots the enemy turrets, blue dots the waypoints r1..r4 with each route drawn grey"}
+
+
+def content_of(kind, s, enc, render):
+    """The user turn: a string, or content blocks when the encoding carries an image."""
+    if not enc.startswith("image"):
+        return render(s, enc)
+    text = render(s, "coords")
+    if enc == "image":  # the picture alone: strip the positions, keep the question and the reach
+        text = text[text.index("\n\n") + 2:]
+        text = f"turret_reach: {R}\n\n" + text if kind in ("gap", "cover", "route") else text
+    legend = (f"The image is the map, {MAP} by {MAP} elmos, {MAP // IMAGE_PX} elmos a pixel, grid lines every 1024 elmos; "
+              f"{LEGEND[kind]}" + ("; each turret's reach is drawn as a circle" if enc == "image_reach" else "") + ".")
+    return [{"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": image_of(s, enc == "image_reach")}},
+            {"type": "text", "text": legend + "\n\n" + text}]
 
 
 def parse(text):
@@ -291,8 +368,14 @@ def main():
     ap.add_argument("--parallel", type=int, default=8)
     ap.add_argument("--show", action="store_true", help="print the first instance's prompt and answer per kind and encoding")
     ap.add_argument("--out", help="write every call's record as JSON lines here")
+    ap.add_argument("--save-images", help="write the first instance's PNG per kind into this directory")
     args = ap.parse_args()
     key = api_key()
+    if args.save_images:
+        os.makedirs(args.save_images, exist_ok=True)
+        for kind in args.kinds.split(","):
+            s0 = KINDS[kind][0](random.Random(f"{args.seed}-{kind}"))
+            open(os.path.join(args.save_images, f"{kind}-reach.png"), "wb").write(base64.b64decode(image_of(s0, True)))
 
     jobs = []
     for kind in args.kinds.split(","):
@@ -301,14 +384,15 @@ def main():
         instances = [gen(rng) for _ in range(args.n)]
         for enc in args.encodings.split(","):
             for i, s in enumerate(instances):
-                jobs.append((kind, enc, i, s, render(s, enc)))
+                jobs.append((kind, enc, i, s, content_of(kind, s, enc, render)))
 
     def run(job):
         kind, enc, i, s, prompt = job
         r = stream(key, args.model, [{"type": "text", "text": SYSTEM}], prompt, args.effort, args.thinking, args.max_tokens, SCHEMAS[kind] if args.json_only else None)
         answer = parse(r["text"]) if not r.get("error") else {}
         sc = KINDS[kind][2](s, answer if isinstance(answer, dict) else {})
-        return {"kind": kind, "enc": enc, "i": i, "prompt": prompt, "text": r["text"], "answer": answer, "score": sc,
+        shown = prompt if isinstance(prompt, str) else "[image] " + prompt[1]["text"]
+        return {"kind": kind, "enc": enc, "i": i, "prompt": shown, "text": r["text"], "answer": answer, "score": sc,
                 "wall_s": r["wall_s"], "first_token_s": r["first_token_s"], "usage": r["usage"], "error": r.get("error"),
                 "stop_reason": r["stop_reason"], "cost": cost(args.model, r["usage"])}
 

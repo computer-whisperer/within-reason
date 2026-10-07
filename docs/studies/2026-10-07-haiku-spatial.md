@@ -75,7 +75,44 @@ geometry that is not there yet, the gap in a line, a route's exposure, a site's 
 picture's words. Where a decision can wait 3-6 s (a turret's placement, restructuring a line), one slow call with
 thinking on and the bare numbers gets it right.
 
+## Images (added the same day, after the user asked whether any real multimodal input was tried)
+
+Three more encodings: `image` (a 1,024-pixel PNG of the map, 8 elmos a pixel, grid every 1,024, named markers, no
+numbers in the text), `image_coords` (the PNG and the numbers), `image_reach` (the PNG with every turret's reach drawn
+as a circle, and the numbers). Haiku bills the picture at about 1,100 input tokens.
+
+Free text, thinking off, 4,096-token cap:
+
+| kind | image | image_coords | image_reach |
+|---|---|---|---|
+| gap: spot / free | 1.00 / 1.00, 2.7 s, 440 out | 1.00 / 1.00, 1.8 s | 1.00 / 1.00, 1.8 s |
+| cover: ratio | 0.97, 4.1 s, 805 out | 0.96, 4.5 s | 1.00, 4.3 s |
+| rally: stragglers / point | 0.63 / 0.50, 0.7 s | 0.86 / 0.75, 0.7 s | 0.89 / 0.83, 0.8 s |
+| route | 1.00, 4.3 s, 740 out | 0.75, 4.3 s | 1.00, 3.2 s |
+
+The JSON alone (structured output, no working), thinking off:
+
+| kind | image | image_reach | (coords, from above) |
+|---|---|---|---|
+| gap: spot / free | 0.83 / 0.83, 1.4 s | 1.00 / 1.00, 1.4 s | 0.67 / 0.75 |
+| cover: ratio | 0.53, 1.3 s | 0.68, 1.3 s | 0.66 |
+| rally: stragglers / point | 0.63 / 0.33, 1.3 s | 0.92 / 0.75, 1.2 s | 1.00 / 0.83 |
+| route | 0.75, 1.3 s | 0.58, 1.3 s | 0.58 |
+
+6. **The picture is a coordinate source to Haiku, not a shortcut.** Given the image alone and room to work, it reads
+   pixel positions off the markers ("enemy turrets at pixels A(578,516), B(452,616)...", "reach 450 elmos is about 56
+   pixels") and then does the same distance arithmetic as on the numbers, to the same scores (gap 1.00, cover 0.97,
+   route 1.00) and the same 3-4 s. Its pixel reads are good to a few pixels, 20-40 elmos.
+7. **By eye, at a second, only the drawn gap is reliable.** With the working denied, the one case the picture answers
+   is the turret line with the reach circles drawn: the hole between the circles is visible and it scored 1.00 where
+   the numbers alone gave 0.67. Cover and route by eye are at the level of the numbers by eye (0.53-0.75), and the
+   rally ask is worse on the picture than on the numbers (ten labelled dots to tell apart: 0.33-0.75 against 0.83).
+8. **So drawing is for what the eye can see in one look** (a hole in a ring of circles, a body and its stragglers,
+   which side of a line something is on), and for those a picture with the geometry drawn by code is one more
+   encoding of code's facts. For anything that needs a distance compared with a reach, the numbers plus code's
+   measurement remain the one-second path.
+
 ## What this does not say
 
-Mock instances with clean geometry, one turret kind, no terrain; 12 instances a cell, so a difference under about
+Mock instances with clean geometry, one turret kind, no terrain, synthetic pictures with no terrain or units drawn; 12 instances a cell, so a difference under about
 0.15 is noise; nothing played in the engine.
