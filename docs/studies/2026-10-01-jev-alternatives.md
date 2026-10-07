@@ -276,3 +276,35 @@ Measure, per service against the recorded Jev answers:
 
 Do the OpenAI Decisions API once its docs are public and the user is admitted: first check that it returns a number
 per option and per yes/no, then the same replay.
+
+## Update 2026-10-07: Cloudflare Clef and the Decisions API's public beta (read by me, from the vendors' pages)
+
+**Cloudflare Clef / Clef-flash** (released 2026-10-01; blog.cloudflare.com/clef-decision-models, the Workers AI model
+page, the Hugging Face cards). Decision models in Jev's own format: `POST .../ai/run/@cf/cloudflare/clef` (or
+`clef-flash`) with `{model, state, questions}` and `noul`/`choice`/`score` questions, answers as probabilities, a
+`usage` block; 64 questions a request (our gates carry 90-165: the client would batch by count), 65,536 context, state
+truncated to fit. Images: an `images` array, up to four PNG/JPEG/WebP embedded in the body (4 MiB each, 13 MiB a
+request), placed before the state; a vision encoder from the base model (Clef 27B on Qwen3.8-27B, Clef-flash 9B on
+Qwen3.5-9B, rank-256 adapters and a joint schema head); the card says video frames too. Price: $0.24 (Clef) and $0.09
+(Clef-flash) per million input tokens, nothing for output, 10,000 neurons a day free (about 1.2M Clef-flash tokens).
+Latency, the vendor's own table, setup unstated: Clef 209 ms median / 239 p95, Clef-flash 39 / 122, Jev 524 / 536 (we
+measure Jev at 177-192 ms from here, so the table is not our network). Benchmarks (vendor's run of the Jev Decision
+Index): Clef ahead on classification sets, Jev ahead on reasoning sets (GPQA 78 vs 48, MMLU-Pro 83 vs 66, When2Call,
+BRIGHT). Weights Apache-2.0 on Hugging Face with a `systemone()` helper taking the same request body; vLLM, SGLang and
+Docker Model Runner listed; tested on one H200 with torch 2.11 / transformers 5.10. This machine: an RX 6900 XT and a
+Radeon VII, 16 GB each, no torch or vllm installed; Clef-flash in bf16 (~18 GB) does not fit one card, an 8-bit
+quant would; ROCm on gfx1030 for a Qwen3.5 vision model is unproven here.
+
+**OpenAI Decisions API** (public beta 2026-10-06, developers.openai.com/api/docs/guides/decisions). `POST /v1/decisions`,
+model `gpt-6-luna` only; `input` is a string or user messages of `input_text` and `input_image` parts (inline base64
+data URLs only, no hosted URLs, no file ids); `questions` is an array of `{name, type, instructions}` with types
+`predicate` (a probability), `choice` (`choices` of `{value, description}`; answer `choice`, `probabilities`,
+`confidence`) and `score` (`levels` of `{label, description}`; answer a weighted average, `probabilities`,
+`confidence`), plus a `refusal` answer kind. $0.10 per million input tokens, no output charge; "about 10x faster than
+the Responses API", no absolute latency; no context, questions-per-request or rate limits on the page (a secondary
+source says 200 questions). Not Jev's format: a translation layer in the client, not an endpoint swap. Needs a
+Platform API key with billing; the ChatGPT subscription does not reach it.
+
+What the spatial battery of this day says about both: a decision model generates no text, so it answers by eye, as
+Haiku did under structured output; the test that matters is the battery's `image_reach` and `facts` encodings and the
+one-pass frame, not the bare numbers.
