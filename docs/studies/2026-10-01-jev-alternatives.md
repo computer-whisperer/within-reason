@@ -308,3 +308,57 @@ Platform API key with billing; the ChatGPT subscription does not reach it.
 What the spatial battery of this day says about both: a decision model generates no text, so it answers by eye, as
 Haiku did under structured output; the test that matters is the battery's `image_reach` and `facts` encodings and the
 one-pass frame, not the bare numbers.
+
+### Clef-flash locally: the numbers (2026-10-07, estimates from the specs; the measurement is `run/clef_local_probe.py`)
+
+The local path is the card's `joint_schema_model.py`: plain transformers, bf16, one forward pass over the whole
+request (all questions in one prompt, the head reading the final hidden states), `use_cache=False`, no prefix
+cache across calls, `max_length` 16,384 by default; `vllm serve` on the card serves the base model's chat endpoint,
+not the head. Weights 18.8 GB bf16 plus a 0.24 GB head: one 24 GB card holds it with about 4 GB for a 16k-token
+pass (Qwen3.5-9B: 32 layers, 4 KV heads of 256, 131 KB of KV a token); two cards split layers, not compute.
+
+The demand, from the logs (Jev's tokenizer; Qwen's will differ by some tens of percent):
+
+| game, seat | tokens a game | per frame median / p90 / max | peak minute |
+|---|---|---|---|
+| human-26 seat 0 (10 min, realtime, 2v1) | 2.8M | 8.7k / 22.8k / 39.9k | 1.03M (93 calls) = 17k tok/s |
+| human-26 seat 1 | 2.6M | 7.3k / 14.5k / 28.6k | 0.56M = 9.3k tok/s |
+| player-40 seat 0 (35 min, lockstep, late game) | 117M | 52k / 169k / 536k | 10.0M = 166k tok/s |
+| the one-pass shape of `2026-10-07-haiku-one-pass.md` on human-26's frames | ~1.6M | ~6k fresh + 2.2k standing | |
+
+The supply: a 9B forward costs about 18 GFLOP a token plus attention (about +15% at 5k tokens, +50% at 16k). An
+RTX 3090 does 35.5 TFLOPS of bf16 with fp32 accumulate (71 with fp16 accumulate, 142 int8), 936 GB/s; at 50-60%
+utilisation that is about 1,000 tokens a second on this model in the card's own code. An H200 (the vendor's
+latency table) is about 25-35k tokens a second, which puts a 5k-token ask at 0.2 s and matches the 39 ms they quote
+for short states.
+
+| shape, one 3090 in bf16 | a call | a seat-game (human-26) |
+|---|---|---|
+| the gate as sent today, median / p90 / max | 5-6 s / 17-19 s / 33 s (past the 16k default) | 2,800 s of GPU for 606 s of game: 4.6x behind realtime |
+| one-pass compact, 8k a frame | ~8 s | 2.6x behind |
+| one-pass compact with the 2.2k standing prefix cached (code to write: the helper has none) | ~6 s | 1.7x behind |
+| player-40's late frames | 50-170 s | not a game |
+
+To answer a compact frame in about a second a seat needs about 6k tokens a second of prefill: six times one 3090 in
+bf16. Two 3090s are two replicas (one seat each) or a layer split; tensor parallel is not in the card's code. An
+int8 path (the 3090's 142 TFLOPS) would be about 3x, and is also code to write against a custom-code model with
+its own head. So the realistic local ceiling on the two 3090s is a 2-3 s median frame with p90 around 8 s, after
+int8, the compact shape and a prefix cache are all built. The p150a (120 Tensix cores, 32 GB, 512 GB/s, 664 TFLOPS
+block-FP8 peak with dense and sparse unlabelled) has the arithmetic on paper (10-20x a 3090 at any plausible
+utilisation) and not the software: the vLLM TT plugin lists Qwen3.5 text models on Blackhole, and Clef is that
+backbone plus a vision encoder and a head reading hidden states, which is a port, not a configuration; single-p150
+verified models are small, the review literature calls the stack a software blackhole. A later project, not the
+free path now.
+
+Two things the arithmetic does say. The lockstep arena does not need realtime: at 5 s a frame a 10-minute game is
+about 25 minutes of wall, so local Clef-flash serves the lab (batches, replays, A/B against Jev on recorded gates)
+today at no token cost, and the human games stay hosted ($0.09 per million: about $0.24 a seat-game at today's
+shape, $0.15 compact; 10k free neurons a day is about one compact seat-game). And the two 3090s are enough to
+fine-tune a 9B with LoRA (QLoRA on one card; bf16 LoRA with checkpointing across two) on the recorded games and the
+reviews' verdicts, which is the one thing the open weights give that the hosted API cannot; the fine-tuned model
+is then served hosted (Workers AI BYO Model) or locally for the lab.
+
+What to measure first, on the 3090 box: `run/clef_local_probe.py` times the card's `systemone` on
+`run/clef-requests/human-26-gate-{median,p90,max}.json` (Jev's format, 15 / 81 / 157 questions, 5.6k / 17.2k / 32.9k
+Jev tokens), whole and in batches of 64, and with `--image` a 1,024-pixel PNG. The tokens-a-second it prints
+replaces the 1,000 estimated above; everything in the table scales with it.
