@@ -16,6 +16,10 @@ text and the packet cached, the picture and per-actor menus as the turn, one dec
 Haiku's picks beside Jev's plan; `--no-thinking --why` is the arm that answers in about a second. Findings:
 `docs/studies/2026-10-07-haiku-one-pass.md`.
 
+**Spatial battery.** `run/haiku_spatial.py` scores Haiku on mock geometry (a gap in a turret line, turret sites,
+stragglers and a rally point, a route past turrets) in four encodings with code-computed truth; `--json-only`,
+`--thinking`, `--max-tokens`, `--show`. Findings: `docs/studies/2026-10-07-haiku-spatial.md`.
+
 **Rate probe.** `run/haiku_rate_probe.py JEV_LOG` replays recorded Jev calls (`jev-<n>.jsonl` beside a record) as
 streamed requests, the standing text as a cached system block, the picture and questions as the turn, one JSON object
 of answers back, and reports input tokens, cache reads, time to first output token, output tokens a second, wall time

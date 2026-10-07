@@ -74,9 +74,12 @@ def render(call):
     return system, user
 
 
-def stream(key, model, system, user, effort, thinking, max_tokens):
+def stream(key, model, system, user, effort, thinking, max_tokens, schema=None):
+    """One streamed Messages call; `schema` (a JSON schema) makes the answer structured output: JSON only, no prose."""
     body = {"model": model, "max_tokens": max_tokens, "stream": True, "system": system, "output_config": {"effort": effort},
             "messages": [{"role": "user", "content": user}]}
+    if schema is not None:
+        body["output_config"]["format"] = {"type": "json_schema", "schema": schema}
     if not thinking:
         body["thinking"] = {"type": "disabled"}
     req = urllib.request.Request(URL, data=json.dumps(body).encode(), method="POST",
