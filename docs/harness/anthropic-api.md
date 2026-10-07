@@ -16,6 +16,11 @@ text and the packet cached, the picture and per-actor menus as the turn, one dec
 Haiku's picks beside Jev's plan; `--no-thinking --why` is the arm that answers in about a second. Findings:
 `docs/studies/2026-10-07-haiku-one-pass.md`.
 
+**Cloudflare Clef** (`~/.config/within-reason/cloudflare.env`: CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN):
+`run/clef_replay.py JEV_LOG` replays a recorded game through clef-flash and clef against Jev's answers;
+`run/clef_spatial.py --models clef-flash,clef,jev` runs the spatial battery as typed questions (pictures through the
+`images` field). Findings: `docs/studies/2026-10-07-clef-trial.md`.
+
 **Spatial battery.** `run/haiku_spatial.py` scores Haiku on mock geometry (a gap in a turret line, turret sites,
 stragglers and a rally point, a route past turrets) in four encodings with code-computed truth; `--json-only`,
 `--thinking`, `--max-tokens`, `--show`. Findings: `docs/studies/2026-10-07-haiku-spatial.md`.

@@ -309,6 +309,10 @@ What the spatial battery of this day says about both: a decision model generates
 Haiku did under structured output; the test that matters is the battery's `image_reach` and `facts` encodings and the
 one-pass frame, not the bare numbers.
 
+The hosted trial was run the same day: `2026-10-07-clef-trial.md` (Clef speaks our requests unchanged and is
+deterministic; 2-3x slower than Jev on flash, 5-20x on Clef; a fifth of Jev's flagged nouls flagged; Jev beats both on
+the spatial battery in words, Clef wins only with the reach drawn in a picture).
+
 ### Clef-flash locally: the numbers (2026-10-07, estimates from the specs; the measurement is `run/clef_local_probe.py`)
 
 The local path is the card's `joint_schema_model.py`: plain transformers, bf16, one forward pass over the whole
