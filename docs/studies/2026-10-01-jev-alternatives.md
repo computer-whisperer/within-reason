@@ -366,3 +366,39 @@ What to measure first, on the 3090 box: `run/clef_local_probe.py` times the card
 `run/clef-requests/human-26-gate-{median,p90,max}.json` (Jev's format, 15 / 81 / 157 questions, 5.6k / 17.2k / 32.9k
 Jev tokens), whole and in batches of 64, and with `--image` a 1,024-pixel PNG. The tokens-a-second it prints
 replaces the 1,000 estimated above; everything in the table scales with it.
+
+### The p150a on paper (2026-10-07, the user's question; Tenstorrent's spec page and tt-metal's own measurements)
+
+The card: 120 Tensix cores, 180 MB SRAM, 32 GB GDDR6 at 512 GB/s, 664 TFLOPS BLOCKFP8 rated, 1.35 GHz, 300 W. What
+tt-metal measures on it (issue #57626, `minimal_matmul`, Qwen3-4B prefill shapes, bfp4 weights, bfp8 activations,
+LoFi): 332-473 TFLOP/s on the feed-forward and attention projections at M = 4,096-8,192, and a whole Qwen3-4B
+forward over 16,384 tokens in 438 ms, which is about 300 TFLOP/s effective end to end, 37k tokens a second for a
+4B. Llama 3.1 8B runs on a single p150 (TTFT 57 ms at 128 tokens, the per-call floor); Qwen 3.5 text models are in
+the vLLM TT plugin's Blackhole list; no Qwen3.5-VL and no vision model on Blackhole in the tables.
+
+Prefill ceilings for Clef, at 18 GFLOP a token (9B) and 54 (27B), attention extra (+15% at 5k tokens, +50% at 16k):
+
+| | Clef-flash 9B | Clef 27B | 3090 bf16 (the card's code) | hosted (measured today, <8k) |
+|---|---|---|---|---|
+| rated peak, 664 TFLOPS | 37k tok/s | 12k | | |
+| at tt-metal's measured end-to-end rate, ~300 TFLOP/s, bfp4/bfp8 LoFi | 16k | 5.5k | ~1k | flash ~14k, clef ~7k |
+| the same at HiFi (bf16-class fidelity, 2-4x the cost) | 4-8k | 1.5-3k | | |
+| a 6k-token compact frame | 0.4 s LoFi, 0.8-1.5 s HiFi | 1.1 s LoFi | 6 s | 0.43 s / 0.89 s |
+| a 20k-token gate as sent today | 1.5 s LoFi | 4 s LoFi | 20 s | 1.8 s / 4.6 s |
+| memory: weights bfp8 / bfp4, KV at 64k (bf16) | 9 / 4.5 GB, 8.4 GB | 27 / 13.5 GB, over 16 GB | 19 GB | |
+
+Against the demand (a compact frame a second needs about 6k tokens a second a seat; today's shape peaks at 17k a
+minute-average on human-26): the p150 clears the compact target with a 2-3x margin at LoFi and sits on the line at
+HiFi for the 9B; the 27B is on the line at LoFi and needs bfp4 weights to fit beside a long KV. Bandwidth is not
+the limit (9 GB of weights a forward is 18 ms of the 512 GB/s); at 6k tokens the forward is compute-bound by 20x.
+
+The port, in pieces: the backbone is a Qwen3.5-9B checkpoint with the adapters merged (18.8 GB of bf16 is the
+whole 9B), so it loads as the plugin's Qwen 3.5 with the `lm_head` dropped and the final hidden states returned
+(6k tokens x 4,096 x 2 bytes = 50 MB a call over PCIe); the joint schema head (243 MB, a small transformer over the
+option spans) runs in torch on the host in milliseconds; the vision encoder (27 layers, 1,152 wide, about 1 TFLOP
+for a 1,024-pixel image) runs on the host or the AMD card for the rare picture, or is ported later. The open
+question is fidelity: Cloudflare trained in bf16 and the head is calibrated; bfp4 weights at LoFi pass tt-metal's
+PCC 0.999 per matmul, and the end-to-end drift in the probabilities is what to measure, against the 439 hosted
+answers the replay recorded today (`clef-replay-human26.jsonl` in the session's scratchpad; Clef is deterministic,
+so the hosted answers are a fixed reference). If HiFi is needed the 9B still makes the compact frame in about a
+second.
