@@ -13,7 +13,7 @@ hands both Rovers to the lane whole: one evades the armed raider (rove never sta
 the other is sent 4,190 elmos north to look at spot_12. The G8 extractor dies at 2:03; the commander kills the raider
 at 2:06. The record had no decision row for the switch; the pianist's log showed it only as `rove` lines.
 
-The same shape in the other recorded games (`scratchpad rove_switches.py` over every v3 Jev log: 51 switches into
+The same shape in the other recorded games (`run/rove_switches.py` over every v3 Jev log: 51 switches into
 roving, 12 of them the hands' own `scout` pick): of the 39 the player set with `lane`, 16 were on an idle hold and 23
 on a course (12 following, 8 walking or advancing, 3 attacking a party). The three attacks were chases of a raider
 the group could not catch (going-opus-1 12:51 and 12:57, same-opus-1 11:19), and the player said why each time
