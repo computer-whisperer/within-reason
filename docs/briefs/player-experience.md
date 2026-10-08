@@ -853,7 +853,7 @@ against your packet. They cannot count, plan or remember beyond what the picture
   picture knows them; `join` and `follow` at every other group, `follow` at every builder.
 - **The hands have no destination of their own.** There is no walk home, no falling back to where a group last
   held, no sweep of unseen spots. Where a group goes when it should not fight is a place its paragraph names; where
-  it scouts is a place its paragraph names, or `rove`.
+  it scouts is a place its paragraph names, or the hands' `rove` move, asked for in words.
 - **A way through several places is prose:** "group_A: spot_49, then spot_46, spot_40, spot_55, spot_58, back to
   spot_64, in that order, advancing; his buildings in sight it kills when they are undefended; from a party it does
   not outweigh it walks to spot_64". The group's entry says which named places it has reached (`reached`) and what
@@ -871,15 +871,16 @@ against your packet. They cannot count, plan or remember beyond what the picture
 - A scout's sentence that held under the enemy commander's eyes: "it is a scout: it runs from what can catch it and
   otherwise keeps to its route; being seen is its job".
 
-**`rove`.** `lane` with `{"group_R": "rove"}` hands a group of fast units (Rovers, Ticks; name a plant's output into
-it with `produce`) to code that runs each of them ten times a second. It drives to look at what we know least (his
-start box and base first, then spots nobody has seen, then the stalest), attacks what it finds unguarded (a
-constructor, an extractor, a radar with nothing armed in reach), and does not stand inside the reach of anything
-that can shoot it. Your hands do not move a roving group. The group's entry says what each rover is doing and what
-it has found; `"on"` takes the group back. It is scouting footwork: at a base with Pawns patrolling, a roving Rover
-stepped off from each and killed nothing (player-20, player-21). In player-9, before `rove`, three scouts went at
-his base under the hands and none arrived; in player-10 three Rovers on `rove` had his lab in the picture at 3:45
-and came back alive.
+**Roving.** Your hands' `rove` move hands a whole group of fast units (Rovers, Ticks; name a plant's output into
+it with `produce`) to code that runs each of them ten times a second; `scout` sends one soldier. It drives to look
+at what we know least (his start box and base first, then spots nobody has seen, then the stalest), attacks what it
+finds unguarded (a constructor, an extractor, a radar with nothing armed in reach), and does not stand inside the
+reach of anything that can shoot it. Both are picks: say in the packet which group roves and when. Your hands do not
+move a roving group. The group's entry says what each rover is doing and what it has found; any `lane` setting for
+the group (`"on"`) takes it back. It is scouting footwork: at a base with Pawns patrolling, a roving Rover stepped
+off from each and killed nothing (player-20, player-21). In player-9, before roving, three scouts went at his base
+under the hands and none arrived; in player-10 three roving Rovers had his lab in the picture at 3:45 and came back
+alive.
 
 **Several seats.** When the report's `seats:` line says you command more than one seat, every per-seat name carries
 its seat's tag: `commander_t1`, `group_A_t2`, `party_3_t2`, `passage_1_t2`; the other seats' starts are `home_t2`
@@ -1201,7 +1202,7 @@ keep not fighting together." (thebluegecko)
   every time it was looked for from the corner start.
 - player-9 (Comet): three scouts were sent at his base and none arrived: one was turned home by the hands, one ran
   into two Pawns, one went off on a hunt. The base was never seen.
-- player-10 (Comet): three Rovers on `rove` had his lab in the picture at 3:45 and came back alive.
+- player-10 (Comet): three roving Rovers had his lab in the picture at 3:45 and came back alive.
 - bluegecko-3v1-1: his commander and factories were never seen by us all game.
 - sonnet-low-1 (Comet): no scouting order in the first seventeen minutes; the push at 11:46 was ordered on "about
   1,300 of his army seen" when he had 5,000 to 6,000.

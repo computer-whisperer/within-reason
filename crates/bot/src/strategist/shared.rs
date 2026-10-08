@@ -258,6 +258,7 @@ pub struct TurnOutputs {
     pub instructions: String,
     pub queues: BTreeMap<String, Option<Vec<String>>>,
     pub lane: BTreeMap<String, Footwork>,
+    pub lane_set: BTreeMap<String, u64>,
     pub marks: BTreeMap<String, (f32, f32)>,
     pub allowed: BTreeMap<String, Allowance>,
     pub removals: Vec<Removal>,
@@ -431,6 +432,9 @@ pub struct Shared {
     pub parties: Mutex<PartyRegistry>,
     /// The player's footwork settings by group name (`group_A`) or `all` (`lane` tool, H-HANDS-LANE).
     pub lane: Mutex<BTreeMap<String, Footwork>>,
+    /// How many times the `lane` tool has set each name: a setting given to a roving group since it was picked to
+    /// rove takes it back (`pianist/groups.rs` `keep_groups`, H-MICRO-ROVE).
+    pub lane_set: Mutex<BTreeMap<String, u64>>,
     /// Places the player named (`mark` tool): name to (x, z). They join the picture's places (H-HANDS-NAMED-PLACES).
     pub marks: Mutex<BTreeMap<String, (f32, f32)>>,
     /// What the player lets each lab build (`produce` tool, H-HANDS-PRODUCE): lab name (`lab_N`) or `all` to unit
@@ -649,6 +653,7 @@ impl Shared {
             instructions: self.instructions.lock().unwrap().clone(),
             queues: self.queues.lock().unwrap().clone(),
             lane: self.lane.lock().unwrap().clone(),
+            lane_set: self.lane_set.lock().unwrap().clone(),
             marks: self.marks.lock().unwrap().clone(),
             allowed: self.allowed.lock().unwrap().clone(),
             removals: self.removals.lock().unwrap().clone(),
@@ -660,6 +665,7 @@ impl Shared {
         *self.instructions.lock().unwrap() = o.instructions;
         *self.queues.lock().unwrap() = o.queues;
         *self.lane.lock().unwrap() = o.lane;
+        *self.lane_set.lock().unwrap() = o.lane_set;
         *self.marks.lock().unwrap() = o.marks;
         *self.allowed.lock().unwrap() = o.allowed;
         *self.removals.lock().unwrap() = o.removals;
@@ -688,6 +694,7 @@ impl Shared {
                 *self.wake.lock().unwrap() = o.wake;
                 *self.instructions.lock().unwrap() = o.instructions;
                 *self.lane.lock().unwrap() = o.lane;
+                *self.lane_set.lock().unwrap() = o.lane_set;
                 *self.marks.lock().unwrap() = o.marks;
                 *self.allowed.lock().unwrap() = o.allowed;
                 self.queues.lock().unwrap().extend(o.queues);

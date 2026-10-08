@@ -101,11 +101,10 @@ impl Brain {
         lane.get(&format!("group_{group}")).or_else(|| lane.get("all")).copied().unwrap_or_default()
     }
 
-    /// Whether a group roves (H-MICRO-ROVE): the player's `lane` setting for it when there is one, else whether the
-    /// hands made it as a scout. Never an air group: the lane's steps are ground cells.
+    /// Whether a group roves (H-MICRO-ROVE): picked to by the hands' `rove` or `scout` move and not taken back by
+    /// the player's lane since (`keep_groups`). Never an air group: the lane's steps are ground cells.
     pub(super) fn roves(&self, group: &super::pianist::Group) -> bool {
-        let set = self.strategist.as_ref().and_then(|s| s.lane.lock().unwrap().get(&format!("group_{}", group.name)).copied());
-        group.domain != Domain::Air && set.map_or(group.scout, |f| f.rove)
+        group.domain != Domain::Air && group.wants_rove
     }
 
     /// Every tick: the lane over the brain's view, over the brain's own orders of this tick (`commands`, which

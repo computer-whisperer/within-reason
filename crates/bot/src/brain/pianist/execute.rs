@@ -449,9 +449,17 @@ impl Brain {
                     let parent_name = pianist.groups[index].name.clone();
                     let mut group = Group::new(name, domain, vec![scout.id], GroupTask::Hold { since: frame, committed: false, picked: false }, frame).split_from(&parent_name);
                     // Roving from its first tick: no menu for it meanwhile.
-                    (group.scout, group.roving) = (true, true);
+                    (group.wants_rove, group.roving) = (true, true);
                     pianist.groups.push(group);
                 }
+            }
+            Order::Rove => {
+                // The whole group roves (H-MICRO-ROVE): the lane takes every soldier from the next look
+                // (`keep_groups`), and the player's lane setting is the way back. The player's own `rove` setting,
+                // the one unit-control order that bypassed the pick, is gone (the user, 2026-10-07:
+                // docs/design/2026-10-07-rove-approval.md).
+                pianist.groups[index].wants_rove = true;
+                did = Some("rove whole: every soldier runs on its own in code from the next look".to_string());
             }
             _ => {}
         }

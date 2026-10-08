@@ -1574,7 +1574,7 @@ impl Brain {
             }
             actors.insert(name, entry);
         }
-        let scouts: Vec<String> = pianist.groups.iter().filter(|g| g.scout && g.roving).map(|g| format!("group_{} roving: {}", g.name, self.rover_words(g, own, &snapshot.enemies, &places))).collect();
+        let scouts: Vec<String> = pianist.groups.iter().filter(|g| g.roving).map(|g| format!("group_{} roving: {}", g.name, self.rover_words(g, own, &snapshot.enemies, &places))).collect();
         for group in &pianist.groups {
             let units = group.units(own);
             let own_shelling = group_shelling.get(&group.name);
@@ -1667,11 +1667,10 @@ impl Brain {
                 let farthest = body.stragglers.iter().map(|u| u.pos.dist2d(body.at)).fold(0.0, f32::max);
                 entry["stragglers"] = json!(format!("{} of its soldiers are stragglers, up to {farthest:.0} from the body; they are not in its fights yet", body.stragglers.len()));
             }
-            // The lane as it plays: a hands' scout roves without a setting; an air group never roves (H-MICRO-ROVE).
+            // The lane as it plays: a roving group is the lane's whole (H-MICRO-ROVE, a pick), else the player's
+            // footwork setting.
             let footwork = if group.roving { crate::strategist::shared::Footwork::rove() } else { self.footwork_of(&group.name) };
-            if footwork.rove && !group.roving {
-                entry["lane"] = json!("set to rove, but an air group cannot rove: your hands play it as any other group");
-            } else if let Some(words) = footwork.words() {
+            if let Some(words) = footwork.words() {
                 entry["lane"] = json!(words);
             }
             if group.roving && !group.rove_log.is_empty() {

@@ -1,7 +1,30 @@
 # Rove approval: a group on a course leaves it to rove only on a pick
 
-**Status.** Proposed 2026-10-07 after human-26 1:57; not agreed, not built. The decision row for the switch (source
-`lane`, kind `group`) is built (0e48a29) and is what makes the rest measurable.
+**Status.** Proposed 2026-10-07 after human-26 1:57. The decision row for the switch (source `lane`, kind `group`)
+is built (0e48a29). The pending-approval mechanism below was superseded the same evening by the user's question
+("if we already have a scout mechanic, should we just lean into using that instead?") and ruling: "rove being the one
+odd low level control action that allows the player to bypass jev on a unit control operation seems like it may be
+a standing flaw. Go ahead and see how it plays out." Built as §"The build": the lane's `rove` is deleted, the whole
+group roves on the hands' `rove` move (a pick, beside `scout`), any lane setting takes a roving group back. The
+first game: rove-move-1 (docs/experiments.md). May be rolled back.
+
+## The build (2026-10-07, the ruling)
+
+- `lane` refuses `rove`. Roving is the group menu's `rove` move (`Order::Rove`, allowed for a group of one, every
+  ground group) beside `scout` (one soldier, a group of two or more). The move's words carry the fight it is near,
+  what it leaves, the undo and the turn-cost words, like every move.
+- The pick sets `Group::wants_rove`; the next look switches the group (task to a hold, the lane takes the soldiers,
+  the `lane` decision row and the `recent` line). `scout` groups are made wanting and roving at once, as before.
+- The way back: the `lane` tool counts its settings per name (`Shared::lane_set`); a roving group whose count has
+  grown since it was picked (`lane_set_at`) stops roving and holds where each soldier stands. So `on`, `raw` or a
+  rule list given after the pick takes it back; one given before does not.
+- What scout alone could not do, and why the move is whole-group: one soldier a pick, never the last of a group,
+  never a group of one (the first Rover out of the plant); the players used `rove` on whole groups of two to four.
+- What the player loses: certainty. The packet says which group roves and when; Jev weighs it against the group's
+  course. Jev picked `scout` on its own twelve times in the recorded games, so the move is one it takes.
+- Not built: the pending flag, the urgent event, the force word, the tool's "asked once" reply.
+
+## The superseded mechanism (kept for the record)
 
 ## The case
 

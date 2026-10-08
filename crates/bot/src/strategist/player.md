@@ -105,7 +105,9 @@ whenever you hit that edge.
   `send` one, two, four or eight of its soldiers after a party as a group of their own (its fastest, the nearest
   first; the rest keep the group's course); `join` another group of its kind (ground, hover and air never mix);
   `follow` another group or a builder (it stays beside `group_X`, `constructor_N` or `commander` wherever that goes
-  and fights what comes at it); `scout` (one soldier leaves to rove on its own). An air group has stay, hold, go,
+  and fights what comes at it); `rove` (the whole group roves: every soldier runs on its own in code, looking at
+  what we know least, his start box first, killing what it finds unguarded and keeping out of every reach, beyond
+  your hands' reach until a `lane` setting takes it back); `scout` (one soldier leaves to rove on its own). An air group has stay, hold, go,
   attack (on one unit of a party, its commander when it is there; or on his buildings at a place) and join.
 - A place a group can go or fight to is a place you name: every `spot_N`, `passage_N` or `home` your packet's text
   names, every spot a `queue` list names, and every place you `mark`. There is no other: a group whose packet names

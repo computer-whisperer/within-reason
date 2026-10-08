@@ -230,9 +230,9 @@ have the same shape and opposite answers, the difference between them is the thi
   helped there"). (2) escalate-3: four Rovers found nothing in the south-east; the base was north at G1-G2, as it was
   every time it was looked for. (3) player-9: three scouts sent at his base and none arrived (one turned home by the
   hands, one into two Pawns, one onto a hunt); the base was never seen. (4) player-10: three rovers on `rove` had his
-  lab in the picture at 3:45 and came back alive. (5) bluegecko-3v1-1: his commander and factories were never seen by
+  lab in the picture at 3:45 and came back alive (the hands' `rove` move since 2026-10-07). (5) bluegecko-3v1-1: his commander and factories were never seen by
   us all game; a person scouts and reads. (6) Great Divide: a scout plane before planning against the camp, since
-  "known to hold" is only what our units have seen. A rover group on `rove` from the first Rascals, a radar at the
+  "known to hold" is only what our units have seen. A rover group roving from the first Rascals, a radar at the
   front by 3:00, and no push onto a place nothing of ours has looked at.
 
 - **The commander is a fighter at home and a builder at the plant, never a walker.** Cases: (1) comet-4: the
@@ -347,7 +347,7 @@ and makes one move at a time; the role text lists the verbs. What matters for wr
 - The hands have no destination of their own. There is no fall back to where a group last held, no walk home, no
   pull-out place, no sweep of unseen spots, no stand at the next extractor on a raider's heading: each of those was
   a place code chose. Where a group goes when it should not fight is a place its paragraph names; where it scouts
-  is a place its paragraph names, or `rove`.
+  is a place its paragraph names, or the hands' `rove` move, which the paragraph asks for in words.
 - A way through several places is prose: "group_A: spot_49, then spot_46, spot_40, spot_55, spot_58, back to spot_64,
   in that order, advancing; his buildings in sight it kills when they are undefended; from a party it does not
   outweigh it walks to spot_64". The group's entry says which named places it has reached (`reached`) and what it
@@ -369,17 +369,21 @@ does; `route_seen` is `reached`; `fall_back`, `retreat_home`, `sweep`, `pull_out
 `next_extractor` are gone, and a place you name takes their place.
 Nothing of this plays without a pick: say in the packet what you want done and the hands weigh it.
 
-**Scouting and raiding with fast units: `rove` (2026-09-27).** `lane` with `{"group_R": "rove"}` hands a group of
-fast units (Rovers, Ticks, scout cars; name a plant's output into it with `produce`) to code that runs each of them ten
-times a second: it drives to look at what we know least (his start box and base first, then spots nobody has seen,
-then the stalest), attacks what it finds unguarded (a constructor, an extractor, a radar with nothing armed in reach),
-and never stands inside the reach of anything that can shoot it: a Rover outruns a Pawn and steps off before it is in
-reach. It is scouting footwork, not an assault: at a base with Pawns patrolling, a roving Rover steps off from each
-and kills nothing (player-20, player-21); a body sent to do damage goes with the evasion rules off, never on `rove`.
+**Scouting and raiding with fast units: roving (2026-09-27; a move of your hands since 2026-10-07).** Your hands'
+`rove` move hands a whole group of fast units (Rovers, Ticks, scout cars; name a plant's output into it with
+`produce`, and its newcomers rove too) to code that runs each of them ten times a second: it drives to look at what
+we know least (his start box and base first, then spots nobody has seen, then the stalest), attacks what it finds
+unguarded (a constructor, an extractor, a radar with nothing armed in reach), and never stands inside the reach of
+anything that can shoot it: a Rover outruns a Pawn and steps off before it is in reach. `scout` does the same with
+one soldier, the group's fastest. Both are picks: say in the packet which group roves and when ("group_A (the
+Rovers): roves, his start box first"), and your hands weigh it against what the group is doing; it was a `lane`
+setting before, which took a group off a raid it had been sent against on a picture as old as the turn (human-26
+1:57). It is scouting footwork, not an assault: at a base with Pawns patrolling, a roving Rover steps off from each
+and kills nothing (player-20, player-21); a body sent to do damage goes with the evasion rules off, never roving.
 Your hands never move a roving group (no hunt, retreat or join), which is what killed the scouts before: in
 player-9 three scouts went at his base and none arrived (one turned home by the hands at the first sight of his
 commander, one into two Pawns, one onto a hunt). The group's entry says what each rover is doing and what it has
-found (`rove`); `"on"` takes it back. Your hands' `scout` move makes a rover of a group's fastest soldier.
+found (`rove`); any `lane` setting for the group (`"on"`) takes it back, holding where each soldier stands.
 [K-micro-a-rover-outruns-what-it-cannot-fight]
 
 **Which map.** Four maps have sections here, Quicksilver Remake, Comet Catcher Remake, Cape Violet V1 and Great Divide V1.
@@ -519,7 +523,7 @@ K-maps-comet-barb-opens-bots, the tempo model]
   from A4), a light turret at the plant the moment the first Tick or Pawn is in the picture, then the strip, a
   light turret beside each outer pair as its extractor goes up (the winners' 13 by 8:00 against the pool's 9.5).
   Two Rovers stay home from 2:30 against Ticks (BARb's first at 2:08); the rest scout: one along the strip to his
-  end by 3:00, on `lane rove`, so his base is in the picture before the first push (E3, F6 of the review skill).
+  end by 3:00, roving (the hands' `rove` move, asked for in the packet), so his base is in the picture before the first push (E3, F6 of the review skill).
   The economy curve to hold: 7, 13, 17 extractors at 4:00, 6:00, 8:00 (the pool; below p25 is 6, 10, 12), the
   second plant started by 7:20, and the lead spent as groups sent elsewhere and tier 2 (the user's ruling), never
   as more of the same unit past a dozen in a body.

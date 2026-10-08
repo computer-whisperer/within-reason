@@ -94,6 +94,8 @@ pub(crate) enum Order {
     Follow(Ward),
     /// One soldier leaves to rove (H-MICRO-ROVE).
     Scout,
+    /// The whole group roves (H-MICRO-ROVE), until the player's lane takes it back.
+    Rove,
     Build(UnitDefId, Site),
     /// Guard a factory or another builder: its build power goes to whatever that makes.
     Help(UnitId),
@@ -1079,6 +1081,18 @@ impl Brain {
                     false,
                 );
             }
+            // The whole group roves (H-MICRO-ROVE), run in code with no orders from the hands, until the player's
+            // lane takes it back. A pick since 2026-10-07; the player's `lane rove` set it with no pick before, over
+            // the group's course on a picture as old as the turn (human-26 1:57: two Rovers taken off a raid Jev had
+            // sent them against three seconds earlier; docs/design/2026-10-07-rove-approval.md).
+            push(
+                "rove".into(),
+                Order::Rove,
+                format!("{name} roves whole: every soldier runs on its own in code, ten times a second, beyond your hands' reach from then on: it looks at what we know least, his start box first, kills what it finds unguarded (a constructor, an extractor, a radar) and keeps out of the reach of anything that can shoot it, whatever the odds; nothing of your hands moves it again until the player takes it back{keeps}{leaves}{}", undoes("rove")),
+                "roving whole".into(),
+                None,
+                false,
+            );
             // The scout: one soldier leaves to rove (H-MICRO-ROVE), run in code with no orders from the hands.
             if units.len() >= 2
                 && let Some(fastest) = units.iter().filter_map(|u| self.world.def(u.def)).max_by(|a, b| a.speed.total_cmp(&b.speed))
@@ -1507,7 +1521,7 @@ pub(super) mod tests {
         let keys: Vec<&str> = menu.moves.iter().map(|m| m.key.as_str()).collect();
         assert_eq!(
             keys,
-            ["stay", "hold", "gather", "go_spot_30", "fight_to_spot_30", "fight_to_spot_47", "attack_party_12", "send_1_party_12", "send_2_party_12", "send_4_party_12", "send_8_party_12", "join_group_B", "follow_group_B", "scout"],
+            ["stay", "hold", "gather", "go_spot_30", "fight_to_spot_30", "fight_to_spot_47", "attack_party_12", "send_1_party_12", "send_2_party_12", "send_4_party_12", "send_8_party_12", "join_group_B", "follow_group_B", "rove", "scout"],
             "no walk home and none to spot_31, which the packet does not name; his turrets at spot_47 are a place to attack"
         );
         assert!(menu.idle && menu.course == "idle" && menu.near_party.as_deref() == Some("party_12"));
