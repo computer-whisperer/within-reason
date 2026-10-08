@@ -842,22 +842,13 @@ impl Brain {
         };
         let at = picture.state["actors"][&name]["at"].as_str().unwrap_or("where it stands").to_string();
         let mut moves = vec![Move::new("stay".into(), Order::Stay, format!("{name} {course_words}{against_words}{keeps}"), "its course".into(), None, false)];
-        // What the body's recent turns have come to, said on every move that would turn the whole body again: the
-        // real cost of a change (the user, 2026-10-03: "focus on the actual reasons for hysteresis and ensure the
-        // language reinforces it"). Replayed on player-58's 5:59, the body's fourth turn in five seconds: the
-        // change fell from 0.87 to 0.45 with this and to 0.33 with the standing's words beside it; a detachment
-        // that kept the body's course held at 0.74 to 0.67.
-        let recent: Vec<&(i32, Vec3)> = group.turns.iter().filter(|(at, _)| scene.frame - *at <= super::groups::TURN_MEMORY).collect();
-        let turned = match recent.first() {
-            Some((first, stood)) if recent.len() >= 2 => format!(
-                "; {name} has changed course {} times in the last {} s and stands {:.0} from where it stood at the first of them: a body that keeps turning walks and does not arrive or fight",
-                recent.len(), ((scene.frame - *first) / FRAMES_PER_SECOND).max(1), body.at.dist2d(*stood)
-            ),
-            _ => String::new(),
-        };
+        // No turn-cost words on a move (H-HANDS-TURNS (1), 2026-10-03 to 2026-10-07): "has changed course N times in
+        // the last M s ... a body that keeps turning walks and does not arrive or fight" counted a route's own stops
+        // as turns and held a turn-back to a burning base at 0.30 against a plain order to make it (human-26 3:54-
+        // 4:05; docs/studies/2026-10-07-raid-packets.md). The user: the problem those words were for is Jev split
+        // between two reasonable operations, not units changing course; it gets its own fix when it is seen again.
         let mut push = |key: String, order: Order, words: String, said: String, party: Option<&Party>, detachment: bool| {
             if key != course_key {
-                let words = if detachment { words } else { format!("{words}{turned}") };
                 moves.push(Move::new(key, order, words, said, party.map(|p| p.name.clone()), detachment));
             }
         };

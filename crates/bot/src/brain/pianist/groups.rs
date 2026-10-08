@@ -131,9 +131,6 @@ pub(crate) struct Group {
     pub reached: Vec<(String, i32)>,
     /// The first enemies in sight near the body since the last place reached: the frame and the words.
     pub met: Option<(i32, String)>,
-    /// Each change of the whole group's course in the last `TURN_MEMORY`, with where the body stood: what a move
-    /// that would change it again says of the cost (H-HANDS-TURNS). A detachment leaving is not one.
-    pub turns: Vec<(i32, Vec3)>,
     /// Picked to rove (H-MICRO-ROVE): the hands' `rove` move, or made by their `scout` move. Cleared when the
     /// player's `lane` gives the group any setting after that (`lane_set_at`): the way back from roving.
     pub wants_rove: bool,
@@ -188,9 +185,6 @@ impl Body<'_> {
     }
 }
 
-/// How far back a group's changes of course are remembered and said.
-pub(crate) const TURN_MEMORY: i32 = 30 * 30;
-
 /// A group longer than this from front to tail fights in pieces: the words and the odds say which piece.
 pub(crate) const STRUNG_OUT: f32 = 600.0;
 
@@ -208,7 +202,7 @@ impl Group {
     }
 
     pub(crate) fn new(name: String, domain: Domain, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, members, task, last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, joining: HashMap::new(), gathering: false, shelling: false, reached: Vec::new(), met: None, turns: Vec::new(), wants_rove: false, lane_set_at: 0, roving: false, rove_log: Vec::new() }
+        Group { name, domain, members, task, last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, joining: HashMap::new(), gathering: false, shelling: false, reached: Vec::new(), met: None, wants_rove: false, lane_set_at: 0, roving: false, rove_log: Vec::new() }
     }
 
     /// The group's body toward `toward` (the goal of a walk, the nearest enemy, or nothing: then the front is the
