@@ -29,6 +29,9 @@ pub const PLAYER_BRIEF: Text = Text { path: "docs/briefs/player.md", compiled: i
 /// (docs/design/2026-10-03-brief-rewrite-and-commander-pack.md). Played against `PLAYER_BRIEF` on the same seeds
 /// until one of them goes.
 pub const PLAYER_BRIEF_EXPERIENCE: Text = Text { path: "docs/briefs/player-experience.md", compiled: include_str!("../../../docs/briefs/player-experience.md") };
+/// Read beside the brief by an Opus player only (`strategist::system_prompt`): what that model does in the seat
+/// that the brief's facts do not correct (docs/studies/2026-10-07-raid-packets.md).
+pub const PLAYER_OPUS: Text = Text { path: "docs/briefs/player-opus.md", compiled: include_str!("../../../docs/briefs/player-opus.md") };
 pub const HANDS_RULES: Text = Text { path: "crates/bot/src/brain/pianist/rules.md", compiled: include_str!("brain/pianist/rules.md") };
 /// The rules a gate is sent under the lean diet's `standing_cut` (`pianist/diet.rs`): the gate answers nearly as it
 /// does with no rules at all, the pick does not, so the pick keeps `HANDS_RULES`

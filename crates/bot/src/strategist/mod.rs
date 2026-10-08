@@ -61,7 +61,10 @@ fn system_prompt() -> String {
     let under_command = if command::model().is_some() { read(&crate::texts::PLAYER_UNDER_COMMAND) } else { String::new() };
     // Last before the game's own lines, where it is read nearest the first turn.
     let packet_example = if std::env::var_os("WITHIN_REASON_PACKET_EXAMPLE").is_some() { read(&crate::texts::PACKET_EXAMPLE) } else { String::new() };
-    for_brief(&read(&PLAYER_PROMPT), if experience { "experience" } else { "standard" }) + &under_command + &read(brief) + &packet_example + &bonus() + &objective()
+    // The model's own section, after the brief: what Opus does in the seat that the brief's facts do not correct
+    // (the user, 2026-10-07: per-model prose tuning; Sonnet does not read it).
+    let own = if model().starts_with("claude-opus") { read(&crate::texts::PLAYER_OPUS) } else { String::new() };
+    for_brief(&read(&PLAYER_PROMPT), if experience { "experience" } else { "standard" }) + &under_command + &read(brief) + &own + &packet_example + &bonus() + &objective()
 }
 
 /// The commander's: its role, then the experience brief whole (the user, 2026-10-03: everything in it always), then

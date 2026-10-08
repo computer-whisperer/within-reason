@@ -10,7 +10,7 @@ Seven kinds of knowledge with different lifetimes. Put a fact where its lifetime
 | `experiments.md` | Ledger of arena batches: label, commit, setup, result, what it was testing | every batch |
 | `studies/` | Offline studies (simulation, data analysis) with their data; findings enter `knowledge/` as `conjectured` until the arena tests them | a study is added or rerun |
 | `design/` | Target designs written before a large change, dated: what is true today, the design, how it will be judged, and a status line kept current while it is built. Decisions move into `DESIGN.md` once built | a multi-part arc starts, or its status changes |
-| `briefs/` | What an LLM player is told at the start of a session, distilled from `knowledge/` with each line naming its entries; compiled into the bot (`briefs/commander.md` follows the commander's role prompt) | a claim it cites changes status, or a game shows the model missing or misusing something |
+| `briefs/` | What an LLM player is told at the start of a session, distilled from `knowledge/` with each line naming its entries; compiled into the bot (`briefs/player-opus.md` is read beside the brief by an Opus player only: the model's own habits in the seat, not the game's facts; `briefs/commander.md` follows the commander's role prompt) | a claim it cites changes status, or a game shows the model missing or misusing something |
 | `harness/` | Engine, AI interface, lobby, arena and tooling facts | rarely; on engine or game bumps |
 
 `../DESIGN.md` is the architecture (shim, protocol, bot process). It records decisions, not findings.
