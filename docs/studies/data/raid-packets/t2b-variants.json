@@ -1,0 +1,47 @@
+{
+ "recorded": {},
+ "noturn": {
+  "words": [
+   [
+    "; group_B_t2 has changed course \\d+ times in the last \\d+ s and stands \\d+ from where it stood at the first of them: a body that keeps turning walks and does not arrive or fight",
+    ""
+   ]
+  ]
+ },
+ "noturn_by_name": {
+  "words": [
+   [
+    "; group_B_t2 has changed course \\d+ times in the last \\d+ s and stands \\d+ from where it stood at the first of them: a body that keeps turning walks and does not arrive or fight",
+    ""
+   ]
+  ],
+  "packet": [
+   [
+    "group_B_t2: attacks the armfav at our home now",
+    "group_B_t2: attacks party_1 now"
+   ]
+  ]
+ },
+ "raid_first": {
+  "packet": [
+   [
+    "Plan: eleven enemy armfav",
+    "Raids on our base come before everything: an enemy party at our extractors, constructors or home is answered at once by the nearest Blitz group with the whole group, whatever it was gathering for or walking to; the route resumes when none stands in our base. Plan: eleven enemy armfav"
+   ]
+  ]
+ },
+ "noturn_raid_first": {
+  "words": [
+   [
+    "; group_B_t2 has changed course \\d+ times in the last \\d+ s and stands \\d+ from where it stood at the first of them: a body that keeps turning walks and does not arrive or fight",
+    ""
+   ]
+  ],
+  "packet": [
+   [
+    "Plan: eleven enemy armfav",
+    "Raids on our base come before everything: an enemy party at our extractors, constructors or home is answered at once by the nearest Blitz group with the whole group, whatever it was gathering for or walking to; the route resumes when none stands in our base. Plan: eleven enemy armfav"
+   ]
+  ]
+ }
+}

@@ -1,0 +1,49 @@
+{
+ "recorded": {},
+ "no_route": {
+  "packet": [
+   [
+    "group_B_t2: attacks the armfav at our home now with the whole group and keeps attacking until they are dead or gone from our base. When no enemy armfav stands within our base, it goes west by spot_18, then spot_27, spot_32, spot_31, spot_33, spot_26, spot_22, spot_19, spot_28, in that order, never going back to a place it has reached, killing his constructors, extractors and solars, a lone light turret only with the whole group at once. From a party that outweighs it, it walks to spot_31 and holds there.",
+    "group_B_t2: attacks the armfav at our home now with the whole group and keeps attacking until they are dead or gone from our base."
+   ]
+  ]
+ },
+ "far_ok": {
+  "packet": [
+   [
+    "keeps attacking until they are dead or gone from our base. When",
+    "keeps attacking until they are dead or gone from our base. It is at spot_27 now, far from home: it walks back and attacks; the distance is no reason to wait. When"
+   ]
+  ]
+ },
+ "by_name": {
+  "packet": [
+   [
+    "group_B_t2: attacks the armfav at our home now",
+    "group_B_t2: attacks party_1 now"
+   ]
+  ]
+ },
+ "words_nooutrun": {
+  "words": [
+   [
+    "; it outruns everything here \\(its slowest \\d+ against our fastest \\d+\\): a chase drives it off, a kill needs it to stand; its fastest \\(\\d+\\) catch our slowest \\(\\d+\\): it chooses the fight",
+    ""
+   ]
+  ]
+ },
+ "no_route_nooutrun": {
+  "packet": [
+   [
+    "group_B_t2: attacks the armfav at our home now with the whole group and keeps attacking until they are dead or gone from our base. When no enemy armfav stands within our base, it goes west by spot_18, then spot_27, spot_32, spot_31, spot_33, spot_26, spot_22, spot_19, spot_28, in that order, never going back to a place it has reached, killing his constructors, extractors and solars, a lone light turret only with the whole group at once. From a party that outweighs it, it walks to spot_31 and holds there.",
+    "group_B_t2: attacks the armfav at our home now with the whole group and keeps attacking until they are dead or gone from our base."
+   ]
+  ],
+  "words": [
+   [
+    "; it outruns everything here \\(its slowest \\d+ against our fastest \\d+\\): a chase drives it off, a kill needs it to stand; its fastest \\(\\d+\\) catch our slowest \\(\\d+\\): it chooses the fight",
+    ""
+   ]
+  ]
+ }
+}
