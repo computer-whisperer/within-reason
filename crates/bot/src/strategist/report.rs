@@ -323,9 +323,20 @@ fn roster_lines(field: &Field) -> String {
     lines.join("\n")
 }
 
+/// The parties out of sight now, as the hands' picture remembers them (H-HANDS-ENEMY-MEMORY): the picture had
+/// "party_1 (9 armfav) last seen 0:23 ago at (G6), then moving toward our side" at human-26 3:27 and the report
+/// said nothing, so red's player wrote a route for a quiet base while seven Rovers crossed the middle toward it.
+pub(super) fn recently_seen(picture: &serde_json::Value) -> Vec<String> {
+    let Some(parties) = picture["enemy"]["out_of_sight"].as_array() else { return Vec::new() };
+    let mut lines = vec!["recently seen, out of sight now (a party that left one base intact is on its way somewhere; the hands' picture keeps it three minutes):".to_string()];
+    lines.extend(parties.iter().filter_map(|p| p.as_str()).map(|p| format!("  {p}")));
+    if lines.len() > 1 { lines } else { Vec::new() }
+}
+
 pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, fights: &[String], hands: &Hands, chat: &[String], full: bool) -> String {
     let mut lines = front(briefing, field, fights, true);
     lines.extend(contact(briefing, field));
+    lines.extend(recently_seen(&hands.picture));
     extractor_lines(seen, field, full, &mut lines);
     if full {
         lines.push(roster_lines(field));
@@ -387,10 +398,23 @@ pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, fights
 
 #[cfg(test)]
 mod tests {
-    use super::{CellLook, cell_runs, scouting_lines};
+    use super::{CellLook, cell_runs, recently_seen, scouting_lines};
 
     fn cell(name: &str, seen_share: f32, ago: Option<i32>) -> CellLook {
         CellLook { cell: name.to_string(), seen_share, ago, in_his_box: name.starts_with('G') || name.starts_with('H'), ..CellLook::default() }
+    }
+
+    /// The picture's out-of-sight parties are said to the player, one line each; the picture's "none" string is
+    /// not an array and says nothing.
+    #[test]
+    fn the_recently_seen_lines_carry_the_pictures_out_of_sight_parties() {
+        let picture = serde_json::json!({ "enemy": { "out_of_sight": ["party_1 (9 armfav, 279 metal) last seen 0:23 ago at (G6), then moving toward our side", "party_8 (1 armcv, 135 metal) last seen 0:15 ago at spot_73 (B7), then standing still"] } });
+        let lines = recently_seen(&picture);
+        assert_eq!(lines.len(), 3);
+        assert!(lines[0].starts_with("recently seen, out of sight now"));
+        assert_eq!(lines[1], "  party_1 (9 armfav, 279 metal) last seen 0:23 ago at (G6), then moving toward our side");
+        assert!(recently_seen(&serde_json::json!({ "enemy": { "out_of_sight": "no party seen in the last three minutes is out of sight" } })).is_empty());
+        assert!(recently_seen(&serde_json::json!({})).is_empty());
     }
 
     /// The scouting block says what player-33's report did not at 5:52: the south-east cells were seen, three

@@ -3,7 +3,11 @@
 **Status.** 2026-10-07 night, from the user's human-26 review at 3:30 (seat 0, "red", t2, the north-east base).
 Offline replays of the recorded gates under alternate packets and alternate move words (`run/jev_packet_ab.py`,
 variants and rows under `docs/studies/data/raid-packets/`, $0.03 in all; noise floor 0.01 from
-`docs/studies/2026-10-07-rove-words.md`). Findings only; nothing built from it yet.
+`docs/studies/2026-10-07-rove-words.md`). Built from it the same night, on the user's word: the turn-cost words
+deleted (H-HANDS-TURNS (1); not refined: "the problem was situations where Jev is split-brained between two
+reasonable operations"), the picture's out-of-sight parties said in the player's report (`recently seen`), and an
+Opus-only brief section (`docs/briefs/player-opus.md`: orders land late, raid allowances first in every paragraph,
+at a scale). To judge on the next human game.
 
 ## The moments (seat 0, Jev's log and the player's)
 
