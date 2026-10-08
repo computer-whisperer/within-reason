@@ -1114,7 +1114,7 @@ const WV = (() => {
       list.push({ label: "hands: gates asked", color: "jev", bySeat: multi, items });
     }
     for (const [name, label] of [["builders", "hands: builders"], ["labs", "hands: plants"], ["groups", "hands: army"]]) {
-      const items = lanes[name].map((d) => ({ ...d, faint: d.source === "list" }));
+      const items = lanes[name].map((d) => ({ ...d, faint: d.source !== "plan" }));
       if (items.length) list.push({ label, color: "jev", bySeat: multi, items, plays: true });
     }
     view.lanesKey = key;

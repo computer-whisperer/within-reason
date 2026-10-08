@@ -6,6 +6,7 @@
 use std::collections::{BTreeMap, HashMap};
 
 use bot_protocol::{Command, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
+use serde_json::json;
 
 use super::super::roster::Kit;
 use super::super::{Brain, FRAMES_PER_SECOND};
@@ -190,6 +191,18 @@ pub(crate) const TURN_MEMORY: i32 = 30 * 30;
 pub(crate) const STRUNG_OUT: f32 = 600.0;
 
 impl Group {
+    /// What the group is doing, in a word or two: for the loss wake and the record's `lane` row.
+    pub(crate) fn course_word(&self) -> String {
+        match &self.task {
+            _ if self.roving => "roving".to_string(),
+            GroupTask::Hold { .. } => "holding".to_string(),
+            GroupTask::Move { place, fight, .. } => format!("{} to {place}", if *fight { "advancing" } else { "walking" }),
+            GroupTask::Engage { .. } => "attacking a party".to_string(),
+            GroupTask::Hunt(h) => format!("hunting {}", h.party),
+            GroupTask::Follow { name, .. } => format!("following {name}"),
+        }
+    }
+
     pub(crate) fn new(name: String, domain: Domain, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
         Group { name, domain, members, task, last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, joining: HashMap::new(), gathering: false, shelling: false, reached: Vec::new(), met: None, turns: Vec::new(), scout: false, roving: false, rove_log: Vec::new() }
     }
@@ -329,14 +342,7 @@ impl Brain {
             let (count, lost) = group.lost_since(turn_frame, &self.world);
             if !group.loss_warned && !group.members.is_empty() && (count >= LOSS_WAKE_COUNT || lost >= LOSS_WAKE_SHARE * (standing + lost)) {
                 group.loss_warned = true;
-                let doing = match &group.task {
-                    _ if group.roving => "roving".to_string(),
-                    GroupTask::Hold { .. } => "holding".to_string(),
-                    GroupTask::Move { place, fight, .. } => format!("{} to {place}", if *fight { "advancing" } else { "walking" }),
-                    GroupTask::Engage { .. } => "attacking a party".to_string(),
-                    GroupTask::Hunt(h) => format!("hunting {}", h.party),
-                    GroupTask::Follow { name, .. } => format!("following {name}"),
-                };
+                let doing = group.course_word();
                 loss_wakes.push(format!(
                     "group_{} has lost {} of its {} soldiers ({lost:.0} metal) since your last orders, {doing} at {}",
                     group.name,
@@ -427,21 +433,26 @@ impl Brain {
         // Where each group's body stands, for the groups that follow another.
         let bodies: Vec<(String, Vec3)> = pianist.groups.iter().filter_map(|g| g.body(own, None).map(|b| (g.name.clone(), b.at))).collect();
         let roving: Vec<bool> = pianist.groups.iter().map(|g| self.roves(g)).collect();
-        let mut rove_changes: Vec<String> = Vec::new();
+        // (the group, what it was doing, what the switch did): said in `recent` and written as a decision row of
+        // source `lane` (human-26 1:57: the player's `rove` took two Rovers off a raid Jev had sent them against,
+        // and the viewer showed the redirect with no author).
+        let mut rove_changes: Vec<(String, String, String)> = Vec::new();
         for (index, group) in pianist.groups.iter_mut().enumerate() {
             // A roving group is the lane's (H-MICRO-ROVE): no task, no hunt, no orders kept up. Switched either way,
             // it starts from a hold; switched off, its soldiers hold where each stands.
             if roving[index] != group.roving {
+                let left = group.course_word();
                 group.roving = roving[index];
                 (group.gathering, group.shelling) = (false, false);
                 group.joining.clear();
                 group.set_task(GroupTask::Hold { since: frame, committed: false, picked: false }, frame);
-                if group.roving {
-                    rove_changes.push(format!("group_{} roves: its soldiers look at what we know least, kill what they find unguarded and keep out of every reach, in code, until the lane is set otherwise", group.name));
+                let did = if group.roving {
+                    "roves: its soldiers look at what we know least, kill what they find unguarded and keep out of every reach, in code, until the lane is set otherwise".to_string()
                 } else {
                     commands.extend(group.hold_orders(&group.units(own)));
-                    rove_changes.push(format!("group_{} stops roving and holds where each of its soldiers stands", group.name));
-                }
+                    "stops roving and holds where each of its soldiers stands".to_string()
+                };
+                rove_changes.push((format!("group_{}", group.name), left, did));
             }
             if group.roving {
                 group.joining.clear();
@@ -617,8 +628,9 @@ impl Brain {
             pianist.note(frame, text.clone());
             pianist.events.insert(text);
         }
-        for text in rove_changes {
-            pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
+        for (actor, left, did) in rove_changes {
+            pianist.done.push(format!("{} {actor} {did}", super::picture::clock(frame)));
+            self.journal.note_from("lane", frame, "group", json!({ "actor": actor, "left": left }), json!({ "did": did }));
         }
         for text in hunt_ends {
             pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
@@ -902,6 +914,38 @@ mod tests {
         brain.keep_groups(&tick(150, &ours, &enemies), &kit, &mut commands);
         assert!(matches!(commands[..], [Command::Fight { unit, to, .. }] if unit == joiners[0] && (to.x - 5102.0).abs() < 2.0), "{commands:?}");
         assert!(!brain.pianist.as_ref().unwrap().groups[0].joining.contains_key(&joiners[0]));
+    }
+
+    /// The lane's switch of a group into roving resets its task to a hold, says so in `recent` and writes a `lane`
+    /// decision row naming what the group left (human-26 1:57: two Rovers taken off a raid Jev had sent them
+    /// against, the redirect without an author in the viewer).
+    #[test]
+    fn a_switch_to_roving_is_a_decision_row_naming_what_the_group_left() {
+        use bot_protocol::{Resource, Snapshot};
+        let (mut brain, ours, enemies, parties) = e3();
+        let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        let mut group = Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { since: 0, committed: false, picked: false }, 0);
+        let mut commands = Vec::new();
+        Brain::engage_group(&mut group, &parties[0], &ours[..12], None, 30, &mut commands);
+        // Made as a scout with no lane setting: it roves from the next look.
+        group.scout = true;
+        pianist.groups.push(group);
+        brain.pianist = Some(pianist);
+        let none = UnitDefId(99);
+        let kit = Kit { commander: none, extractor: none, converter: none, lab: none, turret: none, constructor: none, plant: none, vehicle_constructor: none, advanced_lab: none, advanced_constructor: none, advanced_extractor: none, raider: none, line: none, resurrector: none, roster: &crate::brain::roster::ROSTERS[0] };
+        let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+        let tick = Tick { frame: 60, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.clone(), allies: Vec::new(), enemies: enemies.clone(), wrecks: None } };
+        let mut commands = Vec::new();
+        brain.keep_groups(&tick, &kit, &mut commands);
+        let group = &brain.pianist.as_ref().unwrap().groups[0];
+        assert!(group.roving && matches!(group.task, GroupTask::Hold { picked: false, .. }));
+        let notes: Vec<_> = brain.journal.notes.iter().filter(|n| n.source == "lane").collect();
+        assert_eq!(notes.len(), 1);
+        assert_eq!(notes[0].kind, "group");
+        assert_eq!(notes[0].inputs["actor"], "group_A");
+        assert_eq!(notes[0].inputs["left"], "attacking a party");
+        assert!(notes[0].outputs["did"].as_str().unwrap().starts_with("roves:"));
+        assert!(brain.pianist.as_ref().unwrap().done.iter().any(|d| d.contains("group_A roves:")));
     }
 
     #[test]

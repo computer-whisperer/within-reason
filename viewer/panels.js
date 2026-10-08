@@ -640,7 +640,7 @@
         box.append(el("div", "meta", plays.length ? `its plays up to now (${plays.length}), newest first:` : "no play of its own in the record yet"));
         for (const p of plays.slice(-8).reverse()) {
           const line = el("div", "hist");
-          line.append(`${clock(p.f)} `, el("span", "source", p.source === "plan" ? "pick" : "list"), " ", el("b", null, (p.inputs.move || p.inputs.step || "").replace(`${actor}.`, "")), p.outputs && p.outputs.did ? ` · ${p.outputs.did}` : "");
+          line.append(`${clock(p.f)} `, el("span", "source", WR.playSource(p.source)), " ", el("b", null, (p.inputs.move || p.inputs.step || "").replace(`${actor}.`, "")), p.outputs && p.outputs.did ? ` · ${p.outputs.did}` : "");
           line.addEventListener("click", () => seek(p.f));
           box.append(line);
         }
@@ -695,7 +695,7 @@
       for (const d of seat.decisions) {
         if (d.kind === "event") {
           if (show.events) rows.push({ f: d.f, kind: "event", seat: seat.index, d });
-        } else if (show.hands && (d.source === "plan" || d.source === "list") && d.inputs && d.inputs.actor) {
+        } else if (show.hands && WR.PLAY_SOURCES.has(d.source) && d.inputs && d.inputs.actor) {
           if (view.actor && (view.actor.seat !== seat.index || view.actor.name !== d.inputs.actor)) continue;
           rows.push({ f: d.f, kind: "play", seat: seat.index, d });
         }
@@ -759,7 +759,7 @@
         li.append(el("div", "source", turnLine(turn, view.match)));
       } else if (r.kind === "play") {
         const d = r.d;
-        head.append(el("span", null, `${d.inputs.actor}: ${(d.outputs && d.outputs.did) || d.inputs.move || d.inputs.step || ""}`), el("span", "source", `${d.source === "plan" ? "the pick" : "its list"}${multi() ? ` · ${view.match.seats[r.seat].name}` : ""}`));
+        head.append(el("span", null, `${d.inputs.actor}: ${(d.outputs && d.outputs.did) || d.inputs.move || d.inputs.step || ""}`), el("span", "source", `${d.source === "plan" ? "the pick" : d.source === "lane" ? "the lane" : "its list"}${multi() ? ` · ${view.match.seats[r.seat].name}` : ""}`));
         li.append(head);
       } else {
         head.append(el("span", null, String(r.d.outputs)), el("span", "source", `event${multi() ? ` · ${view.match.seats[r.seat].name}` : ""}`));

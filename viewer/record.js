@@ -9,6 +9,12 @@
 const WR = (() => {
   const FPS = 30;
   const FLAG = { beingBuilt: 1, idle: 2 };
+  /// The decision sources that are an actor's plays: the pick's, a list step's, and the lane's switch of a group into
+  /// or out of roving (docs/harness/record-format.md, decision records).
+  const PLAY_SOURCES = new Set(["plan", "list", "lane"]);
+  function playSource(source) {
+    return source === "plan" ? "pick" : source === "lane" ? "lane" : "list";
+  }
   /// Dollars a million input tokens of Jev (docs/studies/2026-10-04-jev-where-the-tokens-go.md).
   const JEV_PRICE = 0.042;
   /// The oldest pianist's log the Hands panels read: the rebuilt hands (one menu per actor, layers).
@@ -460,10 +466,11 @@ const WR = (() => {
         const lane = c === "extractor" ? out.extractorLosses : c === "army" || c === "builder" || c === "commander" || c === "other" ? out.losses : out.buildingLosses;
         lane.push({ ...e, seat: seat.index });
       }
-      // The hands' plays: the pick's (source plan) and the lists' (source list, code alone).
+      // The hands' plays: the pick's (source plan), the lists' (source list, code alone) and the lane's switches
+      // of a group into or out of roving (source lane, the player's setting carried out by code).
       for (const d of seat.decisions) {
         const lane = d.kind === "builder" ? out.builders : d.kind === "lab" ? out.labs : d.kind === "group" ? out.groups : null;
-        if (lane && (d.source === "plan" || d.source === "list")) lane.push({ ...d, seat: seat.index });
+        if (lane && PLAY_SOURCES.has(d.source)) lane.push({ ...d, seat: seat.index });
       }
     }
     for (const lane of Object.values(out)) lane.sort((a, b) => a.f - b.f);
@@ -472,7 +479,7 @@ const WR = (() => {
 
   /// An actor's plays up to `frame` out of its seat's record, oldest first.
   function actorPlays(seat, actor, frame) {
-    return seat.decisions.filter((d) => d.f <= frame && d.inputs && d.inputs.actor === actor && (d.source === "plan" || d.source === "list"));
+    return seat.decisions.filter((d) => d.f <= frame && d.inputs && d.inputs.actor === actor && PLAY_SOURCES.has(d.source));
   }
 
   function clock(frame) {
@@ -792,7 +799,7 @@ const WR = (() => {
     FPS, FLAG, JEV_PRICE, JEV_VERSION, FLAG_BAR, FUSE_BAR,
     parseLines, newSeat, addRecordRows, parseRecord, newMatch, addSeat, settle, scoped, sides,
     newTranscript, addTranscriptRows, parseTranscript, inferRealtime, turnEnd, callsOf, directionAt, latestByKey, marksAt, signalsAt, packetAt,
-    addTruthRows, parseBotLog, indexAt, lastAt, range, seatStateAt, stateAt, totalsAt, rulesInMinute, lanes, actorPlays, clock, ago, gridName,
+    addTruthRows, parseBotLog, indexAt, lastAt, range, seatStateAt, stateAt, totalsAt, rulesInMinute, lanes, actorPlays, PLAY_SOURCES, playSource, clock, ago, gridName,
     ordersAt, unitHistory, facings, chatUpTo, actorOfUnit, unitsOfActor, readingsByActor, readingsOf, gateView, costView,
   };
 })();
