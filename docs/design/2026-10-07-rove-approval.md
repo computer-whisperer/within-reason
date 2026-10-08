@@ -6,7 +6,10 @@ is built (0e48a29). The pending-approval mechanism below was superseded the same
 odd low level control action that allows the player to bypass jev on a unit control operation seems like it may be
 a standing flaw. Go ahead and see how it plays out." Built as §"The build": the lane's `rove` is deleted, the whole
 group roves on the hands' `rove` move (a pick, beside `scout`), any lane setting takes a roving group back. The
-first game: rove-move-1 (docs/experiments.md). May be rolled back.
+first game: rove-move-1 (docs/experiments.md): won 23:52, the move offered at 1,905 gates and never picked. The words
+were the cause: replayed offline (docs/studies/2026-10-07-rove-words.md) the recorded words rated 0.15 median where
+the packet asked for roving and the `plain` words 0.65, with no lift where it did not ask; the plain words are in
+the menu since. May be rolled back.
 
 ## The build (2026-10-07, the ruling)
 

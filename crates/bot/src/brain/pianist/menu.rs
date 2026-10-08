@@ -1084,11 +1084,15 @@ impl Brain {
             // The whole group roves (H-MICRO-ROVE), run in code with no orders from the hands, until the player's
             // lane takes it back. A pick since 2026-10-07; the player's `lane rove` set it with no pick before, over
             // the group's course on a picture as old as the turn (human-26 1:57: two Rovers taken off a raid Jev had
-            // sent them against three seconds earlier; docs/design/2026-10-07-rove-approval.md).
+            // sent them against three seconds earlier; docs/design/2026-10-07-rove-approval.md). The words are the
+            // `plain` arm of docs/studies/2026-10-07-rove-words.md: the first words ("roves whole: every soldier
+            // runs on its own in code, ten times a second, beyond your hands' reach ... whatever the odds; nothing
+            // of your hands moves it again") rated 0.15 median where the packet asked for roving (rove-move-1,
+            // never picked in 1,905 gates); these rate 0.65 there and 0.07 where it does not.
             push(
                 "rove".into(),
                 Order::Rove,
-                format!("{name} roves whole: every soldier runs on its own in code, ten times a second, beyond your hands' reach from then on: it looks at what we know least, his start box first, kills what it finds unguarded (a constructor, an extractor, a radar) and keeps out of the reach of anything that can shoot it, whatever the odds; nothing of your hands moves it again until the player takes it back{keeps}{leaves}{}", undoes("rove")),
+                format!("{name} roves: its soldiers scout his side on their own, looking at what we know least, killing unguarded constructors and extractors, and keeping out of every reach; the player's lane setting brings it back{keeps}{leaves}{}", undoes("rove")),
                 "roving whole".into(),
                 None,
                 false,
