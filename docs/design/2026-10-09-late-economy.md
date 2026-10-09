@@ -227,3 +227,18 @@ Built and tested 2026-10-09 night (18 tests). A first run on Comet from rove-tas
 no tax, 4,000 iterations x 2 restarts in 1.8 s: the silo at 16:00, the first missile at 18:01, the rounds then 133 s
 apart on 1,008 energy a second against the 1,042 a round draws. The no-enemy ceiling sits inside BARb's anti-nuke window
 (21 to 25 minutes); what the tax does to it is step 3's first table.
+
+**Step 2 (2026-10-09 night): what the records can and cannot calibrate.** The whole-game recalibration to minute 30 on
+player-30, 31 and 32 is not possible: they lost 34 to 160 units, the simulator keeps every extractor, the quiet filter
+(two units lost) leaves no record after minute 4, and the income bias runs +20 to +77 metal a second from minute 10.
+The hands gave no repair order in any of them, so who helped a frame cannot be replayed from the commands. What the
+records do give is each frame's recorded duration beside `buildtime / power` with the power read from the builders the
+samples show standing within reach of it (`run/t2_frames.py`, 73 tier-2 frames over five games). At full stock with
+one builder on it the ratio is 1.0 to 1.2 (advanced solars 89 to 108 s at 90 power against 88 predicted; player-32's
+advanced plant 324 s against 289 with one constructor); under an empty stock the frames took longer in proportion
+(player-32's two fusions 274 and 276 s against 186 at one advanced constructor's 290, the stock empty in 75 to 85 % of
+the samples); the median over all 73 is 1.59, the detection counting builders that stood near a frame while building
+something else (the turrets' 9-second predictions). So the model's build arithmetic is the engine's own, and the
+frontier's uncertainty is behavioural (who stands on what, idle time, stalls), which the no-enemy ceiling leaves out by
+design. The tier-1 study's bias (+15 to 25 % on income by minute 8) stays the known error, and a late-game curve
+calibration waits for a quiet long game, which §4.4's economy-objective games would be.

@@ -246,3 +246,12 @@ scores the earlier crossing higher. A first run on Comet (rove-task-1's record, 
 x 2): the silo stood at 16:00 and the first missile came at 18:01, the later rounds 133 s apart on an energy income of
 1,008 a second against the round's 1,042. That is the ceiling with no enemy; the frontier tables (step 3) run it under
 the tax and against BARb's anti-nuke clock (K-barb-anti-nuke-by-minute).
+
+**Calibration to minute 30 (2026-10-09 night).** `calibrate` over player-30, 31 and 32 (the recorded games with
+advanced plants, mohos and fusions) cannot calibrate the late curve: 34 to 160 units lost, no quiet record after minute
+4, income bias +20 to +77 metal a second from minute 10. `run/t2_frames.py` checks the arithmetic frame by frame
+instead: 73 tier-2 frames over five games, each frame's recorded duration against `buildtime / power` with the power
+read from the builders standing within reach in the samples. With one builder on it and a full stock the ratio is 1.0 to
+1.2; under an empty stock the frame takes longer in proportion to the share of samples with the stock empty (player-32's
+fusions 1.47 to 1.49 at 75 to 85 % empty); the median over all 73 is 1.59, inflated where builders stood near a frame
+building something else. The build arithmetic is the engine's; what the no-enemy frontier leaves out is behaviour.
