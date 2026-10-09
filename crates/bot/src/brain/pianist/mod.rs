@@ -54,6 +54,8 @@ const RECENT_FRAMES: i32 = 90 * FRAMES_PER_SECOND;
 /// H-HANDS-BLOCKED-SITE: a builder standing within its reach (plus this margin) of an unstarted build's site for this
 /// long, with no frame of the type there, has a blocked site (human-27 2:20-2:54: 34 s at the site, never idle).
 const BLOCKED_WATCH: i32 = 8 * FRAMES_PER_SECOND;
+/// Under this speed (elmos a frame) the builder stands; the clock stops while it walks.
+const BLOCKED_STILL: f32 = 0.2;
 const BLOCKED_MARGIN: f32 = 120.0;
 
 /// H-HANDS-REFUSED: a spot where the engine refused an extractor is left off every state for this long (smoke-4: the
@@ -1598,10 +1600,14 @@ impl Brain {
                 // The site as the host placed it: later site searches keep out of it (`build_site_for`), and the
                 // never-started checks measure from it.
                 Event::BuildSited { unit, def, at } => {
-                    if let Some(Task::Build { def: d, near, started: false, .. }) = pianist.tasks.get_mut(&unit)
-                        && *d == def
-                    {
-                        *near = at;
+                    // The order may be queued behind the builder's current build (rove-task-1 2:42: the commander's
+                    // tower behind its solar, kept at the asked site and its clock run on the wrong place).
+                    for task in pianist.tasks.get_mut(&unit).into_iter().chain(pianist.queued.get_mut(&unit)) {
+                        if let Task::Build { def: d, near, started: false, .. } = task
+                            && *d == def
+                        {
+                            *near = at;
+                        }
                     }
                 }
                 Event::UnitCreated { unit, builder: Some(builder) } => {
@@ -1715,7 +1721,9 @@ impl Brain {
         // as assistable, so the order is neither started nor dropped; human-27 2:08-2:54: the commander's solar over
         // a constructor's, 46 s, released only by a new list). The site is refused for `REFUSED_FRAMES`, the builder
         // stopped, its step back at the front of its list, so the order goes again elsewhere.
-        for unit in own.iter().filter(|u| !u.idle && !u.being_built) {
+        // The clock runs while the builder stands still: the margin is three seconds of a commander's walk, and
+        // the walk's last stretch counted as standing (rove-task-1 3:00: stopped 4 s short of its site).
+        for unit in own.iter().filter(|u| !u.idle && !u.being_built && u.vel.x.hypot(u.vel.z) < BLOCKED_STILL) {
             let waiting = match pianist.tasks.get(&unit.id) {
                 Some(Task::Build { def, near, started: false, .. }) => {
                     let reach = self.world.def(unit.def).map_or(100.0, |d| d.build_distance);
