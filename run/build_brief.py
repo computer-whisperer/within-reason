@@ -12,7 +12,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(REPO)
 REF, EXP = "docs/briefs/reference", "docs/briefs/experience"
 # Where recorded games live: the working directory and the archive the ledger's head names (batches of 2026-09-19
-# through 2026-10-03 were moved there; a map whose only games are archived keeps its sheet).
+# through 2026-10-06 were moved there; a map whose only games are archived keeps its sheet).
 ROOTS = ["run/matches", "/ceph/christian/within-reason/run/matches-archive"]
 
 

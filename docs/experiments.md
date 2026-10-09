@@ -15,7 +15,10 @@ On 2026-10-05 the 338 batches of 2026-09-21 through 2026-10-01 (`1789963458-cmd-
 `1790902690-glance-smoke-1`, 19 GB: the rolling planner through scouting-glance and player-33) followed, the root
 filesystem at 96%. On 2026-10-06 the 80 batches of 2026-10-02 and 2026-10-03 (`1790913961-rebuild-smoke-1` through
 `1791085409-bonus-smoke-100`, 38 GB: the hands rebuild through player-54, human-10 to human-18) followed, the root
-filesystem at 99%. Everything from 2026-10-04 on (`1791085481-apex-carrot-1` and later) is still in `run/matches/`.
+filesystem at 99%. On 2026-10-09 the 42 batches of 2026-10-04 through 2026-10-06 (`1791085481-apex-carrot-1` through
+`1791333943-human-25`, 30 GB: the apex-bot comparisons, the packet and glitters team games, the distilled bot's first rows,
+human-23 to human-25) followed, the root filesystem at 91%. Everything from 2026-10-07 on (`1791335540-human-26` and later)
+is still in `run/matches/`.
 
 | Batch label | Commit | Opponent | n | W-L-T | Testing | Outcome |
 |---|---|---|---|---|---|---|
