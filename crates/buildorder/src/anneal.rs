@@ -448,6 +448,18 @@ impl Palette {
         if let Some(t) = turret && !mobile.contains(&Item::Build(t)) {
             mobile.push(Item::Build(t));
         }
+        // An extractor type that extracts no more than a cheaper one (Armada's 200-metal `armamex` beside the 50-metal
+        // `armmex`, the same rate) only wastes the search's moves.
+        let offered: Vec<usize> = mobile.iter().filter_map(|i| match i { Item::Build(u) => Some(*u), _ => None }).collect();
+        let dominated: Vec<usize> = offered
+            .iter()
+            .copied()
+            .filter(|u| {
+                let def = &units.list[*u];
+                def.extracts_metal > 0.0 && offered.iter().any(|v| *v != *u && units.list[*v].extracts_metal >= def.extracts_metal && units.list[*v].metal_cost < def.metal_cost)
+            })
+            .collect();
+        mobile.retain(|i| !matches!(i, Item::Build(u) if dominated.contains(u)));
         for u in also {
             if !mobile.contains(&Item::Build(*u)) {
                 mobile.push(Item::Build(*u));

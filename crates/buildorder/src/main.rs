@@ -12,7 +12,7 @@ const USAGE: &str = "usage: (the game, that is map, start, faction and unit numb
   buildorder optimize  --game RECORD.jsonl [--factory lab|vp] [--palette kit|roster] [--also silo,amd] [--minutes 10]
                        [--objective income|army|mix|tempo|expect|reach:N|target:UNIT[:COUNT][@SECONDS][,round:UNIT..][,income:N@SECONDS]] [--contact WALK[,AT,WEIGHT]]
                        [--iterations 40000] [--restarts 8] [--seed 1] [--wind MEAN] [--detour X] [--factories 2] [--constructors 6] [--leash ELMOS]
-                       [--no-nano] [--turret llt] [--nanos-to-factory] [--tax FROM:RATE,..] [--tax-energy 8] [--csv FILE] [--plan-out FILE] [--json-out FILE]
+                       [--no-nano] [--turret llt] [--nanos-to-factory] [--tax FROM:RATE,..] [--tax-energy 8] [--seed-chain UNIT[:COUNT]] [--csv FILE] [--plan-out FILE] [--json-out FILE]
                        (--detour X: open ground, every walk X straight lines, in place of the map's own ground; --also: unit types the
                        roster's rule leaves out; reach:N: the fastest order to N metal a second; round:UNIT: a stockpile round, the first
                        missile; --tax: metal a second to soldiers from each time, M:SS or seconds, before any build; turrets help the
@@ -181,10 +181,18 @@ fn optimize(args: &Args) {
         _ => Palette::new(units, game.commander, factory_unit, !args.has("--no-nano"), turret),
     };
     let (factories_n, constructors_n) = (args.number::<usize>("--factories", 2), args.number::<usize>("--constructors", 6));
-    let start = match &objective {
-        Objective::Target { goals, .. } => {
+    let wind_mean = match scenario.wind { buildorder::sim::Wind::Constant(w) => w, _ => 10.0 };
+    // `--seed-chain UNIT[:COUNT]`: start from the seed with the production chain to this unit laid through it, whatever
+    // the objective (a reach objective from the tier-2 extractor's chain finds the mass upgrade the plain seed does not).
+    let start = match (args.value("--seed-chain"), &objective) {
+        (Some(spec), _) => {
+            let (name, count) = spec.split_once(':').map_or((spec, 4), |(n, c)| (n, c.parse().unwrap_or_else(|_| die("--seed-chain UNIT[:COUNT]"))));
+            let unit = units.index(name).or_else(|| units.index(&format!("{}{name}", game.side()))).unwrap_or_else(|| die(&format!("--seed-chain: no unit type {name} in this game")));
+            Some(palette.chain_seed(units, game.commander, &[(unit, count)], factories_n, constructors_n, wind_mean))
+        }
+        (None, Objective::Target { goals, .. }) => {
             let goals: Vec<(usize, usize)> = goals.iter().map(|g| (g.unit, g.count.unwrap_or(6))).collect();
-            Some(palette.chain_seed(units, game.commander, &goals, factories_n, constructors_n, match scenario.wind { buildorder::sim::Wind::Constant(w) => w, _ => 10.0 }))
+            Some(palette.chain_seed(units, game.commander, &goals, factories_n, constructors_n, wind_mean))
         }
         _ => None,
     };

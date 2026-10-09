@@ -63,8 +63,9 @@ pub struct Scenario {
     pub assist_chunk: f64,
     /// Stored-energy fraction above which converters run (`mmLevel`, game_energy_conversion.lua).
     pub converter_level: f64,
-    /// A constructor whose queue has run out keeps taking the nearest free metal spot. On for the search (a new
-    /// constructor is then worth something before the search has written it a queue), off for replays.
+    /// A constructor whose queue has run out keeps taking the nearest free metal spot (an advanced constructor: the
+    /// nearest standing extractor to upgrade). On for the search (a new constructor is then worth something before the
+    /// search has written it a queue), off for replays.
     pub constructors_default_to_extractors: bool,
     /// Construction turrets help the dearest frame in their reach, else the first factory (the rule proposed as §4.7 of
     /// docs/design/2026-10-09-late-economy.md). Off, every turret feeds the first factory, as the recorded games'
@@ -455,7 +456,10 @@ pub fn simulate(units: &Units, scenario: &Scenario, state: &State, plan: &Plan, 
         for b in 0..builders.len() {
             while matches!(builders[b].state, Doing::Idle) {
                 let builder = &builders[b];
-                let default_step = Step::build(extractor);
+                // The default for a constructor whose queue has run out: the cheapest extractor it can build, which for
+                // an advanced constructor is the upgrade of the nearest standing extractor (a search finds mass tier-2
+                // extractors by leaving such a queue empty, as it finds mass tier-1 ones).
+                let default_step = Step::build(units.extractor(builder.unit).unwrap_or(extractor));
                 let next = match plan.queue(builder.queue).get(builder.next) {
                     Some(next) => next,
                     None if sc.constructors_default_to_extractors && builder.queue >= plan.constructor_queue(0) => &default_step,

@@ -242,3 +242,16 @@ something else (the turrets' 9-second predictions). So the model's build arithme
 frontier's uncertainty is behavioural (who stands on what, idle time, stalls), which the no-enemy ceiling leaves out by
 design. The tier-1 study's bias (+15 to 25 % on income by minute 8) stays the known error, and a late-game curve
 calibration waits for a quiet long game, which §4.4's economy-objective games would be.
+
+**Step 3, draft 1 read (2026-10-09, 12:00).** The first tables (3d3ddc4) showed the search, not the frontier: a heavy-tax
+cell faster than the standard one, income 200 never reached while 71,000 metal lay wasted at 30:00 on Comet, and one
+tier-2 extractor where forty spots stood. Three causes, all fixed before draft 2: (1) an advanced constructor's queue
+had to be filled with upgrade steps one random insertion at a time, so the search never found mass tier-2 extractors;
+now a constructor whose queue has run out takes the cheapest extractor it can build, which for an advanced constructor
+is the upgrade of the nearest standing extractor (`Scenario::constructors_default_to_extractors`, the search's default);
+(2) a reach objective started from the plain opening only; now every reach row is searched twice, from the plain seed
+and from the tier-2 extractor's chain (`--seed-chain moho:4`), and keeps the earlier crossing; (3) the roster offered
+Armada's 200-metal `armamex`, which extracts no more than the 50-metal `armmex`; dominated extractors are off the
+roster. Checked on Comet with the chain seed at 20,000 x 4: income 100 at 13:30, 200 at 20:00, thirty tier-2
+extractors and 23 converters by 30:00 (draft 1: income 150 at 30:00 and no crossing). Draft 2 runs every cell at
+20,000 x 8.

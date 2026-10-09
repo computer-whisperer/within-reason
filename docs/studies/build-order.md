@@ -255,3 +255,11 @@ read from the builders standing within reach in the samples. With one builder on
 1.2; under an empty stock the frame takes longer in proportion to the share of samples with the stock empty (player-32's
 fusions 1.47 to 1.49 at 75 to 85 % empty); the median over all 73 is 1.59, inflated where builders stood near a frame
 building something else. The build arithmetic is the engine's; what the no-enemy frontier leaves out is behaviour.
+
+**Draft 2 of the frontier (2026-10-09).** Three search fixes from reading draft 1: a constructor with an empty queue
+takes the cheapest extractor it can build (the advanced constructor's is the upgrade of the nearest standing
+extractor, so mass tier-2 extraction is a queue left empty, as mass tier-1 extraction was); `--seed-chain UNIT[:COUNT]`
+seeds any objective through a production chain (the reach rows run from the plain opening and from the tier-2
+extractor's chain and keep the earlier crossing); extractor types that extract no more than a cheaper one are off the
+roster (`armamex`). Comet, reach 200 with the chain seed, 20,000 x 4: income 100 at 13:30 and 200 at 20:00 against no
+crossing in draft 1.

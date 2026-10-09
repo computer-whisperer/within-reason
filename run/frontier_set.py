@@ -53,13 +53,15 @@ def objectives(side):
     ], antinuke
 
 
-def run_one(record, side, antinuke, objective, tax, iterations, restarts):
+def run_one(record, side, antinuke, objective, tax, iterations, restarts, seed_chain=None):
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
         out = f.name
     cmd = ["target/release/buildorder", "optimize", "--game", record, "--palette", "roster", "--also", f"{side}silo,{antinuke}", "--objective", objective,
            "--minutes", str(MINUTES), "--iterations", str(iterations), "--restarts", str(restarts), "--seed", "1", "--json-out", out]
     if tax:
         cmd += ["--tax", tax]
+    if seed_chain:
+        cmd += ["--seed-chain", seed_chain]
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode != 0:
         os.unlink(out)
@@ -136,9 +138,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--maps", default=",".join(MAPS))
     ap.add_argument("--quick", action="store_true", help="2,000 iterations x 2 restarts: a smoke of the generator, not a frontier")
-    ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--workers", type=int, default=3)
     ap.add_argument("--iterations", type=int, default=20000)
-    ap.add_argument("--restarts", type=int, default=4)
+    ap.add_argument("--restarts", type=int, default=8)
     a = ap.parse_args()
     iterations, restarts = (2000, 2) if a.quick else (a.iterations, a.restarts)
     for map_name in [m.strip() for m in a.maps.split(",") if m.strip()]:
@@ -150,14 +152,29 @@ def main():
         header = json.loads(open(record).readline())
         side, spots = header.get("side", "arm"), len(header.get("metal_spots", []))
         objs, antinuke = objectives(side)
-        jobs = {(tax_name, label): (objective, tax) for tax_name, tax in TAXES for label, objective, _ in objs}
-        results = {}
+        # A reach row is searched twice, from the plain opening and from the tier-2 extractor's chain, and keeps the
+        # earlier crossing (the plain seed finds the early incomes, the chain the late ones).
+        jobs = {(tax_name, label, chain): (objective, tax) for tax_name, tax in TAXES for label, objective, _ in objs
+                for chain in ([None, f"{side}moho:4"] if objective.startswith("reach:") else [None])}
+        found = {}
         with concurrent.futures.ThreadPoolExecutor(a.workers) as ex:
-            futures = {ex.submit(run_one, record, side, antinuke, objective, tax, iterations, restarts): key for key, (objective, tax) in jobs.items()}
+            futures = {ex.submit(run_one, record, side, antinuke, objective, tax, iterations, restarts, chain): key for key, (objective, tax) in jobs.items() for chain in [key[2]]}
             for future in concurrent.futures.as_completed(futures):
                 key = futures[future]
-                results[key] = future.result()
-                print(f"{map_name}: {key[0]:8s} {key[1]:28s} score {results[key]['score']:.0f}", file=sys.stderr)
+                found[key] = future.result()
+                print(f"{map_name}: {key[0]:8s} {key[1]:28s} {'chain seed' if key[2] else 'plain seed'} score {found[key]['score']:.0f}", file=sys.stderr)
+        results = {}
+        for (tax_name, label, chain), r in found.items():
+            key = (tax_name, label)
+            objective = next(o for l, o, _ in objs if l == label)
+            if objective.startswith("reach:"):
+                n = objective.split(":")[1]
+                earlier = results.get(key)
+                mine, theirs = r["reach"].get(n), earlier["reach"].get(n) if earlier else None
+                if earlier is None or (mine is not None and (theirs is None or mine < theirs)):
+                    results[key] = r
+            else:
+                results[key] = r
         name = slug(map_name)
         with open(f"{REF}/frontier-{name}.json", "w") as f:
             json.dump({"map": map_name, "record": record, "side": side, "spots": spots, "minutes": MINUTES, "iterations": iterations, "restarts": restarts,
