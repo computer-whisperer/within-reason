@@ -75,7 +75,7 @@ impl Brain {
         }
         let seen_at: Vec<bot_protocol::Vec3> = seen.iter().filter_map(|id| tick.snapshot.enemies.iter().find(|e| e.id == *id)).map(|e| e.pos).collect();
         // A roving group's hits and sightings are the lane's business, not a reason to ask again (H-MICRO-ROVE).
-        for group in pianist.groups.iter().filter(|g| !g.roving) {
+        for group in pianist.groups.iter().filter(|g| !g.roving()) {
             let touched = group.members.iter().any(|m| hit.contains(m) || gone.contains(m));
             let alarmed = !seen_at.is_empty() && {
                 let units = group.units(own);

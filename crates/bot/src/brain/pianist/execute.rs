@@ -49,11 +49,9 @@ impl Brain {
     pub(super) fn apply_world(&mut self, tick: &Tick, kit: &Kit, picture: &Picture, menus: &[Menu], world: &World, commands: &mut Vec<Command>) -> Vec<String> {
         let frame = tick.frame;
         let mut done: Vec<(String, &'static str, String, String)> = Vec::new();
-        // A pick answered after its group began to rove is not played on it, nor merges anyone into it (H-MICRO-ROVE).
-        let roving: Vec<String> = self.pianist.as_ref().map(|p| p.groups.iter().filter(|g| g.roving).map(|g| format!("group_{}", g.name)).collect()).unwrap_or_default();
         for (menu, i) in menus.iter().zip(world) {
             let m = &menu.moves[*i];
-            if *i == 0 || roving.contains(&menu.name) || matches!(&m.order, Order::Join(other) if roving.contains(&format!("group_{other}"))) {
+            if *i == 0 {
                 continue;
             }
             let did = match &menu.kind {
@@ -326,7 +324,7 @@ impl Brain {
                     GroupTask::Move { to, .. } => Some(*to),
                     GroupTask::Engage { at, .. } | GroupTask::Follow { at, .. } => Some(*at),
                     GroupTask::Hunt(h) => Some(h.at),
-                    GroupTask::Hold { .. } => centre.and_then(|c| enemies.iter().map(|e| e.pos).min_by(|a, b| a.dist2d(c).total_cmp(&b.dist2d(c)))),
+                    GroupTask::Hold { .. } | GroupTask::Rove { .. } => centre.and_then(|c| enemies.iter().map(|e| e.pos).min_by(|a, b| a.dist2d(c).total_cmp(&b.dist2d(c)))),
                 };
                 if let Some(body) = group.body(own, toward) {
                     let to = self.snap_for(walker, body.front);
@@ -426,10 +424,9 @@ impl Brain {
                     did = Some(format!("follow {ward_name}"));
                 }
             }
-            Order::Scout => {
-                // The group's fastest soldier becomes a group of its own that roves (H-MICRO-ROVE): the lane picks
-                // where it looks from the next tick, and no move of the hands' moves it (player-9-posing: three
-                // scouts walked at his base by the hands' Moves, pulled home, into two Pawns, onto a hunt).
+            Order::RoveOne => {
+                // The group's fastest soldier leaves as a group of its own that roves (H-MICRO-ROVE): a detachment
+                // like the hunt's, the lane running it from the next tick.
                 let speed = |u: &OwnUnit| self.world.def(u.def).map_or(0.0, |d| d.speed);
                 if let Some(scout) = units.iter().copied().max_by(|a, b| speed(a).total_cmp(&speed(b)))
                     && units.len() >= 2
@@ -437,21 +434,22 @@ impl Brain {
                     let domain = pianist.groups[index].domain;
                     pianist.groups[index].members.retain(|id| *id != scout.id);
                     let name = pianist.new_group_name();
-                    did = Some(format!("send a {} as group_{name} to rove", self.name(scout.def)));
+                    did = Some(format!("a {} leaves as group_{name} and roves", self.name(scout.def)));
                     let parent_name = pianist.groups[index].name.clone();
-                    let mut group = Group::new(name, domain, vec![scout.id], GroupTask::Hold { since: frame, committed: false, picked: false }, frame).split_from(&parent_name);
-                    // Roving from its first tick: no menu for it meanwhile.
-                    (group.wants_rove, group.roving) = (true, true);
+                    let group = Group::new(name, domain, vec![scout.id], GroupTask::Rove { since: frame }, frame).split_from(&parent_name);
                     pianist.groups.push(group);
                 }
             }
             Order::Rove => {
-                // The whole group roves (H-MICRO-ROVE): the lane takes every soldier from the next look
-                // (`keep_groups`), and the player's lane setting is the way back. The player's own `rove` setting,
-                // the one unit-control order that bypassed the pick, is gone (the user, 2026-10-07:
-                // docs/design/2026-10-07-rove-approval.md).
-                pianist.groups[index].wants_rove = true;
-                did = Some("rove whole: every soldier runs on its own in code from the next look".to_string());
+                // The whole group roves (H-MICRO-ROVE): a task like any other, the lane taking every soldier from
+                // the next tick; any later pick is the way back (docs/design/2026-10-07-rove-approval.md, the
+                // rework). The player's own `rove` setting, the one unit-control order that bypassed the pick, is
+                // gone since 2026-10-07.
+                let group = &mut pianist.groups[index];
+                group.joining.clear();
+                group.set_task(GroupTask::Rove { since: frame }, frame);
+                group.last_order = frame;
+                did = Some("roves: its soldiers look at what we know least, kill what they find unguarded and keep out of every reach".to_string());
             }
             _ => {}
         }

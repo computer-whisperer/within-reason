@@ -190,8 +190,8 @@ impl Commitment {
 
 /// Which footwork rules apply to a group's soldiers (H-HANDS-LANE): the lane's five, the march that keeps an
 /// advancing group together, and the re-sending of an engaging group after its party. All on by default; `raw` is
-/// none, and the group's orders reach the engine as the host gave them. `rove` is the other mode (H-MICRO-ROVE): no
-/// rule and no order of the host's, the lane runs the group's soldiers whole.
+/// none, and the group's orders reach the engine as the host gave them. A roving group (H-MICRO-ROVE) is under no
+/// rule and no order of the host's: the lane runs its soldiers whole, by the `Rove` commitment, not by a setting here.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Footwork {
     pub flee: bool,
@@ -200,8 +200,6 @@ pub struct Footwork {
     #[serde(default = "yes")]
     pub form: bool,
     pub march: bool,
-    #[serde(default)]
-    pub rove: bool,
 }
 
 fn yes() -> bool {
@@ -210,7 +208,7 @@ fn yes() -> bool {
 
 impl Default for Footwork {
     fn default() -> Footwork {
-        Footwork { flee: true, fan: true, kite: true, form: true, march: true, rove: false }
+        Footwork { flee: true, fan: true, kite: true, form: true, march: true }
     }
 }
 
@@ -218,12 +216,7 @@ impl Footwork {
     pub const RULES: [&'static str; 5] = ["flee", "fan", "kite", "form", "march"];
 
     pub fn raw() -> Footwork {
-        Footwork { flee: false, fan: false, kite: false, form: false, march: false, rove: false }
-    }
-
-    /// The rover's setting: none of the rules, the lane runs the soldiers itself (H-MICRO-ROVE).
-    pub fn rove() -> Footwork {
-        Footwork { rove: true, ..Footwork::raw() }
+        Footwork { flee: false, fan: false, kite: false, form: false, march: false }
     }
 
     /// The rules kept, by name.
@@ -252,9 +245,6 @@ impl Footwork {
     pub fn words(&self) -> Option<String> {
         if *self == Footwork::default() {
             return None;
-        }
-        if self.rove {
-            return Some("roving: its soldiers run on their own in code, ten times a second, and take no orders from your hands: each looks at the places nothing of ours has seen (his start box first), kills what it finds unguarded (extractors, radars, lone constructors) and keeps out of the reach of anything that can shoot it".to_string());
         }
         let kept = self.kept();
         Some(if kept.is_empty() { "raw: no footwork rules; its orders go to the engine as given".to_string() } else { format!("footwork rules {} only", kept.join(", ")) })
@@ -663,11 +653,10 @@ impl Lane {
             kite: view.enabled(Rule::Kite.id()),
             form: view.enabled(Rule::Form.id()),
             march: true,
-            rove: false,
         };
         let rules_of = |id: UnitId| {
             let f = footwork.get(&id).copied().unwrap_or_default();
-            Footwork { flee: f.flee && gate.flee, fan: f.fan && gate.fan, kite: f.kite && gate.kite, form: f.form && gate.form, march: f.march, rove: false }
+            Footwork { flee: f.flee && gate.flee, fan: f.fan && gate.fan, kite: f.kite && gate.kite, form: f.form && gate.form, march: f.march }
         };
         // H-MICRO-FORM's orders for every unit in a body, decided first: the host's group orders of this tick are
         // rewritten into them here (a standing unit's dropped), and the free units take them last.

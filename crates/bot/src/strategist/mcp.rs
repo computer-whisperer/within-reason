@@ -179,7 +179,7 @@ fn tool_list() -> Value {
               "description": "A builder's build list, done exactly and in order by the bot itself without asking your hands: an object of builder name (commander, constructor_N; a builder still being built may be named too, by the name its lab's or its builder's line gives it, and its list waits for it to stand) to a list of steps, or null (or an empty list) to cancel its list; null leaves a build in progress to finish, a list whose first step is \"stop\" (or the bare word \"stop\") drops that build first, its frame decaying, and the rest of the list follows. Steps: \"extractor spot_N\" (or \"extractor\" for the nearest free spot), any building by its internal name as the roster lists it (\"armsolar\", \"armvp\", \"armnanotc\", \"armfus\") or by a role word the seat's faction fills in (\"solar\", \"wind\", \"lab\", \"plant\", \"air_plant\", \"turret\", \"radar\", \"nano\", \"metal_storage\", \"energy_storage\", \"converter\", \"advanced_lab\", \"advanced_extractor\": the way to write a list before the faction is known), one that stands at a place with the place after it (\"armllt spot_3\", \"armrad home\", \"armmoho spot_3\" over our extractor there); any other building may take a place too (\"armvp spot_39\", \"armnanotc home\") and without one a factory stands beside its builder toward the yard, a generator beside the builder when it stands at home, else in the back field at home (the builder walks: the pros' solars are at base), a construction turret beside the nearest factory (it guards that factory once it stands), \"assist N\" (help the nearest factory for N seconds, then the next step: the pros guard the plant between their own builds), \"assist\" (help the nearest factory, standing or being built: the last step of a list, and only the last; the tool refuses steps after it). Each step is ordered when the one before is 60% built, so nothing idles; a step may end with an id of your choosing (\"armavp avp_yard #avp1\", \"armsolar #s3\"): steps with the same id, on any builders' lists and in a list sent again, are one building: the first builder to reach the step starts it, any other helps build it, and once it stands the step is done, so several constructors raise one factory and a plan sent again builds nothing twice (without ids each step is its own building: the same factory step on three lists is three factories); a new list replaces the old one whole, starting from its own first step: it takes over a builder that is helping a factory, walking, reclaiming or repairing at once, a build in progress is finished first, and a step the old list had queued behind that build is dropped; a step that cannot be done (the spot taken, a place unknown, a building this builder cannot make) is skipped and said in the hands' report. While a list runs the builder is off your hands' menu unless an enemy is on it, and a builder your hands sent away from an enemy takes no list step while that enemy is still on it; your instructions take over when the list is done. This is how an opening is made to happen as written: the hands do not follow a sequence (comet-1, comet-2: 'three solars, then the plant' got extractors and the plant at 1:45).",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "null" }, { "type": "string", "enum": ["stop"] } ] }, "description": "Builder name to steps, null, or \"stop\"." } },
             { "name": "lane",
-              "description": "Which footwork rules your hands' code applies to a group's soldiers between your hands' orders, per group name or for \"all\": \"raw\" (none: the group's orders reach the engine exactly as given), \"on\" (all of them, the default), or a list of the rules to keep. The rules: flee (a soldier steps out of the reach of a turret or a fight it was not sent against, or one it would die in), fan (spreads out under a commander's D-gun), kite (a soldier that outranges its enemy steps back while reloading), form (a group's soldiers walk to their own slots in ranks of six across the group's heading, two hulls apart, and stand at contact), march (an advancing group waits for its stragglers so it arrives together). Roving (fast units looking at what we know least, killing what they find unguarded and keeping out of every reach, in code, ten times a second, beyond your hands' reach) is a move of your hands, not a setting: `rove` puts a whole group to it and `scout` one soldier, on a pick, so say in the packet which group roves and when; the group's entry says what each rover is doing and what it has found (`rove`). Any setting you give a roving group here (\"on\", \"raw\" or a list) takes it back from roving, holding where each soldier stands, and your hands are asked about it again. A setting stands until you change it; the group's picture entry shows it when it is not the default.",
+              "description": "Which footwork rules your hands' code applies to a group's soldiers between your hands' orders, per group name or for \"all\": \"raw\" (none: the group's orders reach the engine exactly as given), \"on\" (all of them, the default), or a list of the rules to keep. The rules: flee (a soldier steps out of the reach of a turret or a fight it was not sent against, or one it would die in), fan (spreads out under a commander's D-gun), kite (a soldier that outranges its enemy steps back while reloading), form (a group's soldiers walk to their own slots in ranks of six across the group's heading, two hulls apart, and stand at contact), march (an advancing group waits for its stragglers so it arrives together). Roving (fast units looking at what we know least, killing what they find unguarded and keeping out of every reach, in code, ten times a second, beyond your hands' reach) is a move of your hands, not a setting: `rove` puts a whole group to it and `rove_1` its fastest soldier as a group of its own, on a pick, so say in the packet which group roves and when; the group's entry says what each rover is doing and what it has found (`rove`). A setting here never takes a group off its rove: the way back is a pick too, so name the group's new job in the packet. A setting stands until you change it; the group's picture entry shows it when it is not the default.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "string", "enum": ["raw", "on"] }, { "type": "array", "items": { "type": "string", "enum": ["flee", "fan", "kite", "form", "march"] } } ] }, "description": "Group name (group_A) or \"all\" to its setting." } },
             { "name": "mark",
               "description": "Name a place of your own for your hands: an object of name to [x, z] map coordinates or a grid cell (\"E7\": its centre), or null to forget it. A marked place joins the picture's places at once, so instructions can send groups and builders there (\"group_B: advance to south_gate\"), and its entry says what enemy is near. Names are lower-case words with underscores; home, spot_N, passage_N and group_N are taken. Any spot or passage you name in the packet is on your hands' menu already, however far; mark is for places that are not spots.",
@@ -532,8 +532,8 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
         }
         "lane" => {
             let settings = arguments.as_object().filter(|o| !o.is_empty()).ok_or("lane takes an object: group name (or \"all\") to \"raw\", \"on\" or a list of the rules to keep")?;
-            // The way back from roving is any setting for the group's name; roving itself is the hands' `rove` move,
-            // a pick, since 2026-10-07 (docs/design/2026-10-07-rove-approval.md).
+            // Roving is the hands' `rove` move, a pick, since 2026-10-07, and any later pick the way back since
+            // 2026-10-08 (docs/design/2026-10-07-rove-approval.md): this tool is footwork only.
             let mut parsed: Vec<(String, super::shared::Footwork)> = Vec::new();
             for (name, value) in settings {
                 if name != "all" && !name.starts_with("group_") {
@@ -542,7 +542,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 let footwork = match value {
                     Value::String(s) if s == "raw" => super::shared::Footwork::raw(),
                     Value::String(s) if s == "on" => super::shared::Footwork::default(),
-                    Value::String(s) if s == "rove" => return Err(format!("{name}: roving is your hands' `rove` move (or `scout` for one soldier), picked from the packet's words, not a lane setting; any setting here takes a roving group back")),
+                    Value::String(s) if s == "rove" => return Err(format!("{name}: roving is your hands' `rove` move (or `rove_1` for one soldier), picked from the packet's words, not a lane setting; the way back is a pick too: name the group's new job in the packet")),
                     Value::Array(items) => {
                         let names: Vec<String> = items.iter().map(|v| v.as_str().map(str::to_string).ok_or_else(|| format!("{name}: rule names are strings"))).collect::<Result<_, _>>()?;
                         super::shared::Footwork::keeping(&names)?
@@ -552,12 +552,10 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 parsed.push((name.clone(), footwork));
             }
             let mut lane = shared.lane.lock().unwrap();
-            let mut lane_set = shared.lane_set.lock().unwrap();
             let mut said: Vec<String> = Vec::new();
             for (name, footwork) in parsed {
                 said.push(format!("{name}: {}", footwork.words().unwrap_or_else(|| "all footwork rules (the default)".to_string())));
                 lane.insert(name.clone(), footwork);
-                *lane_set.entry(name).or_default() += 1;
             }
             Ok(format!("footwork set; {}", said.join("; ")))
         }
@@ -1016,15 +1014,14 @@ mod tests {
         assert!(call_tool("lane", &json!({ "group_A": "raw", "all": ["fan", "form"] }), &shared).is_ok());
         let lane = shared.lane.lock().unwrap().clone();
         assert_eq!(lane["group_A"], Footwork::raw());
-        assert_eq!(lane["all"], Footwork { flee: false, fan: true, kite: false, form: true, march: false, rove: false });
+        assert_eq!(lane["all"], Footwork { flee: false, fan: true, kite: false, form: true, march: false });
         assert!(call_tool("lane", &json!({ "group_A": ["dance"] }), &shared).is_err());
         assert!(call_tool("lane", &json!({ "raiders": "raw" }), &shared).is_err());
         assert!(call_tool("lane", &json!({}), &shared).is_err());
-        // "on" for a group is said explicitly: a setting is the way back from roving, counted per name.
+        // "on" for a group is said explicitly.
         assert!(call_tool("lane", &json!({ "group_A": "on" }), &shared).is_ok());
         assert_eq!(shared.lane.lock().unwrap()["group_A"], Footwork::default());
-        assert_eq!(shared.lane_set.lock().unwrap()["group_A"], 2);
-        // Roving is the hands' move, never a setting (2026-10-07).
+        // Roving is the hands' move, never a setting (2026-10-07), and the way back is a pick (2026-10-08).
         assert!(call_tool("lane", &json!({ "group_B": "rove" }), &shared).unwrap_err().contains("`rove` move"));
         assert!(!shared.lane.lock().unwrap().contains_key("group_B"));
     }

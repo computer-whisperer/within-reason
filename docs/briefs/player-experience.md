@@ -872,12 +872,13 @@ against your packet. They cannot count, plan or remember beyond what the picture
   otherwise keeps to its route; being seen is its job".
 
 **Roving.** Your hands' `rove` move hands a whole group of fast units (Rovers, Ticks; name a plant's output into
-it with `produce`) to code that runs each of them ten times a second; `scout` sends one soldier. It drives to look
-at what we know least (his start box and base first, then spots nobody has seen, then the stalest), attacks what it
-finds unguarded (a constructor, an extractor, a radar with nothing armed in reach), and does not stand inside the
-reach of anything that can shoot it. Both are picks: say in the packet which group roves and when. Your hands do not
-move a roving group. The group's entry says what each rover is doing and what it has found; any `lane` setting for
-the group (`"on"`) takes it back. It is scouting footwork: at a base with Pawns patrolling, a roving Rover stepped
+it with `produce`) to code that runs each of them ten times a second; `rove_1` sends one soldier, the group's
+fastest, as a group of its own. It drives to look at what we know least (his start box and base first, then spots
+nobody has seen, then the stalest), attacks what it finds unguarded (a constructor, an extractor, a radar with
+nothing armed in reach), and does not stand inside the reach of anything that can shoot it. Both are picks: say in
+the packet which group roves and when. A roving group answers no party. The group's entry says what each rover is
+doing and what it has found; the way back is a pick too: name its new job in the packet ("group_A: comes home to
+spot_10 and holds there"), and a roving group nobody names keeps roving. It is scouting footwork: at a base with Pawns patrolling, a roving Rover stepped
 off from each and killed nothing (player-20, player-21). In player-9, before roving, three scouts went at his base
 under the hands and none arrived; in player-10 three roving Rovers had his lab in the picture at 3:45 and came back
 alive.

@@ -24,6 +24,9 @@ use crate::world::Domain;
 
 /// A builder is threatened by a party this close, or by a hit in the last seconds: a listed builder then has its
 /// ways out on a menu, and no builder queues a step behind its build.
+/// The rover's job, as the `rove` and `rove_1` moves say it (H-MICRO-ROVE; docs/studies/2026-10-07-rove-words.md).
+const ROVE_WORDS: &str = "looking at what we know least, killing unguarded constructors and extractors, and keeping out of every reach";
+
 const THREATENED: f32 = 800.0;
 /// A builder whose started build is this far along has its moves ordered behind it (H-HANDS-QUEUE).
 const QUEUE_AT: f32 = 0.6;
@@ -92,9 +95,9 @@ pub(crate) enum Order {
     Join(String),
     /// Beside a group or a builder of ours, wherever it goes.
     Follow(Ward),
-    /// One soldier leaves to rove (H-MICRO-ROVE).
-    Scout,
-    /// The whole group roves (H-MICRO-ROVE), until the player's lane takes it back.
+    /// Its fastest soldier leaves as a group of its own and roves (H-MICRO-ROVE).
+    RoveOne,
+    /// The whole group roves (H-MICRO-ROVE), until a later pick takes it elsewhere.
     Rove,
     Build(UnitDefId, Site),
     /// Guard a factory or another builder: its build power goes to whatever that makes.
@@ -431,7 +434,7 @@ struct Scene<'a> {
     parties: Vec<(&'a Party, String, Option<f32>)>,
     under_fire: Vec<UnitId>,
     builders: Vec<&'a OwnUnit>,
-    /// Every group that is not roving: its name, where its body stands, its soldiers and its course in words.
+    /// Every group: its name, where its body stands, its soldiers and its course in words.
     groups: Vec<(&'a Group, Vec3, Vec<&'a OwnUnit>, String)>,
 }
 
@@ -633,6 +636,11 @@ impl Brain {
             }
             GroupTask::Hunt(h) => ("hunt", String::new(), format!("hunts {}", h.party), Some(h.party.clone())),
             GroupTask::Follow { name: ward, .. } => ("follow", format!("follow_{ward}"), format!("follows {ward}"), None),
+            // The entry's words: what each rover is doing this second (`picture.rs` `rover_words`).
+            GroupTask::Rove { .. } => {
+                let doing = picture.state["actors"][&name]["doing"].as_str().unwrap_or("roving");
+                ("rove", "rove".to_string(), format!("roves: {}", doing.split_once(": ").map_or("its soldiers look at what we know least", |(_, rest)| rest)), None)
+            }
         }
     }
 
@@ -669,8 +677,9 @@ impl Brain {
         (format!("{} ({composition}{}, {place}{harming}{heading})", party.name, under(party)), speed)
     }
 
-    /// Every actor's menu this second: each group that is not roving, each builder off a list (a listed one only
-    /// while it is threatened, and then with its ways out alone), each factory with nothing ordered ahead.
+    /// Every actor's menu this second: each group (a roving one with no party moves: its sightings are the lane's
+    /// business), each builder off a list (a listed one only while it is threatened, and then with its ways out
+    /// alone), each factory with nothing ordered ahead.
     pub(super) fn menus(&self, tick: &Tick, kit: &Kit, picture: &Picture) -> Vec<Menu> {
         let Some(pianist) = self.pianist.as_ref() else { return Vec::new() };
         let own = tick.snapshot.own_units.as_slice();
@@ -698,7 +707,6 @@ impl Brain {
         let groups: Vec<(&Group, Vec3, Vec<&OwnUnit>, String)> = pianist
             .groups
             .iter()
-            .filter(|g| !g.roving)
             .filter_map(|g| {
                 let units = g.units(own);
                 let at = g.body(own, None)?.at;
@@ -709,7 +717,7 @@ impl Brain {
         let mut menus: Vec<Menu> = Vec::new();
         menus.extend(scene.builders.iter().filter_map(|unit| self.builder_menu(&scene, unit)));
         menus.extend(own.iter().filter(|u| !u.being_built && self.world.is_factory_def(u.def)).filter_map(|unit| self.factory_menu(&scene, unit)));
-        menus.extend(pianist.groups.iter().filter(|g| !g.roving).filter_map(|group| self.group_menu(&scene, group)));
+        menus.extend(pianist.groups.iter().filter_map(|group| self.group_menu(&scene, group)));
         menus
     }
 
@@ -778,7 +786,7 @@ impl Brain {
             GroupTask::Move { to, .. } => Some(*to),
             GroupTask::Engage { at, .. } | GroupTask::Follow { at, .. } => Some(*at),
             GroupTask::Hunt(h) => Some(h.at),
-            GroupTask::Hold { .. } => None,
+            GroupTask::Hold { .. } | GroupTask::Rove { .. } => None,
         };
         let nearest_to = |p: &Party| units.iter().map(|u| u.pos.dist2d(p.at)).fold(f32::INFINITY, f32::min);
         // The party in the group's entry, as the picture has it.
@@ -839,6 +847,7 @@ impl Brain {
             GroupTask::Engage { .. } => format!("; leaves {}", aimed_at.as_deref().unwrap_or("the party it was attacking")),
             GroupTask::Hunt(h) => format!("; leaves its hunt of {}", h.party),
             GroupTask::Follow { name: ward, .. } => format!("; leaves {ward}"),
+            GroupTask::Rove { .. } => "; leaves its roving".to_string(),
         };
         let at = picture.state["actors"][&name]["at"].as_str().unwrap_or("where it stands").to_string();
         let mut moves = vec![Move::new("stay".into(), Order::Stay, format!("{name} {course_words}{against_words}{keeps}"), "its course".into(), None, false)];
@@ -855,7 +864,7 @@ impl Brain {
 
         // Hold and gather.
         push("hold".into(), Order::Hold, format!("{name} holds: every soldier stops where it stands, at {at}, and the group stays there until told otherwise{keeps}{leaves}{}", undoes("hold")), format!("the hold at {at}"), None, false);
-        if !air && units.len() >= 2 {
+        if !air && units.len() >= 2 && !group.roving() {
             let tail = if body.whole < HERE {
                 "it stands together already"
             } else if body.whole < super::groups::STRUNG_OUT {
@@ -913,6 +922,7 @@ impl Brain {
         }
         // The shooter out of sight that is hitting this group: its estimated place is one to advance on.
         if !air
+            && !group.roving()
             && let Some(s) = self.shelling_for(&group.members)
             && let Some(sp) = picture.places.iter().find(|p| p.name == format!("shelling_{}", group.name)).or_else(|| picture.places.iter().find(|p| p.name == "shelling"))
             && self.reachable_for(walker, s.at)
@@ -939,7 +949,8 @@ impl Brain {
         let screen = units.len() - long_reach.len();
         // A detachment's soldiers: the fastest armed members, the nearest of them first.
         let armed: Vec<&OwnUnit> = units.iter().copied().filter(|u| self.world.def(u.def).is_some_and(|d| d.weapon_count > 0 && d.speed > 0.0)).collect();
-        for (party, party_words, quarry_speed) in &scene.parties {
+        // A roving group's parties are the lane's business (H-MICRO-ROVE): no attack, shell or send on its menu.
+        for (party, party_words, quarry_speed) in scene.parties.iter().filter(|_| !group.roving()) {
             if !self.reachable_for(walker, party.at) {
                 continue;
             }
@@ -1014,7 +1025,7 @@ impl Brain {
                 );
             }
         }
-        if !air && !long_reach.is_empty() {
+        if !air && !long_reach.is_empty() && !group.roving() {
             for (place, words) in scene.his.iter().filter(|(p, _)| self.reachable_for(walker, p.at)) {
                 push(
                     format!("shell_{}", place.name),
@@ -1072,27 +1083,38 @@ impl Brain {
                     false,
                 );
             }
-            // The whole group roves (H-MICRO-ROVE), run in code with no orders from the hands, until the player's
-            // lane takes it back. A pick since 2026-10-07; the player's `lane rove` set it with no pick before, over
-            // the group's course on a picture as old as the turn (human-26 1:57: two Rovers taken off a raid Jev had
-            // sent them against three seconds earlier; docs/design/2026-10-07-rove-approval.md). The words are the
-            // `plain` arm of docs/studies/2026-10-07-rove-words.md: the first words ("roves whole: every soldier
-            // runs on its own in code, ten times a second, beyond your hands' reach ... whatever the odds; nothing
-            // of your hands moves it again") rated 0.15 median where the packet asked for roving (rove-move-1,
-            // never picked in 1,905 gates); these rate 0.65 there and 0.07 where it does not.
+            // The whole group roves (H-MICRO-ROVE): a task, the lane running every soldier, any later pick the way
+            // back (docs/design/2026-10-07-rove-approval.md, the rework). A pick since 2026-10-07; the player's
+            // `lane rove` set it with no pick before, over the group's course on a picture as old as the turn
+            // (human-26 1:57: two Rovers taken off a raid Jev had sent them against three seconds earlier). The
+            // words are the `plain` arm of docs/studies/2026-10-07-rove-words.md: the first words ("roves whole:
+            // every soldier runs on its own in code, ten times a second, beyond your hands' reach ... whatever the
+            // odds; nothing of your hands moves it again") rated 0.15 median where the packet asked for roving
+            // (rove-move-1, never picked in 1,905 gates); these rate 0.65 there and 0.07 where it does not. With
+            // the menu kept while roving, no take-back move came over the bar under a packet that asks for roving
+            // (docs/studies/2026-10-08-roving-menu.md).
             push(
                 "rove".into(),
                 Order::Rove,
-                format!("{name} roves: its soldiers scout his side on their own, looking at what we know least, killing unguarded constructors and extractors, and keeping out of every reach; the player's lane setting brings it back{keeps}{leaves}{}", undoes("rove")),
+                format!("{name} roves: its soldiers scout his side on their own, {ROVE_WORDS}; a pick of yours brings it back{keeps}{leaves}{}", undoes("rove")),
                 "roving whole".into(),
                 None,
                 false,
             );
-            // The scout: one soldier leaves to rove (H-MICRO-ROVE), run in code with no orders from the hands.
+            // Its fastest soldier leaves as a group of its own and roves: the detachment ladder's first rung, aimed
+            // at nothing (`scout` until 2026-10-08).
             if units.len() >= 2
-                && let Some(fastest) = units.iter().filter_map(|u| self.world.def(u.def)).max_by(|a, b| a.speed.total_cmp(&b.speed))
+                && !group.roving()
+                && let Some(fastest) = units.iter().copied().max_by(|a, b| self.world.def(a.def).map_or(0.0, |d| d.speed).total_cmp(&self.world.def(b.def).map_or(0.0, |d| d.speed)))
             {
-                push("scout".into(), Order::Scout, format!("{name} sends its fastest soldier (a {}) to rove on its own: it looks at what we know least, his start box first, kills what it finds unguarded and keeps out of the reach of anything that can shoot it; the rest carry on", self.short_words(fastest.id)), "sending a scout to rove".into(), None, false);
+                push(
+                    "rove_1".into(),
+                    Order::RoveOne,
+                    format!("1 {} of {name} (its fastest) leaves it as a group of its own and roves: it scouts his side on its own, {ROVE_WORDS}; the rest of {name} keeps its course", self.name(fastest.def)),
+                    "a rover of one".into(),
+                    None,
+                    true,
+                );
             }
         }
         let reached_here = group.reached.last().is_some_and(|(last, _)| picture.places.iter().any(|p| p.name == *last && p.at.dist2d(body.at) < HERE));
@@ -1484,6 +1506,42 @@ pub(super) mod tests {
         Menu { name: name.to_string(), kind, moves: all, idle, queue_ahead: false, course: if idle { "idle" } else { "go" }, course_key: String::new(), course_words: "walks".to_string(), aimed_at: None, against: None, near_party: None, fight: None, at: None, idle_words: format!("{name} idle, doing nothing"), quiet: false, audit: false, reopened: false }
     }
 
+    /// A roving group keeps a menu (the rework of docs/design/2026-10-07-rove-approval.md): its course is the rove
+    /// with the entry's words, the way back (hold, the walks, the joins, the follows) is on it, and nothing aimed
+    /// at a party: its sightings are the lane's business. Offline, under packets that ask for roving, no take-back
+    /// move came over the bar at 48 gates (docs/studies/2026-10-08-roving-menu.md).
+    #[test]
+    fn a_roving_group_keeps_a_menu_with_the_way_back_and_no_party_moves() {
+        use super::super::fixtures::{at, e3};
+        use bot_protocol::{Resource, Snapshot};
+        let (mut brain, ours, enemies, parties) = e3();
+        let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Rove { since: 0 }, 0));
+        pianist.groups.push(Group::new("B".into(), Domain::Ground, vec![UnitId(900)], GroupTask::Hold { since: 0, committed: false, picked: true }, 0));
+        brain.pianist = Some(pianist);
+        let mut own = ours.clone();
+        own.push(super::super::fixtures::own(900, 1, at(1000.0, 1000.0)));
+        let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies, wrecks: None } };
+        let id = UnitDefId(1);
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        let place = |name: &str, x: f32, z: f32, spot: Option<usize>| Place { name: name.to_string(), at: at(x, z), spot };
+        let picture = Picture {
+            rules: String::new(),
+            state: serde_json::json!({ "instructions": "group_A (Blitzes): roves; being seen is its job. spot_30 is ours.", "actors": { "group_A": { "at": "spot_40 (E3)", "doing": "roving since 10 s ago: its Blitz at spot_40 (E3) is on its way to look at spot_30, 400 to go" } }, "places": {} }),
+            places: vec![place("home", 500.0, 5000.0, None), place("spot_30", 3000.0, 2600.0, Some(30))],
+            parties,
+        };
+        let menus = brain.menus(&tick, &kit, &picture);
+        let menu = menus.iter().find(|m| m.name == "group_A").expect("the roving group's menu");
+        let keys: Vec<&str> = menu.moves.iter().map(|m| m.key.as_str()).collect();
+        assert_eq!(keys, ["stay", "hold", "go_spot_30", "fight_to_spot_30", "join_group_B", "follow_group_B"], "no gather, nothing aimed at party_12, no rove or rove_1 while roving");
+        assert!(!menu.idle && menu.course == "rove" && menu.course_key == "rove", "{} {}", menu.course, menu.course_key);
+        let words = |key: &str| menu.moves.iter().find(|m| m.key == key).unwrap().words.clone();
+        assert!(words("stay").starts_with("group_A roves: its Blitz at spot_40 (E3) is on its way to look at spot_30"), "{}", words("stay"));
+        assert!(words("hold").ends_with("; leaves its roving"), "{}", words("hold"));
+    }
+
     /// The E3 scene (fourteen Blitzes, three Centurions 600 from them, two of his turrets beyond): one menu for the
     /// group with every verb, aimed at everything named. The step back to the place its packet names stands beside
     /// its answers to the party, with the fight's facts on both; a place nobody named is no walk; his buildings are
@@ -1516,7 +1574,7 @@ pub(super) mod tests {
         let keys: Vec<&str> = menu.moves.iter().map(|m| m.key.as_str()).collect();
         assert_eq!(
             keys,
-            ["stay", "hold", "gather", "go_spot_30", "fight_to_spot_30", "fight_to_spot_47", "attack_party_12", "send_1_party_12", "send_2_party_12", "send_4_party_12", "send_8_party_12", "join_group_B", "follow_group_B", "rove", "scout"],
+            ["stay", "hold", "gather", "go_spot_30", "fight_to_spot_30", "fight_to_spot_47", "attack_party_12", "send_1_party_12", "send_2_party_12", "send_4_party_12", "send_8_party_12", "join_group_B", "follow_group_B", "rove", "rove_1"],
             "no walk home and none to spot_31, which the packet does not name; his turrets at spot_47 are a place to attack"
         );
         assert!(menu.idle && menu.course == "idle" && menu.near_party.as_deref() == Some("party_12"));
@@ -1543,7 +1601,7 @@ pub(super) mod tests {
         assert_eq!(brain.standing(&[&beside], &picture.parties[0], &tick.snapshot.enemies).words(), "it has the party in reach");
         // The other group holds by a pick: that is a course, and its menu has no second `hold`.
         let other = menus.iter().find(|m| m.name == "group_B").expect("the other group's menu");
-        assert!(!other.idle && other.course == "hold" && !other.moves.iter().any(|m| m.key == "hold" || m.key == "gather" || m.key == "scout"), "{:?}", other.moves.iter().map(|m| &m.key).collect::<Vec<_>>());
+        assert!(!other.idle && other.course == "hold" && !other.moves.iter().any(|m| m.key == "hold" || m.key == "gather" || m.key == "rove_1"), "{:?}", other.moves.iter().map(|m| &m.key).collect::<Vec<_>>());
         // A move that would take the group back to the course its last pick left says so.
         brain.pianist.as_mut().unwrap().registers.insert("group_A".into(), Register { frame: 240, words: "picked the hold at spot_40, leaving its course (walks to spot_30)".into(), left: "go_spot_30".into() });
         let menus = brain.menus(&tick, &kit, &picture);

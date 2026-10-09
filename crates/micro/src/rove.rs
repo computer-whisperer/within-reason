@@ -578,7 +578,7 @@ mod tests {
         let host = Host::new(Vec::new());
         let mut lane = Lane::default();
         let ids = [10, 11, 12, 13, 14, 15];
-        let form_only = crate::Footwork { flee: false, fan: false, kite: false, form: true, march: false, rove: false };
+        let form_only = crate::Footwork { flee: false, fan: false, kite: false, form: true, march: false };
         lane.set_commitments(HashMap::new(), ids.iter().map(|id| (UnitId(*id), form_only)).collect());
         let station = at(1000.0, 3600.0);
         let rovers = |x: f32| ids.iter().enumerate().map(|(i, id)| rover(*id, x + 40.0 * (i % 3) as f32, 1000.0 + 40.0 * (i / 3) as f32)).collect::<Vec<_>>();
@@ -618,7 +618,7 @@ mod tests {
         let host = Host::new(Vec::new());
         let mut lane = Lane::default();
         let ids = [10, 11, 12, 13, 14, 15];
-        let form_only = crate::Footwork { flee: false, fan: false, kite: false, form: true, march: false, rove: false };
+        let form_only = crate::Footwork { flee: false, fan: false, kite: false, form: true, march: false };
         lane.set_commitments(HashMap::new(), ids.iter().map(|id| (UnitId(*id), form_only)).collect());
         let rovers = ids.iter().enumerate().map(|(i, id)| rover(*id, 1000.0 + 40.0 * (i % 3) as f32, 1000.0 + 40.0 * (i / 3) as f32)).collect::<Vec<_>>();
         let mut host_orders: Vec<Command> = ids.iter().map(|id| Command::Fight { unit: UnitId(*id), to: at(1000.0, 3600.0), queue: false }).collect();
@@ -641,7 +641,7 @@ mod tests {
         let host = Host::new(Vec::new());
         let mut lane = Lane::default();
         let ids = [10, 11, 12, 13, 14, 15];
-        let marching = crate::Footwork { flee: false, fan: false, kite: false, form: true, march: true, rove: false };
+        let marching = crate::Footwork { flee: false, fan: false, kite: false, form: true, march: true };
         lane.set_commitments(HashMap::new(), ids.iter().map(|id| (UnitId(*id), marching)).collect());
         // Five Pawns (87) and one Rover (168), together at x 1000; the goal 3,000 east.
         let mut body: Vec<OwnUnit> = ids.iter().enumerate().map(|(i, id)| rover(*id, 1000.0 + 40.0 * (i % 3) as f32, 1000.0 + 40.0 * (i / 3) as f32)).collect();
@@ -665,7 +665,7 @@ mod tests {
         let host = Host::new(Vec::new());
         let mut lane = Lane::default();
         let ids: Vec<i32> = (10..22).collect();
-        let marching = crate::Footwork { flee: false, fan: false, kite: false, form: true, march: true, rove: false };
+        let marching = crate::Footwork { flee: false, fan: false, kite: false, form: true, march: true };
         lane.set_commitments(HashMap::new(), ids.iter().map(|id| (UnitId(*id), marching)).collect());
         // Twelve Pawns in a file 880 long toward the goal: the rank 300 ahead of its centre lies behind its head.
         let mut body: Vec<OwnUnit> = ids.iter().enumerate().map(|(i, id)| rover(*id, 1000.0 + 80.0 * i as f32, 1000.0)).collect();
@@ -691,7 +691,7 @@ mod tests {
         host.pit = Some((at(1544.0, 1040.0), 150.0));
         let mut lane = Lane::default();
         let ids = [10, 11, 12, 13, 14, 15];
-        let marching = crate::Footwork { flee: false, fan: false, kite: false, form: true, march: true, rove: false };
+        let marching = crate::Footwork { flee: false, fan: false, kite: false, form: true, march: true };
         lane.set_commitments(HashMap::new(), ids.iter().map(|id| (UnitId(*id), marching)).collect());
         let body: Vec<OwnUnit> = ids.iter().enumerate().map(|(i, id)| rover(*id, 1000.0 + 40.0 * (i % 3) as f32, 1000.0 + 40.0 * (i / 3) as f32)).collect();
         let goal = at(4000.0, 1000.0);

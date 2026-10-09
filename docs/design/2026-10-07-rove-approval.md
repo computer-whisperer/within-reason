@@ -11,7 +11,39 @@ were the cause: replayed offline (docs/studies/2026-10-07-rove-words.md) the rec
 the packet asked for roving and the `plain` words 0.65, with no lift where it did not ask; the plain words are in
 the menu since. May be rolled back.
 
-## The build (2026-10-07, the ruling)
+## The rework (2026-10-08): roving is a task, the way back is a pick
+
+Human-27 1:43-2:34 (the first Rascals' 50 s at spot_18 while the packet asked for roving) showed the 10-07 build's
+shape as lingering complexity: two moves for one behaviour (`scout` splitting one soldier into a fresh lettered
+group flagged roving on the spot, needing two soldiers; `rove` setting a wish flag the next look turns into a state,
+a `lane` decision row and a reset to a hold), a roving group with no menu, and the way back a counter on the
+player's footwork tool, so Jev could put a group on rove but never take it back. The user, 2026-10-08: "lingering
+complexity on the scout/rove system that needs to be weeded out of the hands menus"; the rework below agreed, the
+check run first (`docs/studies/2026-10-08-roving-menu.md`: a roving group with a menu is not pulled off its rove
+under the recorded packets, 0 of 48 gates, and a take-back paragraph brings it home at every gate, 48 of 48).
+
+- **Roving is a group task.** `GroupTask::Rove { since }` beside hold, move, engage, hunt and follow. The pick sets
+  it in `execute` like every task; the micro maps it to the rove commitment as it maps a hunt. `wants_rove`,
+  `roving`, `lane_set_at`, the deferred switch in `keep_groups` and the `lane` decision row are deleted: the pick's
+  own `plan` row is the record (the record format's `lane` row is retired, readers keep it for the records of
+  2026-10-07). `rove_log` stays: the lane's findings for the picture.
+- **One move family.** `rove` is the whole group; `scout` is renamed `rove_1`, in the detachment ladder's shape and
+  words ("1 corfav of group_A (its fastest) leaves it as a group of its own and roves: ..."), the roving words shared
+  with `rove`. A group of one has `rove` and needs nothing else. The lane tool's refusal names both.
+- **A roving group keeps a menu**: its `stay` line says what its soldiers are looking at; `hold`, the walks, the
+  joins and the follows are on it; no party-aimed move (attack, shell, send): its sightings stay the lane's
+  business (its hits and sightings are no events, as before). The `news` layer closes it like any actor with a
+  course, and the party in its entry is not news for it, so it is asked only on a packet or list change, a course
+  change, and the re-ask interval. The lane tool is footwork only: no counter, no take-back.
+- **Words.** The entry's `doing` reads "roving: its Rascal at ... is on its way to look at spot_62 ..." (no "in
+  code, beyond your hands' reach"); the entry's `lane` line says "a pick of yours brings them back". The brief says
+  the way back is a pick: name the group's new job in the packet.
+
+Rejected: keeping `scout` as a no-menu group (the player-9 pull-home it guarded against is answered by the news
+layer and the check above, not by hiding the group); the lane counter as the way back (a bypass in the other
+direction, and a footwork tool doing control).
+
+## The build (2026-10-07, the ruling; superseded by the rework above)
 
 - `lane` refuses `rove`. Roving is the group menu's `rove` move (`Order::Rove`, allowed for a group of one, every
   ground group) beside `scout` (one soldier, a group of two or more). The move's words carry the fight it is near,

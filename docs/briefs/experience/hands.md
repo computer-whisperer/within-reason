@@ -26,15 +26,16 @@ against your packet. They cannot count, plan or remember beyond what the picture
 - A scout's sentence that held under the enemy commander's eyes: "it is a scout: it runs from what can catch it and
   otherwise keeps to its route; being seen is its job".
 
-**`rove`.** `lane` with `{"group_R": "rove"}` hands a group of fast units (Rovers, Ticks; name a plant's output into
-it with `produce`) to code that runs each of them ten times a second. It drives to look at what we know least (his
-start box and base first, then spots nobody has seen, then the stalest), attacks what it finds unguarded (a
-constructor, an extractor, a radar with nothing armed in reach), and does not stand inside the reach of anything
-that can shoot it. Your hands do not move a roving group. The group's entry says what each rover is doing and what
-it has found; `"on"` takes the group back. It is scouting footwork: at a base with Pawns patrolling, a roving Rover
-stepped off from each and killed nothing (player-20, player-21). In player-9, before `rove`, three scouts went at
-his base under the hands and none arrived; in player-10 three Rovers on `rove` had his lab in the picture at 3:45
-and came back alive.
+**`rove`.** Your hands' `rove` move, a pick, hands a group of fast units (Rovers, Ticks; name a plant's output into
+it with `produce`) to code that runs each of them ten times a second; `rove_1` sends one soldier, the group's
+fastest, as a group of its own. It drives to look at what we know least (his start box and base first, then spots
+nobody has seen, then the stalest), attacks what it finds unguarded (a constructor, an extractor, a radar with
+nothing armed in reach), and does not stand inside the reach of anything that can shoot it. Say in the packet which
+group roves and when. A roving group answers no party. The group's entry says what each rover is doing and what it
+has found; the way back is a pick too: name its new job in the packet, and a roving group nobody names keeps
+roving. It is scouting footwork: at a base with Pawns patrolling, a roving Rover stepped off from each and killed
+nothing (player-20, player-21). In player-9, before `rove`, three scouts went at his base under the hands and none
+arrived; in player-10 three roving Rovers had his lab in the picture at 3:45 and came back alive.
 
 **Several seats.** When the report's `seats:` line says you command more than one seat, every per-seat name carries
 its seat's tag: `commander_t1`, `group_A_t2`, `party_3_t2`, `passage_1_t2`; the other seats' starts are `home_t2`

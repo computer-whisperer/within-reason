@@ -374,16 +374,18 @@ Nothing of this plays without a pick: say in the packet what you want done and t
 `produce`, and its newcomers rove too) to code that runs each of them ten times a second: it drives to look at what
 we know least (his start box and base first, then spots nobody has seen, then the stalest), attacks what it finds
 unguarded (a constructor, an extractor, a radar with nothing armed in reach), and never stands inside the reach of
-anything that can shoot it: a Rover outruns a Pawn and steps off before it is in reach. `scout` does the same with
-one soldier, the group's fastest. Both are picks: say in the packet which group roves and when ("group_A (the
-Rovers): roves, his start box first"), and your hands weigh it against what the group is doing; it was a `lane`
-setting before, which took a group off a raid it had been sent against on a picture as old as the turn (human-26
-1:57). It is scouting footwork, not an assault: at a base with Pawns patrolling, a roving Rover steps off from each
-and kills nothing (player-20, player-21); a body sent to do damage goes with the evasion rules off, never roving.
-Your hands never move a roving group (no hunt, retreat or join), which is what killed the scouts before: in
-player-9 three scouts went at his base and none arrived (one turned home by the hands at the first sight of his
-commander, one into two Pawns, one onto a hunt). The group's entry says what each rover is doing and what it has
-found (`rove`); any `lane` setting for the group (`"on"`) takes it back, holding where each soldier stands.
+anything that can shoot it: a Rover outruns a Pawn and steps off before it is in reach. `rove_1` does the same with
+one soldier, the group's fastest, as a group of its own. Both are picks: say in the packet which group roves and
+when ("group_A (the Rovers): roves, his start box first"), and your hands weigh it against what the group is doing;
+it was a `lane` setting before, which took a group off a raid it had been sent against on a picture as old as the
+turn (human-26 1:57). It is scouting footwork, not an assault: at a base with Pawns patrolling, a roving Rover
+steps off from each and kills nothing (player-20, player-21); a body sent to do damage goes with the evasion rules
+off, never roving. A roving group answers no party (no hunt, no attack): its sightings are the rover's own, which
+is what killed the scouts before (player-9: three scouts went at his base and none arrived, one turned home by the
+hands at the first sight of his commander, one into two Pawns, one onto a hunt). The group's entry says what each
+rover is doing and what it has found (`rove`). The way back is a pick too: name the group's new job in the packet
+("group_A: comes home to spot_10 and holds there as the picket"), and your hands walk it there; a roving group
+nobody names keeps roving.
 [K-micro-a-rover-outruns-what-it-cannot-fight]
 
 **Which map.** Four maps have sections here, Quicksilver Remake, Comet Catcher Remake, Cape Violet V1 and Great Divide V1.

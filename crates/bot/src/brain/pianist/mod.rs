@@ -1432,6 +1432,7 @@ impl Brain {
                     GroupTask::Engage { at, target, .. } => json!({ "kind": if target.is_some() { "attack_unit" } else { "engage" }, "to": [at.x as i32, at.z as i32] }),
                     GroupTask::Hunt(h) => json!({ "kind": "hunt", "party": h.party, "quarry": h.quarry.0, "to": [h.at.x as i32, h.at.z as i32] }),
                     GroupTask::Follow { name, at, .. } => json!({ "kind": "follow", "ward": name, "to": [at.x as i32, at.z as i32] }),
+                    GroupTask::Rove { .. } => json!({ "kind": "rove" }),
                 };
                 json!({ "name": g.name, "members": g.members.iter().map(|id| id.0).collect::<Vec<_>>(), "at": centre.map(|c| [c.x as i32, c.z as i32]), "task": task })
             })

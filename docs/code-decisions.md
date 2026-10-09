@@ -36,7 +36,7 @@ removed changes its row here.
 | A pick replaced at execution: a picked factory becomes help on a frame of that type within 900; a tier-2 extractor under way becomes a repair | `FRAME_HELP = 900` | `P/execute.rs` | H-HANDS-STARTED, H-HANDS-UPGRADE |
 | Who and what inside a move: a detachment is the fastest armed, nearest first; the quarry the party's nearest unit; the scout the fastest; an air target his commander, else the dearest; the larger group keeps its name in a join | | `P/menu.rs`, `P/groups.rs`, `P/execute.rs` | mostly none |
 | Shelling footwork: artillery to 0.85 of its reach, the screen to 0.55 | `STANDOFF = 0.85`, `SCREEN = 0.55` | `P/execute.rs` | H-HANDS-GROUP-STATES |
-| A group picked to rove (`rove`, or `scout` for one soldier) roves from the next look; any lane setting the player gives it since takes it back into a hold (the player's own `rove` setting, the one unit-control order with no pick, deleted 2026-10-07) | | `B/micro.rs`, `P/groups.rs` | H-MICRO-ROVE |
+| A group picked to rove (`rove`, or `rove_1` for its fastest soldier as a group of its own) is the lane's from the next tick, and any later pick takes it elsewhere (the player's own `rove` setting, the one unit-control order with no pick, deleted 2026-10-07; the lane setting as the way back, a bypass in the other direction, deleted 2026-10-08) | | `B/micro.rs`, `P/groups.rs`, `P/execute.rs` | H-MICRO-ROVE |
 
 ## 3. Options withheld before Jev sees them
 

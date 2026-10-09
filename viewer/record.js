@@ -9,7 +9,7 @@
 const WR = (() => {
   const FPS = 30;
   const FLAG = { beingBuilt: 1, idle: 2 };
-  /// The decision sources that are an actor's plays: the pick's, a list step's, and the lane's switch of a group into
+  /// The decision sources that are an actor's plays: the pick's, a list step's, and (records of 2026-10-07 only) the lane's switch of a group into
   /// or out of roving (docs/harness/record-format.md, decision records).
   const PLAY_SOURCES = new Set(["plan", "list", "lane"]);
   function playSource(source) {

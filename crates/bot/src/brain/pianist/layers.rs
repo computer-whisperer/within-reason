@@ -192,7 +192,10 @@ pub(super) fn news(menus: &mut [Menu], asked: &BTreeMap<String, Asked>, news: &N
             Kind::Builder(_) => news.store,
             Kind::Factory(_) => news.store || news.afford,
         };
-        let calm = before.course == course(menu) && before.party == menu.near_party && news.frame - before.frame < RE_ASK && !outside;
+        // A roving group's parties are the lane's business (H-MICRO-ROVE): a party coming into its entry is no news
+        // for it, so it is asked on a packet or list change, a course change and `RE_ASK` alone.
+        let party_news = before.party != menu.near_party && menu.course != "rove";
+        let calm = before.course == course(menu) && !party_news && news.frame - before.frame < RE_ASK && !outside;
         // Its only news is that something of its opened at the last gate: the gate goes again for what opened.
         menu.reopened = calm && named && mine().all(|rest| rest == "opened");
         if calm && !named {

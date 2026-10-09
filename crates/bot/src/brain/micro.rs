@@ -63,10 +63,10 @@ impl Brain {
                     super::pianist::GroupTask::Hold { .. } | super::pianist::GroupTask::Follow { .. } => Commitment::Priced { turrets: Vec::new(), commander: false },
                     super::pianist::GroupTask::Engage { .. } => Commitment::Priced { turrets: Vec::new(), commander: metal >= COMMANDER_PARTY_METAL },
                     super::pianist::GroupTask::Move { fight: false, .. } => Commitment::None,
-                    super::pianist::GroupTask::Hunt(_) => Commitment::None,
+                    super::pianist::GroupTask::Hunt(_) | super::pianist::GroupTask::Rove { .. } => Commitment::None,
                 };
                 let rules = self.footwork_of(&group.name);
-                if group.roving {
+                if group.roving() {
                     commitment.extend(group.members.iter().map(|id| (*id, Commitment::Rove)));
                     footwork.extend(group.members.iter().map(|id| (*id, Footwork::raw())));
                     continue;
@@ -99,12 +99,6 @@ impl Brain {
         let Some(shared) = &self.strategist else { return Footwork::default() };
         let lane = shared.lane.lock().unwrap();
         lane.get(&format!("group_{group}")).or_else(|| lane.get("all")).copied().unwrap_or_default()
-    }
-
-    /// Whether a group roves (H-MICRO-ROVE): picked to by the hands' `rove` or `scout` move and not taken back by
-    /// the player's lane since (`keep_groups`). Never an air group: the lane's steps are ground cells.
-    pub(super) fn roves(&self, group: &super::pianist::Group) -> bool {
-        group.domain != Domain::Air && group.wants_rove
     }
 
     /// Every tick: the lane over the brain's view, over the brain's own orders of this tick (`commands`, which

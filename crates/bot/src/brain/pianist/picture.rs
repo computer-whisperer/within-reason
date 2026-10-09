@@ -1574,7 +1574,7 @@ impl Brain {
             }
             actors.insert(name, entry);
         }
-        let scouts: Vec<String> = pianist.groups.iter().filter(|g| g.roving).map(|g| format!("group_{} roving: {}", g.name, self.rover_words(g, own, &snapshot.enemies, &places))).collect();
+        let scouts: Vec<String> = pianist.groups.iter().filter(|g| g.roving()).map(|g| format!("group_{} roving: {}", g.name, self.rover_words(g, own, &snapshot.enemies, &places))).collect();
         for group in &pianist.groups {
             let units = group.units(own);
             let own_shelling = group_shelling.get(&group.name);
@@ -1584,7 +1584,7 @@ impl Brain {
                 GroupTask::Move { to, .. } => Some(*to),
                 GroupTask::Engage { at, .. } | GroupTask::Follow { at, .. } => Some(*at),
                 GroupTask::Hunt(h) => Some(h.at),
-                GroupTask::Hold { .. } => None,
+                GroupTask::Hold { .. } | GroupTask::Rove { .. } => None,
             };
             let nearest_to_any = |p: &Party| units.iter().map(|u| u.pos.dist2d(p.at)).fold(f32::INFINITY, f32::min);
             let toward = goal.or_else(|| parties.iter().map(|p| (nearest_to_any(p), p)).filter(|(d, _)| *d < NEAR).min_by(|a, b| a.0.total_cmp(&b.0)).map(|(_, p)| p.at));
@@ -1616,8 +1616,9 @@ impl Brain {
                 }
                 GroupTask::Follow { name: ward, since, at, .. } => format!("following {ward} for {} ({:.0} from it)", ago(*since), body.at.dist2d(*at)),
                 GroupTask::Hunt(hunt) => format!("hunting {} since {} ago (its quarry {} at {})", hunt.party, ago(hunt.since), if frame - hunt.last_seen < FRAMES_PER_SECOND { "seen" } else { "last seen" }, self.place_words(&places, hunt.at)),
+                // What each rover is doing this second; the menu's course words are these (`group_course`).
+                GroupTask::Rove { since } => format!("roving since {} ago: {}", ago(*since), self.rover_words(group, own, &snapshot.enemies, &places)),
             };
-            let doing = if group.roving { format!("roving, in code, beyond your hands' reach: {}", self.rover_words(group, own, &snapshot.enemies, &places)) } else { doing };
             // Health as a distribution, not an average (game 9: "full on average" at 22 of 39 lost), with the
             // losses since the player's last orders, which is what it asked about.
             let full = units.iter().filter(|u| u.health >= 0.95 * u.max_health).count();
@@ -1669,11 +1670,12 @@ impl Brain {
             }
             // The lane as it plays: a roving group is the lane's whole (H-MICRO-ROVE, a pick), else the player's
             // footwork setting.
-            let footwork = if group.roving { crate::strategist::shared::Footwork::rove() } else { self.footwork_of(&group.name) };
-            if let Some(words) = footwork.words() {
+            if group.roving() {
+                entry["lane"] = json!("roving: its soldiers look at the places nothing of ours has seen (his start box first), kill what they find unguarded (extractors, radars, lone constructors) and keep out of the reach of anything that can shoot it; a pick of yours brings them back");
+            } else if let Some(words) = self.footwork_of(&group.name).words() {
                 entry["lane"] = json!(words);
             }
-            if group.roving && !group.rove_log.is_empty() {
+            if group.roving() && !group.rove_log.is_empty() {
                 entry["rove"] = json!(group.rove_log.iter().map(|(_, line)| line.as_str()).collect::<Vec<_>>());
             }
             // The last 30 s, not "since the player's last orders": turns come every ten seconds now, and the line read

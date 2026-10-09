@@ -46,7 +46,7 @@ One shape for every decision source, so a new layer slots in without a format ch
 | `plan` | `builder`, `lab`, `group` | the hands' play the pick put in force (the rebuilt hands, 2026-10-02 on). inputs {`actor`, `move` (the move's id, `<actor>.<verb>_<what>`)}; outputs {`did` (a sentence)} |
 | `plan` | `worlds` | one per pick. inputs {`components`}; outputs {`changed` ["actor: what"], `split` (as the Jev log's `plan` row)} |
 | `list` | `builder`, `lab` | a step of the player's build list begun by code. inputs {`actor`, `step`}; outputs {`did`} |
-| `lane` | `group` | the lane's switch of a group into or out of roving (H-MICRO-ROVE): into it on the look after the pick's `rove` move (the `plan` row before it; the player's `lane rove` setting, with no pick, until 2026-10-07), out of it on the player's `lane` setting (records from 2026-10-07 on; before it the switch left only the `rove` entries of the pianist's log: human-26 1:57). inputs {`actor`, `left` (what the group was doing: `attacking a party`, `walking to spot_N`, `holding`, `roving`...)}; outputs {`did`} |
+| `lane` | `group` | records of 2026-10-07 only (retired 2026-10-08: roving is a group task set by the pick, whose `plan` row is the record, and the way back is a pick too): the lane's switch of a group into or out of roving (H-MICRO-ROVE), into it on the look after the pick's `rove` move, out of it on the player's `lane` setting. inputs {`actor`, `left` (what the group was doing)}; outputs {`did`}. The viewer still reads it |
 | `heuristic` | `wave` | inputs {`home_group`}; outputs {`wave`, `target` {grid, x, z}, `first_stop`} |
 | `heuristic` | `contact` | H-ARMY-CONTACT, when the number answering a party changes. inputs {`party` (units), `metal`, `at` [x, z], `forced` (at the lab or the commander), `within_reach` (soldiers asked about), `burned_if_nobody` (metal, the simulator's)}; outputs {`sent`, `worth` (metal gained over sending nobody), `caught` (share of runs)} |
 | `heuristic` | `scout` | H-SCOUT-ROUTE, a raider sent on a route. inputs {`unit`, `route` ([x, z] per spot)}; outputs {`squares` (grid names)} |
@@ -132,7 +132,7 @@ sets it); the record header names it under `siblings.decision_logs`. JSON Lines;
   (its best-rated move's id), "best_p", "fault" (both at 0.5 or over: the layer would have been wrong to close it)}`.
   `worlds_gate` is as before with `worlds` [[move index per menu]] (0 is `stay`; world 1 is all zeros) and `flags`
   holding every noul by id. A `call` line's groups say `task.kind` hold (with `picked`), move_to, fight_to, engage,
-  attack_unit, hunt or follow (`ward`: a builder's or a group's name). `plan` lines are unchanged. A gate that
+  attack_unit, hunt, follow (`ward`: a builder's or a group's name) or, from 2026-10-08, rove. `plan` lines are unchanged. A gate that
   fails writes an `error` line and is asked again at the next second.
   With the `same` layer on, the pass line's `layers.same` counts the questions not sent and the audited ones, the
   `call` line carries only what was sent (the standing answers are in `worlds_gate.flags`), and an audit line reads

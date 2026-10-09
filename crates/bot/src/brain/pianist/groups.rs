@@ -6,7 +6,6 @@
 use std::collections::{BTreeMap, HashMap};
 
 use bot_protocol::{Command, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
-use serde_json::json;
 
 use super::super::roster::Kit;
 use super::super::{Brain, FRAMES_PER_SECOND};
@@ -93,6 +92,10 @@ pub(crate) enum GroupTask {
     /// `at`: where the ward stood at the group's last order to follow. Whom it fights is the pick's and the
     /// engine's on its fight orders, never this task's.
     Follow { ward: Ward, name: String, at: Vec3, since: i32 },
+    /// Roving (H-MICRO-ROVE): every soldier is the lane's, looking at what we know least, killing what it finds
+    /// unguarded and keeping out of every reach. A pick like every task (the `rove` move, or `rove_1` for the
+    /// detachment it makes); the way back is any other pick (docs/design/2026-10-07-rove-approval.md, the rework).
+    Rove { since: i32 },
 }
 
 #[derive(Debug)]
@@ -131,14 +134,6 @@ pub(crate) struct Group {
     pub reached: Vec<(String, i32)>,
     /// The first enemies in sight near the body since the last place reached: the frame and the words.
     pub met: Option<(i32, String)>,
-    /// Picked to rove (H-MICRO-ROVE): the hands' `rove` move, or made by their `scout` move. Cleared when the
-    /// player's `lane` gives the group any setting after that (`lane_set_at`): the way back from roving.
-    pub wants_rove: bool,
-    /// The count of the player's lane settings for this group when it was last picked to rove: a setting given
-    /// since takes it back (docs/design/2026-10-07-rove-approval.md).
-    pub lane_set_at: u64,
-    /// Roving as of the last look (`keep_groups`): a change hands the group to the lane or takes it back.
-    pub roving: bool,
     /// What its rovers found, attacked, ran from and gave up, newest last, for the picture: (frame, words).
     pub rove_log: Vec<(i32, String)>,
 }
@@ -192,7 +187,7 @@ impl Group {
     /// What the group is doing, in a word or two: for the loss wake and the record's `lane` row.
     pub(crate) fn course_word(&self) -> String {
         match &self.task {
-            _ if self.roving => "roving".to_string(),
+            GroupTask::Rove { .. } => "roving".to_string(),
             GroupTask::Hold { .. } => "holding".to_string(),
             GroupTask::Move { place, fight, .. } => format!("{} to {place}", if *fight { "advancing" } else { "walking" }),
             GroupTask::Engage { .. } => "attacking a party".to_string(),
@@ -202,7 +197,7 @@ impl Group {
     }
 
     pub(crate) fn new(name: String, domain: Domain, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, members, task, last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, joining: HashMap::new(), gathering: false, shelling: false, reached: Vec::new(), met: None, wants_rove: false, lane_set_at: 0, roving: false, rove_log: Vec::new() }
+        Group { name, domain, members, task, last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, joining: HashMap::new(), gathering: false, shelling: false, reached: Vec::new(), met: None, rove_log: Vec::new() }
     }
 
     /// The group's body toward `toward` (the goal of a walk, the nearest enemy, or nothing: then the front is the
@@ -249,7 +244,14 @@ impl Group {
             GroupTask::Engage { at, target, .. } => units.iter().map(|u| match target { Some(t) => Command::Attack { unit: u.id, target: *t, queue: false }, None => Command::Fight { unit: u.id, to: *at, queue: false } }).collect(),
             GroupTask::Hunt(h) => units.iter().map(|u| Command::Attack { unit: u.id, target: h.quarry, queue: false }).collect(),
             GroupTask::Follow { at, .. } => units.iter().map(|u| Command::Fight { unit: u.id, to: *at, queue: false }).collect(),
+            // The lane takes a roving group's soldiers from the next tick: no order of the hands'.
+            GroupTask::Rove { .. } => Vec::new(),
         }
+    }
+
+    /// Whether the lane runs its soldiers (H-MICRO-ROVE).
+    pub(crate) fn roving(&self) -> bool {
+        matches!(self.task, GroupTask::Rove { .. })
     }
 
     /// The soldiers lost since `since`, and their metal.
@@ -430,48 +432,17 @@ impl Brain {
         let mut follow_ends: Vec<String> = Vec::new();
         // Where each group's body stands, for the groups that follow another.
         let bodies: Vec<(String, Vec3)> = pianist.groups.iter().filter_map(|g| g.body(own, None).map(|b| (g.name.clone(), b.at))).collect();
-        // The way back from roving: any lane setting the player gives a roving group since it was picked to rove
-        // (the player's `rove` setting itself is gone since 2026-10-07: roving is a pick, never a bypass;
-        // docs/design/2026-10-07-rove-approval.md).
-        let lane_set: BTreeMap<String, u64> = self.strategist.as_ref().map(|s| s.lane_set.lock().unwrap().clone()).unwrap_or_default();
         for group in pianist.groups.iter_mut() {
-            let set = lane_set.get(&format!("group_{}", group.name)).copied().unwrap_or(0);
-            if group.wants_rove && !group.roving {
-                group.lane_set_at = set;
-            } else if group.roving && set > group.lane_set_at {
-                group.wants_rove = false;
-            }
-        }
-        let roving: Vec<bool> = pianist.groups.iter().map(|g| self.roves(g)).collect();
-        // (the group, what it was doing, what the switch did): said in `recent` and written as a decision row of
-        // source `lane` (human-26 1:57: the player's `rove` took two Rovers off a raid Jev had sent them against,
-        // and the viewer showed the redirect with no author).
-        let mut rove_changes: Vec<(String, String, String)> = Vec::new();
-        for (index, group) in pianist.groups.iter_mut().enumerate() {
-            // A roving group is the lane's (H-MICRO-ROVE): no task, no hunt, no orders kept up. Switched either way,
-            // it starts from a hold; switched off, its soldiers hold where each stands.
-            if roving[index] != group.roving {
-                let left = group.course_word();
-                group.roving = roving[index];
-                (group.gathering, group.shelling) = (false, false);
-                group.joining.clear();
-                group.set_task(GroupTask::Hold { since: frame, committed: false, picked: false }, frame);
-                let did = if group.roving {
-                    "roves: its soldiers look at what we know least, kill what they find unguarded and keep out of every reach, in code, until the player's lane takes it back".to_string()
-                } else {
-                    commands.extend(group.hold_orders(&group.units(own)));
-                    "stops roving and holds where each of its soldiers stands".to_string()
-                };
-                rove_changes.push((format!("group_{}", group.name), left, did));
-            }
-            if group.roving {
+            // A roving group is the lane's (H-MICRO-ROVE): no hunt, no orders kept up, every member its own from the
+            // tick it joins.
+            if group.roving() {
                 group.joining.clear();
                 continue;
             }
             let units = group.units(own);
             group.joining.retain(|id, _| group.members.contains(id));
             // A newcomer that has reached the body is of it (or was sent nowhere: nothing stands to reach).
-            let goal = match &group.task { GroupTask::Move { to, .. } => Some(*to), GroupTask::Engage { at, .. } | GroupTask::Follow { at, .. } => Some(*at), GroupTask::Hunt(h) => Some(h.at), GroupTask::Hold { .. } => None };
+            let goal = match &group.task { GroupTask::Move { to, .. } => Some(*to), GroupTask::Engage { at, .. } | GroupTask::Follow { at, .. } => Some(*at), GroupTask::Hunt(h) => Some(h.at), GroupTask::Hold { .. } | GroupTask::Rove { .. } => None };
             if let Some(body) = group.body(own, goal) {
                 let core_at = body.at;
                 let joined: Vec<UnitId> = body.joining.iter().filter(|u| u.pos.dist2d(core_at) <= ADOPT_RADIUS || self.stuck.contains_key(&u.id)).map(|u| u.id).collect();
@@ -529,7 +500,7 @@ impl Brain {
             // A gather ends when the tail is up, the stragglers with it, wherever the front then stands.
             let together = group.gathering && group.body(own, None).is_some_and(|body| body.whole <= STRUNG_OUT);
             match &mut group.task {
-                GroupTask::Hold { .. } => {}
+                GroupTask::Hold { .. } | GroupTask::Rove { .. } => {}
                 GroupTask::Move { to, fight, place, .. } => {
                     // Arrival and "to go" by the members, not the centre: a group split by a cliff never got its
                     // centre within 300 of its goal, so a fall-back walk stayed the base world for two minutes and
@@ -637,10 +608,6 @@ impl Brain {
             pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
             pianist.note(frame, text.clone());
             pianist.events.insert(text);
-        }
-        for (actor, left, did) in rove_changes {
-            pianist.done.push(format!("{} {actor} {did}", super::picture::clock(frame)));
-            self.journal.note_from("lane", frame, "group", json!({ "actor": actor, "left": left }), json!({ "did": did }));
         }
         for text in hunt_ends {
             pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
@@ -926,19 +893,18 @@ mod tests {
         assert!(!brain.pianist.as_ref().unwrap().groups[0].joining.contains_key(&joiners[0]));
     }
 
-    /// The lane's switch of a group into roving resets its task to a hold, says so in `recent` and writes a `lane`
-    /// decision row naming what the group left (human-26 1:57: two Rovers taken off a raid Jev had sent them
-    /// against, the redirect without an author in the viewer).
+    /// A roving group is the lane's: the hands keep up no order for it, its joiners are its own, and its course word
+    /// is roving (the rework of docs/design/2026-10-07-rove-approval.md: roving is a task, never a flag).
     #[test]
-    fn a_switch_to_roving_is_a_decision_row_naming_what_the_group_left() {
+    fn a_roving_group_gets_no_order_from_the_hands() {
         use bot_protocol::{Resource, Snapshot};
-        let (mut brain, ours, enemies, parties) = e3();
+        let (mut brain, ours, enemies, _parties) = e3();
         let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
         let mut group = Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { since: 0, committed: false, picked: false }, 0);
-        let mut commands = Vec::new();
-        Brain::engage_group(&mut group, &parties[0], &ours[..12], None, 30, &mut commands);
-        // Picked to rove (the hands' `rove` move): it roves from the next look.
-        group.wants_rove = true;
+        group.joining.insert(ours[0].id, ours[0].pos);
+        group.set_task(GroupTask::Rove { since: 0 }, 0);
+        assert_eq!(group.course_word(), "roving");
+        assert!(group.rejoin_orders(&[&ours[0]]).is_empty());
         pianist.groups.push(group);
         brain.pianist = Some(pianist);
         let none = UnitDefId(99);
@@ -948,34 +914,9 @@ mod tests {
         let mut commands = Vec::new();
         brain.keep_groups(&tick, &kit, &mut commands);
         let group = &brain.pianist.as_ref().unwrap().groups[0];
-        assert!(group.roving && matches!(group.task, GroupTask::Hold { picked: false, .. }));
-        let notes: Vec<_> = brain.journal.notes.iter().filter(|n| n.source == "lane").collect();
-        assert_eq!(notes.len(), 1);
-        assert_eq!(notes[0].kind, "group");
-        assert_eq!(notes[0].inputs["actor"], "group_A");
-        assert_eq!(notes[0].inputs["left"], "attacking a party");
-        assert!(notes[0].outputs["did"].as_str().unwrap().starts_with("roves:"));
-        assert!(brain.pianist.as_ref().unwrap().done.iter().any(|d| d.contains("group_A roves:")));
-        // The way back: any lane setting the player gives the group after the pick takes it back, into a hold
-        // where each soldier stands, with its own row.
-        let shared = std::sync::Arc::new(crate::strategist::shared::Shared::default());
-        shared.lane_set.lock().unwrap().insert("group_A".into(), 1);
-        brain.strategist = Some(shared);
-        let tick = Tick { frame: 90, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.clone(), allies: Vec::new(), enemies: enemies.clone(), wrecks: None } };
-        let mut commands = Vec::new();
-        brain.keep_groups(&tick, &kit, &mut commands);
-        let group = &brain.pianist.as_ref().unwrap().groups[0];
-        assert!(!group.roving && !group.wants_rove && matches!(group.task, GroupTask::Hold { picked: false, .. }));
-        assert!(commands.iter().any(|c| matches!(c, Command::Stop { .. })), "{commands:?}");
-        let notes: Vec<_> = brain.journal.notes.iter().filter(|n| n.source == "lane").collect();
-        assert_eq!(notes.len(), 2);
-        assert_eq!(notes[1].inputs["left"], "roving");
-        assert!(notes[1].outputs["did"].as_str().unwrap().starts_with("stops roving"));
-        // Picked again later: the setting given before the pick does not take it back.
-        brain.pianist.as_mut().unwrap().groups[0].wants_rove = true;
-        let tick = Tick { frame: 120, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.clone(), allies: Vec::new(), enemies: enemies.clone(), wrecks: None } };
-        brain.keep_groups(&tick, &kit, &mut Vec::new());
-        assert!(brain.pianist.as_ref().unwrap().groups[0].roving);
+        assert!(group.roving() && group.joining.is_empty());
+        assert!(commands.is_empty(), "{commands:?}");
+        assert!(brain.journal.notes.iter().all(|n| n.source != "lane"));
     }
 
     #[test]
