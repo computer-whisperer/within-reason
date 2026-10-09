@@ -23,4 +23,4 @@ How it is built:
   the project than a win.
 
 The order: what winning seems to take; the map sheets; the reference game and whole games; this opponent; units and costs; how your hands work;
-the cases; what players said.
+the cases; the late game and the simulator's frontier; what players said.

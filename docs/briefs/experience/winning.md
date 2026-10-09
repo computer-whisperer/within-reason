@@ -32,6 +32,14 @@ won at 10:00 can be lost at 20:00 without our having made any further mistake. T
 that he never gets there: the lead is spent on his economy and his factories before his tier 2 matters. Going to
 tier 2 ourselves is a real choice and yours to make, but make it knowing it is the ground we know least.
 
+**A lead is spent or teched, never banked.** A lead in army goes into him. Where it cannot, because he sits behind a
+line it will not break or the front is long, it goes into the economy that outgrows him: tier-2 extractors on the
+spots held, a fusion, and the build power that makes each stand in a minute rather than five; the late-game part
+says what that economy can become by when. What a lead never is, is metal in the store. It buys nothing there, his
+tier 2 comes on its clock whatever the store holds, and our long losses have the same shape: human-18 at 17:54 had
+6,200 metal banked, about twenty constructors idle and energy stalling; player-50 held thousands and five to ten
+times his army for twenty minutes and was called undecided.
+
 **Pressure starts with the first units and does not stop.** The first soldiers across are what tell you where he
 is and what he has, and what makes a greedy opening cost him something. A raid that kills two constructors at
 3:00 is worth more than the same raid at 6:00. Pressure that pauses lets him rebuild behind it.

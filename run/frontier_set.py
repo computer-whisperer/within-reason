@@ -7,10 +7,12 @@ brief (docs/design/2026-10-09-late-economy.md §4.1 and §9). Read every number 
 against quiet recorded openings (docs/studies/build-order.md); the tax is the only cost of the enemy it knows.
 
     run/frontier_set.py [--maps "Great Divide V1,Comet Catcher Remake 1.8"] [--quick] [--workers 4] [--iterations 20000] [--restarts 4]
+    run/frontier_set.py --brief        the brief's section from the frontier files already drawn, no run
 
 Writes docs/briefs/reference/frontier-<map slug>.md (the tables) and .json (every run: plan, firsts, state by minute)
-for each map, from the latest recorded game on it (run/build_brief.py's roots). run/build_brief.py assembles the .md
-files into the brief.
+for each map, from the latest recorded game on it (run/build_brief.py's roots), then docs/briefs/reference/frontier.md,
+the one section across the maps that run/build_brief.py assembles into the brief (the per-map files stay beside it for
+a reader who wants every order).
 """
 import argparse, concurrent.futures, json, os, re, subprocess, sys, tempfile
 
@@ -138,16 +140,93 @@ def tables(map_name, record, results, side, spots, repaired=0):
     return "\n".join(out)
 
 
+def brief(maps):
+    """The brief's frontier section (docs/briefs/reference/frontier.md) from the maps' frontier files, without a run: one
+    table across the maps, the nuke line against BARb, what stood at the first missile and the missile's orders under the
+    standard tax. The per-map files beside it keep every run, order and curve."""
+    sets = []
+    for map_name in maps:
+        path = f"{REF}/frontier-{slug(map_name)}.json"
+        if not os.path.exists(path):
+            print(f"{map_name}: no frontier file ({path})", file=sys.stderr)
+            continue
+        sets.append(json.load(open(path)))
+    if not sets:
+        return
+    never = lambda t: "never" if t is None else clock(t)
+    heads = [f"{d['map']} ({d['spots'] // 2} spots a side)" for d in sets]
+    out = ["## The late game by the simulator: the frontier\n",
+           "The build-order simulator's fastest order to each late-game milestone, over thirty minutes, on maps of "
+           + ", ".join(str(d["spots"] // 2) for d in sets) + " spots a side (`run/frontier_set.py`; every run's order and curve "
+           "is in `docs/briefs/reference/frontier-<map>.md`). **A ceiling, not a target:** no enemy, nothing dies, every spot on "
+           "our half is free, and the simulator runs 15 to 25 % high on income by minute 8 against quiet recorded openings. The one "
+           "enemy it knows is the tax: metal a second taken for soldiers before any build. The standard tax is 3 a second from 2:00, "
+           "5 from 4:00, 9 from 8:00, 12 from 12:00 and 15 from 16:00 (the experienced players' standing army on Comet Catcher grows "
+           "at that rate, before losses); the heavy tax is one and a half times that. The arithmetic is the engine's: a frame builds "
+           "at the sum of the power on it until the store empties, and a stockpile advances at its fixed rate, helped by nobody "
+           "(K-t2-build-power-for-a-project-follows-the-spend, K-rules-a-stockpile-takes-no-build-power). The search is stochastic "
+           "(simulated annealing, 20,000 steps x 8 restarts a cell); a cell out of order, a heavier tax ahead of a lighter one, is "
+           "the search's noise, not the game's. `never`: not by 30:00.\n",
+           "| the fastest order to (no tax / standard tax / heavy tax) | " + " | ".join(heads) + " |",
+           "|---|" + "---|" * len(sets)]
+    labels = [label for label, _, _ in objectives("arm")[0]]
+    for label in labels:
+        cells = []
+        for d in sets:
+            key = next(k for l, _, k in objectives(d["side"])[0] if l == label)
+            cells.append(" / ".join(never(reached(d["runs"][f"{tax}|{label}"], key)) for tax, _ in TAXES))
+        out.append(f"| {label} | " + " | ".join(cells) + " |")
+    out.append("")
+    line = []
+    for d in sets:
+        t = reached(d["runs"]["standard|the first missile"], ("first_round", f"{d['side']}silo"))
+        line.append(f"{never(t)} on {d['map']}")
+    out.append("**The nuke line.** BARb hard_aggressive's anti-nuke stands at minute 21 to 25 in 27 of 33 long games on Comet Catcher "
+               "(K-barb-anti-nuke-by-minute; medium builds one in one long game of six, at 25 at the median), so a missile that is to land "
+               "on him is stockpiled before about 21:00. Under the standard tax the first missile comes at " + ", ".join(line) + ". "
+               "A missile is energy flow, 1,042 a second for its 120 s, and no build power.\n")
+    out.append("**What stood at the first missile under the standard tax** (the state at the last whole minute before it).\n")
+    out.append("| map | missile | silo stood | advanced lab | first advanced constructor | first tier-2 extractor | first fusion | extractors | constructors | turrets | build power | energy a second | income | army metal paid |")
+    out.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+    for d in sets:
+        side, r = d["side"], d["runs"]["standard|the first missile"]
+        t = reached(r, ("first_round", f"{side}silo"))
+        first = lambda *names: never(next((r["first_finished"][n] for n in names if n in r["first_finished"]), None))
+        s = state_at(r, t)
+        state = f"{s['extractors']} | {s['constructors']} | {s['nanos']} | {s['build_power']:.0f} | {s['energy_income']:.0f} | {s['income']:.0f} | {s['tax_paid']:.0f}" if s else "| | | | | | "
+        out.append(f"| {d['map']} | {never(t)} | {first(f'{side}silo')} | {first(f'{side}alab', f'{side}avp', f'{side}aap')} | {first(f'{side}ack', f'{side}acv', f'{side}aca')} | "
+                   f"{first(f'{side}moho')} | {first(f'{side}fus')} | {state} |")
+    out.append("")
+    out.append("**The missile's orders under the standard tax**, one queue a line (`com` the commander, `facN` the factories as they "
+               "stand, `conN` the constructors as they leave; `help` puts the builder's power on the dearest frame begun; `assist` on the "
+               "first factory; `moho` the tier-2 extractor on a standing one's spot; a constructor whose queue has run out upgrades the "
+               "nearest standing extractor).\n")
+    for d in sets:
+        r = d["runs"]["standard|the first missile"]
+        t = reached(r, ("first_round", f"{d['side']}silo"))
+        lines = [l for l in r["plan"].strip().splitlines() if l.strip()]
+        out.append(f"- **{d['map']}** ({never(t)}): " + " · ".join(f"`{l}`" for l in lines))
+    out.append("")
+    with open(f"{REF}/frontier.md", "w") as f:
+        f.write("\n".join(out))
+    print(f"{REF}/frontier.md written ({len(sets)} maps)")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--maps", default=",".join(MAPS))
+    ap.add_argument("--brief", action="store_true", help="write the brief's frontier section from the frontier files already drawn, without a run")
     ap.add_argument("--quick", action="store_true", help="2,000 iterations x 2 restarts: a smoke of the generator, not a frontier")
     ap.add_argument("--workers", type=int, default=3)
     ap.add_argument("--iterations", type=int, default=20000)
     ap.add_argument("--restarts", type=int, default=8)
     a = ap.parse_args()
+    maps = [m.strip() for m in a.maps.split(",") if m.strip()]
+    if a.brief:
+        brief(maps)
+        return
     iterations, restarts = (2000, 2) if a.quick else (a.iterations, a.restarts)
-    for map_name in [m.strip() for m in a.maps.split(",") if m.strip()]:
+    for map_name in maps:
         directory = latest_record(map_name)
         if not directory:
             print(f"{map_name}: no recorded game", file=sys.stderr)
@@ -210,6 +289,7 @@ def main():
         with open(f"{REF}/frontier-{name}.md", "w") as f:
             f.write(tables(map_name, record, results, side, spots, repaired))
         print(f"{REF}/frontier-{name}.md written ({len(results)} runs)")
+    brief(maps)
 
 
 if __name__ == "__main__":

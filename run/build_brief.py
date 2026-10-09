@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Assemble the experience brief (docs/briefs/player-experience.md) from its parts: the hand-written ones under
 docs/briefs/experience/, the generated ones under docs/briefs/reference/ (run/reference_set.py, run/timelines.py,
-run/opponent_set.py), and the map sheets of every map with a recorded game (target/release/mapsheet).
+run/opponent_set.py, run/frontier_set.py --brief), and the map sheets of every map with a recorded game (target/release/mapsheet).
 docs/design/2026-10-03-brief-rewrite-and-commander-pack.md.
 
     run/build_brief.py [--regenerate]     (--regenerate runs the generators again before assembling)
@@ -77,9 +77,12 @@ def main():
             open(f"{REF}/comet-catcher-remake-1.8-{faction}.md", "w").write(subprocess.run(["python3", "run/reference_set.py", "--map", COMET, "--faction", faction, "--sheet-from", src, "--json-out", f"{REF}/comet-catcher-remake-1.8-{faction}.json"], capture_output=True, text=True, check=True).stdout)
         open(f"{REF}/comet-catcher-remake-1.8-arm-games.md", "w").write(subprocess.run(["python3", "run/timelines.py", "--map", COMET, "--faction", "arm"], capture_output=True, text=True, check=True).stdout)
         open(f"{REF}/comet-catcher-remake-1.8-barb-hard_aggressive.md", "w").write(subprocess.run(["python3", "run/opponent_set.py", "--map", COMET, "--profile", "hard_aggressive"], capture_output=True, text=True, check=True).stdout)
+        # The frontier section is assembled from the frontier files already drawn (a run is hours: run/frontier_set.py on its own).
+        subprocess.run(["python3", "run/frontier_set.py", "--brief"], check=True)
     read = lambda p: open(p).read().strip() + "\n"
     parts = [read(f"{EXP}/intro.md"), read(f"{EXP}/winning.md"), sheets(), read(f"{REF}/comet-catcher-remake-1.8-arm.md"), read(f"{REF}/comet-catcher-remake-1.8-cor.md"), read(f"{REF}/comet-catcher-remake-1.8-arm-games.md"),
-             read(f"{EXP}/opponent-barb.md"), read(f"{REF}/comet-catcher-remake-1.8-barb-hard_aggressive.md"), read(f"{EXP}/units.md"), read(f"{EXP}/hands.md"), read(f"{EXP}/cases.md"), read(f"{EXP}/players-words.md")]
+             read(f"{EXP}/opponent-barb.md"), read(f"{REF}/comet-catcher-remake-1.8-barb-hard_aggressive.md"), read(f"{EXP}/units.md"), read(f"{EXP}/hands.md"), read(f"{EXP}/cases.md"),
+             read(f"{EXP}/late-game.md"), read(f"{REF}/frontier.md"), read(f"{EXP}/players-words.md")]
     text = "\n\n" + "\n\n".join(parts)
     open("docs/briefs/player-experience.md", "w").write(text)
     print(f"docs/briefs/player-experience.md: {len(text.split())} words, {len(text)} characters")

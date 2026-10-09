@@ -25,7 +25,7 @@ How it is built:
   the project than a win.
 
 The order: what winning seems to take; the map sheets; the reference game and whole games; this opponent; units and costs; how your hands work;
-the cases; what players said.
+the cases; the late game and the simulator's frontier; what players said.
 
 
 ## What winning seems to take
@@ -61,6 +61,14 @@ to sit on. If he is allowed to finish his advanced factory and field what comes 
 won at 10:00 can be lost at 20:00 without our having made any further mistake. The surest answer we have today is
 that he never gets there: the lead is spent on his economy and his factories before his tier 2 matters. Going to
 tier 2 ourselves is a real choice and yours to make, but make it knowing it is the ground we know least.
+
+**A lead is spent or teched, never banked.** A lead in army goes into him. Where it cannot, because he sits behind a
+line it will not break or the front is long, it goes into the economy that outgrows him: tier-2 extractors on the
+spots held, a fusion, and the build power that makes each stand in a minute rather than five; the late-game part
+says what that economy can become by when. What a lead never is, is metal in the store. It buys nothing there, his
+tier 2 comes on its clock whatever the store holds, and our long losses have the same shape: human-18 at 17:54 had
+6,200 metal banked, about twenty constructors idle and energy stalling; player-50 held thousands and five to ten
+times his army for twenty minutes and was called undecided.
 
 **Pressure starts with the first units and does not stop.** The first soldiers across are what tell you where he
 is and what he has, and what makes a greedy opening cost him something. A raid that kills two constructors at
@@ -1324,6 +1332,142 @@ keep not fighting together." (thebluegecko)
 - escalate-4 (Comet): the commander never engaged a Razorback at home because its list's "help the plant" step was
   still running.
 - The hands' own games from a default packet: the commander died twice walking to far spots beside the enemy.
+
+
+## The late game: what it takes
+
+The pool of duels between experienced people ends at 12 to 15 minutes at the median and 4 of 80 sides ever started an
+advanced factory, so the late game has no reference game. What there is: the arithmetic of the unit files and the
+engine's rules; the build-order simulator's frontier (the next part: the fastest order to each milestone on three
+maps, with no enemy); and our own long games, most of them lost. Set beside each other they say what the late
+game is made of and where ours went wrong. Nothing here is an order.
+
+**The late game is build power on a few frames.** A tier-2 economy is a handful of dear frames (an advanced plant
+2,600 metal, a fusion 3,350, a tier-2 extractor 620 each, an advanced fusion 9,700, a silo 8,100) and the power on
+each sets how long it stands empty. The power a frame can use is set by what you can spend on it: its build time,
+times the metal a second you give it, over its metal; more only stalls (the builders table, under units and costs).
+Construction turrets are the cheapest power (1.15 metal a point, reach 400) and stand still, so they pay where the
+frames stand together; constructors walk to the frame; air constructors huddle at one without jostling and die to
+anything. Massed power on the one frame that matters, then the next, is what the experienced players mean by "stop
+building other units while doing t2 transition" (the players' words, on tier 2).
+
+**The arithmetic** (Armada; Cortex's numbers differ by a tenth or so except where given; `docs/knowledge/tier2.md`,
+`mechanics.md`, `game-rules.md`).
+
+- A tier-2 extractor: 620 metal and 7,700 energy, four times the spot, 20 energy a second to run. On a Comet Catcher
+  spot it adds 6.9 metal a second over the extractor it replaces, so 90 seconds of its own output repays it; on a
+  poorer spot (the map sheet's spot value) proportionally longer. One advanced constructor alone takes about 70 s
+  an upgrade (K-t2-moho-first, K-t2-moho-energy).
+- Energy by price: a fusion 3,350 metal for 750 a second (4.5 metal per energy a second), an advanced solar 350 for
+  80 (4.4), a basic solar 155 for 20 (7.75), wind 40 metal over the map's average wind (about 3 on Quicksilver). The
+  fusion is not cheaper energy; it is dense, steady and one frame instead of nine (K-t2-fusion-numbers).
+- Converters: 70 energy a second into 1 metal, for 1 metal and 1,150 energy; the advanced one 600 into 10.3 for 370
+  metal and 21,000 energy, a sixth better per energy and mostly a saving of ground. On Comet Catcher the experienced
+  players build none and store the energy (K-mech-converter-rates, K-t2-advanced-converter, the players' words).
+- A tier-2 army is an energy purchase: its beam and lightning weapons charge energy a shot, and the recommended
+  mixes cost 390 to 500 energy a second at +30 metal and 580 to 740 at +45, over the 20 for each tier-2 extractor;
+  below about 150 spare the fights fall off a cliff (K-t2-army-energy).
+- A wreck is 60 % of the unit's metal and reclaiming it costs no energy; after an even trade of forty units the field
+  holds 2,000 to 3,000 for whoever stands on it (K-mech-reclaim-values).
+- Storage grows 600 metal with every tier-2 extractor, so "the store half full" is a larger number the richer you are
+  (K-t2-the-late-spend-ceiling-in-a-bot).
+- A stockpile takes no build power: a silo's missile is 1,000 metal and 125,000 energy over 120 s (1,042 energy a
+  second, 8 metal), an anti-nuke's interceptor 150 and 7,500 over 90 s, and nothing a builder does shortens either.
+  The silo's frame (8,100 / 90,000 / build time 178,500: at 100 metal a second 2,200 power and 81 s; one advanced
+  constructor alone, ten to fourteen minutes) is where a crew pays (K-rules-a-stockpile-takes-no-build-power).
+
+**What our late games looked like** (the records; the mechanism as we read it).
+
+- **The plant came late.** Our advanced plant stood at 21 to 27 minutes and the first tier-2 extractor at 25 to 33;
+  his at 10:41 and 15:12 at the median (player-16, 30, 31, 45, Comet Catcher). Nothing in the game made ours late;
+  it was not begun.
+- **The frames waited on the store, not the builders.** Over 73 tier-2 frames in five games, a frame with a full
+  store finished in 1.0 to 1.2 times its build time over the power standing on it; with the store empty it took
+  longer in proportion: player-32's two fusions 274 and 276 s against 186 by the power on them, the energy store
+  empty in three samples of four (`run/t2_frames.py`). Our energy was at zero through the whole plant build in
+  player-10, 11 and 32.
+- **One builder on a frame.** bluegecko-3v1-10 (three seats against a person): one seat's advanced plant at 0 % from
+  15:40 until it was abandoned at 19:15, one constructor on it, that seat banking 1,432; nothing sent between seats.
+- **The bank was the frames not begun.** human-18 at 17:54: "Energy STALLING with 6.2k metal banked and ~20
+  constructors idling"; player-50 held five to ten times his army and thousands in the store for twenty minutes
+  (called undecided). The frontier's orders waste 7 metal in thirty minutes.
+- **Income peaked at twelve minutes and fell.** player-31: 64.8 metal a second at 12:00, 20.7 at 26:00; player-30,
+  31 and 32 held 25 to 39 extractors at 18:00 and half that by 26:00. The outer spots fell to his raids and were not
+  retaken, and the tier 2 that would have made the held spots worth four came at 29 to 39 minutes.
+- **The transition under his pressure, measured in a bot of ours** (`bots/distilled`, the same economy rules in code,
+  not your hands). Against BARb hard_aggressive on Comet Catcher it started the plant at the community's gates
+  (income 22 or 30) and won 1 game in 16 and 0 in 8 against 3 in 16 without tier 2: the plant stood at 9:00 to 13:30
+  on schedule and the chain ran (constructors within a minute, a fusion by 14:00 to 18:30, tier-2 extractors to 30),
+  while the extractors went 16 / 19 / 14 / 8 at 10 / 15 / 20 / 25 minutes against 19 / 33 / 37 / 39 without it and
+  the army 12 / 8 / 17 / 21 soldiers against 11 / 32 / 68 / 63. Pausing the tier-1 plants was not the cost (0 of 8
+  without the pause); the plant's 2,600 and the builders' minutes out of the army at the minutes his pressure
+  peaks were, and the income the chain bought (150 to 245 a second at 25 to 30 minutes) came after the army was
+  gone. On Great Divide against medium, 11 spots a side and saturated at 10:00, the bot with tier 2 won 2 of 16 and
+  on tier 1 with converters 7 of 8 (K-t2-the-transition-under-pressure-loses-at-either-gate). Behind an army that
+  holds his pressure is the case nobody has measured; the frontier's tax stands in for it.
+- **Past income 150 the same bot banked at the storage cap** (19,173 of 19,450 at 30:00): generators crowded the
+  yard until the site search behind a plant found nothing, an advanced fusion ran at 830 power against a budget of
+  ten thousand and took seven minutes, and the energy rule built 40 to 56 solars for a draw that never came. The
+  rules were the bot's; the crowded yard and the storage cap are the game's
+  (K-t2-the-late-spend-ceiling-in-a-bot).
+- **His side**: BARb hard_aggressive's advanced lab at 10:41 at the median, his army flat from 10:40 to 20:00 and
+  doubling every five minutes after (the cases, "Tier 2: his and ours").
+
+**What the frontier adds** (the next part, drawn 2026-10-09). With no enemy the fastest orders put the advanced lab
+at 6 to 7 minutes behind three or four constructors, the first tier-2 extractor at 6 to 9, the first fusion at 7 to
+12, income 100 a second at 10 minutes on forty spots a side and 14 to 18 on eleven, and the first missile at 15:30 to
+16:50 under the standard tax. Our games put the plant at 21 to 27. The missile's orders on all three maps share one
+shape: a lab, three or four constructors, the advanced lab at 6 to 7 minutes, two advanced constructors, tier-2
+extractors on the held spots (on Quicksilver advanced solars and converters instead, the extractors after), one or two
+fusions, two or three turrets, help on the silo, and 1,000 to 2,000 energy a second when the round draws its 1,042. On eleven spots a side income 100 is the late ceiling and 200
+is never reached; on forty, 200 comes at 19:33 with no tax and 27:33 under the heavy one.
+
+**The nuke.** Armada's silo is 8,100 metal, 90,000 energy and 178,500 of build time (ten to fourteen minutes for one
+advanced constructor, three for a thousand power); a missile 1,000 metal and 125,000 energy, stockpiled in two
+minutes; the warhead does 12,500 at its centre, falling to nothing 640 away (every tier-1 and tier-2 unit and building
+in the game dies at the centre), with 13 s of flight and the whole map in range; a silo holds ten. Cortex: 7,700 / 82,000 for the silo, 1,500 / 187,500 / three minutes a missile. The counter
+is an anti-nuke at 1,500 metal and 38,000 energy with a 2,000 coverage, whose first interceptor takes 90 s. BARb
+hard_aggressive on Comet Catcher had one in 27 of the 33 long player games, standing at minute 21 to 25 (median 22);
+medium in one long game of six, at 25; his own silo stood in 14 of 848 long games, at 25 to 38
+(K-barb-anti-nuke-by-minute). So against hard_aggressive a missile must be stockpiled before about 21:00, and the
+frontier's 15:30 to 16:50 under the standard tax says the order exists, on paper, on every map we drew; against
+medium and against people the window is far longer, and with several seats the question is which seat has no
+anti-nuke. No game of ours has built a silo. **Your hands have today no order for a silo's stockpile and none to
+fire it**: a silo built now is 8,100 metal that does nothing until those exist.
+
+**What players said** on the late game is under "What players said", on tier 2.
+
+
+## The late game by the simulator: the frontier
+
+The build-order simulator's fastest order to each late-game milestone, over thirty minutes, on maps of 11, 22, 40 spots a side (`run/frontier_set.py`; every run's order and curve is in `docs/briefs/reference/frontier-<map>.md`). **A ceiling, not a target:** no enemy, nothing dies, every spot on our half is free, and the simulator runs 15 to 25 % high on income by minute 8 against quiet recorded openings. The one enemy it knows is the tax: metal a second taken for soldiers before any build. The standard tax is 3 a second from 2:00, 5 from 4:00, 9 from 8:00, 12 from 12:00 and 15 from 16:00 (the experienced players' standing army on Comet Catcher grows at that rate, before losses); the heavy tax is one and a half times that. The arithmetic is the engine's: a frame builds at the sum of the power on it until the store empties, and a stockpile advances at its fixed rate, helped by nobody (K-t2-build-power-for-a-project-follows-the-spend, K-rules-a-stockpile-takes-no-build-power). The search is stochastic (simulated annealing, 20,000 steps x 8 restarts a cell); a cell out of order, a heavier tax ahead of a lighter one, is the search's noise, not the game's. `never`: not by 30:00.
+
+| the fastest order to (no tax / standard tax / heavy tax) | Great Divide V1 (11 spots a side) | Quicksilver Remake 1.24 (22 spots a side) | Comet Catcher Remake 1.8 (40 spots a side) |
+|---|---|---|---|
+| income 50 a second | 9:52 / 10:49 / 12:23 | 9:05 / 9:39 / 11:11 | 4:47 / 5:36 / 6:22 |
+| income 100 a second | 13:53 / 15:02 / 17:44 | 12:50 / 16:42 / 16:33 | 10:05 / 10:59 / 11:03 |
+| income 200 a second | never / never / never | 28:17 / never / never | 19:33 / never / 27:33 |
+| the first tier-2 extractor | 6:20 / 6:32 / 7:16 | 7:42 / 7:28 / 8:21 | 7:31 / 8:14 / 8:49 |
+| the first fusion | 7:38 / 8:39 / 9:50 | 8:10 / 8:40 / 9:31 | 7:37 / 8:20 / 11:34 |
+| the first advanced fusion | 12:09 / never / never | never / never / never | never / 12:38 / 14:09 |
+| the first anti-nuke | 8:19 / 8:36 / 9:40 | 8:21 / 9:03 / 9:34 | 8:06 / 9:13 / 10:09 |
+| the first missile | 14:22 / 16:50 / 18:01 | 14:43 / 15:30 / 17:08 | 14:17 / 16:25 / 17:54 |
+
+**The nuke line.** BARb hard_aggressive's anti-nuke stands at minute 21 to 25 in 27 of 33 long games on Comet Catcher (K-barb-anti-nuke-by-minute; medium builds one in one long game of six, at 25 at the median), so a missile that is to land on him is stockpiled before about 21:00. Under the standard tax the first missile comes at 16:50 on Great Divide V1, 15:30 on Quicksilver Remake 1.24, 16:25 on Comet Catcher Remake 1.8. A missile is energy flow, 1,042 a second for its 120 s, and no build power.
+
+**What stood at the first missile under the standard tax** (the state at the last whole minute before it).
+
+| map | missile | silo stood | advanced lab | first advanced constructor | first tier-2 extractor | first fusion | extractors | constructors | turrets | build power | energy a second | income | army metal paid |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Great Divide V1 | 16:50 | 14:21 | 6:16 | 6:38 | 7:33 | 10:04 | 11 | 6 | 2 | 2190 | 1170 | 43 | 6600 |
+| Quicksilver Remake 1.24 | 15:30 | 12:59 | 7:31 | 7:53 | 15:32 | 15:02 | 21 | 5 | 2 | 1980 | 1025 | 44 | 5880 |
+| Comet Catcher Remake 1.8 | 16:25 | 14:11 | 6:56 | 7:18 | 8:16 | 15:35 | 20 | 5 | 3 | 2310 | 2022 | 66 | 6600 |
+
+**The missile's orders under the standard tax**, one queue a line (`com` the commander, `facN` the factories as they stand, `conN` the constructors as they leave; `help` puts the builder's power on the dearest frame begun; `assist` on the first factory; `moho` the tier-2 extractor on a standing one's spot; a constructor whose queue has run out upgrades the nearest standing extractor).
+
+- **Great Divide V1** (16:50): `com: win mex@1856,664 lab win solar mex@2272,992 win mex` · `fac0: ck ck ck ck` · `fac1: ack ack` · `con0: mex mex@2832,384 nanotc` · `con1: solar win mex@1552,1504 mex@672,1360 nanotc win` · `con2: mex@1088,696 win advsol advsol makr win win assist win` · `con3: mex@600,128 mex mex alab` · `con4: assist moho assist assist fus silo moho moho ckfus assist fus silo moho` · `con5: moho moho moho help fus silo mmkr moho moho moho assist moho`
+- **Quicksilver Remake 1.24** (15:30): `com: mex win lab solar solar mex mex` · `fac0: ck ck ck ck` · `fac1: ack` · `con0: solar mex mex nanotc advsol advsol mex mex mex mex` · `con1: mex@6096,3280 mex mex nanotc advsol advsol makr advsol estor advsol advsol` · `con2: mex@2336,3008 mex@1392,2880 mex mex mex alab makr advsol makr advsol advsol` · `con3: advsol mex mex mex mex` · `con4: silo fus moho ckfus moho moho moho moho moho silo moho`
+- **Comet Catcher Remake 1.8** (16:25): `com: lab solar solar mex@1056,5632 mex mex@1184,1776 mex` · `fac0: ck ck ck` · `fac1: ack ack` · `con0: mex@2656,4672 mex@2464,3808 mex advsol advsol solar mex mex help mex mex@4208,4352 mex@4416,3760 mex mex@640,944 mex estor mex mex` · `con1: win solar mex mex nanotc solar mex mex mex mex mex@3360,2656 nanotc help mex@3008,1952 makr llt makr makr mex advsol mex mex mex mex mex` · `con2: mex advsol solar alab mex help advsol nanotc mex estor mex@1984,736 help assist advsol mex makr mex mex mex mex` · `con3: moho ckfus moho moho moho moho moho moho silo moho` · `con4: silo fus moho moho moho moho silo moho`
 
 
 ## What players said
