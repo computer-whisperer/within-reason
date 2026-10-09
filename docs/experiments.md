@@ -19,6 +19,10 @@ filesystem at 99%. On 2026-10-09 the 42 batches of 2026-10-04 through 2026-10-06
 `1791333943-human-25`, 30 GB: the apex-bot comparisons, the packet and glitters team games, the distilled bot's first rows,
 human-23 to human-25) followed, the root filesystem at 91%. Everything from 2026-10-07 on (`1791335540-human-26` and later)
 is still in `run/matches/`.
+**The hands' logs are compressed** (`jev-<n>.jsonl.zst`, docs/harness/record-format.md): the arena does it as a match
+closes from 7d1c566 (2026-10-09) on, and on 2026-10-09 the 413 raw logs of the archive (80.0 GB, in 336 match directories)
+and the 7 of `run/matches/` (3.5 GB) were compressed in place with `arena --compress-logs`, to 6.0 GB and 0.2 GB; every
+file passes `zstd -t` and the reader's frame-by-frame check. A reader opens either form through `run/jevlog.py`.
 
 | Batch label | Commit | Opponent | n | W-L-T | Testing | Outcome |
 |---|---|---|---|---|---|---|
