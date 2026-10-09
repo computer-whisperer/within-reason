@@ -147,6 +147,31 @@ Every map we have a recorded game on, in one table each. The first start is ours
 | ours | armck (36) | 6 / 26 / 49 / 79 | 15 / 36 / 43 |
 | ours | armcv (54) | 17 / 48 / 93 / 151 | 10 / 24 / 29 |
 
+### All That Glitters v2.2.3
+
+- 6144 by 10240 elmos; wind 0 to 16; tidal 0; 0% under water; ground height 163 to 536.
+- 152 metal spots; a tier-1 extractor draws 1.83 / 1.84 / 3.18 metal a second (lowest / median / highest spot).
+- Starts: ours A1 (735, 822; 0 from ours), the opponent's D8 (2971, 9220; 8690 from ours).
+
+| Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
+|---|---|---|---|---|---|---|---|
+| bots | 92% | 152 | the opponent's | 9296 | armck 258, armpw 107, armrock 183, corak 115, corck 269 | 56 / 71 / 25 / 0 | 2292 at C2, 16% of the way (median 4816) |
+| vehicles | 85% | 152 | the opponent's | 9308 | armcv 172, armfav 55, armflash 92, armstump 124, corcv 183, corfav 61, corgator 110 | 56 / 71 / 25 / 0 | 1968 at B2, 21% of the way (median 4520) |
+| commander | 92% | 152 | the opponent's | 9296 | armcom 248, corcom 248 | 56 / 71 / 25 / 0 | 2292 at C2, 16% of the way (median 4816) |
+| all-terrain bots | 100% | 152 | the opponent's | 9296 | armscab 182, cortermite 186 | 56 / 71 / 25 / 0 | 2800 at B2, 15% of the way (median 5492) |
+| amphibious tanks | 92% | 152 | the opponent's | 9308 | armcroc 172, corseal 129 | 56 / 71 / 25 / 0 | 2252 at C2, 17% of the way (median 4764) |
+| hovercraft | 86% | 152 | the opponent's | 9308 | armch 139, armsh 82, corch 153, corsh 85 | 56 / 71 / 25 / 0 | 1992 at B2, 21% of the way (median 4576) |
+| ships | 0% | no ground on this map it can stand on | | | | | |
+
+| Start | Taken by (speed) | Spots within 30 / 60 / 90 / 120 s | Seconds to the 5th / 10th / 15th spot |
+|---|---|---|---|
+| ours | armcom (37.50) | 6 / 12 / 25 / 47 | 25 / 48 / 65 |
+| ours | armck (36) | 6 / 11 / 24 / 44 | 26 / 50 / 68 |
+| ours | armcv (54) | 9 / 24 / 54 / 93 | 17 / 33 / 46 |
+| the opponent's | armcom (37.50) | 10 / 27 / 54 / 74 | 21 / 29 / 36 |
+| the opponent's | armck (36) | 9 / 25 / 52 / 71 | 22 / 30 / 37 |
+| the opponent's | armcv (54) | 17 / 52 / 78 / 103 | 15 / 20 / 25 |
+
 ### Avalanche 3.4
 
 - 4096 by 4096 elmos; wind 3 to 19; tidal 20; 0% under water; ground height 130 to 696.
@@ -228,6 +253,18 @@ Every map we have a recorded game on, in one table each. The first start is ours
 | ours | armck (36) | 2 / 5 / 6 / 6 | 40 / - / - |
 | ours | armcv (54) | 4 / 6 / 6 / 6 | 33 / - / - |
 
+### Feast of Hades 1.0.1
+
+- 8192 by 8192 elmos; wind 4 to 14; tidal 0; 7% under water; ground height -56 to 289.
+- 92 metal spots; a tier-1 extractor draws 0 / 0 / 0 metal a second (lowest / median / highest spot).
+- Starts: ours B2 (1246, 2020; 0 from ours), the opponent's G7 (6944, 6169; 7048 from ours).
+
+| Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
+|---|---|---|---|---|---|---|---|
+
+| Start | Taken by (speed) | Spots within 30 / 60 / 90 / 120 s | Seconds to the 5th / 10th / 15th spot |
+|---|---|---|---|
+
 ### Gecko Isle Remake v1.2.1
 
 - 8192 by 9216 elmos; wind 2 to 16; tidal 25; 30% under water; ground height -110 to 299.
@@ -282,17 +319,51 @@ Every map we have a recorded game on, in one table each. The first start is ours
 
 - 7168 by 7168 elmos; wind 2 to 20; tidal 0; 0% under water; ground height 103 to 458.
 - 82 metal spots; a tier-1 extractor draws 1.84 / 1.84 / 1.84 metal a second (lowest / median / highest spot).
-- Starts: ours F3 (5144, 2014; 0 from ours).
+- Starts: ours A3 (731, 1958; 0 from ours), the opponent's H6 (6435, 5207; 6564 from ours).
 
 | Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
 |---|---|---|---|---|---|---|---|
+| bots | 98% | 76 | the opponent's | 7222 | armck 201, armpw 83, armrock 142, corak 89, corck 209 | 29 / 29 / 18 / 6 | 3764 at B3, 15% of the way (median 5532) |
+| vehicles | 92% | 72 | the opponent's | 7395 | armcv 137, armfav 44, armflash 73, armstump 99, corcv 145, corfav 48, corgator 87 | 29 / 30 / 13 / 10 | 3444 at A3, 15% of the way (median 4868) |
+| commander | 98% | 76 | the opponent's | 7222 | armcom 193, corcom 193 | 29 / 29 / 18 / 6 | 3764 at B3, 15% of the way (median 5532) |
+| all-terrain bots | 100% | 82 | the opponent's | 7011 | armscab 137, cortermite 140 | 30 / 32 / 20 / 0 | 4548 at B3, 15% of the way (median 5828) |
+| amphibious tanks | 98% | 76 | the opponent's | 7222 | armcroc 134, corseal 100 | 29 / 29 / 18 / 6 | 3764 at B3, 15% of the way (median 5532) |
+| hovercraft | 93% | 74 | the opponent's | 7376 | armch 110, armsh 65, corch 121, corsh 67 | 30 / 29 / 15 / 8 | 3520 at B3, 15% of the way (median 5028) |
 | ships | 0% | no ground on this map it can stand on | | | | | |
 
 | Start | Taken by (speed) | Spots within 30 / 60 / 90 / 120 s | Seconds to the 5th / 10th / 15th spot |
 |---|---|---|---|
-| ours | armcom (37.50) | 9 / 24 / 39 / 51 | 24 / 31 / 46 |
-| ours | armck (36) | 8 / 23 / 38 / 46 | 25 / 33 / 47 |
-| ours | armcv (54) | 11 / 35 / 53 / 69 | 17 / 26 / 33 |
+| ours | armcom (37.50) | 4 / 9 / 23 / 36 | 35 / 61 / 66 |
+| ours | armck (36) | 4 / 9 / 21 / 34 | 36 / 64 / 69 |
+| ours | armcv (54) | 7 / 20 / 42 / 63 | 24 / 44 / 47 |
+| the opponent's | armcom (37.50) | 4 / 10 / 21 / 36 | 37 / 60 / 68 |
+| the opponent's | armck (36) | 4 / 9 / 21 / 34 | 39 / 62 / 71 |
+| the opponent's | armcv (54) | 6 / 21 / 41 / 63 | 26 / 43 / 48 |
+
+### Mithril Mountain v2.0.1
+
+- 6144 by 6144 elmos; wind 2 to 17; tidal 0; 0% under water; ground height 75 to 329.
+- 53 metal spots; a tier-1 extractor draws 0.49 / 2.00 / 2.00 metal a second (lowest / median / highest spot).
+- Starts: ours B2 (1479, 786; 0 from ours), the opponent's G7 (4663, 5355; 5568 from ours).
+
+| Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
+|---|---|---|---|---|---|---|---|
+| bots | 99% | 53 | the opponent's | 5833 | armck 162, armpw 67, armrock 115, corak 72, corck 169 | 23 / 22 / 8 / 0 | 3704 at D4, 54% of the way (median 4304) |
+| vehicles | 95% | 53 | the opponent's | 6409 | armcv 119, armfav 38, armflash 63, armstump 85, corcv 126, corfav 42, corgator 75 | 21 / 21 / 11 / 0 | 4028 at D4, 49% of the way (median 4852) |
+| commander | 99% | 53 | the opponent's | 5833 | armcom 156, corcom 156 | 23 / 22 / 8 / 0 | 3704 at D4, 54% of the way (median 4304) |
+| all-terrain bots | 100% | 53 | the opponent's | 5833 | armscab 114, cortermite 117 | 22 / 22 / 9 / 0 | 4116 at F6, 84% of the way (median 4628) |
+| amphibious tanks | 99% | 53 | the opponent's | 5833 | armcroc 108, corseal 81 | 23 / 22 / 8 / 0 | 3704 at D4, 54% of the way (median 4304) |
+| hovercraft | 96% | 53 | the opponent's | 6409 | armch 96, armsh 56, corch 105, corsh 59 | 21 / 21 / 11 / 0 | 4068 at C3, 35% of the way (median 4936) |
+| ships | 0% | no ground on this map it can stand on | | | | | |
+
+| Start | Taken by (speed) | Spots within 30 / 60 / 90 / 120 s | Seconds to the 5th / 10th / 15th spot |
+|---|---|---|---|
+| ours | armcom (37.50) | 5 / 14 / 21 / 33 | 29 / 51 / 61 |
+| ours | armck (36) | 4 / 12 / 21 / 31 | 30 / 53 / 63 |
+| ours | armcv (54) | 9 / 16 / 39 / 53 | 20 / 35 / 42 |
+| the opponent's | armcom (37.50) | 5 / 14 / 21 / 32 | 29 / 53 / 63 |
+| the opponent's | armck (36) | 5 / 12 / 21 / 31 | 30 / 55 / 65 |
+| the opponent's | armcv (54) | 9 / 16 / 37 / 53 | 20 / 37 / 43 |
 
 ### Quicksilver Remake 1.24
 
@@ -832,6 +903,39 @@ spot an advanced extractor adds 6.9 metal a second over the extractor it replace
 own metal. The plant and one constructor before the first advanced extractor: 3,150 metal, 61 seconds of income at
 52 a second with nothing else built.
 
+**Builders and build power.** Build power is what turns metal into things: a frame builds at the sum of the power on
+it, and its draw a second is that power times its cost over its build time. Metal / build power / metal per point /
+speed / health; Armada, then Cortex (`docs/knowledge/tier2.md`, K-t2-mobile-build-power-by-cost).
+
+| Builder | Armada | Cortex |
+|---|---|---|
+| Construction turret `armnanotc` / `cornanotc` | 230 / 200 / 1.15 / stands still, reach 400 / 560 | the same |
+| Bot constructor `armck` / `corck` | 110 / 80 / 1.38 / 36 / 760 | 120 / 85 / 1.41 / 34 / 820 |
+| Vehicle constructor `armcv` / `corcv` | 135 / 90 / 1.50 / 54 / 1,380 | 145 / 95 / 1.53 / 51 / 1,430 |
+| Butler `armfark` (advanced bot lab; builds only solars, wind, extractors, converters and radar) / Twitcher `corfast` (advanced bot lab; a tier-1 constructor's list) | 210 / 140 / 1.50 / 75 / 335 | 210 / 125 / 1.68 / 90 / 830 |
+| Consul `armconsul` (advanced vehicle plant; a tier-1 constructor's list) | 250 / 150 / 1.67 / 78 / 1,080 | |
+| Advanced vehicle constructor `armacv` / `coracv` | 550 / 290 / 1.90 / 52 / 2,050 | 580 / 310 / 1.87 / 50 / 2,150 |
+| Advanced bot constructor `armack` / `corack` | 430 / 210 / 2.05 / 33 / 930 | 470 / 220 / 2.14 / 33 / 1,000 |
+| Construction aircraft `armca` / `corca` | 110 / 50 / 2.20 / 136 / 156 | 115 / 55 / 2.09 / 131 / 161 |
+| Advanced construction aircraft `armaca` / `coraca` | 340 / 120 / 2.83 / 192 / 200 | 360 / 130 / 2.77 / 182 / 205 |
+| Decoy commander `armdecom` / `cordecom` (advanced bot lab) | 770 / 300 / 2.57 / 38 / 3,700 | 750 / 300 / 2.50 / 38 / 3,700 |
+| On water: Voyager `armmls` / Pathfinder `cormls` (advanced shipyard) | 190 / 200 / 0.95 / 66 / 1,460 | 200 / 200 / 1.00 / 58 / 1,600 |
+| Construction seaplane `armcsa` / `corcsa` (seaplane platform) | 150 / 75 / 2.00 / 124 / 405 | 140 / 75 / 1.87 / 140 / 435 |
+| Sea constructor `armcs` / `corcs`; construction hovercraft `armch` / `corch`; Beaver `armbeaver` / Muskrat `cormuskrat` (amphibious, vehicle plant) | 1.60; 1.82; 1.88 a point | 1.60; 1.65; 2.00 |
+
+The commander's 300 is already paid for. Resurrection bots cannot assist. The experienced players: the minelayer
+ships assist (they are the naval assist units); the land minelayers (`armmlv`, `cormlv`) do not. A constructor must
+stand within about 130 of the frame and a turret within 400; ground constructors jostle at a frame, air constructors
+do not. The tier-2 construction turret is a lobby option ("Extra Units Pack") not used in serious play.
+
+The power a project can use is set by what you can spend on it: its build time, times the metal a second you give
+it, over its metal; beyond that it stalls (the store empty, everything on it slows in proportion). Armada's advanced
+fusion (9,700 metal, 69,000 energy, build time 312,500) at 100 metal a second: about 3,200 power, 97 s, 710 energy a
+second; at 50 metal a second half the power in twice the time. The fusion (3,350 / 18,000 / 54,000) at 50 a second:
+810 power, 67 s. The advanced plant (2,600 / 14,000 / 27,000) at 30 a second: 310 power (an advanced constructor and
+a turret), 87 s. A ring of turrets is built once and serves what stands within its 400; mobile power moves to the
+next project (`docs/knowledge/tier2.md`, K-t2-build-power-for-a-project-follows-the-spend).
+
 **Wrecks.** In 29 Comet Catcher duels, 24 of 58 sides built resurrection bots (11 winners, 13 losers), a median of
 ten a side, the first between minutes 4 and 10; they worked wrecks on their own ground, not the field a fight had
 just left. Winners' income ran above what their extractors give in 12% of minutes, losers' in 7%. The report has a
@@ -853,7 +957,7 @@ against your packet. They cannot count, plan or remember beyond what the picture
   picture knows them; `join` and `follow` at every other group, `follow` at every builder.
 - **The hands have no destination of their own.** There is no walk home, no falling back to where a group last
   held, no sweep of unseen spots. Where a group goes when it should not fight is a place its paragraph names; where
-  it scouts is a place its paragraph names, or the hands' `rove` move, asked for in words.
+  it scouts is a place its paragraph names, or `rove`.
 - **A way through several places is prose:** "group_A: spot_49, then spot_46, spot_40, spot_55, spot_58, back to
   spot_64, in that order, advancing; his buildings in sight it kills when they are undefended; from a party it does
   not outweigh it walks to spot_64". The group's entry says which named places it has reached (`reached`) and what
@@ -871,19 +975,17 @@ against your packet. They cannot count, plan or remember beyond what the picture
 - A scout's sentence that held under the enemy commander's eyes: "it is a scout: it runs from what can catch it and
   otherwise keeps to its route; being seen is its job".
 
-**Roving.** Your hands' `rove` move hands a whole group of fast units (Rovers, Ticks; name a plant's output into
+**`rove`.** Your hands' `rove` move, a pick, hands a group of fast units (Rovers, Ticks; name a plant's output into
 it with `produce`) to code that runs each of them ten times a second; `rove_1` sends one soldier, the group's
 fastest, as a group of its own. It drives to look at what we know least (his start box and base first, then spots
 nobody has seen, then the stalest), attacks what it finds unguarded (a constructor, an extractor, a radar with
-nothing armed in reach), and does not stand inside the reach of anything that can shoot it. Both are picks: say in
-the packet which group roves and when. A roving group answers no party. The group's entry says what each rover is
-doing and what it has found; the way back is a pick too: name its new job in the packet ("group_A: comes home to
-spot_10 and holds there"). Words that read as a walk home are a way back too: "they run from what can catch them"
-walked a lone roving Rover home at the sight of his commander's party (rove-task-1 2:11); say "leave it to rove"
-and nothing about running. It is scouting footwork: at a base with Pawns patrolling, a roving Rover stepped
-off from each and killed nothing (player-20, player-21). In player-9, before roving, three scouts went at his base
-under the hands and none arrived; in player-10 three roving Rovers had his lab in the picture at 3:45 and came back
-alive.
+nothing armed in reach), and does not stand inside the reach of anything that can shoot it. Say in the packet which
+group roves and when. A roving group answers no party. The group's entry says what each rover is doing and what it
+has found; the way back is a pick too: name its new job in the packet. Words that read as a walk home are a way
+back too: "they run from what can catch them" walked a lone roving Rover home at the sight of his commander's party
+(rove-task-1 2:11); say "leave it to rove" and nothing about running. It is scouting footwork: at a base with Pawns patrolling, a roving Rover stepped off from each and killed
+nothing (player-20, player-21). In player-9, before `rove`, three scouts went at his base under the hands and none
+arrived; in player-10 three roving Rovers had his lab in the picture at 3:45 and came back alive.
 
 **Several seats.** When the report's `seats:` line says you command more than one seat, every per-seat name carries
 its seat's tag: `commander_t1`, `group_A_t2`, `party_3_t2`, `passage_1_t2`; the other seats' starts are `home_t2`
@@ -1205,7 +1307,7 @@ keep not fighting together." (thebluegecko)
   every time it was looked for from the corner start.
 - player-9 (Comet): three scouts were sent at his base and none arrived: one was turned home by the hands, one ran
   into two Pawns, one went off on a hunt. The base was never seen.
-- player-10 (Comet): three roving Rovers had his lab in the picture at 3:45 and came back alive.
+- player-10 (Comet): three Rovers on `rove` had his lab in the picture at 3:45 and came back alive.
 - bluegecko-3v1-1: his commander and factories were never seen by us all game.
 - sonnet-low-1 (Comet): no scouting order in the first seventeen minutes; the push at 11:46 was ordered on "about
   1,300 of his army seen" when he had 5,000 to 6,000.

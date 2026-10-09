@@ -71,6 +71,39 @@ spot an advanced extractor adds 6.9 metal a second over the extractor it replace
 own metal. The plant and one constructor before the first advanced extractor: 3,150 metal, 61 seconds of income at
 52 a second with nothing else built.
 
+**Builders and build power.** Build power is what turns metal into things: a frame builds at the sum of the power on
+it, and its draw a second is that power times its cost over its build time. Metal / build power / metal per point /
+speed / health; Armada, then Cortex (`docs/knowledge/tier2.md`, K-t2-mobile-build-power-by-cost).
+
+| Builder | Armada | Cortex |
+|---|---|---|
+| Construction turret `armnanotc` / `cornanotc` | 230 / 200 / 1.15 / stands still, reach 400 / 560 | the same |
+| Bot constructor `armck` / `corck` | 110 / 80 / 1.38 / 36 / 760 | 120 / 85 / 1.41 / 34 / 820 |
+| Vehicle constructor `armcv` / `corcv` | 135 / 90 / 1.50 / 54 / 1,380 | 145 / 95 / 1.53 / 51 / 1,430 |
+| Butler `armfark` (advanced bot lab; builds only solars, wind, extractors, converters and radar) / Twitcher `corfast` (advanced bot lab; a tier-1 constructor's list) | 210 / 140 / 1.50 / 75 / 335 | 210 / 125 / 1.68 / 90 / 830 |
+| Consul `armconsul` (advanced vehicle plant; a tier-1 constructor's list) | 250 / 150 / 1.67 / 78 / 1,080 | |
+| Advanced vehicle constructor `armacv` / `coracv` | 550 / 290 / 1.90 / 52 / 2,050 | 580 / 310 / 1.87 / 50 / 2,150 |
+| Advanced bot constructor `armack` / `corack` | 430 / 210 / 2.05 / 33 / 930 | 470 / 220 / 2.14 / 33 / 1,000 |
+| Construction aircraft `armca` / `corca` | 110 / 50 / 2.20 / 136 / 156 | 115 / 55 / 2.09 / 131 / 161 |
+| Advanced construction aircraft `armaca` / `coraca` | 340 / 120 / 2.83 / 192 / 200 | 360 / 130 / 2.77 / 182 / 205 |
+| Decoy commander `armdecom` / `cordecom` (advanced bot lab) | 770 / 300 / 2.57 / 38 / 3,700 | 750 / 300 / 2.50 / 38 / 3,700 |
+| On water: Voyager `armmls` / Pathfinder `cormls` (advanced shipyard) | 190 / 200 / 0.95 / 66 / 1,460 | 200 / 200 / 1.00 / 58 / 1,600 |
+| Construction seaplane `armcsa` / `corcsa` (seaplane platform) | 150 / 75 / 2.00 / 124 / 405 | 140 / 75 / 1.87 / 140 / 435 |
+| Sea constructor `armcs` / `corcs`; construction hovercraft `armch` / `corch`; Beaver `armbeaver` / Muskrat `cormuskrat` (amphibious, vehicle plant) | 1.60; 1.82; 1.88 a point | 1.60; 1.65; 2.00 |
+
+The commander's 300 is already paid for. Resurrection bots cannot assist. The experienced players: the minelayer
+ships assist (they are the naval assist units); the land minelayers (`armmlv`, `cormlv`) do not. A constructor must
+stand within about 130 of the frame and a turret within 400; ground constructors jostle at a frame, air constructors
+do not. The tier-2 construction turret is a lobby option ("Extra Units Pack") not used in serious play.
+
+The power a project can use is set by what you can spend on it: its build time, times the metal a second you give
+it, over its metal; beyond that it stalls (the store empty, everything on it slows in proportion). Armada's advanced
+fusion (9,700 metal, 69,000 energy, build time 312,500) at 100 metal a second: about 3,200 power, 97 s, 710 energy a
+second; at 50 metal a second half the power in twice the time. The fusion (3,350 / 18,000 / 54,000) at 50 a second:
+810 power, 67 s. The advanced plant (2,600 / 14,000 / 27,000) at 30 a second: 310 power (an advanced constructor and
+a turret), 87 s. A ring of turrets is built once and serves what stands within its 400; mobile power moves to the
+next project (`docs/knowledge/tier2.md`, K-t2-build-power-for-a-project-follows-the-spend).
+
 **Wrecks.** In 29 Comet Catcher duels, 24 of 58 sides built resurrection bots (11 winners, 13 losers), a median of
 ten a side, the first between minutes 4 and 10; they worked wrecks on their own ground, not the field a fight had
 just left. Winners' income ran above what their extractors give in 12% of minutes, losers' in 7%. The report has a

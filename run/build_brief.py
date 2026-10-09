@@ -11,6 +11,15 @@ import glob, json, os, re, subprocess, sys
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(REPO)
 REF, EXP = "docs/briefs/reference", "docs/briefs/experience"
+# Where recorded games live: the working directory and the archive the ledger's head names (batches of 2026-09-19
+# through 2026-10-03 were moved there; a map whose only games are archived keeps its sheet).
+ROOTS = ["run/matches", "/ceph/christian/within-reason/run/matches-archive"]
+
+
+def records():
+    """Every recorded game with a terrain file, oldest first by its directory name (a timestamp), over every root."""
+    found = [p for root in ROOTS for p in glob.glob(root + "/*/00/record-0.jsonl")]
+    return sorted((p for p in found if os.path.exists(os.path.dirname(p) + "/terrain-0.bin")), key=lambda p: os.path.basename(os.path.dirname(os.path.dirname(p))))
 # The maps the sheets are made for, each from starts people use there (the pool's commonest pair where there is a
 # pool; our games' starts otherwise), with the map's own metal scale (`maxMetal` of its mapinfo.lua).
 COMET = "Comet Catcher Remake 1.8"
@@ -18,10 +27,8 @@ COMET = "Comet Catcher Remake 1.8"
 
 def latest_record(map_name):
     best = None
-    for p in sorted(glob.glob("run/matches/*/00/record-0.jsonl")):
+    for p in records():
         d = os.path.dirname(p)
-        if not os.path.exists(d + "/terrain-0.bin"):
-            continue
         try:
             if json.loads(open(p).readline())["map"]["name"] == map_name:
                 best = d if best is None or os.path.exists(d + "/truth-0.jsonl") else best
@@ -41,12 +48,11 @@ def max_metal(map_name):
 
 def sheets():
     maps = {}
-    for p in glob.glob("run/matches/*/00/record-0.jsonl"):
-        if os.path.exists(os.path.dirname(p) + "/terrain-0.bin"):
-            try:
-                maps[json.loads(open(p).readline())["map"]["name"]] = 1
-            except (ValueError, KeyError):
-                pass
+    for p in records():
+        try:
+            maps[json.loads(open(p).readline())["map"]["name"]] = 1
+        except (ValueError, KeyError):
+            pass
     out = ["## The map sheets\n", "Every map we have a recorded game on, in one table each. The first start is ours in the game the sheet was made from. "
            "Walks are in elmos at full speed; a unit's seconds are the walk over its speed. \"The ways at their tightest\" is how wide the routes between two starts are "
            "at their narrowest against their median width: a pass is a tightest width a fraction of the median. The game you are in sends its own sheet, from your "

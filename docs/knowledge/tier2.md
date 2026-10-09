@@ -266,3 +266,54 @@ first finished lab and at least a hundred after (`T2_ARMY` in the script).
 **Would be wrong if.** Against another profile or on another map the lab came materially earlier, or a scouting rule
 cut the three-minute lag.
 **Used by.** (none yet) — candidate: the commander's briefing states the probability rather than waiting for a sighting.
+
+### K-t2-mobile-build-power-by-cost
+**Claim.** By metal per point of build power (`workertime`), the standard roster's builders rank: construction
+turret `armnanotc`/`cornanotc` 230 metal for 200 (1.15; reach 400, static, 560 health); bot constructor `armck` 1.38
+/ `corck` 1.41; vehicle constructor `armcv` 1.50 / `corcv` 1.53; the tier-2 fast assist units Butler `armfark` 1.50
+(210 metal, 140 power, speed 75, 335 health, from `armalab`; it builds only solars, wind, extractors, converters and
+radar), Consul `armconsul` 1.67 (250 / 150 / 78 / 1,080, from `armavp`, with a tier-1 constructor's build list) and
+Twitcher `corfast` 1.68 (210 / 125 / 90 / 830, from `coralab`, a tier-1 constructor's list); advanced vehicle
+constructor `armacv` 1.90 (550 / 290 / 52 / 2,050) / `coracv` 1.87; advanced bot constructor `armack` 2.05 (430 /
+210 / 33 / 930) / `corack` 2.14; construction aircraft `armca` 2.20 (110 / 50 / 136 / 156) / `corca` 2.09; decoy
+commander `armdecom` 2.57 (770 / 300 / 38 / 3,700) / `cordecom` 2.50; advanced construction aircraft `armaca` 2.83
+(340 / 120 / 192 / 200) / `coraca` 2.77. On water: Voyager `armmls` 0.95 (190 / 200 / 66 / 1,460, advanced
+shipyard) and Pathfinder `cormls` 1.00 (200 / 200 / 58 / 1,600) are the cheapest mobile build power in the game;
+construction seaplane `armcsa` 2.00 (150 / 75 / 124 / 405) / `corcsa` 1.87 (140 / 75 / 140 / 435), from the
+seaplane platform; sea constructor `armcs`/`corcs` 1.60 (200 / 125); construction hovercraft `armch` 1.82 / `corch`
+1.65; Beaver `armbeaver` 1.88 / Muskrat `cormuskrat` 2.00 (amphibious, from the vehicle plant). The commander's 300
+is already paid for. Resurrection bots (`armrectr`, 200 power for 130) cannot assist (`canassist = false`). The
+experienced players (2026-10-09, through the user): the minelayer ships assist and are the naval assist units; the
+land minelayers Groundhog `armmlv` and Trapper `cormlv` (57 / 40 and 65 / 40) do not, though neither file carries a
+`canassist` flag and the engine default would say both do. The tier-2 construction turret (`armnanotct2`, 840 for
+600, reach 500) is the Extra Units Pack and not in normal play (K-rules-extra-units-pack-is-off-in-normal-play); the
+tier-3 constructors reach no standard build list.
+**Status.** arithmetic from the unit files (2026-10-09); the assist exceptions reported (the players); the names from
+`language/en/units.json` (the file's own `name` fields are empty).
+**Evidence.** `units/ArmBots/T2/armfark.lua`, `ArmVehicles/T2/armconsul.lua`, `CorBots/T2/corfast.lua`,
+`ArmShips/T2/armmls.lua`, `ArmSeaplanes/armcsa.lua`, `ArmBuildings/LandUtil/armnanotc.lua`, `ArmBots/armrectr.lua`
+and the rest named, read 2026-10-09 (`workertime`, `metalcost`, `speed`, `health`, `builddistance`, `buildoptions`);
+`language/en/units.json`.
+**Would be wrong if.** An engine test showed a Groundhog assisting a frame or a Voyager failing to; or a unit's
+`workertime` were not its assist rate.
+**Used by.** The brief's builders table (`docs/briefs/experience/units.md`); `docs/design/2026-10-09-late-economy.md`
+§3 and §4.10.
+
+### K-t2-build-power-for-a-project-follows-the-spend
+**Claim.** A frame builds at the sum of the build power on it, and draws a second that power times its cost over its
+build time; once the store is empty every builder on it slows to the share the income allows
+(K-mech-stall-slows-everything). So the build power a project can use is `build time x spend / metal` for the metal a
+second you can give it, and power beyond that only stalls. Armada's advanced fusion (9,700 metal, 69,000 energy,
+build time 312,500): at 100 metal a second about 3,200 power and 97 s, drawing about 710 energy a second; at 50,
+about 1,600 power and 194 s. The fusion (3,350 / 18,000 / 54,000): at 50 metal a second 810 power and 67 s. The
+advanced vehicle plant (2,600 / 14,000 / 27,000): at 30 metal a second 310 power (an advanced constructor and a
+turret) and 87 s. The silo (8,100 / 90,000 / 178,500): at 100 metal a second 2,200 power, 81 s and 1,110 energy a
+second. The players' "stop the other factories during the transition" is this rule read from the other side: the
+spend is what the whole economy can give the project.
+**Status.** arithmetic from the unit files and the engine's stall rule (2026-10-09); not measured on a frame.
+**Evidence.** `armafus.lua`, `armfus.lua`, `armavp.lua`, `armsilo.lua` (`metalcost`, `energycost`, `buildtime`);
+K-mech-stall-slows-everything, K-mech-build-power-ratio.
+**Would be wrong if.** A frame with power beyond the spend finished sooner than the metal flow allows (the engine
+refuses what the store lacks), or the build rate were not `workertime` summed over the builders on the frame.
+**Used by.** The brief's build-power paragraph; `docs/design/2026-10-09-late-economy.md` §3; the simulator's
+frontier (`crates/buildorder/src/sim.rs`, its stall model).

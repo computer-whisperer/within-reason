@@ -630,3 +630,21 @@ scene, or the simulator with a D-gun model priced such fights won.
 **Used by.** H-ARMY-KILL (no kill offered with the commander there under 900 metal of party; the wake names it),
 H-ARMY-PRESSURE (`COMMANDER_PARTY_METAL`), H-MICRO-FAN (spacing across the shot's line), the brief.
 
+
+### K-barb-anti-nuke-by-minute
+**Claim.** BARb hard_aggressive on Comet Catcher builds an anti-nuke (`armamd`/`corfmd`) in nearly every game that
+lasts past 25 minutes: 27 of the 33 recorded player games that passed 20 minutes had one, first standing at minute
+21 to 25 (median 22; the six without ended at 20 to 23 minutes, and player-19 at 32), so a nuke that is to land on
+him must be stockpiled before about 21:00, which the silo's 178,500 build time and two-minute stockpile put out of
+reach of a Comet duel economy. BARb medium (the September batches, mostly Quicksilver) builds one far less often:
+135 of 815 long games, median minute 25, and in 12 of the 322 games that ended between 20 and 25 minutes. His own
+silo stood in 14 of 848 long games, at 25 to 38 minutes (sonnet-medium-2 at 25, onepass-player-8 at 26).
+**Status.** measured (2026-10-09) from the truth files (`run/antinuke_scan.py`: 1,176 games with a truth file over
+1 MB, 848 past 20 minutes).
+**Evidence.** `run/antinuke_scan.py` over `run/matches` and the archive; the per-game list in the session's scratchpad
+(player-21 21, player-52 22, player-38 23, player-29 22, ... player-54 25).
+**Would be wrong if.** A later BARb version or another profile moved the clock, or the anti-nuke were counted while
+still a frame (the scan takes the first appearance in his unit list, finished or not: a frame counts, so the standing
+anti-nuke is a little later than the minute given).
+**Used by.** `docs/design/2026-10-09-late-economy.md` §3 and §4.9: the nuke is not a rush weapon against
+hard_aggressive in the arena; against people it is a question of the seat with no anti-nuke.

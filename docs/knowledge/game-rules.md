@@ -133,3 +133,25 @@ added in the shim, 17 raised in 4 games. An engine fault (2026.07.04); not repor
 free of metal but is not a unit until it has been repaired.
 **Status.** supported (2026-09-20), rec-2, 17 units.
 **Used by.** H-REC-RESURRECT.
+
+### K-rules-extra-units-pack-is-off-in-normal-play
+**Claim.** The tier-2 construction turrets (`armnanotct2`, `cornanotct2` and their platform forms), the tier-2 wind
+turbines (`armwint2`, `corwint2`), the tier-3 gates and some two dozen other units reach a build list only under the
+lobby option `experimentalextraunits` ("Extra Units Pack", default off), which
+`unitbasedefs/experimental_extra_units.lua` applies by appending them to builders' and factories' build options;
+serious play leaves it off (the user, 2026-10-09). The tier-3 constructors and factories in the unit files
+(`armhack`/`armhalab`, `armhacv`/`armhavp`, `armhaca`/`armhaap`, `armhacs`/`armhasy` and their Cortex forms) are
+built only by each other and reach no standard build list at all. Our arena's start script sets no option but
+`maxunits`, and the player's roster line is built from the engine's build lists at game time, so none of these units
+reach the player or the hands; `crates/combatsim/data/units.json` carries at least one pack unit (`armshockwave`),
+used by no study.
+**Status.** supported (2026-10-09): local source; the "serious play" half is the user's word.
+**Evidence.** `modoptions.lua` (`experimentalextraunits`, `def = false`); `unitbasedefs/experimental_extra_units.lua`;
+`units/ArmBuildings/LandUtil/armnanotct2.lua`; `crates/arena/src/script.rs` (`[MODOPTIONS] { maxunits=... }`);
+`crates/bot/src/strategist/shared.rs` (the roster from build lists); a walk over every `buildoptions` of the standard
+Armada and Cortex unit files on 2026-10-09: nothing standard builds `armhalab`, `armhavp`, `armhaap`, `armhasy` or
+their Cortex forms.
+**Would be wrong if.** A lobby with people had the option on (the roster line would then show the units, which is
+the right behaviour), or a standard factory file listed a tier-3 factory.
+**Used by.** The brief's unit tables (no pack unit in them); K-t2-mobile-build-power-by-cost; the combat simulator's
+data (to be filtered).
