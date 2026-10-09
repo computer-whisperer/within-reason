@@ -12,7 +12,7 @@ const USAGE: &str = "usage: (the game, that is map, start, faction and unit numb
   buildorder optimize  --game RECORD.jsonl [--factory lab|vp] [--palette kit|roster] [--also silo,amd] [--minutes 10]
                        [--objective income|army|mix|tempo|expect|reach:N|target:UNIT[:COUNT][@SECONDS][,round:UNIT..][,income:N@SECONDS]] [--contact WALK[,AT,WEIGHT]]
                        [--iterations 40000] [--restarts 8] [--seed 1] [--wind MEAN] [--detour X] [--factories 2] [--constructors 6] [--leash ELMOS]
-                       [--no-nano] [--turret llt] [--nanos-to-factory] [--tax FROM:RATE,..] [--tax-energy 8] [--csv FILE] [--plan-out FILE]
+                       [--no-nano] [--turret llt] [--nanos-to-factory] [--tax FROM:RATE,..] [--tax-energy 8] [--csv FILE] [--plan-out FILE] [--json-out FILE]
                        (--detour X: open ground, every walk X straight lines, in place of the map's own ground; --also: unit types the
                        roster's rule leaves out; reach:N: the fastest order to N metal a second; round:UNIT: a stockpile round, the first
                        missile; --tax: metal a second to soldiers from each time, M:SS or seconds, before any build; turrets help the
@@ -207,6 +207,33 @@ fn optimize(args: &Args) {
     }
     if let Some(path) = args.value("--plan-out") {
         std::fs::write(path, found.plan.to_text(units)).unwrap_or_else(|e| die(&format!("{path}: {e}")));
+    }
+    // `--json-out FILE`: the run for a generator (run/frontier_set.py): the plan, the first finish of every unit type,
+    // the first stockpile round of every stockpiler, when the 30-second income first reached 50 / 100 / 200, and the
+    // state at every whole minute.
+    if let Some(path) = args.value("--json-out") {
+        let o = &found.outcome;
+        let mut first_finished = std::collections::BTreeMap::new();
+        for f in &o.finished {
+            first_finished.entry(units.list[f.unit].name.as_str()).or_insert(f.t);
+        }
+        let mut first_round = std::collections::BTreeMap::new();
+        for (t, unit) in &o.stockpiled {
+            first_round.entry(units.list[*unit].name.as_str()).or_insert(*t);
+        }
+        let reach = |n: f64| o.samples.iter().filter(|s| s.t >= 30.0).find(|s| o.mean_metal_income(s.t, 30.0) >= n).map(|s| s.t);
+        let by_minute: Vec<serde_json::Value> = o
+            .samples
+            .iter()
+            .filter(|s| (s.t as u32).is_multiple_of(60))
+            .map(|s| serde_json::json!({ "t": s.t, "income": o.mean_metal_income(s.t, 30.0), "energy_income": s.energy_income, "extractors": s.extractors, "constructors": s.constructors, "nanos": s.nanos, "converters": s.converters, "build_power": s.build_power, "army": s.army_value, "tax_paid": s.tax_paid, "tax_unpaid": s.tax_unpaid, "rounds": s.rounds, "metal_wasted": s.metal_wasted, "energy_wasted": s.energy_wasted, "stall": s.stall }))
+            .collect();
+        let out = serde_json::json!({
+            "side": game.side(), "home": [game.home.0, game.home.1], "spots": scenario.spots.len(), "objective": objective_text, "minutes": minutes,
+            "score": found.score, "tax": scenario.tax, "plan": found.plan.to_text(units), "first_finished": first_finished, "first_round": first_round,
+            "reach": { "50": reach(50.0), "100": reach(100.0), "200": reach(200.0) }, "by_minute": by_minute,
+        });
+        std::fs::write(path, serde_json::to_string_pretty(&out).unwrap()).unwrap_or_else(|e| die(&format!("{path}: {e}")));
     }
 }
 
