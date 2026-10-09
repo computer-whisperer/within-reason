@@ -92,7 +92,10 @@ cost: over the seconds, the draw) and `coverage` (an interceptor's: 2,000). The 
 count rises (`docs/harness/record-format.md`). The player fires with the `fire` tool (a silo's handle and a place in
 coordinates or a grid cell; the user's ruling of 2026-10-09: the player chooses the exact place), carried out by the
 pianist as `remove` is (`crates/bot/src/brain/pianist/fire.rs`); the picture lists our silos and anti-nukes with their
-rounds and names his anti-nukes with their coverage.
+rounds and names his anti-nukes with their coverage. The briefing carries the stockpilers and every report prints a
+`missiles` line from them; a round coming ready is a done line of the hands (`note_rounds`), and a silo's wakes the
+player (`Wake::missile_ready`, on by default), after nuke-2-hard (2026-10-09) where two missiles sat ready for five
+minutes before his anti-nuke while nothing the player read named them.
 
 ### The banner (2026-09-20)
 The game names every AI at random (`ai_namer.lua`: donor and contributor names) and takes nothing from the AI, so at

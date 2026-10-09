@@ -34,6 +34,23 @@ pub struct Briefing {
     pub seats: Vec<super::seats::SeatLine>,
     /// This seat's build power and where it stands, for the commander's report.
     pub build_power: BuildPower,
+    /// Our silos and anti-nukes with their rounds, for the report's `missiles` line every turn (nuke-2-hard, 2026-10-09:
+    /// two missiles sat ready five minutes before his anti-nuke while nothing the player read named them).
+    pub stockpilers: Vec<Stockpiler>,
+}
+
+/// A silo or anti-nuke of ours and its rounds, as the engine counts them.
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct Stockpiler {
+    /// The player's name for it (`armsilo_282`), the `fire` tool's argument.
+    pub handle: String,
+    pub anti_nuke: bool,
+    pub ready: i32,
+    pub queued: i32,
+    /// Seconds a round takes at full energy.
+    pub seconds: f32,
+    /// An anti-nuke's reach; 0 for a silo.
+    pub coverage: f32,
 }
 
 /// A seat's build power (the sum of its builders' build speeds: what turns banked metal into things), by kind,
@@ -239,11 +256,13 @@ pub struct Wake {
     pub pool_reaches: BTreeMap<String, usize>,
     /// A person in the game says something.
     pub chat: bool,
+    /// A silo of ours has a missile come ready (the player fires; nuke-2-hard: two sat five minutes).
+    pub missile_ready: bool,
 }
 
 impl Default for Wake {
     fn default() -> Self {
-        Wake { max_seconds: 30, enemy_near_extractor: true, squad_engaged: true, extractor_lost: true, pool_reaches: BTreeMap::new(), chat: true }
+        Wake { max_seconds: 30, enemy_near_extractor: true, squad_engaged: true, extractor_lost: true, pool_reaches: BTreeMap::new(), chat: true, missile_ready: true }
     }
 }
 

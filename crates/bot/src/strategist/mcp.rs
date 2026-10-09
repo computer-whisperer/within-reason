@@ -151,7 +151,8 @@ fn tool_list() -> Value {
             "squad_engaged": { "type": "boolean", "description": engaged },
             "extractor_lost": { "type": "boolean" },
             "pool_reaches": { "type": "object", "additionalProperties": { "type": "integer", "minimum": 1 }, "description": pool },
-            "chat": { "type": "boolean", "description": "A person in the game says something (default on)." } } } });
+            "chat": { "type": "boolean", "description": "A person in the game says something (default on)." },
+            "missile_ready": { "type": "boolean", "description": "A silo of ours has a missile come ready (default on); the report's `missiles` line says what each silo holds." } } } });
     let orders = |tools: &[&str], what: &str| json!({ "name": "orders",
         "description": format!("Your whole turn in one call, and it ENDS the turn: {what}, carried out in the order listed, then the game resumes. Each entry names one of the other tools and its arguments, exactly as you would call it alone. Include a `wait` entry, LAST, to change when you are next woken; without one the wake settings in force stand. Never call the other tools on their own beside this one: anything sent after the turn ends is refused. Call nothing and write nothing after it."),
         "inputSchema": { "type": "object", "additionalProperties": false, "required": ["calls"], "properties": {
@@ -380,6 +381,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             flag("squad_engaged", &mut wake.squad_engaged);
             flag("extractor_lost", &mut wake.extractor_lost);
             flag("chat", &mut wake.chat);
+            flag("missile_ready", &mut wake.missile_ready);
             if let Some(pool) = arguments["pool_reaches"].as_object() {
                 wake.pool_reaches = pool.iter().map(|(name, n)| (name.clone(), n.as_u64().unwrap_or(1) as usize)).collect();
             }

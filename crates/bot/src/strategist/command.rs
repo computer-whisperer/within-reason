@@ -319,6 +319,9 @@ fn report(side: &Shared, first: bool) -> String {
             if stalling { " STALLING" } else { "" },
             b.counts.extractors, view.field.score.free_spots, b.counts.constructors, b.counts.labs, b.counts.turrets, view.field.score.soldiers, view.field.score.army_metal
         ));
+        if let Some(line) = super::report::stockpile_line(b) {
+            lines.push(format!("  {line}"));
+        }
         let Some(actors) = hands.get(team).and_then(|h| h.picture["actors"].as_object()) else { continue };
         let said = |entry: &Value, key: &str| entry[key].as_str().map(str::to_string);
         let (mut builders, mut idle, mut helping) = (0, 0, 0);

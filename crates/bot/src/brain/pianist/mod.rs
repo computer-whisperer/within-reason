@@ -279,6 +279,8 @@ pub struct Pianist {
     recent: VecDeque<(i32, String)>,
     /// What the hands did this call, for the player's report (`Shared.hands`).
     pub(super) done: Vec<String>,
+    /// The rounds each silo and anti-nuke held at the last tick (`fire.rs`, `note_rounds`).
+    pub(super) rounds: HashMap<UnitId, i32>,
     /// The whole request and answer per call, when `WITHIN_REASON_JEV_LOG` is set (`docs/harness/record-format.md`,
     /// "The pianist's log").
     log: Option<File>,
@@ -658,6 +660,7 @@ impl Pianist {
             tagged: HashMap::new(),
             helping: HashMap::new(),
             done: Vec::new(),
+            rounds: HashMap::new(),
             log,
             logged_instructions: String::new(),
             logged_rules: String::new(),
@@ -799,6 +802,7 @@ impl Brain {
         // The growth history (the curves and the stagnation wake) and the field the player's report and wake
         // conditions read.
         self.track_growth(tick, kit);
+        self.note_rounds(tick);
         if let Some(shared) = self.strategist.clone() {
             let soldiers: Vec<&bot_protocol::OwnUnit> = tick.snapshot.own_units.iter().filter(|u| !u.being_built && self.is_army(u, kit)).collect();
             self.publish_field(tick, kit, &soldiers, &shared);

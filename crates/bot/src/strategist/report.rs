@@ -168,6 +168,9 @@ pub(super) fn front(briefing: &Briefing, field: &Field, fights: &[String], seats
         briefing.metal.current, briefing.metal.income, briefing.metal.usage, e.current, e.storage,
         e.income - e.usage, if stalling { " STALLING: the energy store is empty and everything that needs it builds slowly" } else { "" }, briefing.wind, briefing.wind_range.0, briefing.wind_range.1, c.extractors, c.constructors, c.labs, c.turrets, c.converters
     ));
+    if let Some(line) = stockpile_line(briefing) {
+        lines.push(line);
+    }
     // Where we stand against the experienced players' games on this map, in a duel (H-PLAYER-REFERENCE-LINE).
     if briefing.sides.iter().all(|side| side.seats.len() == 1) && briefing.sides.len() == 2 {
         lines.extend(super::reference::line(briefing, s));
@@ -242,6 +245,33 @@ pub(super) fn front(briefing: &Briefing, field: &Field, fights: &[String], seats
 }
 
 /// Enemies in sight and our extractors with enemies near them.
+/// Our silos and anti-nukes with their rounds, in every report: the player fires, and a round it is not told of is a
+/// round it does not fire (nuke-2-hard, 2026-10-09: two missiles ready five minutes before his anti-nuke was begun, the
+/// reports naming neither, the player's note "silo had 3 missiles ready (unseen in reports)").
+pub(super) fn stockpile_line(briefing: &Briefing) -> Option<String> {
+    if briefing.stockpilers.is_empty() {
+        return None;
+    }
+    let parts: Vec<String> = briefing
+        .stockpilers
+        .iter()
+        .map(|s| {
+            let round = if s.anti_nuke { "interceptor" } else { "missile" };
+            let plural = if s.ready == 1 { "" } else { "s" };
+            let piling = if s.queued > 0 { format!(", {} stockpiling (one every {:.0} s at full energy)", s.queued, s.seconds) } else { String::new() };
+            let tail = if s.anti_nuke {
+                format!("; takes a missile aimed within {:.0} of it", s.coverage)
+            } else if s.ready > 0 {
+                "; `fire` sends one at a place".to_string()
+            } else {
+                String::new()
+            };
+            format!("{} holds {} {round}{plural} ready{piling}{tail}", s.handle, s.ready)
+        })
+        .collect();
+    Some(format!("missiles: {}", parts.join(" | ")))
+}
+
 pub(super) fn contact(briefing: &Briefing, field: &Field) -> Vec<String> {
     let mut lines = Vec::new();
     for cluster in &briefing.enemies_visible {
@@ -406,6 +436,23 @@ mod tests {
 
     /// The picture's out-of-sight parties are said to the player, one line each; the picture's "none" string is
     /// not an array and says nothing.
+    /// The missiles line names every silo and anti-nuke with its rounds, and is absent without one.
+    #[test]
+    fn the_missiles_line_says_what_each_silo_holds() {
+        use super::super::shared::{Briefing, Stockpiler};
+        use super::stockpile_line;
+        assert!(stockpile_line(&Briefing::default()).is_none());
+        let briefing = Briefing {
+            stockpilers: vec![
+                Stockpiler { handle: "armsilo_282".into(), anti_nuke: false, ready: 2, queued: 8, seconds: 120.0, coverage: 0.0 },
+                Stockpiler { handle: "armamd_7".into(), anti_nuke: true, ready: 1, queued: 0, seconds: 90.0, coverage: 2000.0 },
+            ],
+            ..Briefing::default()
+        };
+        let line = stockpile_line(&briefing).unwrap();
+        assert!(line.starts_with("missiles: armsilo_282 holds 2 missiles ready, 8 stockpiling (one every 120 s at full energy); `fire` sends one at a place | armamd_7 holds 1 interceptor ready; takes a missile aimed within 2000 of it"), "{line}");
+    }
+
     #[test]
     fn the_recently_seen_lines_carry_the_pictures_out_of_sight_parties() {
         let picture = serde_json::json!({ "enemy": { "out_of_sight": ["party_1 (9 armfav, 279 metal) last seen 0:23 ago at (G6), then moving toward our side", "party_8 (1 armcv, 135 metal) last seen 0:15 ago at spot_73 (B7), then standing still"] } });

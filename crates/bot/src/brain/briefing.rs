@@ -330,6 +330,13 @@ impl Brain {
                 constructors: standing.iter().filter(|u| self.world.is_constructor_def(u.def)).count(),
                 army: soldiers.len(),
             },
+            stockpilers: standing
+                .iter()
+                .filter_map(|u| {
+                    let d = self.world.def(u.def).filter(|d| d.stockpile_seconds > 0.0)?;
+                    Some(crate::strategist::shared::Stockpiler { handle: self.handle(u), anti_nuke: d.coverage > 0.0, ready: u.stockpile, queued: u.stockpile_queued, seconds: d.stockpile_seconds, coverage: d.coverage })
+                })
+                .collect(),
             home: self.place(self.home),
             colour: self.world.hello.teams.iter().find(|t| t.team == self.world.hello.team).and_then(|t| t.color).map(colour_name).unwrap_or_default(),
             home_group: self.group(&soldiers),

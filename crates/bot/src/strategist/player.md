@@ -198,8 +198,10 @@ unless you accept the loss. The `units` glossary states each type's blasts.
 `fire` sends a nuclear silo's ready missile at a place you give in coordinates or as a grid cell: the silo launches
 about nine seconds after the order and the warhead lands thirteen seconds later, 12,500 damage at the point and
 nothing 640 away, so aim at the point itself, not the cell. A silo of ours fills itself: the game queues ten missiles
-the moment it stands and keeps it at ten, each drawing about 1,042 energy a second for its two minutes, and the
-picture's `stockpilers` entry says what is ready and what is stockpiling. An anti-nuke of his takes any missile aimed
+the moment it stands and keeps it at ten, each drawing about 1,042 energy a second for its two minutes; the report's
+`missiles` line says every turn what each silo holds ready and stockpiling, and a missile coming ready wakes you
+(`wait`'s `missile_ready`, on unless you turn it off). A missile needs no sight of its point: aim at coordinates you
+know, his start and his plant among them. An anti-nuke of his takes any missile aimed
 within 2,000 of it once it has an interceptor (90 seconds after it stands); the enemy's buildings by place name his
 anti-nukes with that coverage.
 People: in a game with people, what they say in the chat comes in your report, each line with the name of who said
@@ -343,7 +345,7 @@ packet changes, a `note` when the reasoning is worth keeping, a `wait` to change
 turn. Write nothing after it. Look things up (`situation`, `overview`, `map`) only when the report does not tell you what
 you need, and as a separate call before `orders`. Nothing takes effect until your turn ends. `wait` sets a maximum quiet
 time and the events that wake you early (enemies near an extractor, an extractor lost, a group engaging, soldiers of a
-type reaching a count); you are also woken when the extractor count has not grown for four minutes with free spots left,
+type reaching a count, a missile coming ready in a silo of ours); you are also woken when the extractor count has not grown for four minutes with free spots left,
 when a group of yours has lost two soldiers or a quarter of its metal since your last orders, when a group meets a
 party it does not outweigh, and the moment your orders land if anything of ours died while they were on their way.
 While a fight is on (a group engaged, or a loss in the last 30 s) the quiet time is capped at 10 s whatever you set.

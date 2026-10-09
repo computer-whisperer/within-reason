@@ -51,6 +51,8 @@ pub struct WakeState {
     landed: Option<i32>,
     /// The safe wreck metal the player was last woken for (H-WAKE-WRECKS).
     wreck_wake_level: f32,
+    /// A silo's rounds that came ready since the last turn (`pianist/fire.rs`, `note_rounds`), for `Wake::missile_ready`.
+    pub(super) rounds_ready: Vec<String>,
 }
 
 impl Brain {
@@ -86,8 +88,14 @@ impl Brain {
         // Of several seats under one commander only the lead asks for turns (held, it holds the engine and so every
         // seat); the others hand it what is theirs alone to know.
         if shared.lead().is_some_and(|lead| lead != self.world.hello.team) {
-            if shared.wake.lock().unwrap().extractor_lost && self.extractor_losses.back() == Some(&tick.frame) {
+            let wake = shared.wake.lock().unwrap().clone();
+            if wake.extractor_lost && self.extractor_losses.back() == Some(&tick.frame) {
                 shared.trigger("an extractor was destroyed".into());
+            }
+            for text in std::mem::take(&mut self.wake.rounds_ready) {
+                if wake.missile_ready {
+                    shared.trigger(text);
+                }
             }
             return;
         }
@@ -147,6 +155,12 @@ impl Brain {
         // A person spoke: news once, when the line arrives (the report carries the words).
         if wake.chat && self.heard_chat_at == tick.frame {
             reasons.push("someone in the game said something (see the chat lines)".into());
+        }
+        // A missile came ready: the player fires it, and nothing else tells it (nuke-2-hard: two sat ready five
+        // minutes before his anti-nuke while the reports named neither).
+        let rounds = std::mem::take(&mut self.wake.rounds_ready);
+        if wake.missile_ready {
+            reasons.extend(rounds);
         }
         let pool_met = !wake.pool_reaches.is_empty()
             && wake.pool_reaches.iter().all(|(name, n)| field.unassigned.iter().any(|(have, count)| have == name && count >= n));

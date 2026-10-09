@@ -423,11 +423,17 @@ sent at his forward army landed. What the game taught:
   "stockpil"; the `stockpilers` entry lives in the picture tool, which the player did not call once in those five
   minutes. Its notes: "silo still 0 ready (energy-limited)" at 20:53, with two ready; "silo had 3 missiles ready
   (unseen in reports)" at 23:39. The refusal's words ("10 stockpiling, one every 120 s at full energy") taught it that
-  energy limits the silo, and its reports showed energy short, so it believed the count was zero. Proposal for the
-  user's word: the report carries a round as the fire line is carried, a news line when a round comes ready ("18:38
-  armsilo_282 holds 1 missile ready, 9 stockpiling") and the ready count in the standing summary; and, the user's
-  choice, a wake condition on a round coming ready, since the player's `wait` already names the events that wake it.
-  An observation, not a decision; the picture's line stays.
+  energy limits the silo, and its reports showed energy short, so it believed the count was zero. **Built on the
+  user's word** (2026-10-09 evening: "we need to update the player's picture report to include stockpiled missiles,
+  and possibly the player wake"): the briefing carries the stockpilers (`Briefing::stockpilers`) and every report
+  prints a `missiles` line from them ("missiles: armsilo_282 holds 2 missiles ready, 8 stockpiling (one every 120 s at
+  full energy); `fire` sends one at a place"; the side's report prints it under each seat); a round coming ready is a
+  done line of the hands and a note in the picture (`note_rounds` in `pianist/fire.rs`: a silo's every round, an
+  anti-nuke's first interceptor); a silo's round wakes the player (`Wake::missile_ready`, on by default, off by
+  `wait`). The player's prompt and the brief say so; the brief adds that a missile needs no sight of its point. Tests:
+  the missiles line, the round news. An observation, not a decision; the picture's line stays. The user's first
+  reading was that nothing told Jev to fire; the firing never passes through Jev (`take_firings` runs in the pianist's
+  every-tick bookkeeping and pushes `Command::FireAt`), which the code showed and the user accepted.
 - **The player wanted sight of a target it already had.** From 20:08 its plan was to push the army north to find his
   base "so the missile has a target", although its 18:18 call had named his vehicle plant at (6912, 320) from the
   map sheet's corner start, and the objective named his base. No building of his base was ever seen in the game.
@@ -460,8 +466,8 @@ sent at his forward army landed. What the game taught:
   file's sixth field, each shot's distance from his nearest standing anti-nuke, and the stockpiler's type on each
   round and firing line.
 
-Four observation lines now await the user's word: a remembered building's entry says when a missile landed within
-640 of it; the `fire` answer names our units within the blast; the report names the rounds as they come ready (and
-perhaps wakes the player); the report says what was seen lost within 640 thirty seconds after a shot. Next by the
-design's practice half: the same game again once the report names the rounds, to see whether the player fires at
-20:38; and the nuke's place in a game the army is winning rather than the objective.
+Three observation lines still await the user's word: a remembered building's entry says when a missile landed within
+640 of it; the `fire` answer names our units within the blast; the report says what was seen lost within 640 thirty
+seconds after a shot. The fourth (the report names the rounds as they come ready, and a silo's round wakes the player)
+is built. Next by the design's practice half: the same game again with the rounds in the report, to see whether the
+player fires at 20:38; and the nuke's place in a game the army is winning rather than the objective.

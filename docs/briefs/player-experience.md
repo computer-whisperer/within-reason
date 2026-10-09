@@ -1470,8 +1470,8 @@ that were already dead. Against hard_aggressive the silo stood at 16:32 and two 
 anti-nuke was begun, and they sat unfired for five minutes while the army went looking for a base whose place was known;
 every missile sent at his base after the anti-nuke stood was taken, every one sent at his army in the field landed. A
 missile needs no sight of its point, only its coordinates: his start is on the map sheet and his plant is where his
-first units came from. The first round comes 120 s after the silo stands when energy holds, and the picture's
-`stockpilers` entry says how many are ready; against hard_aggressive his base is the target only before minute 21, and
+first units came from. The first round comes 120 s after the silo stands when energy holds; the report's `missiles`
+line says every turn how many each silo holds, and a round coming ready wakes you; against hard_aggressive his base is the target only before minute 21, and
 after that the missile is for what stands in the field, two thousand from any anti-nuke of his. The army, not the
 missile, ends a game. The `fire` tool sends a ready missile at a place in coordinates; the kept count is the game's ten for
 now (a silo at its limit is a 1,042 energy a second draw until it holds ten), and a silo or anti-nuke listed without a
