@@ -409,3 +409,59 @@ raid of 8:23 took the first plant frame, three constructors and eight extractors
 
 Next: a game against hard_aggressive, whose anti-nuke stands at 21 to 25 minutes (the arena's practice half of the
 nuke rush), with the brief's case in and the two observation lines if the user says so.
+
+**§10 (e), the second game (2026-10-09 evening, `nuke-2-hard`: BARb hard_aggressive on Comet, one match, the same flags
+and objective; lost at 32:22, K-nuke-the-second-flagship-game).** The user's word before it: "a silly build order in this
+context, but doing it while an angry BARbarian is attacking is definitely a solid demonstration of capability."
+The economy won the race: the silo stood at 16:32 (begun 13:19, 193 s), the first missile at 18:38 and two by 20:38,
+a minute before his anti-nuke was begun at 21:40, which stood in 28 s and could hold an interceptor by 23:38. The
+player lost it: its first `fire` call came 20 s before the first round and was refused, and its next came at 23:39,
+with three ready. The three missiles then sent at his base were intercepted (304 to 682 from the anti-nuke); the four
+sent at his forward army landed. What the game taught:
+
+- **The report never names the rounds.** No turn prompt from 18:28 to 23:39 contains "missile", "silo", "ready" or
+  "stockpil"; the `stockpilers` entry lives in the picture tool, which the player did not call once in those five
+  minutes. Its notes: "silo still 0 ready (energy-limited)" at 20:53, with two ready; "silo had 3 missiles ready
+  (unseen in reports)" at 23:39. The refusal's words ("10 stockpiling, one every 120 s at full energy") taught it that
+  energy limits the silo, and its reports showed energy short, so it believed the count was zero. Proposal for the
+  user's word: the report carries a round as the fire line is carried, a news line when a round comes ready ("18:38
+  armsilo_282 holds 1 missile ready, 9 stockpiling") and the ready count in the standing summary; and, the user's
+  choice, a wake condition on a round coming ready, since the player's `wait` already names the events that wake it.
+  An observation, not a decision; the picture's line stays.
+- **The player wanted sight of a target it already had.** From 20:08 its plan was to push the army north to find his
+  base "so the missile has a target", although its 18:18 call had named his vehicle plant at (6912, 320) from the
+  map sheet's corner start, and the objective named his base. No building of his base was ever seen in the game.
+  The brief now says a missile needs no sight, only coordinates, and that against hard_aggressive the base is the
+  target only before minute 21.
+- **Nothing tells the player a missile was taken.** The `fire` answer promises 12,500 damage at the point; the three
+  intercepted shots produced no event the player could read (the record has no interception; his anti-nuke was never
+  seen, so the picture never named it or its coverage), and the player wrote "Missile #3 at D3-E3 result unclear" even
+  for a shot that landed. Proposal for the user's word: thirty seconds after a firing the report says what of his
+  seen within 640 of the point was lost, and "nothing seen lost" when nothing was (intercepted, or nothing stood
+  there); and the `fire` answer names any seen anti-nuke of his whose 2,000 covers the point. Both are observations.
+  The brief's clock (his anti-nuke at 21 to 25 against hard_aggressive) is the player's only warning until one is
+  seen; scouting his base before firing at it is the player's call.
+- **Two calls in one batch said "2 left" twice.** The answer counted the card's rounds and not the firings already
+  ordered in the turn. Fixed: firings pending for the silo count against its rounds, the third call on a silo of two
+  is refused ("2 already ordered this turn"), and the test covers it.
+- **His tier 2 took the map while the second silo was paid.** Extractors 28 at 24:00 to 8 at 32:00 under 12 to 20 of
+  his tier-2 movers on our half (Reapers, a Karganeth, a Shiva, Vipers, Toasters, Sokolovs), with the bank at its cap
+  (12,180) at 24:00 and a second silo (8,100) and an advanced fusion begun into it: the unconverted lead of player-30
+  and player-31 in its late-game form, the sink again chosen to be a second copy of the first. The missiles that
+  landed killed his forward forces, not the army on our spots.
+- **The commander died rebuilding at the front.** Listed at 31:18 for five extractors at C8-D8 under the player's own
+  rule (home while a heavy is within 900), it was shot by two Sokolovs it never saw: a rule keyed to sight does not
+  fire on an unseen gun. `corsok` is not in the brief's units part; its first sighting in our games was 30:52 of this
+  one.
+- **Our own units inside the blast, again:** two Stumpies of five standing within 640 of the 30:00 shots, with the
+  player's warning to the group given; the first game's proposal (the `fire` answer names our units within the
+  blast) stands.
+- The reader: `run/nuke_read.py` names his anti-nukes, silos and advanced plants with begun and stood from the truth
+  file's sixth field, each shot's distance from his nearest standing anti-nuke, and the stockpiler's type on each
+  round and firing line.
+
+Four observation lines now await the user's word: a remembered building's entry says when a missile landed within
+640 of it; the `fire` answer names our units within the blast; the report names the rounds as they come ready (and
+perhaps wakes the player); the report says what was seen lost within 640 thirty seconds after a shot. Next by the
+design's practice half: the same game again once the report names the rounds, to see whether the player fires at
+20:38; and the nuke's place in a game the army is winning rather than the objective.

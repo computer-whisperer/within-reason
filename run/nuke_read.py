@@ -76,10 +76,11 @@ def main():
                 if after:
                     e = [s.get("e", [0, 0, 0, 0]) for s in after]
                     print(f"    the four minutes after it stood: energy store {min(x[0] for x in e):.0f} to {max(x[0] for x in e):.0f}, income {sum(x[1] for x in e) / len(e):.0f}, usage {sum(x[2] for x in e) / len(e):.0f} a second (mean)")
+        kind = lambda u: names[created[u]["d"]] if u in created else "unit"
         for f, u, n, queued in rounds:
-            print(f"  round ready {match_read.clock(f)}: unit {u} holds {n}, {queued} stockpiling")
+            print(f"  round ready {match_read.clock(f)}: {kind(u)} {u} holds {n}, {queued} stockpiling")
         for f, u, x, z in fires:
-            print(f"  fire_at {match_read.clock(f)}: unit {u} at ({x}, {z})")
+            print(f"  fire_at {match_read.clock(f)}: {kind(u)} {u} at ({x}, {z})")
             if truth_rows:
                 before = max((r for r in truth_rows if r["f"] <= f), key=lambda r: r["f"], default=None)
                 after = min((r for r in truth_rows if r["f"] >= f + 30 * 40), key=lambda r: r["f"], default=None)

@@ -880,14 +880,22 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             if card.stockpile_seconds <= 0.0 {
                 return Err(format!("{handle} is a {}, not a silo: it has no missile to fire", card.unit));
             }
-            if card.stockpile < 1 {
-                return Err(format!("{handle} has no missile ready ({} stockpiling, one every {:.0} s at full energy); nothing fired", card.stockpile_queued, card.stockpile_seconds));
+            // Firings ordered this turn and not yet taken by the pianist still count against the card's rounds: two calls
+            // in one batch on a silo with one missile fire one (nuke-2-hard, 2026-10-09: both answered "2 left").
+            let ordered = shared.firings.lock().unwrap().iter().filter(|f| f.silo == handle).count() as i32;
+            let ready = card.stockpile - ordered;
+            if ready < 1 {
+                return Err(if ordered > 0 {
+                    format!("{handle} has no missile left to fire: {ordered} already ordered this turn against its {} ready; nothing fired", card.stockpile)
+                } else {
+                    format!("{handle} has no missile ready ({} stockpiling, one every {:.0} s at full energy); nothing fired", card.stockpile_queued, card.stockpile_seconds)
+                });
             }
             let map = shared.map.lock().unwrap().clone();
             let (width, height) = (map["width"].as_f64().unwrap_or(0.0) as f32, map["height"].as_f64().unwrap_or(0.0) as f32);
             let at = point_of(&arguments["at"], width, height, "at")?;
             shared.firings.lock().unwrap().push(Firing { silo: handle.to_string(), at });
-            Ok(format!("{handle} fires a missile at ({:.0}, {:.0}) from your hands' next look: it launches in about 9 s and lands 13 s later, 12,500 damage at the point and nothing 640 away; {} missile{} left ready after it", at.0, at.1, card.stockpile - 1, if card.stockpile - 1 == 1 { "" } else { "s" }))
+            Ok(format!("{handle} fires a missile at ({:.0}, {:.0}) from your hands' next look: it launches in about 9 s and lands 13 s later, 12,500 damage at the point and nothing 640 away; {} missile{} left ready after it", at.0, at.1, ready - 1, if ready - 1 == 1 { "" } else { "s" }))
         }
         _ => Err(format!("unknown tool {name}")),
     }
@@ -965,7 +973,8 @@ mod tests {
     }
 
     /// The `fire` tool: a silo with a missile ready fires at a point or a grid cell's centre and the firing waits for the
-    /// pianist; one still stockpiling is refused, as is anything that is not a silo, and a point off the map.
+    /// pianist; one still stockpiling is refused, as is anything that is not a silo, and a point off the map. Firings
+    /// ordered in the same turn count against the rounds: the third call on a silo with two is refused.
     #[test]
     fn fire_sends_a_ready_missile_at_a_point_and_refuses_an_empty_silo() {
         use super::super::shared::UnitCard;
@@ -973,14 +982,17 @@ mod tests {
         *shared.map.lock().unwrap() = json!({ "width": 8192.0, "height": 6144.0 });
         let silo = |handle: &str, ready: i32, queued: i32| UnitCard { handle: handle.into(), unit: "armsilo".into(), at: (500.0, 500.0), health: 5000.0, metal: 8100.0, stockpile: ready, stockpile_queued: queued, stockpile_seconds: 120.0, ..UnitCard::default() };
         let solar = UnitCard { handle: "armsolar_7".into(), unit: "armsolar".into(), at: (100.0, 100.0), health: 400.0, metal: 155.0, ..UnitCard::default() };
-        shared.own_cards.lock().unwrap().insert(0, vec![silo("armsilo_12", 1, 9), silo("armsilo_13", 0, 10), solar]);
+        shared.own_cards.lock().unwrap().insert(0, vec![silo("armsilo_12", 2, 8), silo("armsilo_13", 0, 10), solar]);
         assert!(call_tool("fire", &json!({ "silo": "armsilo_13", "at": [6600, 3072] }), &shared).unwrap_err().contains("no missile ready"));
         assert!(call_tool("fire", &json!({ "silo": "armsolar_7", "at": [6600, 3072] }), &shared).unwrap_err().contains("not a silo"));
         assert!(call_tool("fire", &json!({ "silo": "armsilo_12", "at": [9000, 3072] }), &shared).unwrap_err().contains("off the map"));
         assert!(shared.firings.lock().unwrap().is_empty(), "a refused firing orders nothing");
         let said = call_tool("fire", &json!({ "silo": "armsilo_12", "at": [6600, 3072] }), &shared).unwrap();
-        assert!(said.contains("fires a missile at (6600, 3072)") && said.contains("0 missiles left ready"), "{said}");
-        call_tool("fire", &json!({ "silo": "armsilo_12", "at": "E7" }), &shared).unwrap();
+        assert!(said.contains("fires a missile at (6600, 3072)") && said.contains("1 missile left ready"), "{said}");
+        let said = call_tool("fire", &json!({ "silo": "armsilo_12", "at": "E7" }), &shared).unwrap();
+        assert!(said.contains("0 missiles left ready"), "{said}");
+        let refused = call_tool("fire", &json!({ "silo": "armsilo_12", "at": "E7" }), &shared).unwrap_err();
+        assert!(refused.contains("2 already ordered this turn"), "{refused}");
         let firings = shared.firings.lock().unwrap().clone();
         assert_eq!(firings.len(), 2);
         assert_eq!((firings[0].silo.as_str(), firings[0].at), ("armsilo_12", (6600.0, 3072.0)));

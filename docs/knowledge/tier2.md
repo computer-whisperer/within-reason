@@ -399,3 +399,51 @@ the point at impact survived.
 **Used by.** The brief's late-game part (the nuke-1-medium case); `docs/design/2026-10-09-late-economy.md` §10 (e):
 what the next game changes (the army finishes while the missiles fall; a missile at a remembered building is a
 missile at nothing; his commander is not a missile's target while it can walk).
+
+### K-nuke-the-second-flagship-game
+**Claim.** Against BARb hard_aggressive on Comet Catcher with the same seat and objective as K-nuke-the-first-flagship-game
+the economy won the nuke race and the player lost it: the silo stood at 16:32, inside the frontier's standard-tax window,
+and held two missiles from 20:38, a minute before his anti-nuke was begun, and the player fired nothing until 23:39,
+nine seconds after that anti-nuke's first interceptor could be ready; every missile sent at his base afterwards was
+taken and every one sent at his army in the field landed; the game was lost at 32:22 to his tier-2 army and two
+Sokolovs. The clock: advanced solar 6:27, advanced plant begun 8:25 and stood 10:01, fusion 14:29, the silo begun
+13:19 by one constructor and joined by more (986 mean power, the store empty in 26 % of its samples), stood 16:32 after
+193 s against 181 by the power; the first round 18:38 (126 s), the second 20:38, the third 22:38. His advanced vehicle
+plant stood 13:52; his anti-nuke was begun 21:40 and stood 22:08 (28 s), so its first interceptor was ready by 23:38;
+a silo of his was begun 29:50 and an advanced aircraft plant 32:02, neither standing at the end. The player's one `fire`
+call before 23:39 was at 18:18, twenty seconds before the first round, and was refused; its turn reports from 18:28 to
+23:39 carried no line about the silo's rounds (the picture's `stockpilers` entry is in the picture tool, which it did not
+call), its notes read "silo still 0 ready (energy-limited)" at 20:53 and "silo had 3 missiles ready (unseen in
+reports)" at 23:39, and its plan from 20:08 was to push the army north to find his base "so the missile has a target",
+the base whose vehicle plant it had named at 18:18 by its coordinates; no building of his base (plant, anti-nuke,
+gantry) was ever seen. Seven missiles: three at his base, all intercepted (23:47 at his vehicle plant, 304 from the
+anti-nuke, the point holding the plant, a fusion, a gantry, a Shiva, three mohos, 16 advanced solars, 15 construction
+turrets and his commander; 23:47 at his advanced plant, 558 away; 25:46 at his mohos, 682 away; nothing within 640 of
+any was gone 40 s later), and four at his forward forces, all landed (24:43 at D3-E3: a Banisher, two Tzars, two
+Erasers, two turrets, two extractors, a construction aircraft; 30:00 two at once from the two silos at points 380
+apart on our own line at B5-C5: four to eight forward constructors, a Tzar, a Fink, a turret, two extractors, and of
+ours two Stumpies out of three Bulls and two Stumpies within 640; 31:33 at mid-map: three extractors, five turrets, a
+Muskrat, two radars). The player pulled the body 1,300 west before the 24:43 shot and told it of the 30:00 ones. The
+second silo, begun 23:59 under 1,877 power with the store never empty, stood in 96 s at 25:34; the advanced fusion
+20:54 to 25:58 (304 s); a Mercury at 30:00. The economy: extractors 9, 17, 27, 23, 23, 28, 12, 8 at the four-minute
+marks from 4:00 to 32:00; income 18, 36, 58, 106, 210, 186, 97, 147; the bank 6,600 at 20:00 and 12,180 at 24:00, the
+cap; the army 7 to 58 Bulls and Stumpies. His: extractors 5, 11, 17, 31, 36, 42, 57, 56; movers on our half 5 at 22:00,
+12 at 26:00 (Reapers, a Karganeth, a Shiva, a Punisher), 20 at 32:00 (Vipers, Toasters, Sokolovs, jammers): twenty of
+our twenty-eight extractors fell between 24:00 and 32:00. The loss: the commander, listed at 31:18 to rebuild five
+extractors at C8-D8 under the player's own rule (never north of spot_69; home while a heavy is within 900), walked
+east, was shot from 32:04 by two Sokolovs it could not see (corsok, assault hovercraft, 950 metal, first seen 30:52),
+100 to 19 % in five seconds; the player ordered it home at 32:05 ("being shot by units it cannot see"), the hands
+turned it at 32:10, it died at 32:13. Jev $0.92 (22.0M input tokens: gate 1,156 calls, pick 741, decode 513); the
+player $32.84 over five sessions of 170 turns; 36.5 minutes of wall clock.
+**Status.** observed (2026-10-09), one game: `nuke-2-hard` (`run/matches/1791577775-nuke-2-hard`; `run/nuke_read.py`
+reads it, his anti-nuke and the shots' distances from it included).
+**Evidence.** The record's `created`/`finished`, `round` and `fire_at` rows; the truth file's sixth field for his
+anti-nuke's begun and stood frames, and what stood within 640 of each point and was gone 40 s later; the turn prompts,
+`fire` calls and notes in `strategist-0.jsonl` (no prompt from 18:28 to 23:39 contains "missile", "silo", "ready" or
+"stockpil"); the own-unit samples for the commander's last minute.
+**Would be wrong if.** A game whose reports name the rounds as they come ready had the player hold them as long; or
+hard_aggressive's anti-nuke in a repeat stood later than 21 to 25 or took longer than a minute to stand and arm.
+**Used by.** The brief's late-game part (the nuke-2-hard case and the nuke paragraph: a missile needs no sight, the
+base is the target only before his anti-nuke); `docs/design/2026-10-09-late-economy.md` §10 (e), the second game:
+the report says nothing about rounds (proposal), the fire answer says nothing about interception (proposal), the
+batch count fixed.
