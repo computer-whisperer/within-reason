@@ -364,3 +364,38 @@ income over 150.
 **Used by.** `bots/distilled/README.md` (D-ENERGY, D-BUILD-POWER, D-PROJECT); the brief's late-game section to come
 (the flagship's player shows the same bank in human-18 and player-50: the mechanism there is the player's, but the
 yard-crowding and the storage-cap arithmetic are the game's).
+
+### K-nuke-the-first-flagship-game
+**Claim.** Against BARb medium on Comet Catcher the flagship (Opus 5.5 medium as the player, Jev as the hands, the
+experience brief, the game's objective set to the nuke) built a silo and landed a missile on his base, and the game
+was still undecided at the 40-minute cap: the silo stands and fires as the engine check said, but a missile does not
+end a game whose army does not finish it. The clock: advanced plant begun 8:38 (its first frame, three constructors
+and about eight extractors lost to a fourteen-Ak raid at 8:23), stood 10:41; fusion 14:26; the silo begun 14:29 by
+one advanced constructor with the commander and four constructors helping (`queue` with one id for all), stood
+17:31 after 182 s against 174 by buildtime over the 1,024 power on it; the first missile ready at 20:00 (149 s: energy
+2,291 in against 1,799 out), fired at 21:07 at his lab, and 40 s later everything of his within 640 of the point was
+gone (his lab, advanced lab, an advanced constructor, two constructors, five turrets, 17 solars, four extractors,
+three converters, two storages, a construction turret) except his commander. Eight missiles by 37:37, one every
+120 to 125 s as the engine rate says; two landed on points where nothing stood (a lab the picture still listed four
+minutes after the third missile had killed it out of our sight, and the first base's place again), one on our own
+body of 81 soldiers (the player's note "MISTAKE"; it walked clear in 22 s and lost a Janus), two aimed at his
+commander where it stood at the order (it lived both times: a commander walks out of a 640 blast in the 22 s from
+order to impact, or stands past the 450 at which the falling damage drops under its health). The frontier's
+standard-tax silo on Comet stood at 14:11 and its first missile at 16:25; this game ran 3 to 4 minutes behind that
+ceiling after the raid. BARb medium started an advanced lab at 19:24 (killed by the first missile), built no anti-nuke
+by 40:00, and at the end held a commander, two extractors, two turrets and five raiders scattered over the map
+against our 239 soldiers (70,000 metal), whose body reached his base at 38:31 and had not found the commander at
+40:00. The economy under the silo: extractors 23 at 16:00 fell to 13 at 20:00 and 10 at 24:00 (his raiders on the
+outer spots while the army of nine held one post and the silo's 8,100 was paid), income 82 to 66; then 28
+extractors and 218 a second by 36:00 with the bank at the storage cap from 32:00 (11,000 to 17,800) while an
+advanced fusion took 332 s under three advanced constructors and a second silo 208 s: the bank of §1 again, with
+the sink chosen too late.
+**Status.** observed (2026-10-09), one game: `nuke-1-medium` (`run/matches/1791573192-nuke-1-medium`;
+`run/nuke_read.py` reads it).
+**Evidence.** The record's `created`/`finished`, `round` and `fire_at` rows, the truth file for what stood within 640 of
+each point and was gone 40 s later, the player's `fire` calls and notes in `strategist-0.jsonl`.
+**Would be wrong if.** A second game with the same objective had the missile decide it, or a commander standing at
+the point at impact survived.
+**Used by.** The brief's late-game part (the nuke-1-medium case); `docs/design/2026-10-09-late-economy.md` §10 (e):
+what the next game changes (the army finishes while the missiles fall; a missile at a remembered building is a
+missile at nothing; his commander is not a missile's target while it can walk).

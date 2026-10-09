@@ -80,6 +80,18 @@ building other units while doing t2 transition" (the players' words, on tier 2).
   (K-t2-the-late-spend-ceiling-in-a-bot).
 - **His side**: BARb hard_aggressive's advanced lab at 10:41 at the median, his army flat from 10:40 to 20:00 and
   doubling every five minutes after (the cases, "Tier 2: his and ours").
+- **The first game with a silo** (nuke-1-medium, Comet Catcher, BARb medium, the objective set to the nuke; undecided
+  at the 40-minute cap). The advanced plant begun 8:38 after a fourteen-Ak raid at 8:23 took its first frame, three
+  constructors and eight extractors; fusion 14:26; the silo listed with one id for an advanced constructor, the
+  commander and four constructors, begun 14:29, stood 17:31 (182 s against 174 by the power on it); the first
+  missile ready 20:00, fired 21:07 at his lab: everything of his within 640 gone except his commander. Eight
+  missiles by 37:37, one every two minutes; two fell on points where nothing stood (a lab the picture still listed
+  four minutes after the third missile had killed it out of sight), two on his commander where it stood at the
+  order, and it lived both times (22 s from order to impact; a commander walks). Extractors 23 at 16:00 fell to 10
+  at 24:00 under his raiders while nine soldiers held one post and the silo was paid; then 28 and income 218 by
+  36:00 with 17,000 banked at the cap while an advanced fusion and a second silo were built. He had two extractors,
+  two turrets, five raiders and his commander left against our 239 soldiers at 40:00; the body reached his base at
+  38:31 (K-nuke-the-first-flagship-game).
 
 **What the frontier adds** (the next part, drawn 2026-10-09). With no enemy the fastest orders put the advanced lab
 at 6 to 7 minutes behind three or four constructors, the first tier-2 extractor at 6 to 9, the first fusion at 7 to
@@ -101,8 +113,10 @@ medium in one long game of six, at 25; his own silo stood in 14 of 848 long game
 frontier's 15:30 to 16:50 under the standard tax says the order exists, on paper, on every map we drew; against
 medium and against people the window is far longer, and with several seats the question is which seat has no
 anti-nuke. In the engine the missile goes nine seconds after the order and lands thirteen seconds later, and an
-anti-nuke with an interceptor ready within 2,000 of the target takes it (the check of 2026-10-09). No game of ours has
-built a silo. The `fire` tool sends a ready missile at a place in coordinates; the kept count is the game's ten for
+anti-nuke with an interceptor ready within 2,000 of the target takes it (the check of 2026-10-09). One game of ours has
+built one (nuke-1-medium, above): the missile wiped his base at 21:30 and the game was undecided at 40:00, his commander
+having walked out of two blasts aimed at where it stood and two missiles having gone to remembered buildings that were
+already dead; the army, not the missile, ends a game. The `fire` tool sends a ready missile at a place in coordinates; the kept count is the game's ten for
 now (a silo at its limit is a 1,042 energy a second draw until it holds ten), and a silo or anti-nuke listed without a
 place goes to the back field at home with the generators.
 

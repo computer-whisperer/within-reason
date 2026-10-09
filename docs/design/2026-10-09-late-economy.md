@@ -377,3 +377,35 @@ amended) until the core ring of §4.6. (b) The picture: our silos and anti-nukes
 with their 2,000 coverage and his silos as silos (`UnitDefInfo::coverage` and `stockpile_energy` added for it). The
 player's prompt gained the `fire` paragraph and the brief's late-game part says the tool exists. Not built: a check in
 the tool against his known anti-nuke coverage (the picture says it; the player reads it), and a game.
+
+**§10 (e), the first game (2026-10-09 afternoon, `nuke-1-medium`: BARb medium on Comet, one match, `--play-out`, the
+objective set to the nuke; undecided at the 40-minute cap, K-nuke-the-first-flagship-game).** The tools worked end to
+end in a game: the player listed the silo with one id for five builders, the back field took it, the picture's
+`stockpilers` line was read ("Silo armsilo_17869 confirmed, 0 ready, stockpiling", 18:39), the `fire` tool refused the
+player four times before the round was ready (21:48 to 22:38) and sent eight missiles, each `fire_at` in the record and
+each landing where it was aimed. The clock against the frontier: silo begun 14:29 and stood 17:31, the first missile
+ready 20:00 and fired 21:07, against the standard-tax ceiling's 14:11 and 16:25, three to four minutes behind after the
+raid of 8:23 took the first plant frame, three constructors and eight extractors; the rounds then came every 120 to
+125 s as the engine rate says. What the game taught, for the next one and for the brief:
+
+- **The missile does not end the game; the army does.** His base was gone at 21:30 and the game ran another
+  eighteen minutes: his commander survived two missiles aimed at where it stood (it walks in the 22 s from order to
+  impact), two missiles went to remembered places where nothing stood, and the body of 81 to 239 soldiers held posts
+  until 33:43 and reached his base at 38:31. The brief's argument ("finish") applies to the nuke as to a lead.
+- **A remembered building is not a target.** The picture kept his second lab four minutes after the third missile had
+  killed it out of our sight (the record saw `enemy_lost`, not `enemy_destroyed`), and the player fired at it again.
+  Proposal for the user's word (an observation line, not a decision): a remembered building's entry says when a
+  missile of ours landed within 640 of it, so the player knows the memory is in doubt.
+- **The silo's bill fell on the outer spots.** Extractors 23 at 16:00 to 10 at 24:00 under his raiders while the
+  silo's 8,100 and the first rounds were paid and nine soldiers held one post; the frontier's tax stands in for this
+  and the game shows the shape of what it buys.
+- **The bank came back at the cap**: 11,000 to 17,800 from 32:00 with income 218, an advanced fusion taking 332 s under
+  three advanced constructors and a second silo 208 s; the §1 pattern, the sinks chosen late. The player's own fifth
+  missile fell on its own body (the note "MISTAKE"; it walked clear and lost a Janus): the tool's answer could name
+  our units within the blast as `remove` names them for a destruct, an observation to add.
+- The player's turn cadence against a two-minute round: the player fired within 60 to 70 s of a round coming ready
+  (20:00 to 21:07, 22:41 to 22:55, 24:41 to 25:00), the rest of the lag being its turn timer; the player tool was the
+  right call for aiming and costs a minute a missile.
+
+Next: a game against hard_aggressive, whose anti-nuke stands at 21 to 25 minutes (the arena's practice half of the
+nuke rush), with the brief's case in and the two observation lines if the user says so.
