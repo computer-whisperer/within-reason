@@ -392,6 +392,9 @@ pub enum Event {
     EnemyDestroyed { enemy: UnitId },
     /// A [`Command::Build`] was dropped because the shim found no legal site.
     BuildSiteNotFound { unit: UnitId, def: UnitDefId },
+    /// A build order's site as the host placed it (the engine's closest free site to what the bot asked): where
+    /// the frame will stand, so the bot keeps later sites out of it while nothing stands there yet.
+    BuildSited { unit: UnitId, def: UnitDefId, at: Vec3 },
     /// The engine rejected a command.
     CommandRejected { unit: UnitId, code: i32 },
     /// A unit became ours from another team (a transfer between seats, a capture).

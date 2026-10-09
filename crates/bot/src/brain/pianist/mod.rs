@@ -51,6 +51,11 @@ const INTERVAL_SECONDS: f32 = 1.0;
 /// Events the picture shows, and for how long.
 const RECENT_EVENTS: usize = 12;
 const RECENT_FRAMES: i32 = 90 * FRAMES_PER_SECOND;
+/// H-HANDS-BLOCKED-SITE: a builder standing within its reach (plus this margin) of an unstarted build's site for this
+/// long, with no frame of the type there, has a blocked site (human-27 2:20-2:54: 34 s at the site, never idle).
+const BLOCKED_WATCH: i32 = 8 * FRAMES_PER_SECOND;
+const BLOCKED_MARGIN: f32 = 120.0;
+
 /// H-HANDS-REFUSED: a spot where the engine refused an extractor is left off every state for this long (smoke-4: the
 /// commander asked for the same refused spot thirty times running beside the enemy base, and died there).
 const REFUSED_FRAMES: i32 = 90 * FRAMES_PER_SECOND;
@@ -63,8 +68,9 @@ pub(super) const SILENT_REACH: f32 = 0.9;
 /// What a builder or a lab is committed to.
 #[derive(Clone, Debug)]
 pub(super) enum Task {
-    /// A build order: the type, the site asked for, the spot if an extractor, when it was ordered, whether the
-    /// engine has started it (a nanoframe by this builder since the order).
+    /// A build order: the type, its site (as asked, then as the host placed it, then the frame's own place), the
+    /// spot if an extractor, when it was ordered, whether the engine has started it (a nanoframe by this builder
+    /// since the order).
     Build { def: UnitDefId, near: Vec3, spot: Option<usize>, ordered: i32, started: bool },
     /// Guarding a factory or another builder.
     Assist { lab: UnitId, since: i32 },
@@ -228,6 +234,9 @@ pub struct Pianist {
     /// Sites the engine refused for a building (the type, the point, until when): kept out of that type's site
     /// search for `REFUSED_FRAMES`.
     pub(super) refused_sites: Vec<(UnitDefId, Vec3, i32)>,
+    /// Builders standing within reach of an unstarted build's site with no frame of the type there, and since when
+    /// (H-HANDS-BLOCKED-SITE).
+    pub(super) at_site: HashMap<UnitId, i32>,
     /// The frame each builder's list was last set by the player (`queue`): a list newer than the builder's task
     /// displaces a build the engine has not started (H-HANDS-SCRIPT).
     pub(super) script_frame: HashMap<String, i32>,
@@ -620,6 +629,7 @@ impl Pianist {
             rove_events: Vec::new(),
             refused_spots: HashMap::new(),
             refused_sites: Vec::new(),
+            at_site: HashMap::new(),
             script_frame: HashMap::new(),
             packet_frame: 0,
             diet: diet::Diet::from_env(),
@@ -1019,7 +1029,13 @@ impl Brain {
             let pianist = self.pianist.as_ref().expect("pianist mode");
             compose::gate_questions(&menus, parties, &picture.places, pianist.diet.only_used, pianist.diet.builder_words, pianist.layers.places)
         };
-        // The `same` layer: a question in the words of its last ask is not sent again.
+        // The `same` layer: a question in the words of its last ask is not sent again. Every standing answer was
+        // given under the packet and lists of its ask: a change of either voids them all (human-27 2:09: the packet
+        // "group_A: roves now" landed and the gate used the standing rove answer of 0.23 while the audit's fresh one
+        // was 0.57; the group stood 18 s more; docs/studies/2026-10-08-roving-menu.md).
+        if ["packet", "lists"].iter().any(|e| self.pianist.as_ref().is_some_and(|p| p.events.contains(*e))) {
+            self.pianist.as_mut().expect("pianist mode").said.clear();
+        }
         let asked_whole = questions.len();
         let same = {
             let pianist = self.pianist.as_ref().expect("pianist mode");
@@ -1558,6 +1574,7 @@ impl Brain {
         // What did not happen, for the player's report as well as the picture.
         let mut done: Vec<String> = Vec::new();
         let mut refused: Vec<(UnitId, UnitDefId, Vec3)> = Vec::new();
+        let mut blocked: Vec<(UnitId, UnitDefId, Vec3, i32)> = Vec::new();
         let allowances: Vec<(UnitId, String, Option<Allowance>)> = own.iter().filter(|u| !u.being_built && (self.world.is_mobile_builder(u.def) || self.world.is_factory_def(u.def))).map(|u| (u.id, self.actor_name(u.id), self.allowed_units(&self.actor_name(u.id)))).collect();
         let Some(mut pianist) = self.pianist.take() else { return };
         for (id, name, allowed) in allowances {
@@ -1578,6 +1595,15 @@ impl Brain {
         pianist.lab_queue.retain(|id, _| own.iter().any(|u| u.id == *id));
         for event in &tick.events {
             match *event {
+                // The site as the host placed it: later site searches keep out of it (`build_site_for`), and the
+                // never-started checks measure from it.
+                Event::BuildSited { unit, def, at } => {
+                    if let Some(Task::Build { def: d, near, started: false, .. }) = pianist.tasks.get_mut(&unit)
+                        && *d == def
+                    {
+                        *near = at;
+                    }
+                }
                 Event::UnitCreated { unit, builder: Some(builder) } => {
                     if own.iter().any(|u| u.id == builder && self.world.is_factory_def(u.def)) {
                         pianist.produced_by.insert(unit, builder);
@@ -1683,6 +1709,32 @@ impl Brain {
                 _ => {}
             }
         }
+        // A build the engine holds without starting (H-HANDS-BLOCKED-SITE): the builder stands within reach of its
+        // site past `BLOCKED_WATCH` with no frame of the type near it and is never idle. The engine keeps such an
+        // order when the footprint overlaps a frame of the same type it cannot reach (BuilderCAI: the frame counts
+        // as assistable, so the order is neither started nor dropped; human-27 2:08-2:54: the commander's solar over
+        // a constructor's, 46 s, released only by a new list). The site is refused for `REFUSED_FRAMES`, the builder
+        // stopped, its step back at the front of its list, so the order goes again elsewhere.
+        for unit in own.iter().filter(|u| !u.idle && !u.being_built) {
+            let waiting = match pianist.tasks.get(&unit.id) {
+                Some(Task::Build { def, near, started: false, .. }) => {
+                    let reach = self.world.def(unit.def).map_or(100.0, |d| d.build_distance);
+                    unit.pos.dist2d(*near) <= reach + BLOCKED_MARGIN && !own.iter().any(|f| f.being_built && f.def == *def && f.pos.dist2d(*near) < 200.0)
+                }
+                _ => false,
+            };
+            if !waiting {
+                pianist.at_site.remove(&unit.id);
+                continue;
+            }
+            let since = *pianist.at_site.entry(unit.id).or_insert(frame);
+            if frame - since >= BLOCKED_WATCH
+                && let Some(Task::Build { def, near, .. }) = pianist.tasks.get(&unit.id)
+            {
+                blocked.push((unit.id, *def, *near, since));
+            }
+        }
+        pianist.at_site.retain(|id, _| own.iter().any(|u| u.id == *id));
         // A builder attacking a party follows it: the fight order is to where the party stood when the pick was made,
         // and a raider moves. A builder following a group goes after it when the group has moved on.
         let bodies: Vec<(String, Vec3)> = pianist.groups.iter().filter_map(|g| g.body(own, None).map(|b| (g.name.clone(), b.at))).collect();
@@ -1759,6 +1811,27 @@ impl Brain {
             pianist.done.push(format!("{} {actor}: {text}", picture::clock(frame)));
             pianist.note(frame, text);
             eprintln!("[ai {}] f={frame} pianist: {name} order for unit {} near ({:.0}, {:.0}) never started", self.world.hello.ai_id, unit.0, near.x, near.z);
+        }
+        for (unit, def, near, since) in blocked {
+            self.dropped_orders += 1;
+            let name = self.name(def).to_string();
+            let actor = self.actor_name(unit);
+            let place = self.world.grid(near);
+            let pianist = self.pianist.as_mut().expect("pianist mode");
+            pianist.tasks.remove(&unit);
+            pianist.at_site.remove(&unit);
+            pianist.refused_sites.retain(|(_, _, until)| *until > frame);
+            pianist.refused_sites.push((def, near, frame + REFUSED_FRAMES));
+            commands.push(Command::Stop { unit });
+            if let Some((step, _)) = pianist.list_steps.remove(&unit)
+                && let Some(list) = pianist.scripts.get_mut(&actor)
+            {
+                list.push_front(step);
+            }
+            let text = format!("its {name} at {place} never started in the {} s it stood at the site: the site is blocked (a frame of the same type it cannot reach, most likely), refused for 90 s, and the order goes again elsewhere", (frame - since) / FRAMES_PER_SECOND);
+            pianist.done.push(format!("{} {actor}: {text}", picture::clock(frame)));
+            pianist.note(frame, format!("{actor}: {text}"));
+            eprintln!("[ai {}] f={frame} pianist: {name} order for unit {} at ({:.0}, {:.0}) blocked at the site", self.world.hello.ai_id, unit.0, near.x, near.z);
         }
     }
 

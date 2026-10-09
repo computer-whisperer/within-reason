@@ -235,6 +235,32 @@ impl Group {
         Some(Body { length: front.dist2d(tail), whole, core, joining, stragglers: apart, front, tail, at, arrived })
     }
 
+    /// A newcomer (a plant's output) joins: of the body when it stands within the adopt radius of the body's place,
+    /// with the task's order at once; else a reinforcement on its way to the nearest member of the body's core, on
+    /// ground it reaches (`snap`), never the arithmetic centre (Cape Violet: the centre of a group split between a
+    /// plateau and the shore below lay in deep water, and every newcomer was sent into it). By the nearest member
+    /// alone a plant's stream at the yard adopted itself one unit at a time and the body's tail never left home
+    /// (player-10 18:20: "its tail is 4649 behind at yard2"); adopted with no order, a Rascal stood idle at the yard
+    /// 47 s while its group walked on, and the next newcomer was sent to it as the nearest member (human-27 1:47-2:34).
+    pub(crate) fn admit(&mut self, unit: &OwnUnit, own: &[OwnUnit], snap: impl Fn(Vec3) -> Vec3) -> Vec<Command> {
+        let body = self.body(own, None);
+        let core_nearest = body.as_ref().and_then(|b| b.core.iter().map(|m| m.pos).min_by(|a, b| a.dist2d(unit.pos).total_cmp(&b.dist2d(unit.pos))));
+        let any_nearest = self.units(own).iter().filter(|m| !self.joining.contains_key(&m.id)).map(|m| m.pos).min_by(|a, b| a.dist2d(unit.pos).total_cmp(&b.dist2d(unit.pos)));
+        let adopted = body.as_ref().is_some_and(|b| b.at.dist2d(unit.pos) <= ADOPT_RADIUS);
+        self.members.push(unit.id);
+        if adopted {
+            return self.rejoin_orders(&[unit]);
+        }
+        match core_nearest.or(any_nearest) {
+            Some(to) => {
+                let to = snap(to);
+                self.joining.insert(unit.id, to);
+                vec![Command::Move { unit: unit.id, to, queue: false }]
+            }
+            None => Vec::new(),
+        }
+    }
+
     /// Orders for members rejoining the task (a newcomer that has reached the body): what the task would give
     /// them now.
     pub(crate) fn rejoin_orders(&self, units: &[&OwnUnit]) -> Vec<Command> {
@@ -396,22 +422,8 @@ impl Brain {
             let target = wanted.and_then(|name| pianist.groups.iter().position(|g| g.name == name && g.domain == domain));
             match target {
                 Some(i) => {
-                    // To the nearest member standing, on ground the newcomer reaches, never the arithmetic centre
-                    // (Cape Violet: the centre of a group split between a plateau and the shore below lay in deep
-                    // water, and every newcomer was sent into it).
-                    let nearest = pianist.groups[i].units(own).iter().filter(|m| !pianist.groups[i].joining.contains_key(&m.id)).map(|m| m.pos).min_by(|a, b| a.dist2d(unit.pos).total_cmp(&b.dist2d(unit.pos)));
-                    // Of the body when it stands within the adopt radius of the body's place, else a reinforcement
-                    // on its way: by the nearest member a plant's stream at the yard adopted itself one unit at a
-                    // time and the body's tail never left home (player-10 18:20: "its tail is 4649 behind at yard2").
-                    let body_at = pianist.groups[i].body(own, None).map(|b| b.at);
-                    pianist.groups[i].members.push(unit.id);
-                    if let Some(to) = nearest
-                        && body_at.is_none_or(|at| at.dist2d(unit.pos) > ADOPT_RADIUS)
-                    {
-                        let to = self.snap_for(self.walker_of(unit.def), to);
-                        pianist.groups[i].joining.insert(unit.id, to);
-                        commands.push(Command::Move { unit: unit.id, to, queue: false });
-                    }
+                    let walker = self.walker_of(unit.def);
+                    commands.extend(pianist.groups[i].admit(unit, own, |to| self.snap_for(walker, to)));
                 }
                 None => {
                     let name = pianist.new_group_name();
@@ -917,6 +929,32 @@ mod tests {
         assert!(group.roving() && group.joining.is_empty());
         assert!(commands.is_empty(), "{commands:?}");
         assert!(brain.journal.notes.iter().all(|n| n.source != "lane"));
+    }
+
+    /// A newcomer admitted beside the body takes the task's order at once; one admitted far from it is sent to the
+    /// nearest member of the body's core, not to a member still joining (human-27 1:47-2:34: a Rascal adopted at the
+    /// yard with no order stood there 47 s while its group walked to spot_18, and the first Incisor was sent to it).
+    #[test]
+    fn a_newcomer_beside_the_body_takes_its_order_and_one_far_from_it_walks_to_the_core() {
+        use super::super::fixtures::{at, e3, own};
+        let (_brain, ours, _enemies, _parties) = e3();
+        let mut group = Group::new("A".into(), Domain::Ground, ours.iter().take(12).map(|u| u.id).collect(), GroupTask::Move { to: at(6000.0, 1700.0), place: "spot_18".into(), fight: false, since: 0 }, 0);
+        let mut all = ours.clone();
+        let beside = own(700, 1, at(ours[0].pos.x + 100.0, ours[0].pos.z));
+        all.push(beside.clone());
+        let orders = group.admit(&beside, &all, |p| p);
+        assert!(matches!(orders[..], [Command::Move { unit, to, .. }] if unit == beside.id && to.x == 6000.0), "{orders:?}");
+        assert!(!group.joining.contains_key(&beside.id) && group.members.contains(&beside.id));
+        // A member still joining stands far off; the newcomer far from the body goes to the core, not to it.
+        let stray = own(701, 1, at(1000.0, 4000.0));
+        all.push(stray.clone());
+        group.members.push(stray.id);
+        group.joining.insert(stray.id, stray.pos);
+        let far = own(702, 1, at(1100.0, 4000.0));
+        all.push(far.clone());
+        let orders = group.admit(&far, &all, |p| p);
+        assert!(matches!(orders[..], [Command::Move { unit, to, .. }] if unit == far.id && to.dist2d(stray.pos) > 1000.0), "{orders:?}");
+        assert!(group.joining.contains_key(&far.id));
     }
 
     #[test]

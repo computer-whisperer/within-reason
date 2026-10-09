@@ -159,6 +159,17 @@ impl Brain {
         let mut keep_out = self.lanes.clone();
         if let Some(pianist) = self.pianist.as_ref() {
             keep_out.extend(pianist.refused_sites.iter().filter(|(def, _, _)| *def == planned_def).map(|(_, at, _)| Lane { from: *at, to: *at, half_width: REFUSED_SITE_RADIUS }));
+            // Another builder's build the engine has not started yet (ordered, or queued behind its build) stands
+            // nowhere the engine's site search can see: its site is kept out by the two footprints' reach (human-27
+            // 2:08-2:09: the commander's and a constructor's solars ordered a second apart beside each other, the
+            // constructor's placed over the commander's blueprint, and the commander stood 46 s at a site the engine
+            // held without building).
+            let radius = |def: UnitDefId| self.world.def(def).map_or(40.0, |d| (d.footprint.0 as f32).hypot(d.footprint.1 as f32) * 4.0);
+            let pending = pianist.tasks.iter().chain(pianist.queued.iter()).filter(|(id, _)| **id != unit.id);
+            keep_out.extend(pending.filter_map(|(_, task)| match task {
+                super::pianist::Task::Build { def, near, started: false, .. } => Some(Lane { from: *near, to: *near, half_width: radius(*def) + radius(planned_def) }),
+                _ => None,
+            }));
         }
         // A factory is offered every facing, the one toward the enemy first; each facing's own exit lane must be
         // clear of what stands or is ordered (the mirrored lanes), of ground its units cannot walk and of the map's

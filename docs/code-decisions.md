@@ -28,6 +28,7 @@ removed changes its row here.
 | Arrival turns a walk into a hold (the group is then idle and asked); a gather ends when the tail is up | `ARRIVED = 300`, `BODY_SHARE = 0.6`, `STRUNG_OUT = 600` | `P/groups.rs` | none |
 | A group told to attack is sent again when its party has moved 150; a party unseen 6 s puts it on hold; an air group searches once at 6 s and holds at 60 s | `LOST_FRAMES` 6 s, `AIR_LOST_FRAMES` 60 s | `P/groups.rs` | H-HANDS-ATTACK-FOLLOWS, H-HANDS-AIR-TARGET; the 6 s hold has none |
 | A follower is sent after its ward each 150; the ward gone, it holds | | `P/groups.rs`, `P/mod.rs` | H-HANDS-FOLLOW |
+| A build the engine holds without starting (the builder within reach of the site 8 s, no frame of the type there, never idle) is stopped, its site refused 90 s and its list step put back, so the order goes again elsewhere (the user's word, 2026-10-08, after human-27 2:08-2:54) | `BLOCKED_WATCH` 8 s, `BLOCKED_MARGIN = 120` | `P/mod.rs` | H-HANDS-BLOCKED-SITE |
 | A hunt ends when the quarry is dead, unseen 6 s or a hunter is past the leash; the failure is remembered 3 minutes | `HUNT_LEASH = 900`, `HUNT_LOST_FRAMES` 6 s | `M/lib.rs`, `P/groups.rs`, `B/micro.rs` | H-MICRO-HUNT |
 | A builder attacking a party is sent again as it moves and stopped when the party leaves the picture | | `P/mod.rs` | none |
 | A task is dropped by the clock: a build not started 1.5 s after its order is refused; a started job found idle is dropped; a walk within 150 is done | `ORDER_GRACE_FRAMES = 45` | `P/mod.rs` | H-HANDS-REFUSED (the refusal) |
@@ -92,7 +93,8 @@ The hands' layers (H-HANDS-LAYERS) are each a switch; which are on is set at lau
 Placement (`B/economy.rs`, `B/yards.rs`, `P/execute.rs`; H-ECO-BASE-LAYOUT, H-ECO-YARD-LANE, H-HANDS-DEFENCE-FORWARD): a
 factory 350 ahead of home, an armed building on a line 650 ahead, generators in the back field, anything else beside
 the builder turned in 45° steps until clear; factory exit lanes 320 deep kept free; a defence at a named place 120
-toward his base; an extractor inside its patch nearest the builder.
+toward his base; an extractor inside its patch nearest the builder; another builder's unstarted build kept out of
+every site search by the two footprints (2026-10-08, H-HANDS-REFUSED).
 
 Wakes (`B/wake.rs` and the triggers beside it; H-WAKE-*, H-HANDS-LOSS-WAKE, H-HANDS-STALL, H-HANDS-SHELLED): no turn
 within 5 s of the last; the player's own timer (default 30 s) capped at 10 s while a fight is on; losses while orders

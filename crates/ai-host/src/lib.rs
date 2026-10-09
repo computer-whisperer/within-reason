@@ -197,6 +197,7 @@ impl<L: Transport> Instance<L> {
                             ));
                         }
                         site.near = pos;
+                        self.events.push(Event::BuildSited { unit: *unit, def: *def, at: pos });
                         // The placement the site was found for is the one to build with.
                         if let Some(i) = placement {
                             site.placements = vec![site.placements[i].clone()];

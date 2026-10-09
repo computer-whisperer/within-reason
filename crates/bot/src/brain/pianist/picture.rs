@@ -1033,6 +1033,8 @@ impl Brain {
                     format!("building a {what} at {} ({}), ordered {}{named}", self.place_words(places, *near), percent.map_or("not yet started".to_string(), |p| format!("{p:.0} % built")), ago(*ordered))
                 } else if walk > 120.0 {
                     format!("walking to build a {what} at {}, {walk:.0} to go, ordered {}", self.place_words(places, *near), ago(*ordered))
+                } else if let Some(since) = self.pianist.as_ref().and_then(|p| p.at_site.get(&unit.id).copied()).filter(|s| frame - s >= 3 * FRAMES_PER_SECOND) {
+                    format!("standing at the site of a {what} at {} for {} with nothing started, ordered {}", self.place_words(places, *near), ago(since), ago(*ordered))
                 } else {
                     format!("about to build a {what} at {}, ordered {}", self.place_words(places, *near), ago(*ordered))
                 }

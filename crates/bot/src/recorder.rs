@@ -257,6 +257,13 @@ impl Recorder {
                 r["what"] = json!(self.def(Some(def)));
                 r
             }
+            Event::BuildSited { unit, def, at } => {
+                let mut r = about(self, "placed", unit);
+                r["what"] = json!(self.def(Some(def)));
+                r["x"] = json!(at.x as i32);
+                r["z"] = json!(at.z as i32);
+                r
+            }
             Event::CommandRejected { unit, code } => {
                 let mut r = about(self, "rejected", unit);
                 r["code"] = json!(code);
