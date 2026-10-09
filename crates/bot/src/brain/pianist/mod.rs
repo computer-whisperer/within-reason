@@ -1721,16 +1721,20 @@ impl Brain {
         // as assistable, so the order is neither started nor dropped; human-27 2:08-2:54: the commander's solar over
         // a constructor's, 46 s, released only by a new list). The site is refused for `REFUSED_FRAMES`, the builder
         // stopped, its step back at the front of its list, so the order goes again elsewhere.
-        // The clock runs while the builder stands still: the margin is three seconds of a commander's walk, and
-        // the walk's last stretch counted as standing (rove-task-1 3:00: stopped 4 s short of its site).
-        for unit in own.iter().filter(|u| !u.idle && !u.being_built && u.vel.x.hypot(u.vel.z) < BLOCKED_STILL) {
-            let waiting = match pianist.tasks.get(&unit.id) {
-                Some(Task::Build { def, near, started: false, .. }) => {
-                    let reach = self.world.def(unit.def).map_or(100.0, |d| d.build_distance);
-                    unit.pos.dist2d(*near) <= reach + BLOCKED_MARGIN && !own.iter().any(|f| f.being_built && f.def == *def && f.pos.dist2d(*near) < 200.0)
-                }
-                _ => false,
-            };
+        // The clock runs while the builder stands still and resets when it walks: the margin is three seconds of a
+        // commander's walk, and the walk's last stretch counted as standing (rove-task-1 3:00: stopped 4 s short
+        // of its site; rove-task-2 8:15: a clock set as the walk began was never cleared on the way and fired the
+        // second the commander arrived, leaving a 0 % frame).
+        for unit in own.iter().filter(|u| !u.idle && !u.being_built) {
+            let still = unit.vel.x.hypot(unit.vel.z) < BLOCKED_STILL;
+            let waiting = still
+                && match pianist.tasks.get(&unit.id) {
+                    Some(Task::Build { def, near, started: false, .. }) => {
+                        let reach = self.world.def(unit.def).map_or(100.0, |d| d.build_distance);
+                        unit.pos.dist2d(*near) <= reach + BLOCKED_MARGIN && !own.iter().any(|f| f.being_built && f.def == *def && f.pos.dist2d(*near) < 200.0)
+                    }
+                    _ => false,
+                };
             if !waiting {
                 pianist.at_site.remove(&unit.id);
                 continue;
