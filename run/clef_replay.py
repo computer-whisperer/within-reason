@@ -14,6 +14,7 @@ the pick and on Clef's probability for Jev's pick. `--repeat K` sends every Kth 
 Key: `~/.config/within-reason/cloudflare.env` with CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN (mode 600), or the
 environment variables of the same names. Nothing prints or writes them.
 """
+import jevlog
 import argparse, collections, concurrent.futures, json, os, statistics, sys, time, urllib.error, urllib.request
 
 KEY_FILE = os.path.expanduser("~/.config/within-reason/cloudflare.env")
@@ -84,7 +85,7 @@ def clef_ask(creds, model, state, questions, images=None):
 
 def load_calls(path):
     calls, rules, instructions = [], "", ""
-    for line in open(path):
+    for line in jevlog.lines(path):
         try:
             d = json.loads(line)
         except json.JSONDecodeError:

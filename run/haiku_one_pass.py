@@ -14,6 +14,7 @@ human-26); the picture as a compact JSON turn, then per actor one `keep` line an
 
 Key: `ANTHROPIC_API_KEY` or `~/.config/within-reason/anthropic.env` (run/haiku_rate_probe.py).
 """
+import jevlog
 import argparse, collections, json, re, statistics, sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from haiku_rate_probe import api_key, stream, cost, DEFAULT_MODEL
@@ -33,7 +34,7 @@ VERSUS_RE = re.compile(r"\? The move: ")
 def load(path):
     header, calls, plans = None, [], {}
     rules = instructions = ""
-    for line in open(path):
+    for line in jevlog.lines(path):
         try:
             d = json.loads(line)
         except json.JSONDecodeError:

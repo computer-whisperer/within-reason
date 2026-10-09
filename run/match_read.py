@@ -4,6 +4,7 @@ Jev replay arms): `record-<ai>.jsonl` (header, samples, events, the hands' decis
 `strategist-<ai>.jsonl` (the player's turns) and `truth-<ai>.jsonl` (what the opponent really had). Formats in
 docs/harness/record-format.md.
 """
+import jevlog
 import json
 import os
 import re
@@ -15,14 +16,14 @@ def clock(frame):
 
 
 def first(match_dir, prefix):
-    name = next((f for f in sorted(os.listdir(match_dir)) if f.startswith(prefix) and f.endswith(".jsonl")), None)
+    name = next((f for f in sorted(os.listdir(match_dir)) if f.startswith(prefix) and (f.endswith(".jsonl") or f.endswith(".jsonl.zst"))), None)
     return os.path.join(match_dir, name) if name else None
 
 
 def rows(path):
     if not path:
         return
-    for line in open(path):
+    for line in jevlog.lines(path):
         try:
             row = json.loads(line)
         except ValueError:

@@ -11,6 +11,7 @@ the log (a human game's is hundreds of MB). The key is read, never printed.
 
     run/jev_thrash_ab.py <match> <actor> <from_s>-<to_s>[,<from_s>-<to_s>...] <n controls> <out.jsonl> [arms]
 """
+import jevlog
 import json, random, re, sys, os, collections, concurrent.futures, statistics
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from jev_ab import api_key, ask
@@ -24,18 +25,17 @@ STANDING = " A course the group chose in the last ten seconds (its `last_pick` l
 
 def stream(match):
     """Every call row of jev-0.jsonl with the instructions and rules in force, without loading the file."""
-    path = os.path.join(match, "jev-0.jsonl")
+    path = jevlog.seat(match)
     rules = ""; packet = ""
-    with open(path) as fh:
-        for line in fh:
-            if '"t":"header"' in line:
-                rules = json.loads(line).get("rules", ""); continue
-            if '"t":"call"' not in line: continue
-            c = json.loads(line)
-            if "instructions" in c: packet = c["instructions"]
-            if "rules" in c: rules = c["rules"]
-            if not isinstance(c.get("state"), dict) or "questions" not in c: continue
-            yield c, dict(sorted({**c["state"], "instructions": packet, "rules": rules}.items()))
+    for line in jevlog.lines(path):
+        if '"t":"header"' in line:
+            rules = json.loads(line).get("rules", ""); continue
+        if '"t":"call"' not in line: continue
+        c = json.loads(line)
+        if "instructions" in c: packet = c["instructions"]
+        if "rules" in c: rules = c["rules"]
+        if not isinstance(c.get("state"), dict) or "questions" not in c: continue
+        yield c, dict(sorted({**c["state"], "instructions": packet, "rules": rules}.items()))
 
 def whole_group_clause(state, actor):
     """"; the whole group, 51 soldiers worth 4887 metal, against the party and the turrets covering it (340 and 825, the turrets counted three times: 2815) outweighs it 1.7 to 1" from the entry and the party's `in_sight` line."""

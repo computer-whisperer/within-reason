@@ -13,6 +13,7 @@ to its colon; the economy's metal and energy lines without digits), `status` (th
 production at full speed would draw", which names who draws), `builders` (the `status` counts for a question of a
 builder or a plant, whose answers the packet's tables key on, and none for a group's, a party's or a place's), `none`.
 """
+import jevlog
 import collections, glob, json, re, sys
 RE_ASK = 600
 NUM = re.compile(r"\d+(?:\.\d+)?")
@@ -41,9 +42,9 @@ for D in [a for a in sys.argv[1:] if a.startswith("run/")]:
     D = D.rstrip("/") + "/00/"
     total = 0; q_tok = 0
     stood = collections.Counter(); faults = collections.Counter(); n_stood = collections.Counter(); whole = collections.Counter(); gates = 0
-    for f in sorted(glob.glob(D + "jev-*.jsonl")):
+    for f in jevlog.logs(D):
         fresh = {arm: {} for arm in ARMS}
-        for l in open(f):
+        for l in jevlog.lines(f):
             if '"t":"call"' not in l[-200:]: continue
             r = json.loads(l); q = r["questions"]; tok = (r.get("usage") or {}).get("input_tokens", 0); total += tok
             if any(k.startswith("worlds.") for k in q): continue

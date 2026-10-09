@@ -4,6 +4,7 @@
 
     run/engage_idle.py run/matches/<batch> [...]
 """
+import jevlog
 import json,math,collections,sys
 for D in sys.argv[1:]:
     D=D.rstrip("/")+"/00/"
@@ -13,7 +14,7 @@ for D in sys.argv[1:]:
         except: continue
         if isinstance(r,dict) and r.get("t")=="s": samples[r["f"]//30]={u[0]:u for u in r["own"]}
     tot=collections.Counter(); seen=set()
-    for l in open(D+"jev-0.jsonl"):
+    for l in jevlog.lines(jevlog.seat(D)):
         try: r=json.loads(l)
         except: continue
         if not isinstance(r,dict) or r.get("t")!="call" or r.get("f") is None: continue

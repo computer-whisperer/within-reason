@@ -2,13 +2,14 @@
 """Offline: would the decode fuse a detachment's menu rightly? For the groups of a game that the packet in force
 does not name (so the fuse layer leaves them unfused), the decode's questions are asked as the bot would ask them
 ("<units>; a detachment that left group_X"), and each reading is set beside what the gate rated the move."""
+import jevlog
 import json, re, sys, collections, concurrent.futures
 sys.path.insert(0, "run")
 from jev_ab import api_key, ask
 D = sys.argv[1]
 key = api_key()
 rows = []
-for l in open(D + "/jev-0.jsonl"):
+for l in jevlog.lines(jevlog.seat(D)):
     try: r = json.loads(l)
     except ValueError: continue
     if isinstance(r, dict): rows.append(r)

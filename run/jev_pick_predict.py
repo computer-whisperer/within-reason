@@ -4,6 +4,7 @@ gate's rating of that change (the actor's best-rated move) set beside whether th
 
     run/jev_pick_predict.py run/matches/<batch> [...]
 """
+import jevlog
 import json, sys, glob, collections
 
 EDGES = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.01]
@@ -14,9 +15,9 @@ def bucket(r):
 for D in sys.argv[1:]:
     D = D.rstrip("/") + "/00/"
     n = collections.Counter(); took = collections.Counter(); picks = alone = one = 0; pick_tok = alone_tok = 0
-    for f in sorted(glob.glob(D + "jev-*.jsonl")):
+    for f in jevlog.logs(D):
         gate = None; tok = 0
-        for l in open(f):
+        for l in jevlog.lines(f):
             if '"t":"worlds_gate"' in l:
                 gate = json.loads(l); tok = 0
             elif '"t":"call"' in l and '"worlds.c' in l:

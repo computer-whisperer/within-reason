@@ -24,7 +24,8 @@ Reading a match: `grep " min) \|attackers \|wave " NN/bot.log` gives the per-min
 wave launches. Comparing those lines between a win and a loss found every bug so far.
 
 ## Efficiency (2026-09-19; measured by a research agent, then verified with arena batches)
-Every match dir is seeded from `run/match-template/` and, when present, `run/cache-template/` (untracked, refreshed after each batch).
+Every match dir is seeded from `run/match-template/` and, when present, `run/cache-template/` (untracked, refreshed after each batch;
+the copy in each match dir, 4 MB and the same bytes in every match, is removed once the batch has refreshed the template from it, 2026-10-09 on).
 | Change | Where | Effect |
 |---|---|---|
 | `WorkerThreadCount = 1` | template `springsettings.cfg` | the default 12-thread pool is a net loss even for one match: idle workers spin on futexes (`ThreadPool.cpp:248-266`); per match to 12 game-min, 8 parallel: 25.7 s / 41.8 user / 15.4 sys -> 13.6 s / 16.0 / 0.5 |

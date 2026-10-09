@@ -7,6 +7,7 @@ moves at a spot the pick played that the filter would have shut.
 
     run/jev_builder_spots.py run/matches/<batch> [...]
 """
+import jevlog
 import bisect, collections, glob, json, math, re, sys
 
 SPOT = re.compile(r"_(spot_\d+)$")
@@ -54,7 +55,7 @@ for arg in sys.argv[1:]:
     plays = 0; p_cut = collections.Counter(); total = 0
     NS = (3, 5, 8, 12); own_cut = collections.Counter(); own_play = collections.Counter(); offered = {}; r_own = collections.Counter(); r_own_yes = collections.Counter()
     asked_now = set(); builders_now = []
-    for l in open(D + "jev-0.jsonl"):
+    for l in jevlog.lines(jevlog.seat(D)):
         try: r = json.loads(l)
         except ValueError: continue
         t = r.get("t")

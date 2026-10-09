@@ -12,6 +12,7 @@ minute's sample, frames included), the transcript `strategist-<ai>.jsonl` (`turn
 `tool_call`, `result` with the model's usage and `spent_usd`, `cost_cap`) and the pianist's log (`usage.input_tokens`
 of every `call` and `decompress` line, priced at $0.042 a million). `--md` prints a markdown table.
 """
+import jevlog
 import glob
 import json
 import os
@@ -23,7 +24,7 @@ JEV_PRICE_PER_MILLION = 0.042
 
 
 def rows(path):
-    for line in open(path):
+    for line in jevlog.lines(path):
         try:
             yield json.loads(line)
         except ValueError:
@@ -70,7 +71,7 @@ def read(directory):
                 if m.get("spent_usd") is not None:
                     spent = max(spent, float(m["spent_usd"]))
     tokens = 0
-    for r in rows(next(iter(sorted(glob.glob(os.path.join(d, "jev-*.jsonl")))), "/dev/null")):
+    for r in rows(next(iter(jevlog.logs(d)), "/dev/null")):
         if r.get("t") in ("call", "decompress"):
             tokens += (r.get("usage") or {}).get("input_tokens", 0)
     result = {}

@@ -6,6 +6,7 @@ and the played moves whose place would have been shut.
 
     run/jev_place_bar.py run/matches/<batch> [...]
 """
+import jevlog
 import collections, glob, json, re, sys
 
 PLACE = re.compile(r"^(?:go|fight_to|raid|shell|build_[a-z0-9]+)_((?:spot|passage)_\d+|home|.+)$")
@@ -24,7 +25,7 @@ for D in sys.argv[1:]:
     said = {}          # place -> (frame, noul)
     rank = {}          # place -> its rank among the places asked at its last gate (0 the best)
     asked = collections.defaultdict(list); played = collections.defaultdict(list); tokens = collections.Counter(); total = 0
-    for l in open(glob.glob(D.rstrip("/") + "/00/jev-0.jsonl")[0]):
+    for l in jevlog.lines(jevlog.seat(D.rstrip("/") + "/00")):
         try: r = json.loads(l)
         except ValueError: continue
         t = r.get("t")

@@ -26,6 +26,7 @@ of the changes first, then that change against "nothing changes".
 usage: run/route_ab.py run/matches/<batch>/<NN> [--repeat N] [--out FILE.jsonl] [--variants A,B,C,D,E] [--two-stage]
        run/route_ab.py --summarize FILE.jsonl
 """
+import jevlog
 import datetime
 import json
 import math
@@ -89,7 +90,7 @@ def load(match):
     rules = None
     instructions = {}
     calls = {}
-    for line in open(os.path.join(match, "jev-0.jsonl")):
+    for line in jevlog.lines(jevlog.seat(match)):
         r = json.loads(line)
         if r.get("t") == "header":
             rules = r["rules"]

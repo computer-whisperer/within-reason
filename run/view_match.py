@@ -24,6 +24,8 @@ What the page asks for, beside the files themselves:
     <match>/jev-<n>.jsonl?gate=<frame>     the gate at or before the frame, whole: its pass row, the calls, audits,
                                            worlds_gate and plan that followed, the decode's readings in force
     <match>/jev-<n>.jsonl?picture=<frame>  the groups, places, parties and actors of the last call at or before the frame
+                                           (a log the arena compressed when the match closed, jev-<n>.jsonl.zst, answers
+                                           to its raw name in these three)
 
 A Jev log is never sent whole to the page (a team game's are gigabytes); its index is cached in a sidecar
 `.viewer-jev-<n>.json` beside it, the only file this server writes.
@@ -155,6 +157,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def send_jev(self, path, query):
         """The index of a Jev log, a gate or a picture out of it (run/viewer_index.py)."""
         file = self.translate_path(path)
+        if not os.path.isfile(file) and os.path.isfile(file + ".zst"):
+            file += ".zst"  # the arena compressed the log when the match closed: it answers to its raw name
         if not os.path.isfile(file):
             return self.send_error(404)
         index, reading = viewer_index.index_of(file)
@@ -187,7 +191,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             replays = sorted(f"demos/{f}" for f in os.listdir(demos) if f.endswith(".sdfz")) if os.path.isdir(demos) else []
             return self.send_json({"dir": directory, "files": files, "sizes": sizes, "replays": replays, "batch": read_json(os.path.join(parent, "batch.json"), None), "result": result})
         query = self.path.partition("?")[2]
-        if re.fullmatch(r".*/jev-[^/]*\.jsonl", path) and (query == "index" or re.fullmatch(r"(gate|picture)=-?[\d.]+", query)) and (path.startswith("/matches/") or path.startswith("/match/")):
+        if re.fullmatch(r".*/jev-[^/]*\.jsonl(\.zst)?", path) and (query == "index" or re.fullmatch(r"(gate|picture)=-?[\d.]+", query)) and (path.startswith("/matches/") or path.startswith("/match/")):
             return self.send_jev(path, query)
         if (path.startswith("/matches/") or path.startswith("/match/")) and "?from=" in self.path:
             return self.send_tail()

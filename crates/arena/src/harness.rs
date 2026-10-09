@@ -1,7 +1,7 @@
 //! Chores of running a headless engine from a match directory, shared by the arena and the duel runner.
 
 use std::fs::{self, File};
-use std::io::{self, Read, Seek, SeekFrom};
+use std::io::{self, BufRead, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command};
 use std::time::{Duration, Instant};
@@ -124,6 +124,100 @@ pub fn copy_tree(from: &Path, to: &Path) -> io::Result<()> {
     Ok(())
 }
 
+/// The engine's archive cache copied into every match directory (`run/cache-template`, 4 MB a match, the same bytes in
+/// each) is of no use once the match has been played: removed from every match of a batch, after the batch has
+/// refreshed the template from it.
+pub fn drop_match_caches(batch_dir: &Path) {
+    let Ok(entries) = fs::read_dir(batch_dir) else { return };
+    for cache in entries.flatten().map(|e| e.path().join("cache")).filter(|c| c.is_dir()) {
+        if let Err(e) = fs::remove_dir_all(&cache) {
+            eprintln!("could not remove {}: {e}", cache.display());
+        }
+    }
+}
+
+/// The zstd level the hands' logs are compressed at: 25 to 1 on a line of menus, at two gigabytes a second.
+const ZSTD_LEVEL: i32 = 3;
+const SKIPPABLE_MAGIC: u32 = 0x184D_2A5E;
+const SEEKABLE_MAGIC: u32 = 0x8F92_EAB1;
+
+/// The pianist's logs of a finished match (`jev-<n>.jsonl`, a gigabyte a seat: 30 to 50 MB a game minute), compressed
+/// into `jev-<n>.jsonl.zst`: one zstd frame a line, and last a seek table in the Zstandard Seekable Format's skippable
+/// frame (an entry a frame, its compressed and its uncompressed size as little-endian u32s; then the frame count, a
+/// descriptor byte and the magic 0x8F92EAB1), so that `run/jevlog.py` reaches any line without reading the rest while
+/// `zstd -d` reads the whole. The raw log is removed only after every frame has read back as its line. Returns the raw
+/// and the compressed bytes summed over the seats' logs; an empty log is left as it is.
+pub fn compress_jev_logs(dir: &Path) -> io::Result<(u64, u64)> {
+    let mut totals = (0, 0);
+    for entry in fs::read_dir(dir)?.flatten() {
+        let path = entry.path();
+        let name = path.file_name().and_then(|n| n.to_str()).unwrap_or_default();
+        let seat = name.strip_prefix("jev-").and_then(|rest| rest.strip_suffix(".jsonl"));
+        if !seat.is_some_and(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit())) || entry.metadata()?.len() == 0 {
+            continue;
+        }
+        let (raw, packed) = compress_log(&path)?;
+        totals.0 += raw;
+        totals.1 += packed;
+    }
+    Ok(totals)
+}
+
+fn compress_log(path: &Path) -> io::Result<(u64, u64)> {
+    let packed_path = path.with_extension("jsonl.zst");
+    let temp = path.with_extension("jsonl.zst.tmp");
+    let too_big = |_| io::Error::other("a line past 4 GB");
+    let mut entries: Vec<(u32, u32)> = Vec::new();
+    let mut raw_bytes = 0u64;
+    {
+        let mut reader = io::BufReader::new(File::open(path)?);
+        let mut writer = io::BufWriter::new(File::create(&temp)?);
+        let mut line = Vec::new();
+        loop {
+            line.clear();
+            if reader.read_until(b'\n', &mut line)? == 0 {
+                break;
+            }
+            let frame = zstd::bulk::compress(&line, ZSTD_LEVEL)?;
+            writer.write_all(&frame)?;
+            entries.push((u32::try_from(frame.len()).map_err(too_big)?, u32::try_from(line.len()).map_err(too_big)?));
+            raw_bytes += line.len() as u64;
+        }
+        let mut table = Vec::with_capacity(entries.len() * 8 + 9);
+        for (compressed, uncompressed) in &entries {
+            table.extend_from_slice(&compressed.to_le_bytes());
+            table.extend_from_slice(&uncompressed.to_le_bytes());
+        }
+        table.extend_from_slice(&u32::try_from(entries.len()).map_err(too_big)?.to_le_bytes());
+        table.push(0);
+        table.extend_from_slice(&SEEKABLE_MAGIC.to_le_bytes());
+        writer.write_all(&SKIPPABLE_MAGIC.to_le_bytes())?;
+        writer.write_all(&u32::try_from(table.len()).map_err(too_big)?.to_le_bytes())?;
+        writer.write_all(&table)?;
+        writer.flush()?;
+    }
+    // Read back before the raw log goes: every frame is its line.
+    {
+        let mut raw = io::BufReader::new(File::open(path)?);
+        let mut packed = io::BufReader::new(File::open(&temp)?);
+        let (mut line, mut frame) = (Vec::new(), Vec::new());
+        for (compressed, uncompressed) in &entries {
+            line.clear();
+            raw.read_until(b'\n', &mut line)?;
+            frame.resize(*compressed as usize, 0);
+            packed.read_exact(&mut frame)?;
+            if zstd::bulk::decompress(&frame, *uncompressed as usize)? != line {
+                let _ = fs::remove_file(&temp);
+                return Err(io::Error::other(format!("{} did not read back as written; the raw log stays", temp.display())));
+            }
+        }
+    }
+    let packed_bytes = fs::metadata(&temp)?.len();
+    fs::rename(&temp, &packed_path)?;
+    fs::remove_file(path)?;
+    Ok((raw_bytes, packed_bytes))
+}
+
 /// The engine checksums every archive unless the write dir already holds a cache that matches
 /// their paths and mtimes. Keep a copy of the newest one for the next batch's match dirs.
 pub fn refresh_cache_template(repo: &Path, batch_dir: &Path) {
@@ -184,5 +278,57 @@ mod tests {
         assert_eq!(meter.tokens, 1_250_503);
         assert!((meter.dollars() - 1.250503 * JEV_DOLLARS_PER_MILLION).abs() < 1e-9);
         fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// Each seat's log becomes a frame a line with a seek table; the whole decodes as the raw log did, a frame alone
+    /// decodes as its line, a torn last line is kept, and files that are not a seat's log are left alone.
+    #[test]
+    fn the_hands_logs_are_compressed_a_frame_a_line_and_read_back() {
+        let dir = std::env::temp_dir().join(format!("jev-pack-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let menus = "{\"t\":\"pass\",\"menus\":[".to_string() + &"{\"words\":\"group_A walks to spot_12\"},".repeat(2000) + "{}]}\n";
+        let raw = format!("{{\"t\":\"header\",\"version\":3}}\n{menus}{{\"t\":\"call\",\"usage\":{{\"input_tokens\":9}}}}\n{{\"t\":\"pla");
+        fs::write(dir.join("jev-0.jsonl"), &raw).unwrap();
+        fs::write(dir.join("jev-1.jsonl"), "").unwrap();
+        fs::write(dir.join("jev-sweep.jsonl"), "{}\n").unwrap();
+        let (raw_bytes, packed_bytes) = compress_jev_logs(&dir).unwrap();
+        assert_eq!(raw_bytes, raw.len() as u64);
+        assert!(packed_bytes < raw_bytes / 10, "{packed_bytes} of {raw_bytes}");
+        assert!(!dir.join("jev-0.jsonl").exists() && dir.join("jev-1.jsonl").exists() && dir.join("jev-sweep.jsonl").exists());
+        let packed = fs::read(dir.join("jev-0.jsonl.zst")).unwrap();
+        assert_eq!(packed.len() as u64, packed_bytes);
+        assert_eq!(zstd::stream::decode_all(&packed[..]).unwrap(), raw.as_bytes(), "the stream decodes whole, the table skipped");
+        let n = packed.len();
+        assert_eq!(u32::from_le_bytes(packed[n - 4..].try_into().unwrap()), SEEKABLE_MAGIC);
+        let frames = u32::from_le_bytes(packed[n - 9..n - 5].try_into().unwrap()) as usize;
+        assert_eq!(frames, 4);
+        let table = n - 8 - frames * 8 - 9;
+        assert_eq!(u32::from_le_bytes(packed[table..table + 4].try_into().unwrap()), SKIPPABLE_MAGIC);
+        let mut offset = 0;
+        for (i, line) in raw.split_inclusive('\n').enumerate() {
+            let at = table + 8 + i * 8;
+            let compressed = u32::from_le_bytes(packed[at..at + 4].try_into().unwrap()) as usize;
+            let uncompressed = u32::from_le_bytes(packed[at + 4..at + 8].try_into().unwrap()) as usize;
+            assert_eq!(uncompressed, line.len());
+            assert_eq!(zstd::bulk::decompress(&packed[offset..offset + compressed], uncompressed).unwrap(), line.as_bytes());
+            offset += compressed;
+        }
+        assert_eq!(offset, table);
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// Every match of a batch loses its copy of the engine's archive cache; nothing else goes.
+    #[test]
+    fn the_matches_caches_go_after_the_batch() {
+        let batch = std::env::temp_dir().join(format!("jev-caches-{}", std::process::id()));
+        for n in ["00", "01"] {
+            fs::create_dir_all(batch.join(n).join("cache")).unwrap();
+            fs::write(batch.join(n).join("cache/ArchiveCache22.lua"), "x").unwrap();
+            fs::write(batch.join(n).join("engine.log"), "x").unwrap();
+        }
+        drop_match_caches(&batch);
+        assert!(!batch.join("00/cache").exists() && !batch.join("01/cache").exists());
+        assert!(batch.join("00/engine.log").exists() && batch.join("01/engine.log").exists());
+        fs::remove_dir_all(&batch).unwrap();
     }
 }

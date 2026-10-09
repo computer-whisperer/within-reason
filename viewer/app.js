@@ -187,7 +187,7 @@ const WV = (() => {
     let changed = false;
     for (const seat of view.match.seats) {
       const name = `jev-${seat.header.ai_id}.jsonl`;
-      if (!live.files.includes(name)) continue;
+      if (!live.files.includes(name) && !live.files.includes(name + ".zst")) continue; // compressed once the match closed
       for (;;) {
         const index = await fetchJson(`${live.base}${name}?index`);
         if (!index) break;

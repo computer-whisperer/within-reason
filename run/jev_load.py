@@ -6,6 +6,7 @@ the actor-asks by kind, the forbidden mark on hunts (`plan::FORBIDDEN`), the esc
 usage: run/jev_load.py run/matches/<batch>/<NN> [...]   (or a jev-<ai>.jsonl)
 Jev's price: $0.042 a million input tokens, output free.
 """
+import jevlog
 import collections
 import glob
 import json
@@ -25,7 +26,7 @@ def kind_of(name):
 
 
 def read(path):
-    for line in open(path):
+    for line in jevlog.lines(path):
         try:
             yield json.loads(line)
         except json.JSONDecodeError:
@@ -112,7 +113,7 @@ def main():
     if len(sys.argv) < 2:
         sys.exit(__doc__)
     for target in sys.argv[1:]:
-        paths = [target] if target.endswith(".jsonl") else sorted(glob.glob(os.path.join(target, "jev-*.jsonl")))
+        paths = [target] if os.path.isfile(target) else jevlog.logs(target)
         if not paths:
             print(f"no jev log at {target}")
         for path in paths:

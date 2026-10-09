@@ -51,7 +51,7 @@ use serde::Serialize;
 
 use arena::autohost::{Autohost, Event};
 use arena::harness::{
-    ENGINE_MEMORY_GB, GAME_TAG, JevMeter, LOAD_ALLOWANCE, REPO, available_memory_gb, copy_tree, git_commit, last_frame,
+    ENGINE_MEMORY_GB, GAME_TAG, JevMeter, LOAD_ALLOWANCE, REPO, available_memory_gb, compress_jev_logs, copy_tree, drop_match_caches, git_commit, last_frame,
     refresh_cache_template, resolve_game, stop,
 };
 use script::{Boxes, MatchSetup};
@@ -71,6 +71,8 @@ struct Options {
     realtime: bool,
     map: String,
     max_minutes: u32,
+    /// `--compress-logs DIR`: compress the hands' logs of a recorded match (or of every match of a batch) and exit.
+    compress_logs: Option<PathBuf>,
     label: String,
     mirror: bool,
     /// `--place`: the arena chooses our commander's start inside its box by the opening search (`place.rs`).
@@ -180,6 +182,9 @@ struct MatchResult {
 
 fn main() -> io::Result<()> {
     let options = parse_args();
+    if let Some(dir) = &options.compress_logs {
+        return compress_logs_command(dir);
+    }
     let repo = fs::canonicalize(REPO)?;
     let status = Command::new(repo.join("run/install_ai.sh")).stdout(Stdio::null()).status()?;
     if !status.success() {
@@ -241,6 +246,7 @@ fn main() -> io::Result<()> {
         worker.join().unwrap();
     }
     refresh_cache_template(&repo, &batch_dir);
+    drop_match_caches(&batch_dir);
 
     let mut results = Arc::into_inner(results).unwrap().into_inner().unwrap();
     results.sort_by_key(|r| r.index);
@@ -445,7 +451,34 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
     if let Err(e) = record::finish(&dir, &result, &format!("{} {}", opponent_name(&options.opponent), options.profile)) {
         eprintln!("match {index}: could not close the match record: {e}");
     }
+    // The hands' logs are a gigabyte a seat by a game's end: a frame a line from here on (run/jevlog.py reads them).
+    match compress_jev_logs(&dir) {
+        Ok((raw, packed)) if raw > 0 => println!("match {index}: the hands' logs {:.0} MB -> {:.0} MB", raw as f64 / 1e6, packed as f64 / 1e6),
+        Err(e) => eprintln!("match {index}: the hands' logs stay uncompressed: {e}"),
+        Ok(_) => {}
+    }
     Ok(result)
+}
+
+/// `--compress-logs DIR`: what a match's end does to the hands' logs, for a match (or every match of a batch) recorded
+/// before the arena compressed them, or one whose arena was killed before it could.
+fn compress_logs_command(dir: &Path) -> io::Result<()> {
+    let mut dirs: Vec<PathBuf> = fs::read_dir(dir)?
+        .flatten()
+        .map(|e| e.path())
+        .filter(|p| p.is_dir() && p.file_name().and_then(|n| n.to_str()).is_some_and(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit())))
+        .collect();
+    dirs.sort();
+    if dirs.is_empty() {
+        dirs.push(dir.to_path_buf());
+    }
+    for dir in dirs {
+        let (raw, packed) = compress_jev_logs(&dir)?;
+        if raw > 0 {
+            println!("{}: {:.0} MB -> {:.1} MB", dir.display(), raw as f64 / 1e6, packed as f64 / 1e6);
+        }
+    }
+    Ok(())
 }
 
 /// The first factory in the opponent's ground-truth log, by name; empty without a log.
@@ -638,6 +671,7 @@ fn parse_args() -> Options {
         realtime: false,
         map: "Quicksilver Remake 1.24".into(),
         max_minutes: 40,
+        compress_logs: None,
         label: "batch".into(),
         mirror: false,
         place: false,
@@ -725,6 +759,7 @@ fn parse_args() -> Options {
             "--speed" => options.speed = value().parse().unwrap_or_else(|_| usage("--speed")),
             "--jev-budget" => options.jev_budget = value().parse().ok().filter(|n: &f64| *n >= 0.0).unwrap_or_else(|| usage("--jev-budget takes dollars, 0 for no limit")),
             "--max-minutes" => options.max_minutes = value().parse().unwrap_or_else(|_| usage("--max-minutes")),
+            "--compress-logs" => options.compress_logs = Some(PathBuf::from(value())),
             "--profile" => options.profile = value(),
             "--our-ai" => options.our_ai = value(),
             "--bot" => options.bot = Some(value().into()),
@@ -807,6 +842,9 @@ fn parse_args() -> Options {
     if options.boxes.rects(&options.map, ally_teams).is_none() {
         usage(&format!("no start boxes for {ally_teams} ally teams on {} with --boxes {:?}: the lobby has none saved for that count, or the layout has no room (--ffa takes at most 3 enemies, with corners)", options.map, options.boxes));
     }
+    if options.compress_logs.is_some() {
+        return options; // a chore on recorded matches: no game's options to check
+    }
     // `--player` is the pianist's player.
     if options.our_ai != FLAGSHIP_AI && (options.pianist || options.player || options.bot.is_some() || options.packet.is_some()) {
         usage("--our-ai names a bot that plays inside its library: --pianist, --player, --packet and --bot are the flagship's");
@@ -821,7 +859,7 @@ fn parse_args() -> Options {
 }
 
 fn usage(problem: &str) -> ! {
-    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--jev-budget DOLLARS] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--player-model ID] [--brief standard|experience] [--objective TEXT] [--packet-example] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--our-ai NAME:VERSION] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent NAME:VERSION] [--our-bonus N] [--enemy-bonus N] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N]");
+    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--jev-budget DOLLARS] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--player-model ID] [--brief standard|experience] [--objective TEXT] [--packet-example] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--our-ai NAME:VERSION] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent NAME:VERSION] [--our-bonus N] [--enemy-bonus N] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N] | arena --compress-logs DIR");
     std::process::exit(2)
 }
 

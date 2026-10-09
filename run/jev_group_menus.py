@@ -13,6 +13,7 @@ Counted: the question tokens that would not be sent, and the moves the pick play
 
     run/jev_group_menus.py run/matches/<batch> [...]
 """
+import jevlog
 import collections, glob, json, math, re, sys
 
 
@@ -37,9 +38,9 @@ for D in sys.argv[1:]:
     cut = collections.Counter(); plays = collections.Counter(); shut = collections.defaultdict(collections.Counter)
     pty_tok = 0.0; pty_cut = collections.Counter(); pty_plays = 0; pty_shut = collections.Counter(); prank = {}
     jf = collections.Counter(); jf_tok = 0.0; jf_cut = collections.Counter(); jf_plays = 0; jf_shut = collections.Counter(); ranks = []
-    for fn in sorted(glob.glob(D.rstrip("/") + "/00/jev-*.jsonl")):
+    for fn in jevlog.logs(D.rstrip("/") + "/00"):
         det = {}; size = {}; at = {}
-        for l in open(fn):
+        for l in jevlog.lines(fn):
             try: r = json.loads(l)
             except ValueError: continue
             t = r.get("t"); T = (r.get("usage") or {}).get("input_tokens", 0) or 0

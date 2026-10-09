@@ -8,6 +8,7 @@ the played builder stood than the nearest available one of its type.
 
     run/jev_builder_avail.py run/matches/<batch> [...]
 """
+import jevlog
 import bisect, collections, json, math, re, statistics, sys
 
 SPOT = re.compile(r"_(spot_\d+)$")
@@ -46,7 +47,7 @@ for arg in sys.argv[1:]:
         mine = walk(u, spot)
         others = [walk(b, spot) for b in free if b != u and b in pos and pos[b][2] == pos[u][2]]
         return sum(1 for t in others if t < mine), (min(others) if others else None), mine
-    for l in open(D + "jev-0.jsonl"):
+    for l in jevlog.lines(jevlog.seat(D)):
         try: r = json.loads(l)
         except ValueError: continue
         t = r.get("t")

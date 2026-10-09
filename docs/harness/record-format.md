@@ -63,6 +63,15 @@ should write through the same journal with its own `source` (`Note::source`; `Jo
 ## The pianist's log
 `jev-<ai_id>.jsonl` beside the record, written when the bot runs `--pianist` with `WITHIN_REASON_JEV_LOG=1` (the arena
 sets it); the record header names it under `siblings.decision_logs`. JSON Lines; readers skip a torn last line.
+- **Compressed once the match is closed (2026-10-09 on).** The log is a gigabyte a seat by a game's end (30 to 50 MB a game
+  minute, nearly all of it the `pass` rows' `menus`), so the arena turns it into `jev-<ai_id>.jsonl.zst` when the match
+  ends: one zstd frame a line, and last a seek table (the Zstandard Seekable Format's skippable frame: an entry a frame
+  with its compressed and uncompressed size, then the frame count, a descriptor byte and the magic 0x8F92EAB1), so that a
+  reader reaches one line without reading the rest while `zstd -d` reads the whole; 25 to 1 on a player game (rove-task-1:
+  1.46 GB to 55 MB). The raw log goes only after every frame has read back as its line. Readers go through `run/jevlog.py`
+  (`seat`, `logs`, `lines`, `rows`, `frames`) and see no difference between the two forms; the header's `decision_logs`
+  keeps the raw name. `arena --compress-logs DIR` does it to a match (or a batch's matches) recorded before, or whose
+  arena was killed first.
 - `{"t":"header","format":"within-reason-jev","version":1|2|3,"ai_id","model","interval_frames","rules"}` first: `rules` is
   the standing text every call's picture carried (it is left out of the calls).
 - From 2026-10-04 the header also carries `standing_cut` and `wire_cut` (the lean diet's two cuts, H-HANDS-STANDING-CUT and
@@ -217,9 +226,10 @@ Live: a match with no `result` line (and not every seat's `end` line) is still b
 and with "follow live" ticked stays on the newest sample. Scrubbing, stepping or playing unticks it. Opened details
 and the scroll position of the decision list survive each refresh.
 
-**The hands' logs are never fetched whole.** The server indexes each `jev-<n>.jsonl` once (`run/viewer_index.py`:
-it reads the log without parsing the menus and keeps the index in a `.viewer-jev-<n>.json` sidecar beside it, the only
-file the viewer's server writes) and answers `?index` (per game minute the tokens by request kind and question
+**The hands' logs are never fetched whole.** The server indexes each `jev-<n>.jsonl` (or the `.jsonl.zst` the arena
+leaves, which answers to the raw name) once (`run/viewer_index.py`: it reads the log without parsing the menus, a raw
+log by byte offset and a compressed one a frame a line by its seek table, and keeps the index in a `.viewer-jev-<n>.json`
+sidecar beside it, the only file the viewer's server writes) and answers `?index` (per game minute the tokens by request kind and question
 family, calls, gates, audits; the frames of the gates and the calls), `?gate=<frame>` (the gate at or before the
 frame, whole, with the decode's readings in force and the packet as the hands had it) and `?picture=<frame>` (the
 groups, places, parties and actors of the last call). Measured 2026-10-04: human-18's three logs (5.9 GB) are indexed

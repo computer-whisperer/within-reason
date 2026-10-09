@@ -5,6 +5,7 @@ losses between asks (members gone, as a share of the body at the last ask).
 
     run/jev_ask_causes.py run/matches/<batch> [...]
 """
+import jevlog
 import collections, glob, json, sys
 
 
@@ -18,8 +19,8 @@ def cause(events, name):
 
 for D in sys.argv[1:]:
     rows = []
-    for fn in sorted(glob.glob(D.rstrip("/") + "/00/jev-0.jsonl")):
-        for l in open(fn):
+    for fn in jevlog.logs(D.rstrip("/") + "/00")[:1]:
+        for l in jevlog.lines(fn):
             try: rows.append(json.loads(l))
             except ValueError: pass
     gate_cause = collections.Counter(); ask = collections.Counter(); ask_tok = collections.Counter(); ask_q = collections.Counter()
@@ -68,7 +69,7 @@ def replay(D, threshold):
     by second (they exist only because the dropped ask's opener said yes). Counted: question tokens dropped, gates
     left with nobody to ask, and the course changes the dropped asks played (what the replay would have delayed)."""
     rows = []
-    for l in open(glob.glob(D.rstrip("/") + "/00/jev-0.jsonl")[0]):
+    for l in jevlog.lines(jevlog.seat(D.rstrip("/") + "/00")):
         try: rows.append(json.loads(l))
         except ValueError: pass
     total = sum((r.get("usage") or {}).get("input_tokens", 0) or 0 for r in rows if r.get("t") in ("call", "decode"))

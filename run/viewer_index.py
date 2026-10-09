@@ -1,23 +1,26 @@
 #!/usr/bin/env python3
-"""The viewer's index of a pianist's log (jev-<n>.jsonl, docs/harness/record-format.md): what run/view_match.py
-serves of a log too big for the page (a team game's are 1 to 2.4 GB a seat).
+"""The viewer's index of a pianist's log (jev-<n>.jsonl while the match runs, jev-<n>.jsonl.zst once the arena has
+closed it; docs/harness/record-format.md): what run/view_match.py serves of a log too big for the page (a team game's
+are 1 to 2.4 GB a seat raw).
 
 The log is read once, line by line. Nine tenths of it is the `menus` of its `pass` rows, which the index does not
-parse: a pass row is parsed with its menus cut out. Per line it keeps the byte offset, the frame and the kind; per
-game minute a summary (tokens by request kind and by question family as run/jev_products.py counts them, calls,
-latencies, gates, quiet seconds, plays, audits and faults by layer). The index is kept in memory and in a sidecar
-`.viewer-jev-<n>.json` beside the log, and is continued from where it stopped when the log has grown.
+parse: a pass row is parsed with its menus cut out. Per line it keeps the byte offset and length (of the line in a raw
+log, of its frame in a compressed one: run/jevlog.py), the frame and the kind; per game minute a summary (tokens by
+request kind and by question family as run/jev_products.py counts them, calls, latencies, gates, quiet seconds, plays,
+audits and faults by layer). The index is kept in memory and in a sidecar `.viewer-jev-<n>.json` beside the log, and
+is continued from where it stopped when a raw log has grown.
 
 A gate is a `pass` row with `gate` and every row after it up to the next such row (its calls, audits,
 `worlds_gate` and `plan`: in a realtime game they carry the frame the answer landed, later than the pass's).
 
-    run/viewer_index.py <jev-N.jsonl> [--fresh]          the summary's totals, and how long the read took (--fresh:
-                                                         without the sidecar)
-    run/viewer_index.py <jev-N.jsonl> --gate <frame>     the gate at or before the frame, as the server sends it
-    run/viewer_index.py <jev-N.jsonl> --picture <frame>  the picture of the last call at or before the frame
+    run/viewer_index.py <jev-N.jsonl[.zst]> [--fresh]          the summary's totals, and how long the read took
+                                                               (--fresh: without the sidecar)
+    run/viewer_index.py <jev-N.jsonl[.zst]> --gate <frame>     the gate at or before the frame, as the server sends it
+    run/viewer_index.py <jev-N.jsonl[.zst]> --picture <frame>  the picture of the last call at or before the frame
 """
 import bisect, hashlib, json, os, re, sys, threading, time
 
+import jevlog
 from jev_products import family
 
 FORMAT = 2
@@ -42,6 +45,7 @@ def add(counter, key, amount):
 class JevIndex:
     def __init__(self, path, fresh=False):
         self.path = path
+        self.compressed = jevlog.is_compressed(path)
         self.lock = threading.Lock()
         self.fresh = fresh  # read the log anew, whatever the sidecar holds
         self.reset()
@@ -66,7 +70,8 @@ class JevIndex:
 
     def sidecar(self):
         directory, name = os.path.split(self.path)
-        return os.path.join(directory, ".viewer-" + name[: -len(".jsonl")] + ".json")
+        name = name.removesuffix(".zst").removesuffix(".jsonl")
+        return os.path.join(directory, ".viewer-" + name + ".json")
 
     def load(self):
         try:
@@ -120,21 +125,35 @@ class JevIndex:
             self.total = size
             self.building = True
             try:
-                with open(self.path, "rb") as f:
-                    f.seek(self.scanned)
-                    while True:
-                        line = f.readline()
-                        if not line.endswith(b"\n"):
-                            break
-                        self.add_line(line)
-                        self.scanned += len(line)
+                if self.compressed:
+                    # A compressed log is whole: read once, a frame a line, by its seek table.
+                    table = jevlog.frames(self.path)
+                    if table is None:
+                        print(f"{self.path}: no seek table; the viewer cannot index it", file=sys.stderr)
+                        self.scanned = size
+                        return
+                    with open(self.path, "rb") as f:
+                        for offset, length, _ in table:
+                            self.add_line(jevlog.read_frame(f, offset, length), offset, length)
+                            self.scanned = offset + length
+                    self.scanned = size
+                else:
+                    with open(self.path, "rb") as f:
+                        f.seek(self.scanned)
+                        while True:
+                            line = f.readline()
+                            if not line.endswith(b"\n"):
+                                break
+                            self.add_line(line, self.scanned, len(line))
+                            self.scanned += len(line)
             finally:
                 self.building = False
             # Written when the first read is done, and then as a live log grows by 32 MB.
             if self.scanned - self.saved > (32 << 20) or (self.saved == 0 and self.scanned):
                 self.save()
 
-    def add_line(self, line):
+    def add_line(self, line, offset, length):
+        """One line of the log, at `offset` for `length` bytes of the file (its frame's, in a compressed log)."""
         kind_word = None
         for found in TAIL_KIND.finditer(line, max(0, len(line) - 400)):
             kind_word = found.group(1).decode()
@@ -197,8 +216,8 @@ class JevIndex:
             minute["taken"] += sum(1 for part in row.get("split") or [] if part.get("taken")) if "split" in row else int(row.get("pick", 1) != 1)
         elif t == "error":
             minute["errors"] += 1
-        self.off.append(self.scanned)
-        self.length.append(len(line))
+        self.off.append(offset)
+        self.length.append(length)
         self.frame.append(f)
         self.kind += code
 
@@ -231,6 +250,8 @@ class JevIndex:
     # ------------------------------------------------------------ what the server sends
 
     def raw(self, f, line):
+        if self.compressed:
+            return jevlog.read_frame(f, self.off[line], self.length[line]).rstrip(b"\n")
         f.seek(self.off[line])
         return f.read(self.length[line]).rstrip(b"\n")
 

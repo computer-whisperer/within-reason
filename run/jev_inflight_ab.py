@@ -6,6 +6,7 @@ line synthesised from the record (`prompt`), and with the state cuts of 2026-09-
 Written for logs from before those lines existed (wake-1); on later logs the synthesis overwrites what is there.
 usage: run/jev_inflight_ab.py run/matches/<batch>/00 [repeat]      (the key is read from the env file, never printed)
 """
+import jevlog
 import json,sys,re,os,copy,collections,statistics as S
 sys.path.insert(0,'/home/christian/workspace/playground/bar_bots/run')
 from jev_ab import ask, URL
@@ -22,7 +23,7 @@ turns=[];cur=None
 for e in st:
     if e.get('kind')=='turn': cur={'f':e['frame']}
     elif e.get('kind')=='turn_end' and cur: cur['land']=cur['f']+int(e['wall_seconds']*FPS); turns.append(cur); cur=None
-raw=[json.loads(l) for l in open(d+'/jev-0.jsonl')]; hdr=raw[0]; calls=[c for c in raw if c.get('t')=='call']
+raw=[json.loads(l) for l in jevlog.lines(jevlog.seat(d))]; hdr=raw[0]; calls=[c for c in raw if c.get('t')=='call']
 rec=[json.loads(l) for l in open(d+'/record-0.jsonl')]; defs=rec[0]['unit_defs']; losses=[e for e in rec if e.get('t')=='ev' and e['k']=='destroyed']
 # rules/instructions in force per call
 instr=None; rules=hdr.get('rules','')

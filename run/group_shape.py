@@ -19,6 +19,7 @@ group's place once those on the way are left out (the log does not say which mem
   two fights  share whose body has three or more members and a fifth of it within 800 of each of two parties that
               stand more than 1,200 apart
 """
+import jevlog
 import argparse, glob, json, math, os, re
 
 
@@ -53,7 +54,7 @@ def main():
     ap.add_argument("--least", type=int, default=20)
     args = ap.parse_args()
     rows = []
-    for log in sorted(glob.glob(os.path.join(args.dir, "jev-*.jsonl"))):
+    for log in jevlog.logs(args.dir):
         seat = re.search(r"jev-(\d+)", log).group(1)
         places = {}
         for line in open(os.path.join(args.dir, f"record-{seat}.jsonl")):
@@ -61,7 +62,7 @@ def main():
                 r = json.loads(line)
                 places[r["f"] // 30] = {u[0]: (u[2], u[3]) for u in r["own"]}
         seen = set()
-        for line in open(log):
+        for line in jevlog.lines(log):
             if '"groups"' not in line:
                 continue
             r = json.loads(line)

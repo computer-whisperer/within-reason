@@ -4,6 +4,7 @@ questions per pair of asker and target, how each family's share grows through th
 
     run/jev_products.py run/matches/<batch> [...]
 """
+import jevlog
 import collections, glob, json, re, sys
 
 
@@ -26,9 +27,9 @@ def main():
     for D in sys.argv[1:]:
         fam = collections.Counter(); famn = collections.Counter(); bymin = collections.defaultdict(collections.Counter); pic = collections.Counter(); total = 0
         pairs = collections.defaultdict(list); gates = []; dims = []
-        for fn in sorted(glob.glob(D.rstrip("/") + "/00/jev-*.jsonl")):
-            seat = fn[-7]
-            for l in open(fn):
+        for fn in jevlog.logs(D.rstrip("/") + "/00"):
+            seat = str(jevlog.seat_of(fn))
+            for l in jevlog.lines(fn):
                 try: r = json.loads(l)
                 except ValueError: continue
                 t = r.get("t"); T = (r.get("usage") or {}).get("input_tokens", 0) or 0

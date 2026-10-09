@@ -4,6 +4,7 @@ question kinds (characters, scaled to the tokens the log reports).
 
     run/jev_bill.py run/matches/<batch> [...]
 """
+import jevlog
 import json, sys, collections, glob, itertools
 for D in sys.argv[1:]:
     D = D.rstrip("/") + "/00/"
@@ -11,7 +12,7 @@ for D in sys.argv[1:]:
     state_chars = collections.Counter(); q_chars = collections.Counter(); q_n = collections.Counter()
     tok_state = 0.0; tok_q = 0.0; header = None; packet = ""; rules = ""
     # Every seat of ours: a team game's bill was seat 0's alone (human-19 read $0.37 of its $0.74).
-    for l in itertools.chain.from_iterable(open(f) for f in sorted(glob.glob(D + "jev-*.jsonl"))):
+    for l in itertools.chain.from_iterable(jevlog.lines(f) for f in jevlog.logs(D)):
         try: r = json.loads(l)
         except ValueError: continue
         if not isinstance(r, dict): continue

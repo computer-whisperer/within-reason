@@ -5,6 +5,7 @@ attack the hands began waited for the next turn (K-player-idle-after-the-flight-
 
 usage: run/wake_read.py run/matches/<batch>/00 [...]
 """
+import jevlog
 import json,sys,re,statistics as S,collections
 FPS=30
 def pct(xs,p): xs=sorted(xs); return xs[min(len(xs)-1,int(len(xs)*p))] if xs else 0
@@ -20,7 +21,7 @@ def read(d):
             cur={'f':e['frame'],'reasons':reasons,'wake':json.loads(w.group(1)) if w else None}
         elif e.get('kind')=='turn_end' and cur:
             cur['wall']=e['wall_seconds']; cur['land']=cur['f']+int(e['wall_seconds']*FPS); cur['ended']=e['ended_by']; turns.append(cur); cur=None
-    jev=[json.loads(l) for l in open(d+'/jev-0.jsonl')]
+    jev=[json.loads(l) for l in jevlog.lines(jevlog.seat(d))]
     plans=[c for c in jev if c.get('t')=='plan']
     rec=[json.loads(l) for l in open(d+'/record-0.jsonl')]
     ev=[e for e in rec if e.get('t')=='ev']

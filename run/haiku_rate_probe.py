@@ -15,6 +15,7 @@ reports the aggregate rate too, since the pianist asks for many actors in one ga
 The key: `ANTHROPIC_API_KEY` in the environment, else `~/.config/within-reason/anthropic.env` (mode 600). Never
 printed, never written: the repository is public.
 """
+import jevlog
 import argparse, concurrent.futures, json, os, statistics, sys, time, urllib.error, urllib.request
 
 URL = "https://api.anthropic.com/v1/messages"
@@ -38,7 +39,7 @@ def api_key():
 def load_calls(path):
     """The log's standing text and every call, each with the packet it was asked under (carried forward)."""
     rules, instructions, calls = "", "", []
-    for line in open(path):
+    for line in jevlog.lines(path):
         try:
             d = json.loads(line)
         except json.JSONDecodeError:
