@@ -41,7 +41,7 @@ fn both_players_openings_are_on_the_palette() {
         for (q, steps) in [vec![plan.commander.clone()], plan.factories.clone(), plan.constructors.clone()].concat().iter().enumerate() {
             let offered = if q == 1 { &palette.factory } else { &palette.mobile };
             for step in steps {
-                let name = match step.item { Item::Build(u) => units.list[u].name.clone(), Item::Assist => "assist".into() };
+                let name = match step.item { Item::Build(u) => units.list[u].name.clone(), Item::Assist => "assist".into(), Item::Help => "help".into() };
                 assert!(offered.contains(&step.item), "{who}: {name} in queue {q} is not on the palette");
             }
         }

@@ -48,6 +48,27 @@ pub struct Units {
     by_name: HashMap<String, usize>,
 }
 
+/// A round a unit stockpiles (a nuclear missile, an anti-nuke's interceptor): its cost and the seconds one round takes.
+/// The engine advances a stockpile `1 / seconds` a frame when the frame's share of the cost can be paid, all or
+/// nothing that frame, and no builder adds to it (`CWeapon::UpdateStockpile`, nothing in `Builder.cpp`; BAR's stockpile
+/// gadgets only limit and announce), so a round is a flow of resources, never of build power
+/// (K-rules-a-stockpile-takes-no-build-power).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Stockpile {
+    pub metal: f64,
+    pub energy: f64,
+    pub seconds: f64,
+}
+
+/// The stockpiling units of the standard roster, by name, from the game's unit files (`weapondefs` of each:
+/// `metalpershot`, `energypershot`, `stockpiletime`); the engine reports none of these numbers to an AI.
+const STOCKPILES: [(&str, Stockpile); 4] = [
+    ("armsilo", Stockpile { metal: 1000.0, energy: 125_000.0, seconds: 120.0 }),
+    ("corsilo", Stockpile { metal: 1500.0, energy: 187_500.0, seconds: 180.0 }),
+    ("armamd", Stockpile { metal: 150.0, energy: 7500.0, seconds: 90.0 }),
+    ("corfmd", Stockpile { metal: 150.0, energy: 7500.0, seconds: 90.0 }),
+];
+
 fn role(n: &UnitDefInfo) -> Role {
     let (moves, menu) = (n.speed > 0.0, !n.build_options.is_empty());
     match () {
@@ -98,6 +119,11 @@ impl Units {
 
     pub fn get(&self, name: &str) -> &Unit {
         &self.list[self.index(name).unwrap_or_else(|| panic!("no unit type {name} in this game"))]
+    }
+
+    /// What a unit type stockpiles once it stands, if anything.
+    pub fn stockpile(&self, unit: usize) -> Option<Stockpile> {
+        STOCKPILES.iter().find(|(name, _)| *name == self.list[unit].name).map(|(_, s)| *s)
     }
 
     /// The cheapest thing `builder` builds that passes `test`.

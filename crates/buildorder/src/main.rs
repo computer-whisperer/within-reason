@@ -9,11 +9,16 @@ use buildorder::record;
 use buildorder::sim::{simulate, Outcome, Sample, Scenario, State, Wind};
 
 const USAGE: &str = "usage: (the game, that is map, start, faction and unit numbers, comes from a match record's header)
-  buildorder optimize  --game RECORD.jsonl [--factory lab|vp] [--palette kit|roster] [--objective income|army|mix|tempo|expect|target:UNIT[:COUNT][@SECONDS][,UNIT..]] [--contact WALK[,AT,WEIGHT]] [--minutes 10]
+  buildorder optimize  --game RECORD.jsonl [--factory lab|vp] [--palette kit|roster] [--also silo,amd] [--minutes 10]
+                       [--objective income|army|mix|tempo|expect|reach:N|target:UNIT[:COUNT][@SECONDS][,round:UNIT..][,income:N@SECONDS]] [--contact WALK[,AT,WEIGHT]]
                        [--iterations 40000] [--restarts 8] [--seed 1] [--wind MEAN] [--detour X] [--factories 2] [--constructors 6] [--leash ELMOS]
-                       [--no-nano] [--turret llt] [--csv FILE] [--plan-out FILE]      (--detour X: open ground, every walk X straight lines,
-                                                                        in place of the map's own ground)
-  buildorder simulate  --game RECORD.jsonl --plan FILE [--minutes ..] [--wind ..] [--detour X] [--csv FILE]
+                       [--no-nano] [--turret llt] [--nanos-to-factory] [--tax FROM:RATE,..] [--tax-energy 8] [--csv FILE] [--plan-out FILE]
+                       (--detour X: open ground, every walk X straight lines, in place of the map's own ground; --also: unit types the
+                       roster's rule leaves out; reach:N: the fastest order to N metal a second; round:UNIT: a stockpile round, the first
+                       missile; --tax: metal a second to soldiers from each time, M:SS or seconds, before any build; turrets help the
+                       dearest frame in reach unless --nanos-to-factory)
+  buildorder simulate  --game RECORD.jsonl --plan FILE [--minutes ..] [--wind ..] [--detour X] [--help-frames] [--tax ..] [--csv FILE]
+                       (plan words: unit names without the faction prefix, assist, help; help puts the builder's power on the dearest frame)
   buildorder walks     RECORD.jsonl... [--minutes 6]      (builders' ways between builds: recorded against predicted)
   buildorder calibrate RECORD.jsonl... [--minutes 10] [--from SECONDS] [--detour X] [--constant-wind] [--trace] [--csv-dir DIR]
                        (--from S: replay from the record's own state at second S with what was started after it)";
@@ -74,16 +79,49 @@ fn scenario(game: &Game, args: &Args) -> Scenario {
     scenario.wind = Wind::Constant(args.number("--wind", game.mean_wind()));
     scenario.constructors_default_to_extractors = true;
     scenario.commander_leash = args.number("--leash", f64::MAX);
+    // `--help-frames`: construction turrets help the dearest frame in reach, else the first factory (optimize turns
+    // it on unless `--nanos-to-factory`); `--tax FROM:RATE,...`: metal a second to soldiers from each time (M:SS or
+    // seconds), before any build; `--tax-energy R`: energy a metal the tax draws.
+    scenario.nanos_help_frames = args.has("--help-frames");
+    scenario.tax = parse_tax(&args.text("--tax", ""));
+    scenario.tax_energy_ratio = args.number("--tax-energy", scenario.tax_energy_ratio);
     scenario
 }
 
-const CSV_HEADER: &str = "t,metal,energy,metal_income,energy_income,extractors,converters,build_power,factories,constructors,nanos,army_count,army_value,stall,metal_wasted,energy_wasted";
+/// `FROM:RATE,FROM:RATE`, the time as `M:SS` or seconds, sorted by time.
+fn parse_tax(text: &str) -> Vec<(f64, f64)> {
+    let mut schedule: Vec<(f64, f64)> = text
+        .split(',')
+        .filter(|e| !e.is_empty())
+        .map(|entry| {
+            let (from, rate) = entry.rsplit_once(':').unwrap_or_else(|| die(&format!("--tax: {entry:?} is not FROM:RATE")));
+            let seconds = match from.split_once(':') {
+                Some((m, s)) => 60.0 * m.parse::<f64>().unwrap_or_else(|_| die(&format!("--tax: {from:?} is not a time"))) + s.parse::<f64>().unwrap_or_else(|_| die(&format!("--tax: {from:?} is not a time"))),
+                None => from.parse::<f64>().unwrap_or_else(|_| die(&format!("--tax: {from:?} is not a time"))),
+            };
+            (seconds, rate.parse::<f64>().unwrap_or_else(|_| die(&format!("--tax: {rate:?} is not metal a second"))))
+        })
+        .collect();
+    schedule.sort_by(|a, b| a.0.total_cmp(&b.0));
+    schedule
+}
+
+/// `--also NAME,NAME`: unit types offered to the roster by name (with or without the faction prefix).
+fn also(game: &Game, args: &Args) -> Vec<usize> {
+    args.text("--also", "")
+        .split(',')
+        .filter(|n| !n.is_empty())
+        .map(|n| game.units.index(n).or_else(|| game.units.index(&format!("{}{n}", game.side()))).unwrap_or_else(|| die(&format!("--also: no unit type {n} in this game"))))
+        .collect()
+}
+
+const CSV_HEADER: &str = "t,metal,energy,metal_income,energy_income,extractors,converters,build_power,factories,constructors,nanos,army_count,army_value,stall,metal_wasted,energy_wasted,rounds,tax_paid,tax_unpaid";
 
 fn csv_row(s: &Sample) -> String {
     format!(
-        "{},{:.0},{:.0},{:.2},{:.1},{},{},{:.0},{},{},{},{},{:.0},{:.2},{:.0},{:.0}",
+        "{},{:.0},{:.0},{:.2},{:.1},{},{},{:.0},{},{},{},{},{:.0},{:.2},{:.0},{:.0},{},{:.0},{:.0}",
         s.t, s.metal, s.energy, s.metal_income, s.energy_income, s.extractors, s.converters, s.build_power, s.factories,
-        s.constructors, s.nanos, s.army_count, s.army_value, s.stall, s.metal_wasted, s.energy_wasted
+        s.constructors, s.nanos, s.army_count, s.army_value, s.stall, s.metal_wasted, s.energy_wasted, s.rounds, s.tax_paid, s.tax_unpaid
     )
 }
 
@@ -96,7 +134,7 @@ fn write_csv(path: &str, outcome: &Outcome) {
     std::fs::write(path, text).unwrap_or_else(|e| die(&format!("{path}: {e}")));
 }
 
-const MILESTONES: [f64; 4] = [3.0, 5.0, 8.0, 10.0];
+const MILESTONES: [f64; 8] = [3.0, 5.0, 8.0, 10.0, 15.0, 20.0, 25.0, 30.0];
 
 /// Markdown rows: one per milestone minute the outcome reaches.
 fn milestone_rows(label: &str, outcome: &Outcome) -> String {
@@ -107,15 +145,15 @@ fn milestone_rows(label: &str, outcome: &Outcome) -> String {
         let stall: f64 = outcome.samples.iter().filter(|x| x.t <= s.t).map(|x| x.stall).sum::<f64>() / s.t;
         let _ = writeln!(
             out,
-            "| {label} | {minute:.0} | {} | {income:.1} | {:.0} | {:.0} | {} | {} | {} | {} | {:.0} | {} | {:.2} | {:.0} / {:.0} |",
+            "| {label} | {minute:.0} | {} | {income:.1} | {:.0} | {:.0} | {} | {} | {} | {} | {:.0} | {} | {:.0} / {:.0} | {} | {:.2} | {:.0} / {:.0} |",
             s.extractors, s.energy_income, s.build_power, s.factories, s.constructors, s.nanos, s.converters, s.army_value,
-            s.army_count, stall, s.metal_wasted, s.energy_wasted
+            s.army_count, s.tax_paid, s.tax_unpaid, s.rounds, stall, s.metal_wasted, s.energy_wasted
         );
     }
     out
 }
 
-const MILESTONE_HEADER: &str = "| run | min | mex | metal/s | energy/s | build power | labs | cons | nanos | conv | army metal | army n | mean stall | wasted M / E |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n";
+const MILESTONE_HEADER: &str = "| run | min | mex | metal/s | energy/s | build power | labs | cons | nanos | conv | army metal | army n | tax paid / owed | rounds | mean stall | wasted M / E |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n";
 
 fn optimize(args: &Args) {
     let game = game(args);
@@ -132,12 +170,14 @@ fn optimize(args: &Args) {
         *contact = Some(Contact { walk, at: parts.get(1).copied().unwrap_or(150.0), weight: parts.get(2).copied().unwrap_or(2.0), window: 120.0 });
     }
     let minutes: f64 = args.number("--minutes", 10.0);
-    let scenario = scenario(&game, args);
+    let mut scenario = scenario(&game, args);
+    // The search plays the late game as the §4.7 rule has it; a replay keeps the recorded games' turret behaviour.
+    scenario.nanos_help_frames = !args.has("--nanos-to-factory");
     let factory_unit = game.factory(&factory).unwrap_or_else(|| die(&format!("the commander builds no {factory}")));
     let turret = units.index(&format!("{}{}", game.side(), args.text("--turret", "llt")));
     let water = game.terrain.heights.iter().any(|h| *h < 0);
     let palette = match args.text("--palette", "kit").as_str() {
-        "roster" => Palette::roster(units, game.commander, turret, water),
+        "roster" => Palette::roster(units, game.commander, turret, water, &also(&game, args)),
         _ => Palette::new(units, game.commander, factory_unit, !args.has("--no-nano"), turret),
     };
     let (factories_n, constructors_n) = (args.number::<usize>("--factories", 2), args.number::<usize>("--constructors", 6));
@@ -181,6 +221,9 @@ fn run_plan(args: &Args) {
     print!("{MILESTONE_HEADER}{}", milestone_rows(path, &outcome));
     for done in &outcome.finished {
         println!("{:6.1} s  {}  (queue {})", done.t, units.list[done.unit].name, done.queue);
+    }
+    for (t, unit) in &outcome.stockpiled {
+        println!("{t:6.1} s  {} round stockpiled", units.list[*unit].name);
     }
     if let Some(path) = args.value("--csv") {
         write_csv(path, &outcome);

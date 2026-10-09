@@ -6,7 +6,7 @@ use std::sync::Arc;
 use buildorder::anneal::{anneal, Goal, Objective, Palette, Search};
 use buildorder::game::{Game, Spot, Straight};
 use buildorder::plan::{Item, Plan, Step};
-use buildorder::sim::{simulate, Outcome, Scenario, State};
+use buildorder::sim::{simulate, Outcome, Scenario, Standing, State};
 use buildorder::units::{Role, Units};
 
 const HOME: (f64, f64) = (1000.0, 1000.0);
@@ -176,14 +176,14 @@ fn target_goals_count_up_to_their_count_and_seed_every_chain() {
     let units = &game.units;
     let (flash, bull, ck, vp) = (units.index("armflash").unwrap(), units.index("armbull").unwrap(), units.index("armck").unwrap(), units.index("armvp").unwrap());
     let parsed = Objective::parse_target("target armflash:4 by 3:30, armbull by 9:00", units).unwrap();
-    assert_eq!(parsed.goals(), &[Goal { unit: flash, count: Some(4), by: Some(210.0) }, Goal { unit: bull, count: None, by: Some(540.0) }]);
-    assert_eq!(Objective::parse_target("target:armbull@540", units).unwrap().goals(), &[Goal { unit: bull, count: None, by: Some(540.0) }]);
+    assert_eq!(parsed.goals(), &[Goal { unit: flash, count: Some(4), by: Some(210.0), round: false }, Goal { unit: bull, count: None, by: Some(540.0), round: false }]);
+    assert_eq!(Objective::parse_target("target:armbull@540", units).unwrap().goals(), &[Goal { unit: bull, count: None, by: Some(540.0), round: false }]);
     assert!(Objective::parse_target("target armnothing", units).unwrap_err().contains("no such unit"));
     assert!(Objective::parse_target("target armflash:many", units).unwrap_err().contains("whole number"));
     assert!(Objective::parse_target("target", units).unwrap_err().contains("not a target objective"));
     // The seed lays both chains: the commander's factory is the vehicle plant, which makes the Flashes and the
     // constructor that builds the advanced plant, which makes the Bulls.
-    let palette = Palette::roster(units, game.commander, units.index("armllt"), false);
+    let palette = Palette::roster(units, game.commander, units.index("armllt"), false, &[]);
     let seed = palette.chain_seed(units, game.commander, &[(flash, 4), (bull, 6)], 2, 3, 3.0);
     assert!(seed.commander.iter().any(|s| s.item == Item::Build(vp)), "{seed:?}");
     assert_eq!(seed.factories[0].iter().filter(|s| s.item == Item::Build(flash)).count(), 4);
@@ -200,8 +200,8 @@ fn target_goals_count_up_to_their_count_and_seed_every_chain() {
     };
     let (four, six) = (list(4), list(6));
     assert!(six.finished.iter().filter(|f| f.unit == pw).count() >= 6, "the lab finished six Pawns in five minutes");
-    let counted = Objective::Target { goals: vec![Goal { unit: pw, count: Some(4), by: None }], income: vec![] };
-    let open = Objective::Target { goals: vec![Goal { unit: pw, count: None, by: None }], income: vec![] };
+    let counted = Objective::Target { goals: vec![Goal { unit: pw, count: Some(4), by: None, round: false }], income: vec![] };
+    let open = Objective::Target { goals: vec![Goal { unit: pw, count: None, by: None, round: false }], income: vec![] };
     let cost = units.list[pw].metal_cost;
     assert!((counted.score(units, &six, 300.0) - counted.score(units, &four, 300.0)).abs() < cost, "extras beyond the count are not rewarded");
     assert!(open.score(units, &six, 300.0) - open.score(units, &four, 300.0) > 1.5 * cost, "without a count every one counts");
@@ -214,7 +214,168 @@ fn target_goals_count_up_to_their_count_and_seed_every_chain() {
     assert!(Objective::parse_target("target income:40", units).unwrap_err().contains("needs its time"));
     // A deadline is a requirement: six Pawns asked by the time the fourth finished are two short, three metal each.
     let fourth = four.finished.iter().filter(|f| f.unit == pw).nth(3).unwrap().t;
-    let due = Objective::Target { goals: vec![Goal { unit: pw, count: Some(6), by: Some(fourth) }], income: vec![] };
-    let loose = Objective::Target { goals: vec![Goal { unit: pw, count: Some(6), by: None }], income: vec![] };
+    let due = Objective::Target { goals: vec![Goal { unit: pw, count: Some(6), by: Some(fourth), round: false }], income: vec![] };
+    let loose = Objective::Target { goals: vec![Goal { unit: pw, count: Some(6), by: None, round: false }], income: vec![] };
     assert!((loose.score(units, &four, 300.0) - due.score(units, &four, 300.0) - 2.0 * buildorder::anneal::TARGET_SHORTFALL * cost).abs() < 1e-6);
+}
+
+/// Resources no build can exhaust, so that durations are build time over power alone.
+fn rich(game: &Game) -> Scenario {
+    let mut scenario = bare(game);
+    scenario.start_metal = 1e6;
+    scenario.start_energy = 1e6;
+    scenario.base_storage = 1e6;
+    scenario
+}
+
+/// `help`: a builder's power lands on the dearest frame begun (the most metal still to build, not the dearest unit)
+/// from the moment it stands beside it, the frame finishes when the summed power has paid its build time, and a help
+/// step with no frame to help is passed over (docs/design/2026-10-09-late-economy.md §9).
+#[test]
+fn help_puts_a_builders_power_on_the_dearest_frame_until_it_stands() {
+    let game = game();
+    let units = &game.units;
+    let cv = units.index("armcv").unwrap();
+    // The plant makes two constructors; the first raises a turret (230 metal, 59 s alone), the second a solar (155, 29 s).
+    // The commander, free after four storages, helps when both frames stand: the solar, just begun, has the most metal
+    // left. The second constructor's help, after its solar, finds the turret still building.
+    let with_help = |help: bool| {
+        let mut plan = Plan::empty(1, 2);
+        plan.commander = at_home(units, &["armvp", "armestor", "armestor", "armestor", "armestor"]);
+        plan.factories[0] = vec![Step::build(cv), Step::build(cv)];
+        plan.constructors[0] = at_home(units, &["armnanotc"]);
+        plan.constructors[1] = at_home(units, &["armsolar"]);
+        if help {
+            plan.commander.push(Step { item: Item::Help, site: None });
+            plan.constructors[1].push(Step { item: Item::Help, site: None });
+        }
+        run(units, &rich(&game), &plan, 300.0)
+    };
+    let begun = |outcome: &Outcome| -> Vec<f64> { outcome.finished.iter().filter(|f| f.unit == cv).map(|f| f.t + 0.1).collect() };
+    let alone = with_help(false);
+    let began = begun(&alone);
+    assert_eq!(began.len(), 2, "two constructors came out");
+    assert!((finish_time(units, &alone, "armnanotc") - (began[0] + 5300.0 / 90.0)).abs() < 0.3, "alone, the turret takes 59 s at 90");
+    assert!((finish_time(units, &alone, "armsolar") - (began[1] + 2600.0 / 90.0)).abs() < 0.3);
+    let helped = with_help(true);
+    let began = begun(&helped);
+    let commander = helped.finished.iter().filter(|f| units.list[f.unit].name == "armestor").map(|f| f.t).fold(0.0, f64::max) + 0.1;
+    assert!(commander > began[1] && commander < finish_time(units, &alone, "armnanotc"), "the commander is free while both frames stand");
+    // The solar: 90 (t - began) + 300 (t - commander) = 2600.
+    let solar = finish_time(units, &helped, "armsolar");
+    let expected = (2600.0 + 90.0 * began[1] + 300.0 * commander) / 390.0;
+    assert!((solar - expected).abs() < 1.0, "the solar, with the most metal left, got the commander: stands at {solar}, the power integral says {expected}");
+    // The turret: 90 (t - began) + 90 (t - the second constructor's join, after its solar) = 5300.
+    let turret = finish_time(units, &helped, "armnanotc");
+    let expected = (5300.0 + 90.0 * began[0] + 90.0 * (solar + 0.1)) / 180.0;
+    assert!((turret - expected).abs() < 1.0, "the turret got the second constructor after its solar: stands at {turret}, the integral says {expected}");
+    assert_eq!(helped.effective[0].last().map(|s| s.item), Some(Item::Help), "the commander's help step was taken up");
+    assert_eq!(helped.effective[3].len(), 2, "the second constructor's solar and help were both taken up");
+}
+
+/// A standing construction turret helps the dearest frame within its reach when the scenario says so, and feeds the
+/// first factory (here: nothing) otherwise; a frame out of its reach gets nothing from it.
+#[test]
+fn a_turret_helps_the_dearest_frame_in_its_reach_when_told() {
+    let game = game();
+    let units = &game.units;
+    let far = (HOME.0, HOME.1 + 1000.0);
+    let storage_at = |site: (f64, f64), help: bool| {
+        let mut scenario = rich(&game);
+        scenario.nanos_help_frames = help;
+        let mut state = State::start(&scenario);
+        state.standing.push(Standing { unit: units.index("armnanotc").unwrap(), site: HOME, pays: 0.0 });
+        let mut plan = Plan::empty(0, 0);
+        plan.commander = vec![Step { item: Item::Build(units.index("armestor").unwrap()), site: Some(site) }];
+        finish_time(units, &simulate(units, &scenario, &state, &plan, 200.0), "armestor")
+    };
+    assert!((storage_at(HOME, true) - (0.1 + 4110.0 / 500.0)).abs() < 0.3, "300 + 200 on the frame: {}", storage_at(HOME, true));
+    assert!((storage_at(HOME, false) - (0.1 + 4110.0 / 300.0)).abs() < 0.3, "turrets to the factory, none standing: the commander alone, {}", storage_at(HOME, false));
+    let commander = &units.list[game.commander];
+    let walk = (1000.0 - commander.build_distance) / commander.speed;
+    assert!((storage_at(far, true) - (0.1 + walk + 4110.0 / 300.0)).abs() < 1.0, "out of the turret's reach: the commander alone after its walk, {}", storage_at(far, true));
+}
+
+/// The tax is paid before any build and what the stock cannot pay is owed, never deferred: a build that would have
+/// finished on the income alone never does under a tax above it.
+#[test]
+fn the_tax_is_paid_first_and_what_cannot_be_paid_is_owed() {
+    let game = game();
+    let units = &game.units;
+    let mut plan = Plan::empty(0, 0);
+    plan.commander = at_home(units, &["armwin"]);
+    let mut scenario = bare(&game);
+    scenario.start_metal = 20.0;
+    let free = run(units, &scenario, &plan, 60.0);
+    // 20 in the bank and 2 a second: the 40-metal turbine is paid for at ten seconds.
+    assert!((finish_time(units, &free, "armwin") - 10.0).abs() < 0.6, "{}", finish_time(units, &free, "armwin"));
+    assert_eq!((free.last().tax_paid, free.last().tax_unpaid), (0.0, 0.0));
+    scenario.tax = vec![(0.0, 10.0)];
+    let taxed = run(units, &scenario, &plan, 60.0);
+    assert!(taxed.finished.is_empty(), "under a tax of 10 a second on an income of 2 the turbine never gets its metal");
+    let last = taxed.last();
+    assert!((last.tax_paid + last.tax_unpaid - 600.0).abs() < 1e-6, "every second's tax is paid or owed: {} + {}", last.tax_paid, last.tax_unpaid);
+    assert!(last.tax_paid > 100.0 && last.tax_unpaid > 300.0, "paid {} owed {}", last.tax_paid, last.tax_unpaid);
+    // The tax in force is the schedule's last entry at or before the second.
+    scenario.tax = vec![(30.0, 10.0)];
+    let later = run(units, &scenario, &plan, 60.0);
+    assert!((finish_time(units, &later, "armwin") - 10.0).abs() < 0.6, "nothing is taxed before the schedule starts");
+    assert!((later.last().tax_paid + later.last().tax_unpaid - 300.0).abs() < 1e-6);
+}
+
+/// A standing silo stockpiles a missile every 120 s at the engine's fixed rate, drawing 1,000 metal and 125,000 energy
+/// a round in the same queue as the builds, and no helper shortens it (nothing in the engine lets one).
+#[test]
+fn a_silo_stockpiles_at_the_engines_rate_and_nobody_can_help_it() {
+    let game = game();
+    let units = &game.units;
+    let silo = units.index("armsilo").unwrap();
+    assert_eq!(units.stockpile(silo).map(|s| (s.metal, s.energy, s.seconds)), Some((1000.0, 125_000.0, 120.0)));
+    assert_eq!(units.stockpile(units.index("armwin").unwrap()), None);
+    let scenario = rich(&game);
+    let mut state = State::start(&scenario);
+    state.standing.push(Standing { unit: silo, site: HOME, pays: 0.0 });
+    let piled = |plan: &Plan| simulate(units, &scenario, &state, plan, 250.0);
+    let idle = piled(&Plan::empty(0, 0));
+    let rounds: Vec<(f64, usize)> = idle.stockpiled.clone();
+    assert_eq!(rounds.len(), 2, "{rounds:?}");
+    assert!((rounds[0].0 - 120.0).abs() < 0.2 && (rounds[1].0 - 240.0).abs() < 0.2 && rounds.iter().all(|r| r.1 == silo), "{rounds:?}");
+    assert_eq!(idle.last().rounds, 2);
+    // Two rounds and ten seconds of the third paid for; the commander's 2 metal and 30 energy a second came in.
+    let commander = &units.list[game.commander];
+    let paid = 2.0 + 10.0 / 120.0;
+    assert!((idle.last().metal - (1e6 + 250.0 * commander.metal_make - paid * 1000.0)).abs() < 2.0, "metal {}", idle.last().metal);
+    assert!((idle.last().energy - (1e6 + 250.0 * commander.energy_make - paid * 125_000.0)).abs() < 60.0, "energy {}", idle.last().energy);
+    let mut helping = Plan::empty(0, 0);
+    helping.commander = vec![Step { item: Item::Help, site: None }];
+    let helped = piled(&helping);
+    assert_eq!(helped.stockpiled.iter().map(|r| (r.0 * 10.0).round()).collect::<Vec<_>>(), rounds.iter().map(|r| (r.0 * 10.0).round()).collect::<Vec<_>>(), "the rounds come at the same seconds");
+    assert!(helped.effective[0].is_empty(), "a stockpile is not a frame: the help step was passed over");
+}
+
+/// `reach:N` prefers the plan whose 30-second income first reaches N soonest; `round:UNIT` is a goal of a stockpiler's
+/// round and refuses a unit that stockpiles nothing; `help` reads and writes in plan text.
+#[test]
+fn the_reach_objective_round_goals_and_the_help_word() {
+    let game = game();
+    let units = &game.units;
+    let scenario = bare(&game);
+    let mex = units.index("armmex").unwrap();
+    let mut quick = Plan::empty(0, 0);
+    quick.commander = vec![Step::build(mex), Step::build(mex)];
+    let mut slow = Plan::empty(0, 0);
+    slow.commander = at_home(units, &["armsolar", "armsolar"]);
+    slow.commander.extend([Step::build(mex), Step::build(mex)]);
+    let objective = Objective::parse("reach:5.5").unwrap();
+    assert_eq!(objective, Objective::Reach { income: 5.5 });
+    assert_eq!(Objective::parse("reach:x"), None);
+    let (a, b) = (run(units, &scenario, &quick, 300.0), run(units, &scenario, &slow, 300.0));
+    assert!(a.mean_metal_income(300.0, 30.0) > 5.5 && b.mean_metal_income(300.0, 30.0) > 5.5, "both reach it by the horizon");
+    assert!(objective.score(units, &a, 300.0) > objective.score(units, &b, 300.0), "the two extractors first reach 5.5 a second sooner");
+    let silo = units.index("armsilo").unwrap();
+    assert_eq!(Objective::parse_target("target:round:armsilo@1200", units).unwrap().goals(), &[Goal { unit: silo, count: None, by: Some(1200.0), round: true }]);
+    assert!(Objective::parse_target("target:round:armwin", units).is_err());
+    let plan = Plan::from_text("com: mex help\ncon0: help assist", "arm", units).unwrap();
+    assert_eq!(plan.commander[1].item, Item::Help);
+    assert_eq!(plan.to_text(units), "com: mex help\ncon0: help assist\n");
 }

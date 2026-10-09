@@ -1177,7 +1177,7 @@ mod planning {
             _ => {
                 let text = arguments["objective"].as_str().ok_or("search takes an objective in words")?.trim().to_string();
                 let objective = if text.starts_with("target") { Objective::parse_target(&text, units)? } else { Objective::parse(&text).ok_or_else(|| format!("{text}: not an objective ({OBJECTIVES})"))? };
-                let palette = Palette::roster(units, ctx.game.commander, ctx.turret, ctx.water);
+                let palette = Palette::roster(units, ctx.game.commander, ctx.turret, ctx.water, &[]);
                 let (factories, constructors) = (ctx.standing_factories + 2, ctx.standing_constructors + 3);
                 let start = given.or_else(|| match &objective {
                     Objective::Target { goals, .. } => {
@@ -1254,6 +1254,7 @@ mod planning {
                 };
                 let item = match kind {
                     "assist" => Item::Assist,
+                    "help" => Item::Help,
                     "extractor" => Item::Build(basic),
                     other => Item::Build(units.index(other).ok_or_else(|| format!("{name}: {other} is not a unit of this game"))?),
                 };
@@ -1268,6 +1269,7 @@ mod planning {
         let units = &ctx.game.units;
         let name = match step.item {
             Item::Assist => return "assist".into(),
+            Item::Help => return "help".into(),
             Item::Build(u) if units.list[u].extracts_metal > 0.0 && units.list[u].extracts_metal <= units.basic_extraction() * 1.5 => "extractor".to_string(),
             Item::Build(u) => units.list[u].name.clone(),
         };

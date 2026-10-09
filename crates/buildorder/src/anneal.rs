@@ -36,6 +36,8 @@ pub struct Goal {
     pub unit: usize,
     pub count: Option<usize>,
     pub by: Option<f64>,
+    /// The goal is a stockpile round of the unit (`round:armsilo`: the first missile), not the unit itself.
+    pub round: bool,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -75,6 +77,11 @@ pub enum Objective {
     /// by a time, each short of it costing `TARGET_SHORTFALL` times a minute of the missing income (the user,
     /// 2026-09-22: a target order gets the unit and can fail at setting up the economy afterwards).
     Target { goals: Vec<Goal>, income: Vec<(f64, f64)> },
+    /// The fastest order to an income: `REACH_EARLY` minutes of the wanted income for every minute before the horizon
+    /// at which the 30-second mean metal income first reaches `income` (nothing when it never does), plus
+    /// `TARGET_INCOME_SECONDS` of the final income as the slope toward it, less the stall penalty. `reach:100` on the
+    /// command line; `target income:100 by 12:00` is the requirement form of the same question.
+    Reach { income: f64 },
 }
 
 /// What a game is expected to have by each second of the clock: a piecewise-linear curve per quantity. The standard
@@ -164,6 +171,8 @@ pub const MIX_INCOME_SECONDS: f64 = 120.0;
 pub const TARGET_INCOME_SECONDS: f64 = 20.0;
 /// What a goal's unit missing at its deadline costs, in its own metal: a deadline is a requirement, not a preference.
 pub const TARGET_SHORTFALL: f64 = 3.0;
+/// In `Objective::Reach`, minutes of the wanted income earned per minute the income is reached before the horizon.
+pub const REACH_EARLY: f64 = 2.0;
 
 impl Objective {
     pub fn parse(name: &str) -> Option<Objective> {
@@ -173,13 +182,14 @@ impl Objective {
             "mix" => Some(Objective::Mix),
             "tempo" => Some(Objective::Tempo { army: 1.0, exposed: 0.3, contact: None }),
             "expect" => Some(Objective::Expect { exposed: 0.3, contact: None, expect: Expectations::STANDARD }),
-            _ => None,
+            _ => name.strip_prefix("reach:").and_then(|n| n.parse().ok()).filter(|n: &f64| *n > 0.0).map(|income| Objective::Reach { income }),
         }
     }
 
     /// Goals separated by commas after the word `target`: each `UNIT[:COUNT] [by M:SS]`, the unit by its full name
     /// in `units`, the count as the `produce` tool writes it (`armflash:4`), the time as `M:SS` or seconds after
-    /// `by` or `@`; or `income:N by M:SS`, metal a second wanted by then. `target armflash:4 by 3:30, armbull by
+    /// `by` or `@`; `round:UNIT [by M:SS]`, a stockpile round of a unit that stockpiles (`round:armsilo by 20:00`, the
+    /// first missile); or `income:N by M:SS`, metal a second wanted by then. `target armflash:4 by 3:30, armbull by
     /// 9:00, income:40 by 10:00`; `target:armbull@540` on the command line.
     pub fn parse_target(text: &str, units: &Units) -> Result<Objective, String> {
         const SHAPE: &str = "target UNIT[:COUNT] [by M:SS], income:N by M:SS, ...";
@@ -206,12 +216,19 @@ impl Objective {
                 income.push((rate, by));
                 continue;
             }
+            let (what, round) = match what.strip_prefix("round:") {
+                Some(name) => (name, true),
+                None => (what, false),
+            };
             let (name, count) = match what.split_once(':') {
                 Some((name, n)) => (name, Some(n.parse::<usize>().map_err(|_| format!("{what}: the count after the colon is a whole number"))?.max(1))),
                 None => (what, None),
             };
             let unit = units.index(name).ok_or_else(|| format!("{name}: no such unit type in this game"))?;
-            goals.push(Goal { unit, count, by });
+            if round && units.stockpile(unit).is_none() {
+                return Err(format!("{name}: stockpiles nothing the simulator knows (the silos and the anti-nukes do)"));
+            }
+            goals.push(Goal { unit, count, by, round });
         }
         if goals.is_empty() && income.is_empty() {
             return Err(format!("{text:?}: not a target objective ({SHAPE})"));
@@ -243,6 +260,7 @@ impl Objective {
             Objective::Tempo { .. } => "tempo",
             Objective::Expect { .. } => "expect",
             Objective::Target { .. } => "target",
+            Objective::Reach { .. } => "reach",
         }
     }
 
@@ -252,7 +270,9 @@ impl Objective {
         let income = outcome.mean_metal_income(horizon, 30.0);
         let army = outcome.last().army_value + 0.5 * outcome.army_in_progress;
         let shaping = 1e-3 * outcome.last().metal_spent;
-        match self {
+        // The tax the stock could not pay is soldiers not built: a requirement missed, at the shortfall's rate.
+        let owed = TARGET_SHORTFALL * outcome.last().tax_unpaid;
+        let base = match self {
             Objective::Income => income + 1e-3 * shaping,
             Objective::Army => army + shaping,
             Objective::Mix => army + MIX_INCOME_SECONDS * income + shaping,
@@ -285,8 +305,13 @@ impl Objective {
                 // any is finished (the plant, the constructor that builds the plant).
                 let mut chain: Vec<usize> = Vec::new();
                 for goal in goals {
-                    let cost = units.list[goal.unit].metal_cost;
-                    let finished: Vec<f64> = outcome.finished.iter().filter(|f| f.unit == goal.unit).map(|f| f.t).collect();
+                    // A round's cost is the round's; its finishes are the stockpiler's.
+                    let cost = if goal.round { units.stockpile(goal.unit).map_or(0.0, |s| s.metal) } else { units.list[goal.unit].metal_cost };
+                    let finished: Vec<f64> = if goal.round {
+                        outcome.stockpiled.iter().filter(|(_, u)| *u == goal.unit).map(|(t, _)| *t).collect()
+                    } else {
+                        outcome.finished.iter().filter(|f| f.unit == goal.unit).map(|f| f.t).collect()
+                    };
                     let counted = goal.count.map_or(finished.len(), |n| n.min(finished.len()));
                     made += counted as f64 * cost;
                     // The asked-for count's finish (the first one's when no count is asked), against the deadline.
@@ -301,13 +326,21 @@ impl Objective {
                     }
                     chain.extend(units.chain(commander, goal.unit).unwrap_or_default());
                 }
-                chain.retain(|u| !goals.iter().any(|g| g.unit == *u));
+                // The stockpiler itself is a maker of its rounds.
+                chain.retain(|u| !goals.iter().any(|g| g.unit == *u && !g.round));
                 chain.sort_unstable();
                 chain.dedup();
                 let makers: f64 = outcome.finished.iter().filter(|f| chain.contains(&f.unit)).map(|f| units.list[f.unit].metal_cost).sum::<f64>() * 0.5;
                 made + makers + TARGET_INCOME_SECONDS * income - TEMPO_STALL_METAL * stalled + early - short + shaping
             }
-        }
+            Objective::Reach { income: wanted } => {
+                let stalled: f64 = outcome.samples.iter().map(|s| 1.0 - s.stall).sum();
+                let reached = outcome.samples.iter().filter(|s| s.t >= 30.0).find(|s| outcome.mean_metal_income(s.t, 30.0) >= *wanted).map(|s| s.t);
+                let early = reached.map_or(0.0, |t| REACH_EARLY * wanted * (horizon - t) / 60.0);
+                early + TARGET_INCOME_SECONDS * income - TEMPO_STALL_METAL * stalled + shaping
+            }
+        };
+        base - owed
     }
 }
 
@@ -381,8 +414,10 @@ impl Palette {
     /// The whole roster (docs/design/2026-09-22-plan-search.md, decision 1): every building that makes, stores,
     /// converts or extracts, every factory and nano, that the commander or any constructor reachable from it can
     /// build; the factory list is the union of every reachable factory's soldiers and mobile builders. `mobile[0]`
-    /// stays the basic extractor and `mobile[1]` the wind generator, as the moves and the seed plan expect.
-    pub fn roster(units: &Units, commander: usize, turret: Option<usize>, water: bool) -> Palette {
+    /// stays the basic extractor and `mobile[1]` the wind generator, as the moves and the seed plan expect. `also`:
+    /// unit types the rule leaves out, offered by the caller's word (the silo and the anti-nuke, which are class
+    /// turret). The mobile queues also get `help` (docs/design/2026-10-09-late-economy.md §9): power onto a frame.
+    pub fn roster(units: &Units, commander: usize, turret: Option<usize>, water: bool, also: &[usize]) -> Palette {
         // Without water on the map, nothing sea-bound and no factory that makes only sea-bound units; never a
         // building that needs a geothermal vent, since the simulator does not know where the vents are.
         let reach: Vec<usize> = units
@@ -413,7 +448,13 @@ impl Palette {
         if let Some(t) = turret && !mobile.contains(&Item::Build(t)) {
             mobile.push(Item::Build(t));
         }
+        for u in also {
+            if !mobile.contains(&Item::Build(*u)) {
+                mobile.push(Item::Build(*u));
+            }
+        }
         mobile.push(Item::Assist);
+        mobile.push(Item::Help);
         let factory_unit = units.list[commander].builds.iter().copied().filter(|u| reach.contains(u) && units.list[*u].role == Role::Factory).min_by(|a, b| units.list[*a].metal_cost.total_cmp(&units.list[*b].metal_cost)).expect("the commander builds a factory");
         let constructor = units.cheapest(factory_unit, |u| u.role == Role::Builder && u.builds.contains(&factory_unit)).expect("the first factory builds a constructor");
         let mut from_factory = vec![Item::Build(constructor)];

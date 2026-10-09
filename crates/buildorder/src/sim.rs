@@ -66,6 +66,15 @@ pub struct Scenario {
     /// A constructor whose queue has run out keeps taking the nearest free metal spot. On for the search (a new
     /// constructor is then worth something before the search has written it a queue), off for replays.
     pub constructors_default_to_extractors: bool,
+    /// Construction turrets help the dearest frame in their reach, else the first factory (the rule proposed as §4.7 of
+    /// docs/design/2026-10-09-late-economy.md). Off, every turret feeds the first factory, as the recorded games'
+    /// turrets did (`nanos.rs`), which the replays calibrate against; on for the search.
+    pub nanos_help_frames: bool,
+    /// The tax: metal a second that goes to soldiers before any build, as a schedule of (from second, rate) sorted by
+    /// second and held flat beyond its last entry. What the stock cannot pay is owed (`Sample::tax_unpaid`).
+    pub tax: Vec<(f64, f64)>,
+    /// Energy the tax draws per metal (the tier-1 vehicle roster averages about 8 energy a metal).
+    pub tax_energy_ratio: f64,
 }
 
 impl Scenario {
@@ -91,6 +100,9 @@ impl Scenario {
             assist_chunk: 20.0,
             converter_level: 0.75,
             constructors_default_to_extractors: false,
+            nanos_help_frames: false,
+            tax: Vec::new(),
+            tax_energy_ratio: 8.0,
         }
     }
 }
@@ -135,6 +147,11 @@ pub struct Sample {
     pub metal_wasted: f64,
     pub energy_wasted: f64,
     pub metal_spent: f64,
+    /// Stockpile rounds finished so far (missiles, interceptors), over every stockpiler.
+    pub rounds: u32,
+    /// The tax paid so far (metal that went to soldiers) and the tax the stock could not pay.
+    pub tax_paid: f64,
+    pub tax_unpaid: f64,
 }
 
 #[derive(Clone, Debug)]
@@ -157,6 +174,8 @@ pub struct Outcome {
     /// Metal per second from extractors standing at the end farther than `Scenario::exposed_beyond` from home with no
     /// turret of ours within `Scenario::turret_cover`.
     pub exposed_income: f64,
+    /// Every stockpile round finished: (second, the stockpiler's unit type).
+    pub stockpiled: Vec<(f64, usize)>,
 }
 
 impl Outcome {
@@ -255,20 +274,53 @@ impl State {
     }
 }
 
+/// What a walking builder does when it arrives.
+#[derive(Clone, Copy)]
+enum Then {
+    /// Build this unit at this site; `pays` as in `Doing::Build`.
+    Build(usize, (f64, f64), f64),
+    Assist,
+    /// Help the frame the builder of this index is on.
+    Help(usize),
+}
+
 enum Doing {
     Idle,
-    Travel { left: f64, then: Option<(usize, (f64, f64), f64)> },
+    Travel { left: f64, then: Then },
     /// `pays`: metal per second once it stands, for an extractor.
     Build { unit: usize, site: (f64, f64), pays: f64, progress: f64 },
     Assist { left: f64 },
+    /// Adding power to the frame the builder of index `frame` is on at `site`, until it stands.
+    Help { frame: usize, site: (f64, f64) },
     Done,
 }
 
 impl Doing {
     /// On the way to a build, or already building when there is no way to go.
     fn begin(left: f64, unit: usize, site: (f64, f64), pays: f64) -> Doing {
-        if left > 1e-9 { Doing::Travel { left, then: Some((unit, site, pays)) } } else { Doing::Build { unit, site, pays, progress: 0.0 } }
+        if left > 1e-9 { Doing::Travel { left, then: Then::Build(unit, site, pays) } } else { Doing::Build { unit, site, pays, progress: 0.0 } }
     }
+}
+
+/// The frame with the most metal still to build among those begun by builders other than `except` (a factory's pad is
+/// not a frame), within `within` (a point and a reach) when given: its builder's index and its site.
+fn dearest_frame(builders: &[Builder], units: &Units, except: Option<usize>, within: Option<((f64, f64), f64)>) -> Option<(usize, (f64, f64))> {
+    builders
+        .iter()
+        .enumerate()
+        .filter(|(f, x)| Some(*f) != except && !x.is_factory)
+        .filter_map(|(f, x)| match x.state {
+            Doing::Build { unit, site, progress, .. } => Some((f, site, units.list[unit].metal_cost * (1.0 - progress))),
+            _ => None,
+        })
+        .filter(|(_, site, _)| within.is_none_or(|(at, reach)| distance(*site, at) <= reach))
+        .max_by(|a, b| a.2.total_cmp(&b.2))
+        .map(|(f, site, _)| (f, site))
+}
+
+/// The tax in force at `t`: the schedule's last entry from a second at or before `t`; nothing before the first.
+fn tax_at(schedule: &[(f64, f64)], t: f64) -> f64 {
+    schedule.iter().filter(|(from, _)| *from <= t).last().map_or(0.0, |(_, rate)| *rate)
 }
 
 struct Builder {
@@ -350,6 +402,11 @@ pub fn simulate(units: &Units, scenario: &Scenario, state: &State, plan: &Plan, 
     let (mut extractors, mut converters) = (0u32, 0u32);
     let mut wind_caps: Vec<f64> = Vec::new();
     let mut nano_power = 0.0;
+    // Each construction turret: its site, power and reach (it helps the dearest frame in reach when the scenario says).
+    let mut nano_sites: Vec<((f64, f64), f64, f64)> = Vec::new();
+    // Each standing stockpiler: its unit type, what it stockpiles, and the round's progress.
+    let mut stockpiles: Vec<(usize, crate::units::Stockpile, f64)> = Vec::new();
+    let (mut tax_paid, mut tax_unpaid, mut rounds) = (0.0, 0.0, 0u32);
     let (mut conv_capacity, mut conv_efficiency) = (0.0, 0.0);
     let (mut army_count, mut army_value) = (0u32, state.army_metal);
     let (mut metal_wasted, mut energy_wasted, mut metal_spent) = (0.0, 0.0, 0.0);
@@ -377,13 +434,17 @@ pub fn simulate(units: &Units, scenario: &Scenario, state: &State, plan: &Plan, 
             Role::Nano => {
                 nanos += 1;
                 nano_power += def.worker_time;
+                nano_sites.push((u.site, def.worker_time, def.build_distance));
             }
             Role::Turret => turret_sites.push(u.site),
             _ => {}
         }
+        if let Some(sp) = units.stockpile(u.unit) {
+            stockpiles.push((u.unit, sp, 0.0));
+        }
     }
 
-    let mut outcome = Outcome { samples: Vec::new(), finished: Vec::new(), effective: vec![Vec::new(); plan.queue_count()], army_in_progress: 0.0, exposed_income: 0.0 };
+    let mut outcome = Outcome { samples: Vec::new(), finished: Vec::new(), effective: vec![Vec::new(); plan.queue_count()], army_in_progress: 0.0, exposed_income: 0.0, stockpiled: Vec::new() };
     let (mut second_metal, mut second_energy, mut second_stall, mut second_steps) = (0.0, 0.0, 0.0, 0u32);
     let steps = (seconds / sc.dt).round() as usize;
 
@@ -412,7 +473,18 @@ pub fn simulate(units: &Units, scenario: &Scenario, state: &State, plan: &Plan, 
                             continue;
                         }
                         let walk = (sc.ground.walk(builder.place, sc.home) - builder.range - sc.reach_bonus).max(0.0) / builder.speed;
-                        builders[b].state = Doing::Travel { left: walk, then: None };
+                        builders[b].state = Doing::Travel { left: walk, then: Then::Assist };
+                        outcome.effective[queue].push(*next);
+                    }
+                    Item::Help => {
+                        if builder.is_factory {
+                            continue;
+                        }
+                        // No frame begun: the step is passed over, like an extractor with no spot.
+                        let Some((frame, site)) = dearest_frame(&builders, units, Some(b), None) else { continue };
+                        let (left, stands) = sc.trip(builder.place, site, builder.range, builder.speed);
+                        builders[b].place = stands;
+                        builders[b].state = if left > 1e-9 { Doing::Travel { left, then: Then::Help(frame) } } else { Doing::Help { frame, site } };
                         outcome.effective[queue].push(*next);
                     }
                     Item::Build(unit) => {
@@ -510,22 +582,45 @@ pub fn simulate(units: &Units, scenario: &Scenario, state: &State, plan: &Plan, 
             }
         }
 
-        // 2. What every build asks for this step.
+        // 2. What every build asks for this step. A frame's power is its builder's, its helpers' and the turrets' whose
+        // dearest frame in reach it is; the first factory's is also the assisting builders' and the turrets' with no
+        // frame to help.
         let assisting: f64 = builders.iter().filter(|b| matches!(b.state, Doing::Assist { .. })).map(|b| b.power).sum();
+        let mut extra = vec![0.0; builders.len()];
+        for b in &builders {
+            if let Doing::Help { frame, .. } = b.state {
+                extra[frame] += b.power;
+            }
+        }
+        let mut nano_to_factory = 0.0;
+        for (site, power, range) in &nano_sites {
+            match sc.nanos_help_frames.then(|| dearest_frame(&builders, units, None, Some((*site, range + sc.reach_bonus)))).flatten() {
+                Some((frame, _)) => extra[frame] += power,
+                None => nano_to_factory += power,
+            }
+        }
         let mut asks: Vec<(usize, f64)> = Vec::new(); // (builder, progress wanted this step)
         let (mut want_metal, mut want_energy) = (0.0, 0.0);
         for (b, builder) in builders.iter().enumerate() {
             if let Doing::Build { unit, progress, .. } = builder.state {
                 let def = &units.list[unit];
-                let mut power = builder.power;
+                let mut power = builder.power + extra[b];
                 if Some(b) == first_factory {
-                    power += nano_power + assisting;
+                    power += nano_to_factory + assisting;
                 }
                 let gain = (power / def.build_time * sc.dt).min(1.0 - progress);
                 want_metal += gain * def.metal_cost;
                 want_energy += gain * def.energy_cost;
                 asks.push((b, gain));
             }
+        }
+        // A stockpiler draws its round's cost at the engine's rate, in the same queue as the builds, helped by nobody.
+        let mut piling: Vec<(usize, f64)> = Vec::new(); // (stockpile, progress wanted this step)
+        for (i, (_, sp, progress)) in stockpiles.iter().enumerate() {
+            let gain = (sc.dt / sp.seconds).min(1.0 - progress);
+            want_metal += gain * sp.metal;
+            want_energy += gain * sp.energy;
+            piling.push((i, gain));
         }
 
         // 3. Income, then pay for as much of it as the stock allows.
@@ -541,6 +636,16 @@ pub fn simulate(units: &Units, scenario: &Scenario, state: &State, plan: &Plan, 
         want_energy -= upkeep * sc.dt * running;
         let mut metal_rate = steady_metal + extractor_metal * running;
         metal += metal_rate * sc.dt;
+        // The tax: the soldiers' metal and energy first, before any build; what the stock cannot pay is owed, not deferred.
+        let tax_metal = tax_at(&sc.tax, t) * sc.dt;
+        if tax_metal > 0.0 {
+            let tax_energy = tax_metal * sc.tax_energy_ratio;
+            let paid = share(metal, tax_metal).min(share(energy, tax_energy));
+            metal -= tax_metal * paid;
+            energy -= tax_energy * paid;
+            tax_paid += tax_metal * paid;
+            tax_unpaid += tax_metal * (1.0 - paid);
+        }
         // Each build is held back by the resources it needs only: a solar collector (no energy in its cost) goes up at
         // full speed through an energy stall, as it does in the engine.
         let (metal_share, energy_share) = (share(metal, want_metal), running.min(share(energy, want_energy)));
@@ -556,6 +661,19 @@ pub fn simulate(units: &Units, scenario: &Scenario, state: &State, plan: &Plan, 
             energy -= gain * held(unit) * def.energy_cost;
             metal_spent += gain * held(unit) * def.metal_cost;
             factor += held(unit) / asks.len() as f64;
+        }
+        let piled = metal_share.min(energy_share);
+        for (i, gain) in &piling {
+            let sp = stockpiles[*i].1;
+            metal -= gain * piled * sp.metal;
+            energy -= gain * piled * sp.energy;
+            metal_spent += gain * piled * sp.metal;
+            stockpiles[*i].2 += gain * piled;
+            if stockpiles[*i].2 >= 1.0 - 1e-9 {
+                stockpiles[*i].2 = 0.0;
+                rounds += 1;
+                outcome.stockpiled.push((t + sc.dt, stockpiles[*i].0));
+            }
         }
         if asks.is_empty() {
             factor = 1.0;
@@ -640,6 +758,7 @@ pub fn simulate(units: &Units, scenario: &Scenario, state: &State, plan: &Plan, 
                 Role::Nano => {
                     nanos += 1;
                     nano_power += def.worker_time;
+                    nano_sites.push((site, def.worker_time, def.build_distance));
                 }
                 Role::Army => {
                     army_count += 1;
@@ -648,23 +767,36 @@ pub fn simulate(units: &Units, scenario: &Scenario, state: &State, plan: &Plan, 
                 Role::Turret => turret_sites.push(site),
                 Role::Commander | Role::Eco => {}
             }
+            if let Some(sp) = units.stockpile(unit) {
+                stockpiles.push((unit, sp, 0.0));
+            }
         }
 
-        // 6. Clocks of walking and assisting builders.
+        // 6. Clocks of walking and assisting builders; a helper whose frame stands (or is gone) is free.
+        let frames: Vec<Option<(f64, f64)>> = builders.iter().map(|x| match x.state { Doing::Build { site, .. } if !x.is_factory => Some(site), _ => None }).collect();
         for builder in &mut builders {
             match &mut builder.state {
                 Doing::Travel { left, then } => {
                     *left -= sc.dt;
                     if *left <= 1e-9 {
-                        builder.state = match then {
-                            Some((unit, site, pays)) => Doing::Build { unit: *unit, site: *site, pays: *pays, progress: 0.0 },
-                            None => Doing::Assist { left: sc.assist_chunk },
+                        builder.state = match *then {
+                            Then::Build(unit, site, pays) => Doing::Build { unit, site, pays, progress: 0.0 },
+                            Then::Assist => Doing::Assist { left: sc.assist_chunk },
+                            Then::Help(frame) => match frames[frame] {
+                                Some(site) => Doing::Help { frame, site },
+                                None => Doing::Idle,
+                            },
                         };
                     }
                 }
                 Doing::Assist { left } => {
                     *left -= sc.dt;
                     if *left <= 1e-9 {
+                        builder.state = Doing::Idle;
+                    }
+                }
+                Doing::Help { frame, site } => {
+                    if frames[*frame] != Some(*site) {
                         builder.state = Doing::Idle;
                     }
                 }
@@ -698,6 +830,9 @@ pub fn simulate(units: &Units, scenario: &Scenario, state: &State, plan: &Plan, 
                 metal_wasted,
                 energy_wasted,
                 metal_spent,
+                rounds,
+                tax_paid,
+                tax_unpaid,
             });
             (second_metal, second_energy, second_stall, second_steps) = (0.0, 0.0, 0.0, 0);
         }
@@ -724,7 +859,7 @@ fn factories_planned(builders: &[Builder], units: &Units) -> usize {
         .iter()
         .filter(|b| {
             b.is_factory
-                || matches!(b.state, Doing::Travel { then: Some((unit, _, _)), .. } | Doing::Build { unit, .. } if units.list[unit].role == Role::Factory)
+                || matches!(b.state, Doing::Travel { then: Then::Build(unit, _, _), .. } | Doing::Build { unit, .. } if units.list[unit].role == Role::Factory)
         })
         .count()
 }

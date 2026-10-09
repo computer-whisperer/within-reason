@@ -216,3 +216,33 @@ simulator's army curve is a floor for a fed plant, and its income a ceiling. Bot
 that races to tier 2: it will promise extractors sooner and Bulls later than the game gives. Calibrating the assist and
 the factory overhead on these records is the next study; until then the tools say "about ten percent optimistic",
 which understates the army side.
+
+## 2026-10-09: power onto frames, stockpiles, the tax, and the fastest order to an income
+
+For the late-game frontier (docs/design/2026-10-09-late-economy.md §9) the model gained what the late economy turns on
+and the tier-1 study could ignore:
+
+- **`help`**, a plan step for mobile builders: walk to the dearest frame begun by any builder (the most metal still to
+  build; a factory's pad is not a frame) and add build power to it until it stands; with no frame begun the step is
+  passed over. On the roster palette beside `assist`, so the search can find massing on a project.
+- **Construction turrets help the dearest frame in their reach**, else the first factory (`Scenario::nanos_help_frames`,
+  `--help-frames`; `optimize` has it on unless `--nanos-to-factory`). Off by default so that `calibrate` replays our
+  recorded games as their turrets behaved (the nearest factory only).
+- **Stockpiles by name** (`units.rs`: the silos and the anti-nukes, from the unit files): a standing stockpiler draws its
+  round's cost at `1 / stockpiletime` a second, held back like every build by the scarce resource, and no builder adds to
+  it (K-rules-a-stockpile-takes-no-build-power). Rounds are `Outcome::stockpiled`; `target:round:armsilo@1200` asks for
+  the first missile; `--also silo,amd` puts the class-turret units on the roster.
+- **The tax** (`--tax FROM:RATE,..`, `--tax-energy R`): metal a second to soldiers before any build, from each time;
+  what the stock cannot pay is owed and every objective subtracts `TARGET_SHORTFALL` times it. The frontier's tables
+  run at three tax levels; the no-tax frontier is the no-enemy ceiling.
+- **`reach:N`**: the fastest order to N metal a second (the first 30-second mean at or above N), the final income as the
+  slope.
+
+Checked by `tests/arithmetic.rs`: a helped frame finishes when the summed power has paid its build time and the help
+goes to the frame with the most metal left (not the dearest unit); a standing turret adds its 200 to a frame in reach
+and nothing to one out of reach; the tax drains first, a build on the income alone never finishes under a tax above it,
+and every second's tax is paid or owed; a silo's rounds come at 120 s and a help step beside it is passed over; `reach`
+scores the earlier crossing higher. A first run on Comet (rove-task-1's record, roster plus silo, no tax, 4,000 iterations
+x 2): the silo stood at 16:00 and the first missile came at 18:01, the later rounds 133 s apart on an energy income of
+1,008 a second against the round's 1,042. That is the ceiling with no enemy; the frontier tables (step 3) run it under
+the tax and against BARb's anti-nuke clock (K-barb-anti-nuke-by-minute).

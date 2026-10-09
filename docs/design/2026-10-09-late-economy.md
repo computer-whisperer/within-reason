@@ -175,3 +175,55 @@ What this changes in the plan above:
   ended at 12 to 26 minutes.
 - §4.8 (the crew actor) gains evidence: the swarm arm shows that mobile power made by the project's own plant comes
   too late for that project, so a crew is worth having only if it is standing before the project starts.
+
+## 9. State, 2026-10-09 night: the simulator's frontier, step 1 (the model; the user's go of 2026-10-09)
+
+The user's read of the bot rows, agreed: the bot's losses were the bot's generality (it holds hard_aggressive to one
+win in five without tier 2), and the transition was measured from behind. The flagship's long losses are the mirror
+image (player-34, 35, 37, 38, 40, 42, 44, 45, 50, rove-task-1: a lead of two to ten times his army never converted,
+his tier 2 at 29 to 39 minutes), so for the flagship the question is timing, and that is what the frontier maps.
+
+What the simulator lacked for it (read from `crates/buildorder` on 2026-10-09): every nano and every `assist` fed the
+first factory only, nothing could put power on a frame; the silo and the anti-nuke are class turret and fell out of
+the roster, and the missile is a stockpile, not a unit; nothing forced metal into soldiers. Settled from the engine's
+source before modelling (`RecoilEngine-2026.07.04/rts/Sim/Weapons/Weapon.cpp`, `CWeapon::UpdateStockpile`; BAR's
+`unit_stockpile_limit.lua` and `unit_stockpile_script.lua` add nothing to it): a stockpile advances `1 / stockpileTime`
+a frame when the frame's share of the round's cost can be paid, all or nothing that frame, and no builder path exists
+(nothing in `Builder.cpp` or `BuilderCAI.cpp`). So a missile is an energy-flow problem (Armada 125,000 E over 120 s is
+1,042 E/s; Cortex 187,500 over 180 s, the same rate) and no mass of constructors shortens it
+(K-rules-a-stockpile-takes-no-build-power). The engine fact §8 of the reply asked for is therefore from the source;
+unmeasured in a game.
+
+The model, built in step 1:
+
+1. **`help`, a plan step** (`Item::Help`): a mobile builder walks to the dearest frame begun by any builder (the most
+   metal still to build; a factory's pad is not a frame) and adds its power until the frame stands; with no frame the
+   step is passed over like an extractor with no spot. The roster palette offers it in every mobile queue beside
+   `assist` (the kit palette, which the bot's opening search and the arena's placement use, does not), so massing on a
+   project is something the search can find, not something written for it.
+2. **Turrets help the dearest frame in their reach, else the first factory** (`Scenario::nanos_help_frames`; off, a
+   turret feeds the first factory as before). Off by default so that replays of our recorded games, whose turrets
+   guarded the nearest factory (`nanos.rs`), calibrate as before; on for the search, where it is the §4.7 rule.
+3. **Stockpiles by name**, from the unit files (`units.rs`): `armsilo` 1,000 M / 125,000 E / 120 s, `corsilo`
+   1,500 / 187,500 / 180, `armamd` and `corfmd` 150 / 7,500 / 90. A standing stockpiler draws its round's cost at
+   `1 / time` a second, held back by the same resource share as every build (the per-frame average of the engine's
+   all-or-nothing rule), and takes no build power. Rounds finished are `Outcome::stockpiled` (time, stockpiler) and
+   `Sample::rounds`; a `target` goal `round:armsilo` scores the first missile as a unit goal does.
+4. **The tax** (`Scenario::tax`, a schedule of metal a second from a given second, held flat; `tax_energy_ratio` energy
+   a metal, 8 as the tier-1 vehicle roster averages): the metal that must go to soldiers, drawn before any build.
+   What cannot be paid is `Sample::tax_unpaid`, and every objective subtracts `TARGET_SHORTFALL` times it, so a plan
+   that starves the army loses by it. `tax_paid` is the army metal the tables report.
+5. **`reach:N`, an objective**: the seconds before the horizon at which the 30-second mean income first reaches N
+   (nothing when never), with the final income as the slope, less the stall and the tax shortfall. "The fastest
+   order to income 100" is this, where `target income:100 by T` is the requirement form.
+6. **The roster takes names** (`--also silo,amd`): units the roster's rule leaves out, offered to the mobile queues.
+
+Judged by the crate's tests (a frame with two helpers finishes in the time the summed power gives; a turret picks the
+dearest frame in reach; the tax drains first and stalls what is left; a silo stockpiles at the engine's rate and no
+helper speeds it; `reach` finds the earliest crossing) and, in step 2, by `calibrate` to minute 30 over player-30, 31
+and 32. Not changed: the walk and overhead constants, the first-factory `assist`, the spiral of base sites.
+
+Built and tested 2026-10-09 night (18 tests). A first run on Comet from rove-task-1's record, the roster with the silo,
+no tax, 4,000 iterations x 2 restarts in 1.8 s: the silo at 16:00, the first missile at 18:01, the rounds then 133 s
+apart on 1,008 energy a second against the 1,042 a round draws. The no-enemy ceiling sits inside BARb's anti-nuke window
+(21 to 25 minutes); what the tax does to it is step 3's first table.

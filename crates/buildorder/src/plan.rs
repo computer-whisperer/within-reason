@@ -9,6 +9,9 @@ pub enum Item {
     Build(usize),
     /// Mobile builders only: walk home and add build power to the first factory for `Scenario::assist_chunk` seconds.
     Assist,
+    /// Mobile builders only: walk to the dearest frame begun by any builder (the most metal still to build; a factory's
+    /// pad is not a frame) and add build power to it until it stands. Passed over when no frame is begun.
+    Help,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -91,7 +94,7 @@ impl Plan {
         }
     }
 
-    /// Text form, one queue per line: `com: mex mex win lab`, `fac0: pw ck`, `con0: mex@2136,2136 assist`.
+    /// Text form, one queue per line: `com: mex mex win lab`, `fac0: pw ck`, `con0: mex@2136,2136 assist help`.
     /// Unit names are written without the faction prefix.
     pub fn to_text(&self, units: &Units) -> String {
         let mut out = String::new();
@@ -111,6 +114,7 @@ impl Plan {
                     let name = match step.item {
                         Item::Build(unit) => units.list[unit].name[3..].to_string(),
                         Item::Assist => "assist".to_string(),
+                        Item::Help => "help".to_string(),
                     };
                     match step.site {
                         Some((x, z)) => format!("{name}@{x:.0},{z:.0}"),
@@ -140,6 +144,8 @@ impl Plan {
                 };
                 let item = if name == "assist" {
                     Item::Assist
+                } else if name == "help" {
+                    Item::Help
                 } else {
                     Item::Build(units.index(name).or_else(|| units.index(&format!("{side}{name}"))).ok_or_else(|| format!("unknown unit {name}"))?)
                 };

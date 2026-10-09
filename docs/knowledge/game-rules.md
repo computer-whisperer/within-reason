@@ -155,3 +155,24 @@ their Cortex forms.
 the right behaviour), or a standard factory file listed a tier-3 factory.
 **Used by.** The brief's unit tables (no pack unit in them); K-t2-mobile-build-power-by-cost; the combat simulator's
 data (to be filtered).
+
+### K-rules-a-stockpile-takes-no-build-power
+**Claim.** A stockpiled round (a silo's nuclear missile, an anti-nuke's interceptor) advances at a fixed `1 / stockpiletime`
+a frame while the team can pay that frame's share of the round's cost, all or nothing for the frame, and nothing a
+constructor or a construction turret does shortens it: the engine's `CWeapon::UpdateStockpile` is the only code that
+advances a stockpile, it reads no build power, and the builder code (`Builder.cpp`, `BuilderCAI.cpp`) never names a
+stockpile; BAR's two stockpile gadgets limit the count and tell the unit's script of it. So a missile is a question of
+resource flow, above all energy: Armada's 125,000 E over 120 s and Cortex's 187,500 over 180 s are both 1,042 E a second
+for the round's length, beside 8.3 and 8.3 metal a second; an interceptor is 83 E a second for 90 s. A massed crew on a
+silo is wasted (the silo's frame, 178,500 build time, is where the crew pays).
+**Status.** supported (2026-10-09): the engine's source and the game's gadgets, read; unmeasured in a game (a scenario
+with a standing silo, with and without turrets on patrol beside it, would settle it in two minutes).
+**Evidence.** `upstream/RecoilEngine-2026.07.04/rts/Sim/Weapons/Weapon.cpp` (`UpdateStockpile`: `p = 1 / stockpileTime`,
+`UseResources(cost * p)`), `WeaponDef.cpp` (`stockpileTime` in seconds scaled by `GAME_SPEED`); `grep stockpile` over
+`rts/Sim/Units/UnitTypes/Builder.cpp` and `CommandAI/BuilderCAI.cpp` (nothing); `luarules/gadgets/unit_stockpile_limit.lua`,
+`unit_stockpile_script.lua`; `units/ArmBuildings/LandDefenceOffence/armsilo.lua` (`metalpershot = 1000`,
+`energypershot = 125000`, `stockpiletime = 120`), `corsilo.lua` (1500 / 187500 / 180), `armamd.lua` (150 / 7500 / 90).
+**Would be wrong if.** A BAR gadget reimplemented stockpiling with build power (the engine's `stockpileTime = 0` hook is
+made for one; none is in the tree), or a game showed turrets beside a silo shortening its rounds.
+**Used by.** `crates/buildorder` (`units.rs` STOCKPILES, the simulator's stockpile draw, no help on a stockpile); the nuke
+line of the frontier tables (docs/design/2026-10-09-late-economy.md §9); the brief's late-game section to come.
