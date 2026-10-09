@@ -384,8 +384,11 @@ off, never roving. A roving group answers no party (no hunt, no attack): its sig
 is what killed the scouts before (player-9: three scouts went at his base and none arrived, one turned home by the
 hands at the first sight of his commander, one into two Pawns, one onto a hunt). The group's entry says what each
 rover is doing and what it has found (`rove`). The way back is a pick too: name the group's new job in the packet
-("group_A: comes home to spot_10 and holds there as the picket"), and your hands walk it there; a roving group
-nobody names keeps roving.
+("group_A: comes home to spot_10 and holds there as the picket"), and your hands walk it there. The roving
+paragraph's own words can be the way back: under "Rover groups: they rove into his half ...; they run from what can
+catch them" a lone roving Rover was walked home 61 s into its rove at the sight of his commander's party 375 away
+(rove-task-1 2:11), the "run" read as a walk home. Its footwork already runs from what can catch it; say "leave it
+to rove" (human-27's words, which held at every gate) and nothing about running.
 [K-micro-a-rover-outruns-what-it-cannot-fight]
 
 **Which map.** Four maps have sections here, Quicksilver Remake, Comet Catcher Remake, Cape Violet V1 and Great Divide V1.

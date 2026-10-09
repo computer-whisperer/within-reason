@@ -32,8 +32,9 @@ fastest, as a group of its own. It drives to look at what we know least (his sta
 nobody has seen, then the stalest), attacks what it finds unguarded (a constructor, an extractor, a radar with
 nothing armed in reach), and does not stand inside the reach of anything that can shoot it. Say in the packet which
 group roves and when. A roving group answers no party. The group's entry says what each rover is doing and what it
-has found; the way back is a pick too: name its new job in the packet, and a roving group nobody names keeps
-roving. It is scouting footwork: at a base with Pawns patrolling, a roving Rover stepped off from each and killed
+has found; the way back is a pick too: name its new job in the packet. Words that read as a walk home are a way
+back too: "they run from what can catch them" walked a lone roving Rover home at the sight of his commander's party
+(rove-task-1 2:11); say "leave it to rove" and nothing about running. It is scouting footwork: at a base with Pawns patrolling, a roving Rover stepped off from each and killed
 nothing (player-20, player-21). In player-9, before `rove`, three scouts went at his base under the hands and none
 arrived; in player-10 three roving Rovers had his lab in the picture at 3:45 and came back alive.
 
