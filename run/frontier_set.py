@@ -45,19 +45,21 @@ def objectives(side):
         ("income 50 a second", "reach:50", ("reach", "50")),
         ("income 100 a second", "reach:100", ("reach", "100")),
         ("income 200 a second", "reach:200", ("reach", "200")),
-        ("the first tier-2 extractor", f"target:{side}moho@{MINUTES * 60}", ("first_finished", f"{side}moho")),
-        ("the first fusion", f"target:{side}fus@{MINUTES * 60}", ("first_finished", f"{side}fus")),
-        ("the first advanced fusion", f"target:{side}afus@{MINUTES * 60}", ("first_finished", f"{side}afus")),
-        ("the first anti-nuke", f"target:{antinuke}@{MINUTES * 60}", ("first_finished", antinuke)),
-        ("the first missile", f"target:round:{side}silo@{MINUTES * 60}", ("first_round", f"{side}silo")),
+        # `:1`: the seed lays one of the goal, not the produce tool's six (six advanced fusions in a seed is 58,000 metal the
+        # search must first delete).
+        ("the first tier-2 extractor", f"target:{side}moho:1@{MINUTES * 60}", ("first_finished", f"{side}moho")),
+        ("the first fusion", f"target:{side}fus:1@{MINUTES * 60}", ("first_finished", f"{side}fus")),
+        ("the first advanced fusion", f"target:{side}afus:1@{MINUTES * 60}", ("first_finished", f"{side}afus")),
+        ("the first anti-nuke", f"target:{antinuke}:1@{MINUTES * 60}", ("first_finished", antinuke)),
+        ("the first missile", f"target:round:{side}silo:1@{MINUTES * 60}", ("first_round", f"{side}silo")),
     ], antinuke
 
 
-def run_one(record, side, antinuke, objective, tax, iterations, restarts, seed_chain=None):
+def run_one(record, side, antinuke, objective, tax, iterations, restarts, seed_chain=None, seed=1):
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
         out = f.name
     cmd = ["target/release/buildorder", "optimize", "--game", record, "--palette", "roster", "--also", f"{side}silo,{antinuke}", "--objective", objective,
-           "--minutes", str(MINUTES), "--iterations", str(iterations), "--restarts", str(restarts), "--seed", "1", "--json-out", out]
+           "--minutes", str(MINUTES), "--iterations", str(iterations), "--restarts", str(restarts), "--seed", str(seed), "--json-out", out]
     if tax:
         cmd += ["--tax", tax]
     if seed_chain:
@@ -83,7 +85,7 @@ def state_at(result, t):
     return rows[-1] if rows else None
 
 
-def tables(map_name, record, results, side, spots):
+def tables(map_name, record, results, side, spots, repaired=0):
     objs, _ = objectives(side)
     out = [f"### The late-game frontier: {map_name}\n",
            f"{spots // 2} spots a side ({spots} on the map), the {side} side, from the recorded game `{record.split('/')[-3]}`; the "
@@ -93,7 +95,9 @@ def tables(map_name, record, results, side, spots):
            "Standard: 3 a second from 2:00, 5 from 4:00, 9 from 8:00, 12 from 12:00, 15 from 16:00 (the experienced players' standing "
            "army on Comet grows at that rate, before losses); heavy: one and a half times that. The arithmetic the frontier rests on is "
            "the engine's (a frame builds at the sum of the power on it until the store empties; a stockpile at its fixed rate, helped by "
-           "nobody: K-t2-build-power-for-a-project-follows-the-spend, K-rules-a-stockpile-takes-no-build-power).\n",
+           "nobody: K-t2-build-power-for-a-project-follows-the-spend, K-rules-a-stockpile-takes-no-build-power). The search is "
+           "stochastic (simulated annealing, 20,000 steps x 8 restarts a cell, the reach rows from two seeds); a cell a heavier tax beat "
+           f"was searched again from other seeds ({repaired} cells improved so). A cell still out of order is the search's noise, not the game's.\n",
            "| the fastest order to | no tax | standard tax | heavy tax |", "|---|---|---|---|"]
     for label, _, key in objs:
         cells = [clock(reached(results[(tax, label)], key)) for tax, _ in TAXES]
@@ -163,24 +167,48 @@ def main():
                 key = futures[future]
                 found[key] = future.result()
                 print(f"{map_name}: {key[0]:8s} {key[1]:28s} {'chain seed' if key[2] else 'plain seed'} score {found[key]['score']:.0f}", file=sys.stderr)
+        def better(label, mine, theirs):
+            """Whether run `mine` reaches the row's milestone earlier than run `theirs` (None: never)."""
+            key = next(k for l, _, k in objs if l == label)
+            a, b = reached(mine, key), reached(theirs, key) if theirs else None
+            return theirs is None or (a is not None and (b is None or a < b))
+
         results = {}
         for (tax_name, label, chain), r in found.items():
             key = (tax_name, label)
-            objective = next(o for l, o, _ in objs if l == label)
-            if objective.startswith("reach:"):
-                n = objective.split(":")[1]
-                earlier = results.get(key)
-                mine, theirs = r["reach"].get(n), earlier["reach"].get(n) if earlier else None
-                if earlier is None or (mine is not None and (theirs is None or mine < theirs)):
-                    results[key] = r
-            else:
+            if better(label, r, results.get(key)):
                 results[key] = r
+        # The repair pass: the search is stochastic, and a cell a heavier tax beat is a cell the search missed, not a
+        # fact about the game. Such a cell is searched again from other seeds and keeps its best.
+        repaired = 0
+        for attempt in (2, 3):
+            retry = []
+            for label, objective, key in objs:
+                times = [reached(results[(tax_name, label)], key) for tax_name, _ in TAXES]
+                for i in range(len(TAXES)):
+                    if any(times[j] is not None and (times[i] is None or times[j] < times[i]) for j in range(i + 1, len(TAXES))):
+                        retry.append((TAXES[i][0], label, objective, TAXES[i][1]))
+            if not retry:
+                break
+            with concurrent.futures.ThreadPoolExecutor(a.workers) as ex:
+                futures = {}
+                for tax_name, label, objective, tax in retry:
+                    for chain in ([None, f"{side}moho:4"] if objective.startswith("reach:") else [None]):
+                        futures[ex.submit(run_one, record, side, antinuke, objective, tax, iterations, restarts, chain, attempt)] = (tax_name, label)
+                for future in concurrent.futures.as_completed(futures):
+                    key = futures[future]
+                    r = future.result()
+                    if better(key[1], r, results.get(key)):
+                        results[key] = r
+                        repaired += 1
+                    print(f"{map_name}: repair {attempt} {key[0]:8s} {key[1]:28s} score {r['score']:.0f}", file=sys.stderr)
+        print(f"{map_name}: {repaired} cells improved by the repair pass", file=sys.stderr)
         name = slug(map_name)
         with open(f"{REF}/frontier-{name}.json", "w") as f:
             json.dump({"map": map_name, "record": record, "side": side, "spots": spots, "minutes": MINUTES, "iterations": iterations, "restarts": restarts,
-                       "taxes": dict(TAXES), "runs": {f"{tax}|{label}": r for (tax, label), r in results.items()}}, f, indent=1)
+                       "repaired": repaired, "taxes": dict(TAXES), "runs": {f"{tax}|{label}": r for (tax, label), r in results.items()}}, f, indent=1)
         with open(f"{REF}/frontier-{name}.md", "w") as f:
-            f.write(tables(map_name, record, results, side, spots))
+            f.write(tables(map_name, record, results, side, spots, repaired))
         print(f"{REF}/frontier-{name}.md written ({len(results)} runs)")
 
 

@@ -263,3 +263,8 @@ seeds any objective through a production chain (the reach rows run from the plai
 extractor's chain and keep the earlier crossing); extractor types that extract no more than a cheaper one are off the
 roster (`armamex`). Comet, reach 200 with the chain seed, 20,000 x 4: income 100 at 13:30 and 200 at 20:00 against no
 crossing in draft 1.
+
+**Draft 3 (2026-10-09 13:50)**: every cell 20,000 x 8, the reach rows from two seeds, the first-X rows `:1`, a repair
+pass for cells a heavier tax beat (one cell improved on Quicksilver and on Comet, none on Great Divide); the tables in
+`docs/briefs/reference/frontier-*.md`, read in docs/design/2026-10-09-late-economy.md §9. The first missile with no
+enemy: 14:17 to 14:43 on the three maps; under the standard tax 15:30 to 16:50.

@@ -255,3 +255,30 @@ Armada's 200-metal `armamex`, which extracts no more than the 50-metal `armmex`;
 roster. Checked on Comet with the chain seed at 20,000 x 4: income 100 at 13:30, 200 at 20:00, thirty tier-2
 extractors and 23 converters by 30:00 (draft 1: income 150 at 30:00 and no crossing). Draft 2 runs every cell at
 20,000 x 8.
+
+**Step 3, draft 3 (2026-10-09, 13:50): what the frontier says.** Every cell at 20,000 x 8, the reach rows from two seeds,
+the first-X rows asking for one, a repair pass on any cell a heavier tax beat (`docs/briefs/reference/frontier-*.md`,
+the runs in the `.json` beside each). The no-enemy ceiling, the known 15 to 25 % optimism on income included:
+
+| the fastest order to | Great Divide (11 a side) | Quicksilver (22) | Comet (40) |
+|---|---|---|---|
+| income 100, no tax / standard / heavy | 13:53 / 15:02 / 17:44 | 12:50 / 16:42 / 16:33 | 10:05 / 10:59 / 11:03 |
+| income 200 | never by 30:00 | 28:17 / never / never | 19:33 / never / 27:33 |
+| the first tier-2 extractor | 6:20 / 6:32 / 7:16 | 7:42 / 7:28 / 8:21 | 7:31 / 8:14 / 8:49 |
+| the first fusion | 7:38 / 8:39 / 9:50 | 8:10 / 8:40 / 9:31 | 7:37 / 8:20 / 11:34 |
+| the first anti-nuke | 8:19 / 8:36 / 9:40 | 8:21 / 9:03 / 9:34 | 8:06 / 9:13 / 10:09 |
+| the first missile | 14:22 / 16:50 / 18:01 | 14:43 / 15:30 / 17:08 | 14:17 / 16:25 / 17:54 |
+
+Read: (1) the first missile sits at 14:17 to 14:43 with no enemy and 15:30 to 16:50 under the standard tax on every
+map, four to nine minutes before BARb hard_aggressive's anti-nuke (21 to 25 min, K-barb-anti-nuke-by-minute); the heavy
+tax moves it to 17:08 to 18:01, still inside. The missile's orders share one shape: a lab, three or four constructors,
+an advanced lab at 6 to 7 minutes, two advanced constructors, tier-2 extractors on every spot, one or two fusions,
+converters, two or three turrets, `help` on the silo, and 1,000 to 2,000 energy a second when the round draws its
+1,042. (2) Income 100 is a few-spot map's late ceiling: Great Divide reaches it at 14 to 18 minutes and never 200 (129
+at 30:00 on 11 upgraded spots and converters); Comet reaches 100 at 10 to 11 and 200 at 19:33 with no tax. (3) The
+first tier-2 extractor and the first fusion come at 6 to 9 minutes under any tax, the anti-nuke at 8 to 10. (4) The
+tax costs one to four minutes on every milestone; the heavy tax costs the advanced fusion on the small maps. (5) Search
+noise remains in a few cells after the repair pass (Quicksilver's income 100 heavy before standard, Comet's advanced
+fusion found under tax and not without), and the advanced-fusion row is the least trustworthy. What the frontier does
+not say: what pressure does (step 4, the gap table, needs engine games with a silo), and whether the player can place
+and feed a silo (§4.6 to §4.9). Not assembled into the brief: that is §4.3, after the user has read these.
