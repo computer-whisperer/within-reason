@@ -144,6 +144,7 @@ fn unit_table(header: &Value) -> Result<Units, String> {
             reach: number(d, "reach"),
             reload: number(d, "reload"),
             blast_radius: number(d, "blast_radius"),
+            stockpile_seconds: number(d, "stockpile_seconds"),
         })
         .collect();
     Ok(Units::new(&defs))

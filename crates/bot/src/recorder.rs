@@ -53,6 +53,8 @@ pub struct Recorder {
     exchange_in: BTreeMap<(i64, i64), f32>,
     /// Our own units as of the last tick: a hit on one of ours by another of ours is friendly fire.
     own: HashSet<UnitId>,
+    /// Rounds ready in each stockpiler of ours as of the last tick: one more is a `round` event.
+    rounds: HashMap<UnitId, i32>,
     slowest_decide_ms: f32,
     /// The most frames a tick of the interval arrived late by (`Tick::late`).
     latest_tick: i32,
@@ -96,6 +98,7 @@ impl Recorder {
                 exchange_out: BTreeMap::new(),
                 exchange_in: BTreeMap::new(),
                 own: HashSet::new(),
+                rounds: HashMap::new(),
                 slowest_decide_ms: 0.0,
                 latest_tick: 0,
                 intent: None,
@@ -133,6 +136,14 @@ impl Recorder {
             self.known.insert(unit.id, (Some(unit.def), unit.pos));
             if unit.facing != 0 || self.facings.contains_key(&unit.id) {
                 self.facings.insert(unit.id, unit.facing);
+            }
+            // A stockpiler's round came ready (a silo's missile, an anti-nuke's interceptor).
+            if unit.stockpile > self.rounds.get(&unit.id).copied().unwrap_or(0) {
+                let def = self.def(Some(unit.def));
+                self.line(&json!({ "t": "ev", "f": tick.frame, "k": "round", "u": unit.id.0, "d": def, "n": unit.stockpile, "queued": unit.stockpile_queued }));
+            }
+            if unit.stockpile != 0 || self.rounds.contains_key(&unit.id) {
+                self.rounds.insert(unit.id, unit.stockpile);
             }
         }
         for enemy in &tick.snapshot.enemies {
@@ -302,6 +313,8 @@ impl Recorder {
                 Command::SendResources { metal, energy, to_team } => json!(["send_resources", metal as i32, energy as i32, to_team]),
                 Command::SendUnits { ref units, to_team } => json!(["send_units", units.iter().map(|u| u.0).collect::<Vec<_>>(), to_team]),
                 Command::DGun { unit, target } => json!(["dgun", unit.0, target.0]),
+                Command::FireAt { unit, at } => json!(["fire_at", unit.0, at.x as i32, at.z as i32]),
+                Command::Stockpile { unit, change } => json!(["stockpile", unit.0, change]),
             })
             .collect();
         self.line(&json!({ "t": "cmd", "f": frame, "c": list }));

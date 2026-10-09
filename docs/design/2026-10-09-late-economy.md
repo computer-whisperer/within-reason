@@ -296,3 +296,68 @@ paragraph, "a lead is spent or teched, never banked". The brief went from 23,253
 review of the section against the claims (§5, step 3's judge); the players' late-game words are the existing "On tier
 2" set. Read while writing it: a silo or an anti-nuke listed without a place is sited today on the turret line 650
 ahead of home (`economy.rs` `place_planned`: an armed static building), so the player must name the place until §4.6.
+
+## 10. State, 2026-10-09 afternoon: the nuke harness (§4.9), what the engine says and what is built
+
+The user, after the brief's section: "then work towards giving the flagship bot the tools it needs to actually nuke a
+barb." Before building, three facts from the game's source, each then measured in the engine with a scripted duel
+scenario (`docs/data/scenarios-2026-10-09-nuke/`, the `nuke-check-*` batches; `docs/experiments.md`):
+
+1. **Nobody orders a round** (K-rules-a-stockpile-fills-itself-to-its-limit). BAR's "Stockpile control" gadget sets
+   every silo and anti-nuke to its unit file's limit the moment it stands (ten missiles; twenty interceptors for Cortex's
+   anti-nuke) and keeps it there; a stockpile order from a player or an AI only moves that kept count up or down one
+   step. So a standing silo draws its 1,042 energy a second from its first second until ten missiles sit in it, and
+   again after every launch, whatever the economy wants; the lever is the kept count, and the player's question is not
+   "stockpile now" but "how many to keep". Measured: queued 10 in the first second's snapshot; the fed team's energy
+   store at 4 to 30 for the whole fight. The simulator's model (a standing stockpiler draws from its first second,
+   §9 step 1) is the game's; the frontier's first-missile times stand.
+2. **A round takes no build power** (K-rules-a-stockpile-takes-no-build-power, now measured): 142 s to the first
+   missile alone and with two construction turrets guarding the silo from its first second; energy-bound on 850 a second.
+3. **The missile goes by an attack at the ground, not the engine's manual-fire command**
+   (K-rules-the-silo-fires-on-an-attack-at-the-ground): the engine allows manual fire only to a type with
+   `canManualFire`, which BAR gives the commander and not the silo, and for a type without it the weapon code skips the
+   manual-fire check, so a plain attack at a place fires the command-fire weapon. Measured: the manual-fire order at
+   171 s did nothing in three runs; the attack at the ground launched at 180 s (nine seconds after the order), the
+   warhead landed at 192 s (the file's 400 frames of flight) and five buildings 2,500 away were gone. A Cortex anti-nuke
+   260 from them with an interceptor ready (its first at 90 s) took the same missile; nothing was hurt.
+
+**Built (this commit).** The protocol: `Command::FireAt { unit, at }` (the host sends the commander's D-gun as manual
+fire and anything else as an attack at the ground with no radius, by `UnitDef_canManualFire`), `Command::Stockpile {
+unit, change }` (the kept count, one engine order a step, down with the right-mouse option), `OwnUnit::stockpile` and
+`stockpile_queued` (asked of the engine only for types with a stockpiled weapon), `UnitDefInfo::stockpile_seconds` (120
+for Armada's silo, 90 for an anti-nuke); the record's `fire_at` and `stockpile` command kinds and a `round` event when a
+count rises (`docs/harness/record-format.md`); the duel harness's `fire` script command, `rounds` and refused orders in
+the per-second log, and no stalemate while a script has rows to go out or within a minute of its last
+(`docs/harness/duels.md`). Nothing in the hands or the player's tools: no code decides anything new. The brief's
+late-game part says what the engine check found and that the hands have no firing move yet.
+
+**What the flagship still lacks to nuke a BARb**, in the order I propose, with the user's word where it is needed:
+
+- (a) **Placing the silo.** The player can list one today (`queue`: `"armsilo <place>"`, several constructors with one
+  id raise it, `help` and the turrets' guard put power on the frame), but a silo or an anti-nuke listed without a place
+  goes on the turret line 650 ahead of home (`economy.rs` `place_planned`: an armed static building). The brief now
+  tells the player to name the place; §4.6 (a core mark with a reserved ring; the silo and its anti-air inside it) is
+  the user's word. My recommendation until then: a one-line change that an armed building whose weapon's range covers
+  the map (the silo, the anti-nuke: `reach` or coverage over 10,000) is placed as a generator is, in the back field,
+  not on the turret line. That is a placement rule (section 6 of `docs/code-decisions.md`), so it too wants his word.
+- (b) **The picture.** A silo's entry says rounds ready, rounds stockpiling and the draw (1,042 a second while it
+  stockpiles); an enemy anti-nuke in sight is named with its 2,000 coverage so a place inside it is known to be covered.
+  Observations only (the tempo memo); no word needed; next to build.
+- (c) **The firing pick** (§4.9, the user's). Recommendation: the silo is an actor on Jev's menu once a round is ready,
+  with `fire_<place>` at every place whose entry holds his buildings (and outside his known anti-nuke coverage, said in
+  the move's words), and `hold`; the player's packet says when and at what in words ("the silo fires at the place with
+  his advanced lab when a round is ready, never at a place his anti-nuke covers"). The place is the player's and the
+  timing Jev's, as with every other actor; no tool, no code decision. The alternative, a player tool `fire`, costs a
+  turn (30 s) per shot and puts the timing on the player; a round sits for minutes, so either works, and the actor
+  keeps the design's one shape. One actor more on the bill only while a round is ready.
+- (d) **The kept count.** Arithmetic, so not the packet's: `produce` takes `{"silo_12": {"keep": 2}}` (a silo's rounds
+  are its production) and the hands send the `Stockpile` steps that bring stock plus queued to it. Default: the game's
+  ten, said in the picture as the draw, so the player sees what a silo costs to leave alone.
+- (e) **Measurement.** The first flagship game with a silo against BARb medium on Comet with the brief's "no firing
+  move" sentence gone (§4.4's economy-objective game: the record's `round` events, the silo's frame time and the power
+  on it, the energy curve under the draw), then hard_aggressive, whose anti-nuke stands at 21 to 25 minutes against the
+  frontier's 15:30 to 16:50 first missile under the standard tax: the nuke rush's practice half, in the arena.
+
+Not in this: the crew actor (§4.8; list ids and `help` already put several builders on one frame, so the silo does not
+need it), anti-air with the project (the player's `queue`), the enemy's silo (BARb's stood in 14 of 848 long games;
+our own anti-nuke is a `queue` step and fills itself).

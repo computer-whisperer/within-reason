@@ -255,6 +255,12 @@ pub struct UnitDefInfo {
     /// (H-MICRO-FORM-SPACING). 0 unarmed, and in records and shims from before 2026-09-28.
     #[serde(default)]
     pub blast_radius: f32,
+    /// Seconds a round of its stockpiled weapon takes (`WeaponDef_getStockpileTime`): 120 for Armada's silo, 180 for
+    /// Cortex's, 90 for an anti-nuke; 0 for a unit that stockpiles nothing, and in records and shims from before
+    /// 2026-10-09. A round advances at this rate whenever the frame's share of its cost can be paid, and no build
+    /// power touches it (K-rules-a-stockpile-takes-no-build-power).
+    #[serde(default)]
+    pub stockpile_seconds: f32,
 }
 
 /// An explosion: full `damage` at its centre, falling to nothing at `radius` elmos.
@@ -341,6 +347,13 @@ pub struct OwnUnit {
     /// The engine's building facing: 0 south (+z), 1 east (+x), 2 north (-z), 3 west (-x). A factory's units leave
     /// through its front (`Factory.cpp` `SendToEmptySpot`). 0 for a mobile unit.
     pub facing: i32,
+    /// Rounds ready in a stockpiler (a silo's missiles, an anti-nuke's interceptors); 0 for every other unit, and in
+    /// shims from before 2026-10-09.
+    #[serde(default)]
+    pub stockpile: i32,
+    /// Rounds the game is still stockpiling toward its kept count (`Command::Stockpile`); 0 as above.
+    #[serde(default)]
+    pub stockpile_queued: i32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -450,6 +463,16 @@ pub enum Command {
     SendUnits { units: Vec<UnitId>, to_team: i32 },
     /// The commander's D-gun at one unit (a manual-fire weapon: never fired on its own).
     DGun { unit: UnitId, target: UnitId },
+    /// A command-fire weapon at a place: a silo's missile at the ground under his buildings (BAR's nuke is
+    /// `commandfire`: it never fires on its own, and a round sits in the silo until this order), or the commander's
+    /// D-gun at the ground. The engine's attack at a position for a type without `canManualFire` (the silo: a
+    /// command-fire weapon then fires on a plain attack), its manual-fire command for one with it (the commander).
+    FireAt { unit: UnitId, at: Vec3 },
+    /// Move a stockpiler's kept count by `change` rounds. The game fills every silo and anti-nuke to its unit file's
+    /// limit on its own from the moment it stands (BAR's "Stockpile control" gadget: ten missiles for a silo, each
+    /// drawing 1,042 energy a second for its two minutes), so there is nothing to order a round with; this order moves
+    /// the count the gadget keeps the unit at, within 0 and that limit (K-rules-a-stockpile-fills-itself-to-its-limit).
+    Stockpile { unit: UnitId, change: i32 },
 }
 
 /// The shim resolves this to the closest legal build position, since only it can query the map.

@@ -24,6 +24,7 @@ pub(crate) fn brain_of(names: &[&str]) -> Brain {
                 speed: u.speed,
                 build_speed: 0.0,
                 blast_radius: 0.0,
+                stockpile_seconds: 0.0,
                 build_time: 1.0,
                 build_distance: 0.0,
                 extracts_metal: 0.0,
@@ -78,7 +79,7 @@ pub(crate) fn at(x: f32, z: f32) -> Vec3 {
 }
 
 pub(crate) fn own(id: i32, def: i32, pos: Vec3) -> OwnUnit {
-    OwnUnit { id: UnitId(id), def: UnitDefId(def), pos, vel: Vec3::default(), health: 1.0, max_health: 1.0, being_built: false, idle: false, reload_frame: 0, facing: 0 }
+    OwnUnit { id: UnitId(id), def: UnitDefId(def), pos, vel: Vec3::default(), health: 1.0, max_health: 1.0, being_built: false, idle: false, reload_frame: 0, facing: 0, stockpile: 0, stockpile_queued: 0 }
 }
 
 pub(crate) fn enemy(id: i32, def: i32, pos: Vec3) -> EnemyUnit {

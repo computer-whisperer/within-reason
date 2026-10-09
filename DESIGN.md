@@ -76,6 +76,20 @@ receiver's store); the engine answers with `Event::UnitGiven` to the new owner a
 `Command::DGun { unit, target }` is `COMMAND_UNIT_D_GUN`, the commander's manual-fire weapon at one unit. All three are
 the player's `transfer` tool and the hands' D-gun state (`docs/design/2026-09-27-posing-changes.md` §12b, §8.1).
 
+### The silo (2026-10-09)
+`Command::FireAt { unit, at }` fires a command-fire weapon at a place: BAR's nuclear missile is `commandfire` (the
+engine's `manualfire` tag), so a silo's round sits until this order. The engine's manual-fire command
+(`COMMAND_UNIT_D_GUN_POS`) is allowed only to a type with `canManualFire`, which BAR gives the commander and not the
+silo, and for a type without it the weapon code skips the manual-fire check, so the host sends the commander's D-gun as
+manual fire and the silo's missile as `COMMAND_UNIT_ATTACK_AREA` with no radius, an attack at the ground
+(K-rules-the-silo-fires-on-an-attack-at-the-ground; measured 2026-10-09 in the `nuke-check-*` scenarios). `Command::Stockpile { unit, change }` is `COMMAND_UNIT_STOCKPILE` one order a step, up with no
+option and down with the right-mouse one: the game's "Stockpile control" gadget fills every silo and anti-nuke to its
+unit file's limit on its own from the moment it stands and reads a stockpile order as a step of that kept count, so
+there is nothing to order a round with (K-rules-a-stockpile-fills-itself-to-its-limit). `OwnUnit` carries `stockpile`
+and `stockpile_queued` (asked of the engine only for types with a stockpiled weapon) and `UnitDefInfo`
+`stockpile_seconds` (120 for Armada's silo, 90 for an anti-nuke; 0 for everything else). The record writes a `round`
+event when a count rises (`docs/harness/record-format.md`).
+
 ### The banner (2026-09-20)
 The game names every AI at random (`ai_namer.lua`: donor and contributor names) and takes nothing from the AI, so at
 its first orders (frame 60) the bot says a chat line: `<its given name> is Within Reason <commit, "+" when the tree

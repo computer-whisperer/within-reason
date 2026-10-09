@@ -1,0 +1,23 @@
+{
+ "format": "within-reason-script",
+ "version": 1,
+ "note": "the turrets guard the silo from the first second; the missile fired at 170 s",
+ "rows": [
+  {
+   "t": 0.0,
+   "unit": [
+    1,
+    2
+   ],
+   "cmd": "guard",
+   "target": 0
+  },
+  {
+   "t": 170.0,
+   "unit": 0,
+   "cmd": "fire",
+   "x": 6600,
+   "z": 3072
+  }
+ ]
+}

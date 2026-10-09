@@ -1371,10 +1371,14 @@ building other units while doing t2 transition" (the players' words, on tier 2).
   holds 2,000 to 3,000 for whoever stands on it (K-mech-reclaim-values).
 - Storage grows 600 metal with every tier-2 extractor, so "the store half full" is a larger number the richer you are
   (K-t2-the-late-spend-ceiling-in-a-bot).
-- A stockpile takes no build power: a silo's missile is 1,000 metal and 125,000 energy over 120 s (1,042 energy a
-  second, 8 metal), an anti-nuke's interceptor 150 and 7,500 over 90 s, and nothing a builder does shortens either.
-  The silo's frame (8,100 / 90,000 / build time 178,500: at 100 metal a second 2,200 power and 81 s; one advanced
-  constructor alone, ten to fourteen minutes) is where a crew pays (K-rules-a-stockpile-takes-no-build-power).
+- A stockpile takes no build power and fills itself: a silo's missile is 1,000 metal and 125,000 energy over 120 s
+  (1,042 energy a second, 8 metal), an anti-nuke's interceptor 150 and 7,500 over 90 s, and nothing a builder does
+  shortens either (measured: 142 s to the first missile with and without two turrets on the silo). Nobody orders a
+  round: the game queues ten the moment a silo stands and keeps it at ten, so a standing silo draws 1,042 energy a
+  second for twenty minutes, and again after every launch, unless its kept count is lowered; an anti-nuke the same,
+  its first interceptor 90 s after it stands. The silo's frame (8,100 / 90,000 / build time 178,500: at 100 metal a
+  second 2,200 power and 81 s; one advanced constructor alone, ten to fourteen minutes) is where a crew pays
+  (K-rules-a-stockpile-takes-no-build-power, K-rules-a-stockpile-fills-itself-to-its-limit).
 
 **What our late games looked like** (the records; the mechanism as we read it).
 
@@ -1432,8 +1436,11 @@ medium in one long game of six, at 25; his own silo stood in 14 of 848 long game
 (K-barb-anti-nuke-by-minute). So against hard_aggressive a missile must be stockpiled before about 21:00, and the
 frontier's 15:30 to 16:50 under the standard tax says the order exists, on paper, on every map we drew; against
 medium and against people the window is far longer, and with several seats the question is which seat has no
-anti-nuke. No game of ours has built a silo. **Your hands have today no order for a silo's stockpile and none to
-fire it**: a silo built now is 8,100 metal that does nothing until those exist.
+anti-nuke. In the engine the missile goes nine seconds after the order and lands thirteen seconds later, and an
+anti-nuke with an interceptor ready within 2,000 of the target takes it (the check of 2026-10-09). No game of ours has
+built a silo. **Your hands have today no move to fire a silo and none to set its kept count, and the picture does not
+yet show its rounds**: a silo built now is 8,100 metal and 1,042 energy a second that does nothing until those exist;
+and a silo listed without a place is sited on the turret line 650 ahead of home, so name its place.
 
 **What players said** on the late game is under "What players said", on tier 2.
 

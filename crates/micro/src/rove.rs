@@ -440,6 +440,7 @@ mod tests {
             reach: 0.0,
             reload: 0.0,
             blast_radius: 0.0,
+            stockpile_seconds: 0.0,
         }
     }
 
@@ -527,7 +528,7 @@ mod tests {
     }
 
     fn rover(id: i32, x: f32, z: f32) -> OwnUnit {
-        OwnUnit { id: UnitId(id), def: ROVER, pos: at(x, z), vel: at(0.0, 0.0), health: 105.0, max_health: 105.0, being_built: false, idle: false, reload_frame: 0, facing: 0 }
+        OwnUnit { id: UnitId(id), def: ROVER, pos: at(x, z), vel: at(0.0, 0.0), health: 105.0, max_health: 105.0, being_built: false, idle: false, reload_frame: 0, facing: 0, stockpile: 0, stockpile_queued: 0 }
     }
 
     fn enemy(id: i32, def: UnitDefId, x: f32, z: f32) -> EnemyUnit {

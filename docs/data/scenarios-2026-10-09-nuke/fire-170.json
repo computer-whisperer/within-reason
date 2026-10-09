@@ -1,0 +1,14 @@
+{
+ "format": "within-reason-script",
+ "version": 1,
+ "note": "fire the silo's first missile at the targets at 170 s (a round takes 120 s at full energy, 147 s on one freefusion)",
+ "rows": [
+  {
+   "t": 170.0,
+   "unit": 0,
+   "cmd": "fire",
+   "x": 6600,
+   "z": 3072
+  }
+ ]
+}

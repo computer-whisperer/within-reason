@@ -1,0 +1,58 @@
+{
+ "format": "within-reason-scenario",
+ "version": 1,
+ "map": "Comet Catcher Remake 1.8",
+ "map_size": [
+  8192,
+  6144
+ ],
+ "centre": [
+  4096,
+  3072
+ ],
+ "source": {
+  "note": "a standing silo alone, fed by --economy fed: seconds to its first round, then fired at the targets by the script"
+ },
+ "sides": [
+  {
+   "name": "ours",
+   "units": [
+    {
+     "type": "armsilo",
+     "x": 4096,
+     "z": 3072
+    }
+   ]
+  },
+  {
+   "name": "theirs",
+   "units": [
+    {
+     "type": "armsolar",
+     "x": 6520,
+     "z": 2992
+    },
+    {
+     "type": "armsolar",
+     "x": 6680,
+     "z": 2992
+    },
+    {
+     "type": "armsolar",
+     "x": 6520,
+     "z": 3152
+    },
+    {
+     "type": "armsolar",
+     "x": 6680,
+     "z": 3152
+    },
+    {
+     "type": "armllt",
+     "x": 6600,
+     "z": 3292
+    }
+   ]
+  }
+ ]
+}

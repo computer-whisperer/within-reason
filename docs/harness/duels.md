@@ -174,8 +174,11 @@ hurters they had taken as targets; hurters given with their targets were crushed
 
 For the hand-built TAS of one engagement (`docs/design/2026-09-28-tas-micro.md`, `docs/studies/2026-09-28-tas-e3.md`).
 - **`--script FILE`**: timed orders for side 0 (ours), JSON rows `{"t", "unit", "cmd", "x", "z" | "target", "queue",
-  "state"}` (the format is `scenario.rs`'s doc comment: move, fight, attack, stop, guard, firestate; `unit` an index
-  into side 0, a list, or `"all"`; an attack's `target` an index into side 1). Side 0 then gets no order from the
+  "state"}` (the format is `scenario.rs`'s doc comment: move, fight, attack, stop, guard, firestate, and from
+  2026-10-09 `fire`, a manual-fire weapon at the ground at x, z, which is how a silo's missile goes; `unit` an index
+  into side 0, a list, or `"all"`; an attack's `target` an index into side 1). While a script has rows still to go
+  out the fight is not called a stalemate however quiet it is (a silo's round takes minutes before the script fires
+  it); the time limit still ends it. Side 0 then gets no order from the
   director (only fire at will and the heading step at the start) and its lane is off; a row goes out on the
   director's first tick at or after `t + --script-delay` seconds from the first orders. Ticks are three frames, so
   a row lands up to 0.1 s after its time; the rows of one tick go out in file order in that tick's one batch of
@@ -198,7 +201,10 @@ For the hand-built TAS of one engagement (`docs/design/2026-09-28-tas-micro.md`,
   `log` column), one line a second from the first orders: `t`, `left` (each side's value left), `x` and `y` (every
   living unit as `[index in the file, x, z, health]`), `shots` per unit and `dealt` as `[attacker, victim, damage]` that second (from
   2026-09-28 evening; the first batches, val-* to tas-e3w-v0-director, carry `[attacker, damage]`), each team's stored
-  `energy`, and the script rows that went out (`orders`: row, frame, units sent, units skipped).
+  `energy`, from 2026-10-09 each side's stockpilers' rounds (`rounds`: `[index, ready, queued]` per silo or anti-nuke),
+  and the script rows that went out (`orders`: row, frame, units sent, units skipped; from 2026-10-09 also an order the
+  engine refused, `{"rejected": index, "side", "code", "f"}`: the manual-fire command to a silo was refused this way
+  with nothing else to show for it).
 - **An attack on a unit out of sight does not hunt it.** Queued, the engine drops it when it comes due (tas-e3-v3:
   Centurion 3 lived in 11 of 24); given as the unit's current order it ends at once and the unit stands (tas-e3w-w-v9:
   the Blitzes stood 430 from Centurion 7 for a minute). Send a fight to where the unit was seen instead. Buildings

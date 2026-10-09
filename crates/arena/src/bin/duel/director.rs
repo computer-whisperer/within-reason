@@ -262,6 +262,10 @@ struct Army {
     resent: i32,
     /// The team's stored energy at its last tick (the per-second log).
     energy: f32,
+    /// Rounds ready and queued in each stockpiling unit of this army as of its last tick (the per-second log's `rounds`).
+    rounds: HashMap<UnitId, (i32, i32)>,
+    /// The frame the last script row went out (a scripted scenario is no stalemate for a minute after it).
+    last_row_frame: Option<i32>,
     /// Shots per unit since the last per-second log line, and damage taken: (attacker, victim, damage).
     second_shots: HashMap<UnitId, u32>,
     second_hits: Vec<(UnitId, UnitId, f32)>,
@@ -309,6 +313,8 @@ impl Army {
             moved_samples: 0,
             resent: -1,
             energy: 0.0,
+            rounds: HashMap::new(),
+            last_row_frame: None,
             second_shots: HashMap::new(),
             second_hits: Vec::new(),
             next_row: 0,
@@ -951,9 +957,13 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
             claim(army, tick, rules.hurter, if scenario { SCENARIO_CLAIM } else { CLAIM_MARGIN });
         }
         army.alive.clear();
+        army.rounds.clear();
         let mut sum = (0.0, 0.0);
         for unit in tick.snapshot.own_units.iter().filter(|u| army.units.contains(&u.id)) {
             army.alive.insert(unit.id, (unit.health / unit.max_health.max(1.0)).clamp(0.0, 1.0));
+            if unit.stockpile != 0 || unit.stockpile_queued != 0 {
+                army.rounds.insert(unit.id, (unit.stockpile, unit.stockpile_queued));
+            }
             army.max_health.insert(unit.id, unit.max_health);
             army.seen_at.insert(unit.id, unit.pos);
             sum = (sum.0 + unit.pos.x, sum.1 + unit.pos.z);
@@ -1016,6 +1026,10 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                 Event::WeaponFired { unit, .. } if fighting && army.units.contains(unit) => {
                     army.fire.shot(*unit);
                     *army.second_shots.entry(*unit).or_default() += 1;
+                }
+                // An order the engine refused (a script's row to a unit that cannot take it): the per-second log says so.
+                Event::CommandRejected { unit, code } if army.units.contains(unit) => {
+                    duel.notes.push(json!({"rejected": army.spawn_of.get(unit).copied(), "side": side, "code": code, "f": frame}));
                 }
                 _ => {}
             }
@@ -1258,13 +1272,18 @@ fn advance(duel: &mut Duel, team: i32, tick: &Tick, rules: &Rules, commands: &mu
                     let x = &duel.armies[0];
                     r.nothing_left(|i| x.unit_of.get(&i).is_some_and(|u| x.alive.contains_key(u)))
                 });
+                // A scripted scenario whose rows have not all gone out, or whose last row went out within the
+                // stalemate's minute, is not a stalemate however quiet it is: a silo's round takes minutes before the
+                // script fires it, and the missile flies for thirteen seconds after.
+                let script_pending = scenario
+                    && rules.script.is_some_and(|s| duel.armies[0].next_row < s.rows.len() || duel.armies[0].last_row_frame.is_some_and(|f| frame - f < STALEMATE));
                 let reason = if duel.armies.iter().any(|a| a.alive.is_empty()) {
                     Some("wiped")
                 } else if raid_over {
                     Some("raid_over")
                 } else if frame - advance_at >= rules.time_limit * FPS {
                     Some("timeout")
-                } else if duel.raid.is_none() && frame - last_damage >= STALEMATE {
+                } else if duel.raid.is_none() && frame - last_damage >= STALEMATE && !script_pending {
                     Some("stalemate")
                 } else {
                     None
@@ -1387,6 +1406,7 @@ fn script_orders(army: &mut Army, enemy: &Army, script: &Script, delay: f32, fra
     {
         let index = army.next_row;
         army.next_row += 1;
+        army.last_row_frame = Some(frame);
         let (mut sent, mut skipped) = (Vec::new(), Vec::new());
         for i in row.unit.indices(count) {
             let Some(unit) = living(army, i) else {
@@ -1399,6 +1419,7 @@ fn script_orders(army: &mut Army, enemy: &Army, script: &Script, delay: f32, fra
                 ScriptCmd::Fight => Command::Fight { unit, to, queue: row.queue },
                 ScriptCmd::Stop => Command::Stop { unit },
                 ScriptCmd::Firestate => Command::FireState { unit, state: row.state.unwrap_or(2) },
+                ScriptCmd::Fire => Command::FireAt { unit, at: to },
                 ScriptCmd::Attack => match row.target.and_then(|t| living(enemy, t)) {
                     Some(target) => Command::Attack { unit, target, queue: row.queue },
                     None => {
@@ -1485,6 +1506,12 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
         rows.sort_by_key(|r| r.0);
         rows.into_iter().map(|((i, j), d)| json!([i, j, d.round()])).collect()
     };
+    // Each stockpiler's rounds, ready and queued, as [index, ready, queued].
+    let rounds = |a: &Army| -> Vec<Value> {
+        let mut rows: Vec<(usize, i32, i32)> = a.rounds.iter().filter_map(|(u, (ready, queued))| Some((*a.spawn_of.get(u)?, *ready, *queued))).collect();
+        rows.sort();
+        rows.into_iter().map(|(i, r, q)| json!([i, r, q])).collect()
+    };
     let (hits_on_x, hits_on_y) = (std::mem::take(&mut x.second_hits), std::mem::take(&mut y.second_hits));
     let left = [x.value_left(), y.value_left()];
     let line = json!({
@@ -1495,6 +1522,7 @@ fn log_second(duel: &mut Duel, frame: i32, advance_at: i32) {
         "shots": {"x": shots(x), "y": shots(y)},
         "dealt": {"x": dealt(x, y, hits_on_y), "y": dealt(y, x, hits_on_x)},
         "energy": [x.energy.round(), y.energy.round()],
+        "rounds": {"x": rounds(x), "y": rounds(y)},
         "orders": std::mem::take(&mut duel.notes),
     });
     duel.log.push(line.to_string());

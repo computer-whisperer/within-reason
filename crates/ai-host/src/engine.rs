@@ -30,6 +30,9 @@ pub struct Engine {
     metal_spots: Vec<Vec3>,
     /// Per feature type: the metal a whole one holds, or `None` when it cannot be reclaimed.
     feature_metal: std::collections::HashMap<c_int, Option<f32>>,
+    /// Per unit type: whether it stockpiles rounds (a silo, an anti-nuke), so the snapshot asks the engine for a
+    /// stockpile count only where there is one.
+    stockpilers: std::collections::HashMap<c_int, bool>,
 }
 
 /// The one engine call that must be made with the instance table unlocked: the cheat that creates a unit, during
@@ -91,7 +94,7 @@ impl Engine {
     /// `callback` must be the table the engine passed to `init` for `ai_id`, and stay valid
     /// until `release`.
     pub unsafe fn new(ai_id: c_int, callback: *const sys::SSkirmishAICallback) -> Self {
-        let mut engine = Engine { ai_id, callback, metal: -1, energy: -1, id_buf: vec![0; MAX_UNITS], metal_spots: Vec::new(), feature_metal: Default::default() };
+        let mut engine = Engine { ai_id, callback, metal: -1, energy: -1, id_buf: vec![0; MAX_UNITS], metal_spots: Vec::new(), feature_metal: Default::default(), stockpilers: Default::default() };
         engine.metal = call!(engine, getResourceByName(c"Metal".as_ptr()));
         engine.energy = call!(engine, getResourceByName(c"Energy".as_ptr()));
         engine
@@ -345,7 +348,28 @@ impl Engine {
             reach,
             reload,
             blast_radius,
+            stockpile_seconds: self.stockpile_seconds(id),
         }
+    }
+
+    /// Seconds a round of the type's stockpiled weapon takes; 0 for a type that stockpiles nothing. The engine keeps
+    /// `stockpileTime` in frames (`WeaponDef.cpp`: the file's seconds times `GAME_SPEED`).
+    fn stockpile_seconds(&self, id: c_int) -> f32 {
+        let weapon = call!(self, UnitDef_getStockpileDef(id));
+        if weapon < 0 {
+            return 0.0;
+        }
+        call!(self, WeaponDef_getStockpileTime(weapon)) / 30.0
+    }
+
+    /// Whether the type stockpiles rounds, remembered per type.
+    fn stockpiles(&mut self, def: c_int) -> bool {
+        if let Some(&yes) = self.stockpilers.get(&def) {
+            return yes;
+        }
+        let yes = call!(self, UnitDef_getStockpileDef(def)) >= 0;
+        self.stockpilers.insert(def, yes);
+        yes
     }
 
     /// Whether any weapon of the type is a water weapon (a torpedo, a depth charge: what reaches a submerged
@@ -412,19 +436,30 @@ impl Engine {
     pub fn snapshot(&mut self) -> Snapshot {
         let max = self.id_buf.len() as c_int;
         let own_count = call!(self, getTeamUnits(self.id_buf.as_mut_ptr(), max)).max(0) as usize;
-        let own_units = self.id_buf[..own_count]
-            .iter()
-            .map(|&id| OwnUnit {
-                id: UnitId(id),
-                def: UnitDefId(call!(self, Unit_getDef(id))),
-                pos: self.unit_pos(id),
-                vel: self.unit_vel(id),
-                health: call!(self, Unit_getHealth(id)),
-                max_health: call!(self, Unit_getMaxHealth(id)),
-                being_built: call!(self, Unit_isBeingBuilt(id)),
-                idle: call!(self, Unit_getCurrentCommands(id)) == 0,
-                reload_frame: self.reload_frame(id),
-                facing: call!(self, Unit_getBuildingFacing(id)),
+        let ids: Vec<c_int> = self.id_buf[..own_count].to_vec();
+        let own_units = ids
+            .into_iter()
+            .map(|id| {
+                let def = call!(self, Unit_getDef(id));
+                let (stockpile, stockpile_queued) = if self.stockpiles(def) {
+                    (call!(self, Unit_getStockpile(id)), call!(self, Unit_getStockpileQueued(id)))
+                } else {
+                    (0, 0)
+                };
+                OwnUnit {
+                    id: UnitId(id),
+                    def: UnitDefId(def),
+                    pos: self.unit_pos(id),
+                    vel: self.unit_vel(id),
+                    health: call!(self, Unit_getHealth(id)),
+                    max_health: call!(self, Unit_getMaxHealth(id)),
+                    being_built: call!(self, Unit_isBeingBuilt(id)),
+                    idle: call!(self, Unit_getCurrentCommands(id)) == 0,
+                    reload_frame: self.reload_frame(id),
+                    facing: call!(self, Unit_getBuildingFacing(id)),
+                    stockpile,
+                    stockpile_queued,
+                }
             })
             .collect();
 
@@ -862,6 +897,50 @@ impl Engine {
                 timeOut: NO_TIMEOUT,
                 toAttackUnitId: target.0,
             }),
+            // The engine's manual-fire command is allowed only to a type with `canManualFire` (the commander, for its
+            // D-gun; `CCommandAI::AllowedCommand`), and a type without it fires its command-fire weapon on a plain
+            // attack at the ground (`CWeapon::TestTarget` skips the manual-fire check for it): BAR's silo is the
+            // latter, so the missile goes by an attack at a place with no radius (K-rules-the-silo-fires-on-an-attack-at-the-ground).
+            Command::FireAt { unit, at } => {
+                let mut pos = self.on_the_ground(at);
+                let def = call!(self, Unit_getDef(unit.0));
+                if call!(self, UnitDef_canManualFire(def)) {
+                    self.handle(sys::COMMAND_UNIT_D_GUN_POS, &mut sys::SDGunPosUnitCommand {
+                        unitId: unit.0,
+                        groupId: NO_GROUP,
+                        options: 0,
+                        timeOut: NO_TIMEOUT,
+                        pos_posF3: pos.as_mut_ptr(),
+                    })
+                } else {
+                    self.handle(sys::COMMAND_UNIT_ATTACK_AREA, &mut sys::SAttackAreaUnitCommand {
+                        unitId: unit.0,
+                        groupId: NO_GROUP,
+                        options: 0,
+                        timeOut: NO_TIMEOUT,
+                        toAttackPos_posF3: pos.as_mut_ptr(),
+                        radius: 0.0,
+                    })
+                }
+            }
+            // The game's stockpile gadget reads each order as one step of the kept count, up with no option and down
+            // with the right-mouse one (shift and control would make it five or twenty); one order a step.
+            Command::Stockpile { unit, change } => {
+                let option = if change < 0 { sys::UNIT_COMMAND_OPTION_RIGHT_MOUSE_KEY as i16 } else { 0 };
+                let mut result = Ok(());
+                for _ in 0..change.unsigned_abs().min(100) {
+                    let r = self.handle(sys::COMMAND_UNIT_STOCKPILE, &mut sys::SStockpileUnitCommand {
+                        unitId: unit.0,
+                        groupId: NO_GROUP,
+                        options: option,
+                        timeOut: NO_TIMEOUT,
+                    });
+                    if r.is_err() {
+                        result = r;
+                    }
+                }
+                result
+            }
             Command::GiveUnit { .. } => Err(-1),
             Command::SelfDestruct { unit } => {
                 self.handle(sys::COMMAND_UNIT_SELF_DESTROY, &mut sys::SSelfDestroyUnitCommand {

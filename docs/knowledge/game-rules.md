@@ -165,8 +165,11 @@ stockpile; BAR's two stockpile gadgets limit the count and tell the unit's scrip
 resource flow, above all energy: Armada's 125,000 E over 120 s and Cortex's 187,500 over 180 s are both 1,042 E a second
 for the round's length, beside 8.3 and 8.3 metal a second; an interceptor is 83 E a second for 90 s. A massed crew on a
 silo is wasted (the silo's frame, 178,500 build time, is where the crew pays).
-**Status.** supported (2026-10-09): the engine's source and the game's gadgets, read; unmeasured in a game (a scenario
-with a standing silo, with and without turrets on patrol beside it, would settle it in two minutes).
+**Status.** measured (2026-10-09 afternoon): a silo given alone and a silo with two construction turrets guarding it
+from its first second (`docs/data/scenarios-2026-10-09-nuke/silo-alone.json`, `silo-nanos.json`; the `nuke-check-alone`
+and `nuke-check-nanos` duel batches, `--economy fed`) had their first missile ready at the same 142 s, the round
+energy-bound on one freefusion's 850 a second plus the start's 1,000; the turrets changed nothing. The engine's source
+and the game's gadgets say why (below).
 **Evidence.** `upstream/RecoilEngine-2026.07.04/rts/Sim/Weapons/Weapon.cpp` (`UpdateStockpile`: `p = 1 / stockpileTime`,
 `UseResources(cost * p)`), `WeaponDef.cpp` (`stockpileTime` in seconds scaled by `GAME_SPEED`); `grep stockpile` over
 `rts/Sim/Units/UnitTypes/Builder.cpp` and `CommandAI/BuilderCAI.cpp` (nothing); `luarules/gadgets/unit_stockpile_limit.lua`,
@@ -176,3 +179,58 @@ with a standing silo, with and without turrets on patrol beside it, would settle
 made for one; none is in the tree), or a game showed turrets beside a silo shortening its rounds.
 **Used by.** `crates/buildorder` (`units.rs` STOCKPILES, the simulator's stockpile draw, no help on a stockpile); the nuke
 line of the frontier tables (docs/design/2026-10-09-late-economy.md §9); the brief's late-game section to come.
+
+### K-rules-a-stockpile-fills-itself-to-its-limit
+**Claim.** Nobody orders a round. BAR's "Stockpile control" gadget sets every unit that can stockpile to its unit
+file's limit the moment it is created or given (`stockpilelimit` in the weapon's custom parameters: 10 for the silos;
+99 where the file says nothing) and queues rounds to keep stock plus queued at that count, so a standing silo draws its
+missile's 1,042 energy a second from its first second until ten missiles sit in it (twenty minutes of rounds, 1,250,000
+energy), whatever else the economy wants. A stockpile order from a player or an AI (the engine's `CMD_STOCKPILE`; our
+`Command::Stockpile`) does not queue a round: the gadget swallows it and moves the unit's kept count by one (five with
+shift, twenty with control, a hundred with both; down with the right mouse button), clamped to 0 and the limit, then
+re-queues to match. The engine's own meaning (one order is one round) applies only to orders from synced Lua, which the
+gadget's own re-queuing is. The anti-nukes work the same way: an interceptor is stockpiling from the moment the
+anti-nuke stands, and is ready 90 s later.
+**Status.** measured (2026-10-09 afternoon, `docs/data/scenarios-2026-10-09-nuke/`, the `nuke-check-*` duel batches): a
+silo given at full health showed stock 0, queued 10 in the first second's snapshot with no order from anyone; its first
+missile was ready at 142 s and the moment it was fired (180 s) the queue read 10 again, and the fed team's energy store
+sat at 4 to 30 for the whole fight. Cortex's anti-nuke (`corfmd`, limit 20) had its first interceptor at 90 s and its
+second at 180.
+**Evidence.** `upstream/Beyond-All-Reason/luarules/gadgets/unit_stockpile_limit.lua` (`UnitCreated`: the desired
+target is the limit, `UpdateStockpile` queues to it; `AllowCommand`: a `CMD_STOCKPILE` not from synced Lua moves the
+target and returns false); `rts/Sim/Units/CommandAI/CommandAI.cpp` `case CMD_STOCKPILE` (the engine's +1 / -1 / x5 /
+x20 by option); `units/ArmBuildings/LandDefenceOffence/armsilo.lua` (`stockpilelimit = 10`).
+**Would be wrong if.** A silo given in a game stood with an empty queue until ordered, or a `Command::Stockpile`
+added a round beyond the kept count.
+**Used by.** `Command::Stockpile` (its semantics, `DESIGN.md`); the simulator's stockpile model (a standing stockpiler
+draws from its first second, `crates/buildorder/src/sim.rs`, which matches); the brief's late-game section; the
+design's nuke harness (`docs/design/2026-10-09-late-economy.md` §10): the player's lever is the kept count, not a
+stockpile order, and a silo left at its limit is a 1,042 energy a second draw for twenty minutes.
+
+### K-rules-the-silo-fires-on-an-attack-at-the-ground
+**Claim.** A silo's missile goes by a plain attack order at a place, not by the engine's manual-fire command. BAR's
+nuke weapon is `commandfire` (the engine's `manualfire` tag: the weapon never picks a target of its own), but the engine
+allows the manual-fire command only to a unit type with `canManualFire`, which BAR gives the commander (its D-gun) and
+not the silo, and for a type without it the weapon code skips the manual-fire check altogether, so an attack at the
+ground fires the missile. From an AI the order is `COMMAND_UNIT_ATTACK_AREA` with the place and no radius (`CMD_ATTACK`
+with a position; `Command::FireAt`), and `COMMAND_UNIT_D_GUN_POS` is refused with no effect. Measured: the order went
+out at 171 s, the silo launched at 180 (nine seconds of launch sequence), the warhead landed at 192 (the file's 400
+frames of flight) and the five buildings 2,500 away, four solars and a light turret, were gone: `x (wiped) 192s`. With
+a Cortex anti-nuke (`corfmd`, coverage 2,000) standing 260 from the targets with an interceptor ready, the same missile
+did nothing: the anti-nuke's ready count went from 2 to 1 between 180 and 184 s and every building stood at full health
+at 230 s.
+**Status.** measured (2026-10-09 afternoon): `docs/data/scenarios-2026-10-09-nuke/silo-alone.json`, `silo-nanos.json`,
+`silo-antinuke.json` with the scripts `fire-170.json` and `nanos-fire-170.json`; the duel batches `nuke-check-alone`
+(`run/matches/1791571513-...`), `nuke-check-nanos` (`1791571529`), `nuke-check-antinuke` (`1791571546`); the three
+before them (`1791571207`, `1791571228`, `1791571245`) sent the manual-fire command and nothing fired.
+**Evidence.** `rts/Sim/Units/CommandAI/CommandAI.cpp` (`AllowedCommand`: `CMD_MANUALFIRE` needs `ud->canManualFire`;
+`ExecuteAttack`: a position goes to `AttackGround`), `rts/Sim/Weapons/Weapon.cpp` `CWeapon::TestTarget` (the
+manual-fire check applies only when `owner->unitDef->canManualFire`), `rts/Sim/Units/UnitDef.cpp` (`canManualFire` from
+the unit file's `canManualFire` or `canDGun`, default false; the silo's file and BAR's `gamedata` set neither),
+`rts/ExternalAI/AISCommands.cpp` (`COMMAND_UNIT_ATTACK_AREA` is `CMD_ATTACK` with the position and the radius pushed);
+`units/ArmBuildings/LandDefenceOffence/armsilo.lua` (`commandfire = true`, `flighttime = 400`).
+**Would be wrong if.** A silo fired on no order (the weapon auto-targeting), or a manual-fire order from an AI fired it
+in another engine version.
+**Used by.** `Command::FireAt` (the host picks the engine command by `UnitDef_canManualFire`: manual fire for the
+commander, an attack at the ground for the silo; `DESIGN.md`); the duel harness's `fire` script command; the design's
+nuke harness (`docs/design/2026-10-09-late-economy.md` §10).
