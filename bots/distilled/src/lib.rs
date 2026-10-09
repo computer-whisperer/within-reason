@@ -10,6 +10,7 @@
 
 mod army;
 mod economy;
+mod tier2;
 
 use std::collections::BTreeMap;
 
@@ -33,6 +34,19 @@ pub(crate) struct Kit {
     pub raider: Option<UnitDefId>,
     pub tank: Option<UnitDefId>,
     pub artillery: Option<UnitDefId>,
+    /// Tier 2 (`tier2.rs`).
+    pub commander: Option<UnitDefId>,
+    pub advanced_plant: Option<UnitDefId>,
+    pub advanced_constructor: Option<UnitDefId>,
+    pub moho: Option<UnitDefId>,
+    pub fusion: Option<UnitDefId>,
+    pub advanced_fusion: Option<UnitDefId>,
+    pub converter: Option<UnitDefId>,
+    pub advanced_converter: Option<UnitDefId>,
+    /// The tier-2 fast assist unit the advanced vehicle plant makes (Armada's Consul; Cortex vehicles have none).
+    pub assist: Option<UnitDefId>,
+    pub t2_tank: Option<UnitDefId>,
+    pub t2_artillery: Option<UnitDefId>,
 }
 
 pub(crate) struct Distilled {
@@ -46,6 +60,8 @@ pub(crate) struct Distilled {
     pub own: BTreeMap<UnitId, OwnUnit>,
     pub economy: economy::Economy,
     pub army: army::Army,
+    /// The arms of the rows, from `WITHIN_REASON_DISTILLED`.
+    pub options: tier2::Options,
     started: bool,
 }
 
@@ -73,9 +89,9 @@ impl Distilled {
     fn kit_of(&self, commander: &UnitDefInfo) -> Kit {
         let faction = &commander.name[..commander.name.len().min(3)];
         let named = |suffix: &str| self.defs.values().find(|d| d.name == format!("{faction}{suffix}")).map(|d| d.id);
-        let (raider, tank, artillery) = match faction {
-            "cor" => ("gator", "raid", "wolv"),
-            _ => ("flash", "stump", "art"),
+        let (raider, tank, artillery, t2_tank, t2_artillery, assist) = match faction {
+            "cor" => ("gator", "raid", "wolv", "reap", "mart", None),
+            _ => ("flash", "stump", "art", "bull", "mart", Some("consul")),
         };
         Kit {
             // The cheapest extractor the commander can build.
@@ -90,6 +106,17 @@ impl Distilled {
             raider: named(raider),
             tank: named(tank),
             artillery: named(artillery),
+            commander: Some(commander.id),
+            advanced_plant: named("avp"),
+            advanced_constructor: named("acv"),
+            moho: named("moho"),
+            fusion: named("fus"),
+            advanced_fusion: named("afus"),
+            converter: named("makr"),
+            advanced_converter: named("mmkr"),
+            assist: assist.and_then(named),
+            t2_tank: named(t2_tank),
+            t2_artillery: named(t2_artillery),
         }
     }
 
@@ -102,12 +129,15 @@ impl Distilled {
         self.enemy_home = self.hello.start_boxes.iter().find(|b| b.ally_team != ours).map_or(Vec3 { x: map.x - self.home.x, y: 0.0, z: map.z - self.home.z }, |b| b.centre());
         self.kit = self.def(commander.def).map(|d| self.kit_of(d)).unwrap_or_default();
         let kit = &self.kit;
-        let missing: Vec<&str> = [("extractor", kit.extractor), ("solar", kit.solar), ("advanced solar", kit.advanced_solar), ("construction turret", kit.turret), ("plant", kit.plant), ("sentry", kit.sentry), ("constructor", kit.constructor), ("scout", kit.scout), ("raider", kit.raider), ("tank", kit.tank), ("artillery", kit.artillery)]
+        let missing: Vec<&str> = [("extractor", kit.extractor), ("solar", kit.solar), ("advanced solar", kit.advanced_solar), ("construction turret", kit.turret), ("plant", kit.plant), ("sentry", kit.sentry), ("constructor", kit.constructor), ("scout", kit.scout), ("raider", kit.raider), ("tank", kit.tank), ("artillery", kit.artillery), ("advanced plant", kit.advanced_plant), ("advanced constructor", kit.advanced_constructor), ("tier-2 extractor", kit.moho), ("fusion", kit.fusion), ("tier-2 tank", kit.t2_tank)]
             .iter()
             .filter(|(_, def)| def.is_none())
             .map(|(name, _)| *name)
             .collect();
-        eprintln!("[distilled ai={}] home ({:.0}, {:.0}), enemy start taken as ({:.0}, {:.0}); kit lacks: {}", self.hello.ai_id, self.home.x, self.home.z, self.enemy_home.x, self.enemy_home.z, if missing.is_empty() { "nothing".into() } else { missing.join(", ") });
+        eprintln!(
+            "[distilled ai={}] home ({:.0}, {:.0}), enemy start taken as ({:.0}, {:.0}); kit lacks: {}; arms: {}",
+            self.hello.ai_id, self.home.x, self.home.z, self.enemy_home.x, self.enemy_home.z, if missing.is_empty() { "nothing".into() } else { missing.join(", ") }, self.options.describe()
+        );
         self.started = true;
     }
 }
@@ -116,7 +146,7 @@ impl Bot for Distilled {
     fn start(hello: Hello) -> Self {
         let defs = hello.unit_defs.iter().map(|d| (d.id, d.clone())).collect();
         let spots = hello.metal_spots.len();
-        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), economy: economy::Economy::new(spots), army: army::Army::default(), started: false }
+        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), economy: economy::Economy::new(spots), army: army::Army::default(), options: tier2::Options::from_env(), started: false }
     }
 
     fn tick(&mut self, tick: Tick) -> Commands {
@@ -135,6 +165,8 @@ impl Bot for Distilled {
                 Event::EnemyDestroyed { enemy } => {
                     self.army.his_buildings.remove(enemy);
                 }
+                Event::UnitFinished { unit } => self.t2_milestone(*unit, "standing"),
+                Event::UnitCreated { unit, .. } => self.t2_milestone(*unit, "begun"),
                 _ => {}
             }
         }
@@ -149,10 +181,12 @@ impl Bot for Distilled {
             self.run_army(&tick, &mut commands);
         }
         if tick.due() % MINUTE == 0 && tick.frame > 0 {
+            let project = self.project_frame().map_or("none".to_string(), |f| format!("{}:{:.0}%:{:.0}/{:.0}", self.def(f.def).map_or("?", |d| d.name.as_str()), 100.0 * f.health / f.max_health.max(1.0), self.power_on(f), self.power_wanted(f, &tick)));
             eprintln!(
-                "[distilled ai={}] f={} extractors={} solars={}+{} plants={} turrets={} constructors={} sentries={} can_spend={:.1} home_guard={} strike={} his_buildings_known={} made={} metal {:.0}/{:.0} +{:.1} -{:.1} energy {:.0}/{:.0} +{:.0} -{:.0}",
+                "[distilled ai={}] f={} extractors={} solars={}+{} plants={} turrets={} constructors={} sentries={} can_spend={:.1} home_guard={} strike={} his_buildings_known={} made={} advplant={} acv={} mohos={} fusions={} afus={} converters={} assist={} t2_made={} paused={} project={} metal {:.0}/{:.0} +{:.1} -{:.1} energy {:.0}/{:.0} +{:.0} -{:.0}",
                 self.hello.ai_id, tick.frame, self.count(self.kit.extractor), self.count(self.kit.solar), self.count(self.kit.advanced_solar), self.count(self.kit.plant), self.count(self.kit.turret), self.count(self.kit.constructor), self.count(self.kit.sentry), self.can_spend(),
                 self.army.home_guard.len(), self.army.strike.len(), self.army.his_buildings.len(), self.economy.made(),
+                self.count(self.kit.advanced_plant), self.count(self.kit.advanced_constructor), self.count(self.kit.moho), self.count(self.kit.fusion), self.count(self.kit.advanced_fusion), self.count(self.kit.converter) + self.count(self.kit.advanced_converter), self.count(self.kit.assist), self.economy.t2_made, u8::from(self.plants_paused()), project,
                 tick.snapshot.metal.current, tick.snapshot.metal.storage, tick.snapshot.metal.income, tick.snapshot.metal.usage, tick.snapshot.energy.current, tick.snapshot.energy.storage, tick.snapshot.energy.income, tick.snapshot.energy.usage
             );
         }

@@ -317,3 +317,50 @@ K-mech-stall-slows-everything, K-mech-build-power-ratio.
 refuses what the store lacks), or the build rate were not `workertime` summed over the builders on the frame.
 **Used by.** The brief's build-power paragraph; `docs/design/2026-10-09-late-economy.md` §3; the simulator's
 frontier (`crates/buildorder/src/sim.rs`, its stall model).
+
+### K-t2-the-transition-under-pressure-loses-at-either-gate
+**Claim.** A tier-1 vehicle bot that holds BARb hard_aggressive to about one win in five on Comet Catcher
+(`bots/distilled`, no tier 2: 3 of 16 over two rows) loses nearly every game when it starts the advanced plant at the
+community's gates: at metal income 22 one win in sixteen (8 games with the tier-1 plants paused through the
+transition, 8 without), at income 30 none in eight. The plant stands at 9:00 to 13:30 in every game and the chain
+runs on schedule (constructors within a minute, a fusion by 14:00 to 18:30 in most games, tier-2 extractors to 30 by
+the end), while the economy and the army go: extractors 16 / 19 / 14 / 8 at 10 / 15 / 20 / 25 minutes against the
+no-tier-2 arm's 19 / 33 / 37 / 39, the army 12 / 8 / 17 / 21 soldiers against 11 / 32 / 68 / 63. The pause is not
+the cost (0 of 8 without it); the plant's 2,600 metal and the builders' time out of the tier-1 army in the minutes
+his pressure peaks are, and the income the chain buys (150 to 245 a second at 25 to 30 minutes in the games that
+lasted) arrives after the army is gone. The same shape as the player games that teched (player-30, 31, 32). **On a few-spot map the same holds against
+medium**: on Great Divide (22 spots, 11 a side) the bot saturates at 10 extractors and an income of 23 by 10:00, the
+gate fires there, and with tier 2 it won 2 of 16 (1-6-1, 1-7-0) where without it, on tier 1 with converters at
+saturation, it won 7 of 8 at 12 to 26 minutes.
+**Status.** measured (2026-10-09): `distilled-t2b-never-hard`, `distilled-t2-never-hard`, `distilled-t2b-22-hard`,
+`distilled-t2b-22-nopause-hard`, `distilled-t2b-30-hard`, `distilled-t2c-divide-converters-medium`,
+`distilled-t2c-divide-noconverters-medium`, `distilled-t2c-divide-never-medium` in `docs/experiments.md` (8 games
+each, seeds 1-8, sides alternating, `--play-out`).
+**Would be wrong if.** A later gate (an income of 60 or more, or past minute 20, behind a standing army) or a bot
+whose army holds his pressure won more with tier 2 than without. Against medium on Comet the arms with tier 2 won
+6 of 8 (the control row) where v2 without it won 7 of 8, a cost of ten minutes a game and not of games; the Great
+Divide rows say the small map turns that cost into losses.
+**Used by.** `docs/design/2026-10-09-late-economy.md` §4.4 and §4.5; the brief's argument that an early lead is
+spent before his tier 2 matters, which now has a bot-measured leg beside the player games.
+
+### K-t2-the-late-spend-ceiling-in-a-bot
+**Claim.** Once tier-2 extractors lift a bot's income past about 150 a second, three things it did without thinking
+stop it spending: (1) the energy rule provisioned for the soldiers' full-speed draw at the tier-2 tank's 13.7 energy
+a metal and built 40 to 56 solars with the energy store at a 16,000 cap; (2) those generators crowded the yard, the
+site search behind a plant found nothing within 150 and the build-power ladder asked the same plant every half
+second for twenty minutes instead of moving on, so 2 plants and 1 to 8 turrets stood at income 150 to 350; (3) the
+project helpers were capped at six, so an advanced fusion ran at 830 power against a budget of ten thousand and took
+seven minutes. The bank sat at the storage cap with income overflowing (19,173 of 19,450 at 30:00 in
+distilled-t2-smoke-4-medium; 9,000 to 16,000 at 25 to 30 minutes in distilled-t2b-30-hard). The storage cap itself
+grows with the tier-2 extractors (600 metal of storage each), so "the store over half" fires later the richer the
+side.
+**Status.** observed (2026-10-09) in `distilled-t2-smoke-4-medium` and `distilled-t2b-30-hard`; the fixes (no energy
+for the anticipated draw while the store is over 90%, a refused site holds the ladder off that plant or off plants
+for two minutes and widens the turret's search to 350, generators placed 450 behind home, helpers to twelve,
+builders on build power scaled with the bank) are in the build the medium rows of 2026-10-09 ran on and are judged
+there.
+**Would be wrong if.** The medium rows on the fixed build still banked over half the store from minute 25 with
+income over 150.
+**Used by.** `bots/distilled/README.md` (D-ENERGY, D-BUILD-POWER, D-PROJECT); the brief's late-game section to come
+(the flagship's player shows the same bank in human-18 and player-50: the mechanism there is the player's, but the
+yard-crowding and the storage-cap arithmetic are the game's).

@@ -1,8 +1,8 @@
 # The late-game economy: what it takes, from the simulator and from games
 
-Status: draft 1, 2026-10-09, after two evenings of discussion with the user (2026-10-08 and 09). Written before
-anything is built, as the ground truth for the arc. Built so far: the knowledge claims it cites and the builders
-table in the brief (`docs/briefs/experience/units.md`). Nothing in the bot, the simulator or `bots/` has changed.
+Status: draft 1 written 2026-10-09 morning, after two evenings of discussion with the user (2026-10-08 and 09), as the
+ground truth for the arc. §8 (added the same evening) is the state after the first step the user ratified: tier 2 in
+the distilled bot and its rows. Nothing in `crates/bot` or the simulator has changed.
 
 ## 1. What is measured
 
@@ -141,3 +141,37 @@ picture carries the energy-draw budget line (H-HANDS-ENERGY-DRAW) and the comman
 The base-geometry arc beyond the core ring; team-game roles (the eco seat) beyond the feed-one-seat pattern
 (K-team-two-seats-feed-one-seats-tier-2); the human replays for the late game (set aside by ruling 1; to revisit if
 the simulator and the games disagree with what people do); the T3 experimentals.
+
+## 8. State, 2026-10-09 evening: tier 2 in the distilled bot (§4.5, the user's go of 2026-10-09)
+
+Built (`bots/distilled/src/tier2.rs`, the rules D-T2-GATE to D-CONVERT in `bots/distilled/README.md`): the gate, the
+project (a frame's power follows the spend, K-t2-build-power-for-a-project-follows-the-spend, with helpers and
+turrets in reach), the pause, the advanced constructors' ladder (energy, tier-2 extractors nearest home, converters at
+saturation), the advanced plant's production, the ring and the swarm arms, converters, and the arms over the
+environment variable `WITHIN_REASON_DISTILLED`. Four smokes shaped them (`docs/experiments.md`, distilled-t2-smoke-1
+to -4); twelve rows of eight games measured them (`bots/distilled/README.md`, "Tier 2: the rows of 2026-10-09").
+
+What the rows settled, as claims: K-t2-the-transition-under-pressure-loses-at-either-gate (against hard_aggressive
+1 of 24 with tier 2 against 3 of 16 without; the pause is not the cost; a later gate does not help) and
+K-t2-the-late-spend-ceiling-in-a-bot (the bank at the storage cap from income 150 in every arm: energy over-provision,
+the yard refusing sites, a helper cap; three of the four mechanisms fixed, the yard not). Against medium the chain
+works (the plant in two to three minutes, a fusion in three to five, an advanced fusion in under two) and costs ten
+minutes of game; extractors before fusion and a turret ring over a Consul swarm by small margins. On Great Divide
+the transition is the saturation point: with tier 2 the bot won 2 of 16 against medium, without it 7 of 8, the
+saturated tier-1 side turning its surplus into converters (8 by 20:00) and its metal into the army that won.
+
+What this changes in the plan above:
+
+- §4.3, the brief's late-game section, can now say with numbers what the player games said in cases: the transition
+  under pressure loses, and the economy it buys arrives after the army is gone. That is a bot's finding and is
+  labelled so; the pool's equivalent is still 4 tier-2 starts in 80 sides.
+- §4.1, the simulator's frontier, keeps its place as the next step: the rows give the engine's figures for the chain
+  (durations, incomes by minute) that the simulator's model of the same orders can be calibrated against, which is
+  the recalibration §4.1 asked for.
+- §4.5 continues only after two things outside the economy: a second yard for the bot's plants (the site refusals)
+  and an army that does not walk into sentries (every arm's late losses). Ruling 2 (scaling off a few spots) got its
+  first number: at saturation on 11 spots, tier 1 with converters beats medium and the transition loses; what a long
+  game past saturation wants (the advanced fusion and converter arithmetic of §3) was not reached because the games
+  ended at 12 to 26 minutes.
+- §4.8 (the crew actor) gains evidence: the swarm arm shows that mobile power made by the project's own plant comes
+  too late for that project, so a crew is worth having only if it is standing before the project starts.

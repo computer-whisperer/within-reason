@@ -69,6 +69,11 @@ impl Distilled {
         units.iter().filter_map(|id| self.own.get(id)).map(|u| self.weight(Some(u.def))).sum()
     }
 
+    /// The metal of soldiers standing at home (D-T2-PAUSE reads it: the plants pause only behind a guard).
+    pub(crate) fn home_guard_weight(&self) -> f32 {
+        self.weight_of(&self.army.home_guard)
+    }
+
     fn his_half(&self, at: Vec3) -> bool {
         at.dist2d(self.enemy_home) < at.dist2d(self.home)
     }
