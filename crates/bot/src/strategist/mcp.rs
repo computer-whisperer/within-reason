@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use serde_json::{Value, json};
 use tiny_http::{Header, Method, Response, Server};
 
-use super::shared::{Allowance, PlanContext, Removal, Shared};
+use super::shared::{Allowance, Firing, PlanContext, Removal, Shared};
 use crate::brain::pianist::step_id;
 use super::transcript::Transcript;
 
@@ -193,12 +193,15 @@ fn tool_list() -> Value {
             { "name": "remove",
               "description": "Take apart or blow up what we own: {\"reclaim\": [handles], \"by\": \"constructor_N\" (optional; else the nearest builder without a list)} puts `reclaim <handle>` steps at the front of that builder's list, and most of the metal comes back; {\"destruct\": [handles]} sends the engine's self-destruct, and nothing comes back. A handle is a unit's name and id as the picture writes it (armsolar_31002: a factory's `yard` entry names the buildings in its exit lane) or an actor's name (constructor_N, plant_N, commander). Every unit that self-destructs blows up: the answer says the blast's radius and damage and what of ours stands inside it, and a destruct that would kill something of ours is refused unless \"accept_losses\": true. The commander's blast is the game's largest; a reclaim is the safe way beside anything that matters.",
               "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "reclaim": { "type": "array", "items": { "type": "string" } }, "by": { "type": "string" }, "destruct": { "type": "array", "items": { "type": "string" } }, "accept_losses": { "type": "boolean" } } } },
+            { "name": "fire",
+              "description": "Fire a nuclear silo's ready missile at a place: {\"silo\": \"armsilo_31002\" (its handle as the picture's `stockpilers` entry writes it), \"at\": [x, z] or a grid cell (\"E7\": its centre)}. The silo launches about nine seconds after the order and the warhead lands thirteen seconds later: 12,500 damage at the point, nothing 640 away, so aim at the point itself (his advanced plant, his fusions, his commander standing still), not at a cell. The game keeps a silo stockpiling to ten missiles on its own, each two minutes and about 1,042 energy a second; `fire` spends one. His anti-nuke takes any missile aimed within 2,000 of it once it has an interceptor (90 s after it stands); the enemy's buildings by place name his anti-nukes with that coverage. Refused when no missile is ready.",
+              "inputSchema": { "type": "object", "additionalProperties": false, "required": ["silo", "at"], "properties": { "silo": { "type": "string" }, "at": { "oneOf": [ { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }, { "type": "string" } ] } } } },
             { "name": "say",
               "description": "Say something in the game's chat, to everyone playing. Short lines: the game shows 127 characters a line, the bot prefixes `[WReason] ` to each (never write it yourself) and splits a longer text into lines that fit. The report shows what people say to you; when an experienced player offers advice or asks what you are doing, answer, and ask them what they would do: their feedback is what this project learns from.",
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "maxLength": 240 } } } },
             signal_tool(),
             surrender_tool(),
-            orders(&["instruct", "queue", "lane", "mark", "produce", "remove", "transfer", "say", "note", "wait"], "your instructions or policy, build lists, footwork settings, marked places, what labs may build, removals, a chat line, a note and when to be woken"),
+            orders(&["instruct", "queue", "lane", "mark", "produce", "remove", "fire", "transfer", "say", "note", "wait"], "your instructions or policy, build lists, footwork settings, marked places, what labs may build, removals, a missile, a chat line, a note and when to be woken"),
             wait("A group of ours starts fighting an enemy party.", "Woken when this many soldiers of each named unit type are alive, e.g. {\"armham\": 6}. {} clears it."),
             note,
     ])
@@ -269,9 +272,41 @@ pub(super) fn surrender(arguments: &Value, shared: &Shared) -> Result<String, St
     Ok("surrendered: every unit of ours is self-destructing and the game will end. Nothing more is needed from you".into())
 }
 
+/// A place the player gives: `[x, z]` as numbers, the pair in a string as the model sometimes writes it ("[1264, 2832]":
+/// human-19), or a grid cell ("E7": its centre). `label` names the argument in the error. `mark` and `fire` read it.
+fn point_of(value: &Value, width: f32, height: f32, label: &str) -> Result<(f32, f32), String> {
+    let on_map = |x: f32, z: f32| -> Result<(f32, f32), String> {
+        if width > 0.0 && (x < 0.0 || z < 0.0 || x > width || z > height) {
+            return Err(format!("{label}: ({x:.0}, {z:.0}) is off the map, which is {width:.0} by {height:.0}"));
+        }
+        Ok((x, z))
+    };
+    match value {
+        Value::Array(xz) if xz.len() == 2 => {
+            let (x, z) = (xz[0].as_f64().ok_or(format!("{label}: [x, z] are numbers"))? as f32, xz[1].as_f64().ok_or(format!("{label}: [x, z] are numbers"))? as f32);
+            on_map(x, z)
+        }
+        Value::String(pair) if pair.trim_start().starts_with('[') => {
+            let xz: Vec<f32> = serde_json::from_str(pair).map_err(|_| format!("{label}: [x, z] are two numbers"))?;
+            let [x, z] = xz[..] else { return Err(format!("{label}: [x, z] are two numbers")) };
+            on_map(x, z)
+        }
+        Value::String(cell) => {
+            let mut chars = cell.trim().chars();
+            let column = chars.next().map(|c| c.to_ascii_uppercase()).filter(|c| ('A'..='H').contains(c)).ok_or(format!("{label}: a grid cell is A1 to H8"))?;
+            let row: u32 = chars.as_str().parse().ok().filter(|r| (1..=8).contains(r)).ok_or(format!("{label}: a grid cell is A1 to H8"))?;
+            if width <= 0.0 {
+                return Err("the map is not known yet; give [x, z]".to_string());
+            }
+            Ok(((column as u32 - 'A' as u32) as f32 * width / 8.0 + width / 16.0, (row - 1) as f32 * height / 8.0 + height / 16.0))
+        }
+        _ => Err(format!("{label}: [x, z] or a grid cell such as \"E7\"")),
+    }
+}
+
 /// What `orders` may batch.
 fn batchable() -> &'static [&'static str] {
-    &["instruct", "queue", "lane", "mark", "produce", "remove", "transfer", "say", "note", "wait"]
+    &["instruct", "queue", "lane", "mark", "produce", "remove", "fire", "transfer", "say", "note", "wait"]
 }
 
 /// The `orders` tool: several tool calls in one request. `wait` goes last wherever it was listed, since it ends the turn.
@@ -573,32 +608,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 let at = match value {
                     Value::Null => None,
                     Value::String(null) if null.trim() == "null" => None,
-                    Value::Array(xz) if xz.len() == 2 => {
-                        let (x, z) = (xz[0].as_f64().ok_or(format!("{name}: [x, z] are numbers"))? as f32, xz[1].as_f64().ok_or(format!("{name}: [x, z] are numbers"))? as f32);
-                        if width > 0.0 && (x < 0.0 || z < 0.0 || x > width || z > height) {
-                            return Err(format!("{name}: ({x:.0}, {z:.0}) is off the map, which is {width:.0} by {height:.0}"));
-                        }
-                        Some((x, z))
-                    }
-                    // The pair as the model sometimes writes it, in a string ("[1264, 2832]": human-19).
-                    Value::String(pair) if pair.trim_start().starts_with('[') => {
-                        let xz: Vec<f32> = serde_json::from_str(pair).map_err(|_| format!("{name}: [x, z] are two numbers"))?;
-                        let [x, z] = xz[..] else { return Err(format!("{name}: [x, z] are two numbers")) };
-                        if width > 0.0 && (x < 0.0 || z < 0.0 || x > width || z > height) {
-                            return Err(format!("{name}: ({x:.0}, {z:.0}) is off the map, which is {width:.0} by {height:.0}"));
-                        }
-                        Some((x, z))
-                    }
-                    Value::String(cell) => {
-                        let mut chars = cell.chars();
-                        let column = chars.next().map(|c| c.to_ascii_uppercase()).filter(|c| ('A'..='H').contains(c)).ok_or(format!("{name}: a grid cell is A1 to H8"))?;
-                        let row: u32 = chars.as_str().parse().ok().filter(|r| (1..=8).contains(r)).ok_or(format!("{name}: a grid cell is A1 to H8"))?;
-                        if width <= 0.0 {
-                            return Err("the map is not known yet; give [x, z]".to_string());
-                        }
-                        Some(((column as u32 - 'A' as u32) as f32 * width / 8.0 + width / 16.0, (row - 1) as f32 * height / 8.0 + height / 16.0))
-                    }
-                    _ => return Err(format!("{name}: [x, z], a grid cell such as \"E7\", or null")),
+                    other => Some(point_of(other, width, height, name)?),
                 };
                 parsed.push((name.clone(), at));
             }
@@ -860,6 +870,25 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             }
             Ok(format!("{}; your hands carry it out from their next look", said.join("; ")))
         }
+        "fire" => {
+            let cards: Vec<super::shared::UnitCard> = shared.own_cards.lock().unwrap().values().flatten().cloned().collect();
+            if cards.is_empty() {
+                return Err("your hands have not published our units yet: try again in a few seconds".into());
+            }
+            let handle = arguments["silo"].as_str().map(str::trim).filter(|s| !s.is_empty()).ok_or("fire takes {\"silo\": \"armsilo_N\", \"at\": [x, z] or a grid cell}")?;
+            let card = cards.iter().find(|c| c.handle == handle).ok_or_else(|| format!("{handle}: nothing of ours has that name (a silo's handle is as the picture's `stockpilers` entry writes it, e.g. armsilo_31002)"))?;
+            if card.stockpile_seconds <= 0.0 {
+                return Err(format!("{handle} is a {}, not a silo: it has no missile to fire", card.unit));
+            }
+            if card.stockpile < 1 {
+                return Err(format!("{handle} has no missile ready ({} stockpiling, one every {:.0} s at full energy); nothing fired", card.stockpile_queued, card.stockpile_seconds));
+            }
+            let map = shared.map.lock().unwrap().clone();
+            let (width, height) = (map["width"].as_f64().unwrap_or(0.0) as f32, map["height"].as_f64().unwrap_or(0.0) as f32);
+            let at = point_of(&arguments["at"], width, height, "at")?;
+            shared.firings.lock().unwrap().push(Firing { silo: handle.to_string(), at });
+            Ok(format!("{handle} fires a missile at ({:.0}, {:.0}) from your hands' next look: it launches in about 9 s and lands 13 s later, 12,500 damage at the point and nothing 640 away; {} missile{} left ready after it", at.0, at.1, card.stockpile - 1, if card.stockpile - 1 == 1 { "" } else { "s" }))
+        }
         _ => Err(format!("unknown tool {name}")),
     }
 }
@@ -913,7 +942,7 @@ mod tests {
         use super::super::shared::{Removal, UnitCard};
         let shared = Arc::new(Shared::default());
         assert!(call_tool("remove", &json!({ "destruct": ["armsolar_7"] }), &shared).unwrap_err().contains("not published"));
-        let card = |handle: &str, actor: Option<&str>, at: (f32, f32), health: f32, blast: Option<(f32, f32)>| UnitCard { handle: handle.into(), actor: actor.map(str::to_string), unit: handle.split('_').next().unwrap().into(), at, health, metal: 155.0, self_destruct: blast, self_destruct_seconds: 5.0 };
+        let card = |handle: &str, actor: Option<&str>, at: (f32, f32), health: f32, blast: Option<(f32, f32)>| UnitCard { handle: handle.into(), actor: actor.map(str::to_string), unit: handle.split('_').next().unwrap().into(), at, health, metal: 155.0, self_destruct: blast, self_destruct_seconds: 5.0, ..UnitCard::default() };
         shared.own_cards.lock().unwrap().insert(0, vec![
             card("armsolar_7", None, (100.0, 100.0), 400.0, Some((120.0, 500.0))),
             card("armavp_3", Some("plant_3"), (150.0, 100.0), 3000.0, Some((300.0, 2000.0))),
@@ -935,10 +964,33 @@ mod tests {
         assert!(call_tool("remove", &json!({ "reclaim": ["armsolar_7"], "by": "constructor_77" }), &shared).unwrap_err().contains("not a builder standing now"));
     }
 
+    /// The `fire` tool: a silo with a missile ready fires at a point or a grid cell's centre and the firing waits for the
+    /// pianist; one still stockpiling is refused, as is anything that is not a silo, and a point off the map.
+    #[test]
+    fn fire_sends_a_ready_missile_at_a_point_and_refuses_an_empty_silo() {
+        use super::super::shared::UnitCard;
+        let shared = Arc::new(Shared::default());
+        *shared.map.lock().unwrap() = json!({ "width": 8192.0, "height": 6144.0 });
+        let silo = |handle: &str, ready: i32, queued: i32| UnitCard { handle: handle.into(), unit: "armsilo".into(), at: (500.0, 500.0), health: 5000.0, metal: 8100.0, stockpile: ready, stockpile_queued: queued, stockpile_seconds: 120.0, ..UnitCard::default() };
+        let solar = UnitCard { handle: "armsolar_7".into(), unit: "armsolar".into(), at: (100.0, 100.0), health: 400.0, metal: 155.0, ..UnitCard::default() };
+        shared.own_cards.lock().unwrap().insert(0, vec![silo("armsilo_12", 1, 9), silo("armsilo_13", 0, 10), solar]);
+        assert!(call_tool("fire", &json!({ "silo": "armsilo_13", "at": [6600, 3072] }), &shared).unwrap_err().contains("no missile ready"));
+        assert!(call_tool("fire", &json!({ "silo": "armsolar_7", "at": [6600, 3072] }), &shared).unwrap_err().contains("not a silo"));
+        assert!(call_tool("fire", &json!({ "silo": "armsilo_12", "at": [9000, 3072] }), &shared).unwrap_err().contains("off the map"));
+        assert!(shared.firings.lock().unwrap().is_empty(), "a refused firing orders nothing");
+        let said = call_tool("fire", &json!({ "silo": "armsilo_12", "at": [6600, 3072] }), &shared).unwrap();
+        assert!(said.contains("fires a missile at (6600, 3072)") && said.contains("0 missiles left ready"), "{said}");
+        call_tool("fire", &json!({ "silo": "armsilo_12", "at": "E7" }), &shared).unwrap();
+        let firings = shared.firings.lock().unwrap().clone();
+        assert_eq!(firings.len(), 2);
+        assert_eq!((firings[0].silo.as_str(), firings[0].at), ("armsilo_12", (6600.0, 3072.0)));
+        assert_eq!(firings[1].at, (4.0 * 1024.0 + 512.0, 6.0 * 768.0 + 384.0), "E7 is its cell's centre");
+    }
+
     #[test]
     fn the_player_has_its_lever_and_none_of_the_commanders() {
         let player: Vec<String> = tool_list().as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap().to_string()).collect();
-        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "produce", "transfer", "remove", "say", "signal", "surrender", "orders", "wait", "note"]);
+        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "produce", "transfer", "remove", "fire", "say", "signal", "surrender", "orders", "wait", "note"]);
         for tool in batchable() {
             assert!(player.contains(&tool.to_string()));
         }

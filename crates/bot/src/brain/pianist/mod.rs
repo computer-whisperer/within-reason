@@ -16,6 +16,7 @@ mod lists;
 pub(crate) use lists::step_id;
 pub(super) mod picture;
 mod remove;
+mod fire;
 #[cfg(test)]
 pub(crate) mod fixtures;
 mod transfer;
@@ -810,6 +811,7 @@ impl Brain {
                 self.take_transfers(tick, commands, side);
             }
             self.take_removals(tick, commands, &shared);
+            self.take_firings(tick, commands, &shared);
             self.take_transfers(tick, commands, &shared);
         }
         if tick.frame < FIRST_ORDER_FRAME {

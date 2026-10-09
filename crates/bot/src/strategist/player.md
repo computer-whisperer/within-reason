@@ -195,6 +195,13 @@ so in its `yard` entry, naming the buildings in the lane (`armsolar_31002`); `re
 their metal back, `destruct` none. Every unit blows up when it dies or self-destructs, the commander hardest of all:
 the answer names the blast and what of ours stands in it, and refuses a destruct that would kill something of ours
 unless you accept the loss. The `units` glossary states each type's blasts.
+`fire` sends a nuclear silo's ready missile at a place you give in coordinates or as a grid cell: the silo launches
+about nine seconds after the order and the warhead lands thirteen seconds later, 12,500 damage at the point and
+nothing 640 away, so aim at the point itself, not the cell. A silo of ours fills itself: the game queues ten missiles
+the moment it stands and keeps it at ten, each drawing about 1,042 energy a second for its two minutes, and the
+picture's `stockpilers` entry says what is ready and what is stockpiling. An anti-nuke of his takes any missile aimed
+within 2,000 of it once it has an interceptor (90 seconds after it stands); the enemy's buildings by place name his
+anti-nukes with that coverage.
 People: in a game with people, what they say in the chat comes in your report, each line with the name of who said
 it and whether that person plays on our side, plays against us or is watching, and `say` answers them (short lines,
 to everyone). The map's `people` entry lists everyone in the game by name. An AI has no chat of its own: what you

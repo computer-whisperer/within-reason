@@ -103,7 +103,7 @@ mod tests {
             energy_storage: 0.0, sonar_range: 0.0, hits_submerged: false, water_only: false, radar_range: 0.0,
             converter: None, weapon_count: 1, build_options: Vec::new(), move_class: None, footprint: (3, 3),
             death_blast: None, self_destruct_blast: None, self_destruct_seconds: 0.0, reach: 700.0, reload: 7.0,
-            blast_radius: 150.0, stockpile_seconds: 0.0,
+            blast_radius: 150.0, stockpile_seconds: 0.0, stockpile_energy: 0.0, coverage: 0.0,
         };
         let mut wire = Vec::new();
         write_frame(&mut wire, &fatboy).unwrap();

@@ -71,6 +71,10 @@ impl Brain {
             // The yard, but no farther from the builder than its reach: the commander built the lab at its feet in
             // both experienced players' replays and never took a step for it (rush-2-ab: ours walked 280 for it).
             d if self.world.is_factory_def(d) => Plan::Near(d, self.beside_builder(builder, self.forward_of_home(LAB_YARD), own, LAB_CLEARANCE, LAB_SPOT_CLEARANCE)),
+            // A stockpiler (a nuclear silo, an anti-nuke) is armed but reaches the whole map: it goes to the back field
+            // with the generators, not to the turret line (the user, 2026-10-09: "putting it in the back field for now";
+            // docs/design/2026-10-09-late-economy.md §10).
+            d if info.is_some_and(|i| i.stockpile_seconds > 0.0) => Plan::Near(d, self.forward_of_home(-BACK_FIELD)),
             d if info.is_some_and(|i| i.speed == 0.0 && i.weapon_count > 0) => Plan::Near(d, self.forward_of_home(TURRET_LINE)),
             d if static_builder && lab.is_some() => Plan::Beside(d, lab.unwrap().pos),
             d if static_builder => Plan::Near(d, self.forward_of_home(-BACK_FIELD)),
@@ -216,4 +220,29 @@ impl Brain {
         self.world.hello.map.spot_radius()
     }
 
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::brain::pianist::fixtures::{brain_of, own};
+    use crate::brain::roster::{Kit, ROSTERS};
+
+    /// A stockpiler is armed but reaches the whole map: a silo and an anti-nuke go to the back field with the
+    /// generators, not to the turret line 650 ahead that an armed building takes (the user, 2026-10-09).
+    #[test]
+    fn a_silo_and_an_anti_nuke_are_placed_in_the_back_field_and_a_turret_on_the_line() {
+        let brain = brain_of(&["armsilo", "armamd", "armllt", "armck"]);
+        let id = UnitDefId(4);
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &ROSTERS[0] };
+        let builder = own(1, 4, Vec3 { x: 1000.0, y: 0.0, z: 1000.0 });
+        let where_ = |def: i32| match brain.place_planned(UnitDefId(def), &builder, std::slice::from_ref(&builder), &kit) {
+            Plan::Near(_, at) | Plan::Beside(_, at) => at,
+            Plan::Extractor(at) => at,
+        };
+        let (back, line) = (brain.forward_of_home(-BACK_FIELD), brain.forward_of_home(TURRET_LINE));
+        assert_eq!(where_(1), back, "the silo");
+        assert_eq!(where_(2), back, "the anti-nuke");
+        assert_eq!(where_(3), line, "the light turret");
+    }
 }

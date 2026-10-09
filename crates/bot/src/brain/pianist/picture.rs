@@ -1309,6 +1309,24 @@ impl Brain {
         };
         let extractors = count(&|u| self.world.is_extractor_def(u.def));
         let constructors = count(&|u| self.world.is_constructor_def(u.def));
+        // The silos and anti-nukes with their rounds: the game fills each to its kept count on its own, a silo's
+        // missile drawing its energy over its stockpile time (K-rules-a-stockpile-fills-itself-to-its-limit); the
+        // player's `fire` tool sends a ready missile at a place.
+        let stockpilers: Vec<String> = own
+            .iter()
+            .filter(|u| !u.being_built)
+            .filter_map(|u| {
+                let d = self.world.def(u.def).filter(|d| d.stockpile_seconds > 0.0)?;
+                let (kind, round) = if d.coverage > 0.0 { (format!("anti-nuke, takes a missile aimed within {:.0} of it", d.coverage), "interceptor") } else { ("nuclear silo".to_string(), "missile") };
+                let piling = if u.stockpile_queued > 0 {
+                    format!(", {} stockpiling (one every {:.0} s at full energy, drawing about {:.0} energy a second while it does)", u.stockpile_queued, d.stockpile_seconds, d.stockpile_energy / d.stockpile_seconds.max(1.0))
+                } else {
+                    String::new()
+                };
+                let fire = if d.coverage == 0.0 && u.stockpile > 0 { "; `fire` sends one at a place" } else { "" };
+                Some(format!("{} at {} ({kind}): {} {round}{} ready{piling}{fire}", self.handle(u), self.place_words(&places, u.pos), u.stockpile, if u.stockpile == 1 { "" } else { "s" }))
+            })
+            .collect();
         let ours = json!({
             "extractors": extractors,
             "labs": count(&|u| self.world.is_factory_def(u.def)),
@@ -1319,6 +1337,7 @@ impl Brain {
             "soldiers": format!("{}: {} worth {:.0} metal ({})", soldier_words(soldiers.len(), army_metal), soldiers.len(), army_metal.max(0.0), self.composition_words(&soldiers)),
             "wrecks": wreck_fields,
             "resurrection_bots": crew_words,
+            "stockpilers": stockpilers,
         });
 
         // The enemy.
@@ -1374,7 +1393,13 @@ impl Brain {
             let key = place_of(&places, *pos).map_or_else(|| format!("{} (no named place)", self.world.grid(*pos)), |p| format!("{p} ({})", self.world.grid(*pos)));
             let entry = remembered.entry(key).or_insert((BTreeMap::new(), frame, 0));
             let unfinished = self.enemy_unfinished.contains(id);
-            *entry.0.entry(if unfinished { format!("{} (being built)", self.name(*def)) } else { self.name(*def).to_string() }).or_default() += 1;
+            // His anti-nuke is named with its coverage, so a place inside it is known to be covered; his silo as a silo.
+            let kind = match self.world.def(*def) {
+                Some(d) if d.coverage > 0.0 => format!("{} (anti-nuke: takes a missile aimed within {:.0} of it)", self.name(*def), d.coverage),
+                Some(d) if d.stockpile_seconds > 0.0 => format!("{} (nuclear silo)", self.name(*def)),
+                _ => self.name(*def).to_string(),
+            };
+            *entry.0.entry(if unfinished { format!("{kind} (being built)") } else { kind }).or_default() += 1;
             entry.1 = entry.1.min(*seen);
             if !unfinished && self.world.def(*def).is_some_and(|d| d.weapon_count > 0 && d.reach > 0.0) {
                 entry.2 += 1;

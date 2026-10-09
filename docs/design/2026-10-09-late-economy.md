@@ -361,3 +361,19 @@ late-game part says what the engine check found and that the hands have no firin
 Not in this: the crew actor (§4.8; list ids and `help` already put several builders on one frame, so the silo does not
 need it), anti-air with the project (the player's `queue`), the enemy's silo (BARb's stood in 14 of 848 long games;
 our own anti-nuke is a `queue` step and fills itself).
+
+**The user's rulings on §10 (2026-10-09 afternoon), and what they built.** "I would build nukes as a player tool for now,
+since the player will want to choose exactly where it goes in coordinates. We can keep the game's default of ten kept for
+now, but eventually we will want the llm player to be able to pause the structure's operation like human players can.
+For placement I agree with putting it in the back field for now." So: (c) the firing is the player's `fire` tool
+(`{"silo": "armsilo_N", "at": [x, z] | "E7"}`; refused when no missile is ready; the pianist sends `Command::FireAt`
+from its next look, `crates/bot/src/brain/pianist/fire.rs`, and says so in the hands' report), not a Jev actor;
+rejected-because: the exact point is the player's and a cell is too coarse for a 640 blast. (d) The kept count stays the
+game's ten; the picture's `stockpilers` entry shows the rounds ready and stockpiling and the draw, so the player sees
+what a silo costs to leave alone; a pause of the structure (the kept count to zero, or the engine's on/off) is a later
+step, the protocol's `Command::Stockpile` being its half. (a) A stockpiler is placed in the back field with the
+generators (`economy.rs` `place_planned`, by `stockpile_seconds > 0`; `docs/code-decisions.md` §6, H-ECO-BASE-LAYOUT
+amended) until the core ring of §4.6. (b) The picture: our silos and anti-nukes with their rounds, his anti-nukes named
+with their 2,000 coverage and his silos as silos (`UnitDefInfo::coverage` and `stockpile_energy` added for it). The
+player's prompt gained the `fire` paragraph and the brief's late-game part says the tool exists. Not built: a check in
+the tool against his known anti-nuke coverage (the picture says it; the player reads it), and a game.

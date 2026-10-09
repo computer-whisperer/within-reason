@@ -261,15 +261,19 @@ pub struct TurnOutputs {
     pub marks: BTreeMap<String, (f32, f32)>,
     pub allowed: BTreeMap<String, Allowance>,
     pub removals: Vec<Removal>,
+    pub firings: Vec<Firing>,
 }
 
 impl TurnOutputs {
     /// This state with the consumed fields cut to what `before` did not have.
     fn delta_from(mut self, before: &TurnOutputs) -> TurnOutputs {
         self.queues.retain(|k, v| before.queues.get(k) != Some(v));
-        // Removals and standing changes are appended during a turn and never reordered: the tail is the turn's.
+        // Removals, firings and standing changes are appended during a turn and never reordered: the tail is the turn's.
         if self.removals.len() >= before.removals.len() {
             self.removals.drain(..before.removals.len());
+        }
+        if self.firings.len() >= before.firings.len() {
+            self.firings.drain(..before.firings.len());
         }
         self
     }
@@ -370,6 +374,18 @@ pub struct UnitCard {
     /// (radius, damage) of its self-destruct; None for none.
     pub self_destruct: Option<(f32, f32)>,
     pub self_destruct_seconds: f32,
+    /// Rounds ready and stockpiling in a silo or an anti-nuke, and the seconds a round takes; 0 for every other unit.
+    pub stockpile: i32,
+    pub stockpile_queued: i32,
+    pub stockpile_seconds: f32,
+}
+
+/// A missile the player fires (`fire` tool): the silo by its handle, at a place in map coordinates. The pianist sends
+/// it as `Command::FireAt` on its next look (`crates/bot/src/brain/pianist/fire.rs`).
+#[derive(Clone, Debug)]
+pub struct Firing {
+    pub silo: String,
+    pub at: (f32, f32),
 }
 
 /// What the player wants removed (`remove` tool): taken apart by a builder (most of the metal comes back) or blown up.
@@ -447,6 +463,8 @@ pub struct Shared {
     pub blasts: Mutex<BTreeMap<String, (Option<(f32, f32)>, Option<(f32, f32)>, f32)>>,
     /// The `remove` tool's orders, taken by the pianist.
     pub removals: Mutex<Vec<Removal>>,
+    /// The `fire` tool's orders, taken by the seat whose silo it is.
+    pub firings: Mutex<Vec<Firing>>,
     /// The `transfer` tool's orders, taken by the seat that owns what is sent.
     pub transfers: Mutex<Vec<Transfer>>,
     pub wake: Mutex<Wake>,
@@ -652,6 +670,7 @@ impl Shared {
             marks: self.marks.lock().unwrap().clone(),
             allowed: self.allowed.lock().unwrap().clone(),
             removals: self.removals.lock().unwrap().clone(),
+            firings: self.firings.lock().unwrap().clone(),
         }
     }
 
@@ -663,6 +682,7 @@ impl Shared {
         *self.marks.lock().unwrap() = o.marks;
         *self.allowed.lock().unwrap() = o.allowed;
         *self.removals.lock().unwrap() = o.removals;
+        *self.firings.lock().unwrap() = o.firings;
     }
 
     /// Brain side, realtime: ask for a turn and go on; the game does not wait (the user, 2026-09-22: "the main
@@ -692,6 +712,7 @@ impl Shared {
                 *self.allowed.lock().unwrap() = o.allowed;
                 self.queues.lock().unwrap().extend(o.queues);
                 self.removals.lock().unwrap().extend(o.removals);
+                self.firings.lock().unwrap().extend(o.firings);
                 false
             }
             waiting => {

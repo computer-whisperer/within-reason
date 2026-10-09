@@ -102,8 +102,8 @@ frontier's 15:30 to 16:50 under the standard tax says the order exists, on paper
 medium and against people the window is far longer, and with several seats the question is which seat has no
 anti-nuke. In the engine the missile goes nine seconds after the order and lands thirteen seconds later, and an
 anti-nuke with an interceptor ready within 2,000 of the target takes it (the check of 2026-10-09). No game of ours has
-built a silo. **Your hands have today no move to fire a silo and none to set its kept count, and the picture does not
-yet show its rounds**: a silo built now is 8,100 metal and 1,042 energy a second that does nothing until those exist;
-and a silo listed without a place is sited on the turret line 650 ahead of home, so name its place.
+built a silo. The `fire` tool sends a ready missile at a place in coordinates; the kept count is the game's ten for
+now (a silo at its limit is a 1,042 energy a second draw until it holds ten), and a silo or anti-nuke listed without a
+place goes to the back field at home with the generators.
 
 **What players said** on the late game is under "What players said", on tier 2.

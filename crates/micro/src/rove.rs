@@ -441,6 +441,8 @@ mod tests {
             reload: 0.0,
             blast_radius: 0.0,
             stockpile_seconds: 0.0,
+            stockpile_energy: 0.0,
+            coverage: 0.0,
         }
     }
 

@@ -91,8 +91,9 @@ The hands' layers (H-HANDS-LAYERS) are each a switch; which are on is set at lau
 ## 6. Where a building goes, and when the player is woken
 
 Placement (`B/economy.rs`, `B/yards.rs`, `P/execute.rs`; H-ECO-BASE-LAYOUT, H-ECO-YARD-LANE, H-HANDS-DEFENCE-FORWARD): a
-factory 350 ahead of home, an armed building on a line 650 ahead, generators in the back field, anything else beside
-the builder turned in 45° steps until clear; factory exit lanes 320 deep kept free; a defence at a named place 120
+factory 350 ahead of home, an armed building on a line 650 ahead, generators in the back field, a stockpiler (a
+nuclear silo, an anti-nuke: armed, but it reaches the whole map) in the back field too (the user, 2026-10-09), anything
+else beside the builder turned in 45° steps until clear; factory exit lanes 320 deep kept free; a defence at a named place 120
 toward his base; an extractor inside its patch nearest the builder; another builder's unstarted build kept out of
 every site search by the two footprints (2026-10-08, H-HANDS-REFUSED).
 

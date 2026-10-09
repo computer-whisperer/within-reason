@@ -261,6 +261,14 @@ pub struct UnitDefInfo {
     /// power touches it (K-rules-a-stockpile-takes-no-build-power).
     #[serde(default)]
     pub stockpile_seconds: f32,
+    /// Energy a round of its stockpiled weapon costs (125,000 for Armada's missile, 7,500 for an interceptor); 0 as above.
+    /// Over `stockpile_seconds` it is the draw a stockpiling silo puts on the economy (1,042 a second).
+    #[serde(default)]
+    pub stockpile_energy: f32,
+    /// An interceptor's coverage: a missile aimed within this of an anti-nuke is taken by it (2,000 in BAR); 0 for a unit
+    /// with no interceptor, and in records and shims from before 2026-10-09.
+    #[serde(default)]
+    pub coverage: f32,
 }
 
 /// An explosion: full `damage` at its centre, falling to nothing at `radius` elmos.

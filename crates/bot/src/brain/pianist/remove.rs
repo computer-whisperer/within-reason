@@ -30,6 +30,9 @@ impl Brain {
                     metal: def.map_or(0.0, |d| d.metal_cost),
                     self_destruct: blast(def.and_then(|d| d.self_destruct_blast)),
                     self_destruct_seconds: def.map_or(0.0, |d| d.self_destruct_seconds),
+                    stockpile: u.stockpile,
+                    stockpile_queued: u.stockpile_queued,
+                    stockpile_seconds: def.map_or(0.0, |d| d.stockpile_seconds),
                 }
             })
             .collect();

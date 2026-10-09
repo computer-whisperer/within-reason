@@ -87,8 +87,12 @@ option and down with the right-mouse one: the game's "Stockpile control" gadget 
 unit file's limit on its own from the moment it stands and reads a stockpile order as a step of that kept count, so
 there is nothing to order a round with (K-rules-a-stockpile-fills-itself-to-its-limit). `OwnUnit` carries `stockpile`
 and `stockpile_queued` (asked of the engine only for types with a stockpiled weapon) and `UnitDefInfo`
-`stockpile_seconds` (120 for Armada's silo, 90 for an anti-nuke; 0 for everything else). The record writes a `round`
-event when a count rises (`docs/harness/record-format.md`).
+`stockpile_seconds` (120 for Armada's silo, 90 for an anti-nuke; 0 for everything else), `stockpile_energy` (the round's
+cost: over the seconds, the draw) and `coverage` (an interceptor's: 2,000). The record writes a `round` event when a
+count rises (`docs/harness/record-format.md`). The player fires with the `fire` tool (a silo's handle and a place in
+coordinates or a grid cell; the user's ruling of 2026-10-09: the player chooses the exact place), carried out by the
+pianist as `remove` is (`crates/bot/src/brain/pianist/fire.rs`); the picture lists our silos and anti-nukes with their
+rounds and names his anti-nukes with their coverage.
 
 ### The banner (2026-09-20)
 The game names every AI at random (`ai_namer.lua`: donor and contributor names) and takes nothing from the AI, so at

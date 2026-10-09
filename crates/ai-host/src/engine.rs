@@ -316,6 +316,7 @@ impl Engine {
         call!(self, UnitDef_getBuildOptions(id, options.as_mut_ptr(), option_count));
         let (reach, reload, blast_radius) = self.longest_weapon(id);
         let water_weapons = self.water_weapons(id);
+        let stockpile = self.stockpile(id);
         UnitDefInfo {
             id: UnitDefId(id),
             name: self.string(call!(self, UnitDef_getName(id))),
@@ -348,18 +349,33 @@ impl Engine {
             reach,
             reload,
             blast_radius,
-            stockpile_seconds: self.stockpile_seconds(id),
+            stockpile_seconds: stockpile.0,
+            stockpile_energy: stockpile.1,
+            coverage: self.coverage(id),
         }
     }
 
-    /// Seconds a round of the type's stockpiled weapon takes; 0 for a type that stockpiles nothing. The engine keeps
-    /// `stockpileTime` in frames (`WeaponDef.cpp`: the file's seconds times `GAME_SPEED`).
-    fn stockpile_seconds(&self, id: c_int) -> f32 {
+    /// Seconds a round of the type's stockpiled weapon takes and the energy it costs; (0, 0) for a type that stockpiles
+    /// nothing. The engine keeps `stockpileTime` in frames (`WeaponDef.cpp`: the file's seconds times `GAME_SPEED`).
+    fn stockpile(&self, id: c_int) -> (f32, f32) {
         let weapon = call!(self, UnitDef_getStockpileDef(id));
         if weapon < 0 {
-            return 0.0;
+            return (0.0, 0.0);
         }
-        call!(self, WeaponDef_getStockpileTime(weapon)) / 30.0
+        (call!(self, WeaponDef_getStockpileTime(weapon)) / 30.0, call!(self, WeaponDef_getCost(weapon, self.energy)))
+    }
+
+    /// The coverage of the type's interceptor weapon (an anti-nuke takes a missile aimed within it); 0 without one.
+    fn coverage(&self, id: c_int) -> f32 {
+        let mounts = call!(self, UnitDef_getWeaponMounts(id)).max(0);
+        let mut coverage = 0.0f32;
+        for mount in 0..mounts {
+            let weapon = call!(self, UnitDef_WeaponMount_getWeaponDef(id, mount));
+            if weapon >= 0 && call!(self, WeaponDef_getInterceptor(weapon)) != 0 {
+                coverage = coverage.max(call!(self, WeaponDef_getCoverageRange(weapon)));
+            }
+        }
+        coverage
     }
 
     /// Whether the type stockpiles rounds, remembered per type.

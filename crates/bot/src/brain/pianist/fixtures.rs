@@ -24,7 +24,10 @@ pub(crate) fn brain_of(names: &[&str]) -> Brain {
                 speed: u.speed,
                 build_speed: 0.0,
                 blast_radius: 0.0,
-                stockpile_seconds: 0.0,
+                // The stockpilers by name: the fight table carries no stockpile (the silos and the anti-nukes).
+                stockpile_seconds: match *name { "armsilo" => 120.0, "corsilo" => 180.0, "armamd" | "corfmd" => 90.0, _ => 0.0 },
+                stockpile_energy: match *name { "armsilo" => 125_000.0, "corsilo" => 187_500.0, "armamd" | "corfmd" => 7_500.0, _ => 0.0 },
+                coverage: match *name { "armamd" | "corfmd" => 2_000.0, _ => 0.0 },
                 build_time: 1.0,
                 build_distance: 0.0,
                 extracts_metal: 0.0,
