@@ -2101,3 +2101,28 @@ among its givens; the same words appended to the packet read 0.36-0.43, and insi
 **Evidence.** `run/group_shape.py` on glitters-8v8-hard-1, same-opus-2, going-2 and kept-1, 2026-10-05 (`docs/design/2026-10-04-fronts-parties-and-lanes.md` §3). The body there is an estimate: the log gives how many members are joining, not which.
 **Status.** built 2026-10-05 as H-HANDS-STRAGGLERS (layer `stragglers`). Weakened the same day: the picture's own flag was on for 44 to 94% of large groups' entries in five games without the layer, not 84 to 100% (the estimate guesses the joiners), and 60% in stragglers-1 with it: not shown to help.
 **Would be wrong if.** With the layer on, `strung_out` still holds for most of a large group's seconds, or groups are sent into fights their stragglers were needed for.
+
+### K-bot-the-first-ten-seconds-rebuild-the-map-sheet-every-tick
+**Claim.** With a strategist, the bot rebuilds the whole map description on every think tick for the game's first ten
+seconds (`publish_briefing`, `tick.frame <= TICK_FRAMES_HINT`), twice when there is a side (the seat's map and the side's),
+and each rebuild runs the map sheet: a full-map route field (a Dijkstra, about 12.5 ms on All That Glitters) for each of
+seven movement classes from our start and from every place his start may be. A 1v1 pays 28 fields a tick (350 ms, 70% of
+the tick thread); an 8v8 pays 126 (1.6 s alone, 3.7 to 5.4 s with eight seats and the eight spot-field threads sharing the
+machine). In lockstep the engine waits and nothing is lost but wall time; in realtime the game runs on: the 8v8 seats
+ticked at 0, 4, 9.4 and 13.8 s, 115 to 159 frames late, while the player's opening turn (7.9 to 9.9 s of wall) ran in game
+time too, so the first extractor orders went out at 9.5 to 14 s and the first extractors stood at 14 s. In a game with
+people the lobby's countdown absorbs the opening turn, but the early ticks still run 0.6 to 0.8 s and 15 to 22 frames
+late (human-29, human-30 on Comet Catcher). Beside it, the spot fields (152 spots x 9 classes) hold one core per seat for
+18 s after the start.
+**Status.** measured (2026-10-10): the user saw the first extractors at ten seconds in glitters-8v8-late-1's replay; the
+records' `ms` (decide time) and `late` per sample for the 8v8, kept-1, nuke-2-hard (lockstep), human-29/30, and three
+one-minute diagnostics (start-diag-player, start-diag-noplayer, start-diag-perf); `perf record` on start-diag-perf's bot:
+93% of samples in `terrain::Field::from_costs`, the tick thread 73% in it for its first 8.5 s and idle after; the code in
+`crates/bot/src/brain/briefing.rs` (`publish_briefing`, `map_description`, `map_sheet`) and `crates/terrain/src/sheet.rs`.
+**Would be wrong if.** The tick thread's Dijkstra samples came from `resurvey_enemy` (the only other field built on the
+tick thread after the survey) rather than the sheet: the stacks did not survive the release build, so the attribution is
+by elimination and by the 350 ms matching 28 fields; a game with the sheet built once would settle it.
+**Used by.** (none yet) — proposals for the user's word: build the map description once and again only when a start or a
+base guess changes (the sheet depends on starts alone); in the arena's realtime mode hold the game until the opening
+turns end, as lockstep does and as a lobby's countdown does; the spot fields are a core per seat for 18 s and could be
+built before the game or lazily.
