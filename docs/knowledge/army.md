@@ -62,7 +62,7 @@ itself, in the middle of the maze.
 ### K-army-dead-waves-are-resurrected
 **Claim.** BARb easy builds resurrection bots (armrectr / cornecro) and raises our dead attackers in its half; the units
 that finally kill our base are partly our own.
-**Status.** supported (2026-09-19) — inferred from unit names, not from watching a resurrection; measured 2026-10-09 in glitters-8v8-late-1 against eight BARb hard_aggressive, from the truth file: 286 units of our faction appeared on his side over the game, none with an id of ours (a raised unit is a new unit), the first Blitz at 5:06 after his first Lazarus stood at 3:18; 142 standing at 28:00 beside 247 Lazarus (72 Stouts, 33 Blitzes, 11 Whistlers, 8 LLTs, 7 constructors, 4 Janus, 2 Bulls, and a commander of ours raised at 27:44), a quarter of his army; 188 of the 286 first stood in rows 3-4 of the map, where our soldiers died from 8:00 (K-team-eight-seats-lose-to-eight-barbs-on-one-curve). The seats' reports named the wrecks ("wrecks worth 3,219 metal lie where no enemy is in sight ... constructors take them apart") and the commander ordered reclaim at 8:20; he got them
+**Status.** supported (2026-09-19) — inferred from unit names, not from watching a resurrection; measured 2026-10-09 in glitters-8v8-late-1 against eight BARb hard_aggressive, from the truth file: 286 units of our faction appeared on his side over the game, none with an id of ours (a raised unit is a new unit), the first Blitz at 5:06 after his first Lazarus stood at 3:18; 142 standing at 28:00 beside 247 Lazarus (72 Stouts, 33 Blitzes, 11 Whistlers, 8 LLTs, 7 constructors, 4 Janus, 2 Bulls, and a commander of ours raised at 27:44), a quarter of his army; 188 of the 286 first stood in rows 3-4 of the map, where our soldiers died from 8:00 (K-team-eight-seats-lose-to-eight-barbs-on-one-curve). glitters-8v8-opus-1 (2026-10-10, Opus seats, undecided at 30:00): 101 raised over the game, 27 standing at 30:00 beside 78 Lazarus (his first stood 3:38); fewer dead of ours in his reach, since the fights were in his half to 16:00 and under our turrets after. The seats' reports named the wrecks ("wrecks worth 3,219 metal lie where no enemy is in sight ... constructors take them apart") and the commander ordered reclaim at 8:20; he got them
 **Evidence.** nw-layout fight ledgers: in all 4 losses the enemy fielded units of OUR faction (7-42 of them killed by us,
 2-49 of our losses caused by them); in the 3 wins and the timeout, none. `killed armrectr`, `killed cornecro` appear.
 **Would be wrong if.** BARb could build both factions' units by some other route (capture, a shared lab).
@@ -696,7 +696,13 @@ at 8:00 (67 to 70 extractors against 59 to 67, 81 to 110 armed mobile units agai
 they fall (K-army-dead-waves-are-resurrected).
 **Status.** observed (2026-10-04 to 2026-10-09), three games: glitters-8v8-hard-1 (timeout 30:00 as lost; 9 layers),
 glitters-8v8-kept-1 (lost 29:00; 11 layers), glitters-8v8-late-1 (surrendered 28:15; 12 layers, the build after the
-late-economy arc).
+late-economy arc). Broken on 2026-10-10 by glitters-8v8-opus-1, which changed two things at once: Opus 5.5 medium in the
+eight seats and a 21 s start slot (the start fixes, 8c770ab). Undecided at 30:00 with all sixteen commanders alive;
+extractors 75/74/67/57/47 against his 65/67/73/81/94 from 12:00 (ours advanced from 16:00: income 316 at 30:00 against 195
+at 8:00), armed 112/114/130/161/186 against 164/203/216/242/218, 258 against 219 at 30:00; his army never passed twice
+ours. The fights were in his half from 8:00 to 16:00 (258 of our 330 losses there), the commander's four lanes of two seats
+from 0:20 and two bodies by transfer at 10:20, and in ours from 16:00 after its HOLD at 14:50; losses 1,057 to 846.
+The claim as written is Sonnet seats' with a 1.3 s start; which of the two changes broke it is not separated.
 **Evidence.** The ledger's three rows; `run/team_read.py` on the three directories (extractors and armed mobile units of
 both sides every four minutes from the records and the truth file). late-1: extractors 70/65/53/43/35/18 against
 67/73/77/85/101/114 from 8:00 every four minutes, armed units 98/128/114/131/113/110 against 92/185/241/378/418/531;
@@ -706,9 +712,11 @@ in late-1 by map rows: rows 3-4 and 5-6 from 8:00, rows 1-2 from 20:00, none in 
 notes in late-1 (24:55, 28:15) name the cause: the 2 to 2.5x army lead at 5:00-10:00 never spent in his half, the bodies
 falling back to their own spots and fighting one at a time, eight BARbs out-producing eight seats of about 15 income.
 **Would be wrong if.** A game with the bodies in his half by 8:00 ended the same way (then the curve is production, not
-position); or a 1v1 on this map against hard_aggressive showed the same curve (then it is the map's).
+position): opus-1 had them there and did not end the same way, but with the seats' model changed too; or a 1v1 on this
+map against hard_aggressive showed the same curve (then it is the map's).
 **Used by.** (none yet) — the lever is the commander's direction, not the hands: one army under one player from the first
-minutes, in his half; and a tier-2 seat whose plant makes soldiers rather than constructors for allies.
+minutes, in his half; and a tier-2 seat whose plant makes soldiers rather than constructors for allies. To separate the
+two changes of opus-1: a Sonnet-seat 8v8 on the same build (the start slot alone), or opus-1 again.
 
 ### K-army-the-pros-body-ceiling-is-a-dozen
 **Claim.** In the experienced players' Comet Catcher duels (40 games, OS 40+, `run/replays/composition.py`) the

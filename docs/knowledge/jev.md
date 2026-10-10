@@ -2123,7 +2123,10 @@ Settled by the fix (start-delay-1, 2026-10-10): with the map built once, the fir
 one build) and every think tick after it 2.4 to 3.4 ms from f=30, where the same game took 320 to 350 ms a tick to ten
 seconds; so the samples were the sheet's, not `resurvey_enemy`'s.
 **Would be wrong if.** An 8v8 on the new build still ticked seconds late in its first ten seconds (the eight spot-field
-threads, a core each for 18 s, are untouched and would then be the next cause).
+threads, a core each for 18 s, are untouched and would then be the next cause). Measured in glitters-8v8-opus-1
+(2026-10-10, `--start-delay 20`): the first decide 1.8 to 2.3 s a seat (eight surveys at once), then 0.1 to 11 ms a tick;
+the eight opening turns (Opus medium) 16.3 to 21.9 s against a 21 s slot; the first extractor placed at 2.1 to 2.6 s and
+standing at 9.1 to 9.8 s, where late-1's went down at about 10 s. It holds.
 **Used by.** Built 2026-10-10 on the user's word ("Agreed with both proposals"): (1) `publish_map` in
 `crates/bot/src/brain/briefing.rs` builds the map description at the survey (`adopt_faction`) and again only when his
 start's guess moves enough to rebuild the enemy field (`resurvey_enemy`), the two moments its inputs change; the
