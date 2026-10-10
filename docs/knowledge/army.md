@@ -62,7 +62,7 @@ itself, in the middle of the maze.
 ### K-army-dead-waves-are-resurrected
 **Claim.** BARb easy builds resurrection bots (armrectr / cornecro) and raises our dead attackers in its half; the units
 that finally kill our base are partly our own.
-**Status.** supported (2026-09-19) — inferred from unit names, not from watching a resurrection
+**Status.** supported (2026-09-19) — inferred from unit names, not from watching a resurrection; measured 2026-10-09 in glitters-8v8-late-1 against eight BARb hard_aggressive, from the truth file: 286 units of our faction appeared on his side over the game, none with an id of ours (a raised unit is a new unit), the first Blitz at 5:06 after his first Lazarus stood at 3:18; 142 standing at 28:00 beside 247 Lazarus (72 Stouts, 33 Blitzes, 11 Whistlers, 8 LLTs, 7 constructors, 4 Janus, 2 Bulls, and a commander of ours raised at 27:44), a quarter of his army; 188 of the 286 first stood in rows 3-4 of the map, where our soldiers died from 8:00 (K-team-eight-seats-lose-to-eight-barbs-on-one-curve). The seats' reports named the wrecks ("wrecks worth 3,219 metal lie where no enemy is in sight ... constructors take them apart") and the commander ordered reclaim at 8:20; he got them
 **Evidence.** nw-layout fight ledgers: in all 4 losses the enemy fielded units of OUR faction (7-42 of them killed by us,
 2-49 of our losses caused by them); in the 3 wins and the timeout, none. `killed armrectr`, `killed cornecro` appear.
 **Would be wrong if.** BARb could build both factions' units by some other route (capture, a shared lab).
@@ -686,6 +686,29 @@ normal"); measured on one game: shipyards by 1:06 and hover platforms by 3:01 on
 **Would be wrong if.** A seat without its own hover platform could not get hover constructors in time by transfer, or
 construction ships could not take the under-water spots the hands offer them.
 **Used by.** the brief's water-map paragraph (2026-09-28).
+
+### K-team-eight-seats-lose-to-eight-barbs-on-one-curve
+**Claim.** Eight seats of ours (a Sonnet 5.5 player a seat under an Opus 5.5 commander, Jev as the hands) against eight
+BARb hard_aggressive on All That Glitters lose at 28 to 30 minutes on one curve, whatever the hands' layers: level with him
+at 8:00 (67 to 70 extractors against 59 to 67, 81 to 110 armed mobile units against 89 to 94), then his army doubles by
+12:00 and triples by 16:00 while ours stands still, our extractors fall from 12:00, and the seats die one at a time from
+22:00. From 8:00 every fight is in our half: the early lead is never taken into his, and his Lazarus raise our dead where
+they fall (K-army-dead-waves-are-resurrected).
+**Status.** observed (2026-10-04 to 2026-10-09), three games: glitters-8v8-hard-1 (timeout 30:00 as lost; 9 layers),
+glitters-8v8-kept-1 (lost 29:00; 11 layers), glitters-8v8-late-1 (surrendered 28:15; 12 layers, the build after the
+late-economy arc).
+**Evidence.** The ledger's three rows; `run/team_read.py` on the three directories (extractors and armed mobile units of
+both sides every four minutes from the records and the truth file). late-1: extractors 70/65/53/43/35/18 against
+67/73/77/85/101/114 from 8:00 every four minutes, armed units 98/128/114/131/113/110 against 92/185/241/378/418/531;
+kept-1: 67/70/64/53/37/13 against 61/64/71/83/100/116, 110/129/185/172/193/118 against 89/168/219/244/375/477; hard-1:
+68/57/51/43/29/20 against 59/76/80/93/103/111, 81/119/156/192/235/159 against 94/247/303/379/359/419. Our soldiers' deaths
+in late-1 by map rows: rows 3-4 and 5-6 from 8:00, rows 1-2 from 20:00, none in rows 7-8 after 8:00. The commander's own
+notes in late-1 (24:55, 28:15) name the cause: the 2 to 2.5x army lead at 5:00-10:00 never spent in his half, the bodies
+falling back to their own spots and fighting one at a time, eight BARbs out-producing eight seats of about 15 income.
+**Would be wrong if.** A game with the bodies in his half by 8:00 ended the same way (then the curve is production, not
+position); or a 1v1 on this map against hard_aggressive showed the same curve (then it is the map's).
+**Used by.** (none yet) — the lever is the commander's direction, not the hands: one army under one player from the first
+minutes, in his half; and a tier-2 seat whose plant makes soldiers rather than constructors for allies.
 
 ### K-army-the-pros-body-ceiling-is-a-dozen
 **Claim.** In the experienced players' Comet Catcher duels (40 games, OS 40+, `run/replays/composition.py`) the
