@@ -33,6 +33,8 @@
 //!              [--player-model ID] [--brief standard|experience] [--objective TEXT]   (the session's model instead of the role's usual one, e.g. claude-opus-5)
 //!              [--pianist]      (Jev plays every unit from a prose packet; the flagship plays no other way, so it is required unless --our-ai names another bot)
 //!              [--player]       (with --pianist: an Opus player writes the packet; turns hold the game still unless --realtime)
+//!              [--start-delay S]   (the engine's countdown before frame 0 once everyone has loaded, the lobby's placing phase: the seats' opening turns run
+//!                                  in it instead of in game time; default 15 under --realtime, where nothing holds the game, 0 in lockstep, which holds at the first tick)
 // The batch's settings are one `json!` object, past the default limit of its macro's recursion.
 #![recursion_limit = "256"]
 
@@ -61,6 +63,9 @@ const BASE_PORT: u16 = 9100;
 const FLAGSHIP_AI: &str = "WReason:0.1";
 /// Backstop for a match whose game clock stops advancing.
 const STALL_ALLOWANCE: Duration = Duration::from_secs(120);
+/// The realtime start slot: a Sonnet seat's opening turn took 7.9 to 9.9 s in the 8v8s, an Opus medium player's 14.6 s
+/// (opening-smoke-2-realtime); people's lobbies gave 18 and 77 s (human-30, human-29).
+const REALTIME_START_DELAY: u32 = 15;
 
 struct Options {
     matches: usize,
@@ -69,6 +74,11 @@ struct Options {
     profile: String,
     /// Speed 1, no lockstep, the bot in `WITHIN_REASON_REALTIME`: the game never waits for a turn or a Jev answer.
     realtime: bool,
+    /// Seconds the engine counts down before frame 0 once every seat has loaded (`GameStartDelay`), the arena's stand-in
+    /// for a lobby's placing phase: the opening turns asked for at Hello run in it. `REALTIME_START_DELAY` under
+    /// `--realtime` (glitters-8v8-late-1 gave them 1.3 s and the first orders landed at 0:10 to 0:14), 0 in lockstep,
+    /// which holds the game at its first tick instead; `--start-delay S` sets it.
+    start_delay: u32,
     map: String,
     max_minutes: u32,
     /// `--compress-logs DIR`: compress the hands' logs of a recorded match (or of every match of a batch) and exit.
@@ -214,7 +224,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("{} {}", opponent_name(&options.opponent), options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "jev_budget": options.jev_budget, "swap_corners": options.swap_corners, "our_ai": options.our_ai, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief, "players": options.players.as_deref().unwrap_or("one"), "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "packet_example": options.packet_example, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "our_bonus": options.our_bonus, "enemy_bonus": options.enemy_bonus, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "start_delay": options.start_delay, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "jev_budget": options.jev_budget, "swap_corners": options.swap_corners, "our_ai": options.our_ai, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief, "players": options.players.as_deref().unwrap_or("one"), "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "packet_example": options.packet_example, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "our_bonus": options.our_bonus, "enemy_bonus": options.enemy_bonus, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 
@@ -312,6 +322,7 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         we_are_first: options.corner.map_or(index.is_multiple_of(2), |north_west| north_west != options.swap_corners),
         our_side: options.side.unwrap_or(if (index / 2).is_multiple_of(2) { "Armada" } else { "Cortex" }),
         mirror: options.mirror,
+        start_delay: options.start_delay,
         starts: Vec::new(),
         swap_corners: options.swap_corners,
         ours: options.ours,
@@ -663,12 +674,14 @@ fn print_rule_comparison(batch_dir: &Path, results: &[MatchResult]) {
 }
 
 fn parse_args() -> Options {
+    let mut start_delay: Option<u32> = None;
     let mut options = Options {
         matches: 4,
         parallel: 8,
         speed: 50,
         profile: "easy".into(),
         realtime: false,
+        start_delay: 0,
         map: "Quicksilver Remake 1.24".into(),
         max_minutes: 40,
         compress_logs: None,
@@ -757,6 +770,7 @@ fn parse_args() -> Options {
             "--parallel" => options.parallel = value().parse().unwrap_or_else(|_| usage("--parallel")),
             "--base-port" => options.base_port = value().parse().unwrap_or_else(|_| usage("--base-port")),
             "--speed" => options.speed = value().parse().unwrap_or_else(|_| usage("--speed")),
+            "--start-delay" => start_delay = Some(value().parse().unwrap_or_else(|_| usage("--start-delay takes seconds"))),
             "--jev-budget" => options.jev_budget = value().parse().ok().filter(|n: &f64| *n >= 0.0).unwrap_or_else(|| usage("--jev-budget takes dollars, 0 for no limit")),
             "--max-minutes" => options.max_minutes = value().parse().unwrap_or_else(|_| usage("--max-minutes")),
             "--compress-logs" => options.compress_logs = Some(PathBuf::from(value())),
@@ -838,6 +852,7 @@ fn parse_args() -> Options {
             _ => usage(&format!("unknown argument {flag}")),
         }
     }
+    options.start_delay = start_delay.unwrap_or(if options.realtime { REALTIME_START_DELAY } else { 0 });
     let ally_teams = 1 + if options.free_for_all { options.enemies } else { 1 };
     if options.boxes.rects(&options.map, ally_teams).is_none() {
         usage(&format!("no start boxes for {ally_teams} ally teams on {} with --boxes {:?}: the lobby has none saved for that count, or the layout has no room (--ffa takes at most 3 enemies, with corners)", options.map, options.boxes));
@@ -859,7 +874,7 @@ fn parse_args() -> Options {
 }
 
 fn usage(problem: &str) -> ! {
-    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--jev-budget DOLLARS] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--player-model ID] [--brief standard|experience] [--objective TEXT] [--packet-example] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--our-ai NAME:VERSION] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent NAME:VERSION] [--our-bonus N] [--enemy-bonus N] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N] | arena --compress-logs DIR");
+    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--jev-budget DOLLARS] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--start-delay S] [--player-model ID] [--brief standard|experience] [--objective TEXT] [--packet-example] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--our-ai NAME:VERSION] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent NAME:VERSION] [--our-bonus N] [--enemy-bonus N] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N] | arena --compress-logs DIR");
     std::process::exit(2)
 }
 

@@ -153,6 +153,8 @@ impl Brain {
             routes.from_enemy = Field::from_many(terrain, &routes.passable, &origins);
             routes.passages = routes.from_enemy.as_ref().map(|enemy| terrain::passages(&routes.from_home, enemy)).unwrap_or_default();
             routes.enemy_origins = origins;
+            // The map the player reads names his starts, the passages and whose spots are whose by walk.
+            self.publish_map();
         }
     }
 

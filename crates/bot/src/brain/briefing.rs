@@ -266,12 +266,6 @@ impl Brain {
     pub(super) fn publish_briefing(&mut self, tick: &Tick, kit: &Kit) {
         let Some(shared) = self.strategist.clone() else { return };
         let snapshot = &tick.snapshot;
-        if tick.frame <= super::TICK_FRAMES_HINT {
-            *shared.map.lock().unwrap() = self.map_description();
-            if let Some(side) = shared.side.get() {
-                *side.map.lock().unwrap() = self.map_description();
-            }
-        }
         let count = |def: UnitDefId| snapshot.own_units.iter().filter(|u| u.def == def && !u.being_built).count();
         let soldiers: Vec<&OwnUnit> = snapshot.own_units.iter().filter(|u| !u.being_built && self.is_army(u, kit)).collect();
         if snapshot.own_units.iter().any(|u| !u.being_built && self.his_half(u.pos)) {
@@ -439,6 +433,20 @@ impl Brain {
             movers: hello.unit_defs.iter().filter_map(|d| Some(terrain::sheet::Mover { name: d.name.clone(), speed: d.speed, class: d.move_class? })).collect(),
             starts,
         })
+    }
+
+    /// The `map` tool's answer and the first report's map, for the player's session and the side's: built when our
+    /// start is known (`adopt_faction`, after the survey) and again when his start's guess moves (`resurvey_enemy`),
+    /// the only times its inputs change. It is costly: the sheet prices a route field per movement class per start,
+    /// 28 fields in a 1v1 (350 ms), 126 in an 8v8; built on every think tick for the first ten seconds, it held the
+    /// 8v8 seats' ticks at 4 to 5 s while the opening ran (K-bot-the-first-ten-seconds-rebuild-the-map-sheet-every-tick).
+    pub(super) fn publish_map(&self) {
+        let Some(shared) = &self.strategist else { return };
+        let map = self.map_description();
+        if let Some(side) = shared.side.get() {
+            *side.map.lock().unwrap() = map.clone();
+        }
+        *shared.map.lock().unwrap() = map;
     }
 
     fn map_description(&self) -> serde_json::Value {

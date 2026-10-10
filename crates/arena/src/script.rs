@@ -91,6 +91,9 @@ pub struct MatchSetup<'a> {
     pub mirror: bool,
     /// Start positions chosen before the game (`place.rs`), per team in team order; none means the game's own placement.
     pub starts: Vec<(f32, f32)>,
+    /// The engine's countdown in seconds before frame 0, once every seat has loaded (`GameStartDelay`; the engine's own
+    /// default is 4). The arena's stand-in for a lobby's placing phase, in which the seats' opening turns run.
+    pub start_delay: u32,
 }
 
 /// Units a team may hold, as a lobby game has it (BAR's `maxunits` mod option, default 2000). A script without
@@ -195,7 +198,7 @@ impl MatchSetup<'_> {
 	AutohostPort={autohost_port};
 	MyPlayerName=arena;
 	StartPosType={start_pos_type};
-	GameStartDelay=0;
+	GameStartDelay={start_delay};
 	FixedRNGSeed={seed};
 	NumPlayers=1;
 	NumTeams={teams};
@@ -209,6 +212,7 @@ impl MatchSetup<'_> {
             host_port = self.host_port,
             autohost_port = self.autohost_port,
             seed = self.seed,
+            start_delay = self.start_delay,
             teams = seats.len(),
         )
     }
@@ -221,7 +225,7 @@ mod tests {
     fn setup(ours: usize, allies: usize, enemies: usize, free_for_all: bool, we_are_first: bool) -> MatchSetup<'static> {
         MatchSetup {
             game: "g", map: "m", our_ai: "WReason:0.1", opponent: "BARb:stable", opponent_profile: "medium", opponent_defaults: "", barb_defaults: "", our_bonus: 0, enemy_bonus: 0, opponent_disabled_units: "", host_port: 1, autohost_port: 2, seed: 3,
-            ours, allies, enemies, free_for_all, boxes: Boxes::Corners, we_are_first, swap_corners: false, our_side: "Armada", mirror: false, starts: Vec::new(),
+            ours, allies, enemies, free_for_all, boxes: Boxes::Corners, we_are_first, swap_corners: false, our_side: "Armada", mirror: false, starts: Vec::new(), start_delay: 0,
         }
     }
 

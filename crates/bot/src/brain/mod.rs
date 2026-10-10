@@ -65,8 +65,6 @@ const FRAMES_PER_SECOND: i32 = 30;
 /// Frames between runs of the whole brain (`think`), 2 Hz: the shim's ticks come more often than that, for the
 /// control lane (`micro.rs`), and must divide this (`docs/design/2026-09-20-micro-lane.md`).
 pub(crate) const BRAIN_FRAMES: i32 = 15;
-/// The static map description is published during the first few seconds, once home is known.
-const TICK_FRAMES_HINT: i32 = 10 * FRAMES_PER_SECOND;
 
 pub struct Brain {
     world: World,
@@ -540,6 +538,7 @@ impl Brain {
             if let Some(kit) = self.kit {
                 self.survey(&kit);
             }
+            self.publish_map();
             return;
         }
     }

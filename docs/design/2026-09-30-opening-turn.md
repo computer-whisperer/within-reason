@@ -63,6 +63,9 @@ The fallback when a seat never says Hello: the first turn is asked at a tick as 
   in players 29 and 30). The second turn at 0:10 carried the map with the start and rewrote the packet with places.
 - opening-smoke-2-realtime: the arena has no placing phase, so the turn (14.6 s) ran into the game: the hands waited
   and first played at 0:10 from the list, the plant at 1:15. In a game with people the placing phase is that time.
+  (2026-10-10, after glitters-8v8-late-1's seats first ordered at 0:10 to 0:14: under `--realtime` the arena now
+  writes `GameStartDelay=15` (`--start-delay S`), the engine's countdown after every seat has loaded, and the AIs
+  are created before it, so the turn runs in it as in a lobby. Lockstep keeps 0 and the hold.)
 - opening-smoke-3-two-seats (lockstep): one opening turn naming `commander_t0` and `commander_t1`, each seat
   M M M S S S, the plants at 1:10 and 1:08.
 

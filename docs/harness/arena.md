@@ -31,7 +31,7 @@ the copy in each match dir, 4 MB and the same bytes in every match, is removed o
 | `WorkerThreadCount = 1` | template `springsettings.cfg` | the default 12-thread pool is a net loss even for one match: idle workers spin on futexes (`ThreadPool.cpp:248-266`); per match to 12 game-min, 8 parallel: 25.7 s / 41.8 user / 15.4 sys -> 13.6 s / 16.0 / 0.5 |
 | `UseLuaMemPools = 0`, `TextureMemPoolSize = 256` | same | peak RSS per engine 5.3 GB -> 3.3 GB (64 segfaults, 128 ran); ~7% slower play |
 | archive cache pre-seeded | `run/cache-template/` | skips ~3 s of checksumming per match |
-| `GameStartDelay=0` | start script | skips a 4 s countdown |
+| `GameStartDelay=0` in lockstep | start script | skips a 4 s countdown. Under `--realtime` the arena writes 15 (`--start-delay S`): the countdown is its placing phase, in which the seats' opening turns run (2026-10-10; without it glitters-8v8-late-1's opening turns ran in game time and the first orders landed at 0:10 to 0:14) |
 | quit widget | template `LuaUI/Widgets/arena_quit.lua` | client exits ~2.6 s after game over instead of waiting for BAR's 12 s autoquit |
 | all stock widgets disabled | template `LuaUI/Config/BYAR.lua` | ~5% play time, -170 MB, no GL error noise; regenerate the list when the game adds widgets |
 Verified end to end: 12 matches, 8 parallel, speed 50 now cost 16.5 min user + 0.4 min sys CPU (was 28 + 6.5 for 8 matches)

@@ -2119,10 +2119,17 @@ records' `ms` (decide time) and `late` per sample for the 8v8, kept-1, nuke-2-ha
 one-minute diagnostics (start-diag-player, start-diag-noplayer, start-diag-perf); `perf record` on start-diag-perf's bot:
 93% of samples in `terrain::Field::from_costs`, the tick thread 73% in it for its first 8.5 s and idle after; the code in
 `crates/bot/src/brain/briefing.rs` (`publish_briefing`, `map_description`, `map_sheet`) and `crates/terrain/src/sheet.rs`.
-**Would be wrong if.** The tick thread's Dijkstra samples came from `resurvey_enemy` (the only other field built on the
-tick thread after the survey) rather than the sheet: the stacks did not survive the release build, so the attribution is
-by elimination and by the 350 ms matching 28 fields; a game with the sheet built once would settle it.
-**Used by.** (none yet) — proposals for the user's word: build the map description once and again only when a start or a
-base guess changes (the sheet depends on starts alone); in the arena's realtime mode hold the game until the opening
-turns end, as lockstep does and as a lobby's countdown does; the spot fields are a core per seat for 18 s and could be
-built before the game or lazily.
+Settled by the fix (start-delay-1, 2026-10-10): with the map built once, the first decide takes 493 ms (the survey and the
+one build) and every think tick after it 2.4 to 3.4 ms from f=30, where the same game took 320 to 350 ms a tick to ten
+seconds; so the samples were the sheet's, not `resurvey_enemy`'s.
+**Would be wrong if.** An 8v8 on the new build still ticked seconds late in its first ten seconds (the eight spot-field
+threads, a core each for 18 s, are untouched and would then be the next cause).
+**Used by.** Built 2026-10-10 on the user's word ("Agreed with both proposals"): (1) `publish_map` in
+`crates/bot/src/brain/briefing.rs` builds the map description at the survey (`adopt_faction`) and again only when his
+start's guess moves enough to rebuild the enemy field (`resurvey_enemy`), the two moments its inputs change; the
+ten-second gate and `TICK_FRAMES_HINT` are gone. (2) The arena writes `GameStartDelay=15` under `--realtime`
+(`--start-delay S`; 0 in lockstep, which holds at the first tick): the engine's countdown after every seat has loaded is
+the arena's placing phase, and the AIs are created before it, so the opening turns run in it as in a lobby. start-delay-1:
+15.6 s from the AIs' creation to frame 0, the opening turn (8.4 s) over before it, the first extractor placed at 2.1 s and
+standing at 9.6 s. Not built: the spot fields before the game or lazily; a `forcestart` through the autohost socket when
+every seat's opening turn has ended, so the slot is as long as needed and no longer.
