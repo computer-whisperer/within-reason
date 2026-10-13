@@ -32,6 +32,12 @@ const ENERGY_BUILDERS_PER: usize = 4;
 const PLANTS: usize = 8;
 const TURRETS_A_PLANT: usize = 1;
 const TURRETS_A_PLANT_AT_MOST: usize = 3;
+/// Turrets go to three a plant only once this many plants stand: build power piled on one plant does not spend (its
+/// yard has to clear), and at +50 % income three turrets on the first plant left the store full through minute 5 while
+/// the second plant waited (apex-v022-distilled-comet-sym50-1).
+const TURRETS_TO_THREE_FROM_PLANTS: usize = 3;
+/// A piling metal store asks for build power only with the energy store over this share: the solars first.
+const PILING_ENERGY_STORE: f32 = 0.5;
 /// The plants should be able to spend this share of the metal income on soldiers (D-BUILD-POWER); the rest is buildings.
 const SOLDIERS_SHARE: f32 = 0.85;
 /// Energy income is kept this much over what the soldiers being made draw (D-ENERGY), but nothing is built for the
@@ -55,6 +61,9 @@ const TURRET_REACH: f32 = 330.0;
 /// The factory makes raiders until this frame and tanks with artillery after (D-PRODUCTION).
 const TANKS_FROM: i32 = 8 * MINUTE;
 const SCOUTS_FIRST: usize = 4;
+/// Constructors wanted by the income when that is more than the clock asks: one for every this much metal a second
+/// (at +50 % income the clock's count took the same spots at the same pace with the metal piling up).
+const CONSTRUCTOR_PER_INCOME: f32 = 6.0;
 
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) enum Job {
@@ -196,7 +205,16 @@ impl Distilled {
             if let Some(help) = self.project_help(tick) {
                 return Some(help);
             }
-            return self.free_spot(unit, tick, COMMANDER_WALK).map(Job::Extractor).or_else(assist);
+            // The home spots first: an extractor compounds, a plant can wait the thirty seconds.
+            if let Some(spot) = self.free_spot(unit, tick, COMMANDER_WALK) {
+                return Some(Job::Extractor(spot));
+            }
+            // ...then it raises the build power itself when that is wanted, a plant in a third of a constructor's time
+            // (D-BUILD-POWER; at +50 % income the constructors were on extractors and energy while the store sat full).
+            if let Some(job) = self.build_power_wanted(def, tick) {
+                return Some(job);
+            }
+            return assist();
         }
         if energy {
             let advanced = self.kit.advanced_solar.filter(|d| def.build_options.contains(d));
@@ -211,18 +229,25 @@ impl Distilled {
         if let Some(job) = self.ring_turret_job(tick) {
             return Some(job);
         }
-        // No new plant or turret while a project is going up on a thin bank: its metal is the project's (D-PROJECT).
-        // With metal piling up, several builders add build power at once (distilled-t2-smoke-2: 21,000 banked at
-        // 40:00 with one build-power job at a time).
-        let metal = tick.snapshot.metal;
-        let parallel = if metal.current >= STORE_NEARLY_FULL * metal.storage { usize::MAX } else { (1 + (metal.current / BUILD_POWER_BANK_STEP) as usize).min(BUILD_POWER_BUILDERS) };
-        if (!self.project_under_way() || metal.current >= 0.25 * metal.storage)
-            && self.economy.working_on(|job| matches!(job, Job::Plant | Job::Turret(_) | Job::AdvancedPlant)) < parallel
-            && let Some(job) = self.build_power_job(def, tick)
-        {
+        if let Some(job) = self.build_power_wanted(def, tick) {
             return Some(job);
         }
         self.free_spot(unit, tick, f32::MAX).map(Job::Extractor).or_else(|| self.saturated_job(tick)).or_else(assist)
+    }
+
+    /// D-BUILD-POWER's job for this builder, when one is wanted and not too many builders are on it already. No new
+    /// plant or turret while a project is going up on a thin bank: its metal is the project's (D-PROJECT). With metal
+    /// piling up, several builders add build power at once (distilled-t2-smoke-2: 21,000 banked at 40:00 with one
+    /// build-power job at a time).
+    fn build_power_wanted(&self, builder: &UnitDefInfo, tick: &Tick) -> Option<Job> {
+        let metal = tick.snapshot.metal;
+        let parallel = if metal.current >= STORE_NEARLY_FULL * metal.storage { usize::MAX } else { (1 + (metal.current / BUILD_POWER_BANK_STEP) as usize).min(BUILD_POWER_BUILDERS) };
+        if (self.project_under_way() && metal.current < 0.25 * metal.storage)
+            || self.economy.working_on(|job| matches!(job, Job::Plant | Job::Turret(_) | Job::AdvancedPlant)) >= parallel
+        {
+            return None;
+        }
+        self.build_power_job(builder, tick)
     }
 
     /// The soldier the plants make now.
@@ -253,7 +278,11 @@ impl Distilled {
     pub(crate) fn energy_short(&self, tick: &Tick) -> bool {
         let (metal, energy) = (tick.snapshot.metal, tick.snapshot.energy);
         let soldier = if self.count(self.kit.advanced_plant) > 0 { self.t2_soldier().or_else(|| self.soldier()) } else { self.soldier() };
-        let soldiers_draw = soldier.map_or(0.0, |s| self.can_spend().min(metal.income) * s.energy_cost / s.metal_cost.max(1.0));
+        // What the plants spend is the income, or the whole of their build power while the store feeds them (at +50 %
+        // income the bank fed two plants beyond the income at 3:00 and the energy ran out with the draw read as the
+        // income's; apex-v022-distilled-comet-sym50-2).
+        let spend = if metal.current > 0.25 * metal.storage { self.can_spend() } else { self.can_spend().min(metal.income) };
+        let soldiers_draw = soldier.map_or(0.0, |s| spend * s.energy_cost / s.metal_cost.max(1.0));
         energy.current < 0.3 * energy.storage
             || (energy.income < energy.usage && energy.current < 0.6 * energy.storage)
             || (energy.income < ENERGY_MARGIN * (soldiers_draw + self.project_draw(metal.income)) && energy.current < ENERGY_FULL * energy.storage)
@@ -264,19 +293,30 @@ impl Distilled {
     /// each has one, and with metal piling up turrets to three a plant first (four times the power a metal of a
     /// plant) and a second advanced plant from `SECOND_ADVANCED_PLANT_FROM` of income.
     fn build_power_job(&self, builder: &UnitDefInfo, tick: &Tick) -> Option<Job> {
-        let metal = tick.snapshot.metal;
-        let piling = metal.current > 0.5 * metal.storage;
-        let short = self.can_spend() < SOLDIERS_SHARE * metal.income || piling;
-        if self.frame < BUILD_POWER_FROM || !short {
+        let (metal, energy) = (tick.snapshot.metal, tick.snapshot.energy);
+        // Metal piling up asks for build power only while the energy can follow: at +50 % income the second plant
+        // and its turret at 2:00-3:00 took the energy store from full to nothing and every builder stalled through
+        // minute 4 (apex-v022-distilled-comet-sym50-3); below half an energy store the solars come first (D-ENERGY).
+        let piling = metal.current > 0.5 * metal.storage && energy.current > PILING_ENERGY_STORE * energy.storage;
+        // The clock gates the income test alone: with the store piling up the rule fires as soon as a plant stands
+        // (apex-v022-distilled-comet-sym50-1: at +50 % income the store sat full from 1:30 and nothing was built for
+        // it before 2:30).
+        let short = self.frame >= BUILD_POWER_FROM && self.can_spend() < SOLDIERS_SHARE * metal.income;
+        if !short && !piling {
             return None;
         }
         let plants: Vec<&OwnUnit> = self.finished(self.kit.plant).chain(self.finished(self.kit.advanced_plant)).collect();
+        // Nothing to add power to before the first plant stands.
+        if plants.is_empty() {
+            return None;
+        }
         // A turret is its nearest plant's, wherever the site search put it.
         let nearest = |at: Vec3| plants.iter().min_by(|a, b| a.pos.dist2d(at).total_cmp(&b.pos.dist2d(at))).map(|p| p.id);
         let turrets_at = |plant: &OwnUnit| self.own.values().filter(|u| Some(u.def) == self.kit.turret && nearest(u.pos) == Some(plant.id)).count();
         let room = |plant: &OwnUnit| self.economy.turret_refused.get(&plant.id).is_none_or(|until| self.frame >= *until);
         let fewest = plants.iter().filter(|p| room(p)).map(|p| (turrets_at(p), p.id)).min();
-        let turrets_first = if piling { TURRETS_A_PLANT_AT_MOST } else { TURRETS_A_PLANT };
+        // Plants before turrets while the plants are few (TURRETS_TO_THREE_FROM_PLANTS).
+        let turrets_first = if piling && plants.len() >= TURRETS_TO_THREE_FROM_PLANTS { TURRETS_A_PLANT_AT_MOST } else { TURRETS_A_PLANT };
         let yard_room = self.frame >= self.economy.plant_refused;
         let second_advanced = piling && metal.income >= SECOND_ADVANCED_PLANT_FROM && self.kit.advanced_plant.is_some_and(|d| builder.build_options.contains(&d)) && self.count(self.kit.advanced_plant) == 1 && !self.project_under_way();
         match fewest {
@@ -431,7 +471,9 @@ impl Distilled {
         let kit = &self.kit;
         let constructors = self.count(kit.constructor);
         let minutes = self.frame as f32 / MINUTE as f32;
-        let constructors_wanted = if minutes < 3.0 { 3 } else { ((3.0 + 1.2 * (minutes - 3.0)) as usize).min(14) };
+        let by_clock = if minutes < 3.0 { 3 } else { (3.0 + 1.2 * (minutes - 3.0)) as usize };
+        let by_income = (self.metal_income / CONSTRUCTOR_PER_INCOME) as usize;
+        let constructors_wanted = by_clock.max(by_income).min(14);
         let between = if constructors < 3 { 2 } else { 4 };
         let economy = &mut self.economy;
         economy.made += 1;

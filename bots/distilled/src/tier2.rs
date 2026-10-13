@@ -292,7 +292,7 @@ impl Distilled {
         if swarm {
             return kit.assist;
         }
-        if economy.t2_made % ARTILLERY_EVERY == 0 { kit.t2_artillery.or(kit.t2_tank) } else { kit.t2_tank.or(kit.t2_artillery) }
+        if economy.t2_made.is_multiple_of(ARTILLERY_EVERY) { kit.t2_artillery.or(kit.t2_tank) } else { kit.t2_tank.or(kit.t2_artillery) }
     }
 
     /// A unit of ours begun or finished: the tier-2 milestones go to the engine log, where `run/bot_curves.py` reads

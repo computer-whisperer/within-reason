@@ -174,10 +174,13 @@ impl Distilled {
         if raid {
             return;
         }
-        let base = if self.frame < LATE_FROM { LAUNCH_EARLY } else { LAUNCH_LATE };
+        // The weights scale with the income bonus: at +50 % every side's army is half again as big, and a body
+        // launched at the +0 weight met Apex's 40 soldiers at 10:00 with 24 (apex-v022-distilled-comet-sym50-2).
+        let scale = self.income_multiplier;
+        let base = scale * if self.frame < LATE_FROM { LAUNCH_EARLY } else { LAUNCH_LATE };
         let (repelled, at) = self.army.repelled;
         let remembered = AGAIN * repelled * 0.5f32.powf((self.frame - at) as f32 / FORGET as f32);
-        let needed = if self.army.strike.is_empty() { base.max(remembered) } else { REINFORCE };
+        let needed = if self.army.strike.is_empty() { base.max(remembered) } else { scale * REINFORCE };
         if self.weight_of(&self.army.home_guard) >= needed {
             let guard = std::mem::take(&mut self.army.home_guard);
             self.army.strike.extend(guard);

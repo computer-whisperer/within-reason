@@ -58,6 +58,11 @@ pub(crate) struct Distilled {
     pub enemy_home: Vec3,
     pub frame: i32,
     pub own: BTreeMap<UnitId, OwnUnit>,
+    /// This tick's metal income, for the rules that run without the tick (D-PRODUCTION).
+    pub metal_income: f32,
+    /// The lobby's income bonus for our seat as a multiplier (`Handicap=50` in our `[TEAMn]` of the start script is
+    /// 1.5): what every side's army scales by, so the launch weights scale by it too (D-LAUNCH, 2026-10-13).
+    pub income_multiplier: f32,
     pub economy: economy::Economy,
     pub army: army::Army,
     /// The arms of the rows, from `WITHIN_REASON_DISTILLED`.
@@ -128,6 +133,7 @@ impl Distilled {
         // His start box when the script gives one, else our start mirrored through the map's centre.
         self.enemy_home = self.hello.start_boxes.iter().find(|b| b.ally_team != ours).map_or(Vec3 { x: map.x - self.home.x, y: 0.0, z: map.z - self.home.z }, |b| b.centre());
         self.kit = self.def(commander.def).map(|d| self.kit_of(d)).unwrap_or_default();
+        self.income_multiplier = 1.0 + handicap_percent(&self.hello.script, self.hello.team) / 100.0;
         let kit = &self.kit;
         let missing: Vec<&str> = [("extractor", kit.extractor), ("solar", kit.solar), ("advanced solar", kit.advanced_solar), ("construction turret", kit.turret), ("plant", kit.plant), ("sentry", kit.sentry), ("constructor", kit.constructor), ("scout", kit.scout), ("raider", kit.raider), ("tank", kit.tank), ("artillery", kit.artillery), ("advanced plant", kit.advanced_plant), ("advanced constructor", kit.advanced_constructor), ("tier-2 extractor", kit.moho), ("fusion", kit.fusion), ("tier-2 tank", kit.t2_tank)]
             .iter()
@@ -142,16 +148,45 @@ impl Distilled {
     }
 }
 
+/// The `Handicap` of a team's block in the start script, in percent of income; 0 when it has none.
+fn handicap_percent(script: &str, team: i32) -> f32 {
+    let lower = script.to_ascii_lowercase();
+    let Some(start) = lower.find(&format!("[team{team}]")) else { return 0.0 };
+    let block = &lower[start..];
+    let block = &block[..block.find('}').unwrap_or(block.len())];
+    block
+        .split(';')
+        .filter_map(|field| field.split_once('='))
+        .find(|(key, _)| key.trim().trim_start_matches('{').trim() == "handicap")
+        .and_then(|(_, value)| value.trim().parse::<f32>().ok())
+        .unwrap_or(0.0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::handicap_percent;
+
+    #[test]
+    fn the_handicap_is_read_from_our_team_block() {
+        let script = "[GAME]\n{\n\t[TEAM0] { TeamLeader=0; AllyTeam=0; Side=Armada; Handicap=50; }\n\t[TEAM1] { TeamLeader=0; AllyTeam=1; Side=Cortex; Handicap=-50; }\n\t[TEAM2] { TeamLeader=0; AllyTeam=1; Side=Cortex; }\n}\n";
+        assert_eq!(handicap_percent(script, 0), 50.0);
+        assert_eq!(handicap_percent(script, 1), -50.0);
+        assert_eq!(handicap_percent(script, 2), 0.0);
+        assert_eq!(handicap_percent("", 0), 0.0);
+    }
+}
+
 impl Bot for Distilled {
     fn start(hello: Hello) -> Self {
         let defs = hello.unit_defs.iter().map(|d| (d.id, d.clone())).collect();
         let spots = hello.metal_spots.len();
-        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), economy: economy::Economy::new(spots), army: army::Army::default(), options: tier2::Options::from_env(), started: false }
+        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), metal_income: 0.0, income_multiplier: 1.0, economy: economy::Economy::new(spots), army: army::Army::default(), options: tier2::Options::from_env(), started: false }
     }
 
     fn tick(&mut self, tick: Tick) -> Commands {
         self.frame = tick.frame;
         self.own = tick.snapshot.own_units.iter().map(|u| (u.id, u.clone())).collect();
+        self.metal_income = tick.snapshot.metal.income;
         if !self.started {
             self.start(&tick);
             if !self.started {
