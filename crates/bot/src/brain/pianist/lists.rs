@@ -7,7 +7,9 @@
 //! step while the enemy is still on it (`Pianist::list_is_held`). A bypass, not a decider: nothing in the pass
 //! reads a list beyond the spots its steps name (`docs/design/2026-09-26-one-pass.md` §6).
 
-use bot_protocol::{Command, OwnUnit, Tick, UnitDefId, UnitId};
+use std::collections::HashMap;
+
+use bot_protocol::{Command, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
 use serde_json::json;
 
 use super::super::roster::Kit;
@@ -15,8 +17,6 @@ use super::super::{Brain, FRAMES_PER_SECOND};
 use super::picture::{Picture, clock};
 use super::menu::{Order, Site};
 use super::{Pianist, TagState, Tagged, Task};
-
-
 
 /// A list step's words and its id: a last word beginning with `#` names the building the step is ("armavp
 /// avp_yard #avp1"), so that steps carrying the same id on several builders' lists, or in a list sent again, are
@@ -32,6 +32,41 @@ pub(crate) fn step_id(step: &str) -> (&str, Option<&str>) {
 pub(super) fn timed_assist(step: &str) -> Option<i32> {
     let mut words = step.split_whitespace();
     (words.next() == Some("assist")).then(|| words.next().and_then(|n| n.parse::<i32>().ok())).flatten()
+}
+
+/// The steps of one tick that resolved to a build of one id, in the order they are played: the builder nearest
+/// the site is moved to the front of its id's steps, so that it starts the building and the others, played after
+/// it, help it (`same_tick_help`). A `queue` call lands its lists on one frame and a builder on a filler takes
+/// its step at once, so several builders reach one id's step on the same tick; the id's claim is written only as
+/// a step is played (`Pianist::note_tag`), so every one of them saw the id free and got its own build (human-33,
+/// 12:41: two constructors began #avp1's advanced vehicle plant on one tick, `build_site_for`'s keep-out put the
+/// second frame beside the first, and two 2,600-metal plants stood on an income of 30; 13 such double starts in
+/// the game, the others merged by the engine at one site).
+pub(super) fn nearest_first(steps: &mut [(UnitId, Order, String, bool)], site: impl Fn(&Order) -> Option<Vec3>, pos: impl Fn(UnitId) -> Option<Vec3>) {
+    let mut first: HashMap<String, usize> = HashMap::new();
+    for i in 0..steps.len() {
+        let (Order::Build(..), Some(tag)) = (&steps[i].1, step_id(&steps[i].2).1) else { continue };
+        let Some(lead) = first.get(tag).copied() else {
+            first.insert(tag.to_string(), i);
+            continue;
+        };
+        let nearer = match (site(&steps[i].1), pos(steps[i].0), pos(steps[lead].0)) {
+            (Some(at), Some(this), Some(leading)) => this.dist2d(at) < leading.dist2d(at),
+            _ => false,
+        };
+        if nearer {
+            steps.swap(lead, i);
+        }
+    }
+}
+
+/// The order a step plays as among the steps of one tick: a build of an id that a build played earlier in the
+/// tick claimed (`claimed`, written as each is played) is help for that builder.
+pub(super) fn same_tick_help(order: Order, tag: Option<&str>, claimed: &HashMap<String, UnitId>) -> Order {
+    match (&order, tag.and_then(|t| claimed.get(t))) {
+        (Order::Build(..), Some(claimant)) => Order::Help(*claimant),
+        _ => order,
+    }
 }
 
 impl Pianist {
@@ -93,7 +128,7 @@ impl Brain {
         }
         for unit in own.iter().filter(|u| !u.being_built && self.world.is_mobile_builder(u.def)) {
             let name = self.actor_name(unit.id);
-            if !pianist.scripts.get(&name).is_some_and(|s| !s.is_empty()) || pianist.helping.contains_key(&unit.id) {
+            if pianist.scripts.get(&name).is_none_or(|s| s.is_empty()) || pianist.helping.contains_key(&unit.id) {
                 continue;
             }
             let status = self.builder_status(&pianist, unit, picture, &under_fire, own);
@@ -129,13 +164,26 @@ impl Brain {
                 steps.push((unit.id, order, step, status.queue_ahead));
             }
         }
+        // Several builders reaching one id's step on this tick: the nearest starts it, the rest help it.
+        let site = |order: &Order| match order {
+            Order::Build(_, Site::Place(name)) => picture.places.iter().find(|p| p.name == *name).map(|p| p.at),
+            Order::Build(_, Site::Spot(i)) => self.world.hello.metal_spots.get(*i).copied(),
+            _ => None,
+        };
+        nearest_first(&mut steps, site, |id| own.iter().find(|u| u.id == id).map(|u| u.pos));
         self.pianist = Some(pianist);
+        let mut claimed: HashMap<String, UnitId> = HashMap::new();
         for (id, order, step, queue) in steps {
             let name = self.actor_name(id);
+            let tag = step_id(&step).1;
+            let order = same_tick_help(order, tag, &claimed);
             match self.execute_builder(tick, kit, picture, id, &order, queue, Some(&step), commands) {
                 Some(did) => {
+                    if let (Order::Build(..), Some(tag)) = (&order, tag) {
+                        claimed.entry(tag.to_string()).or_insert(id);
+                    }
                     let pianist = self.pianist.as_mut().expect("pianist mode");
-                    let did = match step_id(&step).1 {
+                    let did = match tag {
                         Some(tag) => pianist.note_tag(tag, id, own, did, queue, frame),
                         None => did,
                     };
@@ -173,7 +221,7 @@ impl Brain {
         let Some(pianist) = self.pianist.as_ref() else { return };
         let next: Vec<(UnitId, UnitDefId)> = own
             .iter()
-            .filter(|u| !u.being_built && self.world.is_factory_def(u.def) && !pianist.lab_queue.get(&u.id).is_some_and(|q| !q.is_empty()))
+            .filter(|u| !u.being_built && self.world.is_factory_def(u.def) && pianist.lab_queue.get(&u.id).is_none_or(|q| q.is_empty()))
             .filter_map(|u| self.sequence_unit(u, &self.actor_name(u.id), pianist).map(|def| (u.id, def)))
             .collect();
         for (id, def) in next {
@@ -207,7 +255,7 @@ impl Brain {
         if !self.reachable_for(self.walker_of(unit.def), spot) {
             return format!("spot_{i} is off this builder's ground (water or a cliff): an amphibious or hover constructor or a construction ship takes it");
         }
-        if pianist.refused_spots.get(&i).is_some() {
+        if pianist.refused_spots.contains_key(&i) {
             return format!("the engine refused a build at spot_{i} lately (wrecks or a unit on it)");
         }
         format!("spot_{i} is not free")
@@ -373,6 +421,34 @@ mod tests {
         assert_eq!(step_id("extractor spot_5"), ("extractor spot_5", None));
         assert_eq!(step_id("armsolar #"), ("armsolar #", None));
         assert_eq!(step_id("#x"), ("#x", None));
+    }
+
+    /// Several builders reaching one id's step on the same tick: the nearest to the site plays first and starts
+    /// it, and each later step with the id, once a build has claimed it, helps that builder.
+    #[test]
+    fn one_ids_steps_on_one_tick_are_one_build_by_the_nearest() {
+        use super::super::menu::{Order, Site};
+        use bot_protocol::{UnitDefId, Vec3};
+        use std::collections::HashMap;
+        let at = |x: f32| Vec3 { x, y: 0.0, z: 0.0 };
+        let plant = UnitDefId(7);
+        let build = |id: i32, step: &str| (UnitId(id), Order::Build(plant, Site::Place("avp_yard".into())), step.to_string(), false);
+        let order = |steps: &[(UnitId, Order, String, bool)]| steps.iter().map(|s| s.0.0).collect::<Vec<_>>();
+        let pos = |id: UnitId| Some(at(match id.0 { 1 => 0.0, 2 => 10.0, 3 => 900.0, 4 => 400.0, _ => 0.0 }));
+        let mut steps = vec![build(1, "coravp avp_yard #avp1"), build(2, "corsolar #s1"), build(3, "coravp avp_yard #avp1"), build(4, "coravp avp_yard #avp1")];
+        super::nearest_first(&mut steps, |_| Some(at(1000.0)), pos);
+        assert_eq!(order(&steps), vec![3, 2, 1, 4]);
+        // Without a site, or without an id, the order of play stands.
+        let mut planned = vec![build(1, "coravp #avp1"), build(3, "coravp #avp1"), build(4, "coravp avp_yard"), build(2, "coravp avp_yard")];
+        super::nearest_first(&mut planned, |_| None, pos);
+        assert_eq!(order(&planned), vec![1, 3, 4, 2]);
+        // Played in order: the first build claims the id for the tick, and the later builds of it become help.
+        let mut claimed: HashMap<String, UnitId> = HashMap::new();
+        assert!(matches!(super::same_tick_help(steps[0].1.clone(), Some("avp1"), &claimed), Order::Build(..)));
+        claimed.insert("avp1".into(), UnitId(3));
+        assert!(matches!(super::same_tick_help(steps[2].1.clone(), Some("avp1"), &claimed), Order::Help(UnitId(3))));
+        assert!(matches!(super::same_tick_help(steps[1].1.clone(), Some("s1"), &claimed), Order::Build(..)));
+        assert!(matches!(super::same_tick_help(steps[1].1.clone(), None, &claimed), Order::Build(..)));
     }
 
     /// Steps carrying the same id are one building: the first builder to reach the step starts it, another helps
