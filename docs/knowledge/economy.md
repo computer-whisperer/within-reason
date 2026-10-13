@@ -263,8 +263,11 @@ f=1323 and its `finished` row at f=1893 with facing 1; the header's `metal_spots
 with the yard words and the `remove` call); `run/matches/1791905461-apex-v022-carrot-sym50-opus-2/00` (record-0.jsonl:
 3156 created at f=1323 facing 1, 15482 created by the commander at f=3243 and destroyed at f=4584); the user's
 observation of the pattern across games.
-**Status.** Fixed 2026-10-13 (`own_lane_keep_out` mirrors the spots, `lanes_behind_points`), unmeasured in a game.
-Exploited by [[H-ECO-YARD-LANE]].
+**Status.** Fixed 2026-10-13 (`own_lane_keep_out` mirrors the spots, `lanes_behind_points`); measured in
+apex-v022-carrot-sym0-opus-1 (the same opening, seed 3): the first plant stood 400 north of the earlier site, facing
+east with no spot in its lane (the nearest 141 elmos away), finished 1:10 against 1:03, and nothing of ours stood in
+a lane all game (the yard words fired three times at 7:51-8:11 for a unit jam, "nothing of ours stands in the lane");
+no `remove`. One game. Exploited by [[H-ECO-YARD-LANE]].
 
 ### K-eco-comet-no-converters-store-the-energy-and-two-hundred-a-second-with-nanos
 **Claim.** On Comet Catcher (a metal-heavy map) energy converters are wasted metal; spare energy goes into an energy
