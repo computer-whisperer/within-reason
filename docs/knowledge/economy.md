@@ -240,6 +240,32 @@ and the `remove` call after it).
 **Status.** Fixed 2026-09-30 (the facing is chosen at placement, the edge counts as blocked, the wake names the
 ground), unmeasured in a game. Exploited by [[H-ECO-YARD-LANE]].
 
+### K-eco-a-factory-with-a-spot-in-its-lane-gets-an-extractor-there
+**Claim.** An extractor is placed exactly on its spot and no exit lane keeps it out (a spot is where it is), but a
+factory's site and facing were chosen with keep-outs mirrored only from standing buildings and ordered builds, both
+filtered to non-extractors: a free metal spot in the lane counted for nothing, and so did a standing extractor. A
+factory placed with a spot in its lane therefore got an extractor there as a matter of course, the plant was sealed,
+the yard wake named the extractor and the player reclaimed it: the pattern the user has seen repeatedly (2026-10-13,
+"the extractor gets built in front of the exit of a lab and the player has to deconstruct it to let units exit"). In
+apex-v022-carrot-sym50-opus-1 the commander's first vehicle plant (unit 13578) was placed at 0:44 at (2542, 7360)
+facing east, toward the enemy; a spot lies at (2672, 7320), 130 elmos east of its centre, inside the 320-elmo lane; a
+constructor built armmex_9170 on it at 3:52, the yard words said "blocked: 1 of ours have stood in its exit lane ...
+In the lane: armmex_9170" at 4:48, and the player's `remove` took it apart (gone 5:40). apex-v022-carrot-sym50-opus-2 (seed
+4) placed the same plant at the same site and facing at 0:44, and this time the commander's own list built the
+extractor at (2624, 7328) at 1:48; the yard words ran from 2:13 and the player reclaimed it at 2:33: two of two games
+on this map, the opening's first plant. The fix is at the placement:
+every metal spot of the map, free or held, is mirrored behind a candidate site like a standing building, so the
+shim's site search prefers a facing and site whose lane holds no spot; the yard words and the watchdog stay as the
+backstop.
+**Evidence.** `run/matches/1791902948-apex-v022-carrot-sym50-opus-1/00` (record-0.jsonl: the `created` row of 13578 at
+f=1323 and its `finished` row at f=1893 with facing 1; the header's `metal_spots` entry (2672, 7320); the
+`created`, `finished` and `destroyed` rows of 9170 at f=6966, 7689 and 10194; strategist-0.jsonl, the turn at f=8625
+with the yard words and the `remove` call); `run/matches/1791905461-apex-v022-carrot-sym50-opus-2/00` (record-0.jsonl:
+3156 created at f=1323 facing 1, 15482 created by the commander at f=3243 and destroyed at f=4584); the user's
+observation of the pattern across games.
+**Status.** Fixed 2026-10-13 (`own_lane_keep_out` mirrors the spots, `lanes_behind_points`), unmeasured in a game.
+Exploited by [[H-ECO-YARD-LANE]].
+
 ### K-eco-comet-no-converters-store-the-energy-and-two-hundred-a-second-with-nanos
 **Claim.** On Comet Catcher (a metal-heavy map) energy converters are wasted metal; spare energy goes into an energy
 store, which the tank phase spends on bombers ("if you have extra e make an e store, you will need the e later

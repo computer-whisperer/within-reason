@@ -31,7 +31,7 @@ or eat our own structures and units ... We should make sure the player is aware 
    (`LANE_DEPTH` 320 elmos, `LANE_MARGIN` 48: a Bull is about 40 across, and the engine's empty-spot search walks the
    front). `BuildSite` gains `keep_out: Vec<Lane>`; the shim's `find_build_site` rejects a found site whose centre lies
    within a lane (its ring walk already rejects metal spots this way). Every Build the bot issues with a site goes
-   through `Brain::build_site_for`, which fills `keep_out`; extractors are exempt (a spot is where it is). Not decided
+   through `Brain::build_site_for`, which fills `keep_out`; extractors are exempt (a spot is where it is; since 2026-10-13 a new factory's lane is kept off every spot instead, `own_lane_keep_out`). Not decided
    here: keeping a new factory's own future lane clear of what already stands (`LAB_GAP` is the only rule today).
 3. **Stuck units are tracked and said.** `Brain::stuck: HashMap<UnitId, Stuck { since, at }>`: a mobile unit of ours
    enters on a move-failed event and leaves when it has moved `STUCK_FREE` (80 elmos) from where it failed or dies.

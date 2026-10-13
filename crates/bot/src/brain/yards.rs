@@ -69,17 +69,21 @@ impl Brain {
     }
 
     /// Where a new factory of this type must not stand for its exit lane, with this facing, to be clear of what
-    /// stands or is ordered: for every building of ours, the lane mirrored behind it. A site in one of these would
-    /// have that building in its lane (the yard design's open case, decided 2026-09-23).
+    /// stands, is ordered or will be built: for every building of ours and every metal spot of the map, the lane
+    /// mirrored behind it. A site in one of these would have that building or spot in its lane (the yard design's
+    /// open case, decided 2026-09-23). The spots count whether or not an extractor stands on them: an extractor is
+    /// placed exactly on its spot and no lane keeps it out, so a factory placed with a spot in its lane got an
+    /// extractor there as a matter of course and the player had to reclaim it (apex-v022-carrot-sym50-opus-1 4:48,
+    /// the user's repeated pattern; K-eco-a-factory-with-a-spot-in-its-lane-gets-an-extractor-there).
     pub(super) fn own_lane_keep_out(&self, def_id: UnitDefId, own: &[OwnUnit], facing: i32) -> Vec<Lane> {
         let Some((half_width, half_depth)) = self.factory_half_size(def_id) else { return Vec::new() };
-        let mirror = |at: Vec3| lane_behind(at, facing, half_width, half_depth);
-        let standing = own.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0 && d.extracts_metal == 0.0)).map(|u| mirror(u.pos));
+        let standing = own.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0)).map(|u| u.pos);
         let ordered = self.pianist.as_ref().map(|p| p.tasks.values()).into_iter().flatten().filter_map(|t| match t {
-            super::pianist::Task::Build { def, near, .. } if self.world.def(*def).is_some_and(|d| d.speed == 0.0 && d.extracts_metal == 0.0) => Some(mirror(*near)),
+            super::pianist::Task::Build { def, near, .. } if self.world.def(*def).is_some_and(|d| d.speed == 0.0) => Some(*near),
             _ => None,
         });
-        standing.chain(ordered).collect()
+        let spots = self.world.hello.metal_spots.iter().copied();
+        lanes_behind_points(standing.chain(ordered).chain(spots), facing, half_width, half_depth)
     }
 
     /// Where a new factory of this type must not stand for its exit lane, with this facing, to run over ground its
@@ -256,6 +260,12 @@ fn lane_behind(at: Vec3, facing: i32, half_width: f32, half_depth: f32) -> Lane 
     }
 }
 
+/// The keep-out strips for a factory with this facing whose lane must cover none of `points`: each point's lane
+/// mirrored behind it.
+pub(super) fn lanes_behind_points(points: impl Iterator<Item = Vec3>, facing: i32, half_width: f32, half_depth: f32) -> Vec<Lane> {
+    points.map(|at| lane_behind(at, facing, half_width, half_depth)).collect()
+}
+
 /// The keep-out strips for a factory with this facing whose lane must not cross a blocked cell: for each blocked
 /// cell within `radius` of `anchor` (sampled every other cell each way, a cell being 16 elmos), the strip of sites
 /// whose lane would cover it, which is the lane mirrored behind the cell. Cells past the map's edge are blocked:
@@ -328,5 +338,27 @@ mod lane_ground_tests {
         let inner = Vec3 { x: 400.0, y: 0.0, z: 880.0 };
         let lanes = lanes_behind_blocked(&passable, w, h, cell, 72.0, 72.0, inner, 1000.0, 1);
         assert!(!lanes.iter().any(|l| l.contains(inner)), "facing east 144 elmos from the edge is clear");
+    }
+}
+
+#[cfg(test)]
+mod spot_lane_tests {
+    use super::*;
+
+    #[test]
+    fn a_metal_spot_in_front_of_a_site_keeps_the_factory_from_facing_it() {
+        // apex-v022-carrot-sym50-opus-1: the first vehicle plant at (2542, 7360) facing east, a spot at (2672, 7320)
+        // 130 east of its centre; the extractor built there sealed the plant and the player reclaimed it at 4:48.
+        let site = Vec3 { x: 2542.0, y: 0.0, z: 7360.0 };
+        let spot = Vec3 { x: 2672.0, y: 0.0, z: 7320.0 };
+        let banned = |at: Vec3, facing: i32| lanes_behind_points([spot].into_iter(), facing, 28.0, 28.0).iter().any(|l| l.contains(at));
+        assert!(banned(site, 1), "facing east, the spot is in the lane");
+        assert!(!banned(site, 0) && !banned(site, 2) && !banned(site, 3), "the other three facings keep the lane off the spot");
+        // A site 240 north of the spot's line faces east freely: the lane's half width is 28 plus the 48 margin.
+        assert!(!banned(Vec3 { x: 2542.0, y: 0.0, z: 7120.0 }, 1));
+        // And one 530 west of the spot: the lane runs 320 past the front and its far end is rounded by the 76 half
+        // width, so a site 400 west still has the spot at the lane's end; 530 west is beyond it.
+        assert!(banned(Vec3 { x: 2272.0, y: 0.0, z: 7320.0 }, 1));
+        assert!(!banned(Vec3 { x: 2142.0, y: 0.0, z: 7320.0 }, 1));
     }
 }
