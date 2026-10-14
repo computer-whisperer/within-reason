@@ -25,6 +25,7 @@
 //!              [--opponent NAME:VERSION]   (the enemy seats' AI, as installed under the engine's AI/Skirmish; default BARb:stable)
 //!              [--our-bonus N] [--enemy-bonus N]   (the lobby's bonus in percent of income for our seats and the enemy's: -50 halves, +50 adds half; default 0)
 //!              [--opponent-opening any|bots|vehicles]   (pins BARb's first factory by disabling the other; default any)
+//!              [--opponent-option key=value]   (repeatable: an extra entry for the enemy seats' [OPTIONS] beside the AIOptions defaults, e.g. apex_first_lab=1)
 //!              [--think-penalty X]   (the player's or commander's orders land X game seconds late per wall second it thought; 1 = as in a live game; default 1 with --player, else 0)
 //!              [--think-cap S]   (the penalty's delay is at most S game seconds a turn, so a slow provider does not decide the game; default 7 with --player, 0 = no cap)
 //!              [--turn-limit S]   (the match ends, undecided and called, when the median of the player's last five turns exceeds S wall seconds; default none)
@@ -144,6 +145,10 @@ struct Options {
     packet: Option<String>,
     /// `bots`, `vehicles` or `any` (BARb's own choice, about 70 % bots on Quicksilver).
     opponent_opening: String,
+    /// `--opponent-option key=value` (repeatable): extra entries for the enemy seats' `[OPTIONS]` block beside the
+    /// AIOptions defaults, for an opponent's switches a lobby does not show (Apex reads any `apex_*` tunable from
+    /// its own options first: `apex_first_lab=1` is the author's "vehicles first" arm).
+    opponent_options: Vec<String>,
     /// `--opponent NAME:VERSION`: the enemy seats' AI as installed in the engine's `AI/Skirmish` (default `BARb:stable`).
     opponent: String,
     /// `--our-bonus N`, `--enemy-bonus N`: the lobby's bonus in percent of income, for our seats and the enemy's.
@@ -229,7 +234,7 @@ fn main() -> io::Result<()> {
         serde_json::to_string_pretty(&serde_json::json!({
             "label": options.label, "commit": commit, "opponent": format!("{} {}", opponent_name(&options.opponent), options.profile),
             "map": options.map, "matches": options.matches, "parallel": options.parallel, "speed": options.speed,
-            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "start_delay": options.start_delay, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "jev_budget": options.jev_budget, "swap_corners": options.swap_corners, "our_ai": options.our_ai, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief, "players": options.players.as_deref().unwrap_or("one"), "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "packet_example": options.packet_example, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "our_bonus": options.our_bonus, "enemy_bonus": options.enemy_bonus, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
+            "packet": options.packet, "max_minutes": options.max_minutes, "realtime": options.realtime, "start_delay": options.start_delay, "mirror": options.mirror, "place": options.place, "starts": options.starts, "call_settled": options.call_settled, "jev_budget": options.jev_budget, "swap_corners": options.swap_corners, "our_ai": options.our_ai, "pianist": options.pianist, "player": options.player, "player_model": options.player_model, "brief": options.brief, "players": options.players.as_deref().unwrap_or("one"), "commander": options.commander.as_deref().unwrap_or("none"), "commander_effort": options.commander_effort, "objective": options.objective, "packet_example": options.packet_example, "effort": options.effort, "hands_effort": options.hands_effort.as_deref().unwrap_or("lean"), "hands_layers": options.hands_layers.as_deref().unwrap_or("news"), "think_penalty": options.think_penalty.as_deref().or(options.player.then_some("1")), "think_cap": options.think_cap.as_deref().or(options.player.then_some("7")), "turn_limit": options.turn_limit, "seed_base": options.seed_base, "opponent_opening": options.opponent_opening, "opponent_options": options.opponent_options, "our_bonus": options.our_bonus, "enemy_bonus": options.enemy_bonus, "side": options.side, "corner": options.corner.map(|first| if first { "first box" } else { "second box" }), "ours": options.ours, "allies": options.allies, "enemies": options.enemies, "ffa": options.free_for_all, "boxes": format!("{:?}", options.boxes), "bot": options.bot, "disable": options.disable, "ab_disable": options.ab_disable,
         }))?,
     )?;
 
@@ -301,12 +306,13 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
     fs::create_dir_all(&dir)?;
     let host_port = options.base_port + 2 * index as u16;
     let game = resolve_game(repo, GAME_TAG)?;
+    let opponent_defaults = option_defaults(repo, &options.opponent) + &options.opponent_options.iter().map(|o| format!("{o}; ")).collect::<String>();
     let setup = MatchSetup {
         game: &game,
         map: &options.map,
         our_ai: &options.our_ai,
         opponent: &options.opponent,
-        opponent_defaults: &option_defaults(repo, &options.opponent),
+        opponent_defaults: &opponent_defaults,
         barb_defaults: &option_defaults(repo, "BARb:stable"),
         our_bonus: options.our_bonus,
         enemy_bonus: options.enemy_bonus,
@@ -733,6 +739,7 @@ fn parse_args() -> Options {
         seed_base: 1,
         packet: None,
         opponent_opening: "any".into(),
+        opponent_options: Vec::new(),
         opponent: "BARb:stable".into(),
         our_bonus: 0,
         enemy_bonus: 0,
@@ -825,6 +832,13 @@ fn parse_args() -> Options {
             "--opponent" => options.opponent = value(),
             "--our-bonus" => options.our_bonus = value().parse().ok().filter(|n| (-100..=1000).contains(n)).unwrap_or_else(|| usage("--our-bonus takes a percent, -100 to 1000")),
             "--enemy-bonus" => options.enemy_bonus = value().parse().ok().filter(|n| (-100..=1000).contains(n)).unwrap_or_else(|| usage("--enemy-bonus takes a percent, -100 to 1000")),
+            "--opponent-option" => {
+                let option = value();
+                if !option.contains('=') {
+                    usage("--opponent-option takes key=value");
+                }
+                options.opponent_options.push(option);
+            }
             "--opponent-opening" => {
                 options.opponent_opening = value();
                 if !["any", "bots", "vehicles"].contains(&options.opponent_opening.as_str()) {
