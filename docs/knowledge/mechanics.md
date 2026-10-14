@@ -86,7 +86,7 @@ moved in 124, the youngest's in 114; in 97 % of such seconds every high builder'
 `docs/studies/2026-10-13-builder-priority.md` §1, §5 (`stalls.md`) and its proposed cheat-game test (§6).
 **Would be wrong if.** In a metal stall two constructors of different ages on targets of the same cost both progressed
 at half speed, or the younger one progressed and the older did not.
-**Used by.** none yet (the hands' plant and constructor orders are all high priority: K-mech-builder-priority-is-a-builder-flag)
+**Used by.** H-HANDS-PRIORITY-BIRTH (the plant and the turrets low, so the creation order among high builders is the commander's and the constructors')
 
 ### K-mech-builder-priority-is-a-builder-flag
 **Claim.** BAR's priority is a low/high flag on a builder (commander, constructor, factory, construction turret), never on
@@ -108,8 +108,9 @@ stream; in hard metal stalls a low commander kept 45 % of its speed, a low const
 `docs/studies/2026-10-13-builder-priority.md` §2-3 and `run/replays/priority.py`.
 **Would be wrong if.** A replay's `bp` showed a lab at priority 1 with no hand toggle on it, or a low constructor
 progressing while the team's metal sat at zero with a high constructor stalled.
-**Used by.** none (not sent by the hands; the C interface's `COMMAND_UNIT_CUSTOM` would carry it, study §4). What the
-pros do with it: K-econ-commander-low-while-assisting, K-econ-expanding-constructor-high (economy.md).
+**Used by.** H-HANDS-PRIORITY-BIRTH, H-HANDS-LIST-LOW (`Command::Priority` through `COMMAND_UNIT_CUSTOM`, study §4),
+D-PRIORITY (`bots/distilled`). What the pros do with it: K-econ-commander-low-while-assisting,
+K-econ-expanding-constructor-high (economy.md).
 
 ### K-mech-factory-repeat
 **Claim.** Factories have a repeat state: with repeat on, each finished unit's order is re-appended, so a short composition

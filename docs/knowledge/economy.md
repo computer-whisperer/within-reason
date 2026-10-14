@@ -387,8 +387,9 @@ minute 1; metal under 10 % of storage in 23; 12 set high again (median 90 s late
 (`kind` commander, `to` low, `job`), `run/replays/priority.py catalog`.
 **Would be wrong if.** A pool of higher-OS replays showed the commander left high through the opening stall, or the
 toggles landing with metal floating.
-**Used by.** none (the hands send no priority command; a candidate for a player tool or an option on the assist move,
-the user's call under docs/code-decisions.md)
+**Used by.** H-HANDS-LIST-LOW (the word `low` on a list step; prio-player-1: `assist low` 18 times, `armsolar low` 9),
+D-PRIORITY (`bots/distilled`: the commander low while it helps a plant; low on its solars too cost the energy store,
+prio-distilled-comet-sym50-1)
 
 ### K-econ-expanding-constructor-high
 **Claim.** One school of pros sets the widget to bear every constructor low, and flips the one constructor that carries
@@ -401,4 +402,4 @@ games), the toggled constructor's last order `build <extractor>` in 34 and an LL
 builder, per player and game).
 **Would be wrong if.** Those players' constructors were born low by a widget version rather than a setting (the
 same versions show other players' constructors born high, so no).
-**Used by.** none
+**Used by.** none directly: H-HANDS-LIST-LOW writes the same outcome the other way round (what can wait is tagged low)

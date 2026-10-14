@@ -88,13 +88,14 @@ yields: a difference from every human game we have read, hidden until now.
   (`crates/recoil-ai-sys/vendor/rts/ExternalAI/Interface/AISCommands.h:1425`), through `Engine::handle` in
   `crates/ai-host/src/engine.rs` like every other order. The engine sends it as `NETMSG_AICOMMAND`;
   `CSelectedUnitsHandler::AINetOrder` checks the team and calls `CCommandAI::GiveCommand`, whose `AllowCommand` the
-  gadget answers: the flag is set, nothing is queued. Nothing of this is built: `bot_protocol::Command` has no
-  priority variant, the record's `cmd` row no verb for it.
+  gadget answers: the flag is set, nothing is queued. Built the same night on the user's word: `Command::Priority
+  { unit, low }`, the record's `["priority", unit, 0/1]` row and `bp` field, H-HANDS-PRIORITY-BIRTH and
+  H-HANDS-LIST-LOW in the hands (`pianist/priority.rs`), D-PRIORITY in `bots/distilled`; the games prio-smoke-*,
+  prio-player-1 and prio-distilled-*-comet-sym50-* in docs/experiments.md.
 - **Reading.** `Unit_getRulesParamFloat(unit, "builderPriority", 1.0)`; `Game_getRulesParamFloat` is already bound
   the same way in `engine.rs` (the metal spots).
-- Pending the user's word on whether and where the flag is set: the flagship's rule (`docs/code-decisions.md`) says
-  no code decides live; the stock widget's birth defaults are the one case where "what every human has" is a
-  default rather than a decision, and would need an audited layer or the player's tool.
+- The user's word (2026-10-13 evening): `low` as the player's one control word on a list step, the birth defaults
+  (plants and turrets low) as an audited layer in `docs/code-decisions.md` §1, and the same in the heuristic bot.
 
 ## 5. The catalog of the pro games
 
