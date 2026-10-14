@@ -7,7 +7,7 @@
 //!              [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out]
 //!              [--side armada|cortex|legion] [--their-side armada|cortex|legion] [--corner nw|se]   (default: alternate, the opponent the other of
 //!                                                               Armada and Cortex; `nw` is the first start box of the layout, W on Comet; a Legion seat on either side
-//!                                                               writes the game's experimentallegionfaction option; only Apex can play Legion)
+//!                                                               writes the game's experimentallegionfaction option; BARb and Apex both play Legion)
 //!              [--ours N] [--allies N] [--enemies N] [--ffa]   (seats of ours, allied BARb seats, enemy BARb seats, default 1 0 1;
 //!                                                               --ffa: every enemy seat is its own team)
 //!              [--boxes standard|corners|north-south|west-east]   (where the ally teams start; default the lobby's boxes for the map)
@@ -117,8 +117,8 @@ struct Options {
     packet_example: bool,
     /// Play every match as this faction instead of alternating.
     side: Option<&'static str>,
-    /// The opponents' faction, instead of the other one of Armada and Cortex (Legion only for an opponent that can
-    /// play it: Apex; the stock BARb cannot, K-leg-barb-cannot-play-it-apex-can).
+    /// The opponents' faction, instead of the other one of Armada and Cortex (BARb and Apex both play Legion from
+    /// their game-side configs, K-leg-both-stock-ais-play-legion).
     their_side: Option<&'static str>,
     /// Fixes our start corner; otherwise it alternates.
     corner: Option<bool>,
@@ -881,12 +881,6 @@ fn parse_args() -> Options {
     }
     if options.our_ai == FLAGSHIP_AI && !options.pianist {
         usage("the flagship plays only as the pianist: give --pianist with --packet PATH, or --player (or --our-ai for a bot of bots/)");
-    }
-    // The stock BARb has no Legion configuration and its script leaves the Legion side out
-    // (K-leg-barb-cannot-play-it-apex-can): a Legion seat for it is a wasted batch, not a game.
-    let other_side_is_legion = options.their_side == Some("Legion") || (options.mirror && options.side == Some("Legion"));
-    if other_side_is_legion && (options.opponent.starts_with("BARb") || options.allies > 0) {
-        usage("BARb cannot play Legion (the enemy seats, or the allied ones, which are always BARb): give --their-side armada|cortex, or --opponent Apex:Unstable with --profile standard and no --allies");
     }
     options
 }

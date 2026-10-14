@@ -22,7 +22,7 @@ Internal names are what `produce` and `queue` take. Metal / health / speed / ran
 | Blitz `armflash` | 110 / 730 / 101 / 180, raider tank | Incisor `corgator` | 120 / 820 / 85 / 230 |
 | Stout `armstump` | 225 / 1800 / 75 / 350, line tank | Brute `corraid` | 235 / 2000 / 72 / 350 |
 | Janus `armjanus` | 240 / 1030 / 54 / 380, rocket burst | Pounder `corlevlr` | 220 / 1400 / 40 / 315, riot tank |
-| Whistler `armsam` | 150 / 820 / 55 / 700, rockets | Lasher `cormist` | 155 / 860 / 52 / 700 |
+| Whistler `armsam` | 150 / 820 / 55 / 550, rockets (its anti-air missiles reach 700) | Lasher `cormist` | 155 / 860 / 52 / 575 (anti-air 700) |
 | Shellshocker `armart` | 135 / 620 / 54 / 710, artillery | Wolverine `corwolv` | 170 / 750 / 48 / 710 |
 | Pincer `armpincer` | 200 / 1340 / 63 / 305, amphibious | Garpike `corgarp` | amphibious |
 | Constructor `armcv` | 135 / 1380 / 54 | Constructor `corcv` | 145 / 1430 / 51 |
@@ -137,9 +137,9 @@ drones at 15 metal each) and a few tier-2 units spawn their own drones, which ap
 
 The one Legion player in the pool above OS 25 (OS 27, Great Divide, two wins) opened extractor, extractor, wind, wind,
 solar, bot lab at 0:42; the lab made a constructor, Goblins, a Zagreus and a second constructor; his army from 4:00 was
-Satyrs with a few Ballistas, and after 10:00 drones from Hives. An opponent may be Legion too (only Apex plays it,
-never BARb): its tier-1 towers reach the same 430; its Cacophony `legmg` (380 metal, 575, land and air) and Dragon's
+Satyrs with a few Ballistas, and after 10:00 drones from Hives. An opponent may be Legion too (BARb and Apex both play
+it; BARb medium opened with the vehicle plant, Alaris and Pharos): its tier-1 towers reach the same 430; its Cacophony `legmg` (380 metal, 575, land and air) and Dragon's
 Jaw `legdtr` (290 metal, pop-up riot cannon at 400, stealthed) stand where the others' heavy laser would, its
 Amputator `legcluster` (850 metal, 1,000) where the Gauntlet would. [K-leg-economy-is-the-cortex-economy,
 K-leg-t1-bot-roster, K-leg-t1-vehicle-roster, K-leg-defences, K-leg-drone-plant-is-the-air-plant,
-K-leg-open-os27-great-divide, K-leg-barb-cannot-play-it-apex-can]
+K-leg-open-os27-great-divide, K-leg-both-stock-ais-play-legion]

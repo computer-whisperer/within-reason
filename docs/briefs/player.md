@@ -489,7 +489,7 @@ K-maps-comet-barb-opens-bots, the tempo model]
   31/105/168/180 scout car (Tumbleweed `corfav` 26/90/153/180); Blitz `armflash` 110/730/101/180 raider tank
   (Instigator `corgator` 120/820/85/230); Stout `armstump` 225/1800/75/350 tank, the line unit (Bulldog `corraid`
   235/2000/72/350); Janus `armjanus` 240/1030/54/380 rocket burst (Leveler `corlevlr` 220/1400/40/315 assault);
-  Whistler `armsam` 150/820/55/700 rockets (Slasher `cormist` 155/860/52/700); Shellshocker `armart` 135/620/54/710
+  Whistler `armsam` 150/820/55/550 rockets, its anti-air missiles at 700 (Slasher `cormist` 155/860/52/575); Shellshocker `armart` 135/620/54/710
   artillery (Wolverine `corwolv` 170/750/48/710); Pincer `armpincer` 200/1340/63/305 amphibious tank (Coyote
   `corgarp`); Mason `armcv` 135/1380/54 constructor vehicle (Rover `corcv` 145/1430/51); Beaver `armbeaver` 150
   amphibious constructor. The plant `armvp` is 590 metal (`corvp` 570) against the lab's 500; `plant_N` is its name

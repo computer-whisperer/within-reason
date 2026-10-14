@@ -287,6 +287,9 @@ def targets(wd):
     bad = str(wd.get("_bad") or "").upper().split()
     air = not only or any(c in ("VTOL", "NOTSUB", "NOTSHIP", "NOTHOVER", "MOBILE", "ALL") for c in only)
     ground = not only or any(c not in ("VTOL",) for c in only)
+    # A torpedo or any weapon that fires only in water reaches no aircraft whatever its categories say.
+    if wd.get("waterweapon") or wd.get("weapontype") == "TorpedoLauncher":
+        air = False
     return ground, air, "VTOL" in bad
 
 
@@ -320,11 +323,15 @@ def air_words(ground, air, reluctant):
 
 
 def weapon_summary(u):
+    """Range and damage a second against the ground: over the weapons that can fire at it, so a unit's anti-air
+    mount (the Lance's rail at 750, the Alpheus's missiles) does not set its range or pad its dps; an anti-air-only
+    unit keeps its anti-air figures, and `air_summary` says what they are against."""
     ws = used_weapons(u)
     if not ws:
         return None, None, False, False
-    rng = max(float(w["range"]) for w in ws)
-    parts = [weapon_dps(w) for w in ws]
+    ground_ws = [w for w in ws if targets(w)[0]] or ws
+    rng = max(float(w["range"]) for w in ground_ws)
+    parts = [weapon_dps(w) for w in ground_ws]
     real = [p for p in parts if p is not None]
     dps = round(sum(real), 1) if real else None
     paralyzer = any(w.get("paralyzer") for w in ws)
@@ -436,6 +443,8 @@ CLASS_OVERRIDES = {
     "legeheatraymech": "assault mech", "legeshotgunmech": "assault mech", "legelrpcmech": "artillery mech",
     "legerailtank": "assault mech", "legehovertank": "assault hovercraft", "legjav": "raider mech", "legkeres": "riot mech",
     "legnavyscout": "patrol boat", "leganavybattleship": "battleship",
+    "legspcarrier": "drone carrier aircraft", "legamphlab": "amphibious factory", "legsplab": "seaplane factory",
+    "legspcon": "constructor seaplane",
 }
 
 SHIP_WORDS = ("destroyer", "cruiser", "battleship", "flagship", "corvette", "frigate", "submarine")

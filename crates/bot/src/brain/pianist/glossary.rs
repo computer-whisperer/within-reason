@@ -1,5 +1,5 @@
 //! The unit glossary (`crates/bot/data/units.json`, docs/design/2026-09-22-full-roster.md): the words for every
-//! reachable unit of both factions. The numbers, English name, tier, class and `made_by` are generated from the game
+//! reachable unit of the three factions. The numbers, English name, tier, class and `made_by` are generated from the game
 //! source by `run/unit_stats.py`; `gloss` (a clause for a menu line) and `prose` (a paragraph for the player) are
 //! written by hand. A unit the file does not know gets words made from its definition alone.
 
@@ -140,8 +140,11 @@ mod tests {
     }
 
     #[test]
-    fn the_checked_in_glossary_covers_both_factions() {
-        assert!(GLOSSARY.len() >= 370, "{}", GLOSSARY.len());
+    fn the_checked_in_glossary_covers_the_three_factions() {
+        assert!(GLOSSARY.len() >= 560, "{}", GLOSSARY.len());
+        let legion = entry("leglht").unwrap();
+        assert!(legion.name == "Pharos" && !legion.prose.is_empty() && legion.made_by.contains(&"legck".to_string()));
+        assert!(entry("legcom").is_some() && entry("leggob").is_some());
         let pawn = entry("armpw").unwrap();
         assert_eq!(pawn.name, "Pawn");
         assert!(!pawn.prose.is_empty() && !pawn.gloss.is_empty() && pawn.made_by.contains(&"armlab".to_string()));

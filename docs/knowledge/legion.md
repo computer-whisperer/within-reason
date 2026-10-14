@@ -25,20 +25,34 @@ that order: "Don't change the ordering ... otherwise AI will crash"); `crates/ar
 **Used by.** (the arena's Legion switch, when built: the option goes in whenever a seat's side is Legion)
 
 ### K-leg-barb-cannot-play-it-apex-can
-**Claim.** The stock BARb cannot play Legion: its script leaves the Legion type mask commented out ("requires proper
-default values in config, or won't initialize") and none of its config files name a Legion unit. Apex v0.2.2 can: its
-script registers the Legion mask and its `standard` profile carries `build_chain_leg.json`, `behaviour_leg.json`,
-`commander_leg.json`, `economy_leg.json` and `factory_leg.json` (its Legion defence ladder opens Pharos, Bramble,
-Cacophony, Hive, Dragon's Jaw, Rhapsis, Lupara, Chimera). So a Legion seat of ours is tested against BARb playing
-Armada or Cortex, or against Apex playing anything; only Apex can field Legion against us.
-**Status.** supported (2026-10-14) for the files and, for Apex, in a game: leg-smoke-apex (`docs/experiments.md`) seated
-Apex v0.2.2 on `Side=Legion` and by 8:00 it stood a Legion commander, five extractors, three solars, an advanced solar,
-two Pharos, two constructors, two Goblins, two Phobos and a Ballista from a bot lab. What BARb does when handed
-`Side=Legion` with the option on is still unknown (a crash, or playing with no side config)
-**Evidence.** `run/engines/2026.09.01/AI/Skirmish/BARb/stable/script/common.as:8`; `grep -rl legcom .../BARb/stable/config`
-finds nothing; `run/engines/2026.07.04/AI/Skirmish/Apex/Unstable/script/common.as:8`, `.../config/standard/*_leg.json`.
-**Would be wrong if.** A BARb seat on `Side=Legion` with the option on built a Legion base.
-**Used by.** (the arena's Legion switch: the opponent's side when ours is Legion)
+**Claim.** (As first written, 2026-10-14 morning.) The stock BARb cannot play Legion: its script leaves the Legion type
+mask commented out and none of its config files name a Legion unit; Apex v0.2.2 can.
+**Status.** refuted (2026-10-14 afternoon) — the evidence looked only at the engine directory's copy of BARb's config,
+which holds the defaults alone; BARb loads the game's shipped per-profile config (`game_config=true` in its
+`AIOptions.lua`, "Config override: legion" in the engine log), and that has the Legion files. The kill-test
+leg-smoke-barb (`docs/experiments.md`) seated BARb medium on `Side=Legion`: the log says "Inserting Legion", and at 6:00
+it stood a Legion commander, 3 extractors, 4 solars, 2 advanced solars, a vehicle plant, a constructor vehicle,
+6 Alaris, 3 Pharos and a radar. The Apex half holds (K-leg-both-stock-ais-play-legion). The arena guard built on this
+claim was removed the same afternoon. The prose agent's report pointed at the game-shipped configs.
+**Evidence.** `run/matches/1791985810-leg-smoke-barb/00/engine.log` (the BARb lines), the census at f=10800.
+**Would be wrong if.** n/a (refuted).
+**Used by.** nothing now.
+
+### K-leg-both-stock-ais-play-legion
+**Claim.** Both stock AIs play Legion when a seat is given `Side=Legion` with the mod option on. BARb reads the game's
+shipped config `luarules/configs/BARb/stable/config/<profile>/` (every profile has `behaviour_leg.json`,
+`build_chain_leg.json`, `commander_leg.json`, `economy_leg.json`, `factory_leg.json`; `game_config` defaults to true
+in `AIOptions.lua`, and the engine directory's `config/` holds only the shared defaults, no profile directories), and
+its medium profile opened with the vehicle plant, Alaris and Pharos on Comet (above). Apex v0.2.2's `standard` profile
+carries the same five `*_leg.json` files and in leg-smoke-apex opened with the bot lab: Goblins, Phobos, a Ballista,
+two Pharos and an advanced solar by 8:00. So a Legion seat of ours can be tested against either AI, and either can
+field Legion against us (`--their-side legion`, or `--mirror` with `--side legion`).
+**Status.** supported (2026-10-14) — one six-minute game of each; what the hard profiles do as Legion is unseen
+**Evidence.** leg-smoke-barb and leg-smoke-apex in `docs/experiments.md`; `run/engines/2026.07.04/AI/Skirmish/BARb/stable/AIOptions.lua`
+(`game_config`); `upstream/Beyond-All-Reason/luarules/configs/BARb/stable/config/*/`;
+`run/engines/2026.07.04/AI/Skirmish/Apex/Unstable/config/standard/*_leg.json`.
+**Would be wrong if.** A hard or hard_aggressive BARb on `Side=Legion` crashed or built nothing past the commander.
+**Used by.** the arena's `--their-side` and `--mirror` (`crates/arena/src/script.rs`)
 
 ### K-leg-pro-pool-is-thin
 **Claim.** The replay survey cannot teach Legion at the standard the Armada and Cortex baselines use (OS 40-50). Of the
@@ -60,8 +74,10 @@ extractor `legmex` 50 M / 500 E (the same); solar `legsolar` 150 M / 0 E for 20 
 1650 E (Armada 590 / 1550); converter `legeconv` 1 M / 1150 E at 70 E to 1 M (= Armada's); construction turret
 `legnanotc` 230 M, 200 build power (the same); constructor bot `legck` 100 M, 75 build power, speed 39 (Armada 110 /
 80 / 36); constructor vehicle `legcv` 125 M, 85 build power, speed 57 (Armada 135 / 90 / 54); storages `legmstor`
-340 M, `legestor` 175 M. Tier 2 is a little dearer per energy: advanced solar `legadvsol` 465 M / 4080 E for 100 E/s
-(Armada 350 M / 5000 E for 75); fusion `legfus` 4000 M / 25000 E for 950 (Armada 3350 / 18000 for 1000); advanced bot
+340 M, `legestor` 175 M. The next step up in energy: advanced solar `legadvsol` 465 M / 4080 E for 100 E/s (Armada's 350 M /
+5000 E for 80; a tier-1 constructor builds either), 4.65 against 4.4 metal per energy a second; fusion `legfus` 4000 M /
+25000 E for 950 (Armada 3350 / 18000 for 750, Cortex 850), 4.2 against 4.5, so the Legion fusion is the cheaper one
+per energy (the 75 and 1000 first written here, 2026-10-14 morning, were wrong; the prose agent read the files); advanced bot
 lab `legalab` 2600 M / 16000 E; advanced constructor `legack` 410 M, 195 build power; advanced extractor `legmoho`
 640 M / 8100 E (= Cortex's). The commander `legcom` is the same hull (2700 M, 3700 hp, speed 37.5, 300 build power,
 30 E/s, laser 300 at 175 per 0.8 s, D-gun 250) plus a torpedo and an anti-air missile, both at 300: the only commander
@@ -83,8 +99,10 @@ assault bot (the speed of a Pawn with four times its metal); Ballista `legbal` 1
 250-damage rocket per 5.5 s, area 70 (the Rocketeer's place: it outranges the light towers' 430); Karkinos `legkark`
 310 M / 1725 hp / 42 / 360, a heat ray 160 per 1.8 s plus a shotgun at 251 (the Centurion's place); Toxotai `legaabot`
 120 M, anti-air only, range 760, amphibious. There is no tier-1 scout bot: the scouts are the vehicle plant's Wheelie
-`legscout` 23 M / 75 hp / speed 160 / sight 635 and the drone plant's Noctua `legfig` 40 M. Heat rays and the Legion
-lasers list no energy per shot.
+`legscout` 23 M / 75 hp / speed 160 / sight 635 and the drone plant's Noctua `legfig` 40 M. The tier-1 heat rays and Legion
+lasers list no energy per shot; the tier-2 and tier-3 ones pay (Prometheus, Telchine, Incinerator 10 a frame while
+firing, the Bastion 500 a shot, the Phoenix 17 a shot, Sol Invictus 17 a frame; the agent's reading of the files,
+2026-10-14).
 **Status.** supported (2026-10-14) for the numbers (local source); the "place of" comparisons are by cost and range only,
 no duel has been run
 **Evidence.** `Labs/leglab.lua:buildoptions`; `Bots/leggob.lua`, `leglob.lua`, `legcen.lua`, `legbal.lua`, `legkark.lua`,
@@ -96,8 +114,9 @@ no duel has been run
 ### K-leg-t1-vehicle-roster
 **Claim.** The vehicle plant `legvp` (10 options) makes: Wheelie `legscout` (above); constructor `legcv`; Otter
 `legotter` 150 M amphibious constructor (44 options: the amphibious complex, the seaplane platform and the sea
-buildings besides the land set); Alaris `leghades` 65 M / 425 hp / speed 99 / range 211, a shotgun and a gauss
-(the Blitz's place at 60 % of its metal and health); Helios `leghelios` 160 M / 800 hp / 75 / 320, heat ray 160 per
+buildings besides the land set); Alaris `leghades` 65 M / 425 hp / speed 99 / range 211, a five-pellet shotgun (75 a blast
+every 2.1 s; its file defines a gauss cannon too but mounts only the shotgun, `leghades.lua` weapons table) (the
+Blitz's place at 60 % of its metal and health); Helios `leghelios` 160 M / 800 hp / 75 / 320, heat ray 160 per
 1.3 s, a skirmisher tank; Decurion `leggat` 300 M / 2550 hp / 45 / 361, a six-shot gatling (12 each) per 0.4 s, the
 assault tank (the Stout's place, 300 against 225 M); Barrage `legbar` 250 M / 1500 hp / 40.5 / 535, napalm cannon 60
 per 5 s, area 120 (short of the Shellshocker's 710; it is a riot-artillery piece, not a tower killer); Lance `legrail`
@@ -133,10 +152,16 @@ long-range cannon at 4800, Starfall `legstarfall` 63000 M.
 **Claim.** Legion's tier-1 air factory is a Drone Plant `legap` (430 M / 1100 E; Armada's aircraft plant 650 M /
 1100 E) and its tier-1 air is drones: constructor aircraft `legca` 100 M, 45 build power; Noctua `legfig` 40 M fighter
 and scout; Martyr `legkam` 65 M, flies into the target and explodes (area 1280 listed as its range); Blindfold `legcib`
-100 M, drops a Juno bomb; Mosquito `legmos` 110 M gunship with stockpiled rockets; two transports. Separately, Hives,
-the Fortifier extractor `legmohobp`, the Mantis truck `legvcarry`, the Myrmidon mech and the Rampart spawn their own
-drones (15 M / 500 E each, `legdrone` 325 hp, speed 280), which is how the carded OS-27 player made his tier-2 army
-(6-12 drones from 10:00). The engine will show them as units of ours that no factory made.
+100 M, drops a Juno bomb; Mosquito `legmos` 110 M gunship with stockpiled rockets; two transports. Separately, the Hives
+(`leghive`, `legfhive`), the Mantis truck `legvcarry`, the Syracusia destroyer, the Hecate anti-nuke carrier and the
+Hecatoncheir seaplane spawn light drones (15 M / 500 E each, `legdrone` 325 hp, speed 280, about 27 a second at 300),
+the Rampart and the Myrmidon mech heavy ones (`legheavydrone`, 90 M / 1000 E, 1650 hp, 125 a second at 430); a
+carrier's drones are released when it dies and then lose 20 health a second (50 for heavy ones;
+`luarules/gadgets/unit_carrier_spawner.lua`). That is how the carded OS-27 player made his tier-2 army (6-12 drones
+from 10:00). The engine will show them as units of ours that no factory made. The Fortifier with a drone pad
+(`legmohobp`) is in no build list; the reachable Fortifier is `legmohocon`, an advanced extractor carrying an
+unselectable 400-build-power construction turret and no drones (the agent's reading, 2026-10-14; first written here as
+`legmohobp`).
 **Status.** supported (2026-10-14) for the numbers and build lists (local source); the drone-spawn mechanics are the
 descriptions' and the replay's, not read in the gadget
 **Evidence.** `Labs/legap.lua`, `Air/*.lua`, `Defenses/leghive.lua`, `Economy/legmohobp.lua`; the 22-minute carded

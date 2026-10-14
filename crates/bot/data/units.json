@@ -406,8 +406,8 @@
    "build_time": 7000,
    "health": 1170,
    "speed": 90,
-   "range": 600,
-   "dps": 109.6,
+   "range": 275,
+   "dps": 109.1,
    "dps_air": 63.3,
    "air": "63 dps against aircraft (58% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 380,
@@ -704,12 +704,11 @@
    "speed": null,
    "range": 915,
    "dps": 360,
-   "dps_air": 360,
-   "air": "360 dps against aircraft, its full damage",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 585,
    "flags": [
     "submerged",
-    "anti_air",
     "sonar",
     "on_water"
    ],
@@ -1230,8 +1229,8 @@
    "build_time": 21000,
    "health": 5000,
    "speed": 54,
-   "range": 765,
-   "dps": 141.2,
+   "range": 480,
+   "dps": 140.6,
    "dps_air": 35.3,
    "air": "35 dps against aircraft (25% of its ground damage)",
    "sight": 500,
@@ -1477,11 +1476,10 @@
    "speed": null,
    "range": 600,
    "dps": 150,
-   "dps_air": 150,
-   "air": "150 dps against aircraft, its full damage",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 617,
    "flags": [
-    "anti_air",
     "sonar"
    ],
    "gloss": "240-metal coastal torpedo launcher on land, 150 dps at 600 with sonar; guards shore buildings from ships and subs",
@@ -2674,12 +2672,11 @@
    "speed": 285,
    "range": 400,
    "dps": 187.5,
-   "dps_air": 187.5,
-   "air": "188 dps against aircraft, its full damage",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 500,
    "flags": [
     "flies",
-    "anti_air",
     "sonar"
    ],
    "gloss": "tier-2 torpedo bomber, three 375-damage homing torpedoes; kills ships and submarines, nothing against land",
@@ -2698,8 +2695,8 @@
    "build_time": 8000,
    "health": 1060,
    "speed": 90,
-   "range": 600,
-   "dps": 147.1,
+   "range": 300,
+   "dps": 146.7,
    "dps_air": 42.9,
    "air": "43 dps against aircraft (29% of its ground damage)",
    "sight": 390,
@@ -2777,8 +2774,8 @@
    "build_time": 15000,
    "health": 2200,
    "speed": 99,
-   "range": 710,
-   "dps": 250.5,
+   "range": 400,
+   "dps": 250,
    "dps_air": 69,
    "air": "69 dps against aircraft (28% of its ground damage)",
    "sight": 500,
@@ -2885,8 +2882,8 @@
    "build_time": 33000,
    "health": 4900,
    "speed": 94.5,
-   "range": 600,
-   "dps": 336.2,
+   "range": 350,
+   "dps": 335.7,
    "dps_air": 42.9,
    "air": "43 dps against aircraft (13% of its ground damage)",
    "sight": 455,
@@ -3264,7 +3261,7 @@
    "health": 3350,
    "speed": 63,
    "range": 1550,
-   "dps": 108.8,
+   "dps": 108.3,
    "dps_air": 69,
    "air": "69 dps against aircraft (64% of its ground damage)",
    "sight": 318.5,
@@ -3532,8 +3529,8 @@
    "build_time": 2700,
    "health": 780,
    "speed": 93,
-   "range": 760,
-   "dps": 66.2,
+   "range": 300,
+   "dps": 65.5,
    "dps_air": 70.8,
    "air": "71 dps against aircraft, its full damage",
    "sight": 750,
@@ -3796,8 +3793,8 @@
    "build_time": 3420,
    "health": 820,
    "speed": 55,
-   "range": 700,
-   "dps": 26.1,
+   "range": 550,
+   "dps": 25.8,
    "dps_air": 48,
    "air": "48 dps against aircraft, its full damage",
    "sight": 620,
@@ -3896,8 +3893,8 @@
    "speed": 210,
    "range": 600,
    "dps": 114,
-   "dps_air": 5,
-   "air": "5 dps against aircraft (4% of its ground damage)",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 535,
    "flags": [
     "flies",
@@ -3968,13 +3965,12 @@
    "speed": 45,
    "range": 800,
    "dps": 206.2,
-   "dps_air": 206.2,
-   "air": "206 dps against aircraft, its full damage",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 550,
    "flags": [
     "submerged",
     "stealth",
-    "anti_air",
     "sonar"
    ],
    "gloss": "tier-2 battle submarine, 825-damage torpedoes at 800; the naval sniper, kills heavy ships; loses to Barracudas",
@@ -4334,12 +4330,11 @@
    "speed": 66,
    "range": 500,
    "dps": 85.5,
-   "dps_air": 85.5,
-   "air": "86 dps against aircraft, its full damage",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 400,
    "flags": [
     "submerged",
-    "anti_air",
     "sonar"
    ],
    "gloss": "tier-1 submarine, unguided torpedoes at 500; invisible without sonar, kills underwater extractors and unguarded fleets",
@@ -4360,12 +4355,11 @@
    "speed": 81,
    "range": 400,
    "dps": 175,
-   "dps_air": 175,
-   "air": "175 dps against aircraft, its full damage",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 390,
    "flags": [
     "submerged",
-    "anti_air",
     "sonar"
    ],
    "gloss": "tier-2 fast submarine, homing torpedoes at 400; the submarine killer, hunts battle subs; a few in every tier-2 navy",
@@ -4534,12 +4528,11 @@
    "speed": null,
    "range": 500,
    "dps": 186.7,
-   "dps_air": 186.7,
-   "air": "187 dps against aircraft, its full damage",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 494,
    "flags": [
     "submerged",
-    "anti_air",
     "sonar",
     "on_water"
    ],
@@ -5594,12 +5587,11 @@
    "speed": null,
    "range": 890,
    "dps": 362.6,
-   "dps_air": 362.6,
-   "air": "363 dps against aircraft, its full damage",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 585,
    "flags": [
     "submerged",
-    "anti_air",
     "sonar",
     "on_water"
    ],
@@ -5747,7 +5739,7 @@
    "health": 53000,
    "speed": 49.5,
    "range": 2550,
-   "dps": 1306.6,
+   "dps": 1304.2,
    "dps_air": 352.9,
    "air": "353 dps against aircraft (27% of its ground damage)",
    "sight": 650,
@@ -6031,8 +6023,8 @@
    "build_time": 120000,
    "health": 16700,
    "speed": 114.9,
-   "range": 840,
-   "dps": 631.2,
+   "range": 575,
+   "dps": 630,
    "dps_air": 95,
    "air": "95 dps against aircraft (15% of its ground damage)",
    "sight": 494,
@@ -6187,8 +6179,8 @@
    "build_time": 160000,
    "health": 18000,
    "speed": 63,
-   "range": 700,
-   "dps": 1606.7,
+   "range": 500,
+   "dps": 1440,
    "dps_air": 250,
    "air": "250 dps against aircraft (17% of its ground damage)",
    "sight": 500,
@@ -6221,11 +6213,10 @@
    "speed": null,
    "range": 600,
    "dps": 150,
-   "dps_air": 150,
-   "air": "150 dps against aircraft, its full damage",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 611,
    "flags": [
-    "anti_air",
     "sonar"
    ],
    "gloss": "250-metal coastal torpedo launcher on land, 150 dps at 600 with sonar; guards shore buildings from ships and subs",
@@ -6511,8 +6502,8 @@
    "build_power": 125,
    "energy_make": 15,
    "flags": [],
-   "gloss": "fast tier-2 combat engineer, 150 build power at speed 90; builds tier-1 basics, mines and walls; unarmed",
-   "prose": "The Twitcher is a fast builder: 210 metal, 830 health, speed 90, 150 build power, with a tier-1 build list plus mines and walls. It gets build power to a forward lab, a repair or a minefield quickly, and can lay down a Bot Lab (corlab) at the front and help it. It has no weapon and dies to anything that catches it; build it when build power at the front, not metal, is what is missing."
+   "gloss": "fast tier-2 combat engineer, 125 build power at speed 90; builds tier-1 basics, mines and walls; unarmed",
+   "prose": "The Twitcher is a fast builder: 210 metal, 830 health, speed 90, 125 build power, with a tier-1 build list plus mines and walls. It gets build power to a forward lab, a repair or a minefield quickly, and can lay down a Bot Lab (corlab) at the front and help it. It has no weapon and dies to anything that catches it; build it when build power at the front, not metal, is what is missing."
   },
   "corfatf": {
    "name": "Naval Pinpointer",
@@ -6912,8 +6903,8 @@
    "build_time": 13000,
    "health": 2700,
    "speed": 93,
-   "range": 710,
-   "dps": 375.5,
+   "range": 450,
+   "dps": 375,
    "dps_air": 69,
    "air": "69 dps against aircraft (18% of its ground damage)",
    "sight": 500,
@@ -7468,8 +7459,8 @@
    "build_time": 94000,
    "health": 12500,
    "speed": 45,
-   "range": 700,
-   "dps": 766.7,
+   "range": 600,
+   "dps": 600,
    "dps_air": 250,
    "air": "250 dps against aircraft (42% of its ground damage)",
    "sight": 455,
@@ -7934,8 +7925,8 @@
    "build_time": 3440,
    "health": 860,
    "speed": 52,
-   "range": 700,
-   "dps": 25.6,
+   "range": 575,
+   "dps": 25.2,
    "dps_air": 48,
    "air": "48 dps against aircraft, its full damage",
    "sight": 620,
@@ -8080,7 +8071,7 @@
    "health": 3350,
    "speed": 61.4,
    "range": 1550,
-   "dps": 138,
+   "dps": 137.5,
    "dps_air": 69,
    "air": "69 dps against aircraft (50% of its ground damage)",
    "sight": 318.5,
@@ -8328,8 +8319,8 @@
    "build_time": 2500,
    "health": 890,
    "speed": 69,
-   "range": 750,
-   "dps": 24,
+   "range": 650,
+   "dps": 23.5,
    "dps_air": 60,
    "air": "60 dps against aircraft, its full damage",
    "sight": 670,
@@ -8717,8 +8708,8 @@
    "speed": 200,
    "range": 600,
    "dps": 85.5,
-   "dps_air": 3.8,
-   "air": "4 dps against aircraft (4% of its ground damage)",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 535,
    "flags": [
     "flies",
@@ -8842,12 +8833,11 @@
    "speed": 84,
    "range": 400,
    "dps": 159.1,
-   "dps_air": 159.1,
-   "air": "159 dps against aircraft, its full damage",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 390,
    "flags": [
     "submerged",
-    "anti_air",
     "sonar"
    ],
    "gloss": "tier-2 fast submarine, homing torpedoes at 400; the submarine killer, hunts Serpents and Krakens; a few in every navy",
@@ -9134,13 +9124,12 @@
    "speed": 39,
    "range": 850,
    "dps": 206.2,
-   "dps_air": 206.2,
-   "air": "206 dps against aircraft, its full damage",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 570,
    "flags": [
     "submerged",
     "stealth",
-    "anti_air",
     "sonar"
    ],
    "gloss": "tier-2 battle submarine, 1650-damage torpedoes at 850; kills heavy ships and tier-3 amphibians; loses to Predators",
@@ -9185,12 +9174,11 @@
    "speed": 57,
    "range": 500,
    "dps": 136.8,
-   "dps_air": 136.8,
-   "air": "137 dps against aircraft, its full damage",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 400,
    "flags": [
     "submerged",
-    "anti_air",
     "sonar"
    ],
    "gloss": "tier-1 submarine, unguided torpedoes at 500; invisible without sonar, kills underwater extractors and unguarded fleets",
@@ -9373,12 +9361,11 @@
    "speed": 279,
    "range": 400,
    "dps": 150,
-   "dps_air": 150,
-   "air": "150 dps against aircraft, its full damage",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 500,
    "flags": [
     "flies",
-    "anti_air",
     "sonar"
    ],
    "gloss": "tier-2 torpedo bomber, 1200-damage homing torpedo; kills ships and submarines, nothing against land",
@@ -9404,12 +9391,11 @@
    "speed": null,
    "range": 500,
    "dps": 186.7,
-   "dps_air": 186.7,
-   "air": "187 dps against aircraft, its full damage",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 495,
    "flags": [
     "submerged",
-    "anti_air",
     "sonar",
     "on_water"
    ],
@@ -10012,7 +9998,9 @@
    "flags": [
     "amphibious",
     "anti_air"
-   ]
+   ],
+   "gloss": "tier-1 anti-air bot, three-missile salvo at 760; air only, walks under water; the Crossbow's numbers for 120 metal",
+   "prose": "The Toxotai is Legion's tier-1 mobile anti-air: 120 metal, 610 health, speed 55, a three-missile salvo every 2 seconds at range 760 doing 37 a missile to aircraft and nothing to anything else, 55 a second, the Crossbow's (armjeth) numbers for 5 metal less. It is worth building only after enemy aircraft or an aircraft plant have been seen; two or three walking with the army stop gunships and bombers from picking off the line. Against ground it is nothing and any raider kills it. It walks under water but cannot fire from there; the Amphibious Complex (legamphlab) and the Proteus (legaceb) make it too."
   },
   "legaap": {
    "name": "Legion Advanced Aircraft Plant",
@@ -10035,7 +10023,9 @@
    "air": "",
    "sight": 305.5,
    "build_power": 600,
-   "flags": []
+   "flags": [],
+   "gloss": "tier-2 aircraft plant, 2900 metal, 600 build power; makes the Phoenix, Tyrannus, Ajax, Venator, Aesacus and the rest",
+   "prose": "The Legion Advanced Aircraft Plant is the tier-2 air factory: 2900 metal and 28000 energy, 3900 health, 600 build power, 1000 radar, making the Advanced Construction Aircraft (legaca), the Stronghold transport gunship, the Harbinger minelayer, the Aesacus torpedo bomber, the Ajax and Venator fighters, the Whisper radar plane, the Tyrannus heavy gunship and the Phoenix bomber. It is one of the most energy-expensive factories to build and its units are energy-expensive to make; it pays when the enemy has no anti-air or when a commander or a fusion cluster is the target. The tier-1 Construction Aircraft (legca) and Construction Seaplane (legspcon) can start it."
   },
   "legabm": {
    "name": "Aegis",
@@ -10059,7 +10049,9 @@
    "sight": 195,
    "flags": [
     "antinuke"
-   ]
+   ],
+   "gloss": "1500-metal anti-nuke, stockpiled interceptors cover a 2000 radius; the only answer to a nuclear silo",
+   "prose": "The Aegis is Legion's fixed anti-nuke, the Prevailer's (corfmd) numbers with 3650 health: 1500 metal and 40000 energy, intercepting nuclear missiles aimed within 2000 of it with stockpiled interceptors, each 150 metal, 7500 energy and 90 seconds, up to 20. It is the only answer to a Supernova (legsilo), Armageddon (armsilo) or Apocalypse (corsilo), and it must have a missile ready when the nuke comes; several nukes at once can exhaust it. The Rampart (legrampart) carries a smaller anti-nuke (cover 1600) on a vent, and the Hera (legavantinuke) and Hecate (leganavyantinukecarrier) are mobile ones."
   },
   "legaca": {
    "name": "Advanced Construction Aircraft",
@@ -10083,7 +10075,9 @@
    "energy_make": 10,
    "flags": [
     "flies"
-   ]
+   ],
+   "gloss": "tier-2 constructor aircraft, 115 build power at speed 203; upgrades far extractors, builds fusion; fragile",
+   "prose": "The Advanced Construction Aircraft is the flying tier-2 builder: 330 metal, 195 health, speed 203, 115 build power, no weapon. It reaches any extractor on the map to upgrade it and carries the whole tier-2 list: fusion, advanced converters and storage, the tier-2 towers, the silos, the long-range cannons and the Experimental Gantry (leggant). Its build power is lower than the land constructors', so use a pack. Fighters and any anti-air kill it."
   },
   "legaceb": {
    "name": "Proteus",
@@ -10105,7 +10099,9 @@
    "sight": 520,
    "build_power": 125,
    "energy_make": 15,
-   "flags": []
+   "flags": [],
+   "gloss": "all-terrain tier-2 combat engineer, 125 build power at speed 75; builds basics, towers and even Goblins and Hoplites itself",
+   "prose": "The Proteus is an all-terrain combat engineer from the Advanced Bot Lab: 310 metal, 830 health, speed 75, 125 build power, 15 energy a second, no weapon. It climbs where other builders cannot, and its short list mixes buildings (solar, extractor, bot lab, construction turret, camera, advanced radar and jammer, the fortification wall, the Dragon's Jaw legdtr, Eviscerator legacluster and Pluto legflak towers, a torpedo launcher) with units it builds on the spot: the constructor bot, Goblin (leggob), Toxotai (legaabot), Hoplite (legstr), Telchine (legamph), the Argonaut frigate and the construction ship. It takes the Twitcher's (corfast) place, the same 830 health and 125 build power for 100 more metal and less speed, as the builder that brings build power to the front. It has no weapon and dies to anything that catches it."
   },
   "legack": {
    "name": "Advanced Construction Bot",
@@ -10127,7 +10123,9 @@
    "sight": 318.5,
    "build_power": 195,
    "energy_make": 14,
-   "flags": []
+   "flags": [],
+   "gloss": "tier-2 constructor bot, 195 build power; builds advanced extractors, fusion and every tier-2 building; unarmed",
+   "prose": "The Advanced Construction Bot is the builder tier 2 exists for: 410 metal, 860 health, speed 36, 195 build power, no weapon (Armada's armack: 430 metal, 210). Advanced extractors (legmoho, legmohocon), fusion (legfus), the advanced converter, the tier-2 towers, the silos, the long-range cannons and the Experimental Gantry (leggant) are on its list and on no tier-1 builder's. Its first job is upgrading the safest extractors, about 70 seconds each with metal in the bank and minutes each without, so give it helpers or a bank. It dies to any raider that reaches it."
   },
   "legacluster": {
    "name": "Eviscerator",
@@ -10151,7 +10149,9 @@
    "dps_air": null,
    "air": "does nothing to aircraft",
    "sight": 455,
-   "flags": []
+   "flags": [],
+   "gloss": "2300-metal pop-up cluster artillery at 1380; 414 plus eight 105 bomblets every 3.5 s; closed it takes a quarter damage",
+   "prose": "The Eviscerator is Legion's tier-2 artillery battery: 2300 metal and 15000 energy, 3700 health, a cluster plasma shell every 3.5 seconds at range 1380 doing 414 with a 120 blast plus eight 105-damage bomblets, up to about 1250 a shell. It pops down when idle and then takes a quarter of the damage, so it outlasts counter-battery fire. It takes the Rattlesnake's (armamb: 2500 metal, 350 every 1.8 seconds at 1380) and Persecutor's (cortoast) place, out-ranging every tower but the long-range cannons and protecting a front from bombardment; it sees nothing of what it shoots, so it needs radar and a Pinpointer (legtarg). The tier-2 constructors, the Proteus (legaceb) and the Artifex (leganavyengineer) build it."
   },
   "legacv": {
    "name": "Advanced Construction Vehicle",
@@ -10173,7 +10173,9 @@
    "sight": 295.1,
    "build_power": 270,
    "energy_make": 20,
-   "flags": []
+   "flags": [],
+   "gloss": "tier-2 constructor vehicle, 270 build power, 1950 health; builds advanced extractors, fusion and tier-2 buildings; unarmed",
+   "prose": "The Advanced Construction Vehicle is the vehicle line's tier-2 builder: 530 metal, 1950 health, speed 55.5, 270 build power, no weapon (Armada's armacv: 550 metal, 290). Its list is the Advanced Construction Bot's (legack), the tier-2 economy and towers, the silos and the gantry, with more build power and health but poorer climbing. Its first job is upgrading the safest extractors, about 52 seconds each with a bank; it dies to any raider that reaches it."
   },
   "legadvaabot": {
    "name": "Aquilon",
@@ -10197,7 +10199,9 @@
    "flags": [
     "amphibious",
     "anti_air"
-   ]
+   ],
+   "gloss": "750-metal heavy anti-air bot, micro-flak at 700 and an anti-air rail at 1151; air only, walks under water",
+   "prose": "The Aquilon is Legion's tier-2 mobile anti-air: 750 metal, 2400 health, speed 34.5, a rotary micro-flak cannon firing three 40-damage rounds every 0.4 seconds at range 700 (300 a second) and an anti-air railgun doing 225 every 3 seconds at 1151 that passes through what it kills, about 375 a second against aircraft and nothing against anything else. It takes the Archangel's (armaak: 520 metal, 258 a second at 1200) place with more metal, more damage and less speed. It is worth its cost only when the enemy has air; it walks under water, and the Amphibious Complex (legamphlab) makes it too."
   },
   "legadveconv": {
    "name": "Advanced Energy Converter",
@@ -10219,7 +10223,9 @@
    "dps_air": null,
    "air": "",
    "sight": 273,
-   "flags": []
+   "flags": [],
+   "gloss": "tier-2 converter, 600 energy a second into 10.3 metal for 370 metal; capacity, barely a better rate",
+   "prose": "The Advanced Energy Converter turns 600 energy a second into 10.3 metal a second (58 energy a metal against the tier-1 converter's 70) for 370 metal and 21000 energy, with 560 health; Armada's (armmmkr) costs 380 metal and has 445. Its gain is capacity in one building, so it is for a fusion-sized surplus late in a game, not a reason to go tier 2. Only the tier-2 constructors build it, and clusters chain-explode."
   },
   "legadvestore": {
    "name": "Hardened Energy Storage",
@@ -10243,7 +10249,9 @@
    "air": "",
    "sight": 192,
    "energy_storage": 40000,
-   "flags": []
+   "flags": [],
+   "gloss": "tier-2 hardened storage, 40000 energy for 840 metal, 12700 health; the bank for stockpile weapons and gantries",
+   "prose": "The Hardened Energy Storage adds 40000 energy storage for 840 metal and 11000 energy, with 12700 health (Armada's armuwadves: 830 metal, 11700 health). It is the bank that a nuclear silo (legsilo), a Juno (legjuno) at 12000 energy a pulse or the energy-fed tier-2 guns draw on, and it lets a big economy ride a stall; the tier-2 constructors build it on land or water. Its health makes it the storage that survives a raid, so the bank is still there when the enemy leaves."
   },
   "legadvshipyard": {
    "name": "Advanced Shipyard",
@@ -10269,7 +10277,9 @@
    "flags": [
     "submerged",
     "on_water"
-   ]
+   ],
+   "gloss": "tier-2 shipyard on water, 2800 metal, 600 build power; makes cruisers, submarines, battleships and the Neptune",
+   "prose": "The Advanced Shipyard is the tier-2 naval factory, built only on water: 2800 metal and 10000 energy, 5900 health, 600 build power (Armada's armasy: 2900 metal), making the Advanced Construction Submarine (leganavyconsub), Artifex, Thalassa, Leocampus, Ultor, Notus, Dolus, Hecate, Sphyrna, Architeuthis, Scylla, Corinth and Neptune. It is offered only where the builder reaches deep water. Its 600 build power keeps up with a tier-2 sea economy; a Construction Ship (legnavyconship) assisting adds to it."
   },
   "legadvsol": {
    "name": "Advanced Solar Collector",
@@ -10295,7 +10305,9 @@
    "air": "",
    "sight": 280,
    "energy_make": 100,
-   "flags": []
+   "flags": [],
+   "gloss": "100 energy a second for 465 metal, no weather; Armada's is 80 for 350; a tier-1 constructor builds it",
+   "prose": "The Advanced Solar Collector makes a steady 100 energy a second for 465 metal and 4080 energy, 1100 health, 150 energy storage; Armada's (armadvsol) makes 80 for 350 metal. At 4.65 metal per energy a second it costs about what a Fusion Reactor (legfus, 4.2) does per unit of energy and needs no tier-2 builder, so it is the tier-1 way to a big, steady income where wind is poor. It is much dearer up front than solar or wind, and its 4080 energy is the cost that bites at tier 1."
   },
   "legafcv": {
    "name": "Aceso",
@@ -10317,7 +10329,9 @@
    "sight": 400,
    "build_power": 120,
    "energy_make": 10,
-   "flags": []
+   "flags": [],
+   "gloss": "fast light constructor buggy, 120 build power at speed 110; builds only extractors, solar, wind, radar, Pharos and walls",
+   "prose": "The Aceso is a fast light builder from the Advanced Vehicle Plant: 200 metal, 450 health, speed 110, 120 build power, 10 energy a second, no weapon. Its list is six things, the extractor, solar, wind, radar, Pharos (leglht) and Dragon's Teeth (legdrag), so it is for claiming and re-claiming far metal spots quickly with a tower beside each, and for assisting, not for building a base. No Armada or Cortex builder is quite like it; at 450 health it dies to any raider it meets."
   },
   "legafigdef": {
    "name": "Ajax",
@@ -10340,7 +10354,9 @@
    "flags": [
     "flies",
     "anti_air"
-   ]
+   ],
+   "gloss": "180-metal tier-2 fighter, heavy gatling at 600 doing 800 a second to aircraft, 480 health; air only, not stealthy",
+   "prose": "The Ajax is Legion's tier-2 air-superiority fighter: 180 metal, 480 health, speed 270, gatlings firing ten 80-damage rounds every second at range 600 against aircraft only (800 a second). It takes the Highwind's (armhawk: 150 metal, 370 health, 536 a second at 740, speed 358, invisible to radar) and Nighthawk's (corvamp) place with more damage and health but less reach and speed and no radar stealth, so it is the fighter that holds the sky over its own army rather than the one that hunts. It cannot hit ground at all. Build it once the enemy flies tier-2 aircraft."
   },
   "legafus": {
    "name": "Advanced Fusion Reactor",
@@ -10364,7 +10380,9 @@
    "sight": 273,
    "energy_make": 3300,
    "energy_storage": 9000,
-   "flags": []
+   "flags": [],
+   "gloss": "3300 energy a second for 10500 metal; the late-game energy for long-range guns and gantries; huge explosion",
+   "prose": "The Advanced Fusion Reactor makes 3300 energy a second for 10500 metal and 69000 energy, with 9800 health and 9000 energy storage; Armada's and Cortex's (armafus, corafus) make 3000 for 9700 metal. At 3.2 metal per energy a second it is the cheapest steady energy away from a vent, and it is what powers the long-range cannons (leglrpc, legstarfall), the energy-fed heat-ray units or a gantry army late in a game. It is the bomber's favourite target and its explosion levels everything near it, so it stands alone under anti-air. Only the tier-2 constructors build it, at 340000 build time."
   },
   "legageo": {
    "name": "Advanced Geothermal Powerplant",
@@ -10388,7 +10406,9 @@
    "sight": 273,
    "energy_make": 1250,
    "energy_storage": 12000,
-   "flags": []
+   "flags": [],
+   "gloss": "tier-2 geothermal, 1250 energy a second on a vent for 1600 metal; devastating when it explodes",
+   "prose": "The Advanced Geothermal Powerplant makes 1250 energy a second for 1600 metal and 27000 energy on a steam vent, with 4150 health and 12000 energy storage (Armada's armageo is the same price with 3600 health; Cortex's corageo 1500 metal). It is the most metal-efficient energy in the game, and its explosion can take most of a base with it, so it goes on a vent the enemy cannot reach and away from everything else. Only the tier-2 constructors build it; the other Legion building for a vent is the Rampart (legrampart), which trades half the output for an anti-nuke, radar and drones."
   },
   "legah": {
    "name": "Alpheus",
@@ -10414,7 +10434,9 @@
     "anti_air",
     "sonar",
     "floats"
-   ]
+   ],
+   "gloss": "210-metal anti-air hovercraft, gatling at 700 doing 120 a second to aircraft; covers a hover force or a fleet",
+   "prose": "The Alpheus is Legion's anti-air hovercraft: 210 metal, 1120 health, speed 88.5, 350 sonar, a gatling firing six 8-damage rounds every 0.4 seconds at range 700 against aircraft only (120 a second). It takes the Sweeper's (armah: 230 metal, 85 a second at 700) and Birdeater's (corah) place with more damage for less metal. It covers a hover force or a fleet against gunships and bombers and does nothing against ground; build it once enemy air has been seen."
   },
   "legaheattank": {
    "name": "Prometheus",
@@ -10436,7 +10458,9 @@
    "sight": 450,
    "flags": [
     "needs_energy_to_fire"
-   ]
+   ],
+   "gloss": "1250-metal heat-ray assault tank, 7700 health; a beam at 450 burning 1.8 s of every 3, about 600 a second; needs energy",
+   "prose": "The Prometheus is Legion's tier-2 heavy tank: 1250 metal and 19000 energy, 7700 health, speed 52, a heat ray at range 450 with a 64 splash that burns for 1.8 seconds of every 3 at 33 damage a frame, about 1780 a burst and 600 a second on average (the 990 in its numbers is the beam while it is on), for 10 energy a frame, 300 a second while it burns. It takes the Bull's (armbull: 950 metal, 4650 health, 245 a second at 460) and Tiger's (correap) place with more health and far more damage up close for more metal, so it wins the mid-range brawl and melts tier-1 groups and towers that let it reach them. Units and towers that out-range 450 shoot it on the way in, and in an energy stall it stops firing. At 1250 metal it is not a unit to send alone."
   },
   "legajam": {
    "name": "Erebus",
@@ -10462,7 +10486,9 @@
    "energy_upkeep": 125,
    "flags": [
     "radar_jammer"
-   ]
+   ],
+   "gloss": "tier-2 jammer tower, hides everything within 760 from radar for 125 energy a second; 125 metal",
+   "prose": "The Erebus is the tier-2 jammer tower and Armada's Veil (armveil) to the number: 125 metal and 19000 energy, 830 health, hiding everything within 760 from enemy radar for 125 energy a second. It hides a whole base or a massed army from long-range weapons that target by radar; line of sight still sees through it. The tier-2 constructors and the Proteus (legaceb) build it, and a Juno pulse destroys it."
   },
   "legajamk": {
    "name": "Tiresias",
@@ -10485,7 +10511,9 @@
    "energy_upkeep": 80,
    "flags": [
     "radar_jammer"
-   ]
+   ],
+   "gloss": "radar jammer bot, hides units within 450 from enemy radar for 80 energy a second; unarmed",
+   "prose": "The Tiresias is a 75-metal jammer bot (350 health, speed 35) that hides everything within 450 from enemy radar for 80 energy a second, Armada's Smuggler (armaser) to within a few metal. It walks with an army to keep it off the radar that artillery and long-range guns target by; line of sight still sees through it, and it switches off while stunned. A Juno pulse destroys it."
   },
   "legalab": {
    "name": "Legion Advanced Bot Lab",
@@ -10507,7 +10535,9 @@
    "air": "",
    "sight": 288.6,
    "build_power": 600,
-   "flags": []
+   "flags": [],
+   "gloss": "tier-2 bot factory, 2600 metal, 600 build power; the gate to tier 2 through bots; makes the 16 Legion tier-2 bots",
+   "prose": "The Legion Advanced Bot Lab is the tier-2 bot factory at Cortex's price (coralab): 2600 metal and 16000 energy, 4500 health, 600 build power, four times the tier-1 lab's, making the Advanced Construction Bot (legack), Proteus, Hoplite, Telchine, Phalanx, Incinerator, Arquebus, Belcher, Infestor, Thanatos, Aquilon, Snapper, Euclid, Eidolon, Tiresias and the decoy commander. A tier-1 constructor builds it, not the commander; with the first advanced constructor the entry costs about 3000 metal before any return, and at 25200 build time one constructor bot takes over five minutes. The rule of thumb carried over from the other factions is to start it at +30 metal and +500 energy a second, or +20 with 1000 to 1500 banked; earlier it idles the tier-1 army and loses to a tier-1 push. The carded OS-27 Legion player started his at 8:08 in the long game."
   },
   "legamcluster": {
    "name": "Cleaver",
@@ -10527,7 +10557,9 @@
    "dps_air": null,
    "air": "does nothing to aircraft",
    "sight": 330,
-   "flags": []
+   "flags": [],
+   "gloss": "460-metal cluster artillery tank at 930; a 300 shell plus five 105 bomblets every 7.2 s; helpless if reached",
+   "prose": "The Cleaver is Legion's tier-2 mobile artillery: 460 metal, 1250 health, speed 44, a plasma shell every 7.2 seconds at range 930 that does 300 with a 130 blast and breaks into five 105-damage bomblets, up to 825 a shell over an area. It takes the Mauser's (armmart: 320 metal, 820) and Quaker's (cormart: 400 metal, 800) place with more reach and a wider, slower shot, so it kills towers from outside their reach and punishes packed groups more than single movers. It sees only 330, so it needs radar or a spotter, and anything that reaches it kills it."
   },
   "legamph": {
    "name": "Telchine",
@@ -10554,7 +10586,9 @@
     "needs_energy_to_fire",
     "amphibious",
     "sonar"
-   ]
+   ],
+   "gloss": "600-metal amphibious assault bot, heat ray at 450 burning 1 s in 3, depth charges at 600; armoured; no twin",
+   "prose": "The Telchine is an amphibious assault bot: 600 metal, 2750 health, speed 48 (faster in water), 700 sonar, with a heat ray at range 450 that burns for a second (33 damage a frame, about 990 a burst, for 10 energy a frame) and then cools for two, roughly 330 a second on average, and a 350-damage depth charge every 3 seconds at 600 against what is in the water. On land it fights with the heat ray; in the water it uses only the depth charges. Its reactive armour halves the damage it takes until 750 is absorbed and comes back about 17 seconds after it was last hit, and it takes a fifth of EMP. Nearest it are Armada's Platypus (armamph) and Cortex's Duck (coramph), both cheaper and lighter; it is a shore assault and a coast guard rather than a raider."
   },
   "legamphlab": {
    "name": "Amphibious Complex",
@@ -10566,7 +10600,7 @@
     "legotter",
     "legspcon"
    ],
-   "class": "bot factory",
+   "class": "amphibious factory",
    "metal": 1200,
    "energy": 5600,
    "build_time": 11400,
@@ -10581,7 +10615,9 @@
    "flags": [
     "submerged",
     "on_water"
-   ]
+   ],
+   "gloss": "tier-1 amphibious factory under water, 1200 metal, 150 build power; makes the Otter, Cetus, Triton, Telchine, Toxotai, Aquilon",
+   "prose": "The Amphibious Complex is a factory built on the sea floor: 1200 metal and 5600 energy, 2800 health, 150 build power (half Armada's armamsub), making the Otter (legotter), Cetus, Triton, Telchine, Toxotai, Aquilon and the decoy commander, units that walk or float in from the sea. Three of them, the Triton, Telchine and Aquilon, are tier-2 units the land factories make only in the advanced plants, so on a water map it is a cheaper road to them. It is offered only where the builder reaches deep water and is expensive for a tier-1 factory; its units are the ones that come out of the water behind an enemy's shore defences."
   },
   "legamphtank": {
    "name": "Cetus",
@@ -10605,7 +10641,9 @@
    "flags": [
     "amphibious",
     "sonar"
-   ]
+   ],
+   "gloss": "200-metal amphibious tank, gauss 116 per 1.5 s at 305, 1340 health; the Pincer's numbers, takes an eighth of EMP",
+   "prose": "The Cetus is Legion's amphibious tank and the Pincer's (armpincer) numbers to the unit: 200 metal, 1340 health, speed 63, a 116-damage gauss shot every 1.5 seconds (77 a second) at range 305 and 180 sonar. It drives along the sea floor, so it reaches an expansion from the water or over ground tanks cannot cross; like the Pincer it should lose a straight fight to true tanks and to towers. It takes only an eighth of EMP damage. The vehicle plant and the Amphibious Complex (legamphlab) both make it; build it on maps with water between you and the enemy."
   },
   "legamstor": {
    "name": "Hardened Metal Storage",
@@ -10629,7 +10667,9 @@
    "air": "",
    "sight": 182,
    "metal_storage": 10000,
-   "flags": []
+   "flags": [],
+   "gloss": "tier-2 hardened storage, 10000 metal for 760 metal, 11200 health; land or water",
+   "prose": "The Hardened Metal Storage adds 10000 metal storage for 760 metal and 11000 energy, with 11200 health (Armada's armuwadvms: 750 metal, 10300 health). It is for a tier-2 economy that banks for gantry units (the Experimental Gantry, leggant, costs 8400) and long-range guns; the tier-2 constructors build it on land or water. It is a late buy: at tier 1 a full metal store means a second lab, not a bigger store."
   },
   "leganavalaaturret": {
    "name": "Fulmen",
@@ -10654,7 +10694,9 @@
     "submerged",
     "anti_air",
     "on_water"
-   ]
+   ],
+   "gloss": "the Pluto flak on water, 820 metal, micro-flak at 875; shreds air formations over a fleet",
+   "prose": "The Fulmen is the Pluto (legflak) built on water: 820 metal and 13000 energy, 1750 health, twin rotary micro-flak cannons firing three 58-damage rounds with a 44 blast every sixth of a second at range 875, aircraft only, about 1000 a second on paper. It takes the Naval Arbalest's (armfflak) and Naval Birdshot's (corenaa) place and answers bombers, torpedo aircraft and drones over a sea base. The Advanced Construction Submarine (leganavyconsub) and the Artifex (leganavyengineer) build it."
   },
   "leganavaladvgeo": {
    "name": "Advanced Underwater Geothermal Powerplant",
@@ -10680,7 +10722,9 @@
    "flags": [
     "submerged",
     "on_water"
-   ]
+   ],
+   "gloss": "tier-2 geothermal on an underwater vent, 1250 energy a second for 1500 metal; devastating when it explodes",
+   "prose": "The Advanced Underwater Geothermal Powerplant makes 1250 energy a second for 1500 metal and 27000 energy on a sea vent, with 4150 health and 12000 energy storage. It is the most metal-efficient energy in the game and its explosion can take most of a base with it, so it goes on a vent the enemy cannot reach. The Advanced Construction Submarine (leganavyconsub) and the Advanced Construction Aircraft (legaca) build it."
   },
   "leganavaldefturret": {
    "name": "Ionia",
@@ -10704,7 +10748,9 @@
    "flags": [
     "submerged",
     "on_water"
-   ]
+   ],
+   "gloss": "1250-metal floating gun tower: heavy machine guns at 700 and a 15-pellet shotgun at 501, 735 a second; anti-ship",
+   "prose": "The Ionia is Legion's tier-2 floating defence: 1250 metal and 16500 energy, 6300 health, twin heavy machine guns doing 360 a second at range 700 and a 15-pellet shotgun doing 375 a second at 501, against surface targets only and with no energy cost. It takes the Gorgon's (armkraken: 1000 metal, 540 a second at 800) and Devastator's (corfdoom) place with less reach and more damage up close, killing ships and hovercraft that come near. Submarines and long-range ships beat it from below or from beyond 700. The Advanced Construction Submarine (leganavyconsub) and the Artifex (leganavyengineer) build it."
   },
   "leganavaleconv": {
    "name": "Naval Advanced Energy Converter",
@@ -10726,7 +10772,9 @@
    "sight": 143,
    "flags": [
     "on_water"
-   ]
+   ],
+   "gloss": "tier-2 converter on water, 600 energy a second into 10.3 metal for 370 metal; capacity, barely a better rate",
+   "prose": "The Naval Advanced Energy Converter is the Advanced Energy Converter (legadveconv) built on water: 600 energy a second into 10.3 metal for 370 metal and 21000 energy, 560 health. It is only about 17 per cent more energy-efficient than the tier-1 converter, so it is for a fusion-sized surplus in a sea base. Only the Advanced Construction Submarine (leganavyconsub) builds it, and clusters chain-explode."
   },
   "leganavalfusion": {
    "name": "Naval Fusion Reactor",
@@ -10751,7 +10799,9 @@
    "flags": [
     "submerged",
     "on_water"
-   ]
+   ],
+   "gloss": "tier-2 fusion on water, 1220 energy a second for 5400 metal; keeps energy out of a land raid's reach",
+   "prose": "The Naval Fusion Reactor is the water-built fusion and Cortex's (coruwfus) to the number: 1220 energy a second for 5400 metal and 34000 energy, 5900 health, 2500 energy storage. At 4.4 metal per energy a second it is a little dearer than the land Fusion Reactor (legfus, 4.2) and is the energy of a sea base, out of a land raid's reach; it explodes when destroyed. Only the Advanced Construction Submarine (leganavyconsub) builds it."
   },
   "leganavalmex": {
    "name": "Advanced Underwater Metal Extractor",
@@ -10775,7 +10825,9 @@
    "flags": [
     "submerged",
     "on_water"
-   ]
+   ],
+   "gloss": "tier-2 extractor upgrade for an underwater spot, 640 metal, four times the yield",
+   "prose": "The Advanced Underwater Metal Extractor is the Advanced Metal Extractor (legmoho) for a spot under water: 640 metal and 8100 energy, 3900 health, four times the spot's yield, 20 energy a second upkeep, 600 metal storage. The Advanced Construction Submarine (leganavyconsub) builds it on a claimed underwater spot. Like the land upgrade it repays its metal in about 100 seconds, so the safest spots go first."
   },
   "leganavalpinpointer": {
    "name": "Naval Pinpointer",
@@ -10799,7 +10851,9 @@
    "flags": [
     "submerged",
     "on_water"
-   ]
+   ],
+   "gloss": "the targeting facility built on water, 800 metal, 150 energy a second",
+   "prose": "The Naval Pinpointer is the Pinpointer (legtarg) built on water: 800 metal and 7500 energy, 1530 health, halving radar-dot wobble for the whole team for 150 energy a second, stacking with diminishing returns. The Advanced Construction Submarine (leganavyconsub) builds it. It is a late buy for a fleet with long-range guns to guide."
   },
   "leganavalsonarstation": {
    "name": "Auscultor",
@@ -10823,7 +10877,9 @@
     "submerged",
     "sonar",
     "on_water"
-   ]
+   ],
+   "gloss": "160-metal tier-2 sonar station under water, 1600 sonar; finds submarines and submerged commanders",
+   "prose": "The Auscultor is built on the sea floor: 160 metal and 2400 energy, 2400 health, 1600 sonar, Cortex's Advanced Sonar Station (corason) to the number. It finds submarines, amphibious units and a commander walking under water, which no radar sees; the Advanced Construction Submarine (leganavyconsub) builds it. It is cheap, and without it a fleet is blind to what swims beneath it."
   },
   "leganavaltorpturret": {
    "name": "Delphinus",
@@ -10840,15 +10896,16 @@
    "speed": null,
    "range": 890,
    "dps": 362.6,
-   "dps_air": 362.6,
-   "air": "363 dps against aircraft, its full damage",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 585,
    "flags": [
     "submerged",
-    "anti_air",
     "sonar",
     "on_water"
-   ]
+   ],
+   "gloss": "1050-metal advanced torpedo launcher, a 1100-damage homing torpedo every 3 s at 890; kills big ships and subs",
+   "prose": "The Delphinus is Legion's tier-2 torpedo launcher and Cortex's Lamprey (coratl) to the number: 1050 metal and 8500 energy, 2800 health, a 1100-damage homing torpedo about every 3 seconds (363 a second) at range 890 with 400 sonar. It kills battleships and submarines that a tier-1 launcher only scratches, from beyond a destroyer's reach; it cannot hit land units, aircraft or hovercraft. The Advanced Construction Submarine (leganavyconsub) builds it."
   },
   "leganavyaaship": {
    "name": "Notus",
@@ -10871,7 +10928,9 @@
    "flags": [
     "anti_air",
     "floats"
-   ]
+   ],
+   "gloss": "1000-metal anti-air ship, micro-flak at 800 and missiles at 860, about 840 a second to aircraft; nothing against ships",
+   "prose": "The Notus is Legion's tier-2 anti-air ship: 1000 metal, 3900 health, speed 57, twin rotary micro-flak cannons firing three 40-damage rounds every sixth of a second at range 800 and two missile launchers at 860, about 840 a second against aircraft on paper and nothing against anything else. It takes the Dragonslayer's (armaas: 1000 metal, 3900 health, 840) and Arrow Storm's (corarch) place. One sailing inside a fleet clears waves of bombers, gunships and torpedo aircraft."
   },
   "leganavyantinukecarrier": {
    "name": "Hecate",
@@ -10897,7 +10956,9 @@
     "sonar",
     "antinuke",
     "floats"
-   ]
+   ],
+   "gloss": "1600-metal support ship: mobile anti-nuke (cover 1600), six drones, 300 energy a second, 1500 radar; no gun",
+   "prose": "The Hecate is Legion's fleet support ship: 1600 metal and 13000 energy, 5000 health, speed 63, an anti-nuke covering 1600 around it (interceptors 150 metal, 7500 energy and 90 seconds each, up to 20), 300 energy a second, 1500 radar and 760 sonar, and up to six light drones (15 metal and 500 energy each, one every 7 seconds, three free on completion) that fight anything within 1350. It takes the Haven's (armantiship: 1400 metal, 2950 radar) and Oasis's (corantiship) place, trading radar reach for the drones. It is the only nuke cover a fleet can carry besides another of its kind; it has no gun of its own."
   },
   "leganavyantiswarm": {
    "name": "Leocampus",
@@ -10912,14 +10973,16 @@
    "build_time": 11270,
    "health": 2300,
    "speed": 105,
-   "range": 760,
-   "dps": 193.4,
+   "range": 350,
+   "dps": 190.9,
    "dps_air": 60,
    "air": "60 dps against aircraft (31% of its ground damage)",
    "sight": 500,
    "flags": [
     "floats"
-   ]
+   ],
+   "gloss": "500-metal fast anti-swarm ship, speed 105, riot cannon 210 with a 144 blast every 1.1 s at 350, light anti-air",
+   "prose": "The Leocampus is Legion's tier-2 anti-swarm ship: 500 metal, 2300 health, speed 105, 750 radar, a riot cannon doing 210 with a wide 144 blast every 1.1 seconds at range 350 (191 a second, more against a crowd) and a light anti-air salvo at 760. It takes the Brimstone's (corfship: 630 metal, flamethrower at 450) and Maelstrom's (armlship) place, cheaper and faster with a shorter gun. It tears through light boats, hovercraft swarms and shore infrastructure; cruisers and submarines beat it."
   },
   "leganavyartyship": {
    "name": "Corinth",
@@ -10942,7 +11005,9 @@
    "flags": [
     "needs_energy_to_fire",
     "floats"
-   ]
+   ],
+   "gloss": "13000-metal bombardment ship: four-shell cluster salvos at 2100 and three cluster guns at 1600; 22000 health",
+   "prose": "The Corinth is a floating artillery fortress: 13000 metal and 125000 energy, 22000 health, speed 48, 1530 radar, a main cannon firing four 350-damage cluster shells every 8.4 seconds at range 2100 (2500 energy a salvo, each shell breaking into five 105-damage bomblets) and three secondary cluster cannons doing 250 plus four bomblets every 2.8 seconds at 1600. Armada and Cortex have nothing like it; it out-ranges every ship but the flagships and levels a shore base, preferring buildings. Submarines, torpedo bombers and the flagships beat it, it explodes like a flagship when it dies, and at 13000 metal it needs an escort."
   },
   "leganavybattleship": {
    "name": "Scylla",
@@ -10966,7 +11031,9 @@
    "flags": [
     "hover",
     "floats"
-   ]
+   ],
+   "gloss": "2900-metal battleship that crawls onto land: three-shell plasma at 750 at sea, 700 on land; 10350 health",
+   "prose": "The Scylla is a battleship that can leave the water: 2900 metal and 21000 energy, 10350 health, speed 25 on land and 2.6 times that afloat. At sea it fires a three-shell plasma cannon doing 270 a shell with a 200 blast every 2.7 seconds at range 750 and two ten-pellet shotguns at 500, about 500 a second; on land it switches to a three-shell cannon doing 300 a shell every 2.4 seconds at 700, about 375 a second. It takes the Dreadnought's (armbats: 3300 metal, 880) and Despot's (corbats: 950) place with less reach, traded for walking ashore to follow its targets. It cannot hit submarines, and battle submarines and torpedo bombers kill it; the underwater gantry makes it too."
   },
   "leganavybattlesub": {
    "name": "Architeuthis",
@@ -10983,14 +11050,15 @@
    "speed": 72,
    "range": 600,
    "dps": 180,
-   "dps_air": 180,
-   "air": "180 dps against aircraft, its full damage",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 450,
    "flags": [
     "submerged",
-    "anti_air",
     "sonar"
-   ]
+   ],
+   "gloss": "1100-metal fast assault submarine, three 150-damage torpedoes every 2.5 s at 600; hunts ships and subs",
+   "prose": "The Architeuthis is Legion's fast tier-2 submarine: 1100 metal, 2350 health, speed 72, 500 sonar, a pack of three unguided 150-damage torpedoes every 2.5 seconds at range 600 (180 a second). It takes the Barracuda's (armsubk: 950 metal, homing torpedoes at 400) and Predator's (corshark) place with more reach but unguided torpedoes. It hunts battle submarines and ships; seen only by sonar, it dies to depth charges, torpedo bombers and submarine hunters it cannot outrun."
   },
   "leganavyconsub": {
    "name": "Advanced Construction Submarine",
@@ -11014,7 +11082,9 @@
    "energy_make": 30,
    "flags": [
     "submerged"
-   ]
+   ],
+   "gloss": "tier-2 constructor submarine, 345 build power; upgrades underwater extractors, builds naval fusion and the underwater gantry",
+   "prose": "The Advanced Construction Submarine is the submerged tier-2 builder: 700 metal, 1110 health, speed 65, 345 build power and 30 energy a second, no weapon (Armada's armacsub: 350 build power). It upgrades underwater extractors (leganavalmex) and builds the naval fusion, advanced converter and geothermal, the tier-2 naval towers (Ionia, Fulmen, Delphinus), sonar, the naval targeting facility and the underwater Experimental Gantry (leggantuw). Guard it with the fleet and assist it with tier-1 constructors."
   },
   "leganavycruiser": {
    "name": "Thalassa",
@@ -11037,7 +11107,9 @@
    "flags": [
     "sonar",
     "floats"
-   ]
+   ],
+   "gloss": "900-metal gatling cruiser, 360 a second at 500 against surface targets plus depth charges at 450; no anti-air",
+   "prose": "The Thalassa is Legion's tier-2 cruiser: 900 metal, 5600 health, speed 57, 375 sonar, twin machine guns firing six 24-damage rounds every 0.4 seconds at range 500 (360 a second) against surface targets and a 225-damage depth charge every 1.8 seconds at 450 against what is under water. It takes the Paladin's (armcrus: 1000 metal, 5600 health, 500) and Buccaneer's (corcrus) place as the tier-2 fleet's mainstay; it kills any tier-1 ship and hunts submarines. It has no anti-air, so it sails with a Notus (leganavyaaship)."
   },
   "leganavyengineer": {
    "name": "Artifex",
@@ -11060,7 +11132,9 @@
    "build_power": 200,
    "flags": [
     "floats"
-   ]
+   ],
+   "gloss": "tier-2 naval engineer ship, 200 build power at reach 250; builds sea buildings and light ships on the spot; sees mines",
+   "prose": "The Artifex is the Advanced Shipyard's naval engineer: 200 metal, 1600 health, speed 58, 200 build power at a reach of 250, no weapon. It builds the tier-1 naval economy and defences, the Naval Hive (legfhive), the Eviscerator (legacluster) and Ionia (leganavaldefturret) towers and a heavy naval mine (corfmine3), and it builds Hippocampus, Iapetus and Syracusia ships and construction ships on the spot. It also reveals enemy mines within 600. It is the builder that brings build power to the front of a fleet; anything that shoots at ships kills it."
   },
   "leganavyflagship": {
    "name": "Neptune",
@@ -11084,7 +11158,9 @@
    "flags": [
     "needs_energy_to_fire",
     "floats"
-   ]
+   ],
+   "gloss": "16000-metal flagship: two continuous heat rays at 700 and four rails at 1000; 48000 health; short reach for its class",
+   "prose": "The Neptune is Legion's flagship: 16000 metal and 240000 energy, 48000 health, speed 63, 1000 radar, 500 energy a second of its own, two heat rays at range 700 doing 33 damage a frame each (about 2000 a second together) and four railguns doing 800 every 3 seconds at 1000 that pass through what they kill, roughly 3000 damage a second at full fire for about 1800 energy a second. It takes the Epoch's (armepoch: 20000 metal, plasma to 2450) and Black Hydra's (corblackhy) place at less metal and far less reach, so it wins a close sea fight and loses an artillery duel; it takes no EMP. It cannot hit submarines, and its energy draw needs a fusion economy behind it. It ends a sea game if it is not answered."
   },
   "leganavyheavysub": {
    "name": "Sphyrna",
@@ -11101,15 +11177,16 @@
    "speed": 39,
    "range": 850,
    "dps": 206.2,
-   "dps_air": 206.2,
-   "air": "206 dps against aircraft, its full damage",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 570,
    "flags": [
     "submerged",
     "stealth",
-    "anti_air",
     "sonar"
-   ]
+   ],
+   "gloss": "1900-metal stealthy battle submarine, a 1650-damage torpedo every 8 s at 850; the naval sniper",
+   "prose": "The Sphyrna is Legion's battle submarine and Cortex's Kraken (corssub) to the number: 1900 metal, 3900 health, speed 39, invisible to radar, 400 sonar, a homing 1650-damage torpedo with a 160 blast every 8 seconds at range 850 (1110 against submarines, 750 against commanders). It kills battleships, flagships and tier-3 amphibians from beyond most ships' reach. Fast submarine hunters (leganavybattlesub and its twins) and torpedo bombers beat it."
   },
   "leganavymissileship": {
    "name": "Ultor",
@@ -11125,13 +11202,15 @@
    "health": 3350,
    "speed": 61.4,
    "range": 1550,
-   "dps": 301.5,
+   "dps": 300,
    "dps_air": 30,
    "air": "30 dps against aircraft (10% of its ground damage)",
    "sight": 318.5,
    "flags": [
     "floats"
-   ]
+   ],
+   "gloss": "2000-metal missile cruiser, six 450-damage rockets every 9 s at 1550 over terrain; levels a shore base",
+   "prose": "The Ultor is Legion's missile cruiser: 2000 metal, 3350 health, speed 61, 1000 radar but only 318 sight, a vertical salvo of six 450-damage rockets with an 80 blast every 9 seconds at range 1550 (2700 a salvo, preferring buildings) and a light anti-air salvo at 760. It takes the Longbow's (armmship: 650-damage rockets) and Messenger's (cormship: 1100) place with more, smaller rockets. It levels a shore base from beyond every tower's reach; it needs radar or spotters to use its range, and fast ships and submarines that reach it kill it."
   },
   "leganavyradjamship": {
    "name": "Dolus",
@@ -11155,7 +11234,9 @@
    "flags": [
     "radar_jammer",
     "floats"
-   ]
+   ],
+   "gloss": "450-metal radar and jammer ship, 1850 radar and a 650 jammer for 120 energy a second; unarmed",
+   "prose": "The Dolus is Legion's electronic ship: 450 metal, 1700 health, speed 42, 1850 radar and a 650 radar jammer for 120 energy a second, switching off while stunned. It takes the Bermuda's (armsjam: 980 jammer) and Phantasm's (corsjam: 900) place with a smaller jammer and a radar they lack, so one ship hides the fleet and finds targets for it. It is unarmed, and unlike the Bermuda and Phantasm it is not on the Juno's kill list."
   },
   "legap": {
    "name": "Legion Drone Plant",
@@ -11184,7 +11265,9 @@
    "air": "",
    "sight": 273,
    "build_power": 150,
-   "flags": []
+   "flags": [],
+   "gloss": "tier-1 drone plant, 430 metal; makes the air constructor, Noctua, Martyr, Blindfold, Mosquito and two transports; 510 radar",
+   "prose": "The Legion Drone Plant is Legion's tier-1 air factory: 430 metal and 1100 energy, 1780 health, 150 build power and its own 510 radar, 220 metal cheaper than Armada's Aircraft Plant (armap). It makes the Legion Construction Aircraft (legca), the Noctua fighter and scout, the Martyr suicide drone, the Blindfold Juno drone, the Mosquito gunship and the Aeolus and Hippotes transports; it has no bomber, and the Hives' drones do not come from it. It is the way to a scout that sees the whole map and to fighters when the enemy flies; its combat aircraft are fragile and die to the first anti-air, so it is a second factory, not a first. The commander can build it."
   },
   "legapopupdef": {
    "name": "Chimera",
@@ -11206,7 +11289,9 @@
    "dps_air": null,
    "air": "does nothing to aircraft",
    "sight": 598,
-   "flags": []
+   "flags": [],
+   "gloss": "750-metal pop-up turret, riot cannon 280 at 730 plus two miniguns at 600 (465 a second); closed it takes half damage",
+   "prose": "The Chimera is Legion's tier-2 pop-up defence: 750 metal and 15000 energy, 2800 health, a 280-damage riot cannon with a 140 blast every 1.7 seconds at range 730 and two rotary machine guns at 600, about 465 damage a second together, none of it costing energy. It takes the Pit Bull's (armpb: 680 metal, 422 a second at 730) and Scorpion's (corvipe) place, with the splash and the machine guns suiting it to groups of light units; closed it takes half damage. Skirmishers and artillery that out-range 730 beat it in the end, so it wants radar and its own artillery behind it."
   },
   "legarad": {
    "name": "Advanced Radar Tower",
@@ -11230,7 +11315,9 @@
    "dps_air": null,
    "air": "",
    "sight": 1000,
-   "flags": []
+   "flags": [],
+   "gloss": "400-metal advanced radar tower, 3500 radar; feeds every long-range weapon; fragile",
+   "prose": "The Advanced Radar Tower shows everything within 3500 as radar dots, for 400 metal and 14000 energy, 500 health, the same as Armada's (armarad). One covers most of a small map's approaches and feeds every long-range weapon; hills block it, jammers hide units from it and cloaked units do not show. The tier-2 constructors and the Proteus (legaceb) build it, and a Juno pulse destroys it."
   },
   "legaradk": {
    "name": "Euclid",
@@ -11250,7 +11337,9 @@
    "dps_air": null,
    "air": "",
    "sight": 925,
-   "flags": []
+   "flags": [],
+   "gloss": "mobile radar bot, 2200 radar and 925 sight; lets skirmishers and artillery use their range; unarmed",
+   "prose": "The Euclid is a 99-metal radar bot (390 health, speed 45) with 2200 radar and 925 sight, Armada's Compass (armmark) to within a point. It walks with the army so the Thanatos (leghrk), Arquebus (legsrail) and artillery can use their range beyond their own sight. It is unarmed, and a Juno pulse destroys it."
   },
   "legaskirmtank": {
    "name": "Gladiator",
@@ -11270,7 +11359,9 @@
    "dps_air": null,
    "air": "does nothing to aircraft",
    "sight": 440,
-   "flags": []
+   "flags": [],
+   "gloss": "450-metal skirmisher tank, three 70-damage plasma rounds every 2 s at 600, 2500 health, speed 65",
+   "prose": "The Gladiator is a burst-fire skirmisher tank: 450 metal, 2500 health, speed 65, a rotary plasma cannon firing three 70-damage rounds with a 64 splash every 2 seconds at range 600 (105 a second). Its 600 out-ranges the tier-1 towers and every tier-1 unit but artillery and missile trucks, and it is fast enough to keep that distance, so it picks apart lines and towers that cannot reach it; heavy tanks that close and artillery beat it. It has no exact twin; the Jaguar (armlatnk) is the other plants' fast tier-2 tank at 600. Its damage is modest for its metal; its value is the reach and the hull."
   },
   "legaspy": {
    "name": "Eidolon",
@@ -11293,7 +11384,9 @@
    "build_power": 50,
    "flags": [
     "stealth"
-   ]
+   ],
+   "gloss": "cloaked spy invisible to radar and sonar; sees for artillery and self-destructs into an EMP burst; no weapon",
+   "prose": "The Eidolon is Legion's spy bot and the Ghost's (armspy) place: 125 metal and 8500 energy, 300 health, speed 62.5, cloaked (15 energy a second standing, 40 moving), invisible to radar and sonar, with 50 build power. It walks into the enemy base to see for artillery and long-range guns, and its self-destruct is an EMP burst 360 wide that stuns mobile units for up to 10 seconds and an anti-nuke for up to 20, which is how a nuke gets past one. An intrusion detector (armsd, corsd, legsd) or a unit bumping into it finds it, and at 300 health it then dies at once."
   },
   "legatorpbomber": {
    "name": "Aesacus",
@@ -11310,14 +11403,15 @@
    "speed": 290,
    "range": 400,
    "dps": 214.3,
-   "dps_air": 214.3,
-   "air": "214 dps against aircraft, its full damage",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 500,
    "flags": [
     "flies",
-    "anti_air",
     "sonar"
-   ]
+   ],
+   "gloss": "480-metal tier-2 torpedo bomber, two 750-damage homing torpedoes every 7 s; kills ships and subs, a fifth on land",
+   "prose": "The Aesacus is Legion's tier-2 torpedo bomber: 480 metal, 1900 health, speed 290, 800 radar and 800 sonar, two homing torpedo launchers each doing 750 every 7 seconds at range 400 (214 a second), and a fifth of that against units on land. It takes the Cormorant's (armlance: 400 metal, three 375-damage torpedoes) and Angler's (cortitan: 410 metal, one 1200-damage torpedo) place. It kills ships and submarines, which few other aircraft can touch, and does little to anything on land; flak and fighters kill it."
   },
   "legatrans": {
    "name": "Hippotes",
@@ -11340,7 +11434,9 @@
    "flags": [
     "transport",
     "flies"
-   ]
+   ],
+   "gloss": "tier-1 heavy air transport, 190 metal, 800 health; carries the commander and heavy units; slow",
+   "prose": "The Hippotes is the heavy transport: 190 metal, 800 health, speed 100, carrying one unit including the commander and heavy tier-2 units, the Osprey's (armhvytrans) place with 170 more health and a little less speed. It is the cheapest way to move something slow across the map. It is slow for an aircraft and dies with its cargo to fighters or flak, and it takes no EMP."
   },
   "legavantinuke": {
    "name": "Hera",
@@ -11362,7 +11458,9 @@
    "sight": 450,
    "flags": [
     "antinuke"
-   ]
+   ],
+   "gloss": "1100-metal mobile anti-nuke, interceptors cover 1575; protects an army from nuclear missiles; unarmed",
+   "prose": "The Hera is Legion's mobile anti-nuke: 1100 metal and 36000 energy, 720 health, speed 58, stockpiling interceptors (150 metal, 6500 energy and 90 seconds each, up to 20) that shoot down nuclear missiles aimed within 1575 of it. It takes the Saviour's (cormabm: 1250 metal, 870 health) place. Late in a game one with the army means the army cannot be nuked by a single missile; lower its stockpile limit so it does not eat resources once a few are stored. It has no other weapon."
   },
   "legavjam": {
    "name": "Cicero",
@@ -11385,7 +11483,9 @@
    "energy_upkeep": 80,
    "flags": [
     "radar_jammer"
-   ]
+   ],
+   "gloss": "tier-2 radar jammer vehicle, hides units within 450 from enemy radar for 80 energy a second; unarmed",
+   "prose": "The Cicero is Armada's Umbra (armjam) to the number: 105 metal, 510 health, speed 41, hiding everything within 450 from enemy radar for 80 energy a second. It drives with an army to keep it off the radar that artillery and long-range guns target by; line of sight still sees through it, and it switches off while stunned. A Juno pulse destroys it."
   },
   "legavp": {
    "name": "Advanced Vehicle Plant",
@@ -11409,7 +11509,9 @@
    "air": "",
    "sight": 286,
    "build_power": 600,
-   "flags": []
+   "flags": [],
+   "gloss": "tier-2 vehicle plant, 2500 metal, 600 build power; makes Quickshot, Gladiator, Prometheus, Medusa and eleven more",
+   "prose": "The Advanced Vehicle Plant is Legion's tier-2 vehicle factory: 2500 metal and 16000 energy, 5100 health, 600 build power, making the Advanced Construction Vehicle (legacv), Aceso, Quickshot, Gladiator, Triton, Prometheus, Medusa, Cleaver, Mantis, Boreas, Inferno, Charon, Hera, Cicero and Pheme. A tier-1 constructor vehicle, hovercraft or Otter builds it; the entry cost and timing are the advanced bot lab's (about 3000 metal, +30 metal and +500 energy a second), and it is the choice on flat open ground where heavy tanks and artillery pay. Its 600 build power and heavy units need that economy to keep it busy."
   },
   "legavrad": {
    "name": "Pheme",
@@ -11429,7 +11531,9 @@
    "dps_air": null,
    "air": "",
    "sight": 900,
-   "flags": []
+   "flags": [],
+   "gloss": "tier-2 radar vehicle, 2300 radar and 900 sight; lets artillery and skirmishers use their range; unarmed",
+   "prose": "The Pheme is Armada's Prophet (armseer) to the number: 125 metal, 980 health, speed 57, 2300 radar and 900 sight. It drives with the army so the Cleaver (legamcluster), Medusa (legmed), Inferno (leginf) and Boreas (legavroc) can use their range beyond their own sight. It is unarmed, and a Juno pulse destroys it."
   },
   "legavroc": {
    "name": "Boreas",
@@ -11451,7 +11555,9 @@
    "sight": 330,
    "flags": [
     "stealth"
-   ]
+   ],
+   "gloss": "stealthy siege rocket truck, 1900 damage at 1300 every 18 s over walls and hills; useless against movers",
+   "prose": "The Boreas is the Ambassador's (armmerl) twin to the number: 920 metal, 1220 health, speed 33, invisible to radar, lobbing a 1900-damage rocket (625 to commanders) with a 150 blast on a high arc to range 1300 every 18 seconds, preferring buildings. It kills towers, batteries and buildings behind walls or cliffs from beyond their range and is the siege answer to a fortified line; against anything that moves it is helpless, and its reload leaves it defenceless for long stretches. Escort it and spot for it."
   },
   "legbal": {
    "name": "Ballista",
@@ -11473,7 +11579,9 @@
    "sight": 380,
    "flags": [
     "anti_air"
-   ]
+   ],
+   "gloss": "160-metal rocket bot, 250 damage per 5.5 s at 460 with a 70 splash; outranges light towers by 30, slow, needs a screen",
+   "prose": "The Ballista is Legion's rocket bot: 160 metal, 900 health, speed 43.5, one 250-damage rocket every 5.5 seconds (45 a second) at range 460 with a 70 splash. It takes the Rocketeer's (armrock) and Aggravator's (corstorm) place, 40 to 50 metal dearer with more health and a heavier, slower shot; its 460 is 30 more than a Pharos (leglht) or Sentry (armllt) and 15 less than the rocket bots' 475, so a group held at range kills light towers and the extractors behind them. If it is like those rocket bots it is poor against anything that moves and closes, so it wants Satyrs (leglob) in front, which is how the carded OS-27 Legion player ran one to three behind his Satyrs. It may fire at aircraft at full damage when nothing on the ground is in range, though a slow rocket rarely catches one."
   },
   "legbar": {
    "name": "Barrage",
@@ -11493,7 +11601,9 @@
    "dps_air": null,
    "air": "does nothing to aircraft",
    "sight": 400,
-   "flags": []
+   "flags": [],
+   "gloss": "250-metal napalm artillery at 535; each shell leaves a 7-second fire doing 60 a second within 60; riot artillery, slow",
+   "prose": "The Barrage is Legion's tier-1 artillery: 250 metal, 1500 health, speed 40.5, a napalm shell every 5 seconds at range 535 that does 60 on impact and sets the ground burning for 7 seconds, 60 damage a second to anything within 60 of it (fires that overlap are soft-capped at 120 a second; aircraft and submarines do not burn). It has no twin: its 535 is short of the Shellshocker's (armart) and Wolverine's (corwolv) 710, though beyond the light towers' 430, and its damage is in the fire, so it punishes packed groups and anything that stands still, while a moving raider walks out of it. A building cannot step out, so a shell that lands beside one is worth up to 480 against it. It needs a screen and a spotter like any artillery."
   },
   "legbart": {
    "name": "Belcher",
@@ -11513,7 +11623,9 @@
    "dps_air": null,
    "air": "does nothing to aircraft",
    "sight": 400,
-   "flags": []
+   "flags": [],
+   "gloss": "550-metal napalm skirmisher, two fire shells every 4 s at 625, each burning 75 wide for 7 s; no twin",
+   "prose": "The Belcher is a napalm skirmisher: 550 metal, 1780 health, speed 60, a launcher throwing two 60-damage napalm shells every 4 seconds at range 625, each setting the ground within 75 burning for 7 seconds at 60 a second (overlapping fires are soft-capped at 120 a second; aircraft and submarines do not burn). Its 625 out-ranges the tier-1 towers and every tier-1 unit but artillery, and its fire punishes packed groups and anything that stands to fight, while fast units walk out of it; a building cannot, so a pair of shells beside one is worth up to 960 against it. It has no twin; in role it sits with the Hound (armfido) and Sheldon (cormort) as the tier-2 bot that out-ranges the line, and it needs a screen in front."
   },
   "legbastion": {
    "name": "Bastion",
@@ -11538,7 +11650,9 @@
    "energy_storage": 1000,
    "flags": [
     "needs_energy_to_fire"
-   ]
+   ],
+   "gloss": "4200-metal heat-ray fortress, a sweeping beam at 1100 (up to 3875 a burst every 3 s), 12000 health; 500 energy a shot",
+   "prose": "The Bastion is Legion's heaviest tower: 4200 metal and 58000 energy, 12000 health, 1200 radar, and a heat ray at range 1100 that sweeps across its targets for 2.5 seconds of every 3, 155 a beam with a 120 blast and up to 3875 damage a burst by the game's own page (the 52 a second in its numbers counts one beam a reload), for 500 energy a shot. It takes the Pulsar's (armanni) and Bulwark's (cordoom) place, a wide sweep that suits groups rather than a single tier-3 hull. Switched off it closes into a shell that takes a quarter of the damage. It needs a fusion's energy behind it, and in a stall it is a wall."
   },
   "legca": {
    "name": "Legion Construction Aircraft",
@@ -11562,7 +11676,9 @@
    "energy_make": 5,
    "flags": [
     "flies"
-   ]
+   ],
+   "gloss": "tier-1 constructor aircraft, 45 build power at speed 139; expands anywhere, builds the advanced aircraft plant; fragile",
+   "prose": "The Legion Construction Aircraft is the fastest tier-1 builder: 100 metal, 151 health, speed 139, 45 build power, no weapon, made by the Drone Plant (legap). It flies over terrain to claim far extractors and to reclaim, and its list is the tier-1 base plus the Legion Advanced Aircraft Plant (legaap), the heavier tier-1 towers and the Juno (legjuno); its build power is low (Armada's armca has 50), so use several on one job. Any anti-air or fighter kills it at once."
   },
   "legcar": {
    "name": "Cardea",
@@ -11586,7 +11702,9 @@
    "flags": [
     "hover",
     "floats"
-   ]
+   ],
+   "gloss": "550-metal heavy shotgun hovertank, 14 pellets of 40 every 2 s at 321 (280 a second), 3600 health",
+   "prose": "The Cardea is Legion's assault hovercraft: 550 metal and 11000 energy, 3600 health, speed 51, a shotgun of fourteen 40-damage pellets every 2 seconds at range 321 (280 a second), costing no energy. It takes the Halberd's (corhal: 640 metal, 4350 health, 344 a second at 300, 45 energy a shot) place, a little lighter and free to fire; Armada's hover platform has nothing like it. It is the hover force's brawler for a landing or a shore fight, and units and towers that out-range 321 shoot it on the way in."
   },
   "legcen": {
    "name": "Phobos",
@@ -11606,7 +11724,9 @@
    "dps_air": 35.7,
    "air": "36 dps against aircraft (33% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 400,
-   "flags": []
+   "flags": [],
+   "gloss": "140-metal fast assault bot, speed 90, 840 health, gauss 107 a second at 180; a Blitz on legs that raids and runs",
+   "prose": "The Phobos is a fast assault bot: 140 metal, 840 health, speed 90, two 75-damage gauss shots every 1.4 seconds (107 a second) at range 180. No bot of the other factions matches it; its numbers are nearly the Blitz's (armflash: 110 metal, 730 health, 90 a second at 180, speed 101), so it is the raider that survives what kills a Pawn (armpw): a Pharos (leglht) needs about five seconds for it against two for a Pawn. Per metal it has less health and under half a Pawn's damage, so cheap line units out-trade it head on; it is for running to an extractor line or a constructor and away again. Whether it trades like the Blitz is unmeasured."
   },
   "legch": {
    "name": "Construction Hovercraft",
@@ -11632,7 +11752,9 @@
    "flags": [
     "hover",
     "floats"
-   ]
+   ],
+   "gloss": "tier-1 constructor hovercraft, 105 build power; builds on land and water including naval buildings; unarmed",
+   "prose": "The Construction Hovercraft is a 185-metal constructor that crosses land and water (1390 health, speed 73, 105 build power; Armada's armch: 200 metal, 110) with the largest tier-1 build list Legion has, 45 items: the whole land base, the naval buildings, the Advanced Vehicle Plant (legavp) and the Advanced Shipyard (legadvshipyard). It has more build power than the constructor bot or vehicle and crosses water, so it expands early onto islands and shores. It is unarmed."
   },
   "legcib": {
    "name": "Blindfold",
@@ -11655,7 +11777,9 @@
    "flags": [
     "flies",
     "anti_air"
-   ]
+   ],
+   "gloss": "100-metal Juno drone: a 500-wide pulse every 10 s that destroys radar, jammers, mines and scouts; no damage otherwise",
+   "prose": "The Blindfold carries a small Juno: 100 metal and 3500 energy, 600 health, speed 300, sight 835, dropping a pulse every 10 seconds at range 450 that destroys radar and sonar towers, jammers, mines and scout cars within a 500-wide area and does nothing to anything else; for 7 seconds a ring 250 out from the impact kills scouts that cross it. It has no twin; it is the mobile, cheap version of the Juno (legjuno), for clearing a minefield in front of a push or blinding a forward radar before a raid. It starts on hold fire and any anti-air or fighter kills it."
   },
   "legck": {
    "name": "Legion Construction Bot",
@@ -11678,7 +11802,9 @@
    "sight": 299,
    "build_power": 75,
    "energy_make": 5,
-   "flags": []
+   "flags": [],
+   "gloss": "tier-1 constructor bot, 75 build power, 100 metal; builds the base, the advanced lab and the heavier towers; unarmed",
+   "prose": "The Legion Construction Bot is the ordinary tier-1 builder: 100 metal, 700 health, speed 39, 75 build power, no weapon; Armada's (armck) is 110 metal for 80. It builds the commander's land buildings plus the Advanced Bot Lab (legalab), the Geothermal Powerplant (leggeo), the Advanced Solar Collector (legadvsol), the heavier tier-1 towers (Dragon's Jaw legdtr, Cacophony legmg, Rhapsis legrhapsis, Lupara leglupara, Amputator legcluster), the Hive (leghive) and the Juno (legjuno), and it can assist any factory or repair anything. It dies to any raider that finds it alone, so expansion goes in steps the army already covers. Two or three on one project add their build power."
   },
   "legcluster": {
    "name": "Amputator",
@@ -11704,7 +11830,9 @@
    "dps_air": null,
    "air": "does nothing to aircraft",
    "sight": 455,
-   "flags": []
+   "flags": [],
+   "gloss": "850-metal cluster artillery at 1000; a 300 shell plus five 105 bomblets every 6 s; shells packs and clusters behind the line",
+   "prose": "The Amputator is Legion's tier-1 artillery battery: 850 metal and 11000 energy, 2900 health, a plasma shell every 6 seconds at range 1000 that does 300 with a 120 blast and breaks into five 105-damage bomblets, up to 825 a shell spread over an area, switching between a flat and a high arc. It takes the Gauntlet's (armguard: 1250 metal, 300 every 2.85 seconds at 1220) and Agitator's (corpun) place at two-thirds of the metal with less reach and a slower, wider shot, so it is better against packed groups and building clusters than against one turret. It out-ranges every tier-1 unit and tower but needs radar or scouts to see that far, and it is a lot of tier-1 metal that does not move."
   },
   "legcom": {
    "name": "Legion Commander",
@@ -11718,7 +11846,7 @@
    "health": 3700,
    "speed": 37.5,
    "range": 300,
-   "dps": 219.6,
+   "dps": 218.8,
    "dps_air": 125,
    "air": "125 dps against aircraft (57% of its ground damage)",
    "sight": 450,
@@ -11729,7 +11857,9 @@
     "amphibious",
     "anti_air",
     "sonar"
-   ]
+   ],
+   "gloss": "the one unit you cannot lose; builds the base, D-guns anything at 250, heat ray at 300; the only commander that shoots aircraft",
+   "prose": "The Legion Commander starts the game as your only unit and the game ends when it dies, so it is both your first builder and your last line. It is the Armada and Cortex commanders' hull to the number, 3700 health, speed 37.5, 300 build power (a Legion Construction Bot has 75), 30 energy a second, and its build list is the whole tier-1 base: extractors, solar and wind, a bot lab, vehicle plant, drone plant, shipyard or hovercraft platform, the Pharos (leglht), Bramble (legrl), radar and storage. Its heat ray does 175 every 0.8 seconds (219 a second) at range 300 and its D-gun kills any unit but a commander at 250 for 500 energy a shot, so a small party of Goblins (leggob), Pawns (armpw) or Grunts (corak) that reaches it dies; it still loses to a real army, to artillery it cannot reach, and to being far from home when the enemy comes. Unlike the other two it carries an anti-air missile (150 a hit every 1.2 seconds at 300, 125 a second) as well as a torpedo for targets in the water, so a lone gunship or scout that comes to it gets shot. It can cloak (100 energy a second standing, 1000 moving) and walk under water, and its death explosion levels everything around it."
   },
   "legctl": {
    "name": "Euryale",
@@ -11754,13 +11884,14 @@
    "speed": null,
    "range": 600,
    "dps": 150,
-   "dps_air": 150,
-   "air": "150 dps against aircraft, its full damage",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 617,
    "flags": [
-    "anti_air",
     "sonar"
-   ]
+   ],
+   "gloss": "240-metal coastal torpedo launcher on land, 225 per 1.5 s at 600 with 600 sonar; guards a shore from ships and subs",
+   "prose": "The Euryale is Legion's coastal torpedo launcher, built on the shore, and the Anemone's (armdl) numbers: 240 metal and 2200 energy, 2200 health, a 225-damage homing torpedo every 1.5 seconds (150 a second) at range 600 and 600 sonar. It defends shoreline buildings against ships and submarines; its torpedoes reach only what is in the water, so it does nothing to land units, hovercraft or aircraft. The commander can build it."
   },
   "legcv": {
    "name": "Legion Construction Vehicle",
@@ -11782,7 +11913,9 @@
    "sight": 260,
    "build_power": 85,
    "energy_make": 7,
-   "flags": []
+   "flags": [],
+   "gloss": "tier-1 constructor vehicle, 85 build power at speed 57; builds the base and the advanced vehicle plant; unarmed",
+   "prose": "The Legion Construction Vehicle is the vehicle plant's builder: 125 metal, 1330 health, speed 57, 85 build power, no weapon (Armada's armcv: 135 metal, 90 build power, speed 54). It has more health, speed and build power than the constructor bot but climbs poorly, so it expands on flat ground. Its list is the constructor bot's with the Advanced Vehicle Plant (legavp) in place of the advanced bot lab. It dies to any raider that finds it alone."
   },
   "legdecom": {
    "name": "Legion Commander",
@@ -11798,8 +11931,8 @@
    "build_time": 32600,
    "health": 3700,
    "speed": 37.5,
-   "range": 450,
-   "dps": 219.6,
+   "range": 300,
+   "dps": 218.8,
    "dps_air": 125,
    "air": "125 dps against aircraft (57% of its ground damage)",
    "sight": 450,
@@ -11809,7 +11942,9 @@
     "amphibious",
     "anti_air",
     "sonar"
-   ]
+   ],
+   "gloss": "a look-alike Legion commander with a weak D-gun and 300 build power; bait and a front-line builder of basics and mines",
+   "prose": "The Decoy Commander looks like the real Legion Commander (legcom) to the enemy, with the same 3700 health, speed and heat ray, but it costs 750 metal, makes 15 energy a second, does not heal itself, and its D-gun does only 40 damage a shot for 150 energy. Its use is to draw fire and D-gun shots meant for the real commander and to bring 300 build power to the front, where it builds the tier-1 economy, the Pharos (leglht), Bramble (legrl), radar and the three mines. It keeps the anti-air missile (here at 450) and the torpedo, and takes almost no EMP. The Advanced Bot Lab (legalab) or the Amphibious Complex (legamphlab) makes it once the enemy has shown it will hunt commanders; like the real one it can cloak and walk under water."
   },
   "legdeflector": {
    "name": "Soteria",
@@ -11832,7 +11967,9 @@
    "air": "",
    "sight": 273,
    "energy_storage": 1000,
-   "flags": []
+   "flags": [],
+   "gloss": "3200-metal plasma shield, radius 550, 6175 shield health; stops plasma artillery, not bombs, lasers or missiles",
+   "prose": "The Soteria is Legion's shield generator and the Overseer's (corgate) numbers: 3200 metal and 55000 energy, 3550 health, a plasma shield of radius 550 with 6175 shield health that regenerates at 130 a second for 562 energy a second. It deflects plasma artillery and long-range cannon shells and takes a great deal before it drops; bombs, lasers, heat rays and missiles pass straight through it. A few around a base answer an artillery barrage; each costs more than half a fusion to keep charged."
   },
   "legdrag": {
    "name": "Dragon's Teeth",
@@ -11861,7 +11998,9 @@
    "dps_air": null,
    "air": "",
    "sight": 1,
-   "flags": []
+   "flags": [],
+   "gloss": "8-metal wall block with 2800 health; funnels tier-1 units and stops low shots; heavy tanks roll over it",
+   "prose": "The Dragon's Teeth is an 8-metal wall block with 2800 health, the same as the other factions'. A line of them blocks most tier-1 units and low projectiles and funnels a push into a Dragon's Jaw's (legdtr) or a tower's fire; heavy tier-2 tanks crush it. Enemies do not target it automatically, so it is reclaimed or shot by hand. It costs nothing worth counting, and the Sapper (legmlv) and Aceso (legafcv) lay it too."
   },
   "legdtr": {
    "name": "Dragon's Jaw",
@@ -11890,7 +12029,9 @@
    "sight": 440,
    "flags": [
     "stealth"
-   ]
+   ],
+   "gloss": "290-metal pop-up riot cannon at 400, 240 with a 140 blast every 2 s; closed it is ignored and takes a third of damage",
+   "prose": "The Dragon's Jaw is a pop-up riot cannon: 290 metal and 1550 energy, 1610 health, a 240-damage shell with a wide 140 blast every 2 seconds (375 against commanders) at range 400, with no energy cost. Closed it is radar-stealthy, takes a third of the damage and counts as neutral, so enemy units do not target it on their own, which makes it the surprise at a choke; mixed into Dragon's Teeth (legdrag) it stops a packed push. It takes the Dragon's Maw's (cormaw, a flamethrower at 410) and Dragon's Claw's (armclaw) place, with splash instead of flame or lightning. Anything that out-ranges 400 shells it while it is up."
   },
   "legeallterrainmech": {
    "name": "Myrmidon",
@@ -11906,13 +12047,15 @@
    "health": 9200,
    "speed": 33,
    "range": 1100,
-   "dps": 301.5,
+   "dps": 300,
    "dps_air": 55.5,
    "air": "56 dps against aircraft (18% of its ground damage)",
    "sight": 625,
    "flags": [
     "gantry"
-   ]
+   ],
+   "gloss": "3950-metal all-terrain drone-carrier mech, cluster plasma at 1100, two heavy drones, anti-air; no twin",
+   "prose": "The Myrmidon is an all-terrain siege mech that carries drones: 3950 metal and 78000 energy, 9200 health, speed 33, a cluster plasma cannon doing 345 plus seven 105-damage bomblets every 2.3 seconds at range 1100 on a flat or a high arc, a light anti-air salvo at 760, and up to two heavy drones (90 metal and 1000 energy each, 1650 health, a heat ray of about 125 a second at 430) that fight anything within 1600. It has no twin; it climbs where other experimentals cannot and shells towers and packed groups from beyond their reach while its drones screen it. It is slow and light for its class, so raiders that reach it and bombers kill it."
   },
   "legeconv": {
    "name": "Energy Converter",
@@ -11939,7 +12082,9 @@
    "dps_air": null,
    "air": "",
    "sight": 273,
-   "flags": []
+   "flags": [],
+   "gloss": "converts 70 energy a second into 1 metal for 1 metal to build; for surplus energy only, chains explosions",
+   "prose": "The Energy Converter turns 70 energy a second into 1 metal a second, for 1 metal and 1150 energy, 167 health, exactly Armada's (armmakr). It is for energy that would otherwise sit at a full store: extractors beat converters while free spots remain, and banked metal is better spent on a second lab or a construction turret than on converters. A cluster of them explodes in a chain when one dies, so spread them, and aim at the enemy's clusters for the same reason."
   },
   "legeheatraymech": {
    "name": "Sol Invictus",
@@ -11956,7 +12101,7 @@
    "health": 110000,
    "speed": 40,
    "range": 800,
-   "dps": 2681.1,
+   "dps": 2680,
    "dps_air": 211.1,
    "air": "211 dps against aircraft (8% of its ground damage)",
    "sight": 845,
@@ -11965,7 +12110,9 @@
     "needs_energy_to_fire",
     "amphibious",
     "gantry"
-   ]
+   ],
+   "gloss": "23500-metal experimental mech: two continuous heat rays at 800 and two riot cannons at 550; 110000 health",
+   "prose": "The Sol Invictus is Legion's largest walker: 23500 metal and 615000 energy, 110000 health, speed 40, 500 energy a second of its own, two heat rays at range 800 doing 33 damage a frame each (about 2000 a second together, 17 energy a frame each), two riot autocannons doing 420 with a 160 blast every 1.2 seconds at 550 and a flak gun against aircraft at 700. It takes the Juggernaut's (corkorg: 29000 metal, 149000 health) and Titan's (armbanth: 13500 metal) place, melting armies and towers that come inside 800, and it takes no EMP. Its heat rays draw about 1000 energy a second while firing, twice what it makes, so it needs a fusion economy behind it. Massed long-range fire, bombers and a commander's D-gun are what kill experimentals, and it explodes like a Titan when it dies and like a Juggernaut when self-destructed."
   },
   "legehovertank": {
    "name": "Charybdis",
@@ -11992,7 +12139,9 @@
     "sonar",
     "gantry",
     "floats"
-   ]
+   ],
+   "gloss": "1350-metal heavy hovertank, a sweeping heat ray at 425, two rocket launchers at 500, depth charges; 4900 health",
+   "prose": "The Charybdis is a heavy assault hovertank: 1350 metal and 25000 energy, 4900 health, speed 63, 550 sonar, a heat ray at range 425 that sweeps for 1.8 seconds of every 3 at 25 a frame (about 1350 a sweep, 300 energy a firing; the 108 a second in its numbers counts one beam a reload), two launchers firing three 100-damage rockets every 6 seconds at 500, and depth charges at 400 against what is under water. It takes the Lunkhead's (armlun: 1150 metal, 5300 health, 575) and Cataphract's (corsok) place as the gantry's hovertank, crossing land and sea alike and hitting submarines from above. Units that out-range 425 shoot it on the way in, and it is light for a gantry unit."
   },
   "legelrpcmech": {
    "name": "Astraeus",
@@ -12016,7 +12165,9 @@
     "needs_energy_to_fire",
     "long_range_cannon",
     "gantry"
-   ]
+   ],
+   "gloss": "11000-metal walking long-range cannon, four 600-damage cluster shells every 14.4 s at 3100; speed 25",
+   "prose": "The Astraeus is a long-range cannon on legs: 11000 metal and 150000 energy, 17000 health, speed 25, a salvo of four 600-damage plasma shells every 14.4 seconds at range 3100, each breaking into six 100-damage bomblets, for 6000 energy a salvo; a shield takes only 300 a shell. It has no twin; it out-ranges everything but the fixed long-range cannons and walks its reach forward, so it shells bases, tower lines and gantries from where nothing short of them answers. At speed 25 it cannot escape bombers, raiders or a counter-battery cannon, so it needs an escort and radar."
   },
   "legerailtank": {
    "name": "Daedalus",
@@ -12040,7 +12191,9 @@
     "needs_energy_to_fire",
     "anti_air",
     "gantry"
-   ]
+   ],
+   "gloss": "6500-metal rail tank, three 800-damage rails every 3 s at 1000 through what they kill; also hits aircraft",
+   "prose": "The Daedalus is an experimental rail tank: 6500 metal and 165000 energy, 16500 health, speed 61, three rail accelerators each doing 800 (300 to commanders) every 3 seconds at range 1000, 600 energy a shot, the rails going on through what they kill, about 800 a second together and the same against aircraft. It has no twin; it is a sniper at experimental scale, killing heavy units, towers and tier-3 hulls from beyond most of their reach, and it takes half the EMP others do. Its 1800 energy a volley needs a fusion economy behind it, and raiders and swarms that close on it waste its slow, heavy shots."
   },
   "legeshotgunmech": {
    "name": "Praetorian",
@@ -12055,14 +12208,16 @@
    "build_time": 159000,
    "health": 22000,
    "speed": 72,
-   "range": 800,
-   "dps": 1246.2,
+   "range": 700,
+   "dps": 1233.3,
    "dps_air": 385.7,
    "air": "386 dps against aircraft (31% of its ground damage)",
    "sight": 617,
    "flags": [
     "gantry"
-   ]
+   ],
+   "gloss": "7000-metal fast shotgun mech, 14-pellet shotgun at 420 (930 a second), 12-rocket salvos at 700, flak; 22000 health",
+   "prose": "The Praetorian is a fast assault mech: 7000 metal and 120000 energy, 22000 health, speed 72, a 14-pellet shotgun doing 60 a pellet every 0.9 seconds at range 420 (about 930 a second), a 12-rocket salvo of 150 each every 6 seconds at 700, and a micro-flak cannon at 800 against aircraft. It takes the Razorback's (armraz: 3800 metal, 13300 health, 475) and Demon's (cordemon: 6000 metal, 18000 health) place, fast enough to catch what it hunts and shred swarms and heavies up close. Units and towers that out-range 420 hurt it on the way in, and like every experimental it is a single point of failure to bombers, EMP and a D-gun."
   },
   "legestor": {
    "name": "Energy Storage",
@@ -12090,7 +12245,9 @@
    "air": "",
    "sight": 273,
    "energy_storage": 6000,
-   "flags": []
+   "flags": [],
+   "gloss": "6000 energy storage for 175 metal; smooths wind and banks D-gun and drone energy; explodes when killed",
+   "prose": "The Energy Storage adds 6000 energy storage for 175 metal and 1800 energy, 2000 health (Armada's armestor: 170 metal, 1890 health). Storage lets a wind economy ride out a lull and holds the 500 a shot the commander's D-gun needs. Legion's light tower and tier-1 heat rays cost no energy a shot, so it is less a tower battery here than for Armada and Cortex, but every drone a Hive (leghive) makes costs 500 energy. It explodes with a large blast when destroyed, so it stands away from the base."
   },
   "legeyes": {
    "name": "Argus",
@@ -12122,7 +12279,9 @@
    "energy_upkeep": 5,
    "flags": [
     "stealth"
-   ]
+   ],
+   "gloss": "32-metal cloaked camera, 540 sight, invisible to radar; watches gaps jammers hide; survives a Juno pulse",
+   "prose": "The Argus is a tiny cloaked observation post: 32 metal and 850 energy, 280 health, 540 sight, invisible to radar, drawing 5 energy a second and 15 while cloaked. Staggered lines of them across a gap watch what jammers hide and catch a cloaked unit walking through, since sight sees what radar cannot. Unlike Armada's and Cortex's Beholder (armeyes, coreyes), it is not on the Juno's kill list. The commander, the constructors and the Sapper (legmlv) build it."
   },
   "legfdrag": {
    "name": "Shark's Teeth",
@@ -12150,7 +12309,9 @@
    "flags": [
     "submerged",
     "on_water"
-   ]
+   ],
+   "gloss": "15-metal naval wall block with 4450 health; funnels tier-1 ships and blocks low shots",
+   "prose": "The Shark's Teeth is a 15-metal wall block on water with 4450 health, the same as the other factions'. A line blocks most tier-1 ships and low projectiles, funnels a fleet into a torpedo launcher's fire and shields floating towers; heavier ships and aircraft ignore it. It costs nothing worth counting."
   },
   "legfeconv": {
    "name": "Naval Energy Converter",
@@ -12178,7 +12339,9 @@
    "flags": [
     "submerged",
     "on_water"
-   ]
+   ],
+   "gloss": "the energy converter on water, 70 energy a second into 1 metal for 1 metal; chains explosions",
+   "prose": "The Naval Energy Converter is the Energy Converter (legeconv) built on water: 70 energy a second into 1 metal a second, for 1 metal and 1250 energy, 167 health. It is for a sea base's surplus energy; extractors beat it while free spots remain. Clusters chain-explode when one dies, so spread them."
   },
   "legfhive": {
    "name": "Naval Hive",
@@ -12205,7 +12368,9 @@
    "flags": [
     "submerged",
     "on_water"
-   ]
+   ],
+   "gloss": "350-metal floating drone hive: up to six combat drones fighting within 1100, each 15 metal and 500 energy; no twin",
+   "prose": "The Naval Hive is the Hive (leghive) built on water: 350 metal and 9000 energy, 1200 health, keeping up to six light drones (15 metal and 500 energy each, one every 8 seconds, three free on completion) that fly out against anything within 1100 and dock to heal. A drone has 325 health, speed 280 and a machine gun of about 27 damage a second at 300, so a full hive puts some 160 a second on ships or a landing anywhere in its circle; the drones cannot hit submarines. Neither Armada nor Cortex has one, and its drones are units of ours that no factory made."
   },
   "legfhp": {
    "name": "Offshore Hovercraft Platform",
@@ -12233,7 +12398,9 @@
    "flags": [
     "submerged",
     "on_water"
-   ]
+   ],
+   "gloss": "tier-1 hovercraft platform on water, 670 metal; the same six hovercraft as the land platform",
+   "prose": "The Offshore Hovercraft Platform is the water-built version of the Hovercraft Platform (leghp): 670 metal and 2000 energy, 3750 health, 150 build power, the same six hovercraft. It is offered only where the builder finds water; build it when the land platform's site is not safe or not there. It makes the same units at the same rate and costs the same; only the site differs."
   },
   "legfig": {
    "name": "Noctua",
@@ -12256,7 +12423,9 @@
    "flags": [
     "flies",
     "anti_air"
-   ]
+   ],
+   "gloss": "40-metal fighter and scout drone, speed 270, machine gun at 600 against aircraft only, sight 700; Legion's air scout too",
+   "prose": "The Noctua is Legion's tier-1 fighter and its only tier-1 air scout: 40 metal, 220 health, speed 270, sight 700 and 400 radar, a machine gun firing two 36-damage rounds every 0.6 seconds at range 600 against aircraft only (120 a second). It takes the Falcon's (armfig: 73 metal, 167 health, 139 a second at 680) place at a little over half the metal, with 80 less reach, and the Blink's (armpeep) as the plane that flies over the enemy base to see it. A patrol in front of the base stops scouts, gunships and bombers, and it does nothing to anything on the ground. Build a couple early for the picture and more once enemy aircraft have been seen."
   },
   "legflak": {
    "name": "Pluto",
@@ -12281,7 +12450,9 @@
    "sight": 525,
    "flags": [
     "anti_air"
-   ]
+   ],
+   "gloss": "820-metal tier-2 flak minigun at 875, about 1000 a second against aircraft on paper; nothing against ground",
+   "prose": "The Pluto is Legion's tier-2 flak: 820 metal and 13000 energy, 1750 health, twin rotary micro-flak cannons firing three 58-damage rounds with a 44 blast every sixth of a second at range 875, about 1000 damage a second against aircraft on paper. It takes the Arbalest's (armflak) and Birdshot's (corflak) place at the same cost with 25 more reach and twice their listed rate; it is the answer to massed bombers, gunships and drones around a base or on a front. It does nothing against ground. The Proteus (legaceb) builds it as well as the tier-2 constructors."
   },
   "legfloat": {
    "name": "Triton",
@@ -12307,7 +12478,9 @@
     "hover",
     "anti_air",
     "floats"
-   ]
+   ],
+   "gloss": "650-metal convertible tank and boat, 3500 health, gauss 250 per 2.5 s at 550 plus an anti-air gatling at 400",
+   "prose": "The Triton is a heavy tank that becomes a boat: 650 metal and 12000 energy, 3500 health, speed 55 and faster on water, a 250-damage gauss shot every 2.5 seconds at range 550 (100 a second) and a gatling at 400 that prefers aircraft (105 a second against them). It takes the Turtle's (armcroc: 750 metal, 5000 health, 480) and Poison Arrow's (corparrow) place as the tier-2 tank that crosses water, trading health for reach and its own anti-air. It reaches an expansion across water from behind and holds against light aircraft; against heavy tanks in a straight fight it should lose. The Advanced Vehicle Plant, the Amphibious Complex (legamphlab) and the underwater gantry make it."
   },
   "legfmg": {
    "name": "Gelasma",
@@ -12335,7 +12508,9 @@
     "submerged",
     "anti_air",
     "on_water"
-   ]
+   ],
+   "gloss": "450-metal floating gatling tower, 270 a second at 575 against ships, hovers and aircraft; 3900 health, no energy a shot",
+   "prose": "The Gelasma is the Cacophony (legmg) on water: 450 metal and 5500 energy, 3900 health, a gatling firing six 18-damage rounds every 0.4 seconds (270 a second) at range 575 against surface targets and, when nothing else is in range, aircraft. It takes the place of Armada's Manta (armfhlt) and Cortex's Coral (corfhlt), the floating heavy lasers (470 to 480 metal, about 230 a second at 630), with less reach but no energy cost a shot. It cannot hit submarines, so it stands with torpedo launchers."
   },
   "legfort": {
    "name": "Tyrannus",
@@ -12351,13 +12526,15 @@
    "health": 16700,
    "speed": 93,
    "range": 915,
-   "dps": 556.5,
+   "dps": 555.3,
    "dps_air": 95,
    "air": "95 dps against aircraft (17% of its ground damage)",
    "sight": 600,
    "flags": [
     "flies"
-   ]
+   ],
+   "gloss": "5600-metal flying fortress, 16700 health: twin plasma cannons at 915, three machine guns, anti-air missiles; no stealth",
+   "prose": "The Tyrannus is Legion's heavy gunship: 5600 metal and 79000 energy, 16700 health, speed 93, 1000 radar, two plasma cannons doing 166 with a 160 blast every 1.7 seconds at range 915, three machine guns at 650 and an anti-air missile launcher at 840, about 560 damage a second against ground and 95 against aircraft. It takes the Dragon's (corcrwh: 5100 metal, 16700 health, 840) place and Armada has no equivalent; its long plasma reach lets it shell lines and towers from beyond most anti-air. It is one huge target: stealth fighters, flak and long-range anti-air (leglraa and its twins) bring it down, and losing it loses a tier-2 economy's minutes of output."
   },
   "legforti": {
    "name": "Fortification Wall",
@@ -12380,7 +12557,9 @@
    "dps_air": null,
    "air": "",
    "sight": 1,
-   "flags": []
+   "flags": [],
+   "gloss": "40-metal tier-2 wall with 8900 health; stops tier-1 and tier-2 units and low shots; tier-3 plows through",
+   "prose": "The Fortification Wall is the tier-2 wall: 40 metal and 500 energy, 8900 health, about three times a Dragon's Teeth's (legdrag), the same as Armada's (armfort). It blocks tier-1 and tier-2 units and low-flying projectiles and shields the towers behind it; tier-3 units plow through it. The tier-2 constructors and the Proteus (legaceb) build it."
   },
   "legfrad": {
    "name": "Naval Radar / Sonar Tower",
@@ -12409,7 +12588,9 @@
     "submerged",
     "sonar",
     "on_water"
-   ]
+   ],
+   "gloss": "130-metal radar and sonar tower on water, 2100 radar and 900 sonar",
+   "prose": "The Naval Radar / Sonar Tower is the Radar Tower (legrad) for water, Armada's (armfrad) to the number: 130 metal and 1000 energy, 110 health, 2100 radar and 900 sonar. It is the early warning of a naval base for aircraft, ships and submarines alike. At 110 health it is the first thing a raid kills, and a Juno pulse destroys it."
   },
   "legfrl": {
    "name": "Polybolos",
@@ -12437,7 +12618,9 @@
     "submerged",
     "anti_air",
     "on_water"
-   ]
+   ],
+   "gloss": "the light anti-air tower on water, 80 metal, missiles at 765; early cover for a naval base",
+   "prose": "The Polybolos is the Bramble (legrl) built on water: 80 metal and 850 energy, 335 health, a 115-damage missile every 1.7 seconds at range 765, aircraft only. A few protect a naval base from early raids and drones; a swarm gets past one alone. Build it once enemy aircraft have been seen over the water."
   },
   "legfus": {
    "name": "Fusion Reactor",
@@ -12461,7 +12644,9 @@
    "sight": 273,
    "energy_make": 950,
    "energy_storage": 2500,
-   "flags": []
+   "flags": [],
+   "gloss": "tier-2 fusion, 950 energy a second for 4000 metal; dense steady energy, follows the extractor upgrades; explodes",
+   "prose": "The Fusion Reactor makes 950 energy a second for 4000 metal and 25000 energy, with 4600 health and 2500 energy storage; only the tier-2 constructors build it, at 66000 build time (about five and a half minutes for one Advanced Construction Bot, legack, so it needs helpers). At 4.2 metal per energy a second it is Cortex's rate (corfus: 850 for 3600) and a little cheaper per energy than Armada's (armfus: 750 for 3350); its value is density, steadiness and builder time, which is why it follows the extractor upgrades rather than preceding them. It is a favourite bomber target and it explodes when destroyed, so it stands apart from the base under anti-air."
   },
   "leggant": {
    "name": "Experimental Gantry",
@@ -12487,7 +12672,9 @@
    "energy_storage": 1400,
    "flags": [
     "gantry"
-   ]
+   ],
+   "gloss": "tier-3 gantry, 8400 metal, 1800 build power; makes the eight Legion experimentals; a late-game decision",
+   "prose": "The Experimental Gantry is Legion's tier-3 factory at Cortex's price (corgant): 8400 metal and 62000 energy, 17800 health, 1800 build power, making the Sol Invictus (legeheatraymech), Praetorian, Daedalus, Astraeus, Myrmidon, Keres, Javelin and Charybdis. An advanced constructor builds it. It is a late-game decision: the gantry and its first unit are a tier-2 economy's whole output for minutes, and each unit it makes is a single point of failure to EMP, bombers or a D-gun."
   },
   "leggantuw": {
    "name": "Experimental Gantry",
@@ -12513,7 +12700,9 @@
     "submerged",
     "gantry",
     "on_water"
-   ]
+   ],
+   "gloss": "tier-3 gantry under water, 8400 metal; makes the Sol Invictus, Javelin, Charybdis, Triton, Telchine and Scylla",
+   "prose": "The underwater Experimental Gantry is the sea version of the gantry (leggant): 8400 metal and 62000 energy, 17800 health, 1800 build power, built on the sea floor by the Advanced Construction Submarine (leganavyconsub), making the Sol Invictus, Javelin and Charybdis and, at gantry speed, the Triton, Telchine and Scylla battleship. It is offered only where the builder reaches deep water. Its units arrive from the sea floor, which is the reason to build it rather than the land gantry."
   },
   "leggat": {
    "name": "Decurion",
@@ -12533,7 +12722,9 @@
    "dps_air": 45,
    "air": "45 dps against aircraft (25% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 400,
-   "flags": []
+   "flags": [],
+   "gloss": "300-metal assault tank, 2550 health, gatling 180 a second at 361; the Stout's place with more of everything but speed",
+   "prose": "The Decurion is Legion's tier-1 line tank: 300 metal, 2550 health, speed 45, a gatling firing six 12-damage rounds every 0.4 seconds (180 a second) at range 361. It takes the Stout's (armstump) and Brute's (corraid) place at 300 metal against 225 and 235: more health per metal, more than twice their 81 a second and 11 more range, but at speed 45 against their 72 to 75, so it is an anchor rather than a raiding pack. It sits inside a Pharos's (leglht) 430 and wins towers by health, not reach. If it trades like the Stout, the Pounder (corlevlr) and artillery are what beat it, and at 45 it cannot run from either."
   },
   "leggeo": {
    "name": "Geothermal Powerplant",
@@ -12561,7 +12752,9 @@
    "sight": 273,
    "energy_make": 300,
    "energy_storage": 1000,
-   "flags": []
+   "flags": [],
+   "gloss": "300 energy a second for 560 metal, only on a steam vent; explodes when killed",
+   "prose": "The Geothermal Powerplant makes 300 energy a second for 560 metal and 13000 energy, 2050 health, and can stand only on one of the map's steam vents; it costs what Armada's (armgeo) does. Where a vent is safe it is a tier-1 economy's biggest single generator, under 2 metal per energy a second; a tier-1 constructor builds it. It explodes when destroyed, and it is a target worth a raid."
   },
   "leggob": {
    "name": "Goblin",
@@ -12582,7 +12775,9 @@
    "dps_air": 8.9,
    "air": "9 dps against aircraft (33% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 500,
-   "flags": []
+   "flags": [],
+   "gloss": "30-metal light skirmish bot, twin guns at 261 (27 a second), speed 75; swarm and raider, half a Grunt's damage per metal",
+   "prose": "The Goblin is Legion's cheapest combat unit: 30 metal, 200 health, speed 75, sight 500, and a gun firing two 12-damage shots every 0.9 seconds (27 a second) at range 261. The game calls it a light skirmish bot; the Legion lab has no Pawn (armpw) or Grunt (corak), and the Goblin stands in their place with the same health per metal, about half their damage per metal and 46 to 81 more range than either. A handful kills a constructor or an unguarded extractor (275 health) in a few seconds, while a Pharos (leglht) or Sentry (armllt) at 430 out-ranges it and on paper a raider that closes out-damages it two to one, so it wants to keep its range. The one carded Legion player of the replay pool (OS 27) massed two to four of them in his first two minutes."
   },
   "leghades": {
    "name": "Alaris",
@@ -12602,7 +12797,9 @@
    "dps_air": 14.3,
    "air": "14 dps against aircraft (40% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 330,
-   "flags": []
+   "flags": [],
+   "gloss": "65-metal fast raider tank, speed 99, a five-pellet shotgun at 211 (36 a second); cheap and light, dies to towers",
+   "prose": "The Alaris is Legion's vehicle raider: 65 metal, 425 health, speed 99, a five-pellet shotgun doing 75 a blast every 2.1 seconds (36 a second) at range 211. It takes the Blitz's (armflash) place at 60 per cent of its metal and health, with 31 more range and about two-thirds of its damage per metal; its unit file also defines a gauss cannon, but the unit does not mount it. It is for constructors, extractors and radar (alone it needs about eight seconds for an extractor, five together under two), and any Pharos (leglht) or Sentry (armllt), the Pounder (corlevlr) or a line tank kills it."
   },
   "leghelios": {
    "name": "Helios",
@@ -12622,7 +12819,9 @@
    "dps_air": 19.2,
    "air": "19 dps against aircraft (16% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 360,
-   "flags": []
+   "flags": [],
+   "gloss": "160-metal heat-ray tank, 160 per 1.3 s at 320 (123 a second), speed 75; hits hard for its cost on a light hull",
+   "prose": "The Helios is a fast heat-ray tank: 160 metal, 800 health, speed 75, a 160-damage heat ray every 1.3 seconds (123 a second) at range 320, costing no energy. It is nearest the Incisor (corgator: 120 metal, 820 health, 94 a second at 230, speed 85), with 90 more reach and more damage for 40 more metal, so it catches raiders and light tanks that come inside 320 and picks off constructors from beyond a raider's reach. Its hull is light for its cost, and a Pharos (leglht) or Sentry (armllt) at 430, the Ballista (legbal) and every artillery piece outrange it. The game calls it a skirmisher tank; how it trades has not been measured."
   },
   "leghive": {
    "name": "Hive",
@@ -12647,7 +12846,9 @@
    "dps_air": null,
    "air": "",
    "sight": 455,
-   "flags": []
+   "flags": [],
+   "gloss": "350-metal drone hive: up to six combat drones fighting within 1100, each 15 metal and 500 energy; no twin",
+   "prose": "The Hive is a building that makes and houses drones: 350 metal and 9000 energy, 1200 health, keeping up to six light drones (15 metal and 500 energy each, one every 10 seconds; three come free when it is finished) that fly out against anything within 1100 and dock to heal. A drone has 325 health, speed 280 and a machine gun of about 27 damage a second at 300, so a full Hive puts some 160 a second on a raid or a push anywhere in its circle and rebuilds its losses for energy. Neither Armada nor Cortex has one; when the Hive dies its drones fly on alone, losing 20 health a second. The carded OS-27 Legion player built his late army on them (6 to 12 drones from minute 10); they are units of ours that no factory made."
   },
   "leghp": {
    "name": "Hovercraft Platform",
@@ -12674,7 +12875,9 @@
    "air": "",
    "sight": 312,
    "build_power": 150,
-   "flags": []
+   "flags": [],
+   "gloss": "tier-1 hovercraft platform on land, 670 metal; makes the construction hovercraft, Glaucus, Nereus, Alpheus, Salacia, Cardea",
+   "prose": "The Hovercraft Platform is the land-built hovercraft factory: 670 metal and 2000 energy, 3750 health, 150 build power (Armada's armhp: the same price, 3350 health), making the Construction Hovercraft (legch), Glaucus, Nereus, Alpheus, Salacia and Cardea. Hovercraft cross land and water alike, so the platform is the answer on a map where the enemy is across water and a shipyard is not wanted; its units are dearer than bots for what they fight. It is offered on any ground the builder can reach, and the commander can build it."
   },
   "leghrk": {
    "name": "Thanatos",
@@ -12694,7 +12897,9 @@
    "dps_air": null,
    "air": "does nothing to aircraft",
    "sight": 380,
-   "flags": []
+   "flags": [],
+   "gloss": "750-metal salvo rocket bot, six 150-damage rockets every 8 s at 1200; prefers buildings; 1200 health",
+   "prose": "The Thanatos is Legion's tier-2 rocket artillery bot: 750 metal, 1200 health, speed 45, a salvo of six 150-damage rockets with a 96 blast every 8 seconds at range 1200 (900 a salvo, 112 a second), preferring buildings to units. It takes the Arbiter's (corhrk: 600 metal, 610 health, 1210) place with twice its health and a spread salvo instead of one heavy rocket; it out-ranges every tower short of the plasma batteries and kills towers, extractors and the support behind a line. It fires further than it sees (380), so it needs radar or a Pinpointer (legtarg), and anything that reaches it kills it."
   },
   "leginc": {
    "name": "Incinerator",
@@ -12716,7 +12921,9 @@
    "sight": 650,
    "flags": [
     "needs_energy_to_fire"
-   ]
+   ],
+   "gloss": "2300-metal heavy heat-ray bot, 990 a second at 725 for 300 energy a second while firing, 9000 health; speed 24",
+   "prose": "The Incinerator is a walking heat-ray tower: 2300 metal and 46000 energy, 9000 health, speed 24, a continuous heat ray at range 725 doing 33 damage a frame (990 a second, half that to commanders) with a 72 splash, for 10 energy a frame, 300 a second while it fires. Its 725 out-ranges every tier-1 tower and most tier-2 units, and anything that walks into the beam melts, so it anchors a push or a defensive line; at speed 24 it cannot chase anything or escape artillery, bombers or a long-range cannon. It needs an energy economy behind it and stops firing in a stall. It has no twin; the game calls it (barely) mobile."
   },
   "leginf": {
    "name": "Inferno",
@@ -12736,7 +12943,9 @@
    "dps_air": null,
    "air": "does nothing to aircraft",
    "sight": 351,
-   "flags": []
+   "flags": [],
+   "gloss": "1700-metal napalm artillery at 1200: six shells every 7 s, each burning 75 wide for 7 s; carpets an area",
+   "prose": "The Inferno is Legion's heavy artillery: 1700 metal and 30000 energy, 3650 health, speed 37.5, a burst of six napalm shells every 7 seconds at range 1200, spread over a 25-degree arc, each doing 60 on impact and setting the ground within 75 burning for 7 seconds at 60 a second (overlapping fires are soft-capped at 120 a second; aircraft and submarines do not burn). It takes the Tremor's (cortrem: 1850 metal, 1470) place, carpeting an area rather than one point, so it denies a choke, burns a base's buildings, which cannot step out, and breaks a packed army that stands still, while fast units drive through. It sees only 351, needs radar and a screen, and anything that reaches it kills it."
   },
   "leginfestor": {
    "name": "Infestor",
@@ -12760,7 +12969,9 @@
    "build_power": 100,
    "flags": [
     "stealth"
-   ]
+   ],
+   "gloss": "250-metal stealthy all-terrain spider that builds copies of itself; heat ray 120 a second at 300; no twin",
+   "prose": "The Infestor is an all-terrain assault spider that multiplies: 250 metal and 5200 energy, 1200 health, speed 54, radar-stealthy, a heat ray doing 120 every second with a 42 splash at range 300, and 100 build power whose one option is another Infestor, which then helps the one that made it. A handful left with metal and energy coming in turns into a swarm without a factory, and the swarm climbs cliffs other units cannot. It has no twin in Armada or Cortex, and it takes a fifth of EMP. One on its own is light for its metal and dies to any tier-2 line unit; its value is in the numbers it builds."
   },
   "legjam": {
    "name": "Nyx",
@@ -12788,7 +12999,9 @@
    "energy_upkeep": 30,
    "flags": [
     "radar_jammer"
-   ]
+   ],
+   "gloss": "140-metal jammer tower, hides units within 390 from enemy radar for 30 energy a second; unarmed",
+   "prose": "The Nyx is Legion's tier-1 jammer tower: 140 metal and 7200 energy, 1070 health, hiding everything within 390 from enemy radar for 30 energy a second, between Cortex's Castro (corjamt: 100 metal, 360) and Armada's Sneaky Pete (armjamt: 240 metal, 500). It keeps a forward position off the enemy's radar so artillery and long-range towers cannot target it; line of sight still sees through it. A Juno pulse destroys it."
   },
   "legjav": {
    "name": "Javelin",
@@ -12812,7 +13025,9 @@
    "flags": [
     "amphibious",
     "gantry"
-   ]
+   ],
+   "gloss": "1200-metal amphibious raider mech, speed 68, twin machine guns 360 a second at 450, 7200 health; light anti-air",
+   "prose": "The Javelin is a tier-3 amphibious raider: 1200 metal and 21000 energy, 7200 health, speed 68, twin machine guns firing twelve 12-damage rounds every 0.4 seconds at range 450 (360 a second) and a light anti-air gun at 700. It takes the Marauder's (armmar: 970 metal, 4900 health, speed 94.5) place, slower with more health and reach. It walks out of the sea behind the enemy's shore defences to raid expansions and kill lighter units; heavy tanks and towers out-trade it in a straight fight. The land and underwater gantries both make it."
   },
   "legjuno": {
    "name": "Juno",
@@ -12839,7 +13054,9 @@
    "sight": 494,
    "flags": [
     "stealth"
-   ]
+   ],
+   "gloss": "660-metal Juno launcher; stockpiled pulses destroy radar, jammers, mines and scout cars in a 1400 blast; fired by hand",
+   "prose": "The Juno stockpiles anti-electronics missiles at Cortex's price (corjuno): 660 metal and 16000 energy, 2500 health, each missile 200 metal, 12000 energy and 75 seconds, up to 20, fired by hand anywhere on the map into a 1400-wide blast. Radar and sonar towers, jammers (towers, bots and vehicles), mines and scouts such as the Wheelie (legscout), Rover (armfav) and Tick (armflea) inside it are destroyed outright, and for 30 seconds a ring 450 out from the impact kills any scout that crosses it; Legion's Argus camera (legeyes) is not on that list, though Armada's and Cortex's cameras are. It is the answer to a minefield or a scout-spam opening and it blinds the enemy's radar before a strike; our own electronics in the blast die as well. It is radar-stealthy."
   },
   "legkam": {
    "name": "Martyr",
@@ -12862,7 +13079,9 @@
    "flags": [
     "flies",
     "anti_air"
-   ]
+   ],
+   "gloss": "65-metal suicide drone: flies into its target and explodes for 440 in a 200 blast; one use, no twin",
+   "prose": "The Martyr is a suicide drone: 65 metal, 160 health, speed 220, that dives onto a ground target and explodes for 440 damage (220 to commanders) over a 200-wide blast, leaving a spotter that sees the place for 10 seconds. It has no twin in Armada or Cortex; one Martyr kills an extractor, a radar, a solar or a light bot outright and two kill a Pharos (leglht) or a constructor, so a handful break an extractor line or a packed group of light bots. It is spent when it hits, and any anti-air kills it on the way in at 160 health, so it works where the enemy has no anti-air yet. It starts on hold fire, so it waits for an order."
   },
   "legkark": {
    "name": "Karkinos",
@@ -12882,7 +13101,9 @@
    "dps_air": 43.9,
    "air": "44 dps against aircraft (23% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 400,
-   "flags": []
+   "flags": [],
+   "gloss": "310-metal armoured assault bot, heat ray at 360 plus shotgun at 251 (189 a second), 1725 health; the Centurion's place",
+   "prose": "The Karkinos is Legion's heavy tier-1 bot: 310 metal, 1725 health, speed 42, a heat ray doing 160 every 1.8 seconds at range 360 and a shotgun of two five-pellet blasts every 2 seconds at 251, together 189 damage a second when both reach. It takes the Centurion's (armwar) place (270 metal, 1590 health, 183 a second at 325) with 35 more reach on its main gun, and neither weapon costs energy. It wears reactive armour: it takes half damage until the plates have absorbed 300, and they come back about 15 seconds after it was last hit, so short exchanges favour it. If it plays like the Centurion it kills swarms of Goblins (leggob), Pawns (armpw) and Grunts (corak) and loses to the Pounder (corlevlr) and to anything that stays out past its 360."
   },
   "legkeres": {
    "name": "Keres",
@@ -12904,7 +13125,9 @@
    "sight": 650,
    "flags": [
     "gantry"
-   ]
+   ],
+   "gloss": "2600-metal anti-swarm tank, riot cannon 400 with a 200 blast at 450 plus two rotary cannons; 21000 health",
+   "prose": "The Keres is a heavy assault and anti-swarm tank: 2600 metal and 57000 energy, 21000 health, speed 48, a heavy riot cannon doing 400 with a 200 blast every 1.7 seconds at range 450 and two rotary cannons at 481, about 535 damage a second and much more against a crowd, none of it costing energy; it takes half the EMP others do. It has no twin; at about the Karganeth's (corkarg) price it carries 70 per cent more health, so it walks into massed tier-1 and tier-2 armies and breaks them. Units that out-range 450 and bombers are what beat it."
   },
   "leglab": {
    "name": "Legion Bot Lab",
@@ -12934,7 +13157,9 @@
    "air": "",
    "sight": 290,
    "build_power": 150,
-   "flags": []
+   "flags": [],
+   "gloss": "tier-1 bot lab, 470 metal, 150 build power; makes the constructor, Goblin, Satyr, Phobos, Ballista, Karkinos, Toxotai, Zagreus",
+   "prose": "The Legion Bot Lab is the usual first factory, at Cortex's price (corlab): 470 metal and 1050 energy, 2900 health, 150 build power, making eight bots: the Legion Construction Bot (legck), Zagreus, Goblin, Satyr, Phobos, Ballista, Karkinos and Toxotai. It has no scout bot; the Wheelie (legscout) comes from the vehicle plant. Like the other labs it draws energy hard while building, so generators first and then the lab is the shape that works, as in the carded OS-27 Legion opening (extractor, extractor, wind, wind, solar, lab at 0:42). Its 150 build power turns into about 5 metal a second of Goblins, 7.5 of Satyrs or Phobos and 10 of Ballistas or Karkinos, so an income above that needs a second lab or construction turrets."
   },
   "leglht": {
    "name": "Pharos",
@@ -12962,7 +13187,9 @@
    "dps_air": 22.7,
    "air": "23 dps against aircraft (12% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 494,
-   "flags": []
+   "flags": [],
+   "gloss": "70-metal light heat-ray tower, 200 per 1.1 s at 430 (182 a second), no energy a shot; stops raiders, out-ranged by rockets",
+   "prose": "The Pharos is Legion's light tower: 70 metal and 550 energy, 550 health, a 200-damage heat ray every 1.1 seconds (182 a second; 270 a shot against commanders) at range 430, with no energy cost per shot. It takes the Sentry's (armllt) place, 15 metal cheaper, 70 health lighter and a little harder-hitting, and because it costs nothing to fire it keeps shooting through an energy stall in which a Sentry or Guard (corllt) falls silent. One beside an extractor is the cheapest way to stop a lone raider; the carded OS-27 Legion player put one at each new cluster. Rocket bots (armrock and corstorm at 475, the Ballista legbal at 460), the Lasher (cormist) and artillery out-range it, and line units overpower it at equal metal."
   },
   "leglob": {
    "name": "Satyr",
@@ -12982,7 +13209,9 @@
    "dps_air": 8.4,
    "air": "8 dps against aircraft (28% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 380,
-   "flags": []
+   "flags": [],
+   "gloss": "60-metal light plasma bot, 75 per 2.5 s at 400, 550 health; two of them are a Mace for 120 metal and 20 more range",
+   "prose": "The Satyr is Legion's tier-1 line bot: 60 metal, 550 health, speed 51, a 75-damage plasma shot every 2.5 seconds (30 a second) at range 400 with a small splash. Two Satyrs are a Mace (armham) or a Thug (corthud) almost exactly, 1100 health and 60 damage a second for 120 metal against 130 and 140, with 20 more range, split into two bodies that each die at 550. It sits inside a Pharos's (leglht) or Sentry's (armllt) 430, so like the Mace it beats towers by numbers rather than reach, and if it trades like the Mace the Pounder (corlevlr) and artillery are what it loses to. It was the body of the carded OS-27 Legion player's army from minute 4 to 10, with Ballistas (legbal) behind; its plasma gains range from high ground."
   },
   "leglraa": {
    "name": "Xyston",
@@ -13007,7 +13236,9 @@
    "flags": [
     "needs_energy_to_fire",
     "anti_air"
-   ]
+   ],
+   "gloss": "1600-metal long-range anti-air railgun, two 700-damage rails every 5 s at 2000, 1800 energy a shot; nothing against ground",
+   "prose": "The Xyston is Legion's long-range anti-air: 1600 metal and 36000 energy, 1670 health, a railgun firing two 700-damage rails with a 100 blast every 5 seconds at range 2000, for 1800 energy a shot. It takes the Mercury's (armmercury) and Screamer's (corscreamer) place with less reach (2000 against 2400) and a smaller blast, but it reloads instead of stockpiling, firing every 5 seconds where the Mercury builds a missile every 14, as long as energy arrives. It kills bombers and gunships well before they reach the base; cheap scouts bait its shots, and in an energy stall it stops. It does nothing against ground."
   },
   "leglrpc": {
    "name": "Olympus",
@@ -13032,7 +13263,9 @@
    "flags": [
     "needs_energy_to_fire",
     "long_range_cannon"
-   ]
+   ],
+   "gloss": "5200-metal long-range cannon, three 600-damage cluster shells every 18 s at 4800; 6000 energy a salvo",
+   "prose": "The Olympus is Legion's long-range cannon: 5200 metal and 76000 energy, 4450 health, a salvo of three 600-damage plasma shells every 18 seconds at range 4800, each breaking into six 100-damage bomblets, for 6000 energy a salvo. It takes the Basilica's (armbrtha) and Basilisk's (corint) place at a little more metal and about their reach (4650, 4950), with a spread of smaller hits instead of one 1625- or 2000-damage shell, so it suits packed bases and formations more than single hard targets; a shield takes only 300 from each shell. It reaches across most maps and, once built, it is the enemy's first target."
   },
   "leglts": {
    "name": "Aeolus",
@@ -13055,7 +13288,9 @@
    "flags": [
     "transport",
     "flies"
-   ]
+   ],
+   "gloss": "tier-1 light air transport; carries one tier-1 or light tier-2 land unit, not the commander; dies to anti-air",
+   "prose": "The Aeolus is the light transport and the Stork's (armatlas) numbers to the unit: 68 metal, 265 health, speed 207, carrying one land unit of tier 1 or light tier 2, not the commander and not the heavies. It drops units past a defensive line, moves a constructor to a far spot and lifts a Construction Turret (legnanotc) to wherever build power is needed. Scout for anti-air before a drop; anything that shoots aircraft kills it and its cargo."
   },
   "leglupara": {
    "name": "Lupara",
@@ -13082,7 +13317,9 @@
    "sight": 380,
    "flags": [
     "anti_air"
-   ]
+   ],
+   "gloss": "900-metal flak battery, two 255-damage bursts every 1.8 s at 1125, 4000 health; breaks air groups, nothing against ground",
+   "prose": "The Lupara is Legion's heavy tier-1 anti-air: 900 metal and 8200 energy, 4000 health, a flak gun firing two 255-damage bursts with a 150 blast every 1.8 seconds at range 1125, 283 a second against one aircraft and more against a formation, since each burst hits everything in its blast. It takes the Chainsaw's (armcir) and Eradicator's (corerad) place, 100 to 150 metal dearer with less reach (1125 against 1200) and less single-target damage (283 against 625), traded for the area; the game calls it bomb-resistant. It does nothing against ground and is the anti-air to build once bombers or gunships come in groups."
   },
   "legmed": {
    "name": "Medusa",
@@ -13102,7 +13339,9 @@
    "dps_air": null,
    "air": "does nothing to aircraft",
    "sight": 600,
-   "flags": []
+   "flags": [],
+   "gloss": "1500-metal homing rocket tank, six 500-damage rockets every 12 s at 1000; kills heavies and towers from range",
+   "prose": "The Medusa is a heavy salvo rocket tank: 1500 metal and 22500 energy, 3000 health, speed 39, sight 600, firing six homing siege rockets of 500 damage each (200 to commanders) every 12 seconds at range 1000, 3000 a salvo. It takes the Banisher's (corban: 1000 metal, one 1000-damage homing missile every 7.5 seconds at 800) place with more reach and a bigger, slower salvo; homing rockets suit tanks, towers and other big targets that a shell would miss on the move. Raiders that close and aircraft beat it, so it stands behind the line."
   },
   "legmex": {
    "name": "Metal Extractor",
@@ -13134,7 +13373,9 @@
    "air": "",
    "sight": 273,
    "energy_upkeep": 3,
-   "flags": []
+   "flags": [],
+   "gloss": "tier-1 metal extractor on a metal spot, 50 metal, the other factions' price; the economy, and the first thing raiders kill",
+   "prose": "The Metal Extractor is Legion's tier-1 extractor at the price Armada's (armmex) and Cortex's (cormex) cost: 50 metal and 500 energy, 275 health, 3 energy a second upkeep, and whatever the spot yields, about 2 metal a second on the maps played here. Extractors are the whole tier-1 income and beat converters while free spots remain, so expansion is claiming spots as fast as the army can cover them; they are also the first thing every raid goes for, which is why a Pharos (leglht) beside one is the usual guard. It self-destructs in one second and the blast hurts light units beside it. A tier-2 constructor upgrades it in place to an Advanced Metal Extractor (legmoho) or an Advanced Metal Fortifier (legmohocon), four times the spot."
   },
   "legmg": {
    "name": "Cacophony",
@@ -13161,7 +13402,9 @@
    "sight": 525,
    "flags": [
     "anti_air"
-   ]
+   ],
+   "gloss": "380-metal heavy gatling tower, 255 a second at 575 against ground and air, 2200 health; no energy a shot",
+   "prose": "The Cacophony is Legion's heavy tier-1 tower: 380 metal and 5500 energy, 2200 health, a gatling firing six 17-damage rounds every 0.4 seconds (255 a second) at range 575 against ground and, when nothing on the ground is in range, against aircraft at the same damage. It is nearest the Overwatch (armhlt: 440 metal, 215 a second at 620) and Warden (corhlt), 45 short of their reach but cheaper, harder-hitting and free to fire, so it keeps shooting in an energy stall. Its 575 out-ranges the rocket bots (475) and the Ballista (legbal), so it kills the skirmishers that kill light towers, while artillery (710) out-ranges it and the Lasher (cormist) matches it. It doubles as base anti-air against gunships."
   },
   "legmh": {
    "name": "Salacia",
@@ -13185,7 +13428,9 @@
    "flags": [
     "hover",
     "floats"
-   ]
+   ],
+   "gloss": "190-metal hover rocket launcher, 400 damage at 700 every 7.5 s over walls; softens defences before a landing",
+   "prose": "The Salacia is a light hovercraft with a vertical rocket launcher: 190 metal, 520 health, speed 70, a 400-damage rocket with an 80 blast every 7.5 seconds at range 700 that comes down over walls and terrain and prefers buildings. It takes the Possum's (armmh: 175 metal, 300 at 710) and Mangonel's (cormh: 200 metal, 550 at 700) place between them. It kills turrets and softens an expansion before a hover assault; close-combat units kill it, so keep it behind Nereus (legner)."
   },
   "legmine1": {
    "name": "Light Mine",
@@ -13208,7 +13453,9 @@
    "sight": 83.2,
    "flags": [
     "stealth"
-   ]
+   ],
+   "gloss": "7-metal cloaked light mine, 445 damage in a 200 blast; kills raiders and scouts outright; laid by the Sapper",
+   "prose": "The Light Mine is a 7-metal cloaked mine (270 energy, 1 energy a second to stay cloaked, invisible to radar) that explodes when an enemy comes within 64, doing 445 damage over a 200-wide blast. It kills Goblins (leggob), Pawns (armpw), Grunts (corak) and scouts outright and is laid across the lanes they use by a Sapper (legmlv) or the decoy commander (legdecom); keep your own units off it. A Juno pulse and the enemy's minesweepers clear it."
   },
   "legmine2": {
    "name": "Medium Mine",
@@ -13231,7 +13478,9 @@
    "sight": 83.2,
    "flags": [
     "stealth"
-   ]
+   ],
+   "gloss": "25-metal cloaked medium mine, 1110 damage in a 250 blast; for line units and medium tanks",
+   "prose": "The Medium Mine is a 25-metal cloaked mine (1050 energy, 2 energy a second) that explodes for 1110 damage over a 250-wide blast when an enemy comes within 64. It is the mine for a lane the enemy's line units and medium tanks use, where a light mine would not kill; mines laid too close chain-explode, and they hurt your own units badly. A Sapper (legmlv) or the decoy commander (legdecom) lays it."
   },
   "legmine3": {
    "name": "Heavy Mine",
@@ -13254,7 +13503,9 @@
    "sight": 83.2,
    "flags": [
     "stealth"
-   ]
+   ],
+   "gloss": "50-metal cloaked heavy mine, 3000 damage in a 330 blast; wipes a packed push at a choke; hits friends",
+   "prose": "The Heavy Mine is a 50-metal cloaked mine (2800 energy, 6 energy a second) that explodes for 3000 damage over a 330-wide blast when an enemy comes within 64, enough for a packed group of line bots or medium tanks; with Dragon's Teeth (legdrag) narrowing a gap it wipes a push in one blast. It is wasted on a single fast raider, it sets off other mines and it hits friends. A Sapper (legmlv) or the decoy commander (legdecom) lays it."
   },
   "legmineb": {
    "name": "Harbinger",
@@ -13277,7 +13528,9 @@
    "flags": [
     "needs_energy_to_fire",
     "flies"
-   ]
+   ],
+   "gloss": "300-metal minelayer bomber; lays a line of six light mines on land each run, 30 metal and 1620 energy a run",
+   "prose": "The Harbinger is a minelayer bomber: 300 metal and 21000 energy, 1110 health, speed 210, dropping six cloaked Light Mines (legmine1, 445 damage each in a 200 blast) in a line on land on each run, stockpiling one run at a time for 30 metal and 1620 energy over 10 seconds. It has no twin; it mines a raiding lane, an expansion the enemy is about to take or the ground in front of a push faster than any Sapper (legmlv) can. The mines hurt our own units as well, flak and fighters kill it, and a Juno pulse clears what it lays."
   },
   "legmlv": {
    "name": "Sapper",
@@ -13300,7 +13553,9 @@
    "build_power": 40,
    "flags": [
     "stealth"
-   ]
+   ],
+   "gloss": "stealthy minelayer; lays light, medium and heavy mines, walls and cameras; sees enemy mines within 450; no real gun",
+   "prose": "The Sapper is a 52-metal minelayer with 210 health, speed 69, radar stealth, 40 build power and a 15-damage seismic charge at 220 that fires only at mines. It lays the three mine sizes (legmine1, legmine2, legmine3), Dragon's Teeth (legdrag) and Argus cameras (legeyes), and it reveals enemy mines within 450 so the charge can clear them. A minefield on a lane the enemy raids through kills light units outright and hurts anything heavier; keep your own units off it. It cannot reclaim and cannot fight; Armada's Groundhog (armmlv) is the same tool at 57 metal and 335 health."
   },
   "legmoho": {
    "name": "Advanced Metal Extractor",
@@ -13323,7 +13578,9 @@
    "air": "",
    "sight": 273,
    "energy_upkeep": 20,
-   "flags": []
+   "flags": [],
+   "gloss": "tier-2 extractor upgrade, 640 metal, four times the spot's yield for 20 energy a second; the first tier-2 buy",
+   "prose": "The Advanced Metal Extractor replaces a tier-1 extractor on its spot and is Cortex's (cormoho) exactly: 640 metal and 8100 energy, 3900 health, four times the yield (0.004 against 0.001 a spot unit), 20 energy a second upkeep, 600 metal storage. One upgrade adds about three extractors' worth of income and repays its metal in around 100 seconds, so upgrading the safest spots first is what the Advanced Construction Bot (legack) is for. The Advanced Metal Fortifier (legmohocon) is the same extractor with a 400-build-power turret on it for 420 more metal. With nothing banked and other builders drawing, an upgrade takes minutes instead of its nominal time, so give the constructor helpers or a bank."
   },
   "legmohocon": {
    "name": "Advanced Metal Fortifier",
@@ -13347,7 +13604,9 @@
    "sight": 273,
    "build_power": 400,
    "energy_upkeep": 20,
-   "flags": []
+   "flags": [],
+   "gloss": "tier-2 extractor upgrade carrying a 400-build-power construction turret, 1060 metal; no twin, no weapon",
+   "prose": "The Advanced Metal Fortifier is an Advanced Metal Extractor (legmoho) with a construction turret mounted on it: 1060 metal and 14500 energy, 3900 health, four times the spot's yield for 20 energy a second, and 400 build power reaching 400. The turret cannot be selected on its own; it carries out the repair and reclaim orders given to the extractor and otherwise repairs what is near. For the 420 metal over the plain upgrade that is twice a Construction Turret's (legnanotc, 230 metal) build power, so on a spot inside the base or beside a factory it is cheap build power, and on an exposed spot it is 1060 metal for a raid to kill. Neither Armada nor Cortex has one; despite the name it has no weapon."
   },
   "legmos": {
    "name": "Mosquito",
@@ -13369,7 +13628,9 @@
    "sight": 520,
    "flags": [
     "flies"
-   ]
+   ],
+   "gloss": "110-metal light gunship, four stockpiled 44-damage rockets at 380, one rebuilt every 1.8 s; raids bare targets",
+   "prose": "The Mosquito is Legion's light gunship: 110 metal, 415 health, speed 165, holding up to four 44-damage rockets with a 72 splash that it fires at range 380 and rebuilds one every 1.8 seconds (about 24 a second sustained, 176 in its first volley). It takes the Banshee's (armkam: 135 metal, 560 health, 39 a second at 350) place, with a harder opening volley and less staying damage. It raids extractors, radar, constructors and scouts that nothing guards; anti-air heavier than a Bramble (legrl), or a fighter, kills it, and it cannot hit aircraft. Confirm targets with a scout first."
   },
   "legmrv": {
    "name": "Quickshot",
@@ -13389,7 +13650,9 @@
    "dps_air": null,
    "air": "does nothing to aircraft",
    "sight": 500,
-   "flags": []
+   "flags": [],
+   "gloss": "250-metal fast raider tank, speed 135, two 120-damage plasma rounds every 2 s at 240; kills what is unguarded",
+   "prose": "The Quickshot is Legion's tier-2 vehicle raider: 250 metal, 970 health, speed 135, a cannon firing two 120-damage plasma rounds with a 32 splash every 2 seconds at range 240 (120 a second). It is faster than any raider of tier 1 (the Blitz armflash 101) or tier 2 (the Sprinter armfast 111), so it reaches far extractors, constructors and radar first and leaves before help arrives; towers, line tanks and riot units kill it in a straight fight. No vehicle of the other factions matches it."
   },
   "legmstor": {
    "name": "Metal Storage",
@@ -13417,7 +13680,9 @@
    "air": "",
    "sight": 273,
    "metal_storage": 3000,
-   "flags": []
+   "flags": [],
+   "gloss": "3000 metal storage for 340 metal; banks metal for a tier-2 lab or an upgrade burst; explodes when killed",
+   "prose": "The Metal Storage adds 3000 metal storage for 340 metal and 590 energy, 2100 health (Armada's armmstor costs 330). A store holds the bank that starts an Advanced Bot Lab (legalab, 2600 metal) or a run of extractor upgrades without stalling everything else; at tier 1 a full store is usually a sign to build a second lab instead. It explodes when destroyed and clusters chain."
   },
   "legnanotc": {
    "name": "Construction Turret",
@@ -13444,7 +13709,9 @@
    "air": "",
    "sight": 380,
    "build_power": 200,
-   "flags": []
+   "flags": [],
+   "gloss": "200-build-power construction turret, 230 metal; assists, repairs and reclaims within 400; unarmed",
+   "prose": "The Construction Turret is 200 build power that does not move, the same as Armada's (armnanotc): 230 metal and 3200 energy, 560 health, assisting, repairing and reclaiming anything within 400. Two or three beside a lab more than double its output, which is the right use of banked metal before a second lab. One dying damages the turrets beside it, so do not pack them; the Advanced Metal Fortifier (legmohocon) carries a 400-build-power one on an extractor."
   },
   "legnanotcplat": {
    "name": "Naval Construction Turret",
@@ -13471,7 +13738,9 @@
    "build_power": 200,
    "flags": [
     "on_water"
-   ]
+   ],
+   "gloss": "the construction turret on water, 200 build power for 230 metal; assists a shipyard",
+   "prose": "The Naval Construction Turret is the Construction Turret (legnanotc) built on water: 200 build power for 230 metal and 3200 energy, 560 health, assisting, repairing and reclaiming within 400. Two beside a shipyard double its output. Its death damages the turrets beside it, so do not pack them."
   },
   "legnavyaaship": {
    "name": "Iapetus",
@@ -13495,7 +13764,9 @@
    "flags": [
     "anti_air",
     "floats"
-   ]
+   ],
+   "gloss": "250-metal anti-air ship, three-missile salvo at 760 doing 120 a second, 1200 radar; covers a fleet; nothing else",
+   "prose": "The Iapetus is Legion's tier-1 anti-air and radar ship: 250 metal, 1200 health, speed 60, 750 sight and 1200 radar, a salvo of three 24-damage missiles every 0.6 seconds at range 760 against aircraft only (120 a second). Armada and Cortex have no dedicated tier-1 anti-air ship; their patrol boats (armpt, corpt) carry light anti-air instead. It sails with the fleet against gunships, bombers and torpedo planes and does nothing against ships or subs."
   },
   "legnavyartyship": {
    "name": "Octeres",
@@ -13517,7 +13788,9 @@
    "sight": 500,
    "flags": [
     "floats"
-   ]
+   ],
+   "gloss": "1450-metal cluster artillery ship, two 300-damage cluster shells every 10 s at 960; bombards shores",
+   "prose": "The Octeres is Legion's tier-1 artillery ship: 1450 metal, 4500 health, speed 45, two cluster cannons each firing a 300-damage shell with a 130 blast every 10 seconds at range 960, each shell breaking into five 105-damage bomblets, up to 1650 a pair. Armada and Cortex have nothing like it at tier 1; it shells shore towers, extractors and bases from beyond the coastal defences, and the Longbow (armmship) and Messenger (cormship) are the tier-2 ships that do the same. It is slow and helpless against submarines and fast boats, so it sails behind a screen."
   },
   "legnavyconship": {
    "name": "Construction Ship",
@@ -13543,7 +13816,9 @@
    "energy_make": 5,
    "flags": [
     "floats"
-   ]
+   ],
+   "gloss": "tier-1 constructor ship, 115 build power; builds naval and underwater buildings and the advanced shipyard; unarmed",
+   "prose": "The Construction Ship is the sea builder: 180 metal, 1080 health, speed 71, 115 build power, no weapon (Armada's armcs: 200 metal, 125). It claims underwater metal spots, builds the naval defences, economy and factories, and the Advanced Shipyard (legadvshipyard) is on its list; it can also put a bot lab, vehicle plant or drone plant on a shore. Anything that shoots at ships kills it."
   },
   "legnavydestro": {
    "name": "Syracusia",
@@ -13567,7 +13842,9 @@
    "flags": [
     "needs_energy_to_fire",
     "floats"
-   ]
+   ],
+   "gloss": "875-metal heat-ray destroyer, 410 per 2.4 s at 700 plus two drones; no anti-submarine weapon",
+   "prose": "The Syracusia is Legion's tier-1 destroyer: 875 metal, 3800 health, speed 58, a heat ray doing 410 with a 72 splash every 2.4 seconds at range 700 (171 a second; 17 energy a shot), and two light drones (15 metal and 500 energy each, one every 20 seconds) that fight anything within 1000. It takes the Corsair's (armroy: 880 metal, 3700 health, 700) and Oppressor's (corroy) place, out-ranging every tier-1 ship and torpedo launcher, but unlike them it carries no torpedoes, so submarines are someone else's job. It bombards shore targets in its reach and anchors a tier-1 fleet."
   },
   "legnavyfrigate": {
    "name": "Argonaut",
@@ -13585,13 +13862,15 @@
    "speed": 72,
    "range": 460,
    "dps": 215.4,
-   "dps_air": 23.1,
-   "air": "23 dps against aircraft (11% of its ground damage)",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 500,
    "flags": [
     "sonar",
     "floats"
-   ]
+   ],
+   "gloss": "370-metal torpedo frigate, two launchers doing 215 a second at 460 against ships and subs; 2600 health",
+   "prose": "The Argonaut is Legion's tier-1 frigate: 370 metal, 2600 health, speed 72, 400 sonar, two deck torpedo launchers each firing a 140-damage homing torpedo every 1.3 seconds at range 460 (215 a second), and it takes half the EMP others do. Where the Ellysaw (armpship) and Riptide (corpship) are plasma frigates with no anti-submarine weapon, its torpedoes hit both ships and submarines, so it is the tier-1 hull that hunts subs. Its torpedoes do nothing to land units, hovercraft or aircraft, and a destroyer out-ranges it. The Proteus (legaceb) can build it in the field."
   },
   "legnavyrezsub": {
    "name": "Dionysus",
@@ -13616,7 +13895,9 @@
     "resurrect",
     "submerged",
     "sonar"
-   ]
+   ],
+   "gloss": "resurrection submarine, 150 build power; repairs, reclaims and resurrects wrecks under water; unarmed",
+   "prose": "The Dionysus is Legion's resurrection submarine: 240 metal, 420 health, speed 67, 150 build power, repairing, reclaiming and resurrecting under water but not building, the Grim Reaper's (armrecl) place. Resurrecting a sunk ship brings the whole unit back for energy only, so one behind a naval fight turns the enemy's wrecks into your fleet. It has no weapon; keep it behind the line."
   },
   "legnavyscout": {
    "name": "Hippocampus",
@@ -13639,7 +13920,9 @@
    "sight": 600,
    "flags": [
     "floats"
-   ]
+   ],
+   "gloss": "120-metal fast corvette, speed 97, twin machine guns 60 a second at 351; scouts and kills constructors",
+   "prose": "The Hippocampus is Legion's light corvette: 120 metal, 700 health, speed 97, sight 600, twin machine guns firing two 12-damage rounds every 0.4 seconds at range 351 (60 a second). It takes the Dolphin's (armdecade: 175 metal, 135 a second at 280) and Supporter's (coresupp) place with more reach and less damage. It scouts the sea, kills construction ships and harasses light boats; any warship, a destroyer or a torpedo launcher out-trades it."
   },
   "legnavysub": {
    "name": "Ketea",
@@ -13656,14 +13939,15 @@
    "speed": 57,
    "range": 400,
    "dps": 93.3,
-   "dps_air": 93.3,
-   "air": "93 dps against aircraft, its full damage",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 400,
    "flags": [
     "submerged",
-    "anti_air",
     "sonar"
-   ]
+   ],
+   "gloss": "320-metal tier-1 submarine, 140-damage torpedo every 1.5 s at 400; invisible without sonar",
+   "prose": "The Ketea is Legion's tier-1 submarine: 320 metal, 600 health, speed 57, 400 sonar, an unguided 140-damage torpedo every 1.5 seconds at range 400 (93 a second). It takes the Eel's (armsub: 440 metal, 840 health, 500) and Orca's (corsub: 580 metal) place, cheaper and lighter with less reach. Under the water it is seen only by sonar and hit only by torpedoes and depth charges, so it kills underwater extractors and unguarded fleets; sonar plus a torpedo frigate (legnavyfrigate) or launcher kills it."
   },
   "legner": {
    "name": "Nereus",
@@ -13687,7 +13971,9 @@
    "flags": [
     "hover",
     "floats"
-   ]
+   ],
+   "gloss": "220-metal hovertank, plasma 55 every 0.9 s at 370, 1100 health; the line unit of a hover force",
+   "prose": "The Nereus is Legion's tier-1 hovertank: 220 metal, 1100 health, speed 76, a 55-damage plasma shot every 0.9 seconds (61 a second) at range 370. It takes the Crocodile's (armanac: 270 metal, 1530 health, 70 a second at 370) and Cayman's (corsnap) place, cheaper and lighter and a little faster. It moves over land and sea equally, so it fights beside ships or lands with a raid as the line unit of a hovercraft force; bombers and gunships kill it as they kill any tank, so bring anti-air."
   },
   "legotter": {
    "name": "Otter",
@@ -13712,7 +13998,9 @@
    "energy_make": 8,
    "flags": [
     "amphibious"
-   ]
+   ],
+   "gloss": "amphibious tier-1 constructor, 75 build power; builds on land and the sea floor, including naval buildings; unarmed",
+   "prose": "The Otter is Legion's amphibious constructor, from the vehicle plant or the Amphibious Complex: 150 metal, 950 health, speed 43.5, 75 build power, no weapon; Armada's Beaver (armbeaver) is the same price with 80. Its list of 44 is the tier-1 land base plus the naval set (shipyard, Amphibious Complex legamphlab, seaplane platform, hovercraft platforms, tidal generators, torpedo launchers, the Naval Hive legfhive) and the Advanced Vehicle Plant (legavp), so it is the builder for a map with water in it and the one that expands between islands. It is unarmed and slow, and dies to any raider."
   },
   "legperdition": {
    "name": "Perdition",
@@ -13734,7 +14022,9 @@
    "dps_air": null,
    "air": "",
    "sight": 500,
-   "flags": []
+   "flags": [],
+   "gloss": "1250-metal tactical napalm launcher: stockpiled 1200-damage shells at 2300 that burn 150 wide for 15 s; fired by hand",
+   "prose": "The Perdition is Legion's tactical launcher: 1250 metal and 15000 energy, 4000 health, stockpiling napalm shells (350 metal, 13000 energy and 40 seconds each, up to ten) fired by hand at range 2300. Each does 1200 damage (700 to commanders) over a 425 blast and leaves the ground within 150 burning for 15 seconds at 120 a second, up to 1800 more to whatever stays; aircraft and submarines do not burn. It takes the Catalyst's (cortron) place, cheaper a shell (350 metal against 550) with less blast (1200 against 4000) traded for the fire, and like it clears a turret cluster or a packed army before an assault. It explodes like a nuclear silo when destroyed, so it stands apart."
   },
   "legphoenix": {
    "name": "Phoenix",
@@ -13757,7 +14047,9 @@
    "flags": [
     "needs_energy_to_fire",
     "flies"
-   ]
+   ],
+   "gloss": "450-metal heat-ray bomber: each pass sweeps a 120-wide beam along its path for about 2 s, 145 a frame; dies to fighters",
+   "prose": "The Phoenix is Legion's tier-2 bomber, and it bombs with a heat ray: 450 metal and 25000 energy, 2000 health, speed 270, a 145-damage, 120-wide beam at range 950 that on each pass fires every frame for about 2.2 seconds along its line of flight, 17 energy a beam, then waits for the next pass (the 18 a second in its numbers counts one beam a reload). It scorches a strip, so it suits a row of buildings, an extractor line or a column of units more than one hard point. It takes the Blizzard's (armpnix) and Hailstorm's (corhurc) place as the strategic bomber; fighters and flak kill it, so scout the target's anti-air and send fighters ahead."
   },
   "legrad": {
    "name": "Radar Tower",
@@ -13785,7 +14077,9 @@
    "dps_air": null,
    "air": "",
    "sight": 680,
-   "flags": []
+   "flags": [],
+   "gloss": "60-metal radar tower, 2100 radar and 680 sight; the early warning and the eyes for long guns",
+   "prose": "The Radar Tower shows every enemy unit within 2100 as a radar dot, for 60 metal and 630 energy, 180 health, with 680 sight of its own, the same as Armada's (armrad). It is the early warning for raids and air and the eyes for anything that fires further than it sees, such as the Ballista (legbal) or the Amputator (legcluster). Hills block it, a jammer hides units from it, cloaked units do not show, and a Juno pulse destroys it."
   },
   "legrail": {
    "name": "Lance",
@@ -13800,14 +14094,16 @@
    "build_time": 3600,
    "health": 1100,
    "speed": 46.5,
-   "range": 750,
-   "dps": 26.9,
+   "range": 650,
+   "dps": 26.7,
    "dps_air": 75,
    "air": "75 dps against aircraft, its full damage",
    "sight": 525,
    "flags": [
     "anti_air"
-   ]
+   ],
+   "gloss": "240-metal railgun tank: 200 per 7.5 s at 650 through what it kills, plus an anti-air rail at 750; long reach, low damage",
+   "prose": "The Lance is a long-range skirmisher tank that also shoots down aircraft: 240 metal, 1100 health, speed 46.5, a 200-damage railgun every 7.5 seconds at range 650 (27 a second; 100 a shot against commanders) and a separate anti-air railgun at 750 that does 300 to aircraft every 4 seconds (75 a second). Both rails go on through a unit they kill to the one behind. Its 650 outranges every tier-1 tower (the heavy laser towers reach 620) and every tier-1 unit but artillery, so a group can pick at a tower line or a slow army from beyond reply, though at 27 a second each that is slow; the 750 in its numbers is the anti-air gun's. It has no twin; the Whistler (armsam) and Lasher (cormist) fill the same double role for the other plants at shorter reach. Keep it behind the Decurions (leggat)."
   },
   "legrampart": {
    "name": "Rampart",
@@ -13833,7 +14129,9 @@
    "energy_storage": 4000,
    "flags": [
     "radar_jammer"
-   ]
+   ],
+   "gloss": "tier-2 vent platform: 600 energy a second, anti-nuke, 2100 radar, jammer and three heavy drones; 2600 metal, no twin",
+   "prose": "The Rampart stands on a steam vent and is several buildings in one: 2600 metal and 38000 energy, 8600 health, 600 energy a second (about half an Advanced Geothermal's 1250), an anti-nuke covering 1600 around it whose missiles stockpile at 150 metal and 7500 energy each over 90 seconds, a 2100 radar and a 500 radar jammer. It also keeps up to three heavy drones (90 metal and 1000 energy each, 1650 health, a heat ray of about 125 damage a second at 430) that fight anything within 1600 of it and dock to heal. Neither Armada nor Cortex has one: it suits a vent near the front, where an Advanced Geothermal Powerplant (legageo) would be a bomb waiting for a raid, while on a safe vent the geothermal's double output is worth more. Only the tier-2 constructors build it."
   },
   "legrezbot": {
    "name": "Zagreus",
@@ -13857,7 +14155,9 @@
    "flags": [
     "resurrect",
     "stealth"
-   ]
+   ],
+   "gloss": "200-build-power repair and resurrection bot; cannot build or fight, follows the army, hides from radar",
+   "prose": "The Zagreus is Legion's resurrection bot and the Lazarus's (armrectr) twin to the number: 130 metal, 220 health, speed 78, 200 build power (nearly three times the Legion Construction Bot's 75), able to repair, reclaim and resurrect but not to build or assist a factory. Resurrecting a wreck brings back the whole unit for energy only, so one or two behind a fight turn the enemy's dead into your army; the carded OS-27 Legion player made one after his first Goblins. It has no weapon and is invisible to radar, so it lives only where nothing can see it; keep it behind the line and pull it back when the line breaks."
   },
   "legrhapsis": {
    "name": "Rhapsis",
@@ -13885,7 +14185,9 @@
    "energy_upkeep": 5,
    "flags": [
     "anti_air"
-   ]
+   ],
+   "gloss": "280-metal salvo anti-air battery, six missiles every half second at 950 (180 a second), 1900 health; air only",
+   "prose": "The Rhapsis is a mid-cost anti-air battery: 280 metal and 6500 energy, 1900 health, a salvo of six 15-damage missiles every half second at range 950 (180 a second against aircraft) for 5 energy a second upkeep, and nothing against ground. It takes the SAM's (cormadsam: 350 metal, 2500 health, 225 a second at 950) and the Ferret's (armferret) place a little cheaper and lighter. It is the step up from Brambles (legrl) once the enemy shows bombers or gunships rather than scouts."
   },
   "legrl": {
    "name": "Bramble",
@@ -13914,7 +14216,9 @@
    "sight": 455,
    "flags": [
     "anti_air"
-   ]
+   ],
+   "gloss": "80-metal light anti-air tower, missiles at 765; stops scouts and light aircraft, nothing against ground; the Nettle's twin",
+   "prose": "The Bramble is Legion's light anti-air tower and the Nettle's (armrl) numbers: 80 metal and 850 energy, 335 health, a 115-damage missile every 1.7 seconds at range 765 (68 a second) that hits aircraft only. A few around a base or an extractor line stop scouts, drones and lone bombers; its rate of fire is low, so a swarm or a heavy gunship gets through unless several stand together, and it fires further than it sees, so radar makes it work. Build it only after enemy aircraft or an aircraft plant have been seen."
   },
   "legscout": {
    "name": "Wheelie",
@@ -13934,7 +14238,9 @@
    "dps_air": 2.1,
    "air": "2 dps against aircraft (9% of its ground damage, and only when nothing on the ground is in range)",
    "sight": 635,
-   "flags": []
+   "flags": [],
+   "gloss": "23-metal scout car, speed 160, sight 635; finds the enemy and nibbles bare extractors; dies to anything, and to a Juno",
+   "prose": "The Wheelie is Legion's only land scout: 23 metal, 75 health, speed 160, sight 635, a three-round burst doing 24 damage a second at range 169. It takes the Rover's (armfav) and Rascal's (corfav) place, cheaper and frailer, for finding the enemy's base and expansion in the first minutes and for killing extractors nobody guards (alone it needs about 12 seconds for one). Any armed unit or turret kills it and it cannot hurt aircraft. A Juno pulse (armjuno, corjuno, legjuno) kills it outright, and for 30 seconds a ring 450 out from the impact kills any Wheelie that crosses it."
   },
   "legsd": {
    "name": "Ichnaea",
@@ -13957,7 +14263,9 @@
    "air": "",
    "sight": 240,
    "energy_upkeep": 125,
-   "flags": []
+   "flags": [],
+   "gloss": "710-metal intrusion detector, pings moving cloaked and stealthy units within 2000 for 125 energy a second",
+   "prose": "The Ichnaea is the Tracer's (armsd) twin to the number: 710 metal and 7100 energy, 2650 health, 125 energy a second, detecting moving cloaked and radar-invisible units within 2000 by their vibration. It shows them as pings, not targets, so units must be ordered onto them by hand, and a standing cloaked unit is not seen. It is what protects an Aegis (legabm) from a spy's EMP and a base from cloaked raiders. Only the tier-2 constructors build it."
   },
   "legsh": {
    "name": "Glaucus",
@@ -13982,7 +14290,9 @@
     "hover",
     "anti_air",
     "floats"
-   ]
+   ],
+   "gloss": "60-metal fast hovercraft raider, heat ray 60 a second at 260; lands behind the line and swarms; dies to light towers",
+   "prose": "The Glaucus is Legion's cheap hovercraft raider: 60 metal, 220 health, speed 102, a 60-damage heat ray every second at range 260, costing no energy. It takes the Seeker's (armsh: 85 metal, 290 health, 60 a second at 230) and Goon's (corsh) place, cheaper and lighter with 30 more reach. It crosses water and land alike, so a swarm lands behind the enemy's defensive line and raids the expansion there; a Pharos (leglht) or Sentry (armllt) kills it, and so does any line unit."
   },
   "legshot": {
    "name": "Phalanx",
@@ -14002,7 +14312,9 @@
    "dps_air": null,
    "air": "does nothing to aircraft",
    "sight": 350,
-   "flags": []
+   "flags": [],
+   "gloss": "470-metal armoured riot bot, a 210-damage blast with a 144 splash every 2 s at 280; takes a third of damage while armoured",
+   "prose": "The Phalanx is Legion's tier-2 riot bot: 470 metal, 3350 health, speed 44, a riot cannon doing 210 with a wide 144 blast every 2 seconds at range 280 (105 a second against one target, more against a crowd), costing no energy. Its reactive armour makes it take a third of the damage until the plates have absorbed 400, and they come back about 20 seconds after it was last hit, so against a short burst it lasts far longer than 3350 health suggests. It kills packed light units and raiders that come inside 280 and holds a choke, and it loses to anything that out-ranges it, which at 280 is most of tier 2. No unit of the other factions matches it; the carded OS-27 Legion player added one to his drone army."
   },
   "legsilo": {
    "name": "Supernova",
@@ -14026,7 +14338,9 @@
    "sight": 455,
    "flags": [
     "nuke"
-   ]
+   ],
+   "gloss": "7700-metal nuclear silo, stockpiles 15000-damage missiles at 187500 energy each; erases a base; stopped by anti-nukes",
+   "prose": "The Supernova is Legion's nuclear silo and the Apocalypse's (corsilo) numbers: 7700 metal and 82000 energy, 6200 health, stockpiling nuclear missiles that take 180 seconds, 1500 metal and 187500 energy each, up to ten, each doing 15000 damage (3000 to commanders) over a 1920-wide blast. An anti-nuke covering the target stops it unless several are fired at once; aim at what no anti-nuke covers. It is fired by hand, and it is a decision of a whole tier-2 economy."
   },
   "legsnapper": {
    "name": "Snapper",
@@ -14048,7 +14362,9 @@
    "sight": 280,
    "flags": [
     "amphibious"
-   ]
+   ],
+   "gloss": "60-metal amphibious crawling bomb: 2000 in a 280 blast when it dies, 2700 in 400 when self-destructed",
+   "prose": "The Snapper is a crawling bomb: 60 metal and 5600 energy, 550 health, speed 81, that walks or swims to a target and explodes for 2000 damage over a 280-wide blast (1000 to commanders), or 2700 over 400 when self-destructed, which it does at once. It is the Bedbug's (corroach) twin, 9 metal cheaper and a little faster with less health. A few that reach a packed group, a tower cluster or an anti-nuke undo far more than their metal; kept together they set each other off, so spread them, and whatever shoots them first wins. It walks the sea floor and can arrive from the water."
   },
   "legsolar": {
    "name": "Solar Collector",
@@ -14078,7 +14394,9 @@
    "air": "",
    "sight": 273,
    "energy_make": 20,
-   "flags": []
+   "flags": [],
+   "gloss": "20 energy a second for 150 metal and no energy to build; the safe generator from an empty store",
+   "prose": "The Solar Collector makes 20 energy a second for 150 metal and no energy at all to build, with 340 health and 50 energy storage: Cortex's price (corsolar) and five metal under Armada's. Because it draws nothing to build it is the first generator when the store is empty or a lab is about to draw energy, and it cannot stall the builder. At 7.5 metal per energy a second it is dearer than wind on a windy map and cheaper where the wind is weak; the one carded Legion opening in the replay pool (an OS-27 player) built two turbines and one solar before the lab. It closes when hit and loses its output while closed."
   },
   "legspbomber": {
    "name": "Pyrphoros",
@@ -14101,7 +14419,9 @@
    "flags": [
     "flies",
     "anti_air"
-   ]
+   ],
+   "gloss": "240-metal seaplane bomber, three bursts of eight 50-damage bomblets a run, 1200 spread wide; loses to fighters",
+   "prose": "The Pyrphoros is Legion's seaplane bomber: 240 metal, 1170 health, speed 267, dropping three bursts of eight 50-damage bomblets with a 100 blast each run, up to 1200 scattered over a wide strip. It takes the Tsunami's (armsb: five 200-damage bombs) and Dam Buster's (corsb) place with a wider and lighter spread, so it suits packed boats, naval buildings and base clusters more than one heavy target. Fighters and flak kill it; scout the target's anti-air first."
   },
   "legspcarrier": {
    "name": "Hecatoncheir",
@@ -14110,7 +14430,7 @@
    "made_by": [
     "legsplab"
    ],
-   "class": "radar plane",
+   "class": "drone carrier aircraft",
    "metal": 250,
    "energy": 5000,
    "build_time": 9250,
@@ -14123,7 +14443,9 @@
    "sight": 600,
    "flags": [
     "flies"
-   ]
+   ],
+   "gloss": "250-metal flying drone carrier, two drones fighting within 1100, 1000 radar, 1500 health; no gun of its own",
+   "prose": "The Hecatoncheir is an airborne drone carrier: 250 metal and 5000 energy, 1500 health, speed 93, 1000 radar, no gun of its own, keeping up to two light drones (15 metal and 500 energy each, one every 15 seconds) that fly out against anything within 1100 and dock to heal. A drone has 325 health and a machine gun of about 27 damage a second, so the pair adds some 55 a second to a fleet's fight while the carrier spots for it. It has no twin; it is slow for an aircraft and fighters kill it."
   },
   "legspcon": {
    "name": "Construction Seaplane",
@@ -14132,7 +14454,7 @@
    "made_by": [
     "legsplab"
    ],
-   "class": "constructor aircraft",
+   "class": "constructor seaplane",
    "metal": 150,
    "energy": 5100,
    "build_time": 8500,
@@ -14147,7 +14469,9 @@
    "energy_make": 20,
    "flags": [
     "flies"
-   ]
+   ],
+   "gloss": "tier-1 constructor seaplane, 75 build power at speed 124; builds land and naval buildings and the advanced air plant",
+   "prose": "The Construction Seaplane is a 150-metal flying constructor (405 health, speed 124, 75 build power, 20 energy a second) from the Offshore Seaplane Platform (legsplab); Armada's armcsa has the same numbers. Its list of 44 is the land base plus the naval buildings and the Legion Advanced Aircraft Plant (legaap), and its speed makes it the repairer for ships at the front. Fighters kill it easily."
   },
   "legspfighter": {
    "name": "Astrapios",
@@ -14170,7 +14494,9 @@
    "flags": [
     "flies",
     "anti_air"
-   ]
+   ],
+   "gloss": "tier-1 seaplane fighter, three-missile salvo at 760 doing 139 a second to aircraft; escorts bombers and ships",
+   "prose": "The Astrapios is Legion's seaplane fighter: 90 metal, 220 health, speed 311, a salvo of three 37-damage missiles every 0.8 seconds at range 760 against aircraft only (139 a second). It takes the Cyclone's (armsfig: 90 metal, 252 a second at 710) and Bat's (corsfig) place with more reach and less damage. It escorts bombers and covers a fleet against enemy aircraft, and it cannot hit anything on the ground or the sea."
   },
   "legsplab": {
    "name": "Offshore Seaplane Platform",
@@ -14183,7 +14509,7 @@
     "legotter",
     "legspcon"
    ],
-   "class": "aircraft factory",
+   "class": "seaplane factory",
    "metal": 1400,
    "energy": 5500,
    "build_time": 11800,
@@ -14199,7 +14525,9 @@
     "submerged",
     "sonar",
     "on_water"
-   ]
+   ],
+   "gloss": "tier-1 seaplane platform under water, 1400 metal; makes gunships, a bomber, a fighter and radar planes for a sea map",
+   "prose": "The Offshore Seaplane Platform sits on the sea floor: 1400 metal and 5500 energy, 2200 health, 300 build power and 800 sonar (Armada's armplat: 1450 metal), making the Construction Seaplane (legspcon), the Enyo gunship, the Hecatoncheir drone-carrier radar plane, the Pyrphoros bomber, the Ladon torpedo gunship, the Astrapios fighter and the Okeanos radar and sonar plane. It is the air factory for a sea map, offered only where the builder reaches deep water, and unlike the Drone Plant (legap) it makes a bomber. Seaplanes land on and rise from the water, so a base with no land can still fly scouts, bombers and fighters."
   },
   "legspradarsonarplane": {
    "name": "Okeanos",
@@ -14222,7 +14550,9 @@
    "flags": [
     "flies",
     "sonar"
-   ]
+   ],
+   "gloss": "tier-1 radar and sonar seaplane, 2250 radar and 900 sonar at speed 338; scouts the sea; unarmed",
+   "prose": "The Okeanos is Armada's Horizon (armsehak) to the number: 125 metal, 580 health, speed 338, 1100 sight, 2250 radar and 900 sonar. It scouts a sea map, finding fleets and submarines for the bombers and ships behind it. It is unarmed, and fighters kill it."
   },
   "legspsurfacegunship": {
    "name": "Enyo",
@@ -14244,7 +14574,9 @@
    "sight": 595,
    "flags": [
     "flies"
-   ]
+   ],
+   "gloss": "270-metal riot-cannon seaplane gunship, 200 with a 140 blast every 3.5 s at 400; raids ships and shores",
+   "prose": "The Enyo is Legion's seaplane gunship: 270 metal, 1200 health, speed 148, a riot cannon doing 200 with a wide 140 blast every 3.5 seconds at range 400 (57 a second, more against a packed target). It takes the Sabre's (armsaber: 210 metal, 67 a second at 425) and Cutlass's (corcut) place with a slower, wider shot. It makes surprise raids on light ships, naval buildings and shore units; anti-air and fighters kill it."
   },
   "legsptorpgunship": {
    "name": "Ladon",
@@ -14261,13 +14593,15 @@
    "speed": 273,
    "range": 460,
    "dps": 62.2,
-   "dps_air": 6.7,
-   "air": "7 dps against aircraft (11% of its ground damage)",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 535,
    "flags": [
     "flies",
     "sonar"
-   ]
+   ],
+   "gloss": "190-metal torpedo gunship seaplane; circles ships dropping two 140-damage torpedoes every 4.5 s; kills subs",
+   "prose": "The Ladon is Legion's torpedo seaplane: 190 metal, 900 health, speed 273, 535 sonar, hovering over ships and submarines and dropping two 140-damage homing torpedoes every 4.5 seconds at range 460 (62 a second), a fifth of that against units on land. It takes the Puffin's (armseap: 290 metal) and Monsoon's (corseap: 230 metal) place for less metal. It hunts submarines that surface ships cannot see; anti-air kills it."
   },
   "legsrail": {
    "name": "Arquebus",
@@ -14290,7 +14624,9 @@
    "flags": [
     "needs_energy_to_fire",
     "anti_air"
-   ]
+   ],
+   "gloss": "750-metal all-terrain railgun bot, 850 damage every 7 s at 850, through what it kills; 400 energy a shot",
+   "prose": "The Arquebus is an all-terrain sniper: 750 metal and 15000 energy, 2200 health, speed 42, sight 700, a railgun doing 850 (425 to commanders) every 7 seconds at range 850 for 400 energy a shot, and the rail goes on through a unit it kills to the one behind. It takes the Sharpshooter's (armsnipe: 680 metal, 580 health, 2500 every 10 seconds at 900, cloaked) place with a third of its damage a shot, nearly four times its health and no cloak, so it stands in a line rather than hiding, and it climbs cliffs other units cannot. It out-ranges every tier-1 tower and kills light and medium units in one or two shots from beyond their reply, and it can fire at aircraft. Raiders that close and artillery beat it, and it stops in an energy stall."
   },
   "legstarfall": {
    "name": "Starfall",
@@ -14315,7 +14651,9 @@
    "flags": [
     "needs_energy_to_fire",
     "long_range_cannon"
-   ]
+   ],
+   "gloss": "63000-metal end-game cannon: 63 shells of 600 every 14 s at 6100 for 360000 energy a salvo; starts on hold fire",
+   "prose": "The Starfall is Legion's end-game cannon: 63000 metal and 720000 energy, 26000 health, a salvo of 63 high-arc plasma shells of 600 damage each with a 256 blast every 14 seconds at range 6100, for 360000 energy a salvo. It takes the Ragnarok's (armvulc) and Calamity's (corbuzz) place at a little less metal, dropping its 37800 damage in one rain instead of a stream, and firing at its full rate needs about 26000 energy a second, some eight Advanced Fusion Reactors (legafus). It starts on hold fire. It is a whole late economy in one building and the first target of everything the enemy has."
   },
   "legstr": {
    "name": "Hoplite",
@@ -14336,7 +14674,9 @@
    "dps_air": 90,
    "air": "90 dps against aircraft (38% of its ground damage)",
    "sight": 400,
-   "flags": []
+   "flags": [],
+   "gloss": "355-metal fast raider bot, speed 84, twin machine guns 240 a second at 280, 1780 health; the Fiend's place, tougher",
+   "prose": "The Hoplite is Legion's tier-2 raider: 355 metal, 1780 health, speed 84, twin machine guns firing twelve 8-damage rounds every 0.4 seconds (240 a second) at range 280, and it shoots at aircraft too, at 3 a round. It takes the Fiend's (corpyro: 200 metal, 1060 health, 240 a second at 230) and Sprinter's (armfast) place, with 50 more reach and far more health for nearly twice the Fiend's metal, so it survives a tower long enough to kill what it came for. It kills constructors, extractors and light units that nothing guards and loses stand-up fights to tier-2 line units and to towers that out-range 280. The Proteus (legaceb) can build it in the field."
   },
   "legstronghold": {
    "name": "Stronghold",
@@ -14359,7 +14699,9 @@
    "flags": [
     "transport",
     "flies"
-   ]
+   ],
+   "gloss": "550-metal transport gunship: carries one heavy unit and fires an eight-pellet shotgun at 450; 2600 health",
+   "prose": "The Stronghold is a heavy transport with a gun: 550 metal and 13000 energy, 2600 health, speed 160, carrying one unit up to the heavy tier-2 size and firing an eight-pellet shotgun every 1.6 seconds at range 450 (150 a second), with almost no weakness to EMP. It takes the Skyhook's (corseah: 370 metal, 2200 health) and Abductor's (armdfly) place, dropping a heavy unit on the front and covering the drop itself. Flak and fighters kill it, and its cargo dies with it."
   },
   "legsy": {
    "name": "Shipyard",
@@ -14392,7 +14734,9 @@
    "flags": [
     "submerged",
     "on_water"
-   ]
+   ],
+   "gloss": "tier-1 shipyard on water, 450 metal, 150 build power; makes the construction ship and Legion's seven tier-1 vessels",
+   "prose": "The Shipyard is the tier-1 naval factory, built only on water: 450 metal and 950 energy, 4300 health, 150 build power (Armada's armsy: 450 metal, 4100 health), making the Construction Ship (legnavyconship), Dionysus, Hippocampus, Iapetus, Argonaut, Syracusia, Ketea and Octeres. It is offered only where the builder can reach water deep enough. On a land map there is no reason to build it."
   },
   "legtarg": {
    "name": "Pinpointer",
@@ -14415,7 +14759,9 @@
    "air": "",
    "sight": 273,
    "energy_upkeep": 100,
-   "flags": []
+   "flags": [],
+   "gloss": "810-metal targeting facility, halves radar-dot wobble for the whole team, 100 energy a second; three is plenty",
+   "prose": "The Pinpointer is Armada's (armtarg) to the number: 810 metal and 7200 energy, 2100 health, 100 energy a second, halving the wobble of radar dots for the whole team, with a second and third stacking at diminishing returns. It is what lets the Amputator (legcluster), Eviscerator (legacluster), Olympus (leglrpc) and the long-range units hit what radar shows without sight. Only the tier-2 constructors build it."
   },
   "legtide": {
    "name": "Tidal Generator",
@@ -14444,7 +14790,9 @@
    "flags": [
     "submerged",
     "on_water"
-   ]
+   ],
+   "gloss": "85-metal tidal generator on water; steady output set by the map's tide",
+   "prose": "The Tidal Generator makes a steady amount of energy set by the map's tidal strength, for 85 metal and 250 energy, 395 health, built on water, Cortex's (cortide) to the number. Where the tide is good it is cheap steady energy for a sea base; on a land map it is not offered. Its output is fixed, unlike wind's."
   },
   "legtl": {
    "name": "Stheno",
@@ -14466,15 +14814,16 @@
    "speed": null,
    "range": 500,
    "dps": 186.7,
-   "dps_air": 186.7,
-   "air": "187 dps against aircraft, its full damage",
+   "dps_air": null,
+   "air": "does nothing to aircraft",
    "sight": 494,
    "flags": [
     "submerged",
-    "anti_air",
     "sonar",
     "on_water"
-   ]
+   ],
+   "gloss": "170-metal offshore torpedo launcher, 280 per 1.5 s at 500 against ships and subs; nothing against land or air",
+   "prose": "The Stheno is Legion's tier-1 torpedo launcher on water and the Harpoon's (armtl) numbers: 170 metal and 1500 energy, 1300 health, a 280-damage unguided torpedo every 1.5 seconds (187 a second) at range 500 with its own 400 sonar. It kills ships and submarines that come near and is the cheap defence of a sea base; it cannot hit land units, aircraft or hovercraft, and destroyers out-range it. It is the first defence a shipyard gets."
   },
   "leguwestore": {
    "name": "Naval Energy Storage",
@@ -14503,7 +14852,9 @@
    "flags": [
     "submerged",
     "on_water"
-   ]
+   ],
+   "gloss": "6000 energy storage on water for 175 metal; explodes when killed",
+   "prose": "The Naval Energy Storage is the Energy Storage (legestor) built on water: 6000 energy storage for 175 metal and 1800 energy, 2000 health. It lets a tidal or wind economy ride out a lull and banks D-gun and drone energy for a sea base. It explodes with a large blast when destroyed, so it stands away from the shipyard."
   },
   "leguwgeo": {
    "name": "Offshore Geothermal Powerplant",
@@ -14532,7 +14883,9 @@
    "flags": [
     "submerged",
     "on_water"
-   ]
+   ],
+   "gloss": "300 energy a second on an underwater steam vent for 540 metal; explodes when killed",
+   "prose": "The Offshore Geothermal Powerplant is the Geothermal Powerplant (leggeo) for a vent under water: 300 energy a second for 540 metal and 13000 energy, 2050 health. Where a sea vent is safe it is a tier-1 economy's biggest single generator, under 2 metal per energy a second; the tier-1 sea builders and the air constructor build it. It explodes when destroyed, and a raid finds it worth the trip."
   },
   "leguwmstore": {
    "name": "Naval Metal Storage",
@@ -14561,7 +14914,9 @@
    "flags": [
     "submerged",
     "on_water"
-   ]
+   ],
+   "gloss": "3000 metal storage on water for 340 metal; banks metal for a sea base",
+   "prose": "The Naval Metal Storage is the Metal Storage (legmstor) built on water: 3000 metal storage for 340 metal and 590 energy, 2100 health. It holds the bank for an Advanced Shipyard (legadvshipyard) or a run of underwater upgrades; a full store at tier 1 is usually a sign to build another factory instead. It explodes when destroyed."
   },
   "legvcarry": {
    "name": "Mantis",
@@ -14581,7 +14936,9 @@
    "dps_air": null,
    "air": "",
    "sight": 400,
-   "flags": []
+   "flags": [],
+   "gloss": "450-metal drone carrier truck: up to six combat drones fighting within 1050, each 15 metal and 500 energy; no twin",
+   "prose": "The Mantis is a Hive (leghive) on wheels: 450 metal and 9000 energy, 1400 health, speed 45, no gun of its own, keeping up to six light drones (15 metal and 500 energy each, one every 10 seconds, three free when it is finished) that fly out against anything within 1050 and dock to heal. A drone has 325 health, speed 280 and a machine gun of about 27 damage a second at 300, so a full carrier puts some 160 a second on whatever its army meets and rebuilds its losses for energy. Neither Armada nor Cortex has one; when it dies its drones fly on alone, losing 20 health a second, and they are units of ours that no factory made."
   },
   "legvenator": {
    "name": "Venator",
@@ -14605,7 +14962,9 @@
     "stealth",
     "flies",
     "anti_air"
-   ]
+   ],
+   "gloss": "110-metal fast stealth interceptor, flak shot of three 480-damage rounds every 2.5 s at 700; speed 450; air only",
+   "prose": "The Venator is Legion's interceptor: 110 metal, 210 health, speed 450, invisible to radar, a flak cannon firing three 480-damage rounds with a 100 blast every 2.5 seconds at range 700 against aircraft only (576 a second, more against a formation). It takes the Highwind's (armhawk) and Nighthawk's (corvamp) place for less metal and more speed, at the price of a fragile hull, so it reaches a bombing run anywhere on the map before it lands. It cannot hit ground, and fighters that catch it at 210 health kill it quickly."
   },
   "legvflak": {
    "name": "Charon",
@@ -14627,7 +14986,9 @@
    "sight": 338,
    "flags": [
     "anti_air"
-   ]
+   ],
+   "gloss": "470-metal flak truck, micro-flak at 800, about 720 a second against aircraft on paper; nothing against ground",
+   "prose": "The Charon is Legion's tier-2 flak vehicle: 470 metal and 10500 energy, 2700 health, speed 70, twin rotary micro-flak cannons firing three 40-damage rounds with a 35 blast every sixth of a second at range 800, about 720 a second against aircraft on paper. It takes the Fury's (corsent: 470 metal, 2700 health, 775) place with 25 more reach. It has no ground weapon and needs the army for cover; build it once enemy air has been seen."
   },
   "legvp": {
    "name": "Legion Vehicle Plant",
@@ -14656,7 +15017,9 @@
    "air": "",
    "sight": 279,
    "build_power": 150,
-   "flags": []
+   "flags": [],
+   "gloss": "tier-1 vehicle plant, 570 metal; makes the constructor, Otter, Wheelie, Alaris, Helios, Decurion, Barrage, Lance, Cetus, Sapper",
+   "prose": "The Legion Vehicle Plant is the tier-1 vehicle factory at Cortex's price (corvp): 570 metal and 1650 energy, 3000 health, 150 build power, ten units: the Legion Construction Vehicle (legcv), Otter, Wheelie, Alaris, Helios, Decurion, Barrage, Lance, Cetus and Sapper. Vehicles are faster on flat ground, tougher and dearer than bots and climb worse; the plant is where Legion's only land scout, its tier-1 artillery and its line tank come from. It costs more than the bot lab and draws more energy while building, so it is usually the second factory; the carded OS-27 Legion player built none."
   },
   "legwhisper": {
    "name": "Whisper",
@@ -14680,7 +15043,9 @@
     "stealth",
     "flies",
     "sonar"
-   ]
+   ],
+   "gloss": "tier-2 radar and sonar plane, 2400 radar, 1200 sonar, 1250 sight at speed 321; stealthy; unarmed",
+   "prose": "The Whisper is Legion's tier-2 radar plane: 210 metal, 990 health, speed 321, 1250 sight, 2400 radar and 1200 sonar, invisible to radar itself. It takes the Condor's (corawac) and Oracle's (armawac) place, finding targets for bombers, artillery and long-range guns across a large part of the map. It is unarmed, and fighters that find it kill it."
   },
   "legwin": {
    "name": "Wind Turbine",
@@ -14708,7 +15073,9 @@
    "dps_air": null,
    "air": "",
    "sight": 273,
-   "flags": []
+   "flags": [],
+   "gloss": "43-metal wind generator, up to 25 energy a second as the map's wind allows; the cheap bulk energy; costs energy to build",
+   "prose": "The Wind Turbine makes whatever the wind gives, up to 25 energy a second, for 43 metal and 175 energy, with 230 health: Cortex's price (corwin) and three metal over Armada's (armwin, 196 health). On a windy map it is the cheapest energy there is (about 3.6 metal per energy a second at an average of 12) and the bulk of a tier-1 economy; where the wind is weak the Solar Collector (legsolar) is the better buy. It costs energy to build, so a first turbine from an empty store stalls, and its output swings minute to minute, which is what storage and a solar or two are for."
   }
  }
 }

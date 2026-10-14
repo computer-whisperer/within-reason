@@ -1275,7 +1275,9 @@ impl Brain {
         } else {
             let short = draw_total - e.income;
             let mut fixes: Vec<String> = Vec::new();
-            for (name, unit_income) in [("armsolar", 20.0), ("corsolar", 20.0), ("legsolar", 20.0), ("armadvsol", 75.0), ("coradvsol", 75.0), ("legadvsol", 100.0), ("armfus", 1000.0), ("corfus", 1000.0), ("legfus", 950.0)] {
+            // Each generator's energy a second from its unit file (`energymake`; the advanced solars 80/80/100, the fusions
+            // 750/850/950: the 75 and 1000 written here until 2026-10-14 were wrong).
+            for (name, unit_income) in [("armsolar", 20.0), ("corsolar", 20.0), ("legsolar", 20.0), ("armadvsol", 80.0), ("coradvsol", 80.0), ("legadvsol", 100.0), ("armfus", 750.0), ("corfus", 850.0), ("legfus", 950.0)] {
                 if let Some(def) = self.world.def_named(name) && self.faction_reaches(def) {
                     fixes.push(format!("{:.1} {}", short.max(0.0) / unit_income, self.short_words(def)));
                 }
