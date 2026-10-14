@@ -47,7 +47,10 @@ its medium profile opened with the vehicle plant, Alaris and Pharos on Comet (ab
 carries the same five `*_leg.json` files and in leg-smoke-apex opened with the bot lab: Goblins, Phobos, a Ballista,
 two Pharos and an advanced solar by 8:00. So a Legion seat of ours can be tested against either AI, and either can
 field Legion against us (`--their-side legion`, or `--mirror` with `--side legion`).
-**Status.** supported (2026-10-14) — one six-minute game of each; what the hard profiles do as Legion is unseen
+**Status.** supported (2026-10-14) — one six-minute game of each, then eight 40-minute games of Apex standard as Legion
+(apex-v024-legion-distilled-comet-1: the bot lab first in all eight, Phobos, Satyrs and Goblins, never a vehicle plant,
+5-14 soldiers at 10:00 against the 16-39 it fields as Armada or Cortex; its random search trains Armada and Cortex
+mirrors only, so its Legion is the untrained side); what BARb's hard profiles do as Legion is unseen
 **Evidence.** leg-smoke-barb and leg-smoke-apex in `docs/experiments.md`; `run/engines/2026.07.04/AI/Skirmish/BARb/stable/AIOptions.lua`
 (`game_config`); `upstream/Beyond-All-Reason/luarules/configs/BARb/stable/config/*/`;
 `run/engines/2026.07.04/AI/Skirmish/Apex/Unstable/config/standard/*_leg.json`.
