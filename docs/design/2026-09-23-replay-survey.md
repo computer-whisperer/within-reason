@@ -145,3 +145,14 @@ memory only, and the runner rewrote the manifest from its start-time copy, dropp
 (it now merges into the file as it is).
 
 **2026-09-24 04:00.** `run/replays/assist.py`: the commander's early assist (the widget's `guard` on the plant), solar clocks, factory-unit speed-up and the metal store over the first four minutes, per side and by pool; the claim K-map-comet-catcher-remake-1-8-commander-assists-the-plant.
+
+**2026-10-13 evening, the re-replay for builder priority.** The replay directories and cards of 2026-09-23/24 were
+gone from `run/matches` (an ignored directory; the manifest's `match` fields still named them). All 75 kept demos were
+replayed again on ten engines in two and a half hours (about 1.5 times game speed each, the runner's output: 291-750 s
+a game) with the dump widget's new `bp` sample field (every builder's priority flag and build target,
+docs/harness/record-format.md), and carded: 75 of 75. The demo's packet stream is read directly for the first time
+(`run/replays/priority.py`: the stock engine demo format, `NETMSG_COMMAND` on `NETMSG_SELECT` for a player's hand
+orders, `NETMSG_AICOMMANDS` for a widget's), which is where a command the game consumes without queueing lives. Two
+runner facts worth knowing: it writes the manifest in submission order, so a running batch's finished games are
+found by directory name (`<time>-replay-<id>` with a `card.json`); and each `replay_match.py` names its directory by
+its own start time, so a batch's directories do not share a prefix.

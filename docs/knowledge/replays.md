@@ -4,6 +4,13 @@ The public replays carded by the replay survey (`docs/design/2026-09-23-replay-s
 them. One line per match: id (the `run/matches/*-replay-<id>` suffix), date, map, players (OS, faction, start cell from
 the card), winner, duration. Claims in `docs/knowledge/_inbox/replays-comet-catcher-2026-09-23.md` until merged.
 
+**2026-10-13: all 75 kept replays re-replayed and re-carded** (the replay directories and cards had gone from
+`run/matches`; the manifest's `match` fields now name the new directories) with the dump widget's `bp` sample field,
+every builder's priority flag and build target. The builder-priority study read them:
+`docs/studies/2026-10-13-builder-priority.md`, claims K-mech-builder-priority-is-a-builder-flag,
+K-mech-stall-order-is-creation-order (mechanics.md), K-econ-commander-low-while-assisting,
+K-econ-expanding-constructor-high (economy.md).
+
 ## Comet Catcher Remake 1.8 (29 duels, carded 2026-09-23)
 
 - `4dfdaf6ac5933a177c5180e7e41eae49` 2026-09-20, Comet Catcher Remake 1.8: [APM]Nekuodah (50.51, Armada, B5) vs [AMADO]HH2 (27.35, Armada, H5); won [APM]Nekuodah; 6:57

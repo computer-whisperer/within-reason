@@ -13,6 +13,7 @@ local teams = {}
 local files = {}
 local truths = {}
 local defIndex = {}
+local prioDefs = {} -- defs with the game's builder-priority command (unit_builder_priority.lua: build speed and assist or build options)
 local defRows = {}
 local headerDone = false
 
@@ -96,6 +97,7 @@ function widget:Initialize()
 	for i, id in ipairs(ids) do
 		local d = UnitDefs[id]
 		defIndex[id] = i - 1
+		if (d.buildSpeed or 0) > 0 and (d.canAssist or #d.buildOptions > 0) then prioDefs[id] = true end
 		defRows[i] = { id = id, name = d.name, class = class(d), metal = d.metalCost, energy = d.energyCost, speed = d.speed, weapons = #d.weapons, build_speed = d.buildSpeed or 0, extracts_metal = d.extractsMetal or 0 }
 	end
 	local gaia = Spring.GetGaiaTeamID()
@@ -133,12 +135,17 @@ end
 
 function widget:GameFrame(frame)
 	if frame % SAMPLE ~= 0 then return end
-	local rows = {}
+	local rows, bp = {}, {}
 	for _, team in ipairs(teams) do
 		rows[team] = {}
+		bp[team] = {}
 		for _, unitID in ipairs(Spring.GetTeamUnits(team)) do
 			local id, defID, x, z, pct, flags, health, building = unitRow(unitID)
 			rows[team][#rows[team] + 1] = { id, defID, x, z, pct, flags, health, building }
+			if prioDefs[defID] then
+				-- the builder-priority gadget's state (builderPriority 0 low, 1 high; -1 never set, which it treats as high) and the unit it is building
+				bp[team][#bp[team] + 1] = { id, Spring.GetUnitRulesParam(unitID, "builderPriority") or -1, Spring.GetUnitIsBuilding(unitID) or 0 }
+			end
 		end
 	end
 	for _, team in ipairs(teams) do
@@ -154,7 +161,7 @@ function widget:GameFrame(frame)
 		end
 		local mCur, mStore, _, mInc, mExp = Spring.GetTeamResources(team, "metal")
 		local eCur, eStore, _, eInc, eExp = Spring.GetTeamResources(team, "energy")
-		put(team, json({ t = "s", f = frame, m = { mCur or 0, mInc or 0, mExp or 0, mStore or 0 }, e = { eCur or 0, eInc or 0, eExp or 0, eStore or 0 }, own = own, en = en, al = {}, dmg = {}, ms = 0 }))
+		put(team, json({ t = "s", f = frame, m = { mCur or 0, mInc or 0, mExp or 0, mStore or 0 }, e = { eCur or 0, eInc or 0, eExp or 0, eStore or 0 }, own = own, en = en, al = {}, dmg = {}, ms = 0, bp = bp[team] }))
 		if frame % TRUTH == 0 and truths[team] then
 			local enemy = {}
 			for _, other in ipairs(teams) do

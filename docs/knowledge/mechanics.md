@@ -31,12 +31,13 @@ in BAR (E income is ~10-20x M income), so the rule is useless as written.
 **Used by.** H-ECO-CONVERT-SURPLUS, K-eco-expansion-before-conversion (supports it)
 
 ### K-mech-stall-slows-everything
-**Claim.** When a resource runs out, every builder and factory drawing on it slows in proportion (construction gets only the
-fraction of resources available), energy-per-shot weapons stop firing, and units with energy upkeep (extractors 3 E/s,
-advanced extractors 20 E/s, radar, cloak) can switch off. An energy stall is therefore worse than a metal stall: it also cuts
-metal income and defence. Guide targets: energy bar above 50% at all times, metal bar between 20% and 80% (above 80% means
-too little build power, not wealth).
-**Status.** reported (2026-09-19); upkeep and per-shot numbers supported from local source
+**Claim.** When a resource runs out, construction drawing on it slows, energy-per-shot weapons stop firing, and units with
+energy upkeep (extractors 3 E/s, advanced extractors 20 E/s, radar, cloak) can switch off. An energy stall is therefore
+worse than a metal stall: it also cuts metal income and defence. Guide targets: energy bar above 50% at all times, metal
+bar between 20% and 80% (above 80% means too little build power, not wealth). The guides' "every builder slows in
+proportion" is not how the engine does it: see K-mech-stall-order-is-creation-order.
+**Status.** reported (2026-09-19); upkeep and per-shot numbers supported from local source; the proportional slowing
+refuted from the engine source 2026-10-13 (no builder ever gets a fraction of a step)
 **Evidence.** https://www.crdhq.com/articles/bar-economy-guide (2026); https://www.beyondallreason.info/guide/in-depth-look-at-economy.
 `units/ArmBuildings/LandEconomy/armmex.lua` (energyupkeep 3), `armmoho.lua` (20), `LandDefenceOffence/armllt.lua` (energypershot 20).
 **Would be wrong if.** Metal income stayed flat through a logged period of zero stored energy.
@@ -67,8 +68,48 @@ lets assistants yield during a stall instead of slowing everything.
 `luarules/gadgets/unit_builder_priority.lua:2-23,59-62` (command `priority`; "low priority cons build either at their full
 speed or not at all"). https://www.crdhq.com/articles/bar-build-order-metal-solar ("1-2 nano turrets next to factory").
 **Would be wrong if.** A turret ordered to guard a lab 300 away did not raise that lab's output.
-**Used by.** (candidate: turrets guard the lab; consider setting turrets passive — needs the custom `priority` command id in
-the shim)
+**Used by.** (candidate: turrets guard the lab; the passive flag is K-mech-builder-priority-is-a-builder-flag)
+
+### K-mech-stall-order-is-creation-order
+**Claim.** The engine shares nothing out in a stall. Every frame each builder or factory with a target tries one whole
+step (`buildSpeed / buildTime` of the target, priced at the target's cost times that) and takes it only if the team holds
+the whole price in both resources, else it does nothing that frame; the tries run in the order the units were created
+(`activeUnits` is appended on creation). So the oldest builder wins a stall (our commander, then the first plant, then
+the constructors in order), and a cheap step (an extractor's) slips through where a dear one (a plant's unit, a fusion's)
+does not: the dear build starves first, whoever holds it. A target with a builder trying on it does not decay.
+**Status.** conjectured (2026-10-13): read from the engine we run; the pro replays' one-second samples neither show
+nor refute it (in 193 stall seconds where one lone high builder's target moved and another's did not, the oldest's
+moved in 124, the youngest's in 114; in 97 % of such seconds every high builder's target moved)
+**Evidence.** `upstream/RecoilEngine/rts/Sim/Units/Unit.cpp` `CUnit::AddBuildPower` (`HaveResources` then `UseResources`,
+`lastNanoAdd` stamped before the check), `rts/Sim/Misc/Team.cpp` (`res >= amount`), `rts/Sim/Units/UnitHandler.cpp`
+(`push_back`, the random insertion `#if 0`; `SlowUpdateUnits` before `UpdateUnits` in `Update`). The study
+`docs/studies/2026-10-13-builder-priority.md` §1, §5 (`stalls.md`) and its proposed cheat-game test (§6).
+**Would be wrong if.** In a metal stall two constructors of different ages on targets of the same cost both progressed
+at half speed, or the younger one progressed and the older did not.
+**Used by.** none yet (the hands' plant and constructor orders are all high priority: K-mech-builder-priority-is-a-builder-flag)
+
+### K-mech-builder-priority-is-a-builder-flag
+**Claim.** BAR's priority is a low/high flag on a builder (commander, constructor, factory, construction turret), never on
+a structure: `CMD_PRIORITY` 34571 with one parameter, 0 low, 1 high, default high, state in the unit rules param
+`builderPriority`. A low builder runs at full speed or not at all: every 1 to 6 frames the gadget grants it its whole
+expense for the interval only if the team's stock minus a margin (the larger of 20 % of income and 1 % of storage) minus
+the high builders' expense would stay positive, else sets its build speed to 0. High changes nothing: among high
+builders the engine's creation order (K-mech-stall-order-is-creation-order) decides. The stock widget sets every lab and
+construction turret low and every constructor high at creation and at finish, the commander never; it runs only in a
+person's LuaUI, so an AI's builders (ours, BARb's, Apex's) are all high. The command is consumed by `AllowCommand`
+(never queued, never seen by `UnitCommand`); the demo stream is its only trace.
+**Status.** supported (2026-10-13) from the game source we run and 75 pro replays (the widget's defaults in every game's
+`bp` samples: labs low in 41 of 41 players, turrets low in 40, constructors low in 5; the hand toggles in the packet
+stream; in hard metal stalls a low commander kept 45 % of its speed, a low constructor 78 %, a low turret 46 %, against
+88 % and 102 % for high ones, and the flag cost nothing outside a hard stall)
+**Evidence.** `luarules/gadgets/unit_builder_priority.lua` (`UpdatePassiveBuilders`, `AllowCommand`),
+`luaui/Widgets/unit_builder_priority.lua` (`lowpriorityLabs`, `lowpriorityNanos` true, `lowpriorityCons` false),
+`modules/customcommands.lua:39`; `upstream/CircuitAI/src/circuit/unit/CircuitUnit.h:58` (defined, never sent); the study
+`docs/studies/2026-10-13-builder-priority.md` §2-3 and `run/replays/priority.py`.
+**Would be wrong if.** A replay's `bp` showed a lab at priority 1 with no hand toggle on it, or a low constructor
+progressing while the team's metal sat at zero with a high constructor stalled.
+**Used by.** none (not sent by the hands; the C interface's `COMMAND_UNIT_CUSTOM` would carry it, study §4). What the
+pros do with it: K-econ-commander-low-while-assisting, K-econ-expanding-constructor-high (economy.md).
 
 ### K-mech-factory-repeat
 **Claim.** Factories have a repeat state: with repeat on, each finished unit's order is re-appended, so a short composition

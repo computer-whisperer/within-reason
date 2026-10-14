@@ -374,3 +374,31 @@ frames and 16 finished turrets by 18:00; one site had commands and no frame. The
 **Status.** observed in one game, traced from the record (2026-10-04); the comparison is one game each.
 **Exploited by.** H-PLAYER-TURRET-WITH-THE-SPOT.
 
+### K-econ-commander-low-while-assisting
+**Claim.** Pros set the commander to low priority (K-mech-builder-priority-is-a-builder-flag) while it assists the plant
+or builds a solar in the opening, so the constructors' extractors take the metal first and the commander's assist
+runs on the surplus; they set it high again when it takes a build of its own (an LLT, a radar, a lab). Labs and
+construction turrets they leave on the widget's low from birth; nobody touches those by hand.
+**Status.** observed (2026-10-13): 52 commander → low toggles by 14 of 41 players (OS 25-51) in the 75 pro duels; the
+job at the toggle was assisting the plant in 30, a solar in 7, the plant itself in 3; 42 of 52 before 5:00, 21 in
+minute 1; metal under 10 % of storage in 23; 12 set high again (median 90 s later) for a job of the commander's own.
+0 of 172 hand toggles were on a lab or a turret. thebluegecko: 10 of his 12 toggles in 17 games.
+**Evidence.** `docs/studies/2026-10-13-builder-priority.md` §5, `docs/studies/2026-10-13-builder-priority/toggles.jsonl`
+(`kind` commander, `to` low, `job`), `run/replays/priority.py catalog`.
+**Would be wrong if.** A pool of higher-OS replays showed the commander left high through the opening stall, or the
+toggles landing with metal floating.
+**Used by.** none (the hands send no priority command; a candidate for a player tool or an option on the assist move,
+the user's call under docs/code-decisions.md)
+
+### K-econ-expanding-constructor-high
+**Claim.** One school of pros sets the widget to bear every constructor low, and flips the one constructor that carries
+the next extractor (or the LLT, or the plant's unit near done) to high as it gets the order: the important build is
+named through its builder, and everything else, commander included, waits on the surplus.
+**Status.** observed (2026-10-13): 5 of 41 players have constructors born low (TehHardStuckOS25erer, [APM]ieNemo,
+[AMADO]epienriz, PRO_Jamerz, RAM_Noctis); 81 constructor → high toggles, 65 of them TehHardStuckOS25erer's (OS 43, 9
+games), the toggled constructor's last order `build <extractor>` in 34 and an LLT in 7, 22 of 81 under 30 s old.
+**Evidence.** as K-econ-commander-low-while-assisting; `widget-defaults.jsonl` (the first automatic toggle of each
+builder, per player and game).
+**Would be wrong if.** Those players' constructors were born low by a widget version rather than a setting (the
+same versions show other players' constructors born high, so no).
+**Used by.** none
