@@ -3,7 +3,7 @@
 
 Reads the unit definition files (units/**/*.lua) and the English language file
 (language/en/units.json) of the Beyond All Reason checkout at upstream/Beyond-All-Reason,
-follows the build lists from the two commanders, and writes one entry per reachable unit:
+follows the build lists from the three commanders, and writes one entry per reachable unit:
 name, faction, tier, made_by, class, the numbers, and the rule flags. The hand-written
 fields of an entry already in the file (gloss, prose, anything else this script does not
 generate) are kept. The checkout's commit is recorded in the top-level "source" field.
@@ -29,10 +29,10 @@ from collections import OrderedDict
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_CHECKOUT = os.path.join(REPO, "upstream", "Beyond-All-Reason")
 DEFAULT_OUT = os.path.join(REPO, "crates", "bot", "data", "units.json")
-ROOTS = ("armcom", "corcom")
+ROOTS = ("armcom", "corcom", "legcom")
 GAME_FPS = 30  # the engine rounds reload times to whole frames
 
-# Loads every units/**/*.lua file (Legion and Scavengers left out) in a tolerant sandbox
+# Loads every units/**/*.lua file (Scavengers left out) in a tolerant sandbox
 # and prints {"defs": {...}, "errors": [...]} as JSON. Unknown globals answer any field
 # with a function returning {} and can be called, which is enough for the few files
 # that reach for Spring.* or VFS.* helpers; the ones that still fail are not units the
@@ -115,7 +115,7 @@ local function make_env()
 end
 local defs, errors = {}, {}
 for _, f in ipairs(list_lua(root .. "/units")) do
-  if not f:find("/Legion/") and not f:find("/Scavengers/") then
+  if not f:find("/Scavengers/") then
     local chunk, err = loadfile(f, "t", make_env())
     if not chunk then
       errors[#errors + 1] = f:sub(#root + 2) .. ": " .. tostring(err)
@@ -413,6 +413,29 @@ CLASS_OVERRIDES = {
     "armfdrag": "wall", "corfdrag": "wall",
     "armliche": "atomic bomber", "corcrwh": "gunship",
     "armamsub": "amphibious factory", "coramsub": "amphibious factory",
+    # Legion (2026-10-14), the same places as the twins above where the descriptions say so.
+    "legaspy": "spy bot", "legdecom": "decoy commander", "legeyes": "camera tower",
+    "legtarg": "targeting facility", "leganavalpinpointer": "targeting facility", "legsd": "targeting facility",
+    "legjuno": "juno launcher", "legmlv": "minelayer vehicle", "legsnapper": "crawling bomb",
+    "legkam": "suicide drone", "legcib": "juno drone", "legmineb": "minelayer bomber",
+    "legdeflector": "shield generator", "legdrag": "wall", "legfdrag": "wall", "legforti": "wall",
+    "leghive": "drone hive", "legfhive": "drone hive", "legvcarry": "drone carrier vehicle",
+    "legeallterrainmech": "drone carrier mech", "legrampart": "geothermal anti-nuke platform",
+    "legmohocon": "armed metal extractor", "legmohobp": "metal extractor with a drone pad",
+    "legperdition": "napalm missile launcher", "legbastion": "defence turret",
+    "legctl": "torpedo launcher", "legtl": "torpedo launcher", "leganavaltorpturret": "torpedo launcher",
+    "leginfestor": "spider assault bot", "legstronghold": "transport gunship", "legfort": "assault gunship",
+    "leggob": "skirmisher bot", "leglob": "line bot", "legcen": "raider bot", "legbal": "skirmisher bot",
+    "legkark": "assault bot", "leghades": "raider tank", "leggat": "assault tank", "legamphtank": "line tank",
+    "legbar": "artillery tank", "legrail": "skirmisher tank", "leghelios": "skirmisher tank",
+    "legstr": "raider bot", "legshot": "riot bot", "leginc": "assault bot", "legsrail": "sniper bot",
+    "legbart": "skirmisher bot", "leghrk": "artillery bot", "legamph": "amphibious assault bot",
+    "legmrv": "raider tank", "legaskirmtank": "skirmisher tank", "legaheattank": "assault tank",
+    "legmed": "artillery tank", "legamcluster": "artillery tank", "leginf": "artillery tank", "legavroc": "artillery tank",
+    "legfloat": "assault tank", "legner": "line hovercraft", "legcar": "assault hovercraft", "legmh": "artillery hovercraft",
+    "legeheatraymech": "assault mech", "legeshotgunmech": "assault mech", "legelrpcmech": "artillery mech",
+    "legerailtank": "assault mech", "legehovertank": "assault hovercraft", "legjav": "raider mech", "legkeres": "riot mech",
+    "legnavyscout": "patrol boat", "leganavybattleship": "battleship",
 }
 
 SHIP_WORDS = ("destroyer", "cruiser", "battleship", "flagship", "corvette", "frigate", "submarine")
@@ -586,7 +609,7 @@ def flags_of(name, u, tier_class):
         f.append("antinuke")
     if "_nolrpc_" in str(cp.get("restrictions_inclusion") or ""):
         f.append("long_range_cannon")
-    if ug == "buildert3" or "Gantry" in u.get("_file", ""):
+    if ug == "buildert3" or "Gantry" in u.get("_file", "") or "/T3/" in u.get("_file", ""):
         f.append("gantry")
     if mob is None and (float(u.get("minwaterdepth") or 0) > 0 or u.get("floater") is True):
         f.append("on_water")
@@ -616,7 +639,7 @@ def entry(name, u, lang, tier, made_by):
     rng, dps, _, _ = weapon_summary(u)
     e = OrderedDict()
     e["name"] = lang["names"].get(name, name)
-    e["faction"] = "armada" if name.startswith("arm") else "cortex" if name.startswith("cor") else None
+    e["faction"] = "armada" if name.startswith("arm") else "cortex" if name.startswith("cor") else "legion" if name.startswith("leg") else None
     e["tier"] = tier
     e["made_by"] = sorted(made_by)
     e["class"] = classify(name, u, e["name"], lang["descriptions"].get(name))

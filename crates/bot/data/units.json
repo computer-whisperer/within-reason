@@ -6763,7 +6763,8 @@
    "faction": "cortex",
    "tier": 2,
    "made_by": [
-    "cormls"
+    "cormls",
+    "leganavyengineer"
    ],
    "class": "mine",
    "metal": 32,
@@ -9987,6 +9988,4727 @@
    "flags": [],
    "gloss": "tier-1 artillery, 710 range outranges every tier-1 tower; 750 health, blind past 330, needs a spotter and a screen",
    "prose": "The Wolverine is the tier-1 artillery: 170 metal, 750 health, speed 48, a 300-damage shell every 7.1 seconds lobbed to range 710, more than the heavy laser towers (620). It kills turrets from where they cannot answer; it fires only over its front, is inaccurate against anything moving, and sees only 330, so alone it walks into a turret's range before it sees it. It needs a Rascal (corfav) or radar to spot and Pounders (corlevlr) or Brutes (corraid) in front, and it is never an answer to units."
+  },
+  "legaabot": {
+   "name": "Toxotai",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legaceb",
+    "legamphlab",
+    "leglab"
+   ],
+   "class": "anti-air bot",
+   "metal": 120,
+   "energy": 950,
+   "build_time": 1800,
+   "health": 610,
+   "speed": 55,
+   "range": 760,
+   "dps": 1.5,
+   "dps_air": 55.5,
+   "air": "anti-air only: 56 dps against aircraft",
+   "sight": 380,
+   "flags": [
+    "amphibious",
+    "anti_air"
+   ]
+  },
+  "legaap": {
+   "name": "Legion Advanced Aircraft Plant",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legca",
+    "legspcon"
+   ],
+   "class": "aircraft factory",
+   "metal": 2900,
+   "energy": 28000,
+   "build_time": 31050,
+   "health": 3900,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 305.5,
+   "build_power": 600,
+   "flags": []
+  },
+  "legabm": {
+   "name": "Aegis",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legack",
+    "legacv"
+   ],
+   "class": "anti-nuke",
+   "metal": 1500,
+   "energy": 40000,
+   "build_time": 60000,
+   "health": 3650,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 195,
+   "flags": [
+    "antinuke"
+   ]
+  },
+  "legaca": {
+   "name": "Advanced Construction Aircraft",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaap"
+   ],
+   "class": "constructor aircraft",
+   "metal": 330,
+   "energy": 11000,
+   "build_time": 20000,
+   "health": 195,
+   "speed": 203,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 383.5,
+   "build_power": 115,
+   "energy_make": 10,
+   "flags": [
+    "flies"
+   ]
+  },
+  "legaceb": {
+   "name": "Proteus",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legalab"
+   ],
+   "class": "constructor bot",
+   "metal": 310,
+   "energy": 5600,
+   "build_time": 9500,
+   "health": 830,
+   "speed": 75,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 520,
+   "build_power": 125,
+   "energy_make": 15,
+   "flags": []
+  },
+  "legack": {
+   "name": "Advanced Construction Bot",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legalab"
+   ],
+   "class": "constructor bot",
+   "metal": 410,
+   "energy": 6900,
+   "build_time": 11500,
+   "health": 860,
+   "speed": 36,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 318.5,
+   "build_power": 195,
+   "energy_make": 14,
+   "flags": []
+  },
+  "legacluster": {
+   "name": "Eviscerator",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legaceb",
+    "legack",
+    "legacv",
+    "leganavyengineer"
+   ],
+   "class": "artillery turret",
+   "metal": 2300,
+   "energy": 15000,
+   "build_time": 25700,
+   "health": 3700,
+   "speed": null,
+   "range": 1380,
+   "dps": 118.3,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 455,
+   "flags": []
+  },
+  "legacv": {
+   "name": "Advanced Construction Vehicle",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legavp"
+   ],
+   "class": "constructor vehicle",
+   "metal": 530,
+   "energy": 6600,
+   "build_time": 15000,
+   "health": 1950,
+   "speed": 55.5,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 295.1,
+   "build_power": 270,
+   "energy_make": 20,
+   "flags": []
+  },
+  "legadvaabot": {
+   "name": "Aquilon",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legalab",
+    "legamphlab"
+   ],
+   "class": "anti-air bot",
+   "metal": 750,
+   "energy": 6650,
+   "build_time": 11270,
+   "health": 2400,
+   "speed": 34.5,
+   "range": 1151,
+   "dps": 7.8,
+   "dps_air": 375,
+   "air": "anti-air only: 375 dps against aircraft",
+   "sight": 390,
+   "flags": [
+    "amphibious",
+    "anti_air"
+   ]
+  },
+  "legadveconv": {
+   "name": "Advanced Energy Converter",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legack",
+    "legacv"
+   ],
+   "class": "energy converter",
+   "metal": 370,
+   "energy": 21000,
+   "build_time": 31300,
+   "health": 560,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 273,
+   "flags": []
+  },
+  "legadvestore": {
+   "name": "Hardened Energy Storage",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legack",
+    "legacv",
+    "leganavyconsub"
+   ],
+   "class": "energy storage",
+   "metal": 840,
+   "energy": 11000,
+   "build_time": 20400,
+   "health": 12700,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 192,
+   "energy_storage": 40000,
+   "flags": []
+  },
+  "legadvshipyard": {
+   "name": "Advanced Shipyard",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "leganavyconsub",
+    "legch",
+    "legnavyconship"
+   ],
+   "class": "shipyard",
+   "metal": 2800,
+   "energy": 10000,
+   "build_time": 23550,
+   "health": 5900,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 301.6,
+   "build_power": 600,
+   "flags": [
+    "submerged",
+    "on_water"
+   ]
+  },
+  "legadvsol": {
+   "name": "Advanced Solar Collector",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legca",
+    "legch",
+    "legck",
+    "legcv",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "solar collector",
+   "metal": 465,
+   "energy": 4080,
+   "build_time": 12500,
+   "health": 1100,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 280,
+   "energy_make": 100,
+   "flags": []
+  },
+  "legafcv": {
+   "name": "Aceso",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legavp"
+   ],
+   "class": "constructor vehicle",
+   "metal": 200,
+   "energy": 2900,
+   "build_time": 4000,
+   "health": 450,
+   "speed": 110,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 400,
+   "build_power": 120,
+   "energy_make": 10,
+   "flags": []
+  },
+  "legafigdef": {
+   "name": "Ajax",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaap"
+   ],
+   "class": "fighter aircraft",
+   "metal": 180,
+   "energy": 6200,
+   "build_time": 11850,
+   "health": 480,
+   "speed": 270,
+   "range": 600,
+   "dps": 20,
+   "dps_air": 800,
+   "air": "anti-air only: 800 dps against aircraft",
+   "sight": 430,
+   "flags": [
+    "flies",
+    "anti_air"
+   ]
+  },
+  "legafus": {
+   "name": "Advanced Fusion Reactor",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legack",
+    "legacv"
+   ],
+   "class": "fusion reactor",
+   "metal": 10500,
+   "energy": 69000,
+   "build_time": 340000,
+   "health": 9800,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 273,
+   "energy_make": 3300,
+   "energy_storage": 9000,
+   "flags": []
+  },
+  "legageo": {
+   "name": "Advanced Geothermal Powerplant",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legack",
+    "legacv"
+   ],
+   "class": "geothermal plant",
+   "metal": 1600,
+   "energy": 27000,
+   "build_time": 49950,
+   "health": 4150,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 273,
+   "energy_make": 1250,
+   "energy_storage": 12000,
+   "flags": []
+  },
+  "legah": {
+   "name": "Alpheus",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legfhp",
+    "leghp"
+   ],
+   "class": "anti-air hovercraft",
+   "metal": 210,
+   "energy": 4300,
+   "build_time": 3300,
+   "health": 1120,
+   "speed": 88.5,
+   "range": 700,
+   "dps": 75,
+   "dps_air": 120,
+   "air": "anti-air only: 120 dps against aircraft",
+   "sight": 509,
+   "flags": [
+    "hover",
+    "anti_air",
+    "sonar",
+    "floats"
+   ]
+  },
+  "legaheattank": {
+   "name": "Prometheus",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legavp"
+   ],
+   "class": "assault tank",
+   "metal": 1250,
+   "energy": 19000,
+   "build_time": 25600,
+   "health": 7700,
+   "speed": 52,
+   "range": 450,
+   "dps": 990,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 450,
+   "flags": [
+    "needs_energy_to_fire"
+   ]
+  },
+  "legajam": {
+   "name": "Erebus",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legaceb",
+    "legack",
+    "legacv"
+   ],
+   "class": "jammer tower",
+   "metal": 125,
+   "energy": 19000,
+   "build_time": 9100,
+   "health": 830,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 155,
+   "energy_upkeep": 125,
+   "flags": [
+    "radar_jammer"
+   ]
+  },
+  "legajamk": {
+   "name": "Tiresias",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legalab"
+   ],
+   "class": "jammer bot",
+   "metal": 75,
+   "energy": 1300,
+   "build_time": 6280,
+   "health": 350,
+   "speed": 35,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 380,
+   "energy_upkeep": 80,
+   "flags": [
+    "radar_jammer"
+   ]
+  },
+  "legalab": {
+   "name": "Legion Advanced Bot Lab",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legack",
+    "legck"
+   ],
+   "class": "bot factory",
+   "metal": 2600,
+   "energy": 16000,
+   "build_time": 25200,
+   "health": 4500,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 288.6,
+   "build_power": 600,
+   "flags": []
+  },
+  "legamcluster": {
+   "name": "Cleaver",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legavp"
+   ],
+   "class": "artillery tank",
+   "metal": 460,
+   "energy": 5500,
+   "build_time": 10450,
+   "health": 1250,
+   "speed": 44,
+   "range": 930,
+   "dps": 41.7,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 330,
+   "flags": []
+  },
+  "legamph": {
+   "name": "Telchine",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaceb",
+    "legalab",
+    "legamphlab",
+    "leggantuw"
+   ],
+   "class": "amphibious assault bot",
+   "metal": 600,
+   "energy": 13200,
+   "build_time": 16980,
+   "health": 2750,
+   "speed": 48,
+   "range": 450,
+   "dps": 990,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 450,
+   "flags": [
+    "needs_energy_to_fire",
+    "amphibious",
+    "sonar"
+   ]
+  },
+  "legamphlab": {
+   "name": "Amphibious Complex",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legch",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "bot factory",
+   "metal": 1200,
+   "energy": 5600,
+   "build_time": 11400,
+   "health": 2800,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 240,
+   "build_power": 150,
+   "flags": [
+    "submerged",
+    "on_water"
+   ]
+  },
+  "legamphtank": {
+   "name": "Cetus",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legamphlab",
+    "legvp"
+   ],
+   "class": "line tank",
+   "metal": 200,
+   "energy": 2000,
+   "build_time": 2610,
+   "health": 1340,
+   "speed": 63,
+   "range": 305,
+   "dps": 77.3,
+   "dps_air": 16.7,
+   "air": "17 dps against aircraft (22% of its ground damage, and only when nothing on the ground is in range)",
+   "sight": 500,
+   "flags": [
+    "amphibious",
+    "sonar"
+   ]
+  },
+  "legamstor": {
+   "name": "Hardened Metal Storage",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legack",
+    "legacv",
+    "leganavyconsub"
+   ],
+   "class": "metal storage",
+   "metal": 760,
+   "energy": 11000,
+   "build_time": 20500,
+   "health": 11200,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 182,
+   "metal_storage": 10000,
+   "flags": []
+  },
+  "leganavalaaturret": {
+   "name": "Fulmen",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "leganavyconsub",
+    "leganavyengineer"
+   ],
+   "class": "anti-air turret",
+   "metal": 820,
+   "energy": 13000,
+   "build_time": 19000,
+   "health": 1750,
+   "speed": null,
+   "range": 875,
+   "dps": 18,
+   "dps_air": 1044,
+   "air": "anti-air only: 1044 dps against aircraft",
+   "sight": 525,
+   "flags": [
+    "submerged",
+    "anti_air",
+    "on_water"
+   ]
+  },
+  "leganavaladvgeo": {
+   "name": "Advanced Underwater Geothermal Powerplant",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "leganavyconsub"
+   ],
+   "class": "geothermal plant",
+   "metal": 1500,
+   "energy": 27000,
+   "build_time": 32000,
+   "health": 4150,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 273,
+   "energy_make": 1250,
+   "energy_storage": 12000,
+   "flags": [
+    "submerged",
+    "on_water"
+   ]
+  },
+  "leganavaldefturret": {
+   "name": "Ionia",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "leganavyconsub",
+    "leganavyengineer"
+   ],
+   "class": "defence turret",
+   "metal": 1250,
+   "energy": 16500,
+   "build_time": 24000,
+   "health": 6300,
+   "speed": null,
+   "range": 700,
+   "dps": 735,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 630,
+   "flags": [
+    "submerged",
+    "on_water"
+   ]
+  },
+  "leganavaleconv": {
+   "name": "Naval Advanced Energy Converter",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "leganavyconsub"
+   ],
+   "class": "energy converter",
+   "metal": 370,
+   "energy": 21000,
+   "build_time": 31300,
+   "health": 560,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 143,
+   "flags": [
+    "on_water"
+   ]
+  },
+  "leganavalfusion": {
+   "name": "Naval Fusion Reactor",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "leganavyconsub"
+   ],
+   "class": "fusion reactor",
+   "metal": 5400,
+   "energy": 34000,
+   "build_time": 105000,
+   "health": 5900,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 143,
+   "energy_make": 1220,
+   "energy_storage": 2500,
+   "flags": [
+    "submerged",
+    "on_water"
+   ]
+  },
+  "leganavalmex": {
+   "name": "Advanced Underwater Metal Extractor",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "leganavyconsub"
+   ],
+   "class": "metal extractor",
+   "metal": 640,
+   "energy": 8100,
+   "build_time": 14100,
+   "health": 3900,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 169,
+   "energy_upkeep": 20,
+   "flags": [
+    "submerged",
+    "on_water"
+   ]
+  },
+  "leganavalpinpointer": {
+   "name": "Naval Pinpointer",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "leganavyconsub"
+   ],
+   "class": "targeting facility",
+   "metal": 800,
+   "energy": 7500,
+   "build_time": 10300,
+   "health": 1530,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 273,
+   "energy_upkeep": 150,
+   "flags": [
+    "submerged",
+    "on_water"
+   ]
+  },
+  "leganavalsonarstation": {
+   "name": "Auscultor",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "leganavyconsub"
+   ],
+   "class": "sonar station",
+   "metal": 160,
+   "energy": 2400,
+   "build_time": 6100,
+   "health": 2400,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 210,
+   "flags": [
+    "submerged",
+    "sonar",
+    "on_water"
+   ]
+  },
+  "leganavaltorpturret": {
+   "name": "Delphinus",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "leganavyconsub"
+   ],
+   "class": "torpedo launcher",
+   "metal": 1050,
+   "energy": 8500,
+   "build_time": 10900,
+   "health": 2800,
+   "speed": null,
+   "range": 890,
+   "dps": 362.6,
+   "dps_air": 362.6,
+   "air": "363 dps against aircraft, its full damage",
+   "sight": 585,
+   "flags": [
+    "submerged",
+    "anti_air",
+    "sonar",
+    "on_water"
+   ]
+  },
+  "leganavyaaship": {
+   "name": "Notus",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legadvshipyard"
+   ],
+   "class": "anti-air ship",
+   "metal": 1000,
+   "energy": 12000,
+   "build_time": 20100,
+   "health": 3900,
+   "speed": 57,
+   "range": 860,
+   "dps": 24,
+   "dps_air": 840,
+   "air": "anti-air only: 840 dps against aircraft",
+   "sight": 465,
+   "flags": [
+    "anti_air",
+    "floats"
+   ]
+  },
+  "leganavyantinukecarrier": {
+   "name": "Hecate",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legadvshipyard"
+   ],
+   "class": "mobile anti-nuke",
+   "metal": 1600,
+   "energy": 13000,
+   "build_time": 26800,
+   "health": 5000,
+   "speed": 63,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 1000,
+   "energy_make": 300,
+   "energy_storage": 1500,
+   "flags": [
+    "sonar",
+    "antinuke",
+    "floats"
+   ]
+  },
+  "leganavyantiswarm": {
+   "name": "Leocampus",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legadvshipyard"
+   ],
+   "class": "warship",
+   "metal": 500,
+   "energy": 8500,
+   "build_time": 11270,
+   "health": 2300,
+   "speed": 105,
+   "range": 760,
+   "dps": 193.4,
+   "dps_air": 60,
+   "air": "60 dps against aircraft (31% of its ground damage)",
+   "sight": 500,
+   "flags": [
+    "floats"
+   ]
+  },
+  "leganavyartyship": {
+   "name": "Corinth",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legadvshipyard"
+   ],
+   "class": "warship",
+   "metal": 13000,
+   "energy": 125000,
+   "build_time": 204750,
+   "health": 22000,
+   "speed": 48,
+   "range": 2100,
+   "dps": 434.5,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 689,
+   "flags": [
+    "needs_energy_to_fire",
+    "floats"
+   ]
+  },
+  "leganavybattleship": {
+   "name": "Scylla",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legadvshipyard",
+    "leggantuw"
+   ],
+   "class": "battleship",
+   "metal": 2900,
+   "energy": 21000,
+   "build_time": 49350,
+   "health": 10350,
+   "speed": 25,
+   "range": 750,
+   "dps": 875,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 600,
+   "flags": [
+    "hover",
+    "floats"
+   ]
+  },
+  "leganavybattlesub": {
+   "name": "Architeuthis",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legadvshipyard"
+   ],
+   "class": "submarine",
+   "metal": 1100,
+   "energy": 16000,
+   "build_time": 25000,
+   "health": 2350,
+   "speed": 72,
+   "range": 600,
+   "dps": 180,
+   "dps_air": 180,
+   "air": "180 dps against aircraft, its full damage",
+   "sight": 450,
+   "flags": [
+    "submerged",
+    "anti_air",
+    "sonar"
+   ]
+  },
+  "leganavyconsub": {
+   "name": "Advanced Construction Submarine",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legadvshipyard"
+   ],
+   "class": "constructor submarine",
+   "metal": 700,
+   "energy": 9000,
+   "build_time": 23000,
+   "health": 1110,
+   "speed": 64.8,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 156,
+   "build_power": 345,
+   "energy_make": 30,
+   "flags": [
+    "submerged"
+   ]
+  },
+  "leganavycruiser": {
+   "name": "Thalassa",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legadvshipyard"
+   ],
+   "class": "cruiser",
+   "metal": 900,
+   "energy": 10800,
+   "build_time": 20290,
+   "health": 5600,
+   "speed": 57,
+   "range": 500,
+   "dps": 360,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 600,
+   "flags": [
+    "sonar",
+    "floats"
+   ]
+  },
+  "leganavyengineer": {
+   "name": "Artifex",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legadvshipyard"
+   ],
+   "class": "constructor ship",
+   "metal": 200,
+   "energy": 3300,
+   "build_time": 4800,
+   "health": 1600,
+   "speed": 57.8,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 300,
+   "build_power": 200,
+   "flags": [
+    "floats"
+   ]
+  },
+  "leganavyflagship": {
+   "name": "Neptune",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legadvshipyard"
+   ],
+   "class": "flagship",
+   "metal": 16000,
+   "energy": 240000,
+   "build_time": 269000,
+   "health": 48000,
+   "speed": 63,
+   "range": 1000,
+   "dps": 3046.7,
+   "dps_air": 1066.7,
+   "air": "1067 dps against aircraft (35% of its ground damage)",
+   "sight": 650,
+   "energy_make": 500,
+   "flags": [
+    "needs_energy_to_fire",
+    "floats"
+   ]
+  },
+  "leganavyheavysub": {
+   "name": "Sphyrna",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legadvshipyard"
+   ],
+   "class": "submarine",
+   "metal": 1900,
+   "energy": 29000,
+   "build_time": 34370,
+   "health": 3900,
+   "speed": 39,
+   "range": 850,
+   "dps": 206.2,
+   "dps_air": 206.2,
+   "air": "206 dps against aircraft, its full damage",
+   "sight": 570,
+   "flags": [
+    "submerged",
+    "stealth",
+    "anti_air",
+    "sonar"
+   ]
+  },
+  "leganavymissileship": {
+   "name": "Ultor",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legadvshipyard"
+   ],
+   "class": "cruiser",
+   "metal": 2000,
+   "energy": 10000,
+   "build_time": 23000,
+   "health": 3350,
+   "speed": 61.4,
+   "range": 1550,
+   "dps": 301.5,
+   "dps_air": 30,
+   "air": "30 dps against aircraft (10% of its ground damage)",
+   "sight": 318.5,
+   "flags": [
+    "floats"
+   ]
+  },
+  "leganavyradjamship": {
+   "name": "Dolus",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legadvshipyard"
+   ],
+   "class": "jammer ship",
+   "metal": 450,
+   "energy": 6000,
+   "build_time": 19800,
+   "health": 1700,
+   "speed": 42,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 600,
+   "energy_upkeep": 120,
+   "flags": [
+    "radar_jammer",
+    "floats"
+   ]
+  },
+  "legap": {
+   "name": "Legion Drone Plant",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legaca",
+    "legca",
+    "legch",
+    "legck",
+    "legcom",
+    "legcv",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "aircraft factory",
+   "metal": 430,
+   "energy": 1100,
+   "build_time": 6380,
+   "health": 1780,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 273,
+   "build_power": 150,
+   "flags": []
+  },
+  "legapopupdef": {
+   "name": "Chimera",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legack",
+    "legacv"
+   ],
+   "class": "defence turret",
+   "metal": 750,
+   "energy": 15000,
+   "build_time": 17500,
+   "health": 2800,
+   "speed": null,
+   "range": 730,
+   "dps": 464.7,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 598,
+   "flags": []
+  },
+  "legarad": {
+   "name": "Advanced Radar Tower",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legaceb",
+    "legack",
+    "legacv",
+    "leganavyengineer"
+   ],
+   "class": "radar tower",
+   "metal": 400,
+   "energy": 14000,
+   "build_time": 8000,
+   "health": 500,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 1000,
+   "flags": []
+  },
+  "legaradk": {
+   "name": "Euclid",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legalab"
+   ],
+   "class": "radar bot",
+   "metal": 99,
+   "energy": 1350,
+   "build_time": 4700,
+   "health": 390,
+   "speed": 45,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 925,
+   "flags": []
+  },
+  "legaskirmtank": {
+   "name": "Gladiator",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legavp"
+   ],
+   "class": "skirmisher tank",
+   "metal": 450,
+   "energy": 6800,
+   "build_time": 10490,
+   "health": 2500,
+   "speed": 65,
+   "range": 600,
+   "dps": 105,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 440,
+   "flags": []
+  },
+  "legaspy": {
+   "name": "Eidolon",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legalab"
+   ],
+   "class": "spy bot",
+   "metal": 125,
+   "energy": 8500,
+   "build_time": 12900,
+   "health": 300,
+   "speed": 62.5,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 550,
+   "build_power": 50,
+   "flags": [
+    "stealth"
+   ]
+  },
+  "legatorpbomber": {
+   "name": "Aesacus",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaap"
+   ],
+   "class": "torpedo bomber",
+   "metal": 480,
+   "energy": 9480,
+   "build_time": 21970,
+   "health": 1900,
+   "speed": 290,
+   "range": 400,
+   "dps": 214.3,
+   "dps_air": 214.3,
+   "air": "214 dps against aircraft, its full damage",
+   "sight": 500,
+   "flags": [
+    "flies",
+    "anti_air",
+    "sonar"
+   ]
+  },
+  "legatrans": {
+   "name": "Hippotes",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legap"
+   ],
+   "class": "transport aircraft",
+   "metal": 190,
+   "energy": 4000,
+   "build_time": 8500,
+   "health": 800,
+   "speed": 100,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 430,
+   "flags": [
+    "transport",
+    "flies"
+   ]
+  },
+  "legavantinuke": {
+   "name": "Hera",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legavp"
+   ],
+   "class": "mobile anti-nuke",
+   "metal": 1100,
+   "energy": 36000,
+   "build_time": 51300,
+   "health": 720,
+   "speed": 58,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 450,
+   "flags": [
+    "antinuke"
+   ]
+  },
+  "legavjam": {
+   "name": "Cicero",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legavp"
+   ],
+   "class": "jammer vehicle",
+   "metal": 105,
+   "energy": 1900,
+   "build_time": 6930,
+   "health": 510,
+   "speed": 41,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 330,
+   "energy_upkeep": 80,
+   "flags": [
+    "radar_jammer"
+   ]
+  },
+  "legavp": {
+   "name": "Advanced Vehicle Plant",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legacv",
+    "legch",
+    "legcv",
+    "legotter"
+   ],
+   "class": "vehicle factory",
+   "metal": 2500,
+   "energy": 16000,
+   "build_time": 27750,
+   "health": 5100,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 286,
+   "build_power": 600,
+   "flags": []
+  },
+  "legavrad": {
+   "name": "Pheme",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legavp"
+   ],
+   "class": "radar vehicle",
+   "metal": 125,
+   "energy": 2000,
+   "build_time": 7290,
+   "health": 980,
+   "speed": 57,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 900,
+   "flags": []
+  },
+  "legavroc": {
+   "name": "Boreas",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legavp"
+   ],
+   "class": "artillery tank",
+   "metal": 920,
+   "energy": 6500,
+   "build_time": 20130,
+   "health": 1220,
+   "speed": 33,
+   "range": 1300,
+   "dps": 105.6,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 330,
+   "flags": [
+    "stealth"
+   ]
+  },
+  "legbal": {
+   "name": "Ballista",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "leglab"
+   ],
+   "class": "skirmisher bot",
+   "metal": 160,
+   "energy": 1920,
+   "build_time": 2400,
+   "health": 900,
+   "speed": 43.5,
+   "range": 460,
+   "dps": 45.5,
+   "dps_air": 45.5,
+   "air": "46 dps against aircraft, its full damage, and only when nothing on the ground is in range",
+   "sight": 380,
+   "flags": [
+    "anti_air"
+   ]
+  },
+  "legbar": {
+   "name": "Barrage",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legvp"
+   ],
+   "class": "artillery tank",
+   "metal": 250,
+   "energy": 3200,
+   "build_time": 3600,
+   "health": 1500,
+   "speed": 40.5,
+   "range": 535,
+   "dps": 12,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 400,
+   "flags": []
+  },
+  "legbart": {
+   "name": "Belcher",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legalab"
+   ],
+   "class": "skirmisher bot",
+   "metal": 550,
+   "energy": 5500,
+   "build_time": 10000,
+   "health": 1780,
+   "speed": 60,
+   "range": 625,
+   "dps": 30,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 400,
+   "flags": []
+  },
+  "legbastion": {
+   "name": "Bastion",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legack",
+    "legacv"
+   ],
+   "class": "defence turret",
+   "metal": 4200,
+   "energy": 58000,
+   "build_time": 79000,
+   "health": 12000,
+   "speed": null,
+   "range": 1100,
+   "dps": 51.7,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 780,
+   "energy_storage": 1000,
+   "flags": [
+    "needs_energy_to_fire"
+   ]
+  },
+  "legca": {
+   "name": "Legion Construction Aircraft",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legap"
+   ],
+   "class": "constructor aircraft",
+   "metal": 100,
+   "energy": 2200,
+   "build_time": 5000,
+   "health": 151,
+   "speed": 139,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 351,
+   "build_power": 45,
+   "energy_make": 5,
+   "flags": [
+    "flies"
+   ]
+  },
+  "legcar": {
+   "name": "Cardea",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legfhp",
+    "leghp"
+   ],
+   "class": "assault hovercraft",
+   "metal": 550,
+   "energy": 11000,
+   "build_time": 11000,
+   "health": 3600,
+   "speed": 51,
+   "range": 321,
+   "dps": 280,
+   "dps_air": 91,
+   "air": "91 dps against aircraft (32% of its ground damage, and only when nothing on the ground is in range)",
+   "sight": 450,
+   "flags": [
+    "hover",
+    "floats"
+   ]
+  },
+  "legcen": {
+   "name": "Phobos",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "leglab"
+   ],
+   "class": "raider bot",
+   "metal": 140,
+   "energy": 2200,
+   "build_time": 2800,
+   "health": 840,
+   "speed": 90,
+   "range": 180,
+   "dps": 107.1,
+   "dps_air": 35.7,
+   "air": "36 dps against aircraft (33% of its ground damage, and only when nothing on the ground is in range)",
+   "sight": 400,
+   "flags": []
+  },
+  "legch": {
+   "name": "Construction Hovercraft",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legfhp",
+    "leghp"
+   ],
+   "class": "constructor hovercraft",
+   "metal": 185,
+   "energy": 2600,
+   "build_time": 4360,
+   "health": 1390,
+   "speed": 72.9,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 338,
+   "build_power": 105,
+   "energy_make": 11,
+   "flags": [
+    "hover",
+    "floats"
+   ]
+  },
+  "legcib": {
+   "name": "Blindfold",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legap"
+   ],
+   "class": "juno drone",
+   "metal": 100,
+   "energy": 3500,
+   "build_time": 4200,
+   "health": 600,
+   "speed": 300,
+   "range": 450,
+   "dps": 0.1,
+   "dps_air": 0.1,
+   "air": "0 dps against aircraft, its full damage",
+   "sight": 835,
+   "flags": [
+    "flies",
+    "anti_air"
+   ]
+  },
+  "legck": {
+   "name": "Legion Construction Bot",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legaceb",
+    "leglab"
+   ],
+   "class": "constructor bot",
+   "metal": 100,
+   "energy": 1600,
+   "build_time": 3250,
+   "health": 700,
+   "speed": 39,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 299,
+   "build_power": 75,
+   "energy_make": 5,
+   "flags": []
+  },
+  "legcluster": {
+   "name": "Amputator",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legca",
+    "legch",
+    "legck",
+    "legcv",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "artillery turret",
+   "metal": 850,
+   "energy": 11000,
+   "build_time": 17400,
+   "health": 2900,
+   "speed": null,
+   "range": 1000,
+   "dps": 50,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 455,
+   "flags": []
+  },
+  "legcom": {
+   "name": "Legion Commander",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [],
+   "class": "commander",
+   "metal": 2700,
+   "energy": 26000,
+   "build_time": 75000,
+   "health": 3700,
+   "speed": 37.5,
+   "range": 300,
+   "dps": 219.6,
+   "dps_air": 125,
+   "air": "125 dps against aircraft (57% of its ground damage)",
+   "sight": 450,
+   "build_power": 300,
+   "energy_make": 30,
+   "flags": [
+    "cloak",
+    "amphibious",
+    "anti_air",
+    "sonar"
+   ]
+  },
+  "legctl": {
+   "name": "Euryale",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legaceb",
+    "legca",
+    "legch",
+    "legck",
+    "legcom",
+    "legcv",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "torpedo launcher",
+   "metal": 240,
+   "energy": 2200,
+   "build_time": 5900,
+   "health": 2200,
+   "speed": null,
+   "range": 600,
+   "dps": 150,
+   "dps_air": 150,
+   "air": "150 dps against aircraft, its full damage",
+   "sight": 617,
+   "flags": [
+    "anti_air",
+    "sonar"
+   ]
+  },
+  "legcv": {
+   "name": "Legion Construction Vehicle",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legvp"
+   ],
+   "class": "constructor vehicle",
+   "metal": 125,
+   "energy": 2100,
+   "build_time": 3900,
+   "health": 1330,
+   "speed": 57,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 260,
+   "build_power": 85,
+   "energy_make": 7,
+   "flags": []
+  },
+  "legdecom": {
+   "name": "Legion Commander",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legalab",
+    "legamphlab"
+   ],
+   "class": "decoy commander",
+   "metal": 750,
+   "energy": 13000,
+   "build_time": 32600,
+   "health": 3700,
+   "speed": 37.5,
+   "range": 450,
+   "dps": 219.6,
+   "dps_air": 125,
+   "air": "125 dps against aircraft (57% of its ground damage)",
+   "sight": 450,
+   "build_power": 300,
+   "energy_make": 15,
+   "flags": [
+    "amphibious",
+    "anti_air",
+    "sonar"
+   ]
+  },
+  "legdeflector": {
+   "name": "Soteria",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legack",
+    "legacv"
+   ],
+   "class": "shield generator",
+   "metal": 3200,
+   "energy": 55000,
+   "build_time": 55000,
+   "health": 3550,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 273,
+   "energy_storage": 1000,
+   "flags": []
+  },
+  "legdrag": {
+   "name": "Dragon's Teeth",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legafcv",
+    "legca",
+    "legch",
+    "legck",
+    "legcom",
+    "legcv",
+    "legmlv",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "wall",
+   "metal": 8,
+   "energy": 0,
+   "build_time": 255,
+   "health": 2800,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 1,
+   "flags": []
+  },
+  "legdtr": {
+   "name": "Dragon's Jaw",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legaceb",
+    "legca",
+    "legch",
+    "legck",
+    "legcv",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "defence turret",
+   "metal": 290,
+   "energy": 1550,
+   "build_time": 4420,
+   "health": 1610,
+   "speed": null,
+   "range": 400,
+   "dps": 120,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 440,
+   "flags": [
+    "stealth"
+   ]
+  },
+  "legeallterrainmech": {
+   "name": "Myrmidon",
+   "faction": "legion",
+   "tier": 3,
+   "made_by": [
+    "leggant"
+   ],
+   "class": "drone carrier mech",
+   "metal": 3950,
+   "energy": 78000,
+   "build_time": 120250,
+   "health": 9200,
+   "speed": 33,
+   "range": 1100,
+   "dps": 301.5,
+   "dps_air": 55.5,
+   "air": "56 dps against aircraft (18% of its ground damage)",
+   "sight": 625,
+   "flags": [
+    "gantry"
+   ]
+  },
+  "legeconv": {
+   "name": "Energy Converter",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legca",
+    "legch",
+    "legck",
+    "legcom",
+    "legcv",
+    "legdecom",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "energy converter",
+   "metal": 1,
+   "energy": 1150,
+   "build_time": 2600,
+   "health": 167,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 273,
+   "flags": []
+  },
+  "legeheatraymech": {
+   "name": "Sol Invictus",
+   "faction": "legion",
+   "tier": 3,
+   "made_by": [
+    "leggant",
+    "leggantuw"
+   ],
+   "class": "assault mech",
+   "metal": 23500,
+   "energy": 615000,
+   "build_time": 585250,
+   "health": 110000,
+   "speed": 40,
+   "range": 800,
+   "dps": 2681.1,
+   "dps_air": 211.1,
+   "air": "211 dps against aircraft (8% of its ground damage)",
+   "sight": 845,
+   "energy_make": 500,
+   "flags": [
+    "needs_energy_to_fire",
+    "amphibious",
+    "gantry"
+   ]
+  },
+  "legehovertank": {
+   "name": "Charybdis",
+   "faction": "legion",
+   "tier": 3,
+   "made_by": [
+    "leggant",
+    "leggantuw"
+   ],
+   "class": "assault hovercraft",
+   "metal": 1350,
+   "energy": 25000,
+   "build_time": 41600,
+   "health": 4900,
+   "speed": 63,
+   "range": 500,
+   "dps": 108.3,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 600,
+   "flags": [
+    "needs_energy_to_fire",
+    "hover",
+    "sonar",
+    "gantry",
+    "floats"
+   ]
+  },
+  "legelrpcmech": {
+   "name": "Astraeus",
+   "faction": "legion",
+   "tier": 3,
+   "made_by": [
+    "leggant"
+   ],
+   "class": "artillery mech",
+   "metal": 11000,
+   "energy": 150000,
+   "build_time": 178000,
+   "health": 17000,
+   "speed": 25,
+   "range": 3100,
+   "dps": 166.7,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 625,
+   "flags": [
+    "needs_energy_to_fire",
+    "long_range_cannon",
+    "gantry"
+   ]
+  },
+  "legerailtank": {
+   "name": "Daedalus",
+   "faction": "legion",
+   "tier": 3,
+   "made_by": [
+    "leggant"
+   ],
+   "class": "assault mech",
+   "metal": 6500,
+   "energy": 165000,
+   "build_time": 125000,
+   "health": 16500,
+   "speed": 61,
+   "range": 1000,
+   "dps": 800,
+   "dps_air": 800,
+   "air": "800 dps against aircraft, its full damage",
+   "sight": 750,
+   "flags": [
+    "needs_energy_to_fire",
+    "anti_air",
+    "gantry"
+   ]
+  },
+  "legeshotgunmech": {
+   "name": "Praetorian",
+   "faction": "legion",
+   "tier": 3,
+   "made_by": [
+    "leggant"
+   ],
+   "class": "assault mech",
+   "metal": 7000,
+   "energy": 120000,
+   "build_time": 159000,
+   "health": 22000,
+   "speed": 72,
+   "range": 800,
+   "dps": 1246.2,
+   "dps_air": 385.7,
+   "air": "386 dps against aircraft (31% of its ground damage)",
+   "sight": 617,
+   "flags": [
+    "gantry"
+   ]
+  },
+  "legestor": {
+   "name": "Energy Storage",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legca",
+    "legch",
+    "legck",
+    "legcom",
+    "legcv",
+    "legdecom",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "energy storage",
+   "metal": 175,
+   "energy": 1800,
+   "build_time": 4260,
+   "health": 2000,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 273,
+   "energy_storage": 6000,
+   "flags": []
+  },
+  "legeyes": {
+   "name": "Argus",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legaceb",
+    "legca",
+    "legch",
+    "legck",
+    "legcom",
+    "legcv",
+    "legmlv",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "camera tower",
+   "metal": 32,
+   "energy": 850,
+   "build_time": 750,
+   "health": 280,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 540,
+   "energy_upkeep": 5,
+   "flags": [
+    "stealth"
+   ]
+  },
+  "legfdrag": {
+   "name": "Shark's Teeth",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "leganavyengineer",
+    "legch",
+    "legcom",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "wall",
+   "metal": 15,
+   "energy": 0,
+   "build_time": 400,
+   "health": 4450,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 1,
+   "flags": [
+    "submerged",
+    "on_water"
+   ]
+  },
+  "legfeconv": {
+   "name": "Naval Energy Converter",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legch",
+    "legcom",
+    "legdecom",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "energy converter",
+   "metal": 1,
+   "energy": 1250,
+   "build_time": 2680,
+   "health": 167,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 273,
+   "flags": [
+    "submerged",
+    "on_water"
+   ]
+  },
+  "legfhive": {
+   "name": "Naval Hive",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "leganavyengineer",
+    "legch",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "drone hive",
+   "metal": 350,
+   "energy": 9000,
+   "build_time": 7500,
+   "health": 1200,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 455,
+   "flags": [
+    "submerged",
+    "on_water"
+   ]
+  },
+  "legfhp": {
+   "name": "Offshore Hovercraft Platform",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legch",
+    "legcom",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "hovercraft factory",
+   "metal": 670,
+   "energy": 2000,
+   "build_time": 8700,
+   "health": 3750,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 312,
+   "build_power": 150,
+   "flags": [
+    "submerged",
+    "on_water"
+   ]
+  },
+  "legfig": {
+   "name": "Noctua",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legap"
+   ],
+   "class": "fighter aircraft",
+   "metal": 40,
+   "energy": 1600,
+   "build_time": 2000,
+   "health": 220,
+   "speed": 270,
+   "range": 600,
+   "dps": 6.7,
+   "dps_air": 120,
+   "air": "anti-air only: 120 dps against aircraft",
+   "sight": 700,
+   "flags": [
+    "flies",
+    "anti_air"
+   ]
+  },
+  "legflak": {
+   "name": "Pluto",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legaceb",
+    "legack",
+    "legacv"
+   ],
+   "class": "anti-air turret",
+   "metal": 820,
+   "energy": 13000,
+   "build_time": 19000,
+   "health": 1750,
+   "speed": null,
+   "range": 875,
+   "dps": 18,
+   "dps_air": 1044,
+   "air": "anti-air only: 1044 dps against aircraft",
+   "sight": 525,
+   "flags": [
+    "anti_air"
+   ]
+  },
+  "legfloat": {
+   "name": "Triton",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legamphlab",
+    "legavp",
+    "leggantuw"
+   ],
+   "class": "assault tank",
+   "metal": 650,
+   "energy": 12000,
+   "build_time": 12000,
+   "health": 3500,
+   "speed": 55,
+   "range": 550,
+   "dps": 205,
+   "dps_air": 105,
+   "air": "105 dps against aircraft (51% of its ground damage)",
+   "sight": 500,
+   "flags": [
+    "hover",
+    "anti_air",
+    "floats"
+   ]
+  },
+  "legfmg": {
+   "name": "Gelasma",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "leganavyengineer",
+    "legch",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "defence turret",
+   "metal": 450,
+   "energy": 5500,
+   "build_time": 7600,
+   "health": 3900,
+   "speed": null,
+   "range": 575,
+   "dps": 270,
+   "dps_air": 270,
+   "air": "270 dps against aircraft, its full damage, and only when nothing on the ground is in range",
+   "sight": 525,
+   "flags": [
+    "submerged",
+    "anti_air",
+    "on_water"
+   ]
+  },
+  "legfort": {
+   "name": "Tyrannus",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaap"
+   ],
+   "class": "assault gunship",
+   "metal": 5600,
+   "energy": 79000,
+   "build_time": 119750,
+   "health": 16700,
+   "speed": 93,
+   "range": 915,
+   "dps": 556.5,
+   "dps_air": 95,
+   "air": "95 dps against aircraft (17% of its ground damage)",
+   "sight": 600,
+   "flags": [
+    "flies"
+   ]
+  },
+  "legforti": {
+   "name": "Fortification Wall",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legaceb",
+    "legack",
+    "legacv"
+   ],
+   "class": "wall",
+   "metal": 40,
+   "energy": 500,
+   "build_time": 1000,
+   "health": 8900,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 1,
+   "flags": []
+  },
+  "legfrad": {
+   "name": "Naval Radar / Sonar Tower",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "leganavyengineer",
+    "legch",
+    "legcom",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "radar and sonar tower",
+   "metal": 130,
+   "energy": 1000,
+   "build_time": 1800,
+   "health": 110,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 760,
+   "flags": [
+    "submerged",
+    "sonar",
+    "on_water"
+   ]
+  },
+  "legfrl": {
+   "name": "Polybolos",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legch",
+    "legcom",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "anti-air turret",
+   "metal": 80,
+   "energy": 850,
+   "build_time": 1750,
+   "health": 335,
+   "speed": null,
+   "range": 765,
+   "dps": 0.6,
+   "dps_air": 67.6,
+   "air": "anti-air only: 68 dps against aircraft",
+   "sight": 455,
+   "flags": [
+    "submerged",
+    "anti_air",
+    "on_water"
+   ]
+  },
+  "legfus": {
+   "name": "Fusion Reactor",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legack",
+    "legacv"
+   ],
+   "class": "fusion reactor",
+   "metal": 4000,
+   "energy": 25000,
+   "build_time": 66000,
+   "health": 4600,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 273,
+   "energy_make": 950,
+   "energy_storage": 2500,
+   "flags": []
+  },
+  "leggant": {
+   "name": "Experimental Gantry",
+   "faction": "legion",
+   "tier": 3,
+   "made_by": [
+    "legaca",
+    "legack",
+    "legacv"
+   ],
+   "class": "experimental gantry",
+   "metal": 8400,
+   "energy": 62000,
+   "build_time": 67300,
+   "health": 17800,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 273,
+   "build_power": 1800,
+   "energy_storage": 1400,
+   "flags": [
+    "gantry"
+   ]
+  },
+  "leggantuw": {
+   "name": "Experimental Gantry",
+   "faction": "legion",
+   "tier": 3,
+   "made_by": [
+    "leganavyconsub"
+   ],
+   "class": "experimental gantry",
+   "metal": 8400,
+   "energy": 62000,
+   "build_time": 67300,
+   "health": 17800,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 273,
+   "build_power": 1800,
+   "energy_storage": 1400,
+   "flags": [
+    "submerged",
+    "gantry",
+    "on_water"
+   ]
+  },
+  "leggat": {
+   "name": "Decurion",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legvp"
+   ],
+   "class": "assault tank",
+   "metal": 300,
+   "energy": 3600,
+   "build_time": 4800,
+   "health": 2550,
+   "speed": 45,
+   "range": 361,
+   "dps": 180,
+   "dps_air": 45,
+   "air": "45 dps against aircraft (25% of its ground damage, and only when nothing on the ground is in range)",
+   "sight": 400,
+   "flags": []
+  },
+  "leggeo": {
+   "name": "Geothermal Powerplant",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legca",
+    "legch",
+    "legck",
+    "legcv",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "geothermal plant",
+   "metal": 560,
+   "energy": 13000,
+   "build_time": 12900,
+   "health": 2050,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 273,
+   "energy_make": 300,
+   "energy_storage": 1000,
+   "flags": []
+  },
+  "leggob": {
+   "name": "Goblin",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legaceb",
+    "leglab"
+   ],
+   "class": "skirmisher bot",
+   "metal": 30,
+   "energy": 420,
+   "build_time": 900,
+   "health": 200,
+   "speed": 75,
+   "range": 261,
+   "dps": 26.7,
+   "dps_air": 8.9,
+   "air": "9 dps against aircraft (33% of its ground damage, and only when nothing on the ground is in range)",
+   "sight": 500,
+   "flags": []
+  },
+  "leghades": {
+   "name": "Alaris",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legvp"
+   ],
+   "class": "raider tank",
+   "metal": 65,
+   "energy": 850,
+   "build_time": 1650,
+   "health": 425,
+   "speed": 99,
+   "range": 211,
+   "dps": 35.7,
+   "dps_air": 14.3,
+   "air": "14 dps against aircraft (40% of its ground damage, and only when nothing on the ground is in range)",
+   "sight": 330,
+   "flags": []
+  },
+  "leghelios": {
+   "name": "Helios",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legvp"
+   ],
+   "class": "skirmisher tank",
+   "metal": 160,
+   "energy": 2400,
+   "build_time": 2600,
+   "health": 800,
+   "speed": 75,
+   "range": 320,
+   "dps": 123.1,
+   "dps_air": 19.2,
+   "air": "19 dps against aircraft (16% of its ground damage, and only when nothing on the ground is in range)",
+   "sight": 360,
+   "flags": []
+  },
+  "leghive": {
+   "name": "Hive",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legca",
+    "legch",
+    "legck",
+    "legcv",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "drone hive",
+   "metal": 350,
+   "energy": 9000,
+   "build_time": 6600,
+   "health": 1200,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 455,
+   "flags": []
+  },
+  "leghp": {
+   "name": "Hovercraft Platform",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legca",
+    "legch",
+    "legck",
+    "legcom",
+    "legcv",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "hovercraft factory",
+   "metal": 670,
+   "energy": 2000,
+   "build_time": 8700,
+   "health": 3750,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 312,
+   "build_power": 150,
+   "flags": []
+  },
+  "leghrk": {
+   "name": "Thanatos",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legalab"
+   ],
+   "class": "artillery bot",
+   "metal": 750,
+   "energy": 9000,
+   "build_time": 12600,
+   "health": 1200,
+   "speed": 45,
+   "range": 1200,
+   "dps": 112.5,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 380,
+   "flags": []
+  },
+  "leginc": {
+   "name": "Incinerator",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legalab"
+   ],
+   "class": "assault bot",
+   "metal": 2300,
+   "energy": 46000,
+   "build_time": 69700,
+   "health": 9000,
+   "speed": 24,
+   "range": 725,
+   "dps": 990,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 650,
+   "flags": [
+    "needs_energy_to_fire"
+   ]
+  },
+  "leginf": {
+   "name": "Inferno",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legavp"
+   ],
+   "class": "artillery tank",
+   "metal": 1700,
+   "energy": 30000,
+   "build_time": 42900,
+   "health": 3650,
+   "speed": 37.5,
+   "range": 1200,
+   "dps": 51.4,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 351,
+   "flags": []
+  },
+  "leginfestor": {
+   "name": "Infestor",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legalab",
+    "leginfestor"
+   ],
+   "class": "spider assault bot",
+   "metal": 250,
+   "energy": 5200,
+   "build_time": 4310,
+   "health": 1200,
+   "speed": 54,
+   "range": 300,
+   "dps": 120,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 400,
+   "build_power": 100,
+   "flags": [
+    "stealth"
+   ]
+  },
+  "legjam": {
+   "name": "Nyx",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legca",
+    "legch",
+    "legck",
+    "legcv",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "jammer tower",
+   "metal": 140,
+   "energy": 7200,
+   "build_time": 4570,
+   "health": 1070,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 104,
+   "energy_upkeep": 30,
+   "flags": [
+    "radar_jammer"
+   ]
+  },
+  "legjav": {
+   "name": "Javelin",
+   "faction": "legion",
+   "tier": 3,
+   "made_by": [
+    "leggant",
+    "leggantuw"
+   ],
+   "class": "raider mech",
+   "metal": 1200,
+   "energy": 21000,
+   "build_time": 39850,
+   "health": 7200,
+   "speed": 68,
+   "range": 450,
+   "dps": 360,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 455,
+   "flags": [
+    "amphibious",
+    "gantry"
+   ]
+  },
+  "legjuno": {
+   "name": "Juno",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legca",
+    "legch",
+    "legck",
+    "legcv",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "juno launcher",
+   "metal": 660,
+   "energy": 16000,
+   "build_time": 27700,
+   "health": 2500,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 494,
+   "flags": [
+    "stealth"
+   ]
+  },
+  "legkam": {
+   "name": "Martyr",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legap"
+   ],
+   "class": "suicide drone",
+   "metal": 65,
+   "energy": 2000,
+   "build_time": 2200,
+   "health": 160,
+   "speed": 220,
+   "range": 1280,
+   "dps": 46.3,
+   "dps_air": 2000.3,
+   "air": "2000 dps against aircraft, its full damage",
+   "sight": 430,
+   "flags": [
+    "flies",
+    "anti_air"
+   ]
+  },
+  "legkark": {
+   "name": "Karkinos",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "leglab"
+   ],
+   "class": "assault bot",
+   "metal": 310,
+   "energy": 2400,
+   "build_time": 4400,
+   "health": 1725,
+   "speed": 42,
+   "range": 360,
+   "dps": 188.9,
+   "dps_air": 43.9,
+   "air": "44 dps against aircraft (23% of its ground damage, and only when nothing on the ground is in range)",
+   "sight": 400,
+   "flags": []
+  },
+  "legkeres": {
+   "name": "Keres",
+   "faction": "legion",
+   "tier": 3,
+   "made_by": [
+    "leggant"
+   ],
+   "class": "riot mech",
+   "metal": 2600,
+   "energy": 57000,
+   "build_time": 60000,
+   "health": 21000,
+   "speed": 48,
+   "range": 481,
+   "dps": 535.3,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 650,
+   "flags": [
+    "gantry"
+   ]
+  },
+  "leglab": {
+   "name": "Legion Bot Lab",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legaceb",
+    "legack",
+    "legca",
+    "legch",
+    "legck",
+    "legcom",
+    "legcv",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "bot factory",
+   "metal": 470,
+   "energy": 1050,
+   "build_time": 5000,
+   "health": 2900,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 290,
+   "build_power": 150,
+   "flags": []
+  },
+  "leglht": {
+   "name": "Pharos",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legafcv",
+    "legca",
+    "legch",
+    "legck",
+    "legcom",
+    "legcv",
+    "legdecom",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "defence turret",
+   "metal": 70,
+   "energy": 550,
+   "build_time": 2200,
+   "health": 550,
+   "speed": null,
+   "range": 430,
+   "dps": 181.8,
+   "dps_air": 22.7,
+   "air": "23 dps against aircraft (12% of its ground damage, and only when nothing on the ground is in range)",
+   "sight": 494,
+   "flags": []
+  },
+  "leglob": {
+   "name": "Satyr",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "leglab"
+   ],
+   "class": "line bot",
+   "metal": 60,
+   "energy": 500,
+   "build_time": 1200,
+   "health": 550,
+   "speed": 51,
+   "range": 400,
+   "dps": 30,
+   "dps_air": 8.4,
+   "air": "8 dps against aircraft (28% of its ground damage, and only when nothing on the ground is in range)",
+   "sight": 380,
+   "flags": []
+  },
+  "leglraa": {
+   "name": "Xyston",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legack",
+    "legacv"
+   ],
+   "class": "anti-air turret",
+   "metal": 1600,
+   "energy": 36000,
+   "build_time": 28000,
+   "health": 1670,
+   "speed": null,
+   "range": 2000,
+   "dps": 0.4,
+   "dps_air": 280,
+   "air": "anti-air only: 280 dps against aircraft",
+   "sight": 600,
+   "flags": [
+    "needs_energy_to_fire",
+    "anti_air"
+   ]
+  },
+  "leglrpc": {
+   "name": "Olympus",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legack",
+    "legacv"
+   ],
+   "class": "long-range cannon",
+   "metal": 5200,
+   "energy": 76000,
+   "build_time": 93000,
+   "health": 4450,
+   "speed": null,
+   "range": 4800,
+   "dps": 100,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 273,
+   "flags": [
+    "needs_energy_to_fire",
+    "long_range_cannon"
+   ]
+  },
+  "leglts": {
+   "name": "Aeolus",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legap"
+   ],
+   "class": "transport aircraft",
+   "metal": 68,
+   "energy": 1300,
+   "build_time": 3850,
+   "health": 265,
+   "speed": 207,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 430,
+   "flags": [
+    "transport",
+    "flies"
+   ]
+  },
+  "leglupara": {
+   "name": "Lupara",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legca",
+    "legch",
+    "legck",
+    "legcv",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "anti-air turret",
+   "metal": 900,
+   "energy": 8200,
+   "build_time": 12500,
+   "health": 4000,
+   "speed": null,
+   "range": 1125,
+   "dps": 1.1,
+   "dps_air": 283.3,
+   "air": "anti-air only: 283 dps against aircraft",
+   "sight": 380,
+   "flags": [
+    "anti_air"
+   ]
+  },
+  "legmed": {
+   "name": "Medusa",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legavp"
+   ],
+   "class": "artillery tank",
+   "metal": 1500,
+   "energy": 22500,
+   "build_time": 30370,
+   "health": 3000,
+   "speed": 39,
+   "range": 1000,
+   "dps": 250,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 600,
+   "flags": []
+  },
+  "legmex": {
+   "name": "Metal Extractor",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legaceb",
+    "legafcv",
+    "leganavyengineer",
+    "legca",
+    "legch",
+    "legck",
+    "legcom",
+    "legcv",
+    "legdecom",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "metal extractor",
+   "metal": 50,
+   "energy": 500,
+   "build_time": 1880,
+   "health": 275,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 273,
+   "energy_upkeep": 3,
+   "flags": []
+  },
+  "legmg": {
+   "name": "Cacophony",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legca",
+    "legch",
+    "legck",
+    "legcv",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "defence turret",
+   "metal": 380,
+   "energy": 5500,
+   "build_time": 7600,
+   "health": 2200,
+   "speed": null,
+   "range": 575,
+   "dps": 255,
+   "dps_air": 255,
+   "air": "255 dps against aircraft, its full damage, and only when nothing on the ground is in range",
+   "sight": 525,
+   "flags": [
+    "anti_air"
+   ]
+  },
+  "legmh": {
+   "name": "Salacia",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legfhp",
+    "leghp"
+   ],
+   "class": "artillery hovercraft",
+   "metal": 190,
+   "energy": 3100,
+   "build_time": 3300,
+   "health": 520,
+   "speed": 70,
+   "range": 700,
+   "dps": 53.3,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 509,
+   "flags": [
+    "hover",
+    "floats"
+   ]
+  },
+  "legmine1": {
+   "name": "Light Mine",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legdecom",
+    "legmlv"
+   ],
+   "class": "mine",
+   "metal": 7,
+   "energy": 270,
+   "build_time": 100,
+   "health": 11,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 83.2,
+   "flags": [
+    "stealth"
+   ]
+  },
+  "legmine2": {
+   "name": "Medium Mine",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legdecom",
+    "legmlv"
+   ],
+   "class": "mine",
+   "metal": 25,
+   "energy": 1050,
+   "build_time": 300,
+   "health": 11,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 83.2,
+   "flags": [
+    "stealth"
+   ]
+  },
+  "legmine3": {
+   "name": "Heavy Mine",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legdecom",
+    "legmlv"
+   ],
+   "class": "mine",
+   "metal": 50,
+   "energy": 2800,
+   "build_time": 700,
+   "health": 11,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 83.2,
+   "flags": [
+    "stealth"
+   ]
+  },
+  "legmineb": {
+   "name": "Harbinger",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaap"
+   ],
+   "class": "minelayer bomber",
+   "metal": 300,
+   "energy": 21000,
+   "build_time": 30550,
+   "health": 1110,
+   "speed": 210,
+   "range": 1600,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 455,
+   "flags": [
+    "needs_energy_to_fire",
+    "flies"
+   ]
+  },
+  "legmlv": {
+   "name": "Sapper",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legvp"
+   ],
+   "class": "minelayer vehicle",
+   "metal": 52,
+   "energy": 900,
+   "build_time": 3640,
+   "health": 210,
+   "speed": 69,
+   "range": 220,
+   "dps": 5,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 450,
+   "build_power": 40,
+   "flags": [
+    "stealth"
+   ]
+  },
+  "legmoho": {
+   "name": "Advanced Metal Extractor",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legack",
+    "legacv"
+   ],
+   "class": "metal extractor",
+   "metal": 640,
+   "energy": 8100,
+   "build_time": 14100,
+   "health": 3900,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 273,
+   "energy_upkeep": 20,
+   "flags": []
+  },
+  "legmohocon": {
+   "name": "Advanced Metal Fortifier",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legack",
+    "legacv"
+   ],
+   "class": "armed metal extractor",
+   "metal": 1060,
+   "energy": 14500,
+   "build_time": 19400,
+   "health": 3900,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 273,
+   "build_power": 400,
+   "energy_upkeep": 20,
+   "flags": []
+  },
+  "legmos": {
+   "name": "Mosquito",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legap"
+   ],
+   "class": "gunship",
+   "metal": 110,
+   "energy": 2000,
+   "build_time": 4000,
+   "health": 415,
+   "speed": 165,
+   "range": 380,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 520,
+   "flags": [
+    "flies"
+   ]
+  },
+  "legmrv": {
+   "name": "Quickshot",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legavp"
+   ],
+   "class": "raider tank",
+   "metal": 250,
+   "energy": 4100,
+   "build_time": 5900,
+   "health": 970,
+   "speed": 135,
+   "range": 240,
+   "dps": 120,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 500,
+   "flags": []
+  },
+  "legmstor": {
+   "name": "Metal Storage",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legca",
+    "legch",
+    "legck",
+    "legcom",
+    "legcv",
+    "legdecom",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "metal storage",
+   "metal": 340,
+   "energy": 590,
+   "build_time": 2920,
+   "health": 2100,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 273,
+   "metal_storage": 3000,
+   "flags": []
+  },
+  "legnanotc": {
+   "name": "Construction Turret",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legaceb",
+    "legca",
+    "legch",
+    "legck",
+    "legcv",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "construction turret",
+   "metal": 230,
+   "energy": 3200,
+   "build_time": 5300,
+   "health": 560,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 380,
+   "build_power": 200,
+   "flags": []
+  },
+  "legnanotcplat": {
+   "name": "Naval Construction Turret",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "leganavyengineer",
+    "legch",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "construction turret",
+   "metal": 230,
+   "energy": 3200,
+   "build_time": 5300,
+   "health": 560,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 380,
+   "build_power": 200,
+   "flags": [
+    "on_water"
+   ]
+  },
+  "legnavyaaship": {
+   "name": "Iapetus",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "leganavyengineer",
+    "legsy"
+   ],
+   "class": "anti-air ship",
+   "metal": 250,
+   "energy": 3600,
+   "build_time": 4000,
+   "health": 1200,
+   "speed": 60,
+   "range": 760,
+   "dps": 5,
+   "dps_air": 120,
+   "air": "anti-air only: 120 dps against aircraft",
+   "sight": 750,
+   "flags": [
+    "anti_air",
+    "floats"
+   ]
+  },
+  "legnavyartyship": {
+   "name": "Octeres",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legsy"
+   ],
+   "class": "warship",
+   "metal": 1450,
+   "energy": 15000,
+   "build_time": 20000,
+   "health": 4500,
+   "speed": 45,
+   "range": 960,
+   "dps": 59.7,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 500,
+   "flags": [
+    "floats"
+   ]
+  },
+  "legnavyconship": {
+   "name": "Construction Ship",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legaceb",
+    "leganavyengineer",
+    "legsy"
+   ],
+   "class": "constructor ship",
+   "metal": 180,
+   "energy": 2000,
+   "build_time": 3500,
+   "health": 1080,
+   "speed": 71,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 400,
+   "build_power": 115,
+   "energy_make": 5,
+   "flags": [
+    "floats"
+   ]
+  },
+  "legnavydestro": {
+   "name": "Syracusia",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "leganavyengineer",
+    "legsy"
+   ],
+   "class": "destroyer",
+   "metal": 875,
+   "energy": 9500,
+   "build_time": 11500,
+   "health": 3800,
+   "speed": 58,
+   "range": 700,
+   "dps": 170.8,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 500,
+   "flags": [
+    "needs_energy_to_fire",
+    "floats"
+   ]
+  },
+  "legnavyfrigate": {
+   "name": "Argonaut",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legaceb",
+    "legsy"
+   ],
+   "class": "frigate",
+   "metal": 370,
+   "energy": 3700,
+   "build_time": 4800,
+   "health": 2600,
+   "speed": 72,
+   "range": 460,
+   "dps": 215.4,
+   "dps_air": 23.1,
+   "air": "23 dps against aircraft (11% of its ground damage)",
+   "sight": 500,
+   "flags": [
+    "sonar",
+    "floats"
+   ]
+  },
+  "legnavyrezsub": {
+   "name": "Dionysus",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legsy"
+   ],
+   "class": "resurrection submarine",
+   "metal": 240,
+   "energy": 3500,
+   "build_time": 5960,
+   "health": 420,
+   "speed": 66.9,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 300,
+   "build_power": 150,
+   "flags": [
+    "resurrect",
+    "submerged",
+    "sonar"
+   ]
+  },
+  "legnavyscout": {
+   "name": "Hippocampus",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "leganavyengineer",
+    "legsy"
+   ],
+   "class": "patrol boat",
+   "metal": 120,
+   "energy": 1600,
+   "build_time": 1800,
+   "health": 700,
+   "speed": 97,
+   "range": 351,
+   "dps": 60,
+   "dps_air": 15,
+   "air": "15 dps against aircraft (25% of its ground damage, and only when nothing on the ground is in range)",
+   "sight": 600,
+   "flags": [
+    "floats"
+   ]
+  },
+  "legnavysub": {
+   "name": "Ketea",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legsy"
+   ],
+   "class": "submarine",
+   "metal": 320,
+   "energy": 2400,
+   "build_time": 4600,
+   "health": 600,
+   "speed": 57,
+   "range": 400,
+   "dps": 93.3,
+   "dps_air": 93.3,
+   "air": "93 dps against aircraft, its full damage",
+   "sight": 400,
+   "flags": [
+    "submerged",
+    "anti_air",
+    "sonar"
+   ]
+  },
+  "legner": {
+   "name": "Nereus",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legfhp",
+    "leghp"
+   ],
+   "class": "line hovercraft",
+   "metal": 220,
+   "energy": 2000,
+   "build_time": 2400,
+   "health": 1100,
+   "speed": 76,
+   "range": 370,
+   "dps": 61.1,
+   "dps_air": 21.1,
+   "air": "21 dps against aircraft (35% of its ground damage, and only when nothing on the ground is in range)",
+   "sight": 509,
+   "flags": [
+    "hover",
+    "floats"
+   ]
+  },
+  "legotter": {
+   "name": "Otter",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legamphlab",
+    "legvp"
+   ],
+   "class": "constructor vehicle",
+   "metal": 150,
+   "energy": 3100,
+   "build_time": 6540,
+   "health": 950,
+   "speed": 43.5,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 260,
+   "build_power": 75,
+   "energy_make": 8,
+   "flags": [
+    "amphibious"
+   ]
+  },
+  "legperdition": {
+   "name": "Perdition",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legack",
+    "legacv"
+   ],
+   "class": "napalm missile launcher",
+   "metal": 1250,
+   "energy": 15000,
+   "build_time": 62000,
+   "health": 4000,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 500,
+   "flags": []
+  },
+  "legphoenix": {
+   "name": "Phoenix",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaap"
+   ],
+   "class": "bomber",
+   "metal": 450,
+   "energy": 25000,
+   "build_time": 46600,
+   "health": 2000,
+   "speed": 270,
+   "range": 950,
+   "dps": 18.1,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 430,
+   "flags": [
+    "needs_energy_to_fire",
+    "flies"
+   ]
+  },
+  "legrad": {
+   "name": "Radar Tower",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legafcv",
+    "legca",
+    "legch",
+    "legck",
+    "legcom",
+    "legcv",
+    "legdecom",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "radar tower",
+   "metal": 60,
+   "energy": 630,
+   "build_time": 1140,
+   "health": 180,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 680,
+   "flags": []
+  },
+  "legrail": {
+   "name": "Lance",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legvp"
+   ],
+   "class": "skirmisher tank",
+   "metal": 240,
+   "energy": 3600,
+   "build_time": 3600,
+   "health": 1100,
+   "speed": 46.5,
+   "range": 750,
+   "dps": 26.9,
+   "dps_air": 75,
+   "air": "75 dps against aircraft, its full damage",
+   "sight": 525,
+   "flags": [
+    "anti_air"
+   ]
+  },
+  "legrampart": {
+   "name": "Rampart",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legack",
+    "legacv"
+   ],
+   "class": "geothermal anti-nuke platform",
+   "metal": 2600,
+   "energy": 38000,
+   "build_time": 36000,
+   "health": 8600,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 1000,
+   "energy_make": 600,
+   "energy_storage": 4000,
+   "flags": [
+    "radar_jammer"
+   ]
+  },
+  "legrezbot": {
+   "name": "Zagreus",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "leglab"
+   ],
+   "class": "resurrection bot",
+   "metal": 130,
+   "energy": 1400,
+   "build_time": 2800,
+   "health": 220,
+   "speed": 78,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 430,
+   "build_power": 200,
+   "flags": [
+    "resurrect",
+    "stealth"
+   ]
+  },
+  "legrhapsis": {
+   "name": "Rhapsis",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legca",
+    "legch",
+    "legck",
+    "legcv",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "anti-air turret",
+   "metal": 280,
+   "energy": 6500,
+   "build_time": 4700,
+   "health": 1900,
+   "speed": null,
+   "range": 950,
+   "dps": 12,
+   "dps_air": 180,
+   "air": "anti-air only: 180 dps against aircraft",
+   "sight": 375,
+   "energy_upkeep": 5,
+   "flags": [
+    "anti_air"
+   ]
+  },
+  "legrl": {
+   "name": "Bramble",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legca",
+    "legch",
+    "legck",
+    "legcom",
+    "legcv",
+    "legdecom",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "anti-air turret",
+   "metal": 80,
+   "energy": 850,
+   "build_time": 1750,
+   "health": 335,
+   "speed": null,
+   "range": 765,
+   "dps": 0.6,
+   "dps_air": 67.6,
+   "air": "anti-air only: 68 dps against aircraft",
+   "sight": 455,
+   "flags": [
+    "anti_air"
+   ]
+  },
+  "legscout": {
+   "name": "Wheelie",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legvp"
+   ],
+   "class": "scout vehicle",
+   "metal": 23,
+   "energy": 350,
+   "build_time": 900,
+   "health": 75,
+   "speed": 160,
+   "range": 169,
+   "dps": 23.6,
+   "dps_air": 2.1,
+   "air": "2 dps against aircraft (9% of its ground damage, and only when nothing on the ground is in range)",
+   "sight": 635,
+   "flags": []
+  },
+  "legsd": {
+   "name": "Ichnaea",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legack",
+    "legacv"
+   ],
+   "class": "targeting facility",
+   "metal": 710,
+   "energy": 7100,
+   "build_time": 11900,
+   "health": 2650,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 240,
+   "energy_upkeep": 125,
+   "flags": []
+  },
+  "legsh": {
+   "name": "Glaucus",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legfhp",
+    "leghp"
+   ],
+   "class": "raider hovercraft",
+   "metal": 60,
+   "energy": 1200,
+   "build_time": 1200,
+   "health": 220,
+   "speed": 102,
+   "range": 260,
+   "dps": 60,
+   "dps_air": 60,
+   "air": "60 dps against aircraft, its full damage, and only when nothing on the ground is in range",
+   "sight": 550,
+   "flags": [
+    "hover",
+    "anti_air",
+    "floats"
+   ]
+  },
+  "legshot": {
+   "name": "Phalanx",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legalab"
+   ],
+   "class": "riot bot",
+   "metal": 470,
+   "energy": 5000,
+   "build_time": 11000,
+   "health": 3350,
+   "speed": 44,
+   "range": 280,
+   "dps": 105,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 350,
+   "flags": []
+  },
+  "legsilo": {
+   "name": "Supernova",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legack",
+    "legacv"
+   ],
+   "class": "nuclear silo",
+   "metal": 7700,
+   "energy": 82000,
+   "build_time": 181000,
+   "health": 6200,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 455,
+   "flags": [
+    "nuke"
+   ]
+  },
+  "legsnapper": {
+   "name": "Snapper",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legalab"
+   ],
+   "class": "crawling bomb",
+   "metal": 60,
+   "energy": 5600,
+   "build_time": 9260,
+   "health": 550,
+   "speed": 81,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 280,
+   "flags": [
+    "amphibious"
+   ]
+  },
+  "legsolar": {
+   "name": "Solar Collector",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legaceb",
+    "legafcv",
+    "legca",
+    "legch",
+    "legck",
+    "legcom",
+    "legcv",
+    "legdecom",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "solar collector",
+   "metal": 150,
+   "energy": 0,
+   "build_time": 2800,
+   "health": 340,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 273,
+   "energy_make": 20,
+   "flags": []
+  },
+  "legspbomber": {
+   "name": "Pyrphoros",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legsplab"
+   ],
+   "class": "bomber",
+   "metal": 240,
+   "energy": 7500,
+   "build_time": 9890,
+   "health": 1170,
+   "speed": 267.3,
+   "range": 1280,
+   "dps": 150,
+   "dps_air": 150,
+   "air": "150 dps against aircraft, its full damage, and only when nothing on the ground is in range",
+   "sight": 455,
+   "flags": [
+    "flies",
+    "anti_air"
+   ]
+  },
+  "legspcarrier": {
+   "name": "Hecatoncheir",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legsplab"
+   ],
+   "class": "radar plane",
+   "metal": 250,
+   "energy": 5000,
+   "build_time": 9250,
+   "health": 1500,
+   "speed": 93,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 600,
+   "flags": [
+    "flies"
+   ]
+  },
+  "legspcon": {
+   "name": "Construction Seaplane",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legsplab"
+   ],
+   "class": "constructor aircraft",
+   "metal": 150,
+   "energy": 5100,
+   "build_time": 8500,
+   "health": 405,
+   "speed": 124,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 430,
+   "build_power": 75,
+   "energy_make": 20,
+   "flags": [
+    "flies"
+   ]
+  },
+  "legspfighter": {
+   "name": "Astrapios",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legsplab"
+   ],
+   "class": "fighter aircraft",
+   "metal": 90,
+   "energy": 4500,
+   "build_time": 6540,
+   "health": 220,
+   "speed": 310.8,
+   "range": 760,
+   "dps": 3.8,
+   "dps_air": 138.8,
+   "air": "anti-air only: 139 dps against aircraft",
+   "sight": 430,
+   "flags": [
+    "flies",
+    "anti_air"
+   ]
+  },
+  "legsplab": {
+   "name": "Offshore Seaplane Platform",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legaca",
+    "legch",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "aircraft factory",
+   "metal": 1400,
+   "energy": 5500,
+   "build_time": 11800,
+   "health": 2200,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 169,
+   "build_power": 300,
+   "flags": [
+    "submerged",
+    "sonar",
+    "on_water"
+   ]
+  },
+  "legspradarsonarplane": {
+   "name": "Okeanos",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legsplab"
+   ],
+   "class": "radar plane",
+   "metal": 125,
+   "energy": 7000,
+   "build_time": 10680,
+   "health": 580,
+   "speed": 338.1,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 1100,
+   "flags": [
+    "flies",
+    "sonar"
+   ]
+  },
+  "legspsurfacegunship": {
+   "name": "Enyo",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legsplab"
+   ],
+   "class": "gunship",
+   "metal": 270,
+   "energy": 6700,
+   "build_time": 12140,
+   "health": 1200,
+   "speed": 148,
+   "range": 400,
+   "dps": 57.1,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 595,
+   "flags": [
+    "flies"
+   ]
+  },
+  "legsptorpgunship": {
+   "name": "Ladon",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legsplab"
+   ],
+   "class": "torpedo bomber",
+   "metal": 190,
+   "energy": 5000,
+   "build_time": 10720,
+   "health": 900,
+   "speed": 273,
+   "range": 460,
+   "dps": 62.2,
+   "dps_air": 6.7,
+   "air": "7 dps against aircraft (11% of its ground damage)",
+   "sight": 535,
+   "flags": [
+    "flies",
+    "sonar"
+   ]
+  },
+  "legsrail": {
+   "name": "Arquebus",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legalab"
+   ],
+   "class": "sniper bot",
+   "metal": 750,
+   "energy": 15000,
+   "build_time": 19500,
+   "health": 2200,
+   "speed": 42,
+   "range": 850,
+   "dps": 121.4,
+   "dps_air": 121.4,
+   "air": "121 dps against aircraft, its full damage",
+   "sight": 700,
+   "flags": [
+    "needs_energy_to_fire",
+    "anti_air"
+   ]
+  },
+  "legstarfall": {
+   "name": "Starfall",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legack",
+    "legacv"
+   ],
+   "class": "long-range cannon",
+   "metal": 63000,
+   "energy": 720000,
+   "build_time": 1400000,
+   "health": 26000,
+   "speed": null,
+   "range": 6100,
+   "dps": 2700,
+   "dps_air": null,
+   "air": "does nothing to aircraft",
+   "sight": 700,
+   "flags": [
+    "needs_energy_to_fire",
+    "long_range_cannon"
+   ]
+  },
+  "legstr": {
+   "name": "Hoplite",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaceb",
+    "legalab"
+   ],
+   "class": "raider bot",
+   "metal": 355,
+   "energy": 5250,
+   "build_time": 9240,
+   "health": 1780,
+   "speed": 84,
+   "range": 280,
+   "dps": 240,
+   "dps_air": 90,
+   "air": "90 dps against aircraft (38% of its ground damage)",
+   "sight": 400,
+   "flags": []
+  },
+  "legstronghold": {
+   "name": "Stronghold",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaap"
+   ],
+   "class": "transport gunship",
+   "metal": 550,
+   "energy": 13000,
+   "build_time": 24200,
+   "health": 2600,
+   "speed": 160,
+   "range": 450,
+   "dps": 150,
+   "dps_air": 60,
+   "air": "60 dps against aircraft (40% of its ground damage, and only when nothing on the ground is in range)",
+   "sight": 430,
+   "flags": [
+    "transport",
+    "flies"
+   ]
+  },
+  "legsy": {
+   "name": "Shipyard",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "leganavyconsub",
+    "leganavyengineer",
+    "legca",
+    "legch",
+    "legck",
+    "legcom",
+    "legcv",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "shipyard",
+   "metal": 450,
+   "energy": 950,
+   "build_time": 5100,
+   "health": 4300,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 340,
+   "build_power": 150,
+   "flags": [
+    "submerged",
+    "on_water"
+   ]
+  },
+  "legtarg": {
+   "name": "Pinpointer",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaca",
+    "legack",
+    "legacv"
+   ],
+   "class": "targeting facility",
+   "metal": 810,
+   "energy": 7200,
+   "build_time": 8700,
+   "health": 2100,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 273,
+   "energy_upkeep": 100,
+   "flags": []
+  },
+  "legtide": {
+   "name": "Tidal Generator",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "leganavyengineer",
+    "legch",
+    "legcom",
+    "legdecom",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "tidal generator",
+   "metal": 85,
+   "energy": 250,
+   "build_time": 2100,
+   "health": 395,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 130,
+   "flags": [
+    "submerged",
+    "on_water"
+   ]
+  },
+  "legtl": {
+   "name": "Stheno",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "leganavyengineer",
+    "legch",
+    "legcom",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "torpedo launcher",
+   "metal": 170,
+   "energy": 1500,
+   "build_time": 3700,
+   "health": 1300,
+   "speed": null,
+   "range": 500,
+   "dps": 186.7,
+   "dps_air": 186.7,
+   "air": "187 dps against aircraft, its full damage",
+   "sight": 494,
+   "flags": [
+    "submerged",
+    "anti_air",
+    "sonar",
+    "on_water"
+   ]
+  },
+  "leguwestore": {
+   "name": "Naval Energy Storage",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legch",
+    "legcom",
+    "legdecom",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "energy storage",
+   "metal": 175,
+   "energy": 1800,
+   "build_time": 4260,
+   "health": 2000,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 169,
+   "energy_storage": 6000,
+   "flags": [
+    "submerged",
+    "on_water"
+   ]
+  },
+  "leguwgeo": {
+   "name": "Offshore Geothermal Powerplant",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legca",
+    "legch",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "geothermal plant",
+   "metal": 540,
+   "energy": 13000,
+   "build_time": 12900,
+   "health": 2050,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 273,
+   "energy_make": 300,
+   "energy_storage": 1000,
+   "flags": [
+    "submerged",
+    "on_water"
+   ]
+  },
+  "leguwmstore": {
+   "name": "Naval Metal Storage",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legch",
+    "legcom",
+    "legdecom",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "metal storage",
+   "metal": 340,
+   "energy": 590,
+   "build_time": 2920,
+   "health": 2100,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 169,
+   "metal_storage": 3000,
+   "flags": [
+    "submerged",
+    "on_water"
+   ]
+  },
+  "legvcarry": {
+   "name": "Mantis",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legavp"
+   ],
+   "class": "drone carrier vehicle",
+   "metal": 450,
+   "energy": 9000,
+   "build_time": 11550,
+   "health": 1400,
+   "speed": 45,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 400,
+   "flags": []
+  },
+  "legvenator": {
+   "name": "Venator",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaap"
+   ],
+   "class": "fighter aircraft",
+   "metal": 110,
+   "energy": 3200,
+   "build_time": 9730,
+   "health": 210,
+   "speed": 450,
+   "range": 700,
+   "dps": 28.8,
+   "dps_air": 576,
+   "air": "anti-air only: 576 dps against aircraft",
+   "sight": 430,
+   "flags": [
+    "stealth",
+    "flies",
+    "anti_air"
+   ]
+  },
+  "legvflak": {
+   "name": "Charon",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legavp"
+   ],
+   "class": "anti-air vehicle",
+   "metal": 470,
+   "energy": 10500,
+   "build_time": 15130,
+   "health": 2700,
+   "speed": 70,
+   "range": 800,
+   "dps": 18,
+   "dps_air": 720,
+   "air": "anti-air only: 720 dps against aircraft",
+   "sight": 338,
+   "flags": [
+    "anti_air"
+   ]
+  },
+  "legvp": {
+   "name": "Legion Vehicle Plant",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legacv",
+    "legca",
+    "legch",
+    "legck",
+    "legcom",
+    "legcv",
+    "legnavyconship",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "vehicle factory",
+   "metal": 570,
+   "energy": 1650,
+   "build_time": 5700,
+   "health": 3000,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 279,
+   "build_power": 150,
+   "flags": []
+  },
+  "legwhisper": {
+   "name": "Whisper",
+   "faction": "legion",
+   "tier": 2,
+   "made_by": [
+    "legaap"
+   ],
+   "class": "radar plane",
+   "metal": 210,
+   "energy": 9000,
+   "build_time": 16480,
+   "health": 990,
+   "speed": 321,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 1250,
+   "flags": [
+    "stealth",
+    "flies",
+    "sonar"
+   ]
+  },
+  "legwin": {
+   "name": "Wind Turbine",
+   "faction": "legion",
+   "tier": 1,
+   "made_by": [
+    "legafcv",
+    "legca",
+    "legch",
+    "legck",
+    "legcom",
+    "legcv",
+    "legdecom",
+    "legotter",
+    "legspcon"
+   ],
+   "class": "wind generator",
+   "metal": 43,
+   "energy": 175,
+   "build_time": 1680,
+   "health": 230,
+   "speed": null,
+   "range": null,
+   "dps": null,
+   "dps_air": null,
+   "air": "",
+   "sight": 273,
+   "flags": []
   }
  }
 }
