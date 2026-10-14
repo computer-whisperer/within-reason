@@ -28,6 +28,19 @@ pub(crate) fn step_id(step: &str) -> (&str, Option<&str>) {
     }
 }
 
+/// A list step's words without the word `low`, and whether it carried it: the builder draws only the team's surplus
+/// while it is on the step (H-HANDS-LIST-LOW, the game's builder-priority flag sent as `Command::Priority`:
+/// K-mech-builder-priority-is-a-builder-flag). "assist 90 low", "armsolar low #s1".
+pub(crate) fn step_low(body: &str) -> (String, bool) {
+    let low = body.split_whitespace().any(|w| w == "low");
+    (body.split_whitespace().filter(|w| *w != "low").collect::<Vec<_>>().join(" "), low)
+}
+
+/// Whether a whole step (words, `low`, id) carries the word `low`.
+pub(crate) fn step_is_low(step: &str) -> bool {
+    step_low(step_id(step).0).1
+}
+
 /// The seconds of a timed list step `assist N`; None for any other step.
 pub(super) fn timed_assist(step: &str) -> Option<i32> {
     let mut words = step.split_whitespace();
@@ -187,6 +200,7 @@ impl Brain {
                         Some(tag) => pianist.note_tag(tag, id, own, did, queue, frame),
                         None => did,
                     };
+                    let did = if step_is_low(&step) { format!("{did}; low priority on this step: it draws only surplus") } else { did };
                     pianist.done.push(format!("{} {name}: {did} (from its list)", clock(frame)));
                     pianist.played.push(json!({ "actor": name, "kind": "builder", "played": step, "did": did, "source": "list" }));
                     self.journal.note_from("list", frame, "builder", json!({ "actor": name, "step": step }), json!({ "did": did }));
@@ -269,6 +283,7 @@ impl Brain {
         loop {
             let step = pianist.scripts.get_mut(name)?.pop_front()?;
             let (body, tag) = step_id(&step);
+            let (body, _) = step_low(body);
             let mut words = body.split_whitespace();
             let kind = words.next().unwrap_or_default();
             // `extractor nearest` is the bare `extractor`: the free spot this builder reaches soonest, whatever the
@@ -412,6 +427,17 @@ mod tests {
         assert!(pianist.done.last().unwrap().contains("commander: dropped the step 'extractor' its old list had queued"), "{:?}", pianist.done);
     }
 
+    /// The word `low` anywhere in a step marks it and is not one of its words; a step without it is high.
+    #[test]
+    fn the_word_low_marks_a_step_and_leaves_its_words() {
+        use super::{step_is_low, step_low, timed_assist};
+        assert_eq!(step_low("assist 90 low"), ("assist 90".to_string(), true));
+        assert_eq!(step_low("armsolar low"), ("armsolar".to_string(), true));
+        assert_eq!(step_low("extractor spot_5"), ("extractor spot_5".to_string(), false));
+        assert!(step_is_low("armsolar home low #s1") && !step_is_low("armsolar home #s1"));
+        assert_eq!(timed_assist("assist 90 low"), Some(90));
+    }
+
     /// A step's last word beginning with `#` is its id; the rest are its words.
     #[test]
     fn a_steps_id_is_its_last_word() {
@@ -458,7 +484,7 @@ mod tests {
     fn steps_with_the_same_id_are_one_building() {
         use super::super::{TagState, Tagged, Task};
         use bot_protocol::{OwnUnit, UnitDefId, Vec3};
-        let unit = |id: i32, def: i32, being_built: bool| OwnUnit { id: UnitId(id), def: UnitDefId(def), pos: Vec3::default(), vel: Vec3::default(), health: 1.0, max_health: 1.0, being_built, idle: false, reload_frame: 0, facing: 0, stockpile: 0, stockpile_queued: 0 };
+        let unit = |id: i32, def: i32, being_built: bool| OwnUnit { id: UnitId(id), def: UnitDefId(def), pos: Vec3::default(), vel: Vec3::default(), health: 1.0, max_health: 1.0, being_built, idle: false, reload_frame: 0, facing: 0, stockpile: 0, stockpile_queued: 0, priority_low: false };
         let (plant, solar) = (UnitDefId(7), UnitDefId(8));
         let (first, second, frame) = (UnitId(1), UnitId(2), UnitId(50));
         let mut pianist = super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");

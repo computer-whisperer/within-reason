@@ -95,7 +95,10 @@ pianist as `remove` is (`crates/bot/src/brain/pianist/fire.rs`); the picture lis
 rounds and names his anti-nukes with their coverage. The briefing carries the stockpilers and every report prints a
 `missiles` line from them; a round coming ready is a done line of the hands (`note_rounds`), and a silo's wakes the
 player (`Wake::missile_ready`, on by default), after nuke-2-hard (2026-10-09) where two missiles sat ready for five
-minutes before his anti-nuke while nothing the player read named them.
+minutes before his anti-nuke while nothing the player read named them. `Command::Priority { unit, low }` is BAR's builder-priority flag (`CMD_PRIORITY` 34571 through `COMMAND_UNIT_CUSTOM`, one
+parameter, 0 low and 1 high): a low builder draws only the team's surplus, full speed or nothing; the gadget consumes the
+order in `AllowCommand`, nothing is queued, and the shim reads the flag back as `OwnUnit::priority_low` from the unit
+rules param `builderPriority` (K-mech-builder-priority-is-a-builder-flag; the study `docs/studies/2026-10-13-builder-priority.md`).
 
 ### The banner (2026-09-20)
 The game names every AI at random (`ai_namer.lua`: donor and contributor names) and takes nothing from the AI, so at

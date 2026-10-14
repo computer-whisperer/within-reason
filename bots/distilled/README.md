@@ -31,6 +31,7 @@ here are a guess over the verbs Jev picked most, to be judged by results.
 | D-STEP-BACK | A body outweighed 1.3 to 1 within 900 (a turret three times its metal) walks home and joins the guard; it goes again with 1.5 times what drove it back, the memory halving every 3 minutes | `OUTWEIGHED = 1.3`, `TURRET_WEIGHT = 3`, `AGAIN = 1.5` | The flagship's rules text for the hands (outweighed groups step back; a turret counts three times) | `run_strike` |
 | D-ADVANCE | A body that is together fights its way to the nearest known building of his, else the nearest enemy in sight, else the nearest spot on his half nobody has looked at, else his start | | A guess over `fight to` and `go` (391 picks) | `run_strike` |
 | D-SCOUTS | An idle scout drives to the spot on his half nearest to it that nobody has been sent to | | The player's standing words for Rovers ("they are scouts, being seen is their job") | `run_scouts` |
+| D-PRIORITY | The game's builder-priority flag (a low builder draws only the surplus, full speed or nothing): every plant and construction turret is low, the commander is low while it helps a plant and high on a build of its own (its solars too: they answer a shortage, and low on them threw the energy store in prio-distilled-comet-sym50-1), constructors stay high (2026-10-13) | | The 75 pro duels of the builder-priority study (`docs/studies/2026-10-13-builder-priority.md`): every human's plants and turrets are low from birth, and the commander goes low while it assists in the opening stall (52 toggles by 14 players), never a lab by hand | `economy.rs` `run_priorities` |
 
 ### Tier 2 (2026-10-09, `tier2.rs`; the arc `docs/design/2026-10-09-late-economy.md`)
 
@@ -71,6 +72,7 @@ Against Apex v0.2.2 (apexearth/bar-ai, its trained nets, `--opponent Apex:v0.2.2
 |---|---|---|---|---|
 | v2 | 7-1 | 3-5 | 5-3 | 1-7 |
 | v3 | 8-0 | 12-4 over sixteen (6-2, 6-2) | not rerun | 3-5 |
+| v4 (2026-10-13, D-PRIORITY: plants and turrets low, the commander low while it assists) | not rerun | 11-5 over sixteen (6-2, 5-3); with the commander low on its solars too, 9-7 | not rerun | not rerun |
 
 At +50 Apex opens lab-first, has its advanced lab at 6 to 10 minutes and an army three to four times its +0 army at 10:00; v2 banked 1,000 metal from 2:00 and launched its body at the +0 weight into it. What remains at +50 is Carrot, where he expands to 48-70 extractors at 15:00 against the bot's 32 on a 172-spot map, and the late bank (5,000 at 15:00) everywhere.
 

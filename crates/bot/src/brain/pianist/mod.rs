@@ -13,7 +13,8 @@ pub mod glossary;
 pub(super) mod groups;
 mod execute;
 mod lists;
-pub(crate) use lists::step_id;
+mod priority;
+pub(crate) use lists::{step_id, step_low};
 pub(super) mod picture;
 mod remove;
 mod fire;
@@ -178,6 +179,8 @@ pub struct Pianist {
     pub(super) tagged: HashMap<String, Tagged>,
     /// The builders helping an id's building up, and which: they take no list step until it stands or is gone.
     pub(super) helping: HashMap<UnitId, String>,
+    /// The priority flag last sent per unit and when, while the engine has not read it back (`priority.rs`).
+    pub(super) priority_sent: HashMap<UnitId, (bool, i32)>,
     /// Units a lab has been told to build and not yet started, oldest first.
     pub(super) lab_queue: HashMap<UnitId, Vec<(UnitDefId, i32)>>,
     pub(super) groups: Vec<Group>,
@@ -659,6 +662,7 @@ impl Pianist {
             stale_queue: HashSet::new(),
             tagged: HashMap::new(),
             helping: HashMap::new(),
+            priority_sent: HashMap::new(),
             done: Vec::new(),
             rounds: HashMap::new(),
             log,
@@ -874,6 +878,7 @@ impl Brain {
         self.play_lists(tick, kit, &picture, commands);
         self.play_sequences(tick, commands);
         self.pass(tick, kit, &picture, commands);
+        self.tend_priorities(tick, commands);
         self.publish_hands(&picture);
         let status_due = tick.due() % (60 * FRAMES_PER_SECOND) < self.pianist.as_ref().expect("pianist mode").interval_frames;
         if status_due {

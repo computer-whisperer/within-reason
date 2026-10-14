@@ -362,6 +362,10 @@ pub struct OwnUnit {
     /// Rounds the game is still stockpiling toward its kept count (`Command::Stockpile`); 0 as above.
     #[serde(default)]
     pub stockpile_queued: i32,
+    /// The game's builder-priority flag is low (`Command::Priority`; the unit rules param `builderPriority`): false for
+    /// a unit without the flag, and in shims from before 2026-10-13.
+    #[serde(default)]
+    pub priority_low: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -481,6 +485,12 @@ pub enum Command {
     /// drawing 1,042 energy a second for its two minutes), so there is nothing to order a round with; this order moves
     /// the count the gadget keeps the unit at, within 0 and that limit (K-rules-a-stockpile-fills-itself-to-its-limit).
     Stockpile { unit: UnitId, change: i32 },
+    /// The game's builder-priority flag (BAR's `unit_builder_priority` gadget, `CMD_PRIORITY` 34571 with one parameter,
+    /// 0 low, 1 high; K-mech-builder-priority-is-a-builder-flag): a low builder runs at full speed only out of the
+    /// team's surplus and stands still otherwise; high is the game's default and changes nothing. On commanders,
+    /// constructors, factories and construction turrets; the gadget consumes the order without queueing it, and the
+    /// flag is read back as `OwnUnit::priority_low`.
+    Priority { unit: UnitId, low: bool },
 }
 
 /// The shim resolves this to the closest legal build position, since only it can query the map.

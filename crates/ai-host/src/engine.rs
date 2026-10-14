@@ -475,6 +475,8 @@ impl Engine {
                     facing: call!(self, Unit_getBuildingFacing(id)),
                     stockpile,
                     stockpile_queued,
+                    // The gadget's unit rules param: unset (a unit without the flag, or never toggled) reads as high.
+                    priority_low: call!(self, Unit_getRulesParamFloat(id, c"builderPriority".as_ptr(), 1.0)) < 0.5,
                 }
             })
             .collect();
@@ -764,6 +766,8 @@ impl Engine {
         let options = |queue: bool| if queue { sys::UNIT_COMMAND_OPTION_SHIFT_KEY as i16 } else { 0 };
         const NO_GROUP: c_int = -1;
         const NO_TIMEOUT: c_int = c_int::MAX;
+/// BAR's `CMD_PRIORITY` (`modules/customcommands.lua`), the builder-priority gadget's command id.
+const BUILDER_PRIORITY_COMMAND: c_int = 34571;
         match *command {
             Command::Build { unit, def, ref site, queue } => {
                 let mut pos = site.as_ref().map_or([0.0; 3], |s| self.on_the_ground(s.near));
@@ -956,6 +960,20 @@ impl Engine {
                     }
                 }
                 result
+            }
+            // BAR's builder-priority gadget takes its command with one parameter (0 low, 1 high) and consumes it in
+            // `AllowCommand`: the flag is set, nothing is queued (K-mech-builder-priority-is-a-builder-flag).
+            Command::Priority { unit, low } => {
+                let mut params = [if low { 0.0f32 } else { 1.0 }];
+                self.handle(sys::COMMAND_UNIT_CUSTOM, &mut sys::SCustomUnitCommand {
+                    unitId: unit.0,
+                    groupId: NO_GROUP,
+                    options: 0,
+                    timeOut: NO_TIMEOUT,
+                    cmdId: BUILDER_PRIORITY_COMMAND,
+                    params: params.as_mut_ptr(),
+                    params_size: 1,
+                })
             }
             Command::GiveUnit { .. } => Err(-1),
             Command::SelfDestruct { unit } => {

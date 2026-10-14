@@ -19,6 +19,7 @@ removed changes its row here.
 | An idle construction turret guards the nearest finished factory in its reach, told again every 10 s | `RETELL_FRAMES` 10 s, `FACTORY_REACH_SLACK = 100` | `B/nanos.rs` | H-ECO-NANO-GUARD | the user, 2026-09-28: stays as a mechanic |
 | An idle resurrection bot works the best safe wreck field, raises a soldier's wreck worth 100 or more while energy is over half, walks home with nothing to do | `METAL_PER_WORKER = 300`, `QUEUE = 5`, `RAISE_MIN_METAL = 100`, `RAISE_ENERGY = 0.5` | `B/reclaim.rs`, `P/mod.rs` | H-REC-CREW, H-REC-RESURRECT | the user, 2026-09-28: stays as a mechanic |
 | A new soldier joins its plant's group and is walked to the body | `ADOPT_RADIUS = 400`, `FOLLOW_STEP = 150` | `P/groups.rs` | H-HANDS-GROUPS, H-HANDS-JOINERS | the user, 2026-09-28: the newcomer walk stays |
+| Every plant and construction turret of ours carries the game's builder-priority flag low (it draws only the team's surplus, full speed or nothing), as every human's do from the stock widget's birth defaults; the flag is read back each tick and set when it differs | none | `P/priority.rs` `tend_priorities` | H-HANDS-PRIORITY-BIRTH | the user, 2026-10-13: "the changed default sounds like a good thing to try" (the study `docs/studies/2026-10-13-builder-priority.md`) |
 | The micro engine (§5) | | `M/` | H-MICRO-* | the ruling's own exception |
 
 ## 2. Orders given, changed or ended with no pick

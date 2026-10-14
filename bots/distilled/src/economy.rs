@@ -328,6 +328,32 @@ impl Distilled {
         }
     }
 
+    /// D-PRIORITY: the game's builder-priority flag (a low builder draws only the team's surplus, full speed or nothing;
+    /// K-mech-builder-priority-is-a-builder-flag). Every plant and construction turret is low, as every human's are
+    /// from the stock widget; the commander is low while its job is to help a plant, as the pros set it in the
+    /// opening stall so the constructors' extractors take the metal first (K-econ-commander-low-while-assisting),
+    /// and high on a build of its own; constructors stay high. Not low on its solars: the pros' solar is an opening
+    /// build with energy in hand, D-COMMANDER's is the answer to a shortage, and low there threw the energy store
+    /// (prio-distilled-comet-sym50-1: 488 banked at 10:00 against 2,598, four of eight lost against two). The flag is
+    /// read back each tick, so an order goes only when it differs from what is wanted.
+    pub(crate) fn run_priorities(&self, commands: &mut Vec<Command>) {
+        for unit in self.own.values() {
+            let Some(def) = self.def(unit.def) else { continue };
+            let low = if def.build_speed > 0.0 && def.speed == 0.0 {
+                true
+            } else if Some(unit.def) == self.kit.commander {
+                self.economy.orders.get(&unit.id).is_some_and(|o| o.job == Job::Assist)
+            } else if def.build_speed > 0.0 && !def.build_options.is_empty() {
+                false
+            } else {
+                continue;
+            };
+            if unit.priority_low != low {
+                commands.push(Command::Priority { unit: unit.id, low });
+            }
+        }
+    }
+
     /// D-BUILD-POWER, D-PROJECT: a construction turret with the project's frame in its reach helps raise it; otherwise
     /// an idle turret helps the nearest plant in its reach, told again every ten seconds.
     pub(crate) fn run_turrets(&mut self, commands: &mut Vec<Command>) {

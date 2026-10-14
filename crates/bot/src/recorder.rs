@@ -30,6 +30,9 @@ pub struct Recorder {
     buffer: String,
     /// Engine definition id to index in the header's table.
     def_index: HashMap<UnitDefId, usize>,
+    /// The types that carry the game's builder-priority flag (build speed, and either static or able to build: the
+    /// gadget's own test less resurrection bots), for the sample's `bp`.
+    builder_defs: HashSet<UnitDefId>,
     header: Option<Value>,
     /// Units of either side as last seen, so an event about a unit that is gone still has a type and a place.
     known: HashMap<UnitId, (Option<UnitDefId>, Vec3)>,
@@ -84,6 +87,7 @@ impl Recorder {
                 out,
                 buffer: String::new(),
                 def_index: hello.unit_defs.iter().enumerate().map(|(i, d)| (d.id, i)).collect(),
+                builder_defs: hello.unit_defs.iter().filter(|d| d.build_speed > 0.0 && (d.speed == 0.0 || !d.build_options.is_empty())).map(|d| d.id).collect(),
                 header: Some(header(hello, mode, session, pianist)),
                 known: HashMap::new(),
                 facings: HashMap::new(),
@@ -315,6 +319,7 @@ impl Recorder {
                 Command::DGun { unit, target } => json!(["dgun", unit.0, target.0]),
                 Command::FireAt { unit, at } => json!(["fire_at", unit.0, at.x as i32, at.z as i32]),
                 Command::Stockpile { unit, change } => json!(["stockpile", unit.0, change]),
+                Command::Priority { unit, low } => json!(["priority", unit.0, i32::from(!low)]),
             })
             .collect();
         self.line(&json!({ "t": "cmd", "f": frame, "c": list }));
@@ -330,6 +335,12 @@ impl Recorder {
             let health = (u.health / u.max_health.max(1.0) * 100.0).round() as i32;
             let comma = if i == 0 { "" } else { "," };
             let _ = write!(self.buffer, "{comma}[{},{},{},{},{health},{flags}]", u.id.0, self.def(Some(u.def)), u.pos.x as i32, u.pos.z as i32);
+        }
+        // Every builder's priority flag (0 low, 1 high), the target 0: the interface has no read for what it builds.
+        self.buffer.push_str("],\"bp\":[");
+        for (i, u) in s.own_units.iter().filter(|u| self.builder_defs.contains(&u.def)).enumerate() {
+            let comma = if i == 0 { "" } else { "," };
+            let _ = write!(self.buffer, "{comma}[{},{},0]", u.id.0, i32::from(!u.priority_low));
         }
         self.buffer.push_str("],\"en\":[");
         for (i, e) in s.enemies.iter().enumerate() {

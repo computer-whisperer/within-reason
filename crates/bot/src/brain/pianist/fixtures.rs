@@ -82,7 +82,7 @@ pub(crate) fn at(x: f32, z: f32) -> Vec3 {
 }
 
 pub(crate) fn own(id: i32, def: i32, pos: Vec3) -> OwnUnit {
-    OwnUnit { id: UnitId(id), def: UnitDefId(def), pos, vel: Vec3::default(), health: 1.0, max_health: 1.0, being_built: false, idle: false, reload_frame: 0, facing: 0, stockpile: 0, stockpile_queued: 0 }
+    OwnUnit { id: UnitId(id), def: UnitDefId(def), pos, vel: Vec3::default(), health: 1.0, max_health: 1.0, being_built: false, idle: false, reload_frame: 0, facing: 0, stockpile: 0, stockpile_queued: 0, priority_low: false }
 }
 
 pub(crate) fn enemy(id: i32, def: i32, pos: Vec3) -> EnemyUnit {
