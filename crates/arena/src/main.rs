@@ -882,11 +882,17 @@ fn parse_args() -> Options {
     if options.our_ai == FLAGSHIP_AI && !options.pianist {
         usage("the flagship plays only as the pianist: give --pianist with --packet PATH, or --player (or --our-ai for a bot of bots/)");
     }
+    // The stock BARb has no Legion configuration and its script leaves the Legion side out
+    // (K-leg-barb-cannot-play-it-apex-can): a Legion seat for it is a wasted batch, not a game.
+    let other_side_is_legion = options.their_side == Some("Legion") || (options.mirror && options.side == Some("Legion"));
+    if other_side_is_legion && (options.opponent.starts_with("BARb") || options.allies > 0) {
+        usage("BARb cannot play Legion (the enemy seats, or the allied ones, which are always BARb): give --their-side armada|cortex, or --opponent Apex:Unstable with --profile standard and no --allies");
+    }
     options
 }
 
 fn usage(problem: &str) -> ! {
-    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--jev-budget DOLLARS] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--start-delay S] [--player-model ID] [--brief standard|experience] [--objective TEXT] [--packet-example] [--side armada|cortex] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--our-ai NAME:VERSION] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent NAME:VERSION] [--our-bonus N] [--enemy-bonus N] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N] | arena --compress-logs DIR");
+    eprintln!("{problem}\nusage: arena [--matches N] [--parallel N] [--speed N] [--profile NAME] [--map NAME] [--max-minutes N] [--jev-budget DOLLARS] [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out] [--pianist] [--player] [--packet PATH] [--realtime] [--start-delay S] [--player-model ID] [--brief standard|experience] [--objective TEXT] [--packet-example] [--side armada|cortex|legion] [--their-side armada|cortex|legion] [--corner nw|se] [--ours N] [--allies N] [--enemies N] [--ffa] [--boxes standard|corners|north-south|west-east] [--our-ai NAME:VERSION] [--bot PATH] [--disable H-ID,H-ID] [--ab-disable H-ID,H-ID] [--claude-config-dir DIR] [--player-effort LEVEL] [--players one|seat] [--commander MODEL] [--commander-effort LEVEL] [--hands-effort lean|normal|full] [--think-penalty X] [--think-cap S] [--turn-limit S] [--opponent NAME:VERSION] [--our-bonus N] [--enemy-bonus N] [--opponent-opening any|bots|vehicles] [--seed-base N] [--base-port N] | arena --compress-logs DIR");
     std::process::exit(2)
 }
 
