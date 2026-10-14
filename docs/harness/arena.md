@@ -18,6 +18,11 @@ the speed over the autohost channel, reads the winner from SERVER_GAMEOVER, and 
 - After a batch the arena prints mean heuristic firings per match for wins against losses (from the `rules:` lines in
   `bot.log`) and a ledger row for `docs/experiments.md`; `batch.json` records label, commit and options.
 - `game_minutes` is read from the last `[f=N]` in the engine log after exit.
+- An opponent's state between games (Apex's `apex-record.txt`, the exchange matrix that prices unit matchups) is carried
+  under `run/data/opponent-state/<Name>-<Version>/`: the AI's own directory's files at the top, and under `skirmish/` the
+  files of `AI/Skirmish/` itself, where Apex v0.2.2 and later write one record for every version (fixed 2026-10-14;
+  before, every game of theirs started at the tier priors). Parallel matches all start from the same state and the last
+  to finish is kept, so a batch of eight carries one game's learning forward. Delete the directory to start an opponent cold.
 - Timeout is game time: the shim prints `heartbeat f=N` once per game minute into the engine log and the arena stops the
   match at `--max-minutes` (default 40). A 120 s wall-clock stall allowance is the backstop.
 - Refuses to start if `--parallel` x 4 GB exceeds available memory (a 24-way run once took ~100 GB).

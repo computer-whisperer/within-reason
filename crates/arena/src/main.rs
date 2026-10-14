@@ -365,6 +365,7 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         copy_tree(&cache_template, &dir.join("cache"))?;
     }
     copy_state(&opponent_state(repo, &options.opponent), &dir.join(ai_dir(&options.opponent)));
+    copy_state(&opponent_state(repo, &options.opponent).join(SHARED_STATE), &dir.join("AI/Skirmish"));
     let script_path = dir.join("script.txt");
     fs::write(&script_path, setup.render())?;
 
@@ -471,6 +472,7 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         reason: fs::read_to_string(dir.join("stop")).map(|t| t.lines().skip(1).collect::<Vec<_>>().join(" ").trim().to_string()).unwrap_or_default(),
     };
     copy_state(&dir.join(ai_dir(&options.opponent)), &opponent_state(repo, &options.opponent));
+    copy_state(&dir.join("AI/Skirmish"), &opponent_state(repo, &options.opponent).join(SHARED_STATE));
     if let Err(e) = record::finish(&dir, &result, &format!("{} {}", opponent_name(&options.opponent), options.profile)) {
         eprintln!("match {index}: could not close the match record: {e}");
     }
@@ -942,13 +944,21 @@ fn option_defaults(repo: &Path, ai: &str) -> String {
     out
 }
 
-/// What an opponent keeps between games (the Apex bot's `apex-record.txt`, its exchange matrix): the arena gives
-/// every match a data directory of its own, so the files are brought in before the game and taken back after it,
-/// under `run/data/opponent-state/<ShortName>-<Version>`. Logs are not kept. Matches run side by side take the
-/// same start and the last to end is the one kept.
+/// What an opponent keeps between games (the Apex bot's `apex-record.txt`, its exchange matrix, which prices every
+/// matchup of unit types from what they did to each other): the arena gives every match a data directory of its
+/// own, so the files are brought in before the game and taken back after it, under
+/// `run/data/opponent-state/<ShortName>-<Version>`: the files of the AI's own directory `AI/Skirmish/<Name>/<Version>/`
+/// at the top, and under `SHARED_STATE` the files of `AI/Skirmish/` itself, where Apex v0.2.2 and later keep one
+/// record for every version (two folders up; the author's harness keeps one engine directory per worker, so there
+/// the record grows across hundreds of games, and until 2026-10-14 ours started every game at the tier priors).
+/// Logs are not kept. Matches run side by side take the same start and the last to end is the one kept, so a batch
+/// of eight carries one game's learning forward, not eight.
 fn opponent_state(repo: &Path, ai: &str) -> PathBuf {
     repo.join("run/data/opponent-state").join(ai.replace(':', "-"))
 }
+
+/// The state directory's subfolder for the files of `AI/Skirmish/` itself (the record Apex shares across versions).
+const SHARED_STATE: &str = "skirmish";
 
 fn copy_state(from: &Path, to: &Path) {
     let Ok(entries) = fs::read_dir(from) else { return };
