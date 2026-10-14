@@ -221,4 +221,10 @@ vehicle_line `leggat`, rez `legrezbot`, solar `legsolar`, wind `legwin`, air_pla
 **Evidence.** The claims above; `roster.rs:106-130`; `bots/distilled/src/lib.rs:94-125`.
 **Would be wrong if.** Legion games with the player showed `raider` wanted as Phobos (a Pawn-speed unit) or `line` as
 Karkinos; the words are the player's, so the first games decide.
-**Used by.** (the Legion `Roster`, when built)
+**Measured 2026-10-14 (leg-player-1, WON 25:54 against BARb hard_aggressive Armada).** The mapping stands as built and
+was barely used: the player wrote Legion internal names in its lists from the first turn (leglht 252 times, legadvsol
+138, leggat 93, leghades 66, legrail 33 over 139 `queue` and 78 `produce` calls) and role words only for `solar` (87),
+`constructor` (75), `raider` (12, at the vehicle plant, where it resolves to the Alaris) and `plant` (3); `line`,
+`turret` and `lab` never. It built no bot lab in the game (vehicle plants only, four of them, then the advanced
+vehicle plant), so the Goblin/Satyr half of the mapping is unexercised.
+**Used by.** the Legion `Roster` (`crates/bot/src/brain/roster.rs`)
