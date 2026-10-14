@@ -87,6 +87,11 @@ pub struct MatchSetup<'a> {
     /// Ally team 0 takes the second box and ally team 1 the first, to tell the box's effect from the team slot's.
     pub swap_corners: bool,
     pub our_side: &'static str,
+    /// The opponents' faction when named (`--their-side`); otherwise the other one of Armada and Cortex, or ours
+    /// with `mirror`. Legion for either side writes the game's `experimentallegionfaction` mod option, without
+    /// which the game defines no Legion unit and gives a Legion seat a random Armada or Cortex commander
+    /// (K-leg-exists-only-under-a-mod-option).
+    pub their_side: Option<&'static str>,
     /// Give the opponents our faction instead of the other one.
     pub mirror: bool,
     /// Start positions chosen before the game (`place.rs`), per team in team order; none means the game's own placement.
@@ -153,11 +158,13 @@ impl MatchSetup<'_> {
         let barb = seat("BARb", "stable", self.barb_defaults);
         let (name, version) = self.opponent.split_once(':').unwrap_or((self.opponent, "stable"));
         let enemy = seat(name, version, self.opponent_defaults);
-        let other_side = match (self.mirror, self.our_side) {
-            (true, side) => side,
-            (false, "Armada") => "Cortex",
-            (false, _) => "Armada",
+        let other_side = match (self.their_side, self.mirror, self.our_side) {
+            (Some(side), _, _) => side,
+            (None, true, side) => side,
+            (None, false, "Armada") => "Cortex",
+            (None, false, _) => "Armada",
         };
+        let legion = if self.our_side == "Legion" || other_side == "Legion" { " experimentallegionfaction=1;" } else { "" };
         let us = self.our_ally_team() as usize;
         // Enemy ally teams take the numbers ours leaves free: 1 (or 0), then 2, 3.
         let enemy_ally_team = |nth: usize| if nth == 0 { 1 - us } else { nth + 1 };
@@ -204,7 +211,7 @@ impl MatchSetup<'_> {
 	NumTeams={teams};
 	NumAllyTeams={ally_teams};
 	[PLAYER0] {{ Name=arena; Spectator=1; }}
-	[MODOPTIONS] {{ maxunits={MAX_UNITS}; }}
+	[MODOPTIONS] {{ maxunits={MAX_UNITS};{legion} }}
 {sections}}}
 ",
             game = self.game,
@@ -225,8 +232,25 @@ mod tests {
     fn setup(ours: usize, allies: usize, enemies: usize, free_for_all: bool, we_are_first: bool) -> MatchSetup<'static> {
         MatchSetup {
             game: "g", map: "m", our_ai: "WReason:0.1", opponent: "BARb:stable", opponent_profile: "medium", opponent_defaults: "", barb_defaults: "", our_bonus: 0, enemy_bonus: 0, opponent_disabled_units: "", host_port: 1, autohost_port: 2, seed: 3,
-            ours, allies, enemies, free_for_all, boxes: Boxes::Corners, we_are_first, swap_corners: false, our_side: "Armada", mirror: false, starts: Vec::new(), start_delay: 0,
+            ours, allies, enemies, free_for_all, boxes: Boxes::Corners, we_are_first, swap_corners: false, our_side: "Armada", their_side: None, mirror: false, starts: Vec::new(), start_delay: 0,
         }
+    }
+
+    /// A Legion seat on either side turns the faction on; without one the script is as it always was.
+    #[test]
+    fn legion_on_either_side_writes_the_mod_option() {
+        let mut ours = setup(1, 0, 1, false, true);
+        ours.our_side = "Legion";
+        let script = ours.render();
+        assert!(script.contains("[TEAM0] { TeamLeader=0; AllyTeam=0; Side=Legion; }"), "{script}");
+        assert!(script.contains("[TEAM1] { TeamLeader=0; AllyTeam=1; Side=Armada; }"), "{script}");
+        assert!(script.contains("[MODOPTIONS] { maxunits=2000; experimentallegionfaction=1; }"), "{script}");
+        let mut theirs = setup(1, 0, 1, false, true);
+        theirs.their_side = Some("Legion");
+        let script = theirs.render();
+        assert!(script.contains("Side=Armada") && script.contains("[TEAM1] { TeamLeader=0; AllyTeam=1; Side=Legion; }"), "{script}");
+        assert!(script.contains("experimentallegionfaction=1"));
+        assert!(!setup(1, 0, 1, false, true).render().contains("experimentallegionfaction"));
     }
 
     #[test]

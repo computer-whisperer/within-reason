@@ -1506,5 +1506,781 @@
 "corwolv": {
 "file": "vehicle_arty.png",
 "size": 1.10000002
+},
+"legaabot": {
+"file": "bot_amph_aa.png",
+"size": 1.04999995
+},
+"legaap": {
+"file": "factory_air_t2.png",
+"size": 1.9425
+},
+"legabm": {
+"file": "antinuke.png",
+"size": 1.67999995
+},
+"legaca": {
+"file": "air_t2_worker.png",
+"size": 1.62749982
+},
+"legaceb": {
+"file": "legceb.png",
+"size": 1.25
+},
+"legack": {
+"file": "bot_t2_worker.png",
+"size": 1.39649999
+},
+"legacluster": {
+"file": "def_t2_arty.png",
+"size": 1.57499993
+},
+"legacv": {
+"file": "vehicle_t2_worker.png",
+"size": 1.36499989
+},
+"legadvaabot": {
+"file": "bot_amph_t2_aa.png",
+"size": 1.41999996
+},
+"legadveconv": {
+"file": "metalmaker_t2.png",
+"size": 1.20749986
+},
+"legadvestore": {
+"file": "energystorage_t2.png",
+"size": 1.3125
+},
+"legadvshipyard": {
+"file": "factory_ship_t2.png",
+"size": 1.9425
+},
+"legadvsol": {
+"file": "energy2_1.18.png",
+"size": 1.23899984
+},
+"legafcv": {
+"file": "armconsul_1.35.png",
+"size": 1.0
+},
+"legafigdef": {
+"file": "air_t2.png",
+"size": 1.02899992
+},
+"legafus": {
+"file": "energy5_1.85.png",
+"size": 1.9425
+},
+"legageo": {
+"file": "hazardous.png",
+"size": 1.88999987
+},
+"legah": {
+"file": "hover_aa.png",
+"size": 1.15499997
+},
+"legaheattank": {
+"file": "vehicle_t2_tank_heavylaser.png",
+"size": 1.73749986
+},
+"legajam": {
+"file": "jammer_t2.png",
+"size": 1.25999999
+},
+"legajamk": {
+"file": "bot_t2_jammer.png",
+"size": 1.34399986
+},
+"legalab": {
+"file": "factory_bot_t2.png",
+"size": 1.9425
+},
+"legamcluster": {
+"file": "vehicle_arty_t2.png",
+"size": 1.36499989
+},
+"legamph": {
+"file": "amph_torp.png",
+"size": 1.65999997
+},
+"legamphlab": {
+"file": "factory_amph.png",
+"size": 1.52250004
+},
+"legamphtank": {
+"file": "amphib_tank.png",
+"size": 1.35000002
+},
+"legamstor": {
+"file": "metalstorage_t2.png",
+"size": 1.3125
+},
+"leganavalaaturret": {
+"file": "aa_flak_t2.png",
+"size": 1.46999991
+},
+"leganavaladvgeo": {
+"file": "hazardous.png",
+"size": 1.88999987
+},
+"leganavaldefturret": {
+"file": "defence_t2_shotgun_mg.png",
+"size": 2.0
+},
+"leganavaleconv": {
+"file": "metalmaker_t2.png",
+"size": 1.20749986
+},
+"leganavalfusion": {
+"file": "fusion.png",
+"size": 1.46999991
+},
+"leganavalmex": {
+"file": "mex_t2.png",
+"size": 1.20749986
+},
+"leganavalpinpointer": {
+"file": "targetting.png",
+"size": 1.36499989
+},
+"leganavalsonarstation": {
+"file": "radar_t2.png",
+"size": 1.25999999
+},
+"leganavaltorpturret": {
+"file": "defence_2_naval.png",
+"size": 1.46999991
+},
+"leganavyaaship": {
+"file": "ship_t2_aa_flak.png",
+"size": 1.73249984
+},
+"leganavyantinukecarrier": {
+"file": "ship_t2_antidrone.png",
+"size": 2.51999998
+},
+"leganavyantiswarm": {
+"file": "ship_t2_impulse.png",
+"size": 1.79999995
+},
+"leganavyartyship": {
+"file": "ship_t2_multi_cluster_arty.png",
+"size": 3.16499968
+},
+"leganavybattleship": {
+"file": "ship_t2_plasma_shotgun_walker.png",
+"size": 2.67749977
+},
+"leganavybattlesub": {
+"file": "sub_t2.png",
+"size": 1.78499997
+},
+"leganavyconsub": {
+"file": "sub_t2_worker.png",
+"size": 1.74299991
+},
+"leganavycruiser": {
+"file": "ship_t2_gatling.png",
+"size": 2.25749993
+},
+"leganavyengineer": {
+"file": "shipengineer.png",
+"size": 1.57499993
+},
+"leganavyflagship": {
+"file": "ship_t2_flagship.png",
+"size": 3.46499968
+},
+"leganavyheavysub": {
+"file": "battlesub_t2.png",
+"size": 2.20000005
+},
+"leganavymissileship": {
+"file": "ship_t2_missile.png",
+"size": 2.0999999
+},
+"leganavyradjamship": {
+"file": "ship_t2_hybridradjam.png",
+"size": 1.73249984
+},
+"legap": {
+"file": "factory_air.png",
+"size": 1.52250004
+},
+"legapopupdef": {
+"file": "def_t2_impulse.png",
+"size": 1.46999991
+},
+"legarad": {
+"file": "radar_t2.png",
+"size": 1.25999999
+},
+"legaradk": {
+"file": "bot_t2_radar.png",
+"size": 1.34399986
+},
+"legaskirmtank": {
+"file": "vehicle_t2_tank_triplasma.png",
+"size": 1.36999991
+},
+"legaspy": {
+"file": "spy.png",
+"size": 1.17999995
+},
+"legatorpbomber": {
+"file": "air_t2_torpbomber.png",
+"size": 1.67999995
+},
+"legatrans": {
+"file": "air_trans.png",
+"size": 1.5
+},
+"legavantinuke": {
+"file": "antinukevehicle.png",
+"size": 1.46999991
+},
+"legavjam": {
+"file": "vehicle_t2_jammer.png",
+"size": 1.36499989
+},
+"legavp": {
+"file": "factory_vehicle_t2.png",
+"size": 1.9425
+},
+"legavrad": {
+"file": "vehicle_t2_radar.png",
+"size": 1.36499989
+},
+"legavroc": {
+"file": "vehicle_t2_vroc.png",
+"size": 1.62749982
+},
+"legbal": {
+"file": "bot_t15_rocket.png",
+"size": 1.20000005
+},
+"legbar": {
+"file": "vehicle_t1_arty_napalm.png",
+"size": 1.35
+},
+"legbart": {
+"file": "bot_t2_arty_napalm.png",
+"size": 1.60000002
+},
+"legbastion": {
+"file": "def_t2_tachyon.png",
+"size": 2.0474999
+},
+"legca": {
+"file": "air_worker.png",
+"size": 1.25999999
+},
+"legcar": {
+"file": "hover_t15_shotgun.png",
+"size": 1.35
+},
+"legcen": {
+"file": "bot_t15_raid.png",
+"size": 1.04999995
+},
+"legch": {
+"file": "hover_worker.png",
+"size": 1.25999999
+},
+"legcib": {
+"file": "air_bomber_juno.png",
+"size": 1.20000005
+},
+"legck": {
+"file": "bot_worker.png",
+"size": 0.99749994
+},
+"legcluster": {
+"file": "def_t1_arty.png",
+"size": 1.15
+},
+"legcom": {
+"file": "legcom.png",
+"size": 1.83749986
+},
+"legctl": {
+"file": "defence_1_naval.png",
+"size": 1.10249984
+},
+"legcv": {
+"file": "vehicle_worker.png",
+"size": 0.99749994
+},
+"legdecom": {
+"file": "legcom.png",
+"size": 1.60000002
+},
+"legdeflector": {
+"file": "shield.png",
+"size": 1.57499993
+},
+"legdrag": {
+"file": "wall_0.4.png",
+"size": 0.41999999
+},
+"legdtr": {
+"file": "wall_0.4.png",
+"size": 0.41999999
+},
+"legeallterrainmech": {
+"file": "t3_allterrain_drone_cluster_bot.png",
+"size": 2.61999998
+},
+"legeconv": {
+"file": "metalmaker_t1.png",
+"size": 0.78749996
+},
+"legeheatraymech": {
+"file": "t3_solinvictus.png",
+"size": 3.46499968
+},
+"legehovertank": {
+"file": "corsok_1.8.png",
+"size": 1.88999987
+},
+"legelrpcmech": {
+"file": "t3_bot_clusterarty.png",
+"size": 2.75
+},
+"legerailtank": {
+"file": "vehicle_t3_tank_rail_mgun.png",
+"size": 2.4000001
+},
+"legeshotgunmech": {
+"file": "t3_bot_shotgun.png",
+"size": 1.93749986
+},
+"legestor": {
+"file": "energystorage.png",
+"size": 1.10249984
+},
+"legeyes": {
+"file": "eye.png",
+"size": 0.89249998
+},
+"legfdrag": {
+"file": "wall_0.4.png",
+"size": 0.41999999
+},
+"legfeconv": {
+"file": "metalmaker_t1.png",
+"size": 0.78749996
+},
+"legfhive": {
+"file": "defence_t15_dronecarry.png",
+"size": 1.65999997
+},
+"legfhp": {
+"file": "factory_hover.png",
+"size": 1.52250004
+},
+"legfig": {
+"file": "air.png",
+"size": 0.64999998
+},
+"legflak": {
+"file": "aa_flak_t2.png",
+"size": 1.5
+},
+"legfloat": {
+"file": "corparrow.png",
+"size": 1.4
+},
+"legfmg": {
+"file": "defence_2_mg.png",
+"size": 1.3
+},
+"legfort": {
+"file": "air_battleship.png",
+"size": 2.29999995
+},
+"legforti": {
+"file": "wall_0.4.png",
+"size": 0.41999999
+},
+"legfrad": {
+"file": "radar_t1.png",
+"size": 0.94499993
+},
+"legfrl": {
+"file": "aa.png",
+"size": 0.89249998
+},
+"legfus": {
+"file": "fusion.png",
+"size": 1.46999991
+},
+"leggant": {
+"file": "factory_gantry.png",
+"size": 2.51999998
+},
+"leggantuw": {
+"file": "factory_gantry_uw.png",
+"size": 2.51999998
+},
+"leggat": {
+"file": "vehicle_t1_tank_mgun.png",
+"size": 1.29999995
+},
+"leggeo": {
+"file": "energy6_1.3.png",
+"size": 1.36499989
+},
+"leggob": {
+"file": "bot_t1_skirmish.png",
+"size": 0.60000002
+},
+"leghades": {
+"file": "vehicle_t1_raid.png",
+"size": 0.75
+},
+"leghelios": {
+"file": "vehicle_t1_tank.png",
+"size": 0.94999999
+},
+"leghive": {
+"file": "defence_t15_dronecarry.png",
+"size": 1.65999997
+},
+"leghp": {
+"file": "factory_hover.png",
+"size": 1.52250004
+},
+"leghrk": {
+"file": "kbot_t2_barrage.png",
+"size": 1.6
+},
+"leginc": {
+"file": "corsumo.png",
+"size": 1.85000002
+},
+"leginf": {
+"file": "cortrem_t2.png",
+"size": 1.9425
+},
+"leginfestor": {
+"file": "leginfestor.png",
+"size": 1.6
+},
+"legjam": {
+"file": "jammer.png",
+"size": 0.94499993
+},
+"legjav": {
+"file": "legjav.png",
+"size": 2.1
+},
+"legjuno": {
+"file": "juno.png",
+"size": 1.29999995
+},
+"legkam": {
+"file": "air_kamikaze.png",
+"size": 1.0
+},
+"legkark": {
+"file": "bot_t15_heat_shot.png",
+"size": 1.3
+},
+"legkeres": {
+"file": "vehicle_t3_tank_mgun.png",
+"size": 2.0
+},
+"leglab": {
+"file": "factory_bot.png",
+"size": 1.52250004
+},
+"leglht": {
+"file": "defence_0_laser.png",
+"size": 0.80000001
+},
+"leglob": {
+"file": "bot_plasma_t1.png",
+"size": 0.80000001
+},
+"leglraa": {
+"file": "aa_longrange_railgun_t2.png",
+"size": 1.88999987
+},
+"leglrpc": {
+"file": "leglrpc.png",
+"size": 2.41499972
+},
+"leglts": {
+"file": "air_trans.png",
+"size": 1.36499989
+},
+"leglupara": {
+"file": "aa_flak_t15.png",
+"size": 1.3
+},
+"legmed": {
+"file": "corban_1.6.png",
+"size": 1.85
+},
+"legmex": {
+"file": "mex_t1.png",
+"size": 0.80849993
+},
+"legmg": {
+"file": "defence_2_mg.png",
+"size": 1.3
+},
+"legmh": {
+"file": "hover_t1_missile.png",
+"size": 1.41750002
+},
+"legmine1": {
+"file": "mine.png",
+"size": 0.37799999
+},
+"legmine2": {
+"file": "mine.png",
+"size": 0.46199998
+},
+"legmine3": {
+"file": "mine.png",
+"size": 0.55649996
+},
+"legmineb": {
+"file": "air_bomber_minelayer.png",
+"size": 1.39999998
+},
+"legmlv": {
+"file": "cormlv_1.0.png",
+"size": 1.04999995
+},
+"legmoho": {
+"file": "mex_t2.png",
+"size": 1.20749986
+},
+"legmohocon": {
+"file": "mex_t2_con.png",
+"size": 1.20749986
+},
+"legmos": {
+"file": "air_hover_rocket.png",
+"size": 1.25999999
+},
+"legmrv": {
+"file": "vehicle_t2_raid.png",
+"size": 1.3000005
+},
+"legmstor": {
+"file": "metalstorage.png",
+"size": 1.10249984
+},
+"legnanotc": {
+"file": "nanot1.png",
+"size": 0.96599996
+},
+"legnanotcplat": {
+"file": "nanot1.png",
+"size": 0.96599996
+},
+"legnavyaaship": {
+"file": "ship_aa.png",
+"size": 1.14999998
+},
+"legnavyartyship": {
+"file": "ship_t15_artillery_mediumtraj.png",
+"size": 1.6
+},
+"legnavyconship": {
+"file": "ship_worker.png",
+"size": 1.39649999
+},
+"legnavydestro": {
+"file": "ship_laser_drones.png",
+"size": 1.51199996
+},
+"legnavyfrigate": {
+"file": "ship_torpedo.png",
+"size": 1.25999999
+},
+"legnavyrezsub": {
+"file": "sub_rez.png",
+"size": 1.64299989
+},
+"legnavyscout": {
+"file": "ship_raid.png",
+"size": 1.05
+},
+"legnavysub": {
+"file": "sub.png",
+"size": 1.0
+},
+"legner": {
+"file": "hover_gun.png",
+"size": 1.0
+},
+"legotter": {
+"file": "amphib_worker.png",
+"size": 1.36499989
+},
+"legperdition": {
+"file": "tacnuke.png",
+"size": 1.88999987
+},
+"legphoenix": {
+"file": "air_t2_laser.png",
+"size": 1.74299991
+},
+"legrad": {
+"file": "radar_t1.png",
+"size": 0.94499993
+},
+"legrail": {
+"file": "vehicle_t1_tank_rail.png",
+"size": 1.35000002
+},
+"legrampart": {
+"file": "legion_rampart.png",
+"size": 1.88999987
+},
+"legrezbot": {
+"file": "bot_t1_rez.png",
+"size": 0.74000001
+},
+"legrhapsis": {
+"file": "aa_t15.png",
+"size": 1.15499997
+},
+"legrl": {
+"file": "aa.png",
+"size": 0.89249998
+},
+"legscout": {
+"file": "vehicle.png",
+"size": 0.57749999
+},
+"legsd": {
+"file": "seismic.png",
+"size": 1.46999991
+},
+"legsh": {
+"file": "hover_raid.png",
+"size": 1.0
+},
+"legshot": {
+"file": "bot_t2_impulse2x.png",
+"size": 1.35
+},
+"legsilo": {
+"file": "nuke.png",
+"size": 2.51999998
+},
+"legsnapper": {
+"file": "corroach_0.9.png",
+"size": 0.94499993
+},
+"legsolar": {
+"file": "energy1_1.0.png",
+"size": 1.04999995
+},
+"legspbomber": {
+"file": "air_bomber_sea.png",
+"size": 1.41750002
+},
+"legspcarrier": {
+"file": "air_t15_carrier.png",
+"size": 1.65
+},
+"legspcon": {
+"file": "air_worker_sea.png",
+"size": 1.25999999
+},
+"legspfighter": {
+"file": "air_sea.png",
+"size": 0.86099994
+},
+"legsplab": {
+"file": "factory_air_sea.png",
+"size": 1.52250004
+},
+"legspradarsonarplane": {
+"file": "air_los_sea.png",
+"size": 1.39649999
+},
+"legspsurfacegunship": {
+"file": "air_t15_impulse.png",
+"size": 1.25999999
+},
+"legsptorpgunship": {
+"file": "air_torp_sea.png",
+"size": 1.47499993
+},
+"legsrail": {
+"file": "allterrain_t2_rail.png",
+"size": 1.85000002
+},
+"legstarfall": {
+"file": "armvulc.png",
+"size": 3.25499964
+},
+"legstr": {
+"file": "bot_t2_raid.png",
+"size": 1.29999995
+},
+"legstronghold": {
+"file": "air_t2_transport_shotgun.png",
+"size": 1.83749986
+},
+"legsy": {
+"file": "factory_ship.png",
+"size": 1.52250004
+},
+"legtarg": {
+"file": "targetting.png",
+"size": 1.36499989
+},
+"legtide": {
+"file": "energy1_1.0.png",
+"size": 1.04999995
+},
+"legtl": {
+"file": "defence_1_naval.png",
+"size": 1.10249984
+},
+"leguwestore": {
+"file": "energystorage.png",
+"size": 1.10249984
+},
+"leguwgeo": {
+"file": "energy6_1.3.png",
+"size": 1.36499989
+},
+"leguwmstore": {
+"file": "metalstorage.png",
+"size": 1.10249984
+},
+"legvcarry": {
+"file": "vehicle_t2_dronecarryland.png",
+"size": 1.64999998
+},
+"legvenator": {
+"file": "air_t2.png",
+"size": 1.02899992
+},
+"legvflak": {
+"file": "vehicle_t2_aa_flak.png",
+"size": 1.36499989
+},
+"legvp": {
+"file": "factory_vehicle.png",
+"size": 1.52250004
+},
+"legwhisper": {
+"file": "air_t2_radar.png",
+"size": 1.39649999
+},
+"legwin": {
+"file": "wind.png",
+"size": 1.04999995
 }
 }

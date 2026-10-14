@@ -24,7 +24,10 @@ HIS_BUILDINGS = {"cormex", "cormoho", "corsolar", "coradvsol", "corwin", "corllt
                  "corgate", "cordrag", "cormaw", "corshroud", "corhp", "corplat", "corexp", "corgeo", "coradvestore", "coradvmstore", "cortarg", "corsd", "corarad", "cormexp", "coruwadves", "coruwadvms",
                  "corjuno", "cordoom", "corint", "corbhmth", "corvipe", "cormadsam", "corscreamer",
                  "armmex", "armmoho", "armsolar", "armadvsol", "armwin", "armllt", "armhlt", "armrl", "armrad", "armnanotc", "armmakr", "armmmkr", "armestor", "armmstor", "armfus", "armafus",
-                 "armvp", "armavp", "armlab", "armalab", "armap", "armaap", "armgant", "armamd", "armsilo", "armflak", "armguard", "armbeamer", "armjamt", "armsy", "armasy", "armhp", "armgeo", "armtarg", "armsd", "armarad", "armmexp"}
+                 "armvp", "armavp", "armlab", "armalab", "armap", "armaap", "armgant", "armamd", "armsilo", "armflak", "armguard", "armbeamer", "armjamt", "armsy", "armasy", "armhp", "armgeo", "armtarg", "armsd", "armarad", "armmexp",
+                 "legmex", "legmoho", "legsolar", "legadvsol", "legwin", "leglht", "legmg", "legdtr", "legrl", "legrhapsis", "leglupara", "legrad", "legarad", "legnanotc", "legeconv", "legadveconv", "legestor", "legmstor", "legamstor", "legadvestore",
+                 "legfus", "legafus", "leggeo", "legageo", "legvp", "legavp", "leglab", "legalab", "legap", "legaap", "leghp", "legsy", "legadvshipyard", "leggant", "legabm", "legsilo", "legflak", "leglraa", "legcluster", "legacluster", "legapopupdef", "legbastion",
+                 "legperdition", "leglrpc", "legstarfall", "legjam", "legajam", "legeyes", "legjuno", "legtarg", "legsd", "leghive", "legdrag", "legforti", "legdeflector", "legrampart", "legmohocon", "legtide", "legtl", "legctl", "legfrad"}
 
 
 def tally(defs, own):

@@ -367,7 +367,7 @@ pub struct Palette {
 
 /// Not offered to the search: anti-air (worthless without aircraft) and the scouts, which are not fighters and would
 /// only pad the army count.
-const NOT_FIGHTERS: [&str; 7] = ["jeth", "crash", "sam", "mist", "flea", "armfav", "corfav"];
+const NOT_FIGHTERS: [&str; 10] = ["jeth", "crash", "sam", "mist", "flea", "armfav", "corfav", "aabot", "legscout", "legvflak"];
 
 impl Palette {
     /// `commander`, `factory`: unit types. `turret`: the ground turret on offer, by the caller's word (the numbers do

@@ -342,7 +342,7 @@ fn roster_lines(field: &Field) -> String {
         entries.len(),
         if sides.len() > 1 {
             format!(
-                "; the seats are of two factions ({}), so the roster holds both: a seat's builders and factories take their own faction's names (arm... or cor...) and skip the other's",
+                "; the seats are of more than one faction ({}), so the roster holds every one of them: a seat's builders and factories take their own faction's names (arm..., cor... or leg...) and skip the others'",
                 field.factions.iter().map(|(team, side)| format!("t{team} {side}")).collect::<Vec<_>>().join(", ")
             )
         } else {

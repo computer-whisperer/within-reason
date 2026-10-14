@@ -14,7 +14,9 @@ without any error. Our arena writes only `maxunits` into `[MODOPTIONS]` and its 
 so no game of ours has ever had Legion units defined. The replay survey's Great Divide games that had a Legion side
 carried `experimentallegionfaction=1` in their scripts, and our shim and record handled the Legion defs there without
 change (`record-1.jsonl` of the carded games below names `leg*` units).
-**Status.** supported (2026-10-14) — game source and the carded replays; the "random commander" branch read, not run
+**Status.** supported (2026-10-14) — game source and the carded replays; the "random commander" branch read, not run.
+The arena's switch built the same day: `--side legion` / `--their-side legion` write the option, and leg-smoke-distilled
+(`docs/experiments.md`) had a Legion commander and a Legion base on our side under it
 **Evidence.** `gamedata/unitdefs.lua:47-78`; `luarules/gadgets/game_initial_spawn.lua:165-185` (`validStartUnits`),
 `:265-280` (`isUnitValid` else `getValidRandom`); `gamedata/sidedata.lua` (sides Armada, Cortex, Random, Legion, in
 that order: "Don't change the ordering ... otherwise AI will crash"); `crates/arena/src/script.rs:207`,
@@ -29,8 +31,10 @@ script registers the Legion mask and its `standard` profile carries `build_chain
 `commander_leg.json`, `economy_leg.json` and `factory_leg.json` (its Legion defence ladder opens Pharos, Bramble,
 Cacophony, Hive, Dragon's Jaw, Rhapsis, Lupara, Chimera). So a Legion seat of ours is tested against BARb playing
 Armada or Cortex, or against Apex playing anything; only Apex can field Legion against us.
-**Status.** supported (2026-10-14) for the files; untested in a game (what BARb does when handed `Side=Legion` with the
-option on is unknown: a crash, or playing with no side config)
+**Status.** supported (2026-10-14) for the files and, for Apex, in a game: leg-smoke-apex (`docs/experiments.md`) seated
+Apex v0.2.2 on `Side=Legion` and by 8:00 it stood a Legion commander, five extractors, three solars, an advanced solar,
+two Pharos, two constructors, two Goblins, two Phobos and a Ballista from a bot lab. What BARb does when handed
+`Side=Legion` with the option on is still unknown (a crash, or playing with no side config)
 **Evidence.** `run/engines/2026.09.01/AI/Skirmish/BARb/stable/script/common.as:8`; `grep -rl legcom .../BARb/stable/config`
 finds nothing; `run/engines/2026.07.04/AI/Skirmish/Apex/Unstable/script/common.as:8`, `.../config/standard/*_leg.json`.
 **Would be wrong if.** A BARb seat on `Side=Legion` with the option on built a Legion base.

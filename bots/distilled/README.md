@@ -1,7 +1,7 @@
 # WRDistilled: a heuristic bot fitted to the flagship's winning games
 
 A bot of `bots/`: code decides everything, no model is asked, a game costs nothing (`../README.md` for the regime).
-Vehicles, tier 1, Armada or Cortex, any map with metal spots; one seat.
+Vehicles, tier 1, Armada, Cortex or Legion (its kit by faction in `lib.rs` `kit_of`: Legion's places from `docs/knowledge/legion.md`, Alaris, Decurion, Barrage, the Pharos as the sentry, unplayed as of 2026-10-14), any map with metal spots; one seat.
 
 ## Where the rules come from
 

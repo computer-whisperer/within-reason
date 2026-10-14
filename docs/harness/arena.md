@@ -11,6 +11,9 @@ the speed over the autohost channel, reads the winner from SERVER_GAMEOVER, and 
 - Two arenas on one machine need separate port ranges: give the second `--base-port 9300` (match i uses N+2i, N+2i+1).
   Without it the second arena's matches fail to bind the autohost port of the first.
 - Start box and faction alternate by match index; the opponent gets the other faction, or ours with `--mirror`.
+  `--side armada|cortex|legion` fixes ours and `--their-side` the opponent's. A Legion seat on either side writes
+  the game's `experimentallegionfaction=1` mod option (without it the game defines no Legion unit and the seat gets a
+  random Armada or Cortex commander); only Apex can play Legion, the stock BARb cannot (`docs/knowledge/legion.md`).
 - After a batch the arena prints mean heuristic firings per match for wins against losses (from the `rules:` lines in
   `bot.log`) and a ledger row for `docs/experiments.md`; `batch.json` records label, commit and options.
 - `game_minutes` is read from the last `[f=N]` in the engine log after exit.

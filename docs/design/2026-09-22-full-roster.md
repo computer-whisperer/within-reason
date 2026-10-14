@@ -95,7 +95,7 @@ should be able to easily include the full unit set and game rule descriptions").
   retire in `docs/knowledge/units.md`).
 - Tier-3 gantries, nuclear and anti-nuclear, long-range cannons and the like are offered when the build tree reaches
   them; nothing in the harness knows their use yet beyond the prose.
-- Legion is out (not in the arena's games).
+- Legion is out (not in the arena's games). *2026-10-14: in. The generators root on `legcom` too (194 units), the prose written by an agent as step 2 was, a third `Roster`; `docs/knowledge/legion.md`.*
 
 ## Status (2026-09-22 evening)
 

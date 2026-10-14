@@ -17,11 +17,12 @@ import json, math, re, subprocess, sys, pathlib
 root = pathlib.Path(sys.argv[1])
 FPS = 30
 
-# Which units: everything either commander reaches by build lists (the whole roster of both factions, aircraft,
-# hovercraft and ships included), and every land defence of either faction.
+# Which units: everything any of the three commanders reaches by build lists (the whole roster of every faction,
+# aircraft, hovercraft and ships included), and every land defence of every faction.
 # What raiders come for: economy buildings, unarmed, in a scenario only to be burned or saved (chase scenarios).
-ASSETS = ["mex", "win", "solar", "makr", "estor", "nanotc", "rad"]
-DEFENCE_DIRS = ["ArmBuildings/LandDefenceOffence", "CorBuildings/LandDefenceOffence"]
+# (`makr` is the Armada/Cortex converter, `econv` Legion's; a suffix a faction lacks is dropped by the file check.)
+ASSETS = ["mex", "win", "solar", "makr", "econv", "estor", "nanotc", "rad"]
+DEFENCE_DIRS = ["ArmBuildings/LandDefenceOffence", "CorBuildings/LandDefenceOffence", "Legion/Defenses"]
 
 # Units whose whole reason for existing is a mechanism the simulation has no model for. Keeping them would put a
 # plausible-looking number on a fight the simulator cannot judge, so they are left out and the reason is written
@@ -31,6 +32,8 @@ EXCLUDED = {
     "corroach": "crawling bomb: walks into the enemy and self-destructs; the sim has no suicide attack",
     "corsktl": "crawling bomb: walks into the enemy and self-destructs; the sim has no suicide attack",
     "armspid": "its only weapon is a paralyser, and the sim has no stun; it would fight as an unarmed walker",
+    "legkam": "suicide drone: flies into the target and explodes; the sim has no suicide attack",
+    "legsnapper": "amphibious screwdrive bomb: drives into the enemy and self-destructs; the sim has no suicide attack",
 }
 
 ENCODE = """
@@ -199,7 +202,7 @@ def reachable(files, roots):
 def main():
     files = {p.stem: p for p in (root / "units").rglob("*.lua")}
     wanted = set()
-    for side in ("arm", "cor"):
+    for side in ("arm", "cor", "leg"):
         wanted |= {side + s for s in ASSETS}
         wanted |= reachable(files, [side + "com"])
     wanted |= {p.stem for d in DEFENCE_DIRS for p in (root / "units" / d).glob("*.lua")}

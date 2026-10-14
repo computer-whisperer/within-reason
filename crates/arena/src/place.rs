@@ -78,7 +78,9 @@ pub fn choose_starts(repo: &Path, map: &str, ours: [f32; 4], theirs: [f32; 4], s
     let rect = |r: [f32; 4]| Rect { left: r[0] as f64 * game.size.0, top: r[1] as f64 * game.size.1, right: r[2] as f64 * game.size.0, bottom: r[3] as f64 * game.size.1 };
     let (our_rect, their_rect) = (rect(ours), rect(theirs));
     let lab = game.factory("lab").ok_or("the commander builds no lab")?;
-    let palette = Palette::new(&game.units, game.commander, lab, true, game.units.index(&format!("{side}llt")));
+    // The light tower by faction: Legion's is the Pharos (`leglht`), the others' `armllt` and `corllt`.
+    let light_tower = if side == "leg" { "leglht".to_string() } else { format!("{side}llt") };
+    let palette = Palette::new(&game.units, game.commander, lab, true, game.units.index(&light_tower));
     let their_centre = their_rect.centre();
     let search = Search {
         objective: Objective::Expect { exposed: 0.3, contact: Some(Contact { at: 150.0, walk: distance(our_rect.centre(), their_centre), weight: 6.0, window: 240.0 }), expect: Expectations::STANDARD },

@@ -5,7 +5,9 @@
 //! usage: arena [--matches N] [--parallel N] [--speed N] [--realtime] [--profile easy|medium|hard|hard_aggressive]
 //!              [--map NAME] [--max-minutes N] [--jev-budget DOLLARS]   (a match is called once its Jev bill passes it: 10 by default, 0 for no limit)
 //!              [--label TEXT] [--mirror] [--place] [--starts X,Z:X,Z] [--swap-corners] [--play-out]
-//!              [--side armada|cortex] [--corner nw|se]   (default: alternate; `nw` is the first start box of the layout, W on Comet)
+//!              [--side armada|cortex|legion] [--their-side armada|cortex|legion] [--corner nw|se]   (default: alternate, the opponent the other of
+//!                                                               Armada and Cortex; `nw` is the first start box of the layout, W on Comet; a Legion seat on either side
+//!                                                               writes the game's experimentallegionfaction option; only Apex can play Legion)
 //!              [--ours N] [--allies N] [--enemies N] [--ffa]   (seats of ours, allied BARb seats, enemy BARb seats, default 1 0 1;
 //!                                                               --ffa: every enemy seat is its own team)
 //!              [--boxes standard|corners|north-south|west-east]   (where the ally teams start; default the lobby's boxes for the map)
@@ -115,6 +117,9 @@ struct Options {
     packet_example: bool,
     /// Play every match as this faction instead of alternating.
     side: Option<&'static str>,
+    /// The opponents' faction, instead of the other one of Armada and Cortex (Legion only for an opponent that can
+    /// play it: Apex; the stock BARb cannot, K-leg-barb-cannot-play-it-apex-can).
+    their_side: Option<&'static str>,
     /// Fixes our start corner; otherwise it alternates.
     corner: Option<bool>,
     ours: usize,
@@ -321,6 +326,7 @@ fn run_match(repo: &Path, batch_dir: &Path, options: &Options, index: usize) -> 
         // `--corner` names the corner; which team slot that means depends on `--swap-corners`.
         we_are_first: options.corner.map_or(index.is_multiple_of(2), |north_west| north_west != options.swap_corners),
         our_side: options.side.unwrap_or(if (index / 2).is_multiple_of(2) { "Armada" } else { "Cortex" }),
+        their_side: options.their_side,
         mirror: options.mirror,
         start_delay: options.start_delay,
         starts: Vec::new(),
@@ -492,9 +498,19 @@ fn compress_logs_command(dir: &Path) -> io::Result<()> {
     Ok(())
 }
 
+/// A faction as the start script spells it, from `--side` or `--their-side`.
+fn side_named(value: &str, flag: &str) -> &'static str {
+    match value.to_lowercase().as_str() {
+        "armada" => "Armada",
+        "cortex" => "Cortex",
+        "legion" => "Legion",
+        _ => usage(&format!("{flag} takes armada, cortex or legion")),
+    }
+}
+
 /// The first factory in the opponent's ground-truth log, by name; empty without a log.
 fn first_factory(dir: &Path) -> String {
-    const FACTORIES: [&str; 10] = ["armlab", "armvp", "armap", "armsy", "armhp", "corlab", "corvp", "corap", "corsy", "corhp"];
+    const FACTORIES: [&str; 15] = ["armlab", "armvp", "armap", "armsy", "armhp", "corlab", "corvp", "corap", "corsy", "corhp", "leglab", "legvp", "legap", "legsy", "leghp"];
     let Some(truth) = fs::read_dir(dir).ok().and_then(|entries| {
         entries.flatten().map(|e| e.path()).find(|p| p.file_name().is_some_and(|n| n.to_string_lossy().starts_with("truth-")))
     }) else {
@@ -702,6 +718,7 @@ fn parse_args() -> Options {
         objective: None,
         packet_example: false,
         side: None,
+        their_side: None,
         corner: None,
         ours: 1,
         allies: 0,
@@ -816,13 +833,8 @@ fn parse_args() -> Options {
             }
             "--seed-base" => options.seed_base = value().parse().unwrap_or_else(|_| usage("--seed-base")),
             "--packet" => options.packet = Some(std::fs::canonicalize(value()).unwrap_or_else(|_| usage("--packet")).to_string_lossy().into_owned()),
-            "--side" => {
-                options.side = Some(match value().to_lowercase().as_str() {
-                    "armada" => "Armada",
-                    "cortex" => "Cortex",
-                    _ => usage("--side takes armada or cortex"),
-                })
-            }
+            "--side" => options.side = Some(side_named(&value(), "--side")),
+            "--their-side" => options.their_side = Some(side_named(&value(), "--their-side")),
             "--starts" => {
                 let text = value();
                 let point = |t: &str| t.split_once(',').and_then(|(x, z)| Some((x.trim().parse::<f32>().ok()?, z.trim().parse::<f32>().ok()?)));

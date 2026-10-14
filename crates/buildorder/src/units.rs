@@ -62,11 +62,14 @@ pub struct Stockpile {
 
 /// The stockpiling units of the standard roster, by name, from the game's unit files (`weapondefs` of each:
 /// `metalpershot`, `energypershot`, `stockpiletime`); the engine reports none of these numbers to an AI.
-const STOCKPILES: [(&str, Stockpile); 4] = [
+const STOCKPILES: [(&str, Stockpile); 6] = [
     ("armsilo", Stockpile { metal: 1000.0, energy: 125_000.0, seconds: 120.0 }),
     ("corsilo", Stockpile { metal: 1500.0, energy: 187_500.0, seconds: 180.0 }),
+    // Legion's Supernova is the Cortex silo's numbers, its Aegis the Armada anti-nuke's (`Legion/Defenses/legsilo.lua`, `legabm.lua`).
+    ("legsilo", Stockpile { metal: 1500.0, energy: 187_500.0, seconds: 180.0 }),
     ("armamd", Stockpile { metal: 150.0, energy: 7500.0, seconds: 90.0 }),
     ("corfmd", Stockpile { metal: 150.0, energy: 7500.0, seconds: 90.0 }),
+    ("legabm", Stockpile { metal: 150.0, energy: 7500.0, seconds: 90.0 }),
 ];
 
 fn role(n: &UnitDefInfo) -> Role {

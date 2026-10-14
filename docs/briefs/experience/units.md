@@ -113,3 +113,33 @@ just left. Winners' income ran above what their extractors give in 12% of minute
 **Aircraft.** An enemy aircraft plant in sight has meant gunships about ninety seconds later (human-9: the plant
 seen at 2:16, the first Banshee at 3:54, six of them killed eight Blitzes at 8:22). What hits aircraft: the Nettle
 turret, Whistlers, Crossbows.
+
+**Legion** (a seat whose `seats:` line says Legion; nothing below has been measured in a game of ours). Its tier-1
+economy costs what Cortex's does (extractor `legmex` 50, solar `legsolar` 150, wind `legwin` 43, bot lab `leglab` 470,
+vehicle plant `legvp` 570, converter `legeconv` 70 energy to 1 metal), so the opening arithmetic above holds; tier 2
+is a little dearer per energy (advanced solar `legadvsol` 465 for 100 a second, fusion `legfus` 4,000 for 950). The
+names differ where it matters: the light tower is the Pharos `leglht` (70 metal, 550 health, heat ray at 430 with no
+energy per shot, so it fires through an energy stall); the scout is the vehicle plant's Wheelie `legscout` (23 metal,
+speed 160; there is no scout bot); the resurrection bot is the Zagreus `legrezbot`; the air factory is a Drone Plant
+`legap` (430 metal) whose aircraft are drones (the Noctua `legfig` fighter at 40, a constructor aircraft `legca`). The
+role words resolve to Goblin, Satyr, Pharos, Alaris and Decurion on a Legion seat. Hives (`leghive`, 350 metal, six
+drones at 15 metal each) and a few tier-2 units spawn their own drones, which appear as units no factory made.
+
+| Bot lab `leglab` | metal / health / speed / range | Vehicle plant `legvp` | |
+|---|---|---|---|
+| Goblin `leggob` | 30 / 200 / 75 / 261, two 12-damage lasers per 0.9 s; the cheap swarm unit | Wheelie `legscout` | 23 / 75 / 160 / 169, scout |
+| Satyr `leglob` | 60 / 550 / 51 / 400, plasma 75 per 2.5 s; the Mace's place at under half the metal | Alaris `leghades` | 65 / 425 / 99 / 211, raider (the Blitz's place at 60 % of its metal) |
+| Phobos `legcen` | 140 / 840 / 90 / 180, two 75-damage gauss shots per 1.4 s; fast assault | Helios `leghelios` | 160 / 800 / 75 / 320, heat-ray skirmisher |
+| Ballista `legbal` | 160 / 900 / 43.5 / 460, one 250 rocket per 5.5 s; outranges the 430 towers | Decurion `leggat` | 300 / 2550 / 45 / 361, six-shot gatling; the assault tank (the Stout's place at 300) |
+| Karkinos `legkark` | 310 / 1725 / 42 / 360, heat ray plus a shotgun; the Centurion's place | Barrage `legbar` | 250 / 1500 / 40 / 535, napalm artillery, area 120; short of the others' 710 |
+| Toxotai `legaabot` | 120, anti-air only, 760 | Lance `legrail` | 240 / 1100 / 46 / 650, railgun 200 per 7.5 s that also shoots aircraft |
+| Zagreus `legrezbot` | 130; repairs, reclaims, resurrects | Constructor `legcv` | 125 / 1330 / 57, 85 build power |
+
+The one Legion player in the pool above OS 25 (OS 27, Great Divide, two wins) opened extractor, extractor, wind, wind,
+solar, bot lab at 0:42; the lab made a constructor, Goblins, a Zagreus and a second constructor; his army from 4:00 was
+Satyrs with a few Ballistas, and after 10:00 drones from Hives. An opponent may be Legion too (only Apex plays it,
+never BARb): its tier-1 towers reach the same 430; its Cacophony `legmg` (380 metal, 575, land and air) and Dragon's
+Jaw `legdtr` (290 metal, pop-up riot cannon at 400, stealthed) stand where the others' heavy laser would, its
+Amputator `legcluster` (850 metal, 1,000) where the Gauntlet would. [K-leg-economy-is-the-cortex-economy,
+K-leg-t1-bot-roster, K-leg-t1-vehicle-roster, K-leg-defences, K-leg-drone-plant-is-the-air-plant,
+K-leg-open-os27-great-divide, K-leg-barb-cannot-play-it-apex-can]

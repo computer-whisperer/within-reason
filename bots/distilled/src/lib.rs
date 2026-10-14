@@ -94,9 +94,15 @@ impl Distilled {
     fn kit_of(&self, commander: &UnitDefInfo) -> Kit {
         let faction = &commander.name[..commander.name.len().min(3)];
         let named = |suffix: &str| self.defs.values().find(|d| d.name == format!("{faction}{suffix}")).map(|d| d.id);
-        let (raider, tank, artillery, t2_tank, t2_artillery, assist) = match faction {
-            "cor" => ("gator", "raid", "wolv", "reap", "mart", None),
-            _ => ("flash", "stump", "art", "bull", "mart", Some("consul")),
+        // The suffixes a faction uses for each place. Legion's differ from the other two where it matters: the
+        // Pharos `leglht` for the light tower, the Wheelie `legscout`, the converters `legeconv`/`legadveconv`;
+        // its vehicles by the same places (docs/knowledge/legion.md, K-leg-role-words): Alaris raider, Decurion
+        // tank, Barrage artillery, Prometheus heat-ray tank and Cleaver cluster artillery at tier 2, the Aceso buggy
+        // as the fast assist constructor.
+        let (sentry, scout, converter, advanced_converter, raider, tank, artillery, t2_tank, t2_artillery, assist) = match faction {
+            "cor" => ("llt", "fav", "makr", "mmkr", "gator", "raid", "wolv", "reap", "mart", None),
+            "leg" => ("lht", "scout", "econv", "adveconv", "hades", "gat", "bar", "aheattank", "amcluster", Some("afcv")),
+            _ => ("llt", "fav", "makr", "mmkr", "flash", "stump", "art", "bull", "mart", Some("consul")),
         };
         Kit {
             // The cheapest extractor the commander can build.
@@ -105,9 +111,9 @@ impl Distilled {
             advanced_solar: named("advsol"),
             turret: named("nanotc"),
             plant: named("vp"),
-            sentry: named("llt"),
+            sentry: named(sentry),
             constructor: named("cv"),
-            scout: named("fav"),
+            scout: named(scout),
             raider: named(raider),
             tank: named(tank),
             artillery: named(artillery),
@@ -117,8 +123,8 @@ impl Distilled {
             moho: named("moho"),
             fusion: named("fus"),
             advanced_fusion: named("afus"),
-            converter: named("makr"),
-            advanced_converter: named("mmkr"),
+            converter: named(converter),
+            advanced_converter: named(advanced_converter),
             assist: assist.and_then(named),
             t2_tank: named(t2_tank),
             t2_artillery: named(t2_artillery),

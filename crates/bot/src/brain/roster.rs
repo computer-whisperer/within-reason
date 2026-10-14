@@ -103,7 +103,7 @@ impl Roster {
     }
 }
 
-pub static ROSTERS: [Roster; 2] = [
+pub static ROSTERS: [Roster; 3] = [
     Roster {
         commander: "armcom", extractor: "armmex",
         converter: "armmakr", lab: "armlab", turret: "armllt", constructor: "armck",
@@ -119,6 +119,18 @@ pub static ROSTERS: [Roster; 2] = [
         advanced_lab: "coralab", advanced_constructor: "corack", advanced_extractor: "cormoho",
         raider: "corak", line: "corthud", vehicle_raider: "corgator", vehicle_line: "corraid", resurrector: "cornecro",
         solar: "corsolar", wind: "corwin", air_plant: "corap", radar: "corrad", nano: "cornanotc", metal_storage: "cormstor", energy_storage: "corestor",
+    },
+    // Legion (K-leg-role-words, 2026-10-14, a first guess by cost and range and the one OS-27 player's games):
+    // the Goblin as the raider (30 metal, the unit he massed; Phobos `legcen` is the fast one), the Satyr as the
+    // line (plasma at 400, his mid-game body; Karkinos `legkark` is the heavy one), Alaris and Decurion at the
+    // plant, the Pharos heat ray as the turret, the drone plant as the air plant.
+    Roster {
+        commander: "legcom", extractor: "legmex",
+        converter: "legeconv", lab: "leglab", turret: "leglht", constructor: "legck",
+        plant: "legvp", vehicle_constructor: "legcv",
+        advanced_lab: "legalab", advanced_constructor: "legack", advanced_extractor: "legmoho",
+        raider: "leggob", line: "leglob", vehicle_raider: "leghades", vehicle_line: "leggat", resurrector: "legrezbot",
+        solar: "legsolar", wind: "legwin", air_plant: "legap", radar: "legrad", nano: "legnanotc", metal_storage: "legmstor", energy_storage: "legestor",
     },
 ];
 
@@ -140,11 +152,21 @@ const USUAL_CORTEX: &[&str] = &[
     "cormstor", "corestor", "coralab", "coravp", "coraap", "cormoho", "corfus", "corpun", "corflak", "cordl",
     "corafus", "corageo", "coruwadvms", "coruwadves", "corshroud", "corvipe", "cordoom", "cortoast", "corfmd", "cortarg",
 ];
+// Legion has no heavy laser tower: the Cacophony gatling (575, land and air) and the Dragon's Jaw pop-up riot cannon
+// (400) stand in; the Amputator is its Gauntlet, the Hive its own thing (six drones), the torpedo launchers are the
+// coastal `legctl` and the offshore `legtl`; tier 2: the Chimera pop-up and the Bastion for the Pit Bull and the
+// Annihilator, the Eviscerator for the Ambusher, the Aegis anti-nuke, the hardened storages (docs/knowledge/legion.md).
+const USUAL_LEGION: &[&str] = &[
+    "legsolar", "legwin", "legtide", "legfrad", "legtl", "legctl", "legadvsol", "leglab", "legvp", "legap", "leghp", "legsy", "leglht", "legmg", "legdtr", "legrl", "legrad", "legarad", "legnanotc",
+    "legmstor", "legestor", "legalab", "legavp", "legaap", "legmoho", "legfus", "legcluster", "legflak", "leghive",
+    "legafus", "legageo", "legamstor", "legadvestore", "legajam", "legapopupdef", "legbastion", "legacluster", "legabm", "legtarg",
+];
 
 /// The usual list for a builder of the faction its name belongs to.
 pub fn usual_menu(builder_name: &str) -> &'static [&'static str] {
     match World::faction_of(builder_name) {
         "cortex" => USUAL_CORTEX,
+        "legion" => USUAL_LEGION,
         _ => USUAL_ARMADA,
     }
 }
@@ -216,9 +238,17 @@ mod tests {
     /// anything else is left as it is.
     #[test]
     fn a_role_word_is_the_factions_unit() {
-        let (arm, cor) = (&ROSTERS[0], &ROSTERS[1]);
+        let (arm, cor, leg) = (&ROSTERS[0], &ROSTERS[1], &ROSTERS[2]);
         for word in ROLE_WORDS {
-            assert!(arm.role(word).is_some_and(|n| n.starts_with("arm")) && cor.role(word).is_some_and(|n| n.starts_with("cor")), "{word}");
+            assert!(arm.role(word).is_some_and(|n| n.starts_with("arm")) && cor.role(word).is_some_and(|n| n.starts_with("cor")) && leg.role(word).is_some_and(|n| n.starts_with("leg")), "{word}");
+        }
+        assert_eq!(leg.resolve_words("turret spot_3"), "leglht spot_3");
+        assert_eq!(leg.resolve_words_at_the_plant("raider:5"), "leghades:5");
+        assert_eq!(usual_menu("legck"), USUAL_LEGION);
+        // Every name the Legion roster and its usual menu carry is a unit of the glossary (the other two factions'
+        // names were checked by hand when written; Legion's suffixes differ from theirs where it matters).
+        for name in ROLE_WORDS.iter().filter_map(|w| leg.role(w)).chain([leg.commander, leg.vehicle_raider, leg.vehicle_line]).chain(USUAL_LEGION.iter().copied()) {
+            assert!(super::super::pianist::glossary::entry(name).is_some(), "{name} is not in the glossary");
         }
         assert_eq!(arm.resolve_words("solar"), "armsolar");
         assert_eq!(cor.resolve_words("turret spot_3"), "corllt spot_3");

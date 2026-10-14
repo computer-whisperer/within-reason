@@ -112,7 +112,7 @@ commit comes from `crates/bot/build.rs`.
 The game places AI teams itself (`game_initial_spawn.lua` guesses a spot in the start box), so no start position is sent.
 Commander and constructors build metal extractors on nearest spots, energy, a bot lab (more when metal floats) → labs queue cheap combat units →
 idle army is sent with Fight orders at the enemy start / last seen enemy once it reaches a threshold.
-Armada and Cortex name tables only; Legion and everything else is out of scope for the MVP.
+Armada and Cortex name tables only at the MVP; Legion joined them on 2026-10-14 (a third `Roster`, the glossary and the combat table regenerated from `legcom`, the arena's `--side legion` / `--their-side legion` writing the game's `experimentallegionfaction` option; `docs/knowledge/legion.md`).
 
 ## Done means
 `run/` script plays shim+bot vs BARb headless; log shows buildings completed, units produced, an attack order issued, and
