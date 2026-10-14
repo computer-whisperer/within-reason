@@ -42,11 +42,11 @@ FPS = 30
 MINUTES = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20)
 CURVE_KEYS = (("extractors", "extractors"), ("constructors", "constructors"), ("metal_income", "income"),
               ("army_metal", "army metal"), ("soldiers", "soldiers"), ("metal_stored", "metal stored"), ("army_metal_in_his_half", "army metal in his half"))
-LLT = ("armllt", "corllt")
-SOLAR = ("armsolar", "corsolar")
-RADAR = ("armrad", "corrad")
-NANO = ("armnanotc", "cornanotc")
-REZ = ("armrectr", "cornecro")
+LLT = ("armllt", "corllt", "leglht")
+SOLAR = ("armsolar", "corsolar", "legsolar")
+RADAR = ("armrad", "corrad", "legrad")
+NANO = ("armnanotc", "cornanotc", "legnanotc")
+REZ = ("armrectr", "cornecro", "legrezbot")
 
 
 def clock(s):

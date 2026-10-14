@@ -82,13 +82,21 @@ lab `legalab` 2600 M / 16000 E; advanced constructor `legack` 410 M, 195 build p
 640 M / 8100 E (= Cortex's). The commander `legcom` is the same hull (2700 M, 3700 hp, speed 37.5, 300 build power,
 30 E/s, laser 300 at 175 per 0.8 s, D-gun 250) plus a torpedo and an anti-air missile, both at 300: the only commander
 with a weapon that targets aircraft.
-**Status.** supported (2026-10-14) — local source
+**Amended 2026-10-14 (leg-player-1's review).** The buildings cost the same; the vehicles do not. Legion's tier-1
+vehicles cost 30 to 60 % more energy per metal than their twins (energy over metal from the unit files): Alaris 13.1
+(Blitz 8.2, Incisor 9.2), Decurion 12.0 (Stout 9.3, Brute 10.2), Lance 15.0 (no twin; Whistler 1150/150 = 7.7),
+Wheelie 15.2 (Rover 11.9), Helios 15.0, Barrage 12.8 (Shellshocker 16.3), constructor vehicle 16.8 (Armada's 14.4).
+A Legion vehicle army therefore wants more energy per metal of income than an Armada one, and the game showed it:
+energy use matched income in minutes 10-14, the metal store sat at its cap for 146 s and spent 2,203 metal into
+nothing while the advanced solars ordered at 5:52-6:48 had been overwritten by later lists (the first stood at
+13:13). The opening arithmetic holds; the army's energy does not.
+**Status.** supported (2026-10-14) — local source; the energy-per-metal consequence seen in one game
 **Evidence.** `Economy/legmex.lua`, `legsolar.lua`, `legwin.lua`, `legeconv.lua`, `legadvsol.lua`, `legfus.lua`,
 `legmoho.lua`, `legmstor.lua`, `legestor.lua`; `Labs/leglab.lua`, `legvp.lua`, `legalab.lua`; `Utilities/legnanotc.lua`;
 `Constructors/legck.lua`, `legcv.lua`, `legack.lua`; `legcom.lua` (weapons table: `aa_missile` with
 `onlytargetcategory = "VTOL"`, `torpedo` with `waterweapon`); the Armada and Cortex files beside them.
 **Would be wrong if.** The definitions the shim reports in a Legion game (`Hello`) differed from these.
-**Used by.** (candidate: the Legion `Roster` and its usual menu; the brief's cost tables)
+**Used by.** the Legion `Roster` and its usual menu; the brief's Legion section (the energy line)
 
 ### K-leg-t1-bot-roster
 **Claim.** The bot lab `leglab` (8 options) makes: constructor `legck`; Zagreus `legrezbot` 130 M, 200 build power,
@@ -145,6 +153,7 @@ Xyston `leglraa` 1600 M long-range anti-air at 2400, Perdition `legperdition` 12
 long-range cannon at 4800, Starfall `legstarfall` 63000 M.
 **Status.** supported (2026-10-14) for the numbers (local source); roles from the game's one-line descriptions
 **Evidence.** `Defenses/*.lua`, `Utilities/*.lua`; `Constructors/legck.lua:buildoptions`, `legack.lua:buildoptions`.
+**Seen 2026-10-14 (leg-player-1):** Pharos dealt 1,877 damage at 6:13-6:51 with the energy store at 0-3 (the review).
 **Would be wrong if.** The Pharos duel row against the Sentry's did not show it firing through an empty store.
 **Used by.** (candidate: the Legion usual menu; the brief's tower reach line, where 430 still holds)
 
@@ -222,9 +231,10 @@ vehicle_line `leggat`, rez `legrezbot`, solar `legsolar`, wind `legwin`, air_pla
 **Would be wrong if.** Legion games with the player showed `raider` wanted as Phobos (a Pawn-speed unit) or `line` as
 Karkinos; the words are the player's, so the first games decide.
 **Measured 2026-10-14 (leg-player-1, WON 25:54 against BARb hard_aggressive Armada).** The mapping stands as built and
-was barely used: the player wrote Legion internal names in its lists from the first turn (leglht 252 times, legadvsol
-138, leggat 93, leghades 66, legrail 33 over 139 `queue` and 78 `produce` calls) and role words only for `solar` (87),
-`constructor` (75), `raider` (12, at the vehicle plant, where it resolves to the Alaris) and `plant` (3); `line`,
-`turret` and `lab` never. It built no bot lab in the game (vehicle plants only, four of them, then the advanced
+was barely used: the player wrote Legion internal names in its lists from the first turn (leglht 84 times, legadvsol
+46, leggat 31, leghades 22, legrail 11 over 46 `queue` and 26 `produce` calls) and role words for `extractor` (92, a
+list step rather than a role word), `solar` (29), `constructor` (25), `raider` (4, at the vehicle plant, where it
+resolves to the Alaris) and `plant` (1); `line`, `turret` and `lab` never. (Counted once per tool call; the strategist
+log holds each call three times, and a first count here was three times too high.) It built no bot lab in the game (vehicle plants only, four of them, then the advanced
 vehicle plant), so the Goblin/Satyr half of the mapping is unexercised.
 **Used by.** the Legion `Roster` (`crates/bot/src/brain/roster.rs`)

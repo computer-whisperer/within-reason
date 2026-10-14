@@ -116,8 +116,12 @@ turret, Whistlers, Crossbows.
 
 **Legion** (a seat whose `seats:` line says Legion; nothing below has been measured in a game of ours). Its tier-1
 economy costs what Cortex's does (extractor `legmex` 50, solar `legsolar` 150, wind `legwin` 43, bot lab `leglab` 470,
-vehicle plant `legvp` 570, converter `legeconv` 70 energy to 1 metal), so the opening arithmetic above holds; tier 2
-is a little dearer per energy (advanced solar `legadvsol` 465 for 100 a second, fusion `legfus` 4,000 for 950). The
+vehicle plant `legvp` 570, converter `legeconv` 70 energy to 1 metal), so the opening arithmetic above holds. The
+vehicles do not: they cost 30 to 60 % more energy per metal than their twins (Alaris 850 energy for 65 metal against
+the Blitz's 900 for 110; Decurion 3,600 for 300 against the Stout's 2,100 for 225; Lance 3,600 for 240), so a Legion
+vehicle army wants more energy per metal of income, and in the first Legion game the plants ran at the energy income
+from 10:00 to 14:00 with the metal store capped while the advanced solars waited (advanced solar `legadvsol` 465 metal
+for 100 a second, fusion `legfus` 4,000 for 950). The
 names differ where it matters: the light tower is the Pharos `leglht` (70 metal, 550 health, heat ray at 430 with no
 energy per shot, so it fires through an energy stall); the scout is the vehicle plant's Wheelie `legscout` (23 metal,
 speed 160; there is no scout bot); the resurrection bot is the Zagreus `legrezbot`; the air factory is a Drone Plant

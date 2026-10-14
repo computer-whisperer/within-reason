@@ -18,7 +18,7 @@ import argparse, collections, json, os, statistics, sys
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 MANIFEST = os.path.join(REPO, "run/data/replays/manifest.jsonl")
 SOLAR = ("armsolar", "corsolar")
-FACTORY_SPEED = {"armvp": 150, "corvp": 150, "armlab": 100, "corlab": 100}
+FACTORY_SPEED = {"armvp": 150, "corvp": 150, "legvp": 150, "armlab": 100, "corlab": 100, "leglab": 100}
 
 
 def glossary():

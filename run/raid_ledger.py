@@ -74,9 +74,20 @@ def ledger(m, from_minute):
     plays.sort(key=lambda p: p[0])
     created = [e for e in m.events if e["k"] == "created" and cls(e.get("d")) == "extractor"]
     finished = {e["u"] for e in m.events if e["k"] == "finished"}
+    # An extractor of ours destroyed by a unit of ours is not a raid: our own constructor reclaiming it (`by` one of
+    # ours), or the tier-2 extractor built over it, which the engine records as a death with no killer once the
+    # tier-2 frame placed earlier on the same spot stands (leg-player-1's review, 2026-10-14: six of 31 "losses").
+    ours = {e["u"] for e in m.events if e["k"] == "created"}
+    tier2_frames = [e for e in m.events if e["k"] == "created" and cls(e.get("d")) == "extractor"]
+    def upgraded(e):
+        return e.get("by") is None and any(c["f"] <= e["f"] and c.get("d") != e.get("d") and math.dist((c["x"], c["z"]), (e["x"], e["z"])) < 80 for c in tier2_frames)
+    replaced_by_us = 0
     rows = []
     for e in m.events:
         if e["k"] != "destroyed" or cls(e.get("d")) != "extractor" or e["f"] < from_minute * 60 * FPS:
+            continue
+        if e.get("by") in ours or upgraded(e):
+            replaced_by_us += 1
             continue
         x, z, f = e["x"], e["z"], e["f"]
         near = lambda ux, uz, r: math.dist((ux, uz), (x, z)) < r
@@ -147,7 +158,7 @@ def ledger(m, from_minute):
                      "killer": m.def_name(e["by_d"]) if e.get("by_d") is not None else None, "party": party,
                      "seen_s": (f - seen_from) // FPS if seen_from is not None else 0, "soldiers_near": soldiers, "turrets_near": turrets,
                      "answer": answer, "raiders_paid": paid, "rebuilt": rebuilt})
-    return rows
+    return rows, replaced_by_us
 
 
 def totals(rows):
@@ -184,6 +195,8 @@ def print_ledger(m, rows, t):
         rb = x["rebuilt"]
         rebuilt = f"{rb['clock']} (+{rb['delay_s']}s{', stood' if rb['stood'] else ', not finished'})" if rb else "no"
         print(f"   {x['clock']:>5} {('spot_%d' % x['spot']) if x['spot'] is not None else '?':>7} {x['grid']:>4} {x['killer'] or '?':<9} {party[:26]:<26} {x['seen_s']:>4}s {x['soldiers_near']:>4} {x['turrets_near']:>3}  {answer:<58} {x['raiders_paid']:>4}  {rebuilt}")
+    if t.get("replaced_by_us"):
+        print(f"   ({t['replaced_by_us']} extractor(s) destroyed by our own units, an upgrade or a reclaim, left out)")
     print(f"   totals: by killer {t['by_killer']}; unseen {t['unseen']}; undefended (no soldier within 900, no turret within 700) {t['undefended']}; with a turret {t['with_turret']}; "
           f"answered {t['answered']} ({t['answered_within_60']} within 60 s of first sight, median delay {t['answer_delay_median_s']} s); parties that paid {t['parties_paid']}; "
           f"rebuilt {t['rebuilt']} ({t['rebuilt_stood']} stood, median {t['rebuild_delay_median_s']} s); lost twice or more {t['spots_lost_twice_or_more']}; by minute {t['by_minute_bucket']}")
@@ -207,8 +220,9 @@ def main():
         i += 1
     for d in dirs:
         m = Match(d.rstrip("/"))
-        rows = ledger(m, from_minute)
+        rows, replaced_by_us = ledger(m, from_minute)
         t = totals(rows)
+        t["replaced_by_us"] = replaced_by_us
         if as_json:
             print(json.dumps({"match": m.dir, "rows": rows, "totals": t}))
         else:
