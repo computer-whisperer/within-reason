@@ -2136,3 +2136,42 @@ the arena's placing phase, and the AIs are created before it, so the opening tur
 15.6 s from the AIs' creation to frame 0, the opening turn (8.4 s) over before it, the first extractor placed at 2.1 s and
 standing at 9.6 s. Not built: the spot fields before the game or lazily; a `forcestart` through the autohost socket when
 every seat's opening turn has ended, so the slot is as long as needed and no longer.
+
+### K-jev-long-context-buys-nothing-for-todays-hands
+**Claim.** The long-context header (262k a request and a question, 2026-10-14) neither moves Jev's answers on our
+calls nor speeds them; our states are under half of the default per-question limit (32k tokens), and the calls
+that pass 64k do so by question count, which the client's parallel batches answer in about half the time of one
+whole request.
+**Status.** measured (2026-10-16, offline: `docs/studies/2026-10-16-jev-1.14-long-context-images.md` §1)
+**Evidence.** apex-v024-carrot-sym50-opus-1 seat 0 and human-32 seat 2 replayed through `run/jev_long_ab.py`:
+ordinary calls the same latency and agreement at the drift (nouls same side 0.992 against 0.990 re-sent);
+the 100-170k-token batched calls 785 and 701 ms whole against 412 and 378 ms as batches, agreement at the drift
+either way; the largest state with rules and packet 36.6k characters (about 15k tokens) across the biggest games;
+260k tokens answer in 4.5 s.
+**Would be wrong if.** A design put a state past about 80k characters (the whole roster, a game's history), or a
+whole request under the header answered faster than the batches on a later serving.
+
+### K-jev-1-14-differs-from-1-13-beyond-the-drift
+**Claim.** Jev 1.14.0 (`jev-preview`; `jev-latest` is still 1.13.0) answers our questions differently from 1.13
+beyond the call-to-call drift, at the same latency: 3% of noul flags (the drift 1%) and a tenth of picks (5%),
+most on `place`, `change`, `follow_group`, `gather` and the forbidden mark, with every `build_*` untouched; it
+says yes a little more often (10.4% against 9.3%) with a lower mean. The alias will move to it without a code
+change; whether it plays better is not known.
+**Status.** measured (2026-10-16, offline; the same study §2). Not measured: which is right (no human verdicts; the
+`run/jev_ab.py` moment detectors find nothing on the rebuilt hands' logs).
+**Evidence.** The same replay: ordinary nouls same side 0.971 against 1.13 re-sent (drift 0.990), picks same 0.898
+(0.955); by kind `place` 107 of 1,732, `change` 30 of 337, `forbidden` 14 of 769 against 22, 8 and 1 for the drift.
+**Would be wrong if.** A second replay on another game put 1.14 within the drift, or the spatial battery with facts
+(the same on both) were the whole story.
+
+### K-jev-a-map-picture-reads-like-coordinates-and-box-gives-a-position
+**Claim.** With the map as an image beside the question (the images header), Jev's typed answers on the spatial
+battery read about like Jev on bare coordinates and never like Jev on code's facts (cover 0.58-0.67 against 0.93,
+the rally point 0.17-0.75 against 1.00, route 0.67 against 1.00); a drawing is one more encoding of code's facts.
+The Box question (1.14) is the one new thing: a position, right on the uncovered stretch of a turret line two
+thirds of the time and on the group's main body five times in six on a clean drawing, for about 2,700 tokens
+and 30-50 ms; coordinates in the text beside the picture break it (0.04), and its confidence says nothing.
+**Status.** measured (2026-10-16, offline on the synthetic battery, 12 instances a cell; the same study §3)
+**Evidence.** `run/clef_spatial.py --models jev,jev-preview --box`, `docs/studies/data/jev-images-spatial-2026-10-16.*`.
+**Would be wrong if.** A picture of a real game moment moved a gate answer toward a reviewer's verdict where the
+text did not, or a Box on a real picture (units, terrain, no clean dots) kept the two-thirds rate.

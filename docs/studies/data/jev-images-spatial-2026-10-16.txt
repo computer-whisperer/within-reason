@@ -1,0 +1,52 @@
+==== jev: 240 calls, 0 failed, 0.60M tokens ($0.03)
+kind   encoding      score (mean over instances)           wall ms  in tok
+gap    coords        free 0.00  spot 1.00                      127     652
+gap    facts         free 0.00  spot 1.00                      129     784
+gap    image         free 0.00  spot 1.00                      164    3278
+gap    image_coords  free 0.00  spot 1.00                      169    3499
+gap    image_reach   free 0.00  spot 1.00                      156    3509
+
+cover  coords        ratio 0.57                                128     977
+cover  facts         ratio 0.93                                113    1056
+cover  image         ratio 0.63                                162    3507
+cover  image_coords  ratio 0.62                                161    3824
+cover  image_reach   ratio 0.58                                174    3835
+
+rally  coords        rally 0.83  stragglers 0.98               124    1039
+rally  facts         rally 1.00  stragglers 0.95               150    1172
+rally  image         rally 0.17  stragglers 0.71               154    3602
+rally  image_coords  rally 0.67  stragglers 0.93               175    3899
+rally  image_reach   rally 0.75  stragglers 0.96               180    3908
+
+route  coords        route 0.42                                127     545
+route  facts         route 1.00                                133     584
+route  image         route 0.67                                178    3246
+route  image_coords  route 0.33                                155    3408
+route  image_reach   route 0.67                                161    3416
+
+==== jev-preview: 240 calls, 0 failed, 0.60M tokens ($0.03)
+kind   encoding      score (mean over instances)           wall ms  in tok
+gap    coords        free 0.00  spot 0.83                      142     652
+gap    facts         free 0.00  spot 1.00                      126     784
+gap    image         free 0.67  spot 0.92                      150    3322
+gap    image_coords  free 0.04  spot 1.00                      174    3542
+gap    image_reach   free 0.54  spot 1.00                      173    3552
+
+cover  coords        ratio 0.55                                119     977
+cover  facts         ratio 0.89                                132    1056
+cover  image         ratio 0.67                                172    3507
+cover  image_coords  ratio 0.62                                172    3824
+cover  image_reach   ratio 0.56                                161    3835
+
+rally  coords        rally 0.83  stragglers 0.98               136    1039
+rally  facts         rally 1.00  stragglers 1.00               115    1172
+rally  image         rally 0.17  rally_box 0.83  stragglers 0.67      159    3634
+rally  image_coords  rally 0.75  rally_box 0.58  stragglers 0.94      156    3932
+rally  image_reach   rally 0.75  rally_box 0.58  stragglers 0.94      168    3942
+
+route  coords        route 0.42                                125     545
+route  facts         route 1.00                                139     584
+route  image         route 0.75                                156    3246
+route  image_coords  route 0.58                                152    3406
+route  image_reach   route 0.67                                154    3415
+

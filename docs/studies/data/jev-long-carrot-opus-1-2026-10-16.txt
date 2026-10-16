@@ -1,0 +1,51 @@
+run/matches/1791989571-apex-v024-carrot-sym50-opus-1/00/jev-0.jsonl.zst: 1151 recorded calls (120 in batches), recorded model jev-1.13.0; replaying 116 (104 ordinary, 12 batched: 165k/4, 155k/4, 151k/4, 146k/4, 145k/4, 141k/4, 139k/4, 127k/3, 125k/3, 122k/3, 122k/3, 118k/3)
+580 requests in 48 s at 3 at once, 15.87M tokens ($0.67)
+
+== latest: 116 ok, 0 failed; served by {'jev-1.13.0': 116}
+   latency ms (median / p90, this run) against the recorded ms (median), by the recorded size:
+     <8k    n= 22     146 /   169   recorded   166   parts 1
+     8-16k  n= 51     187 /   226   recorded   198   parts 1
+     16-32k n= 21     238 /   274   recorded   257   parts 1
+     32-64k n= 10     337 /   354   recorded   414   parts 1
+     >=64k  n= 12     412 /   435   recorded   474   parts 4
+   ordinary against the recorded answers: nouls 4654 same side 0.984 |diff| median 0.020 mean 0.029; choices 177 same pick 0.944 (p of the recorded pick, median 0.68)
+            against jev-latest re-sent now:   nouls 4654 same side 0.990 |diff| median 0.010 mean 0.014; choices 177 same pick 0.955 (p of its pick, median 0.68)
+   batched  against the recorded answers: nouls 8436 same side 0.986 |diff| median 0.020 mean 0.027; choices 0 same pick 0.000 (p of the recorded pick, median 0.00)
+            against jev-latest re-sent now:   nouls 8436 same side 0.994 |diff| median 0.010 mean 0.013; choices 0 same pick 0.000 (p of its pick, median 0.00)
+
+== latest+long: 116 ok, 0 failed; served by {'jev-1.13.0': 116}
+   latency ms (median / p90, this run) against the recorded ms (median), by the recorded size:
+     <8k    n= 22     150 /   165   recorded   166   parts 1
+     8-16k  n= 51     188 /   231   recorded   198   parts 1
+     16-32k n= 21     229 /   318   recorded   257   parts 1
+     32-64k n= 10     332 /   362   recorded   414   parts 1
+     >=64k  n= 12     785 /   938   recorded   474   parts 1
+   ordinary against the recorded answers: nouls 4654 same side 0.984 |diff| median 0.020 mean 0.029; choices 177 same pick 0.927 (p of the recorded pick, median 0.67)
+            against jev-latest re-sent now:   nouls 4654 same side 0.992 |diff| median 0.010 mean 0.014; choices 177 same pick 0.949 (p of its pick, median 0.67)
+   batched  against the recorded answers: nouls 8436 same side 0.988 |diff| median 0.020 mean 0.028; choices 0 same pick 0.000 (p of the recorded pick, median 0.00)
+            against jev-latest re-sent now:   nouls 8436 same side 0.994 |diff| median 0.010 mean 0.014; choices 0 same pick 0.000 (p of its pick, median 0.00)
+
+== preview: 116 ok, 0 failed; served by {'jev-1.14.0': 116}
+   latency ms (median / p90, this run) against the recorded ms (median), by the recorded size:
+     <8k    n= 22     153 /   172   recorded   166   parts 1
+     8-16k  n= 51     186 /   215   recorded   198   parts 1
+     16-32k n= 21     240 /   287   recorded   257   parts 1
+     32-64k n= 10     352 /   523   recorded   414   parts 1
+     >=64k  n= 12     403 /   425   recorded   474   parts 4
+   ordinary against the recorded answers: nouls 4654 same side 0.970 |diff| median 0.040 mean 0.055; choices 177 same pick 0.881 (p of the recorded pick, median 0.67)
+            against jev-latest re-sent now:   nouls 4654 same side 0.971 |diff| median 0.040 mean 0.053; choices 177 same pick 0.898 (p of its pick, median 0.68)
+   batched  against the recorded answers: nouls 8436 same side 0.974 |diff| median 0.040 mean 0.053; choices 0 same pick 0.000 (p of the recorded pick, median 0.00)
+            against jev-latest re-sent now:   nouls 8436 same side 0.976 |diff| median 0.040 mean 0.050; choices 0 same pick 0.000 (p of its pick, median 0.00)
+
+== preview+long: 116 ok, 0 failed; served by {'jev-1.14.0': 116}
+   latency ms (median / p90, this run) against the recorded ms (median), by the recorded size:
+     <8k    n= 22     165 /   192   recorded   166   parts 1
+     8-16k  n= 51     192 /   230   recorded   198   parts 1
+     16-32k n= 21     239 /   287   recorded   257   parts 1
+     32-64k n= 10     326 /   340   recorded   414   parts 1
+     >=64k  n= 12     799 /   930   recorded   474   parts 1
+   ordinary against the recorded answers: nouls 4654 same side 0.968 |diff| median 0.040 mean 0.055; choices 177 same pick 0.887 (p of the recorded pick, median 0.66)
+            against jev-latest re-sent now:   nouls 4654 same side 0.969 |diff| median 0.040 mean 0.053; choices 177 same pick 0.893 (p of its pick, median 0.67)
+   batched  against the recorded answers: nouls 8436 same side 0.974 |diff| median 0.040 mean 0.053; choices 0 same pick 0.000 (p of the recorded pick, median 0.00)
+            against jev-latest re-sent now:   nouls 8436 same side 0.975 |diff| median 0.040 mean 0.050; choices 0 same pick 0.000 (p of its pick, median 0.00)
+

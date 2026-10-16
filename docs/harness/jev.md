@@ -6,7 +6,8 @@ Credentials come from the environment only — this repository is public.
 
 What it is: a hosted "System One" model. A request carries a **state** (text or JSON) plus typed **questions**; every question is
 answered in parallel, in isolation, in one pass, with probabilities. No text generation. Vendor figures: 70-500 ms end to end,
-$0.042 per million input tokens, output free, options per Choice capped at 255, no image input.
+$0.042 per million input tokens, output free, options per Choice capped at 255, no image input (images since
+2026-10 behind a header: the 2026-10-16 section below).
 
 Primitives: **Choice** (one of a defined set; distribution + confidence), **Noul** (probability that a condition holds; one per
 label when several may apply; 0.5 means unsure, not "medium"), **Score** (position on described ordered levels; use comparable
@@ -30,7 +31,8 @@ Guidance from that file that shapes our design:
 ## First contact (2026-09-19, `experiments/jev/`, model jev-1.13.0)
 API facts confirmed by use: `POST https://api.typesafe.ai/v1/systemone`, `Authorization: Bearer $TYPESAFE_API_KEY`, body
 `{model, state, questions:{id:{type: noul|choice|score, instructions, criteria}}}`; answers carry probabilities (and
-`confidence` for choice/score). Limits from their docs: 64k context, 1,200 requests/min, 250k tokens/s, text only.
+`confidence` for choice/score). Limits from their docs: 64k context, 1,200 requests/min, 250k tokens/s, text only (2026-09-19; the 2026-10-16
+section below has the current limits and the opt-in headers).
 The key lives in `~/.config/within-reason/jev.env` (mode 600), never in this repository.
 - **Latency from this machine: median 318-350 ms** for three questions over a ~650-730 token request (5 calls each,
   min 289, max 386). Cost per call about $0.00003.
@@ -100,3 +102,28 @@ Choice; `places` was 10 KB of it. Now the pick's state is cut to what the worlds
 world sends are one line, places nothing names are dropped), and in realtime the worker composes the worlds and makes
 the pick the instant the gate answers instead of waiting for the next think, and answers are polled every tick (3
 frames) rather than every think (15). In lockstep the calls take no game time; the saving there is wall time.
+
+## Jev 1.14, long context and images (2026-10-16, `models.md`, `api.md`, `images.md`, `primitives/box.md`)
+- **Jev 1.14.0** shipped 2026-10-14. `jev-latest` (our client's default) still answers as `jev-1.13.0`; `jev-preview`
+  is 1.14.0 and the alias moves when they promote it (`GET /v1/models` lists the aliases only; a versioned id is
+  accepted in `model` whether listed or not). Same price. Measured 2026-10-16 (`docs/studies/2026-10-16-jev-1.14-long-context-images.md`):
+  the same latency at every size, and answers that differ from 1.13 beyond the drift (3% of noul flags, a tenth of
+  picks). Their own advice: send the versioned id when thresholds were tuned on a version.
+- **Context**: 64k a request and 32k a question (the state plus that one question) by default, both models. The
+  header `TypeSafe-Danger-Zone-Long-Context: true` raises both to 262k tokens for that request, same price, "slower
+  and less accurate" by their word. Measured: 260k tokens answer in 4.5 s; on our calls the header neither moves
+  answers nor speeds anything, and the client's parallel batches (`REQUEST_CHARS`) are twice as fast as one whole
+  request for the 100-170k-token calls. No recorded state of ours is within half of the per-question limit.
+- **Images**: the header `TypeSafe-Danger-Zone-Images: true`; a top-level `assets` map of reference string to
+  `{"type": "image", "format": "png" | "jpg", "data_base64": ...}` (or a multipart file `part`); a reference is
+  matched as plain text anywhere in the state, the instructions or the criteria and replaced by the image, so use
+  a UUID; every asset must be referenced; object keys are never replaced. 280-1568 pixels a side, 16 MiB a file,
+  PNG or JPEG. Both 1.13 and 1.14 read images. Image tokens are billed as input tokens (no published estimate; a
+  1024 x 1024 map PNG measured at about 2,700). "Dreamer-ready": the format, the answers and the limits can change.
+- **Box** (`{"type": "box", "instructions": "the mug in `photo`"}`, 1.14 only): answers `box: {top, bottom, left,
+  right}` as fractions of the image and a `confidence`; always a box (pair it with a noul for "is it there"); one
+  target a question. Measured: the uncovered stretch of a turret line two thirds of the time on a clean drawing,
+  broken by coordinates in the text beside the picture, confidence uninformative.
+- Scripts: `run/jev_long_ab.py` (a recorded game's calls under the header and through an alias, against the
+  recorded answers and a re-sent baseline), `run/clef_spatial.py --models jev,jev-preview --box` (the spatial
+  battery with the map pictures as assets).

@@ -1,0 +1,27 @@
+run/matches/1791751159-human-32/00/jev-2.jsonl: 1717 recorded calls (131 in batches), recorded model jev-1.13.0; replaying 20 (0 ordinary, 20 batched: 169k/4, 167k/4, 152k/4, 143k/4, 129k/3, 119k/3, 119k/3, 118k/3, 118k/3, 116k/3, 112k/3, 110k/3, 108k/3, 108k/3, 108k/3, 106k/3, 103k/3, 100k/3, 98k/3, 98k/3)
+100 requests in 27 s at 2 at once, 11.36M tokens ($0.48)
+
+== latest: 20 ok, 0 failed; served by {'jev-1.13.0': 20}
+   latency ms (median / p90, this run) against the recorded ms (median), by the recorded size:
+     >=64k  n= 20     378 /   440   recorded   444   parts 3
+   batched  against the recorded answers: nouls 11384 same side 0.993 |diff| median 0.010 mean 0.016; choices 0 same pick 0.000 (p of the recorded pick, median 0.00)
+            against jev-latest re-sent now:   nouls 11384 same side 0.995 |diff| median 0.010 mean 0.012; choices 0 same pick 0.000 (p of its pick, median 0.00)
+
+== latest+long: 20 ok, 0 failed; served by {'jev-1.13.0': 20}
+   latency ms (median / p90, this run) against the recorded ms (median), by the recorded size:
+     >=64k  n= 20     701 /   890   recorded   444   parts 1
+   batched  against the recorded answers: nouls 11384 same side 0.993 |diff| median 0.010 mean 0.016; choices 0 same pick 0.000 (p of the recorded pick, median 0.00)
+            against jev-latest re-sent now:   nouls 11384 same side 0.995 |diff| median 0.010 mean 0.012; choices 0 same pick 0.000 (p of its pick, median 0.00)
+
+== preview: 20 ok, 0 failed; served by {'jev-1.14.0': 20}
+   latency ms (median / p90, this run) against the recorded ms (median), by the recorded size:
+     >=64k  n= 20     383 /   414   recorded   444   parts 3
+   batched  against the recorded answers: nouls 11384 same side 0.979 |diff| median 0.040 mean 0.044; choices 0 same pick 0.000 (p of the recorded pick, median 0.00)
+            against jev-latest re-sent now:   nouls 11384 same side 0.980 |diff| median 0.030 mean 0.042; choices 0 same pick 0.000 (p of its pick, median 0.00)
+
+== preview+long: 20 ok, 0 failed; served by {'jev-1.14.0': 20}
+   latency ms (median / p90, this run) against the recorded ms (median), by the recorded size:
+     >=64k  n= 20     690 /   921   recorded   444   parts 1
+   batched  against the recorded answers: nouls 11384 same side 0.979 |diff| median 0.040 mean 0.044; choices 0 same pick 0.000 (p of the recorded pick, median 0.00)
+            against jev-latest re-sent now:   nouls 11384 same side 0.980 |diff| median 0.030 mean 0.042; choices 0 same pick 0.000 (p of its pick, median 0.00)
+

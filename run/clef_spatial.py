@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
-"""The spatial battery of run/haiku_spatial.py asked of Cloudflare's Clef models as typed questions, with the
-pictures through the `images` field. Same instances (seed), same code-computed truth, same scores.
+"""The spatial battery of run/haiku_spatial.py asked of Cloudflare's Clef models and of Jev as typed questions, with the
+pictures through Clef's `images` field or Jev's `assets` (under the `TypeSafe-Danger-Zone-Images` header, 2026-10-16).
+Same instances (seed), same code-computed truth, same scores.
 
-    run/clef_spatial.py                                  # both models, every encoding, 12 instances a kind
+    run/clef_spatial.py                                  # both Clef models, every encoding, 12 instances a kind
     run/clef_spatial.py --models clef-flash --encodings coords,facts,image_reach --n 6 --show
+    run/clef_spatial.py --models jev,jev-preview --box   # Jev 1.13 and 1.14 with the pictures; Box questions on 1.14
+
+With `--box`, the image encodings on `jev-preview` (Jev 1.14, the first with Box) also ask a Box: the uncovered
+stretch of the turret line (`gap`, scored as the free position: `free`) and the main body of the group (`rally`,
+its centre's nearest candidate scored as `rally_box`).
 
 How each ask becomes questions: `gap` a choice over the candidate spots (the free position is not asked: a decision
 model gives no numbers); `cover` a noul per site ("one of the best two?"), the top two taken; `rally` a noul per unit
@@ -15,7 +21,7 @@ import argparse, concurrent.futures, json, random, statistics, sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import haiku_spatial as H
 from clef_replay import credentials, clef_ask, PRICES
-import urllib.request, urllib.error, time
+import urllib.request, urllib.error, time, uuid
 
 JEV_URL = "https://api.typesafe.ai/v1/systemone"
 JEV_PRICE = 0.042
@@ -33,14 +39,31 @@ def jev_key():
     return key
 
 
-def jev_ask(key, state, questions):
-    """Jev on the same state and questions (text only: Jev takes no images)."""
-    body = json.dumps({"model": "jev-latest", "state": state, "questions": questions}).encode()
-    req = urllib.request.Request(JEV_URL, data=body, method="POST", headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json", "User-Agent": "within-reason-spatial"})
+JEV_MODELS = {"jev": "jev-latest", "jev-preview": "jev-preview"}
+
+
+def jev_ask(key, model, state, questions, images=None):
+    """Jev on the same state and questions. The images (data URLs) go as `assets` under the images header, and the
+    state becomes an object with the picture under `map` and the text under `description`, so a question can name it."""
+    body = {"model": JEV_MODELS.get(model, model), "state": state, "questions": questions}
+    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json", "User-Agent": "within-reason-spatial"}
+    if images:
+        refs = [str(uuid.uuid4()) for _ in images]
+        body["assets"] = {ref: {"type": "image", "format": "png", "data_base64": img.split(",", 1)[1]} for ref, img in zip(refs, images)}
+        body["state"] = {"map": refs[0], "description": state} if len(refs) == 1 else {"maps": refs, "description": state}
+        headers["TypeSafe-Danger-Zone-Images"] = "true"
+    req = urllib.request.Request(JEV_URL, data=json.dumps(body).encode(), method="POST", headers=headers)
     t = time.monotonic()
-    with urllib.request.urlopen(req, timeout=60) as r:
-        out = json.load(r)
+    try:
+        with urllib.request.urlopen(req, timeout=120) as r:
+            out = json.load(r)
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"HTTP {e.code}: {e.read().decode(errors='replace')[:300]}")
     return out["answers"], out.get("usage", {}), time.monotonic() - t, 1, 0
+
+
+BOXES = {"gap": "the uncovered stretch of our turret line in `map`: the part of the line, between two neighbouring red turrets, that no turret's reach covers and the raiders will cross",
+         "rally": "the main body of our group in `map`: the dense cluster of green dots where the group should gather to fight as one body"}
 
 ENCODINGS = ["coords", "cells", "ascii", "facts", "image", "image_coords", "image_reach"]
 
@@ -58,7 +81,19 @@ def state_and_images(kind, s, enc):
     return legend + "\n\n" + state, ["data:image/png;base64," + H.image_of(s, enc == "image_reach")]
 
 
-def questions_of(kind, s):
+def questions_of(kind, s, box=False):
+    q = typed_questions_of(kind, s)
+    if box and kind in BOXES:
+        q[f"{kind}_box"] = {"type": "box", "instructions": BOXES[kind]}
+    return q
+
+
+def box_centre(answer):
+    b = answer["box"]
+    return ((b["left"] + b["right"]) / 2 * H.MAP, (b["top"] + b["bottom"]) / 2 * H.MAP)
+
+
+def typed_questions_of(kind, s):
     if kind == "gap":
         return {"spot": {"type": "choice", "instructions": f"Raiders will cross our turret line from the north where no turret's reach covers it. Which candidate spot, given a new turret of reach {H.R}, closes the uncovered stretch?",
                          "criteria": {k: f"a new turret at {k}" for k in s["cands"]}}}
@@ -75,12 +110,19 @@ def questions_of(kind, s):
 
 def answer_of(kind, s, answers):
     if kind == "gap":
-        return {"spot": answers.get("spot", {}).get("choice")}
+        a = {"spot": answers.get("spot", {}).get("choice")}
+        if "gap_box" in answers:
+            a["x"], a["z"] = box_centre(answers["gap_box"])
+        return a
     if kind == "cover":
         ranked = sorted(s["cands"], key=lambda k: -answers.get(k, {}).get("noul", 0))
         return {"sites": ranked[:2]}
     if kind == "rally":
-        return {"stragglers": [u for u in s["units"] if answers.get(f"strag.{u}", {}).get("noul", 0) >= 0.5], "rally": answers.get("rally", {}).get("choice")}
+        a = {"stragglers": [u for u in s["units"] if answers.get(f"strag.{u}", {}).get("noul", 0) >= 0.5], "rally": answers.get("rally", {}).get("choice")}
+        if "rally_box" in answers:
+            centre = box_centre(answers["rally_box"])
+            a["rally_box"] = min(s["cands"], key=lambda k: H.dist(centre, s["cands"][k]))
+        return a
     if kind == "route":
         return {"route": answers.get("route", {}).get("choice")}
 
@@ -89,7 +131,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--kinds", default=",".join(H.KINDS))
     ap.add_argument("--encodings", default=",".join(ENCODINGS))
-    ap.add_argument("--models", default="clef-flash,clef", help="clef-flash, clef, jev (jev: text encodings only)")
+    ap.add_argument("--models", default="clef-flash,clef", help="clef-flash, clef, jev (jev-latest), jev-preview, or a versioned jev-1.x.y")
+    ap.add_argument("--box", action="store_true", help="Box questions beside the typed ones on jev-preview's image encodings")
     ap.add_argument("--n", type=int, default=12)
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--parallel", type=int, default=6)
@@ -97,8 +140,8 @@ def main():
     ap.add_argument("--out")
     args = ap.parse_args()
     models = args.models.split(",")
-    creds = credentials() if any(m != "jev" for m in models) else None
-    jkey = jev_key() if "jev" in models else None
+    creds = credentials() if any(not m.startswith("jev") for m in models) else None
+    jkey = jev_key() if any(m.startswith("jev") for m in models) else None
 
     jobs = []
     for kind in args.kinds.split(","):
@@ -109,19 +152,21 @@ def main():
             for i, s in enumerate(instances):
                 state, images = state_and_images(kind, s, enc)
                 for model in models:
-                    if model == "jev" and images:
-                        continue
-                    jobs.append((model, kind, enc, i, s, state, images))
+                    box = args.box and images is not None and model in ("jev-preview", "jev-1.14.0")
+                    jobs.append((model, kind, enc, i, s, state, images, box))
 
     def run(job):
-        model, kind, enc, i, s, state, images = job
+        model, kind, enc, i, s, state, images, box = job
         try:
-            if model == "jev":
-                answers, usage, seconds, batches, retried = jev_ask(jkey, state, questions_of(kind, s))
+            if model.startswith("jev"):
+                answers, usage, seconds, batches, retried = jev_ask(jkey, model, state, questions_of(kind, s, box), images)
             else:
                 answers, usage, seconds, batches, retried = clef_ask(creds, model, state, questions_of(kind, s), images)
             a = answer_of(kind, s, answers)
-            return {"model": model, "kind": kind, "enc": enc, "i": i, "answer": a, "score": H.KINDS[kind][2](s, a), "seconds": seconds, "usage": usage, "raw": answers}
+            score = H.KINDS[kind][2](s, a)
+            if "rally_box" in a:
+                score["rally_box"] = 1.0 if a["rally_box"] == s["right"] else 0.0
+            return {"model": model, "kind": kind, "enc": enc, "i": i, "answer": a, "score": score, "seconds": seconds, "usage": usage, "raw": answers}
         except (RuntimeError, urllib.error.HTTPError, urllib.error.URLError) as e:
             return {"model": model, "kind": kind, "enc": enc, "i": i, "error": str(e), "score": {}, "seconds": 0, "usage": {}}
 

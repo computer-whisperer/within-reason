@@ -99,7 +99,8 @@ def load_calls(path):
                 state = dict(d["state"])
                 state["instructions"] = instructions
                 state["rules"] = rules
-                calls.append({"f": d["f"], "ms": d["ms"], "jev_tokens": d["usage"]["input_tokens"], "state": state, "questions": d["questions"], "jev": d["answers"]})
+                calls.append({"f": d["f"], "ms": d["ms"], "jev_tokens": d["usage"]["input_tokens"], "batches": d.get("batches", 1), "model": d.get("model", ""),
+                              "state": state, "questions": d["questions"], "jev": d["answers"]})
     return calls
 
 
