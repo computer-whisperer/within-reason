@@ -278,6 +278,8 @@ impl Launch {
     /// working directory `<name>-cwd` and its `<name>-stderr.log`.
     fn prepare(dir: &Path, name: &str, shared: Arc<Shared>, model: String, effort: String, prompt: fn() -> String) -> std::io::Result<(Launch, McpServer)> {
         let transcript = Arc::new(Transcript::create(&dir.join(format!("{name}.jsonl")))?);
+        // The `predict` rows, appended (a replacement session spawns from the same launch and keeps writing).
+        *shared.predictions.lock().unwrap() = Some(std::fs::OpenOptions::new().create(true).append(true).open(dir.join(format!("predictions-{name}.jsonl")))?);
         let server = McpServer::start(shared.clone(), transcript.clone())?;
         // An empty working directory: nothing for the session to discover.
         let cwd = dir.join(format!("{name}-cwd"));
@@ -643,6 +645,9 @@ fn player_prompt(game_time: &str, headline: &str, shared: &Shared, seen: &mut re
         let notes = shared.notes.lock().unwrap();
         if !notes.is_empty() {
             prompt += &format!("You are taking over mid-game from an earlier session of yourself. Its notes:\n{}\n\n", notes.join("\n"));
+        }
+        if let Some(last) = shared.last_prediction.lock().unwrap().as_ref() {
+            prompt += &format!("Its last `predict` of his state: {last}\n\n");
         }
         let instructions = shared.instructions.lock().unwrap();
         if !instructions.trim().is_empty() {

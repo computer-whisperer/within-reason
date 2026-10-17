@@ -233,6 +233,7 @@ pub(super) fn tool_list() -> Value {
         { "name": "note",
           "description": "Record your reasoning in a sentence or two. Kept with the game time for post-game analysis, and handed to you again if your session is replaced; it changes nothing in the game.",
           "inputSchema": { "type": "object", "properties": { "text": { "type": "string" } }, "required": ["text"], "additionalProperties": false } },
+        super::mcp::predict_tool(),
         { "name": "wait",
           "description": format!("Sets how many game seconds pass before your next report (default {DEFAULT_WAIT}, {} to {}); it holds until you change it. The game does not stop for you: your turn ends when you stop writing.", WAIT_BOUNDS.0, WAIT_BOUNDS.1),
           "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "max_seconds": { "type": "integer", "minimum": WAIT_BOUNDS.0, "maximum": WAIT_BOUNDS.1 } } } },
@@ -252,7 +253,7 @@ pub(super) fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> 
         }),
         "surrender" => Some(super::mcp::surrender(arguments, shared)),
         "signal" => Some(super::mcp::signal(arguments, shared)),
-        "situation" | "overview" | "map" | "units" | "note" | "say" | "mark" | "transfer" => None,
+        "situation" | "overview" | "map" | "units" | "note" | "predict" | "say" | "mark" | "transfer" => None,
         other => Some(Err(format!("{other} is not a tool of the commander's: you direct the players in words (`direct`); the units are theirs"))),
     }
 }

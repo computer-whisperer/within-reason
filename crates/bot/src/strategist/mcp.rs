@@ -1,6 +1,7 @@
 //! Minimal MCP server over streamable HTTP: the five methods Claude Code was observed to use
 //! (`docs/harness/claude-p.md`), answered with plain JSON.
 
+use std::io::Write;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -202,9 +203,10 @@ fn tool_list() -> Value {
               "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "maxLength": 240 } } } },
             signal_tool(),
             surrender_tool(),
-            orders(&["instruct", "queue", "lane", "mark", "produce", "remove", "fire", "transfer", "signal", "say", "note", "wait"], "your instructions or policy, build lists, footwork settings, marked places, what labs may build, removals, a missile, a signal, a chat line, a note and when to be woken"),
+            orders(&["instruct", "queue", "lane", "mark", "produce", "remove", "fire", "transfer", "signal", "say", "note", "predict", "wait"], "your instructions or policy, build lists, footwork settings, marked places, what labs may build, removals, a missile, a signal, a chat line, a note, a prediction of his state and when to be woken"),
             wait("A group of ours starts fighting an enemy party.", "Woken when this many soldiers of each named unit type are alive, e.g. {\"armham\": 6}. {} clears it."),
             note,
+            predict_tool(),
     ])
 }
 
@@ -327,8 +329,53 @@ fn point_of(value: &Value, width: f32, height: f32, label: &str) -> Result<(f32,
 }
 
 /// What `orders` may batch.
+/// The `predict` tool, the player's and the commander's alike (the user, 2026-10-17: "some way for the player to report
+/// hidden state predictions throughout the game that we can easily score later ... numeric predictions of mex count
+/// and army value", with his advanced factory as the third field and the commander given it too).
+pub(super) fn predict_tool() -> Value {
+    json!({ "name": "predict",
+        "description": "Your estimate of what the opponent has NOW, which you cannot see: his extractors standing, the metal value of his army alive (soldiers, not buildings), and whether an advanced factory of his stands. The report gives sightings with their age and never his state; this is where your reading of them, the clock and the brief's tables goes. One number each, your best single guess, and a sentence on what it rests on. Written beside the game time with what the report showed, scored against the truth after the game; nothing in the game reads it. Give it every few minutes and whenever your reading changes.",
+        "inputSchema": { "type": "object", "properties": {
+            "extractors": { "type": "integer", "minimum": 0, "description": "his extractors standing now" },
+            "army_metal": { "type": "integer", "minimum": 0, "description": "the metal value of his army alive now" },
+            "advanced_factory": { "type": "string", "enum": ["none", "building", "standing"], "description": "his advanced factory now: none started, being built, or standing" },
+            "basis": { "type": "string", "description": "one sentence: what the estimate rests on" }
+        }, "required": ["extractors", "army_metal", "advanced_factory", "basis"], "additionalProperties": false } })
+}
+
+/// One `predict` row: the numbers, the game time, and what the report showed at that turn (his soldiers seen and
+/// their metal, his extractors seen and the ages of the looks, his factories seen, our own extractors and army), so
+/// the scorer can tell a reading from a copy of the floor. Appended to `predictions-<name>.jsonl`; the last one is
+/// kept for the takeover prompt. For the commander the field is the side's.
+pub(super) fn predict(arguments: &Value, shared: &Arc<Shared>) -> Result<String, String> {
+    let extractors = arguments["extractors"].as_u64().ok_or("`extractors` takes his extractors standing now, a whole number")?;
+    let army_metal = arguments["army_metal"].as_u64().ok_or("`army_metal` takes the metal of his army alive now, a whole number")?;
+    let advanced = arguments["advanced_factory"].as_str().filter(|s| ["none", "building", "standing"].contains(s)).ok_or("`advanced_factory` is one of none, building, standing")?;
+    let basis = arguments["basis"].as_str().map(str::trim).filter(|s| !s.is_empty()).ok_or("`basis` takes a sentence on what the estimate rests on")?;
+    let field = shared.field();
+    let s = &field.score;
+    let time = shared.briefing().game_time;
+    let row = json!({
+        "frame": s.frame, "clock": time,
+        "extractors": extractors, "army_metal": army_metal, "advanced_factory": advanced, "basis": basis,
+        "report": {
+            "enemy_soldiers_seen": s.enemy_soldiers_seen, "enemy_soldiers_seen_metal": s.enemy_soldiers_seen_metal,
+            "enemy_extractors_seen": s.enemy_spots.len(),
+            "youngest_look_s": s.enemy_spots.iter().map(|(_, _, ago)| *ago).min(), "oldest_look_s": s.enemy_spots.iter().map(|(_, _, ago)| *ago).max(),
+            "enemy_factories_seen": s.enemy_factories.iter().map(|(name, _)| name.clone()).collect::<Vec<_>>(),
+            "ours": { "extractors": s.extractors, "army_metal": s.army_metal },
+        },
+    });
+    if let Some(file) = shared.predictions.lock().unwrap().as_mut() {
+        writeln!(file, "{row}").map_err(|e| format!("the prediction could not be written: {e}"))?;
+    }
+    let words = format!("his extractors {extractors}, his army {army_metal} metal, his advanced factory {advanced}: {basis}");
+    *shared.last_prediction.lock().unwrap() = Some(format!("[{time}] {words}"));
+    Ok(format!("recorded at {time}: {words}; scored against the truth after the game"))
+}
+
 fn batchable() -> &'static [&'static str] {
-    &["instruct", "queue", "lane", "mark", "produce", "remove", "fire", "transfer", "signal", "say", "note", "wait"]
+    &["instruct", "queue", "lane", "mark", "produce", "remove", "fire", "transfer", "signal", "say", "note", "predict", "wait"]
 }
 
 /// The `orders` tool: several tool calls in one request. `wait` goes last wherever it was listed, since it ends the turn.
@@ -388,6 +435,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             shared.notes.lock().unwrap().push(format!("[{time}] {text}"));
             Ok("noted".into())
         }
+        "predict" => predict(arguments, shared),
         "wait" => {
             let mut wake = shared.wake.lock().unwrap();
             if let Some(seconds) = arguments["max_seconds"].as_u64() {
@@ -1157,7 +1205,7 @@ mod tests {
     #[test]
     fn the_player_has_its_lever_and_none_of_the_commanders() {
         let player: Vec<String> = tool_list().as_array().unwrap().iter().map(|t| t["name"].as_str().unwrap().to_string()).collect();
-        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "produce", "transfer", "remove", "fire", "say", "signal", "surrender", "orders", "wait", "note"]);
+        assert_eq!(player, ["overview", "map", "situation", "units", "plan", "search", "instruct", "queue", "lane", "mark", "produce", "transfer", "remove", "fire", "say", "signal", "surrender", "orders", "wait", "note", "predict"]);
         for tool in batchable() {
             assert!(player.contains(&tool.to_string()));
         }
@@ -1198,7 +1246,7 @@ mod tests {
         assert!(call_tool("produce", &json!({ "all": ["raiders"] }), &shared).unwrap_err().contains("role word"));
         // Every player tool but the readers and `orders` itself can be batched (comet-3: `queue` was refused by the
         // batch as "not a tool that can be batched" and the game ran without the list).
-        for tool in ["instruct", "queue", "lane", "mark", "produce", "say", "note", "wait"] {
+        for tool in ["instruct", "queue", "lane", "mark", "produce", "say", "note", "predict", "wait"] {
             assert!(batchable().contains(&tool), "{tool}");
         }
         assert!(orders(&json!({ "calls": [{ "tool": "queue", "arguments": { "commander": ["armsolar"] } }] }), &shared).unwrap().contains("1 steps"));
@@ -1580,5 +1628,30 @@ mod planning {
             out["queues_note"] = json!("the order as the builders would carry it out; give it to `queue` (builders) and `produce` (factories) yourself if you want it");
         }
         Ok::<String, String>(out.to_string()).unwrap_or_default()
+    }
+}
+
+#[cfg(test)]
+mod predict_tests {
+    use super::*;
+
+    /// A `predict` row carries the numbers, the game time and what the report showed, lands in the predictions file and
+    /// in the takeover words; a missing or odd field is refused with the field named.
+    #[test]
+    fn a_prediction_is_written_with_what_the_report_showed_and_bad_fields_are_refused() {
+        let shared = Arc::new(Shared::default());
+        let path = std::env::temp_dir().join(format!("within-reason-predict-test-{}.jsonl", std::process::id()));
+        *shared.predictions.lock().unwrap() = Some(std::fs::OpenOptions::new().create(true).append(true).truncate(false).open(&path).unwrap());
+        let ok = predict(&json!({ "extractors": 17, "army_metal": 4200, "advanced_factory": "building", "basis": "a Hound seen at E3 and the brief's 10:44" }), &shared).unwrap();
+        assert!(ok.contains("his extractors 17, his army 4200 metal, his advanced factory building"), "{ok}");
+        let row: Value = serde_json::from_str(std::fs::read_to_string(&path).unwrap().lines().next().unwrap()).unwrap();
+        assert_eq!(row["extractors"], 17);
+        assert_eq!(row["advanced_factory"], "building");
+        assert!(row["report"]["enemy_soldiers_seen"].is_number() && row["report"]["ours"]["extractors"].is_number(), "{row}");
+        assert!(shared.last_prediction.lock().unwrap().as_ref().unwrap().contains("his army 4200 metal"));
+        assert!(predict(&json!({ "extractors": 17, "army_metal": 4200, "advanced_factory": "maybe", "basis": "x" }), &shared).unwrap_err().contains("advanced_factory"));
+        assert!(predict(&json!({ "extractors": "many", "army_metal": 4200, "advanced_factory": "none", "basis": "x" }), &shared).unwrap_err().contains("extractors"));
+        assert!(predict(&json!({ "extractors": 1, "army_metal": 1, "advanced_factory": "none", "basis": " " }), &shared).unwrap_err().contains("basis"));
+        std::fs::remove_file(&path).ok();
     }
 }

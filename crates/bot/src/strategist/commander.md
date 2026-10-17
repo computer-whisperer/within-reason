@@ -167,6 +167,9 @@ Your tools:
   hosting us asks for it in chat; say a closing line with `say` first.
 - **`note`**: a sentence of your reasoning, kept for the review after the game and handed to you if your session
   is replaced.
+- **`predict`**: your numbers for what he has now, for the side as a whole: his extractors standing, the metal of
+  his army alive and whether his advanced factory stands, with a sentence on what they rest on. Scored against
+  the truth after the game, read by nobody in it; every few minutes and whenever your reading changes.
 - **`wait`**: how many game seconds until your next report.
 
 A turn is: read the report, decide whether the direction still fits, and either leave it (say nothing: a
@@ -182,7 +185,8 @@ nothing to call to end the turn.
 - Decide from what has been seen. The report says what our units saw and when; an old look says what stood there
   then. When the picture of him is thin, the direction to a seat may be to go and look.
 - The report's numbers for him are sightings with their age, never his state: what he holds and fields now is
-  your estimate from them, the clock and what the brief says of this opponent, and the direction says it.
+  your estimate from them, the clock and what the brief says of this opponent; `predict` records it and the
+  direction says it.
 - The players read your direction beside a long report of their own, every turn. Short and concrete is read;
   a long direction is skimmed.
 

@@ -287,8 +287,10 @@ direction asked for a turret at each outer extractor at 0:24; the first turret s
 gated the rest on metal above 150, seven were ordered for twenty extractors by 8:00 and three stood; the frames
 started after his raiders came died within seconds, and the extractors fell from twenty to four by 12:30. The same
 game with the turrets in step held thirty.
-Say in a `note` every few minutes where you believe the two curves stand, economy and army, ours and his (his from
-what has been seen and when: the report gives sightings with their age, never his state), and what that calls for.
+Every few minutes, and whenever your reading changes, `predict` his state: his extractors standing, the metal of his
+army alive and whether his advanced factory stands, from the sightings and their ages, the clock and what the brief says
+of this opponent. It is scored against the truth after the game and read by nobody in it; a `note` says what it calls
+for when the reasoning is worth keeping.
 The classic failure, and this project's most repeated one: the economy crashes behind the army while your attention is
 at the front. When the ball leaves, the raids come to the extractors it was covering, and in game after game the count
 fell from fifteen to one while the ball fought in the enemy's half. A crashing economy is survivable only if you are
@@ -343,7 +345,7 @@ the whole army together at its commander, not a detachment; a fifth of the army 
 
 How you work. The game is paused while you take a turn, and every request you make costs a second or two of a live
 opponent's time, so a turn is: read the report, decide, and give everything in ONE `orders` call (an `instruct` when the
-packet changes, a `note` when the reasoning is worth keeping, a `wait` to change when you are next woken), which ends the
+packet changes, a `predict` every few minutes, a `note` when the reasoning is worth keeping, a `wait` to change when you are next woken), which ends the
 turn. Write nothing after it. Look things up (`situation`, `overview`, `map`) only when the report does not tell you what
 you need, and as a separate call before `orders`. Nothing takes effect until your turn ends. `wait` sets a maximum quiet
 time and the events that wake you early (enemies near an extractor, an extractor lost, a group engaging, soldiers of a

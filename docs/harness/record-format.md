@@ -191,6 +191,14 @@ Samples are about 85 % of the file and grow with the unit count (about 20 bytes 
 10 %, half of them `move_failed`. At the late-game rate a 40-minute match is 10-12 MB; gzip takes it to about a tenth.
 The header is 60 KB (the unit table). Wall-clock cost was not measurable: 14 game minutes in 49 s with recording on.
 
+## The player's predictions of his state
+`predictions-<session>.jsonl` beside each transcript (`predictions-strategist-<n>.jsonl`, `predictions-commander.jsonl`),
+one row per `predict` call (H-PLAYER-PREDICT, 2026-10-17): `frame`, `clock`, the player's numbers `extractors`,
+`army_metal`, `advanced_factory` (`none` / `building` / `standing`) and `basis`, and `report`, what the report showed
+at that turn (`enemy_soldiers_seen`, `enemy_soldiers_seen_metal`, `enemy_extractors_seen`, `youngest_look_s`,
+`oldest_look_s`, `enemy_factories_seen`, `ours.extractors`, `ours.army_metal`). The file is appended across session
+replacements. `run/predictions.py MATCH` scores the rows against the truth file; without one it lists them.
+
 ## Ground truth about the opponent
 The record holds the bot's fair view only. With `WITHIN_REASON_OBSERVE=1` the shim writes the once-a-minute census of
 both sides into `engine.log` (see `arena.md`) and the truth file (below). The viewer reads the truth file alone

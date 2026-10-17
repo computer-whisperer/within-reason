@@ -473,6 +473,13 @@ pub struct Shared {
     pub fights: Mutex<BTreeMap<String, u32>>,
     /// The commander's own notes, carried across session restarts.
     pub notes: Mutex<Vec<String>>,
+    /// The session's `predict` rows go here (`predictions-<name>.jsonl` beside the transcript, opened by the launch):
+    /// the player's own numbers for his hidden state, scored against the truth file after the game
+    /// (`run/predictions.py`); nothing in the hands reads them (the user, 2026-10-17: "some way for the player to
+    /// report hidden state predictions throughout the game that we can easily score later").
+    pub predictions: Mutex<Option<std::fs::File>>,
+    /// The last prediction's words, handed to a fresh session with the notes.
+    pub last_prediction: Mutex<Option<String>>,
     /// The player's standing instructions to the pianist (`instruct` tool), the whole packet, replaced each time.
     pub instructions: Mutex<String>,
     /// Builders' lists from the `queue` tool, by actor name: `Some` replaces the list, `None` cancels it; the brain drains

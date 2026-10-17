@@ -20,6 +20,8 @@ Columns (lower is better unless said):
   stuck s    unit-seconds our mobile units could not move: from a move failure until the unit has moved 80 elmos
   yard min   minutes some factory of ours had a stuck unit in its exit lane (- for records without footprints)
   known%     the player's enemy-army metal as a share of the truth, median over its turns past minute five (higher is better)
+  pred%      the player's `predict` rows (predictions-strategist-*.jsonl): median absolute error of its army estimate as a
+             share of the truth (- without rows; run/predictions.py has the rest)
   fac min    minute the picture first listed a factory of theirs seen (- if never)
   look min   minute one of our units first stood within 1,500 of the enemy commander's true start, from the truth file (- if never)
   turn s     the player's wall seconds a turn, median
@@ -27,6 +29,7 @@ Columns (lower is better unless said):
              after its builder left, or an unseen enemy finished it); aband m is the metal put into them (the frame's
              last sampled build share times its cost), the user 2026-09-27: "it eats a lot of resources whenever it happens"
 """
+import glob
 import json
 import os
 import re
@@ -125,6 +128,19 @@ def scorecard(m):
             true = sum(m.metal_of(u[1]) for u in m.truth[tf] if m.is_soldier_name(u[1]) and not u[5])
             if true > 0:
                 known.append(100 * int(mk.group(2)) / true)
+    pred = []
+    for path in sorted(glob.glob(os.path.join(m.dir, "predictions-strategist-*.jsonl")))[:1]:
+        for line in open(path, errors="replace"):
+            try:
+                r = json.loads(line)
+            except ValueError:
+                continue
+            tf = max((k for k in m.truth if k <= r.get("frame", 0)), default=None)
+            if tf is None or not r.get("army_metal"):
+                continue
+            true = sum(m.metal_of(u[1]) for u in m.truth[tf] if m.is_soldier_name(u[1]) and not u[5])
+            if true > 0:
+                pred.append(100 * abs(r["army_metal"] - true) / true)
     walls = [t["wall"] or 0 for t in m.turns]
     abandoned, abandoned_metal = abandoned_builds(m, defs, built_share)
     r = m.result or {}
@@ -140,6 +156,7 @@ def scorecard(m):
         "stuck_s": round(stuck_frames / frames),
         "yard_min": yard_min,
         "known%": round(med(known, 0)) if known else None,
+        "pred%": round(med(pred, 0)) if pred else None,
         "fac_min": round(fac / frames / 60, 1) if fac else None,
         "look_min": round(look / frames / 60, 1) if look else None,
         "turn_s": round(med(walls, 0), 1) if walls else None,
@@ -162,7 +179,7 @@ def opening(m):
     return {"fac4": row["fac_units"], "stall4": row["stalled"], "assist4": row["assist_s"]}
 
 
-COLUMNS = ["result", "minutes", "idle%", "e0%", "mfull%", "react_s", "unanswered", "noop%", "jev$", "stuck_s", "yard_min", "known%", "fac_min", "look_min", "turn_s", "aband", "aband_m", "fac4", "stall4", "assist4"]
+COLUMNS = ["result", "minutes", "idle%", "e0%", "mfull%", "react_s", "unanswered", "noop%", "jev$", "stuck_s", "yard_min", "known%", "pred%", "fac_min", "look_min", "turn_s", "aband", "aband_m", "fac4", "stall4", "assist4"]
 
 
 def abandoned_builds(m, defs, built_share):
