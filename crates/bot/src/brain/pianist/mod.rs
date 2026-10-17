@@ -1144,6 +1144,7 @@ impl Brain {
     /// then the second's own, as in the base. Returns the questions not sent and the moves audited.
     fn decode_and_fuse(&mut self, tick: &Tick, picture: &picture::Picture, menus: &mut [menu::Menu]) -> (usize, usize) {
         let instructions = picture.state["instructions"].as_str().unwrap_or_default();
+        let extractor = self.kit.map(|k| self.name(k.extractor).to_string()).unwrap_or_default();
         let pianist = self.pianist.as_mut().expect("pianist mode");
         if pianist.decode.packet != instructions {
             pianist.decode = decode::Decode { packet: instructions.to_string(), reads: BTreeMap::new() };
@@ -1184,7 +1185,7 @@ impl Brain {
                 }
             }
         }
-        decode::fuse(menus, &pianist.decode, &newer, &mut compose::draw)
+        decode::fuse(menus, &pianist.decode, &newer, &extractor, &mut compose::draw)
     }
 
     /// The store's words for the worlds' lines ("340 of 500 stored").
@@ -1867,6 +1868,7 @@ impl Brain {
     /// lines since its last turn, the groups that began an engagement this second, the standing orders in force.
     fn publish_hands(&mut self, picture: &picture::Picture) {
         let Some(shared) = &self.strategist else { return };
+        let extractor = self.kit.map(|k| self.name(k.extractor).to_string()).unwrap_or_default();
         let pianist = self.pianist.as_mut().expect("pianist mode");
         let mut state = picture.state.clone();
         if let Some(fields) = state.as_object_mut() {
@@ -1880,10 +1882,12 @@ impl Brain {
                 entry["best_rated"] = json!(moves.iter().map(|(said, p)| format!("{said} ({p:.2})")).collect::<Vec<_>>().join(", "));
             }
         }
-        // And, with the `fuse` layer on, what the decode read of the packet for each group.
+        // And, with the `fuse` layer on, what the decode read of the packet for each group, and for each builder
+        // its extractor reading (which shuts nothing: the impedance study §3.2b).
         if pianist.layers.fuse && let Some(actors) = state["actors"].as_object_mut() {
-            for (actor, entry) in actors.iter_mut().filter(|(name, e)| name.starts_with("group_") && e.is_object()) {
-                if let Some(words) = decode::reads_words(&pianist.decode, actor) {
+            for (actor, entry) in actors.iter_mut().filter(|(_, e)| e.is_object()) {
+                let words = if actor.starts_with("group_") { decode::reads_words(&pianist.decode, actor) } else { decode::builder_reads_words(&pianist.decode, actor, &extractor) };
+                if let Some(words) = words {
                     entry["reads"] = json!(words);
                 }
             }

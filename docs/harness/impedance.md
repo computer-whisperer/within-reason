@@ -35,7 +35,13 @@ replaced by our own advanced extractor is not a loss; a build with no site is sa
 armavp where it was asked, so the order is dropped: name another place or a spot for it"); a constructor's entry
 carries its type (`constructor_54 (armacv): ...`). Not yet measured in a game.
 
-Still open, each the user's call: the decode's readings shown for groups only. The tools: `remove` wants handles the picture gives only in the exit-lane line; `transfer` refuses the
+**Also fixed 2026-10-16, after the thirty-paragraph measurement** (the study §3.2b): the extractor move is never
+fused on the decode's reading (every other build type still is; the players name those units and the readings hold),
+and the player's report shows each builder's extractor reading (`reads: extractors 0.23 (how the packet reads for
+it; this one shuts no move)`) beside the groups' place readings.
+
+Still open, each the user's call: the decode's other readings (places, joins, follows, detachments) stay fuses at
+their bars. The tools: `remove` wants handles the picture gives only in the exit-lane line; `transfer` refuses the
 whole list for one stale name; a player's `mark` removal does not touch the side's mark of that name; `produce
 "new"` gives no name to write the packet with. Jev and the decode: the packet weights the pick and does not command
 (K-jev-the-packet-weights-the-pick-and-does-not-command); an ordered constructor paragraph reads as no extractors

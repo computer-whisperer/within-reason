@@ -94,15 +94,23 @@ pub(super) fn needed(menus: &[Menu], decode: &Decode, newer: &BTreeSet<String>, 
 
 /// Puts the decode's clear readings on the menus: a move with a reading under `OFF` is fused off; a detachment's
 /// mark is set where its reading is clear. Of what it fuses or marks, a share of `AUDIT_SHARE` is asked anyway.
+/// The extractor move (`extractor`, the faction's extractor by internal name) is never fused: the players write
+/// "take free spots" and the question asks about a "Metal Extractor (armmex)", and the reading sat under the bar in
+/// 11 of 25 paragraphs that give extractors while the light turret's and the solar's, which the players name, read
+/// right (the impedance study §3.2b, 2026-10-16; the user: "stop fusing the extractor move, keep the reading for
+/// the report"). The reading is still asked and kept, for the player's report.
 /// An actor that appeared after the packet in force landed and that the packet does not name (`newer`) is not
 /// fused: the packet could not have spoken of it, so its silence is no reading (player-35, 28:32-28:55: a detachment of eight was born with every
 /// walk and its join back fused off, and six died while the audit rated those moves 0.55 to 0.68; 73 of the game's
 /// 91 detachments were born with the join back fused). Returns the questions not sent and the moves audited.
-pub(super) fn fuse(menus: &mut [Menu], decode: &Decode, newer: &BTreeSet<String>, draw: &mut dyn FnMut() -> f64) -> (usize, usize) {
+pub(super) fn fuse(menus: &mut [Menu], decode: &Decode, newer: &BTreeSet<String>, extractor: &str, draw: &mut dyn FnMut() -> f64) -> (usize, usize) {
     let (mut skipped, mut audited) = (0, 0);
     for menu in menus.iter_mut().filter(|m| !newer.contains(&m.name)) {
         let name = menu.name.clone();
         for m in menu.moves.iter_mut().skip(1).filter(|m| !m.far) {
+            if m.reads.iter().any(|r| matches!(r, Read::Build(unit, _) if unit == extractor)) {
+                continue;
+            }
             let reading = |read: &Read| decode.reads.get(&key(&name, read)).copied();
             if m.detachment {
                 // The mark, never a fuse: the detachment itself stays a question.
@@ -130,6 +138,13 @@ pub(super) fn fuse(menus: &mut [Menu], decode: &Decode, newer: &BTreeSet<String>
         }
     }
     (skipped, audited)
+}
+
+/// What the decode read of the packet for a builder, for the player's report: its extractor reading, which shuts
+/// nothing (`fuse`), said so the player sees how its words read.
+pub(super) fn builder_reads_words(decode: &Decode, actor: &str, extractor: &str) -> Option<String> {
+    let p = decode.reads.get(&format!("{actor}|build|{extractor}"))?;
+    Some(format!("extractors {p:.2} (how the packet reads for it; this one shuts no move)"))
 }
 
 /// What the decode reads for a group, for the player's report: the places at 0.5 or over, and whether the
@@ -185,7 +200,7 @@ mod tests {
         decode.reads = [("group_A|back", 0.9), ("group_A|detach|1", 0.05), ("group_A|detach|2", 0.9), ("group_A|place|spot_30", 0.85), ("group_A|place|spot_62", 0.03)].into_iter().map(|(k, p)| (k.to_string(), p)).collect();
         assert!(needed(&menus, &decode, &nobody, &what).is_empty(), "what is read is not asked again under the same packet");
         let mut menus = menus;
-        assert_eq!(fuse(&mut menus, &decode, &nobody, &mut || 0.5), (3, 0));
+        assert_eq!(fuse(&mut menus, &decode, &nobody, "armmex", &mut || 0.5), (3, 0));
         let m = &menus[0].moves;
         assert!(!m[1].fused && m[2].fused && !m[5].fused);
         assert_eq!((m[3].marked, m[4].marked), (Some(false), Some(true)));
@@ -195,20 +210,30 @@ mod tests {
         decode.reads.insert("group_A|detach|2".into(), 0.5);
         decode.reads.insert("group_A|back".into(), 0.1);
         let mut menus = vec![group()];
-        assert_eq!(fuse(&mut menus, &decode, &nobody, &mut || 0.5), (1, 0));
+        assert_eq!(fuse(&mut menus, &decode, &nobody, "armmex", &mut || 0.5), (1, 0));
         assert!(!menus[0].moves[2].fused && menus[0].moves[4].marked.is_none());
         assert_eq!(reads_words(&decode, "group_A").as_deref(), Some("spot_30; NO place to step back to"));
         // The audit: a fused move drawn under the share is asked anyway, and still not played.
         decode.reads.insert("group_A|place|spot_62".into(), 0.03);
         let mut menus = vec![group()];
-        assert_eq!(fuse(&mut menus, &decode, &nobody, &mut || 0.001), (0, 2));
+        assert_eq!(fuse(&mut menus, &decode, &nobody, "armmex", &mut || 0.001), (0, 2));
         assert!(menus[0].moves[2].fused && menus[0].moves[2].audit && menus[0].moves[2].asked());
+        // The extractor move is never fused, whatever its reading; another build type is.
+        let mut menus = vec![group()];
+        menus[0].moves[1].reads = vec![Read::Build("armmex".into(), "Metal Extractor (armmex)".into())];
+        menus[0].moves[2].reads = vec![Read::Build("armllt".into(), "Sentry (armllt)".into())];
+        decode.reads.insert("group_A|build|armmex".into(), 0.05);
+        decode.reads.insert("group_A|build|armllt".into(), 0.05);
+        assert_eq!(fuse(&mut menus, &decode, &nobody, "armmex", &mut || 0.5), (2, 0), "the turret fused and one detachment marked; the extractor move not");
+        assert!(!menus[0].moves[1].fused && menus[0].moves[2].fused);
+        assert_eq!(builder_reads_words(&decode, "group_A", "armmex").as_deref(), Some("extractors 0.05 (how the packet reads for it; this one shuts no move)"));
+        decode.reads.insert("group_A|place|spot_62".into(), 0.03);
         // An actor that appeared after the packet landed is not read and not fused: the packet's silence about it
         // is no reading.
         let newer: BTreeSet<String> = ["group_A".to_string()].into();
         let mut menus = vec![group()];
         assert!(needed(&menus, &Decode::default(), &newer, &what).is_empty());
-        assert_eq!(fuse(&mut menus, &decode, &newer, &mut || 0.5), (0, 0));
+        assert_eq!(fuse(&mut menus, &decode, &newer, "armmex", &mut || 0.5), (0, 0));
         assert!(menus[0].moves.iter().all(|m| !m.fused && m.marked.is_none()));
     }
 }
