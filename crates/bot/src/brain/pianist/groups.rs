@@ -112,7 +112,9 @@ pub(crate) enum GroupTask {
     /// Roving (H-MICRO-ROVE): every soldier is the lane's, looking at what we know least, killing what it finds
     /// unguarded and keeping out of every reach. A pick like every task (the `rove` move, or `rove_1` for the
     /// detachment it makes); the way back is any other pick (docs/design/2026-10-07-rove-approval.md, the rework).
-    Rove { since: i32 },
+    /// `within`: a region the player marked, outside which the rovers look at nothing and attack nothing (the
+    /// `rove_<region>` move; docs/design/2026-10-17-rove-destinations.md).
+    Rove { since: i32, within: Option<String> },
 }
 
 #[derive(Debug)]
@@ -208,7 +210,7 @@ impl Group {
     /// What the group is doing, in a word or two: for the loss wake and the record's `lane` row.
     pub(crate) fn course_word(&self) -> String {
         match &self.task {
-            GroupTask::Rove { .. } => "roving".to_string(),
+            GroupTask::Rove { within, .. } => within.as_ref().map_or("roving".to_string(), |w| format!("roving within {w}")),
             GroupTask::Hold { .. } => "holding".to_string(),
             GroupTask::Move { place, fight, .. } => format!("{} to {place}", if *fight { "advancing" } else { "walking" }),
             GroupTask::Engage { .. } => "attacking a party".to_string(),
@@ -1023,7 +1025,7 @@ mod tests {
         let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
         let mut group = Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { since: 0, committed: false, picked: false }, 0);
         group.joining.insert(ours[0].id, ours[0].pos);
-        group.set_task(GroupTask::Rove { since: 0 }, 0);
+        group.set_task(GroupTask::Rove { since: 0, within: None }, 0);
         assert_eq!(group.course_word(), "roving");
         assert!(group.rejoin_orders(&[&ours[0]]).is_empty());
         pianist.groups.push(group);

@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use serde_json::{Value, json};
 use tiny_http::{Header, Method, Response, Server};
 
-use super::shared::{Allowance, Firing, PlanContext, Removal, Shared};
+use super::shared::{Allowance, Firing, Mark, PlanContext, Removal, Shared};
 use crate::brain::pianist::step_id;
 use super::transcript::Transcript;
 
@@ -183,7 +183,7 @@ fn tool_list() -> Value {
               "description": "Which footwork rules your hands' code applies to a group's soldiers between your hands' orders, per group name or for \"all\": \"raw\" (none: the group's orders reach the engine exactly as given), \"on\" (all of them, the default), or a list of the rules to keep. The rules: flee (a soldier steps out of the reach of a turret or a fight it was not sent against, or one it would die in), fan (spreads out under a commander's D-gun), kite (a soldier that outranges its enemy steps back while reloading), form (a group's soldiers walk to their own slots in ranks of six across the group's heading, two hulls apart, and stand at contact), march (an advancing group waits for its stragglers so it arrives together). Roving (fast units looking at what we know least, killing what they find unguarded and keeping out of every reach, in code, ten times a second, beyond your hands' reach) is a move of your hands, not a setting: `rove` puts a whole group to it and `rove_1` its fastest soldier as a group of its own, on a pick, so say in the packet which group roves and when; the group's entry says what each rover is doing and what it has found (`rove`). A setting here never takes a group off its rove: the way back is a pick too, so name the group's new job in the packet. A setting stands until you change it; the group's picture entry shows it when it is not the default.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "string", "enum": ["raw", "on"] }, { "type": "array", "items": { "type": "string", "enum": ["flee", "fan", "kite", "form", "march"] } } ] }, "description": "Group name (group_A) or \"all\" to its setting." } },
             { "name": "mark",
-              "description": "Name a place of your own for your hands: an object of name to [x, z] map coordinates or a grid cell (\"E7\": its centre), or null to forget it. A marked place joins the picture's places at once, so instructions can send groups and builders there (\"group_B: advance to south_gate\"), and its entry says what enemy is near. Names are lower-case words with underscores; home, spot_N, passage_N and group_N are taken. Any spot or passage you name in the packet is on your hands' menu already, however far; mark is for places that are not spots.",
+              "description": "Name a place of your own for your hands: an object of name to [x, z] map coordinates, a grid cell (\"E7\": its centre), or a range of cells (\"E1-H8\": the rectangle from E1 to H8, a region whose point is its centre), or null to forget it. A marked place joins the picture's places at once, so instructions can send groups and builders there (\"group_B: advance to south_gate\"), and its entry says what enemy is near. A region is also where a group can be told to rove: a packet that names it for a group puts `rove_<region>` and `rove_1_<region>` on that group's menu (its soldiers look only at places inside the region), so \"the Rovers rove in his half\" is a mark of his half and a packet naming it. Names are lower-case words with underscores; home, spot_N, passage_N and group_N are taken. Any spot or passage you name in the packet is on your hands' menu already, however far; mark is for places that are not spots.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }, { "type": "string" }, { "type": "null" } ] }, "description": "Place name to [x, z], a grid cell, or null." } },
             { "name": "produce",
               "description": "What each factory or builder may build, and for a factory which group its new soldiers join ({\"plant_7\": {\"units\": [\"armflash\"], \"group\": \"group_A\"}}, or \"new\" for a fresh group of that factory's own, or \"by_type\" for one group of that factory's per unit type, so its Rovers and its Blitzes never share a group; by default a factory's soldiers gather in one group of its own and nothing merges by itself) and how they walk to it (\"join_in\": 4: its new soldiers wait beside the plant, out of its lane, and walk to their group four together, never alone; null lifts it): an object of actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" (every commander and constructor) or \"all\" (everyone) to a list of unit names (as the roster writes them: armpw, armham, armck, armfus; or role words the seat's faction fills in: constructor, vehicle_constructor, raider, line, rez, advanced_constructor, and the buildings' role words), or null to lift the restriction. A name with a count after a colon (armck:1) is made that many more times from now and then drops off the list by itself; a factory makes its counted entries in the order written, each to its count, without asking (armcv:1, armfav:3, armcv:1, armflash is one constructor, three Rovers, one constructor, then Blitzes); saying the same list again restarts it from the first entry: the way to say 'one constructor, then raiders' to hands that cannot count. With no counted entry left a factory is offered only the entries without a count, every time it is asked; your instructions say which of them and when. A builder without a list is offered the usual buildings (generators, factories, light and heavy turrets, radar, storage, the tier-2 lab and extractor, fusion); a list replaces that, so a fusion reactor, an aircraft plant or a jammer from a constructor is asked for here. Use it when the packet's words are not getting the mix you want. A list naming nothing the actor can build leaves it unrestricted; the actor's entry in the picture shows its list. Your policy is not bound by lists: it may order anything a builder can build.",
@@ -273,6 +273,29 @@ pub(super) fn surrender(arguments: &Value, shared: &Shared) -> Result<String, St
     Ok("surrendered: every unit of ours is self-destructing and the game will end. Nothing more is needed from you".into())
 }
 
+/// A grid cell's column and row, 0-based ("E7" gives (4, 6)).
+fn cell_of(cell: &str, label: &str) -> Result<(u8, u8), String> {
+    let mut chars = cell.trim().chars();
+    let column = chars.next().map(|c| c.to_ascii_uppercase()).filter(|c| ('A'..='H').contains(c)).ok_or(format!("{label}: a grid cell is A1 to H8"))?;
+    let row: u32 = chars.as_str().parse().ok().filter(|r| (1..=8).contains(r)).ok_or(format!("{label}: a grid cell is A1 to H8"))?;
+    Ok((column as u8 - b'A', row as u8 - 1))
+}
+
+/// A region the player marks: two cells with a dash between ("E1-H8", "H8-E1" the same), the rectangle they span;
+/// its point is the centre.
+fn region_of(range: &str, width: f32, height: f32, label: &str) -> Result<Mark, String> {
+    let (a, b) = range.split_once('-').ok_or(format!("{label}: a region is two cells with a dash between (E1-H8)"))?;
+    let ((ca, ra), (cb, rb)) = (cell_of(a, label)?, cell_of(b, label)?);
+    let cells = (ca.min(cb), ra.min(rb), ca.max(cb), ra.max(rb));
+    if width <= 0.0 {
+        return Err("the map is not known yet; give [x, z]".to_string());
+    }
+    let (c0, r0, c1, r1) = cells;
+    let x = (c0 as f32 + c1 as f32 + 1.0) / 2.0 * width / 8.0;
+    let z = (r0 as f32 + r1 as f32 + 1.0) / 2.0 * height / 8.0;
+    Ok(Mark { x, z, cells: Some(cells) })
+}
+
 /// A place the player gives: `[x, z]` as numbers, the pair in a string as the model sometimes writes it ("[1264, 2832]":
 /// human-19), or a grid cell ("E7": its centre). `label` names the argument in the error. `mark` and `fire` read it.
 fn point_of(value: &Value, width: f32, height: f32, label: &str) -> Result<(f32, f32), String> {
@@ -293,13 +316,11 @@ fn point_of(value: &Value, width: f32, height: f32, label: &str) -> Result<(f32,
             on_map(x, z)
         }
         Value::String(cell) => {
-            let mut chars = cell.trim().chars();
-            let column = chars.next().map(|c| c.to_ascii_uppercase()).filter(|c| ('A'..='H').contains(c)).ok_or(format!("{label}: a grid cell is A1 to H8"))?;
-            let row: u32 = chars.as_str().parse().ok().filter(|r| (1..=8).contains(r)).ok_or(format!("{label}: a grid cell is A1 to H8"))?;
+            let (column, row) = cell_of(cell, label)?;
             if width <= 0.0 {
                 return Err("the map is not known yet; give [x, z]".to_string());
             }
-            Ok(((column as u32 - 'A' as u32) as f32 * width / 8.0 + width / 16.0, (row - 1) as f32 * height / 8.0 + height / 16.0))
+            Ok((column as f32 * width / 8.0 + width / 16.0, row as f32 * height / 8.0 + height / 16.0))
         }
         _ => Err(format!("{label}: [x, z] or a grid cell such as \"E7\"")),
     }
@@ -403,7 +424,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
         }
         "plan" => {
             let context = shared.plan_context.lock().unwrap().clone().ok_or("the simulator has no picture of the game yet: try again in a few seconds")?;
-            let marks = shared.marks_all();
+            let marks = shared.mark_points();
             planning::run(name, arguments, 0.0, &context, &marks)
         }
         "search" => {
@@ -411,7 +432,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             // cap is the mode's: lockstep holds the game anyway, realtime does not (the user, 2026-09-22: in-game
             // thinking time can cost games).
             let context = shared.plan_context.lock().unwrap().clone().ok_or("the simulator has no picture of the game yet: try again in a few seconds")?;
-            let marks = shared.marks_all();
+            let marks = shared.mark_points();
             // The objective is checked now, not on the thread, so a wrong one is refused at once.
             let text = arguments["objective"].as_str().ok_or("search takes an objective in words")?.trim();
             if text.starts_with("target") {
@@ -631,27 +652,31 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             let marks = arguments.as_object().filter(|o| !o.is_empty()).ok_or("mark takes an object: place name to [x, z], a grid cell such as \"E7\", or null to forget it")?;
             let map = shared.map.lock().unwrap().clone();
             let (width, height) = (map["width"].as_f64().unwrap_or(0.0) as f32, map["height"].as_f64().unwrap_or(0.0) as f32);
-            let mut parsed: Vec<(String, Option<(f32, f32)>)> = Vec::new();
+            let mut parsed: Vec<(String, Option<Mark>)> = Vec::new();
             for (name, value) in marks {
                 let word = !name.is_empty() && name.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_') && name.chars().next().is_some_and(|c| c.is_ascii_lowercase());
                 let taken = name == "home" || name == "all" || ["spot_", "passage_", "group_"].iter().any(|p| name.starts_with(p));
                 if !word || taken {
                     return Err(format!("{name}: a mark's name is lower-case words with underscores, and home, spot_N, passage_N and group_N are taken"));
                 }
-                let at = match value {
+                let mark = match value {
                     Value::Null => None,
                     Value::String(null) if null.trim() == "null" => None,
-                    other => Some(point_of(other, width, height, name)?),
+                    Value::String(range) if range.contains('-') => Some(region_of(range, width, height, name)?),
+                    other => Some(point_of(other, width, height, name).map(|(x, z)| Mark { x, z, cells: None })?),
                 };
-                parsed.push((name.clone(), at));
+                parsed.push((name.clone(), mark));
             }
             let mut marks = shared.marks.lock().unwrap();
             let mut said: Vec<String> = Vec::new();
-            for (name, at) in parsed {
-                match at {
-                    Some((x, z)) => {
-                        marks.insert(name.clone(), (x, z));
-                        said.push(format!("{name} at ({x:.0}, {z:.0})"));
+            for (name, mark) in parsed {
+                match mark {
+                    Some(m) => {
+                        said.push(match m.cells {
+                            Some(cells) => format!("{name}: the cells {} (its point the centre, ({:.0}, {:.0}))", super::shared::cells_words(cells), m.x, m.z),
+                            None => format!("{name} at ({:.0}, {:.0})", m.x, m.z),
+                        });
+                        marks.insert(name, m);
                     }
                     None => {
                         marks.remove(&name);
@@ -1232,8 +1257,15 @@ mod tests {
         *shared.map.lock().unwrap() = json!({ "width": 8000.0, "height": 8000.0 });
         assert!(call_tool("mark", &json!({ "south_gate": [3600, 5400], "far_east": "H4" }), &shared).is_ok());
         let marks = shared.marks.lock().unwrap().clone();
-        assert_eq!(marks["south_gate"], (3600.0, 5400.0));
-        assert_eq!(marks["far_east"], (7500.0, 3500.0));
+        assert_eq!((marks["south_gate"].x, marks["south_gate"].z, marks["south_gate"].cells), (3600.0, 5400.0, None));
+        assert_eq!((marks["far_east"].x, marks["far_east"].z), (7500.0, 3500.0));
+        // A region: two cells with a dash, either way round; its point is the centre.
+        let said = call_tool("mark", &json!({ "east_half": "E1-H8", "his_corner": "H8-G7" }), &shared).unwrap();
+        assert!(said.contains("east_half: the cells E1-H8 (its point the centre, (6000, 4000))") && said.contains("his_corner: the cells G7-H8"), "{said}");
+        let marks = shared.marks.lock().unwrap().clone();
+        assert_eq!(marks["east_half"].cells, Some((4, 0, 7, 7)));
+        assert_eq!((marks["his_corner"].x, marks["his_corner"].z, marks["his_corner"].cells), (7000.0, 7000.0, Some((6, 6, 7, 7))));
+        assert!(call_tool("mark", &json!({ "bad": "E1-Z9" }), &shared).is_err());
         assert!(call_tool("mark", &json!({ "spot_3": [1.0, 1.0] }), &shared).is_err());
         assert!(call_tool("mark", &json!({ "Gate": [1.0, 1.0] }), &shared).is_err());
         assert!(call_tool("mark", &json!({ "x": [9000.0, 1.0] }), &shared).is_err());

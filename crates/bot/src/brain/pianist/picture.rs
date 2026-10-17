@@ -58,6 +58,9 @@ pub(crate) struct Place {
     pub name: String,
     pub at: Vec3,
     pub spot: Option<usize>,
+    /// A region the player marked (`mark` with a cell range): the cells it covers; `at` is its centre. A group told
+    /// to rove within it looks only there (docs/design/2026-10-17-rove-destinations.md).
+    pub cells: Option<crate::strategist::shared::Cells>,
 }
 
 impl Party {
@@ -393,7 +396,7 @@ impl Brain {
     /// The named place nearest `pos`, with its grid cell, or the grid cell alone.
     pub(super) fn place_words(&self, places: &[Place], pos: Vec3) -> String {
         let grid = self.world.grid(pos);
-        match places.iter().map(|p| (p.at.dist2d(pos), p)).min_by(|a, b| a.0.total_cmp(&b.0)) {
+        match places.iter().filter(|p| p.cells.is_none()).map(|p| (p.at.dist2d(pos), p)).min_by(|a, b| a.0.total_cmp(&b.0)) {
             Some((d, place)) if d < 300.0 => format!("{} ({grid})", place.name),
             Some((d, place)) if d < 900.0 => format!("{:.0} from {} ({grid})", d, place.name),
             _ => format!("({grid})"),
@@ -1065,7 +1068,7 @@ impl Brain {
         let spots = &self.world.hello.metal_spots;
 
         // Places.
-        let mut places: Vec<Place> = vec![Place { name: "home".into(), at: self.home, spot: None }];
+        let mut places: Vec<Place> = vec![Place { name: "home".into(), at: self.home, spot: None, cells: None }];
         let extractor_at = |spot: Vec3| own.iter().find(|u| kit.is_extractor(u.def) && u.pos.dist2d(spot) < self.spot_occupied_radius());
         let taken_by_task: Vec<usize> = pianist.tasks.values().filter_map(|t| if let Task::Build { spot: Some(i), .. } = t { Some(*i) } else { None }).collect();
         let mut listed: Vec<usize> = Vec::new();
@@ -1093,7 +1096,7 @@ impl Brain {
         theirs.sort_by(|a, b| a.0.total_cmp(&b.0));
         listed.extend(theirs.iter().take(ENEMY_SPOTS).map(|(_, i)| *i));
         for i in &listed {
-            places.push(Place { name: format!("spot_{i}"), at: spots[*i], spot: Some(*i) });
+            places.push(Place { name: format!("spot_{i}"), at: spots[*i], spot: Some(*i), cells: None });
         }
         // Every spot with buildings of his within reach of it is a place, so that an attack can be aimed at all of
         // them (the list above holds the nearest few of his extractors only).
@@ -1102,12 +1105,12 @@ impl Brain {
                 continue;
             }
             if let Some((i, spot)) = spots.iter().enumerate().map(|(i, s)| (i, *s)).filter(|(_, s)| s.dist2d(*pos) < super::menu::HIS_AT).min_by(|a, b| a.1.dist2d(*pos).total_cmp(&b.1.dist2d(*pos))) {
-                places.push(Place { name: format!("spot_{i}"), at: spot, spot: Some(i) });
+                places.push(Place { name: format!("spot_{i}"), at: spot, spot: Some(i), cells: None });
             }
         }
         let passages = self.passages();
         for (n, passage) in passages.iter().take(PASSAGES).enumerate() {
-            places.push(Place { name: format!("passage_{}{}", n + 1, self.seat_tag()), at: passage.at, spot: None });
+            places.push(Place { name: format!("passage_{}{}", n + 1, self.seat_tag()), at: passage.at, spot: None, cells: None });
         }
         // H-HANDS-NAMED-PLACES: every spot and passage the instructions name is a place, however far (pianist-player-5:
         // the player named spot_36 in the south for four turns and it was never on the menu, the list being the
@@ -1131,7 +1134,7 @@ impl Brain {
         }
         for i in extra_spots {
             if i < spots.len() && !places.iter().any(|p| p.spot == Some(i)) && self.reachable_by_any_class(spots[i]) {
-                places.push(Place { name: format!("spot_{i}"), at: spots[i], spot: Some(i) });
+                places.push(Place { name: format!("spot_{i}"), at: spots[i], spot: Some(i), cells: None });
             }
         }
         for token in instructions.split(|c: char| !c.is_ascii_alphanumeric() && c != '_') {
@@ -1139,18 +1142,18 @@ impl Brain {
                 // An islet spot nobody can walk to is no place to send anyone (pianist-player-7: the ball stood 151 s
                 // short of spot_31 on the shore while the player named it).
                 if i < spots.len() && !places.iter().any(|p| p.spot == Some(i)) && self.reachable_by_any_class(spots[i]) {
-                    places.push(Place { name: format!("spot_{i}"), at: spots[i], spot: Some(i) });
+                    places.push(Place { name: format!("spot_{i}"), at: spots[i], spot: Some(i), cells: None });
                 }
             } else if let Some(n) = token.strip_prefix("passage_").and_then(|n| n.parse::<usize>().ok()) {
                 if n > PASSAGES && n <= passages.len() && !places.iter().any(|p| p.name == *token) {
-                    places.push(Place { name: format!("passage_{n}{}", self.seat_tag()), at: passages[n - 1].at, spot: None });
+                    places.push(Place { name: format!("passage_{n}{}", self.seat_tag()), at: passages[n - 1].at, spot: None, cells: None });
                 }
             }
         }
-        let marks: BTreeMap<String, (f32, f32)> = self.strategist.as_ref().map(|s| s.marks_all()).unwrap_or_default();
-        for (name, (x, z)) in &marks {
+        let marks: BTreeMap<String, crate::strategist::shared::Mark> = self.strategist.as_ref().map(|s| s.marks_all()).unwrap_or_default();
+        for (name, m) in &marks {
             if !places.iter().any(|p| p.name == *name) {
-                places.push(Place { name: name.clone(), at: Vec3 { x: *x, y: 0.0, z: *z }, spot: None });
+                places.push(Place { name: name.clone(), at: Vec3 { x: m.x, y: 0.0, z: m.z }, spot: None, cells: m.cells });
             }
         }
         // H-HANDS-SHELLED: where fire from out of sight likeliest comes from, while it lasts: the side's estimate as
@@ -1158,7 +1161,7 @@ impl Brain {
         // from the side's (player-9 21:15: one estimate, a Beamer at E4, was said to every group on the map).
         let shelling = self.shelling();
         if let Some(s) = &shelling {
-            places.push(Place { name: "shelling".into(), at: s.at, spot: None });
+            places.push(Place { name: "shelling".into(), at: s.at, spot: None, cells: None });
         }
         let mut group_shelling: BTreeMap<String, (super::super::shelling::Shelling, String)> = BTreeMap::new();
         if let Some(p) = self.pianist.as_ref() {
@@ -1167,7 +1170,7 @@ impl Brain {
                 let apart = shelling.as_ref().is_none_or(|s| s.at.dist2d(own_shelling.at) > SHOOTER_APART);
                 let place_name = if apart { format!("shelling_{}", g.name) } else { "shelling".to_string() };
                 if apart {
-                    places.push(Place { name: place_name.clone(), at: own_shelling.at, spot: None });
+                    places.push(Place { name: place_name.clone(), at: own_shelling.at, spot: None, cells: None });
                 }
                 group_shelling.insert(g.name.clone(), (own_shelling, place_name));
             }
@@ -1180,6 +1183,9 @@ impl Brain {
         let mut place_entries: BTreeMap<String, Value> = BTreeMap::new();
         for place in &places {
             let mut entry = json!({ "grid": self.world.grid(place.at) });
+            if let Some(cells) = place.cells {
+                entry["grid"] = json!(format!("the cells {} (its point the centre, {})", crate::strategist::shared::cells_words(cells), self.world.grid(place.at)));
+            }
             let walk = self.walk_from_home(place.at);
             let straight = place.at.dist2d(self.home);
             // An alcove: far longer on foot than as the crow flies (9b.4; Cape Violet's spot_18: 6,838 on foot
@@ -1237,6 +1243,11 @@ impl Brain {
                         Some(a) => format!("where the {} whose fire hits {whom} from out of our sight was last seen, {} s ago (not a sighting now: it may have moved); its range is {:.0}, {} hits on {whom} in the last {} s, the last {} s ago; anything of ours within {:.0} of it is in its reach; what sees it or outranges it decides, as the instructions say", a.name, (frame - a.seen) / super::super::FRAMES_PER_SECOND, s.range, s.hits, super::super::shelling::SHELL_MEMORY / super::super::FRAMES_PER_SECOND, (frame - s.last) / super::super::FRAMES_PER_SECOND, s.range),
                         None => format!("an estimate, not a sighting: where the {} shelling {whom} from out of our sight likeliest stands, four fifths of its range along the hits' direction (it moves with each hit); its range is {:.0}, {} hits on {whom} in the last {} s from the {}, the last {} s ago; anything of ours within {:.0} of it is in its reach and cannot see it; what sees it (a scout, a radar) or outranges it decides, as the instructions say", self.weapon_words(&s.weapon), s.range, s.hits, super::super::shelling::SHELL_MEMORY / super::super::FRAMES_PER_SECOND, super::super::shelling::compass(s.dir), (frame - s.last) / super::super::FRAMES_PER_SECOND, s.range),
                     }
+                }
+                None if place.cells.is_some() => {
+                    let (a, b) = self.world.cells_rect(place.cells.unwrap());
+                    let inside = spots.iter().filter(|s| s.x >= a.x && s.x <= b.x && s.z >= a.z && s.z <= b.z).count();
+                    format!("a region the player marked ({inside} metal spots inside): a group told to rove within it (`rove_{}`, `rove_1_{}`) looks only at places inside it; as a place to go to, its centre", place.name, place.name)
                 }
                 None if marks.contains_key(&place.name) => {
                     if self.reachable_on_foot(place.at) { "a place the player marked".into() } else { "a place the player marked; our ground units cannot get there from home (water or a cliff: aircraft can, hovercraft over water can); a ground group sent here stops at the nearest ground it can reach".into() }
@@ -1663,7 +1674,7 @@ impl Brain {
                 GroupTask::Follow { name: ward, since, at, .. } => format!("following {ward} for {} ({:.0} from it)", ago(*since), body.at.dist2d(*at)),
                 GroupTask::Hunt(hunt) => format!("hunting {} since {} ago (its quarry {} at {})", hunt.party, ago(hunt.since), if frame - hunt.last_seen < FRAMES_PER_SECOND { "seen" } else { "last seen" }, self.place_words(&places, hunt.at)),
                 // What each rover is doing this second; the menu's course words are these (`group_course`).
-                GroupTask::Rove { since } => format!("roving since {} ago: {}", ago(*since), self.rover_words(group, own, &snapshot.enemies, &places)),
+                GroupTask::Rove { since, within } => format!("roving{} since {} ago: {}", within.as_ref().map_or(String::new(), |w| format!(" within {w}")), ago(*since), self.rover_words(group, own, &snapshot.enemies, &places)),
             };
             // Health as a distribution, not an average (game 9: "full on average" at 22 of 39 lost), with the
             // losses since the player's last orders, which is what it asked about.
@@ -1727,7 +1738,10 @@ impl Brain {
             }
             // The lane as it plays: a roving group is the lane's whole (H-MICRO-ROVE, a pick), else the player's
             // footwork setting.
-            if group.roving() {
+            if let GroupTask::Rove { within: Some(region), .. } = &group.task {
+                let cells = places.iter().find(|p| p.name == *region).and_then(|p| p.cells).map_or(String::new(), |c| format!(" (the cells {})", crate::strategist::shared::cells_words(c)));
+                entry["lane"] = json!(format!("roving within {region}{cells}: its soldiers look only at places inside it, kill what they find unguarded there (extractors, radars, lone constructors) and keep out of the reach of anything that can shoot it; a pick of yours brings them back, and a plain `rove` frees them of the region"));
+            } else if group.roving() {
                 entry["lane"] = json!("roving: its soldiers look at the places nothing of ours has seen (his start box first), kill what they find unguarded (extractors, radars, lone constructors) and keep out of the reach of anything that can shoot it; a pick of yours brings them back");
             } else if let Some(words) = self.footwork_of(&group.name).words() {
                 entry["lane"] = json!(words);

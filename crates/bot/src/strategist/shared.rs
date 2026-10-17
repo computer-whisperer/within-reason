@@ -281,7 +281,7 @@ pub struct TurnOutputs {
     pub instructions: String,
     pub queues: BTreeMap<String, Option<Vec<String>>>,
     pub lane: BTreeMap<String, Footwork>,
-    pub marks: BTreeMap<String, (f32, f32)>,
+    pub marks: BTreeMap<String, Mark>,
     pub allowed: BTreeMap<String, Allowance>,
     pub removals: Vec<Removal>,
     pub firings: Vec<Firing>,
@@ -471,7 +471,7 @@ pub struct Shared {
     /// The player's footwork settings by group name (`group_A`) or `all` (`lane` tool, H-HANDS-LANE).
     pub lane: Mutex<BTreeMap<String, Footwork>>,
     /// Places the player named (`mark` tool): name to (x, z). They join the picture's places (H-HANDS-NAMED-PLACES).
-    pub marks: Mutex<BTreeMap<String, (f32, f32)>>,
+    pub marks: Mutex<BTreeMap<String, Mark>>,
     /// What the player lets each lab build (`produce` tool, H-HANDS-PRODUCE): lab name (`lab_N`) or `all` to unit
     /// names; a lab not listed builds anything.
     pub allowed: Mutex<BTreeMap<String, Allowance>>,
@@ -577,12 +577,17 @@ impl Shared {
 
     /// The places named for this player's hands: its own marks and, under a commander, the side's (the same name
     /// to every seat; the side's wins a clash).
-    pub fn marks_all(&self) -> BTreeMap<String, (f32, f32)> {
+    pub fn marks_all(&self) -> BTreeMap<String, Mark> {
         let mut marks = self.marks.lock().unwrap().clone();
         if let Some(side) = self.side.get() {
             marks.extend(side.marks.lock().unwrap().iter().map(|(name, at)| (name.clone(), *at)));
         }
         marks
+    }
+
+    /// The marks as points alone (the planner's places).
+    pub fn mark_points(&self) -> BTreeMap<String, (f32, f32)> {
+        self.marks_all().iter().map(|(name, m)| (name.clone(), (m.x, m.z))).collect()
     }
 
     /// Brain side, under a commander: a chat line heard by this seat. `false` when it is the commander's own line
@@ -808,6 +813,26 @@ pub struct Allowance {
     /// For a factory: its new soldiers wait beside it and walk to their group this many together, never alone
     /// (the impedance tally: "in fours, never alone", "six or more together, never one at a time").
     pub join_in: Option<usize>,
+}
+
+/// A place the player marked (`mark`): a point, or a region of grid cells (`cells`: the first and last column and
+/// row, 0-based and inclusive, "E1-H8" as the picture writes a start box) whose point is its centre. A group told
+/// to rove within a region looks only there (docs/design/2026-10-17-rove-destinations.md).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Mark {
+    pub x: f32,
+    pub z: f32,
+    pub cells: Option<Cells>,
+}
+
+/// A rectangle of grid cells: (first column, first row, last column, last row), 0-based, inclusive.
+pub type Cells = (u8, u8, u8, u8);
+
+/// The cells as the picture writes them: "E1-H8", or "E4" for one cell.
+pub fn cells_words(cells: Cells) -> String {
+    let (c0, r0, c1, r1) = cells;
+    let cell = |c: u8, r: u8| format!("{}{}", (b'A' + c) as char, r + 1);
+    if (c0, r0) == (c1, r1) { cell(c0, r0) } else { format!("{}-{}", cell(c0, r0), cell(c1, r1)) }
 }
 
 /// One ally team as the player is told of it: ours or not, and its seats in words ("keithphw (a person, lobby skill

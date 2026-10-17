@@ -1,8 +1,16 @@
 # Rove with a destination or a region (proposed 2026-10-17, not built)
 
 **Status.** Proposed by Claude (Fable 5.1) after the impedance study's "no lever" list (the user, 2026-10-17: "The
-one more change I think we should make now is adding the rove destinations option; let's design that"). The
-decisions in §6 are the user's; nothing here is built.
+one more change I think we should make now is adding the rove destinations option; let's design that"). **Ruled
+and built 2026-10-17** (the user: "The 0.5 bar sounds fine, and I would just implement this as a cell-range region
+for now rather than a beat or anything else more complicated. I think rove_1_<place> should be included, agreed on
+nothing from produce"): regions only, as `mark` cell ranges (§3.3), the move family `rove_<region>` and
+`rove_1_<region>` under the 0.5 bar (§3.1), the task's `within` and the engine's confinement (§3.2's region half);
+no first place, no point beats (§3.2's `first` is not built). H-MICRO-ROVE and `docs/code-decisions.md` §3 carry
+it. The first smoke (rove-region-smoke, `docs/experiments.md`) found the bar unreadable under the arena's default
+layers (`news` alone: no `fuse` layer, no decode, no reading), while the player had marked `his_half` and written
+`rove_his_half` unasked; so without the `fuse` layer every marked region is offered, and the bar applies where the
+decode runs (the real player games, which run every layer). Unmeasured in a game otherwise.
 
 ## 1. The ask
 

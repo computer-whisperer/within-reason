@@ -2238,7 +2238,9 @@ of its own (4 games), a `reclaim` list step by grid cell or place and an id step
 cannot make (2 games), and `remove` by "<type> at <place>" (one game, a commander penned nineteen minutes). The
 other eight (where a builder stands, a route's order, a hunt bounded by a place, targets inside a fight,
 converging, routes that avoid reach, a forced re-ask or direct order, rove with a destination, cross-seat joins,
-a contact named) are code mechanics or design questions, each the user's call.
+a contact named) are code mechanics or design questions, each the user's call; of them, rove within a region was
+designed and built the next day on the user's rulings (docs/design/2026-10-17-rove-destinations.md: regions as
+`mark` cell ranges, the move family under a 0.5 bar on the decode's place reading, no first place).
 **Status.** built with unit tests (106 pass); no game has used any of the seven. The measure is the next games'
 reviews under the study's brief: the §4 shapes should fall from the "no lever" list, and the players must be told
 the levers exist (the brief's `produce`, `queue` and `remove` passages say so).

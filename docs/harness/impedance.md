@@ -48,7 +48,10 @@ the whole-group attack and the shelling of a party of aircraft carry the forbidd
 reading); a `reclaim` list step takes a grid cell or a place (the wreck field there) and runs until the wrecks are
 gone; an id step naming a building the builder cannot make is its help on that building, waiting for its starter;
 `remove` takes `"<type> at <place or cell>"` for a reclaim. Each has unit tests; none has been in a game: the next
-games' sweeps and reviews measure them (`run/impedance_sweep.py`, the brief's §4 asks).
+games' sweeps and reviews measure them (`run/impedance_sweep.py`, the brief's §4 asks). **And 2026-10-17**, on the
+user's rulings over `docs/design/2026-10-17-rove-destinations.md`: a group roves within a region the player marked
+(`mark` with a cell range; `rove_<region>` and `rove_1_<region>` on the menu when the decode reads the region as
+the group's at 0.5 or over; the engine looks at and attacks nothing outside it).
 
 Still open, each the user's call: the decode's other readings (places, joins, follows, detachments) stay fuses at
 their bars. The tools: `transfer` refuses the whole list for one stale name; a player's `mark` removal does not
@@ -58,5 +61,5 @@ constructor paragraph reads as no extractors and a negated place as a destinatio
 (K-jev-the-decode-reads-a-constructor-paragraph-by-its-words-not-its-meaning); the forbidden mark acts at 0.70; the
 commander's standing rule has no instructions clause. What no lever carries yet (the study's §4): where a builder
 stands (the exit lane), a route's order, a hunt bounded by a place, targets inside a fight, converging, routes that
-avoid reach, a forced re-ask or a direct order, rove with a destination, cross-seat joins, a contact named, a
-repeating `produce` entry.
+avoid reach, a forced re-ask or a direct order, a rover's first place or route (regions are built), cross-seat
+joins, a contact named, a repeating `produce` entry.

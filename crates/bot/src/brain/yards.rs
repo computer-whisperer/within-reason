@@ -376,7 +376,7 @@ mod named_tests {
         let mut brain = brain_of(&["armflash", "armwar", "armllt"]);
         let own = vec![own(300, 3, at(4500.0, 2600.0)), own(301, 3, at(4600.0, 2650.0)), own(302, 2, at(4550.0, 2620.0)), own(303, 3, at(100.0, 100.0))];
         let mut pianist = crate::brain::pianist::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
-        pianist.places.push(crate::brain::pianist::picture::Place { name: "spot_40".into(), at: at(4000.0, 2600.0), spot: Some(40) });
+        pianist.places.push(crate::brain::pianist::picture::Place { name: "spot_40".into(), at: at(4000.0, 2600.0), spot: Some(40), cells: None });
         brain.pianist = Some(pianist);
         let id = |u: Option<&OwnUnit>| u.map(|u| u.id.0);
         assert_eq!(id(brain.unit_named("armllt at E4", &own)), Some(300));

@@ -302,7 +302,7 @@ fn report(side: &Shared, first: bool) -> String {
     }
     let marks = side.marks.lock().unwrap();
     if !marks.is_empty() {
-        lines.push(format!("your marks (places every seat knows by these names): {}", marks.iter().map(|(name, (x, z))| format!("{name} ({x:.0}, {z:.0})")).collect::<Vec<_>>().join(", ")));
+        lines.push(format!("your marks (places every seat knows by these names): {}", marks.iter().map(|(name, m)| match m.cells { Some(cells) => format!("{name} (the cells {})", super::shared::cells_words(cells)), None => format!("{name} ({:.0}, {:.0})", m.x, m.z) }).collect::<Vec<_>>().join(", ")));
     }
     drop(marks);
     // A line a seat, then its groups and what its builders and factories are at, from the picture its hands read.

@@ -107,7 +107,7 @@ whenever you hit that edge.
   `follow` another group or a builder (it stays beside `group_X`, `constructor_N` or `commander` wherever that goes
   and fights what comes at it); `rove` (the whole group roves: every soldier runs on its own in code, looking at
   what we know least, his start box first, killing what it finds unguarded and keeping out of every reach, until a
-  later pick takes it elsewhere; while it roves its menu has no party moves); `rove_1` (its fastest soldier leaves as a group of its own and roves). An air group has stay, hold, go,
+  later pick takes it elsewhere; while it roves its menu has no party moves); `rove_1` (its fastest soldier leaves as a group of its own and roves); and for a region you marked (`mark` with a cell range, `"east_half": "E1-H8"`) that the packet names for the group, `rove_<region>` and `rove_1_<region>` (the same, but the rovers look at nothing and attack nothing outside the region: "the Rovers rove in his half" is a mark of his half and a packet that names it for them; a later plain `rove` frees them of it). An air group has stay, hold, go,
   attack (on one unit of a party, its commander when it is there; or on his buildings at a place) and join.
 - A place a group can go or fight to is a place you name: every `spot_N`, `passage_N` or `home` your packet's text
   names, every spot a `queue` list names, and every place you `mark`. There is no other: a group whose packet names
@@ -226,7 +226,8 @@ asks for it in chat; say a closing line first.
 Places: the picture lists home, the spots we hold or are taking, the nearest free spots, the nearest of
 theirs, and the narrowest passages; a spot or passage you name in the packet is listed too, however far, so a deep
 attack is ordered by naming the spots along its way. For a place that is not a spot, `mark` names map coordinates or a
-grid cell, and the name is then a place like any other. There is no enemy-base place: where the opponent is comes
+grid cell, and the name is then a place like any other; a cell range (`"E1-H8"`) marks a region, a place whose point is
+its centre and which a group can be told to rove within. There is no enemy-base place: where the opponent is comes
 from the evidence in the picture and from your scouting, and you name the spots and marks to go to.
 
 What you see. Each turn opens with a report: `score` (extractors and how long since they last grew, free spots and

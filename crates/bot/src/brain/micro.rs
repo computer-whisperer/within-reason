@@ -249,6 +249,10 @@ impl View for BrainView<'_> {
     /// Every metal spot a unit of this type can reach from home, with when it was last within sight of ours
     /// (H-SCOUT-SPOTS), his when it lies in another ally team's start box or within 600 of his base; and his base
     /// when one has been found, last seen when the freshest spot round it was.
+    fn rove_within(&self, unit: UnitId) -> Option<(Vec3, Vec3)> {
+        self.region_of(unit)
+    }
+
     fn rove_goals(&self, def: UnitDefId) -> Vec<micro::RoveGoal> {
         let brain = self.brain;
         let walker = brain.walker_of(def);
@@ -270,3 +274,15 @@ impl View for BrainView<'_> {
 
 /// A spot this close to his found base is his; the base counts as seen when one of them was.
 const BASE_RADIUS: f32 = 600.0;
+
+impl BrainView<'_> {
+    /// The region a roving group is told to stay within (`GroupTask::Rove { within }`): the marked place's cells
+    /// as ground.
+    fn region_of(&self, unit: UnitId) -> Option<(Vec3, Vec3)> {
+        let pianist = self.brain.pianist.as_ref()?;
+        let group = pianist.groups.iter().find(|g| g.members.contains(&unit))?;
+        let super::pianist::GroupTask::Rove { within: Some(name), .. } = &group.task else { return None };
+        let cells = pianist.places.iter().find(|p| p.name == *name)?.cells?;
+        Some(self.brain.world.cells_rect(cells))
+    }
+}

@@ -44,6 +44,10 @@ const FIELD_METAL: f32 = 100.0;
 const DGUN_ENERGY: f32 = 500.0;
 /// A group this many times a party's metal is offered detachments against it, not its whole-group attack.
 const WHOLE_GROUP_OVER: f32 = 4.0;
+/// A region the decode reads as the group's at this or over is on its menu to rove within (the user's bar,
+/// 2026-10-17: the bar the report uses to say which places a packet names for a group; a move for every named
+/// place would be thirty a menu).
+const ROVE_READ: f64 = 0.5;
 /// A place this much further from his base than the group stands is said to lie back toward our side.
 const BACK: f32 = 400.0;
 /// The sizes a detachment comes in, below the group's own size.
@@ -99,6 +103,11 @@ pub(crate) enum Order {
     RoveOne,
     /// The whole group roves (H-MICRO-ROVE), until a later pick takes it elsewhere.
     Rove,
+    /// The whole group roves within a region the player marked: its soldiers look at nothing and attack nothing
+    /// outside it (docs/design/2026-10-17-rove-destinations.md).
+    RoveWithin(String),
+    /// Its fastest soldier leaves as a group of its own and roves within the region.
+    RoveOneWithin(String),
     Build(UnitDefId, Site),
     /// Guard a factory or another builder: its build power goes to whatever that makes.
     Help(UnitId),
@@ -644,9 +653,13 @@ impl Brain {
             GroupTask::Hunt(h) => ("hunt", String::new(), format!("hunts {}", h.party), Some(h.party.clone())),
             GroupTask::Follow { name: ward, .. } => ("follow", format!("follow_{ward}"), format!("follows {ward}"), None),
             // The entry's words: what each rover is doing this second (`picture.rs` `rover_words`).
-            GroupTask::Rove { .. } => {
+            GroupTask::Rove { within, .. } => {
                 let doing = picture.state["actors"][&name]["doing"].as_str().unwrap_or("roving");
-                ("rove", "rove".to_string(), format!("roves: {}", doing.split_once(": ").map_or("its soldiers look at what we know least", |(_, rest)| rest)), None)
+                let rest = doing.split_once(": ").map_or("its soldiers look at what we know least", |(_, rest)| rest);
+                match within {
+                    Some(region) => ("rove", format!("rove_{region}"), format!("roves within {region}: {rest}"), None),
+                    None => ("rove", "rove".to_string(), format!("roves: {rest}"), None),
+                }
             }
         }
     }
@@ -1117,10 +1130,8 @@ impl Brain {
             );
             // Its fastest soldier leaves as a group of its own and roves: the detachment ladder's first rung, aimed
             // at nothing (`scout` until 2026-10-08).
-            if units.len() >= 2
-                && !group.roving()
-                && let Some(fastest) = units.iter().copied().max_by(|a, b| self.world.def(a.def).map_or(0.0, |d| d.speed).total_cmp(&self.world.def(b.def).map_or(0.0, |d| d.speed)))
-            {
+            let fastest = (units.len() >= 2 && !group.roving()).then(|| units.iter().copied().max_by(|a, b| self.world.def(a.def).map_or(0.0, |d| d.speed).total_cmp(&self.world.def(b.def).map_or(0.0, |d| d.speed)))).flatten();
+            if let Some(fastest) = fastest {
                 push(
                     "rove_1".into(),
                     Order::RoveOne,
@@ -1129,6 +1140,39 @@ impl Brain {
                     None,
                     true,
                 );
+            }
+            // Roving within a region the player marked and the packet names for this group (its place reading at
+            // `ROVE_READ` or over): the whole group, or its fastest soldier alone (the impedance tally, 2026-10-16:
+            // "they rove in his half", "look ... in H6-H8 and H1-H3", "one Rascal alone to spot_12", eight games;
+            // docs/design/2026-10-17-rove-destinations.md). The region's reading comes with its walks (one key a
+            // place); these moves carry no reading of their own. Without the `fuse` layer there is no decode and
+            // no reading to bar by: every named region is offered (rove-region-smoke, 2026-10-17: the arena's
+            // default layers are `news` alone, the player marked his_half and wrote `rove_his_half` for group_A,
+            // and the move never came).
+            let read = |p: &Place| !pianist.layers.fuse || pianist.decode.reads.get(&format!("{name}|place|{}", p.name)).is_some_and(|r| *r >= ROVE_READ);
+            for region in scene.named.iter().copied().filter(|p| p.cells.is_some() && read(p)) {
+                let (a, b) = self.world.cells_rect(region.cells.expect("a region"));
+                let spots_inside = self.world.hello.metal_spots.iter().filter(|s| s.x >= a.x && s.x <= b.x && s.z >= a.z && s.z <= b.z).count();
+                let cells = format!("the cells {}, {spots_inside} metal spots inside", crate::strategist::shared::cells_words(region.cells.expect("a region")));
+                let key = format!("rove_{}", region.name);
+                push(
+                    key.clone(),
+                    Order::RoveWithin(region.name.clone()),
+                    format!("{name} roves within {} ({cells}): its soldiers look only at places inside it, {ROVE_WORDS} there; a pick of yours brings it back{keeps}{leaves}{}", region.name, undoes(&key)),
+                    format!("roving within {}", region.name),
+                    None,
+                    false,
+                );
+                if let Some(fastest) = fastest {
+                    push(
+                        format!("rove_1_{}", region.name),
+                        Order::RoveOneWithin(region.name.clone()),
+                        format!("1 {} of {name} (its fastest) leaves it as a group of its own and roves within {} ({cells}): it looks only at places inside it, {ROVE_WORDS} there; the rest of {name} keeps its course", self.name(fastest.def), region.name),
+                        format!("a rover of one within {}", region.name),
+                        None,
+                        true,
+                    );
+                }
             }
         }
         let reached_here = group.reached.last().is_some_and(|(last, _)| picture.places.iter().any(|p| p.name == *last && p.at.dist2d(body.at) < HERE));
@@ -1552,7 +1596,7 @@ pub(super) mod tests {
         let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies, wrecks: None } };
         let id = UnitDefId(1);
         let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
-        let picture = Picture { rules: String::new(), state: serde_json::json!({ "instructions": "group_A: one body that never splits.", "actors": {}, "places": {} }), places: vec![Place { name: "home".into(), at: at(500.0, 5000.0), spot: None }], parties };
+        let picture = Picture { rules: String::new(), state: serde_json::json!({ "instructions": "group_A: one body that never splits.", "actors": {}, "places": {} }), places: vec![Place { name: "home".into(), at: at(500.0, 5000.0), spot: None, cells: None }], parties };
         let keys = |brain: &Brain, picture: &Picture| -> Vec<String> { brain.menus(&tick, &kit, picture).iter().find(|m| m.name == "group_A").expect("the group's menu").moves.iter().map(|m| m.key.clone()).collect() };
         let before = keys(&brain, &picture);
         assert!(!before.iter().any(|k| k == "attack_party_12") && before.iter().any(|k| k == "send_1_party_12"), "{before:?}");
@@ -1579,6 +1623,56 @@ pub(super) mod tests {
         assert!(send.forbiddable && send.reads == [Read::Detach(2), Read::Air], "{:?}", send.reads);
     }
 
+    /// A region the player marked is on a group's menu to rove within (`rove_<region>`, `rove_1_<region>`) when
+    /// the decode reads the packet as naming it for the group at 0.5 or over, and not otherwise; a group roving
+    /// within it has that move as its course and the plain `rove` as the way out of the region.
+    #[test]
+    fn a_region_the_packet_names_for_a_group_is_on_its_menu_to_rove_within() {
+        use super::super::fixtures::{at, e3};
+        use bot_protocol::{Resource, Snapshot};
+        let (mut brain, ours, enemies, parties) = e3();
+        let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { since: 0, committed: false, picked: false }, 0));
+        pianist.decode.reads.insert("group_A|place|east_half".into(), 0.3);
+        pianist.layers.fuse = true;
+        brain.pianist = Some(pianist);
+        let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies, wrecks: None } };
+        let id = UnitDefId(1);
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        let picture = Picture {
+            rules: String::new(),
+            state: serde_json::json!({ "instructions": "group_A: roves within east_half.", "actors": {}, "places": {} }),
+            places: vec![Place { name: "home".into(), at: at(500.0, 5000.0), spot: None, cells: None }, Place { name: "east_half".into(), at: at(6144.0, 3072.0), spot: None, cells: Some((4, 0, 7, 7)) }],
+            parties,
+        };
+        let keys = |brain: &Brain| -> Vec<String> { brain.menus(&tick, &kit, &picture).iter().find(|m| m.name == "group_A").expect("the group's menu").moves.iter().map(|m| m.key.clone()).collect() };
+        let under = keys(&brain);
+        assert!(under.iter().any(|k| k == "go_east_half") && !under.iter().any(|k| k.ends_with("east_half") && k.starts_with("rove")), "under the bar: a walk to its centre, no rove within it: {under:?}");
+        // Without the fuse layer there is no reading to bar by: the region is offered.
+        brain.pianist.as_mut().unwrap().layers.fuse = false;
+        assert!(keys(&brain).iter().any(|k| k == "rove_east_half"), "no decode, no bar");
+        brain.pianist.as_mut().unwrap().layers.fuse = true;
+        brain.pianist.as_mut().unwrap().decode.reads.insert("group_A|place|east_half".into(), 0.9);
+        let over = keys(&brain);
+        assert!(over.iter().any(|k| k == "rove_east_half") && over.iter().any(|k| k == "rove_1_east_half"), "{over:?}");
+        let menus = brain.menus(&tick, &kit, &picture);
+        let menu = menus.iter().find(|m| m.name == "group_A").unwrap();
+        let within = menu.moves.iter().find(|m| m.key == "rove_east_half").unwrap();
+        assert!(within.words.starts_with("group_A roves within east_half (the cells E1-H8, 0 metal spots inside): its soldiers look only at places inside it"), "{}", within.words);
+        assert!(within.reads.is_empty() && !within.forbiddable && matches!(&within.order, Order::RoveWithin(r) if r == "east_half"));
+        let one = menu.moves.iter().find(|m| m.key == "rove_1_east_half").unwrap();
+        assert!(one.forbiddable && matches!(&one.order, Order::RoveOneWithin(r) if r == "east_half"));
+        // Roving within it: that is the course; the plain rove is the way out of the region.
+        brain.pianist.as_mut().unwrap().groups[0].set_task(GroupTask::Rove { since: 0, within: Some("east_half".into()) }, 0);
+        let menus = brain.menus(&tick, &kit, &picture);
+        let menu = menus.iter().find(|m| m.name == "group_A").unwrap();
+        assert_eq!((menu.course, menu.course_key.as_str()), ("rove", "rove_east_half"));
+        let keys: Vec<&str> = menu.moves.iter().map(|m| m.key.as_str()).collect();
+        assert!(keys.contains(&"rove") && !keys.contains(&"rove_east_half") && !keys.contains(&"rove_1_east_half"), "{keys:?}");
+        assert!(menu.course_words.starts_with("roves within east_half: "), "{}", menu.course_words);
+    }
+
     /// A roving group keeps a menu (the rework of docs/design/2026-10-07-rove-approval.md): its course is the rove
     /// with the entry's words, the way back (hold, the walks, the joins, the follows) is on it, and nothing aimed
     /// at a party: its sightings are the lane's business. Offline, under packets that ask for roving, no take-back
@@ -1589,7 +1683,7 @@ pub(super) mod tests {
         use bot_protocol::{Resource, Snapshot};
         let (mut brain, ours, enemies, parties) = e3();
         let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
-        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Rove { since: 0 }, 0));
+        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Rove { since: 0, within: None }, 0));
         pianist.groups.push(Group::new("B".into(), Domain::Ground, vec![UnitId(900)], GroupTask::Hold { since: 0, committed: false, picked: true }, 0));
         brain.pianist = Some(pianist);
         let mut own = ours.clone();
@@ -1598,7 +1692,7 @@ pub(super) mod tests {
         let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies, wrecks: None } };
         let id = UnitDefId(1);
         let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
-        let place = |name: &str, x: f32, z: f32, spot: Option<usize>| Place { name: name.to_string(), at: at(x, z), spot };
+        let place = |name: &str, x: f32, z: f32, spot: Option<usize>| Place { name: name.to_string(), at: at(x, z), spot, cells: None };
         let picture = Picture {
             rules: String::new(),
             state: serde_json::json!({ "instructions": "group_A (Blitzes): roves; being seen is its job. spot_30 is ours.", "actors": { "group_A": { "at": "spot_40 (E3)", "doing": "roving since 10 s ago: its Blitz at spot_40 (E3) is on its way to look at spot_30, 400 to go" } }, "places": {} }),
@@ -1635,7 +1729,7 @@ pub(super) mod tests {
         let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies, wrecks: None } };
         let id = UnitDefId(1);
         let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
-        let place = |name: &str, x: f32, z: f32, spot: Option<usize>| Place { name: name.to_string(), at: at(x, z), spot };
+        let place = |name: &str, x: f32, z: f32, spot: Option<usize>| Place { name: name.to_string(), at: at(x, z), spot, cells: None };
         let picture = Picture {
             rules: String::new(),
             state: serde_json::json!({ "instructions": "group_A (Blitzes): holds its ground; against a party that outweighs it, it walks to spot_30.", "actors": { "group_A": { "at": "spot_40 (E3)" } }, "places": {} }),

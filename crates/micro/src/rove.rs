@@ -199,6 +199,9 @@ impl Lane {
             let danger: Vec<&Source> = danger_all.iter().copied().filter(|s| !s.water_only || unit.pos.y <= 0.0).collect();
             let stats = view.stats(unit.def).unwrap_or_default();
             let sight = if stats.sight > 0.0 { stats.sight } else { DEFAULT_SIGHT };
+            // A region the host confines it to: nothing outside it is looked at or attacked.
+            let within = view.rove_within(unit.id);
+            let inside = |p: Vec3| within.is_none_or(|(a, b)| p.x >= a.x && p.x <= b.x && p.z >= a.z && p.z <= b.z);
             let name = view.def(unit.def).map_or("?", |d| d.name.as_str()).to_string();
             let mut rover = match self.rovers.remove(&unit.id) {
                 Some(r) => r,
@@ -301,7 +304,7 @@ impl Lane {
                 let air = d.speed > 0.0 && d.move_class.is_none();
                 let kill_seconds = e.health.max(1.0) / stats.dps.max(0.01);
                 // Unarmed, or a turret still being built: harmless and worth its whole metal.
-                ((d.weapon_count == 0 || e.being_built) && !air && stats.dps > 0.0 && kill_seconds <= KILL_SECONDS && e.pos.dist2d(unit.pos) <= ATTACK_RADIUS && undefended(e.pos) && clear_way(&danger, unit.pos, e.pos)).then(|| target_class(d))
+                ((d.weapon_count == 0 || e.being_built) && !air && stats.dps > 0.0 && kill_seconds <= KILL_SECONDS && e.pos.dist2d(unit.pos) <= ATTACK_RADIUS && inside(e.pos) && undefended(e.pos) && clear_way(&danger, unit.pos, e.pos)).then(|| target_class(d))
             };
             rover.target = rover.target.filter(|t| enemies.iter().find(|e| e.id == *t).and_then(&attackable).is_some());
             if rover.target.is_none() {
@@ -359,6 +362,7 @@ impl Lane {
                 };
                 let best = goals
                     .iter()
+                    .filter(|g| inside(g.at))
                     .filter(|g| !rover.blocked.iter().any(|(n, _)| *n == g.name))
                     // In its sight now: being looked at already.
                     .filter(|g| g.at.dist2d(unit.pos) > sight)
@@ -452,6 +456,8 @@ mod tests {
         goals: Vec<RoveGoal>,
         /// Ground nothing stands on: a point inside it snaps to its edge.
         pit: Option<(Vec3, f32)>,
+        /// The region every rover is confined to.
+        within: Option<(Vec3, Vec3)>,
     }
 
     impl Host {
@@ -463,7 +469,7 @@ mod tests {
                 def(EXTRACTOR, "armmex", 0.0, 0, 0.0, 0.002),
                 def(CONSTRUCTOR, "armck", 36.0, 0, 80.0, 0.0),
             ];
-            Host { defs, buildings: Vec::new(), goals, pit: None }
+            Host { defs, buildings: Vec::new(), goals, pit: None, within: None }
         }
     }
 
@@ -523,10 +529,35 @@ mod tests {
         fn rove_goals(&self, _def: UnitDefId) -> Vec<RoveGoal> {
             self.goals.clone()
         }
+        fn rove_within(&self, _unit: UnitId) -> Option<(Vec3, Vec3)> {
+            self.within
+        }
     }
 
     fn goal(name: &str, x: f32, z: f32, seen: Option<i32>, theirs: bool) -> RoveGoal {
         RoveGoal { name: name.to_string(), at: at(x, z), seen, theirs }
+    }
+
+    /// A rover confined to a region (the host's `rove_within`) looks at no place and attacks no unit outside it:
+    /// free, it takes the nearer unseen place and the unguarded extractor beside it; confined, it leaves both for
+    /// the place inside the region.
+    #[test]
+    fn a_rover_confined_to_a_region_looks_and_attacks_inside_it_alone() {
+        let goals = vec![goal("spot_1", 500.0, 500.0, None, false), goal("spot_2", 3000.0, 3000.0, None, false)];
+        let extractor = enemy(50, EXTRACTOR, 1200.0, 1200.0);
+        let mut free = Lane::default();
+        free.set_commitments(HashMap::from([(UnitId(10), Commitment::Rove)]), HashMap::new());
+        let host = Host::new(goals.clone());
+        let out = free.tick(&host, &tick(30, vec![rover(10, 1500.0, 1500.0)], vec![extractor.clone()]), &mut Vec::new(), false);
+        assert!(out.commands.iter().any(|c| matches!(c, Command::Attack { unit, target, .. } if unit.0 == 10 && target.0 == 50)), "free, it attacks the extractor beside it: {:?}", out.commands);
+        let mut confined = Lane::default();
+        confined.set_commitments(HashMap::from([(UnitId(10), Commitment::Rove)]), HashMap::new());
+        let mut host = Host::new(goals);
+        host.within = Some((at(2000.0, 2000.0), at(4000.0, 4000.0)));
+        let out = confined.tick(&host, &tick(30, vec![rover(10, 1500.0, 1500.0)], vec![extractor]), &mut Vec::new(), false);
+        assert!(!out.commands.iter().any(|c| matches!(c, Command::Attack { .. })), "confined, the extractor outside is left: {:?}", out.commands);
+        let report = confined.roving(UnitId(10)).expect("roving");
+        assert_eq!((report.doing, report.goal.map(|(name, _)| name)), ("looking", Some("spot_2".to_string())), "the place inside, not the nearer one outside");
     }
 
     fn rover(id: i32, x: f32, z: f32) -> OwnUnit {

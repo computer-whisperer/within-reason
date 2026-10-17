@@ -52,6 +52,14 @@ impl World {
         format!("{}{}", (b'A' + column) as char, row + 1)
     }
 
+    /// The ground a rectangle of grid cells covers (first column, first row, last column, last row, 0-based and
+    /// inclusive): its north-west and south-east corners.
+    pub fn cells_rect(&self, cells: (u8, u8, u8, u8)) -> (Vec3, Vec3) {
+        let (w, h) = (self.hello.map.width / 8.0, self.hello.map.height / 8.0);
+        let (c0, r0, c1, r1) = cells;
+        (Vec3 { x: c0 as f32 * w, y: 0.0, z: r0 as f32 * h }, Vec3 { x: (c1 as f32 + 1.0) * w, y: 0.0, z: (r1 as f32 + 1.0) * h })
+    }
+
     /// The grid cells a start box touches, as a range ("G1-H8", or "G3" for one cell).
     pub fn box_cells(&self, b: &bot_protocol::StartBox) -> String {
         let a = self.grid(Vec3 { x: b.left + 1.0, y: 0.0, z: b.top + 1.0 });

@@ -525,7 +525,7 @@ mod tests {
             WreckField { at: at(4700.0, 2700.0), metal: 500.0, safe: true, wrecks: Vec::new() },
             WreckField { at: at(1000.0, 1000.0), metal: 200.0, safe: true, wrecks: Vec::new() },
         ];
-        let places = vec![Place { name: "spot_40".into(), at: at(4000.0, 2600.0), spot: Some(40) }, Place { name: "spot_1".into(), at: at(7000.0, 5000.0), spot: Some(1) }];
+        let places = vec![Place { name: "spot_40".into(), at: at(4000.0, 2600.0), spot: Some(40), cells: None }, Place { name: "spot_1".into(), at: at(7000.0, 5000.0), spot: Some(1), cells: None }];
         assert_eq!(brain.wreck_field_at("E4", &places), Some(at(4700.0, 2700.0)), "the richest in the cell");
         assert_eq!(brain.wreck_field_at("e4", &places), Some(at(4700.0, 2700.0)));
         assert_eq!(brain.wreck_field_at("spot_40", &places), Some(at(4500.0, 2600.0)), "the nearest to the place");

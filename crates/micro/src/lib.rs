@@ -300,6 +300,12 @@ pub trait View {
     fn rove_goals(&self, _def: UnitDefId) -> Vec<RoveGoal> {
         Vec::new()
     }
+    /// The region a rover is told to stay within (the hands' `rove_<region>` move): the rectangle's north-west and
+    /// south-east corners, or none for free roving. The rover looks at nothing and attacks nothing outside the
+    /// region; it may pass through outside ground on its way.
+    fn rove_within(&self, _unit: UnitId) -> Option<(Vec3, Vec3)> {
+        None
+    }
 }
 
 /// A soldier the lane commands: armed, mobile, no builder, on the ground (aircraft are out: its steps are ground

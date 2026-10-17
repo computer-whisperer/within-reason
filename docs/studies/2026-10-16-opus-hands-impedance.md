@@ -377,7 +377,9 @@ outlined sounds good, proceed"): `produce` `"group": "by_type"` (split by unit t
 forbidden question on an air party's attack and shelling, with a decode reading of its own (aircraft never chased,
 4 games); the `reclaim <cell|place>` list step and the id step as help on a building the builder cannot make
 (2 games); `remove` by `"<type> at <place>"` (the penned commander). Unit tests each; no game yet
-(`docs/harness/impedance.md`).
+(`docs/harness/impedance.md`). The next day, rove within a region the player marks (`rove_<region>`,
+`rove_1_<region>`; docs/design/2026-10-17-rove-destinations.md) for the rove rows (8 games); the first place and
+the route are not built.
 
 ## 6. What it says
 
