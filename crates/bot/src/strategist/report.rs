@@ -185,6 +185,9 @@ pub(super) fn front(briefing: &Briefing, field: &Field, fights: &[String], seats
     if let Some(line) = stockpile_line(briefing) {
         lines.push(line);
     }
+    if let Some(line) = unfinished_line(briefing) {
+        lines.push(line);
+    }
     // Where we stand against the experienced players' games on this map, in a duel (H-PLAYER-REFERENCE-LINE).
     if briefing.sides.iter().all(|side| side.seats.len() == 1) && briefing.sides.len() == 2 {
         lines.extend(super::reference::line(briefing, s));
@@ -262,6 +265,26 @@ pub(super) fn front(briefing: &Briefing, field: &Field, fights: &[String], seats
 /// Our silos and anti-nukes with their rounds, in every report: the player fires, and a round it is not told of is a
 /// round it does not fire (nuke-2-hard, 2026-10-09: two missiles ready five minutes before his anti-nuke was begun, the
 /// reports naming neither, the player's note "silo had 3 missiles ready (unseen in reports)").
+/// Every unfinished structure of ours, those nobody is building first, with the handle a `finish <handle>` list
+/// step or a `remove` takes (the unfinished-structures sweep, 2026-10-17: a frame nobody was building was in no
+/// report until it decayed, 205 such in 23 games).
+pub(super) fn unfinished_line(briefing: &Briefing) -> Option<String> {
+    if briefing.frames.is_empty() {
+        return None;
+    }
+    let entry = |f: &super::shared::UnfinishedFrame| {
+        let metal = format!("{:.0} of {:.0} metal in it", f.share * f.cost, f.cost);
+        match (f.builders.as_slice(), f.alone_seconds) {
+            ([], Some(s)) => format!("{} at {} ({:.0}% built, {metal}; nobody is building it, left {s} s ago, decaying)", f.handle, f.at.grid, f.share * 100.0),
+            ([], None) => format!("{} at {} ({:.0}% built, {metal}; nobody is building it)", f.handle, f.at.grid, f.share * 100.0),
+            (by, _) => format!("{} at {} ({:.0}% built, {metal}) by {}", f.handle, f.at.grid, f.share * 100.0, by.join(", ")),
+        }
+    };
+    let alone = briefing.frames.iter().filter(|f| f.builders.is_empty()).count();
+    let hint = if alone > 0 { "; `finish <handle>` on any builder's list resumes one as that builder's own build, the pick offers a builder near it the same, `remove` reclaims its metal" } else { "" };
+    Some(format!("unfinished structures of ours: {}{hint}", briefing.frames.iter().map(entry).collect::<Vec<_>>().join("; ")))
+}
+
 pub(super) fn stockpile_line(briefing: &Briefing) -> Option<String> {
     if briefing.stockpilers.is_empty() {
         return None;
@@ -521,5 +544,28 @@ mod tests {
     fn cells_are_written_as_runs_down_a_column() {
         let cells: Vec<CellLook> = ["G4", "G5", "G6", "H2", "H4", "H5"].iter().map(|name| cell(name, 1.0, Some(0))).collect();
         assert_eq!(cell_runs(&cells.iter().collect::<Vec<_>>()), "G4-G6, H2, H4-H5");
+    }
+}
+
+#[cfg(test)]
+mod unfinished_tests {
+    use super::super::shared::{Briefing, Place, UnfinishedFrame};
+    use super::unfinished_line;
+
+    /// Every unfinished structure of ours is in the report, those nobody is building first, with the handle a
+    /// `finish` step or a `remove` takes.
+    #[test]
+    fn the_report_lists_every_unfinished_structure_the_orphans_first() {
+        assert!(unfinished_line(&Briefing::default()).is_none());
+        let at = |grid: &str| Place { grid: grid.to_string(), ..Place::default() };
+        let briefing = Briefing {
+            frames: vec![
+                UnfinishedFrame { handle: "armnanotc_17819".into(), unit: "armnanotc".into(), at: at("C8"), share: 0.45, cost: 230.0, builders: Vec::new(), alone_seconds: Some(40) },
+                UnfinishedFrame { handle: "armsolar_26962".into(), unit: "armsolar".into(), at: at("B8"), share: 0.86, cost: 155.0, builders: vec!["constructor_26737".into()], alone_seconds: None },
+            ],
+            ..Briefing::default()
+        };
+        let line = unfinished_line(&briefing).unwrap();
+        assert_eq!(line, "unfinished structures of ours: armnanotc_17819 at C8 (45% built, 104 of 230 metal in it; nobody is building it, left 40 s ago, decaying); armsolar_26962 at B8 (86% built, 133 of 155 metal in it) by constructor_26737; `finish <handle>` on any builder's list resumes one as that builder's own build, the pick offers a builder near it the same, `remove` reclaims its metal");
     }
 }

@@ -2282,8 +2282,10 @@ reports as "abandoned ... its builder was sent elsewhere and the frame decayed" 
 **Status.** measured (2026-10-17; `run/frames.py` for the denominators on every seat, one Opus reviewer a game,
 748 items at 673 high confidence; the three code lines read at HEAD; an 8-item random sample verified). The two
 hands faults fixed 2026-10-17 on the user's word (H-HANDS-STARTED and H-HANDS-STALL amended: the task keyed to its
-own frame, the loss line telling a kill from a decay at the peak share), unmeasured in a game; the rest of §7 is
-the user's call.
+own frame, the loss line telling a kill from a decay at the peak share), unmeasured in a game; the same day the
+report's `unfinished structures` line, the `finish <handle>` step and move, the unfinished reclaim form and the
+stop that spares a frame begun after the report (§8's asks 1, 2, 4). The rest of §7 and §8's ask 3 are the user's
+call.
 **Evidence.** `docs/studies/2026-10-17-unfinished-structures.md`, `docs/studies/data/unfinished-2026-10-17/`.
 **Would be wrong if.** The record's destroyed event named attackers out of sight (it does not: the damage rows show
 the hits), or the peak share overstated the metal (the engine refunds nothing of a decayed frame).

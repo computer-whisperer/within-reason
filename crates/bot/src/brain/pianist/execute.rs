@@ -106,6 +106,8 @@ impl Brain {
             Order::Build(def, Site::Place(named)) if ordered_def == Some(*def) && same_site(None, Some(named)) => return None,
             Order::Build(_, Site::Spot(i)) if ordered_def.is_some_and(|d| self.world.is_extractor_def(d)) && same_site(Some(*i), None) => return None,
             Order::Help(target) if helping == Some(*target) => return None,
+            // The frame this builder is finishing already is the same build going on.
+            Order::Finish(target) if !queue && matches!(self.pianist.as_ref().and_then(|p| p.tasks.get(&id)), Some(Task::Build { frame: Some(f), .. }) if f == target) => return None,
             _ => {}
         }
         let mut task: Option<Task> = None;
@@ -204,6 +206,17 @@ impl Brain {
                 commands.push(Command::Repair { unit: id, target: *target, queue });
                 task = Some(Task::Repair { target: *target, since: frame });
                 did = Some("repair".into());
+            }
+            // An unfinished frame of ours as this builder's own build: the engine's repair command builds it, and
+            // the task is a started build on that frame (the finish-first law and the 60 % rule hold, and the
+            // finished event frees the builder or begins what it queued).
+            Order::Finish(target) => {
+                if let Some(frame_unit) = own.iter().find(|u| u.id == *target && u.being_built) {
+                    commands.push(Command::Repair { unit: id, target: *target, queue });
+                    let spot = self.world.is_extractor_def(frame_unit.def).then(|| self.world.hello.metal_spots.iter().position(|s| s.dist2d(frame_unit.pos) < self.spot_occupied_radius())).flatten();
+                    task = Some(Task::Build { def: frame_unit.def, near: frame_unit.pos, spot, ordered: frame, started: true, frame: Some(*target) });
+                    did = Some(format!("finish our {} at {} ({:.0}% built)", self.short_words(frame_unit.def), self.place_words(&picture.places, frame_unit.pos), frame_unit.health / frame_unit.max_health.max(1.0) * 100.0));
+                }
             }
             Order::DGun(party_name) => {
                 if let Some(party) = picture.parties.iter().find(|p| p.name == *party_name)

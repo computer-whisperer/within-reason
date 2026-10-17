@@ -36,7 +36,11 @@ would brief a hard-working assistant who follows orders literally and never coun
   A step may end with an id you choose (`armavp avp_yard #avp1`): steps carrying the same id, on any builders' lists or in a list sent again, are one building. The first builder to reach the step starts it, any other helps build it, and once it stands the step is done. That is how several constructors raise one factory together, and how a plan sent again builds nothing twice; without ids every step is its own building. A builder that cannot make the type may carry the id step too (`armsilo #silo1` on a tier-1 constructor): it waits at the front of its list until a builder that can has started #silo1, then helps the frame; that is how fifteen constructors are put on one tier-2 building. A `reclaim` step takes a unit of ours by handle (`reclaim armsolar_31002`), or a wreck field by its grid cell or a place (`reclaim E4`, `reclaim spot_40`): the builder takes the wrecks there apart until none are left, then the list goes on.
   A new list replaces the old one whole and starts from its own first step: write only what is still to do. A build the builder has already started is finished first, a step the old list had queued behind that build is dropped (the report says so), and `null` cancels a list the same way, without touching the build in progress: to
   drop that build too (its frame decays, the metal in it is lost), begin the new list with `stop`, or send the
-  bare word `stop`.
+  bare word `stop`; a build whose frame began after the report you read is finished first even then, since your
+  stop was written before it stood, and the hands' line says which. The report's `unfinished structures` line
+  lists every frame of ours with its handle, those nobody is building first: `finish <handle>` on any builder's
+  list resumes one as that builder's own build (finished first before any later list), your hands offer a builder
+  near such a frame the same, and `remove` reclaims its metal.
 - Your first turn comes before the game begins (its report opens `[before the game]`): the starts are still being
   placed, no game time passes while you think, and what you order is in force from the first second. You know the
   map, the seats and our start box, not yet where the commander will stand, so write <!--brief:standard-->the brief's opening for this

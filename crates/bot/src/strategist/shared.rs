@@ -37,6 +37,25 @@ pub struct Briefing {
     /// Our silos and anti-nukes with their rounds, for the report's `missiles` line every turn (nuke-2-hard, 2026-10-09:
     /// two missiles sat ready five minutes before his anti-nuke while nothing the player read named them).
     pub stockpilers: Vec<Stockpiler>,
+    /// Our unfinished structures, standing, every one, those nobody is building first (the unfinished-structures
+    /// sweep, 2026-10-17: a frame nobody was building was in no report until it decayed, 205 such in 23 games).
+    pub frames: Vec<UnfinishedFrame>,
+}
+
+/// An unfinished structure of ours (a nanoframe the engine has made), for the report's `unfinished structures` line.
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct UnfinishedFrame {
+    /// The player's name for it (`armsolar_31002`): the `finish <handle>` list step and the `remove` tool take it.
+    pub handle: String,
+    pub unit: String,
+    pub at: Place,
+    /// How far along it is now (a frame left alone decays).
+    pub share: f32,
+    pub cost: f32,
+    /// The builders working on it, by actor name; empty when nobody is.
+    pub builders: Vec<String>,
+    /// Seconds since the last builder left it, when nobody is on it.
+    pub alone_seconds: Option<i32>,
 }
 
 /// A silo or anti-nuke of ours and its rounds, as the engine counts them.

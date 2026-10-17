@@ -233,10 +233,15 @@ impl Brain {
         if let Some(unit) = self.unit_by_handle(name, own) {
             return Some(unit);
         }
+        // "unfinished <type> at <place or cell>": a frame of the type there, not a standing one.
+        let (name, unfinished) = match name.strip_prefix("unfinished ") {
+            Some(rest) => (rest.trim(), true),
+            None => (name, false),
+        };
         let (kind, at) = name.split_once(" at ")?;
         let def = self.world.def_named(kind.trim())?;
         let at = at.trim();
-        let standing = own.iter().filter(|u| u.def == def && !u.being_built);
+        let standing = own.iter().filter(|u| u.def == def && u.being_built == unfinished);
         let cell = at.to_ascii_uppercase();
         if cell.len() == 2 && cell.starts_with(|c: char| ('A'..='H').contains(&c)) && cell.ends_with(|c: char| ('1'..='8').contains(&c)) {
             return standing.filter(|u| self.world.grid(u.pos) == cell).min_by_key(|u| u.id.0);
@@ -388,6 +393,12 @@ mod named_tests {
         assert_eq!(id(brain.unit_named("armllt at Z9", &own)), None);
         assert_eq!(id(brain.unit_named("armllt at A1", &own)), Some(303));
         assert_eq!(id(brain.unit_named("armllt_301", &own)), Some(301));
+        // "unfinished <type> at <cell or place>" names a frame of the type there, never a standing one.
+        let with_frame: Vec<OwnUnit> = own.iter().cloned().chain([OwnUnit { being_built: true, health: 40.0, max_health: 100.0, ..own[0].clone() }].into_iter().map(|mut u| { u.id = UnitId(310); u })).collect();
+        assert_eq!(id(brain.unit_named("unfinished armllt at E4", &with_frame)), Some(310));
+        assert_eq!(id(brain.unit_named("unfinished armllt at spot_40", &with_frame)), Some(310));
+        assert_eq!(id(brain.unit_named("armllt at E4", &with_frame)), Some(300), "the plain form keeps to standing units");
+        assert_eq!(id(brain.unit_named("unfinished armwar at E4", &with_frame)), None);
     }
 }
 

@@ -322,6 +322,9 @@ fn report(side: &Shared, first: bool) -> String {
         if let Some(line) = super::report::stockpile_line(b) {
             lines.push(format!("  {line}"));
         }
+        if let Some(line) = super::report::unfinished_line(b) {
+            lines.push(format!("  {line}"));
+        }
         let Some(actors) = hands.get(team).and_then(|h| h.picture["actors"].as_object()) else { continue };
         let said = |entry: &Value, key: &str| entry[key].as_str().map(str::to_string);
         let (mut builders, mut idle, mut helping) = (0, 0, 0);

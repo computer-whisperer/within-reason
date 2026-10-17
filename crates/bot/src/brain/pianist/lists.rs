@@ -396,6 +396,16 @@ impl Brain {
                         },
                     }
                 }
+                // `finish <handle>`: an unfinished structure of ours, whoever began it, as this builder's own build
+                // (the report's `unfinished structures` line gives the handles).
+                "finish" => match place.as_deref() {
+                    None => Err("finish takes the handle of an unfinished structure of ours (armsolar_31002), as the report's `unfinished structures` line writes it".to_string()),
+                    Some(handle) => match self.unit_by_handle(handle, own) {
+                        Some(target) if target.being_built => Ok(Order::Finish(target.id)),
+                        Some(_) => Err(format!("{handle} stands finished already")),
+                        None => Err(format!("nothing of ours by the name {handle} stands: the frame is gone")),
+                    },
+                },
                 // A defence at a spot whose extractor the engine refused lately waits with its extractor, unless an
                 // extractor of ours is there after all (another builder's frame took the spot first, so this one's
                 // was refused: the impedance tally, 2026-10-16, 150 turret steps skipped so, leg-player-1's spot_14
@@ -430,7 +440,9 @@ impl Brain {
                             return None;
                         }
                         None | Some(TagState::Free) => Ok(order),
-                        Some(TagState::UnderWay(frame)) => Ok(Order::Repair(frame)),
+                        // The id's frame stands: this builder finishes it as its own build (a repair task was a
+                        // filler to the list, overrun by its next step a second later: rove-move-1 17:57).
+                        Some(TagState::UnderWay(frame)) => Ok(Order::Finish(frame)),
                         Some(TagState::Claimed(builder)) => Ok(Order::Help(builder)),
                         Some(TagState::Stands) => Err(format!("#{tag} stands already")),
                         Some(TagState::Mine) => Err(format!("#{tag} is the build this builder is on")),
@@ -664,5 +676,50 @@ mod tests {
         assert_eq!(pianist.silent(UnitId(1), 0.3, 100 + 7 * 30), None);
         assert_eq!(pianist.silent(UnitId(2), 0.3, 500), None);
         assert_eq!(pianist.under_fire(100 + super::super::UNDER_FIRE_FRAMES + 1).count(), 0);
+    }
+}
+
+#[cfg(test)]
+mod finish_tests {
+    use bot_protocol::{Command, OwnUnit, UnitDefId, UnitId};
+    use std::collections::VecDeque;
+
+    use super::super::fixtures::{at, brain_of, own};
+    use super::super::menu::Order;
+    use super::super::picture::Picture;
+    use super::super::{Pianist, Task};
+    use crate::brain::roster::Kit;
+
+    /// `finish <handle>` on a list resumes an unfinished frame of ours, whoever began it, as the builder's own
+    /// build: a started build task on that frame (the finish-first law and the 60 % rule hold) and the engine's
+    /// repair command; a handle that stands finished, or one nothing bears, is skipped and said.
+    #[test]
+    fn a_finish_step_resumes_an_unfinished_frame_as_the_builders_own_build() {
+        let mut brain = brain_of(&["armcv", "armsolar"]);
+        let ours = vec![own(1, 1, at(1000.0, 950.0)), OwnUnit { being_built: true, health: 62.0, max_health: 100.0, ..own(20, 2, at(1000.0, 1000.0)) }, own(21, 2, at(1200.0, 1000.0))];
+        let id = UnitDefId(9);
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        let picture = Picture { rules: String::new(), state: serde_json::json!({}), places: Vec::new(), parties: Vec::new() };
+        let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        let name = "constructor_1".to_string();
+        pianist.scripts.insert(name.clone(), VecDeque::from(["finish armsolar_21".to_string(), "finish armsolar_99".to_string(), "finish".to_string(), "finish armsolar_20".to_string()]));
+        let step = brain.next_list_step(&ours[0], &name, &mut pianist, &picture, &ours, 100, &kit);
+        assert!(matches!(&step, Some((Order::Finish(UnitId(20)), s)) if s == "finish armsolar_20"), "{step:?}");
+        assert!(pianist.done.iter().any(|d| d.contains("skipped the step 'finish armsolar_21'") && d.contains("stands finished already")), "{:?}", pianist.done);
+        assert!(pianist.done.iter().any(|d| d.contains("skipped the step 'finish armsolar_99'") && d.contains("the frame is gone")), "{:?}", pianist.done);
+        assert!(pianist.done.iter().any(|d| d.contains("skipped the step 'finish'") && d.contains("finish takes the handle")), "{:?}", pianist.done);
+        // Executed: a repair command on the frame, and a started build task that keeps the frame's id.
+        brain.pianist = Some(pianist);
+        let resource = || bot_protocol::Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+        let tick = bot_protocol::Tick { frame: 100, late: 0, events: Vec::new(), snapshot: bot_protocol::Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.clone(), allies: Vec::new(), enemies: Vec::new(), wrecks: None } };
+        let mut commands = Vec::new();
+        let did = brain.execute_builder(&tick, &kit, &picture, UnitId(1), &Order::Finish(UnitId(20)), false, Some("finish armsolar_20"), &mut commands);
+        assert!(did.as_deref().is_some_and(|d| d.starts_with("finish our Solar Collector")), "{did:?}");
+        assert!(commands.iter().any(|c| matches!(c, Command::Repair { unit: UnitId(1), target: UnitId(20), .. })), "{commands:?}");
+        let task = brain.pianist.as_ref().unwrap().tasks.get(&UnitId(1)).cloned();
+        assert!(matches!(task, Some(Task::Build { def: UnitDefId(2), started: true, frame: Some(UnitId(20)), .. })), "{task:?}");
+        // The same finish again is the build going on, not a new order.
+        let again = brain.execute_builder(&tick, &kit, &picture, UnitId(1), &Order::Finish(UnitId(20)), false, None, &mut commands);
+        assert!(again.is_none(), "{again:?}");
     }
 }

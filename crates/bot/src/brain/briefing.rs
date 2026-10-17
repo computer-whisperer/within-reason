@@ -1,6 +1,6 @@
 //! The brain's side of the player's session: the briefing, the field, events and triggers out.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use bot_protocol::{UnitId, Event, OwnUnit, Tick, UnitDefId, Vec3};
 use serde_json::json;
@@ -122,7 +122,7 @@ impl Brain {
         for event in &tick.events {
             match event {
                 Event::UnitCreated { unit, builder: Some(builder) } => {
-                    self.frame_builders.insert(*unit, *builder);
+                    self.frame_builders.insert(*unit, (*builder, tick.frame));
                 }
                 Event::UnitDamaged { unit, .. } if self.unfinished.contains_key(unit) => {
                     self.frame_hits.insert(*unit, tick.frame);
@@ -177,8 +177,9 @@ impl Brain {
                 continue;
             }
             let cost = self.world.def(def).map_or(0.0, |d| d.metal_cost);
-            let builder = self.frame_builders.remove(unit);
+            let builder = self.frame_builders.remove(unit).map(|(b, _)| b);
             let last_hit = self.frame_hits.remove(unit);
+            self.frame_alone_since.remove(unit);
             // An unfinished frame: the metal put in is its peak share of the cost (left to decay it reads near 0 at
             // its end, and the report said "0% built" of every decay until 2026-10-17), and what became of it is
             // read from its last hit and its builder.
@@ -264,6 +265,64 @@ impl Brain {
             .collect();
         self.frame_hits.retain(|id, _| self.unfinished.contains_key(id));
         self.frame_builders.retain(|id, _| self.unfinished.contains_key(id));
+        // Since when each frame has stood with nobody of ours building it.
+        let on = self.builders_on_frames();
+        let (unfinished, alone) = (&self.unfinished, &mut self.frame_alone_since);
+        alone.retain(|id, _| unfinished.contains_key(id));
+        for id in unfinished.keys() {
+            if on.contains_key(id) {
+                alone.remove(id);
+            } else {
+                alone.entry(*id).or_insert(tick.frame);
+            }
+        }
+    }
+
+    /// The builders working on each unfinished frame of ours, by the hands' tasks: the frame's own builder, a
+    /// builder finishing or repairing it, one guarding it, or one guarding its builder.
+    pub(super) fn builders_on_frames(&self) -> HashMap<UnitId, Vec<String>> {
+        use super::pianist::Task;
+        let mut on: HashMap<UnitId, Vec<String>> = HashMap::new();
+        let Some(pianist) = self.pianist.as_ref() else { return on };
+        let frame_of = |builder: UnitId| match pianist.tasks.get(&builder) {
+            Some(Task::Build { frame: Some(f), .. }) | Some(Task::Repair { target: f, .. }) => Some(*f),
+            Some(Task::Assist { lab, .. }) if self.unfinished.contains_key(lab) => Some(*lab),
+            _ => None,
+        };
+        for builder in pianist.tasks.keys() {
+            let frame = frame_of(*builder).or_else(|| match pianist.tasks.get(builder) {
+                Some(Task::Assist { lab, .. }) => frame_of(*lab),
+                _ => None,
+            });
+            if let Some(frame) = frame {
+                on.entry(frame).or_default().push(self.actor_name(*builder));
+            }
+        }
+        for names in on.values_mut() {
+            names.sort();
+        }
+        on
+    }
+
+    /// Every unfinished structure of ours for the report: those nobody is building first, the furthest along first
+    /// among them.
+    fn unfinished_frames(&self, own: &[OwnUnit], frame: i32) -> Vec<crate::strategist::shared::UnfinishedFrame> {
+        let on = self.builders_on_frames();
+        let mut frames: Vec<crate::strategist::shared::UnfinishedFrame> = own
+            .iter()
+            .filter(|u| u.being_built && self.world.def(u.def).is_some_and(|d| d.speed == 0.0))
+            .map(|u| crate::strategist::shared::UnfinishedFrame {
+                handle: self.handle(u),
+                unit: self.name(u.def).to_string(),
+                at: self.place(u.pos),
+                share: (u.health / u.max_health.max(1.0)).clamp(0.0, 1.0),
+                cost: self.world.def(u.def).map_or(0.0, |d| d.metal_cost),
+                builders: on.get(&u.id).cloned().unwrap_or_default(),
+                alone_seconds: self.frame_alone_since.get(&u.id).map(|since| (frame - since) / FRAMES_PER_SECOND),
+            })
+            .collect();
+        frames.sort_by(|a, b| b.builders.is_empty().cmp(&a.builders.is_empty()).then(b.share.total_cmp(&a.share)));
+        frames
     }
 
     pub(super) fn track_enemy_buildings(&mut self, tick: &Tick) {
@@ -428,6 +487,7 @@ impl Brain {
                     Some(crate::strategist::shared::Stockpiler { handle: self.handle(u), anti_nuke: d.coverage > 0.0, ready: u.stockpile, queued: u.stockpile_queued, seconds: d.stockpile_seconds, coverage: d.coverage })
                 })
                 .collect(),
+            frames: self.unfinished_frames(&snapshot.own_units, tick.frame),
             home: self.place(self.home),
             colour: self.world.hello.teams.iter().find(|t| t.team == self.world.hello.team).and_then(|t| t.color).map(colour_name).unwrap_or_default(),
             home_group: self.group(&soldiers),

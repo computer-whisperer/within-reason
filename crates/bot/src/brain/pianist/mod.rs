@@ -570,8 +570,10 @@ impl Pianist {
         match &mut next {
             Task::Build { ordered, started, frame: own_frame, .. } => {
                 *ordered = frame;
-                *started = false;
-                *own_frame = None;
+                // A queued build begins unstarted; a queued `finish` is on its frame from the start.
+                if own_frame.is_none() {
+                    *started = false;
+                }
             }
             Task::Assist { lab, since } => {
                 *since = frame;
@@ -922,20 +924,46 @@ impl Brain {
                 }
             }
             // A list beginning with `stop` (or the bare word) drops what the builder is doing now: the build in
-            // progress is abandoned and its frame decays. `null` cancels the list and lets that build finish.
+            // progress is abandoned and its frame decays. `null` cancels the list and lets that build finish. A
+            // build whose frame the engine made after the report the player read is finished first even so (the
+            // user, 2026-10-17, "Go with the first": the stop was written against a builder it saw walking, and
+            // under the think penalty or a realtime turn it met a frame begun since, 84 of the 129 drops of the
+            // unfinished-structures sweep); the line says which, and what a stop dropped and its share.
             let mut steps = list;
             if let Some(s) = steps.as_mut()
                 && s.first().is_some_and(|w| w == "stop")
             {
                 s.remove(0);
                 if let Some(unit) = self.unit_by_handle(&name, &tick.snapshot.own_units).map(|u| u.id) {
-                    commands.push(Command::Stop { unit });
+                    let report_frame = shared.last_turn_frame.load(std::sync::atomic::Ordering::Relaxed);
+                    let build = self.pianist.as_ref().and_then(|p| p.tasks.get(&unit)).and_then(|t| match t {
+                        Task::Build { started: true, frame: Some(f), def, near, .. } => {
+                            let frame_unit = tick.snapshot.own_units.iter().find(|u| u.id == *f);
+                            let share = frame_unit.map_or(0.0, |u| u.health / u.max_health.max(1.0));
+                            let cost = self.world.def(*def).map_or(0.0, |d| d.metal_cost);
+                            Some((self.frame_builders.get(f).map_or(0, |(_, created)| *created), format!("its {} at {} ({:.0}% built, {:.0} metal in it", self.short_words(*def), self.world.grid(*near), share * 100.0, share * cost), frame_unit.map(|u| self.handle(u))))
+                        }
+                        _ => None,
+                    });
+                    let clock = picture::clock(tick.frame);
                     let pianist = self.pianist.as_mut().expect("pianist mode");
-                    pianist.tasks.remove(&unit);
-                    // The stop empties the engine's queue: what was queued behind the build is gone with it.
-                    pianist.queued.remove(&unit);
-                    pianist.queued_steps.remove(&unit);
-                    pianist.done.push(format!("{} {name}: stopped what it was doing on your `stop`", picture::clock(tick.frame)));
+                    match build {
+                        Some((created, words, _)) if created > report_frame => {
+                            pianist.done.push(format!("{clock} {name}: kept {words}): it began after your {} report, so it finishes first and the list follows (a `stop` in your next list drops it)", picture::clock(report_frame)));
+                        }
+                        build => {
+                            commands.push(Command::Stop { unit });
+                            pianist.tasks.remove(&unit);
+                            // The stop empties the engine's queue: what was queued behind the build is gone with it.
+                            pianist.queued.remove(&unit);
+                            pianist.queued_steps.remove(&unit);
+                            let text = match build {
+                                Some((_, words, handle)) => format!("dropped {words}; `finish {}` would resume it) on your `stop`", handle.unwrap_or_default()),
+                                None => "stopped what it was doing on your `stop`".to_string(),
+                            };
+                            pianist.done.push(format!("{clock} {name}: {text}"));
+                        }
+                    }
                 }
                 if s.is_empty() {
                     steps = None;
@@ -2028,5 +2056,53 @@ mod frame_tests {
         let pianist = brain.pianist.as_ref().expect("kept");
         assert!(pianist.tasks.get(&builder).is_none(), "{:?}", pianist.tasks.get(&builder));
         assert!(!commands.iter().any(|c| matches!(c, Command::Stop { .. })), "{commands:?}");
+    }
+}
+
+#[cfg(test)]
+mod stop_tests {
+    use bot_protocol::{Command, OwnUnit, Resource, Snapshot, Tick, UnitDefId, UnitId};
+
+    use super::fixtures::{at, brain_of, own};
+    use super::{Pianist, Task};
+    use crate::brain::roster::Kit;
+    use crate::strategist::shared::Shared;
+
+    /// A list headed by `stop` drops the build in progress, naming it and its share; a build whose frame began
+    /// after the report the player read is kept to finish first, and said (the user, 2026-10-17: "Go with the
+    /// first").
+    #[test]
+    fn a_stop_spares_a_frame_begun_after_the_report_and_names_what_it_drops() {
+        let id = UnitDefId(9);
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        let run = |created: i32| -> (Vec<Command>, Vec<String>, bool) {
+            let mut brain = brain_of(&["armcv", "armsolar"]);
+            brain.kit = Some(kit);
+            let shared = std::sync::Arc::new(Shared::default());
+            shared.last_turn_frame.store(100, std::sync::atomic::Ordering::Relaxed);
+            shared.queues.lock().unwrap().insert("constructor_1".into(), Some(vec!["stop".to_string(), "armsolar".to_string()]));
+            brain.strategist = Some(shared);
+            let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+            pianist.tasks.insert(UnitId(1), Task::Build { def: UnitDefId(2), near: at(1000.0, 1000.0), spot: None, ordered: 60, started: true, frame: Some(UnitId(20)) });
+            brain.pianist = Some(pianist);
+            brain.frame_builders.insert(UnitId(20), (UnitId(1), created));
+            let ours = vec![own(1, 1, at(1000.0, 950.0)), OwnUnit { being_built: true, health: 70.0, max_health: 100.0, ..own(20, 2, at(1000.0, 1000.0)) }];
+            let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+            let tick = Tick { frame: 200, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies: Vec::new(), wrecks: None } };
+            let mut commands = Vec::new();
+            brain.take_lists(&tick, &mut commands);
+            let pianist = brain.pianist.as_ref().unwrap();
+            (commands, pianist.done.clone(), pianist.tasks.contains_key(&UnitId(1)))
+        };
+        // The frame was made before the 100 report: dropped, with its share and metal.
+        let (commands, done, kept) = run(90);
+        assert!(commands.iter().any(|c| matches!(c, Command::Stop { unit: UnitId(1) })), "{commands:?}");
+        assert!(!kept);
+        assert!(done.iter().any(|d| d.contains("constructor_1: dropped its Solar Collector") && d.contains("(70% built, 108 metal in it; `finish armsolar_20` would resume it) on your `stop`")), "{done:?}");
+        // The frame was made after the report: kept to finish first, the list following.
+        let (commands, done, kept) = run(130);
+        assert!(!commands.iter().any(|c| matches!(c, Command::Stop { .. })), "{commands:?}");
+        assert!(kept);
+        assert!(done.iter().any(|d| d.contains("constructor_1: kept its Solar Collector") && d.contains("it began after your 0:03 report, so it finishes first")), "{done:?}");
     }
 }

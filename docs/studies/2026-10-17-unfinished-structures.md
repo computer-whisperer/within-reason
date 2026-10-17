@@ -9,7 +9,11 @@ user's call (§7). Data: `data/unfinished-2026-10-17/` (every game's `unfinished
 `denominators.txt`, `tally.json`, `games.txt`, the brief). **Built 2026-10-17 on the user's word** ("Let's fix that
 two hands bugs first"): §7's items 1 and 2, the task keyed to its own frame (H-HANDS-STARTED amended) and the loss
 line telling a kill from a decay at the peak share (H-HANDS-STALL amended); unit tests, a smoke, unmeasured in a game.
-§8 reviews what the hands give the player for knowing about and resuming a frame.
+§8 reviews what the hands give the player for knowing about and resuming a frame; **its asks 1, 2 and 4 and the
+first `stop` semantic were built 2026-10-17 on the user's word** ("Go with the first, build all three"): the report's
+`unfinished structures` line, the `finish <handle>` step and `finish_<handle>` move, the "unfinished <type> at
+<place>" form of a reclaim, and the stop that spares a frame begun after the report (H-HANDS-LISTS and H-HANDS-SCRIPT
+amended, `docs/code-decisions.md` §2). Ask 3, the site search resuming our own frame, is not built.
 
 **Definitions.** A *frame* is a structure of ours the engine created (the record's `created` event: anything
 immobile, so extractors, generators, turrets, plants, nanos, radars, storage, converters, silos). Its *fate* is
@@ -288,7 +292,9 @@ with its handle and health, but no read tool shows them to the player; they feed
   the player must know the handle (the yard entry is the usual source).
 
 **The gaps, as asks** (each the user's call; none a code decision in the no-live-heuristics sense, since every one
-is a report line, a menu move or a tool, chosen by the player or the pick):
+is a report line, a menu move or a tool, chosen by the player or the pick). Built 2026-10-17: 1, 2 and 4 (the
+`stop` line names what it drops, and a `stop` spares a frame begun after the report; the queue-ahead entry is
+unchanged); 3 is not built.
 1. A report block of our unfinished frames nobody is building, with handles, share, how long since the builder
    left, and where (the cards have all of it).
 2. A `finish <handle>` list step and a `finish_<handle>` menu move for a standing frame near a builder (the engine's

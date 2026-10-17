@@ -38,6 +38,8 @@ pub(super) const HIS_AT: f32 = 500.0;
 const AT_END: f32 = 800.0;
 /// A unit of ours under this share of its health is damaged: a builder can repair it.
 const DAMAGED: f32 = 0.7;
+/// How far a builder is offered an unfinished frame of ours nobody is building.
+const FINISH_REACH: f32 = 1500.0;
 /// A wreck field with this much metal is worth a builder's walk (the picture lists the same fields).
 const FIELD_METAL: f32 = 100.0;
 /// The D-gun's shot costs this much energy.
@@ -116,6 +118,9 @@ pub(crate) enum Order {
     /// One unit of ours, on the player's order (a `reclaim <handle>` list step from the `remove` tool).
     TakeApartUnit(UnitId),
     Repair(UnitId),
+    /// An unfinished structure of ours, whoever began it, as this builder's own build from now on (a started build
+    /// task on that frame, so the finish-first law and the 60 % rule hold; the engine's repair command builds it).
+    Finish(UnitId),
     /// The commander's D-gun at the party's nearest unit.
     DGun(String),
     /// A factory's next unit.
@@ -1404,6 +1409,17 @@ impl Brain {
             for hurt in own.iter().filter(|u| u.id != unit.id && !u.being_built && u.health < u.max_health * DAMAGED).filter(|u| self.world.is_commander_def(u.def) || self.world.def(u.def).is_some_and(|d| d.speed == 0.0)) {
                 let what = format!("our {} at {}", self.name(hurt.def), self.place_words(&picture.places, hurt.pos));
                 push(format!("repair_{}", self.handle(hurt)), Order::Repair(hurt.id), format!("{then}{name} repairs {what} (about {:.0}% health; {}){}{leaves}", tenths(hurt.health / hurt.max_health), way_words(unit.pos.dist2d(hurt.pos), speed), stands(hurt.pos)), format!("repairing {what}"), None);
+            }
+            // Our unfinished structures nobody is building, the nearest three in reach (the unfinished-structures
+            // sweep, 2026-10-17: 205 such frames decayed in 23 games with no move to resume one).
+            let busy = self.builders_on_frames();
+            let mut orphans: Vec<&OwnUnit> = own.iter().filter(|f| f.being_built && f.id != unit.id && !busy.contains_key(&f.id) && self.world.def(f.def).is_some_and(|d| d.speed == 0.0) && f.pos.dist2d(unit.pos) < FINISH_REACH).collect();
+            orphans.sort_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)));
+            for frame_unit in orphans.into_iter().take(3) {
+                let share = frame_unit.health / frame_unit.max_health.max(1.0);
+                let cost = self.world.def(frame_unit.def).map_or(0.0, |d| d.metal_cost);
+                let what = format!("our unfinished {} at {}", self.short_words(frame_unit.def), self.place_words(&picture.places, frame_unit.pos));
+                push(format!("finish_{}", self.handle(frame_unit)), Order::Finish(frame_unit.id), format!("{then}{name} finishes {what} ({:.0}% built, {:.0} of {cost:.0} metal in it, decaying while nobody builds it; {}){}{leaves}", share * 100.0, share * cost, way_words(unit.pos.dist2d(frame_unit.pos), speed), stands(frame_unit.pos)), format!("finishing {what}"), None);
             }
         }
 

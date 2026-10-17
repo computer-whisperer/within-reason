@@ -40,6 +40,8 @@ removed changes its row here.
 | Shelling footwork: artillery to 0.85 of its reach, the screen to 0.55 | `STANDOFF = 0.85`, `SCREEN = 0.55` | `P/execute.rs` | H-HANDS-GROUP-STATES |
 | A group picked to rove (`rove`, or `rove_1` for its fastest soldier as a group of its own) is the lane's from the next tick, and any later pick takes it elsewhere (the player's own `rove` setting, the one unit-control order with no pick, deleted 2026-10-07; the lane setting as the way back, a bypass in the other direction, deleted 2026-10-08) | | `B/micro.rs`, `P/groups.rs`, `P/execute.rs` | H-MICRO-ROVE |
 
+| A list headed by `stop` drops the build in progress only when its frame was made before the report the player read; a frame begun after it finishes first | `Shared.last_turn_frame` against the frame's created frame (`Brain.frame_builders`) | `P/mod.rs` `take_lists` | the user, 2026-10-17 ("Go with the first"): a stop written against a builder seen walking met a frame begun during the turn in 84 of the 129 player drops of the unfinished-structures sweep; the hands' line says which it kept and what a stop dropped |
+
 ## 3. Options withheld before Jev sees them
 
 | Decision | Values | Code | ID |

@@ -163,10 +163,13 @@ pub struct Brain {
     /// Our frames still being built at the last look, each with the furthest along it has been (its peak health
     /// share: a frame left to decay reads near 0 at its end), so a `UnitDestroyed` for one says what was put in.
     unfinished: HashMap<UnitId, f32>,
-    /// The builder each frame was created by, and the last frame each was hit (`UnitDamaged`), so a frame destroyed
-    /// with no attacker named is told a decay from a kill by something out of sight (`briefing.rs` `track_losses`).
-    frame_builders: HashMap<UnitId, UnitId>,
+    /// The builder each frame was created by and the frame it was made, and the last frame each was hit
+    /// (`UnitDamaged`), so a frame destroyed with no attacker named is told a decay from a kill by something out of
+    /// sight (`briefing.rs` `track_losses`), and a `stop` spares a frame begun after the report the player read.
+    frame_builders: HashMap<UnitId, (UnitId, i32)>,
     frame_hits: HashMap<UnitId, i32>,
+    /// Since when each unfinished frame has had no builder of ours on it (the report's `unfinished structures` line).
+    frame_alone_since: HashMap<UnitId, i32>,
     /// The unfinished frames among this think's `UnitDestroyed` events and what became of each (`track_losses` fills
     /// it; the pianist's housekeeping runs after and words the line).
     frame_losses_now: HashMap<UnitId, briefing::FrameLoss>,
@@ -325,6 +328,7 @@ impl Brain {
             unfinished: HashMap::new(),
             frame_builders: HashMap::new(),
             frame_hits: HashMap::new(),
+            frame_alone_since: HashMap::new(),
             frame_losses_now: HashMap::new(),
             enemy_defs: HashMap::new(),
             enemy_places: HashMap::new(),
