@@ -274,6 +274,69 @@ question is the one measured before the rebuild (72% of answers under 0.2, 1 to 
 packet forbids reads yes by design (it is then the pick's own question each second), so the "negated place" items
 of §3.2 are the pick's reading, not the decode's.
 
+### 3.2b The thirty-paragraph measurement (the user: "run the thirty-paragraph measurement on options 1 to 3"; `data/impedance-2026-10-16/decode-paragraphs/`)
+
+Thirty distinct constructor paragraphs from the 23 games (one a game, plus one of each shape: "then", "the
+others", "otherwise", "they work their lists", the word "extractor", a named constructor, "never"; the 1,594
+distinct paragraphs of the corpus are in `para_corpus.json`), each labelled by the main session for a constructor the
+packet does not name (`para_labels.py`, with the reason beside each label): does the paragraph give it extractors
+(25 yes), the light turret (23), a basic solar (15), helping a factory (7), wrecks (8), now or under some condition it
+states; a job only on a list, only for named constructors, or by another unit (a Beamer, a heavy turret) is no.
+Each paragraph inside its full packet, as the game sends it; Jev 1.14.0 and 1.13.0, two repeats. The forms: F0 the
+decode's yes/no as written; F1 the yes/no reworded ("among the jobs ... at any time, after other steps"); F2 one
+Choice per actor over the five jobs and "none"; F2b a three-way Choice per job (yes / other jobs / not spoken to);
+then F3 the extractor question in the players' words ("take free metal spots, that is build a Metal Extractor on
+each") and F4 the question as written with "(the instructions may call this taking a spot)".
+
+"Wrongly off" is a job the paragraph gives that the reading would fuse off at the bar; "rightly off" a job it does
+not give that the bar prunes. Over 180 readings a form (30 paragraphs, three jobs, two repeats), Jev 1.14.0:
+
+| form | bar | wrongly off | rightly off | ranking (yes above no) |
+|---|---|---|---|---|
+| F0 as written | 0.3 | 21% | 74% | 0.83 |
+| F0 as written | 0.2 | 7% | 63% | |
+| F1 reworded | 0.3 / 0.2 | 33% / 20% | 87% / 83% | 0.84 |
+| F0 and F1 both under | 0.3 | 36% | 87% | 0.85 |
+| F2b three-way per job, p(yes) | 0.3 / 0.2 | 37% / 28% | 89% / 87% | 0.86 |
+| F2 one Choice over jobs, p(job) | 0.15 / 0.10 / 0.05 | 44% / 35% / 22% | 89% / 89% / 80% | 0.84 |
+| F2 the job above "none" | | 29% | 89% | 0.85 |
+
+Jev 1.13.0 reads lower throughout (F0 at 0.3: 25% / 85%; at 0.2: 16% / 74%). No form ranks the jobs better than the
+one in use (0.83 to 0.87), and every alternative question fuses off more of what the paragraph gives: the Choice
+splits its mass over the jobs and "none" so any bar misfires, and the three-way form reads "yes" lower than the
+plain noul. The only thing that moves the wrong fuses is the bar.
+
+By job (F0, the mean of two repeats, paragraphs the job is given in):
+
+| job | under 0.3 on 1.14 / 1.13 | under 0.2 | the no-paragraphs under 0.3 |
+|---|---|---|---|
+| extractors (25) | 11 / 10 | 4 / 8 | 4 of 5 |
+| the light turret (23) | 1 / 3 | 1 / 1 | 4 of 7 |
+| a basic solar (15) | 1 / 2 | 0 / 1 | 12 of 15 |
+
+The fault is the extractor question alone. The players write "a light turret (armllt)" and "a solar (armsolar)",
+the unit's own name, and those read right; they write "take free spots", "free metal spots", "the next free spot",
+and the question asks about a "Metal Extractor (armmex)". The extractor question in the players' words (F3, F4)
+helps and does not cure: 11 of 25 under 0.3 become 7 (median 0.39 to 0.56), the 4 under 0.2 stay. The paragraphs
+still under 0.3 under F3 are the ones that give extractors after something else or to "the others" ([1], [3], [8],
+[12], [13], [21], [22] in `para_labelled.json`; [22], whose heading names three constructors, is the one label a
+reader could set either way).
+
+What each option costs in the game, from jev114-player-1's log (every 25th pass row, 47,948 moves): fused builder
+build moves are 23,605, 49% of every move on the menus and the bulk of what the fuse saves; by type the placed
+turrets and radars (3,183 to 3,253 each), the light turret 2,344, the extractor 1,141, generators and storages 388
+each. Of the decode's 2,878 build readings, 2,350 were under 0.2, 147 in 0.2 to 0.3, 381 at 0.3 or over.
+
+| option | wrong extractor fuses (of 25, 1.14) | cost in gate questions |
+|---|---|---|
+| 1, no fuse on build-type readings | 0 | about +97% (every fused build move asked) |
+| 1 narrowed: no fuse on the extractor move, the reading kept for the report | 0 | about +5% |
+| 2, the build bar at 0.2 | 4 | about +6% (the 147 readings in the band) |
+| 2, the extractor question in the players' words (F3) at 0.3 / at 0.2 | 7 / 4 | none |
+| 2, two phrasings both under | worse (36% of all jobs) | none |
+| 3, one Choice over the jobs | worse at every bar | one question an actor instead of one a type |
+| the brief: the player writes "extractor" | reads 0.8 where it does (§3.2a) | none, and not in the harness's hands |
+
 ## 4. What the players asked for that nothing can do
 
 Sentences in packets or direction that no menu move, list step, lane word or tool carries, by how many games asked:

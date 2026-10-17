@@ -2208,13 +2208,18 @@ gets no mark. Over 12 arena games the reading sat under the bar in 0% to 92% of 
 prose agrees (0 faults in 42 audited moves to spots the paragraph listed, prio-player-1). The report shows the
 decode's readings for groups and not for builders. A place the packet forbids reads yes by design (it is then the
 pick's question each second), so a negated place is the pick's reading, not the decode's.
-**Status.** supported (2026-10-16, the impedance study §3.2 and §3.2a: the decode scan of 12 arena games and five
-probe rounds, 115 requests, `data/impedance-2026-10-16/decode-probe/`; prio-player-1 10:45 to 14:25 verified, six
-constructors off extractors for 4.5 minutes).
-**Evidence.** `docs/studies/2026-10-16-opus-hands-impedance.md` §3.2 and §3.2a.
-**Would be wrong if.** The build question asked as a Choice over the actor's jobs, or asked with the sentence that
-names the actor's class quoted into it, read the table's rows alike; or a hand-labelled set of thirty paragraphs
-showed the yes/no form agreeing with the label in most of them.
+**Status.** supported and narrowed (2026-10-16, the impedance study §3.2, §3.2a and §3.2b: the decode scan of 12
+arena games, five probe rounds, and thirty labelled paragraphs replayed under six question forms on both Jev
+versions, `data/impedance-2026-10-16/decode-paragraphs/`). The fault is the extractor question: of 25 paragraphs
+that give extractors, 11 read under the 0.3 bar on 1.14 (10 on 1.13) and 4 under 0.2; the light turret 1 of 23 and
+the basic solar 1 of 15, since the players name those units and write "take free spots" for extractors. No other
+question form (reworded, two phrasings, a three-way Choice, one Choice over the jobs) fuses off less; the question in
+the players' words takes 11 to 7; only the bar moves it (0.2: 4 of 25). The fix classes and their cost in gate
+questions, from jev114-player-1's menus: no fuse on the extractor move +5%, the build bar at 0.2 +6%, no build-type
+fuse at all +97%.
+**Evidence.** `docs/studies/2026-10-16-opus-hands-impedance.md` §3.2 to §3.2b.
+**Would be wrong if.** A second labeller set the thirty labels differently in more than a few, or the same forms on
+thirty new paragraphs read the extractor job over 0.3 in most of them.
 **Used by.** nothing built (the user's call: whether the build-type fuse stays, its bar, the question's form, the
 actor's words, the report's readings line).
 

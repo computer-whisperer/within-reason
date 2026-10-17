@@ -1,0 +1,542 @@
+[
+ {
+  "id": "c9e389e821",
+  "game": "apex-v022-carrot-sym0-opus-1",
+  "seat": "strategist-0",
+  "clock": "2:55",
+  "paragraph": "Constructors (armcv): they work their lists; when a list is done they take free metal spots on our half, each the first one still free that no other constructor is going to: spot_96, spot_87, spot_78, spot_110, spot_103, spot_81, spot_86, spot_89, spot_91, spot_82, spot_106, spot_118, spot_120, spot_119, spot_124, spot_122, spot_133, spot_134, spot_128, spot_80, spot_67, spot_69, spot_95, spot_108, spot_114, spot_111, spot_129, spot_58, spot_55, spot_60. After each extractor east of home (spot_81 onward) a Sentry (armllt) beside it is the next build. With the energy line reading STALLING: one wind turbine (armwin); with energy banking or in balance: no generator. An enemy party near them: they walk to home and come back when it is gone. They never stand in front of the plant's exit.",
+  "packet": "Plan: we are at B5 (home). The enemy (Apex, Armada) has his bot lab at his_lab (G5), extractors at spot_94 and spot_100 with a Sentry (armllt) at spot_94 and one near spot_98, solars at H5. He makes bots: expect armpw and armflea raiders at our outer extractors soon. group_A roves his half; the new Blitz group from the plant is our picket on our own spots; constructors keep taking spots nearest home first with a Sentry beside each outer one.\n\nRaids: a single enemy armpw, armflea, armfav or armflash at our extractors or constructors is met by the Blitz picket group (one or two of its Blitzes are enough for one raider); a party of three or more at our buildings or home is met by the whole picket group, and by the commander when it is at home; afterwards the picket goes back to its place.\n\ngroup_A (Rovers and Blitzes): it roves; leave it to rove.\n\nThe Blitz group from the plant (every Blitz group other than group_A): it is the picket of our spots. Its place is spot_103; it stands there. An enemy raider at or near spot_96, spot_99, spot_102, spot_109, spot_87, spot_78, spot_110, spot_103, spot_81, spot_86, spot_89 or home is its business first: it attacks that party when it outweighs it and chases it no further than spot_95. From a party that outweighs it, it walks to home.\n\nCommander: works its list; afterwards it builds wind turbines (armwin) and extractors at home and on the spots nearest home (spot_96, spot_87, spot_78) and helps the plant; it never walks east of spot_103. Against a raid party at home it attacks it and uses the D-gun; from a party it cannot beat it walks to home.\n\nConstructors (armcv): they work their lists; when a list is done they take free metal spots on our half, each the first one still free that no other constructor is going to: spot_96, spot_87, spot_78, spot_110, spot_103, spot_81, spot_86, spot_89, spot_91, spot_82, spot_106, spot_118, spot_120, spot_119, spot_124, spot_122, spot_133, spot_134, spot_128, spot_80, spot_67, spot_69, spot_95, spot_108, spot_114, spot_111, spot_129, spot_58, spot_55, spot_60. After each extractor east of home (spot_81 onward) a Sentry (armllt) beside it is the next build. With the energy line reading STALLING: one wind turbine (armwin); with energy banking or in balance: no generator. An enemy party near them: they walk to home and come back when it is gone. They never stand in front of the plant's exit.\n\nThe plant: what its list says.",
+  "index": 0,
+  "faction": "arm",
+  "label": {
+   "mex": 1,
+   "llt": 1,
+   "solar": 0,
+   "help": 0,
+   "wreck": 0
+  },
+  "note": "wind, not a solar"
+ },
+ {
+  "id": "a9f679b8c8",
+  "game": "apex-v022-carrot-sym50-opus-1",
+  "seat": "strategist-0",
+  "clock": "18:54",
+  "paragraph": "Constructors (armcv): they work their lists. When a list is done, the first job of each is helping constructor_22971 build the fusion reactor (armfus) at home until it stands. We have our one Advanced Vehicle Plant: never another Advanced Vehicle Plant (armavp), never another Vehicle Plant. After the fusion stands they take free metal spots, each the first one still free that no other constructor is going to: spot_69, spot_71, spot_146, spot_122, spot_128, spot_114, spot_108, spot_111, spot_56, spot_57, spot_55, spot_61. Beside each extractor in C3, C4, C6, C7, C8, D3, D4, D5, D6 or farther from home than spot_110, a Beamer (armbeamer) as the next step. With the energy line reading STALLING: a solar (armsolar) at home before anything else; with energy banking: no more solars. An enemy raider near them: they walk to spot_87 and come back when it is gone. They never stand in a plant's exit lane, and never build anything at spot_99.",
+  "packet": "group_Q1 first: group_Q1 is the whole army, standing at spot_85 and spot_98 in G5. It NEVER attacks or chases any party west of spot_85: the Pawns (armpw) in E5 and F5 behind it are not its business, ever. Its way now, walked at once as one body and fighting on the way (fight to): spot_98, then his_base (his bot lab armlab, H5), then spot_100, spot_104, spot_92, spot_94, then spot_107, spot_126, spot_116, spot_105, in that order. It never goes back to a place it has reached. A Hound (armfido) or Pawn in sight beside it: the Shellshockers (armart) shell it while the body keeps walking its way. His commander (armcom) in sight: the whole group attacks it at once, every soldier in the same seconds. Beamers, Sentries, constructors, construction turrets, extractors, his lab at his_base and any advanced bot lab (armalab) it attacks whole. New Stouts from the plants walk to it and join it wherever it is. Its step-back place is spot_85, used only against a party that outweighs the whole group.\n\nHome guard: group_Y2 is the one home guard and every Blitz, Stout or Bull group at home or on our side that is not walking east joins it (group_O3 too). It fights only as one body. A raiding party of three or more at our extractors, constructors or plants: the whole of group_Y2 goes there and attacks it. A single Pawn, Tick or Platypus alone near our extractors at C6 or C5: the whole of group_Y2 walks onto it if it is within 1,000, never a detachment. Its places: spot_103, spot_78, spot_69, spot_71, spot_76, spot_55, spot_58, spot_110, spot_114, spot_81, spot_86, spot_89, spot_95, spot_56, spot_57, spot_60, spot_61, spot_122, spot_128, spot_134, spot_129, spot_146, spot_87, home. Between fights it stands at spot_110. From a party that outweighs it, it walks to spot_103 and holds. It never goes east of spot_76 or spot_61.\n\nPlan: group_Q1 (89 soldiers, about 18,000 metal) is at G5 in his half and goes on to his bot lab at his_base (H5), then sweeps H6 and G6 for his advanced bot lab and his commander. Energy is full now; a fusion reactor goes up at home.\n\ngroup_G (Rovers): it roves. Leave it to rove.\n\nCommander: it helps constructor_22971 build the fusion reactor (armfus) at home; otherwise it helps the plants. It never walks east of spot_103. A raider at home: it attacks it with the D-gun.\n\nConstructors (armcv): they work their lists. When a list is done, the first job of each is helping constructor_22971 build the fusion reactor (armfus) at home until it stands. We have our one Advanced Vehicle Plant: never another Advanced Vehicle Plant (armavp), never another Vehicle Plant. After the fusion stands they take free metal spots, each the first one still free that no other constructor is going to: spot_69, spot_71, spot_146, spot_122, spot_128, spot_114, spot_108, spot_111, spot_56, spot_57, spot_55, spot_61. Beside each extractor in C3, C4, C6, C7, C8, D3, D4, D5, D6 or farther from home than spot_110, a Beamer (armbeamer) as the next step. With the energy line reading STALLING: a solar (armsolar) at home before anything else; with energy banking: no more solars. An enemy raider near them: they walk to spot_87 and come back when it is gone. They never stand in a plant's exit lane, and never build anything at spot_99.\n\nAdvanced constructors (armacv): their lists.\n\nThe plants: what their lists say.",
+  "index": 1,
+  "faction": "arm",
+  "label": {
+   "mex": 1,
+   "llt": 0,
+   "solar": 1,
+   "help": 1,
+   "wreck": 0
+  },
+  "note": "a Beamer beside extractors, not the light turret; helps the fusion first"
+ },
+ {
+  "id": "78dd1ae1ae",
+  "game": "apex-v022-carrot-sym50-opus-2",
+  "seat": "strategist-0",
+  "clock": "14:26",
+  "paragraph": "Constructors (armcv): they work their lists. When a list is done they take free metal spots on our half, each the first one still free that no other constructor is going to: spot_146, spot_101, spot_144, spot_147, spot_43, spot_83, spot_62, with a light turret (armllt) beside each extractor away from home, built right after it. A lost extractor is rebuilt as soon as the raider is gone. Never an extractor at spot_99. With the energy line reading STALLING: a solar (armsolar); banking or in balance: no solar. A raid party near them: they walk to home and come back when it is gone. They never build or stand in front of a plant's exit. Constructors with nothing to do help the plants.",
+  "packet": "Plan: his army is mostly dead; his nest at spot_98 (G5) is three Beamers (armbeamer, reach 490), an Overwatch (armhlt, reach 620) and a Sentry with three Maces (armham): about 1,500 metal, worth about 3,500 with the turrets counted three times. Our army there is over 10,000. When storm is given, every soldier goes in together and kills the nest, then his commander and his lab at his_base. Until storm, everything gathers at spot_116 with group_E. A single enemy armpw or armflea is NEVER answered by group_E or any Blitz group.\n\ngroup_E: its place is spot_116 (G6) until storm is given; it gathers there, its Shellshockers (armart) and Mausers (armmart) shelling whatever of his they can reach at spot_98, its Blitzes out of turret reach. A party of his that comes out toward it is attacked by the whole group. When storm is given: it attacks his_base as one body, every soldier at once, never stopping: the Overwatch and Beamers at spot_98 first, then his commander (armcom) whenever it is in sight, then the lab (armlab), then the solar field and everything else at his_base. It does not come back once storm is given.\n\ngroup_V1, group_P2 and every other group of Blitzes (armflash), Shellshockers (armart), Mausers (armmart), Prophets (armseer) or Rovers from the plants that is not group_A and not the home guard: it joins group_E, wherever group_E is, now. It fights only a party of two or more of his that attacks it on the way. When storm is given, it attacks his_base with group_E.\n\nHome guard: group_R, group_D1, group_F1, group_C1. It never joins group_E. It attacks enemy armflea, armfav and lone armpw at our extractors and constructors (spot_118, spot_119, spot_120, spot_124, spot_106, spot_109, spot_87, spot_91, spot_82, spot_80, spot_90, spot_67, spot_78, spot_81, spot_110, spot_103, spot_122, spot_133, spot_129, spot_134, spot_128, spot_138, spot_69, spot_96, spot_86, spot_89, spot_95, spot_108, spot_58, spot_55, spot_76, spot_77, solar_field, yard3, avp_yard, home) with the whole group, and otherwise holds at spot_120. Its step-back place is home.\n\ngroup_A: it roves (rove). Leave it to rove.\n\nCommander: works its list at home; between builds it helps the nearest plant. It never walks east of spot_103. Against Ticks (armflea) or a small raid party near it, it attacks them and uses the D-gun; from a party it cannot beat it walks to home.\n\nConstructors (armcv): they work their lists. When a list is done they take free metal spots on our half, each the first one still free that no other constructor is going to: spot_146, spot_101, spot_144, spot_147, spot_43, spot_83, spot_62, with a light turret (armllt) beside each extractor away from home, built right after it. A lost extractor is rebuilt as soon as the raider is gone. Never an extractor at spot_99. With the energy line reading STALLING: a solar (armsolar); banking or in balance: no solar. A raid party near them: they walk to home and come back when it is gone. They never build or stand in front of a plant's exit. Constructors with nothing to do help the plants.\n\nThe plants: plant_24499 makes Mausers (armmart); the other plants make Blitzes (armflash).",
+  "index": 2,
+  "faction": "arm",
+  "label": {
+   "mex": 1,
+   "llt": 1,
+   "solar": 1,
+   "help": 1,
+   "wreck": 0
+  },
+  "note": "'with nothing to do help the plants'"
+ },
+ {
+  "id": "c12c6f0076",
+  "game": "apex-v024-carrot-sym50-opus-1",
+  "seat": "strategist-0",
+  "clock": "13:26",
+  "paragraph": "Constructors (armcv): they work their lists. When a list is done, the ones at home help build the fusion (armfus) at home until it stands; the others take free metal spots, each the first one still free that no other constructor is going to: spot_155, spot_157, spot_130, spot_61, spot_170, spot_62, spot_34, spot_137, spot_148. Beside every extractor away from home they build a light turret (armllt) right after it. With the energy line reading STALLING: an advanced solar (armadvsol) at home; banking: no generator. An enemy party near the spot they work: they step away toward home and come back when it is gone. They never stand in front of a plant's exit.",
+  "packet": "Plan: his army (about 10 Maces armham, 5 Rocketeers armrock, Lazaruses armrectr) stands at F5-F6 between group_H and his yard. group_H, our army of about 17,700, kills it now with the whole body, then goes on to his commander (armcom) and his labs at H5. Five of his Pawns (armpw) raid our extractors at spot_57 and spot_56 (D3): group_Y kills them.\n\ngroup_H is our army. FIRST: the enemy party of Maces (armham), Rocketeers (armrock) and Lazaruses at F5-F6 (around spot_93 and spot_88): the whole group, every soldier including the tail, attacks it now and keeps attacking until it is dead. This fight is always taken: we outweigh it five to one. No detachments: the whole group. After that party is dead, its way is spot_98, then his_lab, then his_alab, then spot_100, spot_94 and spot_104, fighting (fight to) as one body. His commander (armcom) in sight: the whole group attacks it until it is dead. It kills his Advanced Bot Lab (armalab), lab, Sentries, construction turrets, converters, constructors on its way. It never goes back to a place it has reached and never goes home. Only from a party that outweighs it does it walk back to spot_93.\n\ngroup_Y is the home guard (Blitzes, Stouts, Rovers); group_Z, group_D1, group_E1 and group_A1 join group_Y. Now: the 5 enemy Pawns (armpw) at spot_57 and spot_56 (D3): the whole of group_Y goes there and kills them. Any enemy Pawn, Tick, Blitz, Mace, Rocketeer or Lazarus at our extractors, generators or constructors on our half (spot_57, spot_56, spot_60, spot_55, spot_71, spot_76, spot_40, spot_37, spot_38, spot_129, spot_134, spot_128, spot_122, spot_146, spot_152, spot_160, spot_111, spot_114, spot_108, spot_110, spot_103, spot_95, spot_101, spot_83, spot_77, spot_69, spot_81, spot_86, spot_89, spot_58, spot_78, home, spot_109, spot_118, spot_119, spot_120, spot_124, spot_133, spot_138, spot_142, spot_143, spot_144, spot_145, spot_147, spot_87, spot_91, spot_90, spot_82, spot_80, spot_67, spot_43, spot_49, spot_52, spot_53, spot_36, spot_41, spot_28, spot_32, spot_106): the whole of group_Y attacks that party and chases it until it is dead or off our half, then walks back to spot_103. It never joins group_H and never goes east of spot_101.\n\nNew Stouts and Whistlers from plant_15091, plant_18000, plant_4948 and plant_3993: they walk to rally_e2 (E5) and from there join group_H wherever it is, six or more together.\n\ngroup_A (Rovers, one Blitz): it roves; leave it to rove.\n\nCommander: helps the plants, the advanced vehicle plant and the fusion at home. Works only at home and on the spots near home (spot_96, spot_99, spot_102, spot_109, spot_87, spot_78); never walks east of spot_103. An enemy raid party within reach at home: it attacks it and uses the D-gun.\n\nConstructors (armcv): they work their lists. When a list is done, the ones at home help build the fusion (armfus) at home until it stands; the others take free metal spots, each the first one still free that no other constructor is going to: spot_155, spot_157, spot_130, spot_61, spot_170, spot_62, spot_34, spot_137, spot_148. Beside every extractor away from home they build a light turret (armllt) right after it. With the energy line reading STALLING: an advanced solar (armadvsol) at home; banking: no generator. An enemy party near the spot they work: they step away toward home and come back when it is gone. They never stand in front of a plant's exit.\n\nThe plants: what their lists say.",
+  "index": 3,
+  "faction": "arm",
+  "label": {
+   "mex": 1,
+   "llt": 1,
+   "solar": 0,
+   "help": 1,
+   "wreck": 0
+  },
+  "note": "the ones at home help the fusion; the others take spots; advanced solar only"
+ },
+ {
+  "id": "047533b7f5",
+  "game": "glitters-8v8-late-1",
+  "seat": "strategist-5",
+  "clock": "10:00",
+  "paragraph": "Constructors: they work their lists (extractors and a Sentry at spot_75, 68, 59, 65, 72); after that they take free spots spot_64, spot_71, spot_66 with a Sentry each, and take apart the wreck field at G4 and H4 when no enemy is near. They never stand in front of the plant's exit (stand at spot_36). A raider near: step to spot_36.",
+  "packet": "Plan: push_centre is given. The east body (group_W_t5, group_J1_t5, group_F1_t5 and every new Blitz or Stout) goes together to spot_83 (G5) to kill his extractor and Sentry there, then to spot_87 (F5) to fight beside the centre army, killing his extractors at spot_78 and spot_87. It stays out of reach of the corllt at H6/G6 and never goes to H6 or spot_98. group_J1_t5 and group_F1_t5 join group_W_t5 at once. Way: spot_65, then spot_83, then spot_87, advancing as one body (fight to), never going back to a place reached. New Stouts and Blitzes from the plant join group_W_t5. From a party that outweighs it, it walks to spot_65 and holds.\n\nCommander: stays home, helps the plant; if a party of three or more comes to home it attacks it with the D-gun.\n\nConstructors: they work their lists (extractors and a Sentry at spot_75, 68, 59, 65, 72); after that they take free spots spot_64, spot_71, spot_66 with a Sentry each, and take apart the wreck field at G4 and H4 when no enemy is near. They never stand in front of the plant's exit (stand at spot_36). A raider near: step to spot_36.\n\nPlant: Stouts mainly, a Janus after every few, a constructor if fewer than 5 constructors.",
+  "index": 4,
+  "faction": "arm",
+  "label": {
+   "mex": 1,
+   "llt": 1,
+   "solar": 0,
+   "help": 0,
+   "wreck": 1
+  },
+  "note": "after the list: spots with a Sentry each, the wreck field at G4/H4"
+ },
+ {
+  "id": "05bf242547",
+  "game": "glitters-8v8-opus-1",
+  "seat": "strategist-4",
+  "clock": "11:05",
+  "paragraph": "Constructors (armcv): they work their lists, then hold home with the turrets. A constructor with no list takes apart any wreck field within reach with no enemy in sight (reclaim) behind group_M_t4, or helps the plant from nano_e. When a list is done, each takes the first free spot in this order that no other constructor is going to: spot_74, spot_77, spot_81, spot_80. Every extractor they build gets a light turret (armllt) beside it. With the energy line reading STALLING: one wind turbine (armwin). When banking or in balance: no generator. When an enemy party comes near the spot they work, they walk to spot_63 and come back when it is gone. They never stand in front of the plant's exit.",
+  "packet": "Plan: an 8v8 against eight Cortex BARb seats in the south box (rows 7-8). We command the WEST body: group_M_t4, about 40 soldiers (Stouts, Whistlers, Blitzes), 7,000 metal. His block at C5 (heavy laser tower corhllt with a Sentry at spot_81, Pounders, Incisors) is its first target; a second heavy laser and Sentry stand at B5 (not our way). His big block of about 16 (corthud, corstorm, cornecro) is at E5, the east body's target. His plants: C7 (c7_plant), C8, D7 (d7_lab). Our home is D1.\n\nEvery other Blitz, Stout or Whistler group of ours (not group_A_t4) joins group_M_t4. Every new unit from the plant walks to group_M_t4 wherever it is.\n\ngroup_M_t4 is our body. It fights only as the whole group, never chasing single units or parties off its way, and never goes west into B5 or B4. FIRST it gathers at spot_70 (D4) until it stands together, its tail arrived; while gathering it fights only enemies within reach of spot_70, spot_63 or spot_74. Then its way, fighting along it (fight to) as one body, Stouts in front and Whistlers behind them, never going back to a place it has reached: spot_74, spot_81 (it kills the heavy laser tower corhllt and Sentry there with the whole group at once, from Whistler range), spot_80, spot_90, spot_96, spot_103, d7_lab, c7_plant. On the way: Graverobbers (cornecro) first, then his soldiers, then turrets one at a time with the whole group, then extractors, constructors, plants. Aircraft are never chased: only Whistlers shoot them. From a party that outweighs it, it walks back to the last place it reached and holds there until new units join, then goes on.\n\nRover group group_A_t4: it roves; leave it to rove.\n\nCommander: works its list. With its list done, it stands at nano_w and helps the plant from there, never in front of the plant's exit. It stays north of spot_44. A raider at our extractors near it is its job: it attacks it and uses the D-gun on it. From a party that outweighs it, it walks home.\n\nConstructors (armcv): they work their lists, then hold home with the turrets. A constructor with no list takes apart any wreck field within reach with no enemy in sight (reclaim) behind group_M_t4, or helps the plant from nano_e. When a list is done, each takes the first free spot in this order that no other constructor is going to: spot_74, spot_77, spot_81, spot_80. Every extractor they build gets a light turret (armllt) beside it. With the energy line reading STALLING: one wind turbine (armwin). When banking or in balance: no generator. When an enemy party comes near the spot they work, they walk to spot_63 and come back when it is gone. They never stand in front of the plant's exit.\n\nThe plant: makes what its list says.",
+  "index": 5,
+  "faction": "arm",
+  "label": {
+   "mex": 1,
+   "llt": 1,
+   "solar": 0,
+   "help": 1,
+   "wreck": 1
+  },
+  "note": "wind only; wrecks or the plant without a list; spots when a list is done"
+ },
+ {
+  "id": "35117b27a8",
+  "game": "human-26",
+  "seat": "strategist-0",
+  "clock": "9:26",
+  "paragraph": "constructors: a constructor with enemy armflash within sight walks south to spot_34 and then spot_42, away from them. Otherwise it works its list.",
+  "packet": "Plan: our plant is gone. Our constructors and metal go to the allied seat. Until they are given: constructors walk south to spot_29 and spot_34, away from the enemy armflash at home, and never walk toward home.\n\nconstructors: a constructor with enemy armflash within sight walks south to spot_34 and then spot_42, away from them. Otherwise it works its list.",
+  "index": 6,
+  "faction": "arm",
+  "label": {
+   "mex": 0,
+   "llt": 0,
+   "solar": 0,
+   "help": 0,
+   "wreck": 0
+  },
+  "note": "only a walk away from raiders, otherwise 'works its list'"
+ },
+ {
+  "id": "9a8491b7c1",
+  "game": "human-27",
+  "seat": "strategist-0",
+  "clock": "6:36",
+  "paragraph": "constructors: badly hurt (under a third of health): it walks to the commander and is repaired before going on. An enemy within reach: it walks to the commander and resumes when they are gone. A constructor with no list, when no armflash is near, takes apart the wreck fields at G2, G1, F2 and F1, then takes free spots in this order, skipping held ones: spot_6, spot_25, spot_17, spot_18, spot_11, spot_3, spot_16, spot_29, a Guard (corllt) beside each right after its extractor; it never helps the plant and builds no solar while energy is above half.",
+  "packet": "Plan: we are Cortex on the east strip, start G1, against a person playing Armada whose base is around B4-B5 (his_base). His Blitzes (armflash) raid our home. The commander with the Guards and the Pounders holds home; never chase west of spot_6.\n\ncommander: an armflash party that comes within its walk at home (spot_10, spot_6, spot_5, the plant, our constructors) it attacks and D-guns; when they back off west of spot_6 it does not follow, it goes back to spot_10. With no armflash at home it repairs the most hurt constructor, then helps the plant. It never walks south of spot_17 or west of spot_6.\n\ngroup_D (our soldiers at home; the plant's new Pounders and Brutes join it): stands at spot_10 beside the commander and the Guards, and fights armflash that come to spot_10, spot_5 or the plant, whole group, never sending detachments. It never goes west of spot_6 and never chases a Blitz that backs off. From a party that outweighs it, it walks to home.\n\nconstructors: badly hurt (under a third of health): it walks to the commander and is repaired before going on. An enemy within reach: it walks to the commander and resumes when they are gone. A constructor with no list, when no armflash is near, takes apart the wreck fields at G2, G1, F2 and F1, then takes free spots in this order, skipping held ones: spot_6, spot_25, spot_17, spot_18, spot_11, spot_3, spot_16, spot_29, a Guard (corllt) beside each right after its extractor; it never helps the plant and builds no solar while energy is above half.\n\nplant: makes what its list allows, in order, and is never idle.\n\ngroup_A: roving; leave it to rove: his plant is not found (A1-A4, B1-B3 unseen).",
+  "index": 7,
+  "faction": "cor",
+  "label": {
+   "mex": 1,
+   "llt": 1,
+   "solar": 1,
+   "help": 0,
+   "wreck": 1
+  },
+  "note": "'never helps the plant'; 'no solar while energy is above half' read as a solar under half"
+ },
+ {
+  "id": "de604e55f8",
+  "game": "human-28",
+  "seat": "strategist-0",
+  "clock": "5:24",
+  "paragraph": "constructors: an enemy party within reach of a constructor: it walks back to home and resumes when clear. A constructor with no list takes the next free spot of our side in this order: spot_3, spot_15, spot_20, spot_8, spot_27, spot_35, and builds a light turret (armllt) beside each right after its extractor. Energy line reading STALLING: a solar at home; banking or in balance: no solar.",
+  "packet": "We are Armada at G1 (home), the east strip. His base: vehicle plant at B4 near spot_36, his commander (armcom) around spot_36/spot_50, light turrets (armllt) at spot_28 (A4), spot_50 (B5), spot_62 (A6). A party of about seven of his Blitzes (armflash) is at spot_16 and spot_18 now, at our extractors.\n\ncommander: helps the plant whenever it has nothing else to build, standing beside the plant, not in front of it. His Blitzes at our extractors at spot_11, spot_16 or spot_18, or at home: it goes there and fights them beside group_F, using its D-gun on them; when they are dead or gone it comes back to the plant. It never goes west of spot_16.\n\nplant: works its produce list in order, never idle.\n\nconstructors: an enemy party within reach of a constructor: it walks back to home and resumes when clear. A constructor with no list takes the next free spot of our side in this order: spot_3, spot_15, spot_20, spot_8, spot_27, spot_35, and builds a light turret (armllt) beside each right after its extractor. Energy line reading STALLING: a solar at home; banking or in balance: no solar.\n\ngroup_F (the one army: the home guard and, when big, the raid; new tanks join it): his party at our extractors at spot_16, spot_18 or spot_11 is its business first: it attacks them now with the whole group, beside the commander and our turrets, and keeps attacking until they are dead or gone, then goes back to spot_18. It never chases a lone Blitz past spot_15. When no party of his is in our half and it is a group of ten or more, it fights to his outer spots as one body: spot_15, then spot_23, then spot_22, then spot_19, then spot_9, and never goes back to a place it has reached; it never goes within reach of his commander (armcom) or near spot_28, spot_50 or spot_36.\n\nAgainst a party that outweighs it, group_F walks to spot_11 and holds beside the turret there.\n\ngroup_B (Rover): roves.",
+  "index": 8,
+  "faction": "arm",
+  "label": {
+   "mex": 1,
+   "llt": 1,
+   "solar": 1,
+   "help": 0,
+   "wreck": 0
+  },
+  "note": ""
+ },
+ {
+  "id": "0603c7272e",
+  "game": "human-29",
+  "seat": "strategist-0",
+  "clock": "2:29",
+  "paragraph": "constructors: a constructor with no list takes free spots in this order, skipping any already ours: spot_17, spot_11, spot_18, spot_25, spot_3, spot_16, spot_29, spot_15, spot_20, spot_8, spot_27, spot_34, spot_35, spot_42, spot_48, spot_51; right after each extractor away from home it builds a light turret armllt beside it. Energy STALLING: an armsolar at home; energy under half and not stalling: an armadvsol at home. When an enemy party comes at it, it goes to home.",
+  "packet": "Plan: we are the east strip, home at G1; his Vehicle Plant stands at B4 by spot_36, his extractors at spot_28 and spot_30 with a Sentry. Expand hard along our strip, a light turret beside every extractor away from home, and keep pressure in his half.\n\nRaids on us: his armfav are coming toward our side. A party of three or more of his at our extractors, constructors or home is the business of the nearest group first, whatever it was doing, the whole group, and its job resumes when none stands in our base. A lone armfav at an outer extractor is met by one soldier sent from the nearest group, never the whole group.\n\ncommander: works its list. When the list is done it stays at home helping the plant, leaving it only for a solar at home when the energy line reads STALLING. It attacks a raider party at our home buildings within its short walk; it never chases and never walks toward the middle.\n\nconstructors: a constructor with no list takes free spots in this order, skipping any already ours: spot_17, spot_11, spot_18, spot_25, spot_3, spot_16, spot_29, spot_15, spot_20, spot_8, spot_27, spot_34, spot_35, spot_42, spot_48, spot_51; right after each extractor away from home it builds a light turret armllt beside it. Energy STALLING: an armsolar at home; energy under half and not stalling: an armadvsol at home. When an enemy party comes at it, it goes to home.\n\nplant: keeps building every second; its list says what.\n\ngroup_A (the first Rovers and Blitzes, in his half): it roves; leave it to rove. It stays in his half.\n\ngroup_B and any newer group from the plant: the picket of our strip. It stands at spot_17 and attacks any armfav, armflash or armpw of his at our extractors, constructors or home on sight, then comes back to spot_17. Against a party that outweighs it, it walks to home.",
+  "index": 9,
+  "faction": "arm",
+  "label": {
+   "mex": 1,
+   "llt": 1,
+   "solar": 1,
+   "help": 0,
+   "wreck": 0
+  },
+  "note": ""
+ },
+ {
+  "id": "cbe640b7fe",
+  "game": "human-30",
+  "seat": "strategist-2",
+  "clock": "9:30",
+  "paragraph": "constructors: a constructor with no list takes apart the wrecks at B4, C2 and B3 while no enemy soldier is near them (a light turret alone at B3 is enough to keep away from B3), and repairs our turrets on the D1 row. Energy STALLING: an armsolar at home; otherwise an armadvsol at home. Enemy soldiers at its work: it walks to spot_20. No constructor stands in front of the plant.",
+  "packet": "Plan (the side's direction): our field army is t3's. Our seat keeps making units and holds its spots: the E1 cluster, the D1 row (spot_20, 19, 17, 16, 15), spot_22 and e2_gate, each with a turret. His commander walks with Stouts (armstump) around B3/spot_30; his Beamers stand at C4/D4.\n\nHome is jammed: no group stands at home or beside the plant, and no group follows the commander.\n\ngroup_H_t4 (Stouts and Blitzes): the north guard. It walks to spot_17 and holds there among our turrets. Enemy soldiers at our extractors or constructors on spot_22, spot_15, spot_16, spot_17, spot_19 or spot_20 are its business: it attacks them when it and our turrets there outweigh them. Against a party that outweighs it, or his commander, it walks to spot_20 and holds beside the turrets there.\n\ngroup_J_t4 and every other new group from the plant: it walks to spot_38 and holds there, to be handed to the side's body. Three or more enemy raiders at our extractors on the way are its business first.\n\ncommander_t4: works its list; when the list is done it helps the plant, leaving only for one armsolar when the energy line reads STALLING. A raider party at our buildings within its short walk: it attacks it. A party that outweighs it: it walks home beside the plant. It never walks to spots away from home.\n\nconstructors: a constructor with no list takes apart the wrecks at B4, C2 and B3 while no enemy soldier is near them (a light turret alone at B3 is enough to keep away from B3), and repairs our turrets on the D1 row. Energy STALLING: an armsolar at home; otherwise an armadvsol at home. Enemy soldiers at its work: it walks to spot_20. No constructor stands in front of the plant.\n\nplant: makes what its list allows, in order; never idle.",
+  "index": 10,
+  "faction": "arm",
+  "label": {
+   "mex": 0,
+   "llt": 0,
+   "solar": 1,
+   "help": 0,
+   "wreck": 1
+  },
+  "note": "wrecks and turret repair; no spots"
+ },
+ {
+  "id": "8661f927fa",
+  "game": "human-31",
+  "seat": "strategist-2",
+  "clock": "12:37",
+  "paragraph": "constructors: build the Thistles, SAMs, extractors and Guards on their lists. Metal is empty: a constructor with no list takes apart the wreck fields nearest it on our side (G5, G6, F6, F8) when no enemy party is in sight of the field, and otherwise builds a corrl at home. Never west of spot_40.",
+  "packet": "commander_t4: his bombers (corshad) hunt it. While corshad are near home it walks to home_t2 by spot_18 and spot_17 and stays beside our ally's base there, never standing still under bombers, never west of spot_18. When no corshad is in sight it stays at home and helps the plant and the constructors building at home.\n\ngroup_S_t4 and group_U_t4: his Blitzes or Stouts (armflash, armstump) at our extractors at spot_35, spot_41, spot_40 or spot_42 are their business first, the whole group together, fought inside our turrets' reach. Otherwise they hold at spot_41 on our Guards. Against a party that outweighs them they walk to spot_35 and hold there on the Twin Guard; they never walk west of spot_40. group_W_t4 joins group_S_t4.\n\nconstructors: build the Thistles, SAMs, extractors and Guards on their lists. Metal is empty: a constructor with no list takes apart the wreck fields nearest it on our side (G5, G6, F6, F8) when no enemy party is in sight of the field, and otherwise builds a corrl at home. Never west of spot_40.\n\nplant: works its produce list in order, never idle.",
+  "index": 11,
+  "faction": "cor",
+  "label": {
+   "mex": 0,
+   "llt": 0,
+   "solar": 0,
+   "help": 0,
+   "wreck": 1
+  },
+  "note": "extractors and Guards 'on their lists' only; a corrl (anti-air), not the light turret"
+ },
+ {
+  "id": "c95c26d319",
+  "game": "human-32",
+  "seat": "strategist-2",
+  "clock": "17:12",
+  "paragraph": "constructors: our sector is the north. Nobody builds or stands in the plant's exit lane. Against a raiding party a constructor walks home and goes back to its work when the party is gone. A constructor with no list takes free spots in this order, skipping taken ones: spot_60, spot_62, spot_56, spot_51, spot_41, spot_39, spot_20, spot_15, spot_22, spot_13, spot_14, spot_19, spot_37, spot_32, spot_34, spot_26, spot_49, spot_24, spot_12, spot_11, spot_54, spot_58, spot_68, spot_72, spot_74, spot_78, spot_67, with a turret beside each extractor right after it: a corhllt (Twin Guard) at the row-1 spots, a corllt elsewhere. Helping the plant only while metal is stored. A spot lost to raiders is rebuilt as soon as the raiders are gone. Never south of row 4. Energy STALLING with metal stored: a corsolar at home; energy under half and not STALLING: a coradvsol at home.",
+  "packet": "group_P2_t4, group_T2_t4, group_S2_t4 and group_X2_t4 attack party_126 (the eleven corgator at our home, spot_56 and spot_60) now, all together beside the home turrets and the commander, and keep attacking until it is dead or gone. Then they all join group_P2_t4 at home.\n\ncommander_t4: shoots and D-guns the corgator that come within its reach at home; otherwise it helps the plant from where it stands.\n\ngroup_P1_t4 fights its way west now as one body and never turns back for raiders: blue's raiders behind it are the home guard's and the turrets'. Its way: spot_93, spot_92, spot_91 (blue's nest in E4: a corhllt and corexp turrets; the Lashers shell them from their longer reach while the Brutes and Pounders screen, then everything goes in together), then spot_89, blue_outpost, spot_79, spot_75, blue_base, spot_69, spot_73, in that order, never going back to a place it has reached. It kills his turrets, extractors, constructors, solars, nano and plant on the way, and stays in his half after that, taking his spots spot_53, spot_57, spot_35, spot_63, spot_61, spot_59. It never walks at his commander. From a party that outweighs it, it steps back to spot_89.\n\ngroup_V2_t4: the raider hunters of the middle (Incisors). It stands at spot_51. Any corgator or corfav at our extractors or constructors at spot_49, spot_54, spot_58, spot_51, spot_37, spot_34, spot_32, spot_26, spot_24, spot_19 or spot_14 it attacks whole until dead or gone, then comes back to spot_51. A party of corgator at our home it attacks too. It never joins group_P1_t4. It steps back to home from a party that outweighs it.\n\ngroup_P2_t4 and new groups from the plant: the home guard; new groups join group_P2_t4. It stands at home beside the turrets. A party of corgator smaller than it at our extractors or constructors near home (spot_39, spot_41, spot_60, spot_56, spot_20, spot_22, spot_15, spot_13) it attacks whole until dead or gone, then comes back home. A bigger corgator party it fights only at home beside the turrets. It never joins group_P1_t4.\n\nconstructors: our sector is the north. Nobody builds or stands in the plant's exit lane. Against a raiding party a constructor walks home and goes back to its work when the party is gone. A constructor with no list takes free spots in this order, skipping taken ones: spot_60, spot_62, spot_56, spot_51, spot_41, spot_39, spot_20, spot_15, spot_22, spot_13, spot_14, spot_19, spot_37, spot_32, spot_34, spot_26, spot_49, spot_24, spot_12, spot_11, spot_54, spot_58, spot_68, spot_72, spot_74, spot_78, spot_67, with a turret beside each extractor right after it: a corhllt (Twin Guard) at the row-1 spots, a corllt elsewhere. Helping the plant only while metal is stored. A spot lost to raiders is rebuilt as soon as the raiders are gone. Never south of row 4. Energy STALLING with metal stored: a corsolar at home; energy under half and not STALLING: a coradvsol at home.\n\nplant: makes what its list allows, in order; it is never idle.",
+  "index": 12,
+  "faction": "cor",
+  "label": {
+   "mex": 1,
+   "llt": 1,
+   "solar": 1,
+   "help": 1,
+   "wreck": 0
+  },
+  "note": "helping the plant only while metal is stored"
+ },
+ {
+  "id": "c4227bb078",
+  "game": "human-33",
+  "seat": "strategist-3",
+  "clock": "17:50",
+  "paragraph": "constructors: they work their lists. A constructor with an enemy within 800 walks to home. A constructor with no list helps build the aircraft plant (armap) at spot_74; never helping the plant from its exit lane. A destroyed extractor of ours at home, spot_74, spot_69 or spot_86 is rebuilt when no enemy is within 800 of it.",
+  "packet": "We are the magenta seat (Armada) at home G8. Three Tzars (corgol) of his sit at F5; we hold home and the plant. Two corah (light hovers) raid our home from F8.\n\ngroup_Y_t5 (Janus, Shellshockers) and every new soldier: it attacks the corah at home and F8 now with the whole group beside the commander and keeps attacking until they are dead or gone; then it stands at home as the commander's guard. Any raider party at home or the plant it attacks the same way. It never walks toward the corgol or north of spot_69.\n\ncommander: it attacks the corah raiders at home and F8 now with its D-gun, beside group_Y_t5, until they are dead or gone; any raider party within its short walk of home or the plant that it outweighs, the same. It never walks toward spot_63, spot_54 or the corgol; from the corgol or a party that outweighs it, it walks to home, away from them. Otherwise it helps the plant.\n\nconstructors: they work their lists. A constructor with an enemy within 800 walks to home. A constructor with no list helps build the aircraft plant (armap) at spot_74; never helping the plant from its exit lane. A destroyed extractor of ours at home, spot_74, spot_69 or spot_86 is rebuilt when no enemy is within 800 of it.\n\nplant: makes what its list allows, in order.",
+  "index": 13,
+  "faction": "arm",
+  "label": {
+   "mex": 1,
+   "llt": 0,
+   "solar": 0,
+   "help": 1,
+   "wreck": 0
+  },
+  "note": "rebuilds a destroyed extractor at named spots; helps the aircraft plant"
+ },
+ {
+  "id": "a36468e491",
+  "game": "jev114-player-1",
+  "seat": "strategist-0",
+  "clock": "11:26",
+  "paragraph": "Constructors: their job is taking free metal spots, in this order as they are free: spot_45, spot_39, spot_28, spot_30, spot_47. Never spot_56, spot_58 or anything east of spot_59 while his army is near. Every extractor away from home gets a light turret (armllt) beside it right after it. With the energy line reading STALLING and metal above 300: one armadvsol at home; with energy banking or in balance: no solar. From enemy soldiers they walk to home.",
+  "packet": "His army block (armham, armrock, armwar, about 16) beat our push near spot_40 and outweighs any one group of ours. Every group of ours is to stand together at spot_59 beside our turrets and fight it there as one body.\n\nRaids at home come first, for the home guard: an armpw or armflea at our extractors at home (spot_74, spot_73, spot_67, spot_68, spot_69, spot_76) is attacked by group_A1, group_C1 or group_E1 until it is dead or gone.\n\ngroup_K, group_H1, group_G1, group_B1: they walk back now to spot_59 without stopping to fight, and join group_V there. They never advance east of spot_56 under this packet.\n\ngroup_V, the body: it goes to spot_59 and holds there; every group arriving at spot_59 joins it. When his army comes onto spot_59, spot_56, spot_64, spot_63 or spot_61, the whole body fights it there together with our turrets. It does not chase east of spot_56. Against a party that outweighs everything we have at spot_59, it walks to spot_63, then home.\n\ngroup_A1, group_C1, group_E1: home guard at spot_73; from a party that outweighs them they walk to home.\n\nNew groups from the plants: they walk to spot_59 and join group_V.\n\nCommander: besides the raids, it works at home and spot_73, spot_74, spot_68, spot_69 and never goes east of spot_69.\n\nConstructors: their job is taking free metal spots, in this order as they are free: spot_45, spot_39, spot_28, spot_30, spot_47. Never spot_56, spot_58 or anything east of spot_59 while his army is near. Every extractor away from home gets a light turret (armllt) beside it right after it. With the energy line reading STALLING and metal above 300: one armadvsol at home; with energy banking or in balance: no solar. From enemy soldiers they walk to home.\n\nRover groups (armfav): rove. Leave them to rove.",
+  "index": 14,
+  "faction": "arm",
+  "label": {
+   "mex": 1,
+   "llt": 1,
+   "solar": 0,
+   "help": 0,
+   "wreck": 0
+  },
+  "note": "advanced solar only"
+ },
+ {
+  "id": "31223b25c3",
+  "game": "leg-player-1",
+  "seat": "strategist-0",
+  "clock": "18:59",
+  "paragraph": "Constructors: a constructor with an enemy party near it walks toward spot_61 until it is gone, then goes back to its spot. Their job is taking free metal spots on our side, nearest home first: spot_37, spot_31, spot_46, spot_55, spot_79, and, once his are gone, spot_24, spot_26, spot_32. A light turret (leglht) beside each extractor away from home, built right after that extractor and before the next spot. A lost extractor is rebuilt as soon as the raider is gone. Constructors with nothing to do take apart the wreck fields at E5 when no enemy is near them. With the energy line reading STALLING: one solar before the next spot; banking or in balance: no solar. No constructor stands or builds in a plant's exit lane.",
+  "packet": "group_A2: its move now is the walk to spot_40, and there it gathers and holds. It is fighting a Fatboy (armfboy), a Sharpshooter (armsnipe) and a Centurion (armwar) under his turrets at F3 with only half its body, and that is the wrong fight. It leaves spot_27 and the F3 turrets, walks to spot_40, holds there, and lets the soldiers coming from the plants reach it. It holds at spot_40 until assault is given. A party of his that comes to spot_40, it fights whole there. It never sends detachments and never turns aside for a lone unit. If it sees his armcom away from his turrets and outweighs what stands with it, it attacks the armcom with everything. It never goes to spot_18, spot_16, spot_15, spot_20, spot_21, spot_23, spot_32, spot_37 or E2-E3. Every leggat and legrail group joins group_A2.\n\ngroup_L1 (Alaris, leghades) is the raider hunter for our middle; group_Y1 and group_P2 join it. Its place is spot_49. The two armck at our extractor at spot_31 are its business now: the whole group attacks them, and any armpw, armflea, armfav, armflash or armck at our extractors or constructors on our side (spot_31, spot_33, spot_40, spot_49, spot_58, spot_56, spot_44, spot_47, spot_59, spot_61 and every spot west of them). It goes back to spot_49 when they are dead or gone. It never splits and never goes east of spot_40.\n\ngroup_A and group_L2: rove; leave them to rove.\n\nConstructors: a constructor with an enemy party near it walks toward spot_61 until it is gone, then goes back to its spot. Their job is taking free metal spots on our side, nearest home first: spot_37, spot_31, spot_46, spot_55, spot_79, and, once his are gone, spot_24, spot_26, spot_32. A light turret (leglht) beside each extractor away from home, built right after that extractor and before the next spot. A lost extractor is rebuilt as soon as the raider is gone. Constructors with nothing to do take apart the wreck fields at E5 when no enemy is near them. With the energy line reading STALLING: one solar before the next spot; banking or in balance: no solar. No constructor stands or builds in a plant's exit lane.\n\nCommander: works at home on its list; when the list is done it helps the plants. It attacks an armflea or armpw that comes within its reach at home, D-gun when it is inside 250. It never walks east of spot_61.\n\nPlants: make what their lists say, in order.",
+  "index": 15,
+  "faction": "leg",
+  "label": {
+   "mex": 1,
+   "llt": 1,
+   "solar": 1,
+   "help": 0,
+   "wreck": 1
+  },
+  "note": ""
+ },
+ {
+  "id": "6b13cb484d",
+  "game": "nuke-1-medium",
+  "seat": "strategist-0",
+  "clock": "12:26",
+  "paragraph": "constructors: a constructor with his soldiers within 600 walks to solar_field and comes back when they are gone. A constructor without a list takes free spots in this order: spot_52, spot_43, spot_45, spot_50, spot_59, spot_56, spot_36, spot_58; each extractor beyond spot_69 is followed by a light turret (armllt) beside it. A lost extractor is rebuilt as soon as the raider is gone. Wrecks near home (B7, D7, D8) are taken apart by a constructor that has nothing else to do. When the energy line reads STALLING and metal is above 100, an advanced solar (armadvsol) at solar_field.",
+  "packet": "The plan: the advanced vehicle plant stands. Its advanced constructors upgrade our home extractors, then build a fusion and the nuclear silo at home. Tier-1 constructors expand. His base is at his_lab (G2).\n\nThe army is one body that gathers at spot_63: group_E1, group_K1, group_L1, group_M1 and every new Blitz or Stout walk to spot_63 and join group_E1 there. No group or detachment hunts anything east of spot_47, not a cornecro, not a lone corthud. At spot_63 the body holds beside our turrets. When a party of three or more of his comes to spot_47, spot_52, spot_56, spot_58, spot_59, spot_64, spot_61, spot_63 or home, the whole body fights it there together. It never goes east of spot_47. Against a party that outweighs it, it walks to home and fights beside the commander.\n\nRaids: one or two corak at our extractors or constructors west of spot_47: the group nearest them sends two Blitzes at them, who come back to spot_63 when they are dead or gone.\n\ncommander: stays at home. While nothing of his is near home it takes apart the wreck field at B7, then helps constructor_15489 and constructor_988 with their builds at home. A corak party at home, at the plants, at avp_yard2 or at solar_field is its fight: it attacks with its D-gun until it is dead, then goes back. It never goes past spot_69.\n\nconstructors: a constructor with his soldiers within 600 walks to solar_field and comes back when they are gone. A constructor without a list takes free spots in this order: spot_52, spot_43, spot_45, spot_50, spot_59, spot_56, spot_36, spot_58; each extractor beyond spot_69 is followed by a light turret (armllt) beside it. A lost extractor is rebuilt as soon as the raider is gone. Wrecks near home (B7, D7, D8) are taken apart by a constructor that has nothing else to do. When the energy line reads STALLING and metal is above 100, an advanced solar (armadvsol) at solar_field.\n\ngroup_B (Rovers): it roves, whole; leave it to rove.\n\nplants: make their lists.",
+  "index": 16,
+  "faction": "arm",
+  "label": {
+   "mex": 1,
+   "llt": 1,
+   "solar": 0,
+   "help": 0,
+   "wreck": 1
+  },
+  "note": "advanced solar only"
+ },
+ {
+  "id": "d37da5f434",
+  "game": "nuke-2-hard",
+  "seat": "strategist-0",
+  "clock": "4:42",
+  "paragraph": "constructors: their job is taking free spots in this order: spot_61, spot_52, spot_50, spot_45, spot_43, spot_59, spot_56, spot_66, spot_78, spot_47, spot_36, spot_38, spot_39, spot_44, spot_58. A light turret (armllt) beside each extractor from spot_59 outward as the next build after that extractor. With the energy line reading STALLING and metal above 150: one solar; otherwise no solar.",
+  "packet": "Plan: a fast economy toward tier 2 and a nuclear silo, Blitzes holding off his raids, Rovers pressing his half. The opponent is Cortex (corak, corgator, corfav raiders); his plant is at G1.\n\nRaids first: any corfav, corak or corgator at our home buildings or home extractors is attacked by the nearest Blitz group, whatever it was doing, until it is dead or gone. A party of three or more of his at our extractors, constructors or home is the business of the nearest Blitz group that outweighs it, whatever it was doing, and it returns to its post when the party is dead or gone. A lone raider at an outer extractor is answered by sending one or two Blitzes, never the whole group.\n\ncommander: follows its list. After that it helps the plant. It stays at home and never chases raiders; against a party it cannot beat it stays among our buildings beside the plant.\n\nconstructors: their job is taking free spots in this order: spot_61, spot_52, spot_50, spot_45, spot_43, spot_59, spot_56, spot_66, spot_78, spot_47, spot_36, spot_38, spot_39, spot_44, spot_58. A light turret (armllt) beside each extractor from spot_59 outward as the next build after that extractor. With the energy line reading STALLING and metal above 150: one solar; otherwise no solar.\n\nplant: follows its list.\n\nRovers (group_A): rove; leave them to rove.\n\ngroup_C (Blitzes): posts at spot_59, covering the eastern approach and passage_3. From a party that outweighs it, it steps back to spot_63 and holds there.\n\ngroup_D (Blitzes): posts at spot_52, covering the northern approach to spot_50, spot_45 and spot_43; it never follows the commander. From a party that outweighs it, it steps back to spot_61 and holds there.\n\nNew Blitz groups from the plant join group_D.",
+  "index": 17,
+  "faction": "arm",
+  "label": {
+   "mex": 1,
+   "llt": 1,
+   "solar": 1,
+   "help": 0,
+   "wreck": 0
+  },
+  "note": ""
+ },
+ {
+  "id": "8e81535ef2",
+  "game": "prio-player-1",
+  "seat": "strategist-0",
+  "clock": "7:42",
+  "paragraph": "Constructors: when Pawns of his stand within reach, they walk to spot_63 and wait. Otherwise their job is taking free metal spots in this order: spot_64, spot_71, spot_59, spot_56, spot_47, spot_36, spot_38, spot_39, spot_66, spot_78, spot_28, spot_30, spot_19, spot_22, spot_33, spot_44. A light turret (armllt) goes beside every extractor they build, right after that extractor and before the next spot; a lost extractor is rebuilt as soon as the raider is gone. With the energy line reading STALLING and metal 150 or more: one solar (armsolar); otherwise no solar. They never stand in a plant's exit lane.",
+  "packet": "group_J: the army; strike is given. group_M and group_N join group_J now. Its way: spot_27, then spot_18, then spot_16, then spot_10, fighting everything on the way as one body; it sends no detachments. His commander (armcom) when it is in sight is its target: the whole group attacks it together, never one by one; it does not walk into his commander under a turret with fewer than ten Blitzes there. At spot_10 it kills his lab (armlab) and his constructors and buildings there. It never goes back to a stop it has reached. Ticks and Pawns at our home are never its business: group_E and the turrets answer them. Against a party that outweighs it it walks to spot_40 and holds there.\n\nEvery Blitz group except group_E and the roving groups joins group_J.\n\nTicks (armflea) are never chased by any Blitz group: they outrun Blitzes. The light turrets and the commander deal with Ticks.\n\ngroup_E: the home guard; the second plant's Blitzes join it. It kills Pawns (armpw) at our extractors and constructors (spot_67, spot_74, spot_73, spot_68, spot_62, spot_69, spot_61, spot_63, spot_54, spot_64, spot_76, spot_50, spot_52, spot_45, spot_43, spot_71, spot_66, spot_59, spot_36), otherwise it follows the constructor nearest to a Pawn of his, or stands at spot_63. It never goes past spot_66, spot_59 or spot_36.\n\nRovers (armfav): every group of armfav, group_A and group_L among them, roves (rove): being seen is its job; leave it to rove.\n\nConstructors: when Pawns of his stand within reach, they walk to spot_63 and wait. Otherwise their job is taking free metal spots in this order: spot_64, spot_71, spot_59, spot_56, spot_47, spot_36, spot_38, spot_39, spot_66, spot_78, spot_28, spot_30, spot_19, spot_22, spot_33, spot_44. A light turret (armllt) goes beside every extractor they build, right after that extractor and before the next spot; a lost extractor is rebuilt as soon as the raider is gone. With the energy line reading STALLING and metal 150 or more: one solar (armsolar); otherwise no solar. They never stand in a plant's exit lane.\n\nCommander: works at home on its list and helps the plants; it attacks and D-guns raiders at our home extractors and constructors; it never goes past spot_69 or spot_54.\n\nPlants: make their lists in order.",
+  "index": 18,
+  "faction": "arm",
+  "label": {
+   "mex": 1,
+   "llt": 1,
+   "solar": 1,
+   "help": 0,
+   "wreck": 0
+  },
+  "note": "'when Pawns ... wait. Otherwise their job is taking free metal spots'"
+ },
+ {
+  "id": "2681644385",
+  "game": "rove-move-1",
+  "seat": "strategist-0",
+  "clock": "3:55",
+  "paragraph": "Constructors: their job is taking free extractor spots, in this order: spot_54, spot_64, spot_71, spot_59, spot_52, spot_50, spot_45, spot_43, spot_66, spot_78, spot_56, spot_47, spot_44, spot_39, spot_38. A light turret armllt beside each of spot_54, spot_64, spot_71, spot_59, spot_52, spot_66, spot_78, spot_56, spot_47, spot_43 right after its extractor. With the energy line reading STALLING and metal above 150: a solar; otherwise no solar. Against an enemy party nearby, a constructor walks home.",
+  "packet": "We start at home (B8), south-west. He is Cortex; his plant and commander are at his_base (G1, far north-east), corllt at spot_5, spot_10, spot_11 and spot_3.\n\nCommander: follows its list. When the list ends it helps the plant. It stays at home, near spot_62 and spot_69; it never walks toward his half. Against raiders (corfav, corak, corgator) at our home buildings it fights them with its D-gun. Against a party that outweighs it, it walks home beside the plant.\n\nConstructors: their job is taking free extractor spots, in this order: spot_54, spot_64, spot_71, spot_59, spot_52, spot_50, spot_45, spot_43, spot_66, spot_78, spot_56, spot_47, spot_44, spot_39, spot_38. A light turret armllt beside each of spot_54, spot_64, spot_71, spot_59, spot_52, spot_66, spot_78, spot_56, spot_47, spot_43 right after its extractor. With the energy line reading STALLING and metal above 150: a solar; otherwise no solar. Against an enemy party nearby, a constructor walks home.\n\nPlant: makes its list in order.\n\nRovers (armfav) in group_B and group_C: they rove.\n\nNorth guard: group_H and group_I join into one group that holds at spot_54 (A6), covering spot_62, spot_54, spot_61 and spot_50. It kills any corfav, corak or corgator at those extractors, the whole group together, and returns to spot_54. Against a party that outweighs it, it walks home.\n\nEast guard: group_A, group_G and group_E join into one group holding at spot_64. A raider at our extractors at spot_64, spot_63, spot_69, spot_76, spot_59 or spot_71 is met by one or two Blitzes from it, a party of three or more by the whole group; then back to spot_64. Never chase past spot_47. Against a party that outweighs it, it walks home.\n\nNew Blitzes from the plant join the east guard at spot_64.",
+  "index": 19,
+  "faction": "arm",
+  "label": {
+   "mex": 1,
+   "llt": 1,
+   "solar": 1,
+   "help": 0,
+   "wreck": 0
+  },
+  "note": "'free extractor spots'"
+ },
+ {
+  "id": "6203e7c62f",
+  "game": "rove-task-1",
+  "seat": "strategist-0",
+  "clock": "0:00",
+  "paragraph": "constructors: their job is taking free metal spots, nearest home first, an extractor then a light turret (armllt) beside every extractor that is not at home. A solar when energy reads STALLING and metal is above 150. When attacked they walk home.",
+  "packet": "commander: works at home. It builds its list, then helps the plant. A party of a few raiders (armpw, armflea, armfav, armflash) at our home extractors or the plant: the commander attacks it and D-guns its nearest unit. Never walks toward a party that outweighs it; then it stays beside the plant.\n\nconstructors: their job is taking free metal spots, nearest home first, an extractor then a light turret (armllt) beside every extractor that is not at home. A solar when energy reads STALLING and metal is above 150. When attacked they walk home.\n\nplant: makes its list in order; after the list, Blitzes (armflash), and a constructor (armcv) whenever we have fewer than five constructors.\n\nRover groups (armfav): they rove into his half: his start box, his constructors and extractors. Being seen is their job; they run from what can catch them.\n\nBlitz groups (armflash): a single raider at our extractors is met by one or two Blitzes sent from the nearest group; a party of three or more at our extractors, constructors or home is the business of the whole nearest group that outweighs it, first, whatever else it was doing. Otherwise the Blitzes go raid his extractors and constructors in his half, fighting where they outweigh what stands there, never into turrets at parity.",
+  "index": 20,
+  "faction": "arm",
+  "label": {
+   "mex": 1,
+   "llt": 1,
+   "solar": 1,
+   "help": 0,
+   "wreck": 0
+  },
+  "note": ""
+ },
+ {
+  "id": "e877946449",
+  "game": "rove-task-2",
+  "seat": "strategist-0",
+  "clock": "19:49",
+  "paragraph": "constructors: they follow their lists. When his soldiers are near a constructor, the constructor walks to home, and goes back to its list when they are gone; a lost extractor is rebuilt as soon as the raider is gone. Metal is short and wrecks are rich: constructor_26962, constructor_31791 and constructor_11096 take apart the wreck fields at spot_41, spot_40, spot_37, spot_33, spot_44 and spot_39 whenever no enemy is near them, the biggest first. Without a list, the others take free spots on our side in this order: spot_46, spot_24, spot_55, spot_32, spot_75, with an armllt beside each extractor away from home as it is built. Never build or stand in a plant's exit lane.",
+  "packet": "THE ARMY group_L2: its way, in order, never going back to a place it has reached: his_avp, where it attacks his buildings until the coravp is dead, then his_plant, where it attacks his buildings until the corvp is dead. It fights to each stop as one body. It never sends detachments and never chases a lone raider or a corcv. His commander (corcom) in sight is attacked whenever it is out of the F2 turrets' reach. It never goes to spot_16, spot_15 or spot_11 (the F2 turret fortress). Its step-back place is spot_29.\n\nHOME GUARD group_N3: with every new group from the plants (group_O4, group_Z3, group_A4 and the rest joining it) it is one group and stands at spot_37. It never attacks his turrets at E3 or anything at shelling_N3: those outrange it. His parties of two or more at our extractors or constructors in our half are its business: it fights to the raided spot (spot_33, spot_31, spot_37, spot_47, spot_44, spot_56, spot_58 or spot_49) whole, kills them, then goes back to spot_37. Its step-back place is spot_47.\n\ncommander: a raider of his within its reach at home, spot_62, spot_54, spot_68 or spot_73 is its target: it attacks it and D-guns it. Otherwise it follows its list and helps the plants from beside them, never standing in a plant's exit lane; it stays on our side west of spot_69.\n\nconstructors: they follow their lists. When his soldiers are near a constructor, the constructor walks to home, and goes back to its list when they are gone; a lost extractor is rebuilt as soon as the raider is gone. Metal is short and wrecks are rich: constructor_26962, constructor_31791 and constructor_11096 take apart the wreck fields at spot_41, spot_40, spot_37, spot_33, spot_44 and spot_39 whenever no enemy is near them, the biggest first. Without a list, the others take free spots on our side in this order: spot_46, spot_24, spot_55, spot_32, spot_75, with an armllt beside each extractor away from home as it is built. Never build or stand in a plant's exit lane.\n\ngroup_A (Rovers): roving is its job, always.",
+  "index": 21,
+  "faction": "arm",
+  "label": {
+   "mex": 1,
+   "llt": 1,
+   "solar": 0,
+   "help": 0,
+   "wreck": 0
+  },
+  "note": "three named constructors take wrecks; 'the others take free spots'"
+ },
+ {
+  "id": "c004b09c04",
+  "game": "glitters-8v8-late-1",
+  "seat": "strategist-7",
+  "clock": "14:44",
+  "paragraph": "Constructors (constructor_5949, constructor_26652, constructor_15928): they stay at home: build Nettles (armrl) at spot_28, spot_24 and spot_34, then Sentries at spot_28; when the raid is dead they go back to rebuild extractors at spot_45 and spot_54 with a Sentry each. A raider near them: they walk to spot_28.",
+  "packet": "Plan: a big enemy force is coming from A3/A4/B4: about 22 corbw bombers, 7 armflash and 9 corak plus corgators. We fight it at home under the Nettles and Sentries with everything together, not at B3.\n\ngroup_J (Blitzes, Janus, Stouts) and any new soldier: it walks to spot_28 now and holds there as one body; it is the home guard. It attacks any enemy ground party within 600 of spot_28, spot_24 or spot_34 with the whole group. It never goes to B3, A3, C3 or beyond; never splits; never chases scouts. Its step-back place is spot_28.\n\nCommander: stays at spot_28, D-guns any enemy inside reach.\n\nConstructors (constructor_5949, constructor_26652, constructor_15928): they stay at home: build Nettles (armrl) at spot_28, spot_24 and spot_34, then Sentries at spot_28; when the raid is dead they go back to rebuild extractors at spot_45 and spot_54 with a Sentry each. A raider near them: they walk to spot_28.\n\nPlants: Stouts (armstump).",
+  "index": 22,
+  "faction": "arm",
+  "label": {
+   "mex": 1,
+   "llt": 1,
+   "solar": 0,
+   "help": 0,
+   "wreck": 0
+  },
+  "note": "the heading lists three constructors; read as all of them; Nettles then Sentries, then extractors"
+ },
+ {
+  "id": "6c567d8437",
+  "game": "apex-v024-carrot-sym50-opus-1",
+  "seat": "strategist-0",
+  "clock": "14:05",
+  "paragraph": "Constructors (armcv): they work their lists. When a list is done, the ones at home help build the fusion (armfus) and the advanced extractors (armmoho) at home; the others take free metal spots, each the first one still free that no other constructor is going to: spot_76, spot_157, spot_130, spot_61, spot_170, spot_62, spot_137, spot_148. Beside every extractor away from home they build a light turret (armllt) right after it. With the energy line reading STALLING: an advanced solar (armadvsol) at home; banking: no generator. An enemy party near the spot they work: they step away toward home and come back when it is gone. They never stand in front of a plant's exit.",
+  "packet": "Plan: his army (about 12 Maces armham, Rocketeers armrock, Centurions armwar) stands at G5 in front of his yard; his commander (armcom) and his Advanced Bot Lab (armalab at his_alab) and Bot Lab (his_lab) are in H5. group_H, our army of about 17,000, kills his army at G5 with the whole body, then goes into H5 and kills his commander and the labs. Single Pawns (armpw) raid our extractors in D2-D4; the Blitzes at home hunt them, nothing else.\n\ngroup_H is our army. FIRST: the enemy party of Maces, Rocketeers and Centurions at G5 (around spot_93, spot_98, spot_85): the whole group, every soldier, attacks it and keeps attacking until it is dead. This fight is always taken: we outweigh it four to one. No detachments, never: the Pawns at home are not its business. After that party is dead, its way is spot_98, then his_lab, then his_alab, then spot_100, spot_94 and spot_104, fighting (fight to) as one body. His commander (armcom) in sight: the whole group attacks it until it is dead. It kills his Advanced Bot Lab, lab, Sentries, construction turrets, converters and constructors on its way. It never goes back to a place it has reached and never goes home. Only from a party that outweighs it does it walk back to spot_93.\n\nEvery Stout (armstump) or Whistler group at home or in our half (group_P1, group_Y, group_Z, group_J1 and every new one from the plants): it walks to rally_e2 and joins group_H from there. Stouts never hunt Pawns.\n\nHome guard: every Blitz (armflash) group in our half (group_L1, group_M1, group_N1, group_O1, group_Q1, group_R1, group_S1 and new Blitzes) joins the others into one group. Enemy Pawns (armpw), Ticks (armflea) or Lazaruses (armrectr) at our extractors or constructors on our half (spot_40, spot_37, spot_38, spot_34, spot_61, spot_57, spot_56, spot_60, spot_55, spot_71, spot_76, spot_77, spot_83, spot_101, spot_95, spot_69, spot_81, spot_86, spot_89, spot_103, spot_108, spot_111, spot_114, spot_129, spot_130, spot_134, spot_152, spot_156, spot_160, spot_155, spot_146, home): the whole Blitz group attacks that party and chases it until it is dead, then walks back to spot_103. It never goes east of spot_101.\n\ngroup_A (Rovers): it roves; leave it to rove.\n\nCommander: helps the plants, the advanced vehicle plant and the fusion at home. Works only at home and on the spots near home (spot_96, spot_99, spot_102, spot_109, spot_87, spot_78); never walks east of spot_103. An enemy raid party within reach at home: it attacks it and uses the D-gun.\n\nConstructors (armcv): they work their lists. When a list is done, the ones at home help build the fusion (armfus) and the advanced extractors (armmoho) at home; the others take free metal spots, each the first one still free that no other constructor is going to: spot_76, spot_157, spot_130, spot_61, spot_170, spot_62, spot_137, spot_148. Beside every extractor away from home they build a light turret (armllt) right after it. With the energy line reading STALLING: an advanced solar (armadvsol) at home; banking: no generator. An enemy party near the spot they work: they step away toward home and come back when it is gone. They never stand in front of a plant's exit.\n\nThe plants: what their lists say.",
+  "index": 23,
+  "faction": "arm",
+  "label": {
+   "mex": 1,
+   "llt": 1,
+   "solar": 0,
+   "help": 1,
+   "wreck": 0
+  },
+  "note": "as 3, plus the advanced extractors"
+ },
+ {
+  "id": "bfe2370b86",
+  "game": "human-30",
+  "seat": "strategist-0",
+  "clock": "6:02",
+  "paragraph": "constructors: work their lists. A constructor with no list takes free spots in this order: spot_45, spot_48, spot_49, spot_50, spot_51, spot_54, and builds an armllt beside each right after its extractor, never waiting on the bank. With the energy line reading STALLING: an armsolar at home; otherwise no generator. A constructor with an enemy party or his commander near it walks back toward home.",
+  "packet": "Plan: Armada vehicles from G1; four seats against two people in the west. We are well ahead in army. One of his commanders is out in the open at his_com_f7 (F7), killing our constructor: that is the target for every raider of ours.\n\nRaids first: a party of three or more of his at our extractors, constructors or home is the business of the nearest group that outweighs it, whole, whatever it was doing; it goes back to its job when the party is dead or gone. A lone scout or raider at an outer extractor is met by one soldier sent from the nearest group, never the whole group.\n\ncommander_t2: works its list. When the list is done it helps the plant and stays at home; it attacks a small raider party at our buildings within its short walk, and never walks toward the middle or into ground we cannot see.\n\nconstructors: work their lists. A constructor with no list takes free spots in this order: spot_45, spot_48, spot_49, spot_50, spot_51, spot_54, and builds an armllt beside each right after its extractor, never waiting on the bank. With the energy line reading STALLING: an armsolar at home; otherwise no generator. A constructor with an enemy party or his commander near it walks back toward home.\n\ngroup_A_t2 (the roving Rovers and Blitzes): leave it to rove.\n\ngroup_B_t2 (the Blitzes from the plant, and every new Blitz joins it): fights its way to his_com_f7, together as one body. His commander (armcom) in sight there or on the way: the whole group attacks it now, together with the other seats' soldiers near it, and keeps attacking until it is dead. If his commander is not at his_com_f7 when the group arrives, its way is meet_d5, then his_lab_c8: spot_56, spot_59, spot_61, spot_63, spot_65, then the armlab. From a party that outweighs it, it walks to meet_d5 and holds.",
+  "index": 24,
+  "faction": "arm",
+  "label": {
+   "mex": 1,
+   "llt": 1,
+   "solar": 1,
+   "help": 0,
+   "wreck": 0
+  },
+  "note": ""
+ },
+ {
+  "id": "c35bb6d354",
+  "game": "human-30",
+  "seat": "strategist-3",
+  "clock": "15:15",
+  "paragraph": "Constructors: they work their lists. A constructor with no list builds a corhllt at home. They never leave home while his armzeus stand in F3-F5.",
+  "packet": "Raids first: a party of his at our home buildings or constructors is the business of the commander and our soldiers at home, fighting it beside our turrets, whole. A constructor with an enemy party within reach walks to home.\n\ngroup_E_t5 and every new soldier from the plant: they hold at home, beside our turrets, and fight there whole; they never walk to spot_26, spot_38, spot_40, spot_31 or spot_37. Six of his armzeus walk from spot_38 toward us; our soldiers meet them only at home under our turrets with the commander. Home is their place to step back to.\n\nConstructors: they work their lists. A constructor with no list builds a corhllt at home. They never leave home while his armzeus stand in F3-F5.\n\nplant: makes what its produce list gives, in order.\n\ncommander: works its list at home; with no list it helps the plant, standing beside it, never in front of its exit. It fights an enemy party at our home buildings beside our turrets and soldiers, never chases, and never walks west of home.",
+  "index": 25,
+  "faction": "cor",
+  "label": {
+   "mex": 0,
+   "llt": 0,
+   "solar": 0,
+   "help": 0,
+   "wreck": 0
+  },
+  "note": "a corhllt (heavy turret) at home only"
+ },
+ {
+  "id": "656fba8f21",
+  "game": "human-32",
+  "seat": "strategist-0",
+  "clock": "12:39",
+  "paragraph": "constructors: a constructor with raiders near it walks to home beside the commander and stays there until they are gone, then continues its list. Never at spot_91, spot_92, spot_93 or spot_94: his turrets stand there. The wreck fields at F4 are metal we need: a constructor with no list near them takes them apart while no enemy stands there. A constructor with no list then takes free spots in this order, skipping any taken: spot_87, spot_77, spot_122, spot_129, spot_131, spot_123. A light turret (corllt) beside every extractor as it is built, right after it. With the energy line reading STALLING: a corsolar at home; otherwise no generator.",
+  "packet": "The home guard: group_K1_t2 and every new group from the plant join each other at spot_80 and stand there as one group. corgator, corfav, armfav or armflash at our extractors or constructors from spot_68 to spot_87, spot_54, spot_58, spot_67, spot_99, spot_105, spot_113, spot_119 are its business, the whole group together, until they are dead or gone; then it returns to spot_80. Against a party that outweighs it, it walks to home and fights beside commander_t2 and the turrets. It never goes west of spot_67, and never toward his turret nest at spot_93, spot_92 and spot_91 (a corhllt stands there).\n\ncommander_t2: helps the plant at home. It attacks raiders that come within its walk of spot_74, spot_78, spot_68, spot_72, using its D-gun on them, and never chases them past spot_80.\n\nconstructors: a constructor with raiders near it walks to home beside the commander and stays there until they are gone, then continues its list. Never at spot_91, spot_92, spot_93 or spot_94: his turrets stand there. The wreck fields at F4 are metal we need: a constructor with no list near them takes them apart while no enemy stands there. A constructor with no list then takes free spots in this order, skipping any taken: spot_87, spot_77, spot_122, spot_129, spot_131, spot_123. A light turret (corllt) beside every extractor as it is built, right after it. With the energy line reading STALLING: a corsolar at home; otherwise no generator.\n\nplant: works its production list without pause.",
+  "index": 26,
+  "faction": "cor",
+  "label": {
+   "mex": 1,
+   "llt": 1,
+   "solar": 1,
+   "help": 0,
+   "wreck": 1
+  },
+  "note": ""
+ },
+ {
+  "id": "12dcb508f0",
+  "game": "glitters-8v8-late-1",
+  "seat": "strategist-7",
+  "clock": "26:39",
+  "paragraph": "Constructors: constructor_26652 builds Sentries beside spot_34; constructor_15928 helps plant_4020. With a party of five or more within 800 they stay at home.",
+  "packet": "Plan: hold B2 inside the Sentry ring. The raid pair is broken; we stop chasing.\n\ngroup_J: it walks to spot_34 and holds as one body. It fights only enemy within 400 of spot_34. It never goes to B3, spot_45, C2 or A3 and never chases. Step-back place: spot_34.\n\ngroup_V (new Stouts): it joins group_J at once and stays with it.\n\nCommander: stays at spot_28; D-guns enemy within 300.\n\nConstructors: constructor_26652 builds Sentries beside spot_34; constructor_15928 helps plant_4020. With a party of five or more within 800 they stay at home.\n\nPlants: Stouts (armstump).",
+  "index": 27,
+  "faction": "arm",
+  "label": {
+   "mex": 0,
+   "llt": 0,
+   "solar": 0,
+   "help": 0,
+   "wreck": 0
+  },
+  "note": "two named constructors only"
+ },
+ {
+  "id": "7e577d479d",
+  "game": "glitters-8v8-late-1",
+  "seat": "strategist-0",
+  "clock": "22:58",
+  "paragraph": "Constructors (armcv): stay at spot_23 and home, build Sentries (armllt) at spot_23 and near the extractors at spot_34 and spot_19, and rebuild lost extractors at spot_42 and spot_49 only when no enemy is in sight. They never stand in the plant's exit lane.",
+  "packet": "Plan: his tank parties (armstump, corlevlr, corraid, corthud) push up our west side from B3/C3 toward spot_42 and spot_34; his armflash/corak raiders are gone. We fight at spot_23 near home beside our Sentries and the commander's D-gun.\n\ngroup_S: it joins every other group (group_K2) and new plant units at once. It goes to spot_23 and holds there as one body, Whistlers behind the Stouts. It attacks every enemy party that comes within reach of spot_23 with the whole group until dead, and chases no further than spot_34 and spot_42. It never goes toward spot_45, spot_54, C3, C4, D4 or B4. No detachments, no hunts. If a party much larger than it comes, it walks home and fights beside the commander.\n\nConstructors (armcv): stay at spot_23 and home, build Sentries (armllt) at spot_23 and near the extractors at spot_34 and spot_19, and rebuild lost extractors at spot_42 and spot_49 only when no enemy is in sight. They never stand in the plant's exit lane.\n\nCommander: works at home; D-gun on any armflash, corak, corgator, armstump or corlevlr within reach. Never walks beyond spot_23.\n\nPlant: Stouts and Whistlers; new units join group_S.",
+  "index": 28,
+  "faction": "arm",
+  "label": {
+   "mex": 1,
+   "llt": 1,
+   "solar": 0,
+   "help": 0,
+   "wreck": 0
+  },
+  "note": "Sentries, and extractors rebuilt when no enemy is in sight"
+ },
+ {
+  "id": "prio1037x",
+  "game": "prio-player-1",
+  "seat": "strategist-0",
+  "clock": "10:37",
+  "paragraph": "Constructors: when Pawns of his stand within reach, they walk to spot_63 and wait. Otherwise: first a light turret (armllt) beside every extractor of ours that has none (spot_45, spot_50, spot_71, spot_63, spot_59, spot_56, spot_38, spot_47); then free metal spots in this order: spot_56, spot_47, spot_39, spot_28, spot_66, spot_78, spot_30, spot_19, spot_22, spot_33, spot_44, spot_58, spot_49, a light turret beside each right after its extractor; a lost extractor or turret is rebuilt as soon as the raider is gone. One construction turret (armnanotc) beside each plant. Energy: with the energy line reading STALLING, one solar (armsolar) at home; with energy banking or the store full, no solar and no advanced solar, ever. A constructor standing in a plant's exit lane walks out of it at once; they never build or wait in a plant's exit lane.",
+  "packet": "group_J: the army, now Stouts, Shellshockers and Blitzes. A party of three or more of his at our extractors, constructors or home is its business first. Otherwise it gathers at spot_47 and holds there, taking in the new Stouts (armstump) and Shellshockers (armart) from the plants; from spot_47 it fights any party of his that comes within reach of spot_47, spot_56, spot_59, spot_38 or spot_39 when we outweigh it, and when strike_two is given it advances by spot_49, then spot_40, then spot_27, killing his extractors and light turrets. Against Centurions (armwar) and Rocketeers (armrock) the Stouts lead and the Blitzes come in beside them, never alone ahead. Against a party that outweighs it, it walks to spot_63 and holds there. It never walks into the Beamer's reach at G2.\n\nEvery Stout and Shellshocker group and group_X joins group_J. group_V and group_W join group_O when their quarry is dead or gone.\n\ngroup_O: the home guard, the Blitzes at home. It kills Pawns (armpw), Ticks (armflea) and Lazarus (armrectr) at our extractors and constructors (spot_67, spot_74, spot_73, spot_68, spot_62, spot_69, spot_61, spot_63, spot_54, spot_64, spot_76, spot_50, spot_52, spot_45, spot_43, spot_71, spot_66, spot_59, spot_56, spot_47, spot_36, spot_28, spot_38, spot_39, spot_78, spot_58), sending one or two of its soldiers at a lone Tick or Pawn, otherwise it stands at spot_63. Against a party that outweighs it, it walks to home. It never goes past spot_66, spot_47 or spot_36.\n\nRovers (armfav): every group of armfav, group_A and group_L among them, roves (rove): being seen is its job; leave it to rove.\n\nConstructors: when Pawns of his stand within reach, they walk to spot_63 and wait. Otherwise: first a light turret (armllt) beside every extractor of ours that has none (spot_45, spot_50, spot_71, spot_63, spot_59, spot_56, spot_38, spot_47); then free metal spots in this order: spot_56, spot_47, spot_39, spot_28, spot_66, spot_78, spot_30, spot_19, spot_22, spot_33, spot_44, spot_58, spot_49, a light turret beside each right after its extractor; a lost extractor or turret is rebuilt as soon as the raider is gone. One construction turret (armnanotc) beside each plant. Energy: with the energy line reading STALLING, one solar (armsolar) at home; with energy banking or the store full, no solar and no advanced solar, ever. A constructor standing in a plant's exit lane walks out of it at once; they never build or wait in a plant's exit lane.\n\nCommander: works at home on its list and helps the plants from beside them, never standing in a plant's exit lane. It attacks and D-guns raiders at our home extractors and constructors; it never goes past spot_69 or spot_54.\n\nPlants: make their lists in order.",
+  "index": 29,
+  "faction": "arm",
+  "label": {
+   "mex": 1,
+   "llt": 1,
+   "solar": 1,
+   "help": 0,
+   "wreck": 0
+  },
+  "note": "'first a light turret beside every extractor that has none; then free metal spots'"
+ }
+]
