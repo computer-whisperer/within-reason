@@ -1,0 +1,844 @@
+{
+ "game": "1791989571-apex-v024-carrot-sym50-opus-1",
+ "result": "won 16:40",
+ "minutes": 16.66,
+ "seats": 1,
+ "opponent": "Apex v0.2.4 standard (+50 both sides, Carrot Mountains v2.0)",
+ "kind": "arena",
+ "denominators": {
+  "0": {
+   "frames": 210,
+   "finished": 196,
+   "decayed": 3,
+   "killed": 0,
+   "at_end": 11,
+   "metal_in_unfinished": 5448,
+   "never_started": 25
+  }
+ },
+ "items": [
+  {
+   "seat": 0,
+   "frame": "armadvsol_19432",
+   "type": "armadvsol",
+   "cell": "B5",
+   "started": "11:26",
+   "fate": "decayed",
+   "fate_clock": "14:48",
+   "share": 0.92,
+   "metal_in": 322,
+   "cost": 350,
+   "builder": "constructor_15311",
+   "cause": "U9",
+   "also": null,
+   "what_happened": "At 12:21 its list queued the next step (#as10) behind the frame at 60%. At 12:26 armadvsol_6103, another builder's frame 229 elmos away, finished. The finish handler matches a builder's started build by type within 250 elmos, so it took that as 15311's build finishing and promoted the queued #as10 order to the task (started=false). The builder was still building 19432 (71% at 12:30, 86% at 12:45). From 12:41 it stood 218 from #as10's placed site (1808,7024), inside reach+margin 250. The blocked-site watchdog only looks for a same-type frame within 200 of that site, and 19432 is 215 away, so it missed it. After 8 s the watchdog stopped the builder with the frame at 86%. It peaked at 92% and decayed from 12:51. The list re-sent #as10 elsewhere (started 13:25 at 2512,7312).",
+   "evidence": [
+    "12:21 (list) next, queued: build a armadvsol at home (B5) (#as10); placed (1808,7024)",
+    "12:26 ev finished armadvsol_6103 at (1952,7440), 229 from 19432 (mod.rs UnitFinished: Task::Build same def, near within 250)",
+    "12:34 report: constructor_15311 'walking to build a Advanced Solar Collector (armadvsol) at 456 from home (B5), 277 to go, ordered 7 s ago' (the 12:26 entry had read 'building ... (66 % built)')",
+    "12:49 hands: 'constructor_15311: its armadvsol at B5 never started in the 8 s it stood at the site: the site is blocked ..., refused for 90 s'; cmd stop 15311; bot.log f=23085 'armadvsol order for unit 15311 at (1808, 7024) blocked at the site'",
+    "no plan play for constructor_15311 in hands_window 12:25-12:51; share 86% 12:45, 92% 12:55, then falling; destroyed by nobody 14:48",
+    "14:50 report: 'fights since last turn: abandoned an unfinished armadvsol (0% built) x1'"
+   ],
+   "player_knew": "before, then misled: the 12:26 report listed constructor_15311 'building a Advanced Solar Collector (armadvsol) at home (B5) (66 % built)'. From 12:34 the entry said 'walking to build ... 277 to go'. The 12:49 line said its order 'never started'. The 14:50 abandoned line said '(0% built)'. It was never told that a 92% frame was dropped.",
+   "fix_class": "hands-rule",
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armnanotc_372",
+   "type": "armnanotc",
+   "cell": "B6",
+   "started": "9:27",
+   "fate": "decayed",
+   "fate_clock": "11:12",
+   "share": 0.69,
+   "metal_in": 159,
+   "cost": 230,
+   "builder": "constructor_10329",
+   "cause": "U3",
+   "also": null,
+   "what_happened": "The list put the nano beside plant_15091, at the plant's own centre (3070,7904); the engine placed it at (2968,7912). The 9:59 report said the constructor had stood in plant_15091's exit lane for 32 s. The player's 9:59 queue for constructor_10329 began with 'stop' and moved it to spot_87 and spot_96. The stop landed at 10:07 with the frame at 69%, and the frame decayed by 11:12. The report had named the constructor as the blocker, not the frame; letting it finish (about 45 s) or moving only the builder would have cleared the lane.",
+   "evidence": [
+    "9:59 queue constructor_10329: [\"stop\", \"extractor spot_87\", \"armllt spot_87\", \"extractor spot_96\"]; RESULT 'its build in progress dropped, then 3 steps'",
+    "10:07 hands: 'constructor_10329: stopped what it was doing on your `stop`'; 10:08 (list) build a armmex at spot_87 (A5)",
+    "share 64% 10:05, 69% 10:10, falling to 0 by 11:12; destroyed by nobody"
+   ],
+   "player_knew": "before, dropped itself: the 9:59 report listed constructor_10329 'building a Construction Turret (armnanotc) at 624 from spot_102 (B6) (54 % built) ... standing in plant_15091's exit lane since 32 s ago'. Its turn text: 'I dropped the construction turret that was blocking plant_15091's exit ... The turret's frame was 54% built, so that metal is lost.' 11:13 report: 'abandoned an unfinished armnanotc (0% built) x1'.",
+   "fix_class": "player",
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armvp_22187",
+   "type": "armvp",
+   "cell": "C5",
+   "started": "9:23",
+   "fate": "decayed",
+   "fate_clock": "9:55",
+   "share": 0.15,
+   "metal_in": 88,
+   "cost": 590,
+   "builder": "constructor_3778",
+   "cause": "U3",
+   "also": null,
+   "what_happened": "This was the fifth T1 plant (#plant5), started from the 9:14 queue, with constructor_23346 helping from 9:26. The commander asked for an advanced vehicle plant, and the player replaced the fifth plant with it. Its 9:24 queue gave constructor_3778 'stop' first and gave both builders '#avp1' first, so the one call withdrew the helper too. It landed at 9:31-9:33 with the frame at 15% (the player had seen 1%), and the frame decayed by 9:55.",
+   "evidence": [
+    "9:24 queue constructor_3778: [\"stop\", \"armavp #avp1\", \"armnanotc\", \"armadvsol home #as7\"], constructor_23346: [\"armavp #avp1\", \"armnanotc\"]; RESULT 'constructor_3778: its build in progress dropped'",
+    "9:32 cmd stop 3778; 9:32 (list) constructor_23346 build a armavp at spot_97 (#avp1); 9:33 (list) constructor_3778 help build #avp1",
+    "9:24 note: 'per direction, the fifth T1 plant is replaced by an advanced vehicle plant (#avp1)'"
+   ],
+   "player_knew": "before, dropped itself: the 9:24 report listed constructor_3778 'building a Vehicle Plant (armvp) at 500 from spot_103 (C5) (1 % built)'. Its text: 'The plain plant frame was only 1% built, so dropping it lost almost nothing.' 9:59 report: 'abandoned an unfinished armvp (0% built) x1'.",
+   "fix_class": "player",
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armfus_611",
+   "type": "armfus",
+   "cell": "B5",
+   "started": "14:17",
+   "fate": "unfinished at end",
+   "fate_clock": "16:39",
+   "share": 0.76,
+   "metal_in": 2546,
+   "cost": 3350,
+   "builder": "constructor_5185",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "Started 2:22 before the end, 22 s outside the two-minute window, but no other class fits. One advanced constructor (build power 290; 54,000 build time = 186 s) stood on it to the end at its full rate, 0.53%/s: 55% at 16:00, 74% at 16:35, 76% at 16:39. The metal store never fell below 0.83. The 16:09 'next, queued' moho waited behind it. The game was won at 16:40, about 30 s before the fusion would have finished.",
+   "evidence": [
+    "16:09 (list) next, queued: build a armmoho at spot_91 (A5) (queued behind; builder at 2565,7587 throughout)",
+    "share 63% 16:15, 69% 16:25, 74% 16:35, 76% 16:39"
+   ],
+   "player_knew": "before: the 16:36 report: constructor_5185 'building a Fusion Reactor (armfus) at spot_99 (B5) (75 % built), ordered 174 s ago'",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmoho_19801",
+   "type": "armmoho",
+   "cell": "A5",
+   "started": "15:57",
+   "fate": "unfinished at end",
+   "fate_clock": "16:39",
+   "share": 0.81,
+   "metal_in": 502,
+   "cost": 620,
+   "builder": "constructor_7176",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "Still rising when the record ended: 62% at 16:29, 81% at 16:39. The 16:29 queue-ahead order waited behind it.",
+   "evidence": [
+    "16:29 (list) next, queued: build a armmoho at spot_119 (A6)",
+    "last progress 16:39"
+   ],
+   "player_knew": "before: the 16:36 report listed its builder building it",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmoho_4594",
+   "type": "armmoho",
+   "cell": "A5",
+   "started": "15:58",
+   "fate": "unfinished at end",
+   "fate_clock": "16:39",
+   "share": 0.8,
+   "metal_in": 496,
+   "cost": 620,
+   "builder": "constructor_22492",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "Still rising when the record ended: 60% at 16:29, 80% at 16:39. The 16:29 queue-ahead order waited behind it.",
+   "evidence": [
+    "16:29 (list) next, queued: build a armmoho at spot_90 (A5)",
+    "last progress 16:39"
+   ],
+   "player_knew": "before: the 16:36 report listed its builder building it",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmoho_30861",
+   "type": "armmoho",
+   "cell": "C6",
+   "started": "16:10",
+   "fate": "unfinished at end",
+   "fate_clock": "16:39",
+   "share": 0.57,
+   "metal_in": 353,
+   "cost": 620,
+   "builder": "constructor_663",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "Still rising when the record ended.",
+   "evidence": [
+    "last progress 16:39"
+   ],
+   "player_knew": "before: the 16:36 report listed its builder building it",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmoho_20430",
+   "type": "armmoho",
+   "cell": "A6",
+   "started": "16:14",
+   "fate": "unfinished at end",
+   "fate_clock": "16:39",
+   "share": 0.47,
+   "metal_in": 291,
+   "cost": 620,
+   "builder": "constructor_22934",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "Still rising when the record ended; constructor_16338 helped from 16:20.",
+   "evidence": [
+    "last progress 16:39"
+   ],
+   "player_knew": "before: the 16:36 report listed its builder building it",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmoho_31058",
+   "type": "armmoho",
+   "cell": "C5",
+   "started": "16:26",
+   "fate": "unfinished at end",
+   "fate_clock": "16:39",
+   "share": 0.39,
+   "metal_in": 242,
+   "cost": 620,
+   "builder": "constructor_29628",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "Still rising when the record ended.",
+   "evidence": [
+    "16:25 (list) build a armmoho at spot_89 (C5)",
+    "last progress 16:39"
+   ],
+   "player_knew": "before: the 16:36 report listed its builder building it",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armnanotc_17780",
+   "type": "armnanotc",
+   "cell": "B6",
+   "started": "16:00",
+   "fate": "unfinished at end",
+   "fate_clock": "16:39",
+   "share": 0.65,
+   "metal_in": 150,
+   "cost": 230,
+   "builder": "constructor_3778",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "Still rising when the record ended. At 16:20 armnanotc_24575 finished 244 away. The same finish match as in armadvsol_19432 then ended 3778's task, so its entry read 'finishing an order' from 16:26 while it kept building. There was no loss before the end.",
+   "evidence": [
+    "16:20 ev finished armnanotc_24575 at (1816,7992)",
+    "16:26 report: constructor_3778 'finishing an order'",
+    "last progress 16:39"
+   ],
+   "player_knew": "before: the 16:07 and 16:17 reports listed constructor_3778 'building a Construction Turret (armnanotc) at spot_109 (B6) (11 % / 28 % built)'. From 16:26 its entry said 'finishing an order'.",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armnanotc_21784",
+   "type": "armnanotc",
+   "cell": "B5",
+   "started": "16:11",
+   "fate": "unfinished at end",
+   "fate_clock": "16:39",
+   "share": 0.47,
+   "metal_in": 108,
+   "cost": 230,
+   "builder": "constructor_3402",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "Still rising when the record ended.",
+   "evidence": [
+    "last progress 16:39"
+   ],
+   "player_knew": "before: the 16:36 report listed its builder building it",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armnanotc_1289",
+   "type": "armnanotc",
+   "cell": "B5",
+   "started": "16:18",
+   "fate": "unfinished at end",
+   "fate_clock": "16:39",
+   "share": 0.35,
+   "metal_in": 80,
+   "cost": 230,
+   "builder": "constructor_10329",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "Still rising when the record ended.",
+   "evidence": [
+    "last progress 16:39"
+   ],
+   "player_knew": "before: the 16:36 report listed its builder building it",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_19157",
+   "type": "armllt",
+   "cell": "D6",
+   "started": "16:14",
+   "fate": "unfinished at end",
+   "fate_clock": "16:39",
+   "share": 0.93,
+   "metal_in": 79,
+   "cost": 85,
+   "builder": "constructor_28932",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "Still rising when the record ended: 55% at 16:29, 93% at 16:39. The 16:31 queue-ahead extractor order waited behind it.",
+   "evidence": [
+    "16:31 (list) next, queued: build a armmex at spot_137 (E7)",
+    "last progress 16:39"
+   ],
+   "player_knew": "before: the 16:36 report listed its builder building it",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armnanotc_18930",
+   "type": "armnanotc",
+   "cell": "A6",
+   "started": "16:30",
+   "fate": "unfinished at end",
+   "fate_clock": "16:39",
+   "share": 0.14,
+   "metal_in": 32,
+   "cost": 230,
+   "builder": "constructor_15311",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "Started 9 s before the end and still rising.",
+   "evidence": [
+    "last progress 16:39"
+   ],
+   "player_knew": "before, wrongly: the 16:36 report gave constructor_15311 'building a Construction Turret (armnanotc) at spot_109 (A6) (60 % built)', a share that matches armnanotc_17780 (about 60% then), not this frame (about 6%)",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  }
+ ],
+ "never_started": [
+  {
+   "seat": 0,
+   "clock": "5:08",
+   "builder": "constructor_2337",
+   "type": "armmex",
+   "cell": "C6",
+   "cause": "U6",
+   "what_happened": "Rejected: the spot held ours. constructor_2337's list sent it to spot_110 the same second that constructor_29599, whose list had queued spot_110 at 4:54, started an extractor there. free_spots does not count a spot as taken when the claiming builder's order has not started and that builder has a list of its own. At 5:24 the engine refused 2337's extractor and its list moved on.",
+   "evidence": [
+    "4:54 (list) constructor_29599 next, queued: build a armmex at spot_110 (C6)",
+    "5:08 ev created armmex_10655 by 29599 at (3648,8016)",
+    "5:24 hands: 'constructor_2337: the engine refused a armmex at C6: the site was bad'"
+   ],
+   "player_knew": "the 5:24 refusal line; two of its own lists named spot_110",
+   "fix_class": "hands-rule",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "6:02",
+   "builder": "constructor_29599",
+   "type": "armadvsol",
+   "cell": "B5",
+   "cause": "U3",
+   "what_happened": "The player's 6:04 queue began with 'stop' to put solars first during an energy stall. It landed at 6:12, before the advanced solar #as1 had begun.",
+   "evidence": [
+    "6:04 queue constructor_29599: [\"stop\", \"armsolar\" x5, \"armadvsol home #as1\", ...]; 6:12 'stopped what it was doing on your `stop`'",
+    "6:04 text: 'Energy, not metal, is what's holding us back'"
+   ],
+   "player_knew": "yes, dropped itself",
+   "fix_class": "player",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "6:16",
+   "builder": "constructor_11094",
+   "type": "armmex",
+   "cell": "D5",
+   "cause": "U3",
+   "what_happened": "The old list's step sent it to spot_95. The player's 6:14 queue landed at 6:19 and replaced the list whole, with five solars first, dropping the order before it began. spot_95 was taken later by constructor_9914.",
+   "evidence": [
+    "6:14 queue constructor_11094: [\"armsolar\" x5, \"extractor spot_95\", ...]",
+    "6:20 (list) build a armsolar at 535 from spot_96"
+   ],
+   "player_knew": "yes, re-listed deliberately",
+   "fix_class": "player",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "6:28",
+   "builder": "constructor_19434",
+   "type": "armsolar",
+   "cell": "B5",
+   "cause": "U3",
+   "what_happened": "The player's 6:23 queue (nanos first) landed at 6:30 and replaced the list 2 s after the old list's solar step began.",
+   "evidence": [
+    "6:23 queue constructor_19434: [\"armnanotc\", \"armnanotc\", \"armsolar\", ...]",
+    "6:31 (list) build a armnanotc at 334 from spot_99"
+   ],
+   "player_knew": "yes, re-listed deliberately",
+   "fix_class": "player",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "6:57",
+   "builder": "constructor_10090",
+   "type": "armllt",
+   "cell": "B5",
+   "cause": "U2",
+   "also": "U9",
+   "what_happened": "The builder was walking to spot_87 and was still 1,360 short at 7:15. The player's 7:21 queue re-sent 'armllt spot_87' as its first step. The list took that step as done, though the order had not begun, and at 7:30 sent the next step (a solar) as a fresh order, which cancelled the walk. This fault was fixed after this game in e9f5175: the step now waits for the frame. No turret stood at spot_87 until 11:47.",
+   "evidence": [
+    "7:21 queue constructor_10090: [\"armllt spot_87\", \"armsolar\", ...]",
+    "7:29 hands: 'the step 'armllt spot_87' of its list is the build already under way: taken as done'",
+    "7:30 (list) build a armsolar at spot_96 (B5)"
+   ],
+   "player_knew": "the taken-as-done line; not that the turret was lost",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "7:19",
+   "builder": "constructor_23346",
+   "type": "armmex",
+   "cell": "A5",
+   "cause": "U2",
+   "also": "U9",
+   "what_happened": "The pick sent constructor_23346 to rebuild spot_87, whose extractor a Tick killed at 6:22. The builder was at the site and stepping off the footprint. The player's 7:21 queue re-sent 'extractor spot_87' first; the step was taken as done (7:29) and the next step's turret order (7:30) replaced it. spot_87 had no extractor from 6:22 until 11:00 (built 11:20). Fixed after this game in e9f5175.",
+   "evidence": [
+    "7:19 (plan) build a armmex at spot_87 (A5)",
+    "7:29 hands: 'the step 'extractor spot_87' of its list is the build already under way: taken as done'",
+    "7:30 (list) build a armllt at spot_87 (B5)",
+    "11:00 created armmex_25128 by 10329 at (1488,6480)"
+   ],
+   "player_knew": "the taken-as-done line; the spot stood empty for 3.5 minutes unremarked",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "10:03",
+   "builder": "constructor_10329",
+   "type": "armnanotc",
+   "cell": "B6",
+   "cause": "U3",
+   "what_happened": "This was the second nano, queued behind armnanotc_372 at 60%. The player's 9:59 queue began with 'stop' (landed 10:07), which dropped it together with the frame (item armnanotc_372).",
+   "evidence": [
+    "10:03 (list) next, queued: build a armnanotc at 570 from spot_110 (B6)",
+    "10:07 stopped on your `stop`"
+   ],
+   "player_knew": "yes, dropped itself",
+   "fix_class": "player",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "10:37",
+   "builder": "constructor_18918",
+   "type": "armmex",
+   "cell": "A2",
+   "cause": "U6",
+   "what_happened": "Rejected: the spot held ours. constructor_18918 walked 1:53 to spot_41. Meanwhile constructor_4020's list queued spot_41 at 11:37, and 4020 started an extractor there at 12:13; free_spots let it, because 18918's order had not started and 18918 had a list of its own. At 12:29 the engine refused 18918's extractor.",
+   "evidence": [
+    "11:37 (list) constructor_4020 next, queued: build a armmex at spot_41 (A2)",
+    "12:13 created armmex_29053 by 4020 at (688,2768)",
+    "12:29 hands: 'constructor_18918: the engine refused a armmex at A2: the site was bad'"
+   ],
+   "player_knew": "the refusal line",
+   "fix_class": "hands-rule",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "10:45",
+   "builder": "constructor_11809",
+   "type": "armmex",
+   "cell": "E5",
+   "cause": "U6",
+   "also": "U1",
+   "what_happened": "Rejected: the spot held ours. While constructor_11809's list order walked it to spot_83, the pick sent constructor_11094 to the same spot at 11:28; the menu offered the spot because 11809's order had not started. 11094 started an extractor at 11:46, and 11809 arrived to an engine refusal at 11:52. The walk of 1:07 was wasted.",
+   "evidence": [
+    "11:28 (plan) constructor_11094 build a armmex at spot_83 (E5)",
+    "11:46 created armmex_7993 by 11094",
+    "11:52 hands: 'constructor_11809: the engine refused a armmex at E5: the site was bad'"
+   ],
+   "player_knew": "the refusal line",
+   "fix_class": "hands-rule",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "11:15",
+   "builder": "constructor_3778",
+   "type": "armnanotc",
+   "cell": "B5",
+   "cause": "U6",
+   "what_happened": "The site was taken by a sibling order. When #avp1 finished, the help steps ended, and constructor_3778 and constructor_19434 took their lists' next step 'armnanotc' (no place) on the same tick. Both were placed at (2216,7112). 19434 started the frame at 11:31, and 3778 stood 139 away until the nano finished at 12:02 and the engine refused its order. It probably assisted: the nano rose in 31 s, against 59 s for 19434's other nanos. The player got one nano where its lists asked for two.",
+   "evidence": [
+    "11:15 (list) both: build a armnanotc at spot_96 (B5); placed (2216,7112) twice",
+    "11:31 created armnanotc_21627 by 19434",
+    "12:02 hands: 'constructor_3778: the engine refused a armnanotc at B5: the site was bad'"
+   ],
+   "player_knew": "the refusal line",
+   "fix_class": "hands-rule",
+   "cost_class": "none",
+   "confidence": "medium"
+  },
+  {
+   "seat": 0,
+   "clock": "13:41",
+   "builder": "constructor_11094",
+   "type": "armllt",
+   "cell": "D3",
+   "cause": "U4",
+   "what_happened": "The pick sent constructor_11094 2,240 elmos to spot_61. A Pawn shot it on the way: health 89% at 13:55 and 27% at 14:10. The pick re-sent the order twice, turned it into a walk (13:56), then sent it home (14:14). A Pawn (armpw) killed it at 14:17 at (5615,4038).",
+   "evidence": [
+    "13:41/13:54/13:55 (plan) build a armllt at spot_61 (D3)",
+    "13:56 (plan) walk to spot_61; 14:14 (plan) walk to home",
+    "14:17 destroyed by armpw"
+   ],
+   "player_knew": "yes: the 13:59-14:15 reports carried 'enemy in sight: 1 at D3 ... armpw 1; killing our Construction Vehicle (armcv) (135 metal) now'",
+   "fix_class": "player",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "14:56",
+   "builder": "constructor_25112",
+   "type": "armadvsol",
+   "cell": "B5",
+   "cause": "U6",
+   "what_happened": "The builder was stuck in the packed B5 yard. The player gave it 'armadvsol home' at 14:50 to clear plant_3993's exit lane. Placed at (1904,7216), the decayed armadvsol_19432's site. The builder never reached it: it held within 150 elmos for 100 s and was never idle, with no move_failed event. Its entry read 'walking to build ... 668 / 663 / 658 / 656 / 531 to go' at every turn until the end.",
+   "evidence": [
+    "14:56 (list) build a armadvsol at home (B5); placed (1904,7216)",
+    "positions 15:00 (2552,7076) ... 16:30 (2412,7061)",
+    "16:36 report: 'walking to build a Advanced Solar Collector (armadvsol) at home (B5), 531 to go, ordered 81 s ago'"
+   ],
+   "player_knew": "the entry showed the walk, never that it had stalled",
+   "fix_class": "report",
+   "cost_class": "none",
+   "confidence": "medium"
+  },
+  {
+   "seat": 0,
+   "clock": "14:56",
+   "builder": "constructor_10329",
+   "type": "armadvsol",
+   "cell": "B5",
+   "cause": "U6",
+   "what_happened": "Stuck in the packed yard, the same order and site as constructor_25112. It held at (2589,6896) in plant_3993's exit lane for 69 s, and its entry read 'walking to build ... 756 to go' four times. The player's 15:57 queue began with 'stop' (landed 16:05) and gave it nanos.",
+   "evidence": [
+    "14:58-15:57 reports: 'walking to build a Advanced Solar Collector (armadvsol) at home (B5), 756/764/755 to go; standing in plant_3993's exit lane'",
+    "15:57 queue constructor_10329: [\"stop\", \"armnanotc\", \"armnanotc\", \"assist\"]"
+   ],
+   "player_knew": "the entry showed the walk and the lane block; the player re-listed it after 61 s",
+   "fix_class": "report",
+   "cost_class": "none",
+   "confidence": "medium"
+  },
+  {
+   "seat": 0,
+   "clock": "15:03",
+   "builder": "constructor_4373",
+   "type": "armadvsol",
+   "cell": "B5",
+   "cause": "U6",
+   "what_happened": "The site was taken by a sibling order. constructor_4373 and constructor_10442 both got 'armadvsol home' at 15:03, and both were placed at (2592,7088). 10442 started armadvsol_26399 there at 15:38, while 4373 stood 147-151 short ('walking ... 151 to go') until the frame finished at 16:24. The order was refused at 16:25, and the pick sent 4373 to help plant_1333 at 16:26.",
+   "evidence": [
+    "15:03 (list) both builders: build a armadvsol at home (B5); placed (2592,7088) twice",
+    "15:38 created armadvsol_26399 by 10442",
+    "bot.log f=29565 'armadvsol order for unit 4373 near (2592, 7088) never started'"
+   ],
+   "player_knew": "the entry said 'walking ... 151 to go' for 50 s",
+   "fix_class": "hands-rule",
+   "cost_class": "none",
+   "confidence": "medium"
+  },
+  {
+   "seat": 0,
+   "clock": "15:08",
+   "builder": "constructor_22492",
+   "type": "armmoho",
+   "cell": "A5",
+   "cause": "U2",
+   "also": "U9",
+   "what_happened": "The player re-sent the same four-moho list at 15:05. At 15:10 the first step 'armmoho spot_91' was taken as done while the builder was still walking. The next step (spot_82) at 15:11 replaced the order, and spot_91 got no moho by the end. Fixed after this game in e9f5175.",
+   "evidence": [
+    "15:05 queue constructor_22492: [\"armmoho spot_91\", \"armmoho spot_82\", \"armmoho spot_90\", \"armmoho spot_80\"] (same as 14:58)",
+    "15:10 hands: 'the step 'armmoho spot_91' of its list is the build already under way: taken as done'",
+    "15:11 (list) build a armmoho at spot_82 (A5)"
+   ],
+   "player_knew": "the taken-as-done line",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "16:09",
+   "builder": "constructor_5185",
+   "type": "armmoho",
+   "cell": "A5",
+   "cause": "U8",
+   "what_happened": "queued behind the fusion at 60%; the record ended 30 s later",
+   "evidence": [
+    "16:09 (list) next, queued; no later command; the 90 s window runs past the record's end at 16:39"
+   ],
+   "player_knew": "n/a",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "16:15",
+   "builder": "constructor_8054",
+   "type": "armmoho",
+   "cell": "C5",
+   "cause": "U8",
+   "what_happened": "queued behind armmoho_9595 (finished 16:24); constructor_29628's list started spot_89 at 16:26 (two lists named it); the window runs past the end",
+   "evidence": [
+    "16:15 (list) next, queued; no later command; the 90 s window runs past the record's end at 16:39"
+   ],
+   "player_knew": "n/a",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "16:28",
+   "builder": "constructor_26441",
+   "type": "armllt",
+   "cell": "D6",
+   "cause": "U8",
+   "what_happened": "queued behind its extractor; the record ended 11 s later",
+   "evidence": [
+    "16:28 (list) next, queued; no later command; the 90 s window runs past the record's end at 16:39"
+   ],
+   "player_knew": "n/a",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "16:29",
+   "builder": "constructor_7176",
+   "type": "armmoho",
+   "cell": "A6",
+   "cause": "U8",
+   "what_happened": "queued behind armmoho_19801 (81% at the end)",
+   "evidence": [
+    "16:29 (list) next, queued; no later command; the 90 s window runs past the record's end at 16:39"
+   ],
+   "player_knew": "n/a",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "16:29",
+   "builder": "constructor_22492",
+   "type": "armmoho",
+   "cell": "A5",
+   "cause": "U8",
+   "what_happened": "queued behind armmoho_4594 (80% at the end)",
+   "evidence": [
+    "16:29 (list) next, queued; no later command; the 90 s window runs past the record's end at 16:39"
+   ],
+   "player_knew": "n/a",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "16:31",
+   "builder": "constructor_28932",
+   "type": "armmex",
+   "cell": "E7",
+   "cause": "U8",
+   "what_happened": "queued behind armllt_19157 (93% at the end)",
+   "evidence": [
+    "16:31 (list) next, queued; no later command; the 90 s window runs past the record's end at 16:39"
+   ],
+   "player_knew": "n/a",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  }
+ ],
+ "never_started_skipped": [
+  "7:48 constructor_21799 armmex D4: a 98 s walk; the frame started at the site at 9:26",
+  "9:48 constructor_22732 armllt A3: a 2:19 walk; the frame started at the site at 12:07",
+  "10:07 constructor_13423 armmex A8: a 1:42 walk; the frame started at the site at 11:49",
+  "12:21 constructor_15311 armadvsol B5 (#as10, placed 1808,7024): the order the watchdog stopped at 12:49 (item armadvsol_19432); re-sent 12:51 and started 13:25 at (2512,7312)"
+ ],
+ "never_started_tally": {
+  "U6": {
+   "n": 7
+  },
+  "U3": {
+   "n": 4
+  },
+  "U2": {
+   "n": 3
+  },
+  "U4": {
+   "n": 1
+  },
+  "U8": {
+   "n": 6
+  }
+ },
+ "tally": {
+  "U0": {
+   "n": 0,
+   "metal": 0
+  },
+  "U1": {
+   "n": 0,
+   "metal": 0
+  },
+  "U2": {
+   "n": 0,
+   "metal": 0
+  },
+  "U3": {
+   "n": 2,
+   "metal": 247
+  },
+  "U4": {
+   "n": 0,
+   "metal": 0
+  },
+  "U5": {
+   "n": 0,
+   "metal": 0
+  },
+  "U6": {
+   "n": 0,
+   "metal": 0
+  },
+  "U7": {
+   "n": 0,
+   "metal": 0
+  },
+  "U8": {
+   "n": 11,
+   "metal": 4879
+  },
+  "U9": {
+   "n": 1,
+   "metal": 322
+  }
+ },
+ "by_fate": {
+  "decayed": {
+   "n": 3,
+   "metal": 569
+  },
+  "killed": {
+   "n": 0,
+   "metal": 0
+  },
+  "at_end": {
+   "n": 11,
+   "metal": 4879
+  }
+ },
+ "by_type": {
+  "armadvsol": {
+   "n": 1,
+   "metal": 322
+  },
+  "armnanotc": {
+   "n": 5,
+   "metal": 529
+  },
+  "armvp": {
+   "n": 1,
+   "metal": 88
+  },
+  "armfus": {
+   "n": 1,
+   "metal": 2546
+  },
+  "armmoho": {
+   "n": 5,
+   "metal": 1884
+  },
+  "armllt": {
+   "n": 1,
+   "metal": 79
+  }
+ },
+ "player_knew": {
+  "before": 14,
+  "after": 0,
+  "never": 0,
+  "dropped_itself": 2
+ },
+ "mechanisms": [
+  "The finish handler matches a builder's started build by type within 250 elmos, and the blocked-site watchdog checks the builder's own frame only within 200 of the queued order's site. A neighbour's frame of the same type finishing nearby promoted constructor_15311's queued order while its own frame stood at 71%, and the watchdog then stopped it at 86% (armadvsol_19432, 322 metal). Keying the task to the frame's unit id and skipping builders with a frame of their own in progress would have kept the 322. The same match emptied 15311's task at 15:56 and 3778's at 16:20 without loss.",
+  "The player's own `stop` on started frames dropped 247 metal: armnanotc_372 (159) and armvp_22187 (88). The nano was at 54% in the report and 69% when the stop landed; it was dropped to clear an exit lane that the report said its constructor stood in, not the frame. The plant was at 1% in the report and 15% at landing, and the same call withdrew its helper. A queue result or entry giving the share at landing and the seconds to finish, or moving only the builder to clear a lane, would have kept them.",
+  "No third mechanism lost frame metal. The report's abandoned line gives the share at destruction ('(0% built)' for all three, 569 metal), so the player was never told what it lost; that line recovers nothing by itself. The costliest never-started pattern was the list's 'taken as done' on an order not yet begun (6:57, 7:19, 15:08; fixed after this game in e9f5175). It cost no frame metal, but spot_87 stood without an extractor or turret from 7:30 to 11:00 and spot_91 never got its moho."
+ ],
+ "unread": "Nothing torn. floor.py's aband 3 equals the decayed count; its aband_m reads 6 against frames.py's 569 because it takes each frame's last sampled share before destruction (near 0 after a decay), while frames.py takes the peak. hands_window was run only around the U9 item (no plan play for 15311), since no U1 item needed it."
+}

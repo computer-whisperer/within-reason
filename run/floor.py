@@ -168,19 +168,24 @@ COLUMNS = ["result", "minutes", "idle%", "e0%", "mfull%", "react_s", "unanswered
 def abandoned_builds(m, defs, built_share):
     """Structures of ours started (`created`) and never `finished`, then `destroyed` with no attacker: the frame decayed
     after its builder left it (or an unseen enemy finished it; the bot's own accounting, `briefing.rs`, has the same
-    blind spot). The count, and the metal put in: the frame's last sampled build share times its metal cost."""
-    unfinished = {}
+    blind spot; `run/frames.py` tells the two apart by the frame's last hits). The count, and the metal put in: the
+    frame's peak build share while it stood times its metal cost (the share at its last sample is what is left after
+    the decay, near 0: the unfinished-structures sweep of 2026-10-17 found 6 metal reported against 984 put in)."""
+    unfinished = {}  # frame id -> (cost, created frame)
     count = 0
     metal = 0.0
+    shares = [(s["f"], {u[0]: u[4] / 100.0 for u in s.get("own", []) if u[5] & 1}) for s in m.samples]
     for e in m.events:
         d = defs.get(e.get("d"), {})
         if e["k"] == "created" and d.get("speed", 0) <= 0 and d.get("metal"):
-            unfinished[e["u"]] = d["metal"]
+            unfinished[e["u"]] = (d["metal"], e["f"])
         elif e["k"] == "finished":
             unfinished.pop(e["u"], None)
         elif e["k"] == "destroyed" and e["u"] in unfinished and e.get("by") is None:
             count += 1
-            metal += unfinished.pop(e["u"]) * built_share.get(e["u"], 0.0)
+            cost, since = unfinished.pop(e["u"])
+            peak = max((own.get(e["u"], 0.0) for f, own in shares if since <= f <= e["f"]), default=0.0)
+            metal += cost * peak
     return count, metal
 
 

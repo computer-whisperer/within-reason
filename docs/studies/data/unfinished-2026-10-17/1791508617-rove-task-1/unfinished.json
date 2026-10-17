@@ -1,0 +1,1157 @@
+{
+ "game": "1791508617-rove-task-1",
+ "result": "lost 32:28",
+ "minutes": 32.5,
+ "seats": 1,
+ "opponent": "BARb hard_aggressive",
+ "kind": "arena",
+ "denominators": {
+  "0": {
+   "frames": 204,
+   "finished": 172,
+   "decayed": 9,
+   "killed": 19,
+   "at_end": 4,
+   "metal_in_unfinished": 1519,
+   "never_started": 48
+  }
+ },
+ "items": [
+  {
+   "seat": 0,
+   "frame": "armsolar_28188",
+   "type": "armsolar",
+   "cell": "B8",
+   "started": "2:03",
+   "fate": "decayed",
+   "fate_clock": "3:19",
+   "share": 0.98,
+   "metal_in": 152,
+   "cost": 155,
+   "builder": "commander",
+   "cause": "U2",
+   "also": "U9",
+   "what_happened": "The commander's opening list queued 'help plant_27255' behind this solar at 2:09 (63%). At 2:10 constructor_18284's armsolar_904 finished 213 from this frame; the hands' finished-event handler (pianist/mod.rs, a started build of the same type within 250 of the task's site) took it for the commander's build and promoted the queued help: a guard, which has no queue flag, at 2:11 replaced the build, which stopped at 98% at 2:12. The commander guarded the plant to 2:33; the frame rose to 87% at 2:35-2:36 during its 2:33 fight order, then the 2:27 list's 'armsolar' step placed a new solar 150 away and the frame decayed to nothing by 3:19.",
+   "evidence": [
+    "2:09 (list) next, queued: help plant_27255 build",
+    "2:10 finished armsolar_904 at (1976,5464), 213 from this frame (record ev)",
+    "2:11 cmd guard 25947 27255 with the frame at 86%; last progress 2:12 at 98%",
+    "hands_window 2:09: PLAYS commander: next, queued: help plant_27255 build [list]",
+    "3:26 report: 'abandoned an unfinished armsolar (0% built) x1'"
+   ],
+   "player_knew": "before, weakly: the 2:07 entry read 'building a Solar Collector (armsolar) at spot_73 (B8) (40 % built)'; after the 2:11 guard the 2:17 and 2:27 entries said only 'helping lab_27255 build', never that a 98% frame stood; told at 3:26 as 'abandoned an unfinished armsolar (0% built)'",
+   "fix_class": "hands-rule",
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_6304",
+   "type": "armmex",
+   "cell": "C6",
+   "started": "3:05",
+   "fate": "killed",
+   "fate_clock": "3:49",
+   "share": 0.73,
+   "metal_in": 36,
+   "cost": 50,
+   "builder": "constructor_6311",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The first forward extractor, at spot_61, 1,382 from home, with no turret. A lone corgator (the party seen leaving his base at 2:11) arrived at 3:46 and killed it at 73% in four seconds. The 60% queue-ahead had queued the turret at 3:42, but the builder stayed on the extractor to the end.",
+   "evidence": [
+    "3:46 report: 'enemy in sight: 1 at C6 ... corgator 1; killing our Metal Extractor (armmex) (50 metal) now'; 'extractors under threat: C6 (1 enemies, NO turret)'",
+    "3:49 destroyed by corgator 10476",
+    "the 3:46 orders landed 3:53"
+   ],
+   "player_knew": "before: the entries from 3:06 to 3:46 showed it at 1% to 60%, and the 3:46 wake named the corgator at it; the orders it gave landed four seconds after the kill; 3:56 'lost armmex to corgator at home'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armsolar_26351",
+   "type": "armsolar",
+   "cell": "B7",
+   "started": "3:20",
+   "fate": "decayed",
+   "fate_clock": "3:57",
+   "share": 0.4,
+   "metal_in": 62,
+   "cost": 155,
+   "builder": "commander",
+   "cause": "U3",
+   "also": null,
+   "what_happened": "The 2:27 list's last solar, queued at 3:13 behind the commander's armllt and started 3:20. The player's 3:16 list ['assist'] landed 3:23 and left it to finish; its 3:26 list ['stop','assist'] landed 3:31 and dropped it at 37-40%: stop 3:32, guard of the plant 3:34. Decayed by 3:57.",
+   "evidence": [
+    "3:26 queue commander ['stop','assist'] -> 'commander: its build in progress dropped, then 1 steps in order'",
+    "3:32 'commander: stopped what it was doing on your `stop`'",
+    "3:34 (list) help plant_27255 build"
+   ],
+   "player_knew": "before, and dropped on purpose: the 3:26 entry read 'building a Solar Collector (armsolar) at spot_73 (B7) (18 % built)'; its words: 'I stopped the commander's half-built solar ... Metal is what we're short of (the store is at 0) ... Dropping it at 18% loses about 28 metal.' The 4:06 report said 'abandoned an unfinished armsolar (1% built)'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_22529",
+   "type": "armllt",
+   "cell": "C6",
+   "started": "3:53",
+   "fate": "killed",
+   "fate_clock": "3:54",
+   "share": 0.0,
+   "metal_in": 0,
+   "cost": 85,
+   "builder": "constructor_6311",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The list's 'armllt spot_61' step, queued at 3:42, began at 3:53 after the extractor died, with the same corgator 209 away and the builder under fire. The frame died in the second it was made.",
+   "evidence": [
+    "3:42 (list) next, queued: build a armllt at spot_61 (C6)",
+    "3:53 created; constructor_6311 took 74, 81, 100 damage at 3:53-3:55",
+    "3:54 destroyed by corgator 10476"
+   ],
+   "player_knew": "after: never in an entry as a frame (the 3:46 entry showed the builder on the extractor with the corgator 354 away); 3:56 'lost armllt to corgator in our half x1'",
+   "fix_class": "hands-rule",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_10562",
+   "type": "armmex",
+   "cell": "C7",
+   "started": "4:05",
+   "fate": "killed",
+   "fate_clock": "4:05",
+   "share": 0.0,
+   "metal_in": 0,
+   "cost": 50,
+   "builder": "constructor_6311",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The list's 'extractor spot_63' step was played at 3:56 for a builder at 64% health with the corgator 96 away and hitting it. The frame was made and killed in the same second, and the builder died at 4:11.",
+   "evidence": [
+    "3:56 (list) build a armmex at spot_63 (C7)",
+    "3:56 entry: constructor_6311 'idle, waiting for an order; health hurt (64%); enemies_near: party_1 (1 corgator) 96 away ... under_fire: yes'",
+    "4:05 destroyed by corgator 26470"
+   ],
+   "player_knew": "never: no entry or fights line named it (the 4:06 fights line lists only the abandoned solar)",
+   "fix_class": "hands-rule",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_18847",
+   "type": "armmex",
+   "cell": "D7",
+   "started": "7:09",
+   "fate": "killed",
+   "fate_clock": "7:19",
+   "share": 0.29,
+   "metal_in": 14,
+   "cost": 50,
+   "builder": "constructor_28356",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "An extractor at spot_64, 2,270 from home, with no turret. A lone corgator (party_5) came at 7:14 and killed it at 29%.",
+   "evidence": [
+    "6:53 (list) next, queued: build a armmex at spot_64 (C7)",
+    "7:14 report: 'extractors under threat: D7 (1 enemies, NO turret)'; constructor_28356 'building a Metal Extractor (armmex) at spot_64 (D7) (14 % built) ... enemies_near: party_5 (1 corgator) 500 away'",
+    "7:19 destroyed by corgator 13704"
+   ],
+   "player_knew": "before: the 7:14 entry gave it at 14% with the corgator named; 7:20 'lost armmex to corgator in our half'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_4289",
+   "type": "armllt",
+   "cell": "D7",
+   "started": "7:15",
+   "fate": "killed",
+   "fate_clock": "7:17",
+   "share": 0.04,
+   "metal_in": 3,
+   "cost": 85,
+   "builder": "constructor_18284",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The pick's turret at spot_64 (picked at 7:02) was begun at 7:15 with the same corgator 154 away and the builder being hit (103 damage). It died at 4%.",
+   "evidence": [
+    "7:04 entry: 'last_pick: 7:02 picked a Sentry (armllt) at spot_64'",
+    "7:14 entry: 'walking to build a Sentry (armllt) at spot_64 (D7), 194 to go ... enemies_near: party_5 (1 corgator) 344 away'",
+    "7:17 destroyed by corgator 13704"
+   ],
+   "player_knew": "after: the frame was never in an entry (the walk was); 7:20 'lost armllt to corgator in our half x1'",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_12458",
+   "type": "armllt",
+   "cell": "D6",
+   "started": "8:29",
+   "fate": "killed",
+   "fate_clock": "8:43",
+   "share": 0.29,
+   "metal_in": 25,
+   "cost": 85,
+   "builder": "constructor_28356",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The list's turret after the spot_59 extractor. A corgator arrived unannounced at 8:41 and killed it at 29% in three seconds.",
+   "evidence": [
+    "8:17 (list) next, queued: build a armllt at spot_59 (D6)",
+    "8:35 entry 'building a Sentry (armllt) at spot_59 (D6) (15 % built)', with no enemy in sight in that report",
+    "8:43 destroyed by corgator 3165"
+   ],
+   "player_knew": "before: the 8:35 entry gave it at 15%, and the raider was not in any report before the kill; 8:45 'lost armllt to corgator in our half'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_15814",
+   "type": "armllt",
+   "cell": "B4",
+   "started": "9:33",
+   "fate": "killed",
+   "fate_clock": "9:45",
+   "share": 0.3,
+   "metal_in": 26,
+   "cost": 85,
+   "builder": "constructor_29791",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The list's turret after the spot_36 extractor. A corgator came at 9:38 and killed it at 30%. The 9:37 report said 'B4 (1 enemies, turret)', but the only turret there was this 11% frame: the report counts a nanoframe as a turret (briefing.rs `turret_within_300` filters by type, not by being built).",
+   "evidence": [
+    "9:22 (list) next, queued: build a armllt at spot_36 (B4)",
+    "9:37 report: 'enemy in sight: 1 at B4 ... corgator 1'; 'extractors under threat: B4 (1 enemies, turret)'; constructor_29791 'building a Sentry (armllt) at spot_36 (B4) (11 % built)'",
+    "record 9:37: within 600 of the spot stood only armmex_31544 and this frame (11%, being built)",
+    "9:45 destroyed by corgator 28791"
+   ],
+   "player_knew": "before, misinformed: the 9:37 entry gave the frame at 11%, while the threat line called the spot defended; 9:47 'lost armllt to corgator in our half'",
+   "fix_class": "report",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_1832",
+   "type": "armllt",
+   "cell": "C4",
+   "started": "11:17",
+   "fate": "killed",
+   "fate_clock": "11:29",
+   "share": 0.34,
+   "metal_in": 29,
+   "cost": 85,
+   "builder": "constructor_28356",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The list's turret after the spot_39 extractor, 3,214 from home. Three corgators came at 11:28-11:29 and killed it at 34%.",
+   "evidence": [
+    "11:06 (list) next, queued: build a armllt at spot_39 (C4)",
+    "11:28 report: 'enemy in sight: 1 at D4 ... corgator 1'; constructor_28356 'building a Sentry (armllt) at spot_39 (C4) (30 % built)'",
+    "11:29 destroyed by corgator 4773"
+   ],
+   "player_knew": "before: the 11:18 and 11:28 entries gave it at 1% and 30%, with a corgator in sight at 11:28; 11:37 'lost armllt to corgator in our half'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_13591",
+   "type": "armllt",
+   "cell": "E7",
+   "started": "12:16",
+   "fate": "killed",
+   "fate_clock": "12:32",
+   "share": 0.41,
+   "metal_in": 35,
+   "cost": 85,
+   "builder": "constructor_18284",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "A turret at spot_66, 3,210 from home. The player had listed 'armllt spot_66' for both constructor_18284 (10:48) and constructor_11652 (10:58) with no id, so two frames stood 192 apart (this one and armllt_11366). Corgator party_13 came at 12:26 and killed this one at 41%. The 12:26 report said 'E7 (1 enemies, turret)', counting the frames.",
+   "evidence": [
+    "11:37 (list) next, queued: build a armllt at spot_66 (E7)",
+    "10:48 queue constructor_18284 ['extractor spot_76','armllt spot_66']; 10:58 queue constructor_11652 ['extractor spot_66','armllt spot_66']",
+    "12:26 report: 'extractors under threat: E7 (1 enemies, turret)'; constructor_18284 '(37 % built) ... enemies_near: party_13 (1 corgator) 398 away'",
+    "12:32 destroyed by corgator 28791"
+   ],
+   "player_knew": "before: the 12:17 and 12:26 entries gave it at 4% and 37%, with the corgator named; 12:36 'lost armllt to corgator in our half'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_11366",
+   "type": "armllt",
+   "cell": "E7",
+   "started": "12:25",
+   "fate": "killed",
+   "fate_clock": "12:37",
+   "share": 0.29,
+   "metal_in": 25,
+   "cost": 85,
+   "builder": "constructor_11652",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The second turret at spot_66, from constructor_11652's list (see armllt_13591). The same corgator killed it at 29% five seconds later.",
+   "evidence": [
+    "12:02 (list) next, queued: build a armllt at spot_66 (E7)",
+    "12:36 report: 'enemy in sight: 1 at E7 ... corgator 1; killing our Sentry (armllt) (85 metal) now'; 'E7 (1 enemies, NO turret)'",
+    "12:37 destroyed by corgator 28791"
+   ],
+   "player_knew": "before: the 12:26 and 12:36 entries gave it at 37% and 7%; 12:44 'lost armllt to corgator in our half'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_12149",
+   "type": "armmex",
+   "cell": "C3",
+   "started": "17:07",
+   "fate": "killed",
+   "fate_clock": "17:14",
+   "share": 0.24,
+   "metal_in": 12,
+   "cost": 50,
+   "builder": "constructor_7206",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "An extractor at spot_26, 3,500 from home, reached after a long walk. Corgator party_39 killed it at 24%.",
+   "evidence": [
+    "16:57 report: corgators in sight at B7 and D4; constructor_7206 'walking to build a Metal Extractor (armmex) at spot_26 (C3), 528 to go'",
+    "17:14 destroyed by corgator 13939"
+   ],
+   "player_knew": "after: the frame began after the 17:07 report; 17:17 'lost armmex to corgator in our half'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_16178",
+   "type": "armllt",
+   "cell": "C3",
+   "started": "17:19",
+   "fate": "killed",
+   "fate_clock": "17:20",
+   "share": 0.01,
+   "metal_in": 1,
+   "cost": 85,
+   "builder": "constructor_7206",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The list's turret step at spot_26 was played at 17:15, a second after the extractor died, with two corgators 249 away. The frame was killed at 1%.",
+   "evidence": [
+    "17:15 (list) build a armllt at spot_26 (C3)",
+    "17:17 entry: 'walking to build a Sentry (armllt) at spot_26 (C3), 304 to go ... enemies_near: party_39 (2 corgator) 249 away'",
+    "17:20 destroyed by corgator 22136"
+   ],
+   "player_knew": "after: 17:27 'lost armllt to corgator in our half x1'",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_14107",
+   "type": "armmex",
+   "cell": "C3",
+   "started": "17:27",
+   "fate": "decayed",
+   "fate_clock": "17:38",
+   "share": 0.03,
+   "metal_in": 2,
+   "cost": 50,
+   "builder": "constructor_7206",
+   "cause": "U4",
+   "also": "U1",
+   "what_happened": "The list's next extractor (spot_24, ordered at 17:21) began at 17:27, 71 from his own cormex going up, beside his constructor, a cormuskrat and a corgator. In the same second the pick walked the builder, at 22% health and being hit, to spot_47. The builder died at 17:32 and the 3% frame decayed.",
+   "evidence": [
+    "17:21 (list) build a armmex at spot_24 (C3)",
+    "17:27 (plan) walk to spot_47; its list step 'extractor spot_24' waits for it",
+    "hands_window 17:27: menu constructor_7206 go_spot_47=0.51; PICK split [constructor_7206: took w2 of 1 at 0.76]",
+    "17:32 constructor_7206 destroyed by corgator 22136",
+    "17:47: '17:38 abandoned an unfinished armmex at C3 (1% built): its builder was sent elsewhere and the frame decayed'"
+   ],
+   "player_knew": "after: the 17:27 entry showed the walk ('164 to go ... health badly hurt, near death (22%)'), not the frame; told by the 17:47 abandoned line",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_23716",
+   "type": "armmex",
+   "cell": "E8",
+   "started": "18:24",
+   "fate": "killed",
+   "fate_clock": "18:25",
+   "share": 0.01,
+   "metal_in": 0,
+   "cost": 50,
+   "builder": "constructor_15524",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The list sent the builder on a 46 s walk to spot_78, and it arrived beside two corgators. The frame was killed at 1%.",
+   "evidence": [
+    "17:35 (list) next, queued: build a armmex at spot_78 (E8)",
+    "18:24 entry: 'walking to build a Metal Extractor (armmex) at spot_78 (E8), 128 to go ... enemies_near: party_40 (2 corgator) 298 away'",
+    "18:25 destroyed by corgator 1412"
+   ],
+   "player_knew": "after: 18:34 'lost armmex to corgator in our half x1'",
+   "fix_class": "hands-rule",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_7170",
+   "type": "armllt",
+   "cell": "E8",
+   "started": "18:26",
+   "fate": "killed",
+   "fate_clock": "18:27",
+   "share": 0.03,
+   "metal_in": 3,
+   "cost": 85,
+   "builder": "constructor_15524",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The list's turret step at spot_78 was played at 18:26, a second after the extractor died, with the corgators at 129-240. The frame was killed at 3%.",
+   "evidence": [
+    "18:26 (list) build a armllt at spot_78 (E8)",
+    "18:27 destroyed by corgator 1412"
+   ],
+   "player_knew": "after: 18:34 'lost armllt to corgator in our half x2'",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_13435",
+   "type": "armllt",
+   "cell": "D5",
+   "started": "21:15",
+   "fate": "decayed",
+   "fate_clock": "21:21",
+   "share": 0.22,
+   "metal_in": 19,
+   "cost": 85,
+   "builder": "constructor_29791",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "Killed by an unseen corwolv, not decayed: the frame took one 301-damage hit in the second it died, nothing of his was in our sight, and the truth file has corwolv 3575 668 away (reach 710). The report called it abandoned.",
+   "evidence": [
+    "21:03 (list) next, queued: build a armllt at spot_47 (D5)",
+    "record: dmg 301 on the frame in the 21:22 sample; destroyed 21:21 by nobody",
+    "truth 21:16-21:22: corwolv 3575 at 668, corgol 25003 at 861-929",
+    "21:28 report: 'abandoned an unfinished armllt (24% built) x1'"
+   ],
+   "player_knew": "before: the 21:18 entry gave it at 11%; afterwards it was misreported as abandoned",
+   "fix_class": "report",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_11072",
+   "type": "armmex",
+   "cell": "D5",
+   "started": "21:26",
+   "fate": "decayed",
+   "fate_clock": "21:34",
+   "share": 0.37,
+   "metal_in": 18,
+   "cost": 50,
+   "builder": "constructor_29791",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "Killed by the same unseen corwolv, eight seconds after it began: one 301-damage hit, with corwolv 3575 515 away in the truth file. The report called it abandoned at 40%.",
+   "evidence": [
+    "21:22 (list) next, queued: build a armmex at spot_44 (D5)",
+    "record: dmg 301 in the 21:35 sample; destroyed 21:34 by nobody",
+    "truth 21:30-21:36: corwolv 3575 at 515",
+    "21:38 report: 'abandoned an unfinished armmex (40% built) x1'"
+   ],
+   "player_knew": "after: the 21:28 entry said only 'finishing an order'; told by the abandoned line, which named the wrong cause",
+   "fix_class": "report",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_25508",
+   "type": "armllt",
+   "cell": "D5",
+   "started": "21:41",
+   "fate": "killed",
+   "fate_clock": "22:06",
+   "share": 0.47,
+   "metal_in": 40,
+   "cost": 85,
+   "builder": "constructor_29791",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The third frame at D5 in half a minute. From 21:48 the builder was 'hit this second by something unseen' and the frame took a 246 hit at 21:55 (corwolv 3575 301 away in the truth). Progress stopped at 47% at 21:54, and corgator 26519 finished it off at 22:06. The builder stayed, and the pick sent it home at 22:08.",
+   "evidence": [
+    "21:36 (list) build a armllt at spot_44 (D5)",
+    "21:48 report: 'our soldiers are being shelled from out of sight by a corwolv (corwolv) (range 710) from the east'; constructor_29791 '(24 % built) ... under_fire: yes, hit this second by something unseen'",
+    "21:58 entry: '(22 % built)'",
+    "22:06 destroyed by corgator 26519; 22:08 (plan) walk to home"
+   ],
+   "player_knew": "before: the 21:48 and 21:58 entries gave it at 24% and 22%, under fire, with the corwolv named; 22:17 'lost armllt to corgator in our half'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "medium"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_12528",
+   "type": "armmex",
+   "cell": "C3",
+   "started": "21:47",
+   "fate": "decayed",
+   "fate_clock": "22:06",
+   "share": 0.77,
+   "metal_in": 38,
+   "cost": 50,
+   "builder": "constructor_15524",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "Killed, not decayed: corgator 27825 stood 183-138 from the frame (truth) while it lost health 77% to 63% to 25% to 8% between 22:04 and 22:06. The attacker was out of our sight, so the record says destroyed by nobody. The 60% queue-ahead had queued the turret at 22:01, but the builder stayed on the extractor.",
+   "evidence": [
+    "21:32 (list) build a armmex at spot_26 (C3)",
+    "22:01 (list) next, queued: build a armllt at spot_26 (C3)",
+    "record: dmg 47, 112, 57 on the frame at 22:04-22:06; destroyed 22:06 by nobody",
+    "truth 22:02-22:08: corgator 27825 at 349, 183, 163, 138",
+    "22:07 report: 'abandoned an unfinished armmex (10% built) x1'"
+   ],
+   "player_knew": "before: the 21:48 and 21:58 entries gave it at 3% and 53%, with a corgator 784 away at 21:58; after, misreported as abandoned",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_1695",
+   "type": "armmex",
+   "cell": "B3",
+   "started": "21:59",
+   "fate": "killed",
+   "fate_clock": "22:00",
+   "share": 0.03,
+   "metal_in": 2,
+   "cost": 50,
+   "builder": "constructor_24774",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The list's extractor at spot_22 was begun at 21:59, at the end of an 88 s walk, with corgator party_52 249 away. Killed at 3%.",
+   "evidence": [
+    "20:30 (list) build a armmex at spot_22 (B3)",
+    "21:58 entry: 'walking to build ... at spot_22 (B3), 141 to go ... enemies_near: party_52 (1 corgator) 249 away'",
+    "22:00 destroyed by corgator 27825"
+   ],
+   "player_knew": "after: 22:07 'lost armmex to corgator in our half x1'",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_278",
+   "type": "armllt",
+   "cell": "E5",
+   "started": "22:08",
+   "fate": "killed",
+   "fate_clock": "22:15",
+   "share": 0.17,
+   "metal_in": 14,
+   "cost": 85,
+   "builder": "constructor_600",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The list's turret after the spot_49 extractor, begun at 22:08 with corgator 26519 519 away, after the 22:07 report had named that corgator killing a Sentry at E5. Killed at 17%.",
+   "evidence": [
+    "21:56 (list) next, queued: build a armllt at spot_49 (E5)",
+    "22:07 report: 'enemy in sight: 1 at E5 ... corgator 1; killing our Sentry (armllt) (85 metal) now'; 'E5 (1 enemies, NO turret)'; constructor_600 'walking to build a Sentry (armllt) at spot_49 (E5), 238 to go ... party_40 (1 corgator) 541 away'",
+    "22:15 destroyed by corgator 26519"
+   ],
+   "player_knew": "after: the frame began after the 22:07 report; 22:17 'lost armllt to corgator in our half x1'",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_17753",
+   "type": "armllt",
+   "cell": "C3",
+   "started": "22:09",
+   "fate": "killed",
+   "fate_clock": "22:21",
+   "share": 0.28,
+   "metal_in": 24,
+   "cost": 85,
+   "builder": "constructor_15524",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The queued turret at spot_26 began at 22:09, three seconds after corgator 27825 had killed the extractor beside it, with that corgator 222 away. Killed at 28%.",
+   "evidence": [
+    "22:01 (list) next, queued: build a armllt at spot_26 (C3)",
+    "22:17 entry: 'building a Sentry (armllt) at spot_26 (C3) (28 % built); health hurt (49%); enemies_near: party_52 (1 corgator) 317 away'",
+    "22:21 destroyed by corgator 27825"
+   ],
+   "player_knew": "before: the 22:17 entry gave it at 28% with the corgator named; 22:26 'lost armllt to corgator in our half'",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_8038",
+   "type": "armllt",
+   "cell": "E5",
+   "started": "23:22",
+   "fate": "decayed",
+   "fate_clock": "23:25",
+   "share": 0.09,
+   "metal_in": 8,
+   "cost": 85,
+   "builder": "constructor_2891",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The pick's turret at spot_49 (picked 22:43) was placed at the very site of armllt_278, 250 from his corllt 20360 (reach 435), which the truth file has and our sight did not. The builder was being hit 99-102 a second from 23:22, the frame died by nobody at 23:25, and the pick walked the builder home at 23:27. The report called it abandoned.",
+   "evidence": [
+    "22:43 (plan) build a armllt at spot_49 (E5)",
+    "record: constructor_2891 dmg 99, 102, 101, 101 at 23:22-23:25; frame destroyed 23:25 by nobody, dmg 77",
+    "truth 23:22-23:26: corllt 20360 at 250, cormex 12741 at 379, corwolv 3575 at 578",
+    "23:30 report: 'abandoned an unfinished armllt (2% built) x1'"
+   ],
+   "player_knew": "after: the 23:20 entry showed the walk ('230 to go') and no enemy at E5; told by the abandoned line, which named the wrong cause",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "medium"
+  },
+  {
+   "seat": 0,
+   "frame": "armhlt_30842",
+   "type": "armhlt",
+   "cell": "C6",
+   "started": "28:06",
+   "fate": "decayed",
+   "fate_clock": "30:43",
+   "share": 0.91,
+   "metal_in": 400,
+   "cost": 440,
+   "builder": "constructor_10161",
+   "cause": "U4",
+   "also": "U5",
+   "what_happened": "From the player's 25:17 list ['stop','armhlt spot_61','armhlt spot_63']. Its builder stayed alone on it for 157 s with the metal store at 0 and spending equal to income ('metal 1 (+56.8/-55.7)' at 28:03, with six labs producing), at about 1% every 1-3 s. At 91% it took two hits of about 1,000, seven seconds apart (30:36, 30:43), from his Banisher (corban 24612, reach 800, reload 7.5 s), 768 away in the truth file under three coreter jammers and 'unidentified' in our picture. It was destroyed by nobody, and the report said 'abandoned ... (12% built)'. At full rate (armcv 90 of build time 11,300) it would have stood near 30:12, before the first hit (an inference).",
+   "evidence": [
+    "27:06 (list) next, queued: build a armhlt at spot_63 (C6)",
+    "s rows: metal store 0 from 28:00 to 30:43, except 29:12-29:42",
+    "record: dmg 1003 at 30:36 and 1004 at 30:43 on the frame; destroyed 30:43 by nobody",
+    "truth 30:34-30:44: corban 24612 at 817, 768, 765, 706; coreter 13449/21924/24454 at 813-1064; corgol 480 at 560-911",
+    "30:46 report: 'abandoned an unfinished armhlt (12% built) x1'"
+   ],
+   "player_knew": "before: every entry from 28:21 ('(10 % built)') to 30:33 ('(90 % built)'), each beside 'eco: metal 0'; the Banisher was never named ('unidentified' at D4/D5); after, told it was abandoned at 12%",
+   "fix_class": "player",
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armhlt_25880",
+   "type": "armhlt",
+   "cell": "C8",
+   "started": "30:25",
+   "fate": "at_end",
+   "fate_clock": "32:21",
+   "share": 0.45,
+   "metal_in": 198,
+   "cost": 440,
+   "builder": "constructor_19419",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "An Overwatch at home, started 30:25, 1:56 before the record ends at 32:21. At a metal store of 0 it reached 45%, and one 180 hit at 30:58 took it from 11% to 4%.",
+   "evidence": [
+    "30:10 (list) build a armhlt at spot_73 (B8)",
+    "32:15 entry: '(43 % built)'"
+   ],
+   "player_knew": "before: the entries from 30:33 ('(2 % built)') to 32:15 ('(43 % built)')",
+   "fix_class": "none",
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armrl_8479",
+   "type": "armrl",
+   "cell": "C5",
+   "started": "30:29",
+   "fate": "decayed",
+   "fate_clock": "30:41",
+   "share": 0.07,
+   "metal_in": 6,
+   "cost": 80,
+   "builder": "constructor_2891",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "Its builder was killed at 30:31 by an unseen shot (1,686 damage in one sample), two seconds after the frame began, with his T2 block (corvroc, corgol, corban, coreter) 900-1,000 away in the truth file. The frame took a 319 hit at 30:42. The report called it abandoned.",
+   "evidence": [
+    "30:24 (list) build a armrl at spot_52 (C5)",
+    "30:31 constructor_2891 destroyed by nobody (dmg 513 at 30:29, 1686 at 30:32)",
+    "frame dmg 319 at 30:42; destroyed 30:41 by nobody",
+    "30:46 report: 'abandoned an unfinished armrl (5% built) x1'"
+   ],
+   "player_knew": "after: the 30:26 entry showed the walk ('235 to go'); told by the abandoned line",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armrl_28002",
+   "type": "armrl",
+   "cell": "C7",
+   "started": "31:06",
+   "fate": "killed",
+   "fate_clock": "31:38",
+   "share": 0.72,
+   "metal_in": 58,
+   "cost": 80,
+   "builder": "constructor_7490",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "A Nettle at spot_69 while his T2/T3 block (Karganeth, Tzars, Shiva, Tigers) came into our base. A Shiva killed it at 72%. The 60% queue-ahead had queued the next Nettle at 31:34, but the builder was still on this one.",
+   "evidence": [
+    "30:24 (list) build a armrl at spot_69 (C7)",
+    "31:04 entry: 'enemies_near: party_77 (1 corkarg) 523 away ... tier 3 against our tier 1'",
+    "31:29 entry: '(45 % built)'",
+    "31:38 destroyed by corshiva 10254"
+   ],
+   "player_knew": "before: the 31:09, 31:19 and 31:29 entries gave it at 4%, 20% and 45%; 31:39 'lost armrl to corshiva at home'. The 31:59 entry still read 'building a Nettle (armrl) at spot_69 (C7) (not yet started)' (stale)",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmoho_10735",
+   "type": "armmoho",
+   "cell": "B8",
+   "started": "31:57",
+   "fate": "at_end",
+   "fate_clock": "32:21",
+   "share": 0.32,
+   "metal_in": 198,
+   "cost": 620,
+   "builder": "constructor_15500",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "A moho at home, started 31:57, 24 s before the record's end, at a metal store of 0. It reached 32%.",
+   "evidence": [
+    "31:59 entry: 'building a Advanced Metal Extractor (armmoho) at spot_74 (B8) (3 % built)'",
+    "32:15 entry: '(30 % built)'"
+   ],
+   "player_knew": "before: the 31:59 and 32:15 entries",
+   "fix_class": "none",
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armrl_3354",
+   "type": "armrl",
+   "cell": "C8",
+   "started": "32:00",
+   "fate": "at_end",
+   "fate_clock": "32:21",
+   "share": 0.81,
+   "metal_in": 65,
+   "cost": 80,
+   "builder": "constructor_29791",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "A Nettle at home, started 32:00, 21 s before the record's end. It reached 81%.",
+   "evidence": [
+    "31:48 (list) build a armrl at spot_73 (B8)",
+    "32:15 entry: 'building a Nettle (armrl) at 489 from spot_73 (C8) (66 % built)'"
+   ],
+   "player_knew": "before: the 32:15 entry",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armrl_11127",
+   "type": "armrl",
+   "cell": "B7",
+   "started": "32:17",
+   "fate": "at_end",
+   "fate_clock": "32:21",
+   "share": 0.08,
+   "metal_in": 6,
+   "cost": 80,
+   "builder": "constructor_7490",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "A Nettle at home, started 32:17, 4 s before the record's end. It reached 8%.",
+   "evidence": [
+    "31:34 (list) next, queued: build a armrl at spot_67 (B7)"
+   ],
+   "player_knew": "never: it began after the last report (32:15)",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high"
+  }
+ ],
+ "never_started": [
+  {
+   "seat": 0,
+   "clock": "4:06",
+   "builder": "constructor_6311",
+   "type": "armmex",
+   "cell": "C7",
+   "cause": "U4",
+   "what_happened": "The list's next extractor (spot_64) after armmex_10562 died; the builder was under corgator fire and died at 4:11, 0 s from the site",
+   "evidence": [
+    "4:06 placed armmex at (3069,4835); no later command; builder died 4:11"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "20:21",
+   "builder": "constructor_19887",
+   "type": "armmex",
+   "cell": "D4",
+   "cause": "U4",
+   "what_happened": "A 3,300 walk from home to spot_33. The one move_failed (20:22) cleared and it walked 84 s; hit at 21:45, 265 from the site (35% health), the pick walked it home and it died at 21:48",
+   "evidence": [
+    "20:21 (list) build a armmex at spot_33 (D4)",
+    "21:45 (plan) walk to home; its list step 'extractor spot_33' waits for it",
+    "21:48 destroyed"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "24:48",
+   "builder": "constructor_10161",
+   "type": "armmex",
+   "cell": "D5",
+   "cause": "U3",
+   "what_happened": "On a 2,840 walk to spot_47 from the player's 24:40 list; the player's 25:17 re-list ['stop','armhlt spot_61','armhlt spot_63'], made after 'Disaster: 3 corban + corgol(Tzar) killed 16 Stouts', stopped it at 25:25, 1,650 from the site",
+   "evidence": [
+    "24:40 queue constructor_10161 ['extractor spot_47', ...]",
+    "25:17 queue constructor_10161 ['stop','armhlt spot_61','armhlt spot_63']",
+    "25:25 'stopped what it was doing on your `stop`'"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "24:48",
+   "builder": "constructor_11652",
+   "type": "armmex",
+   "cell": "C4",
+   "cause": "U3",
+   "what_happened": "The player's 24:40 list; the 25:17 re-list ['stop','armavp home #avp','assist'] stopped it at 25:25 on the walk",
+   "evidence": [
+    "25:17 queue constructor_11652 ['stop','armavp home #avp','assist']",
+    "25:25 stopped on your `stop`"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "24:48",
+   "builder": "constructor_600",
+   "type": "armmex",
+   "cell": "B3",
+   "cause": "U3",
+   "what_happened": "The player's 24:40 list (spot_22, 3,550 from the builder); the 25:17 re-list ['stop','armhlt spot_43','armllt spot_43'] stopped it at 25:25, 3,290 from the site",
+   "evidence": [
+    "25:17 queue constructor_600 ['stop','armhlt spot_43','armllt spot_43']",
+    "25:25 stopped on your `stop`"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "24:48",
+   "builder": "constructor_29791",
+   "type": "armmex",
+   "cell": "D4",
+   "cause": "U3",
+   "what_happened": "The player's 24:40 list (spot_33); the 25:17 re-list ['stop','armavp home #avp','assist'] stopped it at 25:25, 2,410 from the site",
+   "evidence": [
+    "25:17 queue constructor_29791 ['stop','armavp home #avp','assist']",
+    "25:25 stopped on your `stop`"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "25:15",
+   "builder": "constructor_7490",
+   "type": "armmex",
+   "cell": "C4",
+   "cause": "U3",
+   "what_happened": "The player's 25:07 list (spot_39, 2,750 away); its 25:17 re-list ['stop','armavp home #avp','assist'] stopped it at 25:25",
+   "evidence": [
+    "25:07 queue constructor_7490 ['extractor spot_39', ...]",
+    "25:17 queue constructor_7490 ['stop','armavp home #avp','assist']"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "26:13",
+   "builder": "constructor_8793",
+   "type": "armmex",
+   "cell": "C4",
+   "cause": "U3",
+   "what_happened": "The player's 26:05 list (spot_38, 3,240 away); its 27:07 re-list ['stop','armllt spot_43'], made after 'A correap (Tiger) is shooting it now at spot_38', stopped it at 27:15, 576 from the site",
+   "evidence": [
+    "26:05 queue constructor_8793 ['extractor spot_38', ...]",
+    "27:07 queue constructor_8793 ['stop','armllt spot_43']",
+    "27:15 stopped on your `stop`"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "26:41",
+   "builder": "constructor_2891",
+   "type": "armrad",
+   "cell": "C4",
+   "cause": "U3",
+   "what_happened": "The player's 26:33 list ['armrad spot_38']; its 27:07 re-list ['stop','armllt spot_52'] stopped it at 27:15, 2,220 from the site",
+   "evidence": [
+    "26:33 queue constructor_2891 ['armrad spot_38']",
+    "27:07 queue constructor_2891 ['stop','armllt spot_52']"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "26:41",
+   "builder": "constructor_31542",
+   "type": "armllt",
+   "cell": "C4",
+   "cause": "U3",
+   "what_happened": "The player's 26:33 list ['armllt spot_39']; its 27:07 re-list ['stop','armrad spot_43'] stopped it at 27:15, 2,820 from the site",
+   "evidence": [
+    "26:33 queue constructor_31542 ['armllt spot_39']",
+    "27:07 queue constructor_31542 ['stop','armrad spot_43']"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "31:02",
+   "builder": "constructor_24774",
+   "type": "armllt",
+   "cell": "C6",
+   "cause": "U4",
+   "what_happened": "The list's turret at spot_63 as his T2/T3 block entered C6-C7; the pick walked the builder home at 31:39, the list sent it back at 31:50, the pick walked it home again at 31:53, and it died at 31:59",
+   "evidence": [
+    "31:02 (list) build a armllt at spot_63 (C6)",
+    "31:39 and 31:53 (plan) walk to home; its list step 'armllt spot_63' waits for it",
+    "31:59 destroyed"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "31:50",
+   "builder": "constructor_24774",
+   "type": "armllt",
+   "cell": "C6",
+   "cause": "U4",
+   "what_happened": "The same step, sent again by the list at 31:50 between two retreats; the builder died at 31:59",
+   "evidence": [
+    "31:50 (list) build a armllt at spot_63 (C6)",
+    "31:53 (plan) walk to home",
+    "31:59 destroyed"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "31:27",
+   "builder": "commander",
+   "type": "armllt",
+   "cell": "B8",
+   "cause": "U1",
+   "what_happened": "The commander's list turret at spot_73. The player cancelled the list at 31:29 ('a build in progress finishes'), and the pick moved the commander off before it reached the site (31:53 'follow group_G7')",
+   "evidence": [
+    "31:27 (list) build a armllt at spot_73 (B8)",
+    "31:29 queue commander: cancelled",
+    "31:53 (plan) follow group_G7"
+   ],
+   "cost_class": "small",
+   "confidence": "medium"
+  },
+  {
+   "seat": 0,
+   "clock": "31:58",
+   "builder": "commander",
+   "type": "armllt",
+   "cell": "A7",
+   "cause": "U3",
+   "what_happened": "From the player's 31:39 list ['stop','armllt spot_68','armllt spot_62']; its 31:49 re-list ['stop','armllt spot_45',...] landed at 32:07 and stopped it",
+   "evidence": [
+    "31:58 (list) build a armllt at spot_68 (A7)",
+    "32:07 'commander: stopped what it was doing on your `stop`'"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "32:08",
+   "builder": "commander",
+   "type": "armllt",
+   "cell": "B5",
+   "cause": "U8",
+   "what_happened": "Ordered 13 s before the record's end; the pick walked the commander toward spot_45 at 32:19 and the player's last 'stop' list followed. The 90 s window could not close",
+   "evidence": [
+    "32:08 (list) build a armllt at spot_45 (B5)",
+    "32:19 (plan) walk to spot_45; its list step 'armllt spot_45' waits for it"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  }
+ ],
+ "never_started_beyond_cap": "4 more real never-started orders, all armmex (50): 26:41 constructor_11652 D5 U3 (the 27:26 re-list's stop at 27:34), 26:51 constructor_18749 D5 U3 (the same, 618 from the site), 31:02 constructor_11652 C8 U4 (the pick walked it home 31:48, died 31:50), 31:27 constructor_8793 C7 U4 (the pick walked it to spot_68 at 32:02, died 32:09). frames.py's other 29 'never started' were started: 19 by the same builder at the host's placed site, 298-726 from the command's point (frames.py measures from the command's point, not the `placed` event; e.g. the armavp of 25:25 stood at 27:04, the two armvp of 15:51 at 17:02 and 17:12, the armhlt of 30:10 is armhlt_25880); 9 at a placed site where another builder's frame of the type went up and stood (duplicate orders, absorbed); 1 (31:09 armrl) re-sent at 31:48 and started as armrl_3354. All 19 real ones by cause: U3 11, U4 6, U1 1, U8 1.",
+ "tally": {
+  "U0": {
+   "n": 0,
+   "metal": 0
+  },
+  "U1": {
+   "n": 0,
+   "metal": 0
+  },
+  "U2": {
+   "n": 1,
+   "metal": 152
+  },
+  "U3": {
+   "n": 1,
+   "metal": 62
+  },
+  "U4": {
+   "n": 26,
+   "metal": 838
+  },
+  "U5": {
+   "n": 0,
+   "metal": 0
+  },
+  "U6": {
+   "n": 0,
+   "metal": 0
+  },
+  "U7": {
+   "n": 0,
+   "metal": 0
+  },
+  "U8": {
+   "n": 4,
+   "metal": 467
+  },
+  "U9": {
+   "n": 0,
+   "metal": 0
+  }
+ },
+ "by_fate": {
+  "decayed": {
+   "n": 9,
+   "metal": 705
+  },
+  "killed": {
+   "n": 19,
+   "metal": 347
+  },
+  "at_end": {
+   "n": 4,
+   "metal": 467
+  }
+ },
+ "by_type": {
+  "armsolar": {
+   "n": 2,
+   "metal": 214
+  },
+  "armmex": {
+   "n": 9,
+   "metal": 122
+  },
+  "armllt": {
+   "n": 14,
+   "metal": 252
+  },
+  "armhlt": {
+   "n": 2,
+   "metal": 598
+  },
+  "armrl": {
+   "n": 4,
+   "metal": 135
+  },
+  "armmoho": {
+   "n": 1,
+   "metal": 198
+  }
+ },
+ "player_knew": {
+  "before": 18,
+  "after": 12,
+  "never": 2,
+  "dropped_itself": 1
+ },
+ "mechanisms": [
+  "A T2 defence frame built alone at a metal store of 0 in the path of his T2 army: armhlt_30842 (400 metal, 91%) stood 157 s at about 1% every 1-3 s, with spending equal to income and six labs producing, and an unseen Banisher killed it at 30:36-30:43; at full rate it would have stood near 30:12 (an inference). Spending priority for the defence, or a second builder on it, would have kept up to 400.",
+  "Forward extractor and turret builds left alone against lone-corgator raids for twenty minutes: the raider came during the build at spots 1,400-3,500 from home with no escort and no finished turret (armmex_6304, armmex_18847, armllt_12458, armllt_15814, armllt_1832, armllt_13591, armllt_11366, armmex_12149, armmex_12528, armllt_25508, plus the corwolv's armllt_13435 and armmex_11072: 12 frames, 317 metal). An escort or a guard group at the building spot would have kept most of it; the report's 'turret' word also counted an unfinished turret frame (9:37 B4, 12:26 E7).",
+  "The queued help promoted by a neighbour's frame finishing: the hands' finished-event handler matches a builder's started build by type within 250 of its site, not by the frame's id, so armsolar_904 finishing 213 away made the commander leave armsolar_28188 at 98% for a guard of the plant (152 metal). Matching the finished unit to the task's own frame id would have kept it."
+ ],
+ "unread": "Nothing torn or skipped (one seat, every file read). Not settled by the tools: who built armsolar_28188 up to 87% at 2:35-2:36 (the commander on its fight order is the only reading; the record carries no target), and whether the metal stall alone cost armhlt_30842 (a build-time inference). frames.py's 'decayed' (and floor.py's aband, 9 = 9) count 6 frames killed by unseen enemies (armllt_13435, armmex_11072, armmex_12528, armllt_8038, armhlt_30842, armrl_8479: 489 metal), and floor's aband_m (131) multiplies the share after decay or damage, where frames.py (705 for the decayed) takes the peak."
+}

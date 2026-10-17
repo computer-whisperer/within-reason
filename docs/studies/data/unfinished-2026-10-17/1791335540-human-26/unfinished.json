@@ -1,0 +1,927 @@
+{
+ "game": "1791335540-human-26",
+ "result": "undecided 10:07",
+ "minutes": 10.12,
+ "seats": 2,
+ "opponent": "people: [gecko]u6bkep, [gecko]Covariance",
+ "kind": "human",
+ "result_note": "No result was stated: the record ends at 10:07 with 'unexpected end of file'. t2 (seat 0) lost its commander at 7:20 and its plant at 9:15, and gave its last constructors to t3 at 9:32. t3 (seat 1) was still standing.",
+ "denominators": {
+  "0": {
+   "frames": 31,
+   "finished": 25,
+   "decayed": 2,
+   "killed": 4,
+   "at_end": 0,
+   "metal_in_unfinished": 329,
+   "never_started": 9
+  },
+  "1": {
+   "frames": 34,
+   "finished": 24,
+   "decayed": 2,
+   "killed": 6,
+   "at_end": 2,
+   "metal_in_unfinished": 319,
+   "never_started": 18
+  }
+ },
+ "items": [
+  {
+   "seat": 0,
+   "frame": "armsolar_12701",
+   "type": "armsolar",
+   "cell": "H1",
+   "started": "3:16",
+   "fate": "decayed",
+   "fate_clock": "4:09",
+   "share": 0.68,
+   "metal_in": 105,
+   "cost": 155,
+   "builder": "constructor_2193",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "t2's home solar (constructor_2193, with constructor_7913 helping from 3:27) was hit by an 11-armfav raid at 3:37. 7913 was walked off by the pick at 3:39 at 70% health and died at 3:42. 2193 died on the frame at 3:45. The frame was shot down from 68% to 39%, then decayed with no builder from 3:55 to 4:09. Home had no guard: the 3:27 turn had sent all of group_B west.",
+   "evidence": [
+    "3:16 created 12701 by 2193; 3:37 frame 68% then 64, 62 ... 39 at 3:45 (shot; metal store 0, income 11.2)",
+    "3:39 (plan) constructor_7913: walk to spot_17; 3:42 destroyed 7913 by armfav",
+    "3:45 destroyed 2193 by armfav at (7549,387), 160 from the frame",
+    "3:45 report: 'enemy in sight: 11 at H1 ... armfav 11; killing our Solar Collector (armsolar), 2 of our Construction Vehicle (armcv)'",
+    "4:09 destroyed 12701 by null; 4:21 fights 'abandoned an unfinished armsolar (0% built) x1'"
+   ],
+   "player_knew": "yes, before: the 3:27 report said 'constructor_2193 ... building a Solar Collector (armsolar) at solar_field (H1) (28 % built)', but showed only 2 armfav at B3. The raid was out of sight until 3:37. The 3:45 report showed the builder at 4% health; the 4:21 report had the abandoned line.",
+   "fix_class": "player",
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_29515",
+   "type": "armllt",
+   "cell": "F2",
+   "started": "3:47",
+   "fate": "killed",
+   "fate_clock": "4:11",
+   "share": 0.71,
+   "metal_in": 60,
+   "cost": 85,
+   "builder": "constructor_5873",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "Its list's Sentry at spot_11 was killed at 71% by armfav, from the same raid, with the builder still on it. frames.py's 'builder left 4:04' is the 60% queue-ahead (a queued extractor at spot_17): the builder stood at (5750,825) until 4:12. The frame's health fell 71, 56, 26 under fire.",
+   "evidence": [
+    "4:04 (list) next, queued: build a armmex at spot_17 (H2); constructor_5873 stationary at (5750,825) 3:48-4:12",
+    "4:11 destroyed 29515 by armfav (8355)",
+    "4:08 report: 'enemy in sight: 4 at F2 ... armfav 4; killing our Sentry (armllt) (85 metal) now'"
+   ],
+   "player_knew": "yes, before: the 4:08 report said 'constructor_5873 ... building a Sentry (armllt) at spot_11 (F2) (70 % built) ... party_14 (2 armfav) 152 away'. Afterwards, the 4:21 report had 'lost armllt to armfav at home x1'.",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_30702",
+   "type": "armllt",
+   "cell": "F2",
+   "started": "6:45",
+   "fate": "killed",
+   "fate_clock": "6:51",
+   "share": 0.28,
+   "metal_in": 24,
+   "cost": 85,
+   "builder": "commander",
+   "cause": "U9",
+   "also": "U1",
+   "what_happened": "Our own D-gun destroyed this frame. The commander was building the Sentry from range at (5765,817). At 6:50 the pick D-gunned party_18's nearest unit, armfav 4777, which was 30 elmos from the frame at (5571,854). The blast destroyed the frame at 28%. The D-gun followed the 5:38 packet: 'with its D-gun on them when they bunch'. Nothing in the D-gun move checks for our own buildings beside the target.",
+   "evidence": [
+    "6:50 PICK split [commander_t2: took w2 of 2 at 0.77] changed=[\"commander_t2: D-gun party_18's nearest unit\"]",
+    "6:50 cmd dgun 15349 4777; 6:51 destroyed 30702 by 15349 (armcom, ours)",
+    "6:52 s row: ff [[15349, 25208]], dmg [[30702, 25242]]"
+   ],
+   "player_knew": "no, before: the frame stood 6 s between reports, and the 6:41 report had only '6:37 commander_t2: next, queued: build a armllt at spot_11'. Afterwards, the 6:52 report blamed the enemy: 'lost armllt to unseen at home x1'.",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_23204",
+   "type": "armllt",
+   "cell": "F3",
+   "started": "7:06",
+   "fate": "killed",
+   "fate_clock": "7:25",
+   "share": 0.55,
+   "metal_in": 47,
+   "cost": 85,
+   "builder": "constructor_21794",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The builder stayed on it, building steadily (metal store 56-97). party_42 (4 armfav) shot it from 7:21 and killed it at 7:25. This was during the raid that killed t2's commander at 7:20. The seat's guard was away (impedance items 1-2).",
+   "evidence": [
+    "builder stationary at (5988,1641) 7:07-7:26; frame 3% to 55% by 7:21, then 49, 37, 18",
+    "7:25 destroyed 23204 by armfav (2220)"
+   ],
+   "player_knew": "yes, before: the 7:18 report said 'constructor_21794: at spot_18 (F3); building a Sentry (armllt) at spot_18 (F3) (44 % built)'. Afterwards, the 7:28 report had 'lost armllt to armfav in our half x1'.",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armsolar_29701",
+   "type": "armsolar",
+   "cell": "F2",
+   "started": "8:53",
+   "fate": "killed",
+   "fate_clock": "9:04",
+   "share": 0.11,
+   "metal_in": 17,
+   "cost": 155,
+   "builder": "constructor_23714",
+   "cause": "U4",
+   "also": "U1",
+   "what_happened": "At 8:52 the pick started a new constructor on a solar 480 elmos from party_43, which was 4 armflash that second and grew to 13. The constructor was 'alarmed by party_43' a second later. At 8:56 the pick took it off the frame to follow group_I_t2 as the army walked home. The frame was killed by armflash at 9:04, and the builder died at 9:07.",
+   "evidence": [
+    "8:52 PICK [constructor_23714: took w2 of 2 at 0.48] build a armsolar at 506 from spot_6 (F2); party_43=4 armflash@(5640,1065)",
+    "8:56 PICK [constructor_23714: took w2 of 1 at 0.46] follow group_I_t2; party_43=13 armflash@(5829,868)",
+    "9:04 destroyed 29701 by armflash (9109)"
+   ],
+   "player_knew": "no, before: the frame started between the 8:51 and 8:59 reports. The 8:59 report said 'last_pick: 8:56 picked following group_I_t2, leaving its course (builds a Solar Collector (armsolar) at 497 from spot_6 (F2))', with no share and no 'decays'. The 9:10 report had 'lost armsolar to armflash at home x2'.",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armsolar_9171",
+   "type": "armsolar",
+   "cell": "H1",
+   "started": "9:08",
+   "fate": "decayed",
+   "fate_clock": "9:49",
+   "share": 0.49,
+   "metal_in": 76,
+   "cost": 155,
+   "builder": "constructor_30251",
+   "cause": "U3",
+   "also": null,
+   "what_happened": "At 9:10, with 15 armflash killing the plant at G2, the player queued ['stop', 'extractor spot_25', 'armllt spot_25'] for the builder so the constructors would flee south-east. The stop landed at 9:22, when the solar had reached 49% (the report showed 6%). H1 itself was not under attack. At 9:26 the player gave the builder to t3 (taken 9:32), and the frame decayed by 9:49.",
+   "evidence": [
+    "9:10 queue constructor_30251: 3 steps ['stop', 'extractor spot_25', 'armllt spot_25'] -> 'its build in progress dropped'",
+    "9:22 constructor_30251: stopped what it was doing on your `stop`; 9:23 (list) build a armmex at spot_25 (H3)",
+    "9:26 transfer {to: t3, units: [constructor_30251, constructor_8745]}; 9:32 taken",
+    "9:49 destroyed 9171 by null"
+   ],
+   "player_knew": "yes, before: the 9:10 report said 'building a Solar Collector (armsolar) at solar_field (H1) (6 % built), ordered 3 s ago'. The 9:10 note shows the drop was meant: 'Constructors fleeing south-east to spot_25/29/34 near the ally'. The 9:59 report had 'abandoned an unfinished armsolar (1% built) x1'.",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "frame": "armllt_4438",
+   "type": "armllt",
+   "cell": "G6",
+   "started": "4:46",
+   "fate": "killed",
+   "fate_clock": "5:15",
+   "share": 0.72,
+   "metal_in": 61,
+   "cost": 85,
+   "builder": "constructor_23036",
+   "cause": "U4",
+   "also": "U5",
+   "what_happened": "A lone Sentry at the forward spot_60 extractor. The builder stayed on it. The 5:05 'next, queued' is the queue-ahead; the builder stood at (7060,4384) until 5:16. From 4:58 the metal store was 0, and progress slowed from about 3.7%/s to about 2%/s. 3 armfav shot it from 5:13 and killed it at 72% at 5:15; at full rate it would have finished at about 5:13. The builder fled and died at 5:22.",
+   "evidence": [
+    "4:58-5:15 metal store 0 (income 11.2, use 11-18)",
+    "5:13 frame 72 to 66, 54, 33; 5:15 destroyed 4438 by armfav (2220)",
+    "5:17 (plan) follow group_A_t3; 5:22 destroyed 23036 by armfav"
+   ],
+   "player_knew": "yes, before: the 5:07 report said 'building a Sentry (armllt) at spot_60 (G6) (63 % built)' and 'eco: metal 0 (+11.2/-18.4)'. The 5:13 report said '66 % built' and 'enemy in sight: 3 at G6 ... armfav 3; killing our Sentry (armllt) (85 metal) now'. The 5:23 report had 'lost armllt to armfav at home x1'.",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "frame": "armmex_4899",
+   "type": "armmex",
+   "cell": "F8",
+   "started": "5:45",
+   "fate": "killed",
+   "fate_clock": "6:21",
+   "share": 0.41,
+   "metal_in": 20,
+   "cost": 50,
+   "builder": "constructor_18107",
+   "cause": "U4",
+   "also": "U5",
+   "what_happened": "A hard metal stall: for the whole 36 s the store was 0, with income 6.6 and use 6.6. The extractor rose about 1%/s against 5%/s at full rate, so it would have stood by about 6:05. It was at 41% when armflash killed it at 6:21. The builder stayed on it throughout.",
+   "evidence": [
+    "5:45-6:20 s rows: m [0, 6.6, 6.6, 1200] every second; frame 0 to 41%",
+    "6:21 destroyed 4899 by armflash (2168)",
+    "6:22 (plan) walk to home"
+   ],
+   "player_knew": "yes, before: the reports said 5:48 '(2 % built)', 5:59 '(14 % built)' and 6:19 '(40 % built)', each with 'eco: metal 0 (+6.6/-6.6)'. The 6:30 report had 'lost armmex to armflash in our half x1'.",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "frame": "armmex_12914",
+   "type": "armmex",
+   "cell": "G8",
+   "started": "6:33",
+   "fate": "decayed",
+   "fate_clock": "6:44",
+   "share": 0.03,
+   "metal_in": 2,
+   "cost": 50,
+   "builder": "constructor_22164",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "Its list step 'extractor spot_70' walked the builder into party_31 (6 armflash) beside the site; the 6:30 report had that party killing constructors there. The builder was hit as the frame began (90% health, then 76%). At 6:34 the pick walked it to spot_65, and it died at 6:36. The 3% frame decayed.",
+   "evidence": [
+    "6:34 PICK split [constructor_22164: took w2 of 1 at 0.48] walk to spot_65; party_31=6 armflash@(6296,5484)",
+    "6:36 destroyed 22164 by armflash",
+    "6:44 destroyed 12914 by null (no dmg on it)"
+   ],
+   "player_knew": "no, before: the 6:30 report showed 'enemy in sight: 3 at G8 ... armflash 3; killing 2 of our Construction Vehicle'. Afterwards, the 6:51 report said '6:44 abandoned an unfinished armmex at G8 (2% built): its builder was sent elsewhere and the frame decayed' (the builder had in fact died).",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "frame": "armllt_23890",
+   "type": "armllt",
+   "cell": "F8",
+   "started": "7:18",
+   "fate": "decayed",
+   "fate_clock": "8:11",
+   "share": 0.71,
+   "metal_in": 60,
+   "cost": 85,
+   "builder": "constructor_5199",
+   "cause": "U9",
+   "also": "U1",
+   "what_happened": "At 7:36 the pick walked the builder home for 2 s ('alarmed by party_39', 1 unidentified). At 7:38 the list re-sent 'armllt spot_70' at the same asked-for site (6088,5432). The host's site search (ai-host lib.rs apply -> find_build_site -> Map_findClosestBuildSite) found that site taken by our own 71% frame. It placed a new frame, armllt_24004, 64 elmos north at (6080,5376), and that one finished at 8:05. 23890 sat beside the working builder at 71% and decayed from 7:47 to 8:11.",
+   "evidence": [
+    "7:36 PICK split [constructor_5199: took w2 of 1 at 0.04] walk to home",
+    "7:38 (list) build a armllt at spot_70 (F8); cmd build 5199 146 6088 5432; created 24004 at (6080,5376) the same second",
+    "23890 at 71% 7:38-7:46, then 62, 54 ... 1; 8:11 destroyed by null"
+   ],
+   "player_knew": "yes, before: the 7:28 report said 'building a Sentry (armllt) at spot_70 (F8) (36 % built)'. From then on, the entry described the new frame as though it were the same one: 7:52 '(55 % built), ordered 13 s ago'. The 8:18 report had 'abandoned an unfinished armllt (1% built) x1', with no detail line.",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "frame": "armllt_28950",
+   "type": "armllt",
+   "cell": "G8",
+   "started": "8:05",
+   "fate": "killed",
+   "fate_clock": "8:29",
+   "share": 0.69,
+   "metal_in": 59,
+   "cost": 85,
+   "builder": "constructor_5199",
+   "cause": "U4",
+   "also": "U9",
+   "what_happened": "At 8:24 the pick walked the builder to spot_65, with party_44 (5 armflash) 299 away. armflash killed the frame at 69% at 8:29, and the builder died at 8:35. This was an unwanted third Sentry at spot_70. The 7:57 queue's first step 'armllt spot_70' was meant as the turret under way: 'it finishes the turret there (67% built), then rebuilds spot_70'. The hands played it as a new build instead ('8:04 next, queued: build a armllt at spot_70').",
+   "evidence": [
+    "8:04 (list) next, queued: build a armllt at spot_70 (F8); 8:05 created 28950 at (6224,5568)",
+    "8:24 (plan) walk to spot_65; its list step 'armllt spot_70' waits for it",
+    "8:29 destroyed 28950 by armflash (27747)"
+   ],
+   "player_knew": "yes, before: the 8:08 report said '(10 % built)' and the 8:18 report '(44 % built)'. The 8:27 report said 'last_pick: 8:24 picked the walk to spot_65, leaving its course (builds a Sentry (armllt) at spot_70 (G8))'. The 8:37 report had 'lost armllt to armflash at home x1'.",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "medium"
+  },
+  {
+   "seat": 1,
+   "frame": "armmex_18665",
+   "type": "armmex",
+   "cell": "G8",
+   "started": "9:23",
+   "fate": "killed",
+   "fate_clock": "9:25",
+   "share": 0.07,
+   "metal_in": 4,
+   "cost": 50,
+   "builder": "constructor_18107",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The takeover session's 8:55 list walked a hurt builder (71% health) to spot_77, where party_53 (10 armflash) was in sight 202 away. The frame was killed 2 s after it was placed. The builder died at 9:29.",
+   "evidence": [
+    "9:23 created 18665; 9:25 destroyed by armflash (1713)",
+    "9:26 (plan) walk to home; 9:29 destroyed 18107 by armflash"
+   ],
+   "player_knew": "no frame before: the 9:22 report said 'constructor_18107 ... walking to build a Metal Extractor (armmex) at spot_77 (G8), 123 to go ... party_53 (10 armflash) 202 away'. The 9:37 report had 'lost armmex to armflash at home x1'.",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "frame": "armllt_7141",
+   "type": "armllt",
+   "cell": "G6",
+   "started": "9:45",
+   "fate": "killed",
+   "fate_clock": "10:06",
+   "share": 0.74,
+   "metal_in": 63,
+   "cost": 85,
+   "builder": "constructor_30002",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The list's Sentry at spot_60 was built with its builder on it. party_59 (14-19 armflash) killed it at 74%, a minute before the record ended.",
+   "evidence": [
+    "9:33 (list) next, queued: build a armllt at spot_60 (G6); 9:45 created 7141",
+    "10:06 destroyed 7141 by armflash (9504)"
+   ],
+   "player_knew": "yes, before: the 9:49 report said '(16 % built)'. The 10:01 report said '(57 % built) ... party_59 (14 armflash) 718 away'. The record ended before another report.",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "frame": "armmex_17056",
+   "type": "armmex",
+   "cell": "H6",
+   "started": "9:50",
+   "fate": "killed",
+   "fate_clock": "10:00",
+   "share": 0.41,
+   "metal_in": 20,
+   "cost": 50,
+   "builder": "constructor_27423",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The list's extractor at spot_51 was killed at 41% by party_59 (14 armflash). The builder walked home at 10:02 and died at 10:04.",
+   "evidence": [
+    "9:24 (list) build a armmex at spot_51 (H6); 9:50 created 17056; 10:00 destroyed by armflash (31991)",
+    "10:02 (plan) walk to home; 10:04 destroyed 27423"
+   ],
+   "player_knew": "no frame before: the 9:49 report said 'walking to build a Metal Extractor (armmex) at spot_51 (H6), 145 to go'. The 10:01 report had 'lost armmex to armflash in our half x1'.",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "frame": "armllt_301",
+   "type": "armllt",
+   "cell": "H8",
+   "started": "10:02",
+   "fate": "at_end",
+   "fate_clock": "10:07",
+   "share": 0.29,
+   "metal_in": 25,
+   "cost": 85,
+   "builder": "commander",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "This is the commander's first 'armllt home' step (from the 9:49 queue ['armllt home', 'armllt home', 'assist 40']), started 5 s before the record ended. A D-gun play came at 10:04.",
+   "evidence": [
+    "10:02 created 301; 10:04 (plan) D-gun party_53's nearest unit; its list step 'armllt home' waits for it"
+   ],
+   "player_knew": "never: it was started after the last report (10:01).",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "frame": "armllt_5400",
+   "type": "armllt",
+   "cell": "H8",
+   "started": "10:06",
+   "fate": "at_end",
+   "fate_clock": "10:07",
+   "share": 0.06,
+   "metal_in": 5,
+   "cost": 85,
+   "builder": "commander",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "The commander started a second Sentry 80 elmos from armllt_301, which stood at 29%. The queue had two 'armllt home' steps, so this may be the second step. It may also be armllt_23890's mechanism after the 10:04 D-gun; the record does not settle which.",
+   "evidence": [
+    "10:04 (list) build a armllt at home (H7); 10:06 created 5400 at (7216,5392), 301 at (7200,5472)"
+   ],
+   "player_knew": "never.",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "medium"
+  }
+ ],
+ "never_started": [
+  {
+   "seat": 0,
+   "clock": "4:04",
+   "builder": "constructor_5873",
+   "type": "armmex",
+   "cell": "H2",
+   "cost": 50,
+   "cause": "U4",
+   "what_happened": "The extractor was queued behind armllt_29515, which was killed at 4:11. At 4:17 the pick walked the builder to spot_18 at 41% health, and it died to armfav at 4:23.",
+   "evidence": [
+    "4:04 (list) next, queued: build a armmex at spot_17 (H2)",
+    "4:17 (plan) walk to spot_18; 4:23 destroyed 5873 by armfav"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "7:26",
+   "builder": "constructor_21794",
+   "type": "armmex",
+   "cell": "F1",
+   "cost": 50,
+   "cause": "U4",
+   "also": "U3",
+   "what_happened": "The list step 'extractor spot_3' and the pick's 'walk to home' came the same second, with the builder under fire from party_42 (4 armfav). The step was re-sent at 7:50, and at 8:01 the player cancelled the builder's list.",
+   "evidence": [
+    "7:26 (list) build a armmex at spot_3 (F1); 7:26 (plan) walk to home; its list step 'extractor spot_3' waits for it",
+    "7:28 report 'under_fire: yes, hit this second by armfav' x5",
+    "8:01 queue constructor_21794: cancelled"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "8:33",
+   "builder": "constructor_25802",
+   "type": "armmex",
+   "cell": "G1",
+   "cost": 50,
+   "cause": "U4",
+   "what_happened": "The extractor was queued behind its build at H2 until 8:51. The builder then walked toward G1 into the 15-armflash raid. At 9:14 the pick turned it to solar_field, and it died at 9:20. The player's 9:10 'stop' list landed after its death.",
+   "evidence": [
+    "8:33 (list) next, queued: build a armmex at spot_6 (G1)",
+    "9:14 (plan) walk to solar_field; 9:20 destroyed 25802 by armflash",
+    "9:22 constructor_25802: no builder of ours by that name stands; its list is dropped"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "9:07",
+   "builder": "constructor_23714",
+   "type": "armsolar",
+   "cell": "H1",
+   "cost": 155,
+   "cause": "U4",
+   "what_happened": "The list order went out the same tick the builder was killed, and the engine rejected it.",
+   "evidence": [
+    "9:07 (list) build a armsolar at solar_field (H1); 9:07 destroyed 23714 by armflash; 9:07 rejected code -3"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "9:13",
+   "builder": "constructor_8745",
+   "type": "armmex",
+   "cell": "G4",
+   "cost": 50,
+   "cause": "U3",
+   "what_happened": "The extractor was queued behind its build at G4. The player's 9:26 transfer gave the builder to t3 (taken 9:32) before it reached the site.",
+   "evidence": [
+    "9:13 (list) next, queued: build a armmex at spot_35 (G4)",
+    "9:26 transfer {to: t3, units: [constructor_30251, constructor_8745]}; 9:32 taken"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "9:23",
+   "builder": "constructor_30251",
+   "type": "armmex",
+   "cell": "H3",
+   "cost": 50,
+   "cause": "U3",
+   "what_happened": "This was the second step of the player's 9:10 flight list. Under the 9:26 packet ('constructors walk south to spot_29 and spot_34'), the pick walked the builder to spot_29 at 9:27, and the 9:26 transfer then gave it to t3.",
+   "evidence": [
+    "9:27 (plan) walk to spot_29; its list step 'extractor spot_25' waits for it",
+    "9:32 taken (to_team 3)"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "clock": "1:57",
+   "builder": "constructor_9614",
+   "type": "armmex",
+   "cell": "G8",
+   "cost": 50,
+   "cause": "U4",
+   "what_happened": "On the walk to spot_70, during the 2:00 armfav raid, the pick walked the builder home at 2:17. It died at 2:21.",
+   "evidence": [
+    "2:17 (plan) walk to home; its list step 'extractor spot_70' waits for it",
+    "2:21 destroyed 9614 by armfav"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "clock": "2:18",
+   "builder": "constructor_9614",
+   "type": "armllt",
+   "cell": "H7",
+   "cost": 85,
+   "cause": "U4",
+   "what_happened": "The list's next step came 1 s after the retreat. The pick walked the builder home again at 2:19, and it died at 2:21.",
+   "evidence": [
+    "2:18 (list) build a armllt at home (H7); 2:19 (plan) walk to home; 2:21 destroyed"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "clock": "3:18",
+   "builder": "constructor_1390",
+   "type": "armsolar",
+   "cell": "H7",
+   "cost": 155,
+   "cause": "U3",
+   "what_happened": "A second solar was queued behind the first. The player's 3:27 queue (5 steps, spot_70 first) replaced the whole list, and the builder went to spot_70 at 3:32.",
+   "evidence": [
+    "3:27 queue constructor_1390: 5 steps ['extractor spot_70', ...]; 3:32 (list) build a armmex at spot_70",
+    "3:27 report: '3:18 constructor_1390: next, queued: build a armsolar at home (H7)'"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "clock": "4:41",
+   "builder": "constructor_22164",
+   "type": "armmex",
+   "cell": "F8",
+   "cost": 50,
+   "cause": "U3",
+   "what_happened": "The 4:09 list's first step started as the new constructor stood. 2 s later the player's 4:35 queue replaced it with 'armllt spot_77' first.",
+   "evidence": [
+    "4:35 queue constructor_22164: 5 steps ['armllt spot_77', ...]",
+    "4:43 (list) build a armllt at spot_77 (G8)"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "clock": "5:05",
+   "builder": "constructor_23036",
+   "type": "armmex",
+   "cell": "G6",
+   "cost": 50,
+   "cause": "U4",
+   "what_happened": "The extractor was queued behind armllt_4438, which was killed at 5:15. The pick then had the builder follow group_A and walk home, and it died at 5:22.",
+   "evidence": [
+    "5:17 (plan) follow group_A_t3; 5:19 (plan) walk to home; 5:22 destroyed 23036 by armfav"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "clock": "5:12",
+   "builder": "constructor_18107",
+   "type": "armmex",
+   "cell": "F8",
+   "cost": 50,
+   "cause": "U3",
+   "what_happened": "The builder was 2,400 elmos from spot_79 when the player's 5:23 queue replaced the list with spot_75 first. The spot_75 extractor started at 5:45 (armmex_4899).",
+   "evidence": [
+    "5:23 queue constructor_18107: 5 steps ['extractor spot_75', ...]; 5:33 (list) build a armmex at spot_75 (F8)"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "clock": "6:03",
+   "builder": "constructor_1390",
+   "type": "armllt",
+   "cell": "F8",
+   "cost": 85,
+   "cause": "U4",
+   "what_happened": "The Sentry was queued at spot_75. At 6:28 the pick walked the builder to spot_65 under the armflash raid at F8, and it died at 6:31.",
+   "evidence": [
+    "6:28 (plan) walk to spot_65; 6:31 destroyed 1390 by armflash"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "clock": "6:22",
+   "builder": "constructor_18107",
+   "type": "armllt",
+   "cell": "F8",
+   "cost": 85,
+   "cause": "U4",
+   "what_happened": "The list's Sentry at spot_75 came the second after armflash killed its extractor (armmex_4899). The pick walked the builder home the same second.",
+   "evidence": [
+    "6:22 (list) build a armllt at spot_75 (F8); 6:22 (plan) walk to home; its list step 'armllt spot_75' waits for it"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "clock": "6:52",
+   "builder": "constructor_5199",
+   "type": "armmex",
+   "cell": "G8",
+   "cost": 50,
+   "cause": "U2",
+   "what_happened": "The player's 7:01 re-list began with the same 'extractor spot_70' the builder was walking to (280 elmos short, not begun). The hands marked the step 'taken as done', and the next step's armllt order cancelled the walk. The extractor was never built from this list. Today's lists.rs holds such a step ('the step waits for the frame', the 2026-10-16 change).",
+   "evidence": [
+    "7:01 queue constructor_5199: 2 steps ['extractor spot_70', 'armllt spot_70']",
+    "7:11 constructor_5199: the step 'extractor spot_70' of its list is the build already under way: taken as done",
+    "7:12 (list) build a armllt at spot_70 (F8)"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "clock": "6:57",
+   "builder": "constructor_18107",
+   "type": "armllt",
+   "cell": "F8",
+   "cost": 85,
+   "cause": "U3",
+   "what_happened": "The player cancelled the builder's list at 7:01. The builder was at 32% health and 1,422 from the site. The pick then had it reclaim wrecks.",
+   "evidence": [
+    "7:01 queue constructor_18107: cancelled",
+    "7:01 report 'walking to build a Sentry (armllt) at spot_75 (F8), 1422 to go ... (32%)'",
+    "7:11 (plan) reclaim wrecks at spot_70"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "clock": "8:33",
+   "builder": "constructor_5199",
+   "type": "armbeamer",
+   "cell": "H7",
+   "cost": 190,
+   "cause": "U4",
+   "what_happened": "The 8:27 list's beamer order was sent 2 s before the builder died to armflash (it was at 19% health).",
+   "evidence": [
+    "8:33 (list) build a armbeamer at spot_65 (H7); 8:35 destroyed 5199 by armflash"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "clock": "9:02",
+   "builder": "constructor_22438",
+   "type": "armbeamer",
+   "cell": "G8",
+   "cost": 190,
+   "cause": "U3",
+   "what_happened": "The beamer was queued from the earlier session's 8:27 list. The takeover session (8:37) re-listed the builder at 8:55 without seeing that list, and the step was dropped at 9:14. spot_77 was lost at 9:25 (impedance item 12).",
+   "evidence": [
+    "8:55 queue constructor_22438: 4 steps ['extractor spot_75', ...]",
+    "9:14 constructor_22438: dropped the step 'armbeamer spot_77' its old list had queued behind the build it was on: you have replaced or cancelled that list since",
+    "8:55 report: 'constructor_22438: ... building a Sentry (armllt) at spot_65 (H8) (32 % built)', with no list shown"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "clock": "9:15",
+   "builder": "constructor_22438",
+   "type": "armmex",
+   "cell": "F8",
+   "cost": 50,
+   "cause": "U4",
+   "what_happened": "The builder walked 23 s toward spot_75. At 9:39 the pick walked it home among armflash, and it died at 9:40 at (6264,5571).",
+   "evidence": [
+    "9:39 (plan) walk to home; 9:40 destroyed 22438 by armflash"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "clock": "9:26",
+   "builder": "constructor_18107",
+   "type": "armllt",
+   "cell": "G8",
+   "cost": 85,
+   "cause": "U4",
+   "what_happened": "The list's next step came 1 s after armmex_18665 was killed. The pick walked the builder home the same second, and it died at 9:29.",
+   "evidence": [
+    "9:26 (list) build a armllt at spot_77; 9:26 (plan) walk to home; 9:29 destroyed 18107 by armflash"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "clock": "9:44",
+   "builder": "constructor_8745",
+   "type": "armhlt",
+   "cell": "H7",
+   "cost": 440,
+   "cause": "U4",
+   "what_happened": "The builder came from t2 and had about 2,300 elmos to walk from G4 to home for the shared #hlt1. party_59 (14 armflash) killed it on the way at 10:04.",
+   "evidence": [
+    "9:44 (list) build a armhlt at home (H7) (#hlt1)",
+    "10:01 report 'under_fire: yes, hit this second by armflash'; 10:04 destroyed 8745 by armflash"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 1,
+   "clock": "9:44",
+   "builder": "constructor_30251",
+   "type": "armhlt",
+   "cell": "H7",
+   "cost": 440,
+   "cause": "U8",
+   "what_happened": "The builder came from t2 and had about 4,150 elmos to walk from H1 to home, more than the 23 s the record had left. At 10:02 its list moved to the next step ('armllt home'), and no line says why.",
+   "evidence": [
+    "10:01 report 'walking to build a Overwatch (armhlt) at home (H7), 3322 to go'",
+    "10:02 (list) build a armllt at home (H7)"
+   ],
+   "cost_class": "none",
+   "confidence": "medium"
+  },
+  {
+   "seat": 1,
+   "clock": "10:02",
+   "builder": "constructor_30251",
+   "type": "armllt",
+   "cell": "H7",
+   "cost": 85,
+   "cause": "U8",
+   "what_happened": "The order was given 5 s before the record ended, with the builder 3,000 elmos away.",
+   "evidence": [
+    "10:02 (list) build a armllt at home (H7); builder at (7475,2305) at 10:07"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  }
+ ],
+ "never_started_excluded": [
+  {
+   "seat": 0,
+   "clock": "1:46",
+   "builder": "constructor_5873",
+   "type": "armmex",
+   "cell": "F2",
+   "why_not_an_item": "The pick's order was replaced 7 s later by the player's 1:46 list. That list's second step re-sent 'extractor spot_11' at 2:40, and the same builder started it at 3:24 (armmex_8551, finished 3:43)."
+  },
+  {
+   "seat": 0,
+   "clock": "2:45",
+   "builder": "constructor_7913",
+   "type": "armsolar",
+   "cell": "H1",
+   "why_not_an_item": "This was the same building as constructor_2193's armsolar_12701 at the same site (7704,344). 7913 stood 140 elmos from it and helped from 3:27; progress rose from about 2.5%/s to about 4%/s. armsolar_12701 is the item."
+  },
+  {
+   "seat": 0,
+   "clock": "3:17",
+   "builder": "commander",
+   "type": "armmex",
+   "cell": "F2",
+   "why_not_an_item": "constructor_5873 started this extractor at 3:24. The commander helped it from 3:38 (progress rose to about 8%/s), and it finished at 3:43. The engine then refused the commander's own order: 'the engine refused a armmex at F2: the site was bad'."
+  },
+  {
+   "seat": 1,
+   "clock": "2:41",
+   "builder": "constructor_1390",
+   "type": "armsolar",
+   "cell": "H7",
+   "why_not_an_item": "The step was 'armsolar' with no place. It was re-sent at 2:57, after the pick's walk home, and started at 3:00 (armsolar_9327 at home)."
+  }
+ ],
+ "never_started_tally": {
+  "U4": {
+   "n": 13,
+   "order_metal": 1425
+  },
+  "U3": {
+   "n": 7,
+   "order_metal": 630
+  },
+  "U2": {
+   "n": 1,
+   "order_metal": 50
+  },
+  "U8": {
+   "n": 2,
+   "order_metal": 525
+  }
+ },
+ "never_started_note": "frames.py lists 27 never-started orders (9 + 18). 4 are not items (see never_started_excluded), leaving 23, and every one was classified from its decision rows. The cap of fifteen was not applied. 'cost' is the type's metal cost (no metal went in), and order_metal sums those costs.",
+ "tally": {
+  "U0": {
+   "n": 0,
+   "metal": 0
+  },
+  "U1": {
+   "n": 0,
+   "metal": 0
+  },
+  "U2": {
+   "n": 0,
+   "metal": 0
+  },
+  "U3": {
+   "n": 1,
+   "metal": 76
+  },
+  "U4": {
+   "n": 11,
+   "metal": 458
+  },
+  "U5": {
+   "n": 0,
+   "metal": 0
+  },
+  "U6": {
+   "n": 0,
+   "metal": 0
+  },
+  "U7": {
+   "n": 0,
+   "metal": 0
+  },
+  "U8": {
+   "n": 2,
+   "metal": 30
+  },
+  "U9": {
+   "n": 2,
+   "metal": 84
+  }
+ },
+ "by_fate": {
+  "decayed": {
+   "n": 4,
+   "metal": 243
+  },
+  "killed": {
+   "n": 10,
+   "metal": 375
+  },
+  "at_end": {
+   "n": 2,
+   "metal": 30
+  }
+ },
+ "by_type": {
+  "armsolar": {
+   "n": 3,
+   "metal": 198
+  },
+  "armllt": {
+   "n": 9,
+   "metal": 404
+  },
+  "armmex": {
+   "n": 4,
+   "metal": 46
+  }
+ },
+ "player_knew": {
+  "before": 9,
+  "after": 5,
+  "never": 2,
+  "dropped_itself": 1
+ },
+ "mechanisms": [
+  "Raider swarms at undefended build sites (U4, 11 frames, 458 metal: armsolar_12701, armllt_29515, armllt_23204, armsolar_29701, armllt_4438, armmex_4899, armmex_12914, armllt_28950, armmex_18665, armllt_7141, armmex_17056, plus 13 of the 23 never-started orders, whose builders died or fled): this game's Rover and Blitz swarms killed frames and builders at home and at forward extractors while the guard was away. Two parts were recoverable. (1) t2's 3:27 decision to send all of group_B west against the commander's 'keep two Blitzes at home', before the 11-armfav raid at 3:33 (armsolar_12701 and armllt_29515, 165 metal). (2) Builds started or walked into parties already in sight: the pick's 8:52 solar 480 from 4 armflash (armsolar_29701), and the list steps that walked builders into 6 and 10 armflash at G8 (armmex_12914, armmex_18665); 23 metal, plus 3 constructors that died with them.",
+  "A builder returning to its own unfinished frame starts a new one (U9 and its also, armllt_23890 and armllt_28950, 119 metal): the list re-sent 'armllt spot_70' at 7:38 at the same asked-for site, and the host's site search (Map_findClosestBuildSite) treated our standing 71% frame as an obstacle. It placed armllt_24004 64 elmos away, and the 71% frame decayed beside the working builder (armllt_23890, 60). At 8:04, the re-listed step meant as the turret under way was played as a further new Sentry, which was killed at 69% (armllt_28950, 59). Hands rule: a build whose site holds our unfinished frame of that type resumes that frame, and a step naming it is taken as done.",
+  "Orders that land on a frame without regard to it (armsolar_9171 and armllt_30702, 100 metal): t2's 'stop' flight list was written when the report showed the solar at 6% and landed 12 s later at 49%, at a site no enemy was hitting; then the builder was given away (armsolar_9171, 76; a stop result could name the frame and its share). The commander's D-gun on an armfav 30 elmos from its own frame destroyed that frame, and the report blamed 'unseen' (armllt_30702, 24; the D-gun move should keep its blast off our own frames, and the friendly-fire row should reach the fights line)."
+ ],
+ "unread": "Nothing was torn or unread. hands_window prints no menus for this log (picks and PLAYS only), so the menu's 'leaves ... which decays' words could not be quoted. floor.py's aband (2 per seat) equals frames.py's decayed count, but aband_m (seat 0: 5, seat 1: 2) is far below frames.py's metal in decayed frames (181 and 62), because floor takes the last sampled share after decay. Seat 1 was read through a symlink directory (record-1, jev-1, strategist-1, terrain-1 as seat 0) for hands_window and floor."
+}

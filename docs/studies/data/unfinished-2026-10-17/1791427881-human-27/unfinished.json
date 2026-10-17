@@ -1,0 +1,830 @@
+{
+ "game": "1791427881-human-27",
+ "result": "lost 13:48",
+ "minutes": 13.8,
+ "seats": 1,
+ "opponent": "people: [gecko]u6bkep (Armada, lobby skill 30)",
+ "kind": "human",
+ "denominators": {
+  "0": {
+   "frames": 47,
+   "finished": 36,
+   "decayed": 3,
+   "killed": 6,
+   "at_end": 2,
+   "metal_in_unfinished": 860,
+   "never_started": 26
+  }
+ },
+ "denominator_notes": "frames.py's never-started count of 26 includes the two 12:16 'corvp spot_17 #vp2' orders (constructor_16990, constructor_24695). Both started (corvp_22076 at 12:24, corvp_1291 at 12:49), 408 and 396 from the ordered point, outside frames.py's 300 radius; they are not items, so 24 never-started items remain. floor.py's aband 3 equals frames.py's decayed 3. Its aband_m of 33 differs from the decayed frames' metal_in of 248 because floor.py multiplies by the last sampled share (the decayed remnant) and frames.py by the share reached. One 'decayed' frame (corhllt_10583) was killed by Stout fire: the dmg rows show it, but the destroyed event names no attacker.",
+ "items": [
+  {
+   "seat": 0,
+   "frame": "corvp_1291",
+   "type": "corvp",
+   "cell": "H3",
+   "started": "12:49",
+   "fate": "unfinished at end",
+   "fate_clock": "13:48",
+   "share": 0.5,
+   "metal_in": 285,
+   "cost": 570,
+   "builder": "constructor_24695",
+   "cause": "U9",
+   "also": "U3",
+   "what_happened": "constructor_16990 and constructor_24695 played the list step 'corvp spot_17 #vp2' in the same second (12:16) and each saw the id free: 16990 started plant 22076 at 12:24 (finished 13:25), 24695 started this second plant at 12:49 (both frames stood about 400 from the ordered point; this record has no placed event). The commander's 12:32 list then helped #vp2 by guarding 24695. The player saw the second frame at 12:55 (12%) and stopped 24695; the stop landed at 13:08 with the frame at about 43%. It peaked at 50% at 13:13 and decayed to 26% by 13:43. At 13:36 the player's re-used '#vp2' step on 16990's 13:24 list repaired it, so it stood at 29% at the end. By the clock rule alone it would be U8 (started 0:59 before the end), but it is classed by its mechanism: its builder had been taken off 40 s before the end and it was decaying, not building.",
+   "evidence": [
+    "12:16 (list) constructor_16990: build a corvp at spot_17 (H3) (#vp2)",
+    "12:16 (list) constructor_24695: build a corvp at spot_17 (H3) (#vp2)",
+    "12:24 created corvp 22076 by 16990; 12:49 created corvp 1291 by 24695",
+    "12:41 commander: help build #vp2 (help constructor_24695 build) (from its list)",
+    "12:55 queue constructor_24695: stop -> 'list cancelled and its build in progress dropped'; 13:08 'stopped what it was doing on your `stop`'",
+    "13:36 (list) constructor_16990: help build #vp2 (repair) -> cmd repair 16990 1291",
+    "s rows 1291: 50% 13:13, 40% 13:28, 26% 13:43, 29% 13:48"
+   ],
+   "player_knew": "yes, before: 12:55 report 'constructor_24695: ... building a Vehicle Plant (corvp) at 307 from spot_25 (H3) (12 % built)' and 'commander: ... helping lab_24695 build'; its words: 'Two plant frames had gone up instead of one ... The metal already in that frame is lost'. At 13:13 it believed 'The second plant frame is gone', though the frame stood at 50%. The 13:42 report said 'constructor_16990: ... repairing our corvp'.",
+   "fix_class": "hands-rule",
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "corhllt_10583",
+   "type": "corhllt",
+   "cell": "G2",
+   "started": "11:35",
+   "fate": "decayed",
+   "fate_clock": "12:29",
+   "share": 0.86,
+   "metal_in": 168,
+   "cost": 195,
+   "builder": "constructor_20595",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "constructor_20595 built the Twin Guard from its 10:40 list ('corhllt spot_10') and stayed on it. It reached 86% at 12:25 as party_27 (5-6 Stouts and a Janus) closed to 258-424 from it. The Stouts' fire took it from 86% to 82%, 34% and 14% from 12:26, and it was destroyed at 12:29 with no attacker named. frames.py's 'decayed' here is a kill by fire. The builder was hit in the same seconds and died at 12:34. The energy store was empty 11:35-11:59, but that cost only about 5 s (42% in its first 27 s, against 52% at the full solo rate).",
+   "evidence": [
+    "11:33 (list) constructor_20595: build a corhllt at spot_10 (G2)",
+    "s rows 10583: 86% 12:25, 82% 12:26, 34% 12:27, 14% 12:29",
+    "dmg [[10583,97]] 12:26; [[10583,833],[20595,198]] 12:27; [[10583,398]] 12:29",
+    "12:24 en: 5 armstump and 1 armjanus at 295-424 from the frame",
+    "12:29 destroyed by null; 12:34 builder 20595 destroyed by null"
+   ],
+   "player_knew": "yes, before: 11:53 report 'constructor_20595: at spot_10 (G2); building a Twin Guard (corhllt) at spot_10 (G2) (26 % built) ... enemies_near: party_27 (1 armjanus, 3 armstump) 433 away'. Afterwards the 12:32 report called it 'abandoned an unfinished corhllt (14% built) x1', which names the wrong cause and gives the remnant share.",
+   "fix_class": "none",
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "cornanotc_20410",
+   "type": "cornanotc",
+   "cell": "G2",
+   "started": "10:48",
+   "fate": "killed",
+   "fate_clock": "12:43",
+   "share": 0.64,
+   "metal_in": 147,
+   "cost": 230,
+   "builder": "constructor_26263",
+   "cause": "U4",
+   "also": "U5",
+   "what_happened": "constructor_26263 started the nano from its 10:31 list ['corhlt spot_10', 'cornanotc'] after the HLT site was refused. The energy store was at 0 from 11:04, so the nano was only 64% after 71 s; one corcv builds it in 56 s at the full rate, so it would have stood by about 11:44. party_27 (Stouts and a Janus) hit the builder at 11:54 (100% to 71%) and again at 11:58. The pick then walked it to spot_12 under the 11:40 packet's 'an enemy party near it: it walks to spot_12 beside the commander'. The frame decayed from 64% to 25% and an armstump killed it at 12:43. When the list's 'cornanotc' step was played again at 12:12, it was sited fresh at home (cornanotc_3536) instead of resuming this frame, which stood 550 from the Stouts.",
+   "evidence": [
+    "11:58 (plan) walk to spot_12; its list step 'cornanotc' waits for it",
+    "PICK split [constructor_26263: took w2 of 1 at 0.64]; go_spot_12 0.63: 'stepping away from party_27 (1 armjanus, 2 armstump) ... leaves the Construction Turret (cornanotc) at about 60%, which decays'",
+    "11:58 events: constructor_26263 hit",
+    "s rows: energy store 0-1 from 11:04 to 11:59 (+130-270); nano 26% 11:04, 45% 11:34, 64% 11:59",
+    "12:43 destroyed by 30432 (armstump) at 25%"
+   ],
+   "player_knew": "yes, before: 11:53 report 'constructor_26263: at spot_10 (G2); building a Construction Turret (cornanotc) at spot_10 (G2) (56 % built), ordered 69 s ago; health lightly hurt (71%); enemies_near: party_27 (1 armjanus, 3 armstump) 378 away' and 'eco: ... energy 0/1400 (+1) STALLING'. Afterwards, 12:46: 'lost cornanotc to armstump at home x1'.",
+   "fix_class": "player",
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "corsolar_31698",
+   "type": "corsolar",
+   "cell": "H3",
+   "started": "13:35",
+   "fate": "unfinished at end",
+   "fate_clock": "13:48",
+   "share": 0.43,
+   "metal_in": 64,
+   "cost": 150,
+   "builder": "constructor_26263",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "This was the first solar of the player's 13:13 list ['stop', 'corsolar spot_25', 'corsolar spot_25', 'assist']. It was building with its builder on it until the record ended 13 s after it was started.",
+   "evidence": [
+    "13:21 (list) constructor_26263: build a corsolar at spot_25 (H3)",
+    "13:35 created; last progress 13:48"
+   ],
+   "player_knew": "yes: 13:42 report 'constructor_26263: at spot_25 (H3); building a Solar Collector (corsolar) at spot_25 (H3) (21 % built)'",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "cornanotc_22093",
+   "type": "cornanotc",
+   "cell": "H2",
+   "started": "12:45",
+   "fate": "killed",
+   "fate_clock": "13:42",
+   "share": 0.23,
+   "metal_in": 53,
+   "cost": 230,
+   "builder": "constructor_26263",
+   "cause": "U3",
+   "also": "U5",
+   "what_happened": "This was the third frame of 26263's 'cornanotc' list step, sited fresh at 430 from spot_17 after the 12:21 walk. With the energy store at 0 it reached only 23% in 35 s. The player's 13:13 list began with 'stop', which dropped the build in progress; the stop landed at 13:20. The frame decayed to 13% and an armstump killed it at 13:42.",
+   "evidence": [
+    "12:30 (list) constructor_26263: build a cornanotc at 416 from spot_17 (H3)",
+    "13:13 queue constructor_26263: ['stop', 'corsolar spot_25', 'corsolar spot_25', 'assist'] -> 'its build in progress dropped, then 3 steps in order'",
+    "13:20 'stopped what it was doing on your `stop`'; 13:21 (list) build a corsolar at spot_25 (H3)",
+    "13:42 destroyed by 30432 (armstump)"
+   ],
+   "player_knew": "yes, and it dropped the frame on purpose: 12:55 report '... building a Construction Turret (cornanotc) at 430 from spot_17 (H2) (13 % built)'; 13:13 '(21 % built)' with 'energy 0/1150 (-0) STALLING'. Its words: 'constructor_26263 has dropped its construction turret (21% built) to put up two solars near spot_25. Solars need no energy to build.' Afterwards, 13:42: 'lost cornanotc to armstump at home x1'.",
+   "fix_class": "player",
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "corsolar_22545",
+   "type": "corsolar",
+   "cell": "G1",
+   "started": "9:20",
+   "fate": "decayed",
+   "fate_clock": "9:56",
+   "share": 0.31,
+   "metal_in": 46,
+   "cost": 150,
+   "builder": "constructor_31089",
+   "cause": "U3",
+   "also": null,
+   "what_happened": "constructor_31089's list step 'corsolar' started the solar at spot_6 at 9:20. At its 9:22 turn the player sent 'queue constructor_31089: stop' to put every builder on the F1/F2 wrecks. The stop landed at 9:33 with the frame at 31% (the realtime landing delay: 1% when the player decided). The pick sent the builder to reclaim at 9:37 and the frame decayed by 9:56.",
+   "evidence": [
+    "9:20 (list) build a corsolar at spot_6 (G1)",
+    "9:22 queue constructor_31089: stop -> 'list cancelled and its build in progress dropped'",
+    "9:33 'stopped what it was doing on your `stop`'; 9:37 (plan) reclaim wrecks at spot_11 (F1)",
+    "10:04 report: 'abandoned an unfinished corsolar (1% built) x1'"
+   ],
+   "player_knew": "yes, and it dropped the frame on purpose: 9:22 report 'constructor_31089: at spot_6 (G1); building a Solar Collector (corsolar) at spot_6 (G1) (1 % built), ordered 1 s ago' with 'energy 1842/1850'. Its note: 'Every free builder + commander reclaiming 2.25k of wrecks at F1/F2 is the fastest economy we have'. Afterwards came the 10:04 abandoned line, which gives the 1% remnant.",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "corllt_12691",
+   "type": "corllt",
+   "cell": "H3",
+   "started": "5:06",
+   "fate": "killed",
+   "fate_clock": "5:25",
+   "share": 0.41,
+   "metal_in": 37,
+   "cost": 90,
+   "builder": "constructor_16990",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "constructor_16990, near death at 29%, built the Guard for the outer extractor at spot_25 from its list. A Blitz (party_15) arrived at 5:20 and hit the builder at 5:22. The pick walked it to spot_6 at 5:22 and home at 5:25, and the Blitz killed the 41% frame at 5:25. The site was an outer extractor with no defence and no army near.",
+   "evidence": [
+    "5:22 (plan) walk to spot_6; its list step 'corllt spot_25' waits for it; PICK took w3 of 2 at 0.58",
+    "5:22 events: constructor_16990 hit",
+    "5:25 (plan) walk to home; PICK took w2 of 1 at 0.86",
+    "5:25 killed by armflash at 41%"
+   ],
+   "player_knew": "yes, before: 5:21 report 'constructor_16990: at spot_25 (H3); building a Guard (corllt) at spot_25 (H3) (40 % built) ... health badly hurt, near death (29%); enemies_near: party_15 (1 armflash) 207 away'. Afterwards, 5:37: 'lost corllt to armflash in our half x1'.",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "cornanotc_3536",
+   "type": "cornanotc",
+   "cell": "G1",
+   "started": "12:13",
+   "fate": "decayed",
+   "fate_clock": "12:43",
+   "share": 0.15,
+   "metal_in": 34,
+   "cost": 230,
+   "builder": "constructor_26263",
+   "cause": "U1",
+   "also": "U9",
+   "what_happened": "The stale 10:31 list's 'cornanotc' step, played again at 12:12 after the 11:58 walk, was sited fresh at spot_5 (home, G1) instead of resuming cornanotc_20410 (57%, 450 away). The Stouts stood 885 away and the 12:16 packet said home was overrun. At 12:21 the pick walked the builder to spot_17 under the packet's 'an enemy party within reach: it walks to the commander at spot_17' as party_27 (3 armstump) came within about 770; the builder was not hit. The frame held at 15% and then decayed to 0 by 12:43.",
+   "evidence": [
+    "12:12 (list) constructor_26263: build a cornanotc at spot_5 (G1)",
+    "12:21 (plan) walk to spot_17; its list step 'cornanotc' waits for it; PICK split [constructor_26263: took w2 of 1 at 0.36]; go_spot_17 0.50: 'stepping away from party_27 (3 armstump) ... leaves the Construction Turret (cornanotc) at about 10%, which decays'",
+    "s rows 3536: 15% 12:23-12:31, 2% 12:41; destroyed by null 12:43",
+    "12:46 report: 'abandoned an unfinished cornanotc (0% built) x1'"
+   ],
+   "player_knew": "after only: no report fell between 12:13 and 12:21 (the 11:53 turn ran 40 s and the next report came at 12:32). The 12:46 abandoned line gave the 0% remnant.",
+   "fix_class": "hands-rule",
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "corsolar_20037",
+   "type": "corsolar",
+   "cell": "F2",
+   "started": "5:19",
+   "fate": "killed",
+   "fate_clock": "5:26",
+   "share": 0.12,
+   "metal_in": 18,
+   "cost": 150,
+   "builder": "constructor_15016",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "constructor_15016's list solar stood at 481 from spot_11, on the west edge of the base. party_12's Blitzes reached it and killed it at 12% while the builder stood on it. The builder was alarmed at 5:26 and survived. There was no defence or army at the site.",
+   "evidence": [
+    "5:18 (list) build a corsolar at 481 from spot_11 (F2)",
+    "5:26 events: constructor_15016 alarmed by party_12",
+    "5:27 dmg [20037, 55]; killed by armflash at 12%"
+   ],
+   "player_knew": "yes, before: 5:21 report 'constructor_15016: ... building a Solar Collector (corsolar) at 483 from spot_11 (F2) (2 % built)' and 'party_12 (3 armflash, 330 metal) last seen 0:04 ago at 350 from spot_15 (F2), then moving toward our side'. Afterwards, 5:37: 'lost corsolar to armflash at home x1'.",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "cormex_1850",
+   "type": "cormex",
+   "cell": "F1",
+   "started": "4:23",
+   "fate": "killed",
+   "fate_clock": "4:26",
+   "share": 0.08,
+   "metal_in": 4,
+   "cost": 50,
+   "builder": "constructor_23546",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The step 'extractor spot_3' had been queued at 4:03 behind the Guard at spot_11. It was promoted as the Guard finished, and the builder started the extractor at F1 (forward, undefended) with a Blitz 115-244 away and itself already being hit. The pick walked it to spot_10 at 4:25, and the Blitz killed the 8% frame at 4:26.",
+   "evidence": [
+    "4:03 constructor_23546: next, queued: build a cormex at spot_3 (F1) (from its list)",
+    "4:22 events: constructor_23546 hit; 4:23 dmg [23546, 208]",
+    "4:25 (plan) walk to spot_10; its list step 'extractor spot_3' waits for it; PICK took w2 of 1 at 0.66",
+    "4:26 killed by armflash at 8%"
+   ],
+   "player_knew": "after only: the 4:12 report showed the queued step and single Blitzes 'moving toward our side', but not the frame. Afterwards, 4:32: 'lost cormex to armflash in our half x1'.",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "cormex_21827",
+   "type": "cormex",
+   "cell": "H3",
+   "started": "7:42",
+   "fate": "killed",
+   "fate_clock": "7:45",
+   "share": 0.08,
+   "metal_in": 4,
+   "cost": 50,
+   "builder": "constructor_15016",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The step 'extractor spot_25', queued at 7:08, walked constructor_15016 to spot_25, where a Blitz (party_15) had stood 94 from the spot since 7:30. The builder started the extractor beside it at 7:42 and the Blitz killed it at 8% at 7:45, with the builder standing by. The list then ordered 'corllt spot_25' at 7:47 and the pick sent the builder home at 7:48.",
+   "evidence": [
+    "7:08 (list) constructor_15016: next, queued: build a cormex at spot_25 (H3)",
+    "record en rows: armflash 94 from the spot every second 7:30-7:45",
+    "7:42 created by 15016; 7:45 killed by armflash at 8%",
+    "7:47 (list) build a corllt at spot_25 (H3); 7:48 (plan) walk to home"
+   ],
+   "player_knew": "the threat yes, the frame only afterwards: 7:37 report 'constructor_15016: at spot_17 (H3); walking to build a Metal Extractor (cormex) at spot_25 (H3), 330 to go ... enemies_near: party_15 (1 armflash) 414 away'. Afterwards, 7:48: 'lost cormex to armflash in our half x1'.",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high"
+  }
+ ],
+ "never_started": [
+  {
+   "seat": 0,
+   "clock": "2:08",
+   "builder": "commander",
+   "type": "corsolar",
+   "cell": "G2",
+   "cause": "U6",
+   "metal_cost": 150,
+   "what_happened": "Never started: the commander stood 88 from its list solar's ordered point, within its build distance of 145, for 42 s and was not idle. No no_site or rejected event; the engine's chosen site is not recorded (no placed events in this record). The impedance review read it as the site lost to constructor_16990's solar placed a second later, but that frame stands 245 from the point. The order ended when the 2:54 list landed.",
+   "evidence": [
+    "2:08 (list) commander: build a corsolar at spot_6 (G2)",
+    "s rows 2:12-2:52: commander at (6424,913), 88 from (6346,871), flag 0",
+    "2:24 report: 'about to build a Solar Collector (corsolar) at spot_6 (G2), ordered 16 s ago'"
+   ],
+   "cost_class": "small",
+   "confidence": "low"
+  },
+  {
+   "seat": 0,
+   "clock": "4:33",
+   "builder": "constructor_23546",
+   "type": "cormex",
+   "cell": "F1",
+   "cause": "U4",
+   "metal_cost": 50,
+   "what_happened": "Re-sent once. The builder, alarmed by party_12 (Blitzes) at 4:40, was walked home by the pick at 4:42.",
+   "evidence": [
+    "4:33 (list) build a cormex at spot_3 (F1)",
+    "4:40 constructor_23546 alarmed by party_12",
+    "4:42 (plan) walk to home; its list step 'extractor spot_3' waits for it"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "5:32",
+   "builder": "constructor_15016",
+   "type": "corsolar",
+   "cell": "G2",
+   "cause": "U4",
+   "metal_cost": 150,
+   "what_happened": "Hit at 5:30-5:33, the builder was walked home by the pick at 5:34. It built a solar at another site at 5:39.",
+   "evidence": [
+    "5:32 (list) build a corsolar at 378 from spot_6 (G2)",
+    "5:30-5:33 events: constructor_15016 hit",
+    "5:34 (plan) walk to home; its list step 'corsolar' waits for it"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "5:39",
+   "builder": "constructor_16990",
+   "type": "corllt",
+   "cell": "H3",
+   "cause": "U1",
+   "metal_cost": 90,
+   "what_happened": "Re-sent four times. The list ordered 'corllt spot_25' every 5-6 s, and each time the pick walked the near-dead builder (23-29%) home under the packet's 'badly hurt (under a third of health): it walks to the commander and is repaired'. The list hold covers only a builder threatened within 800, so the list re-fired against the pick.",
+   "evidence": [
+    "5:39/5:51/6:02/6:13 (list) build a corllt at spot_25 (H3)",
+    "5:45/5:56/6:07/6:18 (plan) walk to home; its list step 'corllt spot_25' waits for it (go_home 0.62, split 0.81)"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "6:33",
+   "builder": "constructor_15016",
+   "type": "corllt",
+   "cell": "G2",
+   "cause": "U6",
+   "metal_cost": 90,
+   "what_happened": "Rejected: the step was queued behind a solar, and the engine refused the site.",
+   "evidence": [
+    "6:33 next, queued: build a corllt at spot_10 (G2)",
+    "6:38 'the engine refused a corllt at G2: the site was bad'"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "6:35",
+   "builder": "constructor_16990",
+   "type": "corllt",
+   "cell": "H3",
+   "cause": "U1",
+   "metal_cost": 90,
+   "what_happened": "The same list/pick alternation as at 5:39.",
+   "evidence": [
+    "6:24/6:35 (list) build a corllt at spot_25",
+    "6:29/6:40 (plan) walk to home"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "6:55",
+   "builder": "constructor_833",
+   "type": "cormex",
+   "cell": "G1",
+   "cause": "U2",
+   "metal_cost": 50,
+   "what_happened": "The player's 6:49 list landed with the same first step, which was taken as done while the order had not started. Its next step, corllt spot_6, replaced the unstarted extractor order 2 s later (the mechanism fixed 2026-10-16 in H-HANDS-LISTS).",
+   "evidence": [
+    "6:55 (list) build a cormex at spot_6 (G1)",
+    "6:56 'the step 'extractor spot_6' of its list is the build already under way: taken as done'",
+    "6:57 (list) build a corllt at spot_6 (G1)"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "6:57",
+   "builder": "constructor_16990",
+   "type": "corllt",
+   "cell": "H3",
+   "cause": "U1",
+   "metal_cost": 90,
+   "what_happened": "The same list/pick alternation as at 5:39.",
+   "evidence": [
+    "6:46/6:57 (list) build a corllt at spot_25",
+    "6:51 (plan) walk to home; 7:02 (plan) walk to spot_10"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "7:17",
+   "builder": "constructor_833",
+   "type": "cormex",
+   "cell": "F3",
+   "cause": "U4",
+   "metal_cost": 50,
+   "what_happened": "A queued step. The builder, alarmed by party_20 (nine Blitzes) and hit, was walked home at 7:37 and killed at 7:41.",
+   "evidence": [
+    "7:17 next, queued: build a cormex at spot_18 (F3)",
+    "7:36 alarmed by party_20; 7:37 (plan) walk to home",
+    "7:41 destroyed by an enemy"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "7:44",
+   "builder": "constructor_24695",
+   "type": "corsolar",
+   "cell": "G2",
+   "cause": "U4",
+   "metal_cost": 150,
+   "what_happened": "The builder was hit at 7:44, and the pick walked it to spot_5 at 7:45 and home at 7:47.",
+   "evidence": [
+    "7:44 (list) build a corsolar at spot_6 (G2)",
+    "7:44 events: constructor_24695 hit",
+    "7:45 (plan) walk to spot_5; its list step 'corsolar' waits for it"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "7:47",
+   "builder": "constructor_15016",
+   "type": "corllt",
+   "cell": "H3",
+   "cause": "U4",
+   "metal_cost": 90,
+   "what_happened": "The list's next step at spot_25, where the Blitz that had just killed its extractor frame still stood, about 200 from the builder; the pick sent the builder home a second later.",
+   "evidence": [
+    "7:47 (list) build a corllt at spot_25 (H3)",
+    "7:48 (plan) walk to home; its list step 'corllt spot_25' waits for it"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "9:43",
+   "builder": "constructor_24695",
+   "type": "cormex",
+   "cell": "G1",
+   "cause": "U6",
+   "metal_cost": 50,
+   "what_happened": "No site: the spot_6 extractor was refused. The spot stayed empty from 4:00 to the end, and the cause is not in the record.",
+   "evidence": [
+    "9:43 ev no_site cormex",
+    "9:59 'the engine refused a cormex at G1: the site was bad'"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "9:59",
+   "builder": "constructor_24695",
+   "type": "cormex",
+   "cell": "F3",
+   "cause": "U3",
+   "metal_cost": 50,
+   "what_happened": "The player's 10:04 list ['stop', 'corhllt home', 'corllt spot_5'] dropped it before the builder arrived; the stop landed at 10:15.",
+   "evidence": [
+    "9:59 (list) build a cormex at spot_18 (F3)",
+    "10:04 queue constructor_24695: ['stop', ...] -> 'its build in progress dropped'",
+    "10:15 stopped-on-stop"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "10:23",
+   "builder": "constructor_16990",
+   "type": "cormex",
+   "cell": "H3",
+   "cause": "U2",
+   "metal_cost": 50,
+   "what_happened": "Queued behind the nano. When the player's 10:40 list (whose first step was the same extractor) landed, the step was taken as done, and its next step, corllt spot_25, replaced the unstarted order. The Guard was then built at spot_25 with no extractor (the 2026-10-16 fix).",
+   "evidence": [
+    "10:23 next, queued: build a cormex at spot_25 (H3)",
+    "11:07 'the step 'extractor spot_25' of its list is the build already under way: taken as done'",
+    "11:08 (list) build a corllt at spot_25 (H3)"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "10:27",
+   "builder": "commander",
+   "type": "corllt",
+   "cell": "G1",
+   "cause": "U1",
+   "metal_cost": 90,
+   "what_happened": "The pick alternated its own moves: it ordered 'build a corllt at spot_6' and replaced it with 'walk to spot_10' 10 s later (with move_failed at 10:48 on that walk).",
+   "evidence": [
+    "10:27 (plan) build a corllt at spot_6 (G1)",
+    "10:37 (plan) walk to spot_10",
+    "10:48 move_failed"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "10:36",
+   "builder": "constructor_26263",
+   "type": "corhlt",
+   "cell": "G2",
+   "cause": "U6",
+   "metal_cost": 480,
+   "what_happened": "Rejected: the Heavy Laser Tower site at spot_10 was refused, and the list went on to the nano (cornanotc_20410).",
+   "evidence": [
+    "10:36 (list) build a corhlt at spot_10 (G2)",
+    "10:43 'the engine refused a corhlt at G2: the site was bad'"
+   ],
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "10:49",
+   "builder": "commander",
+   "type": "corllt",
+   "cell": "G1",
+   "cause": "U1",
+   "metal_cost": 90,
+   "what_happened": "The same alternation by the pick as at 10:27.",
+   "evidence": [
+    "10:49 (plan) build a corllt at spot_6 (G1)",
+    "10:59 (plan) walk to spot_10",
+    "11:09 move_failed"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "10:56",
+   "builder": "constructor_20595",
+   "type": "corllt",
+   "cell": "H3",
+   "cause": "U3",
+   "metal_cost": 90,
+   "what_happened": "Queued behind a Twin Guard from the old list, it was dropped when the player's 10:40 list replaced that list (the replaced list drops what was queued).",
+   "evidence": [
+    "10:56 next, queued: build a corllt at spot_17 (H3)",
+    "11:32 'dropped the step 'corllt spot_17' its old list had queued behind the build it was on: you have replaced or cancelled that list since'"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "11:11",
+   "builder": "commander",
+   "type": "corllt",
+   "cell": "G1",
+   "cause": "U1",
+   "metal_cost": 90,
+   "what_happened": "The same alternation (11:11 build, 11:13 walk, 11:14 build). The commander walked toward the site under fire from the Stouts (100% to 82%), and the pick put it on helping 20595 at 11:23. The player's 11:20 'stop' landed at 11:40.",
+   "evidence": [
+    "11:11/11:14 (plan) build a corllt at spot_6 (G1)",
+    "11:13 (plan) walk to spot_17; 11:23 (plan) help constructor_20595 build",
+    "s rows: commander 100% at 11:15, 82% at 11:23"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "11:58",
+   "builder": "constructor_24695",
+   "type": "cormex",
+   "cell": "G1",
+   "cause": "U1",
+   "metal_cost": 50,
+   "what_happened": "The list ordered the extractor at spot_6, toward the Stouts (about 320 from the spot), and the pick walked the builder to spot_12 a second later under the packet's 'an enemy party near it' rule.",
+   "evidence": [
+    "11:58 (list) build a cormex at spot_6 (G1)",
+    "11:59 (plan) walk to spot_12; its list step 'extractor spot_6' waits for it"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "12:01",
+   "builder": "constructor_16990",
+   "type": "cormex",
+   "cell": "G4",
+   "cause": "U1",
+   "metal_cost": 50,
+   "what_happened": "The pick walked the builder to spot_12 in the same second its list ordered the step.",
+   "evidence": [
+    "12:01 (list) build a cormex at spot_29 (G4)",
+    "12:01 (plan) walk to spot_12; its list step 'extractor spot_29' waits for it"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "12:05",
+   "builder": "constructor_24695",
+   "type": "cormex",
+   "cell": "G1",
+   "cause": "U3",
+   "metal_cost": 50,
+   "what_happened": "The player's 11:53 list ['corvp spot_17 #vp2'] landed at 12:16 (after a 40-s turn) and replaced the order.",
+   "evidence": [
+    "12:05 (list) build a cormex at spot_6 (G1)",
+    "12:16 (list) build a corvp at spot_17 (H3) (#vp2)"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "12:14",
+   "builder": "constructor_16990",
+   "type": "cormex",
+   "cell": "G4",
+   "cause": "U3",
+   "metal_cost": 50,
+   "what_happened": "Replaced by the same 11:53 list at 12:16.",
+   "evidence": [
+    "12:14 (list) build a cormex at spot_29 (G4)",
+    "12:16 (list) build a corvp at spot_17 (H3) (#vp2)"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "12:30",
+   "builder": "constructor_20595",
+   "type": "cormex",
+   "cell": "F1",
+   "cause": "U4",
+   "metal_cost": 50,
+   "what_happened": "Its list's next step was an extractor at F1, toward the Stouts. Hit at 12:29 and 12:31, the builder was walked to spot_17 at 12:31 and killed at 12:34.",
+   "evidence": [
+    "12:30 (list) build a cormex at spot_3 (F1)",
+    "12:29/12:31 events: constructor_20595 hit; 12:31 (plan) walk to spot_17",
+    "12:34 destroyed"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  }
+ ],
+ "never_started_tally": {
+  "U6": {
+   "n": 4,
+   "metal_cost": 770
+  },
+  "U4": {
+   "n": 6,
+   "metal_cost": 540
+  },
+  "U1": {
+   "n": 8,
+   "metal_cost": 640
+  },
+  "U2": {
+   "n": 2,
+   "metal_cost": 100
+  },
+  "U3": {
+   "n": 4,
+   "metal_cost": 240
+  }
+ },
+ "tally": {
+  "U0": {
+   "n": 0,
+   "metal": 0
+  },
+  "U1": {
+   "n": 1,
+   "metal": 34
+  },
+  "U2": {
+   "n": 0,
+   "metal": 0
+  },
+  "U3": {
+   "n": 2,
+   "metal": 99
+  },
+  "U4": {
+   "n": 6,
+   "metal": 378
+  },
+  "U5": {
+   "n": 0,
+   "metal": 0
+  },
+  "U6": {
+   "n": 0,
+   "metal": 0
+  },
+  "U7": {
+   "n": 0,
+   "metal": 0
+  },
+  "U8": {
+   "n": 1,
+   "metal": 64
+  },
+  "U9": {
+   "n": 1,
+   "metal": 285
+  }
+ },
+ "by_fate": {
+  "decayed": {
+   "n": 3,
+   "metal": 248
+  },
+  "killed": {
+   "n": 6,
+   "metal": 263
+  },
+  "at_end": {
+   "n": 2,
+   "metal": 349
+  }
+ },
+ "by_type": {
+  "corvp": {
+   "n": 1,
+   "metal": 285
+  },
+  "corhllt": {
+   "n": 1,
+   "metal": 168
+  },
+  "cornanotc": {
+   "n": 3,
+   "metal": 234
+  },
+  "corsolar": {
+   "n": 3,
+   "metal": 128
+  },
+  "corllt": {
+   "n": 1,
+   "metal": 37
+  },
+  "cormex": {
+   "n": 2,
+   "metal": 8
+  }
+ },
+ "player_knew": {
+  "before": 8,
+  "after": 3,
+  "never": 0,
+  "dropped_itself": 3,
+  "notes": "before: corllt_12691, corsolar_20037, corsolar_22545, cornanotc_20410, corhllt_10583, cornanotc_22093, corvp_1291, corsolar_31698. after (the 'lost X to Y' or 'abandoned' line only): cormex_1850, cormex_21827, cornanotc_3536. dropped_itself: corsolar_22545 and cornanotc_22093 (U3), and corvp_1291, whose primary cause is U9 and which the player dropped on seeing it was a duplicate."
+ },
+ "mechanisms": [
+  "The same-tick id race: constructor_16990 and constructor_24695 played 'corvp spot_17 #vp2' in one second, each saw the id free, and both started a plant on an income of 7-11, so corvp_1291 was a second plant (285 metal, cut to about 70 had the 12:55 stop landed at once). Fixed 2026-10-12 (lists::nearest_first, same_tick_help) and unmeasured since. The id's claim still sent constructor_16990 to repair the dropped frame at 13:36.",
+  "The energy stall of 11:04-12:00: the energy store was at 0 on +130-270 a second while three Twin Guards, a nano, a refused HLT and the plant drew from the 10:04-10:40 lists. cornanotc_20410 was at 64% after 71 s; at the full rate (56 s) it would have stood by about 11:44, before the Stouts hit its builder at 11:54. cornanotc_22093 was dropped at 23% for solars because of the same stall. That is 200 metal, plus corhllt_10583 (168) marginally, about 5 s slower in its first 27 s.",
+  "Frames started into a known enemy's path with no army to cover them. The Blitz raids took cormex_1850, corllt_12691, corsolar_20037 and cormex_21827 (63 metal); two of these were list steps queued earlier that walked their builder onto a standing Blitz or were promoted while the builder was hit. party_27's Stouts at home took corhllt_10583, killed at 86% with its builder on it (168), and cornanotc_3536 (34), which a stale list step had re-sited at home instead of resuming the standing nano. That is 265 metal in all; only the 8 metal of the two queued-step frames is a hands-rule fix, and the rest needs army cover."
+ ],
+ "findings": [
+  "The report's 'abandoned an unfinished X (N% built)' line gives the share left at destruction, not the share reached: the corsolar left at 31% read '1% built' and the nano left at 15% read '0% built'. It also called the Twin Guard killed by Stout fire at 86% 'abandoned (14% built)'.",
+  "The realtime landing delay raised the loss on both of the player's drop orders: the 9:22 stop landed at 9:33 (the frame went from 1% to 31%), and the 12:55 stop landed at 13:08 (12% to about 43%).",
+  "A diverted list step with no place was re-sited near the builder rather than resuming the frame it had left: constructor_26263's one 'cornanotc' step made three frames (20410 at G2, 3536 at G1, 22093 at H2) and none finished."
+ ],
+ "unread": "Nothing torn and no tool crashed. This record (2026-10-07) predates the placed-site event (6ea433b), so the engine's chosen site is not recorded: for the commander's 2:08 solar (left at U6 with low confidence) and for the two #vp2 frames, which went up about 400 from the ordered point. Single seat; no symlink directory was needed."
+}

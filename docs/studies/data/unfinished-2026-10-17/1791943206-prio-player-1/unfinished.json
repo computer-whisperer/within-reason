@@ -1,0 +1,1039 @@
+{
+ "game": "1791943206-prio-player-1",
+ "result": "won 18:02",
+ "minutes": 18.04,
+ "seats": 1,
+ "opponent": "BARb hard_aggressive",
+ "kind": "arena",
+ "denominators": {
+  "0": {
+   "frames": 137,
+   "finished": 111,
+   "decayed": 3,
+   "killed": 18,
+   "at_end": 5,
+   "metal_in_unfinished": 1222,
+   "never_started": 25
+  }
+ },
+ "items": [
+  {
+   "seat": 0,
+   "frame": "armnanotc_27342",
+   "type": "armnanotc",
+   "cell": "B8",
+   "started": "8:00",
+   "fate": "decayed",
+   "fate_clock": "9:56",
+   "share": 0.77,
+   "metal_in": 177,
+   "cost": 230.0,
+   "builder": "constructor_16840",
+   "cause": "U9",
+   "also": "U2",
+   "what_happened": "constructor_16840's list nano (7:52 queue) reached 60% and the list queued its next step (armadvsol) behind it at 8:36 (H-HANDS-QUEUE). At 8:37 constructor_2945's own nano (armnanotc_1967) finished 222 from this frame; the finished-event handler takes any started build of the same type within 250 as done and promoted 16840's queued advsol to its task. The blocked-site watchdog then saw an unstarted advsol with its builder standing still within reach (it was still building this nano) and at 8:45 stopped it (frame at 76%), refused the site 90 s and put the step back; the list re-ordered the advsol 400 away at 8:46 and the builder walked off at 77%. The frame decayed 8:53-9:56.",
+   "evidence": [
+    "8:36 (list) next, queued: build a armadvsol at home (B8)",
+    "8:37 finished armnanotc_1967 at (1672,5576), 222 from this frame (constructor_2945's: 8:37 report 'building a Construction Turret (armnanotc) at spot_73 (B8) (99 % built)')",
+    "8:45 cmd stop 16840; hands: '8:45 constructor_16840: its armadvsol at B8 never started in the 8 s it stood at the site: the site is blocked (a frame of the same type it cannot reach, most likely), refused for 90 s, and the order goes again elsewhere'",
+    "8:46 (list) build a armadvsol at home (B8); placed (1088,5296); created armadvsol_29341 8:50; nano share 77% at 8:46-8:55, then 76..12% to 9:47, destroyed by nobody 9:56",
+    "code at 59b8cf4 and HEAD: mod.rs Event::UnitFinished filters tasks by `Task::Build { def, near, started: true } if *def == done.def && near.dist2d(done.pos) < 250.0`; the watchdog tests `pianist.tasks` only (Task::Build started:false, builder still, within reach)"
+   ],
+   "player_knew": "yes before: 8:27 report 'building a Construction Turret (armnanotc) at spot_67 (B8) (45 % built)', 8:37 '(62 % built)'; from 8:43 the entry named only the advsol ('walking to build a Advanced Solar Collector (armadvsol) at home (B8), 157 to go') with the nano still standing; after: 9:58 'fights since last turn: abandoned an unfinished armnanotc (1% built) x1' (no place, 1% for a frame that reached 77%), and no hands' 'abandoned ... at B8' line",
+   "fix_class": "hands-rule",
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_1371",
+   "type": "armllt",
+   "cell": "D7",
+   "started": "6:34",
+   "fate": "killed",
+   "fate_clock": "6:48",
+   "share": 0.71,
+   "metal_in": 60,
+   "cost": 85.0,
+   "builder": "constructor_2945",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "List turret (5:15 queue: 'extractor spot_64', 'armllt spot_64') at spot_64 in our half, started with nine Pawns at D6 in the report; the builder stayed on it and the Pawns killed it at 71% while group_J (the 6:32 packet's answer to them) arrived.",
+   "evidence": [
+    "frames.py: killed 6:48 by armpw at 71%; builder was told nothing else while the frame stood",
+    "6:28 (list) next, queued: build a armllt at spot_64 (D7); created 6:34",
+    "record at start: armpw 562 from the site, 2 Blitzes within 800; at the kill 4 Pawns within 243, 5 Blitzes"
+   ],
+   "player_knew": "yes before: 6:32 report 'enemy in sight: 9 at D6 (3429, 4154) ... armpw 9', builder entry 'enemies_near: party_16 (9 armpw) 756 away'; 6:42 'building a Sentry (armllt) at spot_64 (D7) (54 % built)'; after: 6:52 'lost armllt to armpw in our half x1'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_10658",
+   "type": "armllt",
+   "cell": "B4",
+   "started": "9:48",
+   "fate": "killed",
+   "fate_clock": "10:14",
+   "share": 0.48,
+   "metal_in": 41,
+   "cost": 85.0,
+   "builder": "constructor_600",
+   "cause": "U4",
+   "also": "U5",
+   "what_happened": "List turret (6:52 queue) at spot_28, our north-west outer spot, no armed unit of ours near. The metal store sat at 0-18 from 9:56 (the player's 9:58 note: 'Energy banking (+184) with metal at 0') and progress stopped at 48% by 10:03; a lone Tick then shot the frame for 11 s while the builder stood on it.",
+   "evidence": [
+    "frames.py: killed 10:14 by armflea at 48%; stalled 11 s; stores min metal 0.0; builder was told nothing else",
+    "9:39 (list) next, queued: build a armllt at spot_28 (B4); created 9:48",
+    "record: metal 18 at 9:56, 0 at 10:00, 7 at 10:03; frame 48% 10:03, 36% 10:06, 11% 10:12; destroyed by armflea 10562"
+   ],
+   "player_knew": "yes before: 9:58 'building a Sentry (armllt) at spot_28 (B4) (35 % built)'; 10:08 '(27 % built)' with 'enemy in sight: 1 at B4 (1075, 2324) ... armflea 1; killing our Sentry (armllt) (85 metal) now' and 'enemies_near: party_42 (1 armflea) 175 away'; no order for it; after: 10:18 'lost armllt to armflea in our half x1'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_977",
+   "type": "armllt",
+   "cell": "D8",
+   "started": "11:09",
+   "fate": "killed",
+   "fate_clock": "11:21",
+   "share": 0.39,
+   "metal_in": 33,
+   "cost": 85.0,
+   "builder": "constructor_10629",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "List turret (10:37 queue: 'armllt spot_71', ...) at spot_71 in our half, no armed unit of ours within 800; four Pawns 630-750 away at the start closed and killed it at 39%.",
+   "evidence": [
+    "frames.py: killed 11:21 by armpw at 39%; builder was told nothing else",
+    "10:45 (list) build a armllt at spot_71 (D8); created 11:09",
+    "record at start: 4 armpw 631-753 from the site; 0 armed of ours within 800"
+   ],
+   "player_knew": "yes before: 11:06 'enemy in sight: 2 at E7 (4350, 5055) ... armpw 2' and 'extractors under threat: E7 (2 enemies, NO turret)'; 11:16 'building a Sentry (armllt) at spot_71 (D8) (24 % built)'; after: 11:26 'lost armllt to armpw in our half x1'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_15814",
+   "type": "armmex",
+   "cell": "D5",
+   "started": "8:59",
+   "fate": "killed",
+   "fate_clock": "9:13",
+   "share": 0.61,
+   "metal_in": 30,
+   "cost": 50.0,
+   "builder": "constructor_10629",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "List extractor (5:53 queue) at spot_47, the second frame at spot_47 in 15 s (armmex_13685 was killed there at 8:49); a Pawn killed it at 61%.",
+   "evidence": [
+    "frames.py: killed 9:13 by armpw at 61%; builder was told nothing else",
+    "8:36 (list) build a armmex at spot_47 (D5); created 8:59",
+    "record at start: armflea 305, armpw 547; no armed unit of ours within 800 (3 Blitzes at the kill)"
+   ],
+   "player_knew": "yes before: 8:59 'enemy in sight: 1 at D5 (3256, 3139) ... armpw 1', builder 'enemies_near: party_37 (1 armflea) 264 away'; 9:09 'building a Metal Extractor (armmex) at spot_47 (D5) (46 % built)'; after: 9:19 'lost armmex to armpw in our half x1'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_1611",
+   "type": "armmex",
+   "cell": "E5",
+   "started": "17:04",
+   "fate": "killed",
+   "fate_clock": "17:18",
+   "share": 0.59,
+   "metal_in": 30,
+   "cost": 50.0,
+   "builder": "constructor_24993",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "List extractor (15:39 queue) at spot_46 in his half, undefended; no enemy within 900 at the start; a Pawn arrived and killed it at 59%.",
+   "evidence": [
+    "frames.py: killed 17:18 by armpw at 59%; builder was told nothing else",
+    "16:52 (list) build a armmex at spot_46 (E5); created 17:04",
+    "record at start: no enemy within 900, no armed unit of ours within 800"
+   ],
+   "player_knew": "no (threat): 17:04 report showed a Tick at E4 only; frame yes before: 17:14 'building a Metal Extractor (armmex) at spot_46 (E5) (49 % built)'; after: 17:21 'lost armmex to armpw in their half x1'",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_24498",
+   "type": "armmex",
+   "cell": "F5",
+   "started": "17:16",
+   "fate": "killed",
+   "fate_clock": "17:32",
+   "share": 0.61,
+   "metal_in": 30,
+   "cost": 50.0,
+   "builder": "constructor_22608",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "List extractor (15:39 queue) at spot_40 in his half, undefended, started with a Pawn 576 away that the report showed; it killed the frame at 61%.",
+   "evidence": [
+    "frames.py: killed 17:32 by armpw at 61%; builder was told nothing else",
+    "constructor_22608 walked 87 s to it on its 15:39 list step 'extractor spot_40'",
+    "record at start: armpw 576; no armed unit of ours within 800"
+   ],
+   "player_knew": "yes before: 17:14 'enemy in sight: 1 at E5 (4905, 3780) ... armpw 1', 'extractors under threat: E5 (1 enemies, turret); E5 (1 enemies, NO turret)', builder 'enemies_near: party_95 (1 armpw) 484 away'; 17:31 '(54 % built)'; after: 17:39 'lost armmex to armpw in their half x1'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_28190",
+   "type": "armmex",
+   "cell": "E4",
+   "started": "17:07",
+   "fate": "killed",
+   "fate_clock": "17:21",
+   "share": 0.58,
+   "metal_in": 29,
+   "cost": 50.0,
+   "builder": "constructor_14623",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "List extractor (15:39 queue) at spot_32 in his half, started while a Tick was hitting the builder; a Blitz killed the frame at 58% after our three units near it moved on.",
+   "evidence": [
+    "frames.py: killed 17:21 by armflash at 58%; builder was told nothing else",
+    "constructor_14623 walked 77 s to it on its 15:39 list step 'extractor spot_32'",
+    "record at start: armflea 642; armart, armfav, armstump within 800 (none at the kill)"
+   ],
+   "player_knew": "yes before: 17:04 'enemy in sight: 1 at E4 (4314, 2702) ... armflea 1; killing our Construction Vehicle (armcv) (135 metal) now', builder 'enemies_near: party_112 (1 armflea) 107 away ... under_fire: yes'; 17:14 '(33 % built)', 17:21 '(8 % built)'; after: 17:21 'lost armmex to armflash in their half x1'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_21205",
+   "type": "armllt",
+   "cell": "B5",
+   "started": "7:05",
+   "fate": "killed",
+   "fate_clock": "7:18",
+   "share": 0.25,
+   "metal_in": 21,
+   "cost": 85.0,
+   "builder": "constructor_10629",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "List turret (5:53 queue) at spot_45 at B5, our west, no enemy within 900 at the start and no guard; a lone Tick arrived and killed it at 25%.",
+   "evidence": [
+    "frames.py: killed 7:18 by armflea at 25%; builder was told nothing else",
+    "6:56 (list) next, queued: build a armllt at spot_45 (B5); created 7:05",
+    "record: no enemy within 900 at the start; the Tick 36 from it at the kill, 1 Blitz within 800"
+   ],
+   "player_knew": "no (threat): 7:02 report had no enemy near B5; frame yes before: 7:12 '(19 % built)'; after: 7:22 'lost armllt to armflea in our half x1'",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_6304",
+   "type": "armmex",
+   "cell": "C8",
+   "started": "3:13",
+   "fate": "killed",
+   "fate_clock": "3:28",
+   "share": 0.41,
+   "metal_in": 20,
+   "cost": 50.0,
+   "builder": "constructor_2945",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "Opening list extractor (2:09 queue) at spot_69, C8 near home, undefended; an unseen Tick killed it at 41%.",
+   "evidence": [
+    "frames.py: killed 3:28 by armflea at 41%; builder was told nothing else",
+    "2:53 (list) next, queued: build a armmex at spot_69 (C8); created 3:13",
+    "record: no enemy within 900 at the start, no armed unit of ours within 800; frame 41% at 3:22, falling to 0 at 3:28"
+   ],
+   "player_knew": "no (threat): 3:07 report 'enemy in sight: 1 at A7 ... armpw 1' only; frame yes before: 3:17 '(16 % built)'; after: 3:34 'lost armmex to armflea at home x1'",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_15605",
+   "type": "armllt",
+   "cell": "E7",
+   "started": "7:54",
+   "fate": "killed",
+   "fate_clock": "8:01",
+   "share": 0.2,
+   "metal_in": 17,
+   "cost": 85.0,
+   "builder": "constructor_56",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "List turret (6:32 queue) at spot_66 at E7, undefended; two Pawns 520-540 away at the start (in the hands' picture, in no report) killed the frame at 20% and its builder a second later.",
+   "evidence": [
+    "frames.py: killed 8:01 by armpw at 20%; builder died 8:02 (by armpw)",
+    "7:43 (list) next, queued: build a armllt at spot_66 (E7)",
+    "record at start: armpw 519, 539; no armed unit of ours within 800"
+   ],
+   "player_knew": "no (threat): 7:52 report had no enemy near E7; frame yes before: 7:59 '(18 % built)'; after: 8:08 'lost armcv to armpw in our half x1, lost armllt to armpw in our half x1'",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_7898",
+   "type": "armmex",
+   "cell": "D7",
+   "started": "8:18",
+   "fate": "killed",
+   "fate_clock": "8:26",
+   "share": 0.32,
+   "metal_in": 16,
+   "cost": 50.0,
+   "builder": "constructor_1412",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "List extractor (7:42 queue) at spot_64, the spot whose turret died at 6:48, started with a Tick 359 away and the report's D6 raid; Pawns killed it at 32% though five Blitzes stood within 800.",
+   "evidence": [
+    "frames.py: killed 8:26 by armpw at 32%; builder was told nothing else",
+    "7:50 (list) build a armmex at spot_64 (D7) (7:42 list); created 8:18",
+    "record at start: armflea 359, armpw 768; 5 Blitzes within 800 at the start and at the kill"
+   ],
+   "player_knew": "yes (threat), never (frame): 8:18 'enemy in sight: 2 at D6 (3365, 4553) ... armflea 1, armpw 1', 'extractors under threat: D6 (2 enemies, NO turret)', builder 'enemies_near: party_11 (1 armflea) 449 away'; no report showed the frame; after: 8:27 'lost armmex to armpw in our half x2'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_13253",
+   "type": "armllt",
+   "cell": "D6",
+   "started": "8:19",
+   "fate": "killed",
+   "fate_clock": "8:31",
+   "share": 0.18,
+   "metal_in": 15,
+   "cost": 85.0,
+   "builder": "constructor_24993",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "List turret (7:32 queue) at spot_56, a spot left with no extractor (its extractor step was taken as done at 7:40, see the never-started items); started inside the D6 raid; a Tick killed it at 18%.",
+   "evidence": [
+    "frames.py: killed 8:31 by armflea at 18%; builder was told nothing else",
+    "7:41 (list) build a armllt at spot_56 (D6)",
+    "record at start: armflea 684, armpw 545-616 x3; 2 Blitzes within 800"
+   ],
+   "player_knew": "yes before: 8:18 'extractors under threat: D6 (2 enemies, NO turret)', builder 'enemies_near: party_29 (1 armpw) 467 away'; 8:27 'building a Sentry (armllt) at spot_56 (D6) (15 % built)'; after: 8:37 'lost armllt to armflea in our half x1'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_12979",
+   "type": "armllt",
+   "cell": "E5",
+   "started": "17:35",
+   "fate": "killed",
+   "fate_clock": "17:43",
+   "share": 0.15,
+   "metal_in": 13,
+   "cost": 85.0,
+   "builder": "constructor_24993",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "List turret (15:39 queue) at spot_46 in his half, started 17 s after the same spot's extractor (armmex_1611) was killed, with a Pawn 292 and a Tick 368 away; the Pawn killed it at 15%.",
+   "evidence": [
+    "frames.py: killed 17:43 by armpw at 15%; builder was told nothing else",
+    "17:26 (list) build a armllt at spot_46 (E5); created 17:35",
+    "record at start: armpw 292, armflea 368; 1 Stout within 800"
+   ],
+   "player_knew": "yes before: 17:31 'enemy in sight: 1 at E5 (5049, 3166) ... armpw 1; killing our Construction Vehicle (armcv) (135 metal) now', builder 'enemies_near: party_124 (1 armflea, 1 armpw) 650 away'; 17:39 '(14 % built)'; after: 17:45 'lost armllt to armpw in their half x1'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_11161",
+   "type": "armllt",
+   "cell": "C4",
+   "started": "12:03",
+   "fate": "killed",
+   "fate_clock": "12:08",
+   "share": 0.14,
+   "metal_in": 12,
+   "cost": 85.0,
+   "builder": "constructor_17684",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "List turret (10:18 queue) at spot_39 in our half, no enemy within 900 at the start; four Pawns and a Tick arrived within 5 s and killed it at 14%, two Blitzes near.",
+   "evidence": [
+    "frames.py: killed 12:08 by armpw at 14%; builder was told nothing else",
+    "11:50 (list) next, queued: build a armllt at spot_39 (C4)",
+    "record: no enemy within 900 at the start; at the kill 4 armpw and an armflea within 250, 2 Blitzes within 800"
+   ],
+   "player_knew": "no (threat): 11:56 report had no enemy near C4; frame never in a report; after: 12:11 'lost armllt to armpw in our half x1'",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_13685",
+   "type": "armmex",
+   "cell": "D5",
+   "started": "8:44",
+   "fate": "killed",
+   "fate_clock": "8:49",
+   "share": 0.16,
+   "metal_in": 8,
+   "cost": 50.0,
+   "builder": "constructor_24993",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "List extractor (7:32 queue) at spot_47, started by a hurt builder with a Pawn 498 away that the report showed; killed at 16%.",
+   "evidence": [
+    "frames.py: killed 8:49 by armpw at 16%; builder was told nothing else",
+    "8:32 (list) build a armmex at spot_47 (D5)",
+    "record at start: armpw 498; armfav and 2 Blitzes within 800 (none at the kill)"
+   ],
+   "player_knew": "yes (threat), never (frame): 8:43 'enemy in sight: 1 at D5 (4081, 3749) ... armpw 1', builder 'health hurt (63%); enemies_near: party_29 (1 armflea, 1 armpw) 496 away'; after: 8:53 'lost armmex to armpw in our half x1'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_19130",
+   "type": "armllt",
+   "cell": "D6",
+   "started": "8:22",
+   "fate": "killed",
+   "fate_clock": "8:24",
+   "share": 0.04,
+   "metal_in": 3,
+   "cost": 85.0,
+   "builder": "constructor_10629",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "List turret (5:53 queue), queued behind spot_59's extractor, started with three Pawns 65-155 from the site; killed at 4% two seconds later.",
+   "evidence": [
+    "frames.py: killed 8:24 by armpw at 4%; builder was told nothing else",
+    "8:12 (list) next, queued: build a armllt at spot_59 (D6); created 8:22",
+    "record at start: armpw 65, 130, 155; 5 Blitzes within 800"
+   ],
+   "player_knew": "yes (threat), never (frame): 8:18 'extractors under threat: D6 (2 enemies, NO turret)', builder 'enemies_near: party_29 (1 armpw) 380 away'; after: 8:27 'lost armllt to armpw in our half x1'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_30020",
+   "type": "armllt",
+   "cell": "D7",
+   "started": "8:31",
+   "fate": "killed",
+   "fate_clock": "8:33",
+   "share": 0.03,
+   "metal_in": 3,
+   "cost": 85.0,
+   "builder": "constructor_1412",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "List turret (7:42 queue) at spot_64, the third frame there in two minutes, started with three Pawns 170-350 away that the report showed killing at D7; killed at 3%.",
+   "evidence": [
+    "frames.py: killed 8:33 by armpw at 3%; builder was told nothing else",
+    "8:27 (list) build a armllt at spot_64 (D7); created 8:31",
+    "record at start: armpw 170, 275, 351"
+   ],
+   "player_knew": "yes (threat), never (frame): 8:27 'enemy in sight: 3 at D7 (3164, 4919) ... armpw 3; killing our Metal Extractor (armmex), our Blitz (armflash) (160 metal) now', builder 'idle ... enemies_near: party_11 (1 armflea, 3 armpw) 372 away'; after: 8:37 'lost armllt to armpw in our half x1'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_13591",
+   "type": "armllt",
+   "cell": "C4",
+   "started": "11:10",
+   "fate": "decayed",
+   "fate_clock": "11:21",
+   "share": 0.03,
+   "metal_in": 3,
+   "cost": 85.0,
+   "builder": "constructor_30353",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "List turret (9:29 queue, queued 10:58) at spot_39. A Pawn stood 46 from the site as the frame began; the pick walked the builder away (a retreat play) the same second, it was hit (100 to 60% health), and the 3% frame decayed.",
+   "evidence": [
+    "frames.py: decayed 11:21 at 3%; 11:10 (plan) walk to spot_63; its list step 'armllt spot_39' waits for it",
+    "hands_window 11:10: 'constructor_30353 alarmed by party_54'; menu go_spot_63=0.54 go_spot_66=0.34 go_home=0.32; PICK 'constructor_30353: took w2 of 1 at 0.6'",
+    "record: party_54 (1 armpw) at (3011,2942), 46 from the site"
+   ],
+   "player_knew": "never before (the Pawn appeared at 11:09, after the 11:06 report); after: 11:26 '11:21 abandoned an unfinished armllt at C4 (1% built): its builder was sent elsewhere and the frame decayed'",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_1059",
+   "type": "armllt",
+   "cell": "E4",
+   "started": "17:50",
+   "fate": "killed",
+   "fate_clock": "17:52",
+   "share": 0.02,
+   "metal_in": 2,
+   "cost": 85.0,
+   "builder": "constructor_14623",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "List turret (15:39 queue) at spot_32 in his half, begun by a builder at 33% health with a Tick 85 and a Blitz 271 from the site, 29 s after the spot's extractor (armmex_28190) died; the Blitz killed it at 2%.",
+   "evidence": [
+    "frames.py: killed 17:52 by armflash at 2%; builder was told nothing else",
+    "17:34 (list) build a armllt at spot_32 (E4); created 17:50",
+    "record at start: armflea 85, armflash 271; 10 armed of ours within 800"
+   ],
+   "player_knew": "no (threat): 17:45 report showed nothing at E4, builder 'health badly hurt, near death (33%)'; frame never in a report; after: 17:55 'lost armllt to armflash in their half x1'",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armvp_12149",
+   "type": "armvp",
+   "cell": "B8",
+   "started": "17:29",
+   "fate": "at_end",
+   "fate_clock": "18:02",
+   "share": 0.52,
+   "metal_in": 307,
+   "cost": 590.0,
+   "builder": "constructor_11846",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "Third vehicle plant (#vp4, constructor_11846's 17:04 list), placed 600 from 'home' at (1294,6016), started 17:29, 52% and progressing at 18:02. The game ended (won) with the builder on it.",
+   "evidence": [
+    "frames.py: unfinished at end (18:02) at 52%; last progress 18:02; stalled 0 s",
+    "17:12 (list) build a armvp at home (B8) (#vp4); placed (1296,6016); 17:29 created"
+   ],
+   "player_knew": "yes before: the 17:45 and 17:55 reports showed the builder's entry building it; no after (game end)",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armnanotc_2935",
+   "type": "armnanotc",
+   "cell": "B8",
+   "started": "17:29",
+   "fate": "at_end",
+   "fate_clock": "18:02",
+   "share": 0.54,
+   "metal_in": 124,
+   "cost": 230.0,
+   "builder": "constructor_600",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "Nano #nano_a (16:46 list, constructor_600), started 17:29, 54% and progressing at 18:02. The game ended (won) with the builder on it.",
+   "evidence": [
+    "frames.py: unfinished at end (18:02) at 54%; last progress 18:02; stalled 0 s",
+    "16:52 (list) build a armnanotc at home (B8) (#nano_a); 17:29 created"
+   ],
+   "player_knew": "yes before: the 17:45 and 17:55 reports showed the builder's entry building it; no after (game end)",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armnanotc_885",
+   "type": "armnanotc",
+   "cell": "B8",
+   "started": "17:40",
+   "fate": "at_end",
+   "fate_clock": "18:02",
+   "share": 0.36,
+   "metal_in": 83,
+   "cost": 230.0,
+   "builder": "constructor_16840",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "Nano #nano_b (16:46 list, constructor_16840), started 17:40, 36% at 18:02. The game ended (won) with the builder on it.",
+   "evidence": [
+    "frames.py: unfinished at end (18:02) at 36%; last progress 18:02; stalled 0 s",
+    "16:53 (list) build a armnanotc at home (B8) (#nano_b); 17:40 created"
+   ],
+   "player_knew": "yes before: the 17:45 and 17:55 reports showed the builder's entry building it; no after (game end)",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_21106",
+   "type": "armllt",
+   "cell": "F3",
+   "started": "17:37",
+   "fate": "at_end",
+   "fate_clock": "18:02",
+   "share": 0.92,
+   "metal_in": 78,
+   "cost": 85.0,
+   "builder": "constructor_18284",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "Turret at spot_27 in his half (17:14 list, constructor_18284) after a 110 s walk across the map, 92% at 18:02. The game ended (won) with the builder on it.",
+   "evidence": [
+    "frames.py: unfinished at end (18:02) at 92%; last progress 18:02; stalled 0 s",
+    "17:19 (list) build a armllt at spot_27 (F3); 17:37 created; 17:54 (list) nothing to do: no extractor of ours stands at spot_27 to upgrade into a armmex"
+   ],
+   "player_knew": "yes before: the 17:45 and 17:55 reports showed the builder's entry building it; no after (game end)",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armnanotc_1321",
+   "type": "armnanotc",
+   "cell": "B7",
+   "started": "17:51",
+   "fate": "at_end",
+   "fate_clock": "18:02",
+   "share": 0.29,
+   "metal_in": 67,
+   "cost": 230.0,
+   "builder": "constructor_10629",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "Nano #nano_vp3 (16:36 list, constructor_10629) beside plant #vp3, started 17:51, 29% at 18:02. The game ended (won) with the builder on it.",
+   "evidence": [
+    "frames.py: unfinished at end (18:02) at 29%; last progress 18:02; stalled 0 s",
+    "17:36 (list) next, queued: build a armnanotc at 464 from spot_73 (B7) (#nano_vp3); 17:51 created"
+   ],
+   "player_knew": "yes before: the 17:45 and 17:55 reports showed the builder's entry building it; no after (game end)",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armadvsol_31890",
+   "type": "armadvsol",
+   "cell": "B7",
+   "started": "10:09",
+   "fate": "decayed",
+   "fate_clock": "10:20",
+   "share": 0.0,
+   "metal_in": 0,
+   "cost": 350.0,
+   "builder": "constructor_18284",
+   "cause": "U3",
+   "also": null,
+   "what_happened": "The player cancelled constructor_18284's list at 9:58 ('cancelled the home constructors' solar lists so they expand instead'); its list had queued an armadvsol behind the solar at 9:57. When the solar finished at 10:09 the engine began the queued advsol and the hands dropped it with a stop the same tick (the law: a cancelled list drops what was queued behind the build). The 0% frame decayed; at 10:10 the pick walked the builder home.",
+   "evidence": [
+    "9:57 (list) next, queued: build a armadvsol at 357 from spot_73 (B7)",
+    "9:58 queue {'constructor_18284': null, ...}: 'list cancelled; a build in progress finishes'",
+    "10:09 cmd stop 18284 and created armadvsol_31890 the same tick; hands: '10:09 constructor_18284: dropped the step 'armadvsol' its old list had queued behind the build it was on: you have replaced or cancelled that list since'",
+    "10:10 (plan) walk to home"
+   ],
+   "player_knew": "dropped itself: 9:58 report carried '9:57 constructor_18284: next, queued: build a armadvsol'; its note says it cancelled the lists to stop banking energy; after: 10:20 'abandoned an unfinished armadvsol at B7 (0% built)'",
+   "fix_class": "tool",
+   "cost_class": "none",
+   "confidence": "high"
+  }
+ ],
+ "never_started": [
+  {
+   "clock": "10:46",
+   "builder": "constructor_24993",
+   "type": "armnanotc",
+   "cell": "B8",
+   "cause": "U3",
+   "also": null,
+   "what_happened": "The pick sent it from C4 to build a nano at spot_67 (a 58 s walk); at 11:44, about 400 short, the player's 11:36 list (['armvp home #vp3']) replaced the order and it built plant 7477 at 11:54.",
+   "evidence": [
+    "10:46 (plan) build a armnanotc at spot_67 (B8); placed (1560,5672)",
+    "11:44 (list) build a armvp at home (B8) (#vp3)"
+   ],
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0,
+   "player_knew": "n/a: the order never made a frame"
+  },
+  {
+   "clock": "16:45",
+   "builder": "constructor_27504",
+   "type": "armnanotc",
+   "cell": "B8",
+   "cause": "U3",
+   "also": "U9",
+   "what_happened": "Its 16:36 list's 'armvp home #vp3' step lost the same-tick race to constructor_10629 and was dropped, so the list ordered its next step (#nano_vp3) at 16:45; the player re-sent the list at 16:46 (landed 16:52) and it helped #vp3 instead. #nano_vp3 was started by constructor_10629 at 17:51 (armnanotc_1321).",
+   "evidence": [
+    "16:44 constructor_27504: the step 'armvp home #vp3' of its list could not be played this second and was dropped",
+    "16:45 (list) build a armnanotc at spot_67 (B8) (#nano_vp3)",
+    "16:52 (list) help build #vp3 (help constructor_10629 build)"
+   ],
+   "fix_class": "hands-rule",
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0,
+   "player_knew": "n/a: the order never made a frame"
+  },
+  {
+   "clock": "4:59",
+   "builder": "constructor_1412",
+   "type": "armllt",
+   "cell": "C6",
+   "cause": "U2",
+   "also": "U3",
+   "what_happened": "Queued turret at spot_63 from the 3:44 list; the player's 5:15 list put 'armllt spot_63 #t63' on both 1412 and 2945; 1412's step was taken as done and its next step (extractor spot_52) replaced the order; constructor_2945 built the turret (created 5:45).",
+   "evidence": [
+    "5:23 constructor_1412: the step 'armllt spot_63 #t63' of its list is the build already under way: taken as done",
+    "5:24 (list) build a armmex at spot_52 (C6)",
+    "5:45 created armllt_23032 by constructor_2945 near the site"
+   ],
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0,
+   "player_knew": "n/a: the order never made a frame"
+  },
+  {
+   "clock": "14:56",
+   "builder": "constructor_27107",
+   "type": "armllt",
+   "cell": "B8",
+   "cause": "U3",
+   "also": null,
+   "what_happened": "A pick's turret at spot_73 (placed 239 off) replaced 7 s later by the player's 14:55 list (extractor spot_44 ...).",
+   "evidence": [
+    "14:56 (plan) build a armllt at spot_73 (B8)",
+    "15:03 (list) build a armmex at spot_44 (D5)"
+   ],
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0,
+   "player_knew": "n/a: the order never made a frame"
+  },
+  {
+   "clock": "16:25",
+   "builder": "constructor_27504",
+   "type": "armllt",
+   "cell": "B8",
+   "cause": "U1",
+   "also": null,
+   "what_happened": "A pick's turret at spot_73 replaced 2 s later by the next pick (help constructor_10629).",
+   "evidence": [
+    "16:25 (plan) build a armllt at spot_73 (B8)",
+    "16:27 (plan) help constructor_10629 build"
+   ],
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0,
+   "player_knew": "n/a: the order never made a frame"
+  },
+  {
+   "clock": "17:31",
+   "builder": "constructor_16324",
+   "type": "armllt",
+   "cell": "B8",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "A pick's turret at spot_73 ordered from C4 (3367,2669 at 17:33), about 2,000 away; still walking when the game ended at 18:02.",
+   "evidence": [
+    "17:31 (plan) build a armllt at spot_73 (B8)",
+    "record: at (2814,3843) at 17:58"
+   ],
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0,
+   "player_knew": "n/a: the order never made a frame"
+  },
+  {
+   "clock": "17:33",
+   "builder": "constructor_22608",
+   "type": "armllt",
+   "cell": "F5",
+   "cause": "U8",
+   "also": "U1",
+   "what_happened": "List turret at spot_40 (after its extractor died 17:32); the pick walked the builder home the same second, the list re-sent the step at 17:46; the game ended at 18:02.",
+   "evidence": [
+    "17:33 (list) build a armllt at spot_40 (F5)",
+    "17:33 (plan) walk to home; its list step 'armllt spot_40' waits for it",
+    "17:46 (list) build a armllt at spot_40 (F5)"
+   ],
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0,
+   "player_knew": "n/a: the order never made a frame"
+  },
+  {
+   "clock": "17:50",
+   "builder": "constructor_24993",
+   "type": "armllt",
+   "cell": "B8",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "A pick's turret at spot_73 ordered from E5 (4795,3489), about 3,000 away; walking at the end.",
+   "evidence": [
+    "17:50 (plan) build a armllt at spot_73 (B8)"
+   ],
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0,
+   "player_knew": "n/a: the order never made a frame"
+  },
+  {
+   "clock": "6:40",
+   "builder": "constructor_56",
+   "type": "armmex",
+   "cell": "D8",
+   "cause": "U6",
+   "also": "U3",
+   "what_happened": "Rejected: two lists named 'extractor spot_71' without an id (2945's of 5:15, 56's of 6:32); constructor_2945 built it at 7:05 and 56's order was refused on arrival; the refusal then made 2945 skip its own turret there.",
+   "evidence": [
+    "7:05 created armmex_16399 by constructor_2945",
+    "7:13 constructor_56: the engine refused a armmex at D8: the site was bad",
+    "7:18 constructor_2945: skipped the step 'armllt spot_71' of its list: the extractor at spot_71 was refused lately"
+   ],
+   "fix_class": "tool",
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0,
+   "player_knew": "n/a: the order never made a frame"
+  },
+  {
+   "clock": "7:36",
+   "builder": "constructor_24993",
+   "type": "armmex",
+   "cell": "D6",
+   "cause": "U2",
+   "also": "U3",
+   "what_happened": "The player's 7:32 list re-sent 'extractor spot_56' first while the builder walked to it; the step was taken as done and the next step's turret order (not queued) replaced the walk, so spot_56 got a turret frame (armllt_13253, killed 8:31) and no extractor. The fault fixed since in e9f5175 ('the step waits for the frame').",
+   "evidence": [
+    "7:36 (list) build a armmex at spot_56 (D6)",
+    "7:40 constructor_24993: the step 'extractor spot_56' of its list is the build already under way: taken as done",
+    "7:41 (list) build a armllt at spot_56 (D6)"
+   ],
+   "fix_class": "hands-rule",
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0,
+   "player_knew": "n/a: the order never made a frame"
+  },
+  {
+   "clock": "8:02",
+   "builder": "constructor_56",
+   "type": "armmex",
+   "cell": "E8",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "Ordered the second its turret frame (armllt_15605) died; the builder was killed by a Pawn the same second.",
+   "evidence": [
+    "8:02 (list) build a armmex at spot_78 (E8)",
+    "frames.py: builder died 8:02"
+   ],
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0,
+   "player_knew": "n/a: the order never made a frame"
+  },
+  {
+   "clock": "9:37",
+   "builder": "constructor_30353",
+   "type": "armmex",
+   "cell": "C4",
+   "cause": "U6",
+   "also": null,
+   "what_happened": "Rejected: constructor_24993 (its 7:32 list's 'extractor spot_38') built spot_38 at 10:24 while 30353 (9:29 list) walked 61 s to it; refused on arrival and its turret step skipped.",
+   "evidence": [
+    "10:24 created armmex_23071 by constructor_24993",
+    "10:38 constructor_30353: the engine refused a armmex at C4: the site was bad",
+    "10:38 constructor_30353: skipped the step 'armllt spot_38' of its list: the extractor at spot_38 was refused lately"
+   ],
+   "fix_class": "player",
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0,
+   "player_knew": "n/a: the order never made a frame"
+  },
+  {
+   "clock": "9:44",
+   "builder": "constructor_16840",
+   "type": "armmex",
+   "cell": "D5",
+   "cause": "U3",
+   "also": null,
+   "what_happened": "Queued behind the advsol; the player cancelled 16840's list at 9:58 and the queued step was dropped when its turn came.",
+   "evidence": [
+    "9:44 (list) next, queued: build a armmex at spot_47 (D5)",
+    "9:58 queue constructor_16840: cancelled",
+    "10:20 constructor_16840: dropped the step 'extractor spot_47' its old list had queued behind the build it was on: you have replaced or cancelled that list since"
+   ],
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0,
+   "player_knew": "n/a: the order never made a frame"
+  },
+  {
+   "clock": "10:25",
+   "builder": "constructor_17684",
+   "type": "armmex",
+   "cell": "D5",
+   "cause": "U6",
+   "also": null,
+   "what_happened": "Rejected: constructor_1412, walked to spot_47 by the pick at 10:20, built the extractor there at 10:46 while 17684 (10:18 list) walked 56 s to it.",
+   "evidence": [
+    "10:20 constructor_1412: walk to spot_47 (plan)",
+    "10:46 created armmex_8140 by constructor_1412",
+    "11:21 constructor_17684: the engine refused a armmex at D5: the site was bad"
+   ],
+   "fix_class": "hands-rule",
+   "cost_class": "none",
+   "confidence": "medium",
+   "seat": 0,
+   "player_knew": "n/a: the order never made a frame"
+  },
+  {
+   "clock": "15:16",
+   "builder": "constructor_27504",
+   "type": "armmex",
+   "cell": "E8",
+   "cause": "U6",
+   "also": null,
+   "what_happened": "Rejected: constructor_1412 built spot_78 at 15:23 while 27504's queued step (14:55 list) waited; refused on arrival 16:25 and its turret skipped.",
+   "evidence": [
+    "15:23 created armmex_30728 by constructor_1412",
+    "16:25 constructor_27504: the engine refused a armmex at E8: the site was bad"
+   ],
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0,
+   "player_knew": "n/a: the order never made a frame"
+  }
+ ],
+ "never_started_note": "frames.py lists 25; 6 are not items (the frame started at the host's placed site 338-600 from the ordered point, or after a 110 s walk: 7:00 commander armvp -> plant_26214 7:12; 11:44 constructor_24993 armvp -> 11:54; 15:47 constructor_18284 armllt F3 -> armllt_21106 17:37; 16:44 constructor_10629 armvp -> 17:14; 16:52 constructor_600 armnanotc -> armnanotc_2935 17:29; 17:12 constructor_11846 armvp -> armvp_12149 17:29). Of the 19 items, 15 are listed by cost (nanos, turrets, then extractors by clock); the 4 left out: 15:32 constructor_600 armmex spot_44 U6 (27107 built it 16:08, refused 16:21), 15:47 constructor_24993 armmex spot_49 U6 (1412 built it 16:36, refused 16:51), 15:47 constructor_27423 armmex spot_50 U6 (17684 built it 16:16, refused 16:30), 17:53 constructor_14623 armmex spot_37 U8. The 19 by cause: U1 1, U2 2, U3 4, U4 1, U6 7, U8 4; no metal (never started).",
+ "tally": {
+  "U0": {
+   "n": 0,
+   "metal": 0
+  },
+  "U1": {
+   "n": 0,
+   "metal": 0
+  },
+  "U2": {
+   "n": 0,
+   "metal": 0
+  },
+  "U3": {
+   "n": 1,
+   "metal": 0
+  },
+  "U4": {
+   "n": 19,
+   "metal": 386
+  },
+  "U5": {
+   "n": 0,
+   "metal": 0
+  },
+  "U6": {
+   "n": 0,
+   "metal": 0
+  },
+  "U7": {
+   "n": 0,
+   "metal": 0
+  },
+  "U8": {
+   "n": 5,
+   "metal": 659
+  },
+  "U9": {
+   "n": 1,
+   "metal": 177
+  }
+ },
+ "by_fate": {
+  "decayed": {
+   "n": 3,
+   "metal": 180
+  },
+  "killed": {
+   "n": 18,
+   "metal": 383
+  },
+  "at_end": {
+   "n": 5,
+   "metal": 659
+  }
+ },
+ "by_type": {
+  "armnanotc": {
+   "n": 4,
+   "metal": 451
+  },
+  "armllt": {
+   "n": 13,
+   "metal": 301
+  },
+  "armmex": {
+   "n": 7,
+   "metal": 163
+  },
+  "armadvsol": {
+   "n": 1,
+   "metal": 0
+  },
+  "armvp": {
+   "n": 1,
+   "metal": 307
+  }
+ },
+ "player_knew": {
+  "before": 18,
+  "after": 7,
+  "never": 0,
+  "dropped_itself": 1
+ },
+ "mechanisms": [
+  "The finished event is matched by type within 250 of the builder's site, not by the builder's own frame (mod.rs Event::UnitFinished, unchanged at HEAD), and the blocked-site watchdog reads only the hands' task, so a builder still building one frame counts as standing at an unstarted site: constructor_2945's nano finishing 222 away promoted constructor_16840's queued advsol and the watchdog stopped it off its 76% nano 8 s later. Covers armnanotc_27342: 177 metal, a nano 10 s from done.",
+  "List steps start frames inside a raid, and the builder stays on the frame until it dies: 11 of the 18 killed frames began with an armed enemy within 600 of the site (armllt_1371, armllt_15605, armmex_7898, armllt_13253, armllt_19130, armllt_30020, armmex_13685, armmex_15814, armmex_24498, armllt_12979, armllt_1059: 197 metal), 9 of them with that raid in the report the player had just read. Lists play under threat by rule (H-HANDS-SCRIPT) and Jev kept every builder on its frame. A step that waits while an armed party stands within ~600 of its site (the 800 version was rejected on 2026-10-01, so it needs the user's word), or the player sending the extractor-and-turret lists behind an escort or after the raid, would have kept most of the 197.",
+  "Raiders reach unguarded frames that nothing showed: the other 7 killed frames (armmex_6304, armllt_21205, armllt_10658, armllt_977, armllt_11161, armmex_1611, armmex_28190: 186 metal) had no armed enemy within 600 at the start; a lone Tick or a few Pawns arrived and shot the frame for 2-11 s while its builder stood on it (16 of the 18 builders survived their frames). Reclaiming the frame when a raider it cannot fight opens fire would get the metal back (the engine refunds a nanoframe's metal on reclaim: an inference, unmeasured here), or an escort or a turret first."
+ ],
+ "unread": "Nothing torn; every tool ran. Not settled: why the 9:56 decay of armnanotc_27342 got no hands' 'abandoned ... at B8' line (the 10:20 and 11:21 decays did; the 9:58 fights line carried it as '(1% built)'). The U8 frames were read from frames.py and the report entries only; the jev log was read only through hands_window (8:35-8:47, 11:07-11:12)."
+}

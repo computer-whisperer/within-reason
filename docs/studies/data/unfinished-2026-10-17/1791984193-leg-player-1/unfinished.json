@@ -1,0 +1,1058 @@
+{
+ "game": "1791984193-leg-player-1",
+ "result": "won 25:56",
+ "minutes": 25.9,
+ "seats": 1,
+ "opponent": "BARb hard_aggressive",
+ "kind": "arena",
+ "denominators": {
+  "0": {
+   "frames": 187,
+   "finished": 164,
+   "decayed": 12,
+   "killed": 9,
+   "at_end": 2,
+   "metal_in_unfinished": 1070,
+   "never_started": 21
+  }
+ },
+ "items": [
+  {
+   "frame": "legmex_16248",
+   "type": "legmex",
+   "cell": "B5",
+   "started": "4:57",
+   "fate": "killed",
+   "fate_clock": "5:04",
+   "share": 0.22,
+   "metal_in": 11,
+   "cost": 50,
+   "builder": "constructor_17003",
+   "cause": "U4",
+   "what_happened": "a lone armflea raided spot_50 (B5, 1587 from home) and shot the extractor frame at 22% while its builder kept building; the hunts sent at 5:03-5:06 could not catch it",
+   "evidence": [
+    "5:02 report: 'enemy in sight: 1 at B5 ... armflea 1'",
+    "5:02 entry: 'constructor_17003 ... building a Metal Extractor (legmex) at spot_50 (B5) (22 % built) ...; enemies_near: party_1 (1 armflea) 279 away'",
+    "5:03 group_E: 1 of group_E hunt party_1 (1 armflea) as group_F (plan)",
+    "5:04 destroyed legmex_16248 by armflea (record ev)"
+   ],
+   "player_knew": "yes: the 5:02 report named the frame at 22% and the Flea 279 away; 'lost legmex to armflea in our half' at 5:12",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high",
+   "seat": 0,
+   "also": null
+  },
+  {
+   "frame": "leglht_2014",
+   "type": "leglht",
+   "cell": "B5",
+   "started": "5:11",
+   "fate": "killed",
+   "fate_clock": "5:26",
+   "share": 0.31,
+   "metal_in": 22,
+   "cost": 70,
+   "builder": "constructor_17003",
+   "cause": "U4",
+   "what_happened": "the same armflea killed the Pharos the list started beside it two minutes later (frame peaked 31%, shot down to 9% then destroyed); the builder kept on it, the hunts (group_K) were 666 away",
+   "evidence": [
+    "5:06 (list) build a leglht at spot_50 (B5)",
+    "5:22 report: 'armflea 1; killing our Pharos (leglht) (70 metal) now'",
+    "5:22 entry: '... Pharos (leglht) at spot_50 (B5) (20 % built) ...; enemies_near: party_1 (1 armflea) 169 away'",
+    "5:26 destroyed leglht_2014 by armflea"
+   ],
+   "player_knew": "yes: the 5:12 and 5:22 reports listed the frame (4%, 20%) and the Flea at it",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high",
+   "seat": 0,
+   "also": null
+  },
+  {
+   "frame": "legmex_30757",
+   "type": "legmex",
+   "cell": "C6",
+   "started": "6:14",
+   "fate": "killed",
+   "fate_clock": "6:32",
+   "share": 0.56,
+   "metal_in": 28,
+   "cost": 50,
+   "builder": "constructor_1595",
+   "cause": "U4",
+   "what_happened": "a near-dead builder (38%) started the spot_52 extractor with three, then six Pawns 670 away; the pick kept it on the build (change 0.76-0.90, best move go_home 0.27-0.40, under the bar) and the Pawns killed builder and frame together at 56%",
+   "evidence": [
+    "6:11 entry: 'constructor_1595 ... health badly hurt, near death (38%); enemies_near: party_13 (3 armpw) 672 away ... best_rated: the walk to home (0.46)'",
+    "6:24-6:32 hands_window: 'menu constructor_1595 [build] change=0.76..0.9 ... go_home=0.27..0.4', no PLAYS for it",
+    "6:30 entry: '(56 % built) ... under_fire: yes, hit this second by armpw'",
+    "6:32 destroyed legmex_30757 by armpw; 6:32 destroyed legcv_1595 by armpw"
+   ],
+   "player_knew": "yes: the 6:11, 6:20 and 6:30 entries listed the frame and the Pawns",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high",
+   "seat": 0,
+   "also": null
+  },
+  {
+   "frame": "legsolar_4881",
+   "type": "legsolar",
+   "cell": "C8",
+   "started": "7:41",
+   "fate": "decayed",
+   "fate_clock": "7:50",
+   "share": 0.0,
+   "metal_in": 0,
+   "cost": 150,
+   "builder": "constructor_3166",
+   "cause": "U9",
+   "also": "U1",
+   "what_happened": "in one second the list played its solar step and the pick played a walk to spot_61 whose words say the list step waits: the build command went out first, the engine laid the frame at 0%, the walk took the builder off (an armpw 130-190 away, builder at 71%), the list then moved to spot_76",
+   "evidence": [
+    "7:40 PLAYS constructor_3166: build a legsolar at spot_73 (C8) [list] | constructor_3166: walk to spot_61; its list step 'legsolar' waits for it [plan]",
+    "7:40 PICK split [constructor_3166: took w2 of 1 at 0.72]; menu change=0.86, go_spot_61=0.55",
+    "7:40 cmd build 3166 legsolar (2066,5617) then move 3166 (2152,4408), same tick; 7:41 created legsolar_4881",
+    "7:50 abandoned an unfinished legsolar at C8 (0% built): its builder was sent elsewhere and the frame decayed"
+   ],
+   "player_knew": "after: only the 7:50 abandoned line (7:58 report)",
+   "fix_class": "hands-rule",
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0
+  },
+  {
+   "frame": "legmex_1774",
+   "type": "legmex",
+   "cell": "C4",
+   "started": "9:36",
+   "fate": "killed",
+   "fate_clock": "9:43",
+   "share": 0.26,
+   "metal_in": 13,
+   "cost": 50,
+   "builder": "constructor_4634",
+   "cause": "U4",
+   "what_happened": "a lone armpw reached the spot_39 extractor 7 s after it started and killed the frame at 26%; the builder survived (the pick walked it to spot_61 at 9:45)",
+   "evidence": [
+    "9:42 wake 'enemies within 600 of our extractors at C4'",
+    "9:42 entry: '... legmex at spot_39 (C4) (26 % built) ...; enemies_near: party_27 (1 armpw) 237 away'",
+    "9:43 destroyed legmex_1774 by armpw"
+   ],
+   "player_knew": "yes: the 9:42 report listed the frame and the Pawn",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high",
+   "seat": 0,
+   "also": null
+  },
+  {
+   "frame": "legmex_29133",
+   "type": "legmex",
+   "cell": "E6",
+   "started": "10:49",
+   "fate": "killed",
+   "fate_clock": "10:59",
+   "share": 0.35,
+   "metal_in": 18,
+   "cost": 50,
+   "builder": "constructor_27659",
+   "cause": "U4",
+   "what_happened": "a lone armpw shot the spot_58 extractor frame at 35%; the builder survived and its list went on to the spot_58 Pharos",
+   "evidence": [
+    "10:49 entry: 'constructor_27659 ... walking to build a legmex at spot_58 (E6), 131 to go' (no enemy near)",
+    "10:59 report: 'enemy in sight: 1 at E6 ... armpw 1; killing our Metal Extractor (legmex) (50 metal) now'",
+    "10:59 destroyed legmex_29133 by armpw; 11:00 (list) build a leglht at spot_58"
+   ],
+   "player_knew": "after: the frame was first named in the 10:59 report as being killed",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high",
+   "seat": 0,
+   "also": null
+  },
+  {
+   "frame": "leglht_5486",
+   "type": "leglht",
+   "cell": "E4",
+   "started": "11:01",
+   "fate": "decayed",
+   "fate_clock": "11:15",
+   "share": 0.46,
+   "metal_in": 32,
+   "cost": 70,
+   "builder": "constructor_1736",
+   "cause": "U4",
+   "what_happened": "not a decay: his armwar/armham/armrock block (seen at E4 at 10:59) shot the forward Pharos frame from 46% down (31+134+176 damage in the dmg rows) and killed its builder the next second; the record names no attacker for the frame, and the hands' line called it abandoned",
+   "evidence": [
+    "frames.py: 'took 165 damage in its last 15 s: shot down by an attacker the record did not name'",
+    "dmg rows 11:14-11:16: [5486, 31], [5486, 134], [5486, 176]; 11:16 destroyed legcv_1736 by armwar",
+    "10:59 report: 'enemy in sight: 2 at E4 ... armwar 2; killing 3 of our Alaris'",
+    "11:09 entry: 'constructor_1736: at spot_37 (E4); building a Pharos (leglht) at spot_37 (E4) (30 % built)'",
+    "11:18 report: 'abandoned an unfinished leglht (15% built) x1' (wrong: it was shot)"
+   ],
+   "player_knew": "yes: the 11:09 entry listed the frame at 30%; the armwar block at E4 was in the 10:59 report; the later line misnamed the loss as abandoned",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high",
+   "seat": 0,
+   "also": null
+  },
+  {
+   "frame": "legnanotc_18073",
+   "type": "legnanotc",
+   "cell": "B8",
+   "started": "11:24",
+   "fate": "decayed",
+   "fate_clock": "12:21",
+   "share": 0.34,
+   "metal_in": 78,
+   "cost": 230,
+   "builder": "constructor_1281",
+   "cause": "U3",
+   "what_happened": "the player dropped the nano at 19-34% because the report said its builder stood in plant_16133's exit lane; the frame itself was clear of the lane (its footprint 16 elmos south of the lane's edge by yards.rs geometry), the builder was in it while it built",
+   "evidence": [
+    "11:23 (list) build a legnanotc at 410 from spot_73 (B8) (#nano3)",
+    "11:36 entry: 'constructor_1281 ... building a Construction Turret (legnanotc) at 433 from spot_73 (B8) (19 % built) ...; standing in plant_16133's exit lane since 12 s ago: its units cannot leave while it stands there'",
+    "11:36 queue constructor_1281: ['stop', 'legadvsol #as3', 'legadvsol #as5'] -> 'its build in progress dropped'; note: 'Commander and a nano frame were in plant_16133's exit lane: nano dropped'",
+    "11:44 stop 1281; 11:46 (list) build a legadvsol at spot_73 (B8) (#as3)",
+    "12:26 report: 'abandoned an unfinished legnanotc (1% built) x1'",
+    "geometry: plant_16133 (1504,5840) facing east, lane z 5744-5936; frame (1640,5976) 6x6, z 5952-6000"
+   ],
+   "player_knew": "yes, before: the 11:36 entry (19%); it meant to drop it (its note)",
+   "fix_class": "report",
+   "cost_class": "large",
+   "confidence": "high",
+   "seat": 0,
+   "also": null
+  },
+  {
+   "frame": "leglht_23841",
+   "type": "leglht",
+   "cell": "D4",
+   "started": "11:24",
+   "fate": "killed",
+   "fate_clock": "11:47",
+   "share": 0.71,
+   "metal_in": 50,
+   "cost": 70,
+   "builder": "constructor_4634",
+   "cause": "U4",
+   "what_happened": "his second wave's Pawns (party_32) shot the spot_33 Pharos at 71% while the near-dead builder (18-27%) kept building; group_R was fighting the wave at D4/D5 and lost the trade",
+   "evidence": [
+    "11:36 entry: '... Pharos (leglht) at spot_33 (D4) (44 % built) ...; health badly hurt, near death (23%) ... best_rated: the walk to home (0.34)'",
+    "11:46 entry: '... (24 % built) ...; enemies_near: party_32 (3 armpw) 215 away'",
+    "11:47 destroyed leglht_23841 by armpw; 11:48 (plan) walk to spot_61"
+   ],
+   "player_knew": "yes: the 11:36 and 11:46 entries listed the frame and the Pawns",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high",
+   "seat": 0,
+   "also": null
+  },
+  {
+   "frame": "legadvsol_3770",
+   "type": "legadvsol",
+   "cell": "B8",
+   "started": "11:47",
+   "fate": "decayed",
+   "fate_clock": "13:21",
+   "share": 0.25,
+   "metal_in": 116,
+   "cost": 465,
+   "builder": "constructor_1281",
+   "cause": "U3",
+   "what_happened": "the hands put the unplaced 'legadvsol #as3' step at spot_73: the ask (1752,5746) lay inside plant_16133's exit lane and the engine placed the frame at (1752,5944), its footprint 32 elmos into the lane; the player re-listed at 12:06 with the same id (the builder went back to repair it at 12:15) and at 12:16 with fresh ids, which took the builder to solar_field at 12:24; constructor_2996's queued help (12:34) never arrived and the 12:36 queue replaced its list",
+   "evidence": [
+    "11:46 (list) build a legadvsol at spot_73 (B8) (#as3); cmd build (1752,5746), placed (1752,5944)",
+    "12:06 entry: 'constructor_1281 ... building a Advanced Solar Collector (legadvsol) at 367 from spot_73 (B8) (13 % built) ...; standing in plant_16133's exit lane since 13 s ago'",
+    "12:06 queue constructor_1281: ['stop', 'legadvsol solar_field #as3', ...] -> 12:15 (list) help build #as3 (repair)",
+    "12:16 queue constructor_1281: ['stop', 'legadvsol solar_field #sf3', 'legadvsol solar_field #sf4']; note: 'the old ids #as3-5 pointed the constructors back at the lane frames; re-listed with fresh ids at solar_field'",
+    "12:24 stop 1281; 12:26 (list) build a legadvsol at solar_field (A8) (#sf3)",
+    "13:34 report: 'abandoned an unfinished legadvsol (0% built) x1'"
+   ],
+   "player_knew": "yes, before: the 12:06 entry (13%); it meant to drop it (12:06 and 12:16 notes)",
+   "fix_class": "hands-rule",
+   "cost_class": "large",
+   "confidence": "high",
+   "seat": 0,
+   "also": null
+  },
+  {
+   "frame": "legadvsol_21461",
+   "type": "legadvsol",
+   "cell": "B8",
+   "started": "12:05",
+   "fate": "decayed",
+   "fate_clock": "12:58",
+   "share": 0.13,
+   "metal_in": 60,
+   "cost": 465,
+   "builder": "constructor_27740",
+   "cause": "U3",
+   "what_happened": "dropped by the player's 12:06/12:16 re-lists as 'going up in a plant exit lane'; the frame at (1592,5592) only touched plant_27255's lane at a corner, its builder stood in that lane",
+   "evidence": [
+    "12:04 (list) build a legadvsol at spot_73 (B8) (#as5); placed (1592,5592)",
+    "12:06 entry: 'constructor_27740 ... building a Advanced Solar Collector (legadvsol) at spot_73 (B8) (1 % built) ...; standing in plant_27255's exit lane since 34 s ago'",
+    "12:06 queue constructor_27740: ['stop', 'legadvsol solar_field #as5', ...] -> 12:15 help build #as5 (repair); 12:16 queue ['stop', 'legadvsol solar_field #sf1', ...] -> 12:24 stop, 12:26 build at solar_field (#sf1)",
+    "13:02 report: 'abandoned an unfinished legadvsol (0% built) x2'"
+   ],
+   "player_knew": "yes, before: the 12:06 entry (1%); it meant to drop it (12:06 note)",
+   "fix_class": "report",
+   "cost_class": "large",
+   "confidence": "high",
+   "seat": 0,
+   "also": null
+  },
+  {
+   "frame": "legadvsol_9057",
+   "type": "legadvsol",
+   "cell": "B8",
+   "started": "12:05",
+   "fate": "decayed",
+   "fate_clock": "12:58",
+   "share": 0.13,
+   "metal_in": 60,
+   "cost": 465,
+   "builder": "constructor_18227",
+   "cause": "U3",
+   "what_happened": "dropped with the other two by the 12:06/12:16 re-lists; this frame (2008,5928) was clear of every lane and its builder's entry carried no lane line: the player's 12:06 note generalised the lane finding to all three",
+   "evidence": [
+    "12:04 (list) build a legadvsol at 373 from spot_73 (B8) (#as4); placed (2008,5928)",
+    "12:06 entry: 'constructor_18227: at 326 from spot_73 (B8); building a Advanced Solar Collector (legadvsol) at 390 from spot_73 (B8) (1 % built)' (no lane line)",
+    "12:06 note: 'advanced solars were going up in plant exit lanes at spot_73: dropped, moved to marked solar_field'",
+    "12:16 queue constructor_18227: ['stop', 'legadvsol solar_field #sf2', ...] -> 12:24 stop, 12:26 build at solar_field (#sf2)",
+    "13:02 report: 'abandoned an unfinished legadvsol (0% built) x2'"
+   ],
+   "player_knew": "yes, before: the 12:06 entry (1%); it meant to drop it",
+   "fix_class": "player",
+   "cost_class": "large",
+   "confidence": "high",
+   "seat": 0,
+   "also": null
+  },
+  {
+   "frame": "leglht_7860",
+   "type": "leglht",
+   "cell": "E5",
+   "started": "12:08",
+   "fate": "killed",
+   "fate_clock": "12:23",
+   "share": 0.5,
+   "metal_in": 35,
+   "cost": 70,
+   "builder": "constructor_27659",
+   "cause": "U4",
+   "what_happened": "Pawns of party_34 shot the spot_49 Pharos at 50%; the builder (full health) survived and the pick walked it to spot_61",
+   "evidence": [
+    "12:16 entry: 'constructor_27659 ... building a Pharos (leglht) at spot_49 (E5) (30 % built)' (no enemy near)",
+    "12:23 destroyed leglht_7860 by armpw; 12:24 sample: 4 armpw within 120, armrock/armham 575-680",
+    "12:24 (plan) walk to spot_61"
+   ],
+   "player_knew": "yes: the 12:16 entry listed the frame at 30% (not the Pawns)",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high",
+   "seat": 0,
+   "also": null
+  },
+  {
+   "frame": "legdtr_24253",
+   "type": "legdtr",
+   "cell": "D6",
+   "started": "13:55",
+   "fate": "killed",
+   "fate_clock": "14:19",
+   "share": 0.42,
+   "metal_in": 122,
+   "cost": 290,
+   "builder": "constructor_5624",
+   "cause": "U4",
+   "what_happened": "the Dragon's Jaw at spot_56, from the player's 11:56 'turtle' list, was built at full rate (energy store 11-30%) while the army (18-21, 5220-6120) walked north on the player's 13:56 route; his Gunslinger party (armmav, armwar, 2 armrock, ~1160) came onto the turret line, killed two Pharos and then the Jaw at 42%; the 14:12 instruct turned the army back, too late",
+   "evidence": [
+    "11:56 queue constructor_5624: ['legdtr spot_59', 'leglht spot_59', 'legdtr spot_56']",
+    "13:56 instruct rerouted the army north (note: 'Rerouted the 18-strong army north through those spots')",
+    "14:06 entry: '... Dragon's Jaw (legdtr) at spot_56 (D6) (21 % built) ...; enemies_near: party_42 (2 armrock) 679 away'",
+    "14:12 entry: '(33 % built) ...; enemies_near: party_42 (1 armmav, 2 armrock, 1 armwar) 711 away'; note: 'Army (21, 6120) turns to kill it first'",
+    "14:19 destroyed legdtr_24253 by armmav; 14:22 report: 'killing our Dragon's Jaw (legdtr), our Metal Extractor (legmex), our Pharos (leglht) (410 metal) now'"
+   ],
+   "player_knew": "yes: the 13:56, 14:06 and 14:12 entries listed the frame and party_42",
+   "fix_class": "player",
+   "cost_class": "large",
+   "confidence": "high",
+   "seat": 0,
+   "also": null
+  },
+  {
+   "frame": "legmex_10058",
+   "type": "legmex",
+   "cell": "E6",
+   "started": "16:06",
+   "fate": "killed",
+   "fate_clock": "16:28",
+   "share": 0.65,
+   "metal_in": 32,
+   "cost": 50,
+   "builder": "constructor_5624",
+   "cause": "U4",
+   "what_happened": "the pick put the builder on the spot_58 extractor; two Pawns arrived and hit it every second from 16:16; the pick kept it on the build (change 0.85-0.89, best move go_spot_61 0.29-0.35, under the bar), the builder died at 16:23 and the frame at 65% five seconds later; the Alaris hunters were walking from A3",
+   "evidence": [
+    "16:01 (plan) build a legmex at spot_58 (E6)",
+    "16:16-16:22 hands_window: 'menu constructor_5624 [build] change=0.85..0.89 ... go_spot_61=0.29..0.35', no PLAYS for it",
+    "16:18 report: '2 at E6 ... armpw 2; killing our Metal Extractor (legmex), our Legion Construction Vehicle (legcv) (175 metal) now'; entry '(48 % built) ... party_47 (2 armpw) 92 away'",
+    "16:23 destroyed legcv_5624 by armpw; 16:28 destroyed legmex_10058 by armpw"
+   ],
+   "player_knew": "yes: the 16:18 report listed the frame at 48% and the Pawns killing it",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high",
+   "seat": 0,
+   "also": null
+  },
+  {
+   "frame": "legmex_7170",
+   "type": "legmex",
+   "cell": "D4",
+   "started": "18:54",
+   "fate": "decayed",
+   "fate_clock": "19:02",
+   "share": 0.33,
+   "metal_in": 16,
+   "cost": 50,
+   "builder": "constructor_2996",
+   "cause": "U4",
+   "what_happened": "not a decay: the spot_31 extractor (from the player's 16:18 list) stood 950 from his E3 Gauntlet (armguard, range 1220 by the player's own note) and 614 from a Beamer; the frame took one 300-damage hit and died at 29-33% while its builder took 300 a hit from 18:57 and died at 19:10, nothing of his in sight; the hands called it abandoned",
+   "evidence": [
+    "16:18 queue constructor_2996: ['extractor spot_49', 'leglht spot_49', 'extractor spot_31', 'leglht spot_31']",
+    "dmg rows: [2996, 300] at 18:57, 19:00, 19:06, 19:09, 19:11; [7170, 300] at 19:03; 19:10 destroyed legcv_2996 by nobody",
+    "truth 19:00: armguard 10805 at (4496,1824), 950 away; armbeamer 2610 at 614",
+    "18:59 entry: 'constructor_2996: at spot_31 (D4); building a Metal Extractor (legmex) at spot_31 (D4) (20 % built) ...; health lightly hurt (77%); enemies_near: party_59 (2 armck) 160 away'; same report: 'his, in E3 (all of it seen 4:37 ago): 1 armbeamer, 1 armguard, 1 armhlt, 2 armllt'",
+    "19:09 report: 'abandoned an unfinished legmex (33% built) x1' (wrong: shot)"
+   ],
+   "player_knew": "yes: the 18:59 entry (20%), but the threat it named was two armck; nothing said the builder was hit from out of sight or stood in the armguard's reach",
+   "fix_class": "report",
+   "cost_class": "small",
+   "confidence": "high",
+   "seat": 0,
+   "also": null
+  },
+  {
+   "frame": "leglht_25003",
+   "type": "leglht",
+   "cell": "D4",
+   "started": "19:04",
+   "fate": "decayed",
+   "fate_clock": "19:14",
+   "share": 0.35,
+   "metal_in": 24,
+   "cost": 70,
+   "builder": "constructor_7673",
+   "cause": "U4",
+   "what_happened": "not a decay: the spot_33 Pharos (the player's 16:28 list) took one 300-damage hit at 32-35% from nothing in sight, 1143 from the E3 Gauntlet; the builder (full health) walked off after (19:15 pick)",
+   "evidence": [
+    "16:28 queue constructor_7673: ['extractor spot_58', 'leglht spot_58', 'extractor spot_33', 'leglht spot_33']",
+    "dmg row [25003, 300] at 19:15; destroyed 19:14 by nobody",
+    "truth: armguard 10805 1143 away",
+    "19:09 entry: 'constructor_7673: at 322 from spot_33 (D4); finishing an order' (no share)",
+    "19:19 report: 'abandoned an unfinished leglht (35% built) x1' (wrong: shot)"
+   ],
+   "player_knew": "after: only the 19:19 abandoned line, which misnamed the loss",
+   "fix_class": "report",
+   "cost_class": "small",
+   "confidence": "high",
+   "seat": 0,
+   "also": null
+  },
+  {
+   "frame": "leglht_17119",
+   "type": "leglht",
+   "cell": "D4",
+   "started": "19:07",
+   "fate": "decayed",
+   "fate_clock": "19:07",
+   "share": 0.0,
+   "metal_in": 0,
+   "cost": 70,
+   "builder": "constructor_2996",
+   "cause": "U4",
+   "what_happened": "the dying builder's (32%) next list step laid the spot_31 Pharos frame and it was destroyed the same second at 0% under the same unseen fire",
+   "evidence": [
+    "19:03 (list) build a leglht at spot_31 (D4)",
+    "19:07 created and destroyed leglht_17119 (dmg [17119, 5]); builder health 32% at 19:07, 10% at 19:09"
+   ],
+   "player_knew": "never: no entry or line named it",
+   "fix_class": "report",
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0,
+   "also": null
+  },
+  {
+   "frame": "legmex_17819",
+   "type": "legmex",
+   "cell": "D4",
+   "started": "19:24",
+   "fate": "decayed",
+   "fate_clock": "19:52",
+   "share": 0.37,
+   "metal_in": 18,
+   "cost": 50,
+   "builder": "constructor_1251",
+   "cause": "U4",
+   "what_happened": "the player's 19:09 queue sent constructor_1251 to the spot_31 extractor where constructor_2996 had just been shot to 10%; 1251 took 300 a hit from 19:17 and died at 19:32 (nothing in sight); the frame then decayed from 37%; the hands' line said its builder was sent elsewhere",
+   "evidence": [
+    "19:09 queue constructor_1251: ['stop', 'extractor spot_31', 'leglht spot_31', 'extractor spot_37'] -> its build in progress dropped",
+    "19:09 entry: 'constructor_2996: at spot_31 (D4); idle ...; health badly hurt, near death (10%)'",
+    "dmg rows [1251, 300] at 19:17, 19:25, 19:28, 19:33; 19:32 destroyed legcv_1251 by nobody",
+    "19:29 entry: 'constructor_1251: at spot_31 (D4); building a Metal Extractor (legmex) at spot_31 (D4) (20 % built) ...; near death (14%); enemies_near: party_59 (1 armck)'",
+    "19:52 'abandoned an unfinished legmex at D4 (2% built): its builder was sent elsewhere and the frame decayed' (wrong: its builder died)"
+   ],
+   "player_knew": "yes: the 19:29 entry (20%, builder at 14%); its 19:19 note blamed 'an unseen Ambusher/Gauntlet we cannot outrange or see' and its 19:19 packet still listed spot_31 first",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high",
+   "seat": 0,
+   "also": null
+  },
+  {
+   "frame": "legmex_29730",
+   "type": "legmex",
+   "cell": "E4",
+   "started": "19:30",
+   "fate": "decayed",
+   "fate_clock": "19:50",
+   "share": 0.77,
+   "metal_in": 38,
+   "cost": 50,
+   "builder": "constructor_24498",
+   "cause": "U3",
+   "also": "U4",
+   "what_happened": "the player's 19:39 re-list (a session takeover) dropped the spot_37 extractor at 77% on purpose because it stood in the E3 Gauntlet's reach (1103 away); the stop landed 19:47 and three seconds later a 300-damage hit from out of sight destroyed the frame",
+   "evidence": [
+    "19:39 entry: 'constructor_24498: at spot_37 (D4); building a Metal Extractor (legmex) at spot_37 (E4) (37 % built)'",
+    "19:39 queue constructor_24498: ['stop', 'extractor spot_79', 'leglht spot_79', 'extractor spot_75', 'leglht spot_75'] -> its build in progress dropped; note: 'group_L1 and the spot_37 extractor frame are inside the E3 Gauntlet's 1220 reach. Dropped spot_37/31'",
+    "19:47 stop 24498 [stopped-on-stop]; 19:48 (list) build a legmex at spot_79 (F8)",
+    "dmg row [29730, 300] at 19:51; destroyed 19:50 by nobody at 77%",
+    "19:56 report: 'abandoned an unfinished legmex (77% built) x1'"
+   ],
+   "player_knew": "yes, before: the 19:39 entry (37%) and its own note; it meant to drop it",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "medium",
+   "seat": 0
+  },
+  {
+   "frame": "legrad_25767",
+   "type": "legrad",
+   "cell": "E5",
+   "started": "20:59",
+   "fate": "decayed",
+   "fate_clock": "21:05",
+   "share": 0.42,
+   "metal_in": 25,
+   "cost": 60,
+   "builder": "constructor_21699",
+   "cause": "U4",
+   "what_happened": "not a decay: the spot_46 radar the player ordered 'to see the turret line' took an 800-damage shell at 42% from his Fatboy 553-612 away (in the truth file, not in our sight); the builder was hit for 321 and walked off after; the hands called it abandoned",
+   "evidence": [
+    "19:29 queue constructor_21699: ['legrad spot_46', 'extractor spot_79', 'leglht spot_79']",
+    "dmg rows 21:06: [21699, 321], [25767, 800]; destroyed 21:05 by nobody",
+    "truth 21:00-21:04: armfboy 553-612 from the site",
+    "21:04 entry: '... building a Radar Tower (legrad) at spot_46 (E5) (34 % built)'",
+    "21:14 report: 'abandoned an unfinished legrad (42% built) x1' (wrong: shot)"
+   ],
+   "player_knew": "yes: the 21:04 entry (34%); the Fatboy was never in sight; the loss line misnamed it",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high",
+   "seat": 0,
+   "also": null
+  },
+  {
+   "frame": "legadvsol_15447",
+   "type": "legadvsol",
+   "cell": "A8",
+   "started": "24:41",
+   "fate": "at_end",
+   "fate_clock": "25:56",
+   "share": 0.5,
+   "metal_in": 232,
+   "cost": 465,
+   "builder": "constructor_21699",
+   "cause": "U8",
+   "also": "U5",
+   "what_happened": "started 75 s before the record ended; it went up at about 0.7% a second with the metal store at 1-2% (the army's production took the income); 50% at the end",
+   "evidence": [
+    "24:47 entry: '... legadvsol at solar_field (A8) (4 % built)'",
+    "25:52 entry: '(48 % built)'",
+    "frames.py: 'stores min metal 0.01 energy 0.95'"
+   ],
+   "player_knew": "yes: every entry from 24:47 to 25:52",
+   "fix_class": "none",
+   "cost_class": "large",
+   "confidence": "high",
+   "seat": 0
+  },
+  {
+   "frame": "leglht_1347",
+   "type": "leglht",
+   "cell": "F6",
+   "started": "25:41",
+   "fate": "at_end",
+   "fate_clock": "25:56",
+   "share": 0.57,
+   "metal_in": 40,
+   "cost": 70,
+   "builder": "constructor_27740",
+   "cause": "U8",
+   "what_happened": "the pick's Pharos at spot_55, started 15 s before the record ended",
+   "evidence": [
+    "24:44 constructor_27740: build a leglht at spot_55 (F6) (plan)",
+    "25:52 entry: '... Pharos (leglht) at spot_55 (F6) (42 % built)'"
+   ],
+   "player_knew": "yes: the 25:46 and 25:52 entries",
+   "fix_class": "none",
+   "cost_class": "small",
+   "confidence": "high",
+   "seat": 0,
+   "also": null
+  }
+ ],
+ "never_started": [
+  {
+   "clock": "3:40",
+   "builder": "commander",
+   "type": "leglht",
+   "cell": "A7",
+   "cause": "U9",
+   "what_happened": "the player's 3:44 queue re-sent 'leglht spot_68' as its first step while the commander was walking to that ordered, unbegun Pharos; the hands took the step as done and played the next (extractor spot_63), so no Pharos was built (fixed since: H-HANDS-LISTS 2026-10-16, 'a list re-sent with the build the builder was ordered and has not begun as its first step waits for the frame')",
+   "evidence": [
+    "3:40 (list) next, queued: build a leglht at spot_68 (A7); placed (768,5312)",
+    "3:44 queue commander: ['leglht spot_68', 'extractor spot_63', 'assist 30 low', 'assist']",
+    "3:52 commander: the step 'leglht spot_68' of its list is the build already under way: taken as done",
+    "3:53 (list) build a legmex at spot_63 (C7)"
+   ],
+   "cost_class": "small",
+   "confidence": "high",
+   "seat": 0
+  },
+  {
+   "clock": "5:47",
+   "builder": "constructor_4634",
+   "type": "legmex",
+   "cell": "C7",
+   "cause": "U3",
+   "what_happened": "the pick sent the idle builder to the spot_63 extractor one second before the player's 5:42 list landed; the list's first step (leglht spot_62) replaced it at 5:49 (spot_63 was the list's second step)",
+   "evidence": [
+    "5:47 PLAYS constructor_4634: build a legmex at spot_63 (C7) [plan]",
+    "5:42 queue constructor_4634: ['leglht spot_62', 'extractor spot_63', ...] landed 5:48",
+    "5:49 PLAYS constructor_4634: build a leglht at spot_62 (A6) [list]"
+   ],
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0
+  },
+  {
+   "clock": "8:11",
+   "builder": "constructor_5624",
+   "type": "legmex",
+   "cell": "C6",
+   "cause": "U9",
+   "what_happened": "same mechanism as 3:40: the player's 8:08 list began with 'extractor spot_52', the order the builder had been given and not begun; the hands took it as done and played the spot_52 Pharos instead",
+   "evidence": [
+    "8:11 (list) build a legmex at spot_52 (C6)",
+    "8:08 queue constructor_5624: ['extractor spot_52', 'leglht spot_52', ...] landed 8:14",
+    "8:15 constructor_5624: the step 'extractor spot_52' of its list is the build already under way: taken as done",
+    "8:16 (list) build a leglht at spot_52 (C5)"
+   ],
+   "cost_class": "small",
+   "confidence": "high",
+   "seat": 0
+  },
+  {
+   "clock": "8:39",
+   "builder": "constructor_2996",
+   "type": "legmex",
+   "cell": "D8",
+   "cause": "U9",
+   "what_happened": "two of the player's lists named spot_71; constructor_1971's list had begun it (frame 8:45) before constructor_2996 arrived; 2996 went idle and the hands said 'the engine refused a legmex at D8: the site was bad' (our own frame stood there), which also skipped the spot_71 Pharos step",
+   "evidence": [
+    "8:05 constructor_1971 (list) build a legmex at spot_71 (D8); 8:45 created legmex_21283 by 1971",
+    "8:39 constructor_2996 (list) next, queued: build a legmex at spot_71 (D8)",
+    "9:02 constructor_2996: the engine refused a legmex at D8: the site was bad [engine-refused]; 9:02 skipped the step 'leglht spot_71': the extractor at spot_71 was refused lately"
+   ],
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0
+  },
+  {
+   "clock": "9:17",
+   "builder": "constructor_1251",
+   "type": "legmex",
+   "cell": "B6",
+   "cause": "U9",
+   "what_happened": "spot_50 was in three lists (1251, 3166, 17003); 3166 began it (frame 9:47); 1251 arrived, idled, and the hands said the engine refused the site, skipping its spot_50 Pharos step",
+   "evidence": [
+    "8:51 constructor_3166 (list) next, queued: build a legmex at spot_50 (B5); 9:47 created legmex_31603 by 3166",
+    "10:05 constructor_1251: the engine refused a legmex at B6: the site was bad; skipped the step 'leglht spot_50'"
+   ],
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0
+  },
+  {
+   "clock": "9:21",
+   "builder": "constructor_17003",
+   "type": "legmex",
+   "cell": "B6",
+   "cause": "U3",
+   "what_happened": "its list's spot_50 extractor was replaced before it arrived by the player's 9:32 (takeover) queue of two nanos and a plant",
+   "evidence": [
+    "9:21 (list) next, queued: build a legmex at spot_50 (B6)",
+    "9:32 queue constructor_17003: ['legnanotc #nano1', 'legnanotc #nano2', 'legvp home #vp3']",
+    "9:40 (list) build a legnanotc at spot_67 (B8) (#nano1)"
+   ],
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0
+  },
+  {
+   "clock": "10:05",
+   "builder": "constructor_1251",
+   "type": "legmex",
+   "cell": "B4",
+   "cause": "U9",
+   "what_happened": "spot_36 was also in constructor_23698's 9:12 list, which began it (frame 10:11); 1251 idled and the hands said the engine refused the site",
+   "evidence": [
+    "9:20 constructor_23698 (list) build a legmex at spot_36 (B4); 10:11 created legmex_9008 by 23698",
+    "10:23 constructor_1251: the engine refused a legmex at B4: the site was bad; skipped the step 'leglht spot_36'"
+   ],
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0
+  },
+  {
+   "clock": "10:20",
+   "builder": "constructor_27740",
+   "type": "legmex",
+   "cell": "C6",
+   "cause": "U3",
+   "what_happened": "the pick's extractor at spot_52 was replaced 8 s later by the player's 10:21 queue for the third plant",
+   "evidence": [
+    "10:20 (plan) build a legmex at spot_52 (C6)",
+    "10:21 queue constructor_27740: ['legvp home #vp3', 'legnanotc #nano2']; note 'new constructor_27740 builds the third plant (#vp3)'",
+    "10:28 (list) build a legvp at home (B8) (#vp3)"
+   ],
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0
+  },
+  {
+   "clock": "11:07",
+   "builder": "constructor_1251",
+   "type": "legadvsol",
+   "cell": "B8",
+   "cause": "U9",
+   "what_happened": "ordered the same tick as constructor_2996's #as1 to the same ask; the engine placed both at (1176,5272); 2996 began it at 11:53 and 1251 stood beside it, assisting, until the 12:36 re-list",
+   "evidence": [
+    "11:07 cmd build 2996 and 1251 legadvsol (1176,5512); both placed (1176,5272)",
+    "11:53 created legadvsol_17303 by 2996; 1251 at (1275,5174) from 12:10",
+    "12:36 queue constructor_1251: ['legadvsol solar_field #sf7', ...]"
+   ],
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0
+  },
+  {
+   "clock": "12:26",
+   "builder": "constructor_27740",
+   "type": "legadvsol",
+   "cell": "A8",
+   "cause": "U9",
+   "what_happened": "three builders (27740 #sf1, 18227 #sf2, 1281 #sf3) were ordered to solar_field the same tick and all placed at (664,5848); 1281 began the one frame (12:44), the other two assisted until it finished at 13:36",
+   "evidence": [
+    "12:26 placed legadvsol (664,5848) for 27740, 1281 and 18227",
+    "12:44 created legadvsol_4829 by 1281; 13:36 finished",
+    "bot.log f=24525: 'legadvsol order for unit 27740 near (664, 5848) never started'"
+   ],
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0
+  },
+  {
+   "clock": "12:43",
+   "builder": "constructor_1251",
+   "type": "legadvsol",
+   "cell": "A8",
+   "cause": "U9",
+   "what_happened": "paired the same tick with constructor_3137 twice (12:43 at (600,5992), 14:03 at (456,5976)); 3137 built both frames, 1251 assisted, and each time the hands said 'the engine refused a legadvsol at A8: the site was bad'",
+   "evidence": [
+    "12:43 and 14:03: both builders placed on one site",
+    "13:03 created legadvsol_14036 by 3137; 14:06 created legadvsol_5976 by 3137",
+    "14:03 constructor_1251: the engine refused a legadvsol at A8: the site was bad [engine-refused]"
+   ],
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0
+  },
+  {
+   "clock": "16:36",
+   "builder": "constructor_17003",
+   "type": "leglht",
+   "cell": "C3",
+   "cause": "U3",
+   "what_happened": "the player re-listed it on purpose before it arrived: the site was beside his Beamer and light turret",
+   "evidence": [
+    "16:36 (list) build a leglht at spot_26 (C3)",
+    "16:38 queue constructor_17003: ['stop', 'extractor spot_19', ...]; note 'constructor_17003 was walking a turret into his Beamer and light turret at C3 (spot_26)'",
+    "16:46 stop 17003"
+   ],
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0
+  },
+  {
+   "clock": "19:18",
+   "builder": "constructor_23698",
+   "type": "legmex",
+   "cell": "E5",
+   "cause": "U1",
+   "what_happened": "while the list's builder walked 2,000 to spot_46, the pick put constructor_27740 on the same spot (19:33), which built it; 23698's step stood until 20:00",
+   "evidence": [
+    "19:18 (list) build a legmex at spot_46 (E5)",
+    "19:33 constructor_27740 (plan) build a legmex at spot_46 (E5); 19:34 created legmex_11185",
+    "bot.log f=36000: 'legmex order for unit 23698 near (4779, 3524) never started'"
+   ],
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0
+  },
+  {
+   "clock": "19:45",
+   "builder": "constructor_24498",
+   "type": "leglht",
+   "cell": "E4",
+   "cause": "U3",
+   "what_happened": "the 60% queue-ahead step for the spot_37 Pharos was dropped on purpose by the player's 19:39 re-list (the Gauntlet's reach)",
+   "evidence": [
+    "19:45 (list) next, queued: build a leglht at spot_37 (E4)",
+    "19:39 queue constructor_24498: ['stop', 'extractor spot_79', ...]; note 'Dropped spot_37/31'",
+    "19:47 stop 24498"
+   ],
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0
+  },
+  {
+   "clock": "20:00",
+   "builder": "constructor_23698",
+   "type": "legmex",
+   "cell": "F6",
+   "cause": "U9",
+   "what_happened": "spot_55 was also in constructor_23595's 18:49 list, which began it at 20:11; 23698 arrived, idled (bot.log 'never started' at 20:13) and the pick walked it to spot_61 at 20:15",
+   "evidence": [
+    "20:00 (list) build a legmex at spot_55 (F6)",
+    "20:11 created legmex_15597 by 23595",
+    "20:15 PLAYS constructor_23698: walk to spot_61 [plan]"
+   ],
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0
+  },
+  {
+   "clock": "20:25",
+   "builder": "constructor_23595",
+   "type": "legmex",
+   "cell": "F8",
+   "cause": "U9",
+   "what_happened": "spot_79 was in 23595's 18:49 list and in 24498's 19:39 list; 24498 began it (20:47); 23595 then helped it (21:06 pick)",
+   "evidence": [
+    "20:25 (list) next, queued: build a legmex at spot_79 (F8)",
+    "19:48 constructor_24498 (list) build a legmex at spot_79 (F8); 20:47 created legmex_10986",
+    "21:06 constructor_23595: help constructor_24498 build (plan)"
+   ],
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0
+  },
+  {
+   "clock": "22:09",
+   "builder": "constructor_8343",
+   "type": "legmex",
+   "cell": "A2",
+   "cause": "U1",
+   "what_happened": "a 4,900-elmo walk from home to spot_14; the pick put constructor_18227 on the spot (23:17), which began it at 23:24; at 23:40 the pick walked 8343 home with an armflea 94 away",
+   "evidence": [
+    "22:09 (list) build a legmex at spot_14 (A2)",
+    "23:17 constructor_18227 (plan) build a legmex at spot_14 (A2); 23:24 created legmex_4014",
+    "23:40 (plan) walk to home"
+   ],
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0
+  },
+  {
+   "clock": "24:07",
+   "builder": "constructor_24498",
+   "type": "legadvsol",
+   "cell": "A8",
+   "cause": "U9",
+   "what_happened": "ordered to solar_field the same tick as constructor_23595; both placed at (792,5720); 23595 began the frame (24:17)",
+   "evidence": [
+    "24:07 placed legadvsol (792,5720) for 24498 and 23595",
+    "24:17 created legadvsol_83 by 23595",
+    "bot.log f=44955: 'legadvsol order for unit 24498 near (792, 5720) never started'"
+   ],
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0
+  },
+  {
+   "clock": "25:10",
+   "builder": "constructor_3166",
+   "type": "leglht",
+   "cell": "F6",
+   "cause": "U8",
+   "what_happened": "the pick's Pharos, placed 200 east of the ask, 46 s before the record ended; constructor_27740 started a Pharos at the asked point at 25:41",
+   "evidence": [
+    "25:10 (plan) build a leglht at spot_55 (F6); placed (5440,4112)"
+   ],
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0
+  },
+  {
+   "clock": "25:28",
+   "builder": "constructor_5527",
+   "type": "legmoho",
+   "cell": "C6",
+   "cause": "U8",
+   "what_happened": "queued behind a build 28 s before the record ended",
+   "evidence": [
+    "25:28 (list) next, queued: build a legmoho at spot_61 (C6)"
+   ],
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0
+  },
+  {
+   "clock": "25:35",
+   "builder": "constructor_25372",
+   "type": "legmoho",
+   "cell": "B8",
+   "cause": "U8",
+   "what_happened": "queued behind a build 21 s before the record ended",
+   "evidence": [
+    "25:35 (list) next, queued: build a legmoho at spot_73 (B8)"
+   ],
+   "cost_class": "none",
+   "confidence": "high",
+   "seat": 0
+  }
+ ],
+ "tally": {
+  "U0": {
+   "n": 0,
+   "metal": 0
+  },
+  "U1": {
+   "n": 0,
+   "metal": 0
+  },
+  "U2": {
+   "n": 0,
+   "metal": 0
+  },
+  "U3": {
+   "n": 5,
+   "metal": 352
+  },
+  "U4": {
+   "n": 15,
+   "metal": 446
+  },
+  "U5": {
+   "n": 0,
+   "metal": 0
+  },
+  "U6": {
+   "n": 0,
+   "metal": 0
+  },
+  "U7": {
+   "n": 0,
+   "metal": 0
+  },
+  "U8": {
+   "n": 2,
+   "metal": 272
+  },
+  "U9": {
+   "n": 1,
+   "metal": 0
+  }
+ },
+ "by_fate": {
+  "decayed": {
+   "n": 12,
+   "metal": 467
+  },
+  "killed": {
+   "n": 9,
+   "metal": 331
+  },
+  "at_end": {
+   "n": 2,
+   "metal": 272
+  }
+ },
+ "by_type": {
+  "legmex": {
+   "n": 8,
+   "metal": 174
+  },
+  "leglht": {
+   "n": 7,
+   "metal": 203
+  },
+  "legsolar": {
+   "n": 1,
+   "metal": 0
+  },
+  "legnanotc": {
+   "n": 1,
+   "metal": 78
+  },
+  "legadvsol": {
+   "n": 4,
+   "metal": 468
+  },
+  "legdtr": {
+   "n": 1,
+   "metal": 122
+  },
+  "legrad": {
+   "n": 1,
+   "metal": 25
+  }
+ },
+ "never_started_tally": {
+  "U9": 11,
+  "U3": 5,
+  "U1": 2,
+  "U8": 3
+ },
+ "player_knew": {
+  "before": 19,
+  "after": 3,
+  "never": 1,
+  "dropped_itself": 5
+ },
+ "mechanisms": [
+  "Say the exit lane of the frame apart from the builder's, and keep an unplaced advanced-solar footprint out of the lane: the 11:36 and 12:06 entries said constructor_1281 and constructor_27740 stood in plant exit lanes, and the player dropped legnanotc_18073, legadvsol_3770, legadvsol_21461 and legadvsol_9057 as frames in the lanes. Only 3770 was (32 elmos over plant_16133's lane edge, its ask inside the lane). That was 314 metal in, two re-lists (the first kept the ids and pulled the builders back), and the replacements started from zero at solar_field (the first finished at 13:36) while the energy store sat at 5-8%. Items 18073, 3770, 21461, 9057.",
+  "Name unseen fire and a remembered turret's reach on a builder's entry and on the frame's loss line: at D4/E4/E5, legmex_7170, leglht_25003, leglht_17119, legmex_17819, legmex_29730 and legrad_25767 were shot by the E3 armguard (950-1143 away, range 1220) or a Fatboy (about 600), with nothing of his in sight. Meanwhile the entries said 'health lightly hurt' and 'enemies_near: 2 armck', the hands called five of them 'abandoned ... its builder was sent elsewhere and the frame decayed', and the player sent constructor_1251 back to spot_31 at 19:09. That cost 121 metal of frames plus constructors 2996 and 1251 (250).",
+  "Hold or pull a forward build whose site has a raid party in contact: nine frames at forward spots were killed by Pawns, a Flea or the Gunslinger party while their builders kept building (legmex_16248, leglht_2014, legmex_30757, legmex_1774, legmex_29133, leglht_23841, leglht_7860, legdtr_24253, legmex_10058: 331 metal). For 30757 and 10058 the pick rated change 0.76-0.90 with no move over its bar, so constructors 1595 and 5624 died with their frames. The largest loss, the Dragon's Jaw 24253 (122), died while the army walked off the turret line on the player's 13:56 route."
+ ],
+ "unread": "nothing torn. run/frames.py changed during the review (11:35): the version first run listed 28 orders never started; the current one matches each order to the engine's placed site and lists 21. Of the 7 dropped, 6 had their frame start at the placed site 300-714 from the ask (10:28 constructor_27740 legvp, 13:52 constructor_27659 legadvsol, 15:26 constructor_27740 legvp, 19:28 constructor_3137 legadvsol, 19:37 constructor_1281 legavp, 24:07 constructor_23595 legadvsol), and 14:03 constructor_1251 folded into its 12:43 order as a re-send. The denominator quoted is the current version's. One seat: no symlink directory was needed. floor.py aband 12 = frames.py decayed 12 (its aband_m 123 is not frames.py's 467 decayed metal: a different measure, not reconciled)."
+}

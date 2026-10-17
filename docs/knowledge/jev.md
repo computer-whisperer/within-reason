@@ -2266,3 +2266,23 @@ All ten fixed the same day on the user's word ("Let's fix the five cheap code fa
 build before the rebuilt hands (all 23 games are on version 3 logs).
 **Used by.** H-MICRO-HUNT (the per-hunter leash), H-HANDS-LISTS (the waiting step, the turret step, the `queue`
 refusals), the report's eco line, the enemy-building memory, the loss count, the no-site line.
+
+### K-harness-one-frame-in-seven-is-lost-and-the-hands-look-frames-up-by-type-and-distance
+**Claim.** Across the 23 games of 2026-10-06 to 2026-10-16 (48 seats, 5,553 structures started), 86.5% of frames
+finished; 311 decayed, 332 were killed unfinished, 105 stood unfinished at the end; 39,879 metal went into frames that
+were lost. By cause: the builder died or fled or the frame was killed 432 frames (21,356 metal; 153 of them begun
+with a party already in the picture within 900, 132 with the builder standing on the frame as it died, 53 crawling
+at an empty store), the player's own `stop` 129 (10,659; 39 answering the exit-lane wake, most landing on a frame
+that had grown since the report), the hands' faults 34 as first cause (5,023) and 55 in all (7,624) for the one
+mechanism the hands look a builder's frame up by type and distance rather than by the frame its own order created
+(`pianist/mod.rs` UnitFinished 250, the watchdog's 200, `picture.rs` task_course 200): a neighbour's finish ends the
+builder's task at 62-98%, the watchdog then stops it, the entry says "finishing an order" and the player stops it.
+And 106 of the 311 "decayed" frames (7,611 metal) were shot by something out of sight, which the hands' loss line
+reports as "abandoned ... its builder was sent elsewhere and the frame decayed" with the share after decay (0-1%).
+**Status.** measured (2026-10-17; `run/frames.py` for the denominators on every seat, one Opus reviewer a game,
+748 items at 673 high confidence; the three code lines read at HEAD; an 8-item random sample verified). Nothing
+built; §7 of the study ranks the fixes for the user.
+**Evidence.** `docs/studies/2026-10-17-unfinished-structures.md`, `docs/studies/data/unfinished-2026-10-17/`.
+**Would be wrong if.** The record's destroyed event named attackers out of sight (it does not: the damage rows show
+the hits), or the peak share overstated the metal (the engine refunds nothing of a decayed frame).
+**Used by.** nothing yet: the study's §7 is the user's call.

@@ -1,0 +1,1269 @@
+{
+ "game": "1791573192-nuke-1-medium",
+ "result": "undecided 40:00 (arena cap; Timeout)",
+ "minutes": 40.0,
+ "seats": 1,
+ "opponent": "BARb medium",
+ "kind": "arena",
+ "denominators": {
+  "0": {
+   "frames": 264,
+   "finished": 228,
+   "decayed": 14,
+   "killed": 19,
+   "at_end": 3,
+   "metal_in_unfinished": 11521,
+   "never_started": 37
+  }
+ },
+ "items": [
+  {
+   "seat": 0,
+   "frame": "armafus_19543",
+   "type": "armafus",
+   "cell": "B7",
+   "started": "37:03",
+   "fate": "at_end",
+   "fate_clock": "40:01",
+   "share": 0.37,
+   "metal_in": 3589,
+   "cost": 9700,
+   "builder": "constructor_83",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "An advanced fusion that Jev's pick started at 37:03 ('build a armafus at spot_67 (B7)'), with constructor_988 helping from 37:05. It progressed every second to 37% at the 40:00 cap. The metal store stayed at or above 91% throughout, and nobody left it. It started 2:58 before the end, so it is outside the two-minute window; no other class fits, and the game end is what left it unfinished.",
+   "evidence": [
+    "37:00 (plan) build a armafus at spot_67 (B7)",
+    "health 3 (37:20) -> 37 (40:01), +4-5 every 20 s",
+    "stores min metal 0.91 energy 0.93"
+   ],
+   "player_knew": "yes: every report from 37:13; 39:59 '(36 % built)'",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armfus_15500",
+   "type": "armfus",
+   "cell": "B7",
+   "started": "37:41",
+   "fate": "at_end",
+   "fate_clock": "40:01",
+   "share": 0.99,
+   "metal_in": 3316,
+   "cost": 3350,
+   "builder": "constructor_2002",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "A fusion that Jev's pick started at 37:41 ('build a armfus at home (B7)'). It was at 99% at the last record line and rising about 1.5% a second, with the store full. It started 2:20 before the end, so it is outside the strict window; no other class fits.",
+   "evidence": [
+    "37:36 (plan) build a armfus at home (B7)",
+    "health 97 (40:00) -> 99 (40:01)"
+   ],
+   "player_knew": "yes: 39:59 '(96 % built)'",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armavp_2014",
+   "type": "armavp",
+   "cell": "B7",
+   "started": "5:40",
+   "fate": "killed",
+   "fate_clock": "7:48",
+   "share": 0.64,
+   "metal_in": 1664,
+   "cost": 2600,
+   "builder": "constructor_15278",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The advanced vehicle plant frame at avp_yard (home, B7) was shot down at 64% by party_10 (4-7 corak) during the 7:23-8:20 corak raid. From 7:42 the groups' menus rated attack_party_10 at 0.26-0.30 and the picks sent detachments after lone corak (party_4, party_8) 1,000-1,500 away. The commander was on an assist list until the 7:46 cancel landed at 7:53. The frame was also slowed by an empty energy store from 5:46 to 6:56. Its replacement, plant_21205 at avp_yard2, was started 8:38 and finished 10:41, about 2 minutes later than this frame would have.",
+   "evidence": [
+    "7:43-7:48 dmg rows 353-601 a second on 2014; 7:48 destroyed by corak 26088",
+    "7:42 PARTY party_10 answer=0.85; menu group_L: attack_party_4=0.5 send_1_party_4=0.48 (party_10 not offered); 7:44 menu group_L attack_party_10=0.3",
+    "7:43 PLAYS group_A: 1 of group_A hunt party_8 (1 corak) as group_O",
+    "7:46 report: 'enemy in sight: 5 at B7 ... corak 5; killing our Advanced Vehicle Plant (armavp) (2600 metal) now'"
+   ],
+   "player_knew": "yes: 7:36 entry 'building a Advanced Vehicle Plant (armavp) at avp_yard (B7) (62 % built)' with '8 at C6 (2158, 4518), 1254 from home: corak 8' in sight; the 7:36 packet named the raid ('THE RAID NOW: about fourteen co...'), the 7:46 packet 'EMERGENCY: about seven corak are at avp_yard'",
+   "fix_class": "hands-rule",
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armfus_3736",
+   "type": "armfus",
+   "cell": "A7",
+   "started": "39:29",
+   "fate": "at_end",
+   "fate_clock": "40:01",
+   "share": 0.19,
+   "metal_in": 636,
+   "cost": 3350,
+   "builder": "constructor_9057",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "A fusion that Jev's pick started at 39:29, 32 s before the end, at 19%.",
+   "evidence": [
+    "39:28 (plan) build a armfus at avp_yard2 (A7)"
+   ],
+   "player_knew": "yes: 39:59 '(17 % built)'",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmoho_7673",
+   "type": "armmoho",
+   "cell": "B5",
+   "started": "19:15",
+   "fate": "decayed",
+   "fate_clock": "19:46",
+   "share": 0.52,
+   "metal_in": 322,
+   "cost": 620,
+   "builder": "constructor_18765",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The record says it decayed, but it was shot: a moho at spot_50 (B5) from the player's 18:29 list. Two corthud and an armflash came into sight beside it and shot it from 52% to death in four seconds (104/209/623/409 damage). The report called it 'abandoned'.",
+   "evidence": [
+    "19:43-19:47 dmg rows on 7673 104, 209, 623, 409; xi corthud->armmoho, armflash->armmoho",
+    "corthud at (1129,3558) and (1060,3599), armflash at (1291,3660) in sight"
+   ],
+   "player_knew": "partly: 19:39 entry 'building a Advanced Metal Extractor (armmoho) at spot_50 (B5) (46 % built)' with no enemy near; after: 19:47 'abandoned an unfinished armmoho (7% built) x1' (wrong: it was killed)",
+   "fix_class": "player",
+   "cost_class": "large",
+   "confidence": "medium"
+  },
+  {
+   "seat": 0,
+   "frame": "armmoho_1240",
+   "type": "armmoho",
+   "cell": "A6",
+   "started": "17:01",
+   "fate": "killed",
+   "fate_clock": "17:50",
+   "share": 0.47,
+   "metal_in": 291,
+   "cost": 620,
+   "builder": "constructor_15489",
+   "cause": "U4",
+   "also": "U5",
+   "what_happened": "A moho at spot_54 (A6, a home extractor), built while the metal store was empty from 17:12 (the silo and fusions drew it down), so it reached only 47% in 49 s. From 17:36 a lone armflash (party_96) shot it, and from 17:45 two corak joined. About ten groups' menus rated attack_party_96 at 0.15-0.47, but the picks gathered and followed; group_Q2's hunt was 2,300 away. The player's 17:39 order to send group_P2 and group_O2 landed about 17:46, and the frame died at 17:50 with its builder still on it.",
+   "evidence": [
+    "17:38-17:50 dmg rows 81-195 a second; 17:50 destroyed by armflash 5486 (enemy)",
+    "metal store 0 from 17:12 to 17:50 (eco: 'metal 0 (+84.6/-84.6)')",
+    "17:37 menu group_P2 attack_party_96=0.47; PICK changed=['group_G2: walk to spot_59']; 17:38 PLAYS group_M1: gather on its front"
+   ],
+   "player_knew": "yes: 17:39 entry 'building a Advanced Metal Extractor (armmoho) at spot_54 (A6) (38 % built)' and 'enemy in sight: 1 at A6 ... armflash 1; killing our Advanced Metal Extractor (armmoho)'",
+   "fix_class": "hands-rule",
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armadvsol_5624",
+   "type": "armadvsol",
+   "cell": "A8",
+   "started": "7:26",
+   "fate": "decayed",
+   "fate_clock": "10:09",
+   "share": 0.74,
+   "metal_in": 259,
+   "cost": 350,
+   "builder": "constructor_6635",
+   "cause": "U3",
+   "also": null,
+   "what_happened": "constructor_6635's advanced solar at solar_field was at 64% when the 8:23 post-raid queue sent it, list beginning with `stop`, to start the AVP at avp_yard2. The stop landed at 8:31 with the frame at 72%. Over the 98 s it decayed, constructor_14492 and constructor_5440 both had 'armadvsol solar_field' steps and placed new frames 100-350 away, so nobody resumed it.",
+   "evidence": [
+    "8:23 queue constructor_6635: [\"stop\", \"armavp avp_yard2 #avp2\", \"assist\"]; RESULT 'constructor_6635: its build in progress dropped'",
+    "8:31 constructor_6635: stopped what it was doing on your `stop`; 8:32 build a armavp at avp_yard2 (A7) (#avp2)",
+    "health 74 at 8:38 falling to 0 at 10:09, no damage rows"
+   ],
+   "player_knew": "yes: the 8:23 entry 'building a Advanced Solar Collector (armadvsol) at spot_74 (A8) (64 % built)'; the player's words did not mention dropping it ('constructor_6635 starts it now'); after: 10:11 'abandoned an unfinished armadvsol (0% built) x2'",
+   "fix_class": "player",
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armadvsol_17686",
+   "type": "armadvsol",
+   "cell": "C7",
+   "started": "20:38",
+   "fate": "decayed",
+   "fate_clock": "22:01",
+   "share": 0.71,
+   "metal_in": 248,
+   "cost": 350,
+   "builder": "constructor_25274",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The record says it decayed, but it was shot: constructor_25274's '#adv2' (the player gave no place) was put at C7, 362 from spot_69, on the raid path. corstorm and corthud in sight hit it at 21:54 and from 22:00 to 22:02 (157, 106, 209, 439), and it died at 71%. The report said 'abandoned an unfinished armadvsol (37% built)'.",
+   "evidence": [
+    "21:54 dmg 157 (xi corstorm->armadvsol); 22:00-22:02 dmg 106/209/439",
+    "21:58 entry: 'enemies_near: party_135 (3 corstorm, 1 corthud) 499 away'"
+   ],
+   "player_knew": "yes: 21:58 entry 'building a Advanced Solar Collector (armadvsol) at 365 from spot_69 (C7) (62 % built)' with party_135 499 away; after: 22:08 'abandoned an unfinished armadvsol (37% built) x1'",
+   "fix_class": "player",
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armadvsol_14742",
+   "type": "armadvsol",
+   "cell": "A8",
+   "started": "7:35",
+   "fate": "decayed",
+   "fate_clock": "10:07",
+   "share": 0.69,
+   "metal_in": 241,
+   "cost": 350,
+   "builder": "constructor_14492",
+   "cause": "U9",
+   "also": "U3",
+   "what_happened": "The 8:23 queue replaced constructor_14492's list without a `stop`; the player meant 'constructor_5440 and constructor_14492 each finish an advanced solar'. The old list's second solar had been queued behind the build at 8:29 under the 60% rule. At 8:36 the hands dropped that queued step with a `stop`, and the stop also ended the build in progress at 69%. At 8:37 the new list's first step 'armadvsol solar_field' was placed as a new frame (8265 at (560,5648), about 100 away) instead of being taken as the build already under way. The 69% frame decayed beside it until 10:07.",
+   "evidence": [
+    "8:36 constructor_14492: dropped the step 'armadvsol solar_field' its old list had queued behind the build it was on: you have replaced or cancelled that list since; CMD stop 14492",
+    "8:37 (list) build a armadvsol at solar_field (A8); EV created 8265 armadvsol by 14492 at (560,5648)",
+    "8:23 RESULT 'constructor_14492: 3 steps, done in order from its next look' (no drop said)"
+   ],
+   "player_knew": "yes: 8:23 entry 'building a Advanced Solar Collector (armadvsol) at solar_field (A8) (53 % built)', 8:33 '(65 % built)'; from 8:42 the entry tracked the new frame under the same words, so the drop was invisible; after: 10:11 'abandoned an unfinished armadvsol (0% built) x2'",
+   "fix_class": "hands-rule",
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armnanotc_14058",
+   "type": "armnanotc",
+   "cell": "B8",
+   "started": "30:32",
+   "fate": "decayed",
+   "fate_clock": "32:42",
+   "share": 0.87,
+   "metal_in": 200,
+   "cost": 230,
+   "builder": "constructor_21763",
+   "cause": "U9",
+   "also": "U2",
+   "what_happened": "constructor_21763's list was a nano and then an advanced solar, with no places. At 31:09, with the nano at 62%, the 60% rule queued the solar at spot_73 behind it. At 31:23, with the nano at 85% and the builder still building it, the blocked-site watchdog counted the queued solar as 'stood at the site 8 s, never started' and sent `stop`, which ended the nano build. The list went on to the solar, and nobody returned to the nano, which decayed until 32:42. At 31:37, constructor_4695's #nano_b was placed as a new frame (715 at (1576,5656)), 64 elmos from this 87% one.",
+   "evidence": [
+    "31:09 (list) next, queued: build a armadvsol at spot_73 (B8)",
+    "31:23 constructor_21763: its armadvsol at B8 never started in the 8 s it stood at the site: the site is blocked ... refused for 90 s; CMD stop 21763 (nano at 85%)",
+    "31:24 (list) build a armadvsol at spot_73 (B8); nano health 87 from 31:24, falling from 31:34 to 0 at 32:42"
+   ],
+   "player_knew": "no: the 31:16 entry showed the queued step as the current one ('walking to build a Advanced Solar Collector (armadvsol) at spot_73 (B8), 153 to go') while it built the nano at 73%; the nano was never named; after: only 32:51 'abandoned an unfinished armnanotc (0% built) x1'",
+   "fix_class": "hands-rule",
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armpb_10174",
+   "type": "armpb",
+   "cell": "C6",
+   "started": "21:18",
+   "fate": "killed",
+   "fate_clock": "21:35",
+   "share": 0.18,
+   "metal_in": 122,
+   "cost": 680,
+   "builder": "constructor_23066",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "A Pit Bull at spot_63 (C6, 1,600 from home), step #pb4 of the player's 19:19 list, killed by a corstorm at 18%.",
+   "evidence": [
+    "21:35 destroyed by corstorm; 21:35 dmg 157",
+    "21:29 report: 'enemy in sight: 1 at C6 (2354, 4232) ... corstorm 1'"
+   ],
+   "player_knew": "yes: 21:29 entry 'building a Pit Bull (armpb) at spot_63 (C6) (13 % built)' with the corstorm in sight",
+   "fix_class": "player",
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armsolar_6821",
+   "type": "armsolar",
+   "cell": "B7",
+   "started": "2:19",
+   "fate": "decayed",
+   "fate_clock": "3:08",
+   "share": 0.77,
+   "metal_in": 119,
+   "cost": 155,
+   "builder": "commander",
+   "cause": "U3",
+   "also": null,
+   "what_happened": "The 2:20 report woke on plant_27255's exit lane blocked by the commander building this solar in it; the player's queue began with `stop` to clear the lane, meaning to drop a 5% frame. It landed at 2:27 (7 s penalty) and stopped the commander at 2:28 with the solar at 77%; nobody returned and it decayed by 3:08.",
+   "evidence": [
+    "2:20 queue commander: [\"stop\", \"armsolar solar_field\" x3, \"assist 30\", \"armsolar solar_field\", \"assist\"]; RESULT 'its build in progress dropped'",
+    "2:28 commander: stopped what it was doing on your `stop`",
+    "player 2:20: 'it drops the solar it had just started (5% built, so little was lost)'",
+    "health 77 at 2:28, falling to 0 at 3:08, no damage rows"
+   ],
+   "player_knew": "yes, and dropped it itself: the 2:20 entry read 'building a Solar Collector (armsolar) at spot_73 (B7) (5 % built) ... standing in plant_27255's exit lane since 30 s ago'; after: 3:35 'abandoned an unfinished armsolar (0% built) x1'",
+   "fix_class": "tool",
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_22170",
+   "type": "armllt",
+   "cell": "A8",
+   "started": "19:31",
+   "fate": "decayed",
+   "fate_clock": "20:22",
+   "share": 0.93,
+   "metal_in": 79,
+   "cost": 85,
+   "builder": "commander",
+   "cause": "U2",
+   "also": "U9",
+   "what_happened": "The commander's 18:49 list was #sf1, #sf2 (turrets at solar_field), #sf3, then assist; constructor_14492 shared #sf1. Both were given #sf1 in the same tick and were placed at two sites, so #sf1 became two frames: 14631 by 14492 at (960,5744) and this one by the commander at (752,5760). constructor_1726's #sf2 was placed on 14492's #sf1 site and refused by the engine at 19:38. At 19:37 the commander's list queued 'help build #sf2' behind its build (60% rule). When 1726 moved to #sf3 at 19:39, the hands sent the commander `stop`, dropping its own frame at 93%, and then 'help build #sf3'.",
+   "evidence": [
+    "19:37 (list) commander help build #sf2 (next, queued: help constructor_1726 build)",
+    "19:38 constructor_1726: the engine refused a armllt at A8: the site was bad",
+    "19:39 CMD stop 25947; 19:40 (list) commander help build #sf3; frame at 93% from 19:40, decayed 20:22",
+    "18:57 placed 25947 armllt at (752,5760); placed 14492 and 1726 armllt at (960,5744)"
+   ],
+   "player_knew": "no: the 19:29 entry read 'walking to build a Sentry (armllt) at solar_field (A8), 231 to go', the 19:39 entry 'helping lab_1726 build'; after: 20:24 '20:22 abandoned an unfinished armllt at A8 (0% built): its builder was sent elsewhere and the frame decayed'",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_26519",
+   "type": "armllt",
+   "cell": "C4",
+   "started": "16:49",
+   "fate": "decayed",
+   "fate_clock": "17:16",
+   "share": 0.85,
+   "metal_in": 72,
+   "cost": 85,
+   "builder": "constructor_4773",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The record says it decayed, but it was shot: a turret at spot_39 (C4, mid-map) from the player's list. At 85% it took 157/104/209/263 damage in four seconds from an unseen attacker, and a corthud showed itself 200 away at 17:19. The builder stayed. The report called it 'abandoned'.",
+   "evidence": [
+    "17:13-17:16 dmg rows on 26519: 157, 104, 209, 263; destroyed 17:16 by -1 (unseen)",
+    "17:19 corthud at (3200,3051) in sight hitting the builder"
+   ],
+   "player_knew": "partly: 17:12 entry 'building a Sentry (armllt) at spot_39 (C4) (85 % built)' with no enemy near; after: 17:22 'abandoned an unfinished armllt (19% built) x1' (wrong: it was killed)",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "medium"
+  },
+  {
+   "seat": 0,
+   "frame": "armsolar_10632",
+   "type": "armsolar",
+   "cell": "A7",
+   "started": "20:23",
+   "fate": "killed",
+   "fate_clock": "20:32",
+   "share": 0.31,
+   "metal_in": 48,
+   "cost": 155,
+   "builder": "constructor_1412",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The player's 20:14 list gave constructor_1412 three solars with no place, and the hands put them at avp_yard2 (A7) in the path of party_119 (3 corstorm, 8 corthud, 641 away). A corthud killed this one at 31%.",
+   "evidence": [
+    "20:22 (list) build a armsolar at avp_yard2 (A7); 20:32 destroyed by corthud",
+    "20:24 entry: 'enemies_near: party_119 (3 corstorm, 8 corthud) 641 away'"
+   ],
+   "player_knew": "yes: 20:24 entry 'building a Solar Collector (armsolar) at avp_yard2 (A7) (3 % built)' with the raid named",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_16966",
+   "type": "armllt",
+   "cell": "C5",
+   "started": "12:02",
+   "fate": "killed",
+   "fate_clock": "12:29",
+   "share": 0.51,
+   "metal_in": 43,
+   "cost": 85,
+   "builder": "constructor_4773",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "A turret at spot_52 (C5, 2,100 from home) from the player's list. One corak (party_38) shot it to death at 51%. group_K1's hunt of that corak began 1,500 away and ended on the 900 leash.",
+   "evidence": [
+    "12:19-12:29 dmg rows 51-135; 12:29 destroyed by corak",
+    "12:26 entry: 'enemies_near: party_38 (1 corak) 108 away'"
+   ],
+   "player_knew": "yes: 12:26 entry 'building a Sentry (armllt) at spot_52 (C5) (35 % built)' with the corak 108 away",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "medium"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_26900",
+   "type": "armllt",
+   "cell": "C8",
+   "started": "9:42",
+   "fate": "decayed",
+   "fate_clock": "10:42",
+   "share": 0.38,
+   "metal_in": 32,
+   "cost": 85,
+   "builder": "constructor_15278",
+   "cause": "U3",
+   "also": null,
+   "what_happened": "The 10:11 report woke on plant_27255's exit lane blocked by constructor_15278 building this turret at spot_73 in the lane. The player's queue began with `stop` and sent the constructor to help the AVP, so the turret was dropped at 38% and decayed. The metal store was empty at the time.",
+   "evidence": [
+    "10:11 queue constructor_15278: [\"stop\", \"armavp avp_yard2 #avp2\", \"assist\"]; RESULT 'its build in progress dropped'",
+    "10:19 constructor_15278: stopped what it was doing on your `stop`; 10:20 help build #avp2"
+   ],
+   "player_knew": "yes, and dropped it itself: 10:11 entry 'building a Sentry (armllt) at spot_73 (C8) (30 % built) ... standing in plant_27255's exit lane since 29 s ago'; after: 10:48 'abandoned an unfinished armllt (1% built) x1'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_28165",
+   "type": "armmex",
+   "cell": "C6",
+   "started": "24:32",
+   "fate": "killed",
+   "fate_clock": "24:44",
+   "share": 0.55,
+   "metal_in": 28,
+   "cost": 50,
+   "builder": "constructor_6635",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "A forward extractor at C6 (spot_61 from the player's list; 24:37 entry 'building ... (25 % built); enemies_near: party_145 (1 corthud) 339 away'), killed by corthud while unfinished. Its builder was told nothing else.",
+   "evidence": [
+    "destroyed by corthud (frames.py)"
+   ],
+   "player_knew": "yes: 24:37 entry 'building a Metal Extractor (armmex) at spot_61 (C6) (25 % built) ... enemies_near: party_145 (1 corthud) 339 away'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armadvsol_6548",
+   "type": "armadvsol",
+   "cell": "B8",
+   "started": "31:26",
+   "fate": "decayed",
+   "fate_clock": "31:52",
+   "share": 0.08,
+   "metal_in": 28,
+   "cost": 350,
+   "builder": "constructor_21763",
+   "cause": "U9",
+   "also": null,
+   "what_happened": "The solar that came out of the watchdog's re-placement (31:24, at (1616,5808)). The builder built it to 8% from 138 away, then from 31:35 drove a loop about 350 out through the yard in front of plant_27255 and back, with no command or decision row; units from the plant left along the same line at 31:37-31:42. The frame decayed in 18 s, and on its return the builder began a new frame at the same site (26505, 32:03, finished 33:05). The likeliest reading is the engine pushing a builder in a plant's exit lane. What is missing is any record of what moved it.",
+   "evidence": [
+    "no cmd or d row for 21763 from 31:24 to 32:03",
+    "positions 31:34 (1575,5678) -> 31:44 (1845,5394) -> 31:52 (1902,5768) -> 32:02 (1536,5891)",
+    "32:03 EV created 26505 armadvsol by 21763 at (1616,5808)"
+   ],
+   "player_knew": "yes: 31:36 entry 'building a Advanced Solar Collector (armadvsol) at 306 from spot_73 (B8) (8 % built)', 31:46 '(5 % built)'; after: 31:52 'abandoned an unfinished armadvsol at B8 (0% built): its builder was sent elsewhere' (no order sent it)",
+   "fix_class": "engine",
+   "cost_class": "large",
+   "confidence": "low"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_31972",
+   "type": "armllt",
+   "cell": "C7",
+   "started": "8:24",
+   "fate": "killed",
+   "fate_clock": "8:33",
+   "share": 0.31,
+   "metal_in": 26,
+   "cost": 85,
+   "builder": "constructor_21029",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The player's list sent the builder to spot_63 (C7) in the raid's path. constructor_21029 was killed by 5 corak at 8:33 while building the turret (31%).",
+   "evidence": [
+    "8:33 builder died to corak; frame destroyed by corak the same second",
+    "8:33 entry: 'health badly hurt, near death (1%); enemies_near: party_16 (5 corak) 42 away'"
+   ],
+   "player_knew": "yes: 8:33 entry 'building a Sentry (armllt) at spot_63 (C7) (31 % built)'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_7782",
+   "type": "armmex",
+   "cell": "C4",
+   "started": "30:54",
+   "fate": "killed",
+   "fate_clock": "31:06",
+   "share": 0.53,
+   "metal_in": 26,
+   "cost": 50,
+   "builder": "constructor_17470",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "A forward extractor at C4 (spot_39 from the player's list (C4, mid-map)), killed by corthud while unfinished. Its builder was told nothing else.",
+   "evidence": [
+    "destroyed by corthud (frames.py)"
+   ],
+   "player_knew": "no report while it stood",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_684",
+   "type": "armmex",
+   "cell": "A6",
+   "started": "19:53",
+   "fate": "decayed",
+   "fate_clock": "20:03",
+   "share": 0.47,
+   "metal_in": 24,
+   "cost": 50,
+   "builder": "constructor_24993",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The record says it decayed, but it was shot: an extractor at spot_54 (A6) from the player's 18:59 list. It was rising (47%) when it died; 209 damage is booked on the next second while the corthud/corstorm raid of 20:0x stood in A6.",
+   "evidence": [
+    "20:03 destroyed by -1; 20:04 dmg row [684, 209]; 20:05 corthud at (885,4124)"
+   ],
+   "player_knew": "partly: 19:55 entry 'building a Metal Extractor (armmex) at spot_54 (A6) (7 % built)'; after: 20:04 'abandoned an unfinished armmex (49% built) x1' (wrong: it was killed)",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "medium"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_27364",
+   "type": "armmex",
+   "cell": "D5",
+   "started": "15:18",
+   "fate": "killed",
+   "fate_clock": "15:28",
+   "share": 0.45,
+   "metal_in": 22,
+   "cost": 50,
+   "builder": "constructor_6635",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "An extractor at spot_47 (D5, 3,400 from home) from the player's list, ordered with 16 corstorm/corthud in E6 next door. A resurrected armflash killed it at 45%.",
+   "evidence": [
+    "15:28 destroyed by armflash 30948 (an enemy unit in the truth file)",
+    "15:25 report: 'enemy in sight: 16 at E6 ... corstorm 6, corthud 10'"
+   ],
+   "player_knew": "yes: 15:25 entry 'building a Metal Extractor (armmex) at spot_47 (D5) (35 % built)', party_65 594 away",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_29934",
+   "type": "armmex",
+   "cell": "D6",
+   "started": "7:41",
+   "fate": "killed",
+   "fate_clock": "7:52",
+   "share": 0.39,
+   "metal_in": 20,
+   "cost": 50,
+   "builder": "constructor_1412",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "This forward extractor at spot_56 (D6, 2,300 from home), from the player's 7:06 list, was killed at 39% by party_3 (4-5 corak) during the raid. The builder was told nothing else.",
+   "evidence": [
+    "7:50-7:52 dmg rows 23/51/49; 7:52 destroyed by corak",
+    "7:46 entry: 'enemies_near: party_3 (3 corak) 608 away'"
+   ],
+   "player_knew": "yes: 7:46 entry 'building a Metal Extractor (armmex) at spot_56 (D6) (24 % built)' with party_3 608 away",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_26122",
+   "type": "armllt",
+   "cell": "A6",
+   "started": "18:29",
+   "fate": "killed",
+   "fate_clock": "18:36",
+   "share": 0.14,
+   "metal_in": 12,
+   "cost": 85,
+   "builder": "constructor_1412",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "A turret at passage_3 (A6) from the player's list, killed by corak at 14% in seven seconds.",
+   "evidence": [
+    "18:36 destroyed by corak"
+   ],
+   "player_knew": "no report while it stood",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armbeamer_11161",
+   "type": "armbeamer",
+   "cell": "C6",
+   "started": "16:22",
+   "fate": "killed",
+   "fate_clock": "16:25",
+   "share": 0.05,
+   "metal_in": 10,
+   "cost": 190,
+   "builder": "constructor_15278",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "A beam turret at spot_63 (C6) from the player's list, killed by a corthud at 5% three seconds after it began.",
+   "evidence": [
+    "16:25 destroyed by corthud"
+   ],
+   "player_knew": "no: it stood 3 s between reports",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_13435",
+   "type": "armllt",
+   "cell": "B4",
+   "started": "28:53",
+   "fate": "decayed",
+   "fate_clock": "28:56",
+   "share": 0.12,
+   "metal_in": 10,
+   "cost": 85,
+   "builder": "constructor_10986",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The record says it decayed, but it was shot: a turret at spot_28 (B4) begun under the corthud that was already shooting its builder (28:52-28:56). It was rising (12%) when it died, and 104 damage is booked on the next second.",
+   "evidence": [
+    "28:52-28:56 corthud hits on constructor_10986; 28:56 destroyed by -1; 28:57 dmg row [13435, 104]"
+   ],
+   "player_knew": "yes: 28:55 entry 'building a Sentry (armllt) at spot_28 (B4) (8 % built); health hurt (45%)'; after: 29:05 'abandoned an unfinished armllt (12% built) x1' (wrong: it was killed)",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "medium"
+  },
+  {
+   "seat": 0,
+   "frame": "armsolar_493",
+   "type": "armsolar",
+   "cell": "A7",
+   "started": "20:34",
+   "fate": "killed",
+   "fate_clock": "20:36",
+   "share": 0.05,
+   "metal_in": 8,
+   "cost": 155,
+   "builder": "constructor_1412",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The same list step re-placed a solar at the same site one second after the first was killed (20:33), still under party_119. It was killed at 5%, and the builder died at 20:38 after a third try.",
+   "evidence": [
+    "20:33 (list) build a armsolar at avp_yard2 (A7); 20:36 destroyed by corthud; 20:37 walk to home (plan); builder died 20:38"
+   ],
+   "player_knew": "yes: 20:34 entry '(0 % built) ... enemies_near: party_119 (2 corak, 2 corstorm, 7 corthud) 332 away'",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_885",
+   "type": "armmex",
+   "cell": "C5",
+   "started": "23:14",
+   "fate": "killed",
+   "fate_clock": "23:18",
+   "share": 0.17,
+   "metal_in": 8,
+   "cost": 50,
+   "builder": "constructor_1726",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "A forward extractor at C5 (spot_52 from the player's list; the builder constructor_1726 died 23:19), killed by corstorm while unfinished. Its builder was told nothing else.",
+   "evidence": [
+    "destroyed by corstorm (frames.py)"
+   ],
+   "player_knew": "no report while it stood",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_23041",
+   "type": "armmex",
+   "cell": "A4",
+   "started": "28:47",
+   "fate": "killed",
+   "fate_clock": "28:50",
+   "share": 0.13,
+   "metal_in": 6,
+   "cost": 50,
+   "builder": "constructor_10986",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "A forward extractor at A4 (spot_28 from the player's list; 28:49 entry '(8 % built) ... party_148 (1 corthud) 177 away'), killed by corthud while unfinished. Its builder was told nothing else.",
+   "evidence": [
+    "destroyed by corthud (frames.py)"
+   ],
+   "player_knew": "yes: 28:49 entry 'building a Metal Extractor (armmex) at spot_28 (A4) (8 % built); health hurt (60%); enemies_near: party_148 (1 corthud) 177 away'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_27116",
+   "type": "armmex",
+   "cell": "C7",
+   "started": "24:23",
+   "fate": "decayed",
+   "fate_clock": "24:25",
+   "share": 0.1,
+   "metal_in": 5,
+   "cost": 50,
+   "builder": "constructor_5440",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "The record says it decayed, but it was shot: an extractor at spot_63 (C7) from the player's list. It was rising (10%) when it died two seconds after it began, and 104 damage is booked on the next second.",
+   "evidence": [
+    "24:25 destroyed by -1; 24:26 dmg row [27116, 104]"
+   ],
+   "player_knew": "no report while it stood; after: 24:30 'abandoned an unfinished armmex (12% built) x1' (wrong: it was killed)",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "medium"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_2513",
+   "type": "armmex",
+   "cell": "C4",
+   "started": "27:21",
+   "fate": "killed",
+   "fate_clock": "27:23",
+   "share": 0.06,
+   "metal_in": 3,
+   "cost": 50,
+   "builder": "constructor_16176",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "A forward extractor at C4 (spot_38 from the player's list, within reach of an enemy-held (resurrected) armllt 18401), killed by armllt while unfinished. Its builder was told nothing else.",
+   "evidence": [
+    "destroyed by armllt (frames.py)"
+   ],
+   "player_knew": "no report while it stood",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_22962",
+   "type": "armmex",
+   "cell": "B5",
+   "started": "25:50",
+   "fate": "killed",
+   "fate_clock": "25:51",
+   "share": 0.05,
+   "metal_in": 2,
+   "cost": 50,
+   "builder": "constructor_14492",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "A forward extractor at B5 (spot_45 from the player's list; killed one second after it began), killed by corthud while unfinished. Its builder was told nothing else.",
+   "evidence": [
+    "destroyed by corthud (frames.py)"
+   ],
+   "player_knew": "no report while it stood",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armnanotc_17753",
+   "type": "armnanotc",
+   "cell": "B8",
+   "started": "30:06",
+   "fate": "decayed",
+   "fate_clock": "30:17",
+   "share": 0.01,
+   "metal_in": 2,
+   "cost": 230,
+   "builder": "constructor_13214",
+   "cause": "U9",
+   "also": "U3",
+   "what_happened": "The 29:41 report woke on plant_27255's lane blocked by constructor_13214, and the player re-listed it to three turrets far away, with no `stop`. Before that order landed (29:48), the old list had queued its next nano behind the nano in progress (29:43, 60% rule). The queued command stayed in the engine until the build in progress (11072) finished at 30:05. The engine then started the queued nano as this frame at 30:06, and the hands dropped it the same second as the old list's step.",
+   "evidence": [
+    "29:43 (list) next, queued: build a armnanotc at spot_67 (B8)",
+    "30:06 constructor_13214: dropped the step 'armnanotc' its old list had queued behind the build it was on: you have replaced or cancelled that list since",
+    "30:07 (list) build a armllt at spot_43 (C5)"
+   ],
+   "player_knew": "no: the 30:11 entry read 'walking to build a Sentry (armllt) at spot_43 (C5), 2514 to go'; after: 30:21 '30:17 abandoned an unfinished armnanotc at B8 (0% built): its builder was sent elsewhere and the frame decayed'",
+   "fix_class": "hands-rule",
+   "cost_class": "large",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_13783",
+   "type": "armmex",
+   "cell": "D5",
+   "started": "26:31",
+   "fate": "killed",
+   "fate_clock": "26:31",
+   "share": 0.0,
+   "metal_in": 0,
+   "cost": 50,
+   "builder": "constructor_25003",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "A forward extractor at D5 (spot_47 from the player's list; killed the second it was placed; the builder died 27:17), killed by corak while unfinished. Its builder was told nothing else.",
+   "evidence": [
+    "destroyed by corak (frames.py)"
+   ],
+   "player_knew": "no report while it stood",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_5885",
+   "type": "armmex",
+   "cell": "C4",
+   "started": "29:10",
+   "fate": "killed",
+   "fate_clock": "29:13",
+   "share": 0.0,
+   "metal_in": 0,
+   "cost": 50,
+   "builder": "constructor_20153",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "An extractor at spot_38 (C4). In the second it was placed, the pick walked its builder home from a corthud (a retreat play). The 0% frame was left and was killed three seconds later; the builder died at 29:59.",
+   "evidence": [
+    "29:10 (plan) walk to home; its list step 'extractor spot_38' waits for it",
+    "29:13 destroyed by corthud"
+   ],
+   "player_knew": "no report while it stood",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "high"
+  }
+ ],
+ "never_started": [
+  {
+   "seat": 0,
+   "clock": "32:32",
+   "builder": "constructor_21938",
+   "type": "armfus",
+   "cell": "B8",
+   "cause": "U6",
+   "what_happened": "blocked site: Jev's pick put a fusion at home, and the host placed it at (1232,5848) in the crowded B8 yard (afus 24911 and 29194 and fusion 23224 stood around it). After a 68 s walk the watchdog refused it and the builder walked home; the fusion was never built.",
+   "evidence": [
+    "32:32 (plan) build a armfus at home (B8); placed (1232,5848)",
+    "33:40 constructor_21938: its armfus at B8 never started in the 8 s it stood at the site: the site is blocked ... refused for 90 s"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "8:20",
+   "builder": "constructor_6635",
+   "type": "armavp",
+   "cell": "B7",
+   "cause": "U3",
+   "what_happened": "replaced before it began: the 60% rule queued '#avp1' at avp_yard behind the advanced solar; the player's 8:23 queue ('stop', armavp avp_yard2 #avp2) moved the plant west, off the raid path, by design",
+   "evidence": [
+    "8:20 (list) next, queued: build a armavp at avp_yard (B7) (#avp1)",
+    "8:23 queue constructor_6635: [\"stop\", \"armavp avp_yard2 #avp2\", \"assist\"]"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "19:54",
+   "builder": "constructor_22608",
+   "type": "armmoho",
+   "cell": "D8",
+   "cause": "U3",
+   "what_happened": "replaced before it began: the queued moho at spot_71 was dropped when the player cancelled the list at 20:04 to put the builder on #fus3",
+   "evidence": [
+    "19:54 (list) next, queued: build a armmoho at spot_71 (D8)",
+    "20:04 queue constructor_22608: cancelled; 20:14 dropped the step 'armmoho spot_71' its old list had queued"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "20:01",
+   "builder": "constructor_15489",
+   "type": "armmoho",
+   "cell": "E8",
+   "cause": "U3",
+   "what_happened": "replaced before it began: the queued moho at spot_78 was dropped by the player's 20:04 cancel (#fus3)",
+   "evidence": [
+    "20:01 (list) next, queued: build a armmoho at spot_78 (E8)",
+    "20:04 queue constructor_15489: cancelled"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "24:18",
+   "builder": "constructor_988",
+   "type": "armmoho",
+   "cell": "A7",
+   "cause": "U3",
+   "what_happened": "replaced before it began: the 24:07 list's last moho (spot_62) began at 24:18, and the player's 24:17 re-list (after four 'nothing to do' lines) landed at 24:22 and sent the builder to spot_64",
+   "evidence": [
+    "24:18 (list) build a armmoho at spot_62 (A7)",
+    "24:17 queue constructor_988: 5 steps [\"armmoho spot_64\", ...]; 24:23 (list) build a armmoho at spot_64 (D7)"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "27:01",
+   "builder": "constructor_7616",
+   "type": "armmoho",
+   "cell": "C6",
+   "cause": "U6",
+   "what_happened": "site refused: the queued moho at spot_52 was refused by the engine at 28:26 ('the site was bad')",
+   "evidence": [
+    "27:01 (list) next, queued: build a armmoho at spot_52 (C6)",
+    "28:26 constructor_7616: the engine refused a armmoho at C6: the site was bad"
+   ],
+   "cost_class": "small",
+   "confidence": "medium"
+  },
+  {
+   "seat": 0,
+   "clock": "27:44",
+   "builder": "constructor_22608",
+   "type": "armmoho",
+   "cell": "C5",
+   "cause": "U6",
+   "what_happened": "blocked site: the watchdog refused the moho at spot_43 at 29:10; at 29:11 the list found no extractor of ours at spot_43 left to upgrade, and the builder walked home",
+   "evidence": [
+    "29:10 constructor_22608: its armmoho at C5 never started in the 8 s it stood at the site: the site is blocked",
+    "29:11 nothing to do: no extractor of ours stands at spot_43 to upgrade into a armmoho"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "30:01",
+   "builder": "constructor_21938",
+   "type": "armmoho",
+   "cell": "B5",
+   "cause": "U6",
+   "what_happened": "site refused: the queued moho at spot_45 was refused by the engine at 31:14, and the pick sent the builder to reclaim wrecks",
+   "evidence": [
+    "30:01 (list) next, queued: build a armmoho at spot_45 (B5)",
+    "31:14 the engine refused a armmoho at B5: the site was bad; 31:14 (plan) reclaim wrecks at spot_50"
+   ],
+   "cost_class": "small",
+   "confidence": "medium"
+  },
+  {
+   "seat": 0,
+   "clock": "28:59",
+   "builder": "constructor_17470",
+   "type": "armnanotc",
+   "cell": "B8",
+   "cause": "U3",
+   "what_happened": "replaced before it began: Jev's pick began a nano at 28:59, and the player's 28:55 list landed at 29:02 and replaced it with extractors",
+   "evidence": [
+    "28:59 (plan) build a armnanotc at spot_67 (B8)",
+    "28:55 queue constructor_17470: [\"extractor spot_59\", ...]; 29:03 (list) build a armmex at spot_59 (D6)"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "2:25",
+   "builder": "commander",
+   "type": "armsolar",
+   "cell": "B7",
+   "cause": "U3",
+   "what_happened": "replaced before it began: the 2:10 list's second solar was queued at 2:25 (60% rule), and the 2:20 queue with 'stop' (the exit-lane fix, landing 2:27) replaced the list",
+   "evidence": [
+    "2:25 (list) next, queued: build a armsolar at spot_67 (B7)",
+    "2:28 commander: stopped what it was doing on your `stop`"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "20:37",
+   "builder": "constructor_1412",
+   "type": "armsolar",
+   "cell": "A7",
+   "cause": "U4",
+   "what_happened": "builder fled and died: the list's third solar at avp_yard2, under party_119, which had killed the two before it; the pick walked the builder home in the same second, and it died at 20:38",
+   "evidence": [
+    "20:37 (plan) walk to home; its list step 'armsolar' waits for it",
+    "builder died 20:38"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "8:27",
+   "builder": "commander",
+   "type": "armllt",
+   "cell": "B8",
+   "cause": "U3",
+   "what_happened": "replaced before it began: Jev's pick put a turret at spot_73 at 8:27, and the commander's 8:23 list (#hl1, #hl2) landed at 8:30 and replaced it",
+   "evidence": [
+    "8:27 (plan) build a armllt at spot_73 (B8)",
+    "8:31 (list) build a armllt at spot_67 (B7) (#hl1)"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "16:07",
+   "builder": "constructor_6635",
+   "type": "armllt",
+   "cell": "D7",
+   "cause": "U3",
+   "what_happened": "replaced before it began: the queued turret at spot_64 was dropped by the player's 16:08 queue ('stop', armbeamer spot_69, armllt spot_69)",
+   "evidence": [
+    "16:07 (list) next, queued: build a armllt at spot_64 (D7)",
+    "16:08 queue constructor_6635: [\"stop\", \"armbeamer spot_69\", \"armllt spot_69\"]"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "18:57",
+   "builder": "constructor_1726",
+   "type": "armllt",
+   "cell": "A8",
+   "cause": "U6",
+   "what_happened": "site taken by the list's own id: #sf2 was placed at (960,5744), the same site the host gave constructor_14492's #sf1. 1726 built 14492's frame 14631 (finished 19:37), the engine refused #sf2 at 19:38, and the list went on. A turret the player listed never stood, and the commander's 'help #sf2' was cut short (item armllt_22170).",
+   "evidence": [
+    "18:57 placed 1726 and 14492 armllt at (960,5744); 19:24 created 14631 by 14492 there",
+    "19:38 constructor_1726: the engine refused a armllt at A8: the site was bad"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "20:05",
+   "builder": "constructor_24993",
+   "type": "armllt",
+   "cell": "A6",
+   "cause": "U4",
+   "what_happened": "builder fled and died: one second after the order, the pick walked it home from the corthud/corstorm raid in A6; it died at 20:09",
+   "evidence": [
+    "20:06 (plan) walk to home; its list step 'armllt spot_54' waits for it",
+    "builder died 20:09"
+   ],
+   "cost_class": "small",
+   "confidence": "high"
+  }
+ ],
+ "never_started_tally": {
+  "counts": {
+   "U1": 1,
+   "U3": 8,
+   "U4": 8,
+   "U6": 10
+  },
+  "of": 27,
+  "detail": {
+   "U3": "player re-list, cancel or stop: 2:25, 8:20, 8:27, 16:07, 19:54, 20:01, 24:18, 28:59",
+   "U6": "site refused or blocked: 12:30 (spot_43 already ours), 13:51, 18:57 (#sf2 on #sf1's site), 25:41, 27:01, 27:44 (watchdog), 27:57 constructor_29924, 28:17, 30:01, 32:32 (watchdog)",
+   "U4": "builder fled (retreat pick) or died: 20:05, 20:37, 23:19, 26:32, 27:24, 29:35, 29:38, 30:22",
+   "U1": "the pick replaced the queued step: 25:58 constructor_25274 (help plant_21205 at 26:13)"
+  }
+ },
+ "never_started_skipped": [
+  "6:40 constructor_6635 armadvsol (started as armadvsol_5624 at the engine's site, 328 away)",
+  "8:32 constructor_6635 armavp (started as plant_21205 at the engine's site (936,5352), 400 south of the asked point)",
+  "8:33 constructor_5440 armadvsol (started as 11458 at the engine's site, 9:11)",
+  "19:17 constructor_4773 armnanotc #nano1 (built the id's frame 18128 begun by constructor_5440 at the same site: 32 s, two armcv's rate)",
+  "27:57 constructor_23348 armmex (re-sent 29:12 and started 29:28)",
+  "28:45 constructor_7616 armfus #fus5 (started as 23224 at the engine's site)",
+  "30:47 constructor_15489 and constructor_22638 armafus #afus1 (each started its own frame at the engine's site: 24911 and 29194, both finished)",
+  "32:46 constructor_9057 and constructor_83 armsilo #silo2 (built constructor_988's silo 9632 at the same site; it rose at three armacv's rate and stood 36:36)"
+ ],
+ "tally": {
+  "U0": {
+   "n": 0,
+   "metal": 0
+  },
+  "U1": {
+   "n": 0,
+   "metal": 0
+  },
+  "U2": {
+   "n": 1,
+   "metal": 79
+  },
+  "U3": {
+   "n": 3,
+   "metal": 410
+  },
+  "U4": {
+   "n": 25,
+   "metal": 3020
+  },
+  "U5": {
+   "n": 0,
+   "metal": 0
+  },
+  "U6": {
+   "n": 0,
+   "metal": 0
+  },
+  "U7": {
+   "n": 0,
+   "metal": 0
+  },
+  "U8": {
+   "n": 3,
+   "metal": 7541
+  },
+  "U9": {
+   "n": 4,
+   "metal": 471
+  }
+ },
+ "by_fate": {
+  "decayed": {
+   "n": 14,
+   "metal": 1641
+  },
+  "killed": {
+   "n": 19,
+   "metal": 2339
+  },
+  "at_end": {
+   "n": 3,
+   "metal": 7541
+  }
+ },
+ "by_type": {
+  "armfus": {
+   "n": 2,
+   "metal": 3952
+  },
+  "armafus": {
+   "n": 1,
+   "metal": 3589
+  },
+  "armavp": {
+   "n": 1,
+   "metal": 1664
+  },
+  "armadvsol": {
+   "n": 4,
+   "metal": 776
+  },
+  "armmoho": {
+   "n": 2,
+   "metal": 613
+  },
+  "armllt": {
+   "n": 7,
+   "metal": 274
+  },
+  "armnanotc": {
+   "n": 2,
+   "metal": 202
+  },
+  "armsolar": {
+   "n": 3,
+   "metal": 175
+  },
+  "armmex": {
+   "n": 12,
+   "metal": 144
+  },
+  "armpb": {
+   "n": 1,
+   "metal": 122
+  },
+  "armbeamer": {
+   "n": 1,
+   "metal": 10
+  }
+ },
+ "player_knew": {
+  "before": 24,
+  "after": 3,
+  "never": 9,
+  "dropped_itself": 3
+ },
+ "player_knew_note": "before/after/never partition the 36 frames; dropped_itself counts the U3 frames (a subset of before)",
+ "decayed_but_shot": {
+  "frames": [
+   "armllt_26519",
+   "armmoho_7673",
+   "armmex_684",
+   "armadvsol_17686",
+   "armmex_27116",
+   "armllt_13435"
+  ],
+  "metal": 681,
+  "note": "6 of the 14 'decayed' frames were killed by fire (damage rows in the seconds before or the one after the destroyed event, enemies in sight for 7673 and 17686); they are counted under fate decayed as frames.py has it and under cause U4"
+ },
+ "mechanisms": [
+  "Defend a home frame that is under fire: answer a party that is shooting one of our frames at home with the nearest group that outweighs it, not with detachments at lone raiders elsewhere. Covers armavp_2014 (1664) and armmoho_1240 (291), 1955 metal; the AVP loss also put tier 2 back about 2 min (plant_21205 stood at 10:41).",
+  "A build order whose type matches an unfinished frame of ours within about 200 of its site repairs that frame instead of placing a new one. Covers armadvsol_14742 (241; the new list's step placed frame 8265 about 100 away), armadvsol_5624 (259; two solar_field steps placed new frames while it decayed 98 s) and armnanotc_14058 (200; #nano_b placed frame 715 64 away), 700 metal.",
+  "Never end the build in progress when the hands drop or advance a step queued behind it. Remove only the queued command, and let the blocked-site watchdog time a step only once the builder has left its previous build. Covers armadvsol_14742 (241, re-list drop), armnanotc_14058 (200, watchdog stop at 85%), armllt_22170 (79, help-step promotion at 93%) and armnanotc_17753 (2), 522 metal; overlaps the second mechanism on 14742 and 14058."
+ ],
+ "unread": "nothing torn; no tool crashed. Not read: the jev log beyond hands_window windows (7:40-7:48, 17:36-17:50, 31:20-31:56); armmoho_7673's defence picks were not examined. Two U8 items (armafus_19543 3589, armfus_15500 3316) started 2:58 and 2:20 before the end, outside the two-minute window; they are U8 because no other class fits (builders on them, stores >= 91%, progress to the last second). Reclassify them if the sum needs the strict window.",
+ "notes": [
+  "floor.py aband = 14 = frames.py decayed; floor.py aband_m = 252, against 1641 metal in the decayed frames by frames.py (a different measure)",
+  "frames.py's never-started list has 10 false items in this game: the engine placed the site more than 300 from the asked point and the frame started there (6:40, 8:32, 8:33, 28:45, both 30:47), or the order was a shared id's late arrival that built the first builder's frame by the engine's build-on-the-same-site (19:17 #nano1, both 32:46 #silo2: silo 9632 rose at three armacv's rate), or it was re-sent and started (27:57 constructor_23348)",
+  "an id step given to two builders in the same tick was placed twice: #sf1 (18:57) gave two turrets, and #afus1 (30:47) gave two advanced fusions (24911, 29194), both finished; not in the tally",
+  "the report's 'fights since last turn: abandoned an unfinished X (N% built)' gives the share at death, not the share reached (armadvsol 74% and 69% reported as '0% built x2'), and it names the 6 frames that were shot as abandoned"
+ ]
+}

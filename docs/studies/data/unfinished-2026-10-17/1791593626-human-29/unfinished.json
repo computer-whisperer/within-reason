@@ -1,0 +1,621 @@
+{
+ "game": "1791593626-human-29",
+ "result": "won 18:03",
+ "minutes": 18.2,
+ "seats": 1,
+ "opponent": "people: [gecko]u6bkep (lobby skill 30, Armada)",
+ "kind": "human",
+ "denominators": {
+  "0": {
+   "frames": 131,
+   "finished": 124,
+   "decayed": 0,
+   "killed": 5,
+   "at_end": 2,
+   "metal_in_unfinished": 263,
+   "never_started": 20
+  }
+ },
+ "items": [
+  {
+   "seat": 0,
+   "frame": "armllt_26740",
+   "type": "armllt",
+   "cell": "E4",
+   "started": "14:42",
+   "fate": "killed",
+   "fate_clock": "15:05",
+   "share": 0.78,
+   "metal_in": 66,
+   "cost": 85,
+   "builder": "constructor_3766",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "the list step 'armllt spot_37' (the player's 10:47 list) started at 14:42 at the site where the 9:48 Sentry had died; his main army (9 armstump, 2 armjanus, about 2.6k metal) crossed E4 from 14:48; the builder stayed on the frame and was killed with it at 15:05 (the constructor, 135 metal, too); from 14:57 the gate read constructor_3766.change at 0.69 to 0.78 while it was being hit, but its best moves (go_home 0.42-0.47, go_spot_35 0.45-0.48) were in no world, so no pick moved it",
+   "evidence": [
+    "14:30 (list) next, queued: build a armllt at spot_37 (E4)",
+    "14:57 GATE constructor_3766.change 0.69, go_home 0.45; 15:02-15:05 change 0.71-0.78, best move 0.46-0.48; worlds_gate worlds 2-3 a second, constructor_3766 at index 0 (stay) in every one",
+    "15:01-15:05 pass events 'constructor_3766 hit'",
+    "15:05 destroyed 3766 armcv by armstump 15489; destroyed 26740 armllt by armstump 22599 (78%)"
+   ],
+   "player_knew": "yes: the 14:56 report: 'constructor_3766: at spot_37 (E4); building a Sentry (armllt) at spot_37 (E4) (50 % built) ... enemies_near: party_43 (2 armjanus, 9 armstump, 1 unidentified) 648 away ... contact in 9 s if it stays ... best_rated: the walk to home (0.47)'; its 14:56 instruct sent group_P and group_G at the army at spot_37 and said nothing of the constructor; the 15:13 report: 'lost armllt to armstump in our half x2', 'lost armcv to armstump in our half x1', 'actors gone (dead, merged or split): constructor_3766'",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_17783",
+   "type": "armllt",
+   "cell": "E4",
+   "started": "9:48",
+   "fate": "killed",
+   "fate_clock": "10:20",
+   "share": 0.71,
+   "metal_in": 60,
+   "cost": 85,
+   "builder": "constructor_23822",
+   "cause": "U4",
+   "also": "U5",
+   "what_happened": "the list step 'armllt spot_37' (the player's 5:04 list) started at 9:48 with the energy store empty (0-1 of 2600 every second until the kill): 28 s to 71%, 2.5% a second against 3.75% at full rate, which would have finished it at about 10:15; a lone armstump came into sight at 10:16 and shot the frame from 71% to nothing by 10:20; the builder stood 120 away throughout: the gate read constructor_23822.change 0.79-0.81 and no move rated over 0.40, so no world moved it (it lived)",
+   "evidence": [
+    "9:29 (list) next, queued: build a armllt at spot_37 (E4)",
+    "9:49-10:16 s rows: e [0-1, 480, 480, 2600]; the frame 1% to 71%",
+    "10:16 armstump at (3926,2881); 10:17-10:19 the frame 71 -> 43 -> 29 -> 7",
+    "10:17-10:19 GATE constructor_23822.change 0.79 / 0.79 / 0.81, best go_home 0.40",
+    "10:20 destroyed 17783 armllt by armstump 29455"
+   ],
+   "player_knew": "the frame and the stall yes, the threat no: the 10:14 report: 'constructor_23822: at spot_37 (E4); building a Sentry (armllt) at spot_37 (E4) (67 % built) ... health hurt (64%)' and 'energy 0/2600 (+2) STALLING'; no enemy near E4 was in it (the Stout came into sight at 10:16); the 10:21 report: 'lost armllt to armstump in our half x1', while the builder's entry still read 'building a Sentry (armllt) at spot_37 (E4) (-16 % built)' (stale: the frame was gone)",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "medium"
+  },
+  {
+   "seat": 0,
+   "frame": "armrl_5197",
+   "type": "armrl",
+   "cell": "G1",
+   "started": "9:44",
+   "fate": "killed",
+   "fate_clock": "10:06",
+   "share": 0.7,
+   "metal_in": 56,
+   "cost": 80,
+   "builder": "constructor_2839",
+   "cause": "U4",
+   "also": "U5",
+   "what_happened": "the first anti-air turret of the player's 9:33 list ('armrl spot_6', at home) built with the energy store at 0 of 2600 the whole time: 22 s to 70%, 3.2% a second against 5% at full rate, which would have finished it at about 10:04; five armthund bombed it at 10:06 at 70%; the list's 60% queue-ahead at 10:03 left the builder on it (the frame kept rising), and the pick's walk home at 10:05 (after the packet's 'A constructor under bombers walks to home') came a second before the kill and did not cause it",
+   "evidence": [
+    "9:39 (list) build a armrl at spot_6 (G1)",
+    "9:45-10:06 s rows: e [0-1, 480, 480, 2600] every second",
+    "10:03 (list) next, queued: build a armrl at spot_10 (G2); the builder stayed at (6291,766), the frame 62 -> 70%",
+    "10:05 PLAYS constructor_2839: walk to home; its list step 'armrl spot_6' waits for it [plan]; PICK split [constructor_2839: took w2 of 1 at 0.58]",
+    "10:04-10:06 five armthund closing from (5488,521); 10:06 destroyed 5197 armrl by armthund 27475 (70%)"
+   ],
+   "player_knew": "yes: the 9:58 report: 'constructor_2839: at spot_6 (G1); building a Nettle (armrl) at spot_6 (G1) (45 % built)', 'energy 0/2600 (-0) STALLING: the energy store is empty and everything that needs it builds slowly', 'enemy in sight: 3 at D1 (3937, 430), 2972 from home: armthund 3'; the 10:14 report: 'lost armrl to armthund at home x1'",
+   "fix_class": "player",
+   "cost_class": "small",
+   "confidence": "medium"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_7601",
+   "type": "armmex",
+   "cell": "D3",
+   "started": "17:57",
+   "fate": "at_end",
+   "fate_clock": "18:14",
+   "share": 0.82,
+   "metal_in": 41,
+   "cost": 50,
+   "builder": "constructor_19374",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "the 16:15 list's 'extractor spot_21', started 17 s before the record ended; still rising 5% a second with its builder on it (the 18:10 queue-ahead only put the next step behind it)",
+   "evidence": [
+    "17:29 (list) next, queued: build a armmex at spot_21 (D3)",
+    "18:08-18:14 the frame 52 -> 82%",
+    "18:10 (list) next, queued: build a armllt at spot_21 (D3)",
+    "18:14 end: unexpected end of file"
+   ],
+   "player_knew": "yes: the 18:06 report: 'constructor_19374: at spot_21 (E3); building a Metal Extractor (armmex) at spot_21 (D3) (45 % built)'",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_9695",
+   "type": "armmex",
+   "cell": "G6",
+   "started": "18:01",
+   "fate": "at_end",
+   "fate_clock": "18:14",
+   "share": 0.65,
+   "metal_in": 32,
+   "cost": 50,
+   "builder": "constructor_23822",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "the player's 17:34 list's 'extractor spot_57', started 13 s before the record ended; still rising with its builder on it (the 18:13 queue-ahead only put the next step behind it)",
+   "evidence": [
+    "17:46 (list) build a armmex at spot_57 (G6)",
+    "18:08-18:14 the frame 35 -> 65%",
+    "18:13 (list) next, queued: build a armllt at spot_57 (F6)"
+   ],
+   "player_knew": "yes: the 18:06 report: 'constructor_23822: at spot_57 (G6); building a Metal Extractor (armmex) at spot_57 (G6) (27 % built)'",
+   "fix_class": "none",
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armllt_20492",
+   "type": "armllt",
+   "cell": "H3",
+   "started": "4:15",
+   "fate": "killed",
+   "fate_clock": "4:18",
+   "share": 0.05,
+   "metal_in": 4,
+   "cost": 85,
+   "builder": "constructor_28420",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "the list's queued step 'armllt spot_25' (the player's 1:29 list) was placed at 4:10 and started at 4:15 with two armflash of party_12 at 67 and 251 from the site; an armflash killed it at 5% three seconds later; the pick walked the builder home at 4:19",
+   "evidence": [
+    "4:10 (list) next, queued: build a armllt at spot_25 (H3)",
+    "4:16 enemies at (7508,2099) and (7755,2043) beside the frame at (7504,2032)",
+    "4:18 destroyed 20492 armllt by armflash 15033 (5%)",
+    "4:19 (plan) walk to home"
+   ],
+   "player_knew": "the threat yes, the frame only after: the 4:04 report: 'constructor_28420: at passage_1 (H3); building a Metal Extractor (armmex) at spot_25 (H3) (52 % built) ... enemies_near: party_12 (2 armflash) 737 away' and 'extractors under threat: H3 (1 enemies, NO turret)'; the frame stood 4:15-4:18 between turns; the 4:23 report: 'lost armllt to armflash in our half x1'",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "frame": "armmex_1994",
+   "type": "armmex",
+   "cell": "E3",
+   "started": "6:12",
+   "fate": "killed",
+   "fate_clock": "6:14",
+   "share": 0.09,
+   "metal_in": 4,
+   "cost": 50,
+   "builder": "constructor_19374",
+   "cause": "U4",
+   "also": null,
+   "what_happened": "the list step 'extractor spot_20' (the player's 4:23 list) was begun at 5:43; the builder reached the site and started the frame at 6:12 with party_19 (2 armflash) 130-290 from it; an armflash killed it at 9% two seconds later; the pick walked the hit builder away at 6:16",
+   "evidence": [
+    "5:43 (list) next, queued: build a armmex at spot_20 (E3)",
+    "6:13-6:14 armflash at (4885,1914), (4742,1856), then (4923,1821): 229, 288, then 129 from the frame",
+    "6:14 destroyed 1994 armmex by armflash 18817 (9%)",
+    "6:16 (plan) walk to spot_27, then walk to home"
+   ],
+   "player_knew": "the threat yes, the frame only after: the 6:10 report: 'extractors under threat: E3 (2 enemies, NO turret)' and 'constructor_19374: at spot_15 (E2); walking to build a Metal Extractor (armmex) at spot_20 (E3), 237 to go ... enemies_near: party_19 (2 unidentified) 773 away'; its 6:10 orders did not touch the builder; the 6:16 report: 'lost armmex to armflash in our half x1'",
+   "fix_class": "hands-rule",
+   "cost_class": "small",
+   "confidence": "high"
+  }
+ ],
+ "never_started": [
+  {
+   "seat": 0,
+   "clock": "2:36",
+   "builder": "constructor_2839",
+   "type": "armmex",
+   "cell": "D2",
+   "cause": "U3",
+   "also": null,
+   "what_happened": "the pick's extractor at spot_13, 2149 away, replaced 8 s later by the player's 2:29 list (first step 'extractor spot_11'); spot_13 got its extractor from constructor_14761 at 11:21",
+   "evidence": [
+    "2:36 (plan) build a armmex at spot_13 (D2)",
+    "2:29 queue constructor_2839: 8 steps ['extractor spot_11', ...]",
+    "2:44 (list) build a armmex at spot_11 (F2)"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "4:25",
+   "builder": "constructor_28420",
+   "type": "armmex",
+   "cell": "F3",
+   "cause": "U6",
+   "also": "U3",
+   "what_happened": "rejected: two of the player's lists named spot_18 (constructor_28420's of 1:29, constructor_493's of 4:23); 493 started the extractor at 4:54, 28420 arrived at 4:56 (131 away) and the engine refused its site; its list then skipped 'armllt spot_18'",
+   "evidence": [
+    "4:25 (list) build a armmex at spot_18 (F3)",
+    "4:54 created armmex 28700 by constructor_493 at (6032,1648)",
+    "4:56 'the engine refused a armmex at F3: the site was bad' [engine-refused]",
+    "4:56 'skipped the step 'armllt spot_18' of its list: the extractor at spot_18 was refused lately; a defence there waits for it'"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "5:03",
+   "builder": "constructor_493",
+   "type": "armmex",
+   "cell": "F2",
+   "cause": "U6",
+   "also": "U3",
+   "what_happened": "rejected: spot_16 was also on constructor_2839's 2:29 list; 2839 started it at 5:08, 493 (94 away) was refused at 5:12 and its list skipped 'armllt spot_16'",
+   "evidence": [
+    "5:03 (list) next, queued: build a armmex at spot_16 (F2)",
+    "5:08 created armmex 2529 by constructor_2839 at (5504,1424)",
+    "5:12 'the engine refused a armmex at F2: the site was bad'; 'skipped the step 'armllt spot_16''"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "5:21",
+   "builder": "constructor_2839",
+   "type": "armmex",
+   "cell": "F2",
+   "cause": "U6",
+   "also": "U3",
+   "what_happened": "rejected: spot_15 was also on constructor_493's 4:23 list; 493 started it at 5:23, 2839 (244 away) was refused at 5:34 and skipped 'armllt spot_15'; the pick sent it to H3 at 5:35",
+   "evidence": [
+    "5:21 (list) next, queued: build a armmex at spot_15 (F2)",
+    "5:23 created armmex 9498 by constructor_493 at (5120,1408)",
+    "5:34 'the engine refused a armmex at F2: the site was bad'; 'skipped the step 'armllt spot_15''",
+    "5:35 (plan) build a armllt at spot_25 (H3)"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "5:35",
+   "builder": "constructor_2839",
+   "type": "armllt",
+   "cell": "H3",
+   "cause": "U3",
+   "also": null,
+   "what_happened": "the pick's Sentry at spot_25, 2359 away, replaced at 5:45 by the player's 5:40 list ['extractor spot_12', 'armllt spot_12', 'armnanotc', 'armrl home']; constructor_28420's list put a Sentry at spot_25 from 5:53",
+   "evidence": [
+    "5:35 (plan) build a armllt at spot_25 (H3)",
+    "5:40 queue constructor_2839",
+    "5:45 (list) build a armmex at spot_12 (H2)"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "7:05",
+   "builder": "constructor_4602",
+   "type": "armmex",
+   "cell": "F3",
+   "cause": "U3",
+   "also": null,
+   "what_happened": "the 6:38 list's first step, 1491 away, replaced at 7:14 by the player's 7:01 list (two solars and an advanced solar first); constructor_19374 built spot_27's extractor at 7:39",
+   "evidence": [
+    "7:05 (list) build a armmex at spot_27 (F3)",
+    "7:01 queue constructor_4602: ['armsolar', 'armsolar', 'armadvsol', 'extractor spot_27', ...]",
+    "7:14 (list) build a armsolar at spot_5 (G1)"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "10:03",
+   "builder": "constructor_2839",
+   "type": "armrl",
+   "cell": "G2",
+   "cause": "U1",
+   "also": "U3",
+   "what_happened": "the step queued behind the Nettle at spot_6 (armrl_5197); the pick walked the builder home at 10:05 under the bombers, the list went back to rebuild spot_6, and constructor_18057 (the player's 10:14 list, 'armrl spot_10' first) built spot_10's Nettle from 10:26",
+   "evidence": [
+    "10:03 (list) next, queued: build a armrl at spot_10 (G2)",
+    "10:05 PLAYS constructor_2839: walk to home ... [plan]; PICK split [constructor_2839: took w2 of 1 at 0.58]",
+    "10:26 created armrl 871 by constructor_18057 at (6680,952)"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "10:59",
+   "builder": "constructor_3766",
+   "type": "armmex",
+   "cell": "G1",
+   "cause": "U6",
+   "also": "U9",
+   "what_happened": "no_site for the home extractor at spot_6 (its extractor had been bombed at 10:07; what blocked the site the record does not say: the old extractor's wreck at (6416,608), our Nettle 3850 at (6248,632), and plant_20622's exit lane are the candidates); the hands kept the step standing and the report said 'walking to build' for 2:14 while the builder trailed its earlier help order, until the watchdog at 13:13; spot_6 had no extractor from 10:07 to the end",
+   "evidence": [
+    "10:59 (list) build a armmex at spot_6 (G1); ev no_site armmex",
+    "11:04, 11:22, 11:58, 12:25, 13:00 reports: 'constructor_3766: ... walking to build a Metal Extractor (armmex) at spot_6 (G1), 212 / 617 / 735 / 736 / 295 to go'",
+    "13:13 'its armmex at G1 never started in the 8 s it stood at the site: the site is blocked (a frame of the same type it cannot reach, most likely), refused for 90 s' [site-blocked]"
+   ],
+   "cost_class": "small",
+   "confidence": "medium"
+  },
+  {
+   "seat": 0,
+   "clock": "13:14",
+   "builder": "constructor_3766",
+   "type": "armmex",
+   "cell": "G1",
+   "cause": "U6",
+   "also": null,
+   "what_happened": "the same spot_6 extractor re-sent after the watchdog: no_site at once; at 13:16 the list moved to spot_37 and skipped 'armrl spot_6'",
+   "evidence": [
+    "13:14 (list) build a armmex at spot_6 (G1); ev no_site",
+    "13:16 'skipped the step 'armrl spot_6' of its list: the extractor at spot_6 was refused lately; a defence there waits for it'; 'the engine refused a armmex at G1: the site was bad'"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "15:03",
+   "builder": "constructor_4602",
+   "type": "armllt",
+   "cell": "G1",
+   "cause": "U1",
+   "also": null,
+   "what_happened": "the pick's Sentry at spot_6, 2591 away, replaced by the pick's own Sentry at spot_35 (F4) 2 s later, which started at 15:14",
+   "evidence": [
+    "15:03 PICK split [constructor_4602: took w2 of 1 at 0.36] changed=['constructor_4602: build a armllt at spot_6 (G1)']",
+    "15:05 PICK split [constructor_4602: took w2 of 1 at 0.32 ...] changed=['constructor_4602: build a armllt at spot_35 (F4)', ...]",
+    "15:14 created armllt 4787 at (6064,2720)"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "16:34",
+   "builder": "constructor_14761",
+   "type": "armmakr",
+   "cell": "G2",
+   "cause": "U3",
+   "also": null,
+   "what_happened": "the 15:37 list's converters; the player's 16:27 list landed at 16:46 with a stop and dropped the queued converter (131 from the site)",
+   "evidence": [
+    "16:34 (list) next, queued: build a armmakr at spot_6 (G2)",
+    "16:27 queue constructor_14761: ['armllt spot_35', 'extractor spot_32', 'armllt spot_32']",
+    "16:46 'dropped the step 'armmakr' its old list had queued behind the build it was on: you have replaced or cancelled that list since'"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "16:43",
+   "builder": "constructor_23822",
+   "type": "armmex",
+   "cell": "F5",
+   "cause": "U6",
+   "also": "U3",
+   "what_happened": "rejected: spot_41 was on the player's 15:37 list for 23822 and its 16:15 list for constructor_4602; 4602 started it at 17:04 with 23822 202 away; 23822 was refused at 17:05 and skipped 'armllt spot_41'",
+   "evidence": [
+    "16:43 (list) next, queued: build a armmex at spot_41 (F5)",
+    "17:04 created armmex 31974 by constructor_4602 at (5696,3232)",
+    "17:05 'the engine refused a armmex at F5: the site was bad'; 'skipped the step 'armllt spot_41''"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "17:05",
+   "builder": "constructor_23822",
+   "type": "armmex",
+   "cell": "G5",
+   "cause": "U6",
+   "also": "U3",
+   "what_happened": "rejected: spot_51 was on the 15:37 list for 23822 and the 16:15 list for constructor_31617; 31617 started it at 17:17; 23822 was refused at 17:32 and skipped 'armllt spot_51'; the pick then sent it to reclaim (17:34) and the player's 17:34 list replaced its list",
+   "evidence": [
+    "17:05 (list) build a armmex at spot_51 (G5)",
+    "17:17 created armmex 7861 by constructor_31617 at (7200,3728)",
+    "17:32 'the engine refused a armmex at G5: the site was bad'; 'skipped the step 'armllt spot_51''",
+    "17:34 (plan) reclaim wrecks at west_front (C4)"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "17:41",
+   "builder": "constructor_14761",
+   "type": "armllt",
+   "cell": "E4",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "queued behind the Sentry at spot_35; walking to it, 433 away at 18:12, when the record ended at 18:14",
+   "evidence": [
+    "17:41 (list) next, queued: build a armllt at spot_32 (E4)",
+    "18:12 pos (4985,2552)"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "17:59",
+   "builder": "constructor_17253",
+   "type": "armnanotc",
+   "cell": "G2",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "queued behind the Sentry 12627 at spot_6 (finished 18:09); 15 s before the end",
+   "evidence": [
+    "17:59 (list) next, queued: build a armnanotc at spot_6 (G2)",
+    "18:09 finished armllt 12627"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "18:03",
+   "builder": "constructor_28420",
+   "type": "armmex",
+   "cell": "D5",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "walking to the site, 187 away when the record ended",
+   "evidence": [
+    "18:03 (list) build a armmex at spot_44 (D5)",
+    "18:14 pos (4129,3145)"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "18:10",
+   "builder": "constructor_19374",
+   "type": "armllt",
+   "cell": "D3",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "queued behind armmex_7601 (82% at the end)",
+   "evidence": [
+    "18:10 (list) next, queued: build a armllt at spot_21 (D3)"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  },
+  {
+   "seat": 0,
+   "clock": "18:13",
+   "builder": "constructor_23822",
+   "type": "armllt",
+   "cell": "F6",
+   "cause": "U8",
+   "also": null,
+   "what_happened": "queued behind armmex_9695 (65% at the end)",
+   "evidence": [
+    "18:13 (list) next, queued: build a armllt at spot_57 (F6)"
+   ],
+   "cost_class": "none",
+   "confidence": "high"
+  }
+ ],
+ "never_started_skipped": [
+  {
+   "seat": 0,
+   "clock": "6:52",
+   "builder": "constructor_31617",
+   "type": "armmex",
+   "cell": "F5",
+   "why": "queued behind its nano 24281 (slowed by the 6:46-7:57 energy stall); the same builder started the extractor at the site at 8:34, 102 s after the order"
+  },
+  {
+   "seat": 0,
+   "clock": "11:30",
+   "builder": "constructor_4602",
+   "type": "armllt",
+   "cell": "E4",
+   "why": "queued behind a build at home, then a 3104-elmo walk; the same builder started the Sentry 2619 at the site at 13:10, 100 s after the order"
+  }
+ ],
+ "never_started_tally": {
+  "U3": {
+   "n": 4
+  },
+  "U6": {
+   "n": 7
+  },
+  "U1": {
+   "n": 2
+  },
+  "U8": {
+   "n": 5
+  }
+ },
+ "tally": {
+  "U0": {
+   "n": 0,
+   "metal": 0
+  },
+  "U1": {
+   "n": 0,
+   "metal": 0
+  },
+  "U2": {
+   "n": 0,
+   "metal": 0
+  },
+  "U3": {
+   "n": 0,
+   "metal": 0
+  },
+  "U4": {
+   "n": 5,
+   "metal": 190
+  },
+  "U5": {
+   "n": 0,
+   "metal": 0
+  },
+  "U6": {
+   "n": 0,
+   "metal": 0
+  },
+  "U7": {
+   "n": 0,
+   "metal": 0
+  },
+  "U8": {
+   "n": 2,
+   "metal": 73
+  },
+  "U9": {
+   "n": 0,
+   "metal": 0
+  }
+ },
+ "by_fate": {
+  "decayed": {
+   "n": 0,
+   "metal": 0
+  },
+  "killed": {
+   "n": 5,
+   "metal": 190
+  },
+  "at_end": {
+   "n": 2,
+   "metal": 73
+  }
+ },
+ "by_type": {
+  "armllt": {
+   "n": 3,
+   "metal": 130
+  },
+  "armrl": {
+   "n": 1,
+   "metal": 56
+  },
+  "armmex": {
+   "n": 3,
+   "metal": 77
+  }
+ },
+ "player_knew": {
+  "before": 5,
+  "after": 2,
+  "never": 0,
+  "dropped_itself": 0
+ },
+ "mechanisms": [
+  "Keep the energy store off zero: it stood empty from 8:17 to 11:15 (178 s; floor's e0% 29.7 for the game) and the two costliest killed turret frames, armrl_5197 and armllt_17783, built at about two thirds of full speed; at full rate they would have stood about 2 s and 1 s before their killers arrived (the player was told 'STALLING' at 9:58 and 10:14): up to 116 metal, if the finished turrets had then survived, which the record cannot show.",
+  "A builder under fire whose gate change reads 0.7 or more while every move is under the world bar stays on its frame: armllt_26740's builder (change 0.69-0.78 from 14:57, hit from 15:01) died with its frame under a 2.6k army, and armllt_17783's builder stood by while one Stout shot its frame down; walking it off would have kept constructor_3766 (135 metal), not the frames (66 and 60).",
+  "A refused or no_site extractor step that stays standing: constructor_3766's home extractor at spot_6 (never-started 10:59 and 13:14) stood 2:14 as 'walking to build' after the engine's no_site, and spot_6 held no extractor from 10:07 to the end; no frame metal is involved and the income lost is not measured here. Smaller: list steps that start a frame beside raiders (armllt_20492, armmex_1994: 8 metal), and two of the player's lists naming one spot (5 orders refused, each skipping the turret step after it, 0 metal)."
+ ],
+ "unread": "nothing torn; one seat, read whole; the cap of fifteen never-started orders was not applied (all 20 read: 18 items, 2 skipped as long queues that started)"
+}
