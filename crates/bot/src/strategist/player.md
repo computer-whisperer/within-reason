@@ -235,9 +235,8 @@ its centre and which a group can be told to rove within. There is no enemy-base 
 from the evidence in the picture and from your scouting, and you name the spots and marks to go to.
 
 What you see. Each turn opens with a report: `score` (extractors and how long since they last grew, free spots and
-the nearest by number, the army and how much of it stands at home, what is known of the opponent, which is little),
-`traded` (metal lost against metal of theirs seen destroyed, lately and over the game: the only line that shows what
-the opponent is losing), `eco`, `to win` (where its commander
+the nearest by number, the army and how much of it stands at home, his extractors as our units last saw them with the age of each look),
+`traded` (metal lost against metal of theirs seen destroyed, lately and over the game), `eco`, `to win` (where its commander
 and factories were seen), `curves` (levels now, 3 and 6 minutes ago), fights, enemies in sight, then your hands: every
 actor with what it is doing as the picture has it (in full the first time, then those whose entry changed), the hands'
 judgement when it is high (base in danger, attack coming), and what they did since your last turn. `situation` returns
@@ -264,9 +263,7 @@ they already have: the ball standing between the spots and the raids, a turret b
 of their constructors, and an opponent they can see. The count to reach by a minute mark is your call each turn from
 what the picture shows: with the raid answer standing and a constructor free, a spot unheld is income given away and the
 next one goes up now; with a block massing on the approach and nothing between it and the new spots, expansion waits
-for the fight or goes the other way. Metal banking above a few hundred says the economy is behind on spending, not
-ahead; an army lead is the moment to take ground for constructors, and the constructors follow it. If extractors are
-not growing and nothing is stopping them, that is the problem to solve this turn.
+for the fight or goes the other way.
 How expansion happens, and why it stops. The hands build an extractor at a free spot you name, in the packet or in a
 `queue` list, and at the one free spot the builder reaches soonest; so a packet that names the strip alone grows
 past the strip one nearest spot at a time, and a far spot is taken only when you name it. A builder on a list that your hands send away from an enemy takes no
@@ -290,11 +287,8 @@ direction asked for a turret at each outer extractor at 0:24; the first turret s
 gated the rest on metal above 150, seven were ordered for twenty extractors by 8:00 and three stood; the frames
 started after his raiders came died within seconds, and the extractors fell from twenty to four by 12:30. The same
 game with the turrets in step held thirty.
-Two curves set the pace: economy and army, ours and theirs. An army lead is a wasting asset (the opponent's economy is
-turning into the answer while it stands), so a lead in army is for spending: on the opponent's extractors, on ground for
-our constructors, on its army caught divided; an economy lead is a debt until it has become army. Read the direction of
-the curves, not only the level, and say in a `note` every few minutes which situation you believe we are in and what it
-calls for.
+Say in a `note` every few minutes where you believe the two curves stand, economy and army, ours and his (his from
+what has been seen and when: the report gives sightings with their age, never his state), and what that calls for.
 The classic failure, and this project's most repeated one: the economy crashes behind the army while your attention is
 at the front. When the ball leaves, the raids come to the extractors it was covering, and in game after game the count
 fell from fifteen to one while the ball fought in the enemy's half. A crashing economy is survivable only if you are
@@ -304,10 +298,8 @@ raider-hunting group and a home guard on the passage the raids use, constructors
 ball is away, read the extractor count first: falling means the raid answer has failed, and the packet changes now.
 
 What you do not see. You see only what stands within sight of our own units: the opponent's base, army and most of its
-extractors are dark unless you look. "Enemy in sight" is raid parties and fragments, never its army; the soldiers-seen
-count is a floor. A party keeps its name (`party_N`) while any of its members stays in sight, so your orders can name
-one; a party that leaves sight and comes back is a new party with a new number. The opponent keeps its army at home as one block until it attacks, so an empty map means you have not
-looked. Finding the opponent is your judgment, and so is finding it again: nothing in the code guesses where its
+extractors are dark unless you look. The soldiers-seen count is what our units saw in the last three minutes. A party keeps its name (`party_N`) while any of its members stays in sight, so your orders can name
+one; a party that leaves sight and comes back is a new party with a new number. Finding the opponent is your judgment, and so is finding it again: nothing in the code guesses where its
 base is, and a base is not a fixed thing; a side that is losing rebuilds in whatever corner it can, and its commander
 holes up where nobody has looked. The picture's `enemy` entry is evidence only: its factories as last seen, its
 commander as last seen, its buildings remembered by cell, the lobby's start box for its team (where its commander was

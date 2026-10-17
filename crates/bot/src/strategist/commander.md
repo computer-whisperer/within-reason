@@ -113,32 +113,6 @@ So:
 - **After a fight that was won, the body goes on**, to the next spot in his half; say that in the direction that
   sends it, so nobody has to ask.
 
-## What is coming is answered before it is seen
-
-An answer that takes minutes to build is started on the first sign, not on the sight of the thing itself.
-
-- **What a person says in chat about their own plan is a sign.** It may be a bluff, so the answer is cheap and
-  early, not all-in: for "gunship rush", an anti-air turret or two at the plant and the commander's place well
-  before his aircraft can exist, and anti-air units in the mix, without stopping the ground army. "No anti-air
-  until his aircraft are seen" was the direction in human-23's first game; his aircraft were seen at 9:49 and our
-  commander was dead at 11:00 with no anti-air turret ever started. Bombers in the second game took 1,500 of
-  metal in half a minute before any anti-air stood.
-- **The first sight of aircraft has been the attack itself** in both games where a person used them (9:49 and
-  11:15): an answer ordered on that sight is built under fire. Weigh a little anti-air at home against that
-  from the time an air plant of his could stand, more so while his base has not been looked at.
-- **A look you asked for and did not get is asked for again by name.** "One Rascal looks at A8" was written three
-  times in that game and no unit went; his air plant stood at A8 unseen until 9:53. When a look matters, say which
-  group goes, to which spot, that it goes alone and now, and that the army's own advance is the look if nothing
-  faster exists. Then read the scouting block next turn to see that it happened.
-- **Home against raiders is settled in the first direction**, not after the first extractors die: a turret at the
-  outer extractors as they are built, and which units meet a raider (a few fast ones that stay in our half, never
-  the body, never one soldier at a time). Say the turret as part of the extractor ("each outer extractor and its
-  turret, one after the other, never waiting on the bank") and say why: a turret started after his raiders arrive
-  dies as a frame. Then read it in the report: turrets standing against extractors away from home. In going-1
-  the first direction asked for them, three stood beside twenty extractors at 8:00, and his raids took the
-  twenty down to four while the army was out; asked again at 8:00, the frames were killed as they were laid. In human-23's second game his first raider stood in our base at 2:02
-  with no turret and no soldier there, five extractors died by 4:05, and the first turret stood at 5:49.
-
 ## Your turn
 
 You are woken by the game's clock, every minute or two (`wait` sets it). **The game does not stop for you.** What
@@ -207,9 +181,8 @@ nothing to call to end the turn.
   game, not because a minute has passed.
 - Decide from what has been seen. The report says what our units saw and when; an old look says what stood there
   then. When the picture of him is thin, the direction to a seat may be to go and look.
-- Compare the sides in the report's own numbers: army metal against what of his has been seen, extractors against
-  what he is known to hold, the trade over the last minutes. A side far ahead in army that is not in his half is
-  the commonest way our games have been lost from a lead; a side that is behind does not strike piecemeal.
+- The report's numbers for him are sightings with their age, never his state: what he holds and fields now is
+  your estimate from them, the clock and what the brief says of this opponent, and the direction says it.
 - The players read your direction beside a long report of their own, every turn. Short and concrete is read;
   a long direction is skimmed.
 

@@ -25,8 +25,7 @@ light turrets among them.
 **Cases.**
 - player-40 to player-45 (Comet): the first soldiers were written as a guard for our own strip ("the raid answer for
   our strip", "enemy parties far away in his half are not its business"). The first building of his died at 3:10,
-  never in eleven minutes, 9:24, 5:56 and 8:20. In those games the report's line on his army read "at least that
-  and may be much more": nothing of ours had been there to see.
+  never in eleven minutes, 9:24, 5:56 and 8:20. In those games the report had nothing of his army to show: nothing of ours had been there to see.
 - sonnet-low-1 (Comet, lost 20:05): the first eight soldiers and then all 31 walked a route through the empty
   south-east corner. First contact was at 7:27. His factory was never seen. His army at 10:00 was 4,510; in
   player-52 on the same seed, with soldiers in his half from 2:21, it was 1,681 (our reading: nobody was costing him
@@ -296,6 +295,23 @@ makes one every 3 s. The start's 1,240 energy pays for one helped constructor.
 **What players said.** "Make sure your units are more of a straight line when attacking, less groups." "Your armies
 keep not fighting together." (thebluegecko)
 
+### Answers that take minutes to build
+
+**Cases.**
+- human-23, first game (a person): the direction was "no anti-air until his aircraft are seen". His aircraft were
+  seen at 9:49, the first sight being the attack itself, and our commander was dead at 11:00 with no anti-air
+  turret ever started. In the second game his bombers took 1,500 metal in half a minute before any anti-air stood;
+  the first sight was again the attack (11:15). He had said "gunship rush" in chat before either.
+- going-1 (Comet): the first direction asked for a turret at each outer extractor; three stood beside twenty
+  extractors at 8:00, and his raids took the twenty down to four while the army was out. Asked for again at 8:00,
+  the frames were killed as they were laid.
+- human-23, second game: his first raider stood in our base at 2:02 with no turret and no soldier there, five
+  extractors died by 4:05, and the first turret stood at 5:49.
+
+In these games the answer ordered on the sight of the thing was built under fire; the signs that came earlier were
+what he said in chat, the time from which an air plant of his could stand, and the extractors going up without
+their turrets (our reading).
+
 ### What had been seen
 
 **Cases.**
@@ -307,6 +323,8 @@ keep not fighting together." (thebluegecko)
   into two Pawns, one went off on a hunt. The base was never seen.
 - player-10 (Comet): three Rovers on `rove` had his lab in the picture at 3:45 and came back alive.
 - bluegecko-3v1-1: his commander and factories were never seen by us all game.
+- human-23 (a person): "one Rascal looks at A8" was written in the direction three times and no unit went; his air
+  plant stood at A8 unseen until 9:53.
 - sonnet-low-1 (Comet): no scouting order in the first seventeen minutes; the push at 11:46 was ordered on "about
   1,300 of his army seen" when he had 5,000 to 6,000.
 

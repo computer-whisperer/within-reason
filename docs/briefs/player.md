@@ -25,7 +25,7 @@ have the same shape and opposite answers, the difference between them is the thi
   player-45 at 2:25 and 3:46) and the first building of his dies at 3:10, never (player-41, eleven minutes), 9:24,
   5:56, 8:20 (player-40 to -45). What the first handful meets at 2:00-4:00 is a commander and constructors out on
   spots with one or two light turrets among them; what it buys is the look at his half the report otherwise lacks
-  ("its army is at least that and may be much more" is the sound of nobody having been there). So the first raiders'
+  (a report with nothing of his seen is the sound of nobody having been there). So the first raiders'
   job from the plant is his nearest spots and his constructors, as one group with a route, and the picket is the
   turret beside each outer extractor, not the army. [K-pro-the-first-soldiers-are-in-his-half-by-two-minutes,
   the players' notes 2026-10-03]
@@ -232,7 +232,7 @@ have the same shape and opposite answers, the difference between them is the thi
   hands, one into two Pawns, one onto a hunt); the base was never seen. (4) player-10: three rovers on `rove` had his
   lab in the picture at 3:45 and came back alive (the hands' `rove` move since 2026-10-07). (5) bluegecko-3v1-1: his commander and factories were never seen by
   us all game; a person scouts and reads. (6) Great Divide: a scout plane before planning against the camp, since
-  "known to hold" is only what our units have seen. A rover group roving from the first Rascals, a radar at the
+  the report lists only the extractors of his our units have seen. A rover group roving from the first Rascals, a radar at the
   front by 3:00, and no push onto a place nothing of ours has looked at.
 
 - **The commander is a fighter at home and a builder at the plant, never a walker.** Cases: (1) comet-4: the
@@ -1001,7 +1001,7 @@ K-map-great-divide-v1-reach-over-the-divide, K-map-great-divide-v1-not-air-only,
   once Pit Bulls or Gauntlets stand, Pillagers (armmerl, 1,300, from the advanced vehicle plant) outrange them from
   the same ground, a dozen at a time with the screen in front. Artillery, not the ball, breaks a camp. (3) Air over
   the divide: an air plant (armap) on one seat by about 8:00, a scout plane first (see the camp before planning
-  against it: the report's "known to hold" is only what our units have seen), then bombers (Phoenix, Thunder) in one
+  against it: the report's list of his extractors is only what our units have seen), then bombers (Phoenix, Thunder) in one
   wave at one target, their artillery and the nano-turrets behind the camp, or their extractors in rows 7-8; expect
   flak (850) and Ferrets (950), so a wave, never a trickle. Never air alone: an experienced player's word is that an
   all-air side loses (the answers are cheap, and nothing holds the pass or the spots); air is a lever over the ground
