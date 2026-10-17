@@ -47,7 +47,7 @@ A report built for it, small whatever the game's size (the measure: under 10,000
 where the player's was 38,000):
 
 1. **The game**: the score, trade and curves lines as the player has them, over the whole side; both sides' curves
-   against the reference where there is one; his spending seen; `to win`.
+   against the reference where there is one; `to win` (his spending seen stood here until 2026-10-17, docs/design/2026-09-22-enemy-evidence.md's status).
 2. **One line a seat**: faction, home, bank and income of metal and energy, extractors and free spots in its
    reach, constructors and how many are idle or helping a factory, factories and what each is making, soldiers and
    their worth.

@@ -2311,6 +2311,7 @@ line of every report from 3:20; human-33 13:14 report and 21:54-22:19 chat; `str
 the `his spending seen` comment.
 **Would be wrong if.** The wins show the same floors read as a lead with no harm (not read), or a person's economy
 in the team games was not larger per seat (no truth file; the chat says it was).
-**Used by.** Nothing yet: the study's §4 lists what the user may order (a score that is not a floor, the reference
-line in team games and past 16:00, a BEHIND word, the whole game's curve in the takeover, the debrief from the
-curves).
+**Used by.** The user's ruling of 2026-10-17 ("the harness has almost no authority to say" what he has; the player
+predicts his economy and army from what was seen): the spending floor, the known-to-hold count, the army clause and
+the map sheet's start guess removed (docs/design/2026-09-22-enemy-evidence.md's status), the prompts' comparison
+and opponent-model sentences with them. The study's §4 bullet proposing more estimates is withdrawn by it.

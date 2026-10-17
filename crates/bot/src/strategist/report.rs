@@ -129,13 +129,13 @@ pub(super) fn front(briefing: &Briefing, field: &Field, fights: &[String], seats
     let c = &briefing.counts;
     let s = &field.score;
     lines.push(format!(
-        "score: extractors {} (most held {}, no new high for {}; free spots we can walk to {}, nearest on foot: {}; the opponent is known to hold {}) | army {} soldiers worth {} metal, {} of them within 800 of our start, {} | opponent: we see only what our units see. Its soldiers seen in the last 3 min and not seen to die: {} worth {} metal; its army is at least that and may be much more; {}",
+        "score: extractors {} (most held {}, no new high for {}; free spots we can walk to {}, nearest on foot: {}; his extractors as our units last saw them, nearest our start first: {}) | army {} soldiers worth {} metal, {} of them within 800 of our start, {} | opponent: we see only what our units see. Its soldiers seen in the last 3 min and not seen to die: {} worth {} metal; {}",
         s.extractors,
         s.extractor_peak,
         clock(s.seconds_since_growth),
         s.free_spots,
         if s.next_free.is_empty() { "none".to_string() } else { s.next_free.iter().map(|(n, p, walk)| format!("#{n} {} {walk}", p.grid)).collect::<Vec<_>>().join(", ") },
-        if s.enemy_spots.is_empty() { "0".to_string() } else { format!("{}, nearest our start first: {}", s.enemy_spots.len(), s.enemy_spots.iter().map(|(n, p)| format!("#{n} {}", p.grid)).collect::<Vec<_>>().join(", ")) },
+        if s.enemy_spots.is_empty() { "none seen standing".to_string() } else { s.enemy_spots.iter().map(|(n, p, ago)| format!("#{n} {} ({} ago)", p.grid, clock(*ago))).collect::<Vec<_>>().join(", ") },
         s.soldiers,
         s.army_metal,
         s.soldiers_near_home,
@@ -153,20 +153,6 @@ pub(super) fn front(briefing: &Briefing, field: &Field, fights: &[String], seats
         s.traded_3_min.0, s.traded_3_min.1, s.traded.0, s.traded.1,
         s.seconds_since_turn.map_or(String::new(), |t| format!(" | {} of game time since your last turn began", clock(t)))
     ));
-    // A floor on his spending: what of his we saw die, what stands or was seen alive. Read against our own income
-    // per extractor it says how big his economy is at least (game 9: 37k of his seen dead by 13:24 implied 18
-    // extractors while the line said "known to hold 7").
-    let seconds = (s.frame / 30).max(1);
-    let spent = s.traded.1 + s.enemy_soldiers_seen_metal + s.enemy_buildings_metal;
-    if spent > 0 && seconds > 60 {
-        let per_second = spent as f32 / seconds as f32;
-        let ours_per_extractor = if s.extractors > 0 { briefing.metal.income / s.extractors as f32 } else { 0.0 };
-        lines.push(format!(
-            "his spending seen: at least {spent} metal by {} ({} seen dying, {} of soldiers seen in the last 3 min, {} of buildings seen standing): at least {per_second:.0} a second over the game{}; a floor, since we see little of his side",
-            clock(seconds), s.traded.1, s.enemy_soldiers_seen_metal, s.enemy_buildings_metal,
-            if ours_per_extractor > 0.0 { format!(", about {:.0} extractors' worth at our {ours_per_extractor:.1} an extractor", per_second / ours_per_extractor) } else { String::new() }
-        ));
-    }
     // The energy stall is said in the word the player's prompt keys its solar rule on (player-12 1:45: the line read
     // "energy 1/1300 (+0)" behind an assisted constructor, the prompt's "the energy line reads STALLING" never
     // appearing in the report; the engine caps spending at income once the store is empty, so the net figure reads 0).
@@ -567,5 +553,28 @@ mod unfinished_tests {
         };
         let line = unfinished_line(&briefing).unwrap();
         assert_eq!(line, "unfinished structures of ours: armnanotc_17819 at C8 (45% built, 104 of 230 metal in it; nobody is building it, left 40 s ago, decaying); armsolar_26962 at B8 (86% built, 133 of 155 metal in it) by constructor_26737; `finish <handle>` on any builder's list resumes one as that builder's own build, the pick offers a builder near it the same, `remove` reclaims its metal");
+    }
+}
+
+#[cfg(test)]
+mod sightings_tests {
+    use super::super::shared::{Briefing, Field, Place, Score};
+    use super::front;
+
+    /// The score line gives his extractors as sightings with their age and no count of what he holds, and his
+    /// soldiers seen as a count and nothing more; no line estimates his spending (the user, 2026-10-17: what he
+    /// has is the player's estimate from what was seen; the harness has no authority to say it).
+    #[test]
+    fn the_score_line_dates_each_sighting_and_claims_nothing_of_his_state() {
+        let place = |grid: &str| Place { grid: grid.to_string(), x: 0, z: 0 };
+        let score = Score { frame: 10 * 1800, extractors: 24, enemy_spots: vec![(40, place("E4"), 14), (35, place("D4"), 141)], enemy_soldiers_seen: 12, enemy_soldiers_seen_metal: 3756, ..Score::default() };
+        let field = Field { score, ..Field::default() };
+        let lines = front(&Briefing::default(), &field, &[], false);
+        let score_line = &lines[0];
+        assert!(score_line.contains("his extractors as our units last saw them, nearest our start first: #40 E4 (0:14 ago), #35 D4 (2:21 ago))"), "{score_line}");
+        assert!(score_line.contains("Its soldiers seen in the last 3 min and not seen to die: 12 worth 3756 metal; "), "{score_line}");
+        for word in ["known to hold", "may be much more", "his spending", "a floor", "extractors' worth"] {
+            assert!(lines.iter().all(|l| !l.contains(word)), "{word}: {lines:?}");
+        }
     }
 }

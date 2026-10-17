@@ -195,16 +195,18 @@ pub struct Score {
     pub extractor_peak: usize,
     /// Game seconds since our extractor count last reached a new high.
     pub seconds_since_growth: i32,
-    /// Metal spots we can walk to that nobody is known to hold: how many, and the nearest few on foot with their
+    /// Metal spots we can walk to on which no extractor has been seen: how many, and the nearest few on foot with their
     /// number in the map's list and walking distance. (A count of those "within 2500" read 0 from minute 6 of commander
     /// game 9 while 18 lay at 2700-5400, and the commander made no expansion call for ten minutes.)
     pub free_spots: usize,
     pub next_free: Vec<(usize, Place, u32)>,
-    /// Spots the opponent is known to hold (its extractors seen and not seen dead): each spot's number in the map's
-    /// list and its place, nearest our start first. (Player-18: the line said "known to hold 12" and never where,
-    /// and the whole army went four times at a strip where nothing of his stood, his extractors being on the
-    /// D1-E4 column and at his start.)
-    pub enemy_spots: Vec<(usize, Place)>,
+    /// His extractors as our units last saw them (seen standing, not seen die): each spot's number in the map's
+    /// list, its place and the game seconds since the look, nearest our start first. Sightings with their age, not
+    /// his count: the line said "known to hold N" until 2026-10-17 (the user: what he holds is the player's estimate
+    /// from what was seen; the harness has no authority to say it). (Player-18: the line said "known to hold 12" and
+    /// never where, and the whole army went four times at a strip where nothing of his stood, his extractors being
+    /// on the D1-E4 column and at his start.)
+    pub enemy_spots: Vec<(usize, Place, i32)>,
     pub soldiers: usize,
     pub army_metal: u32,
     pub soldiers_near_home: usize,
@@ -231,9 +233,6 @@ pub struct Score {
     /// The map's name and this seat's faction ("arm", "cor"), for the report's reference line.
     pub map: String,
     pub faction: String,
-    /// Metal of his buildings seen and not seen destroyed: with the deaths and the soldiers seen, a floor on what
-    /// he has spent.
-    pub enemy_buildings_metal: u32,
     /// Game seconds since the commander's previous turn began; `None` before its first.
     pub seconds_since_turn: Option<i32>,
     /// The opponent's lobby start boxes, one per enemy ally team, as grid cell ranges: where its commander was

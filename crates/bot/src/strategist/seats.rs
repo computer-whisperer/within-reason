@@ -202,9 +202,10 @@ impl Shared {
             }
             s.next_free.sort_by_key(|(_, _, walk)| *walk);
             s.next_free.truncate(lead.field.score.next_free.len().max(o.next_free.len()));
-            for (n, place) in &o.enemy_spots {
-                if !s.enemy_spots.iter().any(|(have, _)| have == n) {
-                    s.enemy_spots.push((*n, place.clone()));
+            for (n, place, ago) in &o.enemy_spots {
+                match s.enemy_spots.iter_mut().find(|(have, ..)| have == n) {
+                    Some(have) => have.2 = have.2.min(*ago),
+                    None => s.enemy_spots.push((*n, place.clone(), *ago)),
                 }
             }
             // Each cell as the seat that saw more of it, or saw it later, saw it; his buildings from both.
@@ -237,7 +238,6 @@ impl Shared {
                     s.enemy_deaths.push(*death);
                 }
             }
-            s.enemy_buildings_metal = s.enemy_buildings_metal.max(o.enemy_buildings_metal);
             s.enemy_soldiers_seen = s.enemy_soldiers_seen.max(o.enemy_soldiers_seen);
             s.enemy_soldiers_seen_metal = s.enemy_soldiers_seen_metal.max(o.enemy_soldiers_seen_metal);
         }

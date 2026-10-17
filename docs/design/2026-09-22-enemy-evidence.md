@@ -73,3 +73,27 @@ the objective met, the opponent found by sweeping "the far corners" and "north t
 never-looked list, its base marked from its buildings and its commander found at G2 before the Bulls went. Across the
 two valid games the player used the evidence as intended and asked for nothing the picture lacked. What the games
 left: energy (empty 16 % and 42 %) and the air hold (the domains design's next pass).
+
+## Status (2026-10-17): the rule extended to his economy and army
+
+The user, reading docs/studies/2026-10-17-wrong-post-mortem.md: "I was not aware the harness was trying to say things
+like 'we are ahead' -- that's one kind of thing the harness has almost no authority to say. Opus should be
+responsible for predicting enemy game state in both economy and army from what it has seen." Removed the same day:
+- the `his spending seen` line (`report.rs`, from the posing changes of 2026-09-27: metal of his seen dying plus
+  soldiers and buildings seen, "at least N a second, about K extractors' worth"; it read 7 extractors' worth against
+  a true 28 at 19:58 of levers-player-1) and `Score::enemy_buildings_metal`, which fed nothing else;
+- "the opponent is known to hold N" on the score line: each of his extractors is now a sighting with the age of the
+  look ("#40 E4 (0:14 ago)"), nearest our start first, with no count (`Score::enemy_spots` carries the seconds);
+- the clause "its army is at least that and may be much more" after the soldiers seen in the last three minutes;
+- the map sheet's "where his start may be" rows, which priced the bot's own base guess (`bases.rs`, refined by
+  sightings) against decision 1 above: the sheet now prices his start as the lobby gave it (the script's position
+  when the lobby fixed the starts, else the centre of his box while the boxes are honoured, else no row), and the
+  not-honoured note no longer says "his start is guessed as the mirror of ours";
+- the passages note's "whoever holds one decides who crosses".
+Left where they were, by the user's word ("the third group can stay for now"): the hands' fight words on units in
+sight ("we outweigh it heavily", "it outclasses us"), the shelling place estimate labelled as one, the direction
+words of the recently-seen parties, and the menu's "a walk back toward our side" that reads the bot's guess for
+the direction. The prompts' sentences of the same kind (the commander's "compare the sides in the report's own
+numbers ... extractors against what he is known to hold", the player prompt's "the opponent keeps its army at home
+as one block") are removed with the brief's amendments, after finish-player-1 ends (prompts are read at run time).
+Test `sightings_tests` in `report.rs`; unmeasured in a game.

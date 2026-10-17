@@ -106,6 +106,10 @@ economy from about 6:00 and did not know it".
 
 ## 4. What this suggests (the user's call; nothing built)
 
+*The user's ruling, the same day: the harness has almost no authority to say what he has; the player predicts his
+economy and army from what it has seen. The first bullet below, which proposed more estimates, is withdrawn by it;
+what was removed instead is in docs/design/2026-09-22-enemy-evidence.md's status of 2026-10-17.*
+
 - **A score the player cannot read as a lead.** The floor stated as a floor with its age ("his base last seen
   17:01 ago; 7 extractors' worth seen, the pool holds 27 at this minute"), or an estimate from the clock instead of
   a floor: against BARb the curve is known (`docs/briefs/reference/comet-catcher-remake-1.8-barb-hard_aggressive.md`:

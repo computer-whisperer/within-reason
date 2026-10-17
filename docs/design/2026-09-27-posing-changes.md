@@ -45,7 +45,7 @@ File: `strategist/mcp.rs` (the standing branch reads `hands_merged` parties, not
 seats' `enemy_destroyed` events name the id), so the trade line is true. Every ledger row's trade figure of
 tonight is re-derived from the records and corrected (done 2026-09-27 evening: each row carries the deduplicated "destroyed" figure, 4.4k to 44.7k against the summed 30k to 110k).
 3.2 **An income estimate for the opponent** from what of his we have seen die and what stands ("he has lost 37k by
-13:24: an income of about 46 a second, about 18 extractors"), beside "known to hold N" with the age of the count.
+13:24: an income of about 46 a second, about 18 extractors"), beside "known to hold N" with the age of the count. (Removed 2026-10-17: the estimate read "7 extractors' worth" against a true 28 at 19:58 of levers-player-1, and the user ruled that what he has is the player's to estimate from the sightings; docs/design/2026-09-22-enemy-evidence.md's status.)
 3.3 **The score and eco extractor counts agree** (one source), and the seats line carries each seat's count so "no
 growth: 12" is never read as the side's.
 3.4 **Builds in progress show their percentage** in the actor entry and the report ("armavp at 45 %, one builder,

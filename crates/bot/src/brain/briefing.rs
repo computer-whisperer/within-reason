@@ -571,14 +571,37 @@ impl Brain {
         })
     }
 
-    /// The map sheet (`terrain::sheet`) from our start to each place his start may be.
+    /// His start as the lobby gave it and nothing guessed by us (the user, 2026-10-17: where he is, the harness has no
+    /// authority to say; until then the sheet priced the bot's own base guess as "where his start may be"): the
+    /// script's position for each enemy team when the lobby fixed the starts, else the centre of each enemy team's
+    /// box while the boxes are honoured (his commander was placed somewhere inside it at 0:00), else nothing.
+    fn his_starts_as_given(&self) -> Vec<(String, Vec3)> {
+        let hello = &self.world.hello;
+        if matches!(hello.start_pos_type, Some(0) | Some(3)) {
+            return hello
+                .teams
+                .iter()
+                .filter(|t| t.ally_team != hello.ally_team && t.controller != bot_protocol::Controller::Gaia)
+                .filter_map(|t| t.start_pos.map(|at| (format!("team {}'s start by the script", t.team), at)))
+                .collect();
+        }
+        if !self.boxes_honoured {
+            return Vec::new();
+        }
+        hello
+            .start_boxes
+            .iter()
+            .filter(|b| b.ally_team != hello.ally_team)
+            .map(|b| (format!("the centre of his lobby box {} (his commander was placed somewhere inside it at 0:00)", self.world.box_cells(b)), b.centre()))
+            .collect()
+    }
+
+    /// The map sheet (`terrain::sheet`) from our start to his start as the lobby gave it.
     fn map_sheet(&self) -> serde_json::Value {
         let hello = &self.world.hello;
         let rate = hello.unit_defs.iter().map(|d| d.extracts_metal).filter(|r| *r > 0.0).min_by(f32::total_cmp).unwrap_or(0.0);
         let mut starts = vec![("ours".to_string(), self.home)];
-        let theirs = self.live_enemy_bases();
-        let several = theirs.len() > 1;
-        starts.extend(theirs.into_iter().enumerate().map(|(n, at)| (if several { format!("where his start may be, {}", n + 1) } else { "where his start may be".to_string() }, at)));
+        starts.extend(self.his_starts_as_given());
         terrain::sheet::sheet(&terrain::sheet::Input {
             name: &hello.map.name,
             terrain: &hello.terrain,
@@ -635,17 +658,17 @@ impl Brain {
             "start_boxes_note": match self.world.hello.start_pos_type {
                 Some(0) | Some(3) => "the lobby fixed every seat's start (the script's startpostype 0 or 3): the enemy's start below is exact, from the script, and the boxes are the map's defaults, meaning nothing",
                 _ if self.boxes_honoured => "the lobby's start boxes: each team's commander was placed somewhere inside its box at 0:00. The engine tells nobody where; where the opponent stands now is known only from what our units see",
-                _ => "the lobby's start boxes were NOT honoured: our own start lies in another team's box or outside ours, so the host placed the seats by hand and the boxes say nothing of where he is; his start is guessed as the mirror of ours until something of ours sees his buildings",
+                _ => "the lobby's start boxes were NOT honoured: our own start lies in another team's box or outside ours, so the host placed the seats by hand and the boxes say nothing of where he is",
             },
             "metal_spots": spots,
             "metal_spots_note": "n is the spot's number for the `expansion` tool; walk_from_home is the walking distance for our bots (null: they cannot walk there) beside straight_from_home; a spot marked `alcove` is far longer on foot than straight, and a group sent at it by the straight line huddles short of it",
             "terrain": self.terrain_sketch(),
             "people": self.people_description(),
             "sheet": self.map_sheet(),
-            "sheet_note": "the map in the numbers the decisions turn on, the same table for every map (the brief holds other maps' sheets to set this one against): what each way of moving can stand on, the walk and the seconds to each place his start may be, whose spots are whose by walk, how wide the ways there are at their tightest against their median (a pass is a fraction of the median), and how many spots each kind of builder reaches in 30, 60, 90 and 120 seconds",
+            "sheet_note": "the map in the numbers the decisions turn on, the same table for every map (the brief holds other maps' sheets to set this one against): what each way of moving can stand on, the walk and the seconds to his start as the lobby gave it (the script's position, or the centre of his box), whose spots are whose by walk, how wide the ways there are at their tightest against their median (a pass is a fraction of the median), and how many spots each kind of builder reaches in 30, 60, 90 and 120 seconds",
             "water": self.water_description(),
             "passages": self.passages().iter().map(|p| json!({ "at": self.place(p.at), "width": p.width as i32, "share_of_the_way_from_our_start": (p.along * 100.0) as i32 })).collect::<Vec<_>>(),
-            "passages_note": "narrow places every walking route between our start and the opponent's goes through (cliffs or water on both sides), the narrowest first: whoever holds one decides who crosses, and soldiers and turrets there cover everything behind them",
+            "passages_note": "narrow places every walking route between our start and the opponent's goes through (cliffs or water on both sides), the narrowest first",
         })
     }
 }
@@ -840,12 +863,13 @@ impl Brain {
             }
             builders.insert(self.actor_name(unit.id), words);
         }
-        let enemy_extractors: Vec<Vec3> = self
+        let enemy_extractors: Vec<(Vec3, i32)> = self
             .enemy_buildings
             .values()
             .filter(|(def, _, _)| self.world.def(*def).is_some_and(|d| d.extracts_metal > 0.0))
-            .map(|(_, pos, _)| *pos)
+            .map(|(_, pos, seen)| (*pos, *seen))
             .collect();
+        let enemy_extractor_at: Vec<Vec3> = enemy_extractors.iter().map(|(pos, _)| *pos).collect();
         let our_extractors: Vec<Vec3> = own.iter().filter(|u| kit.is_extractor(u.def)).map(|u| u.pos).collect();
         let held = |spot: Vec3, by: &[Vec3]| by.iter().any(|p| p.dist2d(spot) < self.spot_occupied_radius());
         let free: Vec<Vec3> = self
@@ -854,7 +878,7 @@ impl Brain {
             .metal_spots
             .iter()
             .filter(|s| self.reachable_on_foot(**s))
-            .filter(|s| !held(**s, &our_extractors) && !held(**s, &enemy_extractors) && !self.allied_extractor_on(**s))
+            .filter(|s| !held(**s, &our_extractors) && !held(**s, &enemy_extractor_at) && !self.allied_extractor_on(**s))
             .copied()
             .collect();
         let recent = |seen: &i32| tick.frame - seen < 3 * 60 * FRAMES_PER_SECOND;
@@ -896,14 +920,25 @@ impl Brain {
             traded: traded(&|_| true),
             enemy_deaths: self.enemy_deaths.clone(),
             frame: tick.frame,
-            enemy_buildings_metal: self.enemy_buildings.values().filter_map(|(def, _, _)| self.world.def(*def)).map(|d| d.metal_cost).sum::<f32>() as u32,
             seconds_since_turn: Some(shared.last_turn_frame.load(std::sync::atomic::Ordering::Relaxed)).filter(|at| *at > 0).map(|at| (tick.frame - at) / FRAMES_PER_SECOND),
             enemy_start_boxes: self.world.hello.start_boxes.iter().filter(|b| b.ally_team != self.world.hello.ally_team).map(|b| self.world.box_cells(b)).collect(),
             scouting: self.scouting(tick.frame),
             enemy_spots: {
-                let mut spots: Vec<(f32, usize)> = self.world.hello.metal_spots.iter().enumerate().filter(|(_, s)| held(**s, &enemy_extractors)).map(|(n, s)| (s.dist2d(self.home), n)).collect();
+                // Each spot with the latest look at an extractor of his on it: a sighting and its age, not his count.
+                let radius = self.spot_occupied_radius();
+                let mut spots: Vec<(f32, usize, i32)> = self
+                    .world
+                    .hello
+                    .metal_spots
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(n, s)| {
+                        let seen = enemy_extractors.iter().filter(|(p, _)| p.dist2d(*s) < radius).map(|(_, seen)| *seen).max()?;
+                        Some((s.dist2d(self.home), n, (tick.frame - seen) / FRAMES_PER_SECOND))
+                    })
+                    .collect();
                 spots.sort_by(|a, b| a.0.total_cmp(&b.0));
-                spots.into_iter().map(|(_, n)| (n, self.place(self.world.hello.metal_spots[n]))).collect()
+                spots.into_iter().map(|(_, n, ago)| (n, self.place(self.world.hello.metal_spots[n]), ago)).collect()
             },
             enemy_factories: self
                 .enemy_buildings

@@ -70,7 +70,7 @@ scouting (each cell of the map by when units of ours last saw it; an old look sa
 - The factory line only while no factory of his stands in the record.
 
 `Score::never_looked` and its report words go (the block says it); `enemy_spots` ("known to hold N") stays in the score
-line.
+line. (2026-10-17: the count went too; each spot carries the age of its look, docs/design/2026-09-22-enemy-evidence.md's status.)
 
 ## The hands' side
 
