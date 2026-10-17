@@ -24,6 +24,14 @@ mod transfer;
 mod compose;
 mod decode;
 mod diet;
+
+/// The standing rules whole, every marked part kept: the text the hands read at every pick (`rules.md`, read at every
+/// use), for the player's prompt (the user, 2026-10-17: "ensuring the player's prompt matches what jev is prompted
+/// for"; before, the prompt said nothing in the code answers a raider on its own while the rules met one with a
+/// detachment, and the player wrote "never" against what it read as disobedience).
+pub(crate) fn hands_rules_whole() -> String {
+    diet::rules_for(&crate::texts::read(&crate::texts::HANDS_RULES), &|_| true)
+}
 mod layers;
 mod menu;
 mod schedule;
@@ -262,6 +270,8 @@ pub struct Pianist {
     pub(super) in_reach: HashMap<UnitId, i32>,
     /// (builder, party name) pairs with the party inside the builder's alarm reach: a party's arrival is an event once.
     pub(super) alarmed: HashSet<(UnitId, String)>,
+    /// (group, thing) pairs a chase has met (`picture::chase_met`): a new one is an event once (H-HANDS-CHASE).
+    pub(super) chase_met: HashSet<(String, String)>,
     /// The token diet's level and knobs (H-HANDS-DIET).
     pub(super) diet: diet::Diet,
     /// The picture's place names at the last call: a change (a mark, a lane) is an event.
@@ -659,6 +669,7 @@ impl Pianist {
             fired: HashMap::new(),
             in_reach: HashMap::new(),
             alarmed: HashSet::new(),
+            chase_met: HashSet::new(),
             places_seen: BTreeSet::new(),
             packet_seen: String::new(),
             signals_given: Vec::new(),

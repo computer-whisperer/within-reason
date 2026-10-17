@@ -257,11 +257,11 @@ Thug `corthud` 140/1100/45/380 line unit; Trasher `corcrash` anti-air only; Grav
   430). [K-units-duel-line-bots-beat-raiders, K-units-duel-range-vs-turrets]
 - Raiders are for what cannot shoot back: extractors, constructors, lone turrets under construction. A Pawn or two
   standing on an approach also stops a lone enemy raider; chasing raiders with the army does not. [K-units-dont-chase-raiders]
-- Defence is the player's: nothing in the code answers a raider at a structure on its own, and told only "engage", the
-  hands send the whole ball after one scout car and never catch it while another kills a lab at home (realtime-2, won
-  anyway on hard). A single Tick or scout car at an extractor is met by one soldier from the nearest group (`send`:
-  one; two or four for a small party) or by a group left where the raids pass; the packet says which,
-  before the ball leaves. The raids are standard and expected (Ticks from 5:00 on Comet Catcher, outermost spots
+- Defence is written in two places: the hands' standing rules (in the player's prompt word for word) meet a raider at
+  one of our extractors with a small detachment of the nearest group's fastest, and the packet says who stands where,
+  where a detachment goes back to and what is forbidden. Told only "engage" and nothing of this, the hands sent the
+  whole ball after one scout car and never caught it while another killed a lab at home (realtime-2, won anyway on
+  hard). The packet says which group stands where before the ball leaves. The raids are standard and expected (Ticks from 5:00 on Comet Catcher, outermost spots
   first), so the answer stands across the front before they come: pickets of one or two Blitzes at each outer spot
   cluster from the first Blitzes out of the plant, told in words to attack on sight, with a light turret beside each
   pair of extractors; a home guard that walks out after the extractor is gone is not defence (the user, watching

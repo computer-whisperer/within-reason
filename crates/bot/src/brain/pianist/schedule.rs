@@ -69,6 +69,20 @@ impl Brain {
             }
         }
         pianist.alarmed = alarmed;
+        // A chase meeting something new (a turret's reach ahead on the quarry's line, a party beside it that is not
+        // its quarry) is an event once per thing: the group is asked, its `chase` line saying what (H-HANDS-CHASE).
+        let mut chase_met: HashSet<(String, String)> = HashSet::new();
+        for group in pianist.groups.iter().filter(|g| matches!(g.task, super::groups::GroupTask::Hunt(_) | super::groups::GroupTask::Engage { .. })) {
+            let Some(met) = self.chase_met(group, own, &pianist.parties, &[], tick.frame) else { continue };
+            for key in met.keys {
+                let pair = (group.name.clone(), key.clone());
+                if !pianist.chase_met.contains(&pair) {
+                    pianist.events.insert(format!("group_{} chase meets {key}", group.name));
+                }
+                chase_met.insert(pair);
+            }
+        }
+        pianist.chase_met = chase_met;
         if hit.is_empty() && gone.is_empty() && seen.is_empty() {
             self.pianist = Some(pianist);
             return;

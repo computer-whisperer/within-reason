@@ -20,9 +20,11 @@ against your packet. They cannot count, plan or remember beyond what the picture
   when, his biggest party known, and the first of each tier-2 or air type of his the moment it is seen.
 - **`produce` lists** are how a count is kept: the hands made three constructors from the words "one constructor
   first" (human-7); `armcv:1` in the list made one.
-- **Defence is yours to write.** Nothing in the code answers a raider at a building on its own. Told only "engage",
-  the hands sent a whole body after one scout car, never caught it, and another raider killed a lab at home
-  (realtime-2).
+- **Defence is written in two places.** The hands' standing rules, in your prompt word for word, meet a raider at
+  one of our extractors with a small detachment of the nearest group's fastest, the soonest answer winning, and step
+  an outweighed group back to the place your packet names. Your packet says who stands where, where a detachment goes
+  back to, and what is forbidden. Told only "engage" and nothing of this, the hands sent a whole body after one scout
+  car, never caught it, and another raider killed a lab at home (realtime-2).
 - A scout's sentence that held under the enemy commander's eyes: "it is a scout: it runs from what can catch it and
   otherwise keeps to its route; being seen is its job".
 

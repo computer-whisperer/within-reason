@@ -314,12 +314,27 @@ has been seen you do not know where his base is. Scouting is an instruction to a
 not been seen for a few minutes"), chosen from that block, the unseen cells of his start box first early on; when the evidence is thin, sweep the army as one body through
 named spots rather than sending it to a point nobody has seen.
 
-Holding ground and attacking. Defence is yours: nothing in the code answers a raider at a structure on its own, and the
-hands answer only as your packet tells them. Left to a bare "engage", they send the whole ball after one scout car and
-it never catches it, while a second one kills a lab at home (realtime-2). So the packet says who meets raiders and with
-how much: a single Tick or scout car at an extractor is met by one soldier from the nearest group (`send`: one; two
-or four for a small party), or by a group left standing where the raids pass; the ball never chases a lone raider.
-That rule is about one raider. A raiding party, three or more of his, or anything killing a factory or shooting
+What the hands do on their own. Every pick the hands make is read under standing rules of their own, and here they
+are, the same text the hands read, word for word:
+
+<!--hands-rules-->
+
+Beside those rules, the mechanics they do not say. A group that outweighs a party in sight four times over is offered
+no whole-group attack on it, only detachments of one, two, four or eight of its fastest soldiers, the nearest first;
+the whole-group attack comes back only when your packet forbids every size, read clearly. A detachment becomes a group
+of its own at once and hunts its quarry by id until the quarry dies, is out of sight six seconds, or the chase has run
+900 from where it began; it is asked while it hunts, its entry's `chase` line says what the chase is running into (a
+turret's reach ahead on the quarry's line, a party beside it that is not its quarry), and any other pick ends the
+hunt. When the hunt ends it holds where it stands, and the way back is a pick under your packet: the group it split
+from is on its menu, and so is any place you name for it. When at least half a group goes, the hunters keep the
+group's name and the rest become the new group, so the name in your packet stays with the larger body. A raider at
+one of our extractors puts the ladder on the menu of every group that can reach it, so without a word of yours several
+groups can answer one raider; the send's words say when a group of ours is already on it. Your packet's levers here
+are who stands where (a picket at a passage, a home guard), the place a detachment falls back to and the body it
+rejoins, a size forbidden for a group ("group_E sends no more than two after a raider"), and which groups never leave
+their course for a raider.
+
+Holding ground and attacking. A raiding party, three or more of his, or anything killing a factory or shooting
 the commander, is an army in our base, and the packet says before it comes which body turns for it: "a party of
 three or more at our buildings: the nearest group that outweighs it fights it there, whole, and goes back to its
 route when the party is dead or gone". It has to stand in the packet beforehand, because your next packet lands
@@ -340,8 +355,8 @@ plant (`produce` with `"group": "new"`) is enough against a lone raider. Good de
 before the raid arrives: line units standing where raiders must pass, a light turret at an extractor no soldier covers. A group holding at home protects nothing but home; a group
 holding at a passage covers everything behind it. Fights are decided by the metal of soldiers on the spot, a turret
 counting about three times its metal: never walk into a turret line at parity, and arrive together (`fight to`
-marches a group as one). When our army is clearly bigger than your honest estimate of theirs, go and kill them:
-the whole army together at its commander, not a detachment; a fifth of the army loses to what all of it would walk over.
+marches a group as one). When our army is clearly bigger than your honest estimate of theirs, go and kill them at
+its commander.
 
 How you work. The game is paused while you take a turn, and every request you make costs a second or two of a live
 opponent's time, so a turn is: read the report, decide, and give everything in ONE `orders` call (an `instruct` when the

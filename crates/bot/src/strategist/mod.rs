@@ -64,7 +64,15 @@ fn system_prompt() -> String {
     // The model's own section, after the brief: what Opus does in the seat that the brief's facts do not correct
     // (the user, 2026-10-07: per-model prose tuning; Sonnet does not read it).
     let own = if model().starts_with("claude-opus") { read(&crate::texts::PLAYER_OPUS) } else { String::new() };
-    for_brief(&read(&PLAYER_PROMPT), if experience { "experience" } else { "standard" }) + &under_command + &read(brief) + &own + &packet_example + &bonus() + &objective()
+    with_hands_rules(&for_brief(&read(&PLAYER_PROMPT), if experience { "experience" } else { "standard" })) + &under_command + &read(brief) + &own + &packet_example + &bonus() + &objective()
+}
+
+/// Where the player's role text carries the hands' standing rules whole, the same words the hands read at every
+/// pick (the user, 2026-10-17: the prompt matches what Jev is prompted for).
+const HANDS_RULES_MARK: &str = "<!--hands-rules-->";
+
+fn with_hands_rules(text: &str) -> String {
+    text.replace(HANDS_RULES_MARK, &crate::brain::pianist::hands_rules_whole())
 }
 
 /// The commander's: its role, then the experience brief whole (the user, 2026-10-03: everything in it always), then
@@ -723,6 +731,18 @@ mod tests {
         assert!(his.contains("our seats: no bonus") && his.contains("the opponent's income is 70 %") && his.contains("later than the brief"));
         let mixed = super::bonus_text(&[(0, 0), (1, 20)], &[(2, 0)]);
         assert!(mixed.contains("team 1 a bonus of +20 %"));
+    }
+
+    /// The player's role text carries the hands' standing rules whole where it has the mark: every marked part of
+    /// the rules kept, the marks gone, the sentence the hands read of raiders in the player's prompt too.
+    #[test]
+    fn the_player_prompt_carries_the_hands_rules_whole() {
+        let text = crate::texts::read(&crate::texts::PLAYER_PROMPT);
+        assert!(text.contains(super::HANDS_RULES_MARK));
+        let prompt = super::with_hands_rules(&text);
+        let rules = crate::brain::pianist::hands_rules_whole();
+        assert!(rules.contains("A raider at one of our extractors is met by a small detachment") && rules.contains("A factory standing idle") && !rules.contains("<<"), "{rules}");
+        assert!(prompt.contains(&rules) && !prompt.contains(super::HANDS_RULES_MARK));
     }
 
     #[test]

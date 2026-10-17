@@ -38,6 +38,15 @@ const KEPT_MERGE: f32 = 250.0;
 const BESIDE: f32 = 600.0;
 /// A turret whose reach ends this short of a party's centre still covers its edge.
 const TURRET_MARGIN: f32 = 150.0;
+/// A turret whose reach the chase's line enters within this of the group's front is in the `chase` line.
+const CHASE_AHEAD: f32 = 600.0;
+
+/// What a chase is running into (`Brain::chase_met`): the words for the group's `chase` line, and one key per thing
+/// met for the event that asks the group when a new one appears.
+pub(super) struct ChaseMet {
+    pub words: String,
+    pub keys: Vec<String>,
+}
 /// Odds at this ratio or over, and under 1.3, are a narrow win and said so; under it down to 0.8, an even fight.
 const NARROW: f32 = 1.1;
 /// A party whose reach beats the group's longest by this much kills it on the approach (a Bull's 460 or a beamer's 490 against a Stout's 350).
@@ -987,6 +996,87 @@ impl Brain {
         (here, away)
     }
 
+    /// For a group hunting a quarry or attacking a party (H-HANDS-CHASE): his armed buildings whose reach the line
+    /// from the group's front to the quarry enters within `CHASE_AHEAD` of the front, and the parties within `NEAR`
+    /// of its soldiers that are not the one chased, each with the odds; None on any other course or when nothing is
+    /// met. The hunt itself ends only on a kill, six seconds out of sight or the leash (`micro`), and the whole-group
+    /// attack follows its party with no leash: the withdrawal is Jev's pick on these words and the event
+    /// (`schedule.rs`) that asks for it (the user, 2026-10-17: "a hunting party is able to be recalled by jev when
+    /// it encounters something unexpected"; predict-sweep-1 seed 8 7:58: a detachment of four followed a raider
+    /// into two Pounders; sightings-player-1 6:23: Blitzes sent after single Pawns died under the turret they ran to).
+    pub(super) fn chase_met(&self, group: &super::Group, own: &[OwnUnit], parties: &[Party], places: &[Place], frame: i32) -> Option<ChaseMet> {
+        let (what, target, party_name, since) = match &group.task {
+            GroupTask::Hunt(h) => ("hunting", h.at, h.party.clone(), h.since),
+            GroupTask::Engage { party, at, since, .. } => ("attacking", *at, parties.iter().find(|p| p.ids.iter().any(|id| party.contains(id))).map_or(String::new(), |p| p.name.clone()), *since),
+            _ => return None,
+        };
+        let units = group.units(own);
+        let body = group.body(own, Some(target))?;
+        let front = body.front;
+        let (dx, dz) = (target.x - front.x, target.z - front.z);
+        let len = dx.hypot(dz);
+        let (ux, uz) = if len > 1.0 { (dx / len, dz / len) } else { (0.0, 0.0) };
+        let mut keys = Vec::new();
+        let mut parts = Vec::new();
+        let mut turrets: Vec<(f32, String)> = Vec::new();
+        let air = group.domain == crate::world::Domain::Air;
+        for (id, (def, pos, _)) in &self.enemy_buildings {
+            let Some(d) = self.world.def(*def) else { continue };
+            if d.weapon_count == 0 || d.reach <= 0.0 || self.enemy_unfinished.contains(id) || !self.can_hit(*def, air) {
+                continue;
+            }
+            let reach = d.reach + TURRET_MARGIN;
+            let (bx, bz) = (pos.x - front.x, pos.z - front.z);
+            let along = (bx * ux + bz * uz).clamp(0.0, len.max(0.0));
+            let (cx, cz) = (front.x + ux * along, front.z + uz * along);
+            let nearest = (pos.x - cx).hypot(pos.z - cz);
+            if nearest > reach {
+                continue;
+            }
+            // Where the line enters the reach: back from its closest point by the half-chord.
+            let half = (reach * reach - nearest * nearest).max(0.0).sqrt();
+            let entry = (along - half).max(0.0);
+            if entry > CHASE_AHEAD {
+                continue;
+            }
+            let inside = front.dist2d(*pos) <= reach;
+            keys.push(format!("turret {}", id.0));
+            let begins = if inside { "the front is inside its reach now".to_string() } else { format!("its reach begins {entry:.0} ahead of the front") };
+            turrets.push((entry, format!("his {} at {} (reach {:.0}), {begins}", self.short_words(*def), self.place_words(places, *pos), d.reach)));
+        }
+        turrets.sort_by(|a, b| a.0.total_cmp(&b.0));
+        if !turrets.is_empty() {
+            parts.push(format!("ahead on the quarry's line: {}", turrets.iter().map(|(_, w)| w.as_str()).collect::<Vec<_>>().join("; ")));
+        }
+        let ours: f32 = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
+        let mut beside = Vec::new();
+        for p in parties.iter().filter(|p| p.name != party_name) {
+            let d = units.iter().map(|u| u.pos.dist2d(p.at)).fold(f32::INFINITY, f32::min);
+            if d > NEAR {
+                continue;
+            }
+            let theirs = p.metal + p.turret_metal * 3.0;
+            let verdict = if theirs > ours * 1.2 { "it outweighs this group" } else if ours > theirs * 1.2 { "this group outweighs it" } else { "an even fight" };
+            keys.push(p.name.clone());
+            beside.push(format!("{} ({}, {:.0} metal{}) {d:.0} from the nearest soldier, {verdict}", p.name, p.composition, p.metal, if p.turrets.is_empty() { String::new() } else { format!(", under {}", p.turrets) }));
+        }
+        if !beside.is_empty() {
+            parts.push(format!("beside the chase: {}", beside.join("; ")));
+        }
+        if parts.is_empty() {
+            return None;
+        }
+        let quarry = if party_name.is_empty() { "its party".to_string() } else { party_name };
+        let leash = match &group.task {
+            GroupTask::Hunt(h) => {
+                let run = h.anchors.iter().filter_map(|(id, from)| units.iter().find(|u| u.id == *id).map(|u| u.pos.dist2d(*from))).fold(0.0, f32::max);
+                format!(", {run:.0} of its {:.0} leash run", super::groups::HUNT_LEASH)
+            }
+            _ => String::new(),
+        };
+        Some(ChaseMet { words: format!("{what} {quarry} ({len:.0} ahead of the front) for {} s{leash}; {}; any other pick ends the chase", (frame - since) / FRAMES_PER_SECOND, parts.join("; ")), keys })
+    }
+
     /// Enemy parties at our extractors, for a group's entry: which spot, how far from the group.
     pub(super) fn threats_words(&self, parties: &[Party], places: &[Place], own: &[OwnUnit], kit: &Kit, from: Vec3) -> Vec<String> {
         parties
@@ -1779,6 +1869,9 @@ impl Brain {
             if let Some(parent) = &group.parent {
                 entry["split_from"] = json!(format!("group_{parent}, {} ago", ago(group.born)));
             }
+            if let Some(chase) = self.chase_met(group, own, &parties, &places, frame) {
+                entry["chase"] = json!(chase.words);
+            }
             let stuck: Vec<&OwnUnit> = units.iter().filter(|u| self.stuck.contains_key(&u.id)).copied().collect();
             if !stuck.is_empty() {
                 let longest = stuck.iter().filter_map(|u| self.stuck.get(&u.id)).map(|s| frame - s.since).max().unwrap_or(0);
@@ -1973,6 +2066,31 @@ mod tests {
     use bot_protocol::{Event, OwnUnit, Resource, Snapshot, Tick, UnitDefId, UnitId};
 
     use super::super::fixtures::{at, brain_of, enemy, own};
+
+    /// A hunting group's `chase` line says the turret whose reach the line to its quarry enters within reach of the
+    /// front, where that reach begins, and the party beside the chase that is not its quarry with the odds; a group
+    /// holding has no such line; the keys name each thing once.
+    #[test]
+    fn a_chase_says_the_turret_ahead_and_the_party_beside_it() {
+        use super::super::groups::{Group, GroupTask, Hunt};
+        use super::super::fixtures::e3;
+        let (brain, ours, _, parties) = e3();
+        let quarry = at(4950.0, 1700.0);
+        let hunt = Hunt { quarry: UnitId(77), party: "party_99".into(), from: at(4200.0, 1900.0), anchors: ours.iter().map(|u| (u.id, u.pos)).collect(), since: 0, last_seen: 0, at: quarry };
+        let group = Group::new("H".into(), crate::world::Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hunt(hunt), 0);
+        let met = brain.chase_met(&group, &ours, &parties, &[], 300).expect("the chase meets the turrets and the Centurions");
+        assert!(met.words.starts_with("hunting party_99 (") && met.words.contains("for 10 s, ") && met.words.contains("leash run; ahead on the quarry's line: his "), "{}", met.words);
+        assert!(met.words.contains("its reach begins") && met.words.contains("ahead of the front") && met.words.contains("beside the chase: party_12 (3 armwar, 810 metal)") && met.words.ends_with("any other pick ends the chase"), "{}", met.words);
+        assert!(met.keys.iter().any(|k| k == "turret 10") && met.keys.iter().any(|k| k == "party_12"), "{:?}", met.keys);
+        let holding = Group::new("H".into(), crate::world::Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { since: 0, committed: false, picked: false }, 0);
+        assert!(brain.chase_met(&holding, &ours, &parties, &[], 300).is_none());
+        // Chasing away from the turrets, with the Centurions out of reach: nothing met.
+        let away = Hunt { quarry: UnitId(77), party: "party_99".into(), from: at(4200.0, 1900.0), anchors: Vec::new(), since: 0, last_seen: 0, at: at(3400.0, 2600.0) };
+        let group = Group::new("H".into(), crate::world::Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hunt(away), 0);
+        let mut far = parties.clone();
+        far[0].at = at(6000.0, 6000.0);
+        assert!(brain.chase_met(&group, &ours, &far, &[], 300).is_none());
+    }
 
     /// A party's turrets count against a group only where they reach it: a group out of their reach meets the party
     /// without them and is told where they stand; one beside them meets the party as it is.

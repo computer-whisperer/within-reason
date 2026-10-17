@@ -56,6 +56,8 @@ const BACK: f32 = 400.0;
 const LADDER: [usize; 4] = [1, 2, 4, 8];
 /// A party moving slower than this stands still.
 const STANDING: f32 = 0.3;
+/// His armed buildings this far ahead of a moving party, on its line, are what a chase of it runs into.
+const CHASE_TURRET_AHEAD: f32 = 1500.0;
 
 /// Where a building goes.
 #[derive(Clone, Debug, PartialEq)]
@@ -691,9 +693,31 @@ impl Brain {
                     (along > 200.0 && across < along * 0.6 + 200.0).then_some((x, along))
                 })
                 .min_by(|a, b| a.1.total_cmp(&b.1));
+            // His nearest armed building ahead on its line, and where that reach begins: what a chase of it runs
+            // into (the user, 2026-10-17: the hands' chase did not withdraw at danger; a detachment following a
+            // raider home died under the turret it ran to, sightings-player-1 6:23, predict-player-1 7:09).
+            let turret = self
+                .enemy_buildings
+                .iter()
+                .filter(|(id, _)| !self.enemy_unfinished.contains(id))
+                .filter_map(|(_, (def, pos, _))| {
+                    let d = self.world.def(*def)?;
+                    if d.weapon_count == 0 || d.reach <= 0.0 || !self.can_hit(*def, party.air) {
+                        return None;
+                    }
+                    let (dx, dz) = (pos.x - party.at.x, pos.z - party.at.z);
+                    let along = dx * ux + dz * uz;
+                    let across = (dx * uz - dz * ux).abs();
+                    (along > 0.0 && along < CHASE_TURRET_AHEAD && across < along * 0.6 + 200.0).then_some((*def, *pos, along, d.reach))
+                })
+                .min_by(|a, b| a.2.total_cmp(&b.2));
+            let turret_words = turret.map_or(String::new(), |(def, pos, along, reach)| {
+                let begins = if along <= reach { "which it is inside now".to_string() } else { format!("whose reach begins {:.0} ahead of it", along - reach) };
+                format!("; toward his {} at {} (reach {reach:.0}), {begins}", self.short_words(def), place_of(&picture.places, pos).unwrap_or("no named place"))
+            });
             match next {
-                Some((x, _)) => format!(", heading {}: our next extractor on its way is at {}", super::super::shelling::compass(vel), place_of(&picture.places, x.pos).unwrap_or("no named place")),
-                None => format!(", heading {}", super::super::shelling::compass(vel)),
+                Some((x, _)) => format!(", heading {}: our next extractor on its way is at {}{turret_words}", super::super::shelling::compass(vel), place_of(&picture.places, x.pos).unwrap_or("no named place")),
+                None => format!(", heading {}{turret_words}", super::super::shelling::compass(vel)),
             }
         };
         let place = place_of(&picture.places, party.at).map_or("in sight".to_string(), |pl| format!("at {pl}"));
@@ -991,6 +1015,20 @@ impl Brain {
             let other = if fight.as_ref().is_some_and(|(p, _)| p.name != party.name) { stands(party.at) } else { String::new() };
             let tail = if body.strung_out() { "; its tail is strung out behind its front" } else { "" };
             let key = format!("attack_{}", party.name);
+            // A group of ours already on this party, said on the attack and on every detachment (the user,
+            // 2026-10-17; predict-sweep-1: 119 of 323 sends went at a party sent at within the minute, seed 3 sent
+            // 8, 4 and 8 at one party in five seconds, and no send's words said so).
+            let on_it: Vec<String> = pianist
+                .groups
+                .iter()
+                .filter(|g| g.name != group.name && !g.members.is_empty())
+                .filter_map(|g| match &g.task {
+                    GroupTask::Hunt(h) if h.party == party.name => Some(format!("group_{} ({} soldiers) has hunted it for {} s", g.name, g.members.len(), (scene.frame - h.since) / FRAMES_PER_SECOND)),
+                    GroupTask::Engage { party: ids, since, .. } if ids.iter().any(|id| party.ids.contains(id)) => Some(format!("group_{} ({} soldiers) has attacked it for {} s", g.name, g.members.len(), (scene.frame - since) / FRAMES_PER_SECOND)),
+                    _ => None,
+                })
+                .collect();
+            let already = if on_it.is_empty() { String::new() } else { format!("; already on it: {}", on_it.join(", ")) };
             // A party the whole body outweighs four times over is a detachment's work, not the body's (the user,
             // 2026-10-03, watching player-57 at 6:04: "if jev insists on sending units back from the front to
             // address the threat, it should be a small detachment rather than the full group"). At 5:31 eleven
@@ -1004,7 +1042,7 @@ impl Brain {
             let fighting_it = fight.as_ref().is_some_and(|(p, _)| p.name == party.name);
             let detachments_work = theirs > 0.0 && ours >= theirs * WHOLE_GROUP_OVER && armed.len() > 2 && !fighting_it;
             if !detachments_work || every_detachment_forbidden {
-                push(key.clone(), Order::Attack(party.name.clone()), format!("{name} attacks {party_words} with the whole group ({}): {odds}{tail}{other}{leaves}{}", way_words(distance, speed), undoes(&key)), format!("the attack on {}", party.name), Some(party), party.air);
+                push(key.clone(), Order::Attack(party.name.clone()), format!("{name} attacks {party_words} with the whole group ({}): {odds}{tail}{other}{already}{leaves}{}", way_words(distance, speed), undoes(&key)), format!("the attack on {}", party.name), Some(party), party.air);
             }
             if !air && !long_reach.is_empty() {
                 // What the switch does to a group fighting this party under fire, as a fact on the move
@@ -1050,7 +1088,7 @@ impl Brain {
                 push(
                     format!("send_{n}_{}", party.name),
                     Order::Send(hunters.iter().map(|u| u.id).collect(), party.name.clone()),
-                    format!("{who} of {name} (its fastest, the nearest first) leave it as a group of their own and hunt {party_words} ({}): against them alone, {}{catching}; the rest of {name} keeps its course{failed}", way_words(nearest, pace), verdict(&self.odds_words(hunters, party, enemies))),
+                    format!("{who} of {name} (its fastest, the nearest first) leave it as a group of their own and hunt {party_words} ({}): against them alone, {}{catching}; the rest of {name} keeps its course{failed}{already}", way_words(nearest, pace), verdict(&self.odds_words(hunters, party, enemies))),
                     format!("a detachment of {n} at {}", party.name),
                     Some(party),
                     true,
@@ -1073,6 +1111,9 @@ impl Brain {
         // Join and follow: every other group, every builder.
         for (other, other_at, theirs, other_course) in scene.groups.iter().filter(|(g, ..)| g.name != group.name) {
             let way = way_words(body.at.dist2d(*other_at), speed);
+            // The group it split from is its way back (the user, 2026-10-17: a detachment's return is a pick; the
+            // body it left is the first place to say).
+            let back = if group.parent.as_deref() == Some(other.name.as_str()) { format!("; the group it split from {} s ago", (scene.frame - group.born) / FRAMES_PER_SECOND) } else { String::new() };
             if other.domain == group.domain {
                 let both: Vec<&OwnUnit> = units.iter().chain(theirs.iter()).copied().collect();
                 push(
@@ -1080,9 +1121,9 @@ impl Brain {
                     Order::Join(other.name.clone()),
                     // The larger of the two keeps its name, course and place (`execute.rs`, the join).
                     if units.len() > theirs.len() {
-                        format!("{name} ({}) and group_{} ({}, {way}; it {other_course}) become one body of {} soldiers: {name} is the larger, so it keeps its name and its course, and group_{}'s soldiers leave theirs and walk to it{leaves}", self.composition_words(&units), other.name, self.composition_words(theirs), both.len(), other.name)
+                        format!("{name} ({}) and group_{} ({}, {way}; it {other_course}) become one body of {} soldiers: {name} is the larger, so it keeps its name and its course, and group_{}'s soldiers leave theirs and walk to it{back}{leaves}", self.composition_words(&units), other.name, self.composition_words(theirs), both.len(), other.name)
                     } else {
-                        format!("{name} ({}) joins group_{} ({}, {way}; it {other_course}): one body of {} soldiers on group_{}'s course{}{leaves}", self.composition_words(&units), other.name, self.composition_words(theirs), both.len(), other.name, stands(*other_at))
+                        format!("{name} ({}) joins group_{} ({}, {way}; it {other_course}): one body of {} soldiers on group_{}'s course{}{back}{leaves}", self.composition_words(&units), other.name, self.composition_words(theirs), both.len(), other.name, stands(*other_at))
                     },
                     format!("joining group_{}", other.name),
                     None,
@@ -1589,6 +1630,45 @@ pub(super) mod tests {
     }
 
     /// A party the body outweighs four times is a detachment's work, and the whole-group attack is off the menu;
+    /// A send's words say the group of ours already hunting the party; a moving party's words say his armed
+    /// building ahead on its line and where its reach begins; the join to the group this one split from says so.
+    #[test]
+    fn a_send_says_who_is_already_on_the_party_and_what_lies_ahead_of_it() {
+        use super::super::fixtures::{at, e3};
+        use super::super::groups::Hunt;
+        use bot_protocol::{Resource, Snapshot};
+        let (mut brain, ours, mut enemies, mut parties) = e3();
+        // One Centurion, driving toward the two Guards east of it.
+        enemies.retain(|e| e.id == UnitId(1) || e.id == UnitId(10) || e.id == UnitId(11));
+        let centurion = enemies.iter_mut().find(|e| e.id == UnitId(1)).unwrap();
+        centurion.pos = at(4400.0, 1640.0);
+        centurion.vel = at(2.0, 0.0);
+        parties[0].ids.retain(|id| *id == UnitId(1));
+        parties[0].at = at(4400.0, 1640.0);
+        parties[0].metal = 270.0;
+        let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        let (body, hunters): (Vec<UnitId>, Vec<UnitId>) = (ours.iter().take(12).map(|u| u.id).collect(), ours.iter().skip(12).map(|u| u.id).collect());
+        let mut a = Group::new("A".into(), Domain::Ground, body, GroupTask::Hold { since: 0, committed: false, picked: false }, 0);
+        a.parent = Some("B".into());
+        a.born = 60;
+        pianist.groups.push(a);
+        let hunt = Hunt { quarry: UnitId(1), party: "party_12".into(), from: at(4200.0, 1900.0), anchors: Vec::new(), since: 150, last_seen: 150, at: at(4400.0, 1640.0) };
+        pianist.groups.push(Group::new("B".into(), Domain::Ground, hunters, GroupTask::Hunt(hunt), 150));
+        brain.pianist = Some(pianist);
+        let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies, wrecks: None } };
+        let id = UnitDefId(1);
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        let picture = Picture { rules: String::new(), state: serde_json::json!({ "instructions": "group_A holds.", "actors": {}, "places": {} }), places: vec![Place { name: "home".into(), at: at(500.0, 5000.0), spot: None, cells: None }], parties };
+        let menus = brain.menus(&tick, &kit, &picture);
+        let menu = menus.iter().find(|m| m.name == "group_A").expect("the group's menu");
+        let send = menu.moves.iter().find(|m| m.key == "send_2_party_12").expect("a detachment of two");
+        assert!(send.words.contains("already on it: group_B (2 soldiers) has hunted it for 5 s"), "{}", send.words);
+        assert!(send.words.contains("heading east") && send.words.contains("; toward his ") && send.words.contains("(reach ") && send.words.contains("whose reach begins"), "{}", send.words);
+        let join = menu.moves.iter().find(|m| m.key == "join_group_B").expect("the way back");
+        assert!(join.words.contains("the group it split from 8 s ago"), "{}", join.words);
+    }
+
     /// when the decode has read the instructions as forbidding every detachment the group could send, the
     /// whole-group attack is back beside them. A party of aircraft: its whole-group attack carries the forbidden
     /// question and the aircraft reading, and so does each detachment after it.

@@ -819,16 +819,40 @@ impl Brain {
             return None;
         }
         let hunt = Brain::hunt_of(party, &chosen, enemies, frame);
-        let group = &mut pianist.groups[index];
-        commands.extend(group.release_orders(&chosen));
         if chosen.len() == all.len() {
+            let group = &mut pianist.groups[index];
+            commands.extend(group.release_orders(&chosen));
             group.set_task(GroupTask::Hunt(hunt), frame);
             return Some(format!("hunt {} ({}) with the whole group", party.name, party.composition));
         }
         let ids: Vec<UnitId> = chosen.iter().map(|u| u.id).collect();
-        group.members.retain(|id| !ids.contains(id));
-        let (domain, parent_name) = (group.domain, group.name.clone());
         let name = pianist.new_group_name();
+        let group = &mut pianist.groups[index];
+        commands.extend(group.release_orders(&chosen));
+        let (domain, parent_name) = (group.domain, group.name.clone());
+        if ids.len() * 2 >= all.len() {
+            // At least half the group goes: the hunters keep its name and the rest are the new group, so the name
+            // the player's packet uses stays with the larger body; the soldiers on their way to join it go on to the
+            // rest, which keeps the course (the user, 2026-10-17; predict-sweep-1 seed 8 at 6:53: 8 of 11 left as
+            // group_F, and the packet's "group_E, the army" named the one Lasher left behind).
+            let rest: Vec<UnitId> = group.members.iter().copied().filter(|id| !ids.contains(id)).collect();
+            let old_task = std::mem::replace(&mut group.task, GroupTask::Hunt(hunt));
+            let joining = std::mem::take(&mut group.joining);
+            let waiting = std::mem::take(&mut group.waiting);
+            group.members = ids;
+            group.best_to_go = f32::INFINITY;
+            group.progressed = frame;
+            group.stall_warned = false;
+            group.gathering = false;
+            group.shelling = false;
+            let did = format!("{} of group_{parent_name} hunt {} ({}) under its name; the {} left behind are group_{name}", group.members.len(), party.name, party.composition, rest.len());
+            let mut left = Group::new(name, domain, rest, old_task, frame).split_from(&parent_name);
+            left.joining = joining;
+            left.waiting = waiting;
+            pianist.groups.push(left);
+            return Some(did);
+        }
+        group.members.retain(|id| !ids.contains(id));
         let did = format!("{} of group_{parent_name} hunt {} ({}) as group_{name}", ids.len(), party.name, party.composition);
         pianist.groups.push(Group::new(name, domain, ids, GroupTask::Hunt(hunt), frame).split_from(&parent_name));
         Some(did)
@@ -950,6 +974,29 @@ mod tests {
         assert_eq!(failed.map(|(p, _)| p).as_deref(), Some("party_12"));
         assert!(matches!(pianist.groups[1].task, GroupTask::Hold { .. }));
         let _ = own;
+    }
+
+    /// At least half the group sent: the hunters keep the group's name and its task becomes the hunt; the rest are
+    /// the new group with the old task, marked split from it, and the soldiers on their way to join go on to the rest.
+    #[test]
+    fn the_hunters_keep_the_name_when_at_least_half_the_group_goes() {
+        let (_, ours, enemies, parties) = e3();
+        let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        let mut group = Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Move { to: own(0, 1, super::super::fixtures::at(1.0, 1.0)).pos, place: "spot_3".into(), fight: true, since: 0 }, 0);
+        group.joining.insert(UnitId(999), super::super::fixtures::at(0.0, 0.0));
+        pianist.groups.push(group);
+        let hunters: Vec<UnitId> = ours.iter().take(7).map(|u| u.id).collect();
+        let mut commands = Vec::new();
+        let did = Brain::start_hunt(&mut pianist, 0, &hunters, &parties[0], &ours, &enemies, 30, &mut commands).expect("a hunt");
+        assert!(did.starts_with("7 of group_A hunt party_12") && did.contains("under its name") && did.contains("the 7 left behind are group_"), "{did}");
+        assert_eq!(pianist.groups.len(), 2);
+        let (a, rest) = (&pianist.groups[0], &pianist.groups[1]);
+        assert_eq!((a.name.as_str(), a.members.clone()), ("A", hunters));
+        assert!(matches!(a.task, GroupTask::Hunt(_)) && a.joining.is_empty());
+        assert_eq!(rest.members.len(), 7);
+        assert!(matches!(&rest.task, GroupTask::Move { place, .. } if place == "spot_3"), "{:?}", rest.task);
+        assert_eq!(rest.parent.as_deref(), Some("A"));
+        assert!(rest.joining.contains_key(&UnitId(999)));
     }
 
     /// A follower is sent after its ward when the ward has moved on, and nowhere while its last order still fits; a

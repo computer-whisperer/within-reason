@@ -2316,3 +2316,34 @@ in the team games was not larger per seat (no truth file; the chat says it was).
 predicts his economy and army from what was seen): the spending floor, the known-to-hold count, the army clause and
 the map sheet's start guess removed (docs/design/2026-09-22-enemy-evidence.md's status), the prompts' comparison
 and opponent-model sentences with them. The study's §4 bullet proposing more estimates is withdrawn by it.
+
+### K-hands-the-chase-does-not-withdraw-and-the-player-forbids-every-detachment
+**Claim.** The player's rule "it sends no detachments", written in nine of the eleven games on the current brief
+(predict-sweep-1 and the three singles of 2026-10-17; 69 packets of the timeout game from 14:09, 54 of
+finish-player-1), is a reaction to what it watches the hands do with sends, read under a prompt that said the hands
+answer no raider on their own while their standing rules met one with a detachment. The hands' sends themselves are
+mostly sound (a group after a raider, a fork between two threats, a slower chaser driving the raider off); what is
+not: (1) the chase does not withdraw at danger: a hunt ends only on a kill, six seconds out of sight or the 900
+leash, with raw footwork, and the whole-group attack follows its party with no leash, so a detachment follows a
+raider under the turret or into the party it runs to (seed 8 7:58: four into two Pounders; sightings-player-1 6:23
+and predict-player-1 7:09: Blitzes after single Pawns died under his light turret; 20 of 92 hunts in four games ended
+with a kill, median 9 s); (2) a second and third send at a party already hunted, seconds apart, with words that do
+not say so (0 of 130 send words in four games named a group already on the party; 119 of 323 sends in eleven games
+went at a party sent at within the minute; seed 3 sent 8, 4 and 8 at one party in five seconds, and the attack of 31
+at his base became 13); (3) a send of at least half the group leaves the body's name on the remnant (56 of 126 sized
+sends; seed 8 6:53: 8 of 11 left as group_F and the packet's "group_E, the army" named one Lasher: "my last orders
+named only group_E ... so they no longer matched what's on the field"); (4) the ladder takes the fastest, so "two"
+was two Rascals whose words read "it outweighs us" (0.34) and the eight won (0.64) on a packet asking for two
+Incisors. The player's other reasons were its own plan form: a timed push needing the body assembled. The absolute
+rule then works for it because the menu returns the whole-group attack only when every rung is forbidden.
+**Status.** supported (2026-10-17; `docs/studies/2026-10-17-detachments.md`: eleven games' records and four games'
+hands' logs, the players' reasoning at each first rule read in full).
+**Evidence.** `run/hunts.py` on `run/matches/1792265432-predict-sweep-1/0*`, the three singles; the players' turn
+texts at the first rule (seed 8 6:58/7:08, seed 6 5:48, seed 3 12:14/12:24, seed 5 11:26, finish 4:45/4:55,
+sightings 6:13/6:23, predict 6:59/7:09); the hands' ratings at seed 8 6:53 (send_8 0.64, send_4 0.62, send_2 0.34,
+send_1 0.08).
+**Used by.** H-HANDS-CHASE (the chase line, the event, the way back, the turret ahead of a moving party),
+H-HANDS-DETACHMENTS-FOR-SMALL-PARTIES (the already-on-it words, the name with the larger part), the player prompt's
+"What the hands do on their own" section carrying `rules.md` whole (`strategist/mod.rs` `with_hands_rules`), the
+brief's hands bullet. Not built, the user's rulings (2026-10-17): a detachment made of the units the player names
+("the naive solution will be far too fragile"), an exact-detachment tool for the player later.
