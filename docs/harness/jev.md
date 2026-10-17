@@ -53,7 +53,7 @@ The key lives in `~/.config/within-reason/jev.env` (mode 600), never in this rep
   mean the heuristics must hand Jev digested judgments ("metal income is very low", "a large group"), not raw numbers.
 
 ## The client (2026-09-21, `crates/jev`)
-`jev::Client::from_env()` (the key file or `TYPESAFE_API_KEY`; the model `jev-latest` unless `TYPESAFE_DEFAULT_MODEL`),
+`jev::Client::from_env()` (the key file or `TYPESAFE_API_KEY`; the model `jev-1.14.0` since 2026-10-16, `jev-latest` before, unless `TYPESAFE_DEFAULT_MODEL`),
 `ask(&Request { state, questions })` blocking over `ureq` with rustls, 20 s timeout, two retries on 429 or 5xx waiting
 `retry-after` (5 s at most), the versioned model and the usage in every `Response`. The key is never written by the crate.
 - The three probe scenarios again (`cargo run -p jev -- experiments/jev/0*.json --repeat 3`, model jev-1.13.0): latency
@@ -104,11 +104,14 @@ the pick the instant the gate answers instead of waiting for the next think, and
 frames) rather than every think (15). In lockstep the calls take no game time; the saving there is wall time.
 
 ## Jev 1.14, long context and images (2026-10-16, `models.md`, `api.md`, `images.md`, `primitives/box.md`)
-- **Jev 1.14.0** shipped 2026-10-14. `jev-latest` (our client's default) still answers as `jev-1.13.0`; `jev-preview`
+- **Jev 1.14.0** shipped 2026-10-14. `jev-latest` (our client's default until 2026-10-16) still answers as `jev-1.13.0`; `jev-preview`
   is 1.14.0 and the alias moves when they promote it (`GET /v1/models` lists the aliases only; a versioned id is
   accepted in `model` whether listed or not). Same price. Measured 2026-10-16 (`docs/studies/2026-10-16-jev-1.14-long-context-images.md`):
   the same latency at every size, and answers that differ from 1.13 beyond the drift (3% of noul flags, a tenth of
-  picks). Their own advice: send the versioned id when thresholds were tuned on a version.
+  picks). Their own advice: send the versioned id when thresholds were tuned on a version. **The user's ruling
+  2026-10-16, after jev114-player-1 (won 19:09 on it): `jev-1.14.0` is the client's default, pinned by version**
+  (`crates/jev` `DEFAULT_MODEL`; the offline instruments in `run/jev_*.py` ask the same); the long-context batch
+  change is skipped.
 - **Context**: 64k a request and 32k a question (the state plus that one question) by default, both models. The
   header `TypeSafe-Danger-Zone-Long-Context: true` raises both to 262k tokens for that request, same price, "slower
   and less accurate" by their word. Measured: 260k tokens answer in 4.5 s; on our calls the header neither moves

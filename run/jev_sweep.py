@@ -44,7 +44,7 @@ def api_key():
 
 
 def ask(key, state):
-    body = {"model": os.environ.get("TYPESAFE_DEFAULT_MODEL", "jev-latest"), "state": state,
+    body = {"model": os.environ.get("TYPESAFE_DEFAULT_MODEL", "jev-1.14.0"), "state": state,
             "questions": {q: {"type": "noul", "instructions": text} for q, text in QUESTIONS.items()}}
     request = urllib.request.Request(URL, data=json.dumps(body).encode(), method="POST", headers={
         "Authorization": f"Bearer {key}", "Content-Type": "application/json", "User-Agent": "within-reason-jev-sweep"})

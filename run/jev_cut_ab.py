@@ -31,7 +31,7 @@ def chunks(state, questions):
 def ask_all(key, state, questions):
     answers = {}; tokens = 0
     for part in chunks(state, questions):
-        r = ask(key, state, part, "jev-latest")
+        r = ask(key, state, part, "jev-1.14.0")
         answers.update({k: a.get("noul") for k, a in (r.get("answers") or {}).items() if isinstance(a, dict)})
         tokens += (r.get("usage") or {}).get("input_tokens", 0)
     return answers, tokens

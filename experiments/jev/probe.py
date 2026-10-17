@@ -24,7 +24,7 @@ def api_key():
     return key
 
 def ask(key, scenario):
-    body = {"model": os.environ.get("TYPESAFE_DEFAULT_MODEL", "jev-latest"),
+    body = {"model": os.environ.get("TYPESAFE_DEFAULT_MODEL", "jev-1.14.0"),
             "state": scenario["state"], "questions": scenario["questions"]}
     request = urllib.request.Request(URL, data=json.dumps(body).encode(), method="POST", headers={
         "Authorization": f"Bearer {key}", "Content-Type": "application/json", "User-Agent": "within-reason-jev-probe"})

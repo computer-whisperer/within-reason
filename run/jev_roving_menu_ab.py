@@ -120,7 +120,7 @@ def one(key, game, c, state, packet, name, entry, arm):
     st["instructions"] = packet_for(packet, name, arm)
     st = dict(sorted(st.items()))
     questions = menu_for(c, st, name, actors[name])
-    r = ask(key, st, questions, "jev-latest")
+    r = ask(key, st, questions, "jev-1.14.0")
     answers = {k.split(".", 1)[1]: a.get("noul") for k, a in (r.get("answers") or {}).items() if isinstance(a, dict)}
     return {"game": game, "f": c["f"], "clock": clock(c["f"]), "actor": name, "arm": arm, "answers": answers,
             "tokens": (r.get("usage") or {}).get("input_tokens", 0)}

@@ -71,7 +71,7 @@ def reword(questions, name, text):
 def one(key, c, state, name, cls, variant):
     text = VARIANTS[variant]
     questions = c["questions"] if text is None else reword(c["questions"], name, text)
-    r = ask(key, state, questions, "jev-latest")
+    r = ask(key, state, questions, "jev-1.14.0")
     answers = {k: a.get("noul") for k, a in (r.get("answers") or {}).items() if isinstance(a, dict)}
     logged = {k: a.get("noul") for k, a in c["answers"].items() if isinstance(a, dict)}
     others = sorted(((v, k) for k, v in answers.items() if k.startswith(name + ".") and not k.endswith((".rove", ".change", ".scout")) and not k.endswith(".forbidden")), reverse=True)

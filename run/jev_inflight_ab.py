@@ -117,7 +117,7 @@ for c,g,ef in moments:
     for name,(s,q) in variants.items():
         runs=[]
         for _ in range(REPEAT):
-            r=ask(key,s,q,'jev-latest'); a=r['answers'][g+'.do']
+            r=ask(key,s,q,'jev-1.14.0'); a=r['answers'][g+'.do']
             runs.append((a['choice'],a['probabilities'],r.get('usage',{}).get('input_tokens')))
         top=collections.Counter(x[0] for x in runs).most_common(1)[0][0]
         fb=S.mean(x[1].get('fall_back',0)+x[1].get('retreat',0) for x in runs)

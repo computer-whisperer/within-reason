@@ -417,7 +417,7 @@ def main():
                 print(f"{m.label} {clock(f)}: groups {list(sit.groups)} raiders {list(sit.raiders)} worlds {len(worlds)} moments {[mo['detector'] for mo in what.get('moments') or []]} collisions {what.get('collisions')} controls {what.get('controls')}")
         return
     key = api_key()
-    model = os.environ.get("TYPESAFE_DEFAULT_MODEL", "jev-latest")
+    model = os.environ.get("TYPESAFE_DEFAULT_MODEL", "jev-1.14.0")
     dump = open(out.replace(".jsonl", ".txt"), "w") if dumping else None
     rows = []
     for d in dirs:

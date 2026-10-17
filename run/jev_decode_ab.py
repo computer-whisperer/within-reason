@@ -57,7 +57,7 @@ def main():
             chunk[k] = v; size += L
         if chunk: parts.append(chunk)
         for part in parts:
-            r = ask(key, st, part, "jev-latest")
+            r = ask(key, st, part, "jev-1.14.0")
             answers.update({k: a.get("noul") for k, a in (r.get("answers") or {}).items() if isinstance(a, dict)}); tokens += (r.get("usage") or {}).get("input_tokens", 0)
         return d["f"], arm, answers, tokens
     res = collections.defaultdict(dict); toks = collections.Counter()

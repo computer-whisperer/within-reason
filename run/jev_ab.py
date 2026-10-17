@@ -563,7 +563,7 @@ def main():
             print(f"{mo['detector']:20s} {mo['match']:32s} {mo['clock']:>6s} {mo['actor']:18s} {mo['qid'].rsplit('.', 1)[1]:5s} chose {mo['chosen']} ({mo['p_chosen']:.2f}) wanted {mo['wanted'][:3]}  {mo['note']}")
         return
     key = api_key()
-    model = os.environ.get("TYPESAFE_DEFAULT_MODEL", "jev-latest")
+    model = os.environ.get("TYPESAFE_DEFAULT_MODEL", "jev-1.14.0")
     os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
     jobs = [(mo, v) for mo in chosen for v in variants]
     started = time.time()

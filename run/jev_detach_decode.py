@@ -45,7 +45,7 @@ def run(pi):
     ks = by_packet[pi]
     for i in range(0, len(ks), 200):
         qs = {f"q{j}": {"type": "noul", "instructions": question(k[1], asks[k]["what"], k[2], k[3])} for j, k in enumerate(ks[i:i + 200])}
-        r = ask(key, {"instructions": packets[pi]}, qs, "jev-latest")
+        r = ask(key, {"instructions": packets[pi]}, qs, "jev-1.14.0")
         for j, k in enumerate(ks[i:i + 200]):
             a = (r.get("answers") or {}).get(f"q{j}")
             if isinstance(a, dict): out[k] = a["noul"]

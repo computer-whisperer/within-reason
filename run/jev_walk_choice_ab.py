@@ -73,7 +73,7 @@ def run(job):
         chunk[k] = v; size += L
     if chunk: chunks.append(chunk)
     for part in chunks:
-        r = ask(key, state, part, c.get("model", "jev-latest"))
+        r = ask(key, state, part, c.get("model", "jev-1.14.0"))
         answers.update(r.get("answers") or {}); tokens += (r.get("usage") or {}).get("input_tokens", 0)
     return c["f"], which, answers, options, tokens
 jobs = [(c, s, w) for c, s in gates for w in ARMS]

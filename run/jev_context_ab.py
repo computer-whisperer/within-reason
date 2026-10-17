@@ -349,7 +349,7 @@ def ask_arms(match, kind, n, out, arms, more=False):
         qf, sf = arm_of(name)
         q = qf(c["questions"]); answers = {}; tokens = 0
         for part in chunks_of(state, q):
-            r = ask(key, sf(state, part, c["questions"]), part, c.get("model", "jev-latest"))
+            r = ask(key, sf(state, part, c["questions"]), part, c.get("model", "jev-1.14.0"))
             answers.update(r.get("answers") or {}); tokens += (r.get("usage") or {}).get("input_tokens", 0)
         return {"f": c["f"], "kind": kind, "arm": name, "tokens": tokens, "answers": {k: value(a) for k, a in answers.items()}}
     with open(out, "a" if more else "w") as f, concurrent.futures.ThreadPoolExecutor(8) as ex:

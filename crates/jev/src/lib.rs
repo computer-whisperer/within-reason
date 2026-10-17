@@ -13,8 +13,10 @@ use serde_json::Value;
 const URL: &str = "https://api.typesafe.ai/v1/systemone";
 const KEY_FILE: &str = ".config/within-reason/jev.env";
 const KEY_VAR: &str = "TYPESAFE_API_KEY";
-/// The alias resolves to the current release; the response names the versioned model that answered.
-const DEFAULT_MODEL: &str = "jev-latest";
+/// Pinned to the version the hands were measured on, not an alias, so the vendor's promotions do not move the
+/// answers under tuned thresholds (the user's ruling 2026-10-16 after jev114-player-1; the aliases `jev-latest` and
+/// `jev-preview` still go through `TYPESAFE_DEFAULT_MODEL`). The response names the versioned model that answered.
+const DEFAULT_MODEL: &str = "jev-1.14.0";
 const MODEL_VAR: &str = "TYPESAFE_DEFAULT_MODEL";
 const TIMEOUT: Duration = Duration::from_secs(20);
 /// A 429 or a 5xx is retried this many times, waiting `retry-after` (at most `RETRY_WAIT_MAX`) each time.

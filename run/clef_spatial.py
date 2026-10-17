@@ -39,7 +39,7 @@ def jev_key():
     return key
 
 
-JEV_MODELS = {"jev": "jev-latest", "jev-preview": "jev-preview"}
+JEV_MODELS = {"jev": "jev-1.14.0"}  # `jev` is the seat's pinned model (crates/jev DEFAULT_MODEL); aliases and versioned ids pass through
 
 
 def jev_ask(key, model, state, questions, images=None):
@@ -131,7 +131,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--kinds", default=",".join(H.KINDS))
     ap.add_argument("--encodings", default=",".join(ENCODINGS))
-    ap.add_argument("--models", default="clef-flash,clef", help="clef-flash, clef, jev (jev-latest), jev-preview, or a versioned jev-1.x.y")
+    ap.add_argument("--models", default="clef-flash,clef", help="clef-flash, clef, jev (the seat's jev-1.14.0), jev-latest, jev-preview, or a versioned jev-1.x.y")
     ap.add_argument("--box", action="store_true", help="Box questions beside the typed ones on jev-preview's image encodings")
     ap.add_argument("--n", type=int, default=12)
     ap.add_argument("--seed", type=int, default=1)

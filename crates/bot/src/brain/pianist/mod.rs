@@ -692,7 +692,7 @@ impl Pianist {
         }
     }
 
-    /// The hands by name, for the banner and the log: "Jev jev-latest", or the rules alone.
+    /// The hands by name, for the banner and the log: "Jev jev-1.14.0", or the rules alone.
     pub fn model(&self) -> String {
         match &self.client {
             Some(client) => format!("Jev {}", client.model()),

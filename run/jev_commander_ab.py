@@ -161,7 +161,7 @@ def main():
     ap.add_argument("matches", nargs="*")
     ap.add_argument("--variants", default="base,worth,rule,both")
     ap.add_argument("--repeat", type=int, default=1)
-    ap.add_argument("--model", default="jev-latest")
+    ap.add_argument("--model", default="jev-1.14.0")
     ap.add_argument("--out", default=os.path.join(REPO, "docs/studies/data", f"jev-commander-ab-{time.strftime('%Y-%m-%d')}.jsonl"))
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--summarize")

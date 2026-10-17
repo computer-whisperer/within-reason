@@ -20,7 +20,7 @@ def run(job):
     if which == "named actors":
         text = json.dumps(c["questions"])
         st["actors"] = {a: v for a, v in (state.get("actors") or {}).items() if re.search(r"\b" + re.escape(a) + r"\b", text)}
-    r = ask(key, st, c["questions"], c.get("model", "jev-latest"))
+    r = ask(key, st, c["questions"], c.get("model", "jev-1.14.0"))
     return c["f"], which, r.get("answers") or {}, (r.get("usage") or {}).get("input_tokens", 0)
 res = collections.defaultdict(dict); toks = collections.Counter()
 with concurrent.futures.ThreadPoolExecutor(8) as ex:

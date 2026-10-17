@@ -10,7 +10,7 @@ from jev_ab import api_key, URL
 KEY = api_key()
 
 def tokens(state, questions, pretty=False, raw=None):
-    body = raw if raw is not None else json.dumps({"model": "jev-latest", "state": state, "questions": questions}, indent=2 if pretty else None, separators=None if pretty else (",", ":"))
+    body = raw if raw is not None else json.dumps({"model": "jev-1.14.0", "state": state, "questions": questions}, indent=2 if pretty else None, separators=None if pretty else (",", ":"))
     req = urllib.request.Request(URL, data=body.encode(), method="POST", headers={"Authorization": f"Bearer {KEY}", "Content-Type": "application/json", "User-Agent": "within-reason-jev-probe"})
     with urllib.request.urlopen(req, timeout=60) as r:
         return json.load(r)["usage"]["input_tokens"]

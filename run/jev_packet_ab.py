@@ -47,7 +47,7 @@ def apply(state, questions, actor, variant):
 
 def one(key, c, state, actor, name, variant, keys):
     st, q = apply(state, c["questions"], actor, variant)
-    r = ask(key, st, q, "jev-latest")
+    r = ask(key, st, q, "jev-1.14.0")
     answers = {k: a.get("noul") for k, a in (r.get("answers") or {}).items() if isinstance(a, dict)}
     logged = {k: a.get("noul") for k, a in c["answers"].items() if isinstance(a, dict)}
     row = {"f": c["f"], "clock": clock(c["f"]), "actor": actor, "variant": name, "tokens": (r.get("usage") or {}).get("input_tokens", 0)}
