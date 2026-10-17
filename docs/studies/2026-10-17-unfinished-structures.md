@@ -6,7 +6,10 @@ games." The same twenty-three games as the impedance study (2026-10-06 to 2026-1
 (`data/unfinished-2026-10-17/BRIEF.md`), one instrument for the denominators (`run/frames.py`, written for this
 sweep), one tally shape (`run/unfinished_tally.py`). Nothing was changed in the bot by this study; what to fix is the
 user's call (§7). Data: `data/unfinished-2026-10-17/` (every game's `unfinished.json` and `unfinished-review.md`,
-`denominators.txt`, `tally.json`, `games.txt`, the brief).
+`denominators.txt`, `tally.json`, `games.txt`, the brief). **Built 2026-10-17 on the user's word** ("Let's fix that
+two hands bugs first"): §7's items 1 and 2, the task keyed to its own frame (H-HANDS-STARTED amended) and the loss
+line telling a kill from a decay at the peak share (H-HANDS-STALL amended); unit tests, a smoke, unmeasured in a game.
+§8 reviews what the hands give the player for knowing about and resuming a frame.
 
 **Definitions.** A *frame* is a structure of ours the engine created (the record's `created` event: anything
 immobile, so extractors, generators, turrets, plants, nanos, radars, storage, converters, silos). Its *fate* is
@@ -220,9 +223,9 @@ while its entry counted the distance up (apex-sym0).
 In order of metal per line of code, with the class of change:
 
 1. **Key the build task to its own frame** (§2.1): a correctness fix in the hands, no decision; about 7,600 metal
-   over 18 games, and the misleading entries with it.
+   over 18 games, and the misleading entries with it. **Built 2026-10-17.**
 2. **The loss line tells a kill from a decay and gives the peak share** (§2.2): a report fix; 106 frames the player
-   was told the wrong story about, and the "0% built" of every decay.
+   was told the wrong story about, and the "0% built" of every decay. **Built 2026-10-17.**
 3. **The exit-lane keep-out covers the builder's standing ring, and the wake says frame or builder** (§2.5): a
    placement rule in the same class as the exit-lane extractor fix of 2026-10-13, plus a report line; about 3,600
    metal.
@@ -239,3 +242,59 @@ In order of metal per line of code, with the class of change:
 
 None of these is built. The first two are cheap and carry no decision; the next player games' `frames.py` lines
 measure whatever is built.
+
+## 8. What the hands give the player for knowing about and resuming a frame (reviewed 2026-10-17)
+
+The user, after the two fixes: "let's review what capabilities the players hands have for knowing about and resuming
+partial structures." Read from the code (`picture.rs`, `menu.rs`, `lists.rs`, `execute.rs`, `remove.rs`, `mcp.rs`)
+and the brief; nothing here is built.
+
+**Knowing.** A frame reaches the player's report in five places, none of them a list of frames:
+- *The builder's entry*, while the builder's task is that build: "building a Solar Collector at spot_73 (B8) (62 %
+  built), ordered 40 s ago" (now its own frame's share). Once the hands queue the next step at 60 %, the entry's
+  course is the queued step ("next, queued: build ..."), and the frame still rising is not in it (human-33: two nanos
+  dropped by re-lists that never saw them).
+- *A place's words*: "our extractor (being built)" at a spot, "our X (being built)" among the units beside a named
+  place. Only frames at or beside a place the picture names.
+- *A factory's `yard` entry*: the buildings standing in its exit lane, by handle (armsolar_31002), frames included.
+- *The hands' lines on the way out*: a pick's move off a started build says "leaves the Solar Collector at about
+  62%, which decays"; a `stop` says "stopped what it was doing on your `stop`" and does not name the frame or its
+  share; a list replaced says what it dropped of the queue, not of the build in progress.
+- *The loss line*, after the fact: now "abandoned an unfinished X at Y (N% built): its builder was sent elsewhere /
+  died and the frame decayed", or "lost our unfinished X at Y (N% built) to fire from something out of sight / to
+  <killer>", and the fights line's counts.
+
+So a frame nobody is on, the orphan the sweep counted 205 of (14,659 metal), is in no report unless it stands at a
+spot or in an exit lane: the player learns of it when it decays. The unit cards (`publish_cards`) carry every frame
+with its handle and health, but no read tool shows them to the player; they feed `remove` and the side's view.
+
+**Resuming.** What can put a builder back on a standing frame:
+- *An id's frame.* A list step carrying `#id` whose building the engine has made finds it `UnderWay(frame)` and the
+  builder helps that frame (a guard on it; `lists::tag_state`). Only for a frame begun under that id: a frame a pick
+  started, or an id-less step, has no id, and a fresh id on a later step finds nothing and starts a new frame.
+- *The same order again.* A list step naming the type of the builder's current order keeps the order (started or
+  not), and a pick of the same type at the same site is the build going on (`at_the_orders_site`). Both need the
+  builder's task to still be that build: once the pick, a `stop` or a re-list has replaced the task, the frame is
+  no longer anyone's. A new `build X at place` for the frame's site goes through the host's site search, which
+  treats our own frame as an obstacle and places the new frame beside it (human-26: a new Sentry 64 from the 71 %
+  one, which decayed beside a working builder).
+- *Factories only.* A build order for a factory type with an unfinished frame of that type within 900 helps that
+  frame instead (`FRAME_HELP`), from any builder, list or pick.
+- *The menu.* `help_<builder>` is offered for a frame another builder is on; `repair_<handle>` for finished units
+  under 70 % health, frames excluded (`!u.being_built`). A frame nobody is on is on no builder's menu.
+- *The engine.* `Command::Repair` on a frame builds it (a `Task::Repair`), which is what an id's helper and the
+  `help` move send; nothing offers it for an orphan by handle.
+- *`remove`.* A frame can be reclaimed by handle, or as "<type> at <place or cell>", for most of its metal back;
+  the player must know the handle (the yard entry is the usual source).
+
+**The gaps, as asks** (each the user's call; none a code decision in the no-live-heuristics sense, since every one
+is a report line, a menu move or a tool, chosen by the player or the pick):
+1. A report block of our unfinished frames nobody is building, with handles, share, how long since the builder
+   left, and where (the cards have all of it).
+2. A `finish <handle>` list step and a `finish_<handle>` menu move for a standing frame near a builder (the engine's
+   repair command), so an orphan can be given to anyone; and the id mechanism to adopt a standing frame of the
+   type at the step's place when the id is new.
+3. The host's site search to resume our own unfinished frame of the type at the asked site rather than place a
+   second beside it (the twin of the factory rule, for every type).
+4. The `stop` line and the `queue` result to name the build they drop and its share, and the 60 % queue-ahead entry
+   to keep the rising frame in view beside the queued step.

@@ -475,7 +475,7 @@ mod tests {
     fn a_step_the_old_list_queued_is_dropped_for_the_new_list() {
         use super::super::Task;
         use bot_protocol::{Command, UnitDefId, Vec3};
-        let build = |started| Task::Build { def: UnitDefId(7), near: Vec3::default(), spot: None, ordered: 100, started };
+        let build = |started| Task::Build { def: UnitDefId(7), near: Vec3::default(), spot: None, ordered: 100, started, frame: started.then_some(UnitId(70)) };
         let queued = |pianist: &mut super::Pianist, builder| {
             pianist.tasks.insert(builder, build(true));
             pianist.queued.insert(builder, build(false));
@@ -548,7 +548,7 @@ mod tests {
         assert_eq!(pianist.scripts[&name].front().map(String::as_str), Some("armwar #w1"));
         // Another builder claims #w1: this one's step is its help.
         pianist.tagged.insert("w1".into(), Tagged { def: UnitDefId(2), claim: Some(UnitId(101)), claimed: 90, building: None });
-        pianist.tasks.insert(UnitId(101), Task::Build { def: UnitDefId(2), near: at(0.0, 0.0), spot: None, ordered: 90, started: false });
+        pianist.tasks.insert(UnitId(101), Task::Build { def: UnitDefId(2), near: at(0.0, 0.0), spot: None, ordered: 90, started: false, frame: None });
         let step = brain.next_list_step(unit, &name, &mut pianist, &picture, &ours, 110, &kit);
         assert!(matches!(&step, Some((Order::Help(UnitId(101)), _))), "{step:?}");
         // Without an id, a step it cannot make is skipped as before.
@@ -620,7 +620,7 @@ mod tests {
         let mut own = vec![unit(1, 3, false), unit(2, 3, false)];
         assert_eq!(pianist.tag_state("avp1", plant, first, &own), TagState::Free);
         // The first builder is ordered to build it: the id is its claim while it is on that build.
-        pianist.tasks.insert(first, Task::Build { def: plant, near: Vec3::default(), spot: None, ordered: 100, started: false });
+        pianist.tasks.insert(first, Task::Build { def: plant, near: Vec3::default(), spot: None, ordered: 100, started: false, frame: None });
         assert_eq!(pianist.note_tag("avp1", first, &own, "build a armavp at avp_yard".into(), false, 100), "build a armavp at avp_yard (#avp1)");
         assert_eq!(pianist.tag_state("avp1", plant, second, &own), TagState::Claimed(first));
         assert_eq!(pianist.tag_state("avp1", plant, first, &own), TagState::Mine);

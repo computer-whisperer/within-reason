@@ -1028,17 +1028,18 @@ impl Brain {
         match task {
             None if unit.idle => "idle, waiting for an order".into(),
             None => "finishing an order".into(),
-            Some(Task::Build { def, near, started, ordered, .. }) => {
+            Some(Task::Build { def, near, started, ordered, frame: own_frame, .. }) => {
                 let what = self.short_words(*def);
                 let walk = unit.pos.dist2d(*near);
                 if *started {
-                    // How far along, from the frame on the ground (games 7, 9: "armavp ordered 200 s ago" with no
-                    // percentage was believed standing at 14:45 and finished at 16:12).
-                    let frame_unit = own.iter().filter(|u| u.being_built && u.def == *def && u.pos.dist2d(*near) < 200.0).max_by(|a, b| (a.health / a.max_health.max(1.0)).total_cmp(&(b.health / b.max_health.max(1.0))));
+                    // How far along, from the builder's own frame (games 7, 9: "armavp ordered 200 s ago" with no
+                    // percentage was believed standing at 14:45 and finished at 16:12; by type within 200 the entry
+                    // showed a neighbour's 98 % for a frame at 8: the unfinished-structures sweep, 2026-10-17).
+                    let frame_unit = own_frame.and_then(|f| own.iter().find(|u| u.id == f));
                     let percent = frame_unit.map(|u| u.health / u.max_health.max(1.0) * 100.0);
                     // Its name once it stands, so a list or a `produce` for it can be staged now.
                     let named = frame_unit.and_then(|u| self.future_name(u)).map_or(String::new(), |n| format!("; it will be {n}: a `queue` or `produce` for it now waits for it to stand"));
-                    format!("building a {what} at {} ({}), ordered {}{named}", self.place_words(places, *near), percent.map_or("not yet started".to_string(), |p| format!("{p:.0} % built")), ago(*ordered))
+                    format!("building a {what} at {} ({}), ordered {}{named}", self.place_words(places, *near), percent.map_or("its frame is gone".to_string(), |p| format!("{p:.0} % built")), ago(*ordered))
                 } else if walk > 120.0 {
                     format!("walking to build a {what} at {}, {walk:.0} to go, ordered {}", self.place_words(places, *near), ago(*ordered))
                 } else if let Some(since) = self.pianist.as_ref().and_then(|p| p.at_site.get(&unit.id).copied()).filter(|s| frame - s >= 3 * FRAMES_PER_SECOND) {

@@ -2280,8 +2280,10 @@ builder's task at 62-98%, the watchdog then stops it, the entry says "finishing 
 And 106 of the 311 "decayed" frames (7,611 metal) were shot by something out of sight, which the hands' loss line
 reports as "abandoned ... its builder was sent elsewhere and the frame decayed" with the share after decay (0-1%).
 **Status.** measured (2026-10-17; `run/frames.py` for the denominators on every seat, one Opus reviewer a game,
-748 items at 673 high confidence; the three code lines read at HEAD; an 8-item random sample verified). Nothing
-built; §7 of the study ranks the fixes for the user.
+748 items at 673 high confidence; the three code lines read at HEAD; an 8-item random sample verified). The two
+hands faults fixed 2026-10-17 on the user's word (H-HANDS-STARTED and H-HANDS-STALL amended: the task keyed to its
+own frame, the loss line telling a kill from a decay at the peak share), unmeasured in a game; the rest of §7 is
+the user's call.
 **Evidence.** `docs/studies/2026-10-17-unfinished-structures.md`, `docs/studies/data/unfinished-2026-10-17/`.
 **Would be wrong if.** The record's destroyed event named attackers out of sight (it does not: the damage rows show
 the hits), or the peak share overstated the metal (the engine refunds nothing of a decayed frame).

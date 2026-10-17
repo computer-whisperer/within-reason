@@ -160,12 +160,16 @@ pub struct Brain {
     recent_events: VecDeque<String>,
     /// Our units as last seen, to name what a destroyed-unit event refers to.
     known_units: HashMap<UnitId, (UnitDefId, Vec3)>,
-    /// Our units still being built at the last look, with how far along they were (health share): a `UnitDestroyed`
-    /// for one of these with no attacker is a nanoframe its builder abandoned, not a loss to the enemy.
+    /// Our frames still being built at the last look, each with the furthest along it has been (its peak health
+    /// share: a frame left to decay reads near 0 at its end), so a `UnitDestroyed` for one says what was put in.
     unfinished: HashMap<UnitId, f32>,
-    /// The abandoned frames among this think's `UnitDestroyed` events (`track_losses` fills it; the pianist's
-    /// housekeeping runs after and asks).
-    abandoned_now: HashMap<UnitId, f32>,
+    /// The builder each frame was created by, and the last frame each was hit (`UnitDamaged`), so a frame destroyed
+    /// with no attacker named is told a decay from a kill by something out of sight (`briefing.rs` `track_losses`).
+    frame_builders: HashMap<UnitId, UnitId>,
+    frame_hits: HashMap<UnitId, i32>,
+    /// The unfinished frames among this think's `UnitDestroyed` events and what became of each (`track_losses` fills
+    /// it; the pianist's housekeeping runs after and words the line).
+    frame_losses_now: HashMap<UnitId, briefing::FrameLoss>,
     /// Every enemy unit's type once seen, so a killer that has left sight still has a name.
     enemy_defs: HashMap<UnitId, UnitDefId>,
     /// What each other team has been seen to field: team to (faction prefix to the units of it seen), and the
@@ -319,7 +323,9 @@ impl Brain {
             recent_events: VecDeque::new(),
             known_units: HashMap::new(),
             unfinished: HashMap::new(),
-            abandoned_now: HashMap::new(),
+            frame_builders: HashMap::new(),
+            frame_hits: HashMap::new(),
+            frame_losses_now: HashMap::new(),
             enemy_defs: HashMap::new(),
             enemy_places: HashMap::new(),
             factions_seen: HashMap::new(),

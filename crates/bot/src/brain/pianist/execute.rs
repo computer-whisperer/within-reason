@@ -130,7 +130,7 @@ impl Brain {
             let (def, site) = self.build_site_for(&plan, unit, own, kit)?;
             let near = site.near;
             commands.push(Command::Build { unit: id, def, site: Some(site), queue });
-            task = Some(Task::Build { def, near, spot, ordered: frame, started: false });
+            task = Some(Task::Build { def, near, spot, ordered: frame, started: false, frame: None });
             Some(format!("build a {} at {}", self.name(def), self.place_words(&picture.places, near)))
         };
         match order {

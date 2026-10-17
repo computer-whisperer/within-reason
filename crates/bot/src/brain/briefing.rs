@@ -32,6 +32,29 @@ fn clock(frame: i32) -> String {
     format!("{}:{:02}", seconds / 60, seconds % 60)
 }
 
+/// A frame destroyed with no attacker named after a hit in these seconds was shot by something out of sight, not
+/// left to decay.
+const SHOT_WINDOW: i32 = 15 * FRAMES_PER_SECOND;
+
+/// What became of an unfinished frame of ours: killed by a named attacker, shot by something out of sight, or
+/// decayed with nobody shooting it (its builder was sent elsewhere, or died).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(super) enum FrameFate {
+    Killed,
+    ShotUnseen,
+    Decayed { builder_dead: bool },
+}
+
+/// An unfinished frame of ours destroyed this think: its type, where it stood, the furthest it had been built
+/// (the share of its cost put in), and what became of it.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(super) struct FrameLoss {
+    pub def: UnitDefId,
+    pub pos: Vec3,
+    pub share: f32,
+    pub fate: FrameFate,
+}
+
 impl Brain {
     pub(super) fn place(&self, pos: Vec3) -> Place {
         Place { grid: self.world.grid(pos), x: pos.x as i32, z: pos.z as i32 }
@@ -91,7 +114,22 @@ impl Brain {
     /// Notes our own losses by name, and wakes the strategist when extractors go down in numbers.
     pub(super) fn track_losses(&mut self, tick: &Tick, kit: &Kit) {
         const LOSSES_WORTH_WAKING_FOR: usize = 2;
-        self.abandoned_now.clear();
+        self.frame_losses_now.clear();
+        // A frame's builder and its last hit, so a frame destroyed with no attacker named (the engine names none out
+        // of sight) is told a decay, which nobody shot, from a kill: 106 of 311 "decayed" frames in 23 games had
+        // taken damage in their last seconds, and the report said of each that its builder had been sent elsewhere
+        // (docs/studies/2026-10-17-unfinished-structures.md §2.2).
+        for event in &tick.events {
+            match event {
+                Event::UnitCreated { unit, builder: Some(builder) } => {
+                    self.frame_builders.insert(*unit, *builder);
+                }
+                Event::UnitDamaged { unit, .. } if self.unfinished.contains_key(unit) => {
+                    self.frame_hits.insert(*unit, tick.frame);
+                }
+                _ => {}
+            }
+        }
         for enemy in &tick.snapshot.enemies {
             if let Some(def) = enemy.def {
                 self.enemy_defs.insert(enemy.id, def);
@@ -139,10 +177,25 @@ impl Brain {
                 continue;
             }
             let cost = self.world.def(def).map_or(0.0, |d| d.metal_cost);
-            // A nanoframe its builder walked away from decays: what was put in is lost, and nothing killed it
-            // (pianist-player-1: two labs and fourteen generators "lost to something unseen at home", read as air).
-            if let Some(share) = self.abandoned(*unit, *attacker) {
-                self.abandoned_now.insert(*unit, share);
+            let builder = self.frame_builders.remove(unit);
+            let last_hit = self.frame_hits.remove(unit);
+            // An unfinished frame: the metal put in is its peak share of the cost (left to decay it reads near 0 at
+            // its end, and the report said "0% built" of every decay until 2026-10-17), and what became of it is
+            // read from its last hit and its builder.
+            let frame_loss = self.unfinished.remove(unit).map(|share| {
+                let fate = if attacker.is_some() {
+                    FrameFate::Killed
+                } else if last_hit.is_some_and(|f| tick.frame - f <= SHOT_WINDOW) {
+                    FrameFate::ShotUnseen
+                } else {
+                    FrameFate::Decayed { builder_dead: builder.is_some_and(|b| !tick.snapshot.own_units.iter().any(|u| u.id == b)) }
+                };
+                FrameLoss { def, pos, share, fate }
+            });
+            if let Some(loss) = frame_loss.as_ref().filter(|l| matches!(l.fate, FrameFate::Decayed { .. })) {
+                // A nanoframe its builder walked away from decays: what was put in is lost, and nothing killed it
+                // (pianist-player-1: two labs and fourteen generators "lost to something unseen at home", read as air).
+                let share = loss.share;
                 self.trade_log.push((tick.frame, cost * share, 0.0));
                 let line = format!("abandoned an unfinished {} ({:.0}% built)", self.name(def), share * 100.0);
                 if let Some(shared) = &self.strategist {
@@ -150,8 +203,15 @@ impl Brain {
                 }
                 *self.fight_ledger.entry(line).or_default() += 1;
                 let (name, grid) = (self.name(def).to_string(), self.world.grid(pos));
-                self.event(tick.frame, format!("abandoned an unfinished {name} at {grid}"));
+                self.event(tick.frame, format!("abandoned an unfinished {name} at {grid} ({:.0}% built)", share * 100.0));
+                self.frame_losses_now.insert(*unit, frame_loss.expect("some"));
                 continue;
+            }
+            let built = frame_loss.as_ref().map_or(String::new(), |l| format!(" ({:.0}% built)", l.share * 100.0));
+            let unseen_fire = frame_loss.as_ref().is_some_and(|l| matches!(l.fate, FrameFate::ShotUnseen));
+            let cost = frame_loss.as_ref().map_or(cost, |l| cost * l.share);
+            if let Some(loss) = frame_loss {
+                self.frame_losses_now.insert(*unit, loss);
             }
             self.trade_log.push((tick.frame, cost, 0.0));
             self.publish_death(tick, kit, unit.0 as u32, true, self.name(def), cost, pos);
@@ -161,9 +221,9 @@ impl Brain {
             {
                 *self.spot_losses.entry(index).or_default() += 1;
             }
-            let killer = attacker.and_then(|id| self.enemy_defs.get(&id)).map_or("unseen", |d| self.name(*d));
+            let killer = attacker.and_then(|id| self.enemy_defs.get(&id)).map_or(if unseen_fire { "unseen fire" } else { "unseen" }, |d| self.name(*d));
             let place = if pos.dist2d(self.home) < BASE_RADIUS { "at home" } else if pos.dist2d(self.home) < pos.dist2d(self.world.mirrored(self.home)) { "in our half" } else { "in their half" };
-            let line = format!("lost {} to {killer} {place}", self.name(def));
+            let line = format!("lost {}{built} to {killer} {place}", self.name(def));
             if let Some(shared) = &self.strategist {
                 shared.fight(&line);
             }
@@ -172,7 +232,7 @@ impl Brain {
                 continue; // soldiers die all the time
             }
             let (name, grid) = (self.name(def).to_string(), self.world.grid(pos));
-            self.event(tick.frame, format!("lost {name} at {grid}"));
+            self.event(tick.frame, format!("lost {name}{built} at {grid}"));
             if kit.is_extractor(def) {
                 self.extractor_losses.push_back(tick.frame);
             }
@@ -190,16 +250,20 @@ impl Brain {
         for unit in &tick.snapshot.own_units {
             self.known_units.insert(unit.id, (unit.def, unit.pos));
         }
-        self.unfinished = tick.snapshot.own_units.iter().filter(|u| u.being_built).map(|u| (u.id, (u.health / u.max_health.max(1.0)).clamp(0.0, 1.0))).collect();
-    }
-
-    /// How far along a destroyed unit of ours was if it was an unfinished nanoframe nobody attacked: the builder left
-    /// it and it decayed. `None` for a finished unit or one with a known attacker.
-    pub(super) fn abandoned(&self, unit: UnitId, attacker: Option<UnitId>) -> Option<f32> {
-        if attacker.is_some() {
-            return None;
-        }
-        self.abandoned_now.get(&unit).or_else(|| self.unfinished.get(&unit)).copied()
+        // The frames still being built, each at the furthest it has been.
+        let mut peak = std::mem::take(&mut self.unfinished);
+        self.unfinished = tick
+            .snapshot
+            .own_units
+            .iter()
+            .filter(|u| u.being_built)
+            .map(|u| {
+                let share = (u.health / u.max_health.max(1.0)).clamp(0.0, 1.0);
+                (u.id, peak.remove(&u.id).map_or(share, |p| p.max(share)))
+            })
+            .collect();
+        self.frame_hits.retain(|id, _| self.unfinished.contains_key(id));
+        self.frame_builders.retain(|id, _| self.unfinished.contains_key(id));
     }
 
     pub(super) fn track_enemy_buildings(&mut self, tick: &Tick) {
@@ -826,5 +890,62 @@ mod colour_tests {
         assert_eq!(colour_name([0.72549, 0.88627, 0.69020]), "pale green");
         assert_eq!(colour_name([0.5, 0.5, 0.5]), "grey");
         assert_eq!(colour_name([0.44706, 0.0, 0.85098]), "purple");
+    }
+}
+
+#[cfg(test)]
+mod frame_loss_tests {
+    use bot_protocol::{Event, OwnUnit, Resource, Snapshot, Tick, UnitDefId, UnitId, Vec3};
+
+    use super::super::pianist::fixtures::{at, brain_of, own};
+    use super::super::roster::Kit;
+    use super::FrameFate;
+
+    fn frame(id: i32, pos: Vec3, share: f32) -> OwnUnit {
+        OwnUnit { being_built: true, health: share * 100.0, max_health: 100.0, ..own(id, 2, pos) }
+    }
+
+    fn tick(frame: i32, ours: Vec<OwnUnit>, events: Vec<Event>) -> Tick {
+        let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+        Tick { frame, late: 0, events, snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies: Vec::new(), wrecks: None } }
+    }
+
+    /// An unfinished frame destroyed by nobody named is a decay only when nothing shot it: after a hit it was shot
+    /// by something out of sight; with a named attacker it was killed. Each is counted at the furthest the frame
+    /// had been built, not the share left after decay (the report said "0% built" of a frame left at 98 %).
+    #[test]
+    fn an_unfinished_frame_is_told_a_decay_from_a_kill_and_counted_at_its_peak() {
+        let mut brain = brain_of(&["armcom", "armsolar"]);
+        let none = UnitDefId(99);
+        let kit = Kit { commander: UnitDefId(1), extractor: none, converter: none, lab: none, turret: none, constructor: none, plant: none, vehicle_constructor: none, advanced_lab: none, advanced_constructor: none, advanced_extractor: none, raider: none, line: none, resurrector: none, roster: &crate::brain::roster::ROSTERS[0] };
+        let builders = || vec![own(10, 1, at(1000.0, 950.0)), own(11, 1, at(3000.0, 950.0))];
+        let with = |frames: Vec<OwnUnit>| builders().into_iter().chain(frames).collect::<Vec<_>>();
+        // Four frames rise: 20 and 23 reach 70 %, 21 reaches 60 %, 22 reaches 30 %.
+        brain.track_losses(&tick(30, with(vec![frame(20, at(1000.0, 1000.0), 0.4), frame(21, at(1100.0, 1000.0), 0.6), frame(22, at(1200.0, 1000.0), 0.3), frame(23, at(3000.0, 1000.0), 0.7)]), vec![Event::UnitCreated { unit: UnitId(20), builder: Some(UnitId(10)) }, Event::UnitCreated { unit: UnitId(23), builder: Some(UnitId(11)) }]), &kit);
+        brain.track_losses(&tick(60, with(vec![frame(20, at(1000.0, 1000.0), 0.7), frame(21, at(1100.0, 1000.0), 0.6), frame(22, at(1200.0, 1000.0), 0.3), frame(23, at(3000.0, 1000.0), 0.7)]), Vec::new()), &kit);
+        // Frame 20 decays to 10 % with its builder gone elsewhere; 23's builder dies.
+        brain.track_losses(&tick(90, with(vec![frame(20, at(1000.0, 1000.0), 0.1), frame(21, at(1100.0, 1000.0), 0.6), frame(22, at(1200.0, 1000.0), 0.3), frame(23, at(3000.0, 1000.0), 0.05)]), Vec::new()), &kit);
+        let events = vec![
+            Event::UnitDestroyed { unit: UnitId(20), attacker: None },
+            Event::UnitDamaged { unit: UnitId(21), attacker: None, damage: 300.0, from: None, weapon: None },
+            Event::UnitDestroyed { unit: UnitId(21), attacker: None },
+            Event::UnitDestroyed { unit: UnitId(22), attacker: Some(UnitId(500)) },
+            Event::UnitDestroyed { unit: UnitId(11), attacker: Some(UnitId(500)) },
+            Event::UnitDestroyed { unit: UnitId(23), attacker: None },
+        ];
+        brain.track_losses(&tick(120, vec![own(10, 1, at(1000.0, 950.0))], events), &kit);
+        let loss = |id: i32| brain.frame_losses_now.get(&UnitId(id)).copied().expect("a frame loss");
+        assert_eq!((loss(20).fate, (loss(20).share * 100.0).round()), (FrameFate::Decayed { builder_dead: false }, 70.0));
+        assert_eq!((loss(21).fate, (loss(21).share * 100.0).round()), (FrameFate::ShotUnseen, 60.0));
+        assert_eq!((loss(22).fate, (loss(22).share * 100.0).round()), (FrameFate::Killed, 30.0));
+        assert_eq!(loss(23).fate, FrameFate::Decayed { builder_dead: true });
+        let lines: Vec<&String> = brain.fight_ledger.keys().collect();
+        assert!(lines.iter().any(|l| l.as_str() == "abandoned an unfinished armsolar (70% built)"), "{lines:?}");
+        assert!(lines.iter().any(|l| l.starts_with("lost armsolar (60% built) to unseen fire")), "{lines:?}");
+        assert!(lines.iter().any(|l| l.starts_with("lost armsolar (30% built) to unseen")), "{lines:?}");
+        // The metal traded away is the peak share of each frame's cost (a solar is 155), not the share at its end.
+        let cost = brain.world.def(UnitDefId(2)).expect("a solar").metal_cost;
+        let frames_metal: f32 = brain.trade_log.iter().filter(|(f, ours, _)| *f == 120 && *ours < cost * 0.95).map(|(_, ours, _)| *ours).sum();
+        assert!((frames_metal - cost * (0.7 + 0.6 + 0.3 + 0.7)).abs() < 1.0, "{frames_metal} of {cost}");
     }
 }

@@ -73,9 +73,11 @@ pub(super) const SILENT_REACH: f32 = 0.9;
 #[derive(Clone, Debug)]
 pub(super) enum Task {
     /// A build order: the type, its site (as asked, then as the host placed it, then the frame's own place), the
-    /// spot if an extractor, when it was ordered, whether the engine has started it (a nanoframe by this builder
-    /// since the order).
-    Build { def: UnitDefId, near: Vec3, spot: Option<usize>, ordered: i32, started: bool },
+    /// spot if an extractor, when it was ordered, whether the engine has started it (a nanoframe of the type by this
+    /// builder since the order), and that frame's id once it has: the finished and destroyed events, the picture and
+    /// the menu read the builder's own frame by it and no neighbour's (by type within 250, a neighbour's frame
+    /// finishing ended the build at 62-98 % in 18 of 23 games: docs/studies/2026-10-17-unfinished-structures.md §2.1).
+    Build { def: UnitDefId, near: Vec3, spot: Option<usize>, ordered: i32, started: bool, frame: Option<UnitId> },
     /// Guarding a factory or another builder.
     Assist { lab: UnitId, since: i32 },
     Reclaim { at: Vec3, since: i32 },
@@ -541,6 +543,11 @@ impl Pianist {
     /// drops what was queued behind it (player-32-hard, 0:17: the opening list queued its third extractor half a
     /// second before the list of the 0:10 turn came into force; the commander built it, then the new list's, four
     /// extractors for the three both lists asked for, and the plant began at 1:34 for 1:08).
+    /// The builders whose own build's frame is `unit` (one, or none; a frame two builders raise is one builder's).
+    pub(super) fn builders_of_frame(&self, unit: UnitId) -> Vec<UnitId> {
+        self.tasks.iter().filter(|(_, t)| matches!(t, Task::Build { frame: Some(f), .. } if *f == unit)).map(|(id, _)| *id).collect()
+    }
+
     pub(super) fn take_queued(&mut self, builder: UnitId, name: &str, frame: i32) -> Option<Command> {
         if !self.stale_queue.remove(&builder) {
             return self.promote(builder, frame);
@@ -561,9 +568,10 @@ impl Pianist {
         }
         let mut order = None;
         match &mut next {
-            Task::Build { ordered, started, .. } => {
+            Task::Build { ordered, started, frame: own_frame, .. } => {
                 *ordered = frame;
                 *started = false;
+                *own_frame = None;
             }
             Task::Assist { lab, since } => {
                 *since = frame;
@@ -1637,23 +1645,32 @@ impl Brain {
                             tagged.building = Some(unit);
                         }
                     }
-                    // A frame appearing while the task is a started build is the queued build beginning (the
-                    // finished event promoted it already, unless the frame in progress died): promote now.
-                    if matches!(pianist.tasks.get(&builder), Some(Task::Build { started: true, .. })) {
+                    let made = own.iter().find(|u| u.id == unit).map(|u| (u.def, u.pos));
+                    // A frame appearing while the task is a started build whose own frame is gone is the queued
+                    // build beginning (the finished event promoted it already, unless the frame in progress died;
+                    // then the destroyed event did): promote now.
+                    if let Some(Task::Build { started: true, frame: Some(f), .. }) = pianist.tasks.get(&builder)
+                        && *f != unit
+                        && !own.iter().any(|u| u.id == *f)
+                    {
                         commands.extend(pianist.take_queued(builder, &self.actor_name(builder), frame));
                     }
-                    // The frame stands where the engine put it, up to a building's width from the point ordered
-                    // (pianist-player-6: two windmills 200 from their ordered point were not seen as started, and
-                    // the next "generator" answer ordered a third; both decayed). The task's site is the frame.
-                    if let Some(Task::Build { started, near, def, .. }) = pianist.tasks.get_mut(&builder) {
-                        if !*started {
-                            // The builder's count against its `produce` caps ("armllt:2" from this builder).
-                            *pianist.produced.entry((builder, self.world.def(*def).map_or(String::new(), |d| d.name.clone()))).or_insert(0) += 1;
-                        }
+                    // The builder's own frame of the type it was ordered: the task is started, keeps the frame's id,
+                    // and its site is the frame, which stands where the engine put it, up to a building's width from
+                    // the point ordered (pianist-player-6: two windmills 200 from their ordered point were not seen
+                    // as started, and the next "generator" answer ordered a third; both decayed). A frame of another
+                    // type is not this build (jev114-player-1 9:00: a nano frame from an order the engine still held
+                    // marked a solar task started at the nano's place).
+                    if let Some((made_def, made_pos)) = made
+                        && let Some(Task::Build { started, near, def, frame: own_frame, .. }) = pianist.tasks.get_mut(&builder)
+                        && *def == made_def
+                        && !*started
+                    {
+                        // The builder's count against its `produce` caps ("armllt:2" from this builder).
+                        *pianist.produced.entry((builder, self.world.def(*def).map_or(String::new(), |d| d.name.clone()))).or_insert(0) += 1;
                         *started = true;
-                        if let Some(frame_unit) = own.iter().find(|u| u.id == unit) {
-                            *near = frame_unit.pos;
-                        }
+                        *own_frame = Some(unit);
+                        *near = made_pos;
                     }
                     if let Some(queue) = pianist.lab_queue.get_mut(&builder) {
                         let made = own.iter().find(|u| u.id == unit).map(|u| u.def);
@@ -1668,32 +1685,45 @@ impl Brain {
                     }
                 }
                 Event::UnitFinished { unit } => {
-                    // The builder whose started build this was moves on to what it queued (H-HANDS-QUEUE), or is
-                    // free for the pass.
-                    if let Some(done) = own.iter().find(|u| u.id == unit) {
-                        let builders: Vec<UnitId> = pianist
-                            .tasks
-                            .iter()
-                            .filter(|(_, t)| matches!(t, Task::Build { def, near, started: true, .. } if *def == done.def && near.dist2d(done.pos) < 250.0))
-                            .map(|(id, _)| *id)
-                            .collect();
-                        for builder in builders {
-                            if pianist.queued.contains_key(&builder) {
-                                commands.extend(pianist.take_queued(builder, &self.actor_name(builder), frame));
-                            } else {
-                                pianist.tasks.remove(&builder);
-                            }
+                    // The builder whose own frame this was moves on to what it queued (H-HANDS-QUEUE), or is free
+                    // for the pass. By the frame's id: a neighbour's frame of the type finishing is not this build.
+                    for builder in pianist.builders_of_frame(unit) {
+                        if pianist.queued.contains_key(&builder) {
+                            commands.extend(pianist.take_queued(builder, &self.actor_name(builder), frame));
+                        } else {
+                            pianist.tasks.remove(&builder);
                         }
                     }
                 }
                 Event::UnitDestroyed { unit, attacker } => {
-                    if let Some((def, pos)) = self.known_units.get(&unit) {
+                    // The frame of a builder's own build gone: the queued step begins (the engine goes on to the
+                    // queued order), or the builder is free for the pass.
+                    for builder in pianist.builders_of_frame(unit) {
+                        if pianist.queued.contains_key(&builder) {
+                            commands.extend(pianist.take_queued(builder, &self.actor_name(builder), frame));
+                        } else {
+                            pianist.tasks.remove(&builder);
+                        }
+                    }
+                    if let Some(loss) = self.frame_losses_now.get(&unit) {
+                        // What became of an unfinished frame, from its last hit and its builder (`track_losses`):
+                        // every one read "abandoned ... its builder was sent elsewhere" with the share after decay
+                        // until 2026-10-17, 106 of 311 in 23 games shot by something out of sight.
+                        let (what, place, built) = (self.name(loss.def), self.world.grid(loss.pos), loss.share * 100.0);
+                        let text = match loss.fate {
+                            super::briefing::FrameFate::Decayed { builder_dead: true } => format!("abandoned an unfinished {what} at {place} ({built:.0}% built): its builder died and the frame decayed"),
+                            super::briefing::FrameFate::Decayed { builder_dead: false } => format!("abandoned an unfinished {what} at {place} ({built:.0}% built): its builder was sent elsewhere and the frame decayed"),
+                            super::briefing::FrameFate::ShotUnseen => format!("lost our unfinished {what} at {place} ({built:.0}% built) to fire from something out of sight: nothing of ours saw the shooter"),
+                            super::briefing::FrameFate::Killed => {
+                                let killer = attacker.and_then(|id| self.enemy_defs.get(&id)).map_or("something unseen".to_string(), |d| self.name(*d).to_string());
+                                format!("lost our unfinished {what} at {place} ({built:.0}% built) to {killer}")
+                            }
+                        };
+                        done.push(format!("{} {text}", picture::clock(frame)));
+                        notes.push(text);
+                    } else if let Some((def, pos)) = self.known_units.get(&unit) {
                         let building = self.world.def(*def).is_some_and(|d| d.speed == 0.0 || *def == kit.commander || d.build_speed > 0.0);
-                        if let Some(share) = self.abandoned(unit, attacker) {
-                            let text = format!("abandoned an unfinished {} at {} ({:.0}% built): its builder was sent elsewhere and the frame decayed", self.name(*def), self.world.grid(*pos), share * 100.0);
-                            done.push(format!("{} {text}", picture::clock(frame)));
-                            notes.push(text);
-                        } else if building {
+                        if building {
                             let killer = attacker.and_then(|id| self.enemy_defs.get(&id)).map_or("something unseen".to_string(), |d| self.name(*d).to_string());
                             notes.push(format!("lost our {} at {} to {killer}", self.name(*def), self.world.grid(*pos)));
                         }
@@ -1916,5 +1946,87 @@ impl Brain {
             "[ai {}] f={frame} pianist this minute: {} calls ({} failed, {} dropped), {} quiet seconds, median {median:.0} ms, longest {max:.0}, {} tokens in, {} questions; groups {}, tasks {}",
             self.world.hello.ai_id, stats.calls, stats.errors, stats.dropped, stats.quiet, stats.tokens, stats.questions, pianist.groups.len(), pianist.tasks.len()
         );
+    }
+}
+
+#[cfg(test)]
+mod frame_tests {
+    use bot_protocol::{Command, Event, OwnUnit, Resource, Snapshot, Tick, UnitDefId, UnitId, Vec3};
+
+    use super::fixtures::{at, brain_of, own};
+    use super::super::roster::Kit;
+    use super::{Pianist, Task};
+
+    fn kit() -> Kit {
+        let none = UnitDefId(99);
+        Kit { commander: UnitDefId(1), extractor: none, converter: none, lab: none, turret: none, constructor: UnitDefId(2), plant: none, vehicle_constructor: none, advanced_lab: none, advanced_constructor: none, advanced_extractor: none, raider: none, line: none, resurrector: none, roster: &crate::brain::roster::ROSTERS[0] }
+    }
+
+    fn frame(id: i32, def: i32, pos: Vec3, share: f32) -> OwnUnit {
+        OwnUnit { being_built: true, health: share * 100.0, max_health: 100.0, ..own(id, def, pos) }
+    }
+
+    fn tick(frame: i32, ours: Vec<OwnUnit>, events: Vec<Event>) -> Tick {
+        let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+        Tick { frame, late: 0, events, snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies: Vec::new(), wrecks: None } }
+    }
+
+    /// A builder's started build is its own frame: a neighbour's frame of the same type finishing beside it does
+    /// not end the build or promote the queued step (the unfinished-structures sweep, 2026-10-17: by type within
+    /// 250 it did, in 18 of 23 games, and the frame decayed at 62-98 %); its own frame finishing does.
+    #[test]
+    fn a_neighbours_frame_finishing_leaves_the_builders_own_build_alone() {
+        let mut brain = brain_of(&["armcom", "armcv", "armsolar"]);
+        let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        let (builder, mine, theirs) = (UnitId(10), UnitId(20), UnitId(21));
+        pianist.tasks.insert(builder, Task::Build { def: UnitDefId(3), near: at(1000.0, 1000.0), spot: None, ordered: 0, started: true, frame: Some(mine) });
+        pianist.queued.insert(builder, Task::Build { def: UnitDefId(3), near: at(1300.0, 1000.0), spot: None, ordered: 0, started: false, frame: None });
+        brain.pianist = Some(pianist);
+        let ours = || vec![own(10, 2, at(1000.0, 950.0)), own(11, 2, at(1150.0, 950.0)), frame(20, 3, at(1000.0, 1000.0), 0.7), frame(21, 3, at(1150.0, 1000.0), 0.99)];
+        let mut commands = Vec::new();
+        brain.pianist_housekeeping(&tick(30, ours(), vec![Event::UnitFinished { unit: theirs }]), &kit(), &mut commands);
+        let pianist = brain.pianist.as_ref().expect("kept");
+        let state = |task: Option<&Task>| match task {
+            Some(Task::Build { started, frame, near, .. }) => Some((*started, *frame, near.x)),
+            _ => None,
+        };
+        assert_eq!(state(pianist.tasks.get(&builder)), Some((true, Some(mine), 1000.0)));
+        assert!(pianist.queued.contains_key(&builder), "the queued step is not promoted by a neighbour's finish");
+        // Its own frame finishing promotes the queued build.
+        brain.pianist_housekeeping(&tick(60, ours(), vec![Event::UnitFinished { unit: mine }]), &kit(), &mut commands);
+        let pianist = brain.pianist.as_ref().expect("kept");
+        assert_eq!(state(pianist.tasks.get(&builder)), Some((false, None, 1300.0)));
+        assert!(!pianist.queued.contains_key(&builder));
+    }
+
+    /// A frame of another type than the task's is not the task's build (a nano frame from an order the engine still
+    /// held marked a solar task started at the nano's place, jev114-player-1); the builder's own frame of the type
+    /// is, and the task keeps its id. The frame destroyed frees the builder, or begins what it queued.
+    #[test]
+    fn only_the_builders_own_frame_of_the_type_starts_its_build_and_its_loss_ends_it() {
+        let mut brain = brain_of(&["armcom", "armcv", "armsolar", "armnanotc"]);
+        let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        let builder = UnitId(10);
+        pianist.tasks.insert(builder, Task::Build { def: UnitDefId(3), near: at(1000.0, 1000.0), spot: None, ordered: 0, started: false, frame: None });
+        brain.pianist = Some(pianist);
+        let mut commands = Vec::new();
+        let ours = vec![own(10, 2, at(1000.0, 950.0)), frame(30, 4, at(1200.0, 1000.0), 0.01)];
+        brain.pianist_housekeeping(&tick(30, ours, vec![Event::UnitCreated { unit: UnitId(30), builder: Some(builder) }]), &kit(), &mut commands);
+        let pianist = brain.pianist.as_ref().expect("kept");
+        let state = |task: Option<&Task>| match task {
+            Some(Task::Build { started, frame, near, .. }) => Some((*started, *frame, near.x)),
+            _ => None,
+        };
+        assert_eq!(state(pianist.tasks.get(&builder)), Some((false, None, 1000.0)));
+        let ours = vec![own(10, 2, at(1000.0, 950.0)), frame(30, 4, at(1200.0, 1000.0), 0.01), frame(31, 3, at(1040.0, 1000.0), 0.01)];
+        brain.pianist_housekeeping(&tick(60, ours, vec![Event::UnitCreated { unit: UnitId(31), builder: Some(builder) }]), &kit(), &mut commands);
+        let pianist = brain.pianist.as_ref().expect("kept");
+        assert_eq!(state(pianist.tasks.get(&builder)), Some((true, Some(UnitId(31)), 1040.0)));
+        // The frame shot down: with nothing queued the builder is free for the pass.
+        let ours = vec![own(10, 2, at(1000.0, 950.0))];
+        brain.pianist_housekeeping(&tick(90, ours, vec![Event::UnitDestroyed { unit: UnitId(31), attacker: None }]), &kit(), &mut commands);
+        let pianist = brain.pianist.as_ref().expect("kept");
+        assert!(pianist.tasks.get(&builder).is_none(), "{:?}", pianist.tasks.get(&builder));
+        assert!(!commands.iter().any(|c| matches!(c, Command::Stop { .. })), "{commands:?}");
     }
 }

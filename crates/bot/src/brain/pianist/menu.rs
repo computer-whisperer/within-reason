@@ -458,8 +458,8 @@ impl Brain {
     /// The started build, the threat beside the builder, and whether its next moves queue behind the build.
     pub(super) fn builder_status(&self, pianist: &Pianist, unit: &OwnUnit, picture: &Picture, under_fire: &[UnitId], own: &[OwnUnit]) -> BuilderStatus {
         let started = match pianist.tasks.get(&unit.id) {
-            Some(Task::Build { def, near, started: true, .. }) => {
-                let share = own.iter().filter(|u| u.being_built && u.def == *def).map(|u| (u.pos.dist2d(*near), u.health / u.max_health.max(1.0))).min_by(|a, b| a.0.total_cmp(&b.0)).map_or(0.0, |(_, share)| share);
+            Some(Task::Build { def, started: true, frame: own_frame, .. }) => {
+                let share = own_frame.and_then(|f| own.iter().find(|u| u.id == f)).map_or(0.0, |u| u.health / u.max_health.max(1.0));
                 Some((self.short_words(*def), share))
             }
             _ => None,
@@ -1391,8 +1391,8 @@ impl Brain {
                 push(format!("help_{lab_name}"), Order::Help(lab.id), format!("{then}{name} helps {lab_name} build ({}): {worth}{}{leaves}", way_words(unit.pos.dist2d(lab.pos), speed), stands(lab.pos)), format!("helping {lab_name}"), None);
             }
             for other in scene.builders.iter().filter(|o| o.id != unit.id) {
-                let Some(Task::Build { def, near, started: true, .. }) = pianist.tasks.get(&other.id) else { continue };
-                let share = own.iter().filter(|f| f.being_built && f.def == *def).map(|f| (f.pos.dist2d(*near), f.health / f.max_health.max(1.0))).min_by(|a, b| a.0.total_cmp(&b.0)).map_or(0.0, |(_, s)| s);
+                let Some(Task::Build { def, started: true, frame: own_frame, .. }) = pianist.tasks.get(&other.id) else { continue };
+                let share = own_frame.and_then(|f| own.iter().find(|u| u.id == f)).map_or(0.0, |u| u.health / u.max_health.max(1.0));
                 let other_name = self.actor_name(other.id);
                 push(format!("help_{other_name}"), Order::Help(other.id), format!("{then}{name} helps {other_name} build its {} (about {:.0}% done; {}){}{leaves}", self.short_words(*def), tenths(share), way_words(unit.pos.dist2d(other.pos), speed), stands(other.pos)), format!("helping {other_name}"), None);
             }
