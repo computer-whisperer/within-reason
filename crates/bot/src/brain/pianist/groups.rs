@@ -47,6 +47,10 @@ pub(crate) struct Hunt {
     pub quarry: UnitId,
     pub party: String,
     pub from: Vec3,
+    /// Where each hunter stood when the hunt began: the leash is measured from there, hunter by hunter (the
+    /// impedance tally, 2026-10-16: measured from the hunters' centre, a detachment cut from a strung-out body or
+    /// sent from afar tripped it on its first tick, 174 of 395 leash ends "after 0 s" in 23 games).
+    pub anchors: Vec<(UnitId, Vec3)>,
     pub since: i32,
     pub last_seen: i32,
     /// Where the quarry was last seen: the attack goes there when it is on radar only.
@@ -745,7 +749,7 @@ impl Brain {
             .min_by(|a, b| a.pos.dist2d(centre).total_cmp(&b.pos.dist2d(centre)))
             .map(|e| (e.id, e.pos))
             .unwrap_or((party.ids[0], party.at));
-        Hunt { quarry: quarry.0, party: party.name.clone(), from: centre, since: frame, last_seen: frame, at: quarry.1 }
+        Hunt { quarry: quarry.0, party: party.name.clone(), from: centre, anchors: hunters.iter().map(|u| (u.id, u.pos)).collect(), since: frame, last_seen: frame, at: quarry.1 }
     }
 
     /// The whole group engages the party: released, sent to fight at it, its task the engagement.
@@ -784,6 +788,17 @@ fn group_for_newcomer(named: Option<&str>, call: u64, factory_group: Option<(u64
 
 #[cfg(test)]
 mod tests {
+    /// A hunt's leash is anchored hunter by hunter, where each stood when it began: a hunter far from the others'
+    /// centre does not end the hunt on its first tick.
+    #[test]
+    fn a_hunt_anchors_its_leash_on_each_hunter() {
+        let (_, ours, enemies, parties) = e3();
+        let hunters: Vec<&bot_protocol::OwnUnit> = ours.iter().take(3).collect();
+        let hunt = Brain::hunt_of(&parties[0], &hunters, &enemies, 30);
+        assert_eq!(hunt.anchors, hunters.iter().map(|u| (u.id, u.pos)).collect::<Vec<_>>());
+        assert!(parties[0].ids.contains(&hunt.quarry));
+    }
+
     use super::super::fixtures::{e3, own};
     use super::*;
 

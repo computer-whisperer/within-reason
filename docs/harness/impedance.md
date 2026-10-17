@@ -20,15 +20,22 @@ the faults the first tally found (`docs/studies/2026-10-16-opus-hands-impedance.
   runs the same brief on one Opus agent and drops its two files into the match directory; the tally then reads it
   beside the others.
 
-## The faults, as of 2026-10-16 (nothing fixed yet; each is the user's call)
+## The faults, as of 2026-10-16
 
-Code, exact and cheap: the hunt leash measured from the hunters' own centre (a detachment sent at a raider 900
-away ends "after 0 s"); a re-sent list's first step "taken as done" on a build ordered but not started; the turret
-step skipped while the spot's extractor "was refused lately" though it stands; `signal` not in `orders`'
-`batchable()`; `queue` accepting steps the builder cannot make or that need a place. The report: no metal store cap
-on the eco line; a dead enemy building kept in a cell in sight; moho upgrades on the extractors-lost line;
-`no_site` dropped silently; no builder type on an advanced constructor's entry; the decode's readings shown for
-groups only. The tools: `remove` wants handles the picture gives only in the exit-lane line; `transfer` refuses the
+**Fixed on the user's word the same day** (the cheap code faults and the report lines): the hunt leash is measured
+for each hunter from where it stood when the hunt began (`Hunt::anchors`); a re-sent list whose first step is the
+build the builder was ordered and has not begun keeps the step at the front until the frame is up
+(`Pianist::list_caught_up`, "the step waits for the frame"); a turret step at a spot whose extractor was refused
+lately goes on when an extractor of ours is there; `signal` batches in `orders`; `queue` refuses a building the
+builder cannot make and a turret, radar or jammer with no place (`Field::builders`, the words each builder can take);
+the eco line reads `metal 1794/2100` with `FULL: what comes in beyond the store is wasted` at 98%; a remembered
+enemy building whose place a unit of ours sees (within four fifths of its sight) with nothing there is forgotten
+and said ("his corlab at E4 is gone: the place is in sight and nothing stands there"); an extractor of ours
+replaced by our own advanced extractor is not a loss; a build with no site is said ("no site could be found for a
+armavp where it was asked, so the order is dropped: name another place or a spot for it"); a constructor's entry
+carries its type (`constructor_54 (armacv): ...`). Not yet measured in a game.
+
+Still open, each the user's call: the decode's readings shown for groups only. The tools: `remove` wants handles the picture gives only in the exit-lane line; `transfer` refuses the
 whole list for one stale name; a player's `mark` removal does not touch the side's mark of that name; `produce
 "new"` gives no name to write the packet with. Jev and the decode: the packet weights the pick and does not command
 (K-jev-the-packet-weights-the-pick-and-does-not-command); an ordered constructor paragraph reads as no extractors

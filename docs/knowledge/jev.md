@@ -2220,7 +2220,10 @@ place"). And in the report: the metal store's cap missing from the eco line; a d
 standing in a cell in sight; moho upgrades counted on "extractors lost in the last 3 min"; `no_site` dropped with
 no line (11 events, 0 lines); a builder's type (armacv) absent from its entry.
 **Status.** measured (2026-10-16, corpus scans of every transcript; each verified in at least one game's raw data).
+All ten fixed the same day on the user's word ("Let's fix the five cheap code faults and the report lines first";
+`docs/harness/impedance.md` says how); the next games' sweeps measure them.
 **Evidence.** `docs/studies/2026-10-16-opus-hands-impedance.md` §3.3 to §3.5.
 **Would be wrong if.** The counts were the players' own asks (a `stop` is; these are not), or the lines came from a
 build before the rebuilt hands (all 23 games are on version 3 logs).
-**Used by.** nothing built; each is the user's call.
+**Used by.** H-MICRO-HUNT (the per-hunter leash), H-HANDS-LISTS (the waiting step, the turret step, the `queue`
+refusals), the report's eco line, the enemy-building memory, the loss count, the no-site line.

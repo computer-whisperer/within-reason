@@ -160,8 +160,9 @@ impl Brain {
             let ready = match &task {
                 None => unit.idle,
                 Some(Task::Build { started: true, .. }) => status.queue_ahead,
-                // A build the engine has not started yet gives way to a list set after it was ordered.
-                Some(Task::Build { ordered, .. }) => status.queue_ahead || list_frame > *ordered,
+                // A build the engine has not started yet gives way to a list set after it was ordered, unless that
+                // list's first step is this very build (`list_caught_up`): then the order stands until the frame is up.
+                Some(Task::Build { ordered, .. }) => status.queue_ahead || (list_frame > *ordered && pianist.list_caught_up.get(&name) != Some(ordered)),
                 // A timed `assist N` step keeps the builder at the factory for its N seconds; `end_timed_assists`
                 // frees it.
                 Some(Task::Assist { since, .. }) => match pianist.list_steps.get(&unit.id).and_then(|(step, _)| timed_assist(step)) {
@@ -209,8 +210,24 @@ impl Brain {
                 // the step done; anything else is said.
                 None => {
                     let pianist = self.pianist.as_mut().expect("pianist mode");
-                    let same = matches!(pianist.tasks.get(&id), Some(Task::Build { .. }));
-                    let text = if same { format!("the step '{step}' of its list is the build already under way: taken as done") } else { format!("the step '{step}' of its list could not be played this second and was dropped") };
+                    let text = match pianist.tasks.get(&id) {
+                        // The build it was ordered and has not begun (a list re-sent with that step first): the step
+                        // stays at the front and the order stands until the frame is up. Taken as done before, the
+                        // next step's order cancelled the walk and the build never happened (the impedance tally,
+                        // 2026-10-16: 104 such lines in 18 games; apex-v022-carrot-sym50-opus-1 2:45 and 3:15, two
+                        // opening extractors 3.3 minutes late; human-27 6:56 and 11:07, held to four extractors).
+                        Some(Task::Build { started: false, ordered, .. }) => {
+                            let ordered = *ordered;
+                            let text = format!("the step '{step}' of its list is the build it was ordered and has not begun: the step waits for the frame");
+                            if let Some(script) = pianist.scripts.get_mut(&name) {
+                                script.push_front(step.clone());
+                            }
+                            pianist.list_caught_up.insert(name.clone(), ordered);
+                            text
+                        }
+                        Some(Task::Build { started: true, .. }) => format!("the step '{step}' of its list is the build already under way: taken as done"),
+                        _ => format!("the step '{step}' of its list could not be played this second and was dropped"),
+                    };
                     pianist.done.push(format!("{} {name}: {text}", clock(frame)));
                     pianist.note(frame, format!("{name}: {text}"));
                 }
@@ -254,7 +271,7 @@ impl Brain {
     fn why_not_free(&self, i: usize, unit: &OwnUnit, pianist: &Pianist, own: &[OwnUnit], kit: &Kit) -> String {
         let Some(spot) = self.world.hello.metal_spots.get(i).copied() else { return format!("spot_{i} is not a spot") };
         let radius = self.spot_occupied_radius();
-        if own.iter().any(|u| kit.is_extractor(u.def) && u.pos.dist2d(spot) < radius) {
+        if self.extractor_of_ours_at(i, own, kit) {
             return format!("spot_{i} holds our extractor already");
         }
         if self.enemy_buildings.values().any(|(def, pos, _)| pos.dist2d(spot) < radius && self.world.def(*def).is_some_and(|d| d.extracts_metal > 0.0)) {
@@ -273,6 +290,13 @@ impl Brain {
             return format!("the engine refused a build at spot_{i} lately (wrecks or a unit on it)");
         }
         format!("spot_{i} is not free")
+    }
+
+    /// An extractor of ours, standing or being built, on this spot.
+    fn extractor_of_ours_at(&self, i: usize, own: &[OwnUnit], kit: &Kit) -> bool {
+        let Some(spot) = self.world.hello.metal_spots.get(i).copied() else { return false };
+        let radius = self.spot_occupied_radius();
+        own.iter().any(|u| kit.is_extractor(u.def) && u.pos.dist2d(spot) < radius)
     }
 
     /// The next step of a builder's list as an order, its words kept. Steps that cannot be done are dropped and
@@ -327,9 +351,12 @@ impl Brain {
                     Some(target) => Ok(Order::TakeApartUnit(target.id)),
                     None => Err(format!("{} no longer stands", place.as_deref().unwrap_or("it"))),
                 },
-                // A defence at a spot whose extractor the engine refused lately waits with its extractor.
+                // A defence at a spot whose extractor the engine refused lately waits with its extractor, unless an
+                // extractor of ours is there after all (another builder's frame took the spot first, so this one's
+                // was refused: the impedance tally, 2026-10-16, 150 turret steps skipped so, leg-player-1's spot_14
+                // undefended and lost to a Tick at 24:05).
                 other if self.world.def_named(other).is_some_and(|def| self.placed_at_place(def) && self.world.def(def).is_some_and(|d| d.weapon_count > 0))
-                    && place.as_deref().and_then(|p| p.strip_prefix("spot_")).and_then(|n| n.parse::<usize>().ok()).is_some_and(|i| pianist.refused_spots.get(&i).is_some_and(|until| *until > frame)) =>
+                    && place.as_deref().and_then(|p| p.strip_prefix("spot_")).and_then(|n| n.parse::<usize>().ok()).is_some_and(|i| pianist.refused_spots.get(&i).is_some_and(|until| *until > frame) && !self.extractor_of_ours_at(i, own, kit)) =>
                 {
                     Err(format!("the extractor at {} was refused lately; a defence there waits for it", place.as_deref().unwrap_or("?")))
                 }

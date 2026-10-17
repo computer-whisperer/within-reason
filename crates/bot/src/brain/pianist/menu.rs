@@ -488,7 +488,7 @@ impl Brain {
 
     /// A building that stands at a place rather than beside the builder or in the yard: a defence, a radar, a
     /// jammer or sonar, a tier-2 extractor over a spot. A list step for one needs its place.
-    pub(super) fn placed_at_place(&self, def: UnitDefId) -> bool {
+    pub(crate) fn placed_at_place(&self, def: UnitDefId) -> bool {
         let Some(d) = self.world.def(def) else { return false };
         let flagged = super::glossary::entry(&d.name).is_some_and(|e| e.has_flag("radar_jammer") || e.has_flag("sonar"));
         d.speed == 0.0 && d.build_speed == 0.0 && d.build_options.is_empty() && (d.weapon_count > 0 || d.radar_range > 0.0 || d.extracts_metal > 0.0 || flagged)

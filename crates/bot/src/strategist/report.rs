@@ -55,6 +55,15 @@ fn cell_runs(cells: &[&CellLook]) -> String {
 /// when units of ours last saw it, how much of it, and what of his stood there. A cell holding something of his has
 /// its own line; the others are grouped by the age of the look and written as runs; a cell not seen for six
 /// minutes or never seen names its metal spots, which are what the player orders by.
+/// A constructor's internal name from its entry's `is` words ("Construction Vehicle (armcv; constructor vehicle,
+/// 135 metal): ..." gives "armcv"), for the actor line's suffix: an advanced constructor is told from the others on
+/// every turn, not only on its first appearance.
+fn constructor_kind(is: &str) -> Option<String> {
+    let (_, rest) = is.split_once('(')?;
+    let kind = rest.split([';', ')']).next().unwrap_or_default().trim();
+    (!kind.is_empty()).then(|| kind.to_string())
+}
+
 fn scouting_lines(cells: &[CellLook], factory_known: bool) -> Vec<String> {
     if cells.is_empty() {
         return Vec::new();
@@ -163,9 +172,14 @@ pub(super) fn front(briefing: &Briefing, field: &Field, fights: &[String], seats
     // appearing in the report; the engine caps spending at income once the store is empty, so the net figure reads 0).
     let e = &briefing.energy;
     let stalling = e.storage > 0.0 && e.current / e.storage < 0.05 && e.usage >= e.income * 0.9;
+    // The metal store with its cap and the word when it is full, as the energy has had (the impedance tally,
+    // 2026-10-16: the hands' picture said "2096 of 2100 stored (full: what comes in beyond this is wasted)" while
+    // the line here read "metal 1794 (+43.3/-35.3)"; jev114-player-1 sat at the cap a fifth of the game).
+    let m = &briefing.metal;
+    let full = m.storage > 0.0 && m.current / m.storage >= 0.98;
     lines.push(format!(
-        "eco: metal {:.0} ({:+.1}/-{:.1}), energy {:.0}/{:.0} ({:+.0}){}, wind now {:.0} of this map's {:.0} to {:.0} | extractors {} constructors {} labs {} turrets {} converters {}",
-        briefing.metal.current, briefing.metal.income, briefing.metal.usage, e.current, e.storage,
+        "eco: metal {:.0}/{:.0} ({:+.1}/-{:.1}){}, energy {:.0}/{:.0} ({:+.0}){}, wind now {:.0} of this map's {:.0} to {:.0} | extractors {} constructors {} labs {} turrets {} converters {}",
+        m.current, m.storage, m.income, m.usage, if full { " FULL: what comes in beyond the store is wasted" } else { "" }, e.current, e.storage,
         e.income - e.usage, if stalling { " STALLING: the energy store is empty and everything that needs it builds slowly" } else { "" }, briefing.wind, briefing.wind_range.0, briefing.wind_range.1, c.extractors, c.constructors, c.labs, c.turrets, c.converters
     ));
     if let Some(line) = stockpile_line(briefing) {
@@ -398,7 +412,10 @@ pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, fights
                     _ => {}
                 }
             }
-            actors.push(format!("{name}: {}", parts.join("; ")));
+            // A constructor's type beside its name (the impedance tally, 2026-10-16: an advanced constructor read
+            // "constructor_N" like the others, and tier-1 steps went to it and were skipped).
+            let kind = field("is").filter(|_| name.starts_with("constructor_")).and_then(|is| constructor_kind(&is)).map(|k| format!(" ({k})")).unwrap_or_default();
+            actors.push(format!("{name}{kind}: {}", parts.join("; ")));
         }
     }
     let changed: Vec<&String> = actors.iter().filter(|a| full || !seen.hands.contains(a)).collect();
@@ -428,7 +445,15 @@ pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, fights
 
 #[cfg(test)]
 mod tests {
-    use super::{CellLook, cell_runs, recently_seen, scouting_lines};
+    use super::{CellLook, cell_runs, constructor_kind, recently_seen, scouting_lines};
+
+    /// The actor line's type suffix is the internal name alone, from the entry's gloss.
+    #[test]
+    fn a_constructors_kind_is_its_internal_name() {
+        assert_eq!(constructor_kind("Construction Vehicle (armcv; constructor vehicle, 135 metal): tier-1 constructor vehicle, 90 build power").as_deref(), Some("armcv"));
+        assert_eq!(constructor_kind("Advanced Construction Vehicle (armacv)").as_deref(), Some("armacv"));
+        assert_eq!(constructor_kind("no gloss"), None);
+    }
 
     fn cell(name: &str, seen_share: f32, ago: Option<i32>) -> CellLook {
         CellLook { cell: name.to_string(), seen_share, ago, in_his_box: name.starts_with('G') || name.starts_with('H'), ..CellLook::default() }

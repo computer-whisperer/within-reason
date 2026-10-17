@@ -128,6 +128,16 @@ impl Brain {
             }
             let Event::UnitDestroyed { unit, attacker } = event else { continue };
             let Some((def, pos)) = self.known_units.remove(unit) else { continue };
+            // An extractor of ours that our own advanced extractor replaces dies by nobody's hand: an upgrade, not a
+            // loss (the impedance tally, 2026-10-16: apex-v024-carrot-sym50-opus-1 15:22 to 16:36 read "extractors
+            // lost in the last 3 min: 14" on nine such, and the commander ordered home guards on it).
+            if attacker.is_none()
+                && kit.is_extractor(def)
+                && def != kit.advanced_extractor
+                && tick.snapshot.own_units.iter().any(|u| u.def == kit.advanced_extractor && u.pos.dist2d(pos) < self.spot_occupied_radius())
+            {
+                continue;
+            }
             let cost = self.world.def(def).map_or(0.0, |d| d.metal_cost);
             // A nanoframe its builder walked away from decays: what was put in is lost, and nothing killed it
             // (pianist-player-1: two labs and fourteen generators "lost to something unseen at home", read as air).
@@ -237,6 +247,29 @@ impl Brain {
             } else if info.weapon_count > 0 && info.build_speed == 0.0 {
                 self.enemy_soldiers.insert(enemy.id, (def, enemy.pos, tick.frame));
             }
+        }
+        // A remembered building whose place a unit of ours sees, with nothing of his there, is gone (the impedance
+        // tally, 2026-10-16: nuke-1-medium's report listed his labs as standing "in sight now" for twelve minutes
+        // after our missiles killed them out of sight, and two more missiles went at them). A radar contact at the
+        // place is still in the snapshot by its id, so it keeps the memory; the sight is taken a fifth short of the
+        // unit's, a hill between them being invisible here.
+        let in_snapshot: std::collections::HashSet<UnitId> = tick.snapshot.enemies.iter().map(|e| e.id).collect();
+        let sights: Vec<(Vec3, f32)> = tick.snapshot.own_units.iter().filter(|u| !u.being_built).map(|u| (u.pos, self.sight_of(u.def) * 0.8)).collect();
+        let razed: Vec<UnitId> = self
+            .enemy_buildings
+            .iter()
+            .filter(|(id, (_, pos, _))| !in_snapshot.contains(id) && sights.iter().any(|(at, sight)| at.dist2d(*pos) <= *sight))
+            .map(|(id, _)| *id)
+            .collect();
+        for id in razed {
+            if let Some((def, pos, _)) = self.enemy_buildings.remove(&id) {
+                if self.world.is_factory_def(def) {
+                    self.enemy_factories_gone.push((def, pos, tick.frame));
+                }
+                self.event(tick.frame, format!("his {} at {} is gone: the place is in sight and nothing stands there", self.name(def), self.world.grid(pos)));
+            }
+            self.enemy_unfinished.remove(&id);
+            gone.push(id);
         }
         for text in firsts {
             self.trigger("first_seen", tick.frame, text);
@@ -659,6 +692,30 @@ impl Brain {
         buildable.sort();
         buildable.dedup_by(|a, b| a.0 == b.0);
         let roster: Vec<(String, u32)> = self.world.reachable_from(kit.commander).iter().filter_map(|id| self.world.def(*id)).map(|d| (d.name.clone(), d.metal_cost as u32)).collect();
+        // Each builder's list words (`Field::builders`): its build options by internal name, the role words that
+        // name one of them, and `extractor` when it builds the faction's; each with whether it stands at a place.
+        let mut builders: BTreeMap<String, BTreeMap<String, bool>> = BTreeMap::new();
+        for unit in own.iter().filter(|u| self.world.is_mobile_builder(u.def)) {
+            let Some(d) = self.world.def(unit.def) else { continue };
+            let mut words: BTreeMap<String, bool> = BTreeMap::new();
+            for id in &d.build_options {
+                if let Some(b) = self.world.def(*id) {
+                    words.insert(b.name.clone(), self.placed_at_place(*id));
+                }
+            }
+            for role in super::roster::ROLE_WORDS {
+                if let Some(name) = kit.roster.role(role)
+                    && let Some(id) = self.world.def_named(name)
+                    && d.build_options.contains(&id)
+                {
+                    words.insert(role.to_string(), self.placed_at_place(id));
+                }
+            }
+            if d.build_options.contains(&kit.extractor) {
+                words.insert("extractor".to_string(), false);
+            }
+            builders.insert(self.actor_name(unit.id), words);
+        }
         let enemy_extractors: Vec<Vec3> = self
             .enemy_buildings
             .values()
@@ -748,6 +805,7 @@ impl Brain {
             turrets: turrets.iter().map(|t| self.place(*t)).collect(),
             buildable,
             roster,
+            builders,
             factions: vec![(self.world.hello.team, self.faction())],
         });
     }

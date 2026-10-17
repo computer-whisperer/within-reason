@@ -246,6 +246,9 @@ pub struct Pianist {
     /// The frame each builder's list was last set by the player (`queue`): a list newer than the builder's task
     /// displaces a build the engine has not started (H-HANDS-SCRIPT).
     pub(super) script_frame: HashMap<String, i32>,
+    /// Builders (by actor name) whose list's first step is the build they were ordered and have not begun, with
+    /// that order's frame: the list waits for the frame instead of taking the step as done (`play_lists`).
+    pub(super) list_caught_up: HashMap<String, i32>,
     /// The frame the player's packet last changed: part of the signature, so a new packet asks at once.
     pub(super) packet_frame: i32,
     /// Our units hit in the last `UNDER_FIRE_FRAMES`, with the frame of the last hit: the pass's and the lists'
@@ -639,6 +642,7 @@ impl Pianist {
             refused_sites: Vec::new(),
             at_site: HashMap::new(),
             script_frame: HashMap::new(),
+            list_caught_up: HashMap::new(),
             packet_frame: 0,
             diet: diet::Diet::from_env(),
             hits: HashMap::new(),
@@ -942,6 +946,7 @@ impl Brain {
                 pianist.list_replaced(id, steps.is_some());
             }
             pianist.script_frame.insert(name.clone(), tick.frame);
+            pianist.list_caught_up.remove(&name);
             match steps {
                 Some(steps) => {
                     pianist.scripts.insert(name, steps.into());

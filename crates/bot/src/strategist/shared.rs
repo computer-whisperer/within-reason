@@ -157,6 +157,10 @@ pub struct Field {
     /// Every unit the commander reaches by build lists: the faction's whole roster, with metal cost. Merged over
     /// seats of different factions (a lobby seat on side Random), it holds both factions' units.
     pub roster: Vec<(String, u32)>,
+    /// What each builder of ours (by actor name, standing or being built) can make by a list step: the step word (a
+    /// unit's internal name, a role word of its faction, `extractor`) to whether the step needs a place after it
+    /// (a turret, a radar, a jammer: the `queue` tool refuses a placed building with no place).
+    pub builders: BTreeMap<String, BTreeMap<String, bool>>,
     /// This seat's faction as the start script names it (Armada, Cortex, Legion); merged, every seat's with its team.
     pub factions: Vec<(i32, String)>,
     pub score: Score,

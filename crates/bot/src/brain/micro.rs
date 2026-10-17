@@ -80,7 +80,8 @@ impl Brain {
                     };
                     match hunting {
                         Some(h) => {
-                            commitment.insert(*id, Commitment::Hunt(micro::Hunt { quarry: h.quarry, leash_from: h.from, leash: super::pianist::groups::HUNT_LEASH }));
+                            let leash_from = h.anchors.iter().find(|(hunter, _)| hunter == id).map_or(h.from, |(_, at)| *at);
+                            commitment.insert(*id, Commitment::Hunt(micro::Hunt { quarry: h.quarry, leash_from, leash: super::pianist::groups::HUNT_LEASH }));
                             footwork.insert(*id, Footwork::raw());
                         }
                         None => {

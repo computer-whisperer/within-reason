@@ -181,6 +181,7 @@ impl Shared {
                 }
             }
             merged.factions.extend(f.factions.iter().cloned());
+            merged.builders.extend(f.builders.iter().map(|(k, v)| (k.clone(), v.clone())));
             merged.resurrection_bots += f.resurrection_bots;
             for field in &f.wreck_fields {
                 if !merged.wreck_fields.iter().any(|have| have.0.grid == field.0.grid && have.1 == field.1) {
