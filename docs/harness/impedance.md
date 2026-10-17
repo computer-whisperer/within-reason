@@ -40,13 +40,23 @@ fused on the decode's reading (every other build type still is; the players name
 and the player's report shows each builder's extractor reading (`reads: extractors 0.23 (how the packet reads for
 it; this one shuts no move)`) beside the groups' place readings.
 
+**Built 2026-10-16 night, the first batch of levers for the asks nothing carried** (the study §4; the user: "That
+first batch you outlined sounds good, proceed"): `produce` groups a factory's output per unit type (`"group":
+"by_type"`) and has its newcomers walk to their group so many together (`"join_in": N`, waiting beside the plant
+out of its lane); the whole-group attack returns to the menu when the decode reads every detachment as forbidden;
+the whole-group attack and the shelling of a party of aircraft carry the forbidden question (the decode's `Air`
+reading); a `reclaim` list step takes a grid cell or a place (the wreck field there) and runs until the wrecks are
+gone; an id step naming a building the builder cannot make is its help on that building, waiting for its starter;
+`remove` takes `"<type> at <place or cell>"` for a reclaim. Each has unit tests; none has been in a game: the next
+games' sweeps and reviews measure them (`run/impedance_sweep.py`, the brief's §4 asks).
+
 Still open, each the user's call: the decode's other readings (places, joins, follows, detachments) stay fuses at
-their bars. The tools: `remove` wants handles the picture gives only in the exit-lane line; `transfer` refuses the
-whole list for one stale name; a player's `mark` removal does not touch the side's mark of that name; `produce
-"new"` gives no name to write the packet with. Jev and the decode: the packet weights the pick and does not command
-(K-jev-the-packet-weights-the-pick-and-does-not-command); an ordered constructor paragraph reads as no extractors
-and a negated place as a destination (K-jev-the-decode-reads-a-constructor-paragraph-by-its-words-not-its-meaning);
-the forbidden mark acts at 0.70 and on detachments only; the commander's standing rule has no instructions clause.
-What no lever carries (the study's §4): where a builder stands, a route's order, a hunt bounded by a place, targets
-inside a fight, converging, splitting by unit type, joining in groups, routes that avoid reach, a forced re-ask,
-rove with a destination, cross-seat joins.
+their bars. The tools: `transfer` refuses the whole list for one stale name; a player's `mark` removal does not
+touch the side's mark of that name; `produce "new"` gives no name to write the packet with. Jev and the decode: the
+packet weights the pick and does not command (K-jev-the-packet-weights-the-pick-and-does-not-command); an ordered
+constructor paragraph reads as no extractors and a negated place as a destination
+(K-jev-the-decode-reads-a-constructor-paragraph-by-its-words-not-its-meaning); the forbidden mark acts at 0.70; the
+commander's standing rule has no instructions clause. What no lever carries yet (the study's §4): where a builder
+stands (the exit lane), a route's order, a hunt bounded by a place, targets inside a fight, converging, routes that
+avoid reach, a forced re-ask or a direct order, rove with a destination, cross-seat joins, a contact named, a
+repeating `produce` entry.

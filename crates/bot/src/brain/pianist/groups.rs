@@ -5,7 +5,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-use bot_protocol::{Command, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
+use bot_protocol::{Command, Lane, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
 
 use super::super::roster::Kit;
 use super::super::{Brain, FRAMES_PER_SECOND};
@@ -62,6 +62,19 @@ pub(crate) struct Hunt {
 pub(crate) const HUNT_LEASH: f32 = 900.0;
 /// A follower is sent after its ward again when the ward has moved this far from where the follower was last sent.
 const FOLLOW_STEP: f32 = 150.0;
+/// A newcomer waiting for its fellows (`produce` ... `join_in`) stands this far past its plant's lane edge.
+const WAIT_BESIDE: f32 = 80.0;
+
+/// Where a newcomer waits for its fellows: beside its plant's exit lane, out of it, on the side toward where it will
+/// walk (`toward`: its group's body).
+pub(super) fn beside_lane(lane: &Lane, toward: Vec3) -> Vec3 {
+    let (dx, dz) = (lane.to.x - lane.from.x, lane.to.z - lane.from.z);
+    let len = dx.hypot(dz).max(1.0);
+    let (px, pz) = (-dz / len, dx / len);
+    let side = if (toward.x - lane.from.x) * px + (toward.z - lane.from.z) * pz >= 0.0 { 1.0 } else { -1.0 };
+    let off = (lane.half_width + WAIT_BESIDE) * side;
+    Vec3 { x: lane.from.x + px * off, y: lane.from.y, z: lane.from.z + pz * off }
+}
 
 /// Where a follower is sent this second (H-HANDS-FOLLOW), or nowhere while its last order still fits: after its
 /// ward when the ward has moved `FOLLOW_STEP` from where the follower was last sent (`at`).
@@ -129,6 +142,10 @@ pub(crate) struct Group {
     /// said in the picture as reinforcements on the way (H-HANDS-GROUP-BODY). They are sent after the body while it
     /// moves and take the group's order when they reach it (H-HANDS-JOINERS).
     pub joining: HashMap<UnitId, Vec3>,
+    /// Of the joiners, the newcomers waiting beside their plant for enough fellows to walk together (`produce` ...
+    /// `join_in`): (the plant, the soldier). Not sent after the body and not given the group's orders until
+    /// `release_waiting` sends them.
+    pub waiting: Vec<(UnitId, UnitId)>,
     /// Gathering: closing up on its front (the `gather` move); the walk there is its task.
     pub gathering: bool,
     /// Shelling a party from a standoff: the long-reach members at the standoff, the rest between (`shell`).
@@ -201,7 +218,7 @@ impl Group {
     }
 
     pub(crate) fn new(name: String, domain: Domain, members: Vec<UnitId>, task: GroupTask, frame: i32) -> Group {
-        Group { name, domain, members, task, last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, joining: HashMap::new(), gathering: false, shelling: false, reached: Vec::new(), met: None, rove_log: Vec::new() }
+        Group { name, domain, members, task, last_order: frame, best_to_go: f32::INFINITY, progressed: frame, stall_warned: false, parent: None, born: frame, losses: Vec::new(), losses_since: frame, loss_warned: false, joining: HashMap::new(), waiting: Vec::new(), gathering: false, shelling: false, reached: Vec::new(), met: None, rove_log: Vec::new() }
     }
 
     /// The group's body toward `toward` (the goal of a walk, the nearest enemy, or nothing: then the front is the
@@ -246,16 +263,24 @@ impl Group {
     /// alone a plant's stream at the yard adopted itself one unit at a time and the body's tail never left home
     /// (player-10 18:20: "its tail is 4649 behind at yard2"); adopted with no order, a Rascal stood idle at the yard
     /// 47 s while its group walked on, and the next newcomer was sent to it as the nearest member (human-27 1:47-2:34).
-    pub(crate) fn admit(&mut self, unit: &OwnUnit, own: &[OwnUnit], snap: impl Fn(Vec3) -> Vec3) -> Vec<Command> {
+    /// Under `wait` (the plant, how many walk together, where to stand) a newcomer far from the body waits beside
+    /// its plant instead, until `release_waiting` sends it with its fellows.
+    pub(crate) fn admit(&mut self, unit: &OwnUnit, own: &[OwnUnit], snap: impl Fn(Vec3) -> Vec3, wait: Option<(UnitId, usize, Vec3)>) -> Vec<Command> {
         let body = self.body(own, None);
-        let core_nearest = body.as_ref().and_then(|b| b.core.iter().map(|m| m.pos).min_by(|a, b| a.dist2d(unit.pos).total_cmp(&b.dist2d(unit.pos))));
-        let any_nearest = self.units(own).iter().filter(|m| !self.joining.contains_key(&m.id)).map(|m| m.pos).min_by(|a, b| a.dist2d(unit.pos).total_cmp(&b.dist2d(unit.pos)));
         let adopted = body.as_ref().is_some_and(|b| b.at.dist2d(unit.pos) <= ADOPT_RADIUS);
         self.members.push(unit.id);
         if adopted {
             return self.rejoin_orders(&[unit]);
         }
-        match core_nearest.or(any_nearest) {
+        if let Some((plant, n, beside)) = wait
+            && n >= 2
+        {
+            let to = snap(beside);
+            self.joining.insert(unit.id, to);
+            self.waiting.push((plant, unit.id));
+            return vec![Command::Move { unit: unit.id, to, queue: false }];
+        }
+        match self.nearest_of_body(unit, own) {
             Some(to) => {
                 let to = snap(to);
                 self.joining.insert(unit.id, to);
@@ -263,6 +288,30 @@ impl Group {
             }
             None => Vec::new(),
         }
+    }
+
+    /// Where a joiner is sent: the nearest other member of the body's core, else the nearest other member not
+    /// itself joining.
+    fn nearest_of_body(&self, joiner: &OwnUnit, own: &[OwnUnit]) -> Option<Vec3> {
+        let from = joiner.pos;
+        let body = self.body(own, None);
+        let core_nearest = body.as_ref().and_then(|b| b.core.iter().filter(|m| m.id != joiner.id).map(|m| m.pos).min_by(|a, b| a.dist2d(from).total_cmp(&b.dist2d(from))));
+        core_nearest.or_else(|| self.units(own).iter().filter(|m| m.id != joiner.id && !self.joining.contains_key(&m.id)).map(|m| m.pos).min_by(|a, b| a.dist2d(from).total_cmp(&b.dist2d(from))))
+    }
+
+    /// The newcomers waiting beside `plant` walk to the body together (`join_in`), as joiners from here.
+    pub(crate) fn release_waiting(&mut self, plant: UnitId, own: &[OwnUnit], snap: impl Fn(&OwnUnit, Vec3) -> Vec3) -> Vec<Command> {
+        let mine: Vec<UnitId> = self.waiting.iter().filter(|(p, _)| *p == plant).map(|(_, id)| *id).collect();
+        self.waiting.retain(|(p, _)| *p != plant);
+        let mut commands = Vec::new();
+        for id in mine {
+            let Some(unit) = own.iter().find(|u| u.id == id) else { continue };
+            let Some(to) = self.nearest_of_body(unit, own) else { continue };
+            let to = snap(unit, to);
+            self.joining.insert(id, to);
+            commands.push(Command::Move { unit: id, to, queue: false });
+        }
+        commands
     }
 
     /// Orders for members rejoining the task (a newcomer that has reached the body): what the task would give
@@ -416,30 +465,51 @@ impl Brain {
             }
             loose.retain(|u| !given.iter().any(|g| g.id == u.id));
         }
+        let mut formed: Vec<String> = Vec::new();
         for unit in loose {
             let domain = self.world.domain_of(unit.def);
             let factory = pianist.produced_by.get(&unit.id).copied();
             let allowance = factory.and_then(|f| self.allowed_units(&self.actor_name(f)));
             let named = allowance.as_ref().and_then(|a| a.group.clone());
             let call = allowance.as_ref().map_or(0, |a| a.call);
-            let wanted = group_for_newcomer(named.as_deref(), call, factory.and_then(|f| pianist.rally.get(&f)).map(|(c, g)| (*c, g.as_str())));
+            // `by_type`: the factory's group for this unit type, kept apart from its other types'.
+            let by_type = named.as_deref() == Some("by_type");
+            let rally_key = factory.map(|f| (f, by_type.then_some(unit.def)));
+            let wanted = group_for_newcomer(named.as_deref(), call, rally_key.and_then(|k| pianist.rally.get(&k)).map(|(c, g)| (*c, g.as_str())));
             let target = wanted.and_then(|name| pianist.groups.iter().position(|g| g.name == name && g.domain == domain));
             match target {
                 Some(i) => {
                     let walker = self.walker_of(unit.def);
-                    commands.extend(pianist.groups[i].admit(unit, own, |to| self.snap_for(walker, to)));
+                    // `join_in`: it waits beside its plant, out of the lane, for its fellows.
+                    let wait = allowance.as_ref().and_then(|a| a.join_in).zip(factory).and_then(|(n, f)| {
+                        let plant = own.iter().find(|u| u.id == f)?;
+                        let lane = self.lane_of(plant)?;
+                        let toward = pianist.groups[i].body(own, None).map_or(plant.pos, |b| b.at);
+                        Some((f, n, beside_lane(&lane, toward)))
+                    });
+                    commands.extend(pianist.groups[i].admit(unit, own, |to| self.snap_for(walker, to), wait));
                 }
                 None => {
                     let name = pianist.new_group_name();
-                    if let Some(f) = factory {
+                    if let Some(key) = rally_key {
                         // `new` asked for one fresh group, not one per soldier: the call's later soldiers join this one.
-                        pianist.rally.insert(f, (call, name.clone()));
+                        pianist.rally.insert(key, (call, name.clone()));
+                        formed.push(format!(
+                            "group_{name} formed: {}'s first {}{}",
+                            self.actor_name(key.0),
+                            self.name(unit.def),
+                            if by_type { " (one group per unit type)" } else { "" }
+                        ));
                     }
                     let group = Group::new(name, domain, vec![unit.id], GroupTask::Hold { since: frame, committed: false, picked: false }, frame);
                     commands.extend(group.hold_orders(&[unit]));
                     pianist.groups.push(group);
                 }
             }
+        }
+        for text in formed {
+            pianist.done.push(format!("{} {text}", super::picture::clock(frame)));
+            pianist.note(frame, text);
         }
         // Standing orders, under each group's footwork rules (H-HANDS-LANE).
         let mut stalled: Vec<String> = Vec::new();
@@ -457,6 +527,23 @@ impl Brain {
             }
             let units = group.units(own);
             group.joining.retain(|id, _| group.members.contains(id));
+            group.waiting.retain(|(_, id)| group.members.contains(id));
+            // The newcomers waiting beside a plant (`join_in`) walk together once enough of them stand, or at once
+            // when the plant's allowance no longer asks it.
+            let plants: Vec<UnitId> = group.waiting.iter().map(|(p, _)| *p).fold(Vec::new(), |mut v, p| {
+                if !v.contains(&p) {
+                    v.push(p);
+                }
+                v
+            });
+            for plant in plants {
+                let asked = self.allowed_units(&self.actor_name(plant)).and_then(|a| a.join_in);
+                let standing = group.waiting.iter().filter(|(p, _)| *p == plant).count();
+                if asked.is_none_or(|n| standing >= n) {
+                    commands.extend(group.release_waiting(plant, own, |u, to| self.snap_for(self.walker_of(u.def), to)));
+                    route_news.push(format!("group_{}: {standing} new soldiers walk to it together from {}", group.name, self.actor_name(plant)));
+                }
+            }
             // A newcomer that has reached the body is of it (or was sent nowhere: nothing stands to reach).
             let goal = match &group.task { GroupTask::Move { to, .. } => Some(*to), GroupTask::Engage { at, .. } | GroupTask::Follow { at, .. } => Some(*at), GroupTask::Hunt(h) => Some(h.at), GroupTask::Hold { .. } | GroupTask::Rove { .. } => None };
             if let Some(body) = group.body(own, goal) {
@@ -464,6 +551,7 @@ impl Brain {
                 let joined: Vec<UnitId> = body.joining.iter().filter(|u| u.pos.dist2d(core_at) <= ADOPT_RADIUS || self.stuck.contains_key(&u.id)).map(|u| u.id).collect();
                 for id in joined {
                     group.joining.remove(&id);
+                    group.waiting.retain(|(_, w)| *w != id);
                     // Onto the task with the rest.
                     if let Some(u) = units.iter().find(|u| u.id == id) {
                         commands.extend(group.rejoin_orders(&[u]));
@@ -474,6 +562,9 @@ impl Brain {
                 // group of two walked to where the two had stood and waited there with no order for 35 s).
                 let core: Vec<Vec3> = body.core.iter().filter(|u| !group.joining.contains_key(&u.id)).map(|u| u.pos).collect();
                 for unit in &units {
+                    if group.waiting.iter().any(|(_, w)| *w == unit.id) {
+                        continue;
+                    }
                     let Some(sent) = group.joining.get_mut(&unit.id) else { continue };
                     let Some(nearest) = core.iter().copied().min_by(|a, b| a.dist2d(unit.pos).total_cmp(&b.dist2d(unit.pos))) else { continue };
                     if let Some(to) = follow_step(nearest, *sent) {
@@ -482,6 +573,8 @@ impl Brain {
                     }
                 }
             }
+            // The newcomers still waiting beside their plant (`join_in`) take none of the task's orders below.
+            let units: Vec<&OwnUnit> = units.into_iter().filter(|u| !group.waiting.iter().any(|(_, w)| *w == u.id)).collect();
             // The body's place, not the centre of every member: the stream still joining from the plants would drag
             // the centre home (player-10 18:20: a front at spot_40 with 34 waiting at the yard read "0 of 59 arrived").
             let Some(centre) = group.body(own, goal).map(|b| b.at) else { continue };
@@ -776,13 +869,14 @@ pub(crate) fn centre_of_enemies(units: &[&bot_protocol::EnemyUnit]) -> Option<Ve
 }
 
 /// The group a newcomer wants (H-HANDS-GROUPS): the one the player named for its factory; for `new`, the factory's
-/// own group when that was founded under this `produce` call, else none (a fresh group, which founds it); else the
-/// factory's own; a soldier of no factory forms its own.
+/// own group when that was founded under this `produce` call, else none (a fresh group, which founds it); for
+/// `by_type`, the factory's group for this unit type (`factory_group` is then looked up by the type), kept like the
+/// factory's own; else the factory's own; a soldier of no factory forms its own.
 fn group_for_newcomer(named: Option<&str>, call: u64, factory_group: Option<(u64, &str)>) -> Option<String> {
     match named {
         Some("new") => factory_group.filter(|(founded, _)| *founded == call).map(|(_, g)| g.to_string()),
+        Some("by_type") | None => factory_group.map(|(_, g)| g.to_string()),
         Some(name) => Some(name.trim_start_matches("group_").to_string()),
-        None => factory_group.map(|(_, g)| g.to_string()),
     }
 }
 
@@ -957,7 +1051,7 @@ mod tests {
         let mut all = ours.clone();
         let beside = own(700, 1, at(ours[0].pos.x + 100.0, ours[0].pos.z));
         all.push(beside.clone());
-        let orders = group.admit(&beside, &all, |p| p);
+        let orders = group.admit(&beside, &all, |p| p, None);
         assert!(matches!(orders[..], [Command::Move { unit, to, .. }] if unit == beside.id && to.x == 6000.0), "{orders:?}");
         assert!(!group.joining.contains_key(&beside.id) && group.members.contains(&beside.id));
         // A member still joining stands far off; the newcomer far from the body goes to the core, not to it.
@@ -967,9 +1061,74 @@ mod tests {
         group.joining.insert(stray.id, stray.pos);
         let far = own(702, 1, at(1100.0, 4000.0));
         all.push(far.clone());
-        let orders = group.admit(&far, &all, |p| p);
+        let orders = group.admit(&far, &all, |p| p, None);
         assert!(matches!(orders[..], [Command::Move { unit, to, .. }] if unit == far.id && to.dist2d(stray.pos) > 1000.0), "{orders:?}");
         assert!(group.joining.contains_key(&far.id));
+    }
+
+    /// `join_in`: a newcomer far from the body waits beside its plant, out of the exit lane on the side toward the
+    /// body, and is not sent after the body; `release_waiting` sends the plant's waiting newcomers together. One
+    /// beside the body is of it at once, `join_in` or not.
+    #[test]
+    fn newcomers_under_join_in_wait_beside_their_plant_and_walk_together() {
+        use super::super::fixtures::{at, e3, own};
+        use bot_protocol::Lane;
+        let lane = Lane { from: at(1000.0, 1000.0), to: at(1000.0, 1400.0), half_width: 100.0 };
+        assert_eq!(beside_lane(&lane, at(0.0, 2000.0)), at(820.0, 1000.0));
+        assert_eq!(beside_lane(&lane, at(3000.0, 2000.0)), at(1180.0, 1000.0));
+        let (_brain, ours, _enemies, _parties) = e3();
+        let mut group = Group::new("A".into(), Domain::Ground, ours.iter().take(12).map(|u| u.id).collect(), GroupTask::Move { to: at(6000.0, 1700.0), place: "spot_18".into(), fight: false, since: 0 }, 0);
+        let mut all = ours.clone();
+        let plant = UnitId(5);
+        let beside = at(900.0, 4000.0);
+        for id in [700, 701] {
+            let newcomer = own(id, 1, at(1100.0, 4000.0));
+            all.push(newcomer.clone());
+            let orders = group.admit(&newcomer, &all, |p| p, Some((plant, 3, beside)));
+            assert!(matches!(orders[..], [Command::Move { unit, to, .. }] if unit == newcomer.id && to == beside), "{orders:?}");
+        }
+        assert_eq!(group.waiting, vec![(plant, UnitId(700)), (plant, UnitId(701))]);
+        assert!(group.joining.contains_key(&UnitId(700)) && group.joining.contains_key(&UnitId(701)));
+        let orders = group.release_waiting(plant, &all, |_, to| to);
+        assert_eq!(orders.len(), 2);
+        assert!(orders.iter().all(|o| matches!(o, Command::Move { to, .. } if to.dist2d(at(4150.0, 1900.0)) < 200.0)), "to the nearest of the body: {orders:?}");
+        assert!(group.waiting.is_empty() && group.joining.len() == 2);
+        let near = own(702, 1, at(ours[0].pos.x + 50.0, ours[0].pos.z));
+        all.push(near.clone());
+        group.admit(&near, &all, |p| p, Some((plant, 3, beside)));
+        assert!(!group.joining.contains_key(&near.id) && group.waiting.is_empty());
+    }
+
+    /// `produce` ... `by_type`: a factory's newcomers form one group per unit type, each said when it forms, and a
+    /// later soldier of a type joins that type's group.
+    #[test]
+    fn a_factorys_newcomers_form_one_group_per_unit_type_under_by_type() {
+        use super::super::fixtures::{at, brain_of, own};
+        use crate::strategist::shared::{Allowance, Shared};
+        use bot_protocol::{Resource, Snapshot};
+        let mut brain = brain_of(&["armflash", "armwar", "armllt"]);
+        let shared = std::sync::Arc::new(Shared::default());
+        // The plant is unknown to the brain's units, so its name is constructor_50; the allowance is keyed by it.
+        shared.allowed.lock().unwrap().insert("constructor_50".into(), Allowance { call: 1, units: Vec::new(), group: Some("by_type".into()), join_in: None });
+        brain.strategist = Some(shared);
+        let mut pianist = super::super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        for id in [1, 2, 3] {
+            pianist.produced_by.insert(UnitId(id), UnitId(50));
+        }
+        brain.pianist = Some(pianist);
+        let own = vec![own(1, 1, at(1000.0, 1000.0)), own(2, 2, at(1050.0, 1000.0)), own(3, 1, at(1100.0, 1000.0))];
+        let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies: Vec::new(), wrecks: None } };
+        let id = UnitDefId(3);
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        let mut commands = Vec::new();
+        brain.keep_groups(&tick, &kit, &mut commands);
+        let pianist = brain.pianist.as_ref().unwrap();
+        let groups: Vec<(String, Vec<UnitId>)> = pianist.groups.iter().map(|g| (g.name.clone(), g.members.clone())).collect();
+        assert_eq!(groups.len(), 2, "{groups:?}");
+        assert!(pianist.groups.iter().any(|g| g.members == [UnitId(1), UnitId(3)]) && pianist.groups.iter().any(|g| g.members == [UnitId(2)]), "the Blitzes together, the Centurion apart: {groups:?}");
+        assert_eq!(pianist.done.iter().filter(|d| d.contains("formed: constructor_50's first")).count(), 2, "{:?}", pianist.done);
+        assert!(pianist.done.iter().any(|d| d.contains("armflash (one group per unit type)")), "{:?}", pianist.done);
     }
 
     #[test]
@@ -982,5 +1141,8 @@ mod tests {
         assert_eq!(group_for_newcomer(Some("new"), 3, Some((3, "C"))), Some("C".to_string()));
         assert_eq!(group_for_newcomer(Some("new"), 4, Some((3, "C"))), None);
         assert_eq!(group_for_newcomer(None, 1, None), None);
+        // `by_type`: the type's group of the factory, whatever call founded it; none founds one.
+        assert_eq!(group_for_newcomer(Some("by_type"), 4, Some((2, "D"))), Some("D".to_string()));
+        assert_eq!(group_for_newcomer(Some("by_type"), 4, None), None);
     }
 }

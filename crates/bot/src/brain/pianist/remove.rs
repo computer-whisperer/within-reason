@@ -79,7 +79,7 @@ impl Brain {
             match removal {
                 Removal::Destruct { targets } => {
                     for handle in targets {
-                        match self.unit_by_handle(&handle, own) {
+                        match self.unit_named(&handle, own) {
                             Some(u) => {
                                 commands.push(Command::SelfDestruct { unit: u.id });
                                 notes.push(format!("{handle} is self-destructing on the player's order"));
@@ -90,10 +90,12 @@ impl Brain {
                 }
                 Removal::Reclaim { targets, by } => {
                     for handle in targets {
-                        let Some(target) = self.unit_by_handle(&handle, own) else {
+                        let Some(target) = self.unit_named(&handle, own) else {
                             notes.push(format!("{handle} no longer stands; nothing to take apart"));
                             continue;
                         };
+                        // "<type> at <place>": the step names the unit found, so the list carries one unit.
+                        let handle = if handle.contains(" at ") { format!("{} ({handle})", self.handle(target)) } else { handle };
                         let builder = match &by {
                             Some(name) => own.iter().find(|u| self.world.is_mobile_builder(u.def) && self.actor_name(u.id) == *name),
                             None => self.free_builder_near(target, own),
@@ -109,7 +111,8 @@ impl Brain {
         }
         let pianist = self.pianist.as_mut().expect("pianist mode");
         for (builder, handle) in steps {
-            pianist.scripts.entry(builder.clone()).or_insert_with(VecDeque::new).push_front(format!("reclaim {handle}"));
+            let step = handle.split_once(' ').map_or(handle.as_str(), |(h, _)| h);
+            pianist.scripts.entry(builder.clone()).or_insert_with(VecDeque::new).push_front(format!("reclaim {step}"));
             notes.push(format!("{builder} takes {handle} apart next, at the front of its list"));
         }
         for text in notes {

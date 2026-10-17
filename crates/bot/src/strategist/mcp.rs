@@ -186,13 +186,13 @@ fn tool_list() -> Value {
               "description": "Name a place of your own for your hands: an object of name to [x, z] map coordinates or a grid cell (\"E7\": its centre), or null to forget it. A marked place joins the picture's places at once, so instructions can send groups and builders there (\"group_B: advance to south_gate\"), and its entry says what enemy is near. Names are lower-case words with underscores; home, spot_N, passage_N and group_N are taken. Any spot or passage you name in the packet is on your hands' menu already, however far; mark is for places that are not spots.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }, { "type": "string" }, { "type": "null" } ] }, "description": "Place name to [x, z], a grid cell, or null." } },
             { "name": "produce",
-              "description": "What each factory or builder may build, and for a factory which group its new soldiers join ({\"plant_7\": {\"units\": [\"armflash\"], \"group\": \"group_A\"}}, or \"new\" for a fresh group of that factory's own; by default a factory's soldiers gather in one group of its own and nothing merges by itself): an object of actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" (every commander and constructor) or \"all\" (everyone) to a list of unit names (as the roster writes them: armpw, armham, armck, armfus; or role words the seat's faction fills in: constructor, vehicle_constructor, raider, line, rez, advanced_constructor, and the buildings' role words), or null to lift the restriction. A name with a count after a colon (armck:1) is made that many more times from now and then drops off the list by itself; a factory makes its counted entries in the order written, each to its count, without asking (armcv:1, armfav:3, armcv:1, armflash is one constructor, three Rovers, one constructor, then Blitzes); saying the same list again restarts it from the first entry: the way to say 'one constructor, then raiders' to hands that cannot count. With no counted entry left a factory is offered only the entries without a count, every time it is asked; your instructions say which of them and when. A builder without a list is offered the usual buildings (generators, factories, light and heavy turrets, radar, storage, the tier-2 lab and extractor, fusion); a list replaces that, so a fusion reactor, an aircraft plant or a jammer from a constructor is asked for here. Use it when the packet's words are not getting the mix you want. A list naming nothing the actor can build leaves it unrestricted; the actor's entry in the picture shows its list. Your policy is not bound by lists: it may order anything a builder can build.",
+              "description": "What each factory or builder may build, and for a factory which group its new soldiers join ({\"plant_7\": {\"units\": [\"armflash\"], \"group\": \"group_A\"}}, or \"new\" for a fresh group of that factory's own, or \"by_type\" for one group of that factory's per unit type, so its Rovers and its Blitzes never share a group; by default a factory's soldiers gather in one group of its own and nothing merges by itself) and how they walk to it (\"join_in\": 4: its new soldiers wait beside the plant, out of its lane, and walk to their group four together, never alone; null lifts it): an object of actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" (every commander and constructor) or \"all\" (everyone) to a list of unit names (as the roster writes them: armpw, armham, armck, armfus; or role words the seat's faction fills in: constructor, vehicle_constructor, raider, line, rez, advanced_constructor, and the buildings' role words), or null to lift the restriction. A name with a count after a colon (armck:1) is made that many more times from now and then drops off the list by itself; a factory makes its counted entries in the order written, each to its count, without asking (armcv:1, armfav:3, armcv:1, armflash is one constructor, three Rovers, one constructor, then Blitzes); saying the same list again restarts it from the first entry: the way to say 'one constructor, then raiders' to hands that cannot count. With no counted entry left a factory is offered only the entries without a count, every time it is asked; your instructions say which of them and when. A builder without a list is offered the usual buildings (generators, factories, light and heavy turrets, radar, storage, the tier-2 lab and extractor, fusion); a list replaces that, so a fusion reactor, an aircraft plant or a jammer from a constructor is asked for here. Use it when the packet's words are not getting the mix you want. A list naming nothing the actor can build leaves it unrestricted; the actor's entry in the picture shows its list. Your policy is not bound by lists: it may order anything a builder can build.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "null" } ] }, "description": "Actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" or \"all\" to unit names, or null." } },
             { "name": "transfer",
               "description": "Move metal, energy or units between seats of ours (a game with several seats: the `seats:` line): {\"metal\": 800, \"energy\": 0, \"from\": \"t2\", \"to\": \"t1\"} sends what the receiving seat's store can hold (the game caps it there; what does not fit stays), or {\"units\": [\"group_A_t2\", \"constructor_31002\", \"plant_4410\"], \"to\": \"t1\"} gives those units (a group's members, a builder, a plant, by actor name or <unit>_<id> handle) to that seat, whose hands take them into a group of their own and whose builders they become. What it makes possible: one army under one seat, the advanced plant's seat fed metal by the others, a tier-2 constructor made by one seat and given to each, a dead seat's plants and constructors given to a live one. Your hands carry it out from their next look and say what went.",
               "inputSchema": { "type": "object", "properties": { "metal": { "type": "number" }, "energy": { "type": "number" }, "units": { "type": "array", "items": { "type": "string" } }, "from": { "type": "string" }, "to": { "type": "string" } }, "required": ["to"] } },
             { "name": "remove",
-              "description": "Take apart or blow up what we own: {\"reclaim\": [handles], \"by\": \"constructor_N\" (optional; else the nearest builder without a list)} puts `reclaim <handle>` steps at the front of that builder's list, and most of the metal comes back; {\"destruct\": [handles]} sends the engine's self-destruct, and nothing comes back. A handle is a unit's name and id as the picture writes it (armsolar_31002: a factory's `yard` entry names the buildings in its exit lane) or an actor's name (constructor_N, plant_N, commander). Every unit that self-destructs blows up: the answer says the blast's radius and damage and what of ours stands inside it, and a destruct that would kill something of ours is refused unless \"accept_losses\": true. The commander's blast is the game's largest; a reclaim is the safe way beside anything that matters.",
+              "description": "Take apart or blow up what we own: {\"reclaim\": [handles], \"by\": \"constructor_N\" (optional; else the nearest builder without a list)} puts `reclaim <handle>` steps at the front of that builder's list, and most of the metal comes back; {\"destruct\": [handles]} sends the engine's self-destruct, and nothing comes back. A handle is a unit's name and id as the picture writes it (armsolar_31002: a factory's `yard` entry names the buildings in its exit lane) or an actor's name (constructor_N, plant_N, commander); for a reclaim, \"<type> at <place or grid cell>\" (\"armwin at spot_64\", \"armsolar at E4\") names the nearest standing unit of that type to the place, for a building the picture gives no handle for. Every unit that self-destructs blows up: the answer says the blast's radius and damage and what of ours stands inside it, and a destruct that would kill something of ours is refused unless \"accept_losses\": true. The commander's blast is the game's largest; a reclaim is the safe way beside anything that matters.",
               "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "reclaim": { "type": "array", "items": { "type": "string" } }, "by": { "type": "string" }, "destruct": { "type": "array", "items": { "type": "string" } }, "accept_losses": { "type": "boolean" } } } },
             { "name": "fire",
               "description": "Fire a nuclear silo's ready missile at a place: {\"silo\": \"armsilo_31002\" (its handle as the picture's `stockpilers` entry writes it), \"at\": [x, z] or a grid cell (\"E7\": its centre)}. The silo launches about nine seconds after the order and the warhead lands thirteen seconds later: 12,500 damage at the point, nothing 640 away, so aim at the point itself (his advanced plant, his fusions, his commander standing still), not at a cell. The game keeps a silo stockpiling to ten missiles on its own, each two minutes and about 1,042 energy a second; `fire` spends one. His anti-nuke takes any missile aimed within 2,000 of it once it has an interceptor (90 s after it stands); the enemy's buildings by place name his anti-nukes with that coverage. Refused when no missile is ready.",
@@ -501,7 +501,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                                 return Err(format!("{name}: '{step}': an id is one word after everything else in the step (armavp avp_yard #avp1)"));
                             }
                             if let Some(tag) = tag {
-                                if matches!(kind, "assist" | "stop") {
+                                if matches!(kind, "assist" | "stop" | "reclaim") {
                                     return Err(format!("{name}: '{step}': an id goes on a step that builds something, not on {kind}"));
                                 }
                                 if tag.len() > 24 || !tag.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
@@ -511,8 +511,17 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                             if kind == "stop" && i > 0 {
                                 return Err(format!("{name}: 'stop' only begins a list (it drops the build in progress, then the list follows)"));
                             }
-                            if !matches!(kind, "extractor" | "assist" | "stop") && !crate::brain::roster::ROLE_WORDS.contains(&kind) && !roster.is_empty() && !roster.contains(&kind.to_string()) {
-                                return Err(format!("{name}: '{step}' is not a step; a step is extractor, assist, a role word ({}) or a unit's internal name from the roster (armsolar, armllt spot_3)", crate::brain::roster::ROLE_WORDS.join(", ")));
+                            if !matches!(kind, "extractor" | "assist" | "stop" | "reclaim") && !crate::brain::roster::ROLE_WORDS.contains(&kind) && !roster.is_empty() && !roster.contains(&kind.to_string()) {
+                                return Err(format!("{name}: '{step}' is not a step; a step is extractor, assist, reclaim, a role word ({}) or a unit's internal name from the roster (armsolar, armllt spot_3)", crate::brain::roster::ROLE_WORDS.join(", ")));
+                            }
+                            // `reclaim <what>`: a unit of ours by handle, a wreck field by its grid cell or by a place.
+                            if kind == "reclaim" {
+                                let what = body.split_whitespace().nth(1).unwrap_or_default();
+                                let cell = what.len() == 2 && what.starts_with(|c: char| c.is_ascii_alphabetic()) && what.ends_with(|c: char| c.is_ascii_digit());
+                                let handle = what.contains('_') || what == "commander";
+                                if what.is_empty() || !(cell || handle || what.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')) {
+                                    return Err(format!("{name}: '{step}': reclaim takes a unit of ours by handle (armsolar_31002), a wreck field by its grid cell (reclaim E4) or by a place (reclaim spot_40)"));
+                                }
                             }
                             // What this builder can make, and what needs a place, refused now rather than skipped by
                             // the hands with a line in the next report (the impedance tally, 2026-10-16: 180 "this
@@ -521,10 +530,12 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                             if let Some(can) = field.builders.get(name.as_str()).filter(|_| !matches!(kind, "assist" | "stop" | "reclaim")) {
                                 let place = words.next().filter(|p| !(kind == "extractor" && *p == "nearest"));
                                 match can.get(kind) {
+                                    // An id's building it cannot make: it helps whoever builds that id (the hands).
+                                    None if tag.is_some() => {}
                                     None => {
                                         let mut makes: Vec<&str> = can.keys().map(String::as_str).filter(|w| !crate::brain::roster::ROLE_WORDS.contains(w) && *w != "extractor").collect();
                                         makes.sort_unstable();
-                                        return Err(format!("{name}: '{step}': it cannot build {kind}; what it builds: {}", makes.join(", ")));
+                                        return Err(format!("{name}: '{step}': it cannot build {kind}; what it builds: {} (with an id, '{kind} #name', it helps whichever builder starts that building)", makes.join(", ")));
                                     }
                                     Some(true) if place.is_none() => return Err(format!("{name}: '{step}': a {kind} stands at a place: write the place after it (armllt spot_3, armrad home)")),
                                     _ => {}
@@ -659,7 +670,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             Ok(format!("said: {text}"))
         }
         "produce" => {
-            let lists = arguments.as_object().filter(|o| !o.is_empty()).ok_or("produce takes an object: factory name (lab_N or plant_N) or \"all\" to a list of unit names, or to {\"units\": [...], \"group\": \"group_A\" | \"new\"} for a factory")?;
+            let lists = arguments.as_object().filter(|o| !o.is_empty()).ok_or("produce takes an object: factory name (lab_N or plant_N) or \"all\" to a list of unit names, or to {\"units\": [...], \"group\": \"group_A\" | \"new\" | \"by_type\", \"join_in\": N} for a factory")?;
             let known: Vec<String> = shared.field().roster.iter().map(|(name, _)| name.clone()).collect();
             let groups: Vec<String> = shared.hands_merged(false).picture["actors"].as_object().map(|a| a.keys().filter(|k| k.starts_with("group_")).cloned().collect()).unwrap_or_default();
             let check_units = |name: &str, items: &[Value]| -> Result<Vec<String>, String> {
@@ -677,8 +688,9 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 }
                 Ok(units)
             };
-            // (actor, units or None to clear, the group its soldiers join: Some(Some(name)) sets, Some(None) clears, None leaves)
-            let mut parsed: Vec<(String, Option<Option<Vec<String>>>, Option<Option<String>>)> = Vec::new();
+            // (actor, units or None to clear, the group its soldiers join: Some(Some(name)) sets, Some(None) clears, None
+            // leaves; how many walk to it together, likewise)
+            let mut parsed: Vec<(String, Option<Option<Vec<String>>>, Option<Option<String>>, Option<Option<usize>>)> = Vec::new();
             let mut factories: Vec<String> = shared.hands_merged(false).picture["actors"].as_object().map(|a| a.keys().filter(|k| ["lab_", "plant_", "factory_"].iter().any(|p| k.starts_with(p))).cloned().collect()).unwrap_or_default();
             // ... and a factory still going up, which the picture does not list yet (bluegecko-3v1-comet-catcher-8,
             // 1:05: the plants' limits refused whole, "not a factory in the picture", the plants standing by 1:17).
@@ -715,8 +727,8 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                     other => other,
                 };
                 match value {
-                    Value::Null => parsed.push((name.clone(), Some(None), None)),
-                    Value::Array(items) => parsed.push((name.clone(), Some(Some(check_units(name, items)?)), None)),
+                    Value::Null => parsed.push((name.clone(), Some(None), None, None)),
+                    Value::Array(items) => parsed.push((name.clone(), Some(Some(check_units(name, items)?)), None, None)),
                     Value::Object(fields) => {
                         if !factory {
                             return Err(format!("{name}: the object form (units and group) is for a factory"));
@@ -730,23 +742,31 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                         let group = match fields.get("group") {
                             None => None,
                             Some(Value::Null) => Some(None),
-                            Some(Value::String(g)) if g == "new" => Some(Some("new".to_string())),
+                            Some(Value::String(g)) if g == "new" || g == "by_type" => Some(Some(g.clone())),
                             Some(Value::String(g)) if groups.contains(g) => Some(Some(g.clone())),
-                            Some(Value::String(g)) => return Err(format!("{name}: {g} is not a group in the picture ({}); \"new\" makes one", if groups.is_empty() { "none yet".to_string() } else { groups.join(", ") })),
-                            Some(_) => return Err(format!("{name}: group is a group name or \"new\"")),
+                            Some(Value::String(g)) => return Err(format!("{name}: {g} is not a group in the picture ({}); \"new\" makes one, \"by_type\" one per unit type", if groups.is_empty() { "none yet".to_string() } else { groups.join(", ") })),
+                            Some(_) => return Err(format!("{name}: group is a group name, \"new\" or \"by_type\"")),
                         };
-                        if units.is_none() && group.is_none() {
-                            return Err(format!("{name}: the object form takes units and/or group"));
+                        let join_in = match fields.get("join_in") {
+                            None => None,
+                            Some(Value::Null) => Some(None),
+                            Some(v) => match v.as_u64().or_else(|| v.as_str().and_then(|s| s.trim().parse().ok())) {
+                                Some(n) if (2..=16).contains(&n) => Some(Some(n as usize)),
+                                _ => return Err(format!("{name}: join_in is a whole number of 2 to 16 (how many new soldiers walk to their group together), or null")),
+                            },
+                        };
+                        if units.is_none() && group.is_none() && join_in.is_none() {
+                            return Err(format!("{name}: the object form takes units, group and/or join_in"));
                         }
-                        parsed.push((name.clone(), units, group));
+                        parsed.push((name.clone(), units, group, join_in));
                     }
-                    _ => return Err(format!("{name}: a list of unit names, null, or {{\"units\": [...], \"group\": ...}}")),
+                    _ => return Err(format!("{name}: a list of unit names, null, or {{\"units\": [...], \"group\": ..., \"join_in\": N}}")),
                 }
             }
             let mut allowed = shared.allowed.lock().unwrap();
             let call = shared.produce_calls.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
             let mut said: Vec<String> = Vec::new();
-            for (name, units, group) in parsed {
+            for (name, units, group, join_in) in parsed {
                 let before = allowed.get(&name).cloned();
                 let units_now = match units {
                     Some(Some(units)) => {
@@ -761,7 +781,11 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 };
                 let group_now = match group {
                     Some(Some(g)) => {
-                        said.push(if g == "new" { format!("{name}'s new soldiers form a group of their own from now") } else { format!("{name}'s new soldiers join {g}") });
+                        said.push(match g.as_str() {
+                            "new" => format!("{name}'s new soldiers form a group of their own from now"),
+                            "by_type" => format!("{name}'s new soldiers form one group per unit type from now (the report names each as it forms)"),
+                            _ => format!("{name}'s new soldiers join {g}"),
+                        });
                         Some(g)
                     }
                     Some(None) => {
@@ -770,12 +794,23 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                     }
                     None => before.as_ref().and_then(|a| a.group.clone()),
                 };
-                match (units_now, group_now) {
-                    (None, None) => {
+                let join_in_now = match join_in {
+                    Some(Some(n)) => {
+                        said.push(format!("{name}'s new soldiers wait beside it and walk to their group {n} together"));
+                        Some(n)
+                    }
+                    Some(None) => {
+                        said.push(format!("{name}'s new soldiers walk to their group as each is made"));
+                        None
+                    }
+                    None => before.as_ref().and_then(|a| a.join_in),
+                };
+                match (units_now, group_now, join_in_now) {
+                    (None, None, None) => {
                         allowed.remove(&name);
                     }
-                    (units, group) => {
-                        allowed.insert(name, Allowance { call: if units.is_some() { call } else { before.map_or(call, |a| a.call) }, units: units.unwrap_or_default(), group });
+                    (units, group, join_in) => {
+                        allowed.insert(name, Allowance { call: if units.is_some() { call } else { before.map_or(call, |a| a.call) }, units: units.unwrap_or_default(), group, join_in });
                     }
                 }
             }
@@ -845,8 +880,29 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 return Err("remove takes {\"reclaim\": [handles]} and/or {\"destruct\": [handles]}; a handle is <unit>_<id> as the picture writes it (armsolar_31002) or an actor name".into());
             }
             let find = |h: &str| cards.iter().find(|c| c.handle == h || c.actor.as_deref() == Some(h));
-            for h in reclaim.iter().chain(&destruct) {
-                find(h).ok_or_else(|| format!("{h}: nothing of ours has that name (handles are <unit>_<id> as the picture writes them, e.g. armsolar_31002, or an actor name)"))?;
+            // "<type> at <place or cell>" (armwin at spot_64, armsolar at E4): the hands take apart the nearest
+            // standing unit of that type to the place. For a reclaim only: a destruct's blast is checked per unit,
+            // so it takes the exact handle.
+            let places: Vec<String> = shared.hands_merged(false).picture["places"].as_object().map(|p| p.keys().cloned().collect()).unwrap_or_default();
+            let at_form = |h: &str| -> Result<(String, String), String> {
+                let (kind, at) = h.split_once(" at ").ok_or_else(|| format!("{h}: nothing of ours has that name (handles are <unit>_<id> as the picture writes them, e.g. armsolar_31002, an actor name, or \"<type> at <place or cell>\" such as \"armwin at spot_64\")"))?;
+                let (kind, at) = (kind.trim(), at.trim());
+                if !cards.iter().any(|c| c.unit == kind) {
+                    return Err(format!("{h}: no {kind} of ours stands (internal unit names, as the picture writes them)"));
+                }
+                let cell = at.len() == 2 && at.starts_with(|c: char| c.is_ascii_alphabetic()) && at.ends_with(|c: char| c.is_ascii_digit());
+                if !cell && !places.contains(&at.to_string()) {
+                    return Err(format!("{h}: {at} is not a place in the picture nor a grid cell (A1 to H8)"));
+                }
+                Ok((kind.to_string(), at.to_string()))
+            };
+            for h in &reclaim {
+                if find(h).is_none() {
+                    at_form(h)?;
+                }
+            }
+            for h in &destruct {
+                find(h).ok_or_else(|| format!("{h}: nothing of ours has that name (handles are <unit>_<id> as the picture writes them, e.g. armsolar_31002, or an actor name; a destruct takes the exact handle, since its blast is checked per unit)"))?;
             }
             let by = arguments["by"].as_str().map(str::to_string);
             if let Some(b) = &by
@@ -880,8 +936,13 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 return Err(refused.join("; "));
             }
             for h in &reclaim {
-                let c = find(h).expect("checked above");
-                said.push(format!("{h} ({}, {:.0} metal) is taken apart by {}; most of its metal comes back", c.unit, c.metal, by.as_deref().unwrap_or("the nearest builder without a list")));
+                match find(h) {
+                    Some(c) => said.push(format!("{h} ({}, {:.0} metal) is taken apart by {}; most of its metal comes back", c.unit, c.metal, by.as_deref().unwrap_or("the nearest builder without a list"))),
+                    None => {
+                        let (kind, at) = at_form(h).expect("checked above");
+                        said.push(format!("the nearest standing {kind} to {at} is taken apart by {}; the hands name it in their report", by.as_deref().unwrap_or("the nearest builder without a list")));
+                    }
+                }
             }
             let mut removals = shared.removals.lock().unwrap();
             if !destruct.is_empty() {
@@ -992,6 +1053,45 @@ mod tests {
         let accepted = call_tool("remove", &json!({ "destruct": ["armsolar_7"], "accept_losses": true }), &shared).unwrap();
         assert!(accepted.contains("constructor_9 (300 health, dies)") && accepted.contains("plant_3 (3000 health)"), "{accepted}");
         assert!(call_tool("remove", &json!({ "reclaim": ["armsolar_7"], "by": "constructor_77" }), &shared).unwrap_err().contains("not a builder standing now"));
+    }
+
+    /// The first batch of the impedance study's "no lever" asks (2026-10-16): `produce` groups a factory's output
+    /// per unit type (`by_type`) and has its newcomers walk to their group so many together (`join_in`); `queue`
+    /// takes a `reclaim` step by handle, grid cell or place, and an id step on a builder that cannot make the type
+    /// (it helps whoever builds it); `remove` takes "<type> at <place or cell>" for a reclaim, not for a destruct.
+    #[test]
+    fn produce_by_type_and_join_in_queue_reclaim_and_help_steps_and_remove_at_a_place() {
+        use super::super::shared::{Field, Removal, UnitCard};
+        use std::collections::BTreeMap;
+        let shared = Arc::new(Shared::default());
+        shared.hands.lock().unwrap().entry(0).or_default().picture = json!({ "actors": { "plant_7": {} }, "places": { "spot_64": { "grid": "E4" } } });
+        let said = call_tool("produce", &json!({ "plant_7": { "units": ["armfav", "armflash"], "group": "by_type", "join_in": 4 } }), &shared).unwrap();
+        assert!(said.contains("one group per unit type") && said.contains("walk to their group 4 together"), "{said}");
+        let a = shared.allowed.lock().unwrap().get("plant_7").cloned().unwrap();
+        assert_eq!((a.group.as_deref(), a.join_in, a.units.len()), (Some("by_type"), Some(4), 2));
+        assert!(call_tool("produce", &json!({ "plant_7": { "join_in": 1 } }), &shared).unwrap_err().contains("2 to 16"));
+        assert!(call_tool("produce", &json!({ "plant_7": { "join_in": null } }), &shared).unwrap().contains("as each is made"));
+        let a = shared.allowed.lock().unwrap().get("plant_7").cloned().unwrap();
+        assert_eq!((a.group.as_deref(), a.join_in, a.units.len()), (Some("by_type"), None, 2), "the rest of the allowance stands");
+        // queue: reclaim steps, and an id step on a builder that cannot make the type.
+        let builders = BTreeMap::from([("constructor_3".to_string(), BTreeMap::from([("armsolar".to_string(), false), ("extractor".to_string(), false)]))]);
+        shared.publish_field(0, Field { roster: vec![("armsolar".into(), 155), ("armsilo".into(), 5000)], builders, ..Default::default() });
+        assert!(call_tool("queue", &json!({ "constructor_3": ["reclaim E4", "reclaim armsolar_31002", "reclaim spot_40", "armsolar"] }), &shared).is_ok());
+        assert!(call_tool("queue", &json!({ "constructor_3": ["reclaim"] }), &shared).unwrap_err().contains("reclaim takes"));
+        assert!(call_tool("queue", &json!({ "constructor_3": ["reclaim E4 #x"] }), &shared).unwrap_err().contains("an id goes on a step that builds"));
+        assert!(call_tool("queue", &json!({ "constructor_3": ["armsilo"] }), &shared).unwrap_err().contains("cannot build armsilo"));
+        assert!(call_tool("queue", &json!({ "constructor_3": ["armsilo #silo1"] }), &shared).is_ok(), "with an id it helps whoever builds it");
+        // remove: "<type> at <place or cell>" for a reclaim.
+        let turbine = UnitCard { handle: "armwin_5".into(), unit: "armwin".into(), at: (4500.0, 2600.0), health: 300.0, metal: 40.0, ..UnitCard::default() };
+        shared.own_cards.lock().unwrap().insert(0, vec![turbine]);
+        let said = call_tool("remove", &json!({ "reclaim": ["armwin at spot_64"] }), &shared).unwrap();
+        assert!(said.contains("the nearest standing armwin to spot_64 is taken apart"), "{said}");
+        assert!(call_tool("remove", &json!({ "reclaim": ["armwin at E4"] }), &shared).is_ok());
+        assert!(call_tool("remove", &json!({ "reclaim": ["armsolar at E4"] }), &shared).unwrap_err().contains("no armsolar of ours stands"));
+        assert!(call_tool("remove", &json!({ "reclaim": ["armwin at spot_9"] }), &shared).unwrap_err().contains("not a place in the picture"));
+        assert!(call_tool("remove", &json!({ "destruct": ["armwin at E4"] }), &shared).unwrap_err().contains("exact handle"));
+        let removals = shared.removals.lock().unwrap().clone();
+        assert!(matches!(&removals[0], Removal::Reclaim { targets, .. } if targets == &["armwin at spot_64".to_string()]), "{removals:?}");
     }
 
     /// The `fire` tool: a silo with a missile ready fires at a point or a grid cell's centre and the firing waits for the

@@ -720,7 +720,7 @@ impl Brain {
     /// Ours when the handle names a unit of this seat; another seat's when it carries a different seat's tag or names
     /// an allied unit by id; nobody's otherwise (dead, or never a unit).
     pub(crate) fn handle_owner(&self, handle: &str, own: &[bot_protocol::OwnUnit]) -> HandleOwner {
-        if self.unit_by_handle(handle, own).is_some() {
+        if self.unit_named(handle, own).is_some() {
             return HandleOwner::Ours;
         }
         if let Some(rest) = handle.strip_prefix("commander") {

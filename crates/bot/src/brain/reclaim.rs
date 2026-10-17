@@ -14,7 +14,7 @@ use super::roster::Kit;
 use super::{Brain, FRAMES_PER_SECOND};
 
 /// Wrecks this close together are one field.
-const FIELD_RADIUS: f32 = 400.0;
+pub(super) const FIELD_RADIUS: f32 = 400.0;
 /// A field poorer than this is not worth a walk.
 const FIELD_MIN_METAL: f32 = 100.0;
 /// An unseen wreck is believed in for this long.
@@ -36,7 +36,7 @@ pub struct WreckField {
     pub at: Vec3,
     pub metal: f32,
     pub safe: bool,
-    wrecks: Vec<FeatureId>,
+    pub(super) wrecks: Vec<FeatureId>,
 }
 
 #[derive(Default)]

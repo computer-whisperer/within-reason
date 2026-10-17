@@ -240,7 +240,7 @@ pub(super) fn openers(menus: &mut [Menu], opened: &HashMap<String, (f64, i32)>, 
                     m.audit = true;
                     audited += 1;
                 } else {
-                    skipped += if m.detachment && m.marked.is_none() { 2 } else { 1 };
+                    skipped += if m.forbiddable && m.marked.is_none() { 2 } else { 1 };
                 }
             }
         }

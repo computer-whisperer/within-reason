@@ -2,7 +2,8 @@
 //! "a decode of the opus's existing orders (not a second tool call) to fuse off jev questions that we can answer
 //! once for the entire span"). Once a packet, and again for whatever is new under it (an actor, a place, a type),
 //! one lean request asks Jev about the player's instructions alone: whether they name a place for an actor, have a
-//! builder build a type, tell a group to join or follow another, forbid a group a detachment of a size. The fuse
+//! builder build a type, tell a group to join or follow another, forbid a group a detachment of a size or his
+//! aircraft. The fuse
 //! rule: a fuse answers only a question about the instructions alone, never one about the picture, and only when
 //! the decode's answer is clear. A move whose reading is under `OFF` is fused off until the next packet (it is not
 //! asked and cannot be picked); a detachment's forbidden mark at `ON` or over is on, and under `OFF` off, without
@@ -29,7 +30,7 @@ pub(super) const ON: f64 = 0.8;
 const AUDIT_SHARE: f64 = 0.02;
 
 /// What the decode has read of the packet in force: each reading by its key (`<actor>|place|<place>`,
-/// `<actor>|build|<type>`, `<actor>|join|<group>`, `<actor>|follow|<ward>`, `<actor>|detach|<n>`,
+/// `<actor>|build|<type>`, `<actor>|join|<group>`, `<actor>|follow|<ward>`, `<actor>|detach|<n>`, `<actor>|air`,
 /// `<group>|back`).
 #[derive(Default)]
 pub(crate) struct Decode {
@@ -45,6 +46,7 @@ fn key(actor: &str, read: &Read) -> String {
         Read::Join(other) => format!("{actor}|join|{other}"),
         Read::Follow(ward) => format!("{actor}|follow|{ward}"),
         Read::Detach(n) => format!("{actor}|detach|{n}"),
+        Read::Air => format!("{actor}|air"),
     }
 }
 
@@ -60,6 +62,7 @@ fn question(actor: &str, what: &str, read: &Read) -> Question {
         Read::Join(other) => format!("Read the player's `instructions` alone. Do they tell {actor} ({what}) to join {other}, now or under some condition: {actor} to merge into {other} and take {other}'s name and course? No when it is {other} they tell to join {actor}."),
         Read::Follow(ward) => format!("Read the player's `instructions` alone. Do they tell {actor} ({what}) to follow, escort or stay beside {ward}, now or under some condition?"),
         Read::Detach(n) => format!("Read the player's `instructions` alone. Do they forbid {actor} ({what}) to send a detachment of {n} of its soldiers after an enemy party?"),
+        Read::Air => format!("Read the player's `instructions` alone. Do they forbid {actor} ({what}) to attack, chase or hunt his aircraft (planes, bombers, gunships, air scouts), or tell it to ignore them or leave them alone?"),
     };
     Question::noul(json!(text))
 }
@@ -112,9 +115,10 @@ pub(super) fn fuse(menus: &mut [Menu], decode: &Decode, newer: &BTreeSet<String>
                 continue;
             }
             let reading = |read: &Read| decode.reads.get(&key(&name, read)).copied();
-            if m.detachment {
-                // The mark, never a fuse: the detachment itself stays a question.
-                let Some(p) = m.reads.iter().find_map(|r| reading(r)) else { continue };
+            if m.forbiddable {
+                // The mark, never a fuse: the move itself stays a question. Forbidden by any of its readings (a
+                // detachment after aircraft: the detachment's and the aircraft's).
+                let Some(p) = m.reads.iter().filter_map(|r| reading(r)).fold(None, |m: Option<f64>, p| Some(m.map_or(p, |m| m.max(p)))) else { continue };
                 m.marked = if p >= ON { Some(true) } else if p < OFF { Some(false) } else { None };
                 if m.marked.is_some() {
                     if draw() < AUDIT_SHARE {
@@ -230,6 +234,19 @@ mod tests {
         decode.reads.insert("group_A|place|spot_62".into(), 0.03);
         // An actor that appeared after the packet landed is not read and not fused: the packet's silence about it
         // is no reading.
+        // A party of aircraft: its whole-group attack carries the aircraft reading and the mark, and a detachment
+        // after it is forbidden by either of its readings (the higher one).
+        let mut menus = vec![group()];
+        menus[0].moves[5].forbiddable = true;
+        menus[0].moves[5].reads = vec![Read::Air];
+        menus[0].moves[3].reads = vec![Read::Detach(1), Read::Air];
+        let asks = needed(&menus, &decode, &nobody, &what);
+        assert_eq!(asks.keys().cloned().collect::<Vec<_>>(), ["group_A|air"]);
+        let Question::Noul { instructions, .. } = &asks["group_A|air"] else { panic!("a noul") };
+        assert!(instructions.as_str().unwrap().contains("forbid group_A (3 Blitz) to attack, chase or hunt his aircraft"));
+        decode.reads.insert("group_A|air".into(), 0.9);
+        fuse(&mut menus, &decode, &nobody, "armmex", &mut || 0.5);
+        assert_eq!((menus[0].moves[5].marked, menus[0].moves[3].marked), (Some(true), Some(true)), "the detachment of one reads 0.05 and the aircraft 0.9: forbidden");
         let newer: BTreeSet<String> = ["group_A".to_string()].into();
         let mut menus = vec![group()];
         assert!(needed(&menus, &Decode::default(), &newer, &what).is_empty());

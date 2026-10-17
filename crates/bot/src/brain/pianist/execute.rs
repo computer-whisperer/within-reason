@@ -304,7 +304,8 @@ impl Brain {
             self.pianist = Some(pianist);
             return None;
         };
-        let units: Vec<&OwnUnit> = pianist.groups[index].units(own);
+        // The newcomers waiting beside their plant (`join_in`) take no order until they are released.
+        let units: Vec<&OwnUnit> = pianist.groups[index].units(own).into_iter().filter(|u| !pianist.groups[index].waiting.iter().any(|(_, w)| *w == u.id)).collect();
         let ids: Vec<UnitId> = units.iter().map(|u| u.id).collect();
         let centre = super::groups::centre_of(&units);
         let walker = self.group_walker(&pianist.groups[index], own);
@@ -447,6 +448,7 @@ impl Brain {
                 // gone since 2026-10-07.
                 let group = &mut pianist.groups[index];
                 group.joining.clear();
+                group.waiting.clear();
                 group.set_task(GroupTask::Rove { since: frame }, frame);
                 group.last_order = frame;
                 did = Some("roves: its soldiers look at what we know least, kill what they find unguarded and keep out of every reach".to_string());

@@ -14,7 +14,7 @@ use serde_json::json;
 
 use super::super::roster::Kit;
 use super::super::{Brain, FRAMES_PER_SECOND};
-use super::picture::{Picture, clock};
+use super::picture::{Picture, Place, clock};
 use super::menu::{Order, Site};
 use super::{Pianist, TagState, Tagged, Task};
 
@@ -160,6 +160,9 @@ impl Brain {
             let ready = match &task {
                 None => unit.idle,
                 Some(Task::Build { started: true, .. }) => status.queue_ahead,
+                // A list's own reclaim step (`reclaim <handle|cell|place>`) runs until the builder is idle: the unit,
+                // or the wrecks it was given, are gone. The bot's filler reclaim gives way to a list at once.
+                Some(Task::Reclaim { .. }) | Some(Task::ReclaimUnit { .. }) if pianist.list_steps.get(&unit.id).is_some_and(|(step, _)| step.starts_with("reclaim ")) => unit.idle,
                 // A build the engine has not started yet gives way to a list set after it was ordered, unless that
                 // list's first step is this very build (`list_caught_up`): then the order stands until the frame is up.
                 Some(Task::Build { ordered, .. }) => status.queue_ahead || (list_frame > *ordered && pianist.list_caught_up.get(&name) != Some(ordered)),
@@ -173,6 +176,22 @@ impl Brain {
             };
             if !ready {
                 continue;
+            }
+            // A field step done with the wrecks it was given (five an order) goes again while a field is still at
+            // the cell or place; else the wrecks are gone and the list goes on.
+            if let Some(Task::Reclaim { .. }) = &task
+                && let Some((step, _)) = pianist.list_steps.get(&unit.id).cloned()
+                && let Some(what) = step.strip_prefix("reclaim ").map(|w| step_id(w).0.trim())
+            {
+                if self.wreck_field_at(what, &picture.places).is_some() {
+                    if let Some(list) = pianist.scripts.get_mut(&name) {
+                        list.push_front(step);
+                    }
+                } else {
+                    let text = format!("the wrecks at {what} are taken apart; its list goes on");
+                    pianist.done.push(format!("{} {name}: {text}", clock(frame)));
+                    pianist.note(frame, format!("{name}: {text}"));
+                }
             }
             if let Some((order, step)) = self.next_list_step(unit, &name, &mut pianist, picture, own, frame, kit) {
                 steps.push((unit.id, order, step, status.queue_ahead));
@@ -301,6 +320,18 @@ impl Brain {
 
     /// The next step of a builder's list as an order, its words kept. Steps that cannot be done are dropped and
     /// said; `assist` before any factory exists waits.
+    /// The wreck field a list step names: the richest in the grid cell (`E4`), else the nearest within two fields'
+    /// radius of the named place.
+    pub(super) fn wreck_field_at(&self, what: &str, places: &[Place]) -> Option<Vec3> {
+        let cell = what.trim().to_ascii_uppercase();
+        let is_cell = cell.len() == 2 && cell.starts_with(|c: char| ('A'..='H').contains(&c)) && cell.ends_with(|c: char| ('1'..='8').contains(&c));
+        if is_cell {
+            return self.reclaim.fields.iter().filter(|f| self.world.grid(f.at) == cell).max_by(|a, b| a.metal.total_cmp(&b.metal)).map(|f| f.at);
+        }
+        let place = places.iter().find(|p| p.name == what.trim())?;
+        self.reclaim.fields.iter().filter(|f| f.at.dist2d(place.at) < 2.0 * super::super::reclaim::FIELD_RADIUS).min_by(|a, b| a.at.dist2d(place.at).total_cmp(&b.at.dist2d(place.at))).map(|f| f.at)
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn next_list_step(&self, unit: &OwnUnit, name: &str, pianist: &mut Pianist, picture: &Picture, own: &[OwnUnit], frame: i32, kit: &Kit) -> Option<(Order, String)> {
         let can = |def: UnitDefId| self.world.def(unit.def).is_some_and(|d| d.build_options.contains(&def));
@@ -313,10 +344,15 @@ impl Brain {
             // `extractor nearest` is the bare `extractor`: the free spot this builder reaches soonest, whatever the
             // start (the opening list is written before the start is known).
             let place = words.next().filter(|p| !(kind == "extractor" && *p == "nearest")).map(str::to_string);
+            // An id's building this builder cannot make: the step is its help on it (`tag_state` below), the
+            // place and the start another builder's (the impedance tally, 2026-10-16: "15 constructors put on it
+            // (#silo1)", the tier-1 constructors' steps skipped as "this builder cannot build it").
+            let helps = |def: UnitDefId| tag.is_some() && !can(def);
             let at_place = |def: UnitDefId| match &place {
-                _ if !can(def) => Err("this builder cannot build it".to_string()),
+                _ if !can(def) && !helps(def) => Err("this builder cannot build it".to_string()),
                 Some(p) if picture.places.iter().any(|q| q.name == *p) => Ok(Order::Build(def, Site::Place(p.clone()))),
                 Some(p) => Err(format!("{p} is not a place in the picture")),
+                None if helps(def) => Ok(Order::Build(def, Site::Planned)),
                 None => Err("it needs a place".to_string()),
             };
             let resolved: Result<Order, String> = match kind {
@@ -345,12 +381,21 @@ impl Brain {
                         return None;
                     }
                 },
-                // `reclaim <handle>`: one unit of ours, taken apart for its metal (the `remove` tool).
-                "reclaim" => match place.as_deref().and_then(|h| self.unit_by_handle(h, own)) {
-                    Some(target) if target.id == unit.id => Err("a builder cannot take itself apart".to_string()),
-                    Some(target) => Ok(Order::TakeApartUnit(target.id)),
-                    None => Err(format!("{} no longer stands", place.as_deref().unwrap_or("it"))),
-                },
+                // `reclaim <handle>`: one unit of ours, taken apart for its metal (the `remove` tool); `reclaim <cell>`
+                // or `reclaim <place>`: the wreck field there (the impedance tally, 2026-10-16: "every other
+                // constructor takes apart wreck fields" rated 0.14 to 0.27 on the menu's three nearest fields).
+                "reclaim" => {
+                    let what = place.as_deref().unwrap_or_default();
+                    match self.unit_named(what, own) {
+                        Some(target) if target.id == unit.id => Err("a builder cannot take itself apart".to_string()),
+                        Some(target) => Ok(Order::TakeApartUnit(target.id)),
+                        None => match self.wreck_field_at(what, &picture.places) {
+                            Some(at) => Ok(Order::TakeApart(at)),
+                            None if what.is_empty() => Err("reclaim takes a handle (armsolar_31002), a grid cell (E4) or a place (spot_40)".to_string()),
+                            None => Err(format!("no wreck field is known at {what}, and nothing of ours has that name")),
+                        },
+                    }
+                }
                 // A defence at a spot whose extractor the engine refused lately waits with its extractor, unless an
                 // extractor of ours is there after all (another builder's frame took the spot first, so this one's
                 // was refused: the impedance tally, 2026-10-16, 150 turret steps skipped so, leg-player-1's spot_14
@@ -364,7 +409,7 @@ impl Brain {
                 // takes one when given.
                 other => match self.world.def_named(other) {
                     Some(def) if self.placed_at_place(def) || place.is_some() => at_place(def),
-                    Some(def) if can(def) => Ok(Order::Build(def, Site::Planned)),
+                    Some(def) if can(def) || helps(def) => Ok(Order::Build(def, Site::Planned)),
                     Some(_) => Err("this builder cannot build it".to_string()),
                     None => Err(format!("'{other}' is not a unit name the game knows")),
                 },
@@ -378,6 +423,12 @@ impl Brain {
                         _ => None,
                     };
                     match def.map(|def| pianist.tag_state(tag, def, unit.id, own)) {
+                        // Nobody has started #tag and this builder cannot: the step waits at the front of the list
+                        // for a builder that can (the entry says so).
+                        Some(TagState::Free) if def.is_some_and(|d| !can(d)) => {
+                            pianist.scripts.get_mut(name)?.push_front(step);
+                            return None;
+                        }
                         None | Some(TagState::Free) => Ok(order),
                         Some(TagState::UnderWay(frame)) => Ok(Order::Repair(frame)),
                         Some(TagState::Claimed(builder)) => Ok(Order::Help(builder)),
@@ -452,6 +503,57 @@ mod tests {
             assert!(!pianist.tasks.contains_key(&builder) && !pianist.queued.contains_key(&builder) && !pianist.queued_steps.contains_key(&builder));
         }
         assert!(pianist.done.last().unwrap().contains("commander: dropped the step 'extractor' its old list had queued"), "{:?}", pianist.done);
+    }
+
+    /// A `reclaim` step names a wreck field by its grid cell (the richest there) or by a place (the nearest within
+    /// two fields' radius), or a unit of ours by handle; an id step on a builder that cannot make the type waits at
+    /// the front of its list for a builder that can to start it, and then is its help.
+    #[test]
+    fn a_reclaim_step_finds_the_field_and_an_id_step_the_builder_cannot_make_waits_then_helps() {
+        use super::super::fixtures::{at, e3};
+        use super::super::menu::Order;
+        use super::super::picture::{Picture, Place};
+        use super::{Pianist, Tagged, Task};
+        use crate::brain::reclaim::WreckField;
+        use crate::brain::roster::Kit;
+        use bot_protocol::UnitDefId;
+        use std::collections::VecDeque;
+        let (mut brain, ours, _enemies, parties) = e3();
+        // Two fields in E4 (x 4096-5120, z 2304-3072 of a map 8192 by 6144), one far away.
+        brain.reclaim.fields = vec![
+            WreckField { at: at(4500.0, 2600.0), metal: 300.0, safe: true, wrecks: Vec::new() },
+            WreckField { at: at(4700.0, 2700.0), metal: 500.0, safe: true, wrecks: Vec::new() },
+            WreckField { at: at(1000.0, 1000.0), metal: 200.0, safe: true, wrecks: Vec::new() },
+        ];
+        let places = vec![Place { name: "spot_40".into(), at: at(4000.0, 2600.0), spot: Some(40) }, Place { name: "spot_1".into(), at: at(7000.0, 5000.0), spot: Some(1) }];
+        assert_eq!(brain.wreck_field_at("E4", &places), Some(at(4700.0, 2700.0)), "the richest in the cell");
+        assert_eq!(brain.wreck_field_at("e4", &places), Some(at(4700.0, 2700.0)));
+        assert_eq!(brain.wreck_field_at("spot_40", &places), Some(at(4500.0, 2600.0)), "the nearest to the place");
+        assert_eq!(brain.wreck_field_at("spot_1", &places), None);
+        assert_eq!(brain.wreck_field_at("Z9", &places), None);
+        // The steps, played by a unit of the fixture (no build options: it can make nothing itself).
+        let id = UnitDefId(3);
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        let picture = Picture { rules: String::new(), state: serde_json::json!({}), places, parties };
+        let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        let unit = &ours[0];
+        let name = "constructor_100".to_string();
+        pianist.scripts.insert(name.clone(), VecDeque::from(["reclaim E4".to_string(), "reclaim Z9".to_string(), "reclaim".to_string(), "armwar #w1".to_string(), "armllt spot_40".to_string()]));
+        let step = brain.next_list_step(unit, &name, &mut pianist, &picture, &ours, 100, &kit);
+        assert!(matches!(&step, Some((Order::TakeApart(field), s)) if *field == at(4700.0, 2700.0) && s == "reclaim E4"), "{step:?}");
+        // The next two are skipped and said; the id step waits at the front for a builder that can start #w1.
+        assert!(brain.next_list_step(unit, &name, &mut pianist, &picture, &ours, 100, &kit).is_none());
+        assert!(pianist.done.iter().any(|d| d.contains("skipped the step 'reclaim Z9'") && d.contains("no wreck field is known at Z9")), "{:?}", pianist.done);
+        assert!(pianist.done.iter().any(|d| d.contains("skipped the step 'reclaim'") && d.contains("reclaim takes a handle")), "{:?}", pianist.done);
+        assert_eq!(pianist.scripts[&name].front().map(String::as_str), Some("armwar #w1"));
+        // Another builder claims #w1: this one's step is its help.
+        pianist.tagged.insert("w1".into(), Tagged { def: UnitDefId(2), claim: Some(UnitId(101)), claimed: 90, building: None });
+        pianist.tasks.insert(UnitId(101), Task::Build { def: UnitDefId(2), near: at(0.0, 0.0), spot: None, ordered: 90, started: false });
+        let step = brain.next_list_step(unit, &name, &mut pianist, &picture, &ours, 110, &kit);
+        assert!(matches!(&step, Some((Order::Help(UnitId(101)), _))), "{step:?}");
+        // Without an id, a step it cannot make is skipped as before.
+        let step = brain.next_list_step(unit, &name, &mut pianist, &picture, &ours, 120, &kit);
+        assert!(step.is_none() && pianist.done.iter().any(|d| d.contains("skipped the step 'armllt spot_40'") && d.contains("cannot build")), "{step:?} {:?}", pianist.done);
     }
 
     /// The word `low` anywhere in a step marks it and is not one of its words; a step without it is high.

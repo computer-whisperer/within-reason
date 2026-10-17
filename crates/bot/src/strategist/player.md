@@ -33,7 +33,7 @@ would brief a hard-working assistant who follows orders literally and never coun
   words is not followed as a sequence (the hands built four extractors from "two"): give the opening as a `queue`
   list per builder, which the bot does step by step, and keep the instructions for what comes after and for the
   exceptions. A new list takes over a builder that is helping a factory or walking at once; a bare `assist` ends a list, and `assist N` (seconds) sits anywhere in one: the builder helps the nearest factory N seconds, then the next step. In the first minutes the plant's metal is the limit, not build power: the pros' commander guards the plant between its own builds and the store never reads 0; when it does, the plant is starving. The word `low` on a step (`assist 90 low`, `armsolar low`) makes the builder draw only the team's surplus on that step and stand still in a metal stall, so the constructors' extractors come first: the pros' commander guards the plant low and builds its opening solars low while the constructors claim spots, and takes a build of its own high. The plant and the construction turrets are low always, as every human's are.
-  A step may end with an id you choose (`armavp avp_yard #avp1`): steps carrying the same id, on any builders' lists or in a list sent again, are one building. The first builder to reach the step starts it, any other helps build it, and once it stands the step is done. That is how several constructors raise one factory together, and how a plan sent again builds nothing twice; without ids every step is its own building.
+  A step may end with an id you choose (`armavp avp_yard #avp1`): steps carrying the same id, on any builders' lists or in a list sent again, are one building. The first builder to reach the step starts it, any other helps build it, and once it stands the step is done. That is how several constructors raise one factory together, and how a plan sent again builds nothing twice; without ids every step is its own building. A builder that cannot make the type may carry the id step too (`armsilo #silo1` on a tier-1 constructor): it waits at the front of its list until a builder that can has started #silo1, then helps the frame; that is how fifteen constructors are put on one tier-2 building. A `reclaim` step takes a unit of ours by handle (`reclaim armsolar_31002`), or a wreck field by its grid cell or a place (`reclaim E4`, `reclaim spot_40`): the builder takes the wrecks there apart until none are left, then the list goes on.
   A new list replaces the old one whole and starts from its own first step: write only what is still to do. A build the builder has already started is finished first, a step the old list had queued behind that build is dropped (the report says so), and `null` cancels a list the same way, without touching the build in progress: to
   drop that build too (its frame decays, the metal in it is lost), begin the new list with `stop`, or send the
   bare word `stop`.
@@ -186,13 +186,18 @@ entry, so repeat a list only when you mean that. It is the sure way to get a uni
 constructors after losses) and the only way to get a count or an order: the hands cannot count, and "one
 constructor first, then raiders" got three constructors (human-7). A factory's new soldiers
 gather in a group of that factory's own, and nothing merges by itself: `{"plant_7": {"units": ["armflash"], "group":
-"group_A"}}` sends its soldiers into group_A instead, `"group": "new"` starts a fresh group of its own, and a merge is
-your order (the hands' `join` move, which your packet can call for).
+"group_A"}}` sends its soldiers into group_A instead, `"group": "new"` starts a fresh group of its own, `"group":
+"by_type"` keeps one group per unit type (its Rovers never share a group with its Blitzes, so the Rovers can rove
+while the Blitzes fight; the hands' lines name each group as it forms), and a merge is your order (the hands' `join`
+move, which your packet can call for). `"join_in": 4` has the plant's new soldiers wait beside it, out of its lane,
+and walk to their group four together, never alone (`null` lifts it); the group's entry says how many wait.
 `remove` takes apart or blows up what we own. A factory's units leave through its front, and a building in that lane
 seals it: in hands-2 five Bulls stood behind a solar collector for six minutes while the plant built nothing with
 metal full. The bot now keeps new buildings out of every factory's exit lane, and a factory whose lane is blocked says
 so in its `yard` entry, naming the buildings in the lane (`armsolar_31002`); `remove` with `reclaim` gets most of
-their metal back, `destruct` none. Every unit blows up when it dies or self-destructs, the commander hardest of all:
+their metal back, `destruct` none. A building the picture gives no handle for is named by its type and a place or
+grid cell (`"reclaim": ["armwin at spot_64"]`, `"armsolar at E4"`): the nearest standing one of that type is taken
+apart; a destruct takes the exact handle, since its blast is checked per unit. Every unit blows up when it dies or self-destructs, the commander hardest of all:
 the answer names the blast and what of ours stands in it, and refuses a destruct that would kill something of ours
 unless you accept the loss. The `units` glossary states each type's blasts.
 `fire` sends a nuclear silo's ready missile at a place you give in coordinates or as a grid cell: the silo launches

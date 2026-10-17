@@ -225,6 +225,26 @@ impl Brain {
         format!("{}_{}", self.name(unit.def), unit.id.0)
     }
 
+    /// The unit of ours a `remove` target or a `reclaim` step names: a handle (`unit_by_handle`), or "<type> at
+    /// <place or cell>" (`armwin at spot_64`, `armsolar at E4`): the nearest standing unit of that type to the place
+    /// within `AT_PLACE`, or any in the cell (the impedance tally, 2026-10-16: a wind turbine penned a commander
+    /// for nineteen minutes, and the picture names a building's handle only in a factory's `yard` line).
+    pub(super) fn unit_named<'a>(&self, name: &str, own: &'a [OwnUnit]) -> Option<&'a OwnUnit> {
+        if let Some(unit) = self.unit_by_handle(name, own) {
+            return Some(unit);
+        }
+        let (kind, at) = name.split_once(" at ")?;
+        let def = self.world.def_named(kind.trim())?;
+        let at = at.trim();
+        let standing = own.iter().filter(|u| u.def == def && !u.being_built);
+        let cell = at.to_ascii_uppercase();
+        if cell.len() == 2 && cell.starts_with(|c: char| ('A'..='H').contains(&c)) && cell.ends_with(|c: char| ('1'..='8').contains(&c)) {
+            return standing.filter(|u| self.world.grid(u.pos) == cell).min_by_key(|u| u.id.0);
+        }
+        let place = self.pianist.as_ref()?.places.iter().find(|p| p.name == at)?.at;
+        standing.filter(|u| u.pos.dist2d(place) <= AT_PLACE).min_by(|a, b| a.pos.dist2d(place).total_cmp(&b.pos.dist2d(place)))
+    }
+
     /// The unit of ours a handle names: `armsolar_31002`, or an actor's name (commander, constructor_N, plant_N).
     pub(super) fn unit_by_handle<'a>(&self, handle: &str, own: &'a [OwnUnit]) -> Option<&'a OwnUnit> {
         // `commander` has no underscore: the split must not end the lookup (2v1-hard_aggressive: every lookup of the
@@ -237,6 +257,9 @@ impl Brain {
         id.and_then(|id| own.iter().find(|u| u.id.0 == id))
     }
 }
+
+/// A "<type> at <place>" name reaches this far from the place.
+const AT_PLACE: f32 = 600.0;
 
 /// The engine's facing as a unit vector in the ground plane: 0 south (+z), 1 east (+x), 2 north (-z), 3 west (-x).
 pub(super) fn facing_dir(facing: i32) -> (f32, f32) {
@@ -338,6 +361,33 @@ mod lane_ground_tests {
         let inner = Vec3 { x: 400.0, y: 0.0, z: 880.0 };
         let lanes = lanes_behind_blocked(&passable, w, h, cell, 72.0, 72.0, inner, 1000.0, 1);
         assert!(!lanes.iter().any(|l| l.contains(inner)), "facing east 144 elmos from the edge is clear");
+    }
+}
+
+#[cfg(test)]
+mod named_tests {
+    use super::*;
+    use crate::brain::pianist::fixtures::{at, brain_of, own};
+
+    /// "<type> at <cell or place>" names a standing unit of that type: any in the cell (the lowest id), the nearest
+    /// within 600 of a place; a handle still names its unit.
+    #[test]
+    fn a_unit_is_named_by_type_at_a_cell_or_a_place() {
+        let mut brain = brain_of(&["armflash", "armwar", "armllt"]);
+        let own = vec![own(300, 3, at(4500.0, 2600.0)), own(301, 3, at(4600.0, 2650.0)), own(302, 2, at(4550.0, 2620.0)), own(303, 3, at(100.0, 100.0))];
+        let mut pianist = crate::brain::pianist::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        pianist.places.push(crate::brain::pianist::picture::Place { name: "spot_40".into(), at: at(4000.0, 2600.0), spot: Some(40) });
+        brain.pianist = Some(pianist);
+        let id = |u: Option<&OwnUnit>| u.map(|u| u.id.0);
+        assert_eq!(id(brain.unit_named("armllt at E4", &own)), Some(300));
+        assert_eq!(id(brain.unit_named("armllt at e4", &own)), Some(300));
+        assert_eq!(id(brain.unit_named("armwar at E4", &own)), Some(302));
+        assert_eq!(id(brain.unit_named("armllt at spot_40", &own)), Some(300), "the nearest within 600");
+        assert_eq!(id(brain.unit_named("armwar at spot_40", &own)), Some(302));
+        assert_eq!(id(brain.unit_named("armflash at E4", &own)), None);
+        assert_eq!(id(brain.unit_named("armllt at Z9", &own)), None);
+        assert_eq!(id(brain.unit_named("armllt at A1", &own)), Some(303));
+        assert_eq!(id(brain.unit_named("armllt_301", &own)), Some(301));
     }
 }
 

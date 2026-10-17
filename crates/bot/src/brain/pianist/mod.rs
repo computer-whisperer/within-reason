@@ -195,7 +195,7 @@ pub struct Pianist {
     /// founded: `new` founds one group per call and the call's later soldiers join it (player-45: the hands
     /// rewrote the player's allowance to say so, the think penalty's landing put `new` back, and each flip reset
     /// the plant's produced counts, so one list made seven advanced constructors against `armacv:2`).
-    pub(super) rally: HashMap<UnitId, (u64, String)>,
+    pub(super) rally: HashMap<(UnitId, Option<UnitDefId>), (u64, String)>,
     /// The pass (`compose.rs`): the worlds of the last pick, the picture's signature and frame at the last gate,
     /// and the events since (`schedule.rs`).
     pub(super) worlds: Vec<compose::World>,

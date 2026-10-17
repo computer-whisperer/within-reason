@@ -111,9 +111,9 @@ pub(super) fn gate_questions(menus: &[Menu], parties: &[Party], places: &[super:
                 }
             };
             out.push((id.clone(), Question::noul(json!(text))));
-            // The forbidden mark: asked each second unless the decode has it clearly on or off (the `fuse` layer),
-            // and then for its audit alone.
-            if m.detachment && (m.marked.is_none() || m.audit) {
+            // The forbidden mark (a detachment; the whole-group attack or shelling of an air party): asked each
+            // second unless the decode has it clearly on or off (the `fuse` layer), and then for its audit alone.
+            if m.forbiddable && (m.marked.is_none() || m.audit) {
                 out.push((format!("{id}.forbidden"), Question::noul(json!(format!("Read the player's `instructions` alone: do they forbid this move for the group that would make it? The move: {}.", m.words)))));
             }
         }
@@ -814,7 +814,7 @@ mod tests {
     use bot_protocol::{UnitDefId, UnitId, Vec3};
 
     fn party(name: &str) -> Party {
-        Party { name: name.to_string(), ids: vec![UnitId(1)], at: Vec3::default(), metal: 100.0, composition: "2 Ticks".into(), has_commander: false, harming: None, unarmed: false, turret_metal: 0.0, turret_metal_air: 0.0, turrets: String::new(), beside: Vec::new(), beside_words: String::new() }
+        Party { name: name.to_string(), ids: vec![UnitId(1)], at: Vec3::default(), metal: 100.0, composition: "2 Ticks".into(), has_commander: false, air: false, harming: None, unarmed: false, turret_metal: 0.0, turret_metal_air: 0.0, turrets: String::new(), beside: Vec::new(), beside_words: String::new() }
     }
 
     fn nouls(list: &[(&str, f64)]) -> BTreeMap<String, Answer> {

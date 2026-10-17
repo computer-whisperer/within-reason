@@ -1923,7 +1923,12 @@ wordings 0.31 to 0.59; with the mark put on the line by hand the change fell fro
 party's worth said alone moved nothing (0.86-0.90). So the reading is too weak to carry a mark, and the menu was
 changed instead (H-HANDS-DETACHMENTS-FOR-SMALL-PARTIES).
 **Status.** demonstrated (2026-10-03 night, `run/matches/1791063866-player-57-experience`, frame 9,930, replayed
-offline, four asks an arm).
+offline, four asks an arm). Amended 2026-10-16 (the impedance study §4): the menu change left a group whose
+instructions forbid every detachment ("one body that never splits", three games) nothing it was allowed to do
+against a party it outweighed four times, so the whole-group attack returns to the menu when the decode reads every
+detachment of the ladder as forbidden; and for a party of aircraft the whole-group attack and the shelling carry
+the forbidden question too (the decode's `Air` reading), since "aircraft are never chased" marked detachments alone
+in four games. Both built, unmeasured.
 **Would be wrong if.** A body needs its whole-group attack on a party it outweighs four to one in cases the
 detachments do not cover (a party of raiders faster than every detachment is one: it is not caught either way).
 **Used by.** [[H-HANDS-DETACHMENTS-FOR-SMALL-PARTIES]].
@@ -2222,6 +2227,25 @@ fuse at all +97%.
 thirty new paragraphs read the extractor job over 0.3 in most of them.
 **Used by.** nothing built (the user's call: whether the build-type fuse stays, its bar, the question's form, the
 actor's words, the report's readings line).
+
+### K-harness-seven-levers-built-for-the-asks-the-impedance-tally-found-nothing-carried
+**Claim.** Of the fifteen shapes of ask that no move, step, lane word or tool carried in the 23 games of the
+impedance tally (the study §4), seven are tools or menu rules and were built in one evening (2026-10-16): a factory's
+output grouped per unit type (`produce` `by_type`; "the Rovers rove while the Blitzes fight", 8 games), newcomers
+walking to their group N together (`join_in`; 3 games), the whole-group attack offered when every detachment reads
+forbidden (3 games), the forbidden question on an air party's whole-group attack and shelling with a decode reading
+of its own (4 games), a `reclaim` list step by grid cell or place and an id step as help on a building the builder
+cannot make (2 games), and `remove` by "<type> at <place>" (one game, a commander penned nineteen minutes). The
+other eight (where a builder stands, a route's order, a hunt bounded by a place, targets inside a fight,
+converging, routes that avoid reach, a forced re-ask or direct order, rove with a destination, cross-seat joins,
+a contact named) are code mechanics or design questions, each the user's call.
+**Status.** built with unit tests (106 pass); no game has used any of the seven. The measure is the next games'
+reviews under the study's brief: the §4 shapes should fall from the "no lever" list, and the players must be told
+the levers exist (the brief's `produce`, `queue` and `remove` passages say so).
+**Would be wrong if.** The players do not reach for them (the brief's words are the only pointer), or a lever
+costs more than the ask (join_in holding soldiers at a plant under attack; by_type making groups of one).
+**Used by.** [[H-HANDS-GROUPS]], [[H-HANDS-JOINERS]], [[H-HANDS-LISTS]], [[H-HANDS-DETACHMENTS-FOR-SMALL-PARTIES]],
+[[H-HANDS-FUSE-CUT]].
 
 ### K-harness-five-code-faults-and-five-report-lines-from-the-impedance-tally
 **Claim.** Across the 23 games of 2026-10-06 to 2026-10-16 the exact, cheap faults are: the hunt's 900 leash measured

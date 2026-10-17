@@ -371,6 +371,14 @@ the missiles line and the missile_ready wake (b0d7213, 2026-10-09: nuke-1-medium
 block (8a9788a, 2026-10-07: human-26); the four human-27 fixes (6ea433b: the `same` layer voided on a packet
 change, newcomers, the placed-site event, the blocked-site watchdog); the watchdog's clock (de7dc80, 08599ab).
 
+Built the same night, after this study, as the first batch of levers for §4 (the user: "That first batch you
+outlined sounds good, proceed"): `produce` `"group": "by_type"` (split by unit type, 8 games) and `"join_in": N`
+(join in groups of N, 3 games); the whole-group attack back when every detachment reads forbidden (3 games); the
+forbidden question on an air party's attack and shelling, with a decode reading of its own (aircraft never chased,
+4 games); the `reclaim <cell|place>` list step and the id step as help on a building the builder cannot make
+(2 games); `remove` by `"<type> at <place>"` (the penned commander). Unit tests each; no game yet
+(`docs/harness/impedance.md`).
+
 ## 6. What it says
 
 1. In a judgement moment chosen for mattering, the harness did what the player wanted with the context it needed

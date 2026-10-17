@@ -800,9 +800,14 @@ impl Shared {
 pub struct Allowance {
     pub call: u64,
     pub units: Vec<String>,
-    /// For a factory: the group its new soldiers join (`group_X`), or `new` for a fresh group of this factory's own
-    /// (H-HANDS-GROUPS: groups are the player's, nothing merges by proximity).
+    /// For a factory: the group its new soldiers join (`group_X`), `new` for a fresh group of this factory's own,
+    /// or `by_type` for one group of this factory's per unit type (H-HANDS-GROUPS: groups are the player's, nothing
+    /// merges by proximity; the impedance tally, 2026-10-16: "the Rovers rove while the Blitzes fight" in eight
+    /// games, with no way to keep the types apart).
     pub group: Option<String>,
+    /// For a factory: its new soldiers wait beside it and walk to their group this many together, never alone
+    /// (the impedance tally: "in fours, never alone", "six or more together, never one at a time").
+    pub join_in: Option<usize>,
 }
 
 /// One ally team as the player is told of it: ours or not, and its seats in words ("keithphw (a person, lobby skill

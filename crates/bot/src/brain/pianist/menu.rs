@@ -10,7 +10,7 @@
 //! what it leaves. Clocks live in the actor's entry (`picture.rs`), never in a move, so a move's words stay the same
 //! from second to second.
 
-use std::collections::{BTreeMap, HashMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
 
 use bot_protocol::{EnemyUnit, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
 
@@ -125,8 +125,10 @@ pub(crate) struct Move {
     pub said: String,
     /// The party the move is aimed at: it is asked as an answer to that party, and the party's `answer` opens it.
     pub party: Option<String>,
-    /// A detachment: the gate also asks whether the player's instructions forbid it (the forbidden mark).
-    pub detachment: bool,
+    /// The gate also asks whether the player's instructions forbid this move (the forbidden mark): a detachment, a
+    /// rover of one, and the whole-group attack or shelling of a party of aircraft (the impedance tally, 2026-10-16:
+    /// "aircraft are never chased by any group" in four games, and the mark sat on detachments alone).
+    pub forbiddable: bool,
     /// What of the player's instructions bears on the move, for the `fuse` layer's decode (`decode.rs`).
     pub reads: Vec<Read>,
     /// Fused off by the decode: the instructions clearly do not give this actor this move, and it is not asked.
@@ -160,11 +162,14 @@ pub(crate) enum Read {
     Follow(String),
     /// They forbid the group a detachment of this many.
     Detach(usize),
+    /// They forbid the group aircraft: a party every member of which flies is attacked, shelled or hunted only
+    /// under this reading's mark.
+    Air,
 }
 
 impl Move {
-    pub(super) fn new(key: String, order: Order, words: String, said: String, party: Option<String>, detachment: bool) -> Move {
-        Move { key, order, words, said, party, detachment, reads: Vec::new(), fused: false, far: false, held: false, blanked: false, audit: false, marked: None }
+    pub(super) fn new(key: String, order: Order, words: String, said: String, party: Option<String>, forbiddable: bool) -> Move {
+        Move { key, order, words, said, party, forbiddable, reads: Vec::new(), fused: false, far: false, held: false, blanked: false, audit: false, marked: None }
     }
 
     /// Whether the move's question goes out when its menu's own moves are asked.
@@ -432,6 +437,8 @@ struct Scene<'a> {
     his: Vec<(&'a Place, String)>,
     /// Each party as a move's words say it, and its slowest identified member's speed.
     parties: Vec<(&'a Party, String, Option<f32>)>,
+    /// The parties every member of which flies: their moves carry the `Air` reading and the forbidden question.
+    air_parties: BTreeSet<String>,
     under_fire: Vec<UnitId>,
     builders: Vec<&'a OwnUnit>,
     /// Every group: its name, where its body stands, its soldiers and its course in words.
@@ -713,7 +720,8 @@ impl Brain {
                 Some((g, at, units, self.group_course(g, picture).2))
             })
             .collect();
-        let scene = Scene { tick, kit, picture, pianist, own, enemies, frame, named, his, parties, under_fire, builders, groups };
+        let air_parties: BTreeSet<String> = picture.parties.iter().filter(|p| p.air).map(|p| p.name.clone()).collect();
+        let scene = Scene { tick, kit, picture, pianist, own, enemies, frame, named, his, parties, air_parties, under_fire, builders, groups };
         let mut menus: Vec<Menu> = Vec::new();
         menus.extend(scene.builders.iter().filter_map(|unit| self.builder_menu(&scene, unit)));
         menus.extend(own.iter().filter(|u| !u.being_built && self.world.is_factory_def(u.def)).filter_map(|unit| self.factory_menu(&scene, unit)));
@@ -856,9 +864,9 @@ impl Brain {
         // as turns and held a turn-back to a burning base at 0.30 against a plain order to make it (human-26 3:54-
         // 4:05; docs/studies/2026-10-07-raid-packets.md). The user: the problem those words were for is Jev split
         // between two reasonable operations, not units changing course; it gets its own fix when it is seen again.
-        let mut push = |key: String, order: Order, words: String, said: String, party: Option<&Party>, detachment: bool| {
+        let mut push = |key: String, order: Order, words: String, said: String, party: Option<&Party>, forbiddable: bool| {
             if key != course_key {
-                moves.push(Move::new(key, order, words, said, party.map(|p| p.name.clone()), detachment));
+                moves.push(Move::new(key, order, words, said, party.map(|p| p.name.clone()), forbiddable));
             }
         };
 
@@ -947,8 +955,14 @@ impl Brain {
             kinds.iter().map(|(n, k)| format!("{k} {n}")).collect::<Vec<_>>().join(", ")
         };
         let screen = units.len() - long_reach.len();
-        // A detachment's soldiers: the fastest armed members, the nearest of them first.
+        // A detachment's soldiers: the fastest armed members, the nearest of them first; the sizes it comes in.
         let armed: Vec<&OwnUnit> = units.iter().copied().filter(|u| self.world.def(u.def).is_some_and(|d| d.weapon_count > 0 && d.speed > 0.0)).collect();
+        let ladder: Vec<usize> = LADDER.into_iter().filter(|n| *n < units.len() && *n <= armed.len()).collect();
+        // The instructions forbid every detachment this group could send, by the decode's clear reading
+        // (`decode::ON`): the whole-group attack is back on the menu beside them (the impedance tally, 2026-10-16:
+        // "one body that never splits", "the whole group attacks it, never a detachment", in three games, against
+        // a party the body outweighed four times, which the rule below offers to detachments alone).
+        let every_detachment_forbidden = !ladder.is_empty() && ladder.iter().all(|n| pianist.decode.reads.get(&format!("{name}|detach|{n}")).is_some_and(|p| *p >= super::decode::ON));
         // A roving group's parties are the lane's business (H-MICRO-ROVE): no attack, shell or send on its menu.
         for (party, party_words, quarry_speed) in scene.parties.iter().filter(|_| !group.roving()) {
             if !self.reachable_for(walker, party.at) {
@@ -971,8 +985,8 @@ impl Brain {
             let ours: f32 = units.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.metal_cost).sum();
             let fighting_it = fight.as_ref().is_some_and(|(p, _)| p.name == party.name);
             let detachments_work = theirs > 0.0 && ours >= theirs * WHOLE_GROUP_OVER && armed.len() > 2 && !fighting_it;
-            if !detachments_work {
-                push(key.clone(), Order::Attack(party.name.clone()), format!("{name} attacks {party_words} with the whole group ({}): {odds}{tail}{other}{leaves}{}", way_words(distance, speed), undoes(&key)), format!("the attack on {}", party.name), Some(party), false);
+            if !detachments_work || every_detachment_forbidden {
+                push(key.clone(), Order::Attack(party.name.clone()), format!("{name} attacks {party_words} with the whole group ({}): {odds}{tail}{other}{leaves}{}", way_words(distance, speed), undoes(&key)), format!("the attack on {}", party.name), Some(party), party.air);
             }
             if !air && !long_reach.is_empty() {
                 // What the switch does to a group fighting this party under fire, as a fact on the move
@@ -989,7 +1003,7 @@ impl Brain {
                     format!("{name} shells {party_words} ({}) with its {arty_words} from their reach, its other {screen} soldiers standing between as the screen: {}{other}{leaves}{leaving_the_fight}", way_words(distance, speed), verdict(&odds)),
                     format!("shelling {}", party.name),
                     Some(party),
-                    false,
+                    party.air,
                 );
             }
             if air || matches!(&group.task, GroupTask::Hunt(h) if h.party == party.name) {
@@ -1001,7 +1015,7 @@ impl Brain {
                 pace(b).total_cmp(&pace(a)).then(a.pos.dist2d(party.at).total_cmp(&b.pos.dist2d(party.at)))
             });
             let failed = pianist.hunts_failed.iter().rev().find(|(p, _, _)| *p == party.name).map(|(_, _, why)| format!("; the last hunt of it ended without a kill: {why}")).unwrap_or_default();
-            for n in LADDER.into_iter().filter(|n| *n < units.len() && *n <= fastest.len()) {
+            for n in ladder.iter().copied() {
                 let hunters = &fastest[..n];
                 let pace = hunters.iter().filter_map(|u| self.world.def(u.def)).map(|d| d.speed).fold(f32::INFINITY, f32::min);
                 let nearest = hunters.iter().map(|u| u.pos.dist2d(party.at)).fold(f32::INFINITY, f32::min);
@@ -1120,7 +1134,7 @@ impl Brain {
         let reached_here = group.reached.last().is_some_and(|(last, _)| picture.places.iter().any(|p| p.name == *last && p.at.dist2d(body.at) < HERE));
         let idle_words = format!("{name} holds at {at}{}", if reached_here { ", a stop it has reached" } else { "" });
         for m in &mut moves {
-            m.reads = self.reads_of(&m.order);
+            m.reads = self.reads_of(&m.order, &scene.air_parties);
         }
         Some(Menu { name, kind: Kind::Group(group.name.clone()), moves, idle, queue_ahead: false, course, course_key, course_words, aimed_at, against, near_party: near_party.map(|p| p.name.clone()), fight: fight.as_ref().map(|(_, words)| words.clone()), at: Some(body.at), idle_words, quiet: false, audit: false, reopened: false })
     }
@@ -1393,15 +1407,16 @@ impl Brain {
         }
         let idle_words = format!("{name} idle, doing nothing");
         for m in &mut moves {
-            m.reads = self.reads_of(&m.order);
+            m.reads = self.reads_of(&m.order, &scene.air_parties);
         }
         Some(Menu { name, kind: Kind::Builder(unit.id), moves, idle, queue_ahead: queue, course, course_key, course_words, aimed_at, against, near_party: near_party.map(|p| p.name.clone()), fight: None, at: Some(unit.pos), idle_words, quiet: false, audit: false, reopened: false })
     }
 
     /// What of the player's instructions bears on a move (`Read`): the place a walk, an advance or a build is aimed
-    /// at, the type a builder builds, the group joined, the ward followed, the size of a detachment. An attack on
-    /// his buildings or on a party, and a shooter's estimated place, are the picture's and bear on nothing here.
-    fn reads_of(&self, order: &Order) -> Vec<Read> {
+    /// at, the type a builder builds, the group joined, the ward followed, the size of a detachment, and whether
+    /// aircraft are forbidden it when the party is one of `air_parties`. An attack on his buildings or on a party of
+    /// the ground, and a shooter's estimated place, are the picture's and bear on nothing here.
+    fn reads_of(&self, order: &Order, air_parties: &BTreeSet<String>) -> Vec<Read> {
         match order {
             Order::Go(place) | Order::FightTo(place) if !place.starts_with("shelling") => vec![Read::Place(place.clone())],
             Order::Build(def, site) => {
@@ -1416,7 +1431,14 @@ impl Brain {
             Order::Join(other) => vec![Read::Join(format!("group_{other}"))],
             Order::Follow(Ward::Group(other)) => vec![Read::Follow(format!("group_{other}"))],
             Order::Follow(Ward::Builder(id)) => vec![Read::Follow(self.actor_name(*id))],
-            Order::Send(soldiers, _) => vec![Read::Detach(soldiers.len())],
+            Order::Send(soldiers, party) => {
+                let mut reads = vec![Read::Detach(soldiers.len())];
+                if air_parties.contains(party) {
+                    reads.push(Read::Air);
+                }
+                reads
+            }
+            Order::Attack(party) | Order::Shell(His::Party(party)) if air_parties.contains(party) => vec![Read::Air],
             _ => Vec::new(),
         }
     }
@@ -1506,6 +1528,57 @@ pub(super) mod tests {
         Menu { name: name.to_string(), kind, moves: all, idle, queue_ahead: false, course: if idle { "idle" } else { "go" }, course_key: String::new(), course_words: "walks".to_string(), aimed_at: None, against: None, near_party: None, fight: None, at: None, idle_words: format!("{name} idle, doing nothing"), quiet: false, audit: false, reopened: false }
     }
 
+    /// A party the body outweighs four times is a detachment's work, and the whole-group attack is off the menu;
+    /// when the decode has read the instructions as forbidding every detachment the group could send, the
+    /// whole-group attack is back beside them. A party of aircraft: its whole-group attack carries the forbidden
+    /// question and the aircraft reading, and so does each detachment after it.
+    #[test]
+    fn the_whole_group_attack_returns_when_every_detachment_is_forbidden_and_an_air_party_is_forbiddable() {
+        use super::super::fixtures::{at, e3};
+        use bot_protocol::{Resource, Snapshot};
+        let (mut brain, mut ours, mut enemies, mut parties) = e3();
+        // One Centurion against twenty-eight Blitzes: the detachments' work.
+        ours.extend((0..14).map(|i| super::super::fixtures::own(200 + i, 1, at(4150.0 + 20.0 * (i % 7) as f32, 1980.0 + 40.0 * (i / 7) as f32))));
+        enemies.retain(|e| e.id != UnitId(2) && e.id != UnitId(3));
+        // Far from the body: a party beside it is the fight the group is in, and that keeps its whole-group attack.
+        enemies.iter_mut().find(|e| e.id == UnitId(1)).unwrap().pos = at(6400.0, 3400.0);
+        parties[0].ids.retain(|id| *id == UnitId(1));
+        parties[0].at = at(6400.0, 3400.0);
+        parties[0].metal = 270.0;
+        let mut pianist = Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");
+        pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { since: 0, committed: false, picked: false }, 0));
+        brain.pianist = Some(pianist);
+        let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies, wrecks: None } };
+        let id = UnitDefId(1);
+        let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
+        let picture = Picture { rules: String::new(), state: serde_json::json!({ "instructions": "group_A: one body that never splits.", "actors": {}, "places": {} }), places: vec![Place { name: "home".into(), at: at(500.0, 5000.0), spot: None }], parties };
+        let keys = |brain: &Brain, picture: &Picture| -> Vec<String> { brain.menus(&tick, &kit, picture).iter().find(|m| m.name == "group_A").expect("the group's menu").moves.iter().map(|m| m.key.clone()).collect() };
+        let before = keys(&brain, &picture);
+        assert!(!before.iter().any(|k| k == "attack_party_12") && before.iter().any(|k| k == "send_1_party_12"), "{before:?}");
+        // Every detachment read as forbidden: the whole-group attack is back.
+        let pianist = brain.pianist.as_mut().unwrap();
+        for n in [1, 2, 4, 8] {
+            pianist.decode.reads.insert(format!("group_A|detach|{n}"), 0.9);
+        }
+        let after = keys(&brain, &picture);
+        assert!(after.iter().any(|k| k == "attack_party_12") && after.iter().any(|k| k == "send_8_party_12"), "{after:?}");
+        // One size in the middle unsure: not every detachment is forbidden.
+        brain.pianist.as_mut().unwrap().decode.reads.insert("group_A|detach|2".to_string(), 0.5);
+        assert!(!keys(&brain, &picture).iter().any(|k| k == "attack_party_12"));
+        // A party of aircraft: the forbidden question on its whole-group attack and the aircraft reading on every
+        // move after it.
+        brain.pianist.as_mut().unwrap().decode.reads.insert("group_A|detach|2".to_string(), 0.9);
+        let mut air = picture.clone();
+        air.parties[0].air = true;
+        let menus = brain.menus(&tick, &kit, &air);
+        let menu = menus.iter().find(|m| m.name == "group_A").unwrap();
+        let attack = menu.moves.iter().find(|m| m.key == "attack_party_12").expect("the whole-group attack, every detachment forbidden");
+        assert!(attack.forbiddable && attack.reads == [Read::Air]);
+        let send = menu.moves.iter().find(|m| m.key == "send_2_party_12").unwrap();
+        assert!(send.forbiddable && send.reads == [Read::Detach(2), Read::Air], "{:?}", send.reads);
+    }
+
     /// A roving group keeps a menu (the rework of docs/design/2026-10-07-rove-approval.md): its course is the rove
     /// with the entry's words, the way back (hold, the walks, the joins, the follows) is on it, and nothing aimed
     /// at a party: its sightings are the lane's business. Offline, under packets that ask for roving, no take-back
@@ -1587,7 +1660,8 @@ pub(super) mod tests {
         assert_eq!(attack.party.as_deref(), Some("party_12"));
         assert!(attack.words.starts_with("group_A attacks party_12 (3 armwar, in sight) with the whole group ("), "{}", attack.words);
         let send = menu.moves.iter().find(|m| m.key == "send_2_party_12").unwrap();
-        assert!(send.detachment && matches!(&send.order, Order::Send(hunters, party) if hunters.len() == 2 && party == "party_12"));
+        assert!(send.forbiddable && matches!(&send.order, Order::Send(hunters, party) if hunters.len() == 2 && party == "party_12"));
+        assert!(!attack.forbiddable && attack.reads.is_empty(), "a party of the ground: no forbidden question on the whole-group attack");
         assert!(send.words.starts_with("2 armflash of group_A (its fastest, the nearest first) leave it as a group of their own and hunt party_12"), "{}", send.words);
         // Where the group stands against the party, measured: the Centurions are 600 off and a Blitz reaches 180.
         let core: Vec<&OwnUnit> = tick.snapshot.own_units.iter().take(14).collect();

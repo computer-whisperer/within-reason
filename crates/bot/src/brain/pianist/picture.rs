@@ -81,6 +81,10 @@ pub(crate) struct Party {
     pub composition: String,
     /// Their commander is one of its members.
     pub has_commander: bool,
+    /// Every member is identified and flies: the group's whole-group attack and shelling of it carry the forbidden
+    /// question, as its detachments do (the impedance tally, 2026-10-16: "aircraft are never chased by any group" in
+    /// four games, and the mark sat on detachments alone).
+    pub air: bool,
     /// What it is doing to us now, the verb with it, from the hits and the reclaims of the last seconds
     /// (H-HANDS-PARTY-KILLING): "killing our Vehicle Plant (armvp), 2 of our Solar Collector (armsolar)", "taking
     /// apart our Metal Extractor (armmex), 46% left and gone in about 5 s", and the metal of those units.
@@ -417,11 +421,12 @@ impl Brain {
             }
             let composition = counts.iter().map(|(name, n)| format!("{n} {name}")).collect::<Vec<_>>().join(", ");
             let has_commander = members.iter().any(|i| mobile[*i].def.is_some_and(|d| self.world.is_commander_def(d)));
+            let air = members.iter().all(|i| mobile[*i].def.is_some_and(|d| self.world.domain_of(d) == crate::world::Domain::Air));
             let ids: Vec<bot_protocol::UnitId> = members.iter().map(|i| mobile[*i].id).collect();
             let harming = self.harm_words(&ids);
             let (turret_metal, turret_metal_air, turrets) = self.turrets_covering(at);
             let unarmed = turret_metal == 0.0 && turret_metal_air == 0.0 && members.iter().all(|i| mobile[*i].def.and_then(|d| self.world.def(d)).is_some_and(|d| d.weapon_count == 0));
-            parties.push(Party { name: String::new(), ids, at, metal, composition, has_commander, harming, unarmed, turret_metal, turret_metal_air, turrets, beside: Vec::new(), beside_words: String::new() });
+            parties.push(Party { name: String::new(), ids, at, metal, composition, has_commander, air, harming, unarmed, turret_metal, turret_metal_air, turrets, beside: Vec::new(), beside_words: String::new() });
         }
         parties.sort_by(|a, b| a.at.dist2d(self.home).total_cmp(&b.at.dist2d(self.home)));
         // Names: the last picture's for a party sharing a member with one of them (the larger overlap wins a name
@@ -1477,7 +1482,15 @@ impl Brain {
                 }
                 if let Some(steps) = pianist.scripts.get(&name).filter(|s| !s.is_empty()) {
                     let waits = if pianist.list_held.contains(&unit.id) { "; waiting: the hands sent this builder away from an enemy, and its list goes on when no enemy is on it" } else { "" };
-                    entry["list"] = json!(format!("the player's list, done by the bot without asking: {}{waits}", steps.iter().cloned().collect::<Vec<_>>().join(", ")));
+                    // Its first step is an id's building it cannot make, and nobody has started that building yet.
+                    let for_starter = steps.front().and_then(|first| {
+                        let (body, tag) = super::lists::step_id(first);
+                        let tag = tag?;
+                        let def = self.world.def_named(body.split_whitespace().next()?)?;
+                        let cannot = !self.world.def(unit.def).is_some_and(|d| d.build_options.contains(&def));
+                        (cannot && !pianist.tagged.contains_key(tag)).then(|| format!("; its first step waits for a builder that can build #{tag} to start it, and then helps"))
+                    }).unwrap_or_default();
+                    entry["list"] = json!(format!("the player's list, done by the bot without asking: {}{waits}{for_starter}", steps.iter().cloned().collect::<Vec<_>>().join(", ")));
                 }
                 let from_home = unit.pos.dist2d(self.home);
                 entry["from_home"] = json!(format!("{} ({from_home:.0})", distance_words(from_home)));
@@ -1585,13 +1598,17 @@ impl Brain {
                 let allowance = self.allowed_units(&name);
                 let named = allowance.as_ref().and_then(|a| a.group.clone());
                 let call = allowance.as_ref().map_or(0, |a| a.call);
-                let rally = pianist.rally.get(&unit.id).map(|(c, g)| (*c, format!("group_{g}")));
+                let rally = pianist.rally.get(&(unit.id, None)).map(|(c, g)| (*c, format!("group_{g}")));
+                // Under `by_type`: the groups per unit type this factory has founded.
+                let by_type: Vec<String> = pianist.rally.iter().filter(|((f, def), _)| *f == unit.id && def.is_some()).map(|((_, def), (_, g))| format!("{} group_{g}", self.name(def.unwrap()))).collect();
+                let join_in = allowance.as_ref().and_then(|a| a.join_in).map_or(String::new(), |n| format!("; its new soldiers wait beside it and walk to their group {n} together (`join_in`)"));
                 entry["output_joins"] = json!(match (named.as_deref(), rally) {
-                    (Some("new"), Some((founded, g))) if founded == call => format!("{g}, the fresh group your `produce` asked for, founded by its first soldier"),
-                    (Some("new"), _) => "a fresh group of this factory's own from the next soldier (`produce` ... group)".to_string(),
-                    (Some(g), _) => format!("{g}, by your `produce` order"),
-                    (None, Some((_, g))) => format!("{g}, this factory's own group (name another in `produce`, or `new`)"),
-                    (None, None) => "a group of this factory's own, made on its first soldier (name one in `produce`)".to_string(),
+                    (Some("new"), Some((founded, g))) if founded == call => format!("{g}, the fresh group your `produce` asked for, founded by its first soldier{join_in}"),
+                    (Some("new"), _) => format!("a fresh group of this factory's own from the next soldier (`produce` ... group){join_in}"),
+                    (Some("by_type"), _) => format!("one group per unit type, by your `produce` order ({}){join_in}", if by_type.is_empty() { "none founded yet".to_string() } else { by_type.join(", ") }),
+                    (Some(g), _) => format!("{g}, by your `produce` order{join_in}"),
+                    (None, Some((_, g))) => format!("{g}, this factory's own group (name another in `produce`, or `new`, or `by_type`){join_in}"),
+                    (None, None) => format!("a group of this factory's own, made on its first soldier (name one in `produce`){join_in}"),
                 });
                 entry["health"] = json!(health_words(unit.health / unit.max_health));
             }
@@ -1687,8 +1704,19 @@ impl Brain {
                     *m.entry(plant).or_default() += 1;
                     m
                 });
+                let waiting: BTreeMap<String, usize> = group.waiting.iter().fold(BTreeMap::new(), |mut m, (plant, _)| {
+                    *m.entry(self.actor_name(*plant)).or_default() += 1;
+                    m
+                });
+                let waiting_words = waiting
+                    .iter()
+                    .map(|(plant, n)| {
+                        let asked = self.allowed_units(plant).and_then(|a| a.join_in).unwrap_or(0);
+                        format!("; {n} of them wait beside {plant} until {asked} stand, to walk together (its `join_in`)")
+                    })
+                    .collect::<String>();
                 entry["reinforcements"] = json!(format!(
-                    "{} of its soldiers are on the way to join the body, the farthest {farthest:.0} behind (from {}); they are not in its fights yet",
+                    "{} of its soldiers are on the way to join the body, the farthest {farthest:.0} behind (from {}); they are not in its fights yet{waiting_words}",
                     body.joining.len(),
                     from.iter().map(|(p, n)| format!("{n} from {p}")).collect::<Vec<_>>().join(", ")
                 ));
