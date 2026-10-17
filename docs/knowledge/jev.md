@@ -2290,3 +2290,27 @@ call.
 **Would be wrong if.** The record's destroyed event named attackers out of sight (it does not: the damage rows show
 the hits), or the peak share overstated the metal (the engine refunds nothing of a decayed frame).
 **Used by.** nothing yet: the study's §7 is the user's call.
+
+### K-harness-the-player-reads-the-opponents-floors-as-values-and-the-reference-line-is-missing-where-games-are-lost
+**Claim.** In the six recent losses read (human-28, -31, -32, -33; levers-player-1, nuke-2-hard) the player's
+post-mortem names the last unit type that hurt ("the Tigers broke us", "what would you have built vs the tzars")
+because its in-game model read "ahead" until that unit arrived: every number about the opponent in the report is a
+floor (extractors "known to hold", soldiers "seen", spending "at least"), the player writes the floors as values the
+next sentence ("we out-extract him 26 to 16" at 15:48 of levers-player-1 against a true 27 to 26; "about 7
+extractors' worth" at 19:58 against 28; "12.3k vs ~1.4k seen" at 20:08 of nuke-2-hard against 11.3k to 6.0k;
+`floor.py` `known%` 26-27 in the two BARb losses), and the one line that stands ours against something other than
+the floor, the reference line, exists only on Comet Catcher, for one seat a side, to 16:00. The one loss with the
+line (human-28) diagnosed the economy at 9:20 ("behind ... 9 extractors against the pool's 16"); the three team
+losses had no line; levers-player-1 quoted the pool every turn to 9:20 and never after, though at 16:00 the line
+read income below the pool's lower quartile. The notes copy the report's fight ledger and are the whole memory of a
+replacement session (five sessions in each BARb loss), so the floors become facts at every handoff.
+**Status.** supported (2026-10-17; `docs/studies/2026-10-17-wrong-post-mortem.md`: the transcripts against
+`run/analyze_match.py`, `run/team_read.py`, `run/floor.py`; six games, read by hand, no reviewer sweep).
+**Evidence.** levers-player-1 notes 10:00-18:54 against the truth curves; nuke-2-hard 20:08; human-31 the trade
+line of every report from 3:20; human-33 13:14 report and 21:54-22:19 chat; `strategist/reference.rs`; `report.rs`
+the `his spending seen` comment.
+**Would be wrong if.** The wins show the same floors read as a lead with no harm (not read), or a person's economy
+in the team games was not larger per seat (no truth file; the chat says it was).
+**Used by.** Nothing yet: the study's §4 lists what the user may order (a score that is not a floor, the reference
+line in team games and past 16:00, a BEHIND word, the whole game's curve in the takeover, the debrief from the
+curves).
