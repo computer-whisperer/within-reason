@@ -2157,8 +2157,10 @@ beyond the call-to-call drift, at the same latency: 3% of noul flags (the drift 
 most on `place`, `change`, `follow_group`, `gather` and the forbidden mark, with every `build_*` untouched; it
 says yes a little more often (10.4% against 9.3%) with a lower mean. The alias will move to it without a code
 change; whether it plays better is not known.
-**Status.** measured (2026-10-16, offline; the same study §2). Not measured: which is right (no human verdicts; the
-`run/jev_ab.py` moment detectors find nothing on the rebuilt hands' logs).
+**Status.** measured (2026-10-16, offline; the same study §2); one game on it, jev114-player-1 (the arena target, seed 1):
+WON 19:09 against prio-player-1's 18:02 on 1.13, no errors, latency median 152 ms, Jev $0.58 against $1.01 over a
+smaller picture. Not measured: which is right (no human verdicts; the `run/jev_ab.py` moment detectors find nothing on
+the rebuilt hands' logs; one game attributes nothing).
 **Evidence.** The same replay: ordinary nouls same side 0.971 against 1.13 re-sent (drift 0.990), picks same 0.898
 (0.955); by kind `place` 107 of 1,732, `change` 30 of 337, `forbidden` 14 of 769 against 22, 8 and 1 for the drift.
 **Would be wrong if.** A second replay on another game put 1.14 within the drift, or the spatial battery with facts
