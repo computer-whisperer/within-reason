@@ -2194,21 +2194,29 @@ raised by its reading) took the packet's move in most of them, or a game with th
 detachments the packet wanted than it kept.
 **Used by.** nothing built; a candidate for the user's word.
 
-### K-jev-the-decode-reads-an-ordered-constructor-paragraph-as-no-extractors
-**Claim.** The decode's per-constructor `build|armmex` reading, which fuses the extractor move off under 0.3, depends
-on the paragraph's shape and not on whether it says the constructors take spots: "their job is taking free metal
-spots, in this order" reads at 0 under the bar of 84 readings; "first a light turret beside every extractor, then
-free metal spots" at 44 of 62; "the ones at home help the fusion; the others take free metal spots" at 28 of 33;
-"constructor_X and constructor_Y take apart the wrecks; the others take free spots" at 61 of 68. A negated place
-("never walks to spot_8") reads as a destination (0.59 to 0.97), and a group named by description ("the armflash
-group from plant_19529") gets no mark. The report shows the decode's readings for groups and not for builders.
-**Status.** supported (2026-10-16, the impedance study: the decode scan of 12 arena games, 1,122 readings;
-prio-player-1 10:45 to 14:25 verified, six constructors off extractors for 4.5 minutes; human-31 12:27 verified).
-**Evidence.** `docs/studies/2026-10-16-opus-hands-impedance.md` §3.2, `data/impedance-2026-10-16/decode_mex.json`.
-**Would be wrong if.** The same paragraphs re-decoded on Jev 1.14 (the scan ran on 1.13 logs but jev114-player-1,
-which read "the others take free spots" at 20 of 20 under the bar) read the ordered forms over 0.5, or the decode
-question re-worded to ask "does this paragraph give this constructor extractors to build, now or later" did.
-**Used by.** nothing built.
+### K-jev-the-decode-reads-a-constructor-paragraph-by-its-words-not-its-meaning
+**Claim.** The decode's per-constructor `build|armmex` reading, which fuses the extractor move off under 0.3, is a
+fragile reading of the prose, not of what it means: inside a full packet "their job is taking free extractor spots"
+reads 0.76 to 0.80 and "their job is taking free metal spots" 0.36; alone the same sentences read 0.14 and 0.03;
+"first a light turret beside every extractor, then free metal spots" reads 0.3 (the turret 0.7) and 0.5 to 0.7
+with the spots first; "the others take free spots" after two named constructors reads 0.06 to 0.13 for one of the
+others and 0.4 to 0.5 when it is named; "they work their lists; when a list is done ..." 0.3; the actor described
+by the gloss cut at 120 characters reads 0.14, by a short description 0.47; a reworded question lifts one shape and
+not the others; Jev 1.14 and 1.13 read alike. A group named by description ("the armflash group from plant_19529")
+gets no mark. Over 12 arena games the reading sat under the bar in 0% to 92% of readings by the game's wording
+(1,122 readings), and the fuse audit cannot see it: the gate's own fresh rating of a fused move under the same
+prose agrees (0 faults in 42 audited moves to spots the paragraph listed, prio-player-1). The report shows the
+decode's readings for groups and not for builders. A place the packet forbids reads yes by design (it is then the
+pick's question each second), so a negated place is the pick's reading, not the decode's.
+**Status.** supported (2026-10-16, the impedance study §3.2 and §3.2a: the decode scan of 12 arena games and five
+probe rounds, 115 requests, `data/impedance-2026-10-16/decode-probe/`; prio-player-1 10:45 to 14:25 verified, six
+constructors off extractors for 4.5 minutes).
+**Evidence.** `docs/studies/2026-10-16-opus-hands-impedance.md` §3.2 and §3.2a.
+**Would be wrong if.** The build question asked as a Choice over the actor's jobs, or asked with the sentence that
+names the actor's class quoted into it, read the table's rows alike; or a hand-labelled set of thirty paragraphs
+showed the yes/no form agreeing with the label in most of them.
+**Used by.** nothing built (the user's call: whether the build-type fuse stays, its bar, the question's form, the
+actor's words, the report's readings line).
 
 ### K-harness-five-code-faults-and-five-report-lines-from-the-impedance-tally
 **Claim.** Across the 23 games of 2026-10-06 to 2026-10-16 the exact, cheap faults are: the hunt's 900 leash measured

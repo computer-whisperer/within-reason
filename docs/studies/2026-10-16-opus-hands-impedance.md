@@ -230,6 +230,50 @@ t4 attacked under the old direction and lost 14,075 metal); the commander's repo
 metal with 23 of 31 Blitzes 2,700 to 8,286 behind (apex-v024 7:58, the "now" signal and ten Blitzes); "join into one
 body at meet_d5" across seats with no lever but transfer (human-30 Eclipsed 5:15 to 8:15, 3,900 for 2,555).
 
+### 3.2a The decode probed (the same evening; `data/impedance-2026-10-16/decode-probe/`)
+
+The user asked what the full problem is. The decode (`decode.rs`) is one lean request per packet: for each actor and
+each thing its menu could do, a yes/no over the instructions alone ("Read the player's `instructions` alone. Do they
+have constructor_1412 (Construction Vehicle (armcv; constructor vehicle, 135 metal): tier-1 constructor vehicle, 90
+build power; builds the base and the) build a Metal Extractor (armmex), now or under some condition, or say anything
+else to it about that kind of building?"); the actor's words are the first 120 characters of its picture entry's
+gloss, never its position. A reading under 0.3 fuses every move of that kind off the actor's menu until the next
+packet; a detachment's forbidden mark is on at 0.8 and off under 0.2; the band between is left to the pick's own
+question each second. jev114-player-1: 260 decode requests, 22,259 readings, 16,769 of them under 0.2, 2.1M tokens
+($0.09); the fuse withheld 45% of what the gate would have asked, the largest saving of the nine layers.
+
+Five probe rounds (115 requests, both Jev versions, three repeats each; the answers drift by about 0.05) on the
+extractor question under the paragraphs the study flagged:
+
+| the Constructors sentence, asked for a constructor the packet does not name | reading (1.14 / 1.13) |
+|---|---|
+| "their job is taking free metal spots in this order: ..." alone | 0.03 / 0.07 |
+| the same, inside rove-move-1's full packet | 0.36 |
+| "their job is taking free extractor spots, in this order: ..." inside a full packet (rove-move-1's own, or prio-player-1's) | 0.80 / 0.76 |
+| the same sentence alone | 0.14 |
+| "their job is building extractors (armmex) on free metal spots" alone | 0.53 / 0.48 |
+| prio-player-1 10:37, "first a light turret beside every extractor that has none (...); then free metal spots in this order" | 0.29 / 0.38 (the turret question on the same text: 0.68 / 0.74) |
+| the same with the spots before the turrets | 0.52 / 0.68 |
+| the same without "when Pawns ... Otherwise:" | 0.21 / 0.20 |
+| prio-player-1 14:25, "their job is extractors. When Pawns ... Otherwise free metal spots in this order" | 0.52 / 0.40 (a question reworded to "among the jobs ... at any time": 0.74 / 0.79) |
+| apex-v024, "they work their lists. When a list is done, the ones at home help the fusion; the others take free metal spots" | 0.30 / 0.31 (without the list framing: 0.38 / 0.27) |
+| jev114, "constructor_A and constructor_B take apart the wrecks ...; the others take free metal spots", for one of the others | 0.13 / 0.06 ("every other constructor, constructor_18284 among them": 0.46 / 0.41) |
+| the actor's words in the question: the gloss cut at 120 characters / "Construction Vehicle (armcv)" / "a constructor that builds extractors, generators, turrets and factories", on rove-move-1's sentence alone | 0.14 / 0.32 / 0.47 |
+
+So: the reading of "does the packet give this constructor extractors" is not about one shape. It swings by 0.4 on
+whether the prose says "extractor" rather than "metal spots", by 0.3 on the order of two clauses, by 0.3 on an
+exclusion ("the others"), by 0.3 on the actor's description in the question, and by 0.4 on whether the sentence stands
+in a full packet or alone; the question's own wording moves one case and not the others; 1.14 and 1.13 read alike.
+A human reads every row of the table the same way. The fuse then takes a reading of 0.25 as a clear no and removes
+the job for the packet's life. In prio-player-1 the audit sampled 42 fused extractor moves to spots the paragraph
+lists by name and the gate's own fresh rating of each was 0.09 to 0.31: the audit measures agreement between two
+Jev readings of the same prose, not whether the prose was read as meant, so it reports 0.5% faults while the
+player's expansion stands for four minutes. The report shows the decode's readings for groups only
+(`reads_words`), so the player cannot see that its words shut a builder's move. Places read better: the place
+question is the one measured before the rebuild (72% of answers under 0.2, 1 to 2% cross-paragraph), and a place the
+packet forbids reads yes by design (it is then the pick's own question each second), so the "negated place" items
+of §3.2 are the pick's reading, not the decode's.
+
 ## 4. What the players asked for that nothing can do
 
 Sentences in packets or direction that no menu move, list step, lane word or tool carries, by how many games asked:

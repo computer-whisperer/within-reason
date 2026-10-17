@@ -1,0 +1,152 @@
+[
+ [
+  "s1 alone | what = gloss120 (as in the game)",
+  0,
+  0.04
+ ],
+ [
+  "s1 alone | what = gloss120 (as in the game)",
+  1,
+  0.03
+ ],
+ [
+  "s1 alone | what = gloss120 (as in the game)",
+  2,
+  0.03
+ ],
+ [
+  "rove-move-1's own paragraph alone | what = gloss120 (as in the game)",
+  0,
+  0.15
+ ],
+ [
+  "rove-move-1's own paragraph alone | what = gloss120 (as in the game)",
+  1,
+  0.16
+ ],
+ [
+  "rove-move-1's own paragraph alone | what = gloss120 (as in the game)",
+  2,
+  0.12
+ ],
+ [
+  "s1 alone | what = short 'Construction Vehicle (armcv)'",
+  0,
+  0.12
+ ],
+ [
+  "s1 alone | what = short 'Construction Vehicle (armcv)'",
+  1,
+  0.12
+ ],
+ [
+  "s1 alone | what = short 'Construction Vehicle (armcv)'",
+  2,
+  0.1
+ ],
+ [
+  "rove-move-1's own paragraph alone | what = short 'Construction Vehicle (armcv)'",
+  0,
+  0.34
+ ],
+ [
+  "rove-move-1's own paragraph alone | what = short 'Construction Vehicle (armcv)'",
+  1,
+  0.28
+ ],
+ [
+  "rove-move-1's own paragraph alone | what = short 'Construction Vehicle (armcv)'",
+  2,
+  0.34
+ ],
+ [
+  "s1 alone | what = descriptive",
+  0,
+  0.05
+ ],
+ [
+  "s1 alone | what = descriptive",
+  1,
+  0.05
+ ],
+ [
+  "s1 alone | what = descriptive",
+  2,
+  0.04
+ ],
+ [
+  "rove-move-1's own paragraph alone | what = descriptive",
+  0,
+  0.46
+ ],
+ [
+  "rove-move-1's own paragraph alone | what = descriptive",
+  1,
+  0.45
+ ],
+ [
+  "rove-move-1's own paragraph alone | what = descriptive",
+  2,
+  0.49
+ ],
+ [
+  "s1 inside rove-move-1's full packet | gloss120",
+  0,
+  0.35
+ ],
+ [
+  "s1 inside rove-move-1's full packet | gloss120",
+  1,
+  0.33
+ ],
+ [
+  "s1 inside rove-move-1's full packet | gloss120",
+  2,
+  0.39
+ ],
+ [
+  "rove-move-1's own paragraph inside prio-1037's packet | gloss120",
+  0,
+  0.76
+ ],
+ [
+  "rove-move-1's own paragraph inside prio-1037's packet | gloss120",
+  1,
+  0.75
+ ],
+ [
+  "rove-move-1's own paragraph inside prio-1037's packet | gloss120",
+  2,
+  0.78
+ ],
+ [
+  "rove-move-1's full packet as is | gloss120",
+  0,
+  0.78
+ ],
+ [
+  "rove-move-1's full packet as is | gloss120",
+  1,
+  0.77
+ ],
+ [
+  "rove-move-1's full packet as is | gloss120",
+  2,
+  0.86
+ ],
+ [
+  "prio-1037 as is | what = descriptive",
+  0,
+  0.32
+ ],
+ [
+  "prio-1037 as is | what = descriptive",
+  1,
+  0.25
+ ],
+ [
+  "prio-1037 as is | what = descriptive",
+  2,
+  0.28
+ ]
+]

@@ -1,0 +1,488 @@
+[
+ [
+  "prio-1037 as is",
+  "jev-1.14.0",
+  0,
+  {
+   "mex": 0.3,
+   "llt": 0.75
+  }
+ ],
+ [
+  "prio-1037 as is",
+  "jev-1.14.0",
+  1,
+  {
+   "mex": 0.24,
+   "llt": 0.63
+  }
+ ],
+ [
+  "prio-1037 as is",
+  "jev-1.14.0",
+  2,
+  {
+   "mex": 0.32,
+   "llt": 0.67
+  }
+ ],
+ [
+  "prio-1037 as is",
+  "jev-1.13.0",
+  0,
+  {
+   "mex": 0.33,
+   "llt": 0.74
+  }
+ ],
+ [
+  "prio-1037 as is",
+  "jev-1.13.0",
+  1,
+  {
+   "mex": 0.4,
+   "llt": 0.71
+  }
+ ],
+ [
+  "prio-1037 as is",
+  "jev-1.13.0",
+  2,
+  {
+   "mex": 0.35,
+   "llt": 0.78
+  }
+ ],
+ [
+  "prio-1037: turret sentence without its spot list",
+  "jev-1.14.0",
+  0,
+  {
+   "mex": 0.23,
+   "llt": 0.73
+  }
+ ],
+ [
+  "prio-1037: turret sentence without its spot list",
+  "jev-1.14.0",
+  1,
+  {
+   "mex": 0.28,
+   "llt": 0.73
+  }
+ ],
+ [
+  "prio-1037: turret sentence without its spot list",
+  "jev-1.14.0",
+  2,
+  {
+   "mex": 0.31,
+   "llt": 0.75
+  }
+ ],
+ [
+  "prio-1037: turret sentence without its spot list",
+  "jev-1.13.0",
+  0,
+  {
+   "mex": 0.4,
+   "llt": 0.74
+  }
+ ],
+ [
+  "prio-1037: turret sentence without its spot list",
+  "jev-1.13.0",
+  1,
+  {
+   "mex": 0.4,
+   "llt": 0.78
+  }
+ ],
+ [
+  "prio-1037: turret sentence without its spot list",
+  "jev-1.13.0",
+  2,
+  {
+   "mex": 0.44,
+   "llt": 0.75
+  }
+ ],
+ [
+  "prio-1037: 'Their job: free metal spots in this order ... A light turret beside each extractor right after it'",
+  "jev-1.14.0",
+  0,
+  {
+   "mex": 0.15,
+   "llt": 0.59
+  }
+ ],
+ [
+  "prio-1037: 'Their job: free metal spots in this order ... A light turret beside each extractor right after it'",
+  "jev-1.14.0",
+  1,
+  {
+   "mex": 0.14,
+   "llt": 0.6
+  }
+ ],
+ [
+  "prio-1037: 'Their job: free metal spots in this order ... A light turret beside each extractor right after it'",
+  "jev-1.14.0",
+  2,
+  {
+   "mex": 0.16,
+   "llt": 0.59
+  }
+ ],
+ [
+  "prio-1037: 'Their job: free metal spots in this order ... A light turret beside each extractor right after it'",
+  "jev-1.13.0",
+  0,
+  {
+   "mex": 0.16,
+   "llt": 0.68
+  }
+ ],
+ [
+  "prio-1037: 'Their job: free metal spots in this order ... A light turret beside each extractor right after it'",
+  "jev-1.13.0",
+  1,
+  {
+   "mex": 0.18,
+   "llt": 0.69
+  }
+ ],
+ [
+  "prio-1037: 'Their job: free metal spots in this order ... A light turret beside each extractor right after it'",
+  "jev-1.13.0",
+  2,
+  {
+   "mex": 0.16,
+   "llt": 0.68
+  }
+ ],
+ [
+  "prio-1037: only 'Constructors: their job is taking free metal spots in this order: <list>.'",
+  "jev-1.14.0",
+  0,
+  {
+   "mex": 0.21,
+   "llt": 0.12
+  }
+ ],
+ [
+  "prio-1037: only 'Constructors: their job is taking free metal spots in this order: <list>.'",
+  "jev-1.14.0",
+  1,
+  {
+   "mex": 0.2,
+   "llt": 0.14
+  }
+ ],
+ [
+  "prio-1037: only 'Constructors: their job is taking free metal spots in this order: <list>.'",
+  "jev-1.14.0",
+  2,
+  {
+   "mex": 0.19,
+   "llt": 0.13
+  }
+ ],
+ [
+  "prio-1037: only 'Constructors: their job is taking free metal spots in this order: <list>.'",
+  "jev-1.13.0",
+  0,
+  {
+   "mex": 0.16,
+   "llt": 0.12
+  }
+ ],
+ [
+  "prio-1037: only 'Constructors: their job is taking free metal spots in this order: <list>.'",
+  "jev-1.13.0",
+  1,
+  {
+   "mex": 0.18,
+   "llt": 0.12
+  }
+ ],
+ [
+  "prio-1037: only 'Constructors: their job is taking free metal spots in this order: <list>.'",
+  "jev-1.13.0",
+  2,
+  {
+   "mex": 0.18,
+   "llt": 0.12
+  }
+ ],
+ [
+  "apexv024 as is",
+  "jev-1.14.0",
+  0,
+  {
+   "mex": 0.28,
+   "llt": 0.65
+  }
+ ],
+ [
+  "apexv024 as is",
+  "jev-1.14.0",
+  1,
+  {
+   "mex": 0.28,
+   "llt": 0.67
+  }
+ ],
+ [
+  "apexv024 as is",
+  "jev-1.14.0",
+  2,
+  {
+   "mex": 0.3,
+   "llt": 0.66
+  }
+ ],
+ [
+  "apexv024 as is",
+  "jev-1.13.0",
+  0,
+  {
+   "mex": 0.3,
+   "llt": 0.65
+  }
+ ],
+ [
+  "apexv024 as is",
+  "jev-1.13.0",
+  1,
+  {
+   "mex": 0.32,
+   "llt": 0.66
+  }
+ ],
+ [
+  "apexv024 as is",
+  "jev-1.13.0",
+  2,
+  {
+   "mex": 0.34,
+   "llt": 0.71
+  }
+ ],
+ [
+  "apexv024 without 'they work their lists. When a list is done,'",
+  "jev-1.14.0",
+  0,
+  {
+   "mex": 0.45,
+   "llt": 0.7
+  }
+ ],
+ [
+  "apexv024 without 'they work their lists. When a list is done,'",
+  "jev-1.14.0",
+  1,
+  {
+   "mex": 0.32,
+   "llt": 0.71
+  }
+ ],
+ [
+  "apexv024 without 'they work their lists. When a list is done,'",
+  "jev-1.14.0",
+  2,
+  {
+   "mex": 0.36,
+   "llt": 0.76
+  }
+ ],
+ [
+  "apexv024 without 'they work their lists. When a list is done,'",
+  "jev-1.13.0",
+  0,
+  {
+   "mex": 0.28,
+   "llt": 0.65
+  }
+ ],
+ [
+  "apexv024 without 'they work their lists. When a list is done,'",
+  "jev-1.13.0",
+  1,
+  {
+   "mex": 0.26,
+   "llt": 0.64
+  }
+ ],
+ [
+  "apexv024 without 'they work their lists. When a list is done,'",
+  "jev-1.13.0",
+  2,
+  {
+   "mex": 0.28,
+   "llt": 0.67
+  }
+ ],
+ [
+  "jev114 as is (constructor_18284)",
+  "jev-1.14.0",
+  0,
+  {
+   "mex": 0.14,
+   "llt": 0.22
+  }
+ ],
+ [
+  "jev114 as is (constructor_18284)",
+  "jev-1.14.0",
+  1,
+  {
+   "mex": 0.13,
+   "llt": 0.25
+  }
+ ],
+ [
+  "jev114 as is (constructor_18284)",
+  "jev-1.14.0",
+  2,
+  {
+   "mex": 0.13,
+   "llt": 0.24
+  }
+ ],
+ [
+  "jev114 as is (constructor_18284)",
+  "jev-1.13.0",
+  0,
+  {
+   "mex": 0.06,
+   "llt": 0.12
+  }
+ ],
+ [
+  "jev114 as is (constructor_18284)",
+  "jev-1.13.0",
+  1,
+  {
+   "mex": 0.07,
+   "llt": 0.13
+  }
+ ],
+ [
+  "jev114 as is (constructor_18284)",
+  "jev-1.13.0",
+  2,
+  {
+   "mex": 0.06,
+   "llt": 0.12
+  }
+ ],
+ [
+  "jev114: 'The others' -> 'Every other constructor, constructor_18284 among them,'",
+  "jev-1.14.0",
+  0,
+  {
+   "mex": 0.36,
+   "llt": 0.28
+  }
+ ],
+ [
+  "jev114: 'The others' -> 'Every other constructor, constructor_18284 among them,'",
+  "jev-1.14.0",
+  1,
+  {
+   "mex": 0.46,
+   "llt": 0.29
+  }
+ ],
+ [
+  "jev114: 'The others' -> 'Every other constructor, constructor_18284 among them,'",
+  "jev-1.14.0",
+  2,
+  {
+   "mex": 0.56,
+   "llt": 0.32
+  }
+ ],
+ [
+  "jev114: 'The others' -> 'Every other constructor, constructor_18284 among them,'",
+  "jev-1.13.0",
+  0,
+  {
+   "mex": 0.32,
+   "llt": 0.23
+  }
+ ],
+ [
+  "jev114: 'The others' -> 'Every other constructor, constructor_18284 among them,'",
+  "jev-1.13.0",
+  1,
+  {
+   "mex": 0.48,
+   "llt": 0.23
+  }
+ ],
+ [
+  "jev114: 'The others' -> 'Every other constructor, constructor_18284 among them,'",
+  "jev-1.13.0",
+  2,
+  {
+   "mex": 0.44,
+   "llt": 0.22
+  }
+ ],
+ [
+  "jev114: the wreck sentence removed",
+  "jev-1.14.0",
+  0,
+  {
+   "mex": 0.27,
+   "llt": 0.43
+  }
+ ],
+ [
+  "jev114: the wreck sentence removed",
+  "jev-1.14.0",
+  1,
+  {
+   "mex": 0.24,
+   "llt": 0.45
+  }
+ ],
+ [
+  "jev114: the wreck sentence removed",
+  "jev-1.14.0",
+  2,
+  {
+   "mex": 0.21,
+   "llt": 0.48
+  }
+ ],
+ [
+  "jev114: the wreck sentence removed",
+  "jev-1.13.0",
+  0,
+  {
+   "mex": 0.14,
+   "llt": 0.27
+  }
+ ],
+ [
+  "jev114: the wreck sentence removed",
+  "jev-1.13.0",
+  1,
+  {
+   "mex": 0.19,
+   "llt": 0.32
+  }
+ ],
+ [
+  "jev114: the wreck sentence removed",
+  "jev-1.13.0",
+  2,
+  {
+   "mex": 0.2,
+   "llt": 0.28
+  }
+ ]
+]

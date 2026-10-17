@@ -39,7 +39,7 @@ Still open, each the user's call: the decode's readings shown for groups only. T
 whole list for one stale name; a player's `mark` removal does not touch the side's mark of that name; `produce
 "new"` gives no name to write the packet with. Jev and the decode: the packet weights the pick and does not command
 (K-jev-the-packet-weights-the-pick-and-does-not-command); an ordered constructor paragraph reads as no extractors
-and a negated place as a destination (K-jev-the-decode-reads-an-ordered-constructor-paragraph-as-no-extractors);
+and a negated place as a destination (K-jev-the-decode-reads-a-constructor-paragraph-by-its-words-not-its-meaning);
 the forbidden mark acts at 0.70 and on detachments only; the commander's standing rule has no instructions clause.
 What no lever carries (the study's §4): where a builder stands, a route's order, a hunt bounded by a place, targets
 inside a fight, converging, splitting by unit type, joining in groups, routes that avoid reach, a forced re-ask,

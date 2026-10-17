@@ -1,0 +1,287 @@
+[
+ [
+  "prio-1037: plain sentence in the full packet",
+  0,
+  0.24
+ ],
+ [
+  "prio-1037: plain sentence in the full packet",
+  1,
+  0.21
+ ],
+ [
+  "prio-1037: plain sentence in the full packet",
+  2,
+  0.21
+ ],
+ [
+  "prio-1037: plain sentence alone",
+  0,
+  0.03
+ ],
+ [
+  "prio-1037: plain sentence alone",
+  1,
+  0.03
+ ],
+ [
+  "prio-1037: plain sentence alone",
+  2,
+  0.03
+ ],
+ [
+  "prio-1037: full minus paragraph 0 ('group_J: the army, now Stouts, Shellshoc')",
+  0,
+  0.13
+ ],
+ [
+  "prio-1037: full minus paragraph 0 ('group_J: the army, now Stouts, Shellshoc')",
+  1,
+  0.13
+ ],
+ [
+  "prio-1037: full minus paragraph 0 ('group_J: the army, now Stouts, Shellshoc')",
+  2,
+  0.15
+ ],
+ [
+  "prio-1037: full minus paragraph 1 ('Every Stout and Shellshocker group and g')",
+  0,
+  0.19
+ ],
+ [
+  "prio-1037: full minus paragraph 1 ('Every Stout and Shellshocker group and g')",
+  1,
+  0.22
+ ],
+ [
+  "prio-1037: full minus paragraph 1 ('Every Stout and Shellshocker group and g')",
+  2,
+  0.23
+ ],
+ [
+  "prio-1037: full minus paragraph 2 ('group_O: the home guard, the Blitzes at ')",
+  0,
+  0.27
+ ],
+ [
+  "prio-1037: full minus paragraph 2 ('group_O: the home guard, the Blitzes at ')",
+  1,
+  0.2
+ ],
+ [
+  "prio-1037: full minus paragraph 2 ('group_O: the home guard, the Blitzes at ')",
+  2,
+  0.22
+ ],
+ [
+  "prio-1037: full minus paragraph 3 ('Rovers (armfav): every group of armfav, ')",
+  0,
+  0.26
+ ],
+ [
+  "prio-1037: full minus paragraph 3 ('Rovers (armfav): every group of armfav, ')",
+  1,
+  0.28
+ ],
+ [
+  "prio-1037: full minus paragraph 3 ('Rovers (armfav): every group of armfav, ')",
+  2,
+  0.29
+ ],
+ [
+  "prio-1037: full minus paragraph 5 ('Commander: works at home on its list and')",
+  0,
+  0.23
+ ],
+ [
+  "prio-1037: full minus paragraph 5 ('Commander: works at home on its list and')",
+  1,
+  0.26
+ ],
+ [
+  "prio-1037: full minus paragraph 5 ('Commander: works at home on its list and')",
+  2,
+  0.16
+ ],
+ [
+  "prio-1037: full minus paragraph 6 ('Plants: make their lists in order.')",
+  0,
+  0.19
+ ],
+ [
+  "prio-1037: full minus paragraph 6 ('Plants: make their lists in order.')",
+  1,
+  0.21
+ ],
+ [
+  "prio-1037: full minus paragraph 6 ('Plants: make their lists in order.')",
+  2,
+  0.17
+ ],
+ [
+  "prio-1037: plain sentence + Commander paragraph only",
+  0,
+  0.07
+ ],
+ [
+  "prio-1037: plain sentence + Commander paragraph only",
+  1,
+  0.06
+ ],
+ [
+  "prio-1037: plain sentence + Commander paragraph only",
+  2,
+  0.07
+ ],
+ [
+  "jev114: plain sentence in the full packet",
+  0,
+  0.17
+ ],
+ [
+  "jev114: plain sentence in the full packet",
+  1,
+  0.16
+ ],
+ [
+  "jev114: plain sentence in the full packet",
+  2,
+  0.15
+ ],
+ [
+  "jev114: plain sentence alone",
+  0,
+  0.03
+ ],
+ [
+  "jev114: plain sentence alone",
+  1,
+  0.04
+ ],
+ [
+  "jev114: plain sentence alone",
+  2,
+  0.04
+ ],
+ [
+  "jev114: full minus paragraph 0 ('Our body attacks his economy by the sout')",
+  0,
+  0.23
+ ],
+ [
+  "jev114: full minus paragraph 0 ('Our body attacks his economy by the sout')",
+  1,
+  0.22
+ ],
+ [
+  "jev114: full minus paragraph 0 ('Our body attacks his economy by the sout')",
+  2,
+  0.22
+ ],
+ [
+  "jev114: full minus paragraph 1 ('Raids at home come first, for the home g')",
+  0,
+  0.13
+ ],
+ [
+  "jev114: full minus paragraph 1 ('Raids at home come first, for the home g')",
+  1,
+  0.14
+ ],
+ [
+  "jev114: full minus paragraph 1 ('Raids at home come first, for the home g')",
+  2,
+  0.16
+ ],
+ [
+  "jev114: full minus paragraph 2 ('group_H1, the body: its next stop is spo')",
+  0,
+  0.25
+ ],
+ [
+  "jev114: full minus paragraph 2 ('group_H1, the body: its next stop is spo')",
+  1,
+  0.25
+ ],
+ [
+  "jev114: full minus paragraph 2 ('group_H1, the body: its next stop is spo')",
+  2,
+  0.21
+ ],
+ [
+  "jev114: full minus paragraph 3 ('group_V1 and every new group from the pl')",
+  0,
+  0.14
+ ],
+ [
+  "jev114: full minus paragraph 3 ('group_V1 and every new group from the pl')",
+  1,
+  0.15
+ ],
+ [
+  "jev114: full minus paragraph 3 ('group_V1 and every new group from the pl')",
+  2,
+  0.17
+ ],
+ [
+  "jev114: full minus paragraph 4 ('group_T1, group_A1, group_C1: home guard')",
+  0,
+  0.21
+ ],
+ [
+  "jev114: full minus paragraph 4 ('group_T1, group_A1, group_C1: home guard')",
+  1,
+  0.21
+ ],
+ [
+  "jev114: full minus paragraph 4 ('group_T1, group_A1, group_C1: home guard')",
+  2,
+  0.22
+ ],
+ [
+  "jev114: full minus paragraph 5 ('Commander: besides the raids, it works a')",
+  0,
+  0.19
+ ],
+ [
+  "jev114: full minus paragraph 5 ('Commander: besides the raids, it works a')",
+  1,
+  0.18
+ ],
+ [
+  "jev114: full minus paragraph 5 ('Commander: besides the raids, it works a')",
+  2,
+  0.16
+ ],
+ [
+  "jev114: full minus paragraph 7 ('Rover groups (armfav): rove. Leave them ')",
+  0,
+  0.21
+ ],
+ [
+  "jev114: full minus paragraph 7 ('Rover groups (armfav): rove. Leave them ')",
+  1,
+  0.21
+ ],
+ [
+  "jev114: full minus paragraph 7 ('Rover groups (armfav): rove. Leave them ')",
+  2,
+  0.18
+ ],
+ [
+  "jev114: plain sentence + Commander paragraph only",
+  0,
+  0.04
+ ],
+ [
+  "jev114: plain sentence + Commander paragraph only",
+  1,
+  0.05
+ ],
+ [
+  "jev114: plain sentence + Commander paragraph only",
+  2,
+  0.05
+ ]
+]

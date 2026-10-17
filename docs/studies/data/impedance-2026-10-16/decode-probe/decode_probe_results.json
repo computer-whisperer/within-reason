@@ -1,0 +1,596 @@
+[
+ [
+  "prio-1037 as is",
+  "jev-1.14.0",
+  0,
+  {
+   "build": 0.33,
+   "build2": 0.17,
+   "place": 0.82
+  },
+  "spot_63"
+ ],
+ [
+  "prio-1037 as is",
+  "jev-1.14.0",
+  1,
+  {
+   "build": 0.37,
+   "build2": 0.18,
+   "place": 0.85
+  },
+  "spot_63"
+ ],
+ [
+  "prio-1037 as is",
+  "jev-1.14.0",
+  2,
+  {
+   "build": 0.26,
+   "build2": 0.17,
+   "place": 0.82
+  },
+  "spot_63"
+ ],
+ [
+  "prio-1037 as is",
+  "jev-1.13.0",
+  0,
+  {
+   "build": 0.42,
+   "build2": 0.23,
+   "place": 0.78
+  },
+  "spot_63"
+ ],
+ [
+  "prio-1037 as is",
+  "jev-1.13.0",
+  1,
+  {
+   "build": 0.35,
+   "build2": 0.2,
+   "place": 0.8
+  },
+  "spot_63"
+ ],
+ [
+  "prio-1037 as is",
+  "jev-1.13.0",
+  2,
+  {
+   "build": 0.37,
+   "build2": 0.19,
+   "place": 0.78
+  },
+  "spot_63"
+ ],
+ [
+  "prio-1037 without 'when Pawns ... Otherwise:'",
+  "jev-1.14.0",
+  0,
+  {
+   "build": 0.2,
+   "build2": 0.13,
+   "place": 0.82
+  },
+  "spot_45"
+ ],
+ [
+  "prio-1037 without 'when Pawns ... Otherwise:'",
+  "jev-1.14.0",
+  1,
+  {
+   "build": 0.21,
+   "build2": 0.17,
+   "place": 0.76
+  },
+  "spot_45"
+ ],
+ [
+  "prio-1037 without 'when Pawns ... Otherwise:'",
+  "jev-1.14.0",
+  2,
+  {
+   "build": 0.22,
+   "build2": 0.16,
+   "place": 0.77
+  },
+  "spot_45"
+ ],
+ [
+  "prio-1037 without 'when Pawns ... Otherwise:'",
+  "jev-1.13.0",
+  0,
+  {
+   "build": 0.21,
+   "build2": 0.38,
+   "place": 0.72
+  },
+  "spot_45"
+ ],
+ [
+  "prio-1037 without 'when Pawns ... Otherwise:'",
+  "jev-1.13.0",
+  1,
+  {
+   "build": 0.2,
+   "build2": 0.25,
+   "place": 0.7
+  },
+  "spot_45"
+ ],
+ [
+  "prio-1037 without 'when Pawns ... Otherwise:'",
+  "jev-1.13.0",
+  2,
+  {
+   "build": 0.19,
+   "build2": 0.28,
+   "place": 0.71
+  },
+  "spot_45"
+ ],
+ [
+  "prio-1037 spots before turrets",
+  "jev-1.14.0",
+  0,
+  {
+   "build": 0.51,
+   "build2": 0.65,
+   "place": 0.75
+  },
+  "spot_63"
+ ],
+ [
+  "prio-1037 spots before turrets",
+  "jev-1.14.0",
+  1,
+  {
+   "build": 0.48,
+   "build2": 0.47,
+   "place": 0.81
+  },
+  "spot_63"
+ ],
+ [
+  "prio-1037 spots before turrets",
+  "jev-1.14.0",
+  2,
+  {
+   "build": 0.57,
+   "build2": 0.63,
+   "place": 0.79
+  },
+  "spot_63"
+ ],
+ [
+  "prio-1037 spots before turrets",
+  "jev-1.13.0",
+  0,
+  {
+   "build": 0.69,
+   "build2": 0.79,
+   "place": 0.83
+  },
+  "spot_63"
+ ],
+ [
+  "prio-1037 spots before turrets",
+  "jev-1.13.0",
+  1,
+  {
+   "build": 0.65,
+   "build2": 0.74,
+   "place": 0.82
+  },
+  "spot_63"
+ ],
+ [
+  "prio-1037 spots before turrets",
+  "jev-1.13.0",
+  2,
+  {
+   "build": 0.7,
+   "build2": 0.79,
+   "place": 0.84
+  },
+  "spot_63"
+ ],
+ [
+  "prio-1425 as is ('their job is extractors')",
+  "jev-1.14.0",
+  0,
+  {
+   "build": 0.49,
+   "build2": 0.8,
+   "place": 0.89
+  },
+  "spot_63"
+ ],
+ [
+  "prio-1425 as is ('their job is extractors')",
+  "jev-1.14.0",
+  1,
+  {
+   "build": 0.52,
+   "build2": 0.69,
+   "place": 0.87
+  },
+  "spot_63"
+ ],
+ [
+  "prio-1425 as is ('their job is extractors')",
+  "jev-1.14.0",
+  2,
+  {
+   "build": 0.55,
+   "build2": 0.73,
+   "place": 0.9
+  },
+  "spot_63"
+ ],
+ [
+  "prio-1425 as is ('their job is extractors')",
+  "jev-1.13.0",
+  0,
+  {
+   "build": 0.42,
+   "build2": 0.79,
+   "place": 0.78
+  },
+  "spot_63"
+ ],
+ [
+  "prio-1425 as is ('their job is extractors')",
+  "jev-1.13.0",
+  1,
+  {
+   "build": 0.41,
+   "build2": 0.78,
+   "place": 0.81
+  },
+  "spot_63"
+ ],
+ [
+  "prio-1425 as is ('their job is extractors')",
+  "jev-1.13.0",
+  2,
+  {
+   "build": 0.36,
+   "build2": 0.79,
+   "place": 0.8
+  },
+  "spot_63"
+ ],
+ [
+  "apexv024 as is ('the ones at home ...; the others ...')",
+  "jev-1.14.0",
+  0,
+  {
+   "build": 0.3,
+   "build2": 0.25,
+   "place": 0.72
+  },
+  "spot_129"
+ ],
+ [
+  "apexv024 as is ('the ones at home ...; the others ...')",
+  "jev-1.14.0",
+  1,
+  {
+   "build": 0.29,
+   "build2": 0.26,
+   "place": 0.75
+  },
+  "spot_129"
+ ],
+ [
+  "apexv024 as is ('the ones at home ...; the others ...')",
+  "jev-1.14.0",
+  2,
+  {
+   "build": 0.31,
+   "build2": 0.25,
+   "place": 0.74
+  },
+  "spot_129"
+ ],
+ [
+  "apexv024 as is ('the ones at home ...; the others ...')",
+  "jev-1.13.0",
+  0,
+  {
+   "build": 0.32,
+   "build2": 0.36,
+   "place": 0.6
+  },
+  "spot_129"
+ ],
+ [
+  "apexv024 as is ('the ones at home ...; the others ...')",
+  "jev-1.13.0",
+  1,
+  {
+   "build": 0.31,
+   "build2": 0.35,
+   "place": 0.66
+  },
+  "spot_129"
+ ],
+ [
+  "apexv024 as is ('the ones at home ...; the others ...')",
+  "jev-1.13.0",
+  2,
+  {
+   "build": 0.29,
+   "build2": 0.42,
+   "place": 0.63
+  },
+  "spot_129"
+ ],
+ [
+  "apexv024 'all take free metal spots'",
+  "jev-1.14.0",
+  0,
+  {
+   "build": 0.25,
+   "build2": 0.22,
+   "place": 0.72
+  },
+  "spot_129"
+ ],
+ [
+  "apexv024 'all take free metal spots'",
+  "jev-1.14.0",
+  1,
+  {
+   "build": 0.23,
+   "build2": 0.24,
+   "place": 0.76
+  },
+  "spot_129"
+ ],
+ [
+  "apexv024 'all take free metal spots'",
+  "jev-1.14.0",
+  2,
+  {
+   "build": 0.25,
+   "build2": 0.23,
+   "place": 0.76
+  },
+  "spot_129"
+ ],
+ [
+  "apexv024 'all take free metal spots'",
+  "jev-1.13.0",
+  0,
+  {
+   "build": 0.35,
+   "build2": 0.36,
+   "place": 0.65
+  },
+  "spot_129"
+ ],
+ [
+  "apexv024 'all take free metal spots'",
+  "jev-1.13.0",
+  1,
+  {
+   "build": 0.28,
+   "build2": 0.29,
+   "place": 0.63
+  },
+  "spot_129"
+ ],
+ [
+  "apexv024 'all take free metal spots'",
+  "jev-1.13.0",
+  2,
+  {
+   "build": 0.38,
+   "build2": 0.28,
+   "place": 0.63
+  },
+  "spot_129"
+ ],
+ [
+  "jev114 as is, for constructor_18284 (one of 'the others')",
+  "jev-1.14.0",
+  0,
+  {
+   "build": 0.14,
+   "build2": 0.49,
+   "place": 0.44
+  },
+  "spot_73"
+ ],
+ [
+  "jev114 as is, for constructor_18284 (one of 'the others')",
+  "jev-1.14.0",
+  1,
+  {
+   "build": 0.16,
+   "build2": 0.49,
+   "place": 0.45
+  },
+  "spot_73"
+ ],
+ [
+  "jev114 as is, for constructor_18284 (one of 'the others')",
+  "jev-1.14.0",
+  2,
+  {
+   "build": 0.13,
+   "build2": 0.52,
+   "place": 0.44
+  },
+  "spot_73"
+ ],
+ [
+  "jev114 as is, for constructor_18284 (one of 'the others')",
+  "jev-1.13.0",
+  0,
+  {
+   "build": 0.06,
+   "build2": 0.36,
+   "place": 0.25
+  },
+  "spot_73"
+ ],
+ [
+  "jev114 as is, for constructor_18284 (one of 'the others')",
+  "jev-1.13.0",
+  1,
+  {
+   "build": 0.06,
+   "build2": 0.41,
+   "place": 0.23
+  },
+  "spot_73"
+ ],
+ [
+  "jev114 as is, for constructor_18284 (one of 'the others')",
+  "jev-1.13.0",
+  2,
+  {
+   "build": 0.07,
+   "build2": 0.43,
+   "place": 0.24
+  },
+  "spot_73"
+ ],
+ [
+  "jev114 as is, for constructor_26470 (named for the wrecks)",
+  "jev-1.14.0",
+  0,
+  {
+   "build": 0.28,
+   "build2": 0.12,
+   "place": 0.25
+  },
+  "spot_73"
+ ],
+ [
+  "jev114 as is, for constructor_26470 (named for the wrecks)",
+  "jev-1.14.0",
+  1,
+  {
+   "build": 0.35,
+   "build2": 0.1,
+   "place": 0.39
+  },
+  "spot_73"
+ ],
+ [
+  "jev114 as is, for constructor_26470 (named for the wrecks)",
+  "jev-1.14.0",
+  2,
+  {
+   "build": 0.4,
+   "build2": 0.16,
+   "place": 0.45
+  },
+  "spot_73"
+ ],
+ [
+  "jev114 as is, for constructor_26470 (named for the wrecks)",
+  "jev-1.13.0",
+  0,
+  {
+   "build": 0.13,
+   "build2": 0.11,
+   "place": 0.24
+  },
+  "spot_73"
+ ],
+ [
+  "jev114 as is, for constructor_26470 (named for the wrecks)",
+  "jev-1.13.0",
+  1,
+  {
+   "build": 0.13,
+   "build2": 0.13,
+   "place": 0.24
+  },
+  "spot_73"
+ ],
+ [
+  "jev114 as is, for constructor_26470 (named for the wrecks)",
+  "jev-1.13.0",
+  2,
+  {
+   "build": 0.12,
+   "build2": 0.12,
+   "place": 0.23
+  },
+  "spot_73"
+ ],
+ [
+  "rovemove as is (plain 'their job is taking free extractor spots')",
+  "jev-1.14.0",
+  0,
+  {
+   "build": 0.83,
+   "build2": 0.85,
+   "place": 0.75
+  },
+  "spot_73"
+ ],
+ [
+  "rovemove as is (plain 'their job is taking free extractor spots')",
+  "jev-1.14.0",
+  1,
+  {
+   "build": 0.78,
+   "build2": 0.87,
+   "place": 0.78
+  },
+  "spot_73"
+ ],
+ [
+  "rovemove as is (plain 'their job is taking free extractor spots')",
+  "jev-1.14.0",
+  2,
+  {
+   "build": 0.84,
+   "build2": 0.87,
+   "place": 0.74
+  },
+  "spot_73"
+ ],
+ [
+  "rovemove as is (plain 'their job is taking free extractor spots')",
+  "jev-1.13.0",
+  0,
+  {
+   "build": 0.7,
+   "build2": 0.8,
+   "place": 0.72
+  },
+  "spot_73"
+ ],
+ [
+  "rovemove as is (plain 'their job is taking free extractor spots')",
+  "jev-1.13.0",
+  1,
+  {
+   "build": 0.76,
+   "build2": 0.82,
+   "place": 0.72
+  },
+  "spot_73"
+ ],
+ [
+  "rovemove as is (plain 'their job is taking free extractor spots')",
+  "jev-1.13.0",
+  2,
+  {
+   "build": 0.72,
+   "build2": 0.82,
+   "place": 0.7
+  },
+  "spot_73"
+ ]
+]
