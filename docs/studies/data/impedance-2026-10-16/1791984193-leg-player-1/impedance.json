@@ -1,0 +1,471 @@
+{
+ "game": "1791984193-leg-player-1",
+ "result": "won 25:54",
+ "minutes": 25.94,
+ "seats": [
+  "strategist-0"
+ ],
+ "player_model": "claude-opus-5-5",
+ "commander": "none",
+ "opponent": "BARb hard_aggressive",
+ "counts": {
+  "strategist-0": {
+   "turns": 143,
+   "orders": 295,
+   "refused": 0,
+   "hands_lines": 1127,
+   "flagged": {
+    "step-skipped": 32,
+    "hunt-ended-leash": 23,
+    "hunt-ended-other": 18,
+    "stopped-on-stop": 13,
+    "engine-refused": 12,
+    "step-waits": 4,
+    "other-fault": 4,
+    "abandoned": 2
+   },
+   "takeovers": 4
+  }
+ },
+ "moments_examined": 8,
+ "clean": 0,
+ "tally": {
+  "A1": 0,
+  "A2": 5,
+  "A3": 9,
+  "A4": 6,
+  "A5": 0,
+  "A6": 4,
+  "B1": 1,
+  "B2": 0,
+  "B3": 2,
+  "B4": 5,
+  "B5": 0,
+  "B6": 0
+ },
+ "items": [
+  {
+   "clock": "17:24-18:27",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "17:16 instruct: \"It has reached spot_27 and spot_35 and never goes back to them ... It advances (fight to) along this way, stop by stop ...: spot_18, then spot_10, then his_lab\"; 17:36: \"its next move is the advance (fight to) spot_18 ... it advances to spot_18 now\" (again 17:46, 17:56 with signal go_lab)",
+   "happened": "group_A2 kept its task 'fight_to spot_27' under the Ambusher and heavy lasers until 18:27 'walk to spot_29' (under the 18:06 packet); spot_18 never picked",
+   "evidence": "hands_window 17:20-18:00: 'group_A2: 47..51 at (4600,3300), task fight_to spot_27' every second; change 0.28 (17:24-17:43) then 0.71 with best 'fight_to_spot_18=0.39 go_spot_18=0.38' (17:46-17:51), 'PICK split [group_A2: kept w1 over w2 of 1 at 0.8]' 17:56; decode group_A2|place|spot_18 0.98 (17:24), 0.99 (17:44), 0.98 (17:54, 18:04): the mark landed; 18:27 'PLAYS group_A2: walk to spot_29 [plan]'; 17:56 wake 'group_A2 was told to advance to spot_27 and has not got nearer for 45 s'",
+   "cost": "large",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "11:09-13:56",
+   "seat": "strategist-0",
+   "category": "B1",
+   "wanted": "spend the bank (11:09 note: \"energy is the limit on spending the 2300 bank\"; 11:36: \"Energy 166 is still the cap on spending 2548 metal\")",
+   "happened": "the report's eco line never said the metal store was full; Opus treated the metal as banked, not as income thrown away",
+   "evidence": "the hands' picture at 11:36 (call row economy): \"metal: 2546 of 2550 stored (full: what comes in beyond this is wasted); 59.4 a second coming in, 35.0 going out ... banking it unused\"; the 11:36 report: \"eco: metal 2548 (+59.4/-35.1), energy 166/2900\" (energy shows its cap, metal does not); record samples: metal at >=98% of its cap 32/60/56 s in minutes 11/12/13, income above use in those seconds 2,213 metal (an upper bound on the waste)",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "15:41-25:54",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "15:41 produce plant_11652 [\"legrail:2\", \"leggat\"], plant_16133/27255 [\"leggat\"] (and later lists ending in an uncounted \"leggat\"); every packet: \"Plants: make what their lists say, in order.\"",
+   "happened": "the pick declined the uncounted 'build a leggat' on many asks: plants idle 351 plant-seconds from 15:41, 144 of them with metal over 300; Opus noticed only at 24:09 (\"Three plants idled (Jev rated leggat <0.5)\") and forced counts",
+   "evidence": "hands_window: 17:52 'PICK split [plant_16133: kept w1 over w2 of 1 at 0.38]'; 20:33 'PICK split [plant_27255: kept w1 over w2 of 1 at 0.5; plant_16133: kept w1 over w2 of 1 at 0.6; plant_1544: kept w1 over w2 of 1 at 0.5]'; record idle flags 15:41-25:54 with metal>300: plant_27255 55 s, plant_1544 45 s, plant_16133 38 s, plant_11652 6 s (a Decurion is 32 s at a bare plant: about 4 Decurions)",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "20:21-20:46",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "19:56 instruct: \"Once assault is given its way is spot_55, then spot_57, then spot_42, then spot_34 ... in that order, fighting as one body\" (assault given 20:06)",
+   "happened": "the front stood at spot_55 while the stop did not count as reached (the body's core short of it); the group's task stayed 'fight_to spot_55' until Opus re-sent the route from spot_57 (landed 20:46, picked 20:48)",
+   "evidence": "20:38 report: \"group_A2 ... at front at spot_55 (F6); its tail is 3014 behind at spot_69 (C7); advancing to spot_55: its front 22 to go, 15 of 40 arrived, its tail 3030 short, for 31 s\"; hands_window 20:13-20:47 'task fight_to spot_55' every second; 20:48 'PLAYS group_A2: advance to spot_57 [plan]'; the arrival rule is the body within 300 (groups.rs ARRIVED, per the general review)",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "21:16-21:34",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "20:38/21:04 instruct: \"It has passed spot_55. Its way now is spot_57, then spot_42, then spot_34 ...\"",
+   "happened": "the same stall at spot_57: 36 s at the stop until the route was re-sent from spot_42 (landed 21:32, picked 21:34)",
+   "evidence": "21:24 note: \"army at spot_57 (32 short, 36 s), the same stall as at spot_55\"; hands_window 21:28-21:34 'task fight_to spot_57' then 21:34 'menu group_A2 ... fight_to_spot_42=0.65' 'PLAYS group_A2: advance to spot_42 [plan]'",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "21:59-22:25",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "21:51 instruct (landed 21:59): \"it has passed spot_55, spot_57 and spot_42. Its way now is spot_34, then spot_25 ...\"; 22:11: \"its move now is the advance to spot_34. It is done with spot_42\"",
+   "happened": "group_A2 kept 'fight_to spot_42' 26 s after the packet; spot_34 picked only at 22:25 after the third wording",
+   "evidence": "hands_window 21:59-22:21: 'task fight_to spot_42'; change 0.42 at 21:59, closed by the news layer ('~') 22:00-22:08, 0.5 at 22:10-22:11 with 'go_spot_34=0.22'; layers_read --faults '22:19 group_A2.go_spot_34: assumed its opener says no, asked again 0.62' (the openers layer also held the move); 22:25 'PLAYS group_A2: walk to spot_34 [plan]'",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "24:27-24:50",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "24:19 instruct (landed 24:27): \"Its move now is the attack on his buildings at his_lab (G2) ... It never sends detachments\" (the packet's detach marks read 0.95)",
+   "happened": "the pick kept 'move_to spot_17' for 23 s; detachments rated highest (forbidden), the lab under the bar; it went at 24:50 after two rewordings",
+   "evidence": "hands_window 24:27-24:41: 'task move_to spot_17'; 'go_his_lab=0.43..0.47', 'send_8_party_82=0.64'; 'PICK split [... group_A2: kept w1 over w2 of 2 at 0.84]' 24:29, 'kept w1 ... at 0.8' 24:35, 24:38; 24:47 note: \"his_lab walk rated 0.41 vs detachment 0.43\"",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "20:23-20:36",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "19:56 instruct: \"group_A2: a party of his that comes onto our side near spot_49, spot_44, spot_46, spot_55 or spot_58 it fights whole first\"; 20:38 note: \"L1 Alaris told to kill the armwar at spot_46\"",
+   "happened": "party_58 (Fatboy, Fido, 2 Centurions, then a lone Centurion) stood 330-650 from spot_46 for 13 s; no group attacked; the Centurion killed the spot_46 extractor at 20:36 (not rebuilt)",
+   "evidence": "decode 20:04 group_A2|place|spot_46 0.44 (under 0.5); hands_window: group_A2 'attack_party_58=0.39' (20:24), 0.28-0.44 to 20:40, never picked; group_L1 'attack_party_58=0.48' (20:36) held at (4082,3271); raid_ledger '20:36 spot_46 E5 armwar ... 52 [soldiers within 900] ... none ... no'",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "words",
+   "person_said": false
+  },
+  {
+   "clock": "7:37-8:30",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "7:29 instruct: \"every leghades group except group_A is one army; they join each other. While go_east is not yet given, the army's post is spot_61\"; 7:58: \"group_B, group_O, group_R, group_S and every other leghades group except group_A: these are the army; they join each other into one body, gathering at spot_61\"",
+   "happened": "the groups never became one body before go_east: at 8:30 group_B (5) and group_R (6) advanced, group_O (5-6) held at spot_61, a 1-soldier detachment walked alone to spot_20",
+   "evidence": "decode 7:37 group_B|join|group_R 0.11, |group_O 0.13, |group_S 0.16, |place|spot_61 0.29 (all under the 0.3 fuse: moves taken off the menu); decode 8:06 joins 0.23-0.24 (fused); layers_read faults '7:54 group_R.join_group_S: assumed off, asked again 0.51', '7:56 group_S.join_group_R: ... 0.54'; hands_window 8:30-8:39 'group_O: 5 at (1990, 4775), task hold', '8:33 PLAYS group_U: advance to spot_20'; recurs 9:50 (joins 0.13-0.32 under \"They join each other into one body at spot_49\")",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "words",
+   "person_said": false
+  },
+  {
+   "clock": "23:40-24:05",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "22:01 queue constructor_8343: [\"extractor spot_14\", \"leglht spot_14\"]",
+   "happened": "its extractor step was refused (another builder's frame stood on spot_14), and the turret step was skipped though the extractor stood from 23:48; spot_14 died undefended to a Tick at 24:05, not rebuilt",
+   "evidence": "report: '23:39 constructor_8343: the engine refused a legmex at A2: the site was bad', '23:40 constructor_8343: skipped the step 'leglht spot_14' of its list: the extractor at spot_14 was refused lately; a defence there waits for it'; record: legmex 4014 created 23:24 by constructor_18227, finished 23:48, destroyed 24:05; no leglht near spot_14 all game; raid_ledger '24:05 spot_14 A2 armflea ... tur 0 ... rebuilt no'",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "11:46-13:21",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "every packet from 9:22: \"No constructor stands or builds in a plant's exit lane.\"; lists 10:59-11:56 \"legadvsol #as1\" .. \"#as7\" with no place",
+   "happened": "code placed the listed advanced solars beside spot_73 in plant_16133's and plant_27255's exit lanes; Opus moved them (12:06, 12:16); three frames abandoned",
+   "evidence": "12:06 report: 'constructor_1281: ... building a Advanced Solar Collector (legadvsol) at 367 from spot_73 (B8) (13 % built) ...; standing in plant_16133's exit lane'; record: legadvsol placed 11:46 (1752,5944), 12:04 (1592,5592), (2008,5928); destroyed 12:58, 12:58, 13:21",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "12:13-12:23",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "12:06 queue constructor_1281 [\"stop\", \"legadvsol solar_field #as3\", \"legadvsol solar_field #as8\"], 18227 [... #as4, #as6], 27740 [... #as5, #as7]: move the solars out of the lanes to the marked solar_field",
+   "happened": "the ids #as3-#as5 already named the lane frames, so the three constructors went back to repair them in the lanes; Opus re-listed with fresh ids at 12:16",
+   "evidence": "12:16 report: '12:15 constructor_1281: help build #as3 (repair) (from its list)', '12:15 constructor_18227: help build #as4 (repair)', '12:15 constructor_27740: help build #as5 (repair)'; 12:16 note: \"the old ids #as3-5 pointed the constructors back at the lane frames\"",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "20:55-21:53",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "20:48 queue commander: [\"legavp #avp1\", \"assist\"] (the advanced plant three constructors began at 19:46 as #avp1)",
+   "happened": "the step was skipped as unbuildable and 'assist' dropped; the commander (build power 300) kept helping a plant; the advanced plant, 49% at 20:58, stood at 21:53",
+   "evidence": "report: '20:56 commander: skipped the step 'legavp #avp1' of its list: this builder cannot build it', '20:56 commander: the step 'assist' of its list could not be played this second and was dropped'; the queue tool says steps with one id are one building and 'any other helps build it'",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "16:27-18:01",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "16:18 instruct: \"group_L1, group_Q1 and group_Y1 (Alaris, leghades) are the raider hunters for our side. Any armpw, armflea, armfav or armflash at our extractors or constructors anywhere on our side ...\"",
+   "happened": "four hunts of lone Pawns by L1 detachments ended at once on the leash and the detachments joined/followed group_Y1; constructor_5624 and spot_58 had died the same second (16:28), so the cost is the Pawns living on: party_54 drove constructor_2996 off its list at 18:00",
+   "evidence": "report: '16:27 group_M2's hunt of party_47 ended after 0 s: the leash of 900 from where it began reached', '17:57 group_N2 ... after 0 s', '18:00 group_O2 ... after 2 s', 'group_P2 ... after 0 s'; jev plays '16:28 group_M2 join group_Y1', '18:01 group_O2 follow group_Y1'; docs/code-decisions.md: the leash failure 'is remembered 3 minutes'",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "3:07-5:43",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "2:34 instruct: \"An armflea, armfav or armpw at our home ... is killed by the nearest group of leghades before it leaves for his half\"; 5:22: \"two pickets of leghades kill his lone raiders (armflea ...) on our side\"",
+   "happened": "the leash ended four hunts of the Tick (party_1); it lived to 5:43 and killed the spot_50 extractor at 5:04",
+   "evidence": "report: '3:07 group_C's hunt of party_1 ended after 15 s: the leash of 900', '5:15 group_G ... party_1 ... after 11 s', '5:15 group_I ... after 9 s', '5:32 group_K ... after 12 s'; '5:43 group_L's hunt of party_1 ended after 4 s: the quarry is dead'; raid_ledger '5:04 spot_50 B5 armflea'",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "23:43-24:05",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "packets from 19:56 on: group_L1 \"Any armpw, armflea ... at our extractors or constructors on our side (... and every spot west of them) it attacks\"",
+   "happened": "the leash ended two hunts of the Tick at spot_14 (23:43, 23:54) and the hunters walked to spot_59; the Tick killed spot_14 at 24:05",
+   "evidence": "report: '23:43 group_S2's hunt of party_64 ended after 9 s: the leash', '23:54 group_T2's hunt of party_64 ended after 10 s: the leash'; plays '23:55 group_T2 walk to spot_59'; raid_ledger '24:05 spot_14 A2 armflea ... rebuilt no'",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "1:34-2:03",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "0:10 instruct: \"Constructors: their job is taking free metal spots on our side, nearest home first: spot_73, spot_68, spot_62 ...\"",
+   "happened": "the first constructor, idle, was picked to help the plant (in its exit lane, energy empty) for 29 s; Opus re-listed it at 1:55",
+   "evidence": "hands_window 1:34: 'menu constructor_17003 [idle, idle]: help_plant_27255=0.57 go_spot_68=0.47 build_legmex_spot_68=0.38', 'PLAYS constructor_17003: help plant_27255 build [plan]'; no decode for it (it appeared after the packet landed and the packet names it only as 'Constructors'); 1:55 note: \"constructors put on spot lists instead of assisting the plant\"",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "2:24-2:53",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "0:00 produce all with no group; 0:10/2:24 instruct: \"Raiders (the plant's leghades group): ... go across to his half\"; \"An armflea ... at our home ... is killed by the plant's leghades group before it leaves\"",
+   "happened": "by the tool's default the first Alaris joined the Wheelies' group_A, which roved; when the Tick hit home no leghades group stood there until group_B was born at 2:41 (it attacked at 2:42); spot_74 and spot_68 died at 2:42 and 2:53",
+   "evidence": "2:34 report: 'group_A: a handful: 1 Alaris (leghades), 2 Wheelie (legscout) ... roving ... its Alaris ... on its way to look at spot_61'; hands_window 2:42 'PLAYS group_B: attack party_1 (1 armflea) with the whole group [plan]'; produce tool: 'by default a factory's soldiers gather in one group of its own'; Opus set group 'new' at 2:34",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "2:06-2:31",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "0:10 instruct: \"Commander: works at home on its list ... small raids at home (a few armpw or armflea) it fights with its D-gun.\"",
+   "happened": "the Tick stood in our base killing a solar from 2:21; the commander kept building solars from its list (narrowed by Opus's own 2:24 packet to 'within its reach')",
+   "evidence": "hands_window 2:06-2:30: 'menu commander ... attack_party_1=0.19..0.42', 'PLAYS commander: build a legsolar at spot_73 (B8) [list]' 2:09, 2:20, 2:31; solar 21347 destroyed 2:35",
+   "cost": "small",
+   "confidence": "low",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "6:37-6:39",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "6:20 instruct (landed 6:28): \"group_B, group_E and group_K each fight to spot_59 and attack it, all three together ... None of them walks away from it while the other two are coming.\"",
+   "happened": "group_K walked west to spot_50, then spot_54, away from the Pawn party 400 from it",
+   "evidence": "hands_window 6:37 'PLAYS group_K: walk to spot_50 [plan]', 6:38 'PLAYS group_K: walk to spot_54 [plan]' with party_13 (5 armpw) at (2426,4125); decode 6:28 group_K|place|spot_50 0.93, spot_59 0.95 (marks landed)",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "9:53",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "9:42 instruct (landed 9:50): \"group_R, group_O, group_D1, group_H1, group_I1, group_J1 and the Decurions: the army ... the army sends nobody after a single armpw.\"",
+   "happened": "group_I1 (3 Alaris of the army) attacked the lone Pawn party_27 whole after its hunt ended",
+   "evidence": "jev plays '9:53 group_I1 attack party_27 (1 armpw) with the whole group'; the army regrouped by 10:01 (note)",
+   "cost": "none",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "8:06-8:30",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "7:58 instruct: \"gathering at spot_61. While go_east is not yet given, the army's post is spot_61\"",
+   "happened": "group_B gathered on its front by spot_49 for 24 s instead of walking to spot_61",
+   "evidence": "decode 8:06 group_B|place|spot_61 0.96 (landed); hands_window 8:07 'menu group_B [gather] change=0.73: go_spot_61=0.48', task 'move_to its front' 8:06-8:30; spot_49 was the route's first stop at go_east (8:30), so nothing was lost",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "10:23-19:04",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "9:12 queue constructor_23698 and 8:08 constructor_1251: [... \"extractor spot_36\", \"leglht spot_36\" ...]",
+   "happened": "both lists' turret steps at spot_36 were skipped because another builder's frame had the spot; the extractor stood from 10:33 with no turret until 19:04",
+   "evidence": "report: '10:23 constructor_1251: skipped the step 'leglht spot_36' of its list: the extractor at spot_36 was refused lately; a defence there waits for it', '10:25 constructor_23698: skipped ... 'leglht spot_36''; record legmex 9008 finished 10:33, first leglht there created 19:04; spot_36 never raided",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "20:25-21:48",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "19:56 packet / 18:49 queue constructor_23595: [\"extractor spot_55\", \"leglht spot_55\", ...]",
+   "happened": "the turret step at spot_55 was skipped the same way; spot_55 stood without a turret and died at 21:48 to his Fatboy party",
+   "evidence": "report: '20:25 constructor_23595: skipped the step 'leglht spot_55' of its list: the extractor at spot_55 was refused lately'; raid_ledger '21:48 spot_55 F6 ... 1 armfboy, 1 armfido ... 40 [soldiers] 0 [turrets]'",
+   "cost": "none",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "5:25",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "5:12 queue commander: [\"leglht spot_67\", \"legnanotc\", \"legnanotc\", \"assist\"]",
+   "happened": "both construction-turret steps skipped: no commander builds one; Opus switched the commander to a second plant at 5:32",
+   "evidence": "report: '5:25 commander: skipped the step 'legnanotc' of its list: this builder cannot build it' (twice); the queue tool accepted the list",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "5:12",
+   "seat": "strategist-0",
+   "category": "B4",
+   "wanted": "a construction turret from the commander",
+   "happened": "Opus did not know the commander cannot build legnanotc until the skip",
+   "evidence": "0:10 report roster: 'Construction Turret legnanotc (legaceb/legca/legch/legck/legcv/legotter/legspcon, t1, 230 metal)' (no legcom); 5:32 note: \"commander cannot build legnanotc (Legion)\". A line that would surface it: the commander's entry listing what it can build, or the tool refusing the step",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "11:26",
+   "seat": "strategist-0",
+   "category": "B3",
+   "wanted": "11:26 note/orders: \"group_R ... kept walking away from a 660-metal armwar/armrock party ... Flee off, ordered whole attack\"",
+   "happened": "the report and the picture showed party_30 as only its members in sight (660) while 1,550 of it stood within 1,500 of group_R and the picture had seen 1,550 at 11:21",
+   "evidence": "jev call rows: party_30 '11:21 1550 (2 armham, 4 armrock, 3 armwar)', '11:24 1310', '11:26 660 (1 armrock, 2 armwar)'; truth 11:28 within 1,500 of group_R: 3 armwar, 4 armrock, 2 armham (1,550); the attack order landed 11:34 after the party had gone (11:29)",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "11:26",
+   "seat": "strategist-0",
+   "category": "B4",
+   "wanted": "11:26 note: the walk-away was \"under flee footwork\"",
+   "happened": "the walk was the pick playing Opus's own clause \"From a party that outweighs it, it walks to spot_59\" (the picture: \"an even fight, and it outranges us\")",
+   "evidence": "11:26 report: '11:20 group_R: walk to spot_59 (plan)'; hands_window 11:20 'PLAYS group_R: walk to spot_59 [plan]' with party_30 at 1,430. A line that would surface it: the play's line naming the packet clause it answers",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "16:28",
+   "seat": "strategist-0",
+   "category": "B4",
+   "wanted": "16:28 queue constructor_17003: [\"extractor spot_26\", \"leglht spot_26\", \"extractor spot_24\", \"leglht spot_24\"]",
+   "happened": "spot_26 held his extractor; the step was skipped and the constructor walked toward his Beamer at C3 until Opus re-listed it at 16:38",
+   "evidence": "16:28 score line: 'the opponent is known to hold 17, nearest our start first: #26 C3, #24 C3 ...' and 'his, in C3 ...: 1 armbeamer, 1 armllt, 2 armmex'; '16:36 constructor_17003: skipped the step 'extractor spot_26' of its list: spot_26 holds his extractor'",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "17:16",
+   "seat": "strategist-0",
+   "category": "B4",
+   "wanted": "17:16 instruct: \"It has reached spot_27 and spot_35 and never goes back to them\"",
+   "happened": "the report said the group had not reached spot_27; the packet's claim contradicted the picture the pick read",
+   "evidence": "17:16 report: 'group_A2 ... at front at spot_27 (F3) ... advancing to spot_27: its front 226 to go, 7 of 22 arrived, its tail 571 short, for 18 s'",
+   "cost": "none",
+   "confidence": "medium",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "21:24",
+   "seat": "strategist-0",
+   "category": "B4",
+   "wanted": "21:24 note: \"a stop never counts as reached until it is exact ... Wish: a group 'reached' within ~150 of a stop\"",
+   "happened": "the stop counts when the group's body arrives; the report's count said so and the diagnosis was wrong (the workaround, re-sending the route from the next stop, worked)",
+   "evidence": "20:38 report: 'advancing to spot_55: its front 22 to go, 15 of 40 arrived, its tail 3030 short'. A line that would surface it: 'spot_55 counts as reached when the body (N of 40) is within 300; 25 are strung out 3,030 back'",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "25:52",
+   "seat": "strategist-0",
+   "category": "B3",
+   "wanted": "25:52 note: \"Game not over: party_95 still lists an armcom moving away from G2 (the killed one may have been a decoy). Army keeps hunting it\"",
+   "happened": "the report listed his dead commander in party_95 beside 'killed armcom x1'",
+   "evidence": "25:52 report: 'fights since last turn: ... killed armcom x1 ...' and '  party_95 (1 armcom, 1 armrectr, 2830 metal) last seen 0:04 ago at his_lab (G2), then moving away from us'; truth: armcom 21640 last listed 25:48, gone at 25:50; the game ended 25:54",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false
+  }
+ ],
+ "no_lever": [
+  {
+   "clock": "18:06",
+   "seat": "strategist-0",
+   "wanted": "\"I want a hard move order for a group that bypasses Jev's rating\" (18:06 note; again 22:11 \"Wish: a direct move order for a group\", 24:37); packets 17:36-18:23 \"its next move is the advance (fight to) spot_18 ... that is the move it takes whenever it stands anywhere short of spot_18\"",
+   "why_no_lever": "no tool sets a group's next move; the packet only weights Jev's rating of the menu, and a named move rated 0.39 stays unplayed (17:24-18:27, 24:27-24:50)"
+  },
+  {
+   "clock": "21:24",
+   "seat": "strategist-0",
+   "wanted": "\"Wish: a group 'reached' within ~150 of a stop\" (21:24 note; 22:11, 24:37)",
+   "why_no_lever": "when a stop counts as reached is code (the body within 300, joiners left out); the player can only re-send the route from the next stop"
+  },
+  {
+   "clock": "9:22",
+   "seat": "strategist-0",
+   "wanted": "\"group_R, group_O, group_S and group_D1 all fight it together, as one body arriving at once ... a group that arrives first waits at spot_49 for the others\" (again 9:42, 10:01, 10:49)",
+   "why_no_lever": "no move makes several groups arrive together; the only lever is joining them first, and \"join each other\" was read as no join by the decode (7:37, 8:06, 9:50)"
+  },
+  {
+   "clock": "23:11",
+   "seat": "strategist-0",
+   "wanted": "\"it attacks that party whole and kills the armrectr, then goes on\"; 25:29: \"every soldier shoots the armcom until it is dead\"",
+   "why_no_lever": "a group's menu has attack/shell/send against a whole party; no move names the unit inside a party to shoot first (the micro chooses targets)"
+  },
+  {
+   "clock": "9:22",
+   "seat": "strategist-0",
+   "wanted": "\"No constructor stands or builds in a plant's exit lane.\" (every packet from 9:22)",
+   "why_no_lever": "where code places a list step without a place, and where an assisting builder stands, are not read from the packet; the workaround is a marked place on each step (12:06 solar_field)"
+  },
+  {
+   "clock": "15:41",
+   "seat": "strategist-0",
+   "wanted": "\"Plants: make what their lists say, in order.\" with lists ending in an uncounted \"leggat\" (24:09 note: \"Three plants idled (Jev rated leggat <0.5)\")",
+   "why_no_lever": "an uncounted produce entry is a per-ask pick, never a standing order; only counted entries are made without asking (Opus's workaround at 24:09)"
+  }
+ ],
+ "unreadable": []
+}

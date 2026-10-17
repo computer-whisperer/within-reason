@@ -1,0 +1,327 @@
+{
+ "game": "1791427881-human-27",
+ "result": "lost 13:48 (human: no chat from the person; the record ends as our commander, 78% at 13:43, dies to Stouts and Janus at the new plant at spot_17; old base razed 12:30-13:20)",
+ "minutes": 13.8,
+ "seats": [
+  "strategist-0"
+ ],
+ "player_model": "claude-opus-5-5",
+ "commander": "claude-opus-5-5",
+ "opponent": "[gecko]u6bkep (a person, lobby skill 30, Armada)",
+ "counts": {
+  "strategist-0": {
+   "turns": 49,
+   "orders": 128,
+   "refused": 2,
+   "hands_lines": 393,
+   "flagged": {
+    "step-waits": 28,
+    "other-fault": 6,
+    "stopped-on-stop": 6,
+    "step-skipped": 4,
+    "engine-refused": 3,
+    "hunt-ended-other": 1,
+    "follow-ended": 1
+   },
+   "takeovers": 1
+  },
+  "commander": {
+   "turns": 11,
+   "orders": 14,
+   "refused": 0,
+   "hands_lines": 0,
+   "flagged": {},
+   "takeovers": 0
+  }
+ },
+ "moments_examined": 8,
+ "clean": 3,
+ "tally": {
+  "A1": 2,
+  "A2": 3,
+  "A3": 5,
+  "A4": 6,
+  "A5": 0,
+  "A6": 3,
+  "B1": 0,
+  "B2": 0,
+  "B3": 0,
+  "B4": 0,
+  "B5": 1,
+  "B6": 1
+ },
+ "items": [
+  {
+   "clock": "13:38-13:48",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "12:55 and 13:24 packets (in force from 13:09): \"If Stouts come to spot_17, it walks to spot_25, and back when they leave.\"",
+   "happened": "party_27 (3 armjanus, 8 armstump) reached spot_17 13:33-13:44 (our spot_17 extractor died 13:36); the commander kept helping at spot_17; 78% at 13:43, 11% at 13:48, record ends: the commander died and the game ended",
+   "evidence": "decode 13:38 commander|place|spot_25 0.96; call 13:39 commander.go_spot_25 0.22, call 13:44 go_spot_25 0.35, help_plant_22076 0.41-0.44, change 0.68-0.76: no move over the bar, nothing changed; picture: 'its fastest (75) catch our slowest (38) ... contact in 5 s if it stays, 10 s if it walks away'",
+   "cost": "large",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false,
+   "note": "the crossing is high confidence; the cost is the commander's death (measured), but the picture said the Stouts outran it, so the walk may only have delayed it; the result was decided before"
+  },
+  {
+   "clock": "11:11-11:23",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "10:40 packet (landed 11:07): \"It never walks toward a group of Stouts out in the open, never west of spot_6 or south of spot_17. With no enemy near it helps the plant or builds a Guard at spot_6.\"",
+   "happened": "11:11 and 11:14 'commander: build a corllt at spot_6 (G1) (plan)' with party_27 (2 armflash, 5 armstump) within 200 of spot_6; the commander walked to (6430,739) and fell from 95% (11:18) to 54% (11:27)",
+   "evidence": "11:11 split c0.pick w2 (walk to spot_17) 0.65 vs w3 (Guard at spot_6) 0.35, plan 'took w3 of 2 at 0.18' (sampled); the w3 line says 'at spot_6 (G1) (near, about 10 s of walking): our 6th' and nothing of the party at the site; 11:14 the Guard 0.61 vs w1; decode commander|place|spot_6 0.93, build corllt 0.89; record dmg 194+300+31",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "menu",
+   "person_said": false
+  },
+  {
+   "clock": "5:00-5:16",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "4:48 packet (landed 5:00): \"group_H: joins group_D now.\" \"group_D (all our Incisors...): one body, never sends detachments. It stands at spot_6 beside the commander.\"",
+   "happened": "pick '5:00 group_H: follow group_D (plan)'; one frame after the follow's walk (record cmd f9080 fight to (6840,616) for 27364, 30508, 178) fight orders to (5176,888), (5224,1016), (5192,952) toward party_12 (f9081) and nothing more until f9411; group_H stood at F2 under 4 Blitzes 11 s; 178, 27364, 30508 died 5:11-5:16",
+   "evidence": "call rows: group_H task follow ward group_D to (6840,616) while its centroid went (5434,748) -> (5168,1082); record cmd rows; decode 4:58 group_H|join|group_D 0.53 (reverse 0.60, follow 0.50)",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false,
+   "note": "3 Incisors, 360 metal, the whole of group_H; Blitzes outran Incisors, so the walk home might not have saved them"
+  },
+  {
+   "clock": "6:56",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "6:49 queue constructor_833: [\"extractor spot_6\", \"corllt spot_6\", \"extractor spot_18\", ...] (the same first step as its 6:16 list)",
+   "happened": "6:55 'build a cormex at spot_6 (G1) (from its list)'; 6:56 'the step 'extractor spot_6' of its list is the build already under way: taken as done'; 6:57 the Guard order (cmd f12525 build corllt (6248,648)) replaced the unstarted cormex; no extractor created anywhere 4:56-7:42",
+   "evidence": "hands lines 6:55-6:57; record created events; crates/bot/src/brain/pianist/lists.rs: a None from execute_builder with a Build task is 'taken as done'",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "11:07",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "10:40 queue constructor_16990: [\"extractor spot_25\", \"corllt spot_25\", \"extractor spot_29\", ...] (its 9:37 list's extractor spot_25 was in flight: cmd 10:23 build cormex (7576,1955), unstarted)",
+   "happened": "11:07 'the step 'extractor spot_25' of its list is the build already under way: taken as done'; 11:08 the Guard order (cmd build corllt (7496,2024)) replaced it; the Guard stood 11:59, no extractor",
+   "evidence": "hands lines 11:07-11:08; record cmd rows; no cormex created after 7:42",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "9:43-9:59",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "9:37 queue constructor_24695: [\"extractor spot_6\", \"extractor spot_18\", ...]; commander 9:20: \"Take the spots nearest home first (spot_6, spot_11, spot_18, spot_25, H3), each with its Guard.\"",
+   "happened": "cmd 9:43 build cormex (6413,630); '9:59 constructor_24695: the engine refused a cormex at G1: the site was bad'; re-queued 10:40, played 11:58 and 12:05, never created; spot_6 empty from 4:00 to the end",
+   "evidence": "hands line 9:59; record no_site 9:43; the site is where our extractor 8116 died at 4:00 (6416,608)",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "report",
+   "person_said": false,
+   "note": "the cause is unknown (a wreck on the spot is a guess); the report never said why the site was bad and Opus re-queued it"
+  },
+  {
+   "clock": "10:36",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "10:31 queue constructor_24695: [\"corhlt spot_6\"]; 10:04 packet: \"We fight it only at home, among our Guards and Twin Guards at spot_6 and spot_10\"",
+   "happened": "'10:36 constructor_24695: skipped the step 'corhlt spot_6' of its list: the extractor at spot_6 was refused lately; a defence there waits for it'",
+   "evidence": "sweep step-skipped line; the Stout push that killed the plant came 11:08-11:51",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "12:16-12:55",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "11:53 queue: constructor_16990 [\"corvp spot_17 #vp2\"], constructor_24695 [\"corvp spot_17 #vp2\"]; note \"new plant at spot_17 by two constructors\"",
+   "happened": "both played '12:16 ... build a corvp at spot_17 (H3) (#vp2) (from its list)' the same second; record: plant 22076 by 16990 at 12:24 (7984,1552) and plant 1291 by 24695 at 12:49 (7856,1824); '12:41 commander: help build #vp2 (help constructor_24695 build)'; Opus 12:55: \"The second frame plant_1291 near spot_25 is abandoned\"",
+   "evidence": "hands lines; record created events; the second frame stood at 29% at 13:48",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false,
+   "note": "the same-tick tag race (memory: fixed 2026-10-12 after human-33)"
+  },
+  {
+   "clock": "2:08-2:54",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "0:00 queue commander: [..., \"plant\", \"assist 40\", \"solar\", \"assist 60\", \"extractor\", ...]",
+   "happened": "'2:08 commander: build a corsolar at spot_6 (G2) (from its list)', '2:09 constructor_16990: build a corsolar at 426 from spot_6 (G2)': the site taken a second later; the commander stood 46 s and built nothing (no created event by it 1:08-2:59) until the 2:43 list landed at 2:54",
+   "evidence": "hands lines; record; commit 6ea433b from the user's review ('2:08-2:54, the commander 46 s at a blocked site')",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "2:09-2:34",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "1:54 packet (landed 2:09): \"group_A (the three Rascals): roves now, his start box first; being seen is its job.\"",
+   "happened": "the same layer kept the old packet's standing answer for group_A.rove; group_A held at spot_18 25 s more; rove picked at 2:34, a second after 2 Rascals were detached",
+   "evidence": "layers_read: 'same: 2:09 group_A.rove: assumed 0.23, asked again 0.57'; hands_window 2:09-2:33 'group_A: 4 at (6140, 1314), task hold ... kept w1'; 2:34 'rove whole'",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "1:47-2:34",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "0:32 packet: Rascals \"goes to scout (rove)\"; 1:54 packet: \"group_A ... roves now\"",
+   "happened": "joiners Rascal 26385 (1:47) and Incisor 25076 (2:00) stood idle at the yard (6228,915)/(6249,902) until 2:35 while the body held at spot_18; the report called them 'on the way to join the body'",
+   "evidence": "record s rows (flag 2, same positions 1:50-2:30); gate line 'its tail is 841 behind at 330 from spot_6'; commit 6ea433b ('1:47, a Rascal idle 47 s at the yard')",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "1:39-2:09",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "0:32 packet (in force 1:39): \"Rascals (corfav): with fewer than three roving, a corfav from the group goes to scout (rove), his start box first\"",
+   "happened": "none roving; group_A walked to spot_18 at 1:45 and held; no Rascal scouted until 2:34",
+   "evidence": "call 2:02: group_A.rove 0.23, group_A.scout 0.40, group_A.hold 0.52; the gate offered only hold; PICK 'kept w1 over w2 at 0.71'",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "words",
+   "person_said": false,
+   "note": "the first Rascal crossed 2:51 against the pool's median first soldier in his half at 2:05"
+  },
+  {
+   "clock": "3:02",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "2:43 packet (landed 2:54): \"group_C (the Rascals at home): the picket ... when none is in our half it stands at spot_10. It never goes west of spot_11.\" and for group_B: \"Its corfav join group_C.\"",
+   "happened": "'3:02 group_C: join group_B (plan)': the picket merged into the raid group fighting at F1 and group_C ceased to exist",
+   "evidence": "decode 2:54 group_C|join|group_B 0.51 (the reverse of what was written), group_B|join|group_C 0.36; PICK 'group_C: took w3 of 2 at 0.2'",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "7:25-7:41",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "7:16 packet (landed 7:25): \"a lone armflash at spot_17, spot_25 or spot_12: send two Incisors (corgator) at it, and they come back to spot_10 when it is dead or gone.\"",
+   "happened": "the lone armflash party_15 stood at spot_25 (report: 'enemy in sight: 1 at H3 (7558, 2037): armflash 1'); no send played; 7:37 the pick took 'group_D: attack party_20 (2 armflash) with the whole group'; the extractor begun 7:42 at spot_25 died 7:45 to that Blitz",
+   "evidence": "call 7:25 send_1_party_15 0.49 (send_2 not asked); call 7:37 send_2_party_15 0.58 lost to the home attack; call 7:41 send_2 0.49",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "10:40",
+   "seat": "strategist-0",
+   "category": "A1",
+   "wanted": "takeover: produce {\"plant_23436\": {\"group\": \"group_D\", \"units\": [\"corlevlr:1\", \"corcv:1\", \"corraid:3\", ...]}}; note \"plant: Pounder, constructor, Brutes, constructor\"",
+   "happened": "'REFUSED: plant_23436: group_D is not a group in the picture (group_A, group_I)' (group_D died 10:25; the takeover's packet still named it); the 10:04 list ran on: Pounders at 10:47 and 10:59 where the refused list had a constructor second; Opus produced again at 11:20 with 'new'",
+   "evidence": "tool result; record created events",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "10:43",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "10:31 queue constructor_26263: [\"corhlt spot_10\", \"cornanotc\"]",
+   "happened": "'10:36 constructor_26263: build a corhlt at spot_10 (G2) (from its list)'; '10:43 the engine refused a corhlt at G2: the site was bad'; no Warden built",
+   "evidence": "sweep engine-refused line; record",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "2:24",
+   "seat": "strategist-0",
+   "category": "B5",
+   "wanted": "2:24 packet: \"group_A (three Rascals and an Incisor): roving whole is its move, now ...; holding at spot_18 is wrong for it.\"",
+   "happened": "the 2:24 report's commander entry read 'about to build a Solar Collector (corsolar) at spot_6 (G2), ordered 16 s ago' for a site already taken (item 2:08), and group_A's 'reinforcements: 1 of its soldiers are on the way to join the body' for units idle at the yard; Opus left the commander on its list (30 s more blocked)",
+   "evidence": "turn prompt 2:24; record s rows",
+   "cost": "small",
+   "confidence": "low",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "2:59",
+   "seat": "strategist-0",
+   "category": "A1",
+   "wanted": "produce {\"plant_23436\": {\"group\": \"group_C\", ...}} with \"group_C (the home guard; the plant's new Incisors join it)\"",
+   "happened": "'REFUSED: plant_23436: group_C is not a group in the picture (group_A, group_B)' (group_C merged into group_B during the turn, 3:02); Opus re-issued at 3:18 with 'new' and a paragraph for the new group",
+   "evidence": "tool result; hands 3:02",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "4:21",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "3:56 packet (landed 4:08): \"group_B (the raid...): armfav in our half are group_D's, not group_B's; it never chases armfav or armflash.\"",
+   "happened": "'4:21 group_B: 2 of group_B hunt party_11 (1 armflash) as group_G (plan)' at F1, our half",
+   "evidence": "decode 4:20 group_B|detach|2 0.71 (forbidden read, under the 0.8 bar, so asked each second); PICK 'took w2 of 3 at 0.3'",
+   "cost": "none",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "4:27-4:34",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "4:12 packet (landed 4:27, carrying the commander's 3:50 \"Send group_D, group_B and the new Incisors west now\"): \"group_D: joins group_B now\"; group_B \"goes to his outer spots ... spot_22, then spot_19 ...\"",
+   "happened": "'4:27 group_D: follow group_B (plan)', then 'group_B: join group_D (plan)'; '4:34 group_D followed group_B for 7 s: group_B is gone; the group holds where it is'; the raid never set off before the 4:32 packet (landed 4:44) recalled it",
+   "evidence": "decode 4:26 group_B|join|group_D 0.68 against the written group_D|join|group_B 0.52, group_D|follow|group_B 0.65",
+   "cost": "none",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "11:20",
+   "seat": "strategist-0",
+   "category": "B6",
+   "wanted": "commander 10:50 (shown at 11:20): \"Make 4 more Rascals now and add them to group_A's roving, to keep his spots dead and his Blitzes called home.\"",
+   "happened": "the player's 11:20 produce {\"group\": \"new\", \"units\": [\"corraid:1\", \"corfav:3\", ...]} put the Rascals in a new group; the packet's only roving line stayed \"group_A: roving; leave it to rove.\"; no Rascal was made before the plant died at 11:51",
+   "evidence": "commander.jsonl direct; strategist-0 produce call",
+   "cost": "none",
+   "confidence": "medium",
+   "fix_class": "brief",
+   "person_said": false
+  }
+ ],
+ "no_lever": [
+  {
+   "clock": "1:54, 2:24, 2:43",
+   "seat": "strategist-0",
+   "wanted": "\"Its corfav stay at spot_18 as the picket against his raiders\" / \"Its corfav join group_C.\" (the Rascals of a mixed Incisor group split off by type)",
+   "why_no_lever": "the menus join or follow whole groups and detach n soldiers after a party; no move sends a group's units of one type to a place or into another group (the decode read the join of the whole group, reversed, item 3:02)"
+  },
+  {
+   "clock": "3:34, 4:12, 4:32",
+   "seat": "strategist-0",
+   "wanted": "group_B's raid route: \"It keeps out of reach of his commander (armcom) and never goes into his_base itself.\"",
+   "why_no_lever": "an advance's path is code's (fight_to along slope-priced fields); the hands can pick or refuse the move but cannot put an avoid-region or avoid-reach constraint on its path"
+  }
+ ],
+ "unreadable": []
+}

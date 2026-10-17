@@ -1,0 +1,234 @@
+{
+ "game": "1792195269-jev114-player-1",
+ "result": "won 19:09",
+ "minutes": 19.16,
+ "seats": [
+  "strategist-0"
+ ],
+ "player_model": "claude-opus-5-5",
+ "commander": "none",
+ "opponent": "BARb hard_aggressive",
+ "hands_model": "jev-1.14.0",
+ "counts": {
+  "strategist-0": {
+   "turns": 95,
+   "orders": 193,
+   "refused": 0,
+   "hands_lines": 813,
+   "flagged": {
+    "stopped-on-stop": 10,
+    "hunt-ended-leash": 10,
+    "hunt-ended-other": 8,
+    "engine-refused": 6,
+    "step-skipped": 5,
+    "abandoned": 4,
+    "step-waits": 3,
+    "site-blocked": 3,
+    "follow-ended": 2
+   },
+   "takeovers": 2
+  }
+ },
+ "moments_examined": 8,
+ "clean": 3,
+ "tally": {
+  "A1": 0,
+  "A2": 1,
+  "A3": 1,
+  "A4": 4,
+  "A5": 0,
+  "A6": 2,
+  "B1": 1,
+  "B2": 1,
+  "B3": 2,
+  "B4": 0,
+  "B5": 0,
+  "B6": 0
+ },
+ "items": [
+  {
+   "clock": "6:18-19:09",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "queue 6:01 commander [\"armvp #plant2\",\"assist\"]; 6:21 [\"stop\",\"armvp plant2_yard #plant2\",\"assist\"]; 7:21 commander+constructor_26737 [\"armlab #lab1\", ...]; 8:29 solars; 10:11 constructor_26737 [\"stop\",\"extractor spot_45\",\"armllt spot_45\"]",
+   "happened": "The code's sites for the commander's and constructor_26737's own unsited 'armsolar' steps (4:22-6:06: nine solar frames at (2040-2296, 5272-5640) plus armllt_1736) boxed both in; every move failed from 6:18 (commander, 232 move_failed to 19:01) and 6:50 (constructor_26737, 334 to 19:06). None of their later list steps started: 6:26 'commander: its armvp at C8 never started in the 8 s it stood at the site: the site is blocked', armlab placed 7:29 at (2304,5680) never created; constructor_18784 caught in the same field 10:04-11:03 (83 move_failed).",
+   "evidence": "record placed/created events 4:22-6:06; move_failed counts; positions: commander within (2066-2223, 5394-5501) from 5:20 to the end; sweep 6:26 site-blocked, 9:26 site-blocked and 9:48 engine-refused (constructor_26737 armsolar C7/C8), 16:58 engine-refused armmex B5 (constructor_26737)",
+   "cost": "large",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false,
+   "note": "cost measured: the commander's build power out of the game 12.8 min, constructor_26737 12.3 min; no bot lab all game; the second plant made by other constructors 7:14-7:53 after the commander's 6:01 order failed"
+  },
+  {
+   "clock": "8:52-9:40 and 7:44 (16:52-19:09 too)",
+   "seat": "strategist-0",
+   "category": "B1",
+   "wanted": "8:09 note 'Bank 2000 metal - two plants now'; 8:52 note 'metal capped 2094, energy 108: energy is the real limit'",
+   "happened": "The hands' picture said 'metal: 1896 of 1900 stored (full: what comes in beyond this is wasted)' (call row 7:44); the report's eco line said 'eco: metal 1896 (+38.7/-22.5), energy 1969/2000 (+179)': no store size and no 'full' for metal, while energy shows its store and 'STALLING' when empty.",
+   "evidence": "record m fields: 241 of 1150 s at 98% of the store or more (21% of the game: 7:38-9:40 and 16:52-19:09), about 5,500 metal of income over spending in those seconds (about 1,240 in 7:38-9:40, about 4,280 in 16:52-19:09); jev call row f13920 economy.metal",
+   "cost": "large",
+   "confidence": "medium",
+   "fix_class": "report",
+   "person_said": false,
+   "note": "the player knew of a bank (6:51 '984 metal banked', 8:09, 16:52 'Bank 2200') but named the cap only at 8:52; how much an earlier 'full' would have saved is a reading"
+  },
+  {
+   "clock": "9:52",
+   "seat": "strategist-0",
+   "category": "B3",
+   "wanted": "signal {\"push\": \"10:05\"}; note 9:52 'total army 2481 vs 2146 seen. Push signal 10:05 to G4'; 10:11 'push on at parity-plus (K 2015 + B1/X 660 vs ~2146 seen)'",
+   "happened": "The push went on the report's floor 'Its soldiers seen in the last 3 min and not seen to die: 20 worth 2146 metal; its army is at least that and may be much more', unchanged 9:52-10:11; the truth file: 27 soldiers worth 3476 at 9:52 (the floor 62%), 31 worth 3768 at 10:11 (57%). His block of 16 (6 armham, 5 armrock, 5 armwar) met the strung-out body at E4.",
+   "evidence": "truth-0.jsonl at f17760 and f18345 (armcom left out); report 12:06 'traded: in the last 3 min we lost 3114 metal of units and buildings and destroyed 914'; note 11:46 'push lost ~3000 vs ~970'",
+   "cost": "large",
+   "confidence": "medium",
+   "fix_class": "report",
+   "person_said": false,
+   "note": "the line is labelled a floor; the player read it as an estimate (part B4). No estimate line exists beside the floor."
+  },
+  {
+   "clock": "6:21-19:09",
+   "seat": "strategist-0",
+   "category": "B2",
+   "wanted": "note 6:51 'commander and constructor_26737 stuck near spot_69/73 (C8), likely boxed by solars'; 12:06 'Commander stuck 100s: tried stop+assist'; 12:46 'the C8/B8 yard seems jammed by buildings'",
+   "happened": "Every report from 6:21 said 'commander: at spot_69 (C8); ... stuck: it cannot move from spot_69 (C8), its moves have failed since N s ago' but never what boxed it (its own nine solars, by handle) nor that `remove` of one frees it, where the yard line for the exit lane names the blocker and the tool ('In the lane: armmex_28188; the player's remove tool takes them away') and the player used that tool. The player never removed a solar; the commander stood boxed to the end.",
+   "evidence": "turn prompts 6:21-19:03 (commander entry); remove calls 12:16 and 12:36 (armmex_28188 only); record footprints of the nine solars (10x10) round (2066-2223, 5394-5501)",
+   "cost": "large",
+   "confidence": "medium",
+   "fix_class": "report",
+   "person_said": false,
+   "note": "same 12.8 min as the A2 item; the counterfactual (a reclaim would have been ordered) rests on the exit-lane precedent"
+  },
+  {
+   "clock": "1:41",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "packet 0:10: 'Constructors: their job is taking free metal spots, in this order as they are free: spot_73, spot_68, spot_69, ...'",
+   "happened": "constructor_18284 went idle at 1:41; the places layer asked spot_73.place (0.70) and spot_68.place (0.64) in that same gate, so every build_armmex_spot_N move was 'blanked: true' that second; 'PLAYS constructor_18284: help plant_27255 build [plan]' (help_plant 0.73); the openers then held it (change 0.47, 0.57, 0.43) until the player's 2:08 list landed at 2:15.",
+   "evidence": "jev pass f3030 menus (blanked), worlds_gate place flags, plan line 1:41; hands_window 1:30-2:20",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false,
+   "note": "34 s of the first constructor on plant help; its first extractor 3:21; player 3:08 'We are behind curve (3 mex vs 5)'. No decode row exists for the 0:10 packet (first decode 2:16)."
+  },
+  {
+   "clock": "0:35-12:46",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "queue 0:00 commander [... \"armvp #plant1\", \"assist 50 low\", \"extractor\", ...]",
+   "happened": "The code sited plant_27255 at (1584,5456) facing east with spot_73 in its exit lane (the 3aabc77 keep-out is in this build); the commander's 'extractor' step built armmex_28188 there at 2:02. Wakes 2:31, 11:26, 12:46 'in the lane: armmex_28188'; 2 soldiers stood in the lane 12:16-12:46 (up to 0:38); the player ordered a reclaim at 12:16 and a self-destruct at 12:36 (destroyed 12:46).",
+   "evidence": "record placed 0:35 armvp, finished facing 1; created armmex_28188 2:02 at (1760,5552); yard lines 12:16-12:46; raid ledger: spot_73 lost 12:46, rebuilt 16:03",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false,
+   "note": "recurrence of the exit-lane extractor pattern after its fix"
+  },
+  {
+   "clock": "9:54-10:02",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "packet 9:22: 'A single raider at an outer extractor is met by one or two soldiers sent from the nearest group, never the whole body.' / 'group_K, the body: until push is given, it holds at spot_59'",
+   "happened": "For one armpw at A8 (2,600 from spot_59): '9:54 group_K: 2 of group_K hunt party_24 (1 armpw) as group_X [plan]', '9:55 4 of group_K ... as group_Y' (rejoined 9:57), '10:02 4 of group_K hunt party_24 (1 armpw) as group_B1 [plan]'. None reached it; B1's hunt ended on the leash at 10:11.",
+   "evidence": "decode 9:42: group_K|detach|4 0.71, |8 0.70, |2 0.65 (allowed); gate send_4_party_24.forbidden 0.59 (9:54) and 0.62 (10:02), under the 0.7 bar",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "words",
+   "person_said": false,
+   "note": "the body went into the 10:05 push with 11 of its 15; both home extractors died anyway (10:03, 10:10)"
+  },
+  {
+   "clock": "15:19",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "packet 15:14: 'group_H1, the body: its way from spot_57, in order, never going back to a place it has reached: spot_42, spot_35, spot_34, spot_29, ...'",
+   "happened": "'reached: ... spot_42 (15:11)'; at 15:19 'PLAYS group_H1: advance to spot_42 [plan]' (fight_to_spot_42 0.50 against go_spot_35 0.51); its task stayed 'advancing to spot_42' to 15:52, after the player's 15:44 packet said spot_42 was done.",
+   "evidence": "decode 15:16 group_H1|place|spot_42 0.99 (the order of the way has no decode form); hands_window 15:10-15:53; report entries 15:24-15:34",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "menu",
+   "person_said": false,
+   "note": "33 s of the 35-soldier body; player 15:44 'H1 kept re-picking spot_42'"
+  },
+  {
+   "clock": "10:11",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "packet 9:22: 'an armpw or armflea at our extractors at home (spot_74, ..., spot_68, ...) is attacked by any Blitz at home until it is dead or gone'",
+   "happened": "'10:11 group_A1's hunt of party_24 ended after 11 s: the leash of 900 from where it began reached; it holds where it is' and the same for group_B1 and group_C1, the Pawn alive",
+   "evidence": "sweep 10:11 (3 hunt-ended-leash); record: armmex lost 10:03 and 10:10 to armpw_12458, which died 10:24",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false,
+   "note": "nothing of ours died between the leash and the Pawn's death"
+  },
+  {
+   "clock": "17:58",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "packet 17:49: 'a lone armpw, armflea or armham at our extractors or constructors on our side ... is attacked by group_D2, group_A1 or group_C1 until it is dead or gone'",
+   "happened": "'17:58 group_G2's hunt of party_36 ended after 10 s: the leash of 900 from where it began reached' and group_I2's, the Pawn (armpw_15605) alive and hitting constructor_5052",
+   "evidence": "sweep 17:58; record enemy_destroyed armpw_15605 18:10; no loss of ours 17:44-18:12",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "18:51-19:09",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "packet 18:51: 'group_A2 and group_F2: they do not follow anyone and do not hold. They advance (fight to) spot_29, then spot_25, then spot_17' (18:34: 'they go straight to the body's fight: spot_29, spot_25, spot_17, his_com')",
+   "happened": "group_A2 (31-32 soldiers) and group_F2 (19-20) kept task follow at (5800-5960, 3550-3900) to the end; menus change 0.77 (A2) and 0.61 (F2) but go_spot_29 0.41/0.30, F2's fight_to_spot_29 0.09; no PICK changed them 18:51-19:00.",
+   "evidence": "decode 18:51 group_A2|place|spot_29 0.99, spot_25 0.98, spot_17 0.98, group_F2|place|spot_29 0.99 (landed); hands_window 18:50-19:09; plays: A2 follow group_H1 since 17:01, F2 since 18:35",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false,
+   "note": "his commander died 19:01 without them; won 19:09. Player 19:03: 'A2/F2 (6600) never left follow at spot_42'"
+  },
+  {
+   "clock": "19:03",
+   "seat": "strategist-0",
+   "category": "B3",
+   "wanted": "note 19:03: 'report says killed armcom x1 ... but his commander still reported at H3 0:02 ago and game goes on (decoy? or a misread)'",
+   "happened": "Report 19:03: 'to win: its commander was last seen at H3 (7516, 1628) 0:02 ago' and 'party_49 (3 armck, 1 armcom, 3030 metal) last seen 0:02 ago' beside 'fights since last turn: ... killed armcom x1'",
+   "evidence": "record enemy_destroyed armcom_21640 at 19:01; turn frame 34305 (19:03)",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false,
+   "note": "the game ended 19:09 whatever the 19:03 orders"
+  }
+ ],
+ "no_lever": [
+  {
+   "clock": "7:21, 9:22, 10:19, 12:24, 13:04, 14:57, 15:14, 17:49",
+   "seat": "strategist-0",
+   "wanted": "'fights by this way, in order, never going back to a place it has reached: spot_40, spot_27, ...'",
+   "why_no_lever": "the menu offers one place per move and the decode reads places one by one; nothing carries the way's order or closes a way-point once reached (15:19: the pick took group_H1 back to spot_42, read 0.99)"
+  },
+  {
+   "clock": "12:24, 13:04, 14:57, 15:14",
+   "seat": "strategist-0",
+   "wanted": "'At each spot it kills his armck constructors first, then soldiers, extractors and solars'",
+   "why_no_lever": "no move or tool orders targets inside a fight; the menu can only pick which party or place to attack"
+  },
+  {
+   "clock": "18:26 (18:34 packet)",
+   "seat": "strategist-0",
+   "wanted": "'Whenever it is in sight, the whole body attacks it together, surrounding it'",
+   "why_no_lever": "no surround or encircle move; attack_party sends the group at the party"
+  },
+  {
+   "clock": "18:26, 18:43, 18:53",
+   "seat": "strategist-0",
+   "wanted": "'A constructor never stands in a plant's exit lane.'",
+   "why_no_lever": "no menu move or keep-out decides where an idle or working builder stands; the yard watchdog only reports after 30 s"
+  }
+ ],
+ "unreadable": [
+  "run/pro_baseline.py: no carded side on Comet Catcher Remake 1.8 at OS 40+ from B8/G1 as arm (no milestones; the opening was read from the record)"
+ ]
+}

@@ -1,0 +1,613 @@
+{
+ "game": "1791600181-glitters-8v8-late-1",
+ "result": "lost 28:30 (surrendered 28:15)",
+ "minutes": 28.5,
+ "seats": [
+  "strategist-0",
+  "strategist-1",
+  "strategist-2",
+  "strategist-3",
+  "strategist-4",
+  "strategist-5",
+  "strategist-6",
+  "strategist-7"
+ ],
+ "player_model": "claude-sonnet-5-5 (medium)",
+ "commander": "claude-opus-5-5 (high)",
+ "opponent": "BARb hard_aggressive x8",
+ "counts": {
+  "strategist-0": {
+   "turns": 159,
+   "orders": 252,
+   "refused": 0,
+   "hands_lines": 691,
+   "flagged": {
+    "step-skipped": 42,
+    "stopped-on-stop": 9,
+    "hunt-ended-other": 5,
+    "step-waits": 4,
+    "abandoned": 4,
+    "engine-refused": 3,
+    "hunt-ended-leash": 3,
+    "follow-ended": 1,
+    "site-blocked": 1
+   },
+   "takeovers": 2
+  },
+  "strategist-1": {
+   "turns": 153,
+   "orders": 257,
+   "refused": 2,
+   "refused_missed_by_sweep": 3,
+   "hands_lines": 660,
+   "flagged": {
+    "step-skipped": 71,
+    "hunt-ended-leash": 7,
+    "stopped-on-stop": 7,
+    "engine-refused": 6,
+    "step-waits": 5,
+    "hunt-ended-other": 4,
+    "site-blocked": 1
+   },
+   "takeovers": 3
+  },
+  "strategist-2": {
+   "turns": 162,
+   "orders": 242,
+   "refused": 0,
+   "hands_lines": 596,
+   "flagged": {
+    "step-skipped": 32,
+    "hunt-ended-other": 6,
+    "hunt-ended-leash": 5,
+    "site-blocked": 3,
+    "other-fault": 2,
+    "stopped-on-stop": 1,
+    "engine-refused": 1,
+    "step-waits": 1
+   },
+   "takeovers": 3
+  },
+  "strategist-3": {
+   "turns": 170,
+   "orders": 290,
+   "refused": 1,
+   "refused_missed_by_sweep": 1,
+   "hands_lines": 702,
+   "flagged": {
+    "step-skipped": 44,
+    "engine-refused": 6,
+    "hunt-ended-other": 6,
+    "site-blocked": 5,
+    "stopped-on-stop": 5,
+    "other-fault": 4,
+    "abandoned": 4,
+    "step-waits": 3,
+    "hunt-ended-leash": 2,
+    "follow-ended": 2
+   },
+   "takeovers": 4
+  },
+  "strategist-4": {
+   "turns": 161,
+   "orders": 272,
+   "refused": 0,
+   "hands_lines": 694,
+   "flagged": {
+    "step-skipped": 64,
+    "site-blocked": 9,
+    "stopped-on-stop": 6,
+    "hunt-ended-other": 6,
+    "other-fault": 5,
+    "abandoned": 5,
+    "step-waits": 2,
+    "engine-refused": 2,
+    "hunt-ended-leash": 1,
+    "follow-ended": 1
+   },
+   "takeovers": 4
+  },
+  "strategist-5": {
+   "turns": 168,
+   "orders": 281,
+   "refused": 0,
+   "refused_missed_by_sweep": 2,
+   "hands_lines": 781,
+   "flagged": {
+    "step-skipped": 63,
+    "hunt-ended-other": 14,
+    "stopped-on-stop": 10,
+    "hunt-ended-leash": 7,
+    "engine-refused": 5,
+    "abandoned": 2,
+    "step-waits": 2,
+    "other-fault": 1
+   },
+   "takeovers": 4
+  },
+  "strategist-6": {
+   "turns": 178,
+   "orders": 272,
+   "refused": 1,
+   "refused_missed_by_sweep": 3,
+   "hands_lines": 825,
+   "flagged": {
+    "step-skipped": 104,
+    "hunt-ended-leash": 9,
+    "hunt-ended-other": 6,
+    "step-waits": 6,
+    "engine-refused": 4,
+    "other-fault": 3,
+    "site-blocked": 2,
+    "follow-ended": 1,
+    "abandoned": 1
+   },
+   "takeovers": 4
+  },
+  "strategist-7": {
+   "turns": 144,
+   "orders": 233,
+   "refused": 2,
+   "hands_lines": 427,
+   "flagged": {
+    "step-skipped": 24,
+    "other-fault": 13,
+    "step-waits": 5,
+    "engine-refused": 4,
+    "stopped-on-stop": 2,
+    "abandoned": 2,
+    "site-blocked": 2,
+    "hunt-ended-leash": 2,
+    "hunt-ended-other": 1
+   },
+   "takeovers": 2
+  },
+  "commander": {
+   "turns": 18,
+   "orders": 45,
+   "refused": 2,
+   "hands_lines": 0,
+   "flagged": {},
+   "takeovers": 0
+  }
+ },
+ "moments_examined": 12,
+ "clean": 3,
+ "tally": {
+  "A1": 17,
+  "A2": 4,
+  "A3": 2,
+  "A4": 0,
+  "A5": 0,
+  "A6": 0,
+  "B1": 1,
+  "B2": 0,
+  "B3": 2,
+  "B4": 4,
+  "B5": 0,
+  "B6": 2
+ },
+ "items": [
+  {
+   "clock": "12:55",
+   "seat": "commander",
+   "category": "B4",
+   "wanted": "direct t6: \"You keep group_K1 at home; group_Y went to t5's east army.\" (transfer group_Y_t6 to t5)",
+   "happened": "group_K1 was t5's group; t6's only soldiers were group_Y_t6 (10, 1925 metal). t6 was left with no army; a party of 24 corak + 3 corstorm took spot_56, spot_57, spot_48, spot_65 at 13:20-13:43, no soldier answering, none rebuilt",
+   "evidence": "commander 12:55 picture: 't6 ... soldiers 10 worth 1925 metal' and only 'group_Y_t6: a real army ... at spot_36 (H2)'; 'group_K1_t5: ... at passage_1_t5 (H3)'. raid_ledger seat 6: 13:20-13:43 four extractors, sold 0, answer none. t6 note 13:44: 'extractors 6, army 0'",
+   "cost": "large",
+   "confidence": "medium",
+   "fix_class": "brief",
+   "person_said": false
+  },
+  {
+   "clock": "16:15",
+   "seat": "commander",
+   "category": "B3",
+   "wanted": "plan: \"an advanced bot lab (coralab) at his_alab_f5 ... only two light turrets beside it ... Armies are even (20,350 against 20,200 seen)\"; t5's group of ~41 to go at the lab now",
+   "happened": "t5's group_D2 (40) fought its way from G4 toward spot_83 and lost 16 by 17:19 without reaching the lab; the commander at 17:55: 'The strike on his advanced lab failed ... Pushing into his middle has cost us about 6,000 more than him'",
+   "evidence": "truth: 89 enemy units within 900 of the lab at 16:15 (16 corthud, 14 corak, 13 cornecro, 7 corraid, 6 corstorm, 5 corlevlr, corhllt, corhlt, cormaw), 104 at 16:35; his army 28,420 at 16:00 (minutes.py) against the 20,200 'seen'. The score line did say 'its army is at least that and may be much more'; seat 5's 16:35 packet repeated 'only two light turrets'",
+   "cost": "large",
+   "confidence": "medium",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "23:35",
+   "seat": "commander",
+   "category": "B3",
+   "wanted": "plan: \"against his block of about 70 at E3-F3, about 10,000-12,000 seen. That army gathers at army_meet ... then attacks the block as one body\" (bodies of t1, t3, t4, t5 transferred to t6)",
+   "happened": "t6's group_P1 (62 after the merge) attacked as one body 24:13-24:38 and fell to 44 in 25 s (Mammoth, corhrk at 1210, captured Stouts); commander 24:55: 'lost 38,700 against 27,900'",
+   "evidence": "truth 23:35: 166 enemy units within 1,500 of (4000,2600) (24 corthud, 15 armstump, 13 corstorm, 10 corraid, 10 corlevlr, 36 cornecro, corhrk, corhllt); 24:20: 151 within 1,500 of army_meet incl. corsumo and 2 corhrk. Seat 6's 22:59 report: 'enemy in sight: 70 at E3' (true to what was seen: the gap is fog, the report's caveat stood)",
+   "cost": "large",
+   "confidence": "medium",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "9:49",
+   "seat": "strategist-1",
+   "category": "A3",
+   "wanted": "packet 8:54: \"it holds at meet_centre until push_centre is given, and when push_centre is given it fights as one body to spot_97, spot_106, spot_96, spot_103 ... NO detachments, no lone Blitz after a scout; nobody chases aircraft.\"",
+   "happened": "push_centre given 9:49 (in the hands' picture: \"signals\":{\"push_centre\":\"given, at 9:49\"}); group_C_t1 walked to spot_51, attacked a lone corfink and a lone corshad, then chased party_187 west into C4 for 15 s; never moved toward spot_97; 12 -> 9 soldiers by 10:12, when the player pulled it back",
+   "evidence": "hands_window: '9:49 PLAYS group_C_t1: walk to spot_51 [plan]', '9:51 PLAYS group_C_t1: attack party_180 (1 corfink) with the whole group [plan]', '9:52 PLAYS group_C_t1: attack party_183 (1 corshad) with the whole group [plan]', '10:02 PLAYS ... attack party_187' at (2750,4205). Decode 9:02: group_C_t1|place|spot_97 0.6, spot_106 0.64 (landed)",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "3:12",
+   "seat": "strategist-1",
+   "category": "B4",
+   "wanted": "0:44 packet: \"We expand hard on our north half (aim 12 extractors by 8:00 ...)\"; 3:12 queue of 12 extractor steps (spot_5, 9, 16, 12 / 10, 6, 13, 22 / 18, 25, 29, 30)",
+   "happened": "11 of 12 skipped at 3:17-3:32 ('spot_X is not free'; spot_22 'being taken by a builder of another seat'); seat 1 stayed at 6 extractors from 3:01 to 5:23",
+   "evidence": "records: every named spot held by an allied extractor since 0:16-2:57 (t4: 5, 9, 12, 16; t6: 6, 10, 13, 18; t3: 25, 29; t5: 22, 30). The 3:12 report: 'free spots we can walk to 90, nearest on foot: #33 D2 2048, #38 G2 2134, #43 F3 2454, #51 F3 2902, #48 G3 3001'. The skip line never says an ally holds the spot",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "9:01",
+   "seat": "strategist-5",
+   "category": "B4",
+   "wanted": "woken by 'no growth: we have not held more than 7 extractors for 4 min, with 49 free spots we can walk to'; note: \"Economy stuck at 7 with many free home-half spots; sent all idle constructors on extractor lists to nearby spots.\" (21 steps, 5 constructors)",
+   "happened": "14 steps skipped at 9:10 'spot_X is not free'; next turn's note 'Near spots all allied-held'; the re-list (59, 68, 65, 75, 72 ...) mostly skipped too; extractors 7 until ~11:00",
+   "evidence": "records: spot_20, 14 (t1), 29, 35, 25, 40 (t3), 31 (t2), 56, 10, 13, 18, 2, 6 (t6) all held by allies since 0:19-5:00. The 9:01 score line: 'nearest on foot: #72 G4 3142, #75 H4 3187, #66 E4 3206, #71 F4 3305, #50 D3 3548'",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "14:16-28:16",
+   "seat": "strategist-6",
+   "category": "B1",
+   "wanted": "queue tier-1 steps (extractor, armllt, armsolar) on constructor_10908, 12076, 18372, 25833, 2720, 8376 to retake home spots (14:16, 22:23, 22:34, 22:43, 28:06, 28:12)",
+   "happened": "about 35 steps skipped 'this builder cannot build it': they are advanced constructors (armacv); the player alternated armmoho and extractor lists on the same builders (22:23 armmoho on 10908/2720, 22:34 extractor on the same)",
+   "evidence": "report entry: 'constructor_10908: at spot_13 (H1); helping lab_2720 build, since 45 s ago ...' (no kind); the hands' call state at 22:24: \"constructor_10908\":{... \"is\":\"Advanced Construction Vehicle (armacv; constructor vehicle, 550 metal) ...\"}",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "6:59",
+   "seat": "strategist-5",
+   "category": "A3",
+   "wanted": "packet 6:51: \"group_O joins group_I at once; group_I (eleven Blitzes) is the east body, one body. First it attacks with the whole group the corak party near spot_65\"",
+   "happened": "the pick merged the other way: group_I joined group_O, so the packet's body name pointed at nothing; then 8-of-11 detachments and merges renamed the body O -> R -> S -> U -> W by 7:11 (three hunts ended on the leash); the player rewrote the packet for group_W at 7:16",
+   "evidence": "hands_window: '6:59 PLAYS group_I_t5: join group_O_t5 [plan]'; decode 6:57: group_O_t5|join|group_I_t5 0.65 (Opus's mark landed) and group_I_t5|join|group_O_t5 0.51 (the reverse read too); '7:00 PLAYS group_O_t5: 8 of group_O_t5 hunt party_101 (2 corak) as group_R_t5'",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "22:15-23:35",
+   "seat": "strategist-6",
+   "category": "B6",
+   "wanted": "commander 22:15 to t6: \"group_P1 and the new Bulls go to centre_hold now (E2) and fight the block there with t4, t3 and t1\" (and the same to t1, t3, t4)",
+   "happened": "t6 held at east_hold: note 22:59 'P1 (32, 7.2k) holds at east_hold until it is clear t4/t3/t1 are actually converging; not walking alone into E2'; commander 23:35: 'Every seat waited for the others to arrive at centre_hold, so nobody went', then transferred four seats' bodies to t6",
+   "evidence": "seat 6's 22:59 report carries no allied group (its own groups, enemy in sight, 'enemy in sight: 70 at E3'); the commander's report carries every seat's groups",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "5:24",
+   "seat": "strategist-3",
+   "category": "A1",
+   "wanted": "signal {\"go_south\":\"now\"} in an orders batch; the same turn's packet: \"go_south has been given. group_A ... walks and fights as one body along spot_62 ...\"",
+   "happened": "'signal: not a tool that can be batched'; the packet waited on a signal that did not exist; re-issued at 5:42, 'go_south is given now (5:45)'",
+   "evidence": "sweep seat 3: 'RESULT signal: not a tool that can be batched'; seat 3's 5:42 calls",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "12:28",
+   "seat": "strategist-1",
+   "category": "A1",
+   "wanted": "packet 12:28: \"Constructors (armcv): while the party at F4/F3 is near they build Sentries (armllt) at home\"; queue {\"arguments\": \"{\\\"constructor_27161\\\": [\\\"armllt home\\\"]}\"}",
+   "happened": "refused 'arguments: lists are by builder name ...' (missed by the sweep's REFUSED pattern); the re-issue at 12:37 refused the same way, and its corrected copy, sent after `wait`, got 'Your turn is over' (dropped); one Sentry step entered at 12:45, 17 s after the first try, while a party of 18 came at home",
+   "evidence": "strategist-1.jsonl tool results 12:28, 12:37 (x2), 12:45",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "12:37",
+   "seat": "strategist-1",
+   "category": "A1",
+   "wanted": "queue {\"arguments\": \"{\\\"constructor_26131\\\": [\\\"armllt home\\\", \\\"armllt home\\\"], \\\"constructor_27161\\\": [\\\"armllt spot_51\\\"]}\"}",
+   "happened": "refused 'arguments: lists are by builder name' (missed by the sweep); the well-formed copy came after `wait` and was dropped ('Your turn is over')",
+   "evidence": "strategist-1.jsonl 12:37 results",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "21:10",
+   "seat": "strategist-6",
+   "category": "A1",
+   "wanted": "produce {\"arguments\": \"{\\\"plant_10770\\\": {...}, \\\"plant_21799\\\": {...}, \\\"plant_15799\\\": {...}}\"} (commander 20:55: 'Your three plants stand idle with an empty list')",
+   "happened": "refused 'arguments: lists are by actor name ...' (missed by the sweep); the corrected copy after `wait` was dropped ('Your turn is over'); the lists entered at 21:23",
+   "evidence": "strategist-6.jsonl 21:10 and 21:23 results",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "25:45",
+   "seat": "strategist-5",
+   "category": "A1",
+   "wanted": "mark {\"places\": \"{\\\"north_fall\\\": [5700, 700]}\"}; the same turn's packet: the commander \"walks to north_fall and stays there\"; groups \"walk to north_fall and hold there\"",
+   "happened": "refused 'places: a grid cell is A1 to H8' (missed by the sweep); the corrected mark after `wait` was dropped; north_fall marked at 25:57. Two constructors died at 25:58 and 26:03",
+   "evidence": "strategist-5.jsonl 25:45 results; 25:57 'mark: marked: north_fall at (5700, 700)'; record-5 destroyed armcv 25:58, 26:03",
+   "cost": "small",
+   "confidence": "low",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "21:39",
+   "seat": "strategist-5",
+   "category": "A1",
+   "wanted": "a second queue {commander, constructor_17391, constructor_26399, constructor_31455: [\"stop\", \"armvp home #vp1\"]} to put the four builders on one plant",
+   "happened": "sent after `wait`: 'Your turn is over ... call nothing more' (dropped); the first list (\"armvp home\", no shared id) stood; at 23:02-23:03 three builders' armvp at H2 were refused by the engine ('the site was bad')",
+   "evidence": "strategist-5.jsonl 21:39 results; sweep seat 5 23:02-23:03 engine-refused lines",
+   "cost": "small",
+   "confidence": "low",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "11:15",
+   "seat": "commander",
+   "category": "A1",
+   "wanted": "transfer {\"to\":\"t3\",\"units\":[\"group_C_t1\",\"group_D1_t1\",\"group_B1_t2\",\"group_E1_t2\",\"group_F1_t2\",\"group_Y_t2\",\"group_Z_t2\",\"group_F_t4\"]}",
+   "happened": "refused whole: 'group_F1_t2: nothing of ours has that name'; group_F1_t2 (2 Blitz) stood in the 11:15 picture and was gone by the end of the 39 s realtime turn; re-issued at once without it, accepted",
+   "evidence": "sweep commander 11:15 RESULT line; commander 11:15 picture line 114 'group_F1_t2: a handful: 2 Blitz'",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "14:35",
+   "seat": "commander",
+   "category": "A1",
+   "wanted": "transfer {\"to\":\"t5\",\"units\":[\"group_L_t3\",\"group_B1_t3\"]}",
+   "happened": "refused whole: 'group_B1_t3: nothing of ours has that name' (it was 'following group_L_t3 for 0 s' at 14:35); re-issued with group_L_t3 alone, accepted",
+   "evidence": "sweep commander 14:35 RESULT line",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "28:10",
+   "seat": "strategist-1",
+   "category": "A1",
+   "wanted": "transfer {\"metal\":113,\"to\":\"t6\",\"units\":[\"group_K1_t1\",\"constructor_18934\",\"constructor_4720\"]}; note: 'gave the 8 Stouts and 2 constructors to t6'",
+   "happened": "'REFUSED: from and to are seat tags such as \"t2\"'; the note assumed it done; re-issued 28:21",
+   "evidence": "sweep seat 1 28:10",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "28:21",
+   "seat": "strategist-1",
+   "category": "A1",
+   "wanted": "transfer {\"from\":\"t1\",\"to\":\"t6\",\"units\":[\"group_K1_t1\",\"constructor_4720\"]}",
+   "happened": "'constructor_4720: nothing of ours has that name' (it had died); game surrendered 28:15, ended 28:30",
+   "evidence": "sweep seat 1 28:21",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "23:52",
+   "seat": "strategist-6",
+   "category": "A1",
+   "wanted": "signal {\"go_f3\":\"24:20\"} in orders; packet: 'group_P1_t6 ... holds at east_hold ... until go_f3 is given. When go_f3 is given, it fights to spot_43'",
+   "happened": "'signal: not a tool that can be batched'; the next turn (24:04) replaced the packet with one that goes at once, no signal",
+   "evidence": "sweep seat 6 23:52",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "7:04",
+   "seat": "strategist-7",
+   "category": "A1",
+   "wanted": "remove {\"by\":\"commander\",\"reclaim\":[\"constructor_29053\",\"constructor_6806\"]} (two constructors stuck in plant_4020's exit lane)",
+   "happened": "'commander: not a builder standing now'; re-issued at once by commander_t7, accepted",
+   "evidence": "sweep seat 7 7:04",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "9:04",
+   "seat": "strategist-7",
+   "category": "A1",
+   "wanted": "remove {\"by\":\"commander\",\"reclaim\":[\"constructor_5926\"]}",
+   "happened": "'REFUSED: commander: not a builder standing now'; the destruct sent after `wait` was dropped ('Your turn is over'); destruct entered 9:20",
+   "evidence": "sweep seat 7 9:04; strategist-7.jsonl 9:04 results",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "11:20",
+   "seat": "strategist-6",
+   "category": "A1",
+   "wanted": "queue {\"arguments\": \"{\\\"constructor_16136\\\": [\\\"armllt spot_48\\\"], \\\"constructor_13963\\\": [\\\"armllt spot_57\\\"]}\"}",
+   "happened": "refused 'arguments: lists are by builder name' (missed by the sweep); entered at 11:40, 20 s later",
+   "evidence": "strategist-6.jsonl 11:20, 11:40",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "11:40",
+   "seat": "strategist-6",
+   "category": "A1",
+   "wanted": "queue {\"calls\": \"{}\"}",
+   "happened": "refused 'calls: lists are by builder name' (missed by the sweep); a well-formed queue followed in the same turn",
+   "evidence": "strategist-6.jsonl 11:40",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "18:01",
+   "seat": "strategist-3",
+   "category": "A1",
+   "wanted": "queue {\"arguments\": \"{\\\"constructor_11799\\\": null, \\\"constructor_17863\\\": null, \\\"constructor_1141\\\": null}\"} (cancel three lists so they reclaim F4)",
+   "happened": "refused 'arguments: lists are by builder name' (missed by the sweep); not re-issued that turn; consequence not examined (seat 3 not read in full)",
+   "evidence": "strategist-3.jsonl 18:01",
+   "cost": "none",
+   "confidence": "low",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "22:58",
+   "seat": "strategist-1",
+   "category": "A1",
+   "wanted": "mark {\"centre_hold\": \"\\\"E2\\\"\"}",
+   "happened": "refused 'centre_hold: a grid cell is A1 to H8' (missed by the sweep); the commander's centre_hold (22:15) already stood in the picture",
+   "evidence": "strategist-1.jsonl 22:58",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "4:39",
+   "seat": "strategist-1",
+   "category": "A2",
+   "wanted": "queue (4:29) commander [\"armrl\", \"armrad\", \"armrl\"] after the commander's 4:20 'a Nettle (armrl) at its plant'",
+   "happened": "accepted, then '4:39 commander_t1: skipped the step 'armrl' of its list: it needs a place' (x2, and armrad); re-issued with 'home' at 4:41",
+   "evidence": "sweep seat 1 4:39",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "5:03",
+   "seat": "strategist-6",
+   "category": "A2",
+   "wanted": "queue (4:54) commander [\"armrl\", \"armrl\"] (commander 4:20: 'Every seat now ... a Nettle (armrl) at its plant')",
+   "happened": "accepted, then '5:03 commander_t6: skipped the step 'armrl' of its list: it needs a place' (x2); Nettles stood at 5:37 and 6:47 from other builders",
+   "evidence": "sweep seat 6 5:03; record-6 armrl finished 5:37, 6:47, 7:20, 7:36",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "5:39",
+   "seat": "strategist-6",
+   "category": "B4",
+   "wanted": "queue commander [\"armsolar\",\"armsolar\",\"armrl\"] (5:39) and [\"armsolar\",\"armvp\",\"armrl\"] (5:46), after the 5:29 report said the armrl steps needed a place",
+   "happened": "'6:21 commander_t6: skipped the step 'armrl' of its list: it needs a place' again",
+   "evidence": "5:29 report 'what your hands did': '5:03 commander_t6: skipped the step 'armrl' of its list: it needs a place' (x2)",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "2:54-8:56",
+   "seat": "strategist-1",
+   "category": "A2",
+   "wanted": "turret steps beside extractors, e.g. queue (2:32) constructor_4720 [\"armsolar\",\"armsolar\",\"extractor spot_18\",\"armllt spot_18\",\"extractor spot_2\"]",
+   "happened": "the extractor step was skipped (spot_18 held by t6 since 2:12) but its turret step ran: '2:54 constructor_4720: the engine refused a armllt at G1: the site was bad'; seat 1 had 6 such refusals (G1, G3, E4, F4, F3), each after an ally-held extractor step",
+   "evidence": "sweep seat 1 engine-refused lines 2:54, 4:10, 6:51, 7:16, 8:56; holders from the records",
+   "cost": "none",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "28:08",
+   "seat": "strategist-6",
+   "category": "A2",
+   "wanted": "queue (27:38) constructor_10908/25833/2720 [\"armvp spot_10 #vp2\",\"assist\"]",
+   "happened": "'28:08 constructor_10908: the engine refused a armvp at G1: the site was bad' (x2): spot_10 is a metal spot under our moho; surrender 28:15",
+   "evidence": "sweep seat 6 28:08",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "words",
+   "person_said": false
+  },
+  {
+   "clock": "15:00",
+   "seat": "strategist-5",
+   "category": "B6",
+   "wanted": "commander 14:35 to t5: \"You hold the side's main army now: group_K1 plus group_L and group_B1 from t3. Make them one body\"",
+   "happened": "t5's 15:00 note: 'I see only group_K1 (22 soldiers, 4530); no group_L/group_B1 of t3 appeared in my picture'. group_L_t3 arrived at 15:01 as group_D2_t5 (27: 4 Janus, 17 Stout, 6 Whistler) with no word of where it came from; group_B1_t3's transfer had been refused. The 15:08 takeover session made group_D2_t5 the core and group_K1 joined it (decode 15:21 0.73)",
+   "evidence": "seat 5 15:00 picture (only group_K1_t5); 15:08 picture 'group_D2_t5: a real army: 4 Janus, 17 Stout, 6 Whistler'; commander 14:35 'group_L_t3: ... 4 Janus, 15 Stout, 6 Whistler'",
+   "cost": "none",
+   "confidence": "medium",
+   "fix_class": "report",
+   "person_said": false
+  }
+ ],
+ "no_lever": [
+  {
+   "clock": "22:15",
+   "seat": "commander",
+   "wanted": "to t1/t3/t4/t6: \"goes to centre_hold now and fights the block with t4, t3 and t6 ... meet it there together\"; t6's note 22:59: \"holds at east_hold until it is clear t4/t3/t1 are actually converging\"",
+   "why_no_lever": "a seat's hands have no move that waits on or moves with another seat's group, and a seat's report shows no allied group; the only lever was the commander's transfer (used at 23:35)"
+  },
+  {
+   "clock": "11:15",
+   "seat": "commander",
+   "wanted": "to t1/t2/t4: \"Your plant's new Stouts, Janus and Whistlers walk to t3's army and fight beside it\" (again 12:55 and 14:35)",
+   "why_no_lever": "no cross-seat join or follow: a seat's soldiers can only be sent to a place, and t3's army moves; seat 1 departed at 11:48 ('new Stouts hold at spot_51 ... rather than walking alone to t3')"
+  },
+  {
+   "clock": "12:55",
+   "seat": "commander",
+   "wanted": "\"New Stouts, Janus and Whistlers of t1, t2 and t4 walk to centre_army in fours, never alone\"",
+   "why_no_lever": "no move or list step holds new soldiers until a count is reached and then sends them together (as far as the tool list shows; produce names a group, join sends each as it comes)"
+  },
+  {
+   "clock": "11:15",
+   "seat": "commander",
+   "wanted": "\"Stouts in front, Whistlers and Janus behind them, Blitzes on the flanks\" (also seat 1 10:02/10:12, seat 5 15:08, seat 6 23:52 'Bulls and Stouts in front, Whistlers, Janus and Mausers behind')",
+   "why_no_lever": "the lane tool's `form` puts a group in ranks of six across its heading regardless of type; no move orders a group's soldiers by type"
+  },
+  {
+   "clock": "6:12",
+   "seat": "strategist-1",
+   "wanted": "\"never enters more than two of his Guards at a time\"",
+   "why_no_lever": "no menu move or setting counts the turrets a path or a fight enters; only Jev's reading of the prose"
+  }
+ ],
+ "unreadable": [
+  "run/pro_baseline.py: no carded side for All That Glitters v2.2.3 (no opening baseline)",
+  "the sweep's REFUSED pattern misses argument-shape refusals ('arguments: lists are by ...', 'a grid cell is A1 to H8') and calls dropped after `wait` ('Your turn is over'): 9 such A1 items here are counted in the tally but not in counts.refused",
+  "seats 0, 2, 3, 4, 7 not read in full (counts and refusals only), as the brief for this game asked"
+ ]
+}

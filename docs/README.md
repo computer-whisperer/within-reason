@@ -38,4 +38,7 @@ a subagent given a match directory) reads the record, the pianist's log, the tra
 stronger player would have done; the player, the hands, the harness) and `verdict.json` (`harness/verdicts.md`, the
 shape `run/tally_verdicts.py` adds up) into the match directory. The checklist grows with every packet of feedback
 from experienced players (the skill's last section; the notes themselves go to `knowledge/_inbox/player-notes.md`).
-The study behind it: `studies/2026-09-27-review-skill.md`.
+The study behind it: `studies/2026-09-27-review-skill.md`. A second kind of review tallies the interface rather than
+the game: did the harness do what the player ordered, and was the player told what it needed (`harness/impedance.md`:
+`run/impedance_sweep.py`, the brief in `studies/data/impedance-2026-10-16/`, `run/impedance_tally.py` to sum the
+reviewers' `impedance.json` files; the study `studies/2026-10-16-opus-hands-impedance.md`).

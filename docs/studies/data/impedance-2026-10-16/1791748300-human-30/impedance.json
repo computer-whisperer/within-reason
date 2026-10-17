@@ -1,0 +1,411 @@
+{
+ "game": "1791748300-human-30",
+ "result": "likely lost ~21:45 (human game on Eclipsed 0.9.8; no result in the chat; the record ends at f=39162 'unexpected end of file' 17 s after his Liche atomic bombers killed t3's commander (21:28) and t5's (21:35); t4's commander had died 14:52, so only t2's stood; commander 14:15: 'The lead is gone')",
+ "minutes": 21.75,
+ "seats": [
+  "strategist-0",
+  "strategist-1",
+  "strategist-2",
+  "strategist-3"
+ ],
+ "player_model": "claude-opus-5-5 (effort medium; hands Jev jev-1.13.0)",
+ "commander": "claude-opus-5-5",
+ "opponent": "[gecko]thebluegecko and [gecko]u6bkep (people, Armada)",
+ "counts": {
+  "strategist-0": {
+   "turns": 72,
+   "orders": 169,
+   "refused": 0,
+   "hands_lines": 319,
+   "flagged": {
+    "step-skipped": 20,
+    "step-waits": 10,
+    "stopped-on-stop": 9,
+    "other-fault": 7,
+    "abandoned": 4
+   },
+   "takeovers": 1
+  },
+  "strategist-1": {
+   "turns": 81,
+   "orders": 174,
+   "refused": 1,
+   "hands_lines": 496,
+   "flagged": {
+    "step-waits": 8,
+    "step-skipped": 7,
+    "stopped-on-stop": 5,
+    "other-fault": 4,
+    "hunt-ended-leash": 4,
+    "hunt-ended-other": 2,
+    "abandoned": 1
+   },
+   "takeovers": 2
+  },
+  "strategist-2": {
+   "turns": 59,
+   "orders": 140,
+   "refused": 0,
+   "hands_lines": 395,
+   "flagged": {
+    "step-skipped": 15,
+    "stopped-on-stop": 12,
+    "engine-refused": 6,
+    "site-blocked": 4,
+    "step-waits": 3,
+    "hunt-ended-leash": 1,
+    "hunt-ended-other": 1,
+    "abandoned": 1,
+    "other-fault": 1
+   },
+   "takeovers": 1
+  },
+  "strategist-3": {
+   "turns": 74,
+   "orders": 160,
+   "refused": 1,
+   "hands_lines": 271,
+   "flagged": {
+    "step-skipped": 13,
+    "engine-refused": 6,
+    "other-fault": 5,
+    "stopped-on-stop": 4,
+    "step-waits": 2,
+    "abandoned": 2,
+    "site-blocked": 1
+   },
+   "takeovers": 1
+  },
+  "commander": {
+   "turns": 15,
+   "orders": 29,
+   "refused": 0,
+   "hands_lines": 0,
+   "flagged": {},
+   "takeovers": 0
+  }
+ },
+ "moments_examined": 12,
+ "clean": 3,
+ "tally": {
+  "A1": 2,
+  "A2": 4,
+  "A3": 6,
+  "A4": 1,
+  "A5": 0,
+  "A6": 2,
+  "B1": 4,
+  "B2": 0,
+  "B3": 0,
+  "B4": 1,
+  "B5": 1,
+  "B6": 2
+ },
+ "items": [
+  {
+   "clock": "5:15-8:15",
+   "seat": "commander",
+   "category": "B6",
+   "wanted": "commander 5:15: \"Every seat's raiders join into one body at meet_d5 (D5), then go together ... They go in all together, from more than one side, never one by one.\" (again 6:45)",
+   "happened": "No seat waited for the others: t3 6:40 \"Leaving the direction's meet_d5\" for his_post_f7; t5 6:58 held at spot_31 (\"meet_d5 is covered\"); t4 8:15 \"Gathering at spot_31 to ~15 before joining\"; t2's group was pulled west by its pick (6:03-6:37 item).",
+   "evidence": "commander 8:15 note: \"The four seats' bodies never met: three directions asking them to meet were each read by a seat on its own\"; plan 8:15: \"in the last three minutes we lost 3,900 against 2,555\"; first transfer of armies to t3 at 8:15.",
+   "cost": "large",
+   "confidence": "medium",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "6:03-6:37",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "5:47 packet: \"the whole group attacks his buildings at spot_37 together and keeps attacking until the armbeamer is dead. Its way after that: meet_d5\"; 6:02: \"fights its way to his_com_f7, together as one body\"",
+   "happened": "PLAYS group_B_t2: 6:03 \"attack party_5 (1 armflash) with the whole group\", 6:09 \"attack party_15 (4 armflash)\", 6:20 \"advance to his_com_f7\", 6:22 \"attack party_15 (5 armflash) with the whole group [plan]\" (gate attack_party_15=0.55): a chase of his Blitzes west into B4/B5.",
+   "evidence": "decode 6:17 group_B_t2|place|his_com_f7=0.98 (mark landed); record: 7 Blitzes died at B5 to armflash 6:22-6:36 (group 11 -> 4 soldiers in 15 s); Opus 6:32: \"Our raiders were worn down in his base at B5\". Opus's own lane at 5:28 had flee off (fan, kite, form, march).",
+   "cost": "large",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "13:23-14:14",
+   "seat": "strategist-2",
+   "category": "A2",
+   "wanted": "queue x4 \"armavp home #avp\" (commander 12:45: \"t4 starts an advanced vehicle plant (armavp) at its plant's construction turrets now\"; 14:15: \"Tier 2 at t4 is the priority now\")",
+   "happened": "record: no_site for armavp for all four builders at 13:36; the step was dropped by the host and never placed; the constructors stood in plant_25770's exit lane until Opus re-placed it at 14:14 (then items 14:36, 15:18, 15:26). First frame stood 15:21 (D1, abandoned) / 15:48 (E2), finished 17:20.",
+   "evidence": "record ev no_site armavp x4 f=24480 (13:36); bot.log 'no site for' path in crates/ai-host/src/lib.rs drops the command; record created armavp 15:48 (3656,1235), finished 17:20.",
+   "cost": "large",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "14:35",
+   "seat": "strategist-2",
+   "category": "B4",
+   "wanted": "14:14 packet: \"commander_t4: ... A party that outweighs it: it walks to back_yard. It never walks past spot_15.\" Opus 14:35 note: \"Commander back home.\"",
+   "happened": "The 14:35 report said \"commander_t4: at spot_20 (D2); walking to back_yard, 969 to go ... party_54 (2 armjanus, 6 armstump, 6 unidentified) 444 away ... its fastest (75) catch our slowest (38) ... contact in 6 s\"; Opus's orders kept the commander's walk rule (avp_yard) and landed ~14:56; the walk (picked 14:31) ran east via E2 into the block.",
+   "evidence": "record: commander 25671 hp 82 at 14:39, 31 at 14:48, 6 at 14:51; destroyed 14:52 at (3849,1280) by armstump; Opus 14:56: \"OUR COMMANDER DIED at home to his Stout block\".",
+   "cost": "large",
+   "confidence": "medium",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "2:06-18:36",
+   "seat": "strategist-3",
+   "category": "B1",
+   "wanted": "queue steps on spot_31, 38, 5, 20, 40, 57, 54 (commander 3:45 split: t5 gets spot_21, 26, 31, 38, 40, 46, 52, 37)",
+   "happened": "10 extractor steps skipped because an ally held or was walking to the spot (\"skipped the step 'extractor spot_20' of its list: spot_20 is being taken by a builder of another seat of ours\"); t5 held 2-4 extractors all game.",
+   "evidence": "sweep seat 3; record: spot_31 t5 4:56, spot_38 t5 6:17 but spot_40 t3 3:32, spot_5/20 t4; Opus 3:08: \"Other seats keep taking the spots we walk to (31, 38, 5): our constructors arrive to find them taken\". The report gives only a free-spot count and nearest list; allied holdings and allied builders' targets are not shown.",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "2:13-18:36",
+   "seat": "strategist-0",
+   "category": "B1",
+   "wanted": "queue steps on spot_21, 20, 28, 26, 12, 2, 8, 38, 45, 40, 22, 15, 19, 49, 50, 51, 31",
+   "happened": "19 extractor steps skipped as allied-held or being taken by another seat; t2 stood at 5-7 extractors from 4:00 to the end.",
+   "evidence": "sweep seat 0 (e.g. 2:13 \"spot_21 is not free\" = t5's home extractor since 0:03; 4:22 spot_12/2/8 = t4's E1 extractors); Opus 8:15 believed allies took \"the spots assigned to t2 (49, 50, 51, 66 ...)\" though 49-51 were t3's in the 3:45 split, which t2 never saw (each seat is shown its own paragraph).",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "2:32-8:24",
+   "seat": "strategist-2",
+   "category": "B1",
+   "wanted": "4:08 queue constructor_10600: [\"extractor spot_21\", \"extractor spot_3\", \"extractor spot_4\", \"extractor spot_6\", \"extractor spot_11\", \"extractor spot_14\"]",
+   "happened": "All six were allies' standing extractors (t2's H1 cluster, t5's home): skipped at 4:26; 9 such skips in all for t4.",
+   "evidence": "sweep seat 2 4:26 x6 \"is not free\"; record: spots 3,4 t2 0:06/0:13, 6/14 1:52/1:53, 11 2:43, 21 t5 0:03; the 4:08 report's score line listed only the free ones (#19, #17, #31, #16, #22).",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "2:34-7:13",
+   "seat": "strategist-1",
+   "category": "B1",
+   "wanted": "queue steps on spot_26, 57, 48, 54",
+   "happened": "4 extractor steps skipped as allied-held or being taken by another seat.",
+   "evidence": "sweep seat 1 (5:41 \"spot_57 is being taken by a builder of another seat of ours\", 6:35 spot_48, 7:13 spot_54).",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "11:34-14:20",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "commander 11:15: \"group_J's Rover goes alone, now, to spot_55 and spot_58 (A7/A8), which nobody has seen\"; t2 11:34: \"its Rover leaves alone to rove (rove_1), his start box's south-west first (spot_55, spot_58); leave it to rove\"",
+   "happened": "11:50 \"a armfav leaves as group_K_t2 and roves\"; it roved the north: \"12:19 gave up looking at spot_0\", \"12:47 ... spot_23\", \"13:11 ... spot_1\", \"13:23 ... spot_43\"; by 14:20 at (5370,3469). Never went south-west.",
+   "evidence": "jev-0 pass 'rove' lines; record: no unit of any seat in A6-B8 after 9:00; his advanced labs and aircraft plant never in any seat's 'en'; armliche first seen 21:15, two commanders killed by it 21:28/21:35.",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "menu",
+   "person_said": false
+  },
+  {
+   "clock": "15:26-15:42",
+   "seat": "strategist-1",
+   "category": "A3",
+   "wanted": "14:54: \"A party of his on the way it attacks with the whole group when it outweighs that party\"; 15:17: \"it kills the Welders (armzeus) at spot_38 first, with the whole group\"",
+   "happened": "PLAYS 15:26 \"8 of group_I_t3 hunt party_61 (1 armzeus) as group_J_t3\", 15:30 \"8 of group_I_t3 hunt party_61 (2 armzeus) as group_K_t3\"; 15:42 \"group_K_t3's hunt of party_61 ended after 11 s: the leash of 900 from where it began reached; it holds where it is (6 soldiers)\".",
+   "evidence": "15:49 woken: \"group_K_t3 has lost 2 of its 8 soldiers (450 metal)\"; raid_ledger: spot_40 lost 15:49 to 4 armzeus (rebuilt 18:02).",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "14:37-14:51",
+   "seat": "strategist-2",
+   "category": "A3",
+   "wanted": "14:14: \"group_H_t4: a party of three or more of his at our extractors or turrets on the D1/D2 row (spot_20, spot_19, spot_17, spot_22) is its business first, whole\"",
+   "happened": "party_54 (14 units) at our extractor at spot_20 from 14:35 (report: \"enemies_at_our_extractors: party_54 ... at our extractor at spot_20\"); gate party_54.answer 0.78-0.84 but group_H_t4.attack_party_54 0.19; PLAYS 14:45 \"2 of group_H_t4 hunt party_55 (2 unidentified) as group_Y_t4\", 14:46-14:49 \"gather on its front\", 14:51 \"attack party_54 ... with the whole group\".",
+   "evidence": "raid_ledger: spot_20 destroyed 14:49 by armstump, answer 14:51 +30 s, rebuilt 15:21.",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "12:51-13:04",
+   "seat": "strategist-1",
+   "category": "A3",
+   "wanted": "12:36: \"group_D_t3 holds at spot_46 as one body and gathers its reinforcements there ... never advances on a `shelling` place\"",
+   "happened": "The pick alternated almost every second: 12:51 walk to spot_46, 12:52 \"shell party_39 from their reach with 3 long-reach soldiers\", 12:53 walk, 12:56 shell, 12:57 walk, 12:58 shell, 12:59 advance to spot_46, 13:00 shell, 13:01 attack party_39, 13:02 walk.",
+   "evidence": "hands_window seat 1; record: 4 soldiers lost 12:51-13:02 (corraid x2, armstump x2, three at D6 to armzeus); Opus 12:55: \"the hands kept switching between shelling and walking\".",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "14:36",
+   "seat": "strategist-2",
+   "category": "A2",
+   "wanted": "14:14 queue x5 \"armavp avp_yard #avp1\" (avp_yard marked at (5150,650))",
+   "happened": "record placed armavp at (5928,648) for all five at 14:29 (780 from the mark); \"the engine refused a armavp at G1: the site was bad\" x5 at 14:36-14:37.",
+   "evidence": "sweep seat 2 engine-refused x5; record placed events f=26070.",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "15:18",
+   "seat": "strategist-2",
+   "category": "A6",
+   "wanted": "14:56 queue x7 \"armavp #avp2\" (no place, one shared id); Opus: \"all constructors now build the armavp beside the plant at home (#avp2)\"",
+   "happened": "The shared id did not give one site: placed (3400,840) D1 for constructor_4475 and (5016,1576) for 14540, no_site for four; a frame went up at D1 on the front (15:21).",
+   "evidence": "record placed/no_site f=27540, created armavp 15:21 (3400,835); Opus 15:24: \"an armavp frame was started at spot_20 (front) by the shared-id list; stopped it\"; 15:57 \"abandoned an unfinished armavp at D1 (0% built)\".",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "15:26",
+   "seat": "strategist-2",
+   "category": "A4",
+   "wanted": "15:24 queue x5 \"armavp back_yard #avp3\" (back_yard (4250,700), home)",
+   "happened": "\"its armavp at E1 never started in the 8 s it stood at the site: the site is blocked ... refused for 90 s, and the order goes again elsewhere\" x4; placed again at (3656,1240) E2 beside e2_gate, the front passage (15:39); frame 15:48.",
+   "evidence": "sweep seat 2 site-blocked x4; record placed f=28170; Opus 16:09: \"three constructors stood 30 s unable to reach the armavp frame at E2\".",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "13:36-14:14",
+   "seat": "strategist-2",
+   "category": "B5",
+   "wanted": "(the 13:23 armavp order, item above)",
+   "happened": "Report: \"13:36 constructor_14540: build a armavp at home (E1) (#avp) (from its list)\" and the entries \"walking to build a Advanced Vehicle Plant (armavp) at home (E1), 409 to go\" for 38 s while the host had found no site.",
+   "evidence": "record no_site x4 at 13:36; Opus 13:59: \"lane block is four constructors walking through the plant's exit to the armavp site at home; transient, left alone\"; only at 14:14 \"site likely unreachable\".",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "0:20",
+   "seat": "commander",
+   "category": "B6",
+   "wanted": "commander plan: \"Each seat: five constructors by 5:00, then one in every four or five units for the whole game\"",
+   "happened": "No seat's produce list carried it (t2 0:05: \"armcv:1, armfav:2, armflash:3, armcv:1, armflash:4 ...\"); every seat had 3 constructors finished by 5:00.",
+   "evidence": "record finished armcv/corcv by 9000 f: t2 3, t3 3, t4 3, t5 3.",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "brief",
+   "person_said": false
+  },
+  {
+   "clock": "7:24",
+   "seat": "strategist-3",
+   "category": "A3",
+   "wanted": "7:13: \"it fights to his_com_f7 now ... It never attacks into the Beamer at D4 or the armcom at A4\"",
+   "happened": "PLAYS 7:24 group_A_t5 \"advance to spot_37\" (C4, his extractor under the D4 Beamer); Opus 7:28 added \"It never goes to spot_37, C4, D4 or D5\"; 7:38 \"walk to spot_38\".",
+   "evidence": "jev-3 plan rows; record: corgator lost at D4 7:40 to armwar.",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "4:18",
+   "seat": "strategist-3",
+   "category": "A2",
+   "wanted": "3:08 queue constructor_26809: [\"extractor spot_40\", \"corllt spot_40\", \"extractor spot_46\", \"corllt spot_46\", \"extractor spot_52\", \"corllt spot_52\"]",
+   "happened": "\"4:18 the engine refused a cormex at D6: the site was bad\"; \"4:19 skipped ... 'extractor spot_52': spot_52 holds his extractor\": the constructor walked about two minutes into his half to find both spots his.",
+   "evidence": "sweep seat 3; Opus 4:24 stopped the constructor; his D6/E7 extractors appear in the packet only from 4:24.",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "15:25",
+   "seat": "strategist-3",
+   "category": "A2",
+   "wanted": "14:22 queue constructor_1017: [\"corhllt home\", \"corhllt home\"], constructor_18866: [\"corhllt home\", ...] (home defence against his 14-unit block at D2/D3)",
+   "happened": "\"15:25 constructor_18866: the engine refused a corhllt at G2: the site was bad\", \"15:27 constructor_1017: the engine refused a corhllt at G2\".",
+   "evidence": "sweep seat 3 engine-refused; the block did not reach t5's home, so nothing was lost to it.",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "21:30",
+   "seat": "strategist-1",
+   "category": "A1",
+   "wanted": "transfer {\"to\": \"t4\", \"units\": [\"group_I_t3\", \"group_Q_t3\", \"constructor_1143\", \"constructor_28449\"]}",
+   "happened": "\"REFUSED: group_Q_t3: nothing of ours has that name\": the report of the same turn listed \"group_Q_t3: a real army: 8 Stout ... hunting party_66 since 1 s ago\"; it merged back at 21:29. The whole call was refused; Opus's note assumed it done (\"I am giving the whole army (group_I and group_Q ...) to t4\") and never re-issued.",
+   "evidence": "strategist-1 tool_call result; the record ends 21:45.",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "6:29",
+   "seat": "strategist-3",
+   "category": "A1",
+   "wanted": "produce plant_30020 group \"group_A\"",
+   "happened": "\"REFUSED: plant_30020: group_A is not a group in the picture (group_A_t5)\"; re-issued correctly at 6:40.",
+   "evidence": "strategist-3 tool_call results 6:29 and 6:40.",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "20:54",
+   "seat": "strategist-1",
+   "category": "A3",
+   "wanted": "20:43: \"It attacks, with the whole group, any party of his that comes to spot_45, spot_48, spot_49, spot_50, spot_51 or spot_40\"",
+   "happened": "PLAN 20:54 \"8 of group_I_t3 hunt party_66 (10 armzeus) as group_O_t3\"; \"group_O_t3's hunt of party_66 ended after 0 s: the leash of 900 from where it began reached\"; 20:55 \"group_O_t3: walk to spot_14\" (home) until it rejoined about 21:05.",
+   "evidence": "sweep seat 1 hunt-ended-leash 20:54; hands_window seat 1 20:54-21:15.",
+   "cost": "none",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  }
+ ],
+ "no_lever": [
+  {
+   "clock": "5:15",
+   "seat": "commander",
+   "wanted": "\"Every seat's raiders join into one body at meet_d5 (D5) ... They go in all together, from more than one side, never one by one.\" (again 6:45; the seats' packets repeat it: t2 5:47, t5 5:52, t4 7:06)",
+   "why_no_lever": "A seat's group can walk to meet_d5, but no move or tool makes it wait for, or move with, another seat's group; the only cross-seat join is the commander's transfer of whole groups (first used at 8:15, after the bodies had been worn down one at a time)."
+  },
+  {
+   "clock": "3:45",
+   "seat": "commander",
+   "wanted": "\"Spots, so that seats stop walking to each other's: an extractor already standing stays with whoever holds it; free spots go to the seat named in its own paragraph and to no other.\" (again 9:45)",
+   "why_no_lever": "Neither the queue tool nor the hands carry spot ownership between seats; a step on another seat's spot is accepted and skipped only when the builder gets there ('being taken by a builder of another seat of ours'), and each seat sees only its own paragraph of the split: 42 such skips across the four seats."
+  },
+  {
+   "clock": "11:34",
+   "seat": "strategist-0",
+   "wanted": "\"its Rover leaves alone to rove (rove_1), his start box's south-west first (spot_55, spot_58); leave it to rove\" (commander 9:45 and 11:15: \"Send one Rover alone, now, to look at A7 and A8\")",
+   "why_no_lever": "The rove takes no destination or order of places, and a lone scout leaves a group only as a rove; the rover worked the north (gave up on spot_0, 1, 23, 43) and A6-B8 went unseen for the rest of the game."
+  },
+  {
+   "clock": "21:35",
+   "seat": "strategist-3",
+   "wanted": "\"commander: four armliche (Liche bombers) are over our home now. The commander attacks the nearest armliche with its laser now and keeps attacking while one is in reach\"",
+   "why_no_lever": "The commander's weapons do not fire at aircraft and no menu move attacks an air unit with a ground weapon (the commander died the same second, to an armliche)."
+  }
+ ],
+ "unreadable": [
+  "run/pro_baseline.py: no carded side for Eclipsed 0.9.8 (no pro baseline for the opening); run/wake_read.py not run (arena only); no truth file (human game): every enemy fact is from the seats' records"
+ ]
+}

@@ -1,0 +1,325 @@
+{
+ "game": "1791751159-human-32",
+ "result": "lost 27:20 (the commander conceded; t2 and t4 eliminated, t3's base overrun by Bulls; chat: \"[WReason] The AI side (WReason) concedes ... the Shiva switch at 21 min broke us\", then \"gg wp\" from player 0)",
+ "minutes": 27.6,
+ "seats": [
+  "strategist-0",
+  "strategist-1",
+  "strategist-2"
+ ],
+ "player_model": "claude-opus-5-5",
+ "commander": "claude-opus-5-5",
+ "opponent": "[gecko]thebluegecko (lobby skill 34, Cortex) and [gecko]u6bkep (lobby skill 19, Armada), people",
+ "counts": {
+  "strategist-0": {
+   "turns": 118,
+   "orders": 249,
+   "refused": 0,
+   "hands_lines": 876,
+   "flagged": {
+    "step-skipped": 53,
+    "step-waits": 30,
+    "hunt-ended-other": 11,
+    "engine-refused": 11,
+    "stopped-on-stop": 8,
+    "other-fault": 5,
+    "hunt-ended-leash": 4,
+    "follow-ended": 4,
+    "abandoned": 4
+   },
+   "takeovers": 2
+  },
+  "strategist-1": {
+   "turns": 115,
+   "orders": 271,
+   "refused": 1,
+   "hands_lines": 939,
+   "flagged": {
+    "step-skipped": 25,
+    "stopped-on-stop": 21,
+    "engine-refused": 16,
+    "step-waits": 14,
+    "abandoned": 8,
+    "other-fault": 6,
+    "hunt-ended-other": 4,
+    "hunt-ended-leash": 2,
+    "follow-ended": 1
+   },
+   "takeovers": 2
+  },
+  "strategist-2": {
+   "turns": 113,
+   "orders": 239,
+   "refused": 1,
+   "hands_lines": 972,
+   "flagged": {
+    "step-skipped": 54,
+    "step-waits": 19,
+    "hunt-ended-other": 18,
+    "hunt-ended-leash": 18,
+    "follow-ended": 10,
+    "engine-refused": 8,
+    "other-fault": 7,
+    "stopped-on-stop": 4,
+    "abandoned": 3,
+    "site-blocked": 2
+   },
+   "takeovers": 2
+  },
+  "commander": {
+   "turns": 19,
+   "orders": 36,
+   "refused": 0,
+   "hands_lines": 0,
+   "flagged": {},
+   "takeovers": 0
+  }
+ },
+ "moments_examined": 12,
+ "clean": 1,
+ "tally": {
+  "A1": 2,
+  "A2": 2,
+  "A3": 7,
+  "A4": 1,
+  "A5": 0,
+  "A6": 2,
+  "B1": 0,
+  "B2": 0,
+  "B3": 1,
+  "B4": 0,
+  "B5": 0,
+  "B6": 2
+ },
+ "items": [
+  {
+   "clock": "3:27",
+   "seat": "strategist-2",
+   "category": "A1",
+   "wanted": "remove {\"by\": \"commander_t4\", \"reclaim\": [\"corwin\"]}; note 3:31: \"commander_t4 stuck at spot_64 among plant/wind turbines ... Wish: picture handles for our buildings so I can reclaim the blocking turbine.\"",
+   "happened": "RESULT corwin: \"nothing of ours has that name (handles are <unit>_<id> as the picture writes them, e.g. armsolar_31002, or an actor name)\". No report or situation of t4 from 3:00 to 23:00 carries a handle for any of our buildings (situation: \"our Wind Turbine (corwin), our Vehicle Plant (corvp) ...\" beside spot_64). Opus believed it had no lever, never re-issued, set the commander to assist in place; freed it at 22:29 only by reclaiming plant_2006 (an actor name), the seat's only factory.",
+   "evidence": "record-2: corcom 23146 move_failed 3:12-4:13, then stood within ~130 elmos of (11354,3471) from 4:00 to 20:30; 22:29 remove plant_2006 accepted; 23:22 note \"plant reclaimed (779 metal back)\"; commander died 25:42 at H2 (seat eliminated)",
+   "cost": "large",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "17:14",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "packet 16:10 (in force 16:23-17:19): \"group_W1_t2 (the home body) afterwards returns to spot_80 and holds there ... It never goes toward his turret nest at spot_93, spot_92 and spot_91\"",
+   "happened": "the party it was sent at (party_111) was gone; the pick played \"PLAYS group_W1_t2: advance to spot_87 [plan]\" at 17:14 (fight_to_spot_87 0.70) and again 17:17 (0.51) instead of go_spot_80 (0.50 at 17:11); the fight-move carried members into the E4/F4 nest (\"met 2 cordrag, 2 corexp, 3 corhllt ... reached spot_93\" 17:20); then 17:25-17:38 it thrashed between \"advance to shelling\" and \"walk to spot_80\"",
+   "evidence": "jev-0 plan rows 17:14/17:17; decode 16:29 group_W1_t2|place|spot_80 0.98 (the mark landed); hands_window: W1 35 at 17:13 -> 24 at 17:25. Opus's 17:24 note blamed naming the nest in a 'never' sentence; the decode did open spot_93 (0.96) but the pick never played a move to it",
+   "cost": "large",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "8:38",
+   "seat": "strategist-2",
+   "category": "A3",
+   "wanted": "packet 8:24 (landed 8:35): \"group_O_t4: the raid body, go_west is given. It fights its way west as one body: spot_24, spot_6, ... It does not chase small parties south or east of its way\"",
+   "happened": "8:38 \"8 of group_O_t4 hunt party_47 (1 corgator) as group_G1_t4\"; 8:43 \"attack party_51 (1 corgator) with the whole group\"; 8:45 \"attack party_49 (1 corgator)\". It had already chased party_47 south-west from 7:59 (attack_party_47 rated 0.61 against fight_to_spot_24 0.31), 2,800 elmos off its way",
+   "evidence": "jev-2 plan rows; worlds_gate send_8_party_47.forbidden 0.66, attack_party_N carries no forbidden reading; gtrack: O 17 at 8:13 -> 12 at 8:34 -> 4 at 8:40 (8 detached); first stop spot_24 reached 9:45, two minutes after go_west (7:45)",
+   "cost": "large",
+   "confidence": "high",
+   "fix_class": "menu",
+   "person_said": false
+  },
+  {
+   "clock": "25:05",
+   "seat": "strategist-2",
+   "category": "A3",
+   "wanted": "packet 24:48 (landed 25:04): \"The commander walks south along the east edge now, away from every corshiva ... It never walks toward a corshiva or an armbull and never stops to build or fight on the way.\"",
+   "happened": "\"PLAYS commander_t4: attack party_202 [plan]\" (split took w2 at 0.6) one second after the packet landed; the menu called party_202 \"1 unidentified ... against it alone, we outweigh it heavily\" (it was a Shiva on radar). The commander never left (11482,1705) from 25:00 to its death at 25:42; the 25:18 correction (\"it never attacks: ... party_202 is a corshiva's company\") did not move it either",
+   "evidence": "jev-2 25:05 plan/gate: go_t3_home 0.49, attack_party_202 0.41; record-2 commander track; 25:44 note \"the hands kept it 'attacking' a party at 560 instead of walking\". The player itself chose to stay at 25:22 (landed 25:33), so the walk's survival is unknown",
+   "cost": "large",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "22:20",
+   "seat": "strategist-1",
+   "category": "A2",
+   "wanted": "remove {\"by\": \"constructor_2000\", \"reclaim\": [\"plant_6196\"]} at 22:20, again 22:35, and by constructor_20079 at 22:50; note: \"reclaiming the second so all builders finish one\"",
+   "happened": "each accepted (\"plant_6196 (armavp, 2600 metal) is taken apart ... your hands carry it out\"); report 22:32 \"constructor_2000 takes plant_6196 apart next\", then 22:33 \"constructor_2000: help plant_6196 build (from its list)\". Never reclaimed: the frame kept growing and was destroyed unfinished at 26:30",
+   "evidence": "record-1 samples: plant_6196 9% at 22:20, 23% at 23:00, 38% at 24:00 (about 750 metal more sunk into it after the first remove); destroyed 26:30",
+   "cost": "large",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "11:03",
+   "seat": "strategist-1",
+   "category": "B6",
+   "wanted": "commander 10:50 to t3: \"You now also command t2's southern body (6 Incisors, 2 Pounders, at D7 ...) so one player and one pair of hands strike green. Join it with yo...\"; t3 packet 11:13: \"group_C_t3 ... and group_M_t3 ... fight green's Janus, Stouts and constructors at C7 together\"",
+   "happened": "the transfer landed at 11:03 with the body already in a fight; t3's packet in force (10:57) did not know it; the pick played \"group_M_t3: attack party_73\" at 11:04 and 11:11; t3's packet naming it landed 11:27 (19 s wall turn), when 2 of 8 were left. t3 note 11:32: \"t2's Incisors died piecemeal at C7 ... before our Blitzes arrived\"",
+   "evidence": "record taken/given 11:03; gtrack: M_t3 8 at 11:05 -> 3 at 11:27 -> 2 at 11:31; group_C_t3 still 1,500 east at 11:13",
+   "cost": "large",
+   "confidence": "medium",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "21:34",
+   "seat": "strategist-0",
+   "category": "B3",
+   "wanted": "turn 21:34 orders: \"group_W1_t2 attacks the corgator party at spot_77 and spot_83 (F4) now with the whole group ... the corshiva near them is killed the same way when it is seen\"",
+   "happened": "the report's actor entry said \"enemies_near: party_151 (8 corgator, 1 unidentified) ... the whole group ... outweighs it heavily (10.9 to 1)\" and \"under_fire: yes, this second, by corgator (14 hits)\" while a corshiva the 21:03 wake had named was shelling the body; the odds counted the radar contact as nothing",
+   "evidence": "record-0 at 21:34 within 1,500 of W1: 8 corgator + 1 radar contact; corshiva seen 21:36, 21:38, 21:43, 21:46 (4 distinct); W1 35 (6,645 metal) at 21:34 -> 27 at 21:38 -> 14 at 21:46 -> 7 at 21:51",
+   "cost": "large",
+   "confidence": "low",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "21:53",
+   "seat": "strategist-1",
+   "category": "A6",
+   "wanted": "queue 21:25/21:36: six constructors \"armavp avp_yard #avp1\", \"assist\"; note 21:36: \"Six constructors on the advanced vehicle plant at avp_yard\"",
+   "happened": "two frames from steps sharing one id: plant_6196 created 21:53 by constructor_2000 at (10877,9496) and plant_13221 created 22:01 by constructor_16022 at (10877,9704); build power split until Opus saw it at 22:20",
+   "evidence": "record-1 created events 21:53 and 22:01; 13221 finished 23:24; note 22:20 \"two advanced-plant frames had been started at avp_yard (plant_13221 at 19%, plant_6196 at 9%)\"",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "4:57",
+   "seat": "strategist-0",
+   "category": "B6",
+   "wanted": "packet 4:57: \"RAID AT HOME: the swarm of armfav (Rovers) ... group_G_t2, group_H_t2 and group_I_t2 all join each other and attack the armfav at our extractors now\"",
+   "happened": "the commander's 4:50 transfer of group_G_t2/group_H_t2 to t3 executed at 5:01, before the packet landed (~5:10); the 4:57 report still said \"the commander's direction of 3:35 stands\" and listed the groups as t2's; the raid answer named groups that were gone; the 5:10 report carried \"Your three standing Incisors at G4 have gone to t3\"",
+   "evidence": "record-0 taken 5:01 (corgator 25671, 8099, 12333); raid ledger: spot_80 5:06, spot_67 5:18, spot_54 5:27, spot_58 5:32 lost, first answer 6:00",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "13:34",
+   "seat": "strategist-2",
+   "category": "A3",
+   "wanted": "packet 13:22 (landed 13:33): \"group_P1_t4, group_X1_t4 and group_Z1_t4 attack party_81 (blue's corgator at spot_14 and spot_19 in G1) now, all three together, and keep attacking until it is dead or gone\"",
+   "happened": "P1 kept its engagement of party_91 (F2) until 13:47 and turned on party_81 at 13:49 (\"shell party_81\"); attack_party_81 was its top move at 0.43-0.49 on every second asked; the news layer closed it 13:35-13:41",
+   "evidence": "jev-2 gates/pass menus quiet 13:35-13:41; gtrack P1 engage to (9853,2815) 13:37-13:43; raid ledger: spot_20 13:37, spot_15 13:39, spot_13 13:44, spot_22 13:49 lost to party_81, answer \"none\"",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "14:23",
+   "seat": "strategist-2",
+   "category": "A4",
+   "wanted": "packet 14:11: \"it sends eight soldiers at party_81 (the corgator at spot_39, spot_41 and the H1 spots) now\"",
+   "happened": "\"group_B2_t4's hunt of party_81 ended after 11 s: the leash of 900 from where it began reached; it holds where it is (12 soldiers)\"; \"14:29 group_D2_t4's hunt of party_81 ended after 7 s: the leash of 900 ...\"",
+   "evidence": "sweep hunt-ended-leash lines; gtrack B2 hold at (11511,2159) 14:22; party_81 killed spot_60 (H3) at 14:28",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "14:16",
+   "seat": "strategist-2",
+   "category": "A3",
+   "wanted": "packet 14:11: \"it sends eight soldiers at party_81 ... and eight soldiers at party_95 ... now. The rest of the body stands at spot_37.\"",
+   "happened": "beyond the two ordered detachments the pick split the body six more times: 14:16 \"4 of group_P1_t4 hunt party_98 (1 corgator)\", 14:22 \"8 ... hunt party_99 (1 corgator)\", 14:24 \"2 ... party_99\", B2 \"4 ... party_99\", 14:31 D2 \"8 ... party_100 (2 corgator)\", 14:33 \"4 ... party_100\"",
+   "evidence": "jev-2 plan rows; note 14:33 \"army had shattered into ten detachments chasing single Incisors; extractors 17->10\"",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "16:01",
+   "seat": "strategist-2",
+   "category": "A3",
+   "wanted": "packet 15:43 (landed 16:01): \"group_P1_t4: the army goes south now to meet_south (spot_139, F6) ... It does not turn back north for blue's corgator\"",
+   "happened": "P1 kept \"fight_to standoff from party_106\" (shelling blue's corgator to the north) until 16:19: change asked at 0.71, fight_to_spot_139 0.54 at 16:01 not taken; it walked 1,200 elmos north after the order",
+   "evidence": "gtrack P1 (8797,3713) 15:59 -> (9019,2539) 16:17; 16:19 \"advance to meet_south\". Opus then diverted it itself (16:16 packet: attack party_107)",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "8:16",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "packet 8:01 (landed 8:12): \"group_P_t2 (the main body, Incisors and Pounders): go_west is given, so it fights its way west as one body: spot_99, then spot_111 ...\"",
+   "happened": "\"PLAYS group_P_t2: 4 of group_P_t2 hunt party_47 (2 corgator) as group_U_t2 [plan]\"; the body went west at 8; group_U's hunt ended on the leash 8:24",
+   "evidence": "worlds_gate 8:16 send_4_party_47.forbidden 0.66 (under the 0.7 bar at which the line says so); decode 8:12 group_P_t2|detach|4 0.71 for a packet that says 'as one body'",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "3:01",
+   "seat": "strategist-1",
+   "category": "A6",
+   "wanted": "produce 1:28: plant_10491 [\"armcv:2\", \"armfav:5\", ...]; then 2:47 produce {\"group\": \"new\"} (only to start a new group); note 3:05: \"plant makes four Rovers before the next constructor\"",
+   "happened": "the 2:47 call restarted the list's counts: after armcv 1:59, armcv 2:04, armfav 2:33 the plant ordered armcv again at 3:01 and 3:09 (made 3:09 and 3:37) instead of Rovers; the 3:05 report read \"now a Construction Vehicle (armcv): Construction Vehicle (armcv) (2 more allowed), Rover (armfav) (4 more allowed)\"",
+   "evidence": "jev-1 lab plays (source list): armcv 1:38, armfav 1:39, armcv 1:59, armcv 2:04, armfav 2:33, armcv 3:01, armcv 3:09, armfav 3:38; constructor 17009 died 3:40 during the Rover raid; the report's counts (armcv 2 more, Rover 4 more at the list's head) fit a reset at the 2:47 call",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "4:02",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "queue 1:53 constructor_15573: [..., \"extractor spot_77\", \"corllt spot_77\", ...]",
+   "happened": "\"4:01 constructor_15573: the engine refused a cormex at F4: the site was bad\"; \"4:02 skipped the step 'corllt spot_77' of its list: the extractor at spot_77 was refused lately; a defence there waits for it\" although our extractor (built by commander_t2) stood there since 4:00",
+   "evidence": "record-0 cormex 3210 finished 4:00 at (8416,4656) = spot_77; spot_77 lost unturreted at 5:00 to 18 Rovers",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "3:31",
+   "seat": "strategist-1",
+   "category": "A1",
+   "wanted": "produce plant_10491 {\"group\": \"group_B_t3\", \"units\": [\"armflash:3\", ...]}",
+   "happened": "\"REFUSED: plant_10491: group_B_t3 is not a group in the picture (none yet); \\\"new\\\" makes one\"; Opus re-issued with \"new\" at 3:46",
+   "evidence": "sweep RESULT line; 3:46 produce accepted",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "words",
+   "person_said": false
+  }
+ ],
+ "no_lever": [
+  {
+   "clock": "3:31",
+   "seat": "strategist-2",
+   "wanted": "reclaim the wind turbine penning commander_t4 at spot_64 (\"Wish: picture handles for our buildings so I can reclaim the blocking turbine\"); again in the commander's 22:50 direction: \"a constructor reclaims whatever building pens it in now\"",
+   "why_no_lever": "remove takes handles only; the picture names our buildings by type (\"our Wind Turbine (corwin)\" beside spot_64) and gives no handle, except for actors (plant_2006) and a factory's yard entry for its exit lane; the commander was freed at 22:29 only by reclaiming the plant"
+  },
+  {
+   "clock": "17:09",
+   "seat": "strategist-0",
+   "wanted": "\"It never goes toward the turret nest at spot_93, spot_92, spot_91\" (also 16:10, 17:24 \"never goes west of spot_87\") while the body fights at F4",
+   "why_no_lever": "no keep-out area: the decode reads places named in a 'never' sentence as places to open (spot_93 0.96, spot_91 0.81-0.94), and a fight_to or advance move carries no bound, so members of a fight_to spot_87 engaged the nest's turrets in reach"
+  },
+  {
+   "clock": "25:09",
+   "seat": "strategist-2",
+   "wanted": "\"the unidentified party at H2 (party_202) is a corshiva's company and the commander never walks toward it\"",
+   "why_no_lever": "no way to tell the hands what a radar contact is: the menu kept describing party_202 as \"1 unidentified ... against it alone, we outweigh it heavily\" and the pick attacked it"
+  }
+ ],
+ "unreadable": [
+  "run/pro_baseline.py: no carded side on Flats and Forests v2.2 for any seat, so the opening has no pro milestones",
+  "no truth file (human game): every enemy check is against the record's enemy_seen and samples only",
+  "run/wake_read.py not run (arena only)"
+ ]
+}

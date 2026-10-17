@@ -1,0 +1,373 @@
+{
+ "game": "1791749780-human-31",
+ "result": "lost 19:50 (the commander surrendered: t2 and t4 eliminated by thebluegecko's Tiger block; a person answered 'gg wp' at 20:02)",
+ "minutes": 20.15,
+ "seats": [
+  "strategist-0 (t2)",
+  "strategist-1 (t3)",
+  "strategist-2 (t4)"
+ ],
+ "player_model": "claude-opus-5-5 (effort medium); hands Jev jev-1.13.0",
+ "commander": "claude-opus-5-5 (effort high)",
+ "opponent": "[gecko]thebluegecko (Cortex) and [gecko]u6bkep (Armada), people",
+ "counts": {
+  "strategist-0": {
+   "turns": 86,
+   "orders": 188,
+   "refused": 0,
+   "hands_lines": 552,
+   "flagged": {
+    "step-skipped": 17,
+    "step-waits": 15,
+    "other-fault": 9,
+    "engine-refused": 7,
+    "stopped-on-stop": 6,
+    "abandoned": 5,
+    "hunt-ended-leash": 4,
+    "hunt-ended-other": 3,
+    "follow-ended": 1
+   },
+   "takeovers": 2
+  },
+  "strategist-1": {
+   "turns": 82,
+   "orders": 186,
+   "refused": 0,
+   "hands_lines": 454,
+   "flagged": {
+    "stopped-on-stop": 19,
+    "step-skipped": 18,
+    "step-waits": 9,
+    "abandoned": 9,
+    "other-fault": 5,
+    "hunt-ended-leash": 5,
+    "hunt-ended-other": 2,
+    "engine-refused": 2
+   },
+   "takeovers": 2
+  },
+  "strategist-2": {
+   "turns": 85,
+   "orders": 193,
+   "refused": 3,
+   "hands_lines": 488,
+   "flagged": {
+    "step-skipped": 24,
+    "step-waits": 16,
+    "stopped-on-stop": 16,
+    "other-fault": 5,
+    "engine-refused": 4,
+    "hunt-ended-leash": 3,
+    "hunt-ended-other": 3,
+    "abandoned": 1,
+    "follow-ended": 1
+   },
+   "takeovers": 2
+  },
+  "commander": {
+   "turns": 14,
+   "orders": 21,
+   "refused": 0,
+   "hands_lines": 0,
+   "flagged": {},
+   "takeovers": 0
+  }
+ },
+ "moments_examined": 12,
+ "clean": 4,
+ "moments": [
+  {
+   "seat": "strategist-0",
+   "kind": "a opening 0:00-4:00",
+   "outcome": "C"
+  },
+  {
+   "seat": "strategist-0",
+   "kind": "b raid spot_6 3:42 (2-3 corfav)",
+   "outcome": "C"
+  },
+  {
+   "seat": "strategist-0",
+   "kind": "c first push: the north raid into C1, 5:02-5:31",
+   "outcome": "A6"
+  },
+  {
+   "seat": "strategist-0",
+   "kind": "d packet change 13:12 (shell his commander)",
+   "outcome": "A5"
+  },
+  {
+   "seat": "strategist-1",
+   "kind": "a opening 0:00-4:00",
+   "outcome": "C"
+  },
+  {
+   "seat": "strategist-1",
+   "kind": "b Rover raid at home 2:05-2:31",
+   "outcome": "A4"
+  },
+  {
+   "seat": "strategist-1",
+   "kind": "d packet change 10:45-11:29 (hold on spot_75; t4's Brutes given)",
+   "outcome": "A6 (commander's transfer)"
+  },
+  {
+   "seat": "strategist-1",
+   "kind": "c window 13:00-14:00 at 3.2-3.9x and the E6 attack 12:44-14:24",
+   "outcome": "A3"
+  },
+  {
+   "seat": "strategist-2",
+   "kind": "a opening 0:00-4:00",
+   "outcome": "C"
+  },
+  {
+   "seat": "strategist-2",
+   "kind": "c first push: group_N_t4 strike on blue_base 9:44-10:56",
+   "outcome": "no lever (10:03) + A6 (10:56)"
+  },
+  {
+   "seat": "strategist-2",
+   "kind": "b bomber raid on t4's home 11:26-12:17",
+   "outcome": "A2 + B6"
+  },
+  {
+   "seat": "strategist-2",
+   "kind": "e last turns 16:50-17:47 (bodies given to t4, t4 falls, transfers out)",
+   "outcome": "B6 + A1 x3"
+  }
+ ],
+ "tally": {
+  "A1": 3,
+  "A2": 3,
+  "A3": 2,
+  "A4": 1,
+  "A5": 1,
+  "A6": 3,
+  "B1": 0,
+  "B2": 0,
+  "B3": 0,
+  "B4": 0,
+  "B5": 0,
+  "B6": 3
+ },
+ "items": [
+  {
+   "clock": "16:50-17:21",
+   "seat": "commander -> strategist-2 (t4)",
+   "category": "B6",
+   "wanted": "commander 16:50: 'All of it gathers at t4_line (G4, spot_34/spot_35) as one body, on your turrets, and meets the Tiger block there together... It does not walk out to F5/F6 after them'",
+   "happened": "The transfer of group_G_t2 and group_D_t3 landed at 17:04 ('group_C1_t4 formed from the 19 soldiers given to this seat', north and south bodies ~4,000 apart in one group); the direction itself was held back to 'their next report after 17:15', so t4's 17:09 turn read 'the commander's direction of 15:37 stands' and ordered 'attack party_134 ... every group'; t4's hands split group_C1 into hunts at once (17:05 '4 of group_C1_t4 hunt party_140 as group_D1', 17:06 '8 of group_C1_t4 hunt party_136 as group_E1'); the body never gathered (17:21: group_E1_t4 'its tail is 4012 behind'). t4 first saw the direction at 17:21 ('written from the report of 16:50, 31 s ago'), with its commander at 3%.",
+   "evidence": "seat 2 prompts 17:09 and 17:21; record given/taken 17:04; hands_window seat2 17:03-17:22; decode 17:07 t4_line reads 0.07-0.09",
+   "cost": "large",
+   "confidence": "low",
+   "fix_class": "report",
+   "person_said": false,
+   "measured": "t4's commander dead 17:30, AVP frame (90%) lost; seat 2 lost 14,075 metal at G4 in minute 18 (minutes.py); whether one gathered body would have held is not measurable"
+  },
+  {
+   "clock": "10:50-11:04",
+   "seat": "commander (t4 -> t3)",
+   "category": "A6",
+   "wanted": "commander 10:50: transfer group_N_t4 to t3; t3 paragraph 't4's 7 Brutes (group_N) are now yours ... Join them into one body now and kill u6bkep's Blitz mass at E6 together'",
+   "happened": "Tool: 'group_N_t4 go to t3 ... your hands carry it out from their next look'. Before it ran, t4's pick split the group (10:56 'PLAYS group_N_t4: 4 of group_N_t4 hunt party_58 (1 corraid) as group_S_t4'); the name resolved at 11:04 to the 2-unit remnant: record 'given' 2 corraid to t3 at 11:04. t3 11:13 note: 'only 2 of t4's Brutes reached us (group_P_t3), not 7 ... So I am holding the body on the spot_75 Twin Guard'. The other Brutes reached t3 only with the 12:20 transfer of group_S_t4 (given 12:38).",
+   "evidence": "commander.jsonl transfer result; hands_window seat2 10:44-11:08; record-1 given events 11:04 (2 corraid) and 12:38",
+   "cost": "large",
+   "confidence": "medium",
+   "fix_class": "tool",
+   "person_said": false,
+   "measured": "5 of 7 Brutes (~1,175 metal) reached t3 94 s later; t3's lane lost spot_46 11:09, spot_55 11:16, spot_53 11:27, spot_57 11:45 while its body held (raid_ledger seat 1); the link is t3's own note"
+  },
+  {
+   "clock": "19:28-19:33",
+   "seat": "strategist-0 (t2)",
+   "category": "A3",
+   "wanted": "19:18 packet (landed 19:28): 'The commander's life is the game ... commander_t2: it walks away from the Tigers along the east edge: spot_17, then spot_25, then spot_48, then spot_65, then spot_72'",
+   "happened": "The decode landed (19:28: commander_t2|place|spot_17=0.97, spot_25=0.95, spot_72=0.97) and Jev wanted a change (commander_t2.change 0.77-0.85 every second), but go_spot_17 was rated 0.32-0.45 and never picked; the commander kept its 19:06 'follow group_Q_t2' and died at home: record 19:33 'destroyed corcom u28704 (6600,552) by correap'; hands line 19:33 'commander_t2: group_Q_t2, which it followed, is gone; it stops where it is'.",
+   "evidence": "jev-0 worlds_gate 19:28-19:32; decode 19:28; record-0 19:33",
+   "cost": "large",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false,
+   "measured": "t2's commander lost 5 s after the order landed, the seat eliminated; 14-24 Tigers stood at G1, so escape was not assured (the order itself landed 10 s after the report)"
+  },
+  {
+   "clock": "0:20 (by 6:00) - 11:47",
+   "seat": "commander -> strategist-2 (t4)",
+   "category": "B6",
+   "wanted": "commander 0:20, t4 paragraph: 'One anti-air turret at your plant by 6:00' (plan: thebluegecko 'has used aircraft against us and the first sight of them has been the attack itself')",
+   "happened": "t4's player never wrote AA into a packet or list before 11:26 (no corrl/cormadsam/anti-air in any call); first Thistle created 11:49 (record-2). Commander 12:20 note: 'my 0:20 AA ask was not carried out'.",
+   "evidence": "seat 2 calls before 11:26 (grep corrl|cormadsam|anti-air); record-2 corrl created 11:49",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "brief",
+   "person_said": false,
+   "measured": "t4 lost 1,375 metal to corshad (6 solars, a nano, a constructor, 2 extractors) and its commander to 61%; t2, which had one Thistle from 7:33, lost 1,170 to the same bombers, so one turret's worth is unclear"
+  },
+  {
+   "clock": "0:20 (by 6:00) - 11:29",
+   "seat": "commander -> strategist-1 (t3)",
+   "category": "B6",
+   "wanted": "commander 0:20, t3 paragraph: 'One anti-air turret at your plant by 6:00'",
+   "happened": "t3's packets of 1:14 and 1:58 carried 'One corrl at home by the plant once we have four constructors'; the 2:13 Rover-crisis packet dropped it and no later packet or list carried it until 11:29; first Thistle created 11:54 and killed by corshad 11:59 (record-1).",
+   "evidence": "seat 1 calls (grep corrl); record-1 corrl events",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "brief",
+   "person_said": false,
+   "measured": "t3 lost 1,130 metal to corshad (7 solars, a Thistle); same caveat as t4"
+  },
+  {
+   "clock": "2:10-2:27",
+   "seat": "strategist-1 (t3)",
+   "category": "A4",
+   "wanted": "1:58 packet (landed 2:10): 'Enemy armfav (Rovers) at our home extractors or constructors are group_A_t3's business: it attacks them with the whole group' and 'group_A_t3 (Rascals): while enemy armfav stand at our extractors or constructors, it attacks them ... When none stands near our buildings, its fastest Rascal roves ... the rest hold at spot_70'",
+   "happened": "group_A_t3 (4-5) was roving whole toward the west. At 2:10-2:11 its menu had no attack on party_1/party_2 (only hold, go/fight_to home and spot_70, rated 0.18-0.38 with change 0.74-0.78), so it kept roving; the rove logged 'ran from his Rover (armfav) at 367 from spot_70'; from 2:13 to 2:24 the group was 'closed' (not asked) while constructor_26240 was hit every second. It was pulled back only at 2:27-2:28 ('follow commander_t3', 'attack party_2').",
+   "evidence": "jev-1 pass rows 2:09-2:28 (open/closed, rove), worlds_gate 2:10-2:11; decode 2:10 group_A_t3|place|spot_70=0.93",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false,
+   "measured": "lost in the window: spot_70 extractor frames 2:13 and 2:24, a solar 2:16; constructor_26240 died 3:08"
+  },
+  {
+   "clock": "13:12-13:31",
+   "seat": "strategist-0 (t2)",
+   "category": "A5",
+   "wanted": "13:12 packet: 'group_G_t2 shells his commander (corcom) now from the Lashers' reach ... The Brutes stand in front as the screen but never within 300 of his commander ... From a party that outweighs it, it walks to spot_16'",
+   "happened": "The turn took 19 s; the packet reached the hands at 13:27. Under the 12:56 packet (fallback 'walks to spot_15', where his commander now stood) the pick split the group (13:13 '8 of group_G_t2 hunt party_98 ... as group_O_t2') and walked to spot_15 (13:15, 13:21, 13:23), meeting 'corcom, 2 corcv, 1 corlevlr, 3 cormart at E2'. Opus's 13:31 note read the losses as its order's result: 'The strike at his commander failed: 7 units lost'; the 13:31 wake line said 'lost ... since your last orders' for losses before they landed.",
+   "evidence": "hands_window seat0 13:12-13:44; decode 13:27; seat 0 13:31 prompt fights line",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "report",
+   "person_said": false,
+   "measured": "lost 5 cormist and 2 corraid (about 1,245 metal) between 13:12 and 13:31, nearly all before the order landed at 13:27; whether it would have saved them is not measurable"
+  },
+  {
+   "clock": "10:55-11:01",
+   "seat": "strategist-2 (t4)",
+   "category": "A6",
+   "wanted": "10:46 packet (landed 10:55): 'group_N_t4 (the Brutes): the strike is off. It walks to spot_40 now, without stopping to fight, and holds there on our Guards'",
+   "happened": "The decode read a detachment as allowed (10:55: group_N_t4|detach|4=0.64, detach|2=0.57); the pick played at 10:56 '4 of group_N_t4 hunt party_58 (1 corraid) as group_S_t4', which met '1 armbeamer, 16 armflash, 3 armstump' at D5 (10:57) and lost one by 11:01; it is why the commander's transfer of group_N_t4 carried 2 Brutes.",
+   "evidence": "decode seat2 10:55; hands_window seat2 10:44-11:08",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "words",
+   "person_said": false
+  },
+  {
+   "clock": "5:16-5:29",
+   "seat": "strategist-0 (t2)",
+   "category": "A6",
+   "wanted": "5:02 packet (landed 5:16): 'His armed extractor (corexp) stands at spot_0 ... our tanks never go within their reach'; group_J_t2 'holds at spot_1 ... staying out of reach of the corexp at spot_0'",
+   "happened": "The decode read the opposite mark: 5:17 'group_J_t2|place|spot_0=0.92'. The pick thrashed group_J_t2 between spot_1, spot_13, passage_1 and 'advance to shelling' (5:23, 5:28) instead of holding at spot_1; an Incisor died at 5:29 at (3212,355) to the corexp (record-0).",
+   "evidence": "decode seat0 5:16-5:17; hands_window seat0 5:14-5:32; record-0 5:29 destroyed corgator by corexp",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "13:21-13:53",
+   "seat": "strategist-1 (t3)",
+   "category": "A3",
+   "wanted": "13:08 packet (landed 13:21): 'group_D_t3: its way: spot_53, then e6_beamer ... At spot_53 it gathers until group_R_t3 has joined it.'",
+   "happened": "Decode landed (13:21 group_D_t3|join|group_R_t3=0.75, group_R_t3|follow|group_D_t3=0.81) but the pick played '13:23 group_D_t3: advance to e6_beamer' (0.46) while group_R_t3 stood at spot_57; group_R fought alone at E5 (13:27 report), group_D came back to spot_53 at 13:41 and took group_R in at 13:53; the whole-body attack from 13:55 killed both Beamers by 14:24.",
+   "evidence": "hands_window seat1 13:01-14:26; decode 13:21",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "11:26-12:17",
+   "seat": "strategist-2 (t4)",
+   "category": "A2",
+   "wanted": "11:26 queue during the bomber raid: commander_t4 ['corrl','corrl','assist'], constructor_1921 ['cormadsam','corrl'], constructor_3826 ['corrl spot_42','cormadsam']",
+   "happened": "Tool answered '3 steps, done in order from its next look'; the hands then skipped: '11:33 commander_t4: skipped the step 'corrl' of its list: it needs a place' (twice), constructor_1921 'cormadsam' and 'corrl' the same, and '12:17 constructor_3826: skipped the step 'cormadsam' ... it needs a place'. Opus re-issued with places at 11:38.",
+   "evidence": "seat 2 sweep 11:33 and 12:17; crates/bot/src/brain/pianist/lists.rs 'it needs a place'",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false,
+   "measured": "first Thistle of t4 created 11:49, about 12-20 s later than the first list could have started it, under bombers"
+  },
+  {
+   "clock": "6:56-7:29",
+   "seat": "strategist-1 (t3)",
+   "category": "A2",
+   "wanted": "queue constructor_1133 6:36 ['stop','extractor spot_57','corllt spot_57',...] and constructor_16458 7:20 ['corllt spot_57', ...]",
+   "happened": "constructor_16458 started the spot_57 extractor at 6:54; constructor_1133's duplicate order was refused by the engine ('6:56 the engine refused a cormex at G6: the site was bad') and that refusal then blocked the Guard: 'skipped the step 'corllt spot_57' of its list: the extractor at spot_57 was refused lately' at 6:57, 7:14 and 7:29, although our extractor stood there from 6:54 (finished 7:27). No Guard was ever built at spot_57; the same happened at spot_55 (8:33 extractor, skips 8:36, 8:47, 8:52; its Guard only at 10:26).",
+   "evidence": "seat 1 sweep 6:56-7:29 and 8:36-8:52; record-1 cormex u18498 created 6:54",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false,
+   "measured": "spot_57 extractor stood unguarded until lost 11:45 to 7 armflash and 4 armstump (a Guard would not clearly have saved it)"
+  },
+  {
+   "clock": "7:27",
+   "seat": "strategist-0 (t2)",
+   "category": "A2",
+   "wanted": "queue commander_t2 7:19 ['extractor spot_12','corllt spot_12','assist']",
+   "happened": "'7:27 commander_t2: the engine refused a cormex at H2: the site was bad' and its Guard step skipped; spot_12 stood empty from 4:11 (our frame lost) until t4's constructor built it at 9:40. A Guard of ours stood at spot_12 from about 5:30 (constructor_7314's list); whether it blocked the site is not settled.",
+   "evidence": "seat 0 sweep 7:27; record mex history of spot_12 (3:48 created s0, 4:11 destroyed, 9:40 created s2)",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "unknown",
+   "person_said": false
+  },
+  {
+   "clock": "17:21",
+   "seat": "strategist-2 (t4)",
+   "category": "A1",
+   "wanted": "transfer to t2 of every group and constructor ('Giving all t4 groups and constructors to t2 before t4's seat ends')",
+   "happened": "'transfer: REFUSED: constructor_17376: nothing of ours has that name' - the whole transfer of 16 names refused for one builder that died during the 9 s turn. Opus re-issued at 17:30.",
+   "evidence": "strategist-2.jsonl tool result 17:21",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "17:30",
+   "seat": "strategist-2 (t4)",
+   "category": "A1",
+   "wanted": "transfer to t2 of 15 groups and constructors",
+   "happened": "'transfer: REFUSED: group_G1_t4: nothing of ours has that name' (group_G1_t4 stood in the 17:30 report and joined group_W_t4 at 17:31). Opus re-issued at 17:38.",
+   "evidence": "strategist-2.jsonl tool result 17:30; seat 2 17:38 prompt 'actors gone ... group_G1_t4'",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "17:38",
+   "seat": "strategist-2 (t4)",
+   "category": "A1",
+   "wanted": "transfer to t2 of 10 groups and 3 constructors",
+   "happened": "'transfer: REFUSED: group_F1_t4: nothing of ours has that name'. At 17:47 Opus sent eleven one-name transfers, all accepted (record 'given' to t2 at 17:53: 18 units). While the transfers were refused, 6 units worth 1,095 metal died (17:38 wake), not attributable to the refusal.",
+   "evidence": "strategist-2.jsonl tool result 17:38; record-0 given 17:53",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  }
+ ],
+ "no_lever": [
+  {
+   "clock": "10:03 (landed 10:12)",
+   "seat": "strategist-2 (t4)",
+   "wanted": "'group_N_t4 attacks his buildings at spot_37 (E4) now with the whole group, closing in on the corllt there together, and keeps attacking until the corllt is dead.'",
+   "why_no_lever": "The corllt was out of sight ('shelled from out of sight by a corllt ... from the north-west') and not a party, so group_N_t4's menu at 10:12 had no move against it: only go_spot_37 (0.20) and fight_to_shelling (0.48); the pick took the route's next stop (fight_to_spot_44, 0.50) and Opus wrote at 10:15 'It has left E4 behind'. No move attacks a known building by place when it is not in sight."
+  },
+  {
+   "clock": "16:50",
+   "seat": "commander",
+   "wanted": "'one body of about 5,800 fights it at t4_line ... on t4's 24 turrets, Lashers behind Brutes and Pounders' (two seats' groups made one body at once)",
+   "why_no_lever": "The commander's only lever is transfer plus prose; the receiving seat's hands read only their own player's packet, so a direction that arrives after the transfer leaves the given units to the old packet (t4's of 16:57 did not name them). There is no commander-side way to give the hands a standing task with the units."
+  }
+ ],
+ "unreadable": [],
+ "notes": "Seat-0-only tools run on symlink directories for seats 1 and 2 (record, jev, strategist, terrain, script). pro_baseline had no carded pool for seats 0 and 1 (starts G1 and H8). No truth file: enemy checks from the record's enemy_seen only. The people said only 'gg wp' in the chat."
+}

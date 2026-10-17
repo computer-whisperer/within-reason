@@ -1,0 +1,258 @@
+{
+ "game": "1791428823-human-28",
+ "result": "lost 15:24 (our commander conceded in the chat: 'Your Stout push broke us, and with no plant and 31 metal of army left against yours, we concede'; record ends 15:32)",
+ "minutes": 15.5,
+ "seats": [
+  "strategist-0"
+ ],
+ "player_model": "claude-opus-5-5",
+ "commander": "claude-opus-5-5",
+ "opponent": "[gecko]u6bkep (a person, lobby skill 30, Armada)",
+ "counts": {
+  "strategist-0": {
+   "turns": 63,
+   "orders": 141,
+   "refused": 0,
+   "hands_lines": 440,
+   "flagged": {
+    "step-waits": 34,
+    "step-skipped": 6,
+    "stopped-on-stop": 6,
+    "hunt-ended-other": 3,
+    "abandoned": 3,
+    "engine-refused": 3,
+    "other-fault": 3,
+    "hunt-ended-leash": 2,
+    "follow-ended": 2
+   },
+   "takeovers": 1
+  },
+  "commander": {
+   "turns": 11,
+   "orders": 14,
+   "refused": 0,
+   "hands_lines": 0,
+   "flagged": {},
+   "takeovers": 0
+  }
+ },
+ "moments_examined": 8,
+ "clean": 2,
+ "tally": {
+  "A1": 0,
+  "A2": 2,
+  "A3": 5,
+  "A4": 1,
+  "A5": 0,
+  "A6": 4,
+  "B1": 0,
+  "B2": 0,
+  "B3": 0,
+  "B4": 1,
+  "B5": 0,
+  "B6": 2
+ },
+ "items": [
+  {
+   "clock": "12:10",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "12:06 packet: \"commander: attacks his army at home beside group_K, standing behind our Stouts, using its D-gun on any tank that comes within its reach.\" (under half health: walk to spot_17)",
+   "happened": "12:10 PLAYS commander: walk to spot_12 [plan] at 100% health; it had walked home 11:48 and stood 480-700 east of the fight; plant_2232 hp 100 (12:08) -> 52 (12:10) -> destroyed 12:12 by an armstump",
+   "evidence": "decode 12:04 commander|place|spot_6 0.95, follow|group_K 0.61 (landed); menu 12:06-12:09 attack_party_27 0.15-0.25 under go_spot_12 0.26-0.33; Jev's picture 12:08: 'party_27 ... against this unit alone, it outweighs us, and it outranges us ... 11 of them outreach its D-gun'; the hands' rules text: the commander 'never walks toward ... or attacks a party that outreaches its D-gun or outweighs it'. Record: commander (6233,731) 11:50 -> (6864,675) 12:08 -> (7069,697) 12:16. cost measured: the plant (590 metal) died 2 s after the walk; no factory standing 12:12-13:26; the fight at G1 11:38-12:25 lost 2980 against 1600. That the D-gun would have saved the plant is one reading.",
+   "cost": "large",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "7:05",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "7:05 packet: \"commander: while his Blitzes stand at spot_18, spot_11, spot_16 or our home spots, it goes there and attacks them, using its D-gun; group_F goes with it.\"",
+   "happened": "No commander play 7:05-7:21: it kept its 7:01 walk to home (east) while party_13 (6 Blitzes) entered G2 and killed armsolar 21368 (7:09) and 9723 (7:10) and Blitzes 11658 (7:12) and 15101 (7:14); it attacked only at 7:22 after the player's 7:09 order landed, when party_13 had left for G4",
+   "evidence": "gate 7:05 commander.change 0.54, attack_party_13 0.22 (0.33 at 7:08) under help_constructor_8662 0.30; quiet (news) 7:07-7:12; Jev's picture 7:05: 'party_13 (6 armflash) 487 away: against this unit alone, it outweighs us'; record: commander (6342,856) 7:04 -> (6744,743) 7:16, Blitzes at (6117-6351, 1044-1126) at 7:10. 530 metal (2 solars, 2 Blitzes) lost in base 200-400 from where the commander stood when the packet landed; same rule as the 12:10 item.",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "10:27",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "10:21 packet (again 10:37): \"A constructor with no list retakes spot_3, spot_18, spot_29, spot_34, spot_35, spot_27 in that order, with a light turret (armllt) beside each extractor right after it.\"",
+   "happened": "constructor_22980 came idle with no list at 10:27; the decode read constructor_22980|build|armmex 0.18 (0.27 at 10:36), so all 19 of its build_armmex moves were fused off until 10:56; 10:28 PICK 'constructor_22980: help plant_2232 build' (0.69 against build_armllt_spot_18 0.44) and it helped the plant until the player's own list landed about 10:58",
+   "evidence": "decode rows 10:27 and 10:36; pass menus 10:27-10:56: 'mex 19 fused 19'; the commander's 10:50 direction: 'Four constructors are helping the plant while metal runs out and extractors are flat'. Same shape 8:16 (22980, armmex 0.09) and 9:24 (15974, 0.26; it was fleeing then); extractors stood at 8-9 from 5:00 to 12:00. the packet named spots, not 'armmex'; the decode's build question asked about armmex.",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "words",
+   "person_said": false
+  },
+  {
+   "clock": "12:24",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "12:18 queue: constructor_24942, constructor_29073, constructor_3848 each [\"armvp spot_17 #vp2\", \"assist\"]; note: \"Rebuilding plant at spot_17 (H3) with three constructors\"",
+   "happened": "the same id made two plants: 12:24 all three 'build a armvp at spot_17 (H3) (#vp2) (from its list)' in one second; armvp 19699 created 12:44 by 29073 at (7986,1552) and armvp 16631 created 12:46 by 24942 at (7858,1824)",
+   "evidence": "sweep --all 12:24 lines; record created events; 12:53 report: plant_16631 '(10 % built)' and plant_19699 '(13 % built)'; 19699 reached about 52% health before its reclaim (13:20-13:54); 16631 finished 13:26 with the metal store at 0 from 13:10. the list-id same-tick race (fixed 2026-10-12 after human-33). By 13:10 the two frames held 61% + 39%: one frame would have stood about 15 s sooner.",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "2:35",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "0:11 packet: \"they gather at spot_11 until they are about four, then raid his side as one group: spot_21, then spot_24, then spot_22, then spot_19, then spot_28, then spot_36\"",
+   "happened": "the places layer read the first five stops as unwanted (2:30: spot_21.place 0.14, spot_24 0.10, spot_22 0.13, spot_19 0.11, spot_28 0.27) and blanked their moves; only spot_36 (his plant, 0.32) stayed; 2:35 PLAYS group_A: advance to spot_36 [plan]",
+   "evidence": "worlds_gate place flags 1:39-2:30; group_A menu 2:35: fight_to/go spot_21/24/22/19/28 'blanked', fight_to_spot_36 0.56; record: armfav 12617 and 30869 (ran ahead) died 3:08/3:11 at B4 (1959,2639)/(2228,2632), armflash 11122 3:18 at C4. 172 metal; the fight at C4 lies near spot_24 on the packet's route too, so only the Rovers' run onto his plant is clearly the route's doing.",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "8:13",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "8:14 packet: \"group_F ... Otherwise it goes west as one body, fighting: spot_29, then spot_35, then spot_44, then spot_61, then spot_67, then spot_62\"; note 7:59: \"our 5 Stouts+2 Blitz (1345) go west through G4\"",
+   "happened": "8:13 PICK 'group_F: kept w1 over w2 of 1 at 0.78' (kept following the commander at home); 8:14 PLAYS 'group_F: 4 of group_F hunt party_20 (1 armstump) as group_K'; then the news layer closed group_F (quiet) 8:14-8:31 and it never moved west before the next packet",
+   "evidence": "decode 8:13 group_F|place|spot_29 0.97, spot_35 0.98 (landed); gate group_F.change 0.39, every push move held ('H'); player 8:18: 'The army never went west. The hands kept it following the commander at home, then split four units off to chase a single Stout of his.'. the player then took the commander's 7:50 hold-at-home plan (8:31 packet); the push was never tried again.",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "1:44",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "0:11 packet: \"Rovers (armfav): the group of Rovers roves (scouting his start box first). Being seen is their job.\"",
+   "happened": "one Rover was sent to rove at 1:42; the other two stayed in group_A holding at spot_6 1:42-2:35, then joined the Blitz raid and died at B4 3:08/3:11",
+   "evidence": "group_A menu 1:44/1:46: rove 0.60, scout 0.50; PICK 1:44 'kept w1 over w2 of 1 at 0.54', 1:46 'kept w1 over w3 of 2 at 0.18'; no decode row for this packet (the first decode is 3:21). the roving Rover found his base at 2:28 anyway; the cost is two Rovers (62 metal) spent in the raid instead of scouting.",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "5:40",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "5:36 packet: \"his party at our extractors at spot_16, spot_18 or spot_11 is its business first: it attacks them now with the whole group\"",
+   "happened": "5:40 PLAYS 'group_F: 4 of group_F hunt party_12 (1 armflash) as group_H [plan]' while group_F fought party_6; group_H met 4 armflash at F1 (5:41) and lost a Blitz",
+   "evidence": "gate 5:40 group_F.send_4_party_12.forbidden 0.69 (Jev read the packet as forbidding it), split pick 'took w3 of 2 at 0.14' (sampled); decode 5:36 group_F|detach|4 0.62 (over 0.5, under the fuse's 0.8 bar); 5:49 wake: 'group_H has lost 1 of its 4 soldiers (110 metal)'. the forbidden mark binds only at 0.8; a 0.69 'forbidden' did not stop a low-confidence sampled pick.",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "3:40",
+   "seat": "strategist-0",
+   "category": "B6",
+   "wanted": "commander 3:20: \"Blitzes now cross in a body of four or more that walks together (fight-to). New ones join the body where it stands in his half and do not trickle across alone.\"",
+   "happened": "the player's 3:40 orders sent every new Blitz singly to the body in the middle: produce plant_2232 {\"group\": \"group_C\"}; 3:52 packet: 'While it is a handful of three or fewer, it holds at spot_24 and waits for the new Blitzes to join'; group_C never reached four",
+   "evidence": "player 3:40 text: 'Plant: the plant's new Blitzes now go to the raid group'; group_C's centroid jumps (3009,1986) -> (4167,1616) at 3:59 as a lone joiner counts in; armflash lost 3:57, 4:10, 4:17 against 1 killed (4:03); player 4:16: 'Blitz-vs-Blitz trickle lost 4 for 2'; commander 15:20: 'we lost the 4-8 min Blitz mirror by trickling Blitzes in singly'. the direction's two halves pull apart without a batching step; the three losses were in group_C's own fights, so how much the single crossings cost is an inference.",
+   "cost": "small",
+   "confidence": "low",
+   "fix_class": "brief",
+   "person_said": false
+  },
+  {
+   "clock": "13:08",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "12:53 queue constructor_29073: [\"stop\", \"assist\"]; note: \"one plant frame at spot_17 (two were started, one dropped)\"",
+   "happened": "13:07 'constructor_29073: stopped what it was doing on your `stop`'; 13:08 'constructor_29073: help plant_19699 build (from its list)': the assist went to the nearest factory, the frame it had just stopped",
+   "evidence": "sweep --all 13:07-13:08; plant_19699 rose 39% -> 52% (13:10-13:20); the player removed it at 13:12 (remove {\"by\": \"constructor_29073\", \"reclaim\": [\"plant_19699\"]}). 'assist' takes no target; 'stop' does not keep the builder off the frame it dropped.",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "3:21",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "3:00 packet (26 s wall turn, landed 3:21): \"group_A (the raid, in his half): ... It raids his outer extractors, solars and constructors ... spot_36, then spot_19, then spot_22 ...\"",
+   "happened": "before it landed the hands had renamed the raid: 3:13 'group_A: 2 of group_A hunt party_4 (1 armflash) as group_C', 3:15 'group_A: join group_C'; the packet's group_A pointed at nothing and the decode read group_C's every place under 0.3",
+   "evidence": "decode 3:21 group_C: max place 0.17; group_C menus 3:21-3:34: 42-43 of 47-49 place moves fused; it kept its 3:17 walk to spot_23; the player renamed the raid to group_C in its 3:26 packet (landed 3:36)",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "2:17",
+   "seat": "strategist-0",
+   "category": "B4",
+   "wanted": "0:11 packet: \"the group of Rovers roves\"",
+   "happened": "the 2:17 report showed the two Rovers idle and the player's orders (one constructor list, an energy note) did not address them",
+   "evidence": "2:17 report: 'group_A: a handful: 1 Blitz (armflash), 2 Rover (armfav) ...; at spot_6 (G2); standing with no order for 38 s'. the cost is on the 1:44 A3 item; a line that sets the state against the packet ('2 Rovers your packet says rove have stood at spot_6 for 38 s') would surface it.",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "13:59",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "13:24 queue constructor_15974: [\"armsolar se_yard\" x4, ...]; note: \"energy stalled (solars at G1 all burned)\"",
+   "happened": "13:59 'constructor_15974: the engine refused a armsolar at H4: the site was bad'; re-ordered 14:06, frame 14:08 at (7624,2456)",
+   "evidence": "sweep line; record energy 0/1500 at 13:50-14:00. 9 s late during a stall",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "14:07",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "constructor_9761's list: \"armllt spot_48\" (a turret beside each extractor)",
+   "happened": "14:07 'constructor_9761: the engine refused a armllt at G5: the site was bad'; a turret frame at (7376,3648) 14:10",
+   "evidence": "sweep line; record created 14:10. 3 s late",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "15:20",
+   "seat": "commander",
+   "category": "B6",
+   "wanted": "player 15:14 note: \"Holding on; not conceding while the commander lives and he may draw back.\"",
+   "happened": "the commander conceded at 15:24 on 'No factory (a frame at 17%)': its 15:20 report said 'labs 0' and gave no frame progress (the 17% was the player's 15:14 note); the seat's 15:21 report had 'building a Vehicle Plant (armvp) at spot_72 (H8) (49 % built)'; the record has the frame at 42% (15:20) and 58% (15:24)",
+   "evidence": "commander 15:20 note and surrender; commander prompt lines 1-8; seat prompt 15:21 line 40; record armvp 1000 health; the player's 15:21 packet landed 15:28, after the surrender, and its 15:31 report did not say the side had conceded. army 31 against 5,110 seen and 3 extractors: the concession would very likely have stood.",
+   "cost": "none",
+   "confidence": "low",
+   "fix_class": "report",
+   "person_said": false
+  }
+ ],
+ "no_lever": [
+  {
+   "clock": "5:01",
+   "seat": "strategist-0",
+   "wanted": "\"commander: ... helping the plant whenever it has nothing else to build, standing beside the plant, not in front of it\" (again 5:36, 10:21, 10:37; 11:48: \"never in the plant's exit lane\")",
+   "why_no_lever": "help_plant is one move and code picks where the helper stands; no move, list step or tool puts a builder beside a factory rather than in its exit lane. 5:56 wake: 'plant_2232's exit lane is blocked: 1 of ours (armcom_10999) have stood in it for 0:30'; at 11:50 the commander stood at (6233,731), west of the west-facing plant (6386,784)."
+  },
+  {
+   "clock": "12:06",
+   "seat": "strategist-0",
+   "wanted": "\"commander: attacks his army at home beside group_K, standing behind our Stouts, using its D-gun on any tank\" (also 7:05 \"it goes there and attacks them, using its D-gun; group_F goes with it\", 12:15)",
+   "why_no_lever": "the hands' fixed rules tell Jev the commander 'never walks toward ... or attacks a party that outreaches its D-gun or outweighs it', and its enemies_near line weighs the commander alone, not beside the group; the packet cannot override it (the group clause has an 'unless the instructions speak to this very fight' exception, the commander clause has none). See the 7:05 and 12:10 A3 items."
+  },
+  {
+   "clock": "3:20",
+   "seat": "commander",
+   "wanted": "\"A Rover keeps looking at his base now and then for an air plant.\"",
+   "why_no_lever": "roving runs in code ('beyond your hands' reach') and chooses the least-known places; a roving Rover cannot be told to revisit a known place on a schedule, and taking it off roving loses the roving. The player never passed the sentence on."
+  }
+ ],
+ "unreadable": []
+}

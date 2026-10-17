@@ -1,0 +1,389 @@
+{
+ "game": "1791577775-nuke-2-hard",
+ "result": "lost 32:22",
+ "minutes": 32.4,
+ "seats": [
+  "strategist-0"
+ ],
+ "player_model": "claude-opus-5-5",
+ "commander": "none",
+ "opponent": "BARb hard_aggressive",
+ "counts": {
+  "strategist-0": {
+   "turns": 170,
+   "orders": 353,
+   "refused": 1,
+   "hands_lines": 1255,
+   "flagged": {
+    "step-skipped": 45,
+    "hunt-ended-leash": 20,
+    "hunt-ended-other": 18,
+    "engine-refused": 14,
+    "step-waits": 7,
+    "other-fault": 5,
+    "stopped-on-stop": 3,
+    "abandoned": 2,
+    "follow-ended": 1,
+    "site-blocked": 1
+   },
+   "takeovers": 4
+  }
+ },
+ "moments_examined": 8,
+ "clean": 4,
+ "tally": {
+  "A1": 2,
+  "A2": 10,
+  "A3": 6,
+  "A4": 4,
+  "A5": 0,
+  "A6": 2,
+  "B1": 1,
+  "B2": 0,
+  "B3": 0,
+  "B4": 1,
+  "B5": 0,
+  "B6": 0
+ },
+ "items": [
+  {
+   "clock": "18:39-23:39",
+   "seat": "strategist-0",
+   "category": "B1",
+   "wanted": "16:33 note: \"First missile ~18:40 if energy holds; target his advanced plant if found, else his corvp\"; objective: a missile on his base before his anti-nuke stands",
+   "happened": "Rounds came ready 18:38.7 (1), 20:38.7 (2), 22:38.8 (3); no turn prompt from 16:43 to 23:39 (41 reports) named the silo, a missile or a round; the player fired nothing until 23:39. His corfmd was begun ~21:38 and stood 22:08; the three missiles later fired at his base (23:47 x2, 25:46) were all intercepted.",
+   "evidence": "record `round` events f33561/37161/40764 (u282); jev call state ours.stockpilers: 18:45 \"1 missile ready\", 20:45 \"2 missiles ready\", 22:45 \"3 missiles ready\"; notes 20:53 \"silo still 0 ready (energy-limited)\", 23:39 \"silo had 3 missiles ready (unseen in reports)\"; truth corfmd 19897 first 21:40 at 9%, complete 22:08",
+   "cost": "game",
+   "confidence": "medium",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "18:18",
+   "seat": "strategist-0",
+   "category": "A1",
+   "wanted": "fire {\"at\": [6912, 320], \"silo\": \"armsilo_282\"}",
+   "happened": "Refused, correctly: the first round came 20 s later. Opus did not re-issue; its 18:38 note read \"no missile ready yet\" and every later note assumed none until it called `situation` at 23:39. The cost of the silence is item B1.",
+   "evidence": "\"fire: REFUSED: armsilo_282 has no missile ready (10 stockpiling, one every 120 s at full energy); nothing fired\"",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "29:53",
+   "seat": "strategist-0",
+   "category": "A1",
+   "wanted": "signal {\"nuke_done\": \"30:25\"} inside an `orders` call, with group_D told to hold at spot_69 until nuke_done",
+   "happened": "The signal never entered; the sweep lists it as issued and does not count it as refused. Opus re-issued it alone at 30:03 (\"30:30\"), landed 30:06.",
+   "evidence": "orders result: \"signal: not a tool that can be batched\"",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "11:16",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "packet 10:40: \"A party of three or more of his at our extractors, constructors or home is the business of group_D whole, whatever it was doing\"",
+   "happened": "Against party_27 (4 corgator at spot_26) group_D's menu carried no whole-group attack, only send_1/2/4/8 (WHOLE_GROUP_OVER = 4: the whole-group move is withheld from a body that outweighs the party four times). The pick sent 4 (group_Q, 11:16) and 8 (group_R, 11:17); both hunts then ended on the 900 leash. spot_26 was lost at 11:16 and rebuilt 674 s later.",
+   "evidence": "pass menus 11:15-11:16 group_D moves for party_27: ['send_1_party_27','send_2_party_27','send_4_party_27','send_8_party_27']; PLAYS 11:16 \"4 of group_D hunt party_27 (4 corgator) as group_Q\"; \"11:25 group_R's hunt of party_27 ended after 8 s: the leash of 900\"; \"11:30 group_Q's hunt ... leash\"",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "14:09",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "packet 14:01: \"group_D sends eight soldiers (its Blitzes first) to fight them at spot_38 and kill them; the rest of group_D holds spot_52\"",
+   "happened": "The pick sent three detachments of 8 at party_34 (3 corgator) in three seconds: 24 of group_D's 28 soldiers. The 4-5 left walked to spot_61. Opus re-formed the groups at 14:16.",
+   "evidence": "PLAYS 14:09 \"8 of group_D hunt party_34 as group_Y\", 14:10 \"as group_Z\", 14:11 \"as group_A1\"; group_D 28 -> 4 at (2285,5032) 'reached spot_61'; decode 14:09 group_D|detach|8 0.10 (not forbidden, as written)",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "15:01-15:13",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "packet 14:46: \"group_D fights it whole, together, when it reaches spot_56, spot_59, spot_58, spot_47, spot_52 or any of our extractors, beside our turrets\"",
+   "happened": "party_36 (5 corraid, then 2-4 corlevlr and 5 corraid) stood at spot_47 from 15:01, killing constructors; group_D held at spot_52 until Opus's explicit attack order of 15:06 landed (15:13); 2 armcv (270 metal) died meanwhile.",
+   "evidence": "15:01 group_D.attack_party_36 rated 0.42 (\"for the 1 of its 19 soldiers near it, it outweighs us ... the whole group ... outweighs it heavily (3.6 to 1)\"), PICK \"kept w1\"; 15:10 rated 0.38; raid_ledger spot_56 answer \"15:14 +27s\"",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "19:16-19:20",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "packet 18:58: \"group_D sends four soldiers to them as well\" (raiders at our home extractors); packet 19:15: \"group_D sends eight soldiers at them now\"",
+   "happened": "Both detachments sent at party_22 (2 corgator at home, about 2,400 from the army) ended in the second they began. The leash is measured from the hunters' own centre, so a detachment whose members stand more than 900 apart ends at birth. The same 0 s end hit 14:11 (group_A1), 24:46 (group_N2) and 24:59 (group_V2).",
+   "evidence": "\"19:16 group_P1's hunt of party_22 ended after 0 s: the leash of 900 from where it began reached\"; \"19:20 group_T1's hunt ... ended after 0 s\"; crates/bot/src/brain/pianist/groups.rs hunt_of (from: centre of hunters)",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "19:05-19:50",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "packet 18:58: \"the commander attacks and D-guns any corgator or corraid there, since it stands at home anyway\"; packet 19:25: \"group_Q1 ... and group_T1 ... are the home guard: they fight to spot_74 and attack any corgator\"",
+   "happened": "The commander's attack_party_22 was rated 0.47 at 19:06-19:08 but not picked; the news layer then closed the commander 19:09-19:22 (0.26-0.42). It attacked only at 19:23, a second after the 19:15 packet repeated the order. The armmoho at spot_68 (620 metal) died at 19:22. group_T1 kept following group_D 2,000 from home through 19:48, though its home marks read 0.81-0.92. At 19:39-19:50 the commander stood idle at home (attack_party_44 0.11-0.26) while one corgator killed the fusion under group_Q1's attack. The fusion loss (3,350 metal) is not charged here: the commander was about 17 s away.",
+   "evidence": "menus 19:06 commander attack_party_22=0.47 change=0.59; 19:23 PLAYS \"commander: attack party_22\"; raid_ledger 19:22 spot_68; decode 19:33 group_T1|place|home 0.92; hands 19:39-19:48 group_T1 \"task follow\" at (2500,4200)",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "19:55-20:07",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "packet 19:25: \"A party of one to three corraid or corgator at our outer extractors (spot_47, spot_56, ...) gets four soldiers sent from group_D\"",
+   "happened": "The pick sent six detachments (1+4+2+4+4+2 = 17 soldiers) at party_45 (1 corgator). Five of the hunts ended on the leash at 20:13, and the corgator lived to raid spot_58 at 25:04. Opus spent the 20:08 turn re-forming the army.",
+   "evidence": "plan rows: 19:55 W1(1), 19:56 X1(4), 19:58 Y1(2), 20:04 Z1(4), 20:05 A2(4), 20:07 C2(2) \"hunt party_45 (1 corgator)\"; 20:13 five hunt-ended-leash lines; note 20:08 \"it was splintering into 7 detachments after one corgator\"",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "22:04-22:49",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "packet 21:53: \"group_D: FIRST: the corpun and corllt at punisher_c3 (C3) ... attacks them with the whole group, closing in until both are dead\"",
+   "happened": "The pick took \"advance to punisher_c3\" at 22:04. The body then stood at (2880-2988, 2080-2100) for 45 s of the push: the place was not reachable from there. The mark was removed at 22:33 (landed 22:40) and the 22:33 packet no longer named it, but the task held until the next wake.",
+   "evidence": "hands 22:05-22:41 group_D \"task fight_to punisher_c3\" at (2881,2089)->(2988,2080); wake 22:49 \"group_D was told to advance to punisher_c3 and has not got nearer for 45 s, 358 short of it\"; packet 22:49 \"cannot be reached and is ignored\"",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "24:44",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "packet 24:36: \"group_D goes (walks, without stopping to fight) to spot_26 now, every soldier, as fast as it can\" (a missile was landing beside it)",
+   "happened": "The pick first detached 4 after party_40 (corca, 2 corcv, corgator at D5) and only at 24:46 walked the body to spot_26. The decode did not read \"every soldier\" as a forbidden detachment.",
+   "evidence": "PLAYS 24:44 \"group_D: 4 of group_D hunt party_40 (1 corca, 2 corcv, 1 corgator) as group_M2\"; 24:46 \"group_D: walk to spot_26\"; decode 24:44 group_D|detach|4 0.48, |detach|1 0.50",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "words",
+   "person_said": false
+  },
+  {
+   "clock": "24:49-24:53",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "packet 24:36: \"The corfink scout plane is ignored.\"",
+   "happened": "Home-guard detachments hunted the corfink twice; Opus's 25:06 note: \"home guard shattered into 8 detachments chasing a correap and a scout plane\".",
+   "evidence": "plan rows 24:49 \"1 of group_N2 hunt party_58 (1 corfink) as group_Q2\", 24:53 \"4 of group_P2 hunt party_58 (1 corfink) as group_R2\"",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "menu",
+   "person_said": false
+  },
+  {
+   "clock": "24:46-24:59",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "packet 24:46: \"the correap at our extractor at spot_59 (D6) ... met by eight of its soldiers sent after them (the Blitzes first), who kill them and come back\"",
+   "happened": "Four hunts of party_56 (the correaps) ended on the leash, two of them after 0 s. The correaps took spot_64 at 25:13 and spot_38 at 25:37.",
+   "evidence": "\"24:46 group_N2's hunt of party_56 ended after 0 s: the leash\"; \"24:59 group_O2/T2/V2's hunt of party_56 ... leash\"; raid_ledger 25:13 spot_64 correap, 25:37 spot_38 correap",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "28:05-28:37",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "packet 27:55: \"Aircraft (corfink, corca) are ignored by soldiers\"",
+   "happened": "group_D sent seven detachments after corca/corfink parties until the 28:30 AIRCRAFT RULE packet landed (28:37). The raid at spot_61 (2 corgol, corvroc) was answered by a corfink hunt (raid_ledger 28:38). The move's words told Jev the plane was \"unarmed and cannot fight back\" and never that tanks cannot hit it.",
+   "evidence": "plan rows 28:05 Y2 (corca), 28:15 Z2, 28:19 A3, 28:25 B3, 28:29 C3 (corfink), 28:32 D3, 28:37 E3; 28:15 send_4_party_77 rated 0.5, its .forbidden 0.57 (under the mark's 0.8)",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "menu",
+   "person_said": false
+  },
+  {
+   "clock": "7:28",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "queue commander [\"armavp #avp1\", \"assist\"]",
+   "happened": "Skipped, the commander cannot build an advanced plant; constructors began the frame at 7:41.",
+   "evidence": "\"7:28 commander: skipped the step 'armavp #avp1' of its list: this builder cannot build it\"",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "11:39-11:45",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "queue constructor_28554 [\"armsilo #silo1\", ...]; constructor_2996 [\"armfus #fus1\", \"armsilo #silo1\"]",
+   "happened": "Silo skipped for want of a place; the T1 constructor could not build the fusion or the silo. Opus re-listed both at 11:47.",
+   "evidence": "\"11:39 ... 'armsilo #silo1' ...: it needs a place\"; \"11:45 constructor_2996: skipped the step 'armfus #fus1' ...: this builder cannot build it\"",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "14:44",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "queue (14:36) constructor_15278 [\"armsilo home #silo1\", \"assist\"] (three builders onto the silo)",
+   "happened": "The T1 constructor skipped the silo and fell to its 'assist' step: it helped plant_27255 from 14:44 to past 16:25 instead of the silo (silo stood 16:32). The commander's identical skip did not matter: the pick put it on the silo.",
+   "evidence": "\"14:44 constructor_15278: skipped the step 'armsilo home #silo1' ...: this builder cannot build it\"; state 14:51-16:25 \"15278: helping lab_27255 build\"",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "17:19",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "queue constructor_15278 [\"armfus home #fus2\"]",
+   "happened": "Skipped (T1); Opus re-listed it with solars at 17:21.",
+   "evidence": "\"17:19 constructor_15278: skipped the step 'armfus home #fus2' ...: this builder cannot build it\"",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "18:46",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "queue (18:38) commander [\"armnanotc afus_field\", \"armnanotc afus_field\", \"assist\"]; note: \"an advanced fusion #afus1 at afus_field with nanos from the commander\"",
+   "happened": "Both nanos were skipped (the commander builds no nano turret); the advanced fusion's nanos waited until Opus listed T1 constructor_16306 at 19:48.",
+   "evidence": "\"18:46 commander: skipped the step 'armnanotc afus_field' ...: this builder cannot build it\" x2",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "20:41",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "queue (20:34) constructor_1832 [\"armnanotc\" x3], constructor_18465 [\"armnanotc\" x2]",
+   "happened": "All five skipped (advanced constructors build no T1 nano); Opus re-listed both at 20:43.",
+   "evidence": "\"20:41 constructor_1832: skipped the step 'armnanotc' ...: this builder cannot build it\" x5",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "22:11",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "queue (22:03) constructor_14623 [\"armafus afus_field #afus1\"] with four advanced constructors",
+   "happened": "Skipped (T1); the four advanced constructors built it.",
+   "evidence": "\"22:11 constructor_14623: skipped the step 'armafus afus_field #afus1' ...: this builder cannot build it\"",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "27:25-27:34",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "queue (27:16) six advanced constructors [\"armmoho spot_N\", \"armbeamer spot_N\"]; (27:26) constructor_28554 [\"extractor spot_69\", \"extractor spot_76\", \"extractor spot_71\"]",
+   "happened": "Six Beamers and three extractors of the home-ring rebuild were skipped. Opus's own 27:26 note says \"acvs cannot build basic extractors or Beamers\", yet the same turn gave an advanced constructor three extractors. T1 builders took the steps at 27:55.",
+   "evidence": "27:25 six \"skipped the step 'armbeamer spot_N' ...: this builder cannot build it\"; 27:34 three \"skipped the step 'extractor spot_N'\"",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "28:13",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "queue (28:05) constructor_28554 [\"armcir home\", \"armmercury home\"]",
+   "happened": "The Chainsaw was skipped (advanced constructor); Opus re-listed it to a T1 at 28:15.",
+   "evidence": "\"28:13 constructor_28554: skipped the step 'armcir home' ...: this builder cannot build it\"",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "31:16",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "queue (31:09) constructor_15597 [\"extractor spot_63 #m63\", \"extractor spot_64 #m64\", \"extractor spot_61 #m61\"]",
+   "happened": "All three were skipped (advanced constructor). At 31:18 Opus gave the commander a list of five extractors (spot_69/76/71/64/63); that list walked the commander east to spot_71 (D8), where it died at 32:13 (see the 31:58 item).",
+   "evidence": "\"31:16 constructor_15597: skipped the step 'extractor spot_61 #m61' ...: this builder cannot build it\" x3; 31:18 queue commander [5 extractors]; record 31:41 placed armmex (3480,5524)",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "13:24-32:13",
+   "seat": "strategist-0",
+   "category": "B4",
+   "wanted": "queue (12:07) constructor_20491 [\"stop\", \"armmakr home\" x3, \"armnanotc home\"]; 11:37 note \"8 converters turn the surplus into ~8 metal/s\"",
+   "happened": "The constructor was stuck at home for the last 19 minutes and never built a converter. 119 reports carried its stuck line; Opus never re-listed it or mentioned it.",
+   "evidence": "report 19:15: \"constructor_20491: ... walking to build a Energy Converter (armmakr) at spot_67 (B7), 380 to go, ordered 357 s ago; stuck: it cannot move from home (B8), its moves have failed since 349 s ago\"",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "31:58-32:13",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "packet 31:55: \"commander: never goes north of spot_69 or east of spot_71; the corcat, corgol, corkarg, Tigers (correap), cormart, corban, corvroc and corshiva outrange its D-gun: while one is within 900 of it, it walks to home\"",
+   "happened": "Two unidentified radar contacts (two corsoks per truth; corsok is not in the list) closed on the commander from 31:58 while it walked to its list's extractor at spot_71. The flee clause names types, so it never fired. Hit at 32:05 (60%), the commander was rated go_home 0.28-0.35, closed by the news layer at 32:07-32:08, and walked only at 32:09 (19%). It died at 32:13; Opus's own \"walks to home now\" landed with the packet the same second. The game was lost 32:22.",
+   "evidence": "hands 31:58 party_128 \"1 unidentified\" at (3933,4997); menu 32:05 commander change=0.73 go_home=0.28; 32:07 \"menu commander~\"; 32:09 PICK \"walk to spot_69\"; record destroyed u25947 f57993 by 21605 (corsok); move words \"against this unit alone, we outweigh it; its speed is unknown (radar contacts only)\"",
+   "cost": "game",
+   "confidence": "low",
+   "fix_class": "words",
+   "person_said": false
+  }
+ ],
+ "no_lever": [
+  {
+   "clock": "10:40",
+   "seat": "strategist-0",
+   "wanted": "\"A party of three or more of his at our extractors, constructors or home is the business of group_D whole\" (in force at 11:16 against 4 corgator)",
+   "why_no_lever": "menu.rs withholds the whole-group attack when the body outweighs the party four times (WHOLE_GROUP_OVER); only detachments of 1/2/4/8 are offered"
+  },
+  {
+   "clock": "14:01",
+   "seat": "strategist-0",
+   "wanted": "\"group_D sends eight soldiers ... to fight them at spot_38 and kill them; the rest of group_D holds spot_52\"",
+   "why_no_lever": "the forbidden mark is per detachment size; nothing caps how many detachments go at one party, and the pick sent three of 8 in 3 s"
+  },
+  {
+   "clock": "18:58 / 19:15",
+   "seat": "strategist-0",
+   "wanted": "\"group_D sends four [eight] soldiers\" at raiders at home, about 2,400 from the army's post",
+   "why_no_lever": "the hunt's 900 leash, measured from the hunters' own centre, ends such a detachment at birth (0 s); no move sends soldiers across the map to a raid"
+  },
+  {
+   "clock": "24:36 / 25:06 / 27:55 / 28:30",
+   "seat": "strategist-0",
+   "wanted": "\"The corfink scout plane is ignored\" ... \"AIRCRAFT RULE: ... No group ever sends, hunts or attacks a corfink or a corca\"",
+   "why_no_lever": "no mark forbids a kind of quarry, and the menu offers ground soldiers hunts of pure-air parties, worded \"it is unarmed and cannot fight back\"; it held only once the 28:30 packet's wording moved Jev's per-move answers"
+  }
+ ],
+ "unreadable": []
+}

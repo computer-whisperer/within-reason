@@ -1,0 +1,247 @@
+== 1791335540-human-26
+-- strategist-0.jsonl: 34 turns, 0 session replacements, 85 orders, 0 refused, 23 flagged of 222 hands' lines; landing median 0 s (p90 0), turn wall median 12 s
+   orders: {'wait': 34, 'instruct': 20, 'queue': 14, 'produce': 6, 'transfer': 6, 'lane': 4, 'mark': 1}
+   flagged: {'step-waits': 6, 'other-fault': 5, 'hunt-ended-other': 4, 'hunt-ended-leash': 3, 'follow-ended': 2, 'engine-refused': 1, 'step-skipped': 1, 'stopped-on-stop': 1}
+-- strategist-1.jsonl: 47 turns, 1 session replacements, 116 orders, 0 refused, 30 flagged of 206 hands' lines; landing median 0 s (p90 0), turn wall median 11 s
+   orders: {'wait': 46, 'queue': 27, 'instruct': 27, 'produce': 10, 'lane': 4, 'remove': 2}
+   flagged: {'step-waits': 14, 'other-fault': 8, 'step-skipped': 4, 'hunt-ended-other': 2, 'abandoned': 1, 'stopped-on-stop': 1}
+-- commander.jsonl: 7 turns, 0 session replacements, 9 orders, 0 refused, 0 flagged of 0 hands' lines; landing median 0 s (p90 0), turn wall median 24 s
+   orders: {'direct': 6, 'wait': 2, 'transfer': 1}
+   flagged: {}
+== 1791420311-rove-move-1
+-- strategist-0.jsonl: 132 turns, 4 session replacements, 262 orders, 3 refused, 95 flagged of 993 hands' lines; landing median 7 s (p90 7), turn wall median 8 s
+   orders: {'wait': 130, 'instruct': 53, 'queue': 38, 'produce': 16, 'mark': 11, 'signal': 8, 'lane': 5, 'remove': 1}
+   refused: {'signal': 3}
+   flagged: {'engine-refused': 29, 'step-skipped': 22, 'hunt-ended-other': 13, 'hunt-ended-leash': 12, 'stopped-on-stop': 9, 'step-waits': 4, 'other-fault': 3, 'abandoned': 3}
+== 1791427881-human-27
+-- strategist-0.jsonl: 49 turns, 1 session replacements, 128 orders, 2 refused, 49 flagged of 393 hands' lines; landing median 0 s (p90 0), turn wall median 14 s
+   orders: {'wait': 48, 'queue': 31, 'instruct': 30, 'produce': 17, 'mark': 2}
+   refused: {'produce': 2}
+   flagged: {'step-waits': 28, 'other-fault': 6, 'stopped-on-stop': 6, 'step-skipped': 4, 'engine-refused': 3, 'hunt-ended-other': 1, 'follow-ended': 1}
+-- commander.jsonl: 11 turns, 0 session replacements, 14 orders, 0 refused, 0 flagged of 0 hands' lines; landing median 0 s (p90 0), turn wall median 15 s
+   orders: {'direct': 9, 'wait': 2, 'say': 1, 'mark': 1, 'units': 1}
+   flagged: {}
+== 1791428823-human-28
+-- strategist-0.jsonl: 63 turns, 1 session replacements, 141 orders, 0 refused, 62 flagged of 440 hands' lines; landing median 0 s (p90 0), turn wall median 13 s
+   orders: {'wait': 62, 'instruct': 34, 'queue': 27, 'produce': 15, 'lane': 1, 'remove': 1, 'mark': 1}
+   flagged: {'step-waits': 34, 'step-skipped': 6, 'stopped-on-stop': 6, 'hunt-ended-other': 3, 'abandoned': 3, 'engine-refused': 3, 'other-fault': 3, 'hunt-ended-leash': 2, 'follow-ended': 2}
+-- commander.jsonl: 11 turns, 0 session replacements, 14 orders, 0 refused, 0 flagged of 0 hands' lines; landing median 0 s (p90 0), turn wall median 16 s
+   orders: {'direct': 8, 'wait': 2, 'mark': 2, 'say': 1, 'surrender': 1}
+   flagged: {}
+== 1791508617-rove-task-1
+-- strategist-0.jsonl: 182 turns, 5 session replacements, 382 orders, 3 refused, 123 flagged of 1752 hands' lines; landing median 7 s (p90 7), turn wall median 9 s
+   orders: {'wait': 182, 'instruct': 98, 'queue': 58, 'produce': 27, 'signal': 10, 'lane': 5, 'remove': 2}
+   refused: {'signal': 3}
+   flagged: {'hunt-ended-leash': 39, 'step-skipped': 21, 'stopped-on-stop': 14, 'follow-ended': 12, 'step-waits': 10, 'engine-refused': 9, 'hunt-ended-other': 8, 'site-blocked': 6, 'other-fault': 3, 'abandoned': 1}
+== 1791511650-rove-task-2
+-- strategist-0.jsonl: 112 turns, 2 session replacements, 236 orders, 4 refused, 64 flagged of 1116 hands' lines; landing median 7 s (p90 7), turn wall median 8 s
+   orders: {'wait': 112, 'instruct': 48, 'queue': 34, 'produce': 15, 'signal': 10, 'lane': 7, 'mark': 7, 'remove': 2, 'say': 1}
+   refused: {'signal': 3, 'mark': 1}
+   flagged: {'step-waits': 15, 'step-skipped': 15, 'hunt-ended-leash': 12, 'hunt-ended-other': 8, 'engine-refused': 4, 'site-blocked': 3, 'other-fault': 2, 'abandoned': 2, 'follow-ended': 2, 'stopped-on-stop': 1}
+== 1791573192-nuke-1-medium
+-- strategist-0.jsonl: 213 turns, 5 session replacements, 439 orders, 7 refused, 197 flagged of 2222 hands' lines; landing median 7 s (p90 7), turn wall median 6 s
+   orders: {'wait': 213, 'instruct': 80, 'queue': 73, 'produce': 37, 'fire': 14, 'mark': 8, 'lane': 8, 'signal': 3, 'overview': 1, 'situation': 1, 'say': 1}
+   refused: {'?': 6, 'signal': 1}
+   flagged: {'hunt-ended-leash': 62, 'step-skipped': 48, 'hunt-ended-other': 24, 'step-waits': 17, 'engine-refused': 12, 'other-fault': 11, 'follow-ended': 11, 'site-blocked': 5, 'stopped-on-stop': 4, 'abandoned': 3}
+== 1791577775-nuke-2-hard
+-- strategist-0.jsonl: 170 turns, 4 session replacements, 353 orders, 3 refused, 116 flagged of 1255 hands' lines; landing median 7 s (p90 7), turn wall median 7 s
+   orders: {'wait': 169, 'queue': 65, 'instruct': 64, 'produce': 31, 'fire': 8, 'lane': 5, 'mark': 4, 'signal': 4, 'situation': 3}
+   refused: {'signal': 2, 'fire': 1}
+   flagged: {'step-skipped': 45, 'hunt-ended-leash': 20, 'hunt-ended-other': 18, 'engine-refused': 14, 'step-waits': 7, 'other-fault': 5, 'stopped-on-stop': 3, 'abandoned': 2, 'follow-ended': 1, 'site-blocked': 1}
+== 1791593626-human-29
+-- strategist-0.jsonl: 68 turns, 1 session replacements, 159 orders, 2 refused, 44 flagged of 631 hands' lines; landing median 0 s (p90 0), turn wall median 13 s
+   orders: {'wait': 68, 'instruct': 35, 'queue': 27, 'produce': 22, 'lane': 5, 'signal': 2}
+   refused: {'produce': 1, 'signal': 1}
+   flagged: {'step-skipped': 17, 'engine-refused': 7, 'step-waits': 6, 'hunt-ended-other': 6, 'hunt-ended-leash': 4, 'other-fault': 2, 'follow-ended': 1, 'site-blocked': 1}
+-- commander.jsonl: 12 turns, 0 session replacements, 13 orders, 0 refused, 0 flagged of 0 hands' lines; landing median 0 s (p90 0), turn wall median 17 s
+   orders: {'direct': 10, 'say': 1, 'mark': 1, 'signal': 1}
+   flagged: {}
+== 1791594935-human-30
+-- strategist-0.jsonl: 65 turns, 1 session replacements, 163 orders, 4 refused, 39 flagged of 814 hands' lines; landing median 0 s (p90 0), turn wall median 15 s
+   orders: {'wait': 64, 'instruct': 38, 'queue': 29, 'produce': 18, 'lane': 5, 'signal': 5, 'mark': 3, 'remove': 1}
+   refused: {'signal': 3, 'produce': 1}
+   flagged: {'step-skipped': 14, 'engine-refused': 8, 'site-blocked': 4, 'stopped-on-stop': 3, 'hunt-ended-other': 3, 'abandoned': 3, 'hunt-ended-leash': 2, 'step-waits': 1, 'other-fault': 1}
+-- commander.jsonl: 13 turns, 0 session replacements, 14 orders, 0 refused, 0 flagged of 0 hands' lines; landing median 0 s (p90 0), turn wall median 18 s
+   orders: {'direct': 12, 'signal': 2}
+   flagged: {}
+== 1791600181-glitters-8v8-late-1
+-- strategist-0.jsonl: 159 turns, 2 session replacements, 252 orders, 0 refused, 72 flagged of 691 hands' lines; landing median 0 s (p90 0), turn wall median 6 s
+   orders: {'wait': 158, 'instruct': 46, 'queue': 34, 'produce': 14}
+   flagged: {'step-skipped': 42, 'stopped-on-stop': 9, 'hunt-ended-other': 5, 'step-waits': 4, 'abandoned': 4, 'engine-refused': 3, 'hunt-ended-leash': 3, 'follow-ended': 1, 'site-blocked': 1}
+-- strategist-1.jsonl: 153 turns, 3 session replacements, 257 orders, 7 refused, 101 flagged of 660 hands' lines; landing median 0 s (p90 0), turn wall median 7 s
+   orders: {'wait': 154, 'instruct': 44, 'queue': 43, 'produce': 13, 'transfer': 2, 'mark': 1}
+   refused: {'?': 3, 'arguments': 2, 'centre_hold': 1, 'transfer': 1}
+   flagged: {'step-skipped': 71, 'hunt-ended-leash': 7, 'stopped-on-stop': 7, 'engine-refused': 6, 'step-waits': 5, 'hunt-ended-other': 4, 'site-blocked': 1}
+-- strategist-2.jsonl: 162 turns, 3 session replacements, 242 orders, 0 refused, 51 flagged of 596 hands' lines; landing median 0 s (p90 0), turn wall median 6 s
+   orders: {'wait': 158, 'instruct': 46, 'queue': 29, 'produce': 8, 'mcp__wreason__wait': 1}
+   flagged: {'step-skipped': 32, 'hunt-ended-other': 6, 'hunt-ended-leash': 5, 'site-blocked': 3, 'other-fault': 2, 'stopped-on-stop': 1, 'engine-refused': 1, 'step-waits': 1}
+-- strategist-3.jsonl: 170 turns, 4 session replacements, 290 orders, 4 refused, 81 flagged of 702 hands' lines; landing median 0 s (p90 0), turn wall median 6 s
+   orders: {'wait': 171, 'instruct': 56, 'queue': 41, 'produce': 15, 'signal': 2, 'lane': 2, 'mark': 2, 'remove': 1}
+   refused: {'arguments': 2, '?': 1, 'signal': 1}
+   flagged: {'step-skipped': 44, 'engine-refused': 6, 'hunt-ended-other': 6, 'site-blocked': 5, 'stopped-on-stop': 5, 'other-fault': 4, 'abandoned': 4, 'step-waits': 3, 'hunt-ended-leash': 2, 'follow-ended': 2}
+-- strategist-4.jsonl: 161 turns, 4 session replacements, 272 orders, 2 refused, 101 flagged of 694 hands' lines; landing median 0 s (p90 0), turn wall median 6 s
+   orders: {'wait': 163, 'instruct': 50, 'queue': 43, 'produce': 16}
+   refused: {'?': 2}
+   flagged: {'step-skipped': 64, 'site-blocked': 9, 'stopped-on-stop': 6, 'hunt-ended-other': 6, 'other-fault': 5, 'abandoned': 5, 'step-waits': 2, 'engine-refused': 2, 'hunt-ended-leash': 1, 'follow-ended': 1}
+-- strategist-5.jsonl: 168 turns, 4 session replacements, 281 orders, 6 refused, 104 flagged of 781 hands' lines; landing median 0 s (p90 0), turn wall median 7 s
+   orders: {'wait': 142, 'instruct': 51, 'queue': 34, 'mcp__wreason__wait': 27, 'produce': 10, 'mark': 4, 'mcp__wreason__queue': 4, 'lane': 2, 'mcp__wreason__instruct': 2, 'mcp__wreason__note': 2, 'mcp__wreason__produce': 2, 'overview': 1}
+   refused: {'?': 5, 'places': 1}
+   flagged: {'step-skipped': 63, 'hunt-ended-other': 14, 'stopped-on-stop': 10, 'hunt-ended-leash': 7, 'engine-refused': 5, 'abandoned': 2, 'step-waits': 2, 'other-fault': 1}
+-- strategist-6.jsonl: 178 turns, 4 session replacements, 272 orders, 7 refused, 136 flagged of 825 hands' lines; landing median 0 s (p90 0), turn wall median 6 s
+   orders: {'wait': 178, 'queue': 40, 'instruct': 35, 'produce': 18, 'signal': 1}
+   refused: {'?': 3, 'arguments': 2, 'calls': 1, 'signal': 1}
+   flagged: {'step-skipped': 104, 'hunt-ended-leash': 9, 'hunt-ended-other': 6, 'step-waits': 6, 'engine-refused': 4, 'other-fault': 3, 'site-blocked': 2, 'follow-ended': 1, 'abandoned': 1}
+-- strategist-7.jsonl: 144 turns, 2 session replacements, 233 orders, 4 refused, 55 flagged of 427 hands' lines; landing median 0 s (p90 0), turn wall median 7 s
+   orders: {'wait': 145, 'instruct': 39, 'queue': 29, 'produce': 11, 'remove': 7, 'situation': 1, 'mark': 1}
+   refused: {'?': 2, 'commander': 1, 'remove': 1}
+   flagged: {'step-skipped': 24, 'other-fault': 13, 'step-waits': 5, 'engine-refused': 4, 'stopped-on-stop': 2, 'abandoned': 2, 'site-blocked': 2, 'hunt-ended-leash': 2, 'hunt-ended-other': 1}
+-- commander.jsonl: 18 turns, 0 session replacements, 45 orders, 2 refused, 0 flagged of 0 hands' lines; landing median 0 s (p90 0), turn wall median 33 s
+   orders: {'direct': 16, 'transfer': 11, 'mark': 9, 'wait': 5, 'signal': 2, 'say': 1, 'surrender': 1}
+   refused: {'?': 2}
+   flagged: {}
+== 1791643805-glitters-8v8-opus-1
+-- strategist-0.jsonl: 107 turns, 2 session replacements, 209 orders, 0 refused, 109 flagged of 1005 hands' lines; landing median 0 s (p90 0), turn wall median 13 s
+   orders: {'wait': 106, 'queue': 47, 'instruct': 36, 'produce': 14, 'transfer': 4, 'lane': 2}
+   flagged: {'step-skipped': 53, 'step-waits': 18, 'engine-refused': 10, 'hunt-ended-leash': 9, 'hunt-ended-other': 6, 'other-fault': 4, 'site-blocked': 3, 'stopped-on-stop': 2, 'follow-ended': 2, 'abandoned': 2}
+-- strategist-1.jsonl: 113 turns, 2 session replacements, 218 orders, 2 refused, 102 flagged of 869 hands' lines; landing median 0 s (p90 0), turn wall median 15 s
+   orders: {'wait': 113, 'queue': 49, 'instruct': 34, 'produce': 15, 'signal': 3, 'lane': 2, 'mark': 1, 'remove': 1}
+   refused: {'signal': 2}
+   flagged: {'step-skipped': 61, 'stopped-on-stop': 18, 'engine-refused': 7, 'abandoned': 4, 'site-blocked': 4, 'other-fault': 3, 'hunt-ended-other': 2, 'hunt-ended-leash': 1, 'follow-ended': 1, 'step-waits': 1}
+-- strategist-2.jsonl: 99 turns, 3 session replacements, 198 orders, 2 refused, 69 flagged of 693 hands' lines; landing median 0 s (p90 0), turn wall median 13 s
+   orders: {'wait': 98, 'queue': 38, 'instruct': 34, 'produce': 14, 'transfer': 13, 'mark': 1}
+   refused: {'arguments': 1, 'transfer': 1}
+   flagged: {'step-skipped': 33, 'hunt-ended-other': 9, 'stopped-on-stop': 9, 'hunt-ended-leash': 4, 'follow-ended': 4, 'engine-refused': 4, 'step-waits': 3, 'other-fault': 2, 'site-blocked': 1}
+-- strategist-3.jsonl: 115 turns, 2 session replacements, 226 orders, 2 refused, 79 flagged of 813 hands' lines; landing median 0 s (p90 0), turn wall median 12 s
+   orders: {'wait': 114, 'queue': 49, 'instruct': 35, 'produce': 15, 'lane': 8, 'transfer': 4, 'signal': 1}
+   refused: {'signal': 1, 'produce': 1}
+   flagged: {'step-skipped': 33, 'engine-refused': 15, 'stopped-on-stop': 9, 'step-waits': 6, 'hunt-ended-leash': 6, 'other-fault': 4, 'site-blocked': 3, 'hunt-ended-other': 2, 'abandoned': 1}
+-- strategist-4.jsonl: 116 turns, 2 session replacements, 237 orders, 0 refused, 97 flagged of 927 hands' lines; landing median 0 s (p90 0), turn wall median 11 s
+   orders: {'wait': 115, 'instruct': 49, 'queue': 48, 'produce': 16, 'mark': 5, 'lane': 3, 'remove': 1}
+   flagged: {'step-skipped': 47, 'stopped-on-stop': 18, 'step-waits': 9, 'engine-refused': 8, 'hunt-ended-leash': 5, 'abandoned': 5, 'other-fault': 2, 'site-blocked': 2, 'hunt-ended-other': 1}
+-- strategist-5.jsonl: 97 turns, 2 session replacements, 205 orders, 2 refused, 99 flagged of 791 hands' lines; landing median 0 s (p90 0), turn wall median 13 s
+   orders: {'wait': 97, 'queue': 37, 'instruct': 36, 'produce': 21, 'lane': 6, 'mark': 2, 'signal': 2, 'transfer': 2, 'remove': 2}
+   refused: {'signal': 1, '?': 1}
+   flagged: {'step-skipped': 42, 'step-waits': 17, 'engine-refused': 14, 'hunt-ended-other': 7, 'stopped-on-stop': 6, 'site-blocked': 4, 'other-fault': 4, 'abandoned': 2, 'follow-ended': 2, 'hunt-ended-leash': 1}
+-- strategist-6.jsonl: 105 turns, 2 session replacements, 217 orders, 0 refused, 84 flagged of 593 hands' lines; landing median 0 s (p90 0), turn wall median 10 s
+   orders: {'wait': 104, 'queue': 49, 'instruct': 24, 'transfer': 24, 'produce': 16}
+   flagged: {'step-skipped': 37, 'engine-refused': 25, 'other-fault': 11, 'hunt-ended-other': 6, 'step-waits': 2, 'stopped-on-stop': 1, 'hunt-ended-leash': 1, 'site-blocked': 1}
+-- strategist-7.jsonl: 122 turns, 3 session replacements, 225 orders, 2 refused, 87 flagged of 665 hands' lines; landing median 0 s (p90 0), turn wall median 9 s
+   orders: {'wait': 122, 'queue': 47, 'instruct': 27, 'produce': 16, 'transfer': 5, 'remove': 4, 'mark': 3, 'situation': 1}
+   refused: {'remove': 2}
+   flagged: {'step-skipped': 36, 'hunt-ended-other': 15, 'step-waits': 8, 'stopped-on-stop': 8, 'site-blocked': 6, 'follow-ended': 5, 'other-fault': 4, 'engine-refused': 2, 'abandoned': 2, 'hunt-ended-leash': 1}
+-- commander.jsonl: 19 turns, 0 session replacements, 33 orders, 0 refused, 0 flagged of 0 hands' lines; landing median 0 s (p90 0), turn wall median 26 s
+   orders: {'direct': 18, 'transfer': 6, 'mark': 3, 'units': 3, 'wait': 2, 'signal': 1}
+   flagged: {}
+== 1791748300-human-30
+-- strategist-0.jsonl: 72 turns, 1 session replacements, 169 orders, 0 refused, 50 flagged of 319 hands' lines; landing median 0 s (p90 0), turn wall median 13 s
+   orders: {'wait': 72, 'queue': 36, 'instruct': 35, 'produce': 18, 'mark': 5, 'lane': 2, 'transfer': 1}
+   flagged: {'step-skipped': 20, 'step-waits': 10, 'stopped-on-stop': 9, 'other-fault': 7, 'abandoned': 4}
+-- strategist-1.jsonl: 81 turns, 2 session replacements, 174 orders, 1 refused, 31 flagged of 496 hands' lines; landing median 0 s (p90 0), turn wall median 13 s
+   orders: {'wait': 81, 'instruct': 39, 'queue': 26, 'produce': 14, 'lane': 12, 'mark': 1, 'transfer': 1}
+   refused: {'transfer': 1}
+   flagged: {'step-waits': 8, 'step-skipped': 7, 'stopped-on-stop': 5, 'other-fault': 4, 'hunt-ended-leash': 4, 'hunt-ended-other': 2, 'abandoned': 1}
+-- strategist-2.jsonl: 59 turns, 1 session replacements, 140 orders, 0 refused, 44 flagged of 395 hands' lines; landing median 0 s (p90 0), turn wall median 15 s
+   orders: {'wait': 58, 'queue': 31, 'instruct': 31, 'produce': 12, 'mark': 4, 'lane': 4}
+   flagged: {'step-skipped': 15, 'stopped-on-stop': 12, 'engine-refused': 6, 'site-blocked': 4, 'step-waits': 3, 'hunt-ended-leash': 1, 'hunt-ended-other': 1, 'abandoned': 1, 'other-fault': 1}
+-- strategist-3.jsonl: 74 turns, 1 session replacements, 160 orders, 2 refused, 33 flagged of 271 hands' lines; landing median 0 s (p90 0), turn wall median 11 s
+   orders: {'wait': 73, 'queue': 36, 'instruct': 33, 'produce': 16, 'lane': 1, 'transfer': 1}
+   refused: {'produce': 1, 'arguments': 1}
+   flagged: {'step-skipped': 13, 'engine-refused': 6, 'other-fault': 5, 'stopped-on-stop': 4, 'step-waits': 2, 'abandoned': 2, 'site-blocked': 1}
+-- commander.jsonl: 15 turns, 0 session replacements, 29 orders, 0 refused, 0 flagged of 0 hands' lines; landing median 0 s (p90 0), turn wall median 31 s
+   orders: {'direct': 15, 'transfer': 8, 'mark': 4, 'say': 2}
+   flagged: {}
+== 1791749780-human-31
+-- strategist-0.jsonl: 86 turns, 2 session replacements, 188 orders, 0 refused, 67 flagged of 552 hands' lines; landing median 0 s (p90 0), turn wall median 12 s
+   orders: {'wait': 86, 'instruct': 43, 'queue': 36, 'produce': 16, 'transfer': 3, 'mark': 2, 'lane': 2}
+   flagged: {'step-skipped': 17, 'step-waits': 15, 'other-fault': 9, 'engine-refused': 7, 'stopped-on-stop': 6, 'abandoned': 5, 'hunt-ended-leash': 4, 'hunt-ended-other': 3, 'follow-ended': 1}
+-- strategist-1.jsonl: 82 turns, 2 session replacements, 186 orders, 0 refused, 69 flagged of 454 hands' lines; landing median 0 s (p90 0), turn wall median 13 s
+   orders: {'wait': 81, 'queue': 45, 'instruct': 41, 'produce': 15, 'lane': 3, 'mark': 1}
+   flagged: {'stopped-on-stop': 19, 'step-skipped': 18, 'step-waits': 9, 'abandoned': 9, 'other-fault': 5, 'hunt-ended-leash': 5, 'hunt-ended-other': 2, 'engine-refused': 2}
+-- strategist-2.jsonl: 85 turns, 2 session replacements, 193 orders, 3 refused, 73 flagged of 488 hands' lines; landing median 0 s (p90 0), turn wall median 10 s
+   orders: {'wait': 85, 'queue': 36, 'instruct': 36, 'transfer': 20, 'produce': 11, 'lane': 5}
+   refused: {'transfer': 3}
+   flagged: {'step-skipped': 24, 'step-waits': 16, 'stopped-on-stop': 16, 'other-fault': 5, 'engine-refused': 4, 'hunt-ended-leash': 3, 'hunt-ended-other': 3, 'abandoned': 1, 'follow-ended': 1}
+-- commander.jsonl: 14 turns, 0 session replacements, 21 orders, 0 refused, 0 flagged of 0 hands' lines; landing median 0 s (p90 0), turn wall median 30 s
+   orders: {'direct': 12, 'transfer': 4, 'say': 3, 'mark': 1, 'surrender': 1}
+   flagged: {}
+== 1791751159-human-32
+-- strategist-0.jsonl: 118 turns, 2 session replacements, 249 orders, 0 refused, 130 flagged of 876 hands' lines; landing median 0 s (p90 0), turn wall median 11 s
+   orders: {'wait': 118, 'queue': 51, 'instruct': 48, 'produce': 22, 'mark': 6, 'lane': 2, 'transfer': 2}
+   flagged: {'step-skipped': 53, 'step-waits': 30, 'hunt-ended-other': 11, 'engine-refused': 11, 'stopped-on-stop': 8, 'other-fault': 5, 'hunt-ended-leash': 4, 'follow-ended': 4, 'abandoned': 4}
+-- strategist-1.jsonl: 115 turns, 2 session replacements, 271 orders, 1 refused, 97 flagged of 939 hands' lines; landing median 0 s (p90 0), turn wall median 12 s
+   orders: {'wait': 114, 'queue': 57, 'instruct': 51, 'produce': 31, 'lane': 9, 'mark': 5, 'remove': 4}
+   refused: {'produce': 1}
+   flagged: {'step-skipped': 25, 'stopped-on-stop': 21, 'engine-refused': 16, 'step-waits': 14, 'abandoned': 8, 'other-fault': 6, 'hunt-ended-other': 4, 'hunt-ended-leash': 2, 'follow-ended': 1}
+-- strategist-2.jsonl: 113 turns, 2 session replacements, 239 orders, 2 refused, 143 flagged of 972 hands' lines; landing median 0 s (p90 0), turn wall median 12 s
+   orders: {'wait': 113, 'instruct': 53, 'queue': 42, 'produce': 15, 'signal': 4, 'mark': 4, 'situation': 2, 'remove': 2, 'lane': 2, 'transfer': 2}
+   refused: {'corwin': 1, 'signal': 1}
+   flagged: {'step-skipped': 54, 'step-waits': 19, 'hunt-ended-other': 18, 'hunt-ended-leash': 18, 'follow-ended': 10, 'engine-refused': 8, 'other-fault': 7, 'stopped-on-stop': 4, 'abandoned': 3, 'site-blocked': 2}
+-- commander.jsonl: 19 turns, 0 session replacements, 36 orders, 0 refused, 0 flagged of 0 hands' lines; landing median 0 s (p90 0), turn wall median 25 s
+   orders: {'direct': 18, 'transfer': 7, 'mark': 5, 'units': 3, 'signal': 1, 'say': 1, 'surrender': 1}
+   flagged: {}
+== 1791851365-human-33
+-- strategist-0.jsonl: 76 turns, 1 session replacements, 177 orders, 3 refused, 65 flagged of 578 hands' lines; landing median 0 s (p90 0), turn wall median 15 s
+   orders: {'wait': 76, 'queue': 39, 'instruct': 30, 'produce': 21, 'mark': 3, 'transfer': 3, 'lane': 2, 'remove': 2, 'signal': 1}
+   refused: {'produce': 2, 'signal': 1}
+   flagged: {'step-skipped': 19, 'stopped-on-stop': 16, 'engine-refused': 10, 'other-fault': 7, 'step-waits': 7, 'abandoned': 2, 'follow-ended': 2, 'hunt-ended-other': 1, 'hunt-ended-leash': 1}
+-- strategist-1.jsonl: 87 turns, 2 session replacements, 202 orders, 0 refused, 52 flagged of 658 hands' lines; landing median 0 s (p90 0), turn wall median 13 s
+   orders: {'wait': 86, 'instruct': 47, 'queue': 37, 'produce': 17, 'mark': 6, 'lane': 6, 'transfer': 3}
+   flagged: {'step-skipped': 15, 'stopped-on-stop': 11, 'engine-refused': 9, 'other-fault': 7, 'step-waits': 6, 'hunt-ended-leash': 2, 'abandoned': 1, 'site-blocked': 1}
+-- strategist-2.jsonl: 103 turns, 2 session replacements, 230 orders, 1 refused, 87 flagged of 811 hands' lines; landing median 0 s (p90 0), turn wall median 12 s
+   orders: {'wait': 103, 'instruct': 52, 'queue': 41, 'produce': 25, 'lane': 6, 'signal': 2, 'mark': 1}
+   refused: {'signal': 1}
+   flagged: {'step-skipped': 21, 'step-waits': 21, 'abandoned': 15, 'hunt-ended-leash': 11, 'stopped-on-stop': 10, 'hunt-ended-other': 4, 'engine-refused': 3, 'site-blocked': 1, 'other-fault': 1}
+-- strategist-3.jsonl: 90 turns, 2 session replacements, 211 orders, 2 refused, 74 flagged of 522 hands' lines; landing median 0 s (p90 0), turn wall median 12 s
+   orders: {'wait': 89, 'instruct': 46, 'queue': 39, 'produce': 25, 'lane': 5, 'transfer': 4, 'mark': 3}
+   refused: {'produce': 1, 'transfer': 1}
+   flagged: {'step-skipped': 33, 'engine-refused': 13, 'stopped-on-stop': 10, 'step-waits': 9, 'other-fault': 7, 'hunt-ended-other': 1, 'abandoned': 1}
+-- commander.jsonl: 23 turns, 0 session replacements, 43 orders, 0 refused, 0 flagged of 0 hands' lines; landing median 0 s (p90 0), turn wall median 22 s
+   orders: {'direct': 20, 'say': 10, 'transfer': 6, 'units': 3, 'mark': 2, 'wait': 1, 'surrender': 1}
+   flagged: {}
+== 1791902948-apex-v022-carrot-sym50-opus-1
+-- strategist-0.jsonl: 124 turns, 3 session replacements, 281 orders, 4 refused, 109 flagged of 1520 hands' lines; landing median 7 s (p90 7), turn wall median 7 s
+   orders: {'wait': 124, 'queue': 45, 'instruct': 44, 'produce': 26, 'mark': 20, 'signal': 9, 'lane': 7, 'remove': 6}
+   refused: {'remove': 2, 'signal': 2}
+   flagged: {'hunt-ended-leash': 31, 'step-skipped': 23, 'engine-refused': 18, 'hunt-ended-other': 14, 'stopped-on-stop': 11, 'other-fault': 4, 'abandoned': 4, 'step-waits': 3, 'follow-ended': 1}
+-- commander.jsonl: 15 turns, 0 session replacements, 19 orders, 1 refused, 0 flagged of 0 hands' lines; landing median 0 s (p90 0), turn wall median 16 s
+   orders: {'direct': 15, 'mark': 3, 'signal': 1}
+   refused: {'meet_east': 1}
+   flagged: {}
+== 1791905461-apex-v022-carrot-sym50-opus-2
+-- strategist-0.jsonl: 95 turns, 2 session replacements, 215 orders, 1 refused, 96 flagged of 1185 hands' lines; landing median 7 s (p90 7), turn wall median 7 s
+   orders: {'wait': 95, 'queue': 38, 'instruct': 35, 'produce': 18, 'signal': 12, 'lane': 8, 'mark': 7, 'remove': 2}
+   refused: {'signal': 1}
+   flagged: {'step-skipped': 37, 'engine-refused': 23, 'hunt-ended-leash': 17, 'hunt-ended-other': 8, 'stopped-on-stop': 6, 'other-fault': 3, 'follow-ended': 1, 'site-blocked': 1}
+-- commander.jsonl: 12 turns, 0 session replacements, 14 orders, 0 refused, 0 flagged of 0 hands' lines; landing median 0 s (p90 0), turn wall median 19 s
+   orders: {'direct': 11, 'signal': 2, 'mark': 1}
+   flagged: {}
+== 1791907954-apex-v022-carrot-sym0-opus-1
+-- strategist-0.jsonl: 43 turns, 1 session replacements, 97 orders, 0 refused, 22 flagged of 349 hands' lines; landing median 7 s (p90 7), turn wall median 8 s
+   orders: {'wait': 43, 'queue': 22, 'instruct': 15, 'produce': 10, 'lane': 6, 'mark': 1}
+   flagged: {'step-skipped': 7, 'hunt-ended-leash': 5, 'other-fault': 3, 'hunt-ended-other': 3, 'stopped-on-stop': 3, 'abandoned': 1}
+-- commander.jsonl: 7 turns, 0 session replacements, 7 orders, 0 refused, 0 flagged of 0 hands' lines; landing median 0 s (p90 0), turn wall median 16 s
+   orders: {'direct': 4, 'wait': 1, 'units': 1, 'mark': 1}
+   flagged: {}
+== 1791943206-prio-player-1
+-- strategist-0.jsonl: 94 turns, 2 session replacements, 192 orders, 1 refused, 76 flagged of 954 hands' lines; landing median 7 s (p90 7), turn wall median 7 s
+   orders: {'wait': 94, 'instruct': 40, 'queue': 32, 'produce': 15, 'lane': 4, 'signal': 3, 'mark': 3, 'remove': 1}
+   refused: {'signal': 1}
+   flagged: {'step-skipped': 21, 'hunt-ended-leash': 13, 'hunt-ended-other': 12, 'step-waits': 9, 'other-fault': 8, 'engine-refused': 8, 'abandoned': 2, 'site-blocked': 1, 'stopped-on-stop': 1, 'follow-ended': 1}
+== 1791984193-leg-player-1
+-- strategist-0.jsonl: 143 turns, 4 session replacements, 295 orders, 4 refused, 108 flagged of 1127 hands' lines; landing median 7 s (p90 7), turn wall median 7 s
+   orders: {'wait': 143, 'instruct': 59, 'queue': 47, 'produce': 26, 'lane': 9, 'signal': 8, 'mark': 2, 'remove': 1}
+   refused: {'signal': 4}
+   flagged: {'step-skipped': 32, 'hunt-ended-leash': 23, 'hunt-ended-other': 18, 'stopped-on-stop': 13, 'engine-refused': 12, 'step-waits': 4, 'other-fault': 4, 'abandoned': 2}
+== 1791989571-apex-v024-carrot-sym50-opus-1
+-- strategist-0.jsonl: 86 turns, 2 session replacements, 191 orders, 2 refused, 66 flagged of 1203 hands' lines; landing median 7 s (p90 7), turn wall median 7 s
+   orders: {'wait': 86, 'instruct': 35, 'queue': 34, 'produce': 23, 'lane': 5, 'mark': 4, 'signal': 4}
+   refused: {'signal': 2}
+   flagged: {'hunt-ended-leash': 21, 'step-skipped': 16, 'hunt-ended-other': 13, 'engine-refused': 6, 'stopped-on-stop': 4, 'follow-ended': 3, 'step-waits': 2, 'site-blocked': 1}
+-- commander.jsonl: 13 turns, 0 session replacements, 15 orders, 0 refused, 0 flagged of 0 hands' lines; landing median 0 s (p90 0), turn wall median 13 s
+   orders: {'direct': 10, 'wait': 3, 'signal': 1, 'mark': 1}
+   flagged: {}
+== 1792195269-jev114-player-1
+-- strategist-0.jsonl: 95 turns, 2 session replacements, 193 orders, 3 refused, 51 flagged of 813 hands' lines; landing median 7 s (p90 7), turn wall median 8 s
+   orders: {'wait': 95, 'instruct': 35, 'queue': 30, 'lane': 10, 'produce': 9, 'signal': 7, 'mark': 4, 'remove': 2, 'situation': 1}
+   refused: {'signal': 3}
+   flagged: {'stopped-on-stop': 10, 'hunt-ended-leash': 10, 'hunt-ended-other': 8, 'engine-refused': 6, 'step-skipped': 5, 'abandoned': 4, 'step-waits': 3, 'site-blocked': 3, 'follow-ended': 2}

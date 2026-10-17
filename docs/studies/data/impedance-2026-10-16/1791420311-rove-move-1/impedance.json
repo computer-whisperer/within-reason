@@ -1,0 +1,275 @@
+{
+ "game": "1791420311-rove-move-1",
+ "result": "won 23:52",
+ "minutes": 23.87,
+ "seats": [
+  "strategist-0"
+ ],
+ "player_model": "claude-opus-5-5",
+ "commander": "none",
+ "opponent": "BARb hard_aggressive",
+ "counts": {
+  "strategist-0": {
+   "turns": 132,
+   "orders": 262,
+   "refused": 0,
+   "hands_lines": 993,
+   "flagged": {
+    "engine-refused": 29,
+    "step-skipped": 22,
+    "hunt-ended-other": 13,
+    "hunt-ended-leash": 12,
+    "stopped-on-stop": 9,
+    "step-waits": 4,
+    "other-fault": 3,
+    "abandoned": 3
+   },
+   "takeovers": 4
+  }
+ },
+ "moments_examined": 8,
+ "clean": 1,
+ "tally": {
+  "A1": 0,
+  "A2": 2,
+  "A3": 7,
+  "A4": 2,
+  "A5": 0,
+  "A6": 5,
+  "B1": 0,
+  "B2": 0,
+  "B3": 0,
+  "B4": 0,
+  "B5": 0,
+  "B6": 0
+ },
+ "items": [
+  {
+   "clock": "16:44-16:54",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "16:37 packet (landed 16:44), group_P: \"never shells, chases or detaches after a single corgator, corraid, corwolv or corlevlr: those are left to the guards ... then goes on along its way\" (way spot_34, spot_25 ...)",
+   "happened": "group_P (53 soldiers, ~14k metal) kept the 16:20 course 'attack party_39 with the whole group' after party_39 had shrunk to one corraid, walking west from (5574,3032) at 16:21 to (4515,3404) at 16:53; group_P.change 0.41-0.47 every gate to 16:51, so the new packet never re-asked it; 16:54 change 0.66, 16:56 advance to spot_29",
+   "evidence": "hands_window 16:44: 'parties: ... party_39=1 corraid@(4559,3239)', 'menu group_P [attack] change=0.45'; 16:56 'PLAYS group_P: advance to spot_29 [plan]'; decode 16:45 group_P|place|spot_34 0.98 (the way landed); Opus 16:53 note 'group_P has been chasing one corraid for 90 s since 16:20 under an old attack pick; new packets (16:44) did not re-ask it'; measured: about 33 s and 1,100 elmos the wrong way for the whole army, roughly 80 s of its march to G1 lost",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "20:56-21:20",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "20:49 packet (landed 20:56): \"the corgol (heavy tank) at G2 is attacked now by the whole army as one body ... His commander in sight is attacked by every soldier at once, before anything else\"",
+   "happened": "group_P kept its 20:51 course 'fight_to his_avp' for 24 s while the corgol and then corcom (in sight from 20:59) stood 168-317 from its front; attack_party_52 rated 0.19-0.24 (20:57-20:59) and 0.32 at 21:19; the attack was picked only at 21:20, after the 21:09 rewrite landed",
+   "evidence": "hands_window 20:59 'menu group_P [fight_to] change=0.4 of 174: attack_party_52=0.19'; 21:19 entry 'stalled ... enemies_near: party_52 ... within 800 of 3 of its 9: it outweighs us ... best_rated: the attack on party_52 (0.32)'; plan 21:20 'attack party_52 (2 coracv, 1 corcom, 6 corcv, 1 correap, 1 corvrad) with the whole group'; Opus 21:19 note 'trickling 9 of 38 into the commander's party (rated 'outweighs us' on the front alone)'; measured: 24 s; the attack that followed did not hold him either: he walked off at 21:43-21:51 and died at 23:46",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "menu",
+   "person_said": false
+  },
+  {
+   "clock": "5:22-5:43",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "5:15 packet (landed 5:22): \"Raid group group_E: it raids his half. Its way, in order: spot_56, spot_44, spot_31, spot_23, spot_15, spot_16, spot_11\"",
+   "happened": "group_E (6-8 soldiers) held at home 21 s; decode 5:23 read the way (group_E|place|spot_56 0.96, spot_44 0.98 ...) but the gate rated go/fight_to spot_56 0.38; it advanced only after Opus's 5:35 'signal raid now' and a packet adding 'never holds at home' (landed 5:42): 5:43 fight_to_spot_56 0.59",
+   "evidence": "hands_window 5:24 'menu group_E [hold] change=0.64 of 90: go_spot_56=0.38 fight_to_spot_56=0.38'; 5:43 'PLAYS group_E: advance to spot_56 [plan]'; Opus 5:45 note 'group_E (6 Blitz 2 Rover) finally advancing to spot_56'; measured: 21 s of the first raid and one extra turn (two signals, one rewrite)",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "1:08-3:12",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "0:10 packet: \"Rover groups (armfav): they rove, from the first Rover: to his side, looking for and killing his constructors and extractors\"; 2:06: \"group_A included: every Rover roves ... the group roves at once (rove), never holds, never gathers at home\"; 2:55: group_A and group_D \"They rove (rove)\"",
+   "happened": "the whole-group rove move was never picked: group_A.rove 0.17-0.25 (1:08-2:16), 0.06-0.18 and group_D.rove 0.07-0.26 (3:02-3:09); group_A held two Rovers at home in plant_27255's exit lane 1:08-2:15, then attacked a raider and walked in with Blitzes on Opus's 3:05 route; Jev did send two lone Rovers out with scout (1:12, 1:38), which found his plant at 2:16",
+   "evidence": "worlds_gate rove nouls; report 2:06 'plant_27255's exit lane is blocked: 1 of ours (armfav_17003) have stood in it for 0:30'; hands_window 3:07 'menu group_A [idle, idle] ... scout=0.34 gather=0.3 ... rove=0.18 hold=0.16' and 'PICK split [group_A: kept w1 ...]'; plan 1:12 'send a armfav as group_B to rove'; measured: 2 of the first 4 Rovers never roved (67 s standing in the exit lane; both died 3:42-3:44 at F2 walking with the Blitzes); offline replay (docs/studies/2026-10-07-rove-words.md) put the recorded words at 0.15 median and plain words at 0.65",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "menu",
+   "person_said": false
+  },
+  {
+   "clock": "20:19-23:48",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "20:19: \"Scouts: the new group of armfav from plant_18847 roves at once, every one of them: it is looking for his commander\"; 22:39: \"group_R1: roves. Its one move is rove; it never follows or joins another group.\"",
+   "happened": "of 8 Rovers made for it, J1, K1, L1, N1 joined group_P, M1 followed group_D1, O1 joined M1, Q1 joined D1, R1 followed group_M1 from 22:22 to the end; best rove rating 0.40 (J1 20:52), R1 0.10",
+   "evidence": "hands_window 22:48 'menu group_R1 [follow] change=0.73 of 143: scout=0.29 send_2_party_58=0.22 ... rove=0.1' and no R1 in PICK; plans 20:52 'group_J1 join group_P', 22:22 'group_R1 follow group_M1'; Opus 22:19 note 'Rovers keep being joined into group_D1 instead of roving despite the packet'; measured: no scouting from 8 Rovers (~250 metal); his commander was out of sight 21:51-23:02 while the army swept south (truth: he went east then north to H1); what rovers would have found is unknowable",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "menu",
+   "person_said": false
+  },
+  {
+   "clock": "13:41",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "13:06 queue constructor_19709: [\"armfus eco_field #fus1\", ...]; note 'fusion at eco_field (bank 3400 metal, energy is the bottleneck)'",
+   "happened": "'13:41 constructor_19709: the engine refused a armfus at A8: the site was bad' (plus four more refusals at eco_field 13:39-13:42); the builder went on to a moho, Opus re-marked fus_site at 13:51 and the fusion was queued behind the moho ('14:20 next, queued: build a armfus at fus_site'); record: armfus created 15:07, finished 17:43",
+   "evidence": "sweep 13:31-14:04 lines; record created/finished armfus 1916; measured: fusion begun 86 s after the refusal, in an energy stall Opus noted from 12:27 to 17:49",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "15:13",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "15:05 queue constructor_11572, constructor_12458, constructor_15017: [\"armavp #avp2\", \"assist\"]; note 'second advanced vehicle plant (#avp2) by three home constructors'",
+   "happened": "one id, three plants: '15:13 constructor_11572: build a armavp at fus_site2 (B8) (#avp2)', '15:13 constructor_12458: build a armavp at fus_site (B6) (#avp2)', '15:13 constructor_15017: build a armavp at spot_74 (B8) (#avp2)'; record: frames 995 (15:14), 17970 (15:18), 6420 (15:19)",
+   "evidence": "sweep 15:05-15:22; Opus 15:22 note 'the #avp2 id started three AVP frames at three places ... Possible list-id bug'; the same-tick race fixed later in 4ed68d8 (lists::nearest_first, same_tick_help); measured: two frames at 0% decayed, three builders' walks and one turn spent; the kept plant (995) stood only at 20:28",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "10:02-10:22",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "9:46 packet (landed 9:53): \"group_P, the army: it holds at spot_31 ... as one body, and grows there ... kills corgator and corfav parties that come near spot_31 ... the whole group together, and returns to spot_31\"",
+   "happened": "'10:02 group_P: 8 of group_P hunt party_14 (1 corgator) as group_V (plan)'; the leash ended it at once, group_V then attacked whole toward F3, and by 10:13 the army was in six pieces (V, W, X, Y, Z, A1); the decode had read detachments into the packet (9:54 group_P|detach|8 0.71, |4 0.71) and the hunt's own forbidden noul stood at 0.59, under the 0.7 bar",
+   "evidence": "hands_window 10:02 'send_8_party_14=0.57 ... PLAYS group_P: 8 of group_P hunt party_14'; worlds_gate 10:02 group_P.send_8_party_14.forbidden 0.59; decode 9:54; measured: the army split 10:02-10:22 (regathered under the 10:16 packet); 1 Blitz (110 metal) lost in the chase at F3",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "7:41",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "7:35 packet (landed 7:42): \"group_N: hunts the corgators it is after; when they are dead or gone it joins group_E\"; 7:25 in force: group_E 'kills ... raiders (corgator, corfav)'",
+   "happened": "'7:41 group_N's hunt of party_11 ended after 10 s: the leash of 900 from where it began reached; it holds where it is (4 soldiers)' (group_O, group_P the same second), one second before the packet asking for the hunt landed",
+   "evidence": "sweep 7:35-7:45; '7:54 group_Q's hunt of party_11 ended after 11 s: the quarry is dead'; measured: party_11 died 13 s later to another detachment",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "20:06-20:21",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "19:58 packet (landed 20:05), group_D1: \"the corwolv at spot_46 and the cormuskrat at spot_79 now are its targets: send a detachment of four at each\"",
+   "happened": "'20:06 group_D1: 4 of group_D1 hunt party_48 (1 cormuskrat) as group_E1 (plan)'; '20:07 group_E1's hunt of party_48 ended after 1 s: the leash of 900 from where it began reached' and group_F1's after 0 s; then shell/attack/detachment churn (E1, F1, G1, H1) moving ~30 a second; the cormuskrat took spot_79's extractor apart by 20:21",
+   "evidence": "hands_window 20:06-20:15; report 20:08 'cormuskrat ... taking apart our Metal Extractor (armmex), 64% left and gone in about 14 s'; measured: the quarry stood ~2,300 from the hunters; no hunt reaches that in 15 s, so the extractor (50 metal) was lost either way",
+   "cost": "none",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "11:23-11:36",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "11:16 packet (landed 11:23): \"North guard group_H: holds at spot_38, covering ... spot_24, spot_26 ... It kills any corfav, corak or corgator at those extractors, both Blitzes together\"",
+   "happened": "group_H stood at spot_54 (A6) 13 s more: decode 11:24 group_H|place|spot_38 0.97, spot_26 0.95, but the gate rated go_spot_38 0.17 and attack_party_23 (the corgator at C3) 0.27-0.39 against hold 0.73 / gather 0.75; it walked at 11:36 (0.55); party_23 killed spot_26 at 11:38",
+   "evidence": "jev log 11:24-11:36 worlds_gate flags and decode; raid_ledger 11:38 spot_26 'none'; measured: from spot_54 the walk was ~20 s and the corgator 3,100 away: spot_26 could not be saved by 11:38",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "17:27-17:39",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "17:19 packet (landed 17:26), group_D1: \"It kills any lone corgator, corfav, corraid or correap at those extractors, all its soldiers together ... (the correap at spot_31 now is its job)\"",
+   "happened": "D1 held: attack_party_40 0.13-0.27, send_2 0.24-0.37 while party_40 answer stood 0.67-0.71 (17:27-17:30); out of sight 17:31-17:35; 17:36 attack 0.55 under change 0.43, not taken; '17:39 PLAYS group_D1: attack party_40 (1 correap) with the whole group'",
+   "evidence": "hands_window 17:24-17:41; measured: spot_37 fell 17:31 to an unseen killer before any walk could arrive; spot_44 fell 17:46 after D1 engaged",
+   "cost": "none",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "8:14",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "7:55 packet (landed 8:02): \"A lone corgator is NOT their business: no group chases it beyond where it stands; group_J and the turrets deal with raiders.\"",
+   "happened": "'8:14 PLAYS group_P: 2 of group_P hunt party_8 (1 corgator) as group_S [plan]' (send_2_party_8 0.6); decode 8:05 group_P|detach|1 0.75, |2 0.72, |4 0.77",
+   "evidence": "hands_window 8:12-8:15; decode 8:05; measured: group_S joined group_R at 8:17",
+   "cost": "none",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "12:51-13:21",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "12:43 packet (landed 12:50): \"East guard group_J: holds at spot_49 ... and returns to spot_49\" and \"The army, group_P: every other soldier group joins group_P\"",
+   "happened": "decode 12:51 group_J|join|group_P 0.53; '13:21 plan group_J join group_P'",
+   "evidence": "decode 12:51; plan 13:21; Opus 13:31 note 'group_J merged into the army despite the packet; plant_18847 makes 3 Blitzes as a new group to be the east guard'; measured: no east extractor lost before the new guard group_D1 was named (14:26)",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "words",
+   "person_said": false
+  },
+  {
+   "clock": "15:29",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "15:22 remove {\"by\": \"constructor_11572\", \"reclaim\": [\"plant_6420\", \"plant_17970\"]} in the same turn as queue constructor_11572: [\"stop\", \"armadvsol fus_site2\", \"armadvsol fus_site2\"]",
+   "happened": "'15:29 constructor_11572 takes plant_17970 apart next, at the front of its list', '15:30 constructor_11572: stopped what it was doing on your `stop`', '15:31 ... build a armadvsol at fus_site2'; the frames were never reclaimed: '15:55 abandoned an unfinished armavp at B8 (0% built) ... the frame decayed', '15:57 ... at A8'",
+   "evidence": "sweep 15:22-16:07; measured: frames at 0% decayed on their own 25 s later",
+   "cost": "none",
+   "confidence": "medium",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "6:43-10:41",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "turret steps on constructor lists: e.g. 6:15 constructor_10859 [\"extractor spot_45\", \"armllt spot_45\", ...]; 5:35 constructor_27504 [..., \"armllt spot_52\"]; 7:55 constructor_10543 [..., \"armllt spot_78\"]",
+   "happened": "'7:20 constructor_10859: skipped the step 'armllt spot_45' of its list: the extractor at spot_45 was refused lately; a defence there waits for it' while our extractor stood there (record: created 7:07 by another builder); 10 such skips; the other builder built 6 of the turrets, spot_45, spot_78 and spot_55 never got one",
+   "evidence": "sweep step-skipped lines 6:43, 7:20, 7:42, 7:53, 7:56, 9:37 (2), 10:21, 10:41, 21:34; record armmex/armllt created near each spot; measured: none of the three unturreted spots was raided",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  }
+ ],
+ "no_lever": [
+  {
+   "clock": "7:25, 19:58, 23:02",
+   "seat": "strategist-0",
+   "wanted": "\"Constructors never stand in front of the plant\" / \"never stand in a plant's exit lane\"; commander \"helps the plant from beside it, never in front of a plant\"",
+   "why_no_lever": "no menu move or list step says where a builder stands while it builds, helps or idles; plant_27255's lane was blocked at 2:06 (a Rover), 4:25 (a constructor building the nano at spot_73), 19:08 and 21:29 (extractors in the lane); 3aabc77 (2026-10-13) later keeps new factories' lanes off metal spots, not standing builders"
+  },
+  {
+   "clock": "2:45, 3:05, 3:35",
+   "seat": "strategist-0",
+   "wanted": "\"A lone corfav that runs away is never chased past spot_59: let it go\" / \"Never chase a fleeing raider past spot_47\"",
+   "why_no_lever": "a hunt's only bound is code's 900 leash from where it began; no move, mark or rule ends a chase at a named place"
+  },
+  {
+   "clock": "16:53",
+   "seat": "strategist-0",
+   "wanted": "note: \"Wished: a way to force a group's course to end and re-ask (a 'drop current attack' order)\"",
+   "why_no_lever": "no tool ends a group's course; a packet reaches a busy group only through its change gate, which stayed at 0.41-0.47 for 33 s"
+  },
+  {
+   "clock": "22:19",
+   "seat": "strategist-0",
+   "wanted": "note: \"Wished: a produce option that sends a plant's units straight to rove\"",
+   "why_no_lever": "produce's group is 'new' or a group name; roving happens only when Jev picks the rove move, and it never did in this game"
+  },
+  {
+   "clock": "20:19",
+   "seat": "strategist-0",
+   "wanted": "\"Scouts: the new group of armfav ... roves at once ... it is looking for his commander and any new factory of his\"",
+   "why_no_lever": "the rove move takes no goal: the rover's targets are code's (his start box, then the stalest spots); a search aimed at his commander or an area exists only as waypoints for an ordinary group"
+  }
+ ],
+ "unreadable": [
+  "run/pro_baseline.py found no carded side from our start B8; it was run with --all-starts (41 sides from all starts)"
+ ]
+}

@@ -1,0 +1,312 @@
+{
+ "game": "1791943206-prio-player-1",
+ "result": "won 18:02",
+ "minutes": 18.04,
+ "seats": [
+  "strategist-0"
+ ],
+ "player_model": "claude-opus-5-5",
+ "commander": "none",
+ "opponent": "BARb hard_aggressive",
+ "counts": {
+  "strategist-0": {
+   "turns": 94,
+   "orders": 192,
+   "refused": 0,
+   "hands_lines": 954,
+   "flagged": {
+    "step-skipped": 21,
+    "hunt-ended-leash": 13,
+    "hunt-ended-other": 12,
+    "step-waits": 9,
+    "other-fault": 8,
+    "engine-refused": 8,
+    "abandoned": 2,
+    "site-blocked": 1,
+    "stopped-on-stop": 1,
+    "follow-ended": 1
+   },
+   "takeovers": 2
+  }
+ },
+ "moments_examined": 8,
+ "clean": 2,
+ "tally": {
+  "A1": 1,
+  "A2": 4,
+  "A3": 4,
+  "A4": 1,
+  "A5": 0,
+  "A6": 4,
+  "B1": 1,
+  "B2": 1,
+  "B3": 0,
+  "B4": 3,
+  "B5": 0,
+  "B6": 0
+ },
+ "items": [
+  {
+   "clock": "10:45-14:25",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "10:37 packet: \"Otherwise: first a light turret (armllt) beside every extractor of ours that has none (...); then free metal spots in this order: spot_56, spot_47, spot_39, ...\"",
+   "happened": "The decode read 'Do they have constructor_N build a Metal Extractor?' under the fuse bar for most constructors, so every extractor move was fused off their menus; 8-11 of 12-13 constructors stood helping plants for ~3.5 min while 50+ spots were free.",
+   "evidence": "decode build|armmex: 0.46-0.71 at 10:35 (old words 'their job is taking free metal spots'), 0.16-0.36 at 10:45, 0.09-0.44 at 11:04-13:47 (FUSE 0.3); pass menus 12:50: 0 of 16 armmex moves open for constructor_1412/600/16324/30353/24993/2945; 12:52 constructor_18284 'help_plant_27255=0.71 ... go_spot_43=0.26', PLAYS 'help plant_27255 build [plan]'; after 14:17 'their job is extractors' readings 0.30-0.70, after 15:05 0.50-0.77",
+   "cost": "large",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "10:45-14:25",
+   "seat": "strategist-0",
+   "category": "B1",
+   "wanted": "Opus needed to know that his constructor paragraph had removed extractor building from the hands' menus.",
+   "happened": "Group entries in the report carry 'reads: ...' but builder entries carry none; nothing told Opus his words had fused every extractor move off. His 14:17 rewrite ('they do not stand helping the plants; their job is extractors') was a guess that happened to fix the readings.",
+   "evidence": "decode rows with build|armmex 0.09-0.44 (10:45-13:47) in jev-0; 14:55 prompt constructor entries list 'best_rated' but no reads, e.g. 'constructor_18284: ... helping lab_27255 build, since 123 s ago; ... best_rated: helping constructor_1412 (0.24)'; group_J entry ends 'reads: his_lab, spot_10, ...'",
+   "cost": "large",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "11:46-14:07",
+   "seat": "strategist-0",
+   "category": "B4",
+   "wanted": "Expansion: every packet from 10:56 told constructors to take free spots in a listed order.",
+   "happened": "Every report 11:46-14:07 showed 8-11 of 12-13 constructors 'helping lab_N build, since N s' and the score line's 50+ walkable free spots; Opus's notes over 15 turns never mention it; he acted at 14:17 and gave lists at 14:55 and 15:39.",
+   "evidence": "grep of prompts t55-t71: helping=8..11 of shown=12..13; 12:03 Opus: 'We hold 18 extractors against their 22 at 12:00' with no builder order; 14:17 Opus: 'most were standing at home helping the plants while our extractors stayed at 17'",
+   "cost": "large",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "9:56-10:20",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "9:48 packet: \"At spot_29 it attacks his buildings and the Pawns there as one body ... it does not walk away from that fight half done.\" (again at 10:08: 'its job there is the attack on his buildings at spot_29')",
+   "happened": "group_J kept its 9:47 task 'fight_to spot_40' (the fallback) through both packets, then at 10:20 picked 'walk to spot_40'; it bled from 10 to 7 Blitzes at spot_29 meanwhile.",
+   "evidence": "decode 9:56 group_J|place|spot_29 0.97; 9:58 'PICK split [group_J: kept w1 over w2 of 1 at 0.78]' with fight_to_spot_29=0.43; 10:16 menu fight_to_spot_29=0.41, task still 'fight_to spot_40'; 10:20 'PLAYS group_J: walk to spot_40 [plan]'; group 10 at 9:56 -> 7 at 10:07",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "15:57-16:16",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "15:49 packet: group_N1 'kills Pawns ... at our extractors and constructors (spot_67, spot_74, spot_73, ...), the whole group at two or more Pawns'; 15:59: 'group_N1 and group_S1 attack them together'",
+   "happened": "Six Pawns (party_70) raided home from 15:56; the Blitz guard never moved until the 16:16 rewrite named them again (16:24, 0.78). The commander alone answered (16:08) and was too slow; plant_7477 died 16:11.",
+   "evidence": "group_N1 menu 15:57 'attack_party_70=0.4' change 0.49, closed by the news layer (~) 15:58-16:06; 16:08 'fight_to_spot_74=0.47'; decode 16:07 group_N1|place|spot_74 0.80, group_S1|place|spot_74 0.46; record: armvp 590, armstump 225, armsolar 155 lost 16:11-16:13 (972 metal). N1 was ~2,500 and S1 ~1,600 from the plant (Blitz 101/s), so neither could arrive before 16:11.7",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "7:40-7:41",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "7:32 packet: \"Before strike is given, a party of three or more armpw at our extractors ... gets a detachment of four from it\"; 'When strike is given ... as one body'; 'Ticks and single Pawns are never its business.'",
+   "happened": "Strike fell at 7:40; the decode had read the conditional allowance as 'a detachment of 4 is not forbidden' for the whole packet, so the forbidden mark was off without asking: group_J sent 4 at a lone Pawn (7:40) and 4 more at a Pawn trio in the middle (7:41), striking with 8 of 16.",
+   "evidence": "decode 7:40 group_J|detach|4 0.15 (|1 0.64, |2 0.61, |8 0.75); 7:40 'PLAYS group_J: 4 of group_J hunt party_24 (1 armpw) as group_M'; 7:41 '4 of group_J hunt party_22 (3 armpw) as group_N'; group_J 16 -> 8 at 7:42; rejoined 7:42/7:50",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "7:13-7:38",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "constructor_2945's 5:15 list: 'extractor spot_71', 'armllt spot_71' (constructor_56's 6:32 list also had 'extractor spot_71', 'armllt spot_71')",
+   "happened": "2945 built the extractor (created 7:05, finished 7:25); 56's duplicate was refused by the engine, and that refusal made 2945 skip its own turret too. spot_71 stood bare and died to one Pawn at 7:38.",
+   "evidence": "7:13 'constructor_56: the engine refused a armmex at D8: the site was bad'; 7:18 'constructor_2945: skipped the step 'armllt spot_71' of its list: the extractor at spot_71 was refused lately'; record armmex 16399 by 2945 created 7:05, destroyed 7:38. Same pattern 16:51-16:52 at spot_49 (cost none)",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "14:53-14:55",
+   "seat": "strategist-0",
+   "category": "B2",
+   "wanted": "Raid answers from the 13:39-14:27 packets: Pawns at our extractors are group_N1's (the whole group at two or more).",
+   "happened": "Five Pawns of party_70 seen at A3 14:49-14:52 dropped out of the party's composition when they left sight while its Blitz stayed; the 14:55 report showed party_70 as '1 armflash' and nothing in 'recently seen'. Opus spent the turn on lanes and lists; 8 Pawns killed spot_28 at 15:05.",
+   "evidence": "record enemy_seen armpw at (1034-1065, 1856) 14:49-14:51; call rows party_70 '1 armflash, 5 armpw' 14:50-14:52 -> '1 armflash' 14:53-14:56; 14:55 prompt: 'enemy in sight: 1 at A3 (951, 1964) ... armflash 1', 'party_70 (1 armflash) at our extractor at spot_28 (A4)'; truth 14:56: 8 armpw + 2 armflash within ~200",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "14:36-14:41",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "14:27 packet: 'It never turns aside for a lone Tick (armflea), Pawn (armpw), Rocketeer (armrock), constructor (armck) or Lazarus (armrectr) away from its way'; 'Its way ... spot_18, then spot_16, then his_lab'",
+   "happened": "The 38-strong army kept attacking a lone constructor (party_88) after the packet landed; the pick kept it twice over the route move.",
+   "evidence": "decode 14:35 group_J|place|spot_18 0.97; 14:36 menu fight_to_spot_18=0.59, 'PICK split [group_J: kept w1 over w2 of 2 at 0.5]'; 14:40 'kept w1 over w2 of 1 at 0.38'; task 'engage' party_88 (1 armck) until 14:41",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "2:33-2:39",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "0:00/0:10 packet: Rovers rove; 'Blitz groups (armflash, armstump): their job is his economy'; note: 'plant 2 Rovers, constructor, 2 Rovers, constructor, then Blitzes'",
+   "happened": "produce without a group put the plant's first Blitz into the Rovers' group_A (the plant's default group), and it roved with them.",
+   "evidence": "call rows 2:34-2:40 group A members [17003, 904, 10476, 6821] task rove (6821 = armflash); Opus 2:39: 'the Blitz joined the Rovers' group and started roving with them'; fixed with produce group 'new'",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "brief",
+   "person_said": false
+  },
+  {
+   "clock": "7:57",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "7:52 queue commander: ['armnanotc', 'armnanotc', 'assist low']",
+   "happened": "After its two impossible steps were skipped, the last step 'assist low' was dropped as unplayable, leaving the commander without a job until the 7:59 list landed at 8:05.",
+   "evidence": "7:57 'commander: the step 'assist low' of its list could not be played this second and was dropped' (lists.rs: execute_builder returned None; the step is not retried)",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "7:52",
+   "seat": "strategist-0",
+   "category": "B4",
+   "wanted": "7:52 queue commander: 'armnanotc', 'armnanotc' (two construction turrets beside the plants)",
+   "happened": "The commander cannot build armnanotc; the 0:10 roster line names its builders and armcom is not among them. Both steps were skipped.",
+   "evidence": "0:10 prompt roster: 'Construction Turret armnanotc (armbeaver/armca/armch/armck/armconsul/armcsa/armcv, t1, 230 metal)'; 7:57 'commander: skipped the step 'armnanotc' of its list: this builder cannot build it' x2; Opus 7:59: 'the commander can't build construction turrets'",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "16:44",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "16:36 queue constructor_10629 and constructor_27504: ['armvp home #vp3', 'armnanotc #nano_vp3'] (one plant built together)",
+   "happened": "Both reached the #vp3 step in the same second; 10629 started the plant and 27504's step was dropped instead of helping, so it went on to the nano alone. Opus re-sent the list; it helped from 16:52. Same at 16:52 for '#nano_a' (constructor_16840).",
+   "evidence": "16:44 'constructor_10629: build a armvp at home (B8) (#vp3) (from its list)' and 'constructor_27504: the step 'armvp home #vp3' of its list could not be played this second and was dropped'; 16:52 'constructor_27504: help build #vp3 (help constructor_10629 build)'",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "5:05",
+   "seat": "strategist-0",
+   "category": "A1",
+   "wanted": "5:05 orders: signal {\"raid_go\": \"now\"} with a packet saying 'raid_go is given: it leaves home now'",
+   "happened": "The signal was refused inside the batched orders call; the packet referred to a signal that did not exist until Opus sent it alone at 5:15. group_B left at 5:16.",
+   "evidence": "RESULT 'signal: not a tool that can be batched'; Opus 5:05: 'the batched turn refused it'; 5:15 'raid_go is given now (5:15)'; 5:16 'PLAYS group_B: advance to spot_49'. The sweep counts 0 refused: its pattern misses this wording",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "3:52-4:22",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "3:44 packet: 'group_B: the home guard. It stands at spot_73 ... It never goes past spot_61 or spot_54.'",
+   "happened": "group_B kept its old raid course 'fight_to spot_49' for 30 s and walked out to (3185, 4468); home had no soldier.",
+   "evidence": "decode 3:52 group_B|place|spot_73 0.97; menus 3:52-4:04 fight_to_spot_74/73 0.64-0.66, change 0.86; 'PICK split [group_B: kept w1 over w2 of 2 at 0.44]' 3:52, 0.5 3:53, 0.42 3:54, 0.38 3:55, 0.34 4:04, 0.72 4:10; Opus 4:20: 'it walked out to spot_56 instead of holding at spot_73'",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "6:46-6:59",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "6:32 packet: 'group_B: first, the party of armpw (about nine) at spot_64 and spot_59 in D6-D7 is its business: the whole group fights it there'",
+   "happened": "The pick sent 8 of group_B as a detachment named group_J; its hunt ended on the leash in 0 s, and the next second group_J 'took in' group_B and kept its own name. The packet's group_B paragraph pointed at nothing until the 6:52 packet landed at 6:59. The whole body did attack the party at 6:48.",
+   "evidence": "6:46 'PLAYS group_B: 8 of group_B hunt party_17 (5 armpw) as group_J'; 6:46 'group_J's hunt of party_17 ended after 0 s: the leash of 900 from where it began reached'; 6:47 'PLAYS group_J: take in group_B: its soldiers walk to this body'; 6:48 'group_J: attack party_17 (4 armpw) with the whole group'; Opus 6:52: 'The army is now called group_J'",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "11:24-11:55",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "11:16 packet: 'Every Blitz group (group_D1, group_E1, group_G1, group_H1 and any other Blitz group) joins group_O when its hunt is over.'",
+   "happened": "Named groups read 0.63-0.69; the unnamed group_I1 and group_J1 read 0.28, under the fuse bar, so 'join group_O' was off their menus after their hunts ended on the leash at 11:27; they walked or held instead (I1 joined only at 11:55).",
+   "evidence": "decode 11:24 group_D1|join|group_O 0.69, group_I1|join|group_O 0.28, group_J1|join|group_O 0.28; I1/J1 menus 11:24-11:30 carry no join_group_O; 11:55 'group_I1: join group_O'",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "words",
+   "person_said": false
+  },
+  {
+   "clock": "9:29",
+   "seat": "strategist-0",
+   "category": "B4",
+   "wanted": "9:29 queue commander: ['armnanotc #nano2', 'armsolar low'] (new session after the 9:19 takeover)",
+   "happened": "The replaced session did not carry the 7:59 lesson; the roster line in the takeover prompt 10 s earlier showed armcom cannot build it. Skipped; the commander went to its solar (which also moved it out of the lane, as Opus wanted).",
+   "evidence": "9:19 takeover prompt roster 'Construction Turret armnanotc (armbeaver/armca/armch/armck/armconsul/armcsa/armcv, ...)'; 9:37 'commander: skipped the step 'armnanotc #nano2' of its list: this builder cannot build it'",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "16:43-18:00",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "16:36 remove {\"by\": \"constructor_27423\", \"reclaim\": [\"armmex_28188\"]} (the extractor in plant_27255's exit lane)",
+   "happened": "The constructor first walked to and built an armllt a pick had placed at 16:30; the reclaim began at 17:20 and the extractor died at 18:00.6, the game's end.",
+   "evidence": "16:43 'constructor_27423 takes armmex_28188 apart next, at the front of its list'; record: armllt placed 16:30 at (2160, 5360), created 17:03; cmd reclaim_unit [28188] 17:20 and 17:30; destroyed by 27423 at frame 32418 (18:00)",
+   "cost": "none",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false
+  }
+ ],
+ "no_lever": [
+  {
+   "clock": "9:19",
+   "seat": "strategist-0",
+   "wanted": "'A constructor standing in a plant's exit lane walks out of it at once; they never build or wait in a plant's exit lane' / commander 'helps the plants from beside them, never standing in a plant's exit lane'",
+   "why_no_lever": "No menu move places a helper beside a plant or steps a builder out of a lane; 'help plant' lets the engine choose where it stands, and a builder on a list is off the menu (Opus 9:29). Lane wakes recurred at 2:29, 6:02, 8:37, 10:18, 14:55 and in turns 8:18, 13:23, 14:37, 14:46; the only lever was a new list that walks the builder elsewhere."
+  },
+  {
+   "clock": "13:13",
+   "seat": "strategist-0",
+   "wanted": "'the whole group attacks it at once, Stouts closing on it together from several sides, Shellshockers shelling it'",
+   "why_no_lever": "Attack, shell and gather moves exist, but no move or footwork rule surrounds a target from several sides; the body arrived as a column (13:23-13:49: 11-19 of 30+ soldiers engaged)."
+  },
+  {
+   "clock": "10:37",
+   "seat": "strategist-0",
+   "wanted": "'Against Centurions (armwar) and Rocketeers (armrock) the Stouts lead and the Blitzes come in beside them, never alone ahead' (also 11:46: 'The Stouts lead, the Shellshockers shell from behind them')",
+   "why_no_lever": "A group moves as one menu actor; no move or lane rule orders its members by type (front line of Stouts, faster Blitzes held level). The shell move keeps long-reach soldiers back, so the artillery half has a partial lever, the Blitz half none."
+  },
+  {
+   "clock": "8:59",
+   "seat": "strategist-0",
+   "wanted": "'it never goes back to a stop it has reached and never walks into the Beamer's reach at G2' (also 0:10 'it never goes past spot_69 or spot_54')",
+   "why_no_lever": "The fuse can shut moves to a named place, not routes through a turret's reach or across a line; the pull-back from G2 still crossed the Beamer's reach (9:09: 'the Beamer took four more Blitzes on the way out'). The decode even read commander|place|spot_54 at 0.96, keeping the boundary spot on the menu as a destination."
+  }
+ ],
+ "unreadable": [],
+ "notes": [
+  "refused: the sweep reports 0, but one order was refused at the tool ('signal: not a tool that can be batched', 5:05): counted as A1. The sweep's refusal pattern misses that wording.",
+  "The builder-priority 'low' word did what the tool says: priority 0 on 'assist 45 low' (1:04-1:48), 'armsolar low' (2:05), 'assist 30 low' (2:48), 'assist low' (4:03), back to 1 for unmarked steps (1:49, 3:18), with two 4-s lags at step changes (2:01-2:05 a low solar built high, 2:24-2:28 a plain solar built low). Not an item.",
+  "Side finding, not an item (no explicit want crossed): in the 2:36-3:00 metal stall the plant (low by birth default, code-decisions §1) froze its second Blitz at 21% for 24 s while high constructors finished a solar and an extractor; it came out at 3:10, as the first Pawn raid killed spot_68 (3:14).",
+  "Side finding: plant_27255 (placed 0:35 at (1582,5456), facing east) had spot_73 in its exit lane and the commander's own 'extractor' step built armmex_28188 there at 1:56, although 3aabc77 (exit lanes kept off metal spots) is in this build (59b8cf4). Flagged by the yard words at 2:29, 6:02, 14:55, 16:36; production was slowed, not stopped.",
+  "The 'what your hands did' blocks match the log: 261 of 291 list/produce plays fall in the next report by clock and actor, the other 30 on the boundary second of the report before."
+ ]
+}

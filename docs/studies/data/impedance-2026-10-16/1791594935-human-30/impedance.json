@@ -1,0 +1,319 @@
+{
+ "game": "1791594935-human-30",
+ "result": "won 19:37 (his commander destroyed at (2941,2767) in C4 by group_G; every unit of his destroyed 19:37-19:41; record ends 19:49 with 208 of ours; no chat from the person)",
+ "minutes": 19.6,
+ "seats": [
+  "strategist-0"
+ ],
+ "player_model": "claude-opus-5-5",
+ "commander": "claude-opus-5-5",
+ "opponent": "[gecko]u6bkep (a person, lobby skill 30, Armada)",
+ "counts": {
+  "strategist-0": {
+   "turns": 65,
+   "orders": 163,
+   "refused": 1,
+   "refused_not_batchable_unflagged": 3,
+   "hands_lines": 814,
+   "flagged": {
+    "step-skipped": 14,
+    "engine-refused": 8,
+    "site-blocked": 4,
+    "stopped-on-stop": 3,
+    "hunt-ended-other": 3,
+    "abandoned": 3,
+    "hunt-ended-leash": 2,
+    "step-waits": 1,
+    "other-fault": 1
+   },
+   "takeovers": 1
+  },
+  "commander": {
+   "turns": 13,
+   "orders": 14,
+   "refused": 0,
+   "hands_lines": 0,
+   "flagged": {},
+   "takeovers": 0
+  }
+ },
+ "moments_examined": 8,
+ "clean": 3,
+ "tally": {
+  "A1": 4,
+  "A2": 2,
+  "A3": 3,
+  "A4": 4,
+  "A5": 0,
+  "A6": 3,
+  "B1": 0,
+  "B2": 0,
+  "B3": 0,
+  "B4": 1,
+  "B5": 1,
+  "B6": 2
+ },
+ "items": [
+  {
+   "clock": "14:36",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "14:13 queue to six constructors: [\"armavp #avp1\", \"assist\"]; note: \"advanced vehicle plant (#avp1) at home by six helper constructors\" (one plant, the commander's 13:50 ask)",
+   "happened": "Two advanced vehicle plants: 14:36 both constructor_540 and constructor_7444 \"build a armavp at spot_6 (G1) (#avp1) (from its list)\"; record: armavp 16012 created 14:46 by 540 at (6013,264), armavp 20158 created 14:51 by 7444 at (5821,296), finished 17:50 and 17:56; 20158 stands in 16012's exit lane",
+   "evidence": "record created/finished events; 19:07 report \"yard: blocked ... In the lane: armavp_20158\"; Bull 4844 finished 18:53, move_failed 18:54-19:48; Bull 18257 stuck from 19:33; player's 19:07 remove {\"reclaim\": [\"plant_20158\"]} begun 19:22. The id's same-tick race (memory list-ids; fixed 4ed68d8, 2026-10-12, after this game) | measured: 2,600 metal and 14,000 energy into a duplicate plant; six helpers split over two frames, the first standing 3:04 after it began (14:46 to 17:50); two Bulls (1,900 metal) trapped from 18:54 and 19:33 to the end; energy at 0 from about 19:07 (the player's note blames 10 converters + two AVPs + fusion frame)",
+   "cost": "large",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "14:53",
+   "seat": "strategist-0",
+   "category": "B5",
+   "wanted": "one advanced plant (#avp1), so a second frame would have been a fault to remove",
+   "happened": "Every report 14:53-17:43 showed both builders on one plant: \"constructor_7444: ... building a Advanced Vehicle Plant (armavp) at 497 from spot_11 (F1) (8 % built) ... it will be plant_16012\" beside constructor_540's \"at 472 from spot_6 (F1) (8 % built) ... it will be plant_16012\" (same % each turn: 1, 8, 19, 24, 38, 53, 71, 92); the second plant first appears as plant_20158 at 18:12",
+   "evidence": "prompts of 14:53, 15:11, 15:35, 15:45, 16:18, 16:48, 17:18, 17:43; record: 7444 built armavp 20158, a separate unit; the player reclaimed it at 19:07 once the report named it in the lane, so the decision plausibly differs with it | measured: same 2,600 metal as the A4 item, kept for 3 min by the misleading entry (either fix alone saves most of it)",
+   "cost": "large",
+   "confidence": "medium",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "16:08",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "15:45 instruct: \"The Blitz raid group (the armflash group from plant_19529, its own group): it gathers at spot_55 until it is about eight Blitzes, then its way is spot_58, spot_63, spot_61...\" (the commander's 15:20 second front)",
+   "happened": "No group carried the raid marks: decode rows at 16:08, 16:36, 17:10, 17:33 read no place of the way for any group at 0.3 or over; at 18:05 group_M's way reads 0.30-0.46; only at 18:32, once the packet named group_M, 0.97-0.98. The player itself sent group_K (plant_19529's new group: a Janus and a Blitz) to join group_G at 17:34. group_M stood at F4/E6 (18:20 hold at 5158,2889) and was sent to group_G at 19:01",
+   "evidence": "decode rows (scratch decode.jsonl); call-row groups 16:50 K 1 hold, 17:20 K 3 move_to home, 17:50 M 2 fight_to spot_58, 18:20 M 6 hold; commander 18:20: \"group_M joins group_G at C4; it doesn't stand at E6\" | measured: 8 Blitzes (880 metal) made 16:52-17:54 never raided; the second front the commander ordered at 15:20 never ran; the game was won on the main front",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "11:36",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "11:12 instruct (landed 11:31): \"group_G ... attacks the armstump party at D3 now with the whole group and keeps attacking until it is dead ... Against a party that outweighs it, it walks to spot_21 and holds there\"",
+   "happened": "The pick swung between the two clauses at even odds: PLAYS 11:36 attack party_31, 11:41 walk to spot_21, 11:45 advance to spot_24, 11:46 attack party_31, 11:51 walk to spot_21, 11:59 advance to spot_24 (decode spot_21/24/39 at 0.97-0.98)",
+   "evidence": "hands_window 11:30-12:02; the 11:45 and 12:07 reports list every play; player 11:45 note: \"group_G was thrashing (walk/advance/attack) into 7 Stouts+Janus at even odds, losing Stouts in pieces\" | measured: group_G lost 2 of 19 (450 metal) by 11:45 and 2 of 19 (450) by 12:07",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "8:12",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "8:01 instruct (landed 8:12): \"group_G attacks the armflash at our extractor at spot_13 now with the whole group and keeps attacking until they are dead\"; same packet: group_G \"holds at spot_1\", \"never goes to spot_4, spot_9 or spot_0\"",
+   "happened": "The attack ran as a chase: group_G/group_H on task engage walked west from (4138,986) at 8:12 to (2974,1348) at 8:29 after a retreating Blitz into party_19 grown to 8-9 Blitzes near his C1/C2 turret; group_G 5->4 at 8:31, group_H 5->3 at 8:35",
+   "evidence": "hands_window 8:12-8:40 (task engage each second; PARTY party_19=9 armflash@(2210,1529) at 8:31); 8:36 wake: shelled by an armllt from the west; \"fights since last turn: ... lost armflash to armflash in their half x4\" | measured: 3-4 units (about 330-440 metal) lost 8:29-8:36",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "words",
+   "person_said": false
+  },
+  {
+   "clock": "6:50",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "6:31 instruct (landed 6:49): \"group_B ... holds at spot_1 ... It does not go west of spot_1 and never fights under his turret at spot_4.\"",
+   "happened": "PLAYS 6:50 \"group_B: 2 of group_B hunt party_15 (1 armflash) as group_C\", 6:54 \"2 of group_B hunt party_15 (1 armflash) as group_D\" (party_15 at (2443,579), about 190 from his spot_4 turret at (2256,496)), ~7:02 \"2 of group_B hunt party_16 (1 armflash) as group_E\" (group_E at (2220,889) by 7:12)",
+   "evidence": "gate 6:50: send_2_party_15 0.61 with send_2_party_15.forbidden 0.69, PICK took it at 0.72; decode 6:48 group_B|detach|1/2/4 0.59/0.55/0.64, spot_4 read 0.92 at 6:54 (landed); 7:10 wake \"group_B has lost 1 of its 3 soldiers\", 7:29 \"group_E has lost 1 of its 2 soldiers ... at C2\" | measured: 2 Blitzes (220 metal); the quarry died at 6:57",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "3:58",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "3:41 instruct (landed 3:58): \"group_A (the raid in his half): ... The Blitzes stop roving and fight as one body along this way, in order: spot_26, spot_22, spot_19, spot_9 ...\"",
+   "happened": "group_A kept roving 3:58-4:23 (task rove every second, scattered: front E7, tail 3,500 behind); the pick never changed it",
+   "evidence": "decode 3:57: group_A|place|spot_26 0.96 (and the whole way 0.95-0.97: landed); gate 3:59 group_A.change 0.59 but fight_to_spot_26 0.42 best; 4:20 change 0.68, fight_to_spot_26 0.43; no group_A play. Player 4:06: \"group_A would not leave its rove ... so group_B ... is the raid\" | measured: the 4-Blitz raid on his B3 economy the commander asked at 3:20 never left; the raid went to group_B (3 Blitzes) from 4:23",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "13:49",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "every packet from 8:12, 13:24 instruct: \"plants: work their production lists; never idle.\" (produce lists ending in open entries, e.g. 11:45 [\"armstump:3\", ..., \"armstump\", \"armflash\"])",
+   "happened": "With only open entries left the lab's make moves rated under the bar and the plant stood: plant_4070 idle 13:49-13:55, gate make_armjanus 0.32-0.46, make_armstump 0.33-0.47, then a Janus at 13:55; idle again 14:01",
+   "evidence": "menu/gate rows 13:44-14:05; record idle flag: plant_4070 36 s and plant_3914 23 s idle in minutes 11-14; player 14:01: \"plant_4070 was idle again at 14:01 even though its list allows Stouts and Janus\"; commander 13:50: \"plant_4070 is idle\". The decode has no lab marks | measured: about a minute of plant time on two plants (11:00-15:00); fixed by the player's counted lists at 14:13",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "menu",
+   "person_said": false
+  },
+  {
+   "clock": "8:36",
+   "seat": "strategist-0",
+   "category": "B4",
+   "wanted": "8:15 instruct (landed 8:31): \"the body goes into his half now\" (the commander's 7:50 \"don't gather at spot_1 waiting for a count of Stouts\")",
+   "happened": "Five seconds after the go-now packet landed, the player reversed it, reading the losses of the 8:12 packet's chase (above) as its failure: note \"the 'go now' body trickled into his C1/C2 Blitzes + turrets ... Holding it at spot_13 ... (signal push)\"",
+   "evidence": "packet landing 8:31 (jev call row) vs the 8:36 turn; the report said only \"while your orders were on their way (17 s) we lost 1 units\"; the commander pushed it out again at 9:27. Line that would have surfaced it: \"your orders of 8:15 came into force at 8:31, 5 s ago; the fights above ran under the packet before\" | measured: the body held at spot_13 8:36-9:27 (51 s) against the commander's direction",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "12:24",
+   "seat": "strategist-0",
+   "category": "B6",
+   "wanted": "commander 12:20: \"Send one fresh Rover from the new plant ahead of the body to look at B4-B5 and A2-A5, since he may have built something new there.\"",
+   "happened": "No order of the player's carried it: packets 12:23-14:36 say only \"group_A ... leave it to rove\"; the one Rover made (armfav 8546, 12:36, plant_19529's staged list) died at (4008,2166) in our half at 14:46",
+   "evidence": "commander_turns --calls; packets.jsonl; record armfav events; scouting at 16:18: A4 seen 13:10 ago, B1 10:49 ago; his advanced plant never seen (no enemy armavp in the record), the commander inferred it at 16:50 from an armacv and armconsul | measured: no measured consequence; his base unscouted from about 8:00 to the end",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "brief",
+   "person_said": false
+  },
+  {
+   "clock": "9:27",
+   "seat": "strategist-0",
+   "category": "B6",
+   "wanted": "player 8:36 note: \"Will give push at about 8 Stouts + Blitzes (~2.5k)\"; 9:00 signal {\"push\": \"30:00\"} (result: \"push will be given at 30:00\")",
+   "happened": "(the commander, on seat t1) The commander read the seat's hold as a tool limit and gave the signal: note \"9:27: player held group_G at spot_13 waiting on a 'push' signal it cannot give itself; gave push now\"",
+   "evidence": "commander signal result \"push is given now (9:27)\"; the player has the signal tool (its 9:00 call worked); after 9:27 the pick attacked his Stouts at our extractors (9:29 attack party_25, 0.53), as the packet's hold clause also asked | measured: none measured: the body fought at spot_21 either way",
+   "cost": "none",
+   "confidence": "medium",
+   "fix_class": "brief",
+   "person_said": false
+  },
+  {
+   "clock": "8:36",
+   "seat": "strategist-0",
+   "category": "A1",
+   "wanted": "orders batch with signal {\"push\": null} (the packet: the body \"goes in together when the signal push is given\")",
+   "happened": "\"signal: not a tool that can be batched\" (the rest of the batch entered)",
+   "evidence": "tool_call result; the player's text: \"the 'push' signal ... didn't get set, because that tool can't be batched\"; re-issued alone at 9:00 ({\"push\": \"30:00\"}: accepted). The sweep does not count this line as refused | measured: none",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "11:45",
+   "seat": "strategist-0",
+   "category": "A1",
+   "wanted": "orders batch with signal {\"push2\": \"12:20\"}; packet: \"The body gathers on our turret at spot_21 until push2 is given\"",
+   "happened": "\"signal: not a tool that can be batched\"",
+   "evidence": "tool_call result; the player noticed (12:07 note \"the 11:45 signal call failed\") and batched it again (next item); the commander gave push2 at 12:24 | measured: none: the commander's push2 at 12:24 came 4 s after the time the player wanted",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "12:07",
+   "seat": "strategist-0",
+   "category": "A1",
+   "wanted": "orders batch with signal {\"push2\": \"12:40\"}; note \"push2 set for 12:40 (the 11:45 signal call failed)\"",
+   "happened": "\"signal: not a tool that can be batched\"; the note believed it set",
+   "evidence": "tool_call result; the false belief stood until 12:28 (\"push2 given by the commander at 12:24\") | measured: none",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "2:43",
+   "seat": "strategist-0",
+   "category": "A1",
+   "wanted": "produce plant_4070 {\"group\": \"group_B\", \"units\": [\"armcv:1\", \"armflash:3\", ...]}",
+   "happened": "\"produce: REFUSED: plant_4070: group_B is not a group in the picture (group_A); \\\"new\\\" makes one\"",
+   "evidence": "re-issued at 2:59 with \"group\": \"new\" (accepted) | measured: 16 s",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "7:53",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "7:06 packet (from 6:53): \"group_B (the main body ...): it holds at spot_1 ... never goes to spot_4, spot_9 or spot_0 ... comes back to spot_1\"",
+   "happened": "The body changed name three times in 3 s: PLAYS 7:53 \"8 of group_B hunt party_19 (5 armflash) as group_F\", 7:55 \"group_B: join group_F\", 7:56 \"8 of group_F hunt party_19 as group_G\", 8:06 \"4 of group_G hunt party_19 as group_H\"; from 7:55 to 8:12 the packet's group_B paragraph named nothing",
+   "evidence": "hands_window 7:53-8:12; the player renamed in the 8:01 (\"group_F: joins group_G\") and 8:15 (\"group_H: joins group_G\") packets | measured: 17 s of the body under no named paragraph; no loss traced to it",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "7:55",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "7:06 packet: group_B \"attacks any enemy party it outweighs that comes to spot_1, spot_13 or spot_8, with the whole group\" (party_19, 5 Blitzes at D2)",
+   "happened": "\"group_F's hunt of party_19 ended after 1 s: the leash of 900 from where it began reached; it holds where it is (9 soldiers)\"",
+   "evidence": "sweep line [hunt-ended-leash]; the pick re-attacked at 7:57 (\"group_G: attack party_19 (4 armflash) with the whole group\") | measured: 2 s",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "8:09",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "7:06 packet: \"a lone raider at an extractor is met by one or two soldiers sent from group_B\" (party_19, 1 Blitz at spot_13)",
+   "happened": "\"group_H's hunt of party_19 ended after 3 s: the leash of 900 from where it began reached; it holds where it is (5 soldiers)\"",
+   "evidence": "sweep line [hunt-ended-leash]; the 8:12 packet re-ordered the attack and group_G/H engaged again | measured: 3 s",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "4:08",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "2:13 queue constructor_23114: [\"extractor spot_11\", \"armllt spot_11\", \"extractor spot_18\", \"armllt spot_18\", ...] (a turret beside each extractor)",
+   "happened": "\"constructor_23114: skipped the step 'armllt spot_18' of its list: the extractor at spot_18 was refused lately; a defence there waits for it\" while our extractor stood there (the commander's, created 3:40, finished 3:50); no turret at spot_18 all game",
+   "evidence": "sweep 4:08; record armmex 3553 at (6064,1648), no armllt within 260 of spot_18 | measured: spot_18 never raided",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "8:11",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "7:20 queue constructor_14058: [\"extractor spot_20\", \"armllt spot_20\", \"extractor spot_21\", \"armllt spot_21\"]",
+   "happened": "14058 built the extractor at spot_20 (created 7:59, finished 8:19) yet \"constructor_14058: skipped the step 'armllt spot_20' of its list: the extractor at spot_20 was refused lately\" (23114's duplicate step had been refused at 8:10); no turret there until an HLT at 17:12",
+   "evidence": "sweep 8:10-8:11; record armmex 2513 by 14058 | measured: spot_20 never raided",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  }
+ ],
+ "no_lever": [
+  {
+   "clock": "3:41",
+   "seat": "strategist-0",
+   "wanted": "\"group_A (the raid in his half): its Rovers leave it to rove on their own (rove_1, one Rover at a time) and are left to rove. The Blitzes stop roving and fight as one body\"",
+   "why_no_lever": "No move splits a group by unit type: a roving group's menu (74 moves at 3:57) holds stay, hold, go/fight_to places, join, follow; rove_N is not offered while the group roves and takes soldiers without regard to type"
+  },
+  {
+   "clock": "13:24",
+   "seat": "strategist-0",
+   "wanted": "\"constructors: ... Never stand in a plant's exit lane.\" (in every packet from 13:44 to the end)",
+   "why_no_lever": "Builder moves are build, help, go, follow, take_apart, repair, stay; the engine places a helper and nothing keeps it out of a lane: 18:12 \"constructor_16324: ... helping lab_19529 build ... standing in plant_19529's exit lane since 30 s ago\", the same for constructor_7444 at plant_20158; 12:28 two constructors in plant_4070's lane"
+  },
+  {
+   "clock": "11:12",
+   "seat": "strategist-0",
+   "wanted": "\"Shellshockers stay behind the Stouts.\" (11:12); 17:43: \"Shellshockers and Janus fire on his commander from their reach; the Stouts and Blitzes close on it all together, never one or two walking into its D-gun alone\"",
+   "why_no_lever": "One task per group (fight_to, attack, gather, hold ...); no per-type role or spacing inside a group and no attack that waits for its tail; reinforcements drive in one by one (19:07 report: group_G's tail 3,626 behind its front). Low confidence: the lane footwork (form, march, fan) may cover part"
+  }
+ ],
+ "unreadable": []
+}

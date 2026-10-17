@@ -1,0 +1,337 @@
+{
+ "game": "1791905461-apex-v022-carrot-sym50-opus-2",
+ "result": "won 18:10",
+ "minutes": 18.16,
+ "seats": [
+  "strategist-0"
+ ],
+ "player_model": "claude-opus-5-5",
+ "commander": "claude-opus-5-5",
+ "opponent": "Apex v0.2.2 (standard)",
+ "counts": {
+  "strategist-0": {
+   "turns": 95,
+   "orders": 215,
+   "refused": 0,
+   "hands_lines": 1185,
+   "flagged": {
+    "step-skipped": 37,
+    "engine-refused": 23,
+    "hunt-ended-leash": 17,
+    "hunt-ended-other": 8,
+    "stopped-on-stop": 6,
+    "other-fault": 3,
+    "follow-ended": 1,
+    "site-blocked": 1
+   },
+   "takeovers": 2
+  },
+  "commander": {
+   "turns": 12,
+   "orders": 14,
+   "refused": 0,
+   "hands_lines": 0,
+   "flagged": {},
+   "takeovers": 0
+  }
+ },
+ "moments_examined": 8,
+ "clean": 3,
+ "tally": {
+  "A1": 0,
+  "A2": 3,
+  "A3": 4,
+  "A4": 7,
+  "A5": 0,
+  "A6": 6,
+  "B1": 0,
+  "B2": 0,
+  "B3": 0,
+  "B4": 0,
+  "B5": 1,
+  "B6": 0
+ },
+ "items": [
+  {
+   "clock": "13:41",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "13:33 packet: \"Its Blitzes stand at spot_116 as the screen in front of the Shellshockers and never walk into the reach of the turrets at spot_98.\"",
+   "happened": "The shell play (13:41 PLAYS group_E: shell his buildings at spot_98 from their reach with 21 long) sends non-artillery soldiers to a screen point at 0.55 x the longest artillery reach (Mauser 820 -> 451) from spot_98 on the line to the group's centre: inside the Beamers' 490 and the Overwatch's 620. Task held 'fight_to standoff from his buildings at spot_98' every second 13:41-14:26.",
+   "evidence": "execute.rs Order::Shell: screen = point(reach * SCREEN), SCREEN 0.55; record: 30 armflash (3,300 metal) destroyed 13:41-14:26, 29 of them within a known turret's reach (Beamers 19537/7585/29867, Overwatch 6774, Sentry 10821); artillery damage to turrets in that window 0 (record xo: armwar 708, armrock 188, armpw 52, armham 43).",
+   "cost": "large",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "9:19",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "9:03 packet: \"it shells his buildings at spot_98 ... the Blitzes standing in front as their screen ...; it does not walk the Blitzes into the Beamers' reach while they stand.\"",
+   "happened": "9:19 PLAYS group_E: shell his buildings at spot_98 from their reach with 6 long-reach soldiers; the screen point stood 0.55 x 710 = 390 from spot_98, inside the Beamers' 490. Opus then saw 'group_E 41 already under Beamer fire at the standoff' and went ALL IN at 9:39.",
+   "evidence": "hands_window 9:19-9:46 task 'fight_to standoff from his buildings at spot_98'; record: 8 armflash (880 metal) destroyed 9:38-9:45 at 167-605 from spot_98, all within a known turret's reach; player note 9:39.",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "6:46",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "6:38 packet: \"Its way: spot_116, then spot_63, then spot_79, walking as one body; it never walks toward spot_107 or spot_98\".",
+   "happened": "The packet landed 6:46; group_E kept the 6:41 task fight_to his_base (menu change 0.28 at 6:46, fight_to_spot_63 0.15; 0.45 at 6:47-6:50), walked the direct line and 'group_E reached spot_98' at 6:51 under the Beamer and Sentry.",
+   "evidence": "decode 6:46: group_E|place|spot_63 0.94, spot_79 0.94, spot_116 0.94 (marks landed); record: 5 armflash (550 metal) killed at G5 by armllt/armbeamer 6:50-7:00; player note 6:58 'first push at his base from G6 ran into the Beamer+Sentry at spot_98'.",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "5:38",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "5:14 packet: \"an enemy armflea ... at one of OUR extractors ... (spot_118, spot_119, spot_120, spot_124 ...) is met by one soldier sent from the nearest group.\"",
+   "happened": "The same packet says every small Blitz or Rover group joins group_E and group_E never splits; at 5:38 the nearest groups (group_L, 1 soldier ~1,400 from the Tick party_11; group_K) played 'join group_E' (0.71/0.69 against attack_party_11 0.42). No one answered; Ticks took spot_120 5:45, spot_118 5:51, spot_124 5:54, spot_119 6:00.",
+   "evidence": "hands_window 5:38 PLAYS group_K: join group_E | group_L: join group_E; raid_ledger: four extractors, answer none, rebuilt 6:30-10:52; commander 6:20 'Ticks have taken 4 extractors'.",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "words",
+   "person_said": false
+  },
+  {
+   "clock": "1:48",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "0:00 commander list [\"extractor\", \"extractor\", \"armsolar\", \"armsolar\", \"armvp\", \"assist 40\", \"extractor\", ...]; 0:55 packet names spot_99 among the commander's spots.",
+   "happened": "Code sited the first vehicle plant (0:44) facing east with spot_99 130 out in its lane; the list's unplaced extractor went on spot_99 at 1:48 ('1:45 commander: build a armmex at spot_99 (from its list)'). constructor_11430 stuck 1:51-2:33 (move_failed every second); plant_3156 made nothing 1:51-2:34; Opus reclaimed (2:15) then self-destructed it (2:24).",
+   "evidence": "record: armvp 3156 at (2542,7360), armmex 15482 at (2624,7328) created 1:48, destroyed 2:32; no unit from plant_3156 between 1:51 and 2:34. Fixed after this game by 3aabc77, which names this game.",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "17:25",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "17:18 packet: \"A party of his Pawns (armpw) at our extractors ... in the middle (spot_62, ...) is attacked by group_X2 and group_E3 together, whole\".",
+   "happened": "party_98 (1 to 22 armpw) at spot_62 from 17:25: group_E3 kept 'hold' (0.61-0.66 against go_spot_62 0.46-0.50, attack_party_98 0.39) every second to 17:29; group_X2 advanced to spot_62 at 17:27, then at 17:29 split 8 to hunt party_109 at G5 under the nest (leash ended after 0 s). spot_62 lost 17:29, spot_76 17:57.",
+   "evidence": "hands_window 17:24-17:29 (group_E3 PICK kept w1; PLAYS group_X2: 8 of group_X2 hunt party_109); decode 17:26 group_E3|place|spot_62 0.54, group_X2|place|spot_62 0.87; raid_ledger 17:29 spot_62 answer none.",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "9:42",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "9:03 packet: \"Ticks or single Pawns on the road behind it are answered by sending four Blitzes, never the whole group.\"",
+   "happened": "9:42 PLAYS group_E: 8 of group_E hunt party_37 (1 armflea) as group_G1; 9:43 4 more at the same Tick (group_H1); 9:44 4 at party_39 (1 armpw) (group_I1): 16 Blitzes off the body seconds before the ALL-IN packet landed; Opus 9:49 'the all-in went in piecemeal (17 of group_E split after Pawns)'.",
+   "evidence": "decode 9:11: group_E|detach|4 0.29, detach|8 0.46, detach|2 0.52, detach|1 0.46: the size Opus named is not distinguished and no forbid of 8 landed (under 0.5).",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "9:42",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "9:03 packet: Ticks or single Pawns on the road behind group_E are answered by four Blitzes.",
+   "happened": "'9:42 group_G1's hunt of party_37 ended after 0 s: the leash of 900 from where it began reached; it holds where it is (8 soldiers)', 9:43 group_H1 after 0 s, 9:46 group_I1 after 2 s: the detachments were left standing apart from the body.",
+   "evidence": "micro lib.rs: a hunt ends when any hunter is over 900 from leash_from (the detachment's centre), so a detachment drawn from a strung-out body ends on its first tick; group_E's tail was thousands behind its front.",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "8:45",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "8:35 packet: \"Pawns (armpw) or Ticks on the road behind it (spot_83, spot_101, spot_88, spot_116) are answered by sending four Blitzes (send)\".",
+   "happened": "8:45-8:48 the pick sent four Blitzes at party_21 (1 armpw) three times (group_T, group_U, group_V); each hunt 'ended after 0 s: the leash of 900 from where it began reached; it holds where it is (4 soldiers)': 12 Blitzes stranded, the Pawn alive (group_W's hunt ended out of sight 8:56).",
+   "evidence": "sweep 8:45/8:46/8:48 hunt-ended-leash lines; hands_window 8:45-8:46 PLAYS group_E: 4 of group_E hunt party_21 as group_T / group_U.",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "10:00",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "produce lists ending in an open entry, e.g. 9:29 plant_30437 [\"armflash:4\", \"armcv:1\", \"armflash:4\", \"armcv:1\", \"armflash\"]: keep making Blitzes.",
+   "happened": "Once the counted entries were spent, each unit waited for a fresh pick: reports show 'idle: building nothing; last_pick: ... picked a Blitz; 4 s ago'. Plants stood idle 20-33% of samples 10:00-15:42 against 0-3% while counted entries ran (8:00-10:00), with 1,500-1,900 metal banked; the commander's 15:21 direction 'Three vehicle plants stand idle, with 2,443 metal banked'.",
+   "evidence": "record flags (idle) of plant_3156/30437: 27/120 and 33/120 samples 10:00-12:00, 27/120 and 34/120 12:00-14:00; all four 16-34/102 14:00-15:42; bank median 1540-1904.",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "11:13",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "11:05 packet: \"Its way until push is given: spot_101, then spot_116, walking now\".",
+   "happened": "group_E (62-70) stood at D5 11:13-11:33 on a stale task 'fight_to standoff from party_50' (party_50 out of sight since 11:00): change 0.48-0.50, fight_to_spot_116 0.50 then 0.29. Opus 11:25 blamed 'never go back to a place reached' and rewrote 'its place is spot_116'; at 11:33 change 0.63 and it advanced.",
+   "evidence": "hands_window 11:12-11:34; decode 11:13 group_E|place|spot_101 0.97, spot_116 0.96 (marks landed).",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "15:40",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "14:26 packet: \"group_E: its place is spot_116 (G6) until storm is given ... When storm is given: it attacks his_base as one body ... It does not come back once storm is given.\" (storm given 15:21)",
+   "happened": "After 15:25 advance to his_base and attacks on party_76, 15:40 PLAYS group_E: walk to spot_116 (go_spot_116 0.52); the body walked off the storm until the 15:42 packet landed.",
+   "evidence": "hands_window 15:24-15:43; decode 14:34 group_E|place|spot_116 0.98, his_base 0.95 (both landed; the condition is not a mark); player note 15:42 'the stormed army walked back to spot_116'.",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "10:09",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "lane group_E [\"fan\", \"form\", \"march\"] (6:48) and the 9:49 packet: it walks to spot_116 and gathers there.",
+   "happened": "march held the front for stragglers that were the plants' new joiners at home: the front went from 3,277 to 3,468 'to go' between 10:09 and 10:19 ('0 of 32 arrived, its tail 8162 short, for 22 s'); Opus dropped march at 10:19.",
+   "evidence": "reports 10:09/10:19 group_E entries; player note 10:19.",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "11:43",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "11:35 queue constructor_19403 and constructor_26617 [\"armfus home #fus1\", \"assist\"]: two constructors help the fusion (note 11:35).",
+   "happened": "'11:43 constructor_19403: skipped the step 'armfus home #fus1' of its list: this builder cannot build it' (and 26617): the step was read as building a fusion, which tier-1 builders cannot, not as helping the #fus1 frame. The fusion ran 12:43-14:30 on tier-2 builders; energy STALLING at 14:03-14:13.",
+   "evidence": "sweep 11:43 step-skipped lines; record armfus 24070 created 12:43 finished 14:30.",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "13:43",
+   "seat": "strategist-0",
+   "category": "B5",
+   "wanted": "Know why Blitzes kept dying at the nest during the siege.",
+   "happened": "The play read 'shell his buildings at spot_98 from their reach with 21 long-reach soldiers, 37 between' and the entry 'advancing to standoff from his buildings at spot_98'; no line said the screen point stood 451 from spot_98 inside both turrets' reach. Opus blamed the push signal (13:43) and blindness (14:03); it first held the Blitzes outside reach at 16:50 (siege_line).",
+   "evidence": "notes 13:43, 14:03, 14:26, 16:50; reports 13:43-14:03 group_E entries.",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "13:33",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "signal {\"push\": \"20:00\"} with the 13:33 siege packet: hold push back.",
+   "happened": "Tool result 'push will be given at 20:00 ... until then the hands read it as not yet given'; the hands kept 'push: given, at 13:30' (the commander's side signal of 12:21 wins a clash) until the commander nulled it at 13:51. The pick did not take the push branch (13:41 shell play), but Opus re-keyed its packet to a new signal 'storm' at 13:43 and blamed push for the losses.",
+   "evidence": "shared.rs signals_all: side signals extend over the seat's; reports 13:43 and 13:53 'push: given, at 13:30', 14:03 'not yet given (set for 20:00)'; commander note 13:51.",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "13:05",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "signal {\"push\": \"now\"} at 13:05 and again at 13:15.",
+   "happened": "Tool result 'push is given now (13:05): the hands see it from their next look'; the hands read 'push: not yet given (set for 13:30)' to 13:30 (the side's signal shadows the seat's). Opus 13:15: 'push read not yet given (13:30) again (probably the side commander re-set it)'.",
+   "evidence": "reports 13:15 and 13:25 signals line; commander note 13:51 'my clock un-gave it'. When push did come at 13:30 the pick kept attacking party_69/72, so 25 s earlier is unlikely to have changed the plays.",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "17:16",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "17:08 queue: 15 constructors [\"armsilo home #silo1\"]; note '15 idle/assisting constructors put on it (#silo1)'.",
+   "happened": "All 15 'skipped the step 'armsilo home #silo1' of its list: this builder cannot build it' at 17:16; the frame itself began only at 17:53 (constructor_19565 still walking, 2012 to go at 17:08).",
+   "evidence": "sweep 17:16 lines; record armsilo 15388 created 17:53.",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "17:58",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "17:18 packet raid clause: the Pawn party in our middle is attacked by group_X2 and group_E3, whole.",
+   "happened": "'17:58 group_A4's hunt of party_98 ended after 0 s: the leash of 900 from where it began reached; it holds where it is (8 soldiers)'.",
+   "evidence": "sweep 17:58; raid_ledger 17:57 spot_76 lost before the hunt began; game won 18:10.",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "2:51",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "2:43 queue commander [\"armnanotc\", ..., \"armnanotc\", \"assist\"].",
+   "happened": "'2:51 commander: skipped the step 'armnanotc' of its list: this builder cannot build it' (armcom's build list has no armnanotc); the tool accepted the list. Opus replaced it with armvp #vp2 at 2:53.",
+   "evidence": "sweep 2:51; record header unit_defs armcom builds.",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "13:00",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "11:51 queue constructor_5199 [\"extractor spot_142\", \"armllt spot_142\", \"extractor spot_143\"].",
+   "happened": "Another constructor built spot_142's extractor (12:38-12:58); 5199's was refused ('the site was bad') and '13:00 constructor_5199: skipped the step 'armllt spot_142' ...: the extractor at spot_142 was refused lately; a defence there waits for it'. No turret ever stood at spot_142. All ten extractor refusals of the game were spots our own extractor already held.",
+   "evidence": "sweep 12:59-13:16; record: no armllt within 350 of spot_142 all game.",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  }
+ ],
+ "no_lever": [
+  {
+   "clock": "13:33",
+   "seat": "strategist-0",
+   "wanted": "\"Its Shellshockers and Mausers shell the turrets at spot_98 from their own reach, the Overwatch (armhlt) first, then the Beamers, then the Sentry, then his resurrection bots\" (also 9:03, 11:25, 12:45, 13:43; commander 13:51 'Shell his resurrection bots too')",
+   "why_no_lever": "The shell move is a fight-move to a standoff point (execute.rs Order::Shell): it fires only at what is in sight, has no attack-ground on a remembered building and no target order. Artillery did 0 damage to turrets from 13:41 to 16:20 and first hit Beamers after they came into sight."
+  },
+  {
+   "clock": "13:33",
+   "seat": "strategist-0",
+   "wanted": "\"Its Blitzes stand at spot_116 as the screen in front of the Shellshockers and never walk into the reach of the turrets at spot_98\" (also 9:03, 9:49, 11:25)",
+   "why_no_lever": "No move puts a group's artillery at its reach and its screen at a named place or outside a turret's reach: the shell move fixes the screen at 0.55 x the artillery's reach from the target. Opus found the workaround at 16:50 (hold the whole group at a marked siege_line)."
+  },
+  {
+   "clock": "10:19",
+   "seat": "strategist-0",
+   "wanted": "march for group_E's body walking to spot_116, while new soldiers from the plants join it from home",
+   "why_no_lever": "march waits for every member, joiners walking from home included; it cannot be scoped to the body, so the only choice was to drop it."
+  },
+  {
+   "clock": "17:08",
+   "seat": "strategist-0",
+   "wanted": "\"15 idle/assisting constructors put on it (#silo1)\" (also 11:35 #fus1)",
+   "why_no_lever": "A list step with an id is read as building that type; a builder that cannot build the type skips it, so a list cannot send tier-1 builders to help a tier-2 frame (only the packet's help moves can, once the frame stands)."
+  }
+ ],
+ "unreadable": [
+  "run/pro_baseline.py: no carded side on Carrot Mountains v2.0 at OS 40+ (no pro milestones; the opening was judged against the record)"
+ ]
+}

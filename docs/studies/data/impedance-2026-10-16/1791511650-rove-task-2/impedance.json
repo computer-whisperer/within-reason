@@ -1,0 +1,317 @@
+{
+ "game": "1791511650-rove-task-2",
+ "result": "won 21:11",
+ "minutes": 21.18,
+ "seats": [
+  "strategist-0"
+ ],
+ "player_model": "claude-opus-5-5",
+ "commander": "none",
+ "opponent": "BARb hard_aggressive",
+ "counts": {
+  "strategist-0": {
+   "turns": 112,
+   "orders": 236,
+   "refused": 1,
+   "hands_lines": 1116,
+   "flagged": {
+    "step-waits": 15,
+    "step-skipped": 15,
+    "hunt-ended-leash": 12,
+    "hunt-ended-other": 8,
+    "engine-refused": 4,
+    "site-blocked": 3,
+    "other-fault": 2,
+    "abandoned": 2,
+    "follow-ended": 2,
+    "stopped-on-stop": 1
+   },
+   "takeovers": 2
+  }
+ },
+ "moments_examined": 8,
+ "clean": 2,
+ "tally": {
+  "A1": 1,
+  "A2": 3,
+  "A3": 6,
+  "A4": 5,
+  "A5": 0,
+  "A6": 3,
+  "B1": 0,
+  "B2": 0,
+  "B3": 0,
+  "B4": 2,
+  "B5": 1,
+  "B6": 0
+ },
+ "items": [
+  {
+   "clock": "13:30-17:36",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "packets 13:51-17:19, constructors: \"Without a list, the others take free spots on our side in this order: spot_33, spot_49, spot_46, spot_37, spot_31, spot_24, spot_21, with an armllt beside each\"",
+   "happened": "list-less constructors helped the plants for ~4 min; extractors flat at 33 with 30 free spots until the player gave four explicit lists at 17:36",
+   "evidence": "pass menus 16:00-17:30: constructor_18284 and constructor_25985 [help] with every build_armmex_spot_* far=True fused=True (the near layer); constructor_26737 [help quiet] (news-closed) though spot_49/37/31 were open; wake 17:36 \"no growth: we have not held more than 33 extractors for 4 min, with 31 free spots\"; record metal store 0-158 from 13:30 to 18:00, energy 3,700-4,341 of 4,000-4,400",
+   "cost": "large",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "15:50-15:53",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "15:32 (in force 15:39): \"It never splits and never chases single raiders.\" 15:42 (in force 15:49): \"group_C goes there now as one body and attacks his commander with every soldier\"",
+   "happened": "the pick sent four detachments of 8 from group_C (as group_A3, B3, C3, D3) after party_52, 2 corgators on our side; group_C went 53 -> 18 soldiers in four seconds while his commander stood at spot_35",
+   "evidence": "PICK 15:50 \"group_C: 8 of group_C hunt party_52 (2 corgator) as group_A3\" (w4 at 0.66), again 15:51, 15:52, 15:53; worlds_gate group_C.send_8_party_52.forbidden 0.85 (15:49), 0.69 (15:50, 15:51), 0.31-0.44 (15:52-15:53); decode 15:50 group_C|detach|8=0.59; player's note 15:52 confirms",
+   "cost": "large",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "13:30-17:36",
+   "seat": "strategist-0",
+   "category": "B4",
+   "wanted": "(the same plateau as the A4 item) the player's plan was growth: 15:22 \"the others take free spots on our side in this order: spot_33, spot_49...\"",
+   "happened": "the report carried the plateau every turn and the player's notes 13:30-17:29 are all about the army; it acted only on the 17:36 no-growth wake: \"five constructors were guarding plant_27255 with metal at 0\"",
+   "evidence": "15:42 report: score \"extractors 33 (most held 33, no new high for 2:10; free spots we can walk to 30\"; eco \"metal 117 (+117.0/-49.5)\"; actor entries \"constructor_18284: at home (B8); helping lab_27255 build, since 208 s ago\", \"constructor_25985 ... helping lab_27255 build, since 82 s ago\"",
+   "cost": "large",
+   "confidence": "medium",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "0:35-1:57",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "0:00 queue commander: [\"extractor\", \"extractor\", \"armsolar\", \"armsolar\", \"armvp\", \"assist 45\", \"extractor\", ...] (a bare plant and a bare extractor)",
+   "happened": "the plant stood at (1518,5520) facing east with spot_73 in its exit lane, and the bare 'extractor' put armmex_28188 on spot_73 inside that lane; lane alarms at 2:30, 4:24, 7:35; the player reclaimed then self-destructed it at 7:35/7:55",
+   "evidence": "record: placed armvp 0:35 at (1520,5520), finished facing 1 (east); armmex 28188 created 1:57 at (1760,5568); wake 2:30 \"plant_27255's exit lane is blocked ... in the lane: armmex_28188\"; remove {\"destruct\": [\"armmex_28188\"]} 7:55",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "2:48",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "2:40 (in force 2:47): \"while any soldier of his (corfav, corak, corgator) stands at our extractors or constructors on our side, group_A stops roving and fights it there with the whole group\"",
+   "happened": "group_A (6 Rovers) kept roving in his half while party_2 (1 corfav) shot constructor_10476 beside home",
+   "evidence": "hands_window 2:48: menu group_A [rove] change=0.76: fight_to_home=0.29 go_home=0.28; PICK changed only constructor_10476; decode 2:48 group_A|place|home=0.67 (2:58: 0.98)",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "3:12-3:28",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "2:50 (in force 2:57): \"while a corfav or corak of his stands at home, spot_73, spot_69 or any extractor or constructor of ours, group_A fights to home (or to that spot) and attacks it\"",
+   "happened": "party_2 came back and shot constructor_10476 for 17 s; group_A was not asked (closed by the news layer) and roved on east; it turned home only at 3:30 from 3,600 away; group_B killed the corfav at 3:39",
+   "evidence": "pass rows 3:12-3:28: closed=['group_A'] every second, events 'constructor_10476 hit'; 3:30 PLAYS group_A: advance to home; record: armllt 2190 frame at spot_69 destroyed 3:28 (attacker unseen); constructor_10476 'walk to home' 3:15",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "7:24-8:13",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "7:17 (in force 7:24): \"group_G (home Blitzes, and every new group from the plants): stands at spot_73 and answers raiders at our extractors as above\"",
+   "happened": "group_G (7-9 soldiers) kept following the commander inside plant_27255's exit lane, one soldier stuck there, until the 8:04 packet moved it to spot_69",
+   "evidence": "decode 7:29 group_G|place|spot_73=0.97; menus group_G [follow] change 0.49-0.60, go_spot_73=0.35 (7:29), 0.40 (7:55); 7:35 report: group_G \"following commander for 71 s ... stuck: 1 of its 7 soldiers ... standing in plant_27255's exit lane\"",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "7:52-8:58",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "7:45 queue constructor_31791: [\"armadvsol\", \"extractor spot_28\", \"extractor spot_30\", \"armllt spot_30\", \"extractor spot_19\"]; note \"Three advanced solars and four solars ordered\"",
+   "happened": "the constructor, already walking to spot_28 (A4), turned back: the bare generator went to the back field at home (1248,5712), ~3,300 away; it was started at 8:58, and spot_28 was taken only at 11:23 by another constructor",
+   "evidence": "record: placed armmex at (1002,2422) 7:50 by 31791; placed armadvsol (1248,5712) 8:04, created 8:58; 8:02 \"dropped the step 'extractor spot_28' its old list had queued\"; spot_28 armmex 20359 created 11:23 by constructor_27504; queue tool text: \"a generator beside the builder when it stands at home, else in the back field at home\"",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "8:04",
+   "seat": "strategist-0",
+   "category": "B5",
+   "wanted": "7:35/7:55 remove armmex_28188 (the lane extractor); 8:04 queue constructor_11458: [\"extractor spot_73\", \"armsolar\", \"armsolar\"] and packet order \"spot_73, spot_59, ...\" first",
+   "happened": "the extractor was rebuilt on the same spot (armmex_15605 at (1824,5584), 8:25), back in the plant's lane; lane alarms again at 13:51, 19:14, 20:27 naming armmex_15605",
+   "evidence": "the lane wake read \"in the lane: armmex_28188 (the remove tool takes them away)\" with no spot; the player's 2:30 note placed it at \"spot_67\"; record: armmex 15605 created 8:25 by 11458 at (1824,5584); wake 19:14 \"in the lane: armmex_1560...\"",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "11:19-11:20",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "10:36 (in force 10:43): \"RAIDS: a single raider of his at our extractors or constructors is answered by sending two soldiers from the home guard\"; group_C regroups at spot_57 for push2",
+   "happened": "the pick sent two pairs out of group_C (group_Y, group_Z) after party_25, one corgator ~2,500 behind them on our side; they walked back across the map until the leash ended them at 11:29",
+   "evidence": "PICK 11:19 \"group_C: 2 of group_C hunt party_25 (1 corgator)\" (w4 at 0.06), again 11:19-11:20; decode 10:44 group_C|detach|2=0.76; worlds_gate group_C.send_2_party_25.forbidden 0.69 then 0.50; player 11:23: \"group_C never sends any...\"",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "11:29",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "10:36 (in force 10:43): \"a single raider ... is answered by sending two soldiers from the home guard; a lone corgator is answered by two or more\"",
+   "happened": "the home guard's pair (group_A1) hunting party_25 was ended by the leash and walked home at 11:30 while the corgator stood at spot_33; spot_33's extractor died 11:29, rebuilt 12:41",
+   "evidence": "sweep: \"11:29 group_A1's hunt of party_25 ended after 9 s: the leash of 900 from where it began reached\"; PLAYS 11:30 \"group_A1: walk to spot_69\"; parties 11:31 party_25=1 corgator@(3442,2792); raid_ledger 11:29 spot_33 paid 0",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "12:16-12:35",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "12:09 (in force 12:16): \"REINFORCEMENT group_A1 and group_B1: group_B1 joins group_A1. group_A1 fights to spot_58, then spot_57, then joins group_C.\"",
+   "happened": "group_A1 (11 soldiers, 2,360 metal) held at spot_69 for 19 s; the player re-ordered at 12:29 (\"It never holds at spot_69 again\"); then 8 of it went hunting corgators and never reached group_C",
+   "evidence": "decode 12:17 group_A1|place|spot_58=0.98, spot_57=0.98; pass 12:17: go_spot_58/fight_to_spot_58/join_group_C held=True (openers), gate group_A1.change=0.45; 12:18-12:27 group_A1 quiet (news)",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "15:14-21:11",
+   "seat": "strategist-0",
+   "category": "B4",
+   "wanted": "13:05 queue constructor_10476: [\"stop\", \"armsolar solar_field\", \"armsolar solar_field\"]",
+   "happened": "constructor_10476 stuck beside the solar_field mark (B7, a cliff pocket) for the last 6 minutes; never re-tasked or removed",
+   "evidence": "every report from 15:14 to 21:07: \"constructor_10476: at solar_field (B7); walking to build a Solar Collector ... stuck: it cannot move from solar_field (B7), its moves have failed since N s ago\"; record: 178 move_failed for armcv 10476 from 12:00",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false
+  },
+  {
+   "clock": "15:27",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "14:23 queue constructor_21956: [\"extractor spot_44\", \"armllt spot_44\", \"extractor spot_49\", \"armllt spot_49\"]",
+   "happened": "the turret beside spot_44 was skipped as if the extractor there had been refused, while our extractor (rebuilt 14:39) stood there; spot_44 was lost again at 15:51",
+   "evidence": "\"15:26 constructor_21956: the engine refused a armmex at D5: the site was bad\"; \"15:27 ... skipped the step 'armllt spot_44' of its list: the extractor at spot_44 was refused lately; a defence there waits for it\"; raid_ledger spot_44 rebuilt 14:39 (stood), lost 15:51",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "9:58-10:19",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "8:51 (in force 8:58): \"HOME GUARD ... When the home guard holds six or more soldiers and push is given, it walks to spot_58 and follows group_C's way.\"",
+   "happened": "group_P reached 6 soldiers at 9:58 (push given 9:40) and gathered at home; it left only when the 10:12 packet named it (fight_to spot_58 from 10:20)",
+   "evidence": "decode 9:40 group_P|place|spot_58=0.06, spot_57=0.05; PLAYS group_P \"gather on its front\" 9:51-10:01; decode 10:20 group_P|place|spot_58=0.98",
+   "cost": "none",
+   "confidence": "medium",
+   "fix_class": "words",
+   "person_said": false
+  },
+  {
+   "clock": "8:44",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "8:31 (in force 8:38): \"RAIDS: a single raider of his at our extractors or constructors is answered by sending one or two soldiers from group_G, never more.\"",
+   "happened": "group_M's hunt of party_15 (1 corgator) ended on the leash; the pick re-sent it a second later; spot_47's extractor died at 8:46 with the hunters ~1,100 away either way",
+   "evidence": "sweep \"8:44 group_M's hunt of party_15 ended after 10 s: the leash of 900\"; PLAYS 8:45 \"group_M: attack party_15 (1 corgator) with the whole group\"; record armmex 14554 destroyed 8:46",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "12:49",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "12:39 (in force 12:46): \"group_L1 (the reinforcement): the corgator raiders at our extractors at spot_49, spot_46, spot_44 and spot_47 are its business first: it fights them there as a whole group.\"",
+   "happened": "the leash ended group_L1's hunt of party_30 and group_M1's of party_32 while the raiders stood at our spots; the pick re-sent both at 12:50",
+   "evidence": "sweep \"12:49 group_L1's hunt of party_30 ended after 14 s: the leash of 900\" and group_M1's; PLAYS 12:50 \"group_L1: advance to spot_47\", \"group_M1: attack party_30 (4 corgator)\"",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  },
+  {
+   "clock": "16:40",
+   "seat": "strategist-0",
+   "category": "A1",
+   "wanted": "mark {\"name\": \"his_g3\", \"value\": \"G3\"}, with the packet's way \"spot_41, then spot_35, then spot_29, then spot_25, then his_g3, then his_plant\"",
+   "happened": "the mark never entered; the packet named a place that did not exist for 10 s; the player saw the refusal and re-issued mark {\"his_g3\": [6656, 1920]} at 16:50",
+   "evidence": "\"mark: REFUSED: name: a grid cell is A1 to H8\"",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "17:26-18:01",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "17:19 (in force 17:26): \"group_L2: it joins group_B3 and becomes part of the one body.\"",
+   "happened": "group_L2 (45) kept following group_B3 about 1,000 behind instead of joining it, until the 17:54 packet allowed the follow",
+   "evidence": "decode 17:27 group_L2|join|group_B3=0.64; menus group_L2 [follow] join_group_B3=0.27 (17:33), 0.34 (17:34); PICK 17:33 kept w1",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false
+  },
+  {
+   "clock": "18:32",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "18:24 queue commander: [\"armnanotc\", \"armnanotc\"]",
+   "happened": "both steps skipped: the commander cannot build a construction turret; the tool had accepted them; the player replaced them with solars at 18:34",
+   "evidence": "\"18:32 commander: skipped the step 'armnanotc' of its list: this builder cannot build it\" (twice)",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false
+  },
+  {
+   "clock": "6:07",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "3:54 queue constructor_18284: [\"extractor spot_76\", \"extractor spot_68\", \"armllt spot_68\", \"extractor spot_71\", \"armllt spot_71\"]",
+   "happened": "constructor_18284 built the extractor at spot_71 (5:54); constructor_10476's duplicate step there was refused (5:56), and that refusal made the hands skip 18284's turret beside its own standing extractor",
+   "evidence": "record armmex 4634 created 5:54 at (3488,5536) by 18284; \"5:56 constructor_10476: the engine refused a armmex at D8: the site was bad\"; \"6:07 constructor_18284: skipped the step 'armllt spot_71' ...: the extractor at spot_71 was refused lately\"",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false
+  }
+ ],
+ "no_lever": [
+  {
+   "clock": "12:09",
+   "seat": "strategist-0",
+   "wanted": "commander: \"helps the plants from beside them, never standing in a plant's exit lane\"; constructors: \"Never build in a plant's exit lane.\" (said again in every packet to 20:47)",
+   "why_no_lever": "no menu move or list step says where a helping builder stands, and a bare building's site is chosen by code; lane alarms went on (13:51 armcv_21956 stood 0:30; 19:14 and 20:27 armjanus_14107 with armmex_15605 in the lane)"
+  },
+  {
+   "clock": "7:17",
+   "seat": "strategist-0",
+   "wanted": "\"A corwolv alone or at the back of his party is the first thing to kill.\"; 14:38-15:22: \"It kills his soldiers first, then his turrets (corhllt, corllt, corpun, corhlt), extractors and constructors\"",
+   "why_no_lever": "a group's attack moves take a whole party (or his buildings at a place); no move, lane setting or tool sets the micro engine's target order by unit type inside a mixed party"
+  }
+ ],
+ "unreadable": []
+}

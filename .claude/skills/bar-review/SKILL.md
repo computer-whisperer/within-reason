@@ -63,7 +63,10 @@ Run each from the repository root; keep the outputs, you will quote them. Times 
    for units waiting behind a firing front; `run/hands_window.py <match> <from> <to> [actor ...]` for what the hands
    saw and played second by second, and the player's turns straight from `strategist-<ai>.jsonl` (the `turn` rows
    carry the report it read, the `tool_call` rows what it ordered) against `truth-<ai>.jsonl`.
-10. `docs/experiments.md` (grep the batch label) for what the batch was testing and what the main session already
+10. `run/impedance_sweep.py <match> [--seat N | --commander]`: every order beside what the next report said the hands
+   did with it, the refused calls and the counts; for a tally in the categories of the impedance study use its brief
+   (`docs/harness/impedance.md`).
+11. `docs/experiments.md` (grep the batch label) for what the batch was testing and what the main session already
    found; `docs/knowledge/_inbox/player-notes.md` for the experienced players' notes in force.
 
 The viewer (`run/view_match.py`, see docs/harness/record-format.md) is for a person; you have the tools above.

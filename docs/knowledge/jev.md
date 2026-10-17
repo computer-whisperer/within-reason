@@ -2177,3 +2177,50 @@ and 30-50 ms; coordinates in the text beside the picture break it (0.04), and it
 **Evidence.** `run/clef_spatial.py --models jev,jev-preview --box`, `docs/studies/data/jev-images-spatial-2026-10-16.*`.
 **Would be wrong if.** A picture of a real game moment moved a gate answer toward a reviewer's verdict where the
 text did not, or a Box on a real picture (units, terrain, no clean dots) kept the two-thirds rate.
+
+### K-jev-the-packet-weights-the-pick-and-does-not-command
+**Claim.** A packet sentence the decode reads at 0.9 or over still loses to the pick about as often as it wins: the
+move it names is rated on its own (0.2 to 0.5 against a hunt or shell at 0.5 to 0.7), and a busy actor is re-asked
+only when its `change` question clears 0.5, so a new packet reaches a holding or fighting group minutes late or not
+at all. The detachment's forbidden mark takes effect at 0.70, so readings of 0.61 to 0.69 send the detachment; the
+commander's standing rule ("never ... attacks a party that outreaches its D-gun or outweighs it") has no "unless the
+instructions speak to this fight" clause and beats any packet.
+**Status.** supported (2026-10-16, the impedance study: 113 A3 items in 23 games; 14 "mark landed, course kept" and
+39 "change under 0.5" items in 16 games; 33 forbidden-bar items in 18 games; verified in the logs at rove-task-2
+12:16 and 15:50, leg-player-1 17:24, apex-v024 11:34, human-28 12:06 and in `decode.rs`, `rules.md`).
+**Evidence.** `docs/studies/2026-10-16-opus-hands-impedance.md` §3.1, `data/impedance-2026-10-16/`.
+**Would be wrong if.** A replay of the "mark landed" moments under a packet-weighted pick (the named move's rating
+raised by its reading) took the packet's move in most of them, or a game with the forbidden bar at 0.6 lost more
+detachments the packet wanted than it kept.
+**Used by.** nothing built; a candidate for the user's word.
+
+### K-jev-the-decode-reads-an-ordered-constructor-paragraph-as-no-extractors
+**Claim.** The decode's per-constructor `build|armmex` reading, which fuses the extractor move off under 0.3, depends
+on the paragraph's shape and not on whether it says the constructors take spots: "their job is taking free metal
+spots, in this order" reads at 0 under the bar of 84 readings; "first a light turret beside every extractor, then
+free metal spots" at 44 of 62; "the ones at home help the fusion; the others take free metal spots" at 28 of 33;
+"constructor_X and constructor_Y take apart the wrecks; the others take free spots" at 61 of 68. A negated place
+("never walks to spot_8") reads as a destination (0.59 to 0.97), and a group named by description ("the armflash
+group from plant_19529") gets no mark. The report shows the decode's readings for groups and not for builders.
+**Status.** supported (2026-10-16, the impedance study: the decode scan of 12 arena games, 1,122 readings;
+prio-player-1 10:45 to 14:25 verified, six constructors off extractors for 4.5 minutes; human-31 12:27 verified).
+**Evidence.** `docs/studies/2026-10-16-opus-hands-impedance.md` §3.2, `data/impedance-2026-10-16/decode_mex.json`.
+**Would be wrong if.** The same paragraphs re-decoded on Jev 1.14 (the scan ran on 1.13 logs but jev114-player-1,
+which read "the others take free spots" at 20 of 20 under the bar) read the ordered forms over 0.5, or the decode
+question re-worded to ask "does this paragraph give this constructor extractors to build, now or later" did.
+**Used by.** nothing built.
+
+### K-harness-five-code-faults-and-five-report-lines-from-the-impedance-tally
+**Claim.** Across the 23 games of 2026-10-06 to 2026-10-16 the exact, cheap faults are: the hunt's 900 leash measured
+from the hunters' own centre (174 of 395 leash ends "after 0 s"); a re-sent list's first step "taken as done" on a
+build ordered but not started, the next step cancelling it (104 lines, 18 games); the turret step skipped while
+"the extractor at spot_N was refused lately" though our extractor stands (150); `signal` refused inside `orders`
+(38; `batchable()` omits it); `queue` accepting steps the builder cannot make (180 "cannot build it", 35 "needs a
+place"). And in the report: the metal store's cap missing from the eco line; a dead enemy building listed as
+standing in a cell in sight; moho upgrades counted on "extractors lost in the last 3 min"; `no_site` dropped with
+no line (11 events, 0 lines); a builder's type (armacv) absent from its entry.
+**Status.** measured (2026-10-16, corpus scans of every transcript; each verified in at least one game's raw data).
+**Evidence.** `docs/studies/2026-10-16-opus-hands-impedance.md` §3.3 to §3.5.
+**Would be wrong if.** The counts were the players' own asks (a `stop` is; these are not), or the lines came from a
+build before the rebuilt hands (all 23 games are on version 3 logs).
+**Used by.** nothing built; each is the user's call.

@@ -1,0 +1,379 @@
+{
+ "game": "1791335540-human-26",
+ "result": "undecided 10:07 by the record (engine closed, 'unexpected end of file'); t2 out by 9:49 (a Rover left), t3 holding with 23 units (8 soldiers) against 28 Blitzes in sight; no chat line from the people",
+ "minutes": 10.1,
+ "seats": [
+  "strategist-0",
+  "strategist-1"
+ ],
+ "player_model": "claude-opus-5-5",
+ "commander": "claude-opus-5-5",
+ "opponent": "[gecko]Covariance and [gecko]u6bkep (people, Armada)",
+ "counts": {
+  "strategist-0": {
+   "turns": 34,
+   "orders": 85,
+   "refused": 0,
+   "hands_lines": 222,
+   "flagged": {
+    "step-waits": 6,
+    "other-fault": 5,
+    "hunt-ended-other": 4,
+    "hunt-ended-leash": 3,
+    "follow-ended": 2,
+    "engine-refused": 1,
+    "step-skipped": 1,
+    "stopped-on-stop": 1
+   },
+   "takeovers": 0
+  },
+  "strategist-1": {
+   "turns": 47,
+   "orders": 116,
+   "refused": 0,
+   "hands_lines": 206,
+   "flagged": {
+    "step-waits": 14,
+    "other-fault": 8,
+    "step-skipped": 4,
+    "hunt-ended-other": 2,
+    "abandoned": 1,
+    "stopped-on-stop": 1
+   },
+   "takeovers": 1
+  },
+  "commander": {
+   "turns": 7,
+   "orders": 9,
+   "refused": 0,
+   "hands_lines": 0,
+   "flagged": {},
+   "takeovers": 0
+  }
+ },
+ "moments_examined": 8,
+ "clean": 0,
+ "tally": {
+  "A1": 0,
+  "A2": 1,
+  "A3": 5,
+  "A4": 1,
+  "A5": 1,
+  "A6": 4,
+  "B1": 2,
+  "B2": 1,
+  "B3": 1,
+  "B4": 0,
+  "B5": 1,
+  "B6": 4
+ },
+ "items": [
+  {
+   "clock": "7:01",
+   "seat": "strategist-0",
+   "category": "A6",
+   "wanted": "6:52 packet: \"group_H_t2: the home guard. It stands at spot_11 and attacks any enemy armfav or raider at our extractors, constructors or plant on sight ... it never chases them past spot_18 or spot_17.\"",
+   "happened": "The pick had merged group_H into group_I at 6:58 (\"group_H_t2: join group_I_t2 [plan]\"); the packet landed at 7:01 naming a group that no longer stood. At 7:05 the pick sent 2 of group_I after party_39 and at 7:06 the rest (\"group_I_t2: attack party_39 (1 armflash) with the whole group [plan]\"): one Blitz at D8, about 4,300 away in t3's half. party_18 (2 armfav, 8 armflash) reached the commander at 7:06.",
+   "evidence": "decode 7:01: nothing for group_I_t2 at 0.5 or over (only group_I_t2|detach|1 0.40); the 7:05 report: group_I_t2 \"reads: no place; NO place to step back to\"; send_N_party_18.forbidden 0.64-0.70 every second 7:04-7:13; commander_t2 hit from 7:06, died 7:20 at F1 (record: destroyed armcom 15349 by armflash).",
+   "cost": "large",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false,
+   "note": "Shares one consequence with the 7:03 A4: the commander (2,700 metal, the seat's builder) died with 4 Blitzes of its home guard elsewhere. Whether they would have saved it is a reading. The 7:05 packet re-pointing the guard at group_I landed at 7:14 (12.5 s turn), too late."
+  },
+  {
+   "clock": "7:03",
+   "seat": "strategist-0",
+   "category": "A4",
+   "wanted": "6:52 packet (the home guard): \"attacks any enemy armfav or raider at our extractors, constructors or plant on sight\"; party_18 was at spot_11, our extractor.",
+   "happened": "\"7:03 group_I_t2's hunt of party_18 ended after 8 s: the leash of 900 from where it began reached; it holds where it is (4 soldiers)\". The hunt had begun at D2 (3710,1509), where group_H had chased party_37 out west. It ended at E2, 950 short of party_18, 3 s before party_18 began on the commander.",
+   "evidence": "sweep line [hunt-ended-leash] 7:03; hands_window 7:03: group_I_t2 4 at (4208,1067) task hold, party_18 at (5130,863); commander hit 7:06-7:20, died 7:20.",
+   "cost": "large",
+   "confidence": "medium",
+   "fix_class": "code-rule",
+   "person_said": false,
+   "note": "The same consequence as the 7:01 A6. The leash is measured from where the hunt began, and here that was far out of the guard's zone."
+  },
+  {
+   "clock": "3:27",
+   "seat": "strategist-0",
+   "category": "B2",
+   "wanted": "3:27 packet: \"group_B_t2: the raid. It goes west now as one group by spot_18 ... Enemy armfav at our home extractors are not its business once it has left spot_18.\"",
+   "happened": "The record shows 8 armfav at G6 and 1 at H6 at 3:03 (from t3's corner, heading north toward t2). None of the 81 reports of this game carries a recently-seen/out-of-sight block, and the hands' parties at 3:28 hold only party_11/party_12 in the west. The 3:27 report showed only 2 armfav at B3. group_B (4 Blitz, 1 Rover) walked west from 3:40, and 11 armfav hit home from 3:33.",
+   "evidence": "record s rows 3:03 {G6 armfav 8, H6 armfav 1}; 3:27 prompt: no line for them; commander's 8:50 fights table: \"3:35-4:25 at G2 ... We lost 3 armcv, 2 armsolar, 4 armmex, 1 armllt (1000); he lost 17 armfav (527)\".",
+   "cost": "large",
+   "confidence": "low",
+   "fix_class": "report",
+   "person_said": false,
+   "note": "The fact is certain. The cost link (that knowing would have kept group_B home) is an inference."
+  },
+  {
+   "clock": "3:53",
+   "seat": "strategist-0",
+   "category": "A3",
+   "wanted": "3:45 packet (landed 3:53): \"group_B_t2: attacks the armfav at our home now with the whole group and keeps attacking until they are dead or gone from our base.\" Said again at 3:56 (landed 4:04): \"group_B_t2 attacks party_1 now with the whole group\".",
+   "happened": "group_B_t2 kept its course to spot_27 and stood there 3:56-4:07 (\"PICK split [group_B_t2: kept w1 over w3 of 2 at 0.74] changed=[]\", the same at 3:59, 4:01, 4:03, 4:04 and 4:05). At 4:07 it sent 4 to hunt party_14 (1 armfav) at spot_11 instead. Meanwhile party_1 (10-11 armfav) killed 2 solars (3:58, 4:05) and shot the plant.",
+   "evidence": "worlds_gate: group_B_t2.attack_party_1 0.35, 0.49, 0.30, 0.30, 0.26, 0.28, 0.28, 0.34, 0.33 (3:53-4:07); decode 3:53: group_B_t2|place|home 0.87 (the place mark landed; the decode has no party marks).",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false,
+   "note": "Opus noticed and re-issued twice (3:56, 4:08)."
+  },
+  {
+   "clock": "2:10",
+   "seat": "strategist-1",
+   "category": "A3",
+   "wanted": "2:00 packet (landed 2:09): \"group_A_t3 (our Rovers): while any enemy armfav is at our buildings or near home, it attacks those armfav now with the whole group\"; 2:13 packet (landed 2:19): \"group_A_t3 attacks party_1 now with the whole group and keeps attacking until it is dead.\"",
+   "happened": "\"2:10 PLAYS group_A_t3: gather on its front [plan]\" at H5, about 1,600 north of home (it had roved north to the lobby box). \"2:19 group_A_t3: hold where it stands\" at H6. party_1 (3-5 armfav) killed constructor_9614 at 2:21 and spot_65's extractor at 2:31.",
+   "evidence": "worlds_gate group_A_t3.attack_party_1 0.20-0.33 every second 2:10-2:29; decode 2:09: group_A_t3|place|home 0.78, spot_60 0.98; record: destroyed armcv 9614 2:21, armmex 471 2:31.",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false,
+   "note": ""
+  },
+  {
+   "clock": "6:21",
+   "seat": "strategist-1",
+   "category": "A6",
+   "wanted": "6:19 packet (and 5:48): \"group_F_t3 stands at spot_77. It attacks enemy armfav that come within reach of home, spot_65, spot_72, spot_77, spot_70 or spot_75, with the whole group\".",
+   "happened": "party_31 was 5-6 armflash, not armfav. group_F (5 Blitzes) kept following the commander at H7 (\"following commander_t3 for 81 s\", 6:39 report). party_31 killed spot_75's extractor (6:21), a Sentry (6:26) and two constructors (6:31, 6:36) at spot_70, about 1,100 away.",
+   "evidence": "worlds_gate group_F_t3.attack_party_31 0.32-0.35 (6:28-6:35), \"kept w1 over w3 at 0.73/0.76\"; Opus at 6:39: \"Our five Blitzes never fought: they had trailed the commander for 81 seconds. The best they got to was a 0.49 rating\".",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "words",
+   "person_said": false,
+   "note": "405 metal lost meanwhile, constructors 3 to 1. The armfav word as the cause is one reading of the low ratings."
+  },
+  {
+   "clock": "6:48",
+   "seat": "strategist-1",
+   "category": "A3",
+   "wanted": "6:39 packet (landed 6:47): \"group_F_t3 no longer follows the commander. group_F_t3 attacks party_31 now with the whole group and keeps attacking until they are dead or gone. No detachments. Afterwards it stands at spot_77\".",
+   "happened": "\"6:48 group_F_t3: walk to spot_77 [plan]\" and \"6:52 walk to home\": the group played the afterwards clause while party_31 (grown from 2 to 7 armflash) stood at G7. Two Blitzes died at 6:51; the 7:01 wake reads \"group_F_t3 has lost 1 of its 3 soldiers (110 metal) since your last orders, walking to spot_77\".",
+   "evidence": "worlds_gate group_F_t3.attack_party_31 0.19-0.22 (6:49-6:52); decode 6:47: group_F_t3|place|spot_77 0.98, spot_70 0.92.",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false,
+   "note": "The walk away from 7 with 3 may have been the better play. It still crossed the packet."
+  },
+  {
+   "clock": "9:02",
+   "seat": "commander",
+   "category": "A5",
+   "wanted": "8:50 direct/transfer: \"t2's six idle Blitzes at G1 have been given to t3\" (transfer group_I_t2 to t3) to make one body that kills the pack at G8.",
+   "happened": "The send ran at 9:02 (record cmd send_units [24348, 18276, 15249, 25621, 24769, 2149, 9312] to 3), 12 s into a 27.6 s commander turn. By then the 7 Blitzes were fighting party_43 (13 armflash) at t2's home, in sight from 8:52. t3's hands walked them toward H8 under fire (\"9:03 PLAYS group_I_t3: walk to home [plan]\", \"group_I_t3 hit\" each second), and 2 died at G2 (9:13, 9:16).",
+   "evidence": "commander report 8:50: enemy in sight only \"4 at G8\"; t2 record: 0 enemies within 2,500 of its plant until 8:52, then 4-15 armflash; t2's plant died 9:15.",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "tool",
+   "person_said": false,
+   "note": "220 metal of Blitzes is the measured cost. t2's base fell 9:02-9:20, but whether the 7 would have held it against 15 with Sentries on empty energy is a reading."
+  },
+  {
+   "clock": "8:59",
+   "seat": "strategist-0",
+   "category": "B6",
+   "wanted": "t2's 8:59 packet: \"group_I_t2: the one army. It stands at home beside the plant and the Sentries, and attacks the enemy armflash\".",
+   "happened": "The commander's 8:50 turn had given group_I to t3 (executed 9:02), and its direction reached t2 only \"from their next report after 9:09\". t2 planned its home defence on a group it no longer had: constructors stayed home building solars (23714 died 9:07, 25802 9:20). It learned at 9:10: \"15 enemy Blitzes are killing our plant at G2 after our six Blitzes were given to t3\".",
+   "evidence": "commander transfer result 8:50: \"its hands take them ... your hands carry it out from their next look\"; t2 9:02 hands line \"constructor_23714: group_I_t2, which it followed, is gone\".",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "report",
+   "person_said": false,
+   "note": ""
+  },
+  {
+   "clock": "3:44",
+   "seat": "strategist-0",
+   "category": "A2",
+   "wanted": "0:00 queue commander_t2: [..., \"assist 60\", \"extractor\", \"assist 60\", ...] (the nearest free spot).",
+   "happened": "\"3:17 commander_t2: build a armmex at spot_11 (F2) (from its list)\". constructor_5873's list had \"extractor spot_11\" and started it at 3:24. \"3:44 commander_t2: the engine refused a armmex at F2: the site was bad\". The commander stood idle at F2 when 11 armfav hit G1 (3:45 report: \"commander_t2: at spot_11 (F2); idle, waiting for an order\").",
+   "evidence": "record: created armmex 8551 at (5728,768) by 5873 at 3:24; sweep [engine-refused] 3:44.",
+   "cost": "small",
+   "confidence": "high",
+   "fix_class": "code-rule",
+   "person_said": false,
+   "note": "About 27 s of commander time; it was away from home when the raid came."
+  },
+  {
+   "clock": "3:27",
+   "seat": "strategist-0",
+   "category": "B6",
+   "wanted": "Commander 2:50 to t2 (shown at 3:27): \"Keep two Blitzes at home as the north-east picket against Rovers.\"",
+   "happened": "t2's 3:27 packet sent all present Blitzes west as group_B (4 Blitz, 1 Rover) and deferred the picket: \"the next two Blitzes out of the plant stand at spot_12 as the home picket\". The next Blitz was started at 4:03, and home had no soldier when 11 armfav came at 3:33.",
+   "evidence": "3:27 report: group_B_t2 5 soldiers at home; record: created armflash 2149 4:03; raid_ledger: spot_12 3:34, spot_5 3:49, spot_10 3:53 lost.",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "brief",
+   "person_said": false,
+   "note": "The player carried the picket in words, but one Blitz generation late."
+  },
+  {
+   "clock": "8:55",
+   "seat": "strategist-1",
+   "category": "B1",
+   "wanted": "8:27 (earlier session): constructor_22438 [\"armllt home\", \"armbeamer spot_77\", \"extractor spot_77\", \"extractor spot_65\"]: \"Beamers ... hit much harder than a light turret\".",
+   "happened": "The 8:37 takeover session replaced 22438's list at 8:55 ([\"extractor spot_75\", ...]) without mentioning the Beamer. The takeover prompt carries notes and the packet, and the builder's entry shows only the build under way, not the rest of its list. \"9:14 constructor_22438: dropped the step 'armbeamer spot_77' its old list had queued\". spot_77 fell to 10 armflash at 9:25.",
+   "evidence": "8:55 report entry: \"constructor_22438: at home (H7); building a Sentry (armllt) at spot_65 ...\" (no list); sweep [other-fault] 9:14.",
+   "cost": "small",
+   "confidence": "medium",
+   "fix_class": "report",
+   "person_said": false,
+   "note": ""
+  },
+  {
+   "clock": "0:10",
+   "seat": "strategist-1",
+   "category": "B3",
+   "wanted": "0:10 packet: \"The enemy is two people in the north (rows 1-2), likeliest straight north of us around spot_10, spot_12, spot_5. Our ally's seat is beside us in the south.\" with a raid route up to spot_10/spot_5/spot_6.",
+   "happened": "The report's to-win line read \"its commander was placed at 0:00 inside its lobby box, cells A1-H2\". The boxes were not honoured, and t2, our ally, stood at G1 in that box. No line gave the ally's start, which the hands had (bot.log: \"ally team 2 starts at (6899, 681)\"). Corrected at 2:00 after the commander's 0:20 direction, before any raider went north.",
+   "evidence": "t3 0:10 prompt to-win and scouting lines (\"never seen, in his box: ... G1 (spot_5, spot_6, spot_10)\"); the same to-win line stands in every report to 10:01.",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false,
+   "note": ""
+  },
+  {
+   "clock": "0:11",
+   "seat": "strategist-0",
+   "category": "B1",
+   "wanted": "0:11 packet: \"armfav scouts drive south toward spot_70, spot_75, spot_72, spot_65 to find him\".",
+   "happened": "Those are t3's home spots (H7-H8, G8). The hands knew the ally's start (bot.log \"[ai 0] f=0 ally team 3 starts at (7371, 5456)\"), but no report line said where the allied seat stood. Rewritten at 1:25 before the first Rover (1:42).",
+   "evidence": "t2 0:11 prompt: sides line names the ally without a place.",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "report",
+   "person_said": false,
+   "note": ""
+  },
+  {
+   "clock": "5:13",
+   "seat": "strategist-1",
+   "category": "A3",
+   "wanted": "4:53 packet: \"group_A_t3 is the south-east picket for good: it stands at spot_70 and attacks every enemy armfav or raider at our buildings ... with the whole group\".",
+   "happened": "\"5:13 PLAYS group_A_t3: 2 of group_A_t3 hunt party_14 (3 armfav) as group_E_t3 [plan]\": a detachment of 2 of its 3. They walked home at 5:18 when party_14 grew to 14.",
+   "evidence": "worlds_gate 5:13: send_2_party_14 0.58, its .forbidden 0.55; decode 5:07: group_A_t3|detach|2 0.61 (forbidden, between OFF 0.2 and ON 0.8, so asked each second).",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false,
+   "note": ""
+  },
+  {
+   "clock": "5:20",
+   "seat": "strategist-1",
+   "category": "A3",
+   "wanted": "5:13 packet (landed 5:20): \"group_A_t3 attacks party_14 (the armfav at spot_60) now with the whole group ... It does not follow the commander.\"",
+   "happened": "group_A_t3 (1 Blitz) kept following commander_t3 5:20-5:29, then walked to spot_70.",
+   "evidence": "call rows: group_A_t3 task follow 5:20-5:29; worlds_gate attack_party_14 0.26-0.33.",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false,
+   "note": "One Blitz against 16 Rovers: following was harmless."
+  },
+  {
+   "clock": "5:33",
+   "seat": "strategist-1",
+   "category": "A6",
+   "wanted": "5:23 packet (landed 5:33): \"group_E_t3 and group_F_t3 join group_A_t3 now. group_A_t3 stands at spot_77 and attacks enemy armfav ...\"",
+   "happened": "\"5:33 PLAYS group_A_t3: join group_F_t3 [plan]\": the merge ran the other way, group_A_t3 vanished, and the packet's group_A orders pointed at nothing until the 5:37 packet landed.",
+   "evidence": "decode 5:33: group_A_t3|join|group_F_t3 0.68 and group_A_t3|join|group_E_t3 0.69 beside group_F_t3|join|group_A_t3 0.64 (the decode read the join both ways).",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "jev",
+   "person_said": false,
+   "note": ""
+  },
+  {
+   "clock": "7:01",
+   "seat": "strategist-1",
+   "category": "A6",
+   "wanted": "6:39 remove {\"by\": \"commander_t3\", \"reclaim\": [\"armmex_27451\"]}; at 7:01 Opus wrote \"Commander: it finishes taking apart the extractor blocking the plant's exit lane, rebuilds spot_72 out of the lane, then helps the plant.\"",
+   "happened": "The 7:01 queue commander_t3: [\"extractor spot_72\", \"assist\"] replaced the list whose front step was the reclaim (\"6:47 commander_t3 takes armmex_27451 apart next, at the front of its list\"). The result said only \"2 steps, done in order from its next look\". Opus at 8:08: \"The first order at 6:39 was never carried out.\"",
+   "evidence": "sweep 7:11: \"commander_t3: reclaim wrecks at spot_70 (plan)\", step-skipped spot_72; record: armmex 27451 stands to the end.",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "tool",
+   "person_said": false,
+   "note": "By luck harmless: at 8:18 Opus found armmex_27451 was one of its own few extractors and cancelled the second attempt."
+  },
+  {
+   "clock": "6:39",
+   "seat": "strategist-1",
+   "category": "B5",
+   "wanted": "(the decision it fed) 6:39 and 8:08 remove: reclaim armmex_27451, \"the extractor blocking the plant's exit lane\".",
+   "happened": "The yard lines said the lane was blocked (\"plant_10414's exit lane is blocked: 1 of ours (armflash_3632) have stood in it for 0:30 ... in the lane: armmex_27451\"; builders \"standing in plant_10414's exit lane: its units cannot leave\"). Yet the plant kept putting units out (7:00, 7:11, 7:25, 7:39, 8:08, 8:36), and armmex_27451 was our spot_65 extractor, one of t3's 2-3. At 8:18: \"I'd misread it as a stray building. I don't think the plant is really blocked\".",
+   "evidence": "record: armflash 3632 idle (flag 2) at (7452,5246) 7:10-7:40, not stuck; plant created-events above; the plant (1:16) was placed with spot_65 in its exit lane (the exit-lane extractor class fixed 3aabc77 on 10-13).",
+   "cost": "none",
+   "confidence": "medium",
+   "fix_class": "report",
+   "person_said": false,
+   "note": ""
+  },
+  {
+   "clock": "1:14",
+   "seat": "strategist-1",
+   "category": "B6",
+   "wanted": "Commander 0:20 to t3: \"The Blitzes that follow cross west along rows 6-8 to his outer spots and constructors and stay in his half\".",
+   "happened": "t3's note 1:14: \"I put three Rovers on rove first ... and hold the Blitz route until a Rover has found him, rather than sending Blitzes west along rows 6-8 blind.\" The Blitzes stayed home, which the raids from 1:51 needed anyway.",
+   "evidence": "t3 orders 1:14-2:00.",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "unknown",
+   "person_said": false,
+   "note": "A stated, reasoned deviation."
+  },
+  {
+   "clock": "4:53",
+   "seat": "strategist-1",
+   "category": "B6",
+   "wanted": "Commander 4:20 to t3 (shown 4:35): \"When those Sentries stand, Blitzes beyond two go west along row 7-8 to his plant and commander at B8 (seen at 3:08)\".",
+   "happened": "t3's 4:53 packet: the raid group \"goes west by spot_79, spot_78, ... It never goes at his vehicle plant or his commander.\" The raid group never formed (t3 had no Blitzes to spare).",
+   "evidence": "t3 4:53 and 5:13 packets.",
+   "cost": "none",
+   "confidence": "high",
+   "fix_class": "brief",
+   "person_said": false,
+   "note": ""
+  }
+ ],
+ "no_lever": [
+  {
+   "clock": "3:27",
+   "seat": "strategist-0",
+   "wanted": "\"a lone light turret only with the whole group at once; it goes round a turret with soldiers beside it\" (also the commander 2:50: \"take a Sentry only with four or more Blitzes arriving together, otherwise go round it\")",
+   "why_no_lever": "Moves are place to place and the engine picks the path. No move or tool routes a group around a turret."
+  },
+  {
+   "clock": "4:28",
+   "seat": "strategist-0",
+   "wanted": "\"It does not chase past spot_18 or spot_17\" (again 4:48, 5:38, 6:52, 7:05: \"never chasing past spot_18 or spot_17\")",
+   "why_no_lever": "A hunt cannot be bounded by a named place. The only bound is code's 900 leash from where the hunt began, and at 7:03 that began far outside the zone."
+  },
+  {
+   "clock": "6:39",
+   "seat": "strategist-1",
+   "wanted": "\"Once the hands pick 'follow' for a group, it holds even after the packet changes. What I'd want is an order that ends a group's current course outright when a new packet lands.\"",
+   "why_no_lever": "No tool clears a group's course. A course stands until a pick beats stay, and here the pick did not for 81 s."
+  },
+  {
+   "clock": "0:20",
+   "seat": "commander",
+   "wanted": "\"Your first two or three Rovers go on rove: the look we need is columns A-C, rows 5-8 (spot_68, spot_74, ...)\"",
+   "why_no_lever": "Rove cannot be aimed. It looks at his lobby box first, which here held our ally t2, and t3's rovers drove north to H5-H6. Walking them to spots is the only aim, and then they are not roving."
+  }
+ ],
+ "unreadable": [
+  "seat 1 read through symlinks (scratch .../agents/1791335540-human-26/seat1/00) for minutes, raid_ledger, pro_baseline, hands_window, commander_turns",
+  "minutes.py on seat 1 takes our ally's start G1 as 'his start' (boxes not honoured), so its 'units sent to his side' table for t3 lists t2's transferred Blitzes at G1-G2; ignored",
+  "pro_baseline: no carded side for B8/G1 or A1/H8 starts (no baseline)",
+  "no truth file: raid_ledger 'paid' is 0 throughout and parties are what we saw",
+  "bot.log 10:02-10:04: t3's 'armhlt order ... never started' for the two given constructors (still walking from t2's side) came after the last report; not judged",
+  "result not stated by anyone: no chat line from the people; the record ends at f=18210"
+ ]
+}
