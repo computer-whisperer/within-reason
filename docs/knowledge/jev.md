@@ -2298,7 +2298,8 @@ because its in-game model read "ahead" until that unit arrived: every number abo
 floor (extractors "known to hold", soldiers "seen", spending "at least"), the player writes the floors as values the
 next sentence ("we out-extract him 26 to 16" at 15:48 of levers-player-1 against a true 27 to 26; "about 7
 extractors' worth" at 19:58 against 28; "12.3k vs ~1.4k seen" at 20:08 of nuke-2-hard against 11.3k to 6.0k;
-`floor.py` `known%` 26-27 in the two BARb losses), and the one line that stands ours against something other than
+`floor.py` `known%` 84 and 57 in the two BARb losses once his turrets were taken out of the truth's army the same
+evening; the study first read 26-27 from the biased column), and the one line that stands ours against something other than
 the floor, the reference line, exists only on Comet Catcher, for one seat a side, to 16:00. The one loss with the
 line (human-28) diagnosed the economy at 9:20 ("behind ... 9 extractors against the pool's 16"); the three team
 losses had no line; levers-player-1 quoted the pool every turn to 9:20 and never after, though at 16:00 the line

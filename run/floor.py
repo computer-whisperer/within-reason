@@ -19,7 +19,9 @@ Columns (lower is better unless said):
   jev$       the Jev bill from the log's usage, the packet's decode included (input tokens at $0.042 a million)
   stuck s    unit-seconds our mobile units could not move: from a move failure until the unit has moved 80 elmos
   yard min   minutes some factory of ours had a stuck unit in its exit lane (- for records without footprints)
-  known%     the player's enemy-army metal as a share of the truth, median over its turns past minute five (higher is better)
+  known%     the report's enemy-army metal (soldiers seen in 3 min) as a share of the truth's army, median over its turns past
+             minute five (higher is better; until 2026-10-17 his turrets stood in the truth's army and every known% read low:
+             the rows before predict-player-1 are on the old reading)
   pred%      the player's `predict` rows (predictions-strategist-*.jsonl): median absolute error of its army estimate as a
              share of the truth (- without rows; run/predictions.py has the rest)
   fac min    minute the picture first listed a factory of theirs seen (- if never)
@@ -125,7 +127,7 @@ def scorecard(m):
         mk = re.search(r"not seen to die: (\d+) worth (\d+) metal", t["prompt"])
         tf = max((k for k in m.truth if k <= t["frame"]), default=None)
         if mk and tf is not None:
-            true = sum(m.metal_of(u[1]) for u in m.truth[tf] if m.is_soldier_name(u[1]) and not u[5])
+            true = sum(m.metal_of(u[1]) for u in m.truth[tf] if m.is_army_name(u[1]) and not u[5])
             if true > 0:
                 known.append(100 * int(mk.group(2)) / true)
     pred = []
@@ -138,7 +140,7 @@ def scorecard(m):
             tf = max((k for k in m.truth if k <= r.get("frame", 0)), default=None)
             if tf is None or not r.get("army_metal"):
                 continue
-            true = sum(m.metal_of(u[1]) for u in m.truth[tf] if m.is_soldier_name(u[1]) and not u[5])
+            true = sum(m.metal_of(u[1]) for u in m.truth[tf] if m.is_army_name(u[1]) and not u[5])
             if true > 0:
                 pred.append(100 * abs(r["army_metal"] - true) / true)
     walls = [t["wall"] or 0 for t in m.turns]

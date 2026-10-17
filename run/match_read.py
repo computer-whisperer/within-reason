@@ -117,6 +117,14 @@ class Match:
         d = self.def_by_name(name)
         return d is not None and d.get("class") != "building" and d.get("weapons", 0) > 0 and d.get("build_speed", 0) == 0
 
+    def is_army_name(self, name):
+        """A soldier as the report counts them: a mobile armed unit (the `army` class, hovers, ships and aircraft), not a
+        turret and not the commander. `is_soldier_name` admits turrets (weapons and no build speed), which put his
+        turrets into the truth's army for floor.py's known% until 2026-10-17 (predict-player-1: a 58% error read
+        against an 8% one)."""
+        d = self.def_by_name(name)
+        return d is not None and d.get("class") in ("army", "hover", "ship", "aircraft")
+
     def metal_of(self, name):
         return (self.def_by_name(name) or {}).get("metal", 0)
 

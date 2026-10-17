@@ -45,8 +45,11 @@ levers-player-1, the player's own words against `analyze_match` (ours / his extr
 | 19:58 (the report) | "his spending seen: at least 17 a second over the game, about 7 extractors' worth" | 28 extractors and an advanced lab since 9:54 |
 | 20:08 nuke-2-hard | "army 12.3k vs ~1.4k of his seen" | 11,327 / 5,960; extractors 21 / 36 |
 
-`run/floor.py` `known%` (the player's enemy-army metal as a share of the truth, median over its turns past minute
-five): levers-player-1 27, nuke-2-hard 26; the wins leg-player-1 25, jev114-player-1 38, prio-player-1 81. The army
+`run/floor.py` `known%` (the report's enemy-army metal as a share of the truth, median over its turns past minute
+five), as corrected the same evening: levers-player-1 84, nuke-2-hard 57; the wins leg-player-1 99, jev114-player-1
+81, prio-player-1 122. (This study first cited 26-27 for the losses: floor.py counted his turrets in the truth's army
+until 2026-10-17, `match_read.is_army_name`; the corrected numbers say the army floor was close, which the minutes
+below also showed, and leave the economy floors as the thing that was far under.) The army
 floor is close in the minutes a fight is on (levers-player-1 16:00-20:00: "3,500 seen" against 3,039; "27 worth
 5,874" against 5,475), because fights are where we see him; the economy floor is never close, because his base is
 seen once at 2-3 minutes and not again (the 19:58 report: G1 "seen 17:01 ago", G2 14:22 ago, the lab line "Bot Lab
