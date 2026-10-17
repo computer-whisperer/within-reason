@@ -129,7 +129,7 @@ def main():
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--quiet", action="store_true")
     a = ap.parse_args()
-    match_dir = a.match if os.path.isfile(os.path.join(a.match, "record-0.jsonl")) else os.path.join(a.match, "00")
+    match_dir = a.match if glob.glob(os.path.join(a.match, "record-*.jsonl")) else os.path.join(a.match, "00")
     rows = load_rows(match_dir)
     if not rows:
         print(f"{match_dir}: no predictions-*.jsonl", file=sys.stderr)
