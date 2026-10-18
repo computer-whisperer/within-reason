@@ -255,7 +255,7 @@ impl Raid {
             }
             if lane_on {
                 for &h in &run.hunters {
-                    commitments.insert(h, Commitment::Hunt(Hunt { quarry: run.quarry, leash_from: run.from, leash: LEASH }));
+                    commitments.insert(h, Commitment::Hunt(Hunt { quarry: run.quarry, leash_from: run.from, leash: LEASH, lost_frames: micro::HUNT_LOST_FRAMES }));
                 }
                 continue;
             }
