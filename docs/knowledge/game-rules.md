@@ -1,12 +1,21 @@
 # Game rules and engine semantics that shape play
 
 ### K-rules-commander-death-ends-game
-**Claim.** With default mod options the game ends for a team when its commander dies.
-**Status.** supported (2026-09-19)
-**Evidence.** `modoptions.lua:136` (`deathmode` default `com`). baseline-easy/00, /05, /06: commander sent to build extractors
-36, 55 and 17 times; each match ended right after a commander order. v2-easy-0704/00 f=63390: commander health 2, game over.
-**Would be wrong if.** A match continued after our commander's death with default options.
-**Used by.** H-COM-LEASH, H-COM-RETREAT.
+**Claim.** With the default death mode (`deathmode=com`, "Kill all enemy Commanders") a *side* loses when it has no
+commander left: the gadget keeps one live-commander count per ally team and kills every seat of the side when it
+reaches zero. A seat whose own commander dies plays on while an allied commander stands; in a duel the side is one
+seat, so the game ends with that commander. `own_com` is the mode in which a seat dies with its own commander. A dead
+commander's wreck can be resurrected.
+**Status.** supported (2026-09-19) for the duel; corrected 2026-10-18 for several seats (the user; the gadget read)
+**Evidence.** `luarules/gadgets/game_team_com_ends.lua` (`aliveComCount[allyTeamID]`, `spKillTeam` over the ally
+team's teams when it is 0; the `own_com` branch separate), `modoptions.lua` (`deathmode` default `com`, "When a team
+has no Commanders left, it loses"). baseline-easy/00, /05, /06 (duels): each match ended right after the commander's
+death. human-8v8-1 (a 5v5): his Armada commander died at 34:56 and that seat's Fleas, Pawns and labs went on dying to
+our army for the next minute; both of our commanders stood at the end. Until 2026-10-18 the player's role text said
+"lose when ours dies" for every game.
+**Would be wrong if.** A seat of a several-seat side lost its units when its own commander died under `com`.
+**Used by.** H-COM-LEASH, H-COM-RETREAT; the player's role text (the game-end rule); the brief's tier-2 sprint (the
+commander reclaimable when the side keeps another).
 
 ### K-rules-ai-start-position
 **Claim.** The game places AI teams itself inside their start box; an AI does not need to send a start position.
@@ -26,7 +35,9 @@ at (2032,1188) NW or (5576,5360) SE on Quicksilver.
 
 ### K-rules-mex-upgrade-in-place
 **Claim.** An advanced extractor ordered at the exact position of an existing extractor is allowed, and the old one is
-reclaimed when the new one finishes. Advanced extractors yield 4x (extractsmetal 0.004 vs 0.001).
+reclaimed when the new one finishes. Advanced extractors yield 4x (extractsmetal 0.004 vs 0.001). An ally's advanced
+extractor built over our extractor is given to us when it finishes (human-8v8-1: 22 `given` rows of Apex-built mohos to
+our seats from 14:02 to 47:12; both readers took the frames for a harness fault until the review).
 **Status.** supported (2026-09-20) through the AI interface: t2-first-look, both factions, a build order for the advanced
 extractor at the tier-1 extractor's exact position is accepted (`Map_isPossibleToBuildAt` says yes) and the new one
 is created in place (record: `cmd armmoho [5648, 5360]`, `created armmoho 5648 5360`). BARb does the same and falls

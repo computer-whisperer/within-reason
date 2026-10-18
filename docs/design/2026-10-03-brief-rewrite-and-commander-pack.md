@@ -127,6 +127,13 @@ Not build orders. What it needs to work out why and when:
   agrees that it cannot teach it: one Armada side of 41 and three Cortex sides of 39 started an advanced factory
   (duels at OS 40+ on Comet last 12 to 15 minutes at the median). So the brief gives the arithmetic and the cases we
   have, labelled as few, and no timing rule; the user is looking for game modes where tier 2 is the right call.
+  **Reversed 2026-10-18** (`2026-10-18-team-game-tier2-and-allies.md` §2): the brief's "we are weak past tier 1"
+  paragraph is dropped ("that is one of the things we are trying to fix"), and tier 2 is written as a sprint whose
+  gap is lethal in a duel on a tight map and covered in a team game or on a larger map, with a team-game "when"
+  (the first bank or the side's spots taken) and the commander's call. Chose-because: in human-8v8-1 the commander
+  argued the old paragraph back at the game and denied his tech instead of running ours while the Apex allies
+  sprinted at 5:20. Rejected-because kept: the duel evidence (the pool's 4 of 58, the bot's losses at either gate)
+  stays in the brief, scoped to duels with nobody covering.
 - **The arena starts where the pool does.** `--starts 1420,3550:7290,3600` (B5 against H5, the pool's commonest
   pair) in place of the game's placement of an AI at an end of its strip, which is a quarter further apart; the
   ledger's player games before player-54 are from the corner start.

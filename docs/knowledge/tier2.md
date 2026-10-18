@@ -340,8 +340,10 @@ each, seeds 1-8, sides alternating, `--play-out`).
 whose army holds his pressure won more with tier 2 than without. Against medium on Comet the arms with tier 2 won
 6 of 8 (the control row) where v2 without it won 7 of 8, a cost of ten minutes a game and not of games; the Great
 Divide rows say the small map turns that cost into losses.
-**Used by.** `docs/design/2026-10-09-late-economy.md` §4.4 and §4.5; the brief's argument that an early lead is
-spent before his tier 2 matters, which now has a bot-measured leg beside the player games.
+**Used by.** `docs/design/2026-10-09-late-economy.md` §4.4 and §4.5; the briefs' "Tier 2 is a sprint" (the lethal
+pair: duels on tight maps with nobody covering the gap). The brief's argument that an early lead is spent before his
+tier 2 matters, which this measurement supported, was dropped 2026-10-18 (the user: "that is one of the things we
+are trying to fix"); the measurement stands, scoped.
 
 ### K-t2-the-late-spend-ceiling-in-a-bot
 **Claim.** Once tier-2 extractors lift a bot's income past about 150 a second, three things it did without thinking
@@ -447,3 +449,26 @@ hard_aggressive's anti-nuke in a repeat stood later than 21 to 25 or took longer
 base is the target only before his anti-nuke); `docs/design/2026-10-09-late-economy.md` §10 (e), the second game:
 the report says nothing about rounds (proposal), the fire answer says nothing about interception (proposal), the
 batch count fixed.
+
+### K-t2-the-gap-is-covered-by-allies
+**Claim.** In a team game the sprint to tier 2 is covered by the allies: a seat whose army stays flat for the minutes
+the plant and its first mohos take loses nothing while allied armies hold the fronts, and the side that upgrades
+first wins the second half of the game. human-8v8-1 (a lobby 5v5 with people on Altored Divide, 84 spots, our two
+seats at +50 % beside three Apex seats, 2026-10-18): Apex's Legion seat placed its advanced lab at 5:20 on eight
+extractors and an income of about 27, held its army near 2,000 metal from 6:00 to 12:00 while our two seats' armies
+of 5,000 to 12,000 carried both fronts, had its first moho at 9:00, six by 15:00, nine by 18:00 and seventeen by
+30:00, and ran an estimated 104 metal a second at 15:00 and 206 at 30:00 (the estimate 1.5 × (2 + 1.989 × (mex + 4
+moho)) is exact on our own seats' actual figures). Our seats held 9 and 15 spots at 12:00, as many as any ally, and
+the south half's 43 spots were all taken by our five seats by 12:00 (50 held), so income past that was upgrades
+only; our labs came at 12:39 and 18:28, and our income ran 42 and 57 at 15:00, 122 and 96 at 30:00. Metal standing
+at 30:00: Apex's seat 80,000 in economy and 22,000 in army; ours 20,000 and 46,000, 14,000 and 22,000. Army at
+57:00: 410,000 against 132,000 and 111,000. Apex's tier-2 constructors also upgraded our seats' extractors 22 times
+(the engine gives the moho to the spot's owner: the record's `given` rows).
+**Evidence.** `run/matches/1792302895-human-8v8-1/00/record-0.jsonl` (`s` rows: `own` and `al` by minute; `given`
+rows), `record-4.jsonl` (`m`/`e` by minute), the census script of the review (every allied seat's buildings by
+minute, the milestones, the metal standing by bucket); `commander.jsonl` (46 directions, 0 transfers).
+**Status.** observed (2026-10-18), one game, three Apex allies of which one sprinted at 5:20, one at 8:30 and one at
+8:00 with a weaker chain (their incomes at 30:00: 206, 81, 92).
+**Would be wrong if.** A seat of ours that sprinted at the first bank in a team game lost its base or its spots during
+the gap more often than it gained by 20:00, with allies holding the fronts.
+**Used by.** The briefs' "Tier 2 is a sprint" (the covered pair); `docs/design/2026-10-18-team-game-tier2-and-allies.md`.

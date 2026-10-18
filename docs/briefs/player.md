@@ -13,6 +13,20 @@ situation from another map still teaches).** Each case: the situation as your re
 what came of it, and why, with who said so (a person's word outranks our own reading of a record). Where two cases
 have the same shape and opposite answers, the difference between them is the thing to learn.
 
+**Before the cases, the scenario.** Every number and clock below was measured in a particular kind of game, most of
+them duels between experienced people on Comet Catcher, over inside fifteen minutes, at +0, with every spot in reach
+of one player. Five facts of the game in front of you move all of them, and the first report gives each: (1) How
+long the game will run: a duel between people on a tight map is decided inside fifteen minutes; a team game of
+several seats a side runs forty minutes and more, and its second half is tier 2 and beyond, almost always (the user,
+2026-10-18). (2) How many spots a seat can hold: the spots on our side of the map, over the seats sharing them, is
+the tier-1 income a seat can reach (84 spots and five seats a side: about eight each, held by 6:00), and past it
+income grows only by upgrading them. (3) The bonus (the paragraph at the end of this text), which changes what the
+opening can spend and how soon each frame pays. (4) Who the opponents are: BARb techs on a clock and raids on a
+curve; people read your mix and answer it. (5) What the allies are doing, when there are any: their factories and
+their tier are in the report's allies lines; a side whose allies are sprinting to tier 2 either covers the gap for
+them or sprints beside them. Say in your first `note` which scenario you are in, and read every case against it: a
+case from another scenario still teaches, but its clock does not transfer.
+
 - **The first handful of soldiers runs to the other side of the map.** The experienced players, time and time
   again (relayed by the user, 2026-10-03): "the first handful of units need to run to the other side of the map to
   harass the opponent. In an RTS like this the open space of what the enemy may have is so broad that you need some
@@ -71,40 +85,58 @@ have the same shape and opposite answers, the difference between them is the thi
   the bench says what that buys: at equal metal six Stouts beat one Fatboy (+0.12) and twenty-five lose to four
   (-0.54), eight Stouts lose to two Bulls by 0.18 and twenty-one to five by 0.31; a Stout ball loses nothing to a
   Stout ball at any size. So when a body of a type reaches its dozen (Stouts eight), the next metal is a second group
-  somewhere else (the other flank, his expansions, a raid picket), and after 12:00 it is tier 2, never the thirteenth
-  of the same (the user, 2026-09-28). Two bodies at two places also make him choose; one big one lets him bring his
-  splash to it.
+  somewhere else (the other flank, his expansions, a raid picket), and past that the sprint to tier 2 (the tier-2
+  bullet below), never the thirteenth of the same (the user, 2026-09-28). Two bodies at two places also make him
+  choose; one big one lets him bring his splash to it.
 
-- **His tier 2 is our window; ours is a scenario call.** Cases: (1) player-9: his advanced lab started at 10:32 and
-  his army fell from 2,736 to 2,220 by 12:00 while ours rose to 6,565; our mass stood at D5-D6 in our half and his
-  factory was never in the picture; the lab was never seen and its Fatboys, Sharpshooters and a Razorback ended the
-  game. (2) player-10 and player-11: his lab at 11:42 and 12:10, and the answer both times was to wait for our own
-  (standing 14:15, energy 0 at 11:37 for it). (3) bluegecko-3v1-comet-catcher-9, lost 20:16 after leading three to
-  one: we stayed tier 1 and 94 tier-1 tanks died to 15 Bulls. (4) bluegecko-3v1-comet-catcher-10, lost 26:10: our
-  Lasher mass let him tech ("you made many lashers, so I was safe to go T2"). (5) Great Divide, the plan: tier 2
-  and mohos on both seats by 10:00, because the pass camp is broken by Pillagers at 1,300, not by the ball. (6)
-  escalate-4 and -5 vs BARb hard_aggressive: it techs on a clock (Hounds 14:00, Fatboy 19:00, Razorback 25:48)
-  whatever we do, and both games waited. (7) With several seats the tier 2 is one seat's, paid by all (the user,
-  2026-09-27, again 2026-09-28: "Two seats can gift resources to one seat, that seat can build t2, then share t2
-  constructors to let advanced mexes go up"): the other seats send metal with `transfer` the moment the advanced
-  plant is placed, that seat's own plants pause, its first tier-2 unit is an advanced constructor for each seat,
-  given away with `transfer`, and the mohos go up on every seat at once. Game 10: the top seat's advanced plant sat
-  at 0% from 15:40 until it was abandoned at 19:15 while that seat's store rose to 1,432 and no `transfer` was made
-  all game (none in game 8 either); game 12 made three, a dying seat's units and 700 metal to the live one at
-  11:41-12:13. The pattern applies on land and water alike, as the water paragraph's one hover platform does. And the metal is
-  nothing without build power on the plant (the user, 2026-09-28: "The top player had only one constructor applying
-  build power to it, and a second constructor eventually came along and tried building a second t2 vehicle lab before
-  eventually assisting the first one. Two players gifting to one doesn't help if that player doesn't have the build
-  power to push it through"): in game 10 one constructor built the frame from 15:40 and a second was given a list
-  naming the plant at 18:07 and started a second frame 224 away (abandoned 19:15; the hands now help a frame of the
-  asked type already standing instead). When the plant is placed, every constructor of that seat and a construction
-  turret or two beside it go on `assist` of the plant, and the seat's other plants pause; the received metal is then
-  a plant standing in two minutes, not a store. The calculus (the user, 2026-09-28): in a close duel the tech is a fatal
-  weak point, so his tech is the moment to find and kill his base, and matching him is the mistake (the pros tech in
-  4 of 58 duel sides); past about 25:00, with more than two players, or against an opponent that techs on a clock,
-  the window is covered and tier 2 on our side is right, with that seat's other plants paused ("Top should stop
-  building other units while doing t2 transition", thebluegecko, game 10). Say which scenario you are in before you
-  choose.
+- **Tier 2 is a sprint, and the question is whether the gap is covered** (the user, 2026-10-18). Going to tier 2 is
+  paid out of the income you have: the advanced plant (2,600 metal, 14,000 to 16,000 energy), its first advanced
+  constructor (410 to 470), the first tier-2 extractors (620 each, four times the spot), while that seat's tier-1
+  plants pause and its builders stand on the frames. For three to five minutes the army does not grow; the
+  frontier's fastest orders with no enemy put the plant at 6 to 7 minutes and the first moho at 6 to 9, and under
+  pressure every minute a frame waits on an empty store is added to that. What comes out is the real economy and the
+  real army: a side that holds its share of the spots grows only by upgrading them, and tier-2 units out-range and
+  out-fight any tier-1 body of equal metal. So the question is never his tech; it is the gap. In a duel on a tight
+  map it is lethal: his raiders meet a thin army and an idle plant, and the experienced players tech in 4 of 58
+  sides, ending the game first instead (in a close duel the tech is a fatal weak point, so his tech is the moment to
+  find and kill his base, and matching him is the mistake: the user, 2026-09-28). On a larger map, with allies
+  beside you, or once the fronts have settled, the gap is covered, and a game past twenty minutes is decided by who
+  upgraded first; team games almost always go there. Ask at the first report, and again whenever the spot count
+  stops growing: how long will this game run, who holds the line while a seat sprints, and what tier-1 income is
+  left to take. Long, covered, none: the sprint starts now, and the only question is which seat. Short, nobody,
+  plenty: stay on tier 1 and kill his base when he sprints.
+  **The sprint in a team game.** One seat sprints, the one with the bank or the quietest front, and it starts at the
+  first bank or when the side's spots are taken, whichever comes first, not when his tier 2 is seen. Every
+  constructor of that seat and a construction turret or two beside it go on `assist` of the plant, its other plants
+  pause (`produce` them an empty list), the other seats send metal with `transfer` from the moment the plant is
+  placed, and the received metal is a plant standing in two minutes, not a store. Its first units are an advanced
+  constructor for each seat, given away with `transfer`, so the mohos go up on every seat at once, and the plant's
+  `produce` list keeps an advanced constructor on it until every seat has one. A tier-1 lab whose production is no
+  longer the plan is reclaimed for its metal (`remove`; "eat your bot lab", thebluegecko), and the commander is
+  reclaimable too, for 2,700, when the side keeps another and a frame stands to take the metal (the store caps what it
+  holds; the game-end rule is in the role text). Metal is nothing without build power on the frame (the user,
+  2026-09-28: "Two players gifting to one doesn't help if that player doesn't have the build power to push it
+  through"). Then every held spot is a moho in turn, nearest home first (the next bullet). An allied seat that is
+  sprinting is fed the same way: `transfer` sends metal and energy to an ally that is not ours.
+  **Cases, in pairs.** The gap lethal: player-10 and player-11 (Comet duels against BARb) matched his lab at 11:42
+  and 12:10, stood theirs at 14:15 with energy at 0 from 11:37, and lost both; a tier-1 bot of ours that holds BARb
+  hard_aggressive to one win in five on Comet won 1 of 16 when it sprinted at income 22 and 0 of 8 at 30, and on
+  Great Divide at 11 spots a side 2 of 16 against 7 of 8 without (K-t2-the-transition-under-pressure-loses-at-either-gate:
+  duels, tight maps, nobody covering). The gap covered: human-8v8-1 (a lobby 5v5 with people, our two seats at
+  +50 % beside three Apex seats): Apex's Legion seat placed its advanced lab at 5:20 on eight extractors and an
+  income of 27, held its army near 2,000 metal from 6:00 to 12:00 while our two seats' armies of 5,000 to 12,000
+  carried both fronts, had its first moho at 9:00, six by 15:00 and seventeen by 30:00, and ran 104 metal a second at
+  15:00 and 206 at 30:00; our seats, capped at nine and fifteen spots from 6:00, placed their labs at 12:39 (on
+  seeing his) and 18:28 (on a bank) and ran 42 and 57 at 15:00, 122 and 96 at 30:00; its army at 57:00 was 410,000
+  metal against our 132,000 and 111,000 (K-t2-the-gap-is-covered-by-allies). The long game on tier 1:
+  bluegecko-3v1-comet-catcher-9, lost 20:16 after leading three to one, 94 tier-1 tanks to 15 Bulls. His sprint as
+  the window, in a duel: player-9, his lab at 10:32, his army fell from 2,736 to 2,220 by 12:00 while ours rose to
+  6,565 and stood in our own half; the lab was never seen and its Fatboys, Sharpshooters and a Razorback ended the
+  game. The sprint botched: bluegecko-3v1-comet-catcher-10, the top seat's plant at 0 % from 15:40 to 19:15 with
+  one constructor on it, that seat banking 1,432 and no `transfer` all game ("Top should stop building other units
+  while doing t2 transition", thebluegecko); human-8v8-1, our first advanced lab at D8 killed at 16:53 by five
+  Centurions and a Mace with 4,000 metal in it, the lab outside the turrets. BARb's own sprint is on a clock (its
+  section below); a person's, in a duel, is the window the cases above describe.
 
 - **Income past the spot count is tier-2 extractors and advanced solars: build a lot more of both** (the user,
   2026-10-02, from human-10, player-40 and player-42: "we need to be building a lot more t2 mexes and advanced
@@ -117,7 +149,7 @@ have the same shape and opposite answers, the difference between them is the thi
   per four mohos, and more for the plant. So from the moment an advanced constructor stands, every held spot is a
   moho in turn, the nearest home first and the ones under turrets as they are, with an advanced solar beside home
   for every four of them, and the `produce` list of the advanced plant keeps an advanced constructor on it until
-  every seat has one (several seats: one plant, its constructors given away, as the bullet above says). Two things
+  every seat has one (several seats: the sprint above). Two things
   the games showed: an advanced solar costs 5,000 energy to build, drawn over the build, so it is never started
   with the energy line STALLING or the store empty (the note below, a game whose advanced solars crawled at 18:22
   in an empty store: plain solars then); and a seat that reaches tier 2 and builds no moho has spent the plant for
@@ -293,8 +325,8 @@ Thug `corthud` 140/1100/45/380 line unit; Trasher `corcrash` anti-air only; Grav
   its column has come at minutes 8 to 16 in your hands' games. After a wave of ours dies in its half, it resurrects the
   wrecks and they fight for it. [K-barb-medium-army-curve, K-barb-attack-gate, K-army-dead-waves-are-resurrected]
 - It counter-builds against what it has seen: riot units against raiders, assault units against static defence; its
-  second factory is a tier-2 lab by minute 15-20 at the latest. The game should be decided, or well in hand, by then.
-  [K-barb-response, K-barb-tier2, K-eco-t1-ceiling]
+  second factory is a tier-2 lab by minute 15-20 at the latest, on that clock whatever we do: that is his sprint,
+  and in a duel the game should be decided, or well in hand, by then. [K-barb-response, K-barb-tier2, K-eco-t1-ceiling]
 
 **Economy.** [K-eco-production-is-the-bottleneck, K-eco-expansion-before-conversion, K-open-sim-energy-ratio]
 - Metal in the bank is army we do not have: when metal is banking up, a second lab or a construction turret, not
@@ -331,12 +363,12 @@ but their odds count with ours when they stand within reach of the same party), 
 and its own map picture: a `_t2` actor sent to `passage_1_t2` goes to its own seat's first passage. Write the opening
 for each seat's commander by its tagged name, and give each seat its own spots, written in full (`spot_10, spot_5`;
 the hands also read a run like `spot_10, 5, 6`, but not past a word). The `transfer` tool moves metal and energy
-between seats (the receiver's store caps it) and gives units, groups, builders or plants to a seat: the team's ways
-are one army under the seat nearest the front, one seat's advanced plant fed metal by the others from the moment it
-is placed (not from a clock), its first tier-2 units an advanced constructor for each seat, given away, so the mohos
-go up everywhere at once (the case in the tier-2 decision above), and a dead seat's plants and constructors given to a live one
-before the game's ending rules take them; a commander can be reclaimed by another builder for its metal (`remove`),
-but a starting store holds 1,000 of its 2,700, so spend as it comes. Say in chat which seat is which by colour.
+between seats (the receiver's store caps it), to an allied seat that is not ours too, and gives units, groups,
+builders or plants to a seat of ours: the team's ways are one army under the seat nearest the front, the sprint to
+tier 2 as the tier-2 bullet has it (one seat's plant fed by the others from the moment it is placed, its advanced
+constructors given away), and a dead seat's plants and constructors given to a live one. A side loses only when it
+has no commanders left, so a seat whose commander died plays on (the game-end rule in the role text). Say in chat
+which seat is which by colour.
 
 **What your hands can do (rebuilt 2026-10-02; `docs/design/2026-10-01-hands-rebuild.md`).** Every unit has one menu
 and makes one move at a time; the role text lists the verbs. What matters for writing a packet:
@@ -861,9 +893,9 @@ K-maps-comet-barb-opens-bots, the tempo model]
   army value, time to go fight and win; if you dont use that army advantage this will soon go bad"; "make sure your
   units are more of a straight line when attacking, less groups"; "your armies keep not fighting together"), the
   constructors reclaiming behind them ("eat as you push"; "get that reclaim asap"). (g) His commander is sniped by
-  light tanks with the target set on it circling it, never by walking a ball into its D-gun. (h) Tier 2 when the
-  first heavy unit of his is seen or by 12:00, whichever is first ("either bomb or t2 now" at 6:35 of game 3; "go
-  t2" at 20:39, too late); a lab of a seat that no longer needs it is reclaimed ("eat your bot lab"). (i) A few
+  light tanks with the target set on it circling it, never by walking a ball into its D-gun. (h) Tier 2 is the
+  sprint of the tier-2 bullet, and three seats against one person is a covered gap ("either bomb or t2 now" at 6:35
+  of game 3; "go t2" at 20:39, too late); a lab of a seat that no longer needs it is reclaimed ("eat your bot lab"). (i) A few
   resurrection bots over a big wreck field. (j) In chat never say which faction a seat plays or where it started
   ("your opponent will know what faction you are playing and where you spawned"). From game 7 (u6bkep, 14:11):
   (k) The extractor count is the whole difference against a person ("the human player is taking mexes so much faster
@@ -994,9 +1026,11 @@ K-map-great-divide-v1-reach-over-the-divide, K-map-great-divide-v1-not-air-only,
   1,245. A ball advancing into the pass against standing turrets is the Comet Catcher nest again (16k lost for 6k,
   then 10k for 1k, two games running): it does not happen. The ball holds at the north mouth, out of the camp's reach,
   as the screen for the artillery and the threat that keeps their army home.
-- **How the game is won.** Three things in this order. (1) Economy: two seats against one; one seat's tier 2 by about 10:00,
-  fed by the other's metal from the moment the plant is placed, its first units an advanced constructor for each
-  seat, and mohos on both seats after; twice their income by 12:00, the bank spent. (2) Fire over the camp: Shellshockers (armart,
+- **How the game is won.** Three things in this order. (1) Economy: two seats against one; the sprint of the tier-2
+  bullet, one seat's plant by about 10:00 here because 11 spots a side are held by then and the pass camp is broken
+  by Pillagers at 1,300, not by the ball; fed by the other's metal from the moment the plant is placed, its first
+  units an advanced constructor for each seat, and mohos on both seats after; twice their income by 12:00, the bank
+  spent. (2) Fire over the camp: Shellshockers (armart,
   710) from a Stout screen at the north mouth outrange light and heavy turrets and kill the early camp for nothing;
   once Pit Bulls or Gauntlets stand, Pillagers (armmerl, 1,300, from the advanced vehicle plant) outrange them from
   the same ground, a dozen at a time with the screen in front. Artillery, not the ball, breaks a camp. (3) Air over
