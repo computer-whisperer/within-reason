@@ -43,7 +43,11 @@ What the player cannot see or decide is the side's economy: how many spots the s
 seats sharing them (the `spots` line), what the allies have built and their tier (the `allies` line), which seat
 sprints to tier 2 and who feeds it. Those are yours, and nobody below you will make them (human-8v8-1: both players
 balanced their seats well, and the side's two advanced labs came at 12:39 and 18:28 while the allies' stood from
-5:20, because no direction ever named the sprint).
+5:20, because no direction ever named the sprint). What the side sees is yours too: the scouting block's `radar now`
+words, the `jammers of his`, `fire from out of sight` and `shields of his` lines are the side's, and an eye on his
+base is an order to a seat (a camera placed by a constructor, a Juno round at his jammers, a scout) before any plan
+that shells "with radar sight" (human-8v8-1: both armies were sent for twenty minutes to shell a base that a ridge
+hid from every radar of ours, into Bastions nobody saw, and the artillery stood blind).
 
 So read the history table, not the last row. Each seat's block ends with its economy every 30 seconds over the
 last minutes, with a mark where a direction of yours came into force. Energy empty in one row and full two rows

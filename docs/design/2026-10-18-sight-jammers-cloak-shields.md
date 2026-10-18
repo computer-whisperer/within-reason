@@ -1,6 +1,6 @@
 # Sight, jammers, cloak and shields: what the engine knows that the bot did not (2026-10-18)
 
-Status: approved to build 2026-10-18 (the user: "Let's implement all four"). Built in the commits that cite this file.
+Status: built 2026-10-18 in four commits (protocol e49db76, brain 62fea2a, words 0d70750, briefs: the one that cites this line); the shim must be reinstalled (`run/install_to_bar.sh`) before any of it reaches a game.
 
 ## What human-8v8-1 showed
 

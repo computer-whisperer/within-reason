@@ -244,12 +244,33 @@ the whole picture your hands read this second, the actors and places by name; re
 instruction will be matched against. `map` is static: read it once, early, for the spot numbers, the passages, the
 terrain picture and the water: how much of the map is sea, and what of ours can cross it. The commander is
 amphibious and walks on the sea floor; so is the enemy's, and it can hide in the sea when its base is gone. Your
-soldiers stop at the shore. When a group is shelled by something it cannot see, the picture names a place
-`shelling` where the weapon likeliest stands, an estimate from the hits' direction that moves with each hit, with
-its range. Walking a group onto it is walking under fire it cannot see toward a point that may be wrong (three games
-lost a ball's worth to that): the answers are to see the shooter first (a scout car, a radar within its reach), to
-bring what outranges it, or to hold or walk beyond its range; say which in the packet, and never make `shelling`
-a standing destination.
+soldiers stop at the shore.
+
+Sight. The engine cuts sight and radar by the ground: a ridge between a radar and a base hides the base whatever
+the radar's range (Altored Divide's divide hid the whole north-east from an advanced radar at G4 for twenty minutes,
+human-8v8-1, while both seats planned on "radar sight"). The `scouting` block says what our side has seen, cell by
+cell, and its `radar now` line tells the cells our radar covers now (with nothing on them, or with his contacts) from
+the cells dark to radar and sight: a dark cell is unknown, not empty, and "nothing of his" there says nothing.
+Jammers (Sneaky Pete, Castro and Nyx 390; Veil, Shroud and Erebus 760; the Rampart 500) hide everything of his within
+their radius from radar and nothing from sight; the `jammers of his` line names the ones seen. The Juno (660 metal,
+any tier-1 constructor; `fire` sends a round, 75 s each) kills every jammer, radar tower, radar bot and camera within
+1,400 of where its round lands, ours included: one round, and radar shows what the jammers hid. Eyes no jammer
+removes: a Beholder or Argus camera (32 metal, cloaked, 540 sight, placed by a constructor where a hill does not
+block: the cheapest standing eye on a base), a radar bot or scout plane sent to look, a spy, and the body itself
+walking in. Fire from out of sight is a sighting: the `fire from out of sight` line and the picture's `guns_N` places
+are where his guns stand by the bearings of every hit of that weapon, kept ten minutes and named in the cell's
+scouting entry; the live `shelling` place is the last ninety seconds' estimate and moves with each hit. Walking a
+group onto fire it cannot see toward a point that may be wrong lost a ball's worth in three games; the answers are
+to see the shooter first (a camera, a scout, a radar bot where no jammer or hill blocks), to bring what outranges it,
+to hold or walk beyond its range, or to go in as one body meaning to kill it, naming `guns_N` in the packet as the
+target or as the place never to stand; never make the live `shelling` a standing destination. Shields (Keeper,
+Overseer, Soteria: 550 around the generator, 6,175 strength, regenerating) stop plasma shot from outside the bubble
+and let rockets, missiles and lasers through; the `shields of his` line and the picture say which of your own types'
+shots each one stops, and a unit inside the bubble shoots freely, so a body that walks in lands everything. A
+group's `firing` entry counts its shots and the hits seen to land; many shots and none landing means it shoots at
+what it cannot see or into a shield. Types that cloak (spies, snipers, the Pitbull and Ambusher pop-ups, cameras)
+are marked "(cloaks)": one is hidden where it was, not gone, until something of ours stands beside it, and a hunt on
+one runs thirty seconds out of sight before it ends as hidden.
 
 How games on this map are won and lost. Metal is everything: extractors on metal spots are the income, income becomes
 army, and the bigger army kills the smaller one and then the base behind it. The pace to measure against is the strong
