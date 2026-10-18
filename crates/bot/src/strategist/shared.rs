@@ -34,6 +34,8 @@ pub struct Briefing {
     pub seats: Vec<super::seats::SeatLine>,
     /// This seat's build power and where it stands, for the commander's report.
     pub build_power: BuildPower,
+    /// What the factories and builders would take at full speed, for the player's `spending` line.
+    pub spending: Spending,
     /// Our silos and anti-nukes with their rounds, for the report's `missiles` line every turn (nuke-2-hard, 2026-10-09:
     /// two missiles sat ready five minutes before his anti-nuke while nothing the player read named them).
     pub stockpilers: Vec<Stockpiler>,
@@ -105,6 +107,35 @@ pub struct Counts {
     pub turrets: usize,
     pub constructors: usize,
     pub army: usize,
+    /// Factories and construction turrets begun (standing or as frames), as the reference table counts the pros'
+    /// (H-PLAYER-REFERENCE-LINE).
+    pub factories_begun: usize,
+    pub construction_turrets_begun: usize,
+}
+
+/// What our factories and builders would take a second at full speed on what they build now, for the player's
+/// `spending` line (H-PLAYER-SPENDING-LINE; the hands' picture carries the same per actor, H-HANDS-ENERGY-DRAW).
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct Spending {
+    pub draws: Vec<Draw>,
+    /// Mobile builders guarding a factory or another builder: their power is in what that makes.
+    pub builders_helping: usize,
+    /// Mobile builders with no build in hand (walking, idle): they take nothing until they start one.
+    pub builders_without_a_build: usize,
+}
+
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct Draw {
+    pub who: String,
+    pub factory: bool,
+    /// What it builds, in the roster's short words.
+    pub target: String,
+    pub own_power: f32,
+    /// Energy and metal a second at its own build power.
+    pub energy: f32,
+    pub metal: f32,
+    /// Build power helping a factory now: it takes that much more, in proportion to its own.
+    pub helping: f32,
 }
 
 /// A position with its grid cell name, so it can be talked about.

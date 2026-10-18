@@ -1423,7 +1423,7 @@ impl Brain {
             let m = &scene.tick.snapshot.metal;
             for lab in own.iter().filter(|u| self.world.is_factory_def(u.def) && !u.being_built) {
                 let lab_name = self.actor_name(lab.id);
-                let worth = match draws.iter().find(|(who, _, _)| *who == lab_name).map(|(_, _, metal)| *metal) {
+                let worth = match draws.iter().find(|d| d.who == lab_name).map(|d| d.metal) {
                     Some(draw) if m.current < 100.0 && m.income < draw => "the plant is starved (it would spend more than comes in, and the store is empty): helping adds nothing until metal comes".to_string(),
                     Some(_) if m.current >= m.storage - 1.0 => "the store is full: helping spends it".to_string(),
                     Some(_) => "helping makes its unit sooner while the store lasts".to_string(),

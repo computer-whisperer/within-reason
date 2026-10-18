@@ -24,6 +24,7 @@ mod transfer;
 mod compose;
 mod decode;
 mod diet;
+pub(crate) use picture::flow_words;
 
 /// The standing rules whole, every marked part kept: the text the hands read at every pick (`rules.md`, read at every
 /// use), for the player's prompt (the user, 2026-10-17: "ensuring the player's prompt matches what jev is prompted

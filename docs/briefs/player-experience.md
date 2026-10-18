@@ -510,6 +510,7 @@ First factory: armvp (40), armlab (1).
 | first soldier | 0:53 / 0:55 / 1:18 | 1:13 | 0:54 |
 | first constructor | 1:13 / 1:30 / 1:37 | 1:29 | 1:34 |
 | second factory started | 7:12 / 8:11 / 8:56 | 8:11 | 7:44 |
+| first construction turret begun | 5:24 / 5:56 / 6:31 | 5:45 | 6:25 |
 | first soldier in his half | 1:22 / 1:40 / 1:49 | 1:42 | 1:37 |
 | first soldier within 1,500 of his start | 1:36 / 1:54 / 2:08 | 1:54 | 1:54 |
 | first building of his killed | 2:18 / 2:48 / 4:13 | 3:03 | 2:31 |
@@ -526,7 +527,7 @@ First factory: armvp (40), armlab (1).
 
 **Where the numbers come from.**
 - *The factory at 0:34:* it is started after 2 extractors and 2 generators, every one within the commander's reach of the start (the sheet: 5 spots within 30 s of the commander).
-- *The first soldier in his half:* the unit was armfav (37), armflash (3), armpw (1); it crossed into his half 26 / 29 / 44 s after it was made. The pool's starts are 5928 apart at the median, and half of that at full speed is armcv 55 s, armfav 18 s, armflash 29 s, armstump 40 s. The start the sheet was made from is 5870 from his (-1%): every crossing there is that much longer.
+- *The first soldier in his half:* the unit was armfav (37), armflash (3), armpw (1); it crossed into his half 26 / 29 / 44 s after it was made. The pool's starts are 5928 apart at the median, and half of that at full speed is armcv 55 s, armfav 18 s, armflash 29 s, armstump 40 s. The start the sheet was made from is 7346 from his (+24%): every crossing there is that much longer.
 - *Income per extractor:* 2.01 / 2.20 / 2.30 metal a second over minutes 3 to 8 (income less the commander's 2, over the extractors standing); the sheet's figure for a spot here is 2.30. Below it means energy short or extractors still going up.
 
 ### The game by the minute
@@ -565,6 +566,22 @@ Lower quartile / median / upper quartile of the pool; then the winners' and the 
 | 14 | 18 | 4273 / 4718 / 6152 | 5422 / 4556 | 34 / 40 / 43 | 40 / 40 | 265 / 1446 / 2124 | 1962 / 310 | 49 / 457 / 1171 | 524 / 330 |
 | 16 | 7 | 4682 / 5933 / 6734 | 6734 / 4101 | 38 / 40 / 50 | 46 / 38 | 290 / 1895 / 3614 | 3614 / 220 | 78 / 623 / 1498 | 1096 / 140 |
 
+| Minute | Sides | factories begun | won / lost | construction turrets begun | won / lost |
+|---|---|---|---|---|---|
+| 1 | 41 | 1 / 1 / 1 | 1 / 1 | 0 / 0 / 0 | 0 / 0 |
+| 2 | 41 | 1 / 1 / 1 | 1 / 1 | 0 / 0 / 0 | 0 / 0 |
+| 3 | 41 | 1 / 1 / 1 | 1 / 1 | 0 / 0 / 0 | 0 / 0 |
+| 4 | 41 | 1 / 1 / 1 | 1 / 1 | 0 / 0 / 0 | 0 / 0 |
+| 5 | 41 | 1 / 1 / 1 | 1 / 1 | 0 / 0 / 0 | 0 / 0 |
+| 6 | 41 | 1 / 1 / 1 | 1 / 1 | 0 / 0 / 1 | 0 / 0 |
+| 7 | 39 | 1 / 1 / 1 | 1 / 1 | 0 / 1 / 1 | 1 / 0 |
+| 8 | 37 | 1 / 1 / 2 | 1 / 1 | 1 / 1 / 2 | 2 / 1 |
+| 9 | 32 | 1 / 2 / 2 | 2 / 1 | 1 / 2 / 2 | 2 / 1 |
+| 10 | 25 | 2 / 2 / 2 | 2 / 2 | 1 / 2 / 3 | 2 / 1 |
+| 12 | 21 | 2 / 2 / 2 | 2 / 2 | 1 / 2 / 3 | 2 / 1 |
+| 14 | 18 | 2 / 2 / 3 | 2 / 2 | 1 / 2 / 3 | 2 / 1 |
+| 16 | 7 | 2 / 3 / 3 | 2 / 3 | 1 / 2 / 2 | 2 / 1 |
+
 **Where the extractors are.** Each spot taken is placed by how far it is from the side's start against his (0 at ours, 50% equally far, 100% at his):
 
 | Taken by | Spots taken | Under 25% | 25-40% | 40-50% | Past 50% (nearer him) |
@@ -577,7 +594,8 @@ Extractors lost: 0.97 / 1.54 / 2.22 a game-minute (winners 0.99, losers 2.52).
 
 ### More factories and tier 2
 
-- **The second factory:** 30 of 41 sides built one: armvp (16), armlab (12), armap (2).
+- **The first construction turret:** 30 of 41 sides built one, begun at 5:24 / 5:56 / 6:31 (winners' median 5:45, losers' 6:25); when it was begun the side had 9 / 11 / 13 extractors, 20 / 25 / 28 metal income, 3 / 3 / 4 constructors, 196 / 358 / 572 metal stored, 1 / 1 / 1 factories and 0 / 0 / 0 construction turrets. Of the 24 sides that built both, 23 put the construction turret before the second factory.
+- **The second factory:** 30 of 41 sides built one: armvp (16), armlab (12), armap (2), begun at 7:12 / 8:11 / 8:56; when it was begun the side had 14 / 16 / 19 extractors, 32 / 37 / 43 metal income, 4 / 5 / 6 constructors, 446 / 898 / 1502 metal stored, 1 / 1 / 1 factories and 0 / 1 / 2 construction turrets.
 - **Tier 2:** 1 of 41 sides started an advanced factory (armavp (1)), at 20:28 / 20:28 / 20:28. Of the sides whose game lasted past 15:00, 1 of 12 did.
 - **What they had when they started it:** 22 / 22 / 22 extractors, 52 / 52 / 52 metal income, 770 / 770 / 770 energy income, 1550 / 1550 / 1550 army metal.
 - **Who won:** the sides that started tier 2 won 0 of 1; the sides that never did won 24 of 40 (most of those games ended before anyone would have).
@@ -661,6 +679,7 @@ First factory: corvp (24), corlab (15).
 | first soldier | 1:31 / 1:46 / 1:49 | 1:44 | 1:46 |
 | first constructor | 0:58 / 1:21 / 1:23 | 1:12 | 1:22 |
 | second factory started | 6:14 / 8:16 / 9:36 | 8:32 | 7:49 |
+| first construction turret begun | 4:45 / 5:06 / 6:10 | 4:53 | 5:13 |
 | first soldier in his half | 2:16 / 2:48 / 3:23 | 2:24 | 3:02 |
 | first soldier within 1,500 of his start | 2:35 / 3:34 / 4:16 | 2:38 | 3:56 |
 | first building of his killed | 3:33 / 4:35 / 5:35 | 5:10 | 4:15 |
@@ -677,7 +696,7 @@ First factory: corvp (24), corlab (15).
 
 **Where the numbers come from.**
 - *The factory at 0:59:* it is started after 3 extractors and 2 generators, every one within the commander's reach of the start (the sheet: 5 spots within 30 s of the commander).
-- *The first soldier in his half:* the unit was corfav (23), corak (15), corgator (1); it crossed into his half 36 / 60 / 94 s after it was made. The pool's starts are 6416 apart at the median, and half of that at full speed is corcv 63 s, corfav 21 s, corgator 38 s. The start the sheet was made from is 5870 from his (-9%): every crossing there is that much longer.
+- *The first soldier in his half:* the unit was corfav (23), corak (15), corgator (1); it crossed into his half 36 / 60 / 94 s after it was made. The pool's starts are 6416 apart at the median, and half of that at full speed is corcv 63 s, corfav 21 s, corgator 38 s. The start the sheet was made from is 7346 from his (+15%): every crossing there is that much longer.
 - *Income per extractor:* 2.00 / 2.10 / 2.29 metal a second over minutes 3 to 8 (income less the commander's 2, over the extractors standing); the sheet's figure for a spot here is 2.30. Below it means energy short or extractors still going up.
 
 ### The game by the minute
@@ -718,6 +737,23 @@ Lower quartile / median / upper quartile of the pool; then the winners' and the 
 | 16 | 13 | 6168 / 10725 / 12619 | 10829 / 10319 | 46 / 63 / 85 | 84 / 62 | 240 / 2990 / 5584 | 3774 / 840 | 27 / 167 / 1173 | 1224 / 27 |
 | 18 | 11 | 5598 / 6660 / 9678 | 9536 / 5800 | 30 / 39 / 60 | 70 / 30 | 0 / 600 / 4007 | 3554 / 0 | 188 / 659 / 888 | 589 / 711 |
 
+| Minute | Sides | factories begun | won / lost | construction turrets begun | won / lost |
+|---|---|---|---|---|---|
+| 1 | 39 | 0 / 1 / 1 | 1 / 0 | 0 / 0 / 0 | 0 / 0 |
+| 2 | 39 | 1 / 1 / 1 | 1 / 1 | 0 / 0 / 0 | 0 / 0 |
+| 3 | 39 | 1 / 1 / 1 | 1 / 1 | 0 / 0 / 0 | 0 / 0 |
+| 4 | 39 | 1 / 1 / 1 | 1 / 1 | 0 / 0 / 0 | 0 / 0 |
+| 5 | 39 | 1 / 1 / 1 | 1 / 1 | 0 / 0 / 1 | 0 / 0 |
+| 6 | 39 | 1 / 1 / 1 | 1 / 1 | 0 / 1 / 1 | 1 / 1 |
+| 7 | 39 | 1 / 1 / 2 | 1 / 1 | 0 / 1 / 2 | 1 / 1 |
+| 8 | 35 | 1 / 1 / 2 | 1 / 1 | 1 / 1 / 2 | 1 / 2 |
+| 9 | 34 | 1 / 2 / 2 | 2 / 2 | 1 / 2 / 3 | 1 / 2 |
+| 10 | 31 | 1 / 2 / 2 | 2 / 2 | 1 / 2 / 2 | 1 / 2 |
+| 12 | 25 | 2 / 2 / 2 | 2 / 2 | 1 / 1 / 2 | 1 / 1 |
+| 14 | 20 | 2 / 3 / 3 | 3 / 3 | 1 / 2 / 3 | 1 / 3 |
+| 16 | 13 | 3 / 3 / 4 | 4 / 3 | 1 / 2 / 3 | 1 / 3 |
+| 18 | 11 | 3 / 4 / 4 | 4 / 4 | 1 / 1 / 3 | 1 / 3 |
+
 **Where the extractors are.** Each spot taken is placed by how far it is from the side's start against his (0 at ours, 50% equally far, 100% at his):
 
 | Taken by | Spots taken | Under 25% | 25-40% | 40-50% | Past 50% (nearer him) |
@@ -730,7 +766,8 @@ Extractors lost: 1.05 / 2.09 / 2.74 a game-minute (winners 0.90, losers 2.69).
 
 ### More factories and tier 2
 
-- **The second factory:** 31 of 39 sides built one: corvp (22), corlab (6), corap (3).
+- **The first construction turret:** 31 of 39 sides built one, begun at 4:45 / 5:06 / 6:10 (winners' median 4:53, losers' 5:13); when it was begun the side had 8 / 10 / 12 extractors, 18 / 23 / 27 metal income, 3 / 4 / 4 constructors, 172 / 237 / 494 metal stored, 1 / 1 / 1 factories and 0 / 0 / 0 construction turrets. Of the 27 sides that built both, 24 put the construction turret before the second factory.
+- **The second factory:** 31 of 39 sides built one: corvp (22), corlab (6), corap (3), begun at 6:14 / 8:16 / 9:36; when it was begun the side had 11 / 14 / 19 extractors, 27 / 36 / 46 metal income, 4 / 5 / 6 constructors, 282 / 842 / 1179 metal stored, 1 / 1 / 1 factories and 0 / 1 / 2 construction turrets.
 - **Tier 2:** 3 of 39 sides started an advanced factory (coravp (2), coralab (1)), at 15:07 / 17:02 / 18:36. Of the sides whose game lasted past 15:00, 3 of 18 did.
 - **What they had when they started it:** 32 / 33 / 40 extractors, 116 / 119 / 262 metal income, 1739 / 1880 / 2330 energy income, 8532 / 9470 / 11910 army metal.
 - **Who won:** the sides that started tier 2 won 1 of 3; the sides that never did won 15 of 36 (most of those games ended before anyone would have).

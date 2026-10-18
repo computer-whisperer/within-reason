@@ -12,11 +12,12 @@ import argparse, collections, json, math, os, statistics as st, subprocess, sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO, "run"))
-from pro_baseline import milestones, MILESTONE_ROWS, quartiles, secs, clock  # noqa: E402
+from pro_baseline import milestones, MILESTONE_ROWS, NANO, quartiles, secs, clock  # noqa: E402
 
 MINUTES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20]
 CURVES = [("extractors", "extractors"), ("constructors", "constructors"), ("metal_income", "metal income"), ("energy_income", "energy income"),
-          ("army_metal", "army metal"), ("soldiers", "soldiers"), ("army_metal_in_his_half", "army metal in his half"), ("metal_stored", "metal stored")]
+          ("army_metal", "army metal"), ("soldiers", "soldiers"), ("army_metal_in_his_half", "army metal in his half"), ("metal_stored", "metal stored"),
+          ("factories", "factories begun"), ("construction_turrets", "construction turrets begun")]
 
 
 def med(xs):
@@ -71,6 +72,15 @@ def main():
     sides = load(a.manifest, a.map, a.floor, a.faction)
     if not sides:
         sys.exit("no carded side matches")
+    # The sinks by the minute, from the clocks (the cards' curves carry none): factories begun and construction
+    # turrets begun by the minute, so the report's reference line can stand ours beside them (the user, 2026-10-17:
+    # the bank in chase-player-1 and -2 was build power missing, and the player had no line for it).
+    for s in sides:
+        factories = [secs(f.get("started")) for f in s.get("factories") or []]
+        nanos = [secs(b["clock"]) for b in s["build_order"] if b["unit"] in NANO]
+        for minute, c in s["curve"].items():
+            c["factories"] = sum(1 for t in factories if t is not None and t <= minute * 60)
+            c["construction_turrets"] = sum(1 for t in nanos if t is not None and t <= minute * 60)
     if a.json_out:
         table = {}
         for minute in MINUTES:
@@ -200,7 +210,7 @@ def main():
     # 2. curves
     P("### The game by the minute\n")
     P("Lower quartile / median / upper quartile of the pool; then the winners' and the losers' medians. A side counts at a minute only if its game reached it, so the late minutes are the longer games.\n")
-    for keys in (CURVES[:4], CURVES[4:]):
+    for keys in (CURVES[:4], CURVES[4:8], CURVES[8:]):
         P("| Minute | Sides | " + " | ".join(f"{label} | won / lost" for _, label in keys) + " |\n|---|---|" + "---|---|" * len(keys))
         for minute in MINUTES:
             have = [s for s in sides if minute in s["curve"]]
@@ -244,7 +254,24 @@ def main():
         f = s.get("factories") or []
         if len(f) > 1:
             second[f[1]["unit"]] += 1
-    P(f"- **The second factory:** {sum(second.values())} of {len(sides)} sides built one: {', '.join(f'{k} ({n})' for k, n in second.most_common())}.")
+    # What a side had at a clock: its curve at the minute at or before it (the state the decision was made in).
+    def had(pairs):
+        at = [c for s, t in pairs for c in [s["curve"].get(max(1, t // 60))] if c]
+        if not at:
+            return ""
+        return (f"; when it was begun the side had {q3([c['extractors'] for c in at])} extractors, {q3([c['metal_income'] for c in at])} metal income, "
+                f"{q3([c['constructors'] for c in at])} constructors, {q3([c['metal_stored'] for c in at])} metal stored, {q3([c['factories'] for c in at])} factories "
+                f"and {q3([c['construction_turrets'] for c in at])} construction turrets")
+    second_at = [(s, secs(s["factories"][1].get("started"))) for s in sides if len(s.get("factories") or []) > 1]
+    second_at = [(s, t) for s, t in second_at if t is not None]
+    nano_at = [(s, next((secs(b["clock"]) for b in s["build_order"] if b["unit"] in NANO and secs(b["clock"]) is not None), None)) for s in sides]
+    nano_at = [(s, t) for s, t in nano_at if t is not None]
+    both = [(t, next(f for o, f in second_at if o is s)) for s, t in nano_at if any(o is s for o, _ in second_at)]
+    P(f"- **The first construction turret:** {len(nano_at)} of {len(sides)} sides built one, begun at {q3([t for _, t in nano_at], 'clock')} "
+      f"(winners' median {clock(med([t for s, t in nano_at if s.get('won')]))}, losers' {clock(med([t for s, t in nano_at if not s.get('won')]))}){had(nano_at)}. "
+      f"Of the {len(both)} sides that built both, {sum(1 for t, f in both if t < f)} put the construction turret before the second factory.")
+    P(f"- **The second factory:** {sum(second.values())} of {len(sides)} sides built one: {', '.join(f'{k} ({n})' for k, n in second.most_common())}, "
+      f"begun at {q3([t for _, t in second_at], 'clock')}{had(second_at)}.")
     t2 = [(s, secs(s["first_tier2"]["clock"])) for s in sides if s.get("first_tier2") and s["first_tier2"].get("clock")]
     P(f"- **Tier 2:** {len(t2)} of {len(sides)} sides started an advanced factory ({', '.join(f'{k} ({n})' for k, n in collections.Counter(s['first_tier2']['unit'] for s, _ in t2).most_common())}), at {q3([t for _, t in t2], 'clock')}. "
       f"Of the sides whose game lasted past 15:00, {sum(1 for s, _ in t2 if s['duration'] > 900)} of {sum(1 for s in sides if s['duration'] > 900)} did.")

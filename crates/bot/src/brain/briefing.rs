@@ -7,7 +7,7 @@ use serde_json::json;
 
 use super::roster::Kit;
 use super::{Brain, FRAMES_PER_SECOND};
-use crate::strategist::shared::{Briefing, Counts, EnemyCluster, ExtractorStatus, Field, Group, Place, RememberedBuilding, Score};
+use crate::strategist::shared::{Briefing, Counts, Draw, EnemyCluster, ExtractorStatus, Field, Group, Place, RememberedBuilding, Score, Spending};
 
 /// The score's "soldiers near home" radius and how many free spots it names.
 const SCORE_AT_HOME: f32 = 800.0;
@@ -56,6 +56,32 @@ pub(super) struct FrameLoss {
 }
 
 impl Brain {
+    /// The player's `spending` line (H-PLAYER-SPENDING-LINE): what our factories and builders would take a second at
+    /// full speed on what they build now, from the picture's draws (one source with the hands' words), and the
+    /// builders with no draw of their own: helping a factory or another builder, or walking.
+    fn spending(&self, own: &[OwnUnit]) -> Spending {
+        use super::pianist::Task;
+        let Some(pianist) = self.pianist.as_ref() else { return Spending::default() };
+        let draws: Vec<Draw> = self
+            .production_draws(own, pianist)
+            .into_iter()
+            .map(|d| Draw { who: d.who, factory: d.factory, target: self.short_words(d.target), own_power: d.own_power, energy: d.energy, metal: d.metal, helping: d.helping })
+            .collect();
+        let (mut helping, mut without) = (0, 0);
+        for unit in own.iter().filter(|u| !u.being_built && self.world.is_mobile_builder(u.def)) {
+            let name = self.actor_name(unit.id);
+            if draws.iter().any(|d| d.who == name) {
+                continue;
+            }
+            if matches!(pianist.tasks.get(&unit.id), Some(Task::Assist { .. })) {
+                helping += 1;
+            } else {
+                without += 1;
+            }
+        }
+        Spending { draws, builders_helping: helping, builders_without_a_build: without }
+    }
+
     pub(super) fn place(&self, pos: Vec3) -> Place {
         Place { grid: self.world.grid(pos), x: pos.x as i32, z: pos.z as i32 }
     }
@@ -461,6 +487,7 @@ impl Brain {
             sides,
             seats: Vec::new(),
             build_power: self.build_power(&snapshot.own_units),
+            spending: self.spending(&snapshot.own_units),
             game_time: clock(tick.frame),
             frame: tick.frame,
             metal: snapshot.metal,
@@ -476,6 +503,8 @@ impl Brain {
                 generators: standing.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0 && (d.energy_make > 0.0 || d.energy_upkeep < 0.0 || d.wind_cap > 0.0 || d.tidal_make > 0.0))).count(),
                 converters: count(kit.converter),
                 labs: standing.iter().filter(|u| self.world.is_factory_def(u.def)).count(),
+                factories_begun: snapshot.own_units.iter().filter(|u| self.world.is_factory_def(u.def)).count(),
+                construction_turrets_begun: snapshot.own_units.iter().filter(|u| self.is_static_builder(u.def)).count(),
                 turrets: standing.iter().filter(|u| self.world.def(u.def).is_some_and(|d| d.speed == 0.0 && d.weapon_count > 0)).count(),
                 constructors: standing.iter().filter(|u| self.world.is_constructor_def(u.def)).count(),
                 army: soldiers.len(),

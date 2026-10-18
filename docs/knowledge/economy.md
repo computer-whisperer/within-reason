@@ -169,6 +169,43 @@ energy for six minutes"), 46 % of roster-2, 25-43 % of the Opus A/B games.
 full resources), or the player ignores a stated shortfall as it ignored the stall word.
 **Used by.** H-HANDS-ENERGY-DRAW.
 
+### K-player-the-draws-reached-the-hands-not-the-player
+**Claim.** The player banks metal from about 4:30 and lets the energy run out because its report never said what the
+sinks could take: the eco line gave the stores, the metal income and usage and the energy's net flow, the reference
+line the pros' income at the minute, and nothing the draw of a plant or a builder at full speed or the seat's build
+power, while the hands' picture carried both (H-HANDS-ENERGY-DRAW, dropped from the player's actor entries) and
+the commander's report the build power (H-COMMANDER-BUILD-POWER). chase-player-2 at 5:08: metal 708 at +27.2/-24.1,
+energy 1,110 at a net -89 (twelve seconds from empty); the player read the bank and ordered a second plant, read the
+energy a turn later and chose advanced solars (5,000 energy each) at an empty store; the sinks at full speed came to
+27 metal and 250 energy against 27 and 170 of income, the income rising 5 a minute, so a second plant (8 metal, 68
+energy a second) was under a third of the sink the income would need by 7:00 and 68 more energy on a budget 80
+short. The same shape in chase-player-1 (five solars by 3:23 against the pros' two, energy at the cap 2:40-5:00,
+then metal 1,441 at 5:40 and energy at zero 5:30).
+**Status.** observed (2026-10-17, docs/studies/2026-10-17-spending-line.md); the remedy (H-PLAYER-SPENDING-LINE,
+the flow words on both stores) untested in play.
+**Evidence.** the two games' transcripts and records (the floats on the record's samples, the player's words at
+4:40-5:59); the report lines at 5:08 and 5:59 read in full.
+**Would be wrong if.** The player, given the draws, still sizes by the store's level (then the brief's cases get the
+arithmetic, not the code); or the draws mislead because builders walk between builds (the line says how many are
+walking and that they take nothing).
+**Used by.** H-PLAYER-SPENDING-LINE, H-PLAYER-ECO-WORDS.
+
+### K-pro-comet-first-construction-turret-before-the-second-factory
+**Claim.** On Comet Catcher the experienced Armada players' first sink after the plant is a construction turret on it,
+begun at 5:24 / 5:56 / 6:31 (30 of 41 sides; winners' median 5:45, losers' 6:25) with 9 / 11 / 13 extractors, 20 /
+25 / 28 metal income, 3 / 3 / 4 constructors, 196 / 358 / 572 metal stored and one factory; the second factory comes
+at 7:12 / 8:11 / 8:56 (30 of 41) with 14 / 16 / 19 extractors, 32 / 37 / 43 income and 446 / 898 / 1,502 stored, and
+23 of the 24 sides that built both put the turret first. Their store peaks about 8:00 (837 median, 1,431 upper
+quartile) and falls after the second factory. Our chase-player-1 and -2 did the reverse: a second plant at 4:22-5:16
+and 5:08-6:23 with the first construction turret at 8:51 or never, the bank above their upper quartile from 5:00.
+**Status.** observed (2026-10-17, the 41 cards through `run/reference_set.py`; the sheet and the json table carry
+the rows from the same day).
+**Evidence.** `docs/briefs/reference/comet-catcher-remake-1.8-arm.md` (the milestones table, "More factories and
+tier 2", the by-minute table's last two columns); docs/studies/2026-10-17-spending-line.md.
+**Would be wrong if.** The pool's construction turrets stood beside something other than the plant (not checked:
+the cards carry the turret's cell, not its target), or the pool changes with a wider OS floor.
+**Used by.** H-PLAYER-REFERENCE-LINE (the three cells), the sheet in the experience brief.
+
 ### K-sim-player-games-army-underestimated
 **Claim.** Against the player games of 2026-09-22 (thirteen Armada vehicle openings on Comet), the build-order
 simulator runs 15-25 % high on metal income from minute 4 and 30-50 % low on army metal built, and puts the first

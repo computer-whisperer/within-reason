@@ -3,6 +3,7 @@
 //! on what did. The front of the report describes the game (the score, the trade, the economy, the ground, the
 //! opponent); the tail is the player's hands.
 
+use crate::brain::pianist::flow_words;
 use super::shared::{Briefing, CellLook, Field, Hands, Side};
 
 /// The hands' `did` lines a player's report carries at most.
@@ -153,21 +154,23 @@ pub(super) fn front(briefing: &Briefing, field: &Field, fights: &[String], seats
         s.traded_3_min.0, s.traded_3_min.1, s.traded.0, s.traded.1,
         s.seconds_since_turn.map_or(String::new(), |t| format!(" | {} of game time since your last turn began", clock(t)))
     ));
-    // The energy stall is said in the word the player's prompt keys its solar rule on (player-12 1:45: the line read
-    // "energy 1/1300 (+0)" behind an assisted constructor, the prompt's "the energy line reads STALLING" never
-    // appearing in the report; the engine caps spending at income once the store is empty, so the net figure reads 0).
+    // Both stores carry the hands' own flow words (`flow_words`: STALLING, running down with the seconds to empty,
+    // banking), so the prompt's "the energy line reads STALLING" and the player's projection read one source
+    // (H-PLAYER-ECO-WORDS; player-12 1:45: the line read "energy 1/1300 (+0)" behind an assisted constructor and the
+    // word never appeared; the engine caps spending at income once the store is empty, so a net figure reads 0;
+    // chase-player-2 5:08: "energy 1110/1550 (-89)" was twelve seconds from empty and the turn went to a plant).
     let e = &briefing.energy;
-    let stalling = e.storage > 0.0 && e.current / e.storage < 0.05 && e.usage >= e.income * 0.9;
     // The metal store with its cap and the word when it is full, as the energy has had (the impedance tally,
     // 2026-10-16: the hands' picture said "2096 of 2100 stored (full: what comes in beyond this is wasted)" while
     // the line here read "metal 1794 (+43.3/-35.3)"; jev114-player-1 sat at the cap a fifth of the game).
     let m = &briefing.metal;
     let full = m.storage > 0.0 && m.current / m.storage >= 0.98;
     lines.push(format!(
-        "eco: metal {:.0}/{:.0} ({:+.1}/-{:.1}){}, energy {:.0}/{:.0} ({:+.0}){}, wind now {:.0} of this map's {:.0} to {:.0} | extractors {} constructors {} labs {} turrets {} converters {}",
-        m.current, m.storage, m.income, m.usage, if full { " FULL: what comes in beyond the store is wasted" } else { "" }, e.current, e.storage,
-        e.income - e.usage, if stalling { " STALLING: the energy store is empty and everything that needs it builds slowly" } else { "" }, briefing.wind, briefing.wind_range.0, briefing.wind_range.1, c.extractors, c.constructors, c.labs, c.turrets, c.converters
+        "eco: metal {:.0}/{:.0} ({:+.1}/-{:.1}; {}){}, energy {:.0}/{:.0} ({:+.0}/-{:.0}; {}), wind now {:.0} of this map's {:.0} to {:.0} | extractors {} constructors {} labs {} turrets {} converters {}",
+        m.current, m.storage, m.income, m.usage, flow_words(m.income, m.usage, m.current, m.storage), if full { " FULL: what comes in beyond the store is wasted" } else { "" }, e.current, e.storage,
+        e.income, e.usage, flow_words(e.income, e.usage, e.current, e.storage), briefing.wind, briefing.wind_range.0, briefing.wind_range.1, c.extractors, c.constructors, c.labs, c.turrets, c.converters
     ));
+    lines.extend(spending_line(briefing));
     if let Some(line) = stockpile_line(briefing) {
         lines.push(line);
     }
@@ -386,6 +389,66 @@ pub(super) fn recently_seen(picture: &serde_json::Value) -> Vec<String> {
     if lines.len() > 1 { lines } else { Vec::new() }
 }
 
+/// The player's `spending` line (H-PLAYER-SPENDING-LINE): what the factories and builders would take a second at
+/// full speed on what they build now, each factory with the power helping it, and the seat's build power by kind;
+/// beside the eco line's income that says whether the store fills or the energy runs out. Numbers, no advice
+/// (docs/design/2026-10-17-spending-line.md: the bank of chase-player-1 and -2 was build power missing, and the draws
+/// reached the hands and not the player).
+fn spending_line(briefing: &Briefing) -> Option<String> {
+    let s = &briefing.spending;
+    let p = &briefing.build_power;
+    if s.draws.is_empty() && s.builders_helping == 0 && s.builders_without_a_build == 0 {
+        return None;
+    }
+    let plural = |n: usize| if n == 1 { "" } else { "s" };
+    let scale = |d: &super::shared::Draw| if d.factory && d.own_power > 0.0 { (d.own_power + d.helping) / d.own_power } else { 1.0 };
+    let metal: f32 = s.draws.iter().map(|d| d.metal * scale(d)).sum();
+    let energy: f32 = s.draws.iter().map(|d| d.energy * scale(d)).sum();
+    let mut parts: Vec<String> = Vec::new();
+    for d in s.draws.iter().filter(|d| d.factory) {
+        parts.push(if d.helping > 0.0 {
+            format!("{} {:.1} metal and {:.0} energy on {} alone, {:.0} build power helping it: {:.1} and {:.0}", d.who, d.metal, d.energy, d.target, d.helping, d.metal * scale(d), d.energy * scale(d))
+        } else {
+            format!("{} {:.1} metal and {:.0} energy on {}, nothing helping it", d.who, d.metal, d.energy, d.target)
+        });
+    }
+    // The builders by what they build: "2 constructors on an extractor 5.0 and 50".
+    let mut by_target: Vec<(String, String, usize, f32, f32)> = Vec::new();
+    for d in s.draws.iter().filter(|d| !d.factory) {
+        let kind = if d.who.starts_with("constructor") { "constructor".to_string() } else { d.who.clone() };
+        match by_target.iter_mut().find(|(k, t, ..)| *k == kind && *t == d.target) {
+            Some(row) => {
+                row.2 += 1;
+                row.3 += d.metal;
+                row.4 += d.energy;
+            }
+            None => by_target.push((kind, d.target.clone(), 1, d.metal, d.energy)),
+        }
+    }
+    for (kind, target, n, m, e) in by_target {
+        parts.push(if kind == "constructor" { format!("{n} constructor{} on {target} {m:.1} and {e:.0}", plural(n)) } else { format!("the {kind} on {target} {m:.1} and {e:.0}") });
+    }
+    if s.builders_helping > 0 {
+        parts.push(format!("{} builder{} helping (counted with what they help)", s.builders_helping, plural(s.builders_helping)));
+    }
+    if s.builders_without_a_build > 0 {
+        parts.push(format!("{} builder{} walking or idle (take nothing)", s.builders_without_a_build, plural(s.builders_without_a_build)));
+    }
+    let factories = s.draws.iter().filter(|d| d.factory).count();
+    let own: f32 = p.factories.iter().map(|f| f.own).sum();
+    Some(format!(
+        "spending: at full speed our {} factor{} and {} builders would take about {metal:.0} metal and {energy:.0} energy a second on what they build now: {}. Build power: {own:.0} in the factories, {:.0} in {} builders that walk, {:.0} in {} construction turrets",
+        factories,
+        if factories == 1 { "y" } else { "ies" },
+        p.mobile.0,
+        parts.join("; "),
+        p.mobile.1,
+        p.mobile.0,
+        p.turrets.1,
+        p.turrets.0
+    ))
+}
+
 pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, fights: &[String], hands: &Hands, chat: &[String], full: bool) -> String {
     let mut lines = front(briefing, field, fights, true);
     lines.extend(contact(briefing, field));
@@ -420,6 +483,12 @@ pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, fights
                     serde_json::Value::Array(items) => parts.push(format!("{key}: {}", items.iter().filter_map(|i| i.as_str()).collect::<Vec<_>>().join("; "))),
                     _ => {}
                 }
+            }
+            // A factory's draw at full speed with what each 100 build power helping it adds (H-PLAYER-SPENDING-LINE).
+            if (name.starts_with("plant_") || name.starts_with("lab_") || name.starts_with("factory_"))
+                && let Some(draw) = field("draw")
+            {
+                parts.push(draw);
             }
             // A constructor's type beside its name (the impedance tally, 2026-10-16: an advanced constructor read
             // "constructor_N" like the others, and tier-1 steps went to it and were skipped).
@@ -564,6 +633,31 @@ mod sightings_tests {
     /// The score line gives his extractors as sightings with their age and no count of what he holds, and his
     /// soldiers seen as a count and nothing more; no line estimates his spending (the user, 2026-10-17: what he
     /// has is the player's estimate from what was seen; the harness has no authority to say it).
+    #[test]
+    fn the_spending_line_sums_the_draws_with_what_helps_a_factory() {
+        use super::super::shared::{Briefing, BuildPower, Draw, FactoryPower, Spending};
+        use super::spending_line;
+        let draw = |who: &str, factory: bool, target: &str, own_power: f32, energy: f32, metal: f32, helping: f32| Draw { who: who.into(), factory, target: target.into(), own_power, energy, metal, helping };
+        let briefing = Briefing {
+            spending: Spending {
+                draws: vec![
+                    draw("plant_15129", true, "a Blitz (armflash)", 150.0, 68.0, 8.2, 300.0),
+                    draw("commander", false, "an extractor (armmex)", 300.0, 83.0, 8.3, 0.0),
+                    draw("constructor_1", false, "an extractor (armmex)", 90.0, 25.0, 2.5, 0.0),
+                    draw("constructor_2", false, "an extractor (armmex)", 90.0, 25.0, 2.5, 0.0),
+                ],
+                builders_helping: 1,
+                builders_without_a_build: 1,
+            },
+            build_power: BuildPower { mobile: (5, 660.0), turrets: (0, 0.0), factories: vec![FactoryPower { name: "armvp_15129".into(), own: 150.0, ..Default::default() }], mobile_away: 270.0 },
+            ..Briefing::default()
+        };
+        let line = spending_line(&briefing).unwrap();
+        assert!(line.starts_with("spending: at full speed our 1 factory and 5 builders would take about 38 metal and 337 energy a second on what they build now: "), "{line}");
+        assert!(line.contains("plant_15129 8.2 metal and 68 energy on a Blitz (armflash) alone, 300 build power helping it: 24.6 and 204; the commander on an extractor (armmex) 8.3 and 83; 2 constructors on an extractor (armmex) 5.0 and 50; 1 builder helping (counted with what they help); 1 builder walking or idle (take nothing). Build power: 150 in the factories, 660 in 5 builders that walk, 0 in 0 construction turrets"), "{line}");
+        assert!(spending_line(&Briefing::default()).is_none());
+    }
+
     #[test]
     fn the_score_line_dates_each_sighting_and_claims_nothing_of_his_state() {
         let place = |grid: &str| Place { grid: grid.to_string(), x: 0, z: 0 };

@@ -41,17 +41,23 @@ fn line_from(table: &Value, briefing: &Briefing, score: &Score) -> Option<String
         let n = |v: &Value| v.as_f64().map_or("-".to_string(), |v| format!("{v:.0}"));
         format!("{ours:.0} ({} / {} / {}, {})", n(&q["p25"]), n(&q["median"]), n(&q["p75"]), n(&q["won"]))
     };
+    // The sinks and the bank, in tables made from 2026-10-17 on (older tables lack the keys and say nothing).
+    let extra = |key: &str, label: &str, ours: f32| if row.get(key).is_some() { format!(" | {label} {}", cell(key, ours)) } else { String::new() };
     let faction = match table["faction"].as_str() {
         Some("arm") => "Armada",
         Some("cor") => "Cortex",
         _ => "",
     };
     Some(format!(
-        "reference, {} {faction} sides of duels between people at OS {:.0} and above on this map, at {at}:00 (ours, then their lower quartile / median / upper quartile, and their winners' median): extractors {} | constructors {} | metal income {} | energy income {} | army metal {} | soldiers {} | army metal in his half {}. Their starts are {} apart; what they did, not a target.",
+        "reference, {} {faction} sides of duels between people at OS {:.0} and above on this map, at {at}:00 (ours, then their lower quartile / median / upper quartile, and their winners' median): extractors {} | constructors {} | metal income {} | energy income {} | army metal {} | soldiers {} | army metal in his half {}{}{}{}. Their starts are {} apart; what they did, not a target.",
         table["sides"], table["floor"].as_f64().unwrap_or(0.0),
         cell("extractors", score.extractors as f32), cell("constructors", briefing.counts.constructors as f32), cell("metal_income", briefing.metal.income),
         cell("energy_income", briefing.energy.income), cell("army_metal", score.army_metal as f32), cell("soldiers", score.soldiers as f32),
-        cell("army_metal_in_his_half", score.army_metal_in_his_half as f32), table["starts_apart"],
+        cell("army_metal_in_his_half", score.army_metal_in_his_half as f32),
+        extra("metal_stored", "metal stored", briefing.metal.current),
+        extra("factories", "factories begun", briefing.counts.factories_begun as f32),
+        extra("construction_turrets", "construction turrets begun", briefing.counts.construction_turrets_begun as f32),
+        table["starts_apart"],
     ))
 }
 
@@ -68,6 +74,18 @@ mod tests {
         let briefing = Briefing::default();
         let line = line_from(&table, &briefing, &score).unwrap();
         assert!(line.contains("at 8:00") && line.contains("extractors 18 (13 / 15 / 18, 16)"), "{line}");
+        assert!(!line.contains("factories begun"), "an old table says nothing of the sinks: {line}");
+        // A table of 2026-10-17 on carries the bank and the sinks, and the line stands ours beside them.
+        let mut with = table.clone();
+        for (key, m) in [("metal_stored", 837.0), ("factories", 1.0), ("construction_turrets", 1.0)] {
+            with["minutes"]["8"][key] = q(m);
+        }
+        let mut briefing = Briefing::default();
+        briefing.metal.current = 1338.0;
+        briefing.counts.factories_begun = 2;
+        briefing.counts.construction_turrets_begun = 0;
+        let line = line_from(&with, &briefing, &score).unwrap();
+        assert!(line.contains("metal stored 1338 (835 / 837 / 840, 838) | factories begun 2 (-1 / 1 / 4, 2) | construction turrets begun 0 (-1 / 1 / 4, 2). Their starts"), "{line}");
         score.frame = 11 * 1800;
         assert!(line_from(&table, &briefing, &score).unwrap().contains("over by 10:00"));
         score.frame = 600;

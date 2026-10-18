@@ -20,7 +20,7 @@ Columns per minute: ours, then the pool's p25 / median / p75, then the pool's wi
 outside the pool's middle half (below p25, or above p75 for the metal store, where high means unspent). The
 milestones are clocks from the build order: the first factory started and finished, its first unit, the first
 soldier, the first constructor, the second factory, the first extractor lost (and to what), and counts by 8:00
-(light turrets, solars, constructors made, radars, nano turrets), each against the pool's median and quartiles.
+(light turrets, solars, constructors made, radars, nano turrets), the first construction turret begun, each against the pool's median and quartiles.
 `--json` prints the same numbers as one object per match.
 """
 import glob
@@ -84,6 +84,7 @@ def milestones(order, factories, first_lost, classify, press=None):
     out["first_factory_unit_at"] = secs(from_factory[0]["clock"]) if from_factory else None
     out["first_soldier"] = next((secs(b["clock"]) for b in from_factory if classify(b["unit"]) == "army"), None)
     out["first_constructor"] = next((secs(b["clock"]) for b in from_factory if classify(b["unit"]) == "builder"), None)
+    out["first_nano"] = next((secs(b["clock"]) for b in order if b["unit"] in NANO and secs(b["clock"]) is not None), None)
     by_8 = lambda names: sum(1 for b in order if b["unit"] in names and secs(b["clock"]) is not None and secs(b["clock"]) < 480)
     out["turrets_by_8"] = by_8(LLT)
     out["solars_by_8"] = by_8(SOLAR)
@@ -102,6 +103,7 @@ MILESTONE_ROWS = (
     ("first_factory_started", "first factory started", "clock"), ("first_factory_finished", "first factory standing", "clock"),
     ("first_factory_unit_at", "its first unit", "clock"), ("first_soldier", "first soldier", "clock"),
     ("first_constructor", "first constructor", "clock"), ("second_factory_started", "second factory started", "clock"),
+    ("first_nano", "first construction turret begun", "clock"),
     ("first_soldier_in_his_half", "first soldier in his half", "clock"), ("first_soldier_near_his_start", "first soldier within 1,500 of his start", "clock"),
     ("first_his_building_killed", "first building of his killed", "clock"), ("first_his_extractor_killed", "first extractor of his killed", "clock"),
     ("first_extractor_lost", "first extractor lost", "clock"), ("solars_before_plant", "solars before the plant", "count"),
@@ -243,7 +245,7 @@ def print_report(o):
     print(f"   {'milestone':<28} {'ours':>7}   {'pool p25':>8} {'median':>7} {'p75':>7}   {'winners':>7}  flag")
     for key, m in o["milestones"].items():
         q, w = m["pool"], m["winners"]
-        high_bad = key in ("first_factory_started", "first_factory_finished", "first_factory_unit_at", "first_soldier", "first_constructor", "second_factory_started", "solars_before_plant",
+        high_bad = key in ("first_factory_started", "first_factory_finished", "first_factory_unit_at", "first_soldier", "first_constructor", "second_factory_started", "first_nano", "solars_before_plant",
                            "first_soldier_in_his_half", "first_soldier_near_his_start", "first_his_building_killed", "first_his_extractor_killed")
         f = ""
         if m["ours"] is not None and q:

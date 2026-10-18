@@ -43,6 +43,23 @@ const CHASE_AHEAD: f32 = 600.0;
 
 /// What a chase is running into (`Brain::chase_met`): the words for the group's `chase` line, and one key per thing
 /// met for the event that asks the group when a new one appears.
+/// A factory's or a builder's draw at full speed on what it builds now (H-HANDS-ENERGY-DRAW; the player's `spending`
+/// line reads the same, H-PLAYER-SPENDING-LINE).
+#[derive(Clone, Debug)]
+pub(crate) struct ProductionDraw {
+    pub who: String,
+    pub factory: bool,
+    pub target: UnitDefId,
+    /// The actor's own build power.
+    pub own_power: f32,
+    /// Energy and metal a second at its own build power.
+    pub energy: f32,
+    pub metal: f32,
+    /// Build power helping a factory now (builders guarding it, construction turrets told to guard it): it takes that
+    /// much more, in proportion to its own.
+    pub helping: f32,
+}
+
 pub(super) struct ChaseMet {
     pub words: String,
     pub keys: Vec<String>,
@@ -222,7 +239,7 @@ pub(crate) fn clock(frame: i32) -> String {
     format!("{}:{:02}", seconds / 60, seconds % 60)
 }
 
-fn stock_words(current: f32, storage: f32) -> &'static str {
+pub(crate) fn stock_words(current: f32, storage: f32) -> &'static str {
     let share = if storage > 0.0 { current / storage } else { 0.0 };
     if share < 0.1 {
         "nearly empty"
@@ -237,7 +254,7 @@ fn stock_words(current: f32, storage: f32) -> &'static str {
     }
 }
 
-fn flow_words(income: f32, usage: f32, current: f32, storage: f32) -> String {
+pub(crate) fn flow_words(income: f32, usage: f32, current: f32, storage: f32) -> String {
     let share = if storage > 0.0 { current / storage } else { 0.0 };
     // The engine caps spending at income once the store is empty, so a stall reads as "in balance" by the numbers.
     if share < 0.05 && usage >= income * 0.9 {
@@ -337,7 +354,7 @@ impl Brain {
     }
 
     /// A type in the picture's prose: "Solar Collector (armsolar)", or the internal name and its class.
-    pub(super) fn short_words(&self, def: UnitDefId) -> String {
+    pub(crate) fn short_words(&self, def: UnitDefId) -> String {
         let internal = self.name(def);
         match glossary::entry(internal) {
             Some(e) if !e.name.is_empty() => format!("{} ({internal})", e.name),
@@ -645,15 +662,16 @@ impl Brain {
     }
 
     /// The fight simulator's odds of `units` against a party, in words (Jev compares nothing itself).
-    /// What each factory and building builder would draw at full speed on what it builds now: (actor name, energy a
-    /// second, metal a second). A factory on what stands on its pad, else its queue's first unit; a builder on its
-    /// build task (docs/design/2026-09-22-energy-draw.md).
-    pub(super) fn production_draws(&self, own: &[OwnUnit], pianist: &Pianist) -> Vec<(String, f32, f32)> {
-        let rate = |power: f32, def: UnitDefId| self.world.def(def).filter(|d| d.build_time > 0.0).map_or((0.0, 0.0), |d| (power * d.energy_cost / d.build_time, power * d.metal_cost / d.build_time));
+    /// What each factory and building builder would draw at full speed on what it builds now. A factory on what
+    /// stands on its pad, else its queue's first unit, at its own power, with the power helping it (builders guarding
+    /// it, construction turrets told to guard it) counted beside; a builder on its build task
+    /// (docs/design/2026-09-22-energy-draw.md, docs/design/2026-10-17-spending-line.md).
+    pub(crate) fn production_draws(&self, own: &[OwnUnit], pianist: &Pianist) -> Vec<ProductionDraw> {
         let mut draws = Vec::new();
         for unit in own.iter().filter(|u| !u.being_built) {
             let Some(def) = self.world.def(unit.def) else { continue };
-            let building = if self.world.is_factory_def(unit.def) {
+            let factory = self.world.is_factory_def(unit.def);
+            let building = if factory {
                 own.iter().find(|u| u.being_built && u.pos.dist2d(unit.pos) < 120.0 && self.world.def(u.def).is_some_and(|d| d.speed > 0.0)).map(|u| u.def).or_else(|| pianist.lab_queue.get(&unit.id).and_then(|q| q.first()).map(|(d, _)| *d))
             } else if self.world.is_mobile_builder(unit.def) {
                 match pianist.tasks.get(&unit.id) {
@@ -663,14 +681,29 @@ impl Brain {
             } else {
                 None
             };
-            if let Some(target) = building {
-                let (energy, metal) = rate(def.build_speed, target);
-                if energy > 0.0 {
-                    draws.push((self.actor_name(unit.id), energy, metal));
-                }
+            let Some(target) = building else { continue };
+            let (energy, metal) = self.draw_rate(def.build_speed, target);
+            if energy <= 0.0 {
+                continue;
             }
+            let helping = if factory {
+                own.iter()
+                    .filter(|u| !u.being_built && u.id != unit.id)
+                    .filter(|u| matches!(pianist.tasks.get(&u.id), Some(Task::Assist { lab, .. }) if *lab == unit.id) || self.nano_guards.get(&u.id).is_some_and(|(f, _)| *f == unit.id))
+                    .filter_map(|u| self.world.def(u.def))
+                    .map(|d| d.build_speed)
+                    .sum()
+            } else {
+                0.0
+            };
+            draws.push(ProductionDraw { who: self.actor_name(unit.id), factory, target, own_power: def.build_speed, energy, metal, helping });
         }
         draws
+    }
+
+    /// Energy and metal a second that `power` build power takes on `def` at full speed: power x cost / build time.
+    pub(crate) fn draw_rate(&self, power: f32, def: UnitDefId) -> (f32, f32) {
+        self.world.def(def).filter(|d| d.build_time > 0.0).map_or((0.0, 0.0), |d| (power * d.energy_cost / d.build_time, power * d.metal_cost / d.build_time))
     }
 
     /// Whether our faction's build tree (from the commander) reaches a definition.
@@ -1375,8 +1408,8 @@ impl Brain {
         // (docs/design/2026-09-22-energy-draw.md), so the size of a stall is a number before it is a stall.
         let m = &snapshot.metal;
         let e = &snapshot.energy;
-        let draws: Vec<(String, f32, f32)> = self.production_draws(own, pianist);
-        let draw_total: f32 = draws.iter().map(|(_, e, _)| e).sum();
+        let draws = self.production_draws(own, pianist);
+        let draw_total: f32 = draws.iter().map(|d| d.energy).sum();
         let budget = if draws.is_empty() {
             String::new()
         } else {
@@ -1389,7 +1422,7 @@ impl Brain {
                     fixes.push(format!("{:.1} {}", short.max(0.0) / unit_income, self.short_words(def)));
                 }
             }
-            format!(" Our production at full speed would draw {draw_total:.0} a second ({}); against the income that is {}", draws.iter().map(|(who, e, _)| format!("{who} {e:.0}")).collect::<Vec<_>>().join(", "), if short > 0.0 { format!("short by {short:.0}, which is {}", fixes.join(" or ")) } else { format!("{:.0} to spare", -short) }) + "."
+            format!(" Our production at full speed would draw {draw_total:.0} a second ({}); against the income that is {}", draws.iter().map(|d| format!("{} {:.0}", d.who, d.energy)).collect::<Vec<_>>().join(", "), if short > 0.0 { format!("short by {short:.0}, which is {}", fixes.join(" or ")) } else { format!("{:.0} to spare", -short) }) + "."
         };
         let economy = json!({
             "metal": format!("{:.0} of {:.0} stored ({}); {:.1} a second coming in, {:.1} going out: {}", m.current, m.storage, stock_words(m.current, m.storage), m.income, m.usage, flow_words(m.income, m.usage, m.current, m.storage)),
@@ -1714,8 +1747,20 @@ impl Brain {
                 });
                 entry["health"] = json!(health_words(unit.health / unit.max_health));
             }
-            if let Some((_, energy, metal)) = draws.iter().find(|(who, _, _)| *who == name) {
-                entry["draw"] = json!(format!("draws about {energy:.0} energy and {metal:.1} metal a second at full speed on what it builds now"));
+            if let Some(d) = draws.iter().find(|d| d.who == name) {
+                // A factory's words carry what each 100 build power helping it adds, so a sink can be sized from them
+                // (the player's report keeps a factory's draw line, H-PLAYER-SPENDING-LINE).
+                entry["draw"] = json!(if d.factory {
+                    let (e100, m100) = self.draw_rate(100.0, d.target);
+                    format!(
+                        "draws about {:.0} energy and {:.1} metal a second at full speed on what it builds now, alone; each 100 build power helping it adds {e100:.0} and {m100:.1}{}",
+                        d.energy,
+                        d.metal,
+                        if d.helping > 0.0 { format!("; {:.0} is helping it now", d.helping) } else { String::new() }
+                    )
+                } else {
+                    format!("draws about {:.0} energy and {:.1} metal a second at full speed on what it builds now", d.energy, d.metal)
+                });
             }
             if let Some(words) = pianist.register_words(&name, frame) {
                 entry["last_pick"] = json!(words);
