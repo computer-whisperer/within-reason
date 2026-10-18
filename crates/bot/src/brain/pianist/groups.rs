@@ -27,6 +27,11 @@ const REACHED_KEPT: usize = 6;
 /// the hold after six seconds out of sight cancelled every strike).
 const LOST_FRAMES: i32 = 6 * FRAMES_PER_SECOND;
 const AIR_LOST_FRAMES: i32 = 60 * FRAMES_PER_SECOND;
+/// H-HUNT-HIDDEN: a hunt on a quarry that cloaks (a spy, a sniper, a pop-up turret) runs this long out of sight and
+/// radar before it ends, the hunters walking to its last place meanwhile (within its decloak distance it shows
+/// again); the end's word is "hidden", not "lost" (the user, 2026-10-18: "a cloakable quarry out of sight is hidden,
+/// not lost"; docs/code-decisions.md §2).
+pub(crate) const HUNT_HIDDEN_FRAMES: i32 = 30 * FRAMES_PER_SECOND;
 /// H-HANDS-STALL: a moving group whose centre has not come this much closer to its goal in this long is stalled; the
 /// picture says so, and an advancing one wakes the player once (pianist-player-2: the ball stood five minutes short
 /// of the enemy base with the player reading "under fire" and nothing about the hands).
@@ -789,7 +794,7 @@ impl Brain {
     /// The micro engine's word on a hunt (`micro::HuntEvent`): its end (the quarry dead or lost, the leash reached)
     /// leaves the group holding where it stands, for Jev or the player to send on or merge. Returns the end's words
     /// and, for a hunt that ended without a kill, the failure to remember (the party and why).
-    pub(crate) fn hunt_event(group: &mut Group, event: &micro::HuntEvent, own: &[OwnUnit], frame: i32, commands: &mut Vec<Command>) -> Option<(String, Option<(String, String)>)> {
+    pub(crate) fn hunt_event(group: &mut Group, event: &micro::HuntEvent, own: &[OwnUnit], frame: i32, cloaks: bool, commands: &mut Vec<Command>) -> Option<(String, Option<(String, String)>)> {
         let GroupTask::Hunt(hunt) = &mut group.task else { return None };
         if hunt.quarry != event.quarry {
             return None;
@@ -800,6 +805,7 @@ impl Brain {
         group.set_task(GroupTask::Hold { since: frame, committed: false, picked: false }, frame);
         let why = match event.why {
             "dead" => "the quarry is dead".to_string(),
+            "lost" if cloaks => format!("{party} hidden: it cloaks, and nothing of ours has seen it for {} s, its last place walked to", HUNT_HIDDEN_FRAMES / FRAMES_PER_SECOND),
             "lost" => format!("{party} out of sight for 6 s"),
             "leash" => format!("the leash of {HUNT_LEASH:.0} from where it began reached"),
             other => other.to_string(),
@@ -969,7 +975,7 @@ mod tests {
         assert!(matches!(pianist.groups[0].task, GroupTask::Hunt(_)));
         // The engine says the quarry is lost: the hunting group holds where it stands, and the failure is returned.
         let event = micro::HuntEvent { quarry, why: "lost" };
-        let (text, failed) = Brain::hunt_event(&mut pianist.groups[1], &event, &ours, 200, &mut commands).expect("the end");
+        let (text, failed) = Brain::hunt_event(&mut pianist.groups[1], &event, &ours, 200, false, &mut commands).expect("the end");
         assert!(text.contains("holds where it is"), "{text}");
         assert_eq!(failed.map(|(p, _)| p).as_deref(), Some("party_12"));
         assert!(matches!(pianist.groups[1].task, GroupTask::Hold { .. }));

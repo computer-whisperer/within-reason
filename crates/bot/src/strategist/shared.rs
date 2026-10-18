@@ -50,6 +50,15 @@ pub struct Briefing {
     pub allied_teams: Vec<i32>,
     /// The lobby's game-end rule in words, empty when the shim sent no script (H-REPORT-GAME-END).
     pub game_end: String,
+    /// His jammer towers seen standing, each with the radius it hides from radar (H-REPORT-JAMMERS).
+    pub jammers: Vec<String>,
+    /// Fire from out of sight as standing places (`guns.rs`, H-GUNS), one line each.
+    pub guns: Vec<String>,
+    /// His shield generators seen, each with its radius and which of our shots it stops (H-REPORT-SHIELDS).
+    pub shields: Vec<String>,
+    /// Whether the engine's sensor grids have arrived (a shim from 2026-10-18): the scouting block's radar words
+    /// rest on them.
+    pub sensors_known: bool,
     /// Our side's commanders standing, and the seats the side started with (one commander each).
     pub side_commanders: (usize, usize),
     /// Metal spots nearer our side's start box than his, the map's total, and the seats of our side sharing them;
@@ -203,6 +212,15 @@ pub struct CellLook {
     pub in_his_box: bool,
     /// The metal spots in the cell, by number.
     pub spots: Vec<usize>,
+    /// The share of the cell under our radar now, from the engine's grid (`Snapshot::sensors`, terrain-cut); None
+    /// without the grid (a shim before 2026-10-18).
+    pub radar_share: Option<f32>,
+    /// Radar contacts in the cell now: units of his of a type we cannot see.
+    pub contacts: usize,
+    /// A seen jammer tower of his hides the cell's middle from radar.
+    pub jammed: bool,
+    /// Fire from out of sight laid to the cell: its `guns_N` place and weapon (H-GUNS).
+    pub guns: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, Serialize)]

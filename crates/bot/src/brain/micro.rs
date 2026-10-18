@@ -81,7 +81,10 @@ impl Brain {
                     match hunting {
                         Some(h) => {
                             let leash_from = h.anchors.iter().find(|(hunter, _)| hunter == id).map_or(h.from, |(_, at)| *at);
-                            commitment.insert(*id, Commitment::Hunt(micro::Hunt { quarry: h.quarry, leash_from, leash: super::pianist::groups::HUNT_LEASH }));
+                            // A quarry that cloaks is hidden where it stands when it drops out of sight, not gone: the
+                            // hunt runs on to its last place for longer before it ends (H-HUNT-HIDDEN).
+                            let lost_frames = if self.quarry_cloaks(h.quarry) { super::pianist::groups::HUNT_HIDDEN_FRAMES } else { micro::HUNT_LOST_FRAMES };
+                            commitment.insert(*id, Commitment::Hunt(micro::Hunt { quarry: h.quarry, leash_from, leash: super::pianist::groups::HUNT_LEASH, lost_frames }));
                             footwork.insert(*id, Footwork::raw());
                         }
                         None => {
@@ -125,10 +128,12 @@ impl Brain {
             && let Some(pianist) = self.pianist.as_mut()
         {
             let own = &tick.snapshot.own_units;
+            let (soldiers, buildings, world) = (&self.enemy_soldiers, &self.enemy_buildings, &self.world);
+            let cloaks = |quarry: UnitId| soldiers.get(&quarry).or_else(|| buildings.get(&quarry)).and_then(|(d, ..)| world.def(*d)).is_some_and(|d| d.cloak.is_some());
             for event in &output.hunts {
                 let mut ended = Vec::new();
                 for group in pianist.groups.iter_mut() {
-                    if let Some(end) = Brain::hunt_event(group, event, own, tick.frame, commands) {
+                    if let Some(end) = Brain::hunt_event(group, event, own, tick.frame, cloaks(event.quarry), commands) {
                         ended.push(end);
                     }
                 }

@@ -570,3 +570,21 @@ words now name what of ours the line crosses.
 **Would be wrong if.** The plant died to something else in the same second; the record's attacker is the commander.
 **Used by.** [[H-HANDS-DGUN-LINE]].
 
+
+### K-mech-shields-stop-shots-by-type
+**Claim.** A shield (Keeper `armgate`, Overseer `corgate`, Soteria `legdeflector`: 3,000 to 3,200 metal, radius 550,
+6,175 shield strength, regenerating) stops a shot when `shield.interceptType & weapon.interceptedByShieldType != 0`
+(`WeaponDef.cpp` 547). The engine's defaults by weapon type: Cannon 1, LaserCannon and BeamLaser 2, MissileLauncher 4,
+AircraftBomb 8, Flame 16, Rifle 128, Melee 256; BAR sets StarburstLauncher to 1024 and DGun to 512
+(`gamedata/alldefs_post.lua` 1098-1103, under the lobby's `experimentalshields = unchanged`). The three shields
+intercept 1: plasma (Thug, Karkinos, Fatboy, the Astraeus from outside) is stopped; rockets (Arbiter), missiles
+(Thanatos), lasers and heat rays pass. They are `exterior`: only shots from outside the bubble are stopped, so a unit
+inside it shoots freely. The AI interface gives the shield per definition (`UnitDef_getShieldDef`, radius, power,
+intercept type, exterior) and each weapon's mask; the shim carries them from 2026-10-18 (`UnitDefInfo.shield`,
+`intercepted_by`).
+**Status.** supported (2026-10-18): engine and game source.
+**Evidence.** `upstream/RecoilEngine/rts/Sim/Weapons/WeaponDef.cpp` 470-548; `upstream/Beyond-All-Reason/gamedata/alldefs_post.lua`
+1095-1150; `units/Legion/Utilities/legdeflector.lua` (shield_power 6175, radius 550, intercepttype 1, exterior);
+`units/CorBots/T2/corhrk.lua` (StarburstLauncher), `units/Legion/Bots/T2 Bots/leghrk.lua` (MissileLauncher).
+**Would be wrong if.** The lobby set `experimentalshields` to `absorbeverything` or `bounceeverything` (then every weapon reads 1 and the shields stop everything).
+**Used by.** H-REPORT-SHIELDS; the brief's sight passage.

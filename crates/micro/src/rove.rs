@@ -923,7 +923,7 @@ mod tests {
     fn a_hunter_no_faster_than_its_quarry_and_hurt_keeps_hunting() {
         let host = Host::new(Vec::new());
         let mut lane = Lane::default();
-        let hunt = Hunt { quarry: UnitId(99), leash_from: at(2500.0, 2500.0), leash: 900.0 };
+        let hunt = Hunt { quarry: UnitId(99), leash_from: at(2500.0, 2500.0), leash: 900.0, lost_frames: crate::HUNT_LOST_FRAMES };
         lane.set_commitments([(UnitId(10), Commitment::Hunt(hunt))].into_iter().collect(), [(UnitId(10), Footwork::raw())].into_iter().collect());
         let mut hunter = rover(10, 2500.0, 2500.0);
         hunter.health = 30.0;

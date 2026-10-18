@@ -123,6 +123,10 @@ pub struct Brain {
     /// Hits from out of sight in the last twenty seconds (`shelling.rs`), and when the player was last woken for them.
     shelling: Vec<shelling::Shell>,
     shelling_warned: i32,
+    /// Our side's sensor coverage grids as the shim last sent them (once a second) and the frame they came: sight
+    /// and radar cut by terrain, the engine's own (`docs/design/2026-10-18-sight-jammers-cloak-shields.md`); None
+    /// from a shim before 2026-10-18, when sight is the glossary's circle (`scout.rs`).
+    sensors: Option<(bot_protocol::Sensors, i32)>,
     /// Hits on our units with a known attacker in the last `HIT_MEMORY` frames: what each enemy party is shooting
     /// (H-HANDS-PARTY-KILLING).
     hits: Vec<Hit>,
@@ -309,6 +313,7 @@ impl Brain {
             enemy_buildings: HashMap::new(),
             enemy_unfinished: HashSet::new(),
             shelling: Vec::new(),
+            sensors: None,
             shelling_warned: i32::MIN / 2,
             hits: Vec::new(),
             takings: Vec::new(),
@@ -435,6 +440,9 @@ impl Brain {
     /// One tick: the control lane every time, the whole brain (`think`) on the frames due at its own interval, with
     /// every event since it last ran.
     pub fn decide(&mut self, tick: &Tick) -> Vec<Command> {
+        if let Some(sensors) = &tick.snapshot.sensors {
+            self.sensors = Some((sensors.clone(), tick.frame));
+        }
         // Lockstep: the game stands at its first tick until the opening turn asked for at Hello is over.
         if let Some(shared) = &self.strategist
             && shared.lockstep.load(std::sync::atomic::Ordering::Relaxed)

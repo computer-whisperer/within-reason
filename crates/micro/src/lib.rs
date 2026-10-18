@@ -118,8 +118,9 @@ const LET_GO_FRAMES: i32 = 30 * 30;
 const AREA_HORIZON: f32 = 1500.0;
 /// A stance lasts at least this long: a change is an order, and an order costs shots.
 const FORM_FRAMES: i32 = 15;
-/// H-MICRO-HUNT: a quarry out of sight and radar this long ends the hunt.
-const HUNT_LOST_FRAMES: i32 = 6 * FRAMES_PER_SECOND;
+/// H-MICRO-HUNT: a quarry out of sight and radar this long ends the hunt, unless its `Hunt` says longer (the host
+/// gives a quarry that cloaks more: it is hidden where it stands, not gone).
+pub const HUNT_LOST_FRAMES: i32 = 6 * FRAMES_PER_SECOND;
 
 /// What a soldier's group was priced against, so the lane knows which threats its host meant it to face.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -145,6 +146,9 @@ pub struct Hunt {
     pub quarry: UnitId,
     pub leash_from: Vec3,
     pub leash: f32,
+    /// Frames the quarry may be out of sight and radar before the hunt ends as "lost"; `HUNT_LOST_FRAMES` unless
+    /// the host says otherwise (a quarry that cloaks gets longer: the hunters walk to its last place meanwhile).
+    pub lost_frames: i32,
 }
 
 /// What the lane reports of a hunt: the hunt on `quarry` ended (`why`: "dead", "lost" (out of sight and radar
@@ -766,7 +770,7 @@ impl Lane {
             let mut ended: Option<&'static str> = None;
             if seen.is_none() && !view.enemy_known(quarry) {
                 ended = Some("dead");
-            } else if seen.is_none() && state.last_seen.map_or(frame - state.started, |(_, _, f)| frame - f) >= HUNT_LOST_FRAMES {
+            } else if seen.is_none() && state.last_seen.map_or(frame - state.started, |(_, _, f)| frame - f) >= hunters.iter().find(|(_, h)| h.quarry == quarry).map_or(HUNT_LOST_FRAMES, |(_, h)| h.lost_frames) {
                 ended = Some("lost");
             } else if hunters.iter().any(|(unit, hunt)| hunt.quarry == quarry && hunt.leash_from.dist2d(unit.pos) > hunt.leash) {
                 ended = Some("leash");

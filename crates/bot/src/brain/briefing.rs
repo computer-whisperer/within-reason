@@ -446,17 +446,28 @@ impl Brain {
                 self.enemy_soldiers.insert(enemy.id, (def, enemy.pos, tick.frame));
             }
         }
-        // A remembered building whose place a unit of ours sees, with nothing of his there, is gone (the impedance
+        // A remembered building whose place our side sees, with nothing of his there, is gone (the impedance
         // tally, 2026-10-16: nuke-1-medium's report listed his labs as standing "in sight now" for twelve minutes
         // after our missiles killed them out of sight, and two more missiles went at them). A radar contact at the
-        // place is still in the snapshot by its id, so it keeps the memory; the sight is taken a fifth short of the
-        // unit's, a hill between them being invisible here.
+        // place is still in the snapshot by its id, so it keeps the memory. Sight is the engine's grid when the
+        // shim sends it (cut by terrain: a hill between them is no sight), else a fifth short of a unit's circle.
+        // A type that cloaks is never declared gone by sight alone: it is hidden until something of ours stands
+        // within its decloak distance (H-ENEMY-GONE-NEEDS-SIGHT, docs/design/2026-10-18-sight-jammers-cloak-shields.md).
         let in_snapshot: std::collections::HashSet<UnitId> = tick.snapshot.enemies.iter().map(|e| e.id).collect();
-        let sights: Vec<(Vec3, f32)> = tick.snapshot.own_units.iter().filter(|u| !u.being_built).map(|u| (u.pos, self.sight_of(u.def) * 0.8)).collect();
+        let standing: Vec<(Vec3, f32)> = tick.snapshot.own_units.iter().filter(|u| !u.being_built).map(|u| (u.pos, self.sight_of(u.def) * 0.8)).collect();
+        let grid = self.sensors_fresh(tick.frame).map(|s| s.los.clone());
+        let sees = |pos: Vec3| match &grid {
+            Some(los) => los.at(pos.x, pos.z),
+            None => standing.iter().any(|(at, sight)| at.dist2d(pos) <= *sight),
+        };
+        let decloaked = |def: UnitDefId, pos: Vec3| match self.world.def(def).and_then(|d| d.cloak) {
+            Some(cloak) => standing.iter().any(|(at, _)| at.dist2d(pos) <= cloak.decloak_distance),
+            None => true,
+        };
         let razed: Vec<UnitId> = self
             .enemy_buildings
             .iter()
-            .filter(|(id, (_, pos, _))| !in_snapshot.contains(id) && sights.iter().any(|(at, sight)| at.dist2d(*pos) <= *sight))
+            .filter(|(id, (def, pos, _))| !in_snapshot.contains(id) && sees(*pos) && decloaked(*def, *pos))
             .map(|(id, _)| *id)
             .collect();
         for id in razed {
@@ -537,6 +548,10 @@ impl Brain {
         let briefing = Briefing {
             sides,
             allies,
+            jammers: self.jammer_lines(tick.frame),
+            guns: Vec::new(),
+            shields: Vec::new(),
+            sensors_known: self.sensors_fresh(tick.frame).is_some(),
             allied_teams: self.allied_teams(),
             game_end,
             side_commanders,
@@ -1143,7 +1158,7 @@ impl Brain {
             frame: tick.frame,
             seconds_since_turn: Some(shared.last_turn_frame.load(std::sync::atomic::Ordering::Relaxed)).filter(|at| *at > 0).map(|at| (tick.frame - at) / FRAMES_PER_SECOND),
             enemy_start_boxes: self.world.hello.start_boxes.iter().filter(|b| b.ally_team != self.world.hello.ally_team).map(|b| self.world.box_cells(b)).collect(),
-            scouting: self.scouting(tick.frame),
+            scouting: self.scouting(tick),
             enemy_spots: {
                 // Each spot with the latest look at an extractor of his on it: a sighting and its age, not his count.
                 let radius = self.spot_occupied_radius();
@@ -1263,5 +1278,40 @@ mod frame_loss_tests {
         let cost = brain.world.def(UnitDefId(2)).expect("a solar").metal_cost;
         let frames_metal: f32 = brain.trade_log.iter().filter(|t| t.frame == 120 && t.ours && t.metal < cost * 0.95).map(|t| t.metal).sum();
         assert!((frames_metal - cost * (0.7 + 0.6 + 0.3 + 0.7)).abs() < 1.0, "{frames_metal} of {cost}");
+    }
+
+    /// With the engine's sight grid, a remembered building is gone only when its square is in that sight and it is not
+    /// in the snapshot; a type that cloaks is hidden, not gone, until one of ours stands within its decloak distance
+    /// (H-ENEMY-GONE-NEEDS-SIGHT; Altored Divide, human-8v8-1: the ridge hid the whole north-east from the G4 radar).
+    #[test]
+    fn a_building_is_gone_only_in_the_engines_sight_and_a_cloaked_one_only_when_decloaked() {
+        use bot_protocol::{Cloak, EnemyUnit, Grid, Sensors};
+        let mut brain = brain_of(&["armcom", "armsolar", "armpb"]);
+        let enemy = |id: i32, def: i32, pos: Vec3| EnemyUnit { id: UnitId(id), def: Some(UnitDefId(def)), pos, vel: Vec3::default(), health: 100.0, team: Some(1), being_built: false };
+        let look = |frame: i32, ours: Vec<OwnUnit>, enemies: Vec<EnemyUnit>| {
+            let mut t = tick(frame, ours, Vec::new());
+            t.snapshot.enemies = enemies;
+            t
+        };
+        // Seen: a solar at (1000, 1000) and a Pitbull at (3000, 1000).
+        brain.track_enemy_buildings(&look(30, vec![own(10, 1, at(900.0, 900.0))], vec![enemy(50, 2, at(1000.0, 1000.0)), enemy(51, 3, at(3000.0, 1000.0))]));
+        assert_eq!(brain.enemy_buildings.len(), 2);
+        // The engine's grid says we see the west half of the map and nothing east of x 4096; the Pitbull cloaks (55).
+        let covered = (0..128 * 128).map(|i| i % 128 < 64);
+        brain.sensors = Some((Sensors { los: Grid::pack(128, 128, 64.0, covered), radar: Grid::default(), air: Grid::default() }, 60));
+        let pitbull = brain.world.hello.unit_defs.iter().position(|d| d.id == UnitDefId(3)).expect("the Pitbull");
+        brain.world.hello.unit_defs[pitbull].cloak = Some(Cloak { cost: 16.0, decloak_distance: 55.0, decloak_on_fire: true, starts_cloaked: false });
+        // Neither is in the snapshot now; the commander stands 200 from the Pitbull.
+        brain.track_enemy_buildings(&look(60, vec![own(10, 1, at(2800.0, 1000.0))], Vec::new()));
+        assert!(!brain.enemy_buildings.contains_key(&UnitId(50)), "the solar's square is in the engine's sight with nothing there: gone");
+        assert!(brain.enemy_buildings.contains_key(&UnitId(51)), "the Pitbull cloaks: hidden, not gone, with ours 200 away");
+        // The commander walks to 40 of it: within its decloak distance it would show, so its absence means it is gone.
+        brain.track_enemy_buildings(&look(90, vec![own(10, 1, at(2960.0, 1000.0))], Vec::new()));
+        assert!(!brain.enemy_buildings.contains_key(&UnitId(51)));
+        // A building behind the hill (east, no sight in the grid) with ours standing 100 away is kept: the circle no longer decides.
+        brain.track_enemy_buildings(&look(120, vec![own(10, 1, at(5000.0, 1000.0))], vec![enemy(52, 2, at(5100.0, 1000.0))]));
+        brain.sensors = Some((Sensors { los: Grid::pack(128, 128, 64.0, (0..128 * 128).map(|i| i % 128 < 64)), radar: Grid::default(), air: Grid::default() }, 150));
+        brain.track_enemy_buildings(&look(150, vec![own(10, 1, at(5000.0, 1000.0))], Vec::new()));
+        assert!(brain.enemy_buildings.contains_key(&UnitId(52)), "no sight over the place in the engine's grid: kept");
     }
 }

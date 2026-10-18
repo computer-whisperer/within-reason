@@ -107,3 +107,57 @@ sits on an empty mid-map cluster, and nothing moved it back when our army stood 
 E5" to the end.
 **Would be wrong if.** The building at (4112, 4240) had been a factory (it was an extractor at spot_21).
 **Used by.** H-MAP-ENEMY-CLUSTER, H-MAP-ENEMY-GUESS-EMPTY.
+
+### K-scout-terrain-cuts-sight-and-radar
+**Claim.** The engine computes sight and radar coverage by raycasting over the terrain (`LosHandler.cpp:92`: `LOS_TYPE_LOS`
+and `LOS_TYPE_RADAR` use `LOS_ALGO_RAYCAST`; jammers, sonar, air sight and seismic are plain circles). The emitter stands
+at the unit's middle plus its `sightEmitHeight` (default 20) or `radarEmitHeight` (default the sight height). A hill
+between a radar and a base hides the base whatever the radar's range. On Altored Divide the ridge at z ~2,330 (450 to
+500 elmos) hides the whole north-east from an advanced radar at spot_41 (G4, ground 135): 19 of 1,984 64-elmo squares of
+E1 to H2 within 3,500 are in its line at any emitter height up to 300 (human-8v8-1, `scratchpad ray.py` over
+`terrain-4.bin`). The AI interface exposes the resulting grids (`Map_getLosMap`, `Map_getRadarMap`, `Map_getAirLosMap`;
+BAR mip levels 3, 2, 4: 64, 32 and 128 elmo squares), the ally team's, from 2026-10-18 in `Snapshot::sensors`.
+**Status.** supported (2026-10-18): engine source, the heightmap raycast, the interface header.
+**Evidence.** `upstream/RecoilEngine/rts/Sim/Misc/LosHandler.cpp` 92, 159-162; `rts/Sim/Units/UnitDef.cpp` 477-478;
+`SSkirmishAICallback.h` 1576-1612; `docs/design/2026-10-18-sight-jammers-cloak-shields.md`.
+**Would be wrong if.** A map's heightmap were flat (then the circle and the grid agree).
+**Used by.** H-SCOUT-LOS-GRID, H-REPORT-RADAR-WORDS, H-ENEMY-GONE-NEEDS-SIGHT; the brief's sight passage.
+
+### K-scout-jammers-hide-from-radar-only
+**Claim.** A jammer tower hides every unit of its own side within its radius from enemy radar and nothing from sight
+(`LosHandler.cpp` `InRadar`: in the radar grid and not in a jammer of the unit's side; BAR `separateJammers = true`, so
+each side's jammers hide only its own units and the engine's jammer map handed to an AI is its own side's). Radii:
+Sneaky Pete `armjamt`, Castro `corjamt`, Nyx `legjam` 390; Veil `armveil`, Shroud `corshroud`, Erebus `legajam` 760
+(125 to 130 metal, 125 energy a second); Rampart `legrampart` 500 besides its anti-nuke and 2,100 radar. None of them
+cloaks anything: this BAR has no area cloaker (`cloakcost` is on commanders, spies, mines, Beholders, the Pitbull and
+Ambusher pop-ups, snipers, the Gremlin, the Phantom and the Shockwave only; `legacluster` and `legapopupdef` do not cloak).
+**Status.** supported (2026-10-18): engine source and unit files.
+**Evidence.** `LosHandler.cpp` 942-995; `gamedata/modrules.lua` 53; `units/*/armveil.lua`, `corshroud.lua`,
+`Legion/Utilities/legajam.lua` (radardistancejam 760), `legjam.lua` (390), `Legion/Economy/legrampart.lua` (500);
+`grep -l cloakcost units`.
+**Would be wrong if.** A game version added area cloak (BAR's `unit_cloak.lua` gadget has only a decloak-when-damaged option, off).
+**Used by.** H-REPORT-JAMMERS; the brief's sight passage.
+
+### K-scout-juno-kills-jammers-and-radar
+**Claim.** The Juno (`armjuno`, `corjuno`, `legjuno`: 660 metal, 16,000 energy, made by tier-1 constructors) stockpiles a
+pulse (75 s a round, map-wide range 32,000, `commandfire`) that destroys every unit marked `juno_kill` within 1,400 of
+where it lands: radar towers and radar bots, every jammer tower and jammer bot (Veil, Shroud, Erebus, Sneaky Pete,
+Castro, Nyx), Beholder cameras, mines, scout cars; not the Rampart, not buildings or soldiers. Our own radars in the
+area die too. It is the counter to a jammed base: one pulse, then radar shows what the jammers hid; our `fire` tool
+already fires any stockpiler by handle.
+**Status.** supported (2026-10-18): unit files and the gadget.
+**Evidence.** `units/CorBuildings/LandDefenceOffence/corjuno.lua` (stockpile, range 32000, `juno_pulse` areaofeffect
+1400); `luarules/gadgets/unit_juno_damage.lua` 20-35 (`juno_kill`, radius 450 denial ring); `grep -l "juno_kill = true" units`.
+**Would be wrong if.** The gadget's kill list changed (it reads `customparams.juno_kill` at load).
+**Used by.** the brief's sight passage; the player's `queue` and `fire` tools (nothing in code).
+
+### K-scout-cameras-are-the-cheapest-eye
+**Claim.** The Beholder `coreyes`, Argus `legeyes` and Armada's `armeyes` are 32-metal cloaked camera towers with 540
+sight (560 in older notes), built by any tier-1 constructor or the commander anywhere a building stands, invisible to
+radar and to sight until something of his is within their decloak distance; one beside a base gives standing sight
+over 540 of it that no jammer removes (a Juno pulse kills them). Radar bots (Augur `corvoyr`, `legaradk`: 925 sight,
+2,200 radar) and scout planes see further but are jammed or shot.
+**Status.** supported for numbers (units.json, unit files); the use is reported (the user, 2026-10-18).
+**Evidence.** `crates/bot/data/units.json` entries; `units/*/coreyes.lua`, `legeyes.lua`.
+**Would be wrong if.** The camera's cloak cost or sight changed.
+**Used by.** the brief's sight passage.
