@@ -10,6 +10,7 @@
 
 mod army;
 mod economy;
+mod lane;
 mod tier2;
 
 use std::collections::BTreeMap;
@@ -65,6 +66,8 @@ pub(crate) struct Distilled {
     pub income_multiplier: f32,
     pub economy: economy::Economy,
     pub army: army::Army,
+    /// The control lane under the army's orders (D-LANE, `lane.rs`).
+    pub control: lane::Control,
     /// The arms of the rows, from `WITHIN_REASON_DISTILLED`.
     pub options: tier2::Options,
     started: bool,
@@ -171,6 +174,17 @@ impl Distilled {
     }
 }
 
+impl Distilled {
+    /// A building's frame begun by one of our builders goes to the engine log with how long after the builder's
+    /// order it came and how far the builder stood (D-ORDERS: what a builder waits for before the frame).
+    fn frame_begun(&self, unit: UnitId, builder: Option<UnitId>) {
+        let (Some(frame), Some(builder)) = (self.own.get(&unit), builder.and_then(|b| self.own.get(&b))) else { return };
+        let Some(def) = self.def(frame.def).filter(|d| d.speed == 0.0) else { return };
+        let age = self.economy.order_age(builder.id, self.frame).map_or("no order".to_string(), |f| format!("{:.1} s after its order", f as f32 / SECOND as f32));
+        eprintln!("[distilled ai={}] f={} begun: {} by unit {} at {:.0}, {age}", self.hello.ai_id, self.frame, def.name, builder.id.0, builder.pos.dist2d(frame.pos));
+    }
+}
+
 /// The `Handicap` of a team's block in the start script, in percent of income; 0 when it has none.
 fn handicap_percent(script: &str, team: i32) -> f32 {
     let lower = script.to_ascii_lowercase();
@@ -203,7 +217,7 @@ impl Bot for Distilled {
     fn start(hello: Hello) -> Self {
         let defs = hello.unit_defs.iter().map(|d| (d.id, d.clone())).collect();
         let spots = hello.metal_spots.len();
-        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), metal_income: 0.0, income_multiplier: 1.0, economy: economy::Economy::new(spots), army: army::Army::default(), options: tier2::Options::from_env(), started: false, announced: false }
+        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), metal_income: 0.0, income_multiplier: 1.0, economy: economy::Economy::new(spots), army: army::Army::default(), control: lane::Control::default(), options: tier2::Options::from_env(), started: false, announced: false }
     }
 
     fn tick(&mut self, tick: Tick) -> Commands {
@@ -224,7 +238,10 @@ impl Bot for Distilled {
                     self.army.his_buildings.remove(enemy);
                 }
                 Event::UnitFinished { unit } => self.t2_milestone(*unit, "standing"),
-                Event::UnitCreated { unit, .. } => self.t2_milestone(*unit, "begun"),
+                Event::UnitCreated { unit, builder } => {
+                    self.t2_milestone(*unit, "begun");
+                    self.frame_begun(*unit, *builder);
+                }
                 _ => {}
             }
         }
@@ -243,13 +260,16 @@ impl Bot for Distilled {
         }
         if tick.due() % SECOND == 0 {
             self.run_army(&tick, &mut commands);
+            self.note_commitments();
         }
+        // Every tick: the lane's footwork over the soldiers' standing orders (D-LANE).
+        self.run_lane(&tick, &mut commands);
         if tick.due() % MINUTE == 0 && tick.frame > 0 {
             let project = self.project_frame().map_or("none".to_string(), |f| format!("{}:{:.0}%:{:.0}/{:.0}", self.def(f.def).map_or("?", |d| d.name.as_str()), 100.0 * f.health / f.max_health.max(1.0), self.power_on(f), self.power_wanted(f, &tick)));
             eprintln!(
-                "[distilled ai={}] f={} extractors={} solars={}+{} plants={} turrets={} constructors={} sentries={} can_spend={:.1} home_guard={} strike={} his_buildings_known={} made={} advplant={} acv={} mohos={} fusions={} afus={} converters={} assist={} t2_made={} paused={} project={} low={} metal {:.0}/{:.0} +{:.1} -{:.1} energy {:.0}/{:.0} +{:.0} -{:.0}",
+                "[distilled ai={}] f={} extractors={} solars={}+{} plants={} turrets={} constructors={} sentries={} can_spend={:.1} home_guard={} strike={} launch={:.0}/{:.0} field_won={} his_buildings_known={} made={} advplant={} acv={} mohos={} fusions={} afus={} converters={} assist={} t2_made={} paused={} project={} low={} metal {:.0}/{:.0} +{:.1} -{:.1} energy {:.0}/{:.0} +{:.0} -{:.0}",
                 self.hello.ai_id, tick.frame, self.count(self.kit.extractor), self.count(self.kit.solar), self.count(self.kit.advanced_solar), self.count(self.kit.plant), self.count(self.kit.turret), self.count(self.kit.constructor), self.count(self.kit.sentry), self.can_spend(),
-                self.army.home_guard.len(), self.army.strike.len(), self.army.his_buildings.len(), self.economy.made(),
+                self.army.home_guard.len(), self.army.strike.len(), self.home_guard_weight(), self.launch_weight(), u8::from(self.field_won()), self.army.his_buildings.len(), self.economy.made(),
                 self.count(self.kit.advanced_plant), self.count(self.kit.advanced_constructor), self.count(self.kit.moho), self.count(self.kit.fusion), self.count(self.kit.advanced_fusion), self.count(self.kit.converter) + self.count(self.kit.advanced_converter), self.count(self.kit.assist), self.economy.t2_made, u8::from(self.plants_paused()), project, self.own.values().filter(|u| u.priority_low).count(),
                 tick.snapshot.metal.current, tick.snapshot.metal.storage, tick.snapshot.metal.income, tick.snapshot.metal.usage, tick.snapshot.energy.current, tick.snapshot.energy.storage, tick.snapshot.energy.income, tick.snapshot.energy.usage
             );

@@ -6,10 +6,24 @@ use std::collections::BTreeMap;
 
 use bot_protocol::{BuildSite, Command, Lane, OwnUnit, Placement, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
 
-use crate::{Distilled, MINUTE, SECOND};
+use crate::{Distilled, Kit, MINUTE, SECOND};
 
 /// Frames a unit is left alone after an order: the engine's idle flag clears a few frames after the order lands.
 const GRACE: i32 = 45;
+/// D-ORDERS: a build order the engine drops at once (the builder idle again this soon after it) counts as refused,
+/// as one the host found no site for does (apex-v029-distilled-comet-1 game 01: an advanced constructor told the
+/// same advanced solar 38 times in a minute, the engine dropping each); a builder that has stood still this long on
+/// a build order with no frame begun beside it holds an order it cannot carry out (the commander of every +0 game of
+/// that battery, given a construction turret it has no build option for, stood at the plant from 2:30 to the end,
+/// never idle, so never re-asked), and the order is dropped the same way. Two minutes, not twenty seconds: the
+/// engine starts no frame while it first reclaims a wreck on the site or waits for a blocking unit to move off, and
+/// drops a blocked build itself after thirty tries (`CBuilder::StartBuild`, `CBuilderCAI::ExecuteBuildCmd`); at
+/// twenty seconds the watchdog took 27-65 extractor orders a game from builders in range of their spots
+/// (apex-v029-distilled-comet-2, 1-7). A builder refused or dropped this many times in a row helps a plant for a
+/// minute instead.
+const DROPPED: i32 = 3 * SECOND;
+const HELD: i32 = 2 * MINUTE;
+const ATTEMPTS: u32 = 4;
 /// How often a builder that is assisting is asked whether something better has come up.
 const ASSIST_REVIEW: i32 = 10 * SECOND;
 /// A spot whose extractor could not be placed is left alone this long; a plant with no room for a turret, this long.
@@ -65,7 +79,7 @@ const SCOUTS_FIRST: usize = 4;
 /// (at +50 % income the clock's count took the same spots at the same pace with the metal piling up).
 const CONSTRUCTOR_PER_INCOME: f32 = 6.0;
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub(crate) enum Job {
     Extractor(usize),
     Solar,
@@ -87,13 +101,52 @@ pub(crate) enum Job {
     AdvancedConverter,
 }
 
+impl Job {
+    /// The building this job places; `None` for helping.
+    pub(crate) fn def(self, kit: &Kit) -> Option<UnitDefId> {
+        match self {
+            Job::Extractor(_) => kit.extractor,
+            Job::Solar => kit.solar,
+            Job::AdvancedSolar => kit.advanced_solar,
+            Job::Plant => kit.plant,
+            Job::Turret(_) => kit.turret,
+            Job::AdvancedPlant => kit.advanced_plant,
+            Job::Fusion => kit.fusion,
+            Job::AdvancedFusion => kit.advanced_fusion,
+            Job::Moho(_) => kit.moho,
+            Job::Converter => kit.converter,
+            Job::AdvancedConverter => kit.advanced_converter,
+            Job::Assist | Job::Help(_) => None,
+        }
+    }
+}
+
 pub(crate) struct Order {
     pub(crate) job: Job,
     since: i32,
+    /// Since when the builder has stood still on it (D-ORDERS).
+    still_since: Option<i32>,
+}
+
+/// What a builder's recorded order says at a pass of `run_builders` (D-ORDERS).
+enum Review {
+    /// Carrying it out, or helping and not due for a look.
+    Busy,
+    /// No order, or an assist due for a look.
+    Free,
+    /// A build order carried out: the builder is idle again after it.
+    Done,
+    /// A build order the engine dropped at once.
+    Dropped,
+    /// A build order the builder has stood still on with no frame begun beside it.
+    Held,
 }
 
 pub(crate) struct Economy {
     pub(crate) orders: BTreeMap<UnitId, Order>,
+    /// Per builder, orders refused or dropped in a row, and the frame until which it is sidelined (D-ORDERS).
+    attempts: BTreeMap<UnitId, u32>,
+    sidelined: BTreeMap<UnitId, i32>,
     /// Per metal spot, the frame until which it is left alone.
     refused: Vec<i32>,
     factory_ordered: BTreeMap<UnitId, i32>,
@@ -111,8 +164,11 @@ pub(crate) struct Economy {
     pub moho_refused: BTreeMap<UnitId, i32>,
     /// Plants (and project frames) beside which a construction turret found no site, with the frame until which each
     /// is left alone (distilled-t2-smoke-4: the ladder asked the same crowded plant for a turret every half second
-    /// for twenty minutes and never reached "another plant").
+    /// for twenty minutes and never reached "another plant"), and how many times each has refused one: the next
+    /// turret goes to another side of the plant (apex-v029-distilled-comet-5-cold game 02: one site behind a plant,
+    /// which no builder could reach, asked for 26 times by nine builders over four minutes).
     turret_refused: BTreeMap<UnitId, i32>,
+    turret_attempts: BTreeMap<UnitId, u32>,
     /// The frame until which no plant is asked for, after a plant found no site (distilled-t2b-30-hard: two plants
     /// and a 9,000 bank at 25:00, the yard asked for a plant every half second).
     plant_refused: i32,
@@ -120,7 +176,7 @@ pub(crate) struct Economy {
 
 impl Economy {
     pub(crate) fn new(spots: usize) -> Self {
-        Economy { orders: BTreeMap::new(), refused: vec![0; spots], factory_ordered: BTreeMap::new(), turret_told: BTreeMap::new(), made: 0, scouts_made: 0, since_constructor: 0, since_scout: 0, t2_made: 0, since_advanced_constructor: 0, moho_refused: BTreeMap::new(), turret_refused: BTreeMap::new(), plant_refused: 0 }
+        Economy { orders: BTreeMap::new(), attempts: BTreeMap::new(), sidelined: BTreeMap::new(), refused: vec![0; spots], factory_ordered: BTreeMap::new(), turret_told: BTreeMap::new(), made: 0, scouts_made: 0, since_constructor: 0, since_scout: 0, t2_made: 0, since_advanced_constructor: 0, moho_refused: BTreeMap::new(), turret_refused: BTreeMap::new(), turret_attempts: BTreeMap::new(), plant_refused: 0 }
     }
 
     /// Units the factories have been told to make.
@@ -131,23 +187,39 @@ impl Economy {
     pub(crate) fn working_on(&self, job: impl Fn(Job) -> bool) -> usize {
         self.orders.values().filter(|o| job(o.job)).count()
     }
+
+    /// Frames since a builder's recorded order, if it has one.
+    pub(crate) fn order_age(&self, unit: UnitId, frame: i32) -> Option<i32> {
+        self.orders.get(&unit).map(|o| frame - o.since)
+    }
 }
 
 impl Distilled {
+    /// A builder's order came to nothing: the host found no site, the engine refused or dropped it, or the builder
+    /// held it without carrying it out. Its target is left alone for a while, and the builder sidelined after a run
+    /// of them (D-ORDERS).
     pub(crate) fn order_failed(&mut self, unit: UnitId, def: Option<UnitDefId>) {
         // The sentry queued behind an extractor found no site: the extractor's order stands.
         if def.is_some() && def == self.kit.sentry {
             return;
         }
-        match self.economy.orders.remove(&unit).map(|order| order.job) {
-            Some(Job::Extractor(spot)) => self.economy.refused[spot] = self.frame + REFUSED,
-            Some(Job::Moho(target)) => {
+        let Some(order) = self.economy.orders.remove(&unit) else { return };
+        let attempts = self.economy.attempts.entry(unit).or_default();
+        *attempts += 1;
+        if *attempts >= ATTEMPTS {
+            *attempts = 0;
+            self.economy.sidelined.insert(unit, self.frame + REFUSED);
+        }
+        match order.job {
+            Job::Extractor(spot) => self.economy.refused[spot] = self.frame + REFUSED,
+            Job::Moho(target) => {
                 self.economy.moho_refused.insert(target, self.frame + REFUSED);
             }
-            Some(Job::Turret(beside)) => {
+            Job::Turret(beside) => {
                 self.economy.turret_refused.insert(beside, self.frame + TURRET_REFUSED);
+                *self.economy.turret_attempts.entry(beside).or_default() += 1;
             }
-            Some(Job::Plant | Job::AdvancedPlant) => self.economy.plant_refused = self.frame + TURRET_REFUSED,
+            Job::Plant | Job::AdvancedPlant => self.economy.plant_refused = self.frame + TURRET_REFUSED,
             _ => {}
         }
     }
@@ -156,30 +228,94 @@ impl Distilled {
         self.economy.orders.retain(|id, _| self.own.contains_key(id));
         let builders: Vec<OwnUnit> = self.own.values().filter(|u| !u.being_built && self.def(u.def).is_some_and(|d| d.speed > 0.0 && !d.build_options.is_empty())).cloned().collect();
         for unit in builders {
-            let free = match self.economy.orders.get(&unit.id) {
-                None => true,
-                Some(order) if order.job == Job::Assist => self.frame - order.since >= ASSIST_REVIEW,
-                Some(order) => unit.idle && self.frame - order.since > GRACE,
-            };
-            if !free {
-                continue;
+            match self.review(&unit) {
+                Review::Busy => continue,
+                Review::Free => {}
+                Review::Done => {
+                    self.economy.attempts.remove(&unit.id);
+                }
+                verdict @ (Review::Dropped | Review::Held) => {
+                    let job = self.economy.orders.get(&unit.id).map(|o| o.job);
+                    let nearest = self.own.values().filter(|u| u.being_built).min_by(|a, b| a.pos.dist2d(unit.pos).total_cmp(&b.pos.dist2d(unit.pos)));
+                    let nearest = nearest.map_or("no frame".to_string(), |u| format!("nearest frame {} at {:.0} ({:.0}, {:.0})", self.def(u.def).map_or("?", |d| d.name.as_str()), u.pos.dist2d(unit.pos), u.pos.x, u.pos.z));
+                    eprintln!(
+                        "[distilled ai={}] f={} {} order: unit {} {job:?} at ({:.0}, {:.0}) idle={} vel={:.2} reach={:.0}; {nearest}",
+                        self.hello.ai_id,
+                        self.frame,
+                        if matches!(verdict, Review::Dropped) { "dropped" } else { "held" },
+                        unit.id.0,
+                        unit.pos.x,
+                        unit.pos.z,
+                        unit.idle,
+                        unit.vel.x.hypot(unit.vel.z),
+                        self.def(unit.def).map_or(0.0, |d| d.build_distance)
+                    );
+                    self.order_failed(unit.id, None);
+                }
             }
             let was_assisting = self.economy.orders.get(&unit.id).is_some_and(|o| o.job == Job::Assist);
             self.economy.orders.remove(&unit.id);
-            let Some(job) = self.next_job(&unit, tick) else { continue };
+            let Some(mut job) = self.next_job(&unit, tick) else { continue };
+            // No order a builder cannot carry out: the ladder's rungs look at the builder's options, and this is the
+            // guard behind them.
+            if let Some(def) = job.def(&self.kit)
+                && self.def(unit.def).is_some_and(|d| !d.build_options.contains(&def))
+            {
+                eprintln!("[distilled ai={}] f={} unit {} cannot build {job:?}: helping instead", self.hello.ai_id, self.frame, unit.id.0);
+                job = Job::Assist;
+            }
             if !(job == Job::Assist && was_assisting && !unit.idle) {
                 self.order(&unit, job, commands);
             }
-            self.economy.orders.insert(unit.id, Order { job, since: self.frame });
+            self.economy.orders.insert(unit.id, Order { job, since: self.frame, still_since: None });
         }
+    }
+
+    /// D-ORDERS: what a builder's recorded order says now. A build order is dropped when the builder is idle again
+    /// within `DROPPED` of it (the engine's idle flag clears a few frames after an order lands, hence `GRACE`), and held
+    /// when the builder has stood still on it for `HELD` with no building of ours under construction within its reach.
+    fn review(&mut self, unit: &OwnUnit) -> Review {
+        let frame = self.frame;
+        let Some(order) = self.economy.orders.get_mut(&unit.id) else { return Review::Free };
+        if order.job == Job::Assist {
+            return if frame - order.since >= ASSIST_REVIEW { Review::Free } else { Review::Busy };
+        }
+        let age = frame - order.since;
+        if order.job.def(&self.kit).is_none() {
+            return if unit.idle && age > GRACE { Review::Done } else { Review::Busy };
+        }
+        if unit.idle {
+            return if age <= GRACE {
+                Review::Busy
+            } else if age <= DROPPED {
+                Review::Dropped
+            } else {
+                Review::Done
+            };
+        }
+        let still = unit.vel.x.hypot(unit.vel.z) < 0.05;
+        order.still_since = if still { order.still_since.or(Some(frame)) } else { None };
+        let stuck = order.still_since.is_some_and(|since| frame - since >= HELD);
+        if stuck && !self.frame_beside(unit) { Review::Held } else { Review::Busy }
+    }
+
+    /// A building of ours under construction within the builder's reach: what a builder standing still on a build
+    /// order has beside it (a plant's soldiers do not count: the held commander stood at the plant).
+    fn frame_beside(&self, unit: &OwnUnit) -> bool {
+        let reach = self.def(unit.def).map_or(TURRET_REACH, |d| d.build_distance) + 150.0;
+        self.own.values().any(|u| u.being_built && u.pos.dist2d(unit.pos) <= reach && self.def(u.def).is_some_and(|d| d.speed == 0.0))
     }
 
     /// D-OPENING, D-COMMANDER, D-EXPAND, D-ENERGY, D-BUILD-POWER, D-PROJECT, D-T2-GATE, D-CONVERT: what a builder with
     /// nothing to do does next. An advanced constructor has its own ladder (`tier2.rs`, D-T2-ADVANCED).
     fn next_job(&self, unit: &OwnUnit, tick: &Tick) -> Option<Job> {
         let def = self.def(unit.def)?;
+        // D-ORDERS: a builder whose last orders all came to nothing helps a plant for a while.
+        if self.economy.sidelined.get(&unit.id).is_some_and(|until| self.frame < *until) {
+            return Some(Job::Assist);
+        }
         if Some(unit.def) == self.kit.advanced_constructor {
-            return self.advanced_job(tick);
+            return self.advanced_job(def, tick);
         }
         let commander = Some(unit.def) == self.kit.commander;
         let on_energy = self.economy.working_on(|job| matches!(job, Job::Solar | Job::AdvancedSolar));
@@ -272,6 +408,27 @@ impl Distilled {
         tier1 + tier2
     }
 
+    /// Metal a second the builders with a build order draw at full speed (a helper what the frame it helps draws):
+    /// what the income pays before the plants see any of it. D-BUILD-POWER's short test is net of it (2026-10-18):
+    /// gross, the test fired at 2:30 in every +0 game, and the second plant and turret at 3:00-6:00 cost 820 metal
+    /// while the store sat at zero from 4:00 either way, so fewer units were made by 6:00 than with one plant
+    /// (apex-v029-distilled-comet-3 against -1: 17-23 against 21-25); the pros' first turret comes at 5:56 and the
+    /// second factory at 8:11, the Opus player's at 5:32 and 5:50 on fourteen extractors.
+    pub(crate) fn builders_draw(&self) -> f32 {
+        self.economy
+            .orders
+            .iter()
+            .filter_map(|(id, order)| {
+                let built = match order.job {
+                    Job::Help(target) => self.own.get(&target).map(|u| u.def),
+                    job => job.def(&self.kit),
+                }?;
+                let (builder, def) = (self.def(self.own.get(id)?.def)?, self.def(built)?);
+                Some(builder.build_speed * def.metal_cost / def.build_time.max(1.0))
+            })
+            .sum()
+    }
+
     /// D-ENERGY: the store is low, or it is falling and not full, or the income is under what the soldiers the metal
     /// income pays for and the project's frame would draw together (the tier-2 soldier's energy per metal once an
     /// advanced plant stands).
@@ -301,7 +458,7 @@ impl Distilled {
         // The clock gates the income test alone: with the store piling up the rule fires as soon as a plant stands
         // (apex-v022-distilled-comet-sym50-1: at +50 % income the store sat full from 1:30 and nothing was built for
         // it before 2:30).
-        let short = self.frame >= BUILD_POWER_FROM && self.can_spend() < SOLDIERS_SHARE * metal.income;
+        let short = self.frame >= BUILD_POWER_FROM && self.can_spend() < SOLDIERS_SHARE * (metal.income - self.builders_draw()).max(0.0);
         if !short && !piling {
             return None;
         }
@@ -319,13 +476,18 @@ impl Distilled {
         let turrets_first = if piling && plants.len() >= TURRETS_TO_THREE_FROM_PLANTS { TURRETS_A_PLANT_AT_MOST } else { TURRETS_A_PLANT };
         let yard_room = self.frame >= self.economy.plant_refused;
         let second_advanced = piling && metal.income >= SECOND_ADVANCED_PLANT_FROM && self.kit.advanced_plant.is_some_and(|d| builder.build_options.contains(&d)) && self.count(self.kit.advanced_plant) == 1 && !self.project_under_way();
-        match fewest {
+        let job = match fewest {
             Some((n, plant)) if self.kit.turret.is_some() && n < turrets_first => Some(Job::Turret(plant)),
             _ if second_advanced && yard_room => Some(Job::AdvancedPlant),
             _ if self.count(self.kit.plant) < PLANTS && yard_room => Some(Job::Plant),
             Some((n, plant)) if self.kit.turret.is_some() && n < TURRETS_A_PLANT_AT_MOST => Some(Job::Turret(plant)),
             _ => None,
-        }
+        };
+        // The rung wanted is the job; a builder that cannot build it takes nothing here, and the next constructor to
+        // come free takes the rung. The commander has no construction turret among its options: given the first
+        // turret job at 2:30 in every +0 game of apex-v029-distilled-comet-1, it held the order to the end and no
+        // plant or turret was built by anyone until 1,000 metal was banked (docs/studies/2026-10-18-distilled-apex-losses.md).
+        job.filter(|job| job.def(&self.kit).is_some_and(|def| builder.build_options.contains(&def)))
     }
 
     /// D-PRIORITY: the game's builder-priority flag (a low builder draws only the team's surplus, full speed or nothing;
@@ -414,15 +576,29 @@ impl Distilled {
             Job::Solar | Job::AdvancedSolar => {
                 let def = if job == Job::Solar { self.kit.solar } else { self.kit.advanced_solar };
                 // The back field, well behind the yard: generators crowding the yard left no site for a plant or a
-                // turret (distilled-t2b-30-hard).
-                commands.extend(build(def, BuildSite { near: self.toward_enemy(self.home, -450.0), search_radius: 1500.0, min_dist: 3, placements: placements() }, false));
+                // turret (distilled-t2b-30-hard). After a refused or dropped order, a different quarter of the field:
+                // the host's search is the same for the same point, and the engine dropped the same advanced-solar
+                // site 38 times for one builder (D-ORDERS).
+                let attempt = self.economy.attempts.get(&unit.id).copied().unwrap_or(0);
+                commands.extend(build(def, BuildSite { near: self.back_field(attempt), search_radius: 1500.0, min_dist: 3, placements: placements() }, false));
             }
             Job::Turret(target) => {
                 let Some(target) = self.own.get(&target) else { return };
                 let plant = Some(target.def) == self.kit.plant || Some(target.def) == self.kit.advanced_plant;
-                // Behind a plant, away from its front; round a project's frame, inside the turret's reach of it.
+                // Behind a plant, away from its front; after a refusal to its left, its right, then its front (the
+                // exit lane is kept out of); round a project's frame, inside the turret's reach of it.
                 let site = if plant {
-                    BuildSite { near: self.toward_enemy(target.pos, -150.0), search_radius: 350.0, min_dist: 1, placements: placements() }
+                    let (dx, dz) = (self.enemy_home.x - target.pos.x, self.enemy_home.z - target.pos.z);
+                    let length = dx.hypot(dz).max(1.0);
+                    let (ux, uz) = (dx / length, dz / length);
+                    let (rx, rz) = match self.economy.turret_attempts.get(&target.id).copied().unwrap_or(0) % 4 {
+                        0 => (-ux, -uz),
+                        1 => (-uz, ux),
+                        2 => (uz, -ux),
+                        _ => (ux, uz),
+                    };
+                    let near = Vec3 { x: target.pos.x + rx * 150.0, y: target.pos.y, z: target.pos.z + rz * 150.0 };
+                    BuildSite { near, search_radius: 350.0, min_dist: 1, placements: placements() }
                 } else {
                     BuildSite { near: target.pos, search_radius: 300.0, min_dist: 2, placements: placements() }
                 };
@@ -450,6 +626,21 @@ impl Distilled {
                 commands.extend(nearest.map(|plant| Command::Guard { unit: unit.id, target: plant.id }));
             }
         }
+    }
+
+    /// The back field: 450 behind home, away from the enemy; on the next attempts the same distance to the left of
+    /// home, to the right, then home itself.
+    fn back_field(&self, attempt: u32) -> Vec3 {
+        let (dx, dz) = (self.home.x - self.enemy_home.x, self.home.z - self.enemy_home.z);
+        let length = dx.hypot(dz).max(1.0);
+        let (ux, uz) = (dx / length, dz / length);
+        let (rx, rz) = match attempt % 4 {
+            0 => (ux, uz),
+            1 => (-uz, ux),
+            2 => (uz, -ux),
+            _ => (0.0, 0.0),
+        };
+        Vec3 { x: self.home.x + rx * 450.0, y: self.home.y, z: self.home.z + rz * 450.0 }
     }
 
     /// The engine's facing (0 south +z, 1 east +x, 2 north -z, 3 west -x) that looks most toward the enemy's start.

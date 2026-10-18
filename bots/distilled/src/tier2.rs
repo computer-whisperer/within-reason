@@ -73,11 +73,16 @@ pub(crate) struct Options {
     pub power: Power,
     /// `pause=off`: the tier-1 plants keep making soldiers through the transition.
     pub pause_t1: bool,
+    /// `gate=income`: the advanced plant on income alone; `gate=field`: and only once the field is won (D-FIELD).
+    pub field_gate: bool,
+    /// `lane=on`: the control lane under the army's orders (D-LANE); off by default, as wired it did not move the
+    /// exchange (apex-v029-distilled-comet-10: 1-14-1 over sixteen cold games against 3-12-1 without it).
+    pub lane: bool,
 }
 
 impl Default for Options {
     fn default() -> Self {
-        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true }
+        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, field_gate: true, lane: false }
     }
 }
 
@@ -96,6 +101,8 @@ impl Options {
                 ("power", "swarm") => options.power = Power::Swarm,
                 ("power", _) => options.power = Power::Helpers,
                 ("pause", v) => options.pause_t1 = v != "off",
+                ("gate", v) => options.field_gate = v != "income",
+                ("lane", v) => options.lane = v == "on",
                 _ => eprintln!("[distilled] WITHIN_REASON_DISTILLED: unknown arm {pair:?}"),
             }
         }
@@ -104,12 +111,14 @@ impl Options {
 
     pub(crate) fn describe(&self) -> String {
         format!(
-            "t2={}, energy={}, converters={}, power={:?}, pause={}",
+            "t2={}, gate={}, energy={}, converters={}, power={:?}, pause={}, lane={}",
             self.t2_income.map_or("never".to_string(), |n| format!("{n:.0}")),
+            if self.field_gate { "field" } else { "income" },
             if self.fusion_first { "fusion" } else { "mohos" },
             if self.converters { "on" } else { "off" },
             self.power,
-            if self.pause_t1 { "on" } else { "off" }
+            if self.pause_t1 { "on" } else { "off" },
+            if self.lane { "on" } else { "off" }
         )
     }
 }
@@ -169,11 +178,18 @@ impl Distilled {
     }
 
     /// D-T2-GATE: a constructor that can build the advanced plant starts it once the metal income reaches the arm's
-    /// figure, the energy store is not empty and no project is under way; one plant.
+    /// figure, the energy store is not empty, no project is under way and, under `gate=field`, the field is won
+    /// (D-FIELD); one plant.
     pub(crate) fn t2_gate(&self, builder: &UnitDefInfo, tick: &Tick) -> bool {
         let (Some(from), Some(plant)) = (self.options.t2_income, self.kit.advanced_plant) else { return false };
         let energy = tick.snapshot.energy;
-        self.frame >= T2_FROM && builder.build_options.contains(&plant) && self.count(Some(plant)) == 0 && !self.project_under_way() && tick.snapshot.metal.income >= from && energy.current >= T2_ENERGY_STORE * energy.storage
+        self.frame >= T2_FROM
+            && builder.build_options.contains(&plant)
+            && self.count(Some(plant)) == 0
+            && !self.project_under_way()
+            && tick.snapshot.metal.income >= from
+            && energy.current >= T2_ENERGY_STORE * energy.storage
+            && (!self.options.field_gate || self.field_won())
     }
 
     /// The transition: the advanced plant is going up, or stands with its first two constructors still to make.
@@ -192,24 +208,28 @@ impl Distilled {
     /// when it is short at scale (a fusion from `FUSION_FROM`, an advanced fusion from `ADVANCED_FUSION_FROM`, else an
     /// advanced solar); a tier-2 extractor nearest home while energy allows; the project; a converter at saturation;
     /// else energy for the extractors to come, else help at the advanced plant.
-    pub(crate) fn advanced_job(&self, tick: &Tick) -> Option<Job> {
+    pub(crate) fn advanced_job(&self, builder: &UnitDefInfo, tick: &Tick) -> Option<Job> {
         let kit = &self.kit;
         let (metal, energy) = (tick.snapshot.metal, tick.snapshot.energy);
         let fusions = self.count(kit.fusion) + self.count(kit.advanced_fusion);
         let fusion_under_way = self.economy.working_on(|job| matches!(job, Job::Fusion | Job::AdvancedFusion)) > 0 || self.own.values().any(|u| u.being_built && (Some(u.def) == kit.fusion || Some(u.def) == kit.advanced_fusion));
+        // Only what this builder can build: neither advanced constructor has the advanced solar among its options
+        // (apex-v029-distilled-comet-1 game 01: told the same advanced solar 38 times in a minute, the engine
+        // dropping each), so below the fusion's income it builds no energy at all.
+        let can = |def: Option<UnitDefId>| def.is_some_and(|d| builder.build_options.contains(&d));
         let energy_job = || {
             if fusion_under_way {
                 return None;
             }
-            if kit.advanced_fusion.is_some() && metal.income >= ADVANCED_FUSION_FROM && fusions >= 1 {
+            if can(kit.advanced_fusion) && metal.income >= ADVANCED_FUSION_FROM && fusions >= 1 {
                 return Some(Job::AdvancedFusion);
             }
-            if kit.fusion.is_some() && metal.income >= FUSION_FROM {
+            if can(kit.fusion) && metal.income >= FUSION_FROM {
                 return Some(Job::Fusion);
             }
-            kit.advanced_solar.map(|_| Job::AdvancedSolar)
+            can(kit.advanced_solar).then_some(Job::AdvancedSolar)
         };
-        if self.options.fusion_first && fusions == 0 && kit.fusion.is_some() && !fusion_under_way && metal.income >= FUSION_FIRST_FROM {
+        if self.options.fusion_first && fusions == 0 && can(kit.fusion) && !fusion_under_way && metal.income >= FUSION_FIRST_FROM {
             return Some(Job::Fusion);
         }
         if self.energy_short(tick)

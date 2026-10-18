@@ -137,3 +137,36 @@ include the turret (the commander then takes the plant, which it can build, as i
 against any order a unit holds without executing (not idle, no frame begun, no movement for some seconds: drop it
 and refuse the pair). That alone changes every +0 game from 2:30 on. The gate figure, the pause and the launch
 weights are separate rows to run after it, since the batteries so far were played with no build power at all.
+
+## 8. Built the same day, on the user's word ("apply the fixes you see fit ... take inspiration from the successful flagship matches"), and what the batteries then said
+
+Every row is in `docs/experiments.md` (apex-v029-distilled-comet-2 to -10); the rules in `bots/distilled/README.md`.
+
+**Built.** D-BUILD-POWER's rung goes only to a builder whose options include it (§2's commander), with a guard behind
+it for any job; D-ORDERS: an order the engine drops at once counts as refused, a builder standing two minutes on a
+build order with no frame beside it drops it, four failures in a row sideline a builder for a minute, an energy order
+moves round the back field and a turret site round the plant; the advanced constructors' energy rung offers only what
+they can build (neither has the advanced solar: §2's 38-order loop); D-BUILD-POWER's short test net of what the
+builders draw; D-FIELD and the `gate=field` default (tier 2 only with a pushing body out, the player's 15:49); D-RAID
+(the body out at the base weight, raiding his known extractors at two-to-one odds while lighter than what it has seen
+of his army, pushing when heavier); D-LANE (the shared `crates/micro` lane under the army's orders, `lane=off` to
+test without). Instruments: `run/bot_exchange.py` beside `run/bot_sides.py` and `run/bot_orders.py`.
+
+**Two things the batteries taught about measuring.** A twenty-second held-order watchdog fired 27-65 times a game on
+constructors standing in range of their spots: the engine starts no frame while it first reclaims a wreck on the site
+or waits for a blocking unit to move off, and drops a blocked build itself after thirty tries (`CBuilder::StartBuild`,
+`CBuilderCAI::ExecuteBuildCmd`); frames begin 4-18 s after an order in the usual case (distilled-held-diag-2), so the
+net is two minutes. And Apex carries its exchange record between games (the arena's `run/data/opponent-state`): §1's
+3-5 row started from 2 pairs, every row after it from 35-145, so the day's rows were put back to the 2-pair copy. From
+that state the old bot went 0-8 on the seeds of its 3-5 (comet-6): the three wins of §1 were games Apex collapsed on
+his own (1, 2 and 10 soldiers at 10:00). An eight-game row against v0.2.9 scatters by three wins for an unchanged bot.
+
+**What moved and what did not.** Over sixteen cold games on seeds 1-16, the tree less the lane went 3-12-1 against
+the old bot's 0-16 (comet-8 against comet-6 and -9). Underneath: the first turret at 3:05-5:00 by a constructor and
+the second plant at 7:00-9:30 (the pros' 5:56 and 8:11), extractors 20-24 at 10:00 (§1: 15-21), the advanced plant at
+7:33-9:30 where the body had come to outweigh what it had seen, his extractors at 10:00 a little lower. What did not
+move is the exchange: by 10:00 the bot lost 10-25 soldiers for 6-24 of his in every battery of the day, under the old
+rules, the raid at even odds and the raid at two to one alike (`run/bot_exchange.py`), where the player's record shows
+7 lost (454 metal) for 9 of his by 10:00, then the push at 10:25 with 43 against 13 that traded badly in metal and won
+the game. That is why the lane was wired in last (D-LANE): the flagship's hands fight under it, and against BARb it
+turned 0-12 into 3-7-2 (micro-ab2). Its sixteen-game row (comet-10) went 1-14-1 with the exchange by 10:00 the same (ours 12-24 dead for his 5-20), the games longer (20-40 minutes against 15-26): as wired, the lane keeps soldiers alive a little and wins nothing with them, so it is off by default (`lane=on` for a row). What the bot still lacks against the player's game is not footwork but the player's restraint before the push: 7 soldiers lost by 10:00 against the bot's 10-25 under every rule set tried, and that is the next thing to design, with the lane's debug lines read first.

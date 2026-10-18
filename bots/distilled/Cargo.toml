@@ -11,3 +11,5 @@ crate-type = ["cdylib"]
 [dependencies]
 ai-host = { path = "../../crates/ai-host" }
 bot-protocol = { path = "../../crates/bot-protocol" }
+combatsim = { path = "../../crates/combatsim" }
+micro = { path = "../../crates/micro" }
