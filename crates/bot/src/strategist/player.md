@@ -251,7 +251,7 @@ the radar's range (Altored Divide's divide hid the whole north-east from an adva
 human-8v8-1, while both seats planned on "radar sight"). The `scouting` block says what our side has seen, cell by
 cell, and its `radar now` line tells the cells our radar covers now (with nothing on them, or with his contacts) from
 the cells dark to radar and sight: a dark cell is unknown, not empty, and "nothing of his" there says nothing.
-Jammers (Sneaky Pete, Castro and Nyx 390; Veil, Shroud and Erebus 760; the Rampart 500) hide everything of his within
+Jammers (Sneaky Pete 500, Castro 360, Nyx 390; Veil and Erebus 760, Shroud 700; the Rampart 500) hide everything of his within
 their radius from radar and nothing from sight; the `jammers of his` line names the ones seen. The Juno (660 metal,
 any tier-1 constructor; `fire` sends a round, 75 s each) kills every jammer, radar tower, radar bot and camera within
 1,400 of where its round lands, ours included: one round, and radar shows what the jammers hid. Eyes no jammer

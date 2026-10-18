@@ -105,9 +105,9 @@ impl Brain {
         guns.sort_by_key(|g| std::cmp::Reverse(g.last));
         guns.iter()
             .map(|g| {
-                let laid = g.attributed.as_ref().map_or(String::new(), |a| format!("; a {a} was seen there"));
+                let laid = g.attributed.as_ref().map_or(String::new(), |a| format!("; {a} seen standing there"));
                 format!(
-                    "{}: a {} (reach {:.0}) about {} ({}, {}) by the bearings of {} hits ({:.0} damage) since {}, last {} ago{laid}",
+                    "{}: {} (reach {:.0}) about {} ({}, {}) by the bearings of {} hit{} ({:.0} damage) since {}, last {} ago{laid}",
                     g.name,
                     self.weapon_words(&g.weapon),
                     g.range,
@@ -115,6 +115,7 @@ impl Brain {
                     g.at.x as i32,
                     g.at.z as i32,
                     g.hits,
+                    if g.hits == 1 { "" } else { "s" },
                     g.damage,
                     super::pianist::picture::clock(g.since),
                     super::pianist::picture::clock(frame - g.last)

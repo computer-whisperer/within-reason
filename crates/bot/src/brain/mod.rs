@@ -162,6 +162,9 @@ pub struct Brain {
     heard_chat_at: i32,
     /// Buildings `forget_razed_buildings` dropped this tick, for the team board.
     razed: Vec<UnitId>,
+    /// Remembered buildings whose place is in sight with nothing there, by the frame that began (the gone rule's
+    /// dwell, `track_enemy_buildings`).
+    missing_in_sight: HashMap<UnitId, i32>,
     /// Factories of theirs seen destroyed or found razed: definition, position, frame. Evidence for the player of
     /// where the opponent has been (docs/design/2026-09-22-enemy-evidence.md).
     enemy_factories_gone: Vec<(UnitDefId, Vec3, i32)>,
@@ -342,6 +345,7 @@ impl Brain {
             conceded: std::collections::HashSet::new(),
             heard_chat_at: -1,
             razed: Vec::new(),
+            missing_in_sight: HashMap::new(),
             enemy_factories_gone: Vec::new(),
             enemy_soldiers: HashMap::new(),
             enemy_commander_seen: None,

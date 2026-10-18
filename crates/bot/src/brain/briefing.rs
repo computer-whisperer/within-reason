@@ -401,6 +401,9 @@ impl Brain {
     }
 
     pub(super) fn track_enemy_buildings(&mut self, tick: &Tick) {
+        /// How long a remembered building's place must be in sight with nothing there before it is gone: longer
+        /// than the grid's 30-frame refresh and the engine's 16-frame visibility-flag lag together.
+        const GONE_DWELL_FRAMES: i32 = 2 * FRAMES_PER_SECOND;
         let mut gone = std::mem::take(&mut self.razed);
         let mut seen = Vec::new();
         let mut seen_unfinished: Vec<(UnitId, bool, i32)> = Vec::new();
@@ -464,18 +467,31 @@ impl Brain {
             Some(cloak) => standing.iter().any(|(at, _)| at.dist2d(pos) <= cloak.decloak_distance),
             None => true,
         };
-        let razed: Vec<UnitId> = self
-            .enemy_buildings
-            .iter()
-            .filter(|(id, (def, pos, _))| !in_snapshot.contains(id) && sees(*pos) && decloaked(*def, *pos))
-            .map(|(id, _)| *id)
-            .collect();
+        // The absence must last (GONE_DWELL_FRAMES): the grid is read every 30 frames and the brain thinks every 15,
+        // so half the thinks hold a half-second-old grid, and the engine refreshes a unit's visibility flags (what
+        // the enemy list is built from) in a slow-update loop up to 16 frames behind its LOS map. A building just
+        // uncovered, or just covered, is "in sight with nothing there" for up to a second on either edge: in
+        // sight-regress-1 the rule fired 107 times, 96 of them on the stale-grid thinks, and 100 named a building
+        // still standing (his whole base at H1 declared gone with our body beside it).
+        let mut razed: Vec<UnitId> = Vec::new();
+        for (id, (def, pos, _)) in &self.enemy_buildings {
+            if in_snapshot.contains(id) || !sees(*pos) || !decloaked(*def, *pos) {
+                self.missing_in_sight.remove(id);
+                continue;
+            }
+            let since = *self.missing_in_sight.entry(*id).or_insert(tick.frame);
+            if tick.frame - since >= GONE_DWELL_FRAMES {
+                razed.push(*id);
+            }
+        }
+        self.missing_in_sight.retain(|id, _| self.enemy_buildings.contains_key(id));
         for id in razed {
+            self.missing_in_sight.remove(&id);
             if let Some((def, pos, _)) = self.enemy_buildings.remove(&id) {
                 if self.world.is_factory_def(def) {
                     self.enemy_factories_gone.push((def, pos, tick.frame));
                 }
-                self.event(tick.frame, format!("his {} at {} is gone: the place is in sight and nothing stands there", self.name(def), self.world.grid(pos)));
+                self.event(tick.frame, format!("his {} at {} is gone: the place has been in sight {} s with nothing standing there", self.name(def), self.world.grid(pos), GONE_DWELL_FRAMES / FRAMES_PER_SECOND));
             }
             self.enemy_unfinished.remove(&id);
             gone.push(id);
@@ -1280,11 +1296,14 @@ mod frame_loss_tests {
         assert!((frames_metal - cost * (0.7 + 0.6 + 0.3 + 0.7)).abs() < 1.0, "{frames_metal} of {cost}");
     }
 
-    /// With the engine's sight grid, a remembered building is gone only when its square is in that sight and it is not
-    /// in the snapshot; a type that cloaks is hidden, not gone, until one of ours stands within its decloak distance
-    /// (H-ENEMY-GONE-NEEDS-SIGHT; Altored Divide, human-8v8-1: the ridge hid the whole north-east from the G4 radar).
+    /// With the engine's sight grid, a remembered building is gone only when its square has been in that sight, with
+    /// the building absent, for the dwell (two seconds: the grid is half a second old on every other think and the
+    /// engine's visibility flags run up to 16 frames behind its LOS map, so a one-look absence means nothing); a
+    /// type that cloaks is hidden, not gone, until one of ours stands within its decloak distance for as long
+    /// (H-ENEMY-GONE-NEEDS-SIGHT; Altored Divide, human-8v8-1: the ridge hid the whole north-east from the G4 radar;
+    /// sight-regress-1: 100 of 107 "gone" events named a building still standing).
     #[test]
-    fn a_building_is_gone_only_in_the_engines_sight_and_a_cloaked_one_only_when_decloaked() {
+    fn a_building_is_gone_only_in_the_engines_sight_for_the_dwell_and_a_cloaked_one_only_when_decloaked() {
         use bot_protocol::{Cloak, EnemyUnit, Grid, Sensors};
         let mut brain = brain_of(&["armcom", "armsolar", "armpb"]);
         let enemy = |id: i32, def: i32, pos: Vec3| EnemyUnit { id: UnitId(id), def: Some(UnitDefId(def)), pos, vel: Vec3::default(), health: 100.0, team: Some(1), being_built: false };
@@ -1293,25 +1312,52 @@ mod frame_loss_tests {
             t.snapshot.enemies = enemies;
             t
         };
-        // Seen: a solar at (1000, 1000) and a Pitbull at (3000, 1000).
+        // The engine's grid says we see the west half of the map and nothing east of x 4096.
+        let west = || Grid::pack(128, 128, 64.0, (0..128 * 128).map(|i| i % 128 < 64));
+        let grid = |brain: &mut super::Brain, frame: i32| brain.sensors = Some((Sensors { los: west(), radar: Grid::default(), air: Grid::default() }, frame));
+        let has = |brain: &super::Brain, id: i32| brain.enemy_buildings.contains_key(&UnitId(id));
+        // Seen: a solar at (1000, 1000) and a Pitbull at (3000, 1000); the Pitbull cloaks (55).
+        grid(&mut brain, 30);
         brain.track_enemy_buildings(&look(30, vec![own(10, 1, at(900.0, 900.0))], vec![enemy(50, 2, at(1000.0, 1000.0)), enemy(51, 3, at(3000.0, 1000.0))]));
         assert_eq!(brain.enemy_buildings.len(), 2);
-        // The engine's grid says we see the west half of the map and nothing east of x 4096; the Pitbull cloaks (55).
-        let covered = (0..128 * 128).map(|i| i % 128 < 64);
-        brain.sensors = Some((Sensors { los: Grid::pack(128, 128, 64.0, covered), radar: Grid::default(), air: Grid::default() }, 60));
         let pitbull = brain.world.hello.unit_defs.iter().position(|d| d.id == UnitDefId(3)).expect("the Pitbull");
         brain.world.hello.unit_defs[pitbull].cloak = Some(Cloak { cost: 16.0, decloak_distance: 55.0, decloak_on_fire: true, starts_cloaked: false });
-        // Neither is in the snapshot now; the commander stands 200 from the Pitbull.
-        brain.track_enemy_buildings(&look(60, vec![own(10, 1, at(2800.0, 1000.0))], Vec::new()));
-        assert!(!brain.enemy_buildings.contains_key(&UnitId(50)), "the solar's square is in the engine's sight with nothing there: gone");
-        assert!(brain.enemy_buildings.contains_key(&UnitId(51)), "the Pitbull cloaks: hidden, not gone, with ours 200 away");
-        // The commander walks to 40 of it: within its decloak distance it would show, so its absence means it is gone.
-        brain.track_enemy_buildings(&look(90, vec![own(10, 1, at(2960.0, 1000.0))], Vec::new()));
-        assert!(!brain.enemy_buildings.contains_key(&UnitId(51)));
-        // A building behind the hill (east, no sight in the grid) with ours standing 100 away is kept: the circle no longer decides.
-        brain.track_enemy_buildings(&look(120, vec![own(10, 1, at(5000.0, 1000.0))], vec![enemy(52, 2, at(5100.0, 1000.0))]));
-        brain.sensors = Some((Sensors { los: Grid::pack(128, 128, 64.0, (0..128 * 128).map(|i| i % 128 < 64)), radar: Grid::default(), air: Grid::default() }, 150));
-        brain.track_enemy_buildings(&look(150, vec![own(10, 1, at(5000.0, 1000.0))], Vec::new()));
-        assert!(brain.enemy_buildings.contains_key(&UnitId(52)), "no sight over the place in the engine's grid: kept");
+        // One look with neither in the snapshot: the solar's square is in sight with nothing there, but a single
+        // look is the lag's, not the truth's; the commander stands 200 from the Pitbull, which cloaks.
+        grid(&mut brain, 45);
+        brain.track_enemy_buildings(&look(45, vec![own(10, 1, at(2800.0, 1000.0))], Vec::new()));
+        assert!(has(&brain, 50), "one look is not the dwell");
+        // Back in the snapshot at 60: the clock resets.
+        grid(&mut brain, 60);
+        brain.track_enemy_buildings(&look(60, vec![own(10, 1, at(2800.0, 1000.0))], vec![enemy(50, 2, at(1000.0, 1000.0))]));
+        // Absent from 75 on: kept at 75, 105 and 120, gone at 135 (two seconds since 75).
+        for frame in [75, 105, 120] {
+            grid(&mut brain, frame);
+            brain.track_enemy_buildings(&look(frame, vec![own(10, 1, at(2800.0, 1000.0))], Vec::new()));
+            assert!(has(&brain, 50), "{frame}: in sight with nothing there, but not yet for the dwell");
+        }
+        grid(&mut brain, 135);
+        brain.track_enemy_buildings(&look(135, vec![own(10, 1, at(2800.0, 1000.0))], Vec::new()));
+        assert!(!has(&brain, 50), "the solar's square was in the engine's sight with nothing there for two seconds: gone");
+        assert!(has(&brain, 51), "the Pitbull cloaks: hidden, not gone, with ours 200 away all along");
+        // The commander walks to 40 of the Pitbull: within its decloak distance it would show, so its absence
+        // counts, and after the dwell it is gone.
+        for frame in [150, 180] {
+            grid(&mut brain, frame);
+            brain.track_enemy_buildings(&look(frame, vec![own(10, 1, at(2960.0, 1000.0))], Vec::new()));
+            assert!(has(&brain, 51), "{frame}: decloaked and absent, not yet for the dwell");
+        }
+        grid(&mut brain, 210);
+        brain.track_enemy_buildings(&look(210, vec![own(10, 1, at(2960.0, 1000.0))], Vec::new()));
+        assert!(!has(&brain, 51));
+        // A building behind the hill (east, no sight in the grid) with ours standing 100 away is kept however long:
+        // the circle no longer decides.
+        grid(&mut brain, 240);
+        brain.track_enemy_buildings(&look(240, vec![own(10, 1, at(5000.0, 1000.0))], vec![enemy(52, 2, at(5100.0, 1000.0))]));
+        for frame in [270, 330, 390] {
+            grid(&mut brain, frame);
+            brain.track_enemy_buildings(&look(frame, vec![own(10, 1, at(5000.0, 1000.0))], Vec::new()));
+        }
+        assert!(has(&brain, 52), "no sight over the place in the engine's grid: kept");
     }
 }

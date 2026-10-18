@@ -127,8 +127,10 @@ BAR mip levels 3, 2, 4: 64, 32 and 128 elmo squares), the ally team's, from 2026
 **Claim.** A jammer tower hides every unit of its own side within its radius from enemy radar and nothing from sight
 (`LosHandler.cpp` `InRadar`: in the radar grid and not in a jammer of the unit's side; BAR `separateJammers = true`, so
 each side's jammers hide only its own units and the engine's jammer map handed to an AI is its own side's). Radii:
-Sneaky Pete `armjamt`, Castro `corjamt`, Nyx `legjam` 390; Veil `armveil`, Shroud `corshroud`, Erebus `legajam` 760
-(125 to 130 metal, 125 energy a second); Rampart `legrampart` 500 besides its anti-nuke and 2,100 radar. None of them
+Sneaky Pete `armjamt` 500 (240 metal), Castro `corjamt` 360 (100 metal), Nyx `legjam` 390 (140 metal); Veil
+`armveil` 760, Shroud `corshroud` 700, Erebus `legajam` 760 (125 to 130 metal, 125 energy a second); the mobile
+Eraser `armaser` 450, Spectre `armsjam` 980; Rampart `legrampart` 500 besides its anti-nuke and 2,100 radar (the
+engine's `UnitDef_getJammerRadius` in sight-regress-1's record header, 2026-10-18). None of them
 cloaks anything: this BAR has no area cloaker (`cloakcost` is on commanders, spies, mines, Beholders, the Pitbull and
 Ambusher pop-ups, snipers, the Gremlin, the Phantom and the Shockwave only; `legacluster` and `legapopupdef` do not cloak).
 **Status.** supported (2026-10-18): engine source and unit files.
@@ -161,3 +163,19 @@ over 540 of it that no jammer removes (a Juno pulse kills them). Radar bots (Aug
 **Evidence.** `crates/bot/data/units.json` entries; `units/*/coreyes.lua`, `legeyes.lua`.
 **Would be wrong if.** The camera's cloak cost or sight changed.
 **Used by.** the brief's sight passage.
+
+### K-scout-sight-flags-lag
+
+**Claim.** What the engine lists as an enemy "in sight or radar" is a per-unit flag (`losStatus`, `AICallback.cpp`
+`unit_IsEnemyAndInLosOrRadar`) refreshed in the units' slow-update loop, every 16 frames per unit
+(`UnitHandler.cpp` `UpdateLosStatus`, `UNIT_SLOWUPDATE_RATE`), while the LOS map (`Map_getLosMap`, our `sense`
+grids) is the current frame's. So for up to 16 frames a building newly covered by our sight is not yet in the enemy
+list, and one just uncovered still is; and our own copy of the grid is up to 30 frames old (`SENSORS_INTERVAL`),
+half the brain's thinks holding a 15-frame-old one. A single "the place is in sight and nothing stands there"
+observation is therefore no evidence: sight-regress-1 (2026-10-18) declared 107 buildings gone on it, 100 of them
+standing, 96 on the stale-grid thinks. Two seconds of continuous in-sight absence outlast both lags
+(H-ENEMY-GONE-NEEDS-SIGHT).
+
+**Status.** Observed in the engine source (Recoil 2026.07.04) and in the record of sight-regress-1 (the gone events
+against the truth file, `run/matches/1792356704-sight-regress-1`); the dwell unmeasured in a game.
+

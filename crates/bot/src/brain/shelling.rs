@@ -68,16 +68,14 @@ pub(super) struct Attribution {
 }
 
 impl Brain {
-    /// A weapon in words: the unit its definition name is prefixed with ("armart_tawf113_weapon" is the Shellshock's),
-    /// else the raw name.
+    /// A weapon in words: the unit type its definition name is prefixed with ("armart_tawf113_weapon" is the
+    /// Shellshock's), marked a turret when it cannot move; else the raw name. Types go by their internal names, as
+    /// everywhere in the reports.
     pub(super) fn weapon_words(&self, weapon: &str) -> String {
         let prefix = weapon.split('_').next().unwrap_or(weapon);
-        match self.world.def_named(prefix) {
-            Some(def) if self.kit.is_some() => {
-                let d = self.world.def(def).expect("a named def exists");
-                format!("{} ({}{})", self.name(def), d.name, if d.speed == 0.0 { ", a turret" } else { "" })
-            }
-            _ => weapon.to_string(),
+        match self.world.def_named(prefix).and_then(|def| self.world.def(def)) {
+            Some(d) => format!("{}{}", d.name, if d.speed == 0.0 { " (a turret)" } else { "" }),
+            None => weapon.to_string(),
         }
     }
 }

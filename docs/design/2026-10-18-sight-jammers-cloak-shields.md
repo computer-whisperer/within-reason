@@ -84,3 +84,15 @@ jammers and cloaked units break the assumptions our bot layers operate on." Then
 ## Measured
 
 Nothing yet: the next game with the reinstalled shim is the first measurement.
+
+## Measured: sight-regress-1 (2026-10-18)
+
+The first game with the grids (Comet Catcher, BARb hard_aggressive, won 19:06) carried every new line, and the
+gone rule misfired: 107 "is gone" events, 100 naming a building still standing, 96 of them on the thinks that
+hold a 15-frame-old grid (the brain thinks every 15 frames, the grid arrives every 30), the rest within the
+engine's own 16-frame lag between its LOS map and the per-unit visibility flags its enemy list is built from
+(K-scout-sight-flags-lag). The circle rule had the same fault at a tenth of the rate (18 and 9 firings in the two
+games before). Fixed the same day: the rule needs two seconds of continuous in-sight absence (`GONE_DWELL_FRAMES`).
+Also found and fixed: the weapon words doubled the type name ("a armjanus (armjanus)"), and the `radar now` line
+listed sixty cells by runs at the start (now "every cell out of our sight now (60 cells)").
+

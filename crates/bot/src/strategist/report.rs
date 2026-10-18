@@ -128,6 +128,7 @@ fn scouting_lines(cells: &[CellLook], factory_known: bool) -> Vec<String> {
         let with: Vec<String> = covered.iter().filter(|c| c.contacts > 0).map(|c| format!("{} ({} contacts)", c.cell, c.contacts)).collect();
         let jammed: Vec<&CellLook> = cells.iter().filter(quiet).filter(|c| c.jammed).collect();
         let dark: Vec<&CellLook> = cells.iter().filter(quiet).filter(|c| !c.jammed && c.radar_share.is_some_and(|s| s < 0.1)).collect();
+        let out_of_sight = cells.iter().filter(quiet).count();
         let mut parts: Vec<String> = Vec::new();
         if !empty.is_empty() {
             parts.push(format!("under our radar with nothing on it: {}", cell_runs(&empty)));
@@ -139,7 +140,13 @@ fn scouting_lines(cells: &[CellLook], factory_known: bool) -> Vec<String> {
             parts.push(format!("hidden from radar by a jammer of his: {}", cell_runs(&jammed)));
         }
         if !dark.is_empty() {
-            parts.push(format!("dark to our radar and sight (hills or range: nothing known of them now): {}", cell_runs(&dark)));
+            // Most of the map at the start: the count, not sixty cells by runs.
+            let which = if dark.len() * 4 >= out_of_sight * 3 {
+                format!("{} ({} cells)", if parts.is_empty() { "every cell out of our sight now" } else { "all the rest out of our sight" }, dark.len())
+            } else {
+                cell_runs(&dark)
+            };
+            parts.push(format!("dark to our radar and sight (hills or range: nothing known of them now): {which}"));
         }
         if !parts.is_empty() {
             lines.push(format!("  radar now (the engine's coverage, cut by hills): {}", parts.join(" | ")));
@@ -884,12 +891,22 @@ mod sightings_tests {
         assert!(radar_line.contains("hidden from radar by a jammer of his: G2"), "{radar_line}");
         assert!(radar_line.contains("dark to our radar and sight (hills or range: nothing known of them now): H2"), "{radar_line}");
         assert!(!radar_line.contains("B4"), "a cell in sight now is not a radar matter: {radar_line}");
+        // Most of the cells out of sight dark (the start of a game): the count, not the runs; all of them: said so.
+        let mut mostly: Vec<CellLook> = ["A1", "A2", "A3", "B1", "B2", "B3", "C1", "C2", "C3"].iter().map(|c| radar(c, 0.0, 0, false)).collect();
+        mostly.push(radar("D4", 1.0, 0, false));
+        let lines = scouting_lines(&mostly, true);
+        let radar_line = lines.iter().find(|l| l.contains("radar now")).expect("a radar line");
+        assert!(radar_line.contains("under our radar with nothing on it: D4 | dark to our radar and sight (hills or range: nothing known of them now): all the rest out of our sight (9 cells)"), "{radar_line}");
+        mostly.pop();
+        let lines = scouting_lines(&mostly, true);
+        let radar_line = lines.iter().find(|l| l.contains("radar now")).expect("a radar line");
+        assert!(radar_line.ends_with("dark to our radar and sight (hills or range: nothing known of them now): every cell out of our sight now (9 cells)"), "{radar_line}");
         let plain = scouting_lines(&[cell("A3", 1.0, Some(400))], true);
         assert!(plain.iter().all(|l| !l.contains("radar now")), "{plain:?}");
         let mut briefing = super::super::shared::Briefing::default();
         assert!(super::front(&briefing, &super::super::shared::Field::default(), &[], false).iter().all(|l| !l.starts_with("jammers of his") && !l.starts_with("fire from out of sight") && !l.starts_with("shields of his")));
         briefing.jammers = vec!["Erebus at G2 (6192, 1088) hides 760 around it from radar (seen 9:26 ago)".into()];
-        briefing.guns = vec!["guns_1: a legbastion (reach 1100) toward F2 (5650, 1500)".into()];
+        briefing.guns = vec!["guns_1: legbastion (a turret) (reach 1100) about F2 (5650, 1500)".into()];
         briefing.shields = vec!["Soteria at F1 (5424, 480): shield 550 around it".into()];
         let lines = super::front(&briefing, &super::super::shared::Field::default(), &[], false);
         assert!(lines.iter().any(|l| l.starts_with("jammers of his (each hides") && l.contains("Erebus at G2")), "{lines:?}");
