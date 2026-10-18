@@ -166,16 +166,24 @@ over 540 of it that no jammer removes (a Juno pulse kills them). Radar bots (Aug
 
 ### K-scout-sight-flags-lag
 
-**Claim.** What the engine lists as an enemy "in sight or radar" is a per-unit flag (`losStatus`, `AICallback.cpp`
-`unit_IsEnemyAndInLosOrRadar`) refreshed in the units' slow-update loop, every 16 frames per unit
-(`UnitHandler.cpp` `UpdateLosStatus`, `UNIT_SLOWUPDATE_RATE`), while the LOS map (`Map_getLosMap`, our `sense`
-grids) is the current frame's. So for up to 16 frames a building newly covered by our sight is not yet in the enemy
-list, and one just uncovered still is; and our own copy of the grid is up to 30 frames old (`SENSORS_INTERVAL`),
-half the brain's thinks holding a 15-frame-old one. A single "the place is in sight and nothing stands there"
-observation is therefore no evidence: sight-regress-1 (2026-10-18) declared 107 buildings gone on it, 100 of them
-standing, 96 on the stale-grid thinks. Two seconds of continuous in-sight absence outlast both lags
-(H-ENEMY-GONE-NEEDS-SIGHT).
+**Claim.** The engine's enemy list (`getEnemyUnitsInRadarAndLos`) is built from each unit's `losStatus` flags, which
+`CUnitHandler::Update` refreshes for every unit every frame (`UpdateUnitLosStates`, Game.cpp line 1770) before the
+LOS map's own update that frame (`losHandler->Update()`, line 1789): the list runs one frame behind the map, no
+more. The staleness that matters is ours: the shim reads the ally team's LOS map (`GET_SENSOR_MAP`, the current
+frame's) every 30 frames (`SENSORS_INTERVAL`) and the brain thinks every 15 (`BRAIN_FRAMES`), so every other think
+holds a 15-frame-old grid, and a building our unit has just stepped away from is "in sight with nothing there"
+until the next read. A single such observation is therefore no evidence: sight-regress-1 (2026-10-18) declared
+107 buildings gone on it, 96 on the stale-grid thinks, and its report listed 2 of the 12 buildings in sight at
+his base; the memory held 61% of the truth's buildings in cells seen within the minute. With a two-second dwell
+(apex-v032-altored-3v3-1 and -bonus50-1) it held 86% and 83%. The grid itself is right: every own unit stood on a
+covered square at every sense row of three games, about a third under any flip of the layout.
 
-**Status.** Observed in the engine source (Recoil 2026.07.04) and in the record of sight-regress-1 (the gone events
-against the truth file, `run/matches/1792356704-sight-regress-1`); the dwell unmeasured in a game.
-
+**Status.** Observed in the engine source (Recoil 2026.07.04) and in the records of sight-regress-1 and the two
+Altored 3v3s (the `is gone` event rows against the truth files, `run/matches/1792356704-sight-regress-1`,
+`1792360263-apex-v032-altored-3v3-1`, `1792360810-apex-v032-altored-3v3-bonus50-1`). The remaining 14-17%
+shortfall is unexplained: a unit-id reconstruction of each dropped building is only an upper bound (a building
+first seen while being built raises no `enemy_seen` row; an ally's sighting is pooled without one), so the rule now
+writes its evidence (seconds in sight, our nearest unit's distance, the grid's age) into each event and requires
+this seat's own sight circle beside the grid. An earlier version of this claim said the flags lag 16 frames in a
+slow-update loop; the source says otherwise (the loop over a sixteenth of the units is `SlowUpdateUnits`, a
+different one).

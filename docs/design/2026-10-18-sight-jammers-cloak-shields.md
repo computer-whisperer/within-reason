@@ -89,10 +89,23 @@ Nothing yet: the next game with the reinstalled shim is the first measurement.
 
 The first game with the grids (Comet Catcher, BARb hard_aggressive, won 19:06) carried every new line, and the
 gone rule misfired: 107 "is gone" events, 100 naming a building still standing, 96 of them on the thinks that
-hold a 15-frame-old grid (the brain thinks every 15 frames, the grid arrives every 30), the rest within the
-engine's own 16-frame lag between its LOS map and the per-unit visibility flags its enemy list is built from
-(K-scout-sight-flags-lag). The circle rule had the same fault at a tenth of the rate (18 and 9 firings in the two
+hold a 15-frame-old grid (the brain thinks every 15 frames, the grid arrives every 30), the rest at the same-frame thinks, where the engine's enemy list runs one frame behind its LOS map (K-scout-sight-flags-lag). The circle rule had the same fault at a tenth of the rate (18 and 9 firings in the two
 games before). Fixed the same day: the rule needs two seconds of continuous in-sight absence (`GONE_DWELL_FRAMES`).
 Also found and fixed: the weapon words doubled the type name ("a armjanus (armjanus)"), and the `radar now` line
 listed sixty cells by runs at the start (now "every cell out of our sight now (60 cells)").
+
+## Measured: apex-v032-altored-3v3-1 (2026-10-18, the dwell alone)
+
+The first team game on the arc (3v3 against Apex v0.3.2 on Altored Divide, won 13:00 on the referee's call): every
+new line in all three seats' and the commander's reports, the radar line's "every cell out of our sight now (12
+cells)" wording, 50-odd `guns_N` places. The gone rule with the two-second dwell fired 12 times in 13 minutes, 6
+of them on buildings still standing by unit id (5 unknowable: pooled from an ally or built inside our sight), with
+ticks never late and the grid arriving every 30 frames on the dot; in the one traced, our nearest unit stood 330
+from the extractor when it left the enemy list while the grid still covered its square. The grid is the ally
+team's, the current frame's (`GET_SENSOR_MAP`), and agrees with the enemy list in 99.4% of same-frame checks; the
+engine refreshes its visibility flags every frame, one frame behind the map, so the lag is ours (the 15-frame-old
+grid on every other think). The memory held 86% of the truth's buildings in cells seen within the minute (83% in the
++50 game) against sight-regress-1's 61%; the unit-id count of misfires is an upper bound (buildings first seen while
+being built raise no `enemy_seen` row). The rule now needs the engine's grid, this seat's own sight circle and the
+dwell together, and writes its evidence into the event.
 
