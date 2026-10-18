@@ -30,6 +30,12 @@ pub trait Transport: Send + Sized {
     fn wait(&mut self) -> std::io::Result<Commands>;
 }
 
+/// The git commit this library was built from (`build.rs`; a `+` when the tree was dirty), for the line a bot says
+/// in the game chat so a replay or an engine log says which build played.
+pub fn commit() -> &'static str {
+    env!("WITHIN_REASON_COMMIT")
+}
+
 /// The bot inside the library, called on the engine thread: its answer to a message is there when `send` returns,
 /// so the game waits for every tick of it, lockstep or not. For bots that answer well inside a frame.
 pub struct InProcess<B: Bot> {

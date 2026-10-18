@@ -68,6 +68,8 @@ pub(crate) struct Distilled {
     /// The arms of the rows, from `WITHIN_REASON_DISTILLED`.
     pub options: tier2::Options,
     started: bool,
+    /// The banner has been said in the game chat (once, at the first orders).
+    announced: bool,
 }
 
 impl Distilled {
@@ -152,6 +154,21 @@ impl Distilled {
         );
         self.started = true;
     }
+
+    /// What the bot says in the game chat at its first orders, as the flagship does (`crates/bot/src/main.rs`): the
+    /// game names AIs at random, so the line says which name is ours, the commit it was built from, its arms, the
+    /// seat's income bonus and the seat. A replay or an engine log then says which build played.
+    fn banner(&self) -> String {
+        let side = self.hello.teams.iter().find(|t| t.team == self.hello.team).map_or("?", |t| t.side.as_str());
+        format!(
+            "{{name}} is WRDistilled {} | arms: {} | bonus {:+.0}% | seat ai{} team {} {side}",
+            ai_host::commit(),
+            self.options.describe(),
+            (self.income_multiplier - 1.0) * 100.0,
+            self.hello.ai_id,
+            self.hello.team
+        )
+    }
 }
 
 /// The `Handicap` of a team's block in the start script, in percent of income; 0 when it has none.
@@ -186,7 +203,7 @@ impl Bot for Distilled {
     fn start(hello: Hello) -> Self {
         let defs = hello.unit_defs.iter().map(|d| (d.id, d.clone())).collect();
         let spots = hello.metal_spots.len();
-        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), metal_income: 0.0, income_multiplier: 1.0, economy: economy::Economy::new(spots), army: army::Army::default(), options: tier2::Options::from_env(), started: false }
+        Distilled { hello, defs, kit: Kit::default(), home: Vec3::default(), enemy_home: Vec3::default(), frame: 0, own: BTreeMap::new(), metal_income: 0.0, income_multiplier: 1.0, economy: economy::Economy::new(spots), army: army::Army::default(), options: tier2::Options::from_env(), started: false, announced: false }
     }
 
     fn tick(&mut self, tick: Tick) -> Commands {
@@ -212,6 +229,11 @@ impl Bot for Distilled {
             }
         }
         let mut commands: Vec<Command> = Vec::new();
+        // Once the engine takes orders (its first seconds drop them), the bot says who it is.
+        if !self.announced && tick.frame >= 2 * SECOND {
+            self.announced = true;
+            commands.push(Command::Say { text: self.banner() });
+        }
         // Twice a second for the economy, once for the army: nothing here needs the tick's 10 Hz.
         if tick.due() % (SECOND / 2) == 0 {
             self.run_builders(&tick, &mut commands);

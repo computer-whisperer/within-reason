@@ -138,4 +138,7 @@ What stands after the rows:
 ## Running it
 
 `target/release/arena --our-ai WRDistilled:0.1 --matches 8 --parallel 8 --speed 50 --profile medium --map "Comet Catcher Remake 1.8" --label <label>`.
-Its own line a game minute is in `engine.log` (`[distilled ai=N] f=... extractors=... strike=...`).
+Its own line a game minute is in `engine.log` (`[distilled ai=N] f=... extractors=... strike=...`). At its first
+orders it says in the game chat which of the random AI names is ours, the commit it was built from (`ai_host::commit`),
+its arms, the seat's income bonus and the seat (`<name> is WRDistilled 23812d1 | arms: t2=..., ... | bonus +0% | seat
+ai1 team 1 armada`), as the flagship does, so a replay or an engine log says which build played.
