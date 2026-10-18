@@ -159,14 +159,25 @@ fn bonus_text(ours: &[(i32, i32)], theirs: &[(i32, i32)]) -> String {
         Some(p) => format!("{who}: {}", one(p)),
         None => format!("{who}: {}", seats.iter().map(|(team, p)| format!("team {team} {}", one(*p))).collect::<Vec<_>>().join(", ")),
     };
-    let compared = match (uniform(ours), uniform(theirs)) {
-        (Some(o), Some(t)) if o == t => format!("The two sides are even with each other, and both run at {} % of the pace the brief describes: the same extractors pay for {} % of the plants, builders and soldiers by each clock.", 100 + o, 100 + o),
-        (Some(0), Some(t)) => format!("We play at the brief's pace; the opponent's income is {} % of what the same buildings gave in those games, so an economy read from the extractors seen is scaled by that, and his army and his tier 2 come {} than the brief's clocks say.", 100 + t, if t > 0 { "sooner" } else { "later" }),
-        (Some(o), Some(t)) => format!("Our income is {} % of what the brief's games had from the same buildings and the opponent's is {} %, so an economy read from the extractors seen is scaled by that.", 100 + o, 100 + t),
-        _ => "An economy read from the extractors seen is scaled by that seat's figure.".to_string(),
+    // What our figure asks of us: the brief's opening and clocks were spent at +0, so a side above it has income its
+    // +0 lists cannot spend (human-8v8-1: both seats at +50 % wrote the +0 opening and banked 900-1,060 metal for the
+    // first three minutes while energy ran out), a side below it has less than they ask for.
+    let ours_means = match uniform(ours) {
+        Some(o) if o > 0 => format!("With {} % income on our side, metal comes in faster than the brief's opening can spend it, so the first minutes are bound by energy and build power (the commander's 300, then the lab's and the constructors'), not by the metal that opening chases first: the lab, the constructors and the construction turrets earn their keep sooner than the brief's clocks, every count of them the brief gives by a minute is a floor here, and metal banking in the first minutes is the order not yet caught up with the income, to be fixed that turn, not the starting store draining.", 100 + o),
+        Some(o) if o < 0 => format!("With {} % income on our side, the metal the brief's lists call for by each clock is not there when they call: everything the brief times by the minute comes later for us, lists are shorter and fewer things are built at once, and a +0 opening copied as written stalls both stores.", 100 + o),
+        Some(_) => "Our side plays at the brief's pace, so its openings and clocks hold for us as written; what is re-derived is the read of him.".to_string(),
+        None => "Each seat of ours plays by its own figure: a seat above +0 has more income than its +0 opening spends and is bound by energy and build power first; a seat below has less than the brief's lists call for and comes later to everything the brief times.".to_string(),
+    };
+    // What his figure does to the read of him: the brief's cases of his clocks and the economy read from his
+    // extractors are at +0.
+    let theirs_means = match (uniform(ours), uniform(theirs)) {
+        (Some(o), Some(t)) if o == t => format!("The two sides are even with each other: both run at {} % of the brief's pace, so his expansion, his army and his tier 2 come {} than the brief's cases say exactly as ours do, and an economy read from his extractors is scaled by the same {} %.", 100 + t, if t > 0 { "sooner" } else { "later" }, 100 + t),
+        (_, Some(0)) => "His side plays at the brief's pace: its cases of when his army, his turrets and his tier 2 come are his clocks, and an economy read from his extractors is the brief's.".to_string(),
+        (_, Some(t)) => format!("His income is {} % of what the same buildings gave in the brief's games, so an economy read from his extractors is scaled by that, and his expansion, his army and his tier 2 come {} than the brief's cases say.", 100 + t, if t > 0 { "sooner" } else { "later" }),
+        (_, None) => "His seats differ from each other: an economy read from a seat's extractors is scaled by that seat's figure, and the seat with the most comes soonest to everything the brief times.".to_string(),
     };
     format!(
-        "\n\n**This game's bonus, set in the lobby.** A bonus multiplies all the metal and energy a seat's units make: extractors, solars, wind, converters and the commander's own income. It does not change what is reclaimed, what anything costs, or how fast builders build. In this game {}; {}. Every game in the brief (the reference tables, the timelines, the cases, the players' advice) was played with no bonus on either side: its clocks, counts and incomes are those of a game at +0. {compared} The report's income and bank figures are the real ones, after the bonus.\n",
+        "\n\n**This game's bonus, set in the lobby.** A bonus multiplies all the metal and energy a seat's units make: extractors, solars, wind, converters and the commander's own income. It does not change what is reclaimed, what anything costs, or how fast builders build. In this game {}; {}. **Everything in the brief assumes +0 on both sides.** Its openings and build orders, its clocks (the first constructor, the plant, the first turret, the second factory, tier 2), its counts of extractors and constructors by the minute, its bank and income tables, the players' advice and every case were learnt from games with no bonus on either side. At any other figure they are starting points to re-derive from the real stock, income and costs, not orders to copy, and the opening the first turn asks of you is the first thing to re-derive, before anything of the brief's is written into a list. {ours_means} {theirs_means} The report's income and bank figures are the real ones, after the bonus.\n",
         said("our seats", ours), said("the opponent's seats", theirs)
     )
 }
@@ -721,16 +732,24 @@ What is known now: the map, the seats and our start box. What is not: where insi
 
 #[cfg(test)]
 mod tests {
-    /// The bonus paragraph says each side's figure and how the game compares with the brief's games at +0.
+    /// The bonus paragraph says each side's figure, that everything in the brief assumes +0, and what our figure
+    /// and his each ask: a side above +0 is bound by energy and build power before metal, a side below comes later
+    /// to everything the brief times, and the read of him is scaled by his figure.
     #[test]
     fn the_bonus_paragraph_compares_the_game_with_the_brief() {
         let even = super::bonus_text(&[(0, 50)], &[(1, 50)]);
         assert!(even.contains("our seats: a bonus of +50 % (150 % of what its buildings make)"));
-        assert!(even.contains("both run at 150 % of the pace the brief describes"));
+        assert!(even.contains("**Everything in the brief assumes +0 on both sides.**") && even.contains("the opening the first turn asks of you is the first thing to re-derive"));
+        assert!(even.contains("bound by energy and build power") && even.contains("both run at 150 % of the brief's pace"));
+        let ours = super::bonus_text(&[(0, 50), (1, 50)], &[(2, 0), (3, 0)]);
+        assert!(ours.contains("With 150 % income on our side") && ours.contains("His side plays at the brief's pace"));
         let his = super::bonus_text(&[(0, 0)], &[(1, -30), (2, -30)]);
-        assert!(his.contains("our seats: no bonus") && his.contains("the opponent's income is 70 %") && his.contains("later than the brief"));
-        let mixed = super::bonus_text(&[(0, 0), (1, 20)], &[(2, 0)]);
-        assert!(mixed.contains("team 1 a bonus of +20 %"));
+        assert!(his.contains("our seats: no bonus") && his.contains("Our side plays at the brief's pace"));
+        assert!(his.contains("His income is 70 %") && his.contains("later than the brief's cases say"));
+        let short = super::bonus_text(&[(0, -30)], &[(1, 0)]);
+        assert!(short.contains("With 70 % income on our side") && short.contains("comes later for us"));
+        let mixed = super::bonus_text(&[(0, 0), (1, 20)], &[(2, 0), (3, 10)]);
+        assert!(mixed.contains("team 1 a bonus of +20 %") && mixed.contains("Each seat of ours plays by its own figure") && mixed.contains("His seats differ from each other"));
     }
 
     /// The player's role text carries the hands' standing rules whole where it has the mark: every marked part of

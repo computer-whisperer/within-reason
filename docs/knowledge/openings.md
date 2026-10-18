@@ -562,3 +562,29 @@ punishes a Rover body more than a person does.
 **Used by.** `docs/briefs/player.md` (the Comet opening, the cases layer's opening case, item (r));
 [[H-PLAYER-OPENING-SNIPPETS]].
 
+
+### K-open-a-bonus-game-got-the-plus-zero-opening
+**Claim.** Told only what a lobby bonus multiplies, the Opus player writes the brief's +0 opening at any figure and
+never names the bonus. In human-8v8-1 (a lobby 5v5 with people, our two seats at +50 %, 2026-10-18) both seats'
+system prompts carried the bonus paragraph of 2026-10-04 (the figures, "every game in the brief was played with no
+bonus", the scaling of a read of his extractors) and both wrote the +0 shape in role words before the game (t5: two
+extractors, three solars, the lab; t9: two extractors, two solars, the lab; one constructor before the first raiders),
+kept it at the first report, stood their labs at 1:23 and 1:22 and their first constructors at 1:33 and 1:35. Not one
+of the players' 174 and 193 text blocks, notes or packets names the bonus all game. t9 banked 900-1,060 metal through
+3:00 spending 0-13 a second while its energy store sat under 50 for 47 s of minutes 1-2; t5 read its 943 banked at
+1:12 as "mostly the starting store". The bank was seen (t9 at 1:02: "the lab costs 470, which leaves about 600 over:
+the lab's first two units are now constructors instead of one"; at 2:00 three solars; at 2:40 wind and a second lab)
+and answered as a thing to spend, never as a reason to re-derive the first minute. The commander's direction (0:14,
+read at 0:25 and 0:32 after the lists were in force) said "+50% income, so we should out-expand anyone ... about five
+a seat by 5:00" and asked nothing of the order; both seats met the count (six by 4:05, five by 3:47) and stood at five
+or six extractors from 3:00 to 5:00. The three Apex allies at the same +50 placed their lab at 0:05 and went fighters
+first (first constructor 0:56-1:16). The costs that bind a bonus opening: a constructor 1,600-1,750 energy, the lab
+1,050, an extractor 500, a solar 0, against a stock of 1,000 energy and the commander's 45 a second at +50.
+**Evidence.** `run/matches/1792302895-human-8v8-1/00/strategist-{0,4}.jsonl` (the turns to 5:00, the text blocks),
+`strategist-0-cwd/system-prompt.md` (the paragraph at its end), `record-{0,4}.jsonl` (`s` rows: metal and energy by
+half minute; `created`/`finished` rows: the build order; `al` rows: the allies), `commander.jsonl` (the direction).
+**Status.** measured (2026-10-18, one game, two seats). Answered the same day by [[H-PLAYER-BONUS-WORDS]]'s
+consequence sentences, unmeasured.
+**Would be wrong if.** A seat given the paragraph with the consequence still wrote the +0 opening at +50 %, or a
+seat given the old paragraph re-derived its opening unprompted in another game.
+**Used by.** [[H-PLAYER-BONUS-WORDS]].
