@@ -296,7 +296,9 @@ impl<L: Transport> Instance<L> {
                 Event::Chat { player: e.player, text }
             }
             sys::EVENT_ENEMY_DESTROYED => {
-                Event::EnemyDestroyed { enemy: UnitId(event!(SEnemyDestroyedEvent).enemy) }
+                // The engine's `attacker` is an allied unit's id, or -1 for none or a killer not allied with us.
+                let e = event!(SEnemyDestroyedEvent);
+                Event::EnemyDestroyed { enemy: UnitId(e.enemy), attacker: unit(e.attacker) }
             }
             // The engine tells the new owner (and its allies not allied with the old) `given`, the old owner `captured`.
             sys::EVENT_UNIT_GIVEN => {

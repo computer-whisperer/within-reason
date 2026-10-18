@@ -4,7 +4,7 @@
 //! opponent); the tail is the player's hands.
 
 use crate::brain::pianist::flow_words;
-use super::shared::{Briefing, CellLook, Field, Hands, Side};
+use super::shared::{Bins, Briefing, CellLook, Field, Hands, Side, Traded};
 
 /// The hands' `did` lines a player's report carries at most.
 const DONE_LINES: usize = 40;
@@ -125,6 +125,16 @@ fn scouting_lines(cells: &[CellLook], factory_known: bool) -> Vec<String> {
 
 /// The lines every report opens with, changed or not: what is not shown is not weighed.
 /// `seats_line`: the line a seat of a player with several (the commander's report writes its own).
+/// "lost 2245 metal in soldiers and 0 in buildings; destroyed 640 metal of his in soldiers and 0 in buildings": the
+/// builders (constructors, the commander) named only when some died.
+fn traded_words(t: &Traded) -> String {
+    fn bins(b: &Bins, head: &str) -> String {
+        let builders = if b.builders > 0.0 { format!(", {:.0} in builders", b.builders) } else { String::new() };
+        format!("{:.0} {head} in soldiers and {:.0} in buildings{builders}", b.soldiers, b.buildings)
+    }
+    format!("lost {}; destroyed {}", bins(&t.lost, "metal"), bins(&t.killed, "metal of his"))
+}
+
 pub(super) fn front(briefing: &Briefing, field: &Field, fights: &[String], seats_line: bool) -> Vec<String> {
     let mut lines = Vec::new();
     let c = &briefing.counts;
@@ -149,9 +159,17 @@ pub(super) fn front(briefing: &Briefing, field: &Field, fights: &[String], seats
             Some(ago) => format!("the last of ours stood in his half {} ago", clock(ago)),
         }
     ));
+    // The trade by our own units' weapons, soldiers and buildings apart (H-PLAYER-OWN-TRADE): a seat's player
+    // reads its own last minute, the commander the side's last three with each death counted once. Until
+    // 2026-10-18 the destroyed side was every enemy death in the alliance's sight, the people's and the other
+    // bots' kills among them, against this seat's own losses (human-8v8-1: 2 to 1 for us on the line while the
+    // seat's own exchange at G2 ran 4 to 7 to 1 against).
+    let (whose, window, recent) = if seats_line { ("this seat's own units", "the last minute", &s.traded_1_min) } else { ("our seats' units", "the last 3 min", &s.traded_3_min) };
     lines.push(format!(
-        "traded: in the last 3 min we lost {} metal of units and buildings and destroyed {} of theirs that we saw die (each death counted once across our seats); whole game {} lost, {} destroyed{}",
-        s.traded_3_min.0, s.traded_3_min.1, s.traded.0, s.traded.1,
+        "traded: by {whose} in {window}, {} | whole game: {}{}{}",
+        traded_words(recent),
+        traded_words(&s.traded),
+        if seats_line { "" } else { " (each death counted once across our seats)" },
         s.seconds_since_turn.map_or(String::new(), |t| format!(" | {} of game time since your last turn began", clock(t)))
     ));
     // Both stores carry the hands' own flow words (`flow_words`: STALLING, running down with the seconds to empty,
@@ -627,7 +645,7 @@ mod unfinished_tests {
 
 #[cfg(test)]
 mod sightings_tests {
-    use super::super::shared::{Briefing, Field, Place, Score};
+    use super::super::shared::{Bins, Briefing, Field, Place, Score, Traded};
     use super::front;
 
     /// The score line gives his extractors as sightings with their age and no count of what he holds, and his
@@ -670,5 +688,26 @@ mod sightings_tests {
         for word in ["known to hold", "may be much more", "his spending", "a floor", "extractors' worth"] {
             assert!(lines.iter().all(|l| !l.contains(word)), "{word}: {lines:?}");
         }
+    }
+
+    #[test]
+    fn the_trade_line_is_the_seats_own_minute_with_soldiers_and_buildings_apart() {
+        let bins = |soldiers: f32, builders: f32, buildings: f32| Bins { soldiers, builders, buildings };
+        let score = Score {
+            frame: 17 * 1800,
+            traded_1_min: Traded { lost: bins(2245.0, 0.0, 0.0), killed: bins(640.0, 0.0, 0.0) },
+            traded_3_min: Traded { lost: bins(13345.0, 0.0, 640.0), killed: bins(21529.0, 0.0, 0.0) },
+            traded: Traded { lost: bins(28592.0, 120.0, 1830.0), killed: bins(9900.0, 0.0, 14200.0) },
+            ..Score::default()
+        };
+        let field = Field { score, ..Field::default() };
+        let line = |seats_line: bool| front(&Briefing::default(), &field, &[], seats_line).into_iter().find(|l| l.starts_with("traded:")).expect("a trade line");
+        assert_eq!(
+            line(true),
+            "traded: by this seat's own units in the last minute, lost 2245 metal in soldiers and 0 in buildings; destroyed 640 metal of his in soldiers and 0 in buildings | whole game: lost 28592 metal in soldiers and 1830 in buildings, 120 in builders; destroyed 9900 metal of his in soldiers and 14200 in buildings"
+        );
+        let side = line(false);
+        assert!(side.starts_with("traded: by our seats' units in the last 3 min, lost 13345 metal in soldiers and 640 in buildings; destroyed 21529 metal of his in soldiers and 0 in buildings | whole game: "), "{side}");
+        assert!(side.ends_with(" (each death counted once across our seats)"), "{side}");
     }
 }

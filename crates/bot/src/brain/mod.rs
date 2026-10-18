@@ -182,11 +182,12 @@ pub struct Brain {
     enemy_places: HashMap<UnitId, Vec3>,
     /// This minute's fight ledger for the log: "lost X to Y near home" and "killed Y", with counts.
     fight_ledger: std::collections::BTreeMap<String, u32>,
-    /// (frame, metal of ours destroyed, metal of theirs we saw destroyed), one entry per death: what the fighting costs
-    /// each side, which neither army count shows.
-    trade_log: Vec<(i32, f32, f32)>,
-    /// Every enemy death seen: unit id, frame, metal (the merge across seats counts each once).
-    enemy_deaths: Vec<(u32, i32, u32)>,
+    /// One entry per death that is ours to count: a loss of ours, or a kill by one of our own units (the engine
+    /// names the killer; an ally's kill in our sight is not ours, H-PLAYER-OWN-TRADE), with the frame, the metal and
+    /// what died: what the fighting costs each side, which neither army count shows.
+    trade_log: Vec<briefing::Trade>,
+    /// Every enemy death our units made (the merge across seats counts each once).
+    enemy_deaths: Vec<crate::strategist::shared::EnemyDeath>,
     /// Types of his seen at least once: the first tier-2 or air unit of a type is said when it appears.
     first_seen: HashSet<UnitDefId>,
     /// Extractors lost so far at each metal spot (its index in the map's list).

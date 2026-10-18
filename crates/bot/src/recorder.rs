@@ -249,8 +249,13 @@ impl Recorder {
             }
             Event::EnemyEnterLos { enemy } => about(self, "enemy_seen", enemy),
             Event::EnemyLeaveLos { enemy } => about(self, "enemy_lost", enemy),
-            Event::EnemyDestroyed { enemy } => {
-                let r = about(self, "enemy_destroyed", enemy);
+            Event::EnemyDestroyed { enemy, attacker } => {
+                // The killer as the engine names it (an allied unit, ours or an ally's), and whether it was ours:
+                // the trade a seat reads is its own units' kills (H-PLAYER-OWN-TRADE).
+                let mut r = about(self, "enemy_destroyed", enemy);
+                r["by"] = json!(attacker.map(|a| a.0));
+                r["by_d"] = json!(self.def(attacker.and_then(|a| self.known.get(&a)).and_then(|k| k.0)));
+                r["by_ours"] = json!(attacker.is_some_and(|a| self.own.contains(&a)));
                 self.known.remove(&enemy);
                 r
             }

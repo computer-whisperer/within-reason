@@ -616,7 +616,24 @@ in a three-seat game a death all three saw counted three times: every ledger row
 **Evidence.** `docs/studies/2026-09-27-jev-posing/README.md` (I3, verified in `seats.rs`'s merge); the records'
 `enemy_destroyed` events carry the unit id, so the true figure can be re-derived.
 **Status.** fixed 2026-09-27 evening by [[H-PLAYER-TRADE-ONCE]]; the ledger rows' correction is a separate
-cleanup (changes doc 3.1).
+cleanup (changes doc 3.1). Superseded 2026-10-18 by [[H-PLAYER-OWN-TRADE]]: the merge now counts each death once
+among the kills our seats' units made, see [[K-team-the-trade-line-counted-the-allies-kills]].
+
+### K-team-the-trade-line-counted-the-allies-kills
+**Claim.** Allies share sight, so the engine sends every seat an `EnemyDestroyed` for every enemy death any ally
+saw, and the report's `traded` line credited them all to "destroyed" against the seat's own losses: in a team game
+the line compared one seat's losses with the kills of the whole alliance in view, the other bots' and the people's
+among them. The engine names the killer on that event (`attacker`, an allied unit or -1), and the shim dropped it.
+**Evidence.** human-8v8-1 (a 5v5 with three Apex seats and two people on our side): both our seats' records hold the
+identical 385 enemy deaths worth 46,882 metal; t9's line at 18:28 read "whole game 28592 lost, 46882 destroyed"
+while t9's own losses by its record were 30,444 and both our seats' 49,310; the commander's side-wide line read
+even (45,603 against 45,032) while t9's read 1.6 to 1 for us. Over 16:30-17:30 t9's own soldiers lost 7,110 metal
+against 1,334 of his destroyed in view, and the three-minute line never fell below 1.6 to 1 in its favour, 3,132
+of one interval's "destroyed" being wind turbines and construction turrets. `AISEvents.h` `SEnemyDestroyedEvent`.
+**Status.** fixed 2026-10-18 by [[H-PLAYER-OWN-TRADE]] (own kills by the attacker's id, a one-minute window for
+the player, soldiers and buildings apart); unmeasured in a game. Would be wrong if a game's record showed
+`by_ours` false on kills a replay shows our units making (a death blast or a shot fired by a unit that died in the
+same tick is credited through the tick's own-unit set; anything else uncredited is a bug).
 
 ### K-team-the-seats-thrashed-over-spots
 **Claim.** In the games with three seats of ours, constructors abandoned 114 extractor orders, 57 of them for spots

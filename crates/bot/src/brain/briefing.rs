@@ -1,13 +1,22 @@
 //! The brain's side of the player's session: the briefing, the field, events and triggers out.
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use bot_protocol::{UnitId, Event, OwnUnit, Tick, UnitDefId, Vec3};
 use serde_json::json;
 
 use super::roster::Kit;
 use super::{Brain, FRAMES_PER_SECOND};
-use crate::strategist::shared::{Briefing, Counts, Draw, EnemyCluster, ExtractorStatus, Field, Group, Place, RememberedBuilding, Score, Spending};
+use crate::strategist::shared::{Briefing, Counts, Draw, EnemyCluster, EnemyDeath, ExtractorStatus, Field, Group, Place, RememberedBuilding, Score, Spending, TradeKind, Traded, OWN_TRADE_FRAMES, SIDE_TRADE_FRAMES};
+
+/// One death in the trade log: a loss of ours (`ours`), or a kill by one of our own units.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct Trade {
+    pub frame: i32,
+    pub ours: bool,
+    pub metal: f32,
+    pub kind: TradeKind,
+}
 
 /// The score's "soldiers near home" radius and how many free spots it names.
 const SCORE_AT_HOME: f32 = 800.0;
@@ -110,6 +119,15 @@ impl Brain {
         shared.trigger(text);
     }
 
+    /// What a death was for the trade line: a building stands still, a builder moves and builds, a soldier moves.
+    fn trade_kind(&self, def: UnitDefId) -> TradeKind {
+        match self.world.def(def) {
+            Some(d) if d.speed == 0.0 => TradeKind::Building,
+            Some(d) if d.build_speed > 0.0 => TradeKind::Builder,
+            _ => TradeKind::Soldier,
+        }
+    }
+
     /// Under a commander: a death of ours, or of his that we saw, with what stood near it, for the side's fights
     /// block (`strategist/fights.rs`).
     fn publish_death(&self, tick: &Tick, kit: &Kit, unit: u32, ours: bool, name: &str, metal: f32, at: Vec3) {
@@ -173,18 +191,44 @@ impl Brain {
                 }
             }
         }
+        // Whose hand an enemy died by: the engine names the killer when it is allied with us, and it is ours when
+        // it is one of our own units, standing or dead this very tick (a death blast, a shot fired as it died).
+        let ours_now: HashSet<UnitId> = tick
+            .snapshot
+            .own_units
+            .iter()
+            .map(|u| u.id)
+            .chain(self.known_units.keys().copied())
+            .chain(tick.events.iter().filter_map(|e| match e {
+                Event::UnitDestroyed { unit, .. } => Some(*unit),
+                _ => None,
+            }))
+            .collect();
         for event in &tick.events {
-            if let Event::EnemyDestroyed { enemy } = event {
+            if let Event::EnemyDestroyed { enemy, attacker } = event {
                 let def = self.enemy_defs.remove(enemy);
                 let worth = def.and_then(|d| self.world.def(d)).map_or(0.0, |d| d.metal_cost);
-                self.trade_log.push((tick.frame, 0.0, worth));
-                self.enemy_deaths.push((enemy.0 as u32, tick.frame, worth as u32));
+                let by_us = attacker.is_some_and(|a| ours_now.contains(&a));
+                if by_us {
+                    let kind = def.map_or(TradeKind::Soldier, |d| self.trade_kind(d));
+                    self.trade_log.push(Trade { frame: tick.frame, ours: false, metal: worth, kind });
+                    self.enemy_deaths.push(EnemyDeath { unit: enemy.0 as u32, frame: tick.frame, metal: worth, kind });
+                }
                 let place = self.enemy_places.remove(enemy);
                 let name = def.map_or("unseen", |d| self.name(d));
+                // The commander's fights block keeps every death we saw, with what stood near it.
                 if let Some(at) = place {
                     self.publish_death(tick, kit, enemy.0 as u32, false, name, worth, at);
                 }
-                let line = format!("killed {name}");
+                // The fights line: our kills as "killed", an ally's as its own, a death by no allied hand (the
+                // engine names none: his own fire, a decay, a self-destruct) not at all.
+                let line = if by_us {
+                    format!("killed {name}")
+                } else if attacker.is_some() {
+                    format!("an ally killed {name}")
+                } else {
+                    continue;
+                };
                 if let Some(shared) = &self.strategist {
                     shared.fight(&line);
                 }
@@ -223,7 +267,7 @@ impl Brain {
                 // A nanoframe its builder walked away from decays: what was put in is lost, and nothing killed it
                 // (pianist-player-1: two labs and fourteen generators "lost to something unseen at home", read as air).
                 let share = loss.share;
-                self.trade_log.push((tick.frame, cost * share, 0.0));
+                self.trade_log.push(Trade { frame: tick.frame, ours: true, metal: cost * share, kind: self.trade_kind(def) });
                 let line = format!("abandoned an unfinished {} ({:.0}% built)", self.name(def), share * 100.0);
                 if let Some(shared) = &self.strategist {
                     shared.fight(&line);
@@ -240,7 +284,7 @@ impl Brain {
             if let Some(loss) = frame_loss {
                 self.frame_losses_now.insert(*unit, loss);
             }
-            self.trade_log.push((tick.frame, cost, 0.0));
+            self.trade_log.push(Trade { frame: tick.frame, ours: true, metal: cost, kind: self.trade_kind(def) });
             self.publish_death(tick, kit, unit.0 as u32, true, self.name(def), cost, pos);
             self.unit_losses.push_back((tick.frame, *unit, def, attacker.and_then(|id| self.enemy_defs.get(&id).map(|d| (id, *d)))));
             if kit.is_extractor(def)
@@ -356,7 +400,7 @@ impl Brain {
         let mut seen = Vec::new();
         let mut seen_unfinished: Vec<(UnitId, bool, i32)> = Vec::new();
         for event in &tick.events {
-            if let Event::EnemyDestroyed { enemy } = event {
+            if let Event::EnemyDestroyed { enemy, .. } = event {
                 if let Some((def, pos, _)) = self.enemy_buildings.remove(enemy)
                     && self.world.is_factory_def(def)
                 {
@@ -910,11 +954,14 @@ impl Brain {
             .filter(|s| !held(**s, &our_extractors) && !held(**s, &enemy_extractor_at) && !self.allied_extractor_on(**s))
             .copied()
             .collect();
-        let recent = |seen: &i32| tick.frame - seen < 3 * 60 * FRAMES_PER_SECOND;
+        let recent = |seen: &i32| tick.frame - seen < SIDE_TRADE_FRAMES;
         let metal = |u: &&OwnUnit| self.world.def(u.def).map_or(0.0, |d| d.metal_cost);
-        let traded = |when: &dyn Fn(i32) -> bool| {
-            let sum = |pick: &dyn Fn(&(i32, f32, f32)) -> f32| self.trade_log.iter().filter(|t| when(t.0)).map(pick).sum::<f32>() as u32;
-            (sum(&|t| t.1), sum(&|t| t.2))
+        let traded = |since: i32| {
+            let mut t = Traded::default();
+            for e in self.trade_log.iter().filter(|e| e.frame >= since) {
+                if e.ours { t.lost.add(e.kind, e.metal) } else { t.killed.add(e.kind, e.metal) }
+            }
+            t
         };
         let score = Score {
             map: self.world.hello.map.name.clone(),
@@ -945,8 +992,9 @@ impl Brain {
             metal_income: tick.snapshot.metal.income,
             trend: [3, 6].into_iter().filter_map(|m| self.minutes_ago(tick.frame, m).map(|(x, income, army)| (m, x, income, army))).collect(),
             extractors_lost_3_min: self.wake.losses.len(),
-            traded_3_min: traded(&|frame| recent(&frame)),
-            traded: traded(&|_| true),
+            traded_1_min: traded(tick.frame - OWN_TRADE_FRAMES),
+            traded_3_min: traded(tick.frame - SIDE_TRADE_FRAMES),
+            traded: traded(i32::MIN),
             enemy_deaths: self.enemy_deaths.clone(),
             frame: tick.frame,
             seconds_since_turn: Some(shared.last_turn_frame.load(std::sync::atomic::Ordering::Relaxed)).filter(|at| *at > 0).map(|at| (tick.frame - at) / FRAMES_PER_SECOND),
@@ -1069,7 +1117,7 @@ mod frame_loss_tests {
         assert!(lines.iter().any(|l| l.starts_with("lost armsolar (30% built) to unseen")), "{lines:?}");
         // The metal traded away is the peak share of each frame's cost (a solar is 155), not the share at its end.
         let cost = brain.world.def(UnitDefId(2)).expect("a solar").metal_cost;
-        let frames_metal: f32 = brain.trade_log.iter().filter(|(f, ours, _)| *f == 120 && *ours < cost * 0.95).map(|(_, ours, _)| *ours).sum();
+        let frames_metal: f32 = brain.trade_log.iter().filter(|t| t.frame == 120 && t.ours && t.metal < cost * 0.95).map(|t| t.metal).sum();
         assert!((frames_metal - cost * (0.7 + 0.6 + 0.3 + 0.7)).abs() < 1.0, "{frames_metal} of {cost}");
     }
 }

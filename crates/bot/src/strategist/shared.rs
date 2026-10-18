@@ -219,6 +219,61 @@ pub struct Field {
     pub resurrection_bots: usize,
 }
 
+/// The trade line's windows (H-PLAYER-OWN-TRADE): a seat's player reads its own last minute, the commander the
+/// side's last three (human-8v8-1 16:30-17:30: the seat's minute ran four to seven to one against it while the
+/// three-minute line still read 1.6 to 1 for it).
+pub const OWN_TRADE_FRAMES: i32 = 60 * 30;
+pub const SIDE_TRADE_FRAMES: i32 = 3 * 60 * 30;
+
+/// What died: a soldier (mobile, no build power), a builder (mobile with build power: constructors, the commander)
+/// or a building.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+pub enum TradeKind {
+    Soldier,
+    Builder,
+    Building,
+}
+
+/// Metal by what died.
+#[derive(Clone, Copy, Debug, Default, Serialize)]
+pub struct Bins {
+    pub soldiers: f32,
+    pub builders: f32,
+    pub buildings: f32,
+}
+
+impl Bins {
+    pub fn add(&mut self, kind: TradeKind, metal: f32) {
+        match kind {
+            TradeKind::Soldier => self.soldiers += metal,
+            TradeKind::Builder => self.builders += metal,
+            TradeKind::Building => self.buildings += metal,
+        }
+    }
+
+    pub fn plus(self, other: Bins) -> Bins {
+        Bins { soldiers: self.soldiers + other.soldiers, builders: self.builders + other.builders, buildings: self.buildings + other.buildings }
+    }
+}
+
+/// Metal of ours lost and of his destroyed by our own units' weapons, by what died. The engine names the killer of
+/// every enemy death in the team's sight; a kill is ours only when that unit is one of ours, so an ally's kill
+/// beside us is not counted (H-PLAYER-OWN-TRADE; before 2026-10-18 every death in the alliance's sight was).
+#[derive(Clone, Copy, Debug, Default, Serialize)]
+pub struct Traded {
+    pub lost: Bins,
+    pub killed: Bins,
+}
+
+/// An enemy death one of our units made: for the merge across seats, which counts each once.
+#[derive(Clone, Copy, Debug, Serialize)]
+pub struct EnemyDeath {
+    pub unit: u32,
+    pub frame: i32,
+    pub metal: f32,
+    pub kind: TradeKind,
+}
+
 /// How the game stands, in every report: a commander shown only threats plays only defence.
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct Score {
@@ -251,14 +306,15 @@ pub struct Score {
     /// (minutes ago, extractors, metal income, army metal) for 3 and 6 minutes ago, when the game is that old.
     pub trend: Vec<(i32, usize, f32, u32)>,
     pub extractors_lost_3_min: usize,
-    /// Metal of ours destroyed and of theirs we saw destroyed (units and buildings): in the last three minutes, and
-    /// in the whole game. Kills out of our sight are not counted. Their side is recomputed at the merge from
-    /// `enemy_deaths`, so a death two seats both saw counts once (every ledger trade of 2026-09-27 counted it up to
-    /// three times).
-    pub traded_3_min: (u32, u32),
-    pub traded: (u32, u32),
-    /// Every enemy death this seat saw: unit id, frame, metal.
-    pub enemy_deaths: Vec<(u32, i32, u32)>,
+    /// Metal of ours destroyed and of his destroyed by our own units, soldiers, builders and buildings apart: in the
+    /// last minute (the player's line), the last three (the commander's) and the whole game. Their side is
+    /// recomputed at the merge from `enemy_deaths`, so a death two seats both claim counts once (every ledger trade
+    /// of 2026-09-27 counted a seen death up to three times).
+    pub traded_1_min: Traded,
+    pub traded_3_min: Traded,
+    pub traded: Traded,
+    /// Every enemy death this seat's units made.
+    pub enemy_deaths: Vec<EnemyDeath>,
     /// The frame this score was taken at.
     pub frame: i32,
     /// The map's name and this seat's faction ("arm", "cor"), for the report's reference line.

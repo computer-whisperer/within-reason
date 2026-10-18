@@ -126,7 +126,7 @@ impl super::Brain {
             return;
         }
         for event in &tick.events {
-            if let Event::EnemyDestroyed { enemy } = event {
+            if let Event::EnemyDestroyed { enemy, .. } = event {
                 self.enemy_bases.iter_mut().for_each(|b| { b.factories.remove(enemy); });
             }
         }

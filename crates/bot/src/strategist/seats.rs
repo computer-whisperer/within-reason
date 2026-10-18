@@ -8,7 +8,7 @@ use super::shared::Hands;
 use bot_protocol::{Resource, Vec3};
 use serde::Serialize;
 
-use super::shared::{Briefing, Field, Group, Place, Shared};
+use super::shared::{Bins, Briefing, Field, Group, Place, Shared, OWN_TRADE_FRAMES, SIDE_TRADE_FRAMES};
 
 /// A seat that has not published for this long is dead or gone.
 const LIVE_FRAMES: i32 = 90;
@@ -231,21 +231,30 @@ impl Shared {
                 }
             }
             s.extractors_lost_3_min += o.extractors_lost_3_min;
-            s.traded_3_min.0 += o.traded_3_min.0;
-            s.traded.0 += o.traded.0;
+            s.traded_1_min.lost = s.traded_1_min.lost.plus(o.traded_1_min.lost);
+            s.traded_3_min.lost = s.traded_3_min.lost.plus(o.traded_3_min.lost);
+            s.traded.lost = s.traded.lost.plus(o.traded.lost);
             for death in &o.enemy_deaths {
-                if !s.enemy_deaths.iter().any(|(id, ..)| id == &death.0) {
+                if !s.enemy_deaths.iter().any(|d| d.unit == death.unit) {
                     s.enemy_deaths.push(*death);
                 }
             }
             s.enemy_soldiers_seen = s.enemy_soldiers_seen.max(o.enemy_soldiers_seen);
             s.enemy_soldiers_seen_metal = s.enemy_soldiers_seen_metal.max(o.enemy_soldiers_seen_metal);
         }
-        // Their side of the trade once per death, whichever seats saw it.
+        // Their side of the trade once per death, whichever of our seats made it.
         let s = &mut merged.score;
-        let recent = s.frame - 3 * 60 * 30;
-        s.traded.1 = s.enemy_deaths.iter().map(|(_, _, m)| m).sum();
-        s.traded_3_min.1 = s.enemy_deaths.iter().filter(|(_, f, _)| *f >= recent).map(|(_, _, m)| m).sum();
+        let killed_since = |since: i32| {
+            let mut bins = Bins::default();
+            for d in s.enemy_deaths.iter().filter(|d| d.frame >= since) {
+                bins.add(d.kind, d.metal);
+            }
+            bins
+        };
+        let (whole, three, one) = (killed_since(i32::MIN), killed_since(s.frame - SIDE_TRADE_FRAMES), killed_since(s.frame - OWN_TRADE_FRAMES));
+        s.traded.killed = whole;
+        s.traded_3_min.killed = three;
+        s.traded_1_min.killed = one;
         merged
     }
 }

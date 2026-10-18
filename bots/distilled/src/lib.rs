@@ -234,7 +234,7 @@ impl Bot for Distilled {
             match event {
                 Event::BuildSiteNotFound { unit, def } => self.order_failed(*unit, Some(*def)),
                 Event::CommandRejected { unit, .. } => self.order_failed(*unit, None),
-                Event::EnemyDestroyed { enemy } => {
+                Event::EnemyDestroyed { enemy, .. } => {
                     self.army.his_buildings.remove(enemy);
                 }
                 Event::UnitFinished { unit } => self.t2_milestone(*unit, "standing"),

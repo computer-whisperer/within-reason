@@ -414,7 +414,11 @@ pub enum Event {
     Chat { player: i32, text: String },
     EnemyEnterLos { enemy: UnitId },
     EnemyLeaveLos { enemy: UnitId },
-    EnemyDestroyed { enemy: UnitId },
+    /// An enemy died in the team's sight (allies share sight, so every seat hears of it). `attacker` is the unit
+    /// whose weapon killed it when that unit is allied with us (ours or an ally's), `None` when the engine names
+    /// none or the killer is not allied: a kill is ours only when `attacker` is one of our own units
+    /// (H-PLAYER-OWN-TRADE).
+    EnemyDestroyed { enemy: UnitId, #[serde(default)] attacker: Option<UnitId> },
     /// A [`Command::Build`] was dropped because the shim found no legal site.
     BuildSiteNotFound { unit: UnitId, def: UnitDefId },
     /// A build order's site as the host placed it (the engine's closest free site to what the bot asked): where

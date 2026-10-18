@@ -1769,7 +1769,7 @@ impl Brain {
                         }
                     }
                 }
-                Event::EnemyDestroyed { enemy } => {
+                Event::EnemyDestroyed { enemy, .. } => {
                     if let Some(def) = self.enemy_defs.get(&enemy) {
                         notes.push(format!("killed their {}", self.name(*def)));
                     }
