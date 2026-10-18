@@ -42,6 +42,46 @@ pub struct Briefing {
     /// Our unfinished structures, standing, every one, those nobody is building first (the unfinished-structures
     /// sweep, 2026-10-17: a frame nobody was building was in no report until it decayed, 205 such in 23 games).
     pub frames: Vec<UnfinishedFrame>,
+    /// The other seats of our side (an ally AI, a person, a seat of ours under another player): what each has built
+    /// and where its army stands, from the allied units the engine shows every seat (H-REPORT-ALLIES-LINE;
+    /// human-8v8-1: three Apex allies placed advanced labs at 5:20, 8:00 and 8:30 and no report showed them).
+    pub allies: Vec<AllySeat>,
+    /// The teams of our side that are not seats of ours: `transfer` may send them metal and energy (H-TRANSFER-TO-ALLIES).
+    pub allied_teams: Vec<i32>,
+    /// The lobby's game-end rule in words, empty when the shim sent no script (H-REPORT-GAME-END).
+    pub game_end: String,
+    /// Our side's commanders standing, and the seats the side started with (one commander each).
+    pub side_commanders: (usize, usize),
+    /// Metal spots nearer our side's start box than his, the map's total, and the seats of our side sharing them;
+    /// None without both boxes (H-REPORT-SIDE-SPOTS).
+    pub side_spots: Option<(usize, usize, usize)>,
+}
+
+/// An allied seat's economy and army as our units see them (allies share sight), for the report's `allies` line.
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct AllySeat {
+    pub team: i32,
+    /// Who plays it, as the sides line words it ("Apex (an AI)", "thebluegecko (a person, lobby skill 48)").
+    pub who: String,
+    pub faction: String,
+    pub colour: String,
+    pub extractors: usize,
+    pub mohos: usize,
+    pub factories: usize,
+    /// The frame its first tier-2 factory was seen standing, if one has.
+    pub tier2_since: Option<i32>,
+    pub constructors: usize,
+    pub advanced_constructors: usize,
+    pub nanos: usize,
+    /// Advanced solars, fusions, geothermals: generators of 80 energy a second or more.
+    pub big_energy: usize,
+    pub converters: usize,
+    pub soldiers: usize,
+    pub army_metal: u32,
+    /// The grid cell of its soldiers' centre, empty with none.
+    pub army_at: String,
+    /// Its extractors' and mohos' worth with its bonus, plus its commander's 2: what its spots give it a second.
+    pub income_estimate: f32,
 }
 
 /// An unfinished structure of ours (a nanoframe the engine has made), for the report's `unfinished structures` line.

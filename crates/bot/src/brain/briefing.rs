@@ -22,6 +22,11 @@ pub(crate) struct Trade {
 const SCORE_AT_HOME: f32 = 800.0;
 const NEXT_FREE: usize = 5;
 
+/// How another seat of this bot is described: with a player a seat the other seats are allies with players of their own.
+fn sibling_words() -> &'static str {
+    if crate::strategist::player_per_seat() { "another seat of this bot, with its own player as you are this seat's: it reads its own report and orders its own units" } else { "another seat of this bot" }
+}
+
 fn centre_of_units(units: &[&&OwnUnit]) -> Option<Vec3> {
     if units.is_empty() {
         return None;
@@ -527,8 +532,15 @@ impl Brain {
 
         let sides = self.sides();
         let standing: Vec<&bot_protocol::OwnUnit> = snapshot.own_units.iter().filter(|u| !u.being_built).collect();
+        let allies = self.ally_seats(tick);
+        let (game_end, side_commanders) = self.game_end(&standing);
         let briefing = Briefing {
             sides,
+            allies,
+            allied_teams: self.allied_teams(),
+            game_end,
+            side_commanders,
+            side_spots: self.side_spots(),
             seats: Vec::new(),
             build_power: self.build_power(&snapshot.own_units),
             spending: self.spending(&snapshot.own_units),
@@ -774,6 +786,148 @@ impl Brain {
     }
 
     /// Every ally team of the game with its seats in words, ours first (from the start script's controllers).
+    /// Who plays a seat, as the sides and allies lines word it.
+    fn who_plays(&self, t: &bot_protocol::TeamInfo, sibling: &str) -> String {
+        use bot_protocol::Controller;
+        match &t.controller {
+            _ if t.team == self.world.hello.team => "you (WReason)".to_string(),
+            Controller::Person { name, skill: Some(skill) } => format!("{name} (a person, lobby skill {skill:.0})"),
+            Controller::Person { name, skill: None } => format!("{name} (a person)"),
+            Controller::Ai { short_name, profile: Some(profile), .. } if short_name.eq_ignore_ascii_case("wreason") => format!("Within Reason {profile} ({sibling})"),
+            Controller::Ai { short_name, .. } if short_name.eq_ignore_ascii_case("wreason") => format!("Within Reason ({sibling})"),
+            Controller::Ai { short_name, profile: Some(profile), .. } => format!("{short_name} {profile} (an AI)"),
+            Controller::Ai { short_name, .. } => format!("{short_name} (an AI)"),
+            Controller::Gaia => "Gaia".to_string(),
+            Controller::Unknown => format!("team {} (who plays it is not in the script)", t.team),
+        }
+    }
+
+    /// The teams of our side that are seats of neither this bot nor Gaia: `transfer` may send them metal and energy.
+    pub(super) fn allied_teams(&self) -> Vec<i32> {
+        use bot_protocol::Controller;
+        let hello = &self.world.hello;
+        hello
+            .teams
+            .iter()
+            .filter(|t| t.ally_team == hello.ally_team && t.team != hello.team && t.controller != Controller::Gaia)
+            .filter(|t| !matches!(&t.controller, Controller::Ai { short_name, .. } if short_name.eq_ignore_ascii_case("wreason")))
+            .map(|t| t.team)
+            .collect()
+    }
+
+    /// The other seats of our side, each summed from the allied units in sight this tick (allies share sight, so
+    /// every one of them is): what it has built, by class, and where its soldiers stand (H-REPORT-ALLIES-LINE).
+    pub(super) fn ally_seats(&mut self, tick: &Tick) -> Vec<crate::strategist::shared::AllySeat> {
+        use crate::strategist::shared::AllySeat;
+        let hello = &self.world.hello;
+        let sibling = sibling_words();
+        let mut by_team: BTreeMap<i32, Vec<&bot_protocol::AllyUnit>> = BTreeMap::new();
+        for a in &self.allies {
+            by_team.entry(a.team).or_default().push(a);
+        }
+        let spot_radius = self.spot_occupied_radius();
+        let mut seats = Vec::new();
+        for (team, units) in by_team {
+            let info = hello.teams.iter().find(|t| t.team == team);
+            let mut seat = AllySeat {
+                team,
+                who: info.map(|t| self.who_plays(t, sibling)).unwrap_or_else(|| format!("team {team}")),
+                colour: info.and_then(|t| t.color).map(colour_name).unwrap_or_default(),
+                ..AllySeat::default()
+            };
+            let multiplier = info.and_then(|t| t.income_multiplier).unwrap_or(1.0);
+            let mut worth = 2.0;
+            let mut tier2 = false;
+            let mut army_pos: Vec<Vec3> = Vec::new();
+            for u in units.iter().filter(|u| !u.being_built) {
+                let Some(d) = self.world.def(u.def) else { continue };
+                if seat.faction.is_empty() {
+                    let mut f = crate::world::World::faction_of(&d.name).chars();
+                    seat.faction = f.next().map(|c| c.to_ascii_uppercase().to_string() + f.as_str()).unwrap_or_default();
+                }
+                if d.extracts_metal > 0.0 {
+                    // A moho draws four times an extractor's share of its spot (K-rules-mex-upgrade-in-place).
+                    let moho = d.extracts_metal >= 0.002;
+                    if moho { seat.mohos += 1 } else { seat.extractors += 1 }
+                    if let Some(spot) = hello.metal_spots.iter().find(|s| s.dist2d(u.pos) < spot_radius) {
+                        worth += spot.y * if moho { 4.0 } else { 1.0 };
+                    }
+                } else if d.speed == 0.0 && !d.build_options.is_empty() {
+                    seat.factories += 1;
+                    // Tier-1 labs and plants build at 150, the advanced ones at 600, the gantries at 1,800.
+                    tier2 |= d.build_speed >= 400.0;
+                } else if d.speed > 0.0 && d.build_speed > 0.0 && !d.build_options.is_empty() && !self.world.is_commander_def(u.def) {
+                    // Advanced constructors cost 330 to 580 metal, the tier-1 ones 100 to 145.
+                    if d.metal_cost >= 250.0 { seat.advanced_constructors += 1 } else { seat.constructors += 1 }
+                } else if d.speed == 0.0 && d.build_speed > 0.0 && d.build_options.is_empty() {
+                    seat.nanos += 1;
+                } else if d.converter.is_some() {
+                    seat.converters += 1;
+                } else if d.speed == 0.0 && d.energy_make >= 80.0 {
+                    seat.big_energy += 1;
+                } else if d.weapon_count > 0 && d.speed > 0.0 && d.build_speed == 0.0 {
+                    seat.soldiers += 1;
+                    seat.army_metal += d.metal_cost as u32;
+                    army_pos.push(u.pos);
+                }
+            }
+            if tier2 {
+                seat.tier2_since = Some(*self.ally_tier2_since.entry(team).or_insert(tick.frame));
+            }
+            if !army_pos.is_empty() {
+                let n = army_pos.len() as f32;
+                let centre = Vec3 { x: army_pos.iter().map(|p| p.x).sum::<f32>() / n, y: 0.0, z: army_pos.iter().map(|p| p.z).sum::<f32>() / n };
+                seat.army_at = self.world.grid(centre);
+            }
+            seat.income_estimate = worth * multiplier;
+            seats.push(seat);
+        }
+        seats
+    }
+
+    /// The lobby's game-end rule in words, with our side's commanders standing against the seats it started with
+    /// (H-REPORT-GAME-END; K-rules-commander-death-ends-game: under `com` a side loses only when none is left).
+    pub(super) fn game_end(&self, standing: &[&OwnUnit]) -> (String, (usize, usize)) {
+        use bot_protocol::Controller;
+        let hello = &self.world.hello;
+        let ours = standing.iter().filter(|u| self.world.is_commander_def(u.def)).count();
+        let theirs = self.allies.iter().filter(|a| !a.being_built && self.world.is_commander_def(a.def)).count();
+        let seats = hello.teams.iter().filter(|t| t.ally_team == hello.ally_team && t.controller != Controller::Gaia).count();
+        let commanders = (ours + theirs, seats);
+        let words = match super::people::mod_option(&hello.script, "deathmode").as_deref() {
+            Some("com") if seats <= 1 => "the game ends when a commander dies, his or ours (the lobby's rule: a side loses when it has no commanders left)".to_string(),
+            Some("com") => format!("a side loses when it has no commanders left (the lobby's rule), so a seat whose commander dies plays on while another of ours stands; our side has {} commanders standing of the {} its seats started with", commanders.0, commanders.1),
+            Some("own_com") => "a seat loses when its own commander dies (the lobby's rule)".to_string(),
+            Some("builders") => "a side loses when it has no builders left (the lobby's rule)".to_string(),
+            Some("neverend") => "nobody is eliminated (the lobby's rule)".to_string(),
+            Some("territorial_domination") => "territorial domination: points for territory held decide the game (the lobby's rule)".to_string(),
+            Some(other) => format!("the lobby's game-end rule is `{other}`"),
+            None => String::new(),
+        };
+        (words, commanders)
+    }
+
+    /// Spots nearer our side's start box than his, over the map's total and the seats of our side sharing them
+    /// (H-REPORT-SIDE-SPOTS; human-8v8-1: 43 of 84 in the south half for five seats, all taken by 12:00, and the
+    /// players read "stuck at 9 extractors" as a fault of theirs).
+    pub(super) fn side_spots(&self) -> Option<(usize, usize, usize)> {
+        use bot_protocol::Controller;
+        let hello = &self.world.hello;
+        let (ours, theirs): (Vec<_>, Vec<_>) = hello.start_boxes.iter().partition(|b| b.ally_team == hello.ally_team);
+        if ours.is_empty() || theirs.is_empty() {
+            return None;
+        }
+        let dist = |b: &bot_protocol::StartBox, p: &Vec3| {
+            let dx = (b.left - p.x).max(0.0).max(p.x - b.right);
+            let dz = (b.top - p.z).max(0.0).max(p.z - b.bottom);
+            (dx * dx + dz * dz).sqrt()
+        };
+        let nearest = |boxes: &[&bot_protocol::StartBox], p: &Vec3| boxes.iter().map(|b| dist(b, p)).fold(f32::MAX, f32::min);
+        let near = hello.metal_spots.iter().filter(|s| nearest(&ours, s) < nearest(&theirs, s)).count();
+        let seats = hello.teams.iter().filter(|t| t.ally_team == hello.ally_team && t.controller != Controller::Gaia).count();
+        Some((near, hello.metal_spots.len(), seats))
+    }
+
     pub(super) fn sides(&self) -> Vec<crate::strategist::shared::Side> {
         use bot_protocol::Controller;
         let hello = &self.world.hello;
@@ -785,23 +939,13 @@ impl Brain {
             .into_iter()
             .map(|ally_team| {
                 // With a player a seat the other seats of ours are allies with players of their own.
-                let sibling = if crate::strategist::player_per_seat() { "another seat of this bot, with its own player as you are this seat's: it reads its own report and orders its own units" } else { "another seat of this bot" };
+                let sibling = sibling_words();
                 let seats = hello
                     .teams
                     .iter()
                     .filter(|t| t.ally_team == ally_team && t.controller != Controller::Gaia)
                     .map(|t| {
-                        let who = match &t.controller {
-                            _ if t.team == hello.team => "you (WReason)".to_string(),
-                            Controller::Person { name, skill: Some(skill) } => format!("{name} (a person, lobby skill {skill:.0})"),
-                            Controller::Person { name, skill: None } => format!("{name} (a person)"),
-                            Controller::Ai { short_name, profile: Some(profile), .. } if short_name.eq_ignore_ascii_case("wreason") => format!("Within Reason {profile} ({})", sibling),
-                            Controller::Ai { short_name, .. } if short_name.eq_ignore_ascii_case("wreason") => format!("Within Reason ({sibling})"),
-                            Controller::Ai { short_name, profile: Some(profile), .. } => format!("{short_name} {profile} (an AI)"),
-                            Controller::Ai { short_name, .. } => format!("{short_name} (an AI)"),
-                            Controller::Gaia => unreachable!("filtered above"),
-                            Controller::Unknown => format!("team {} (who plays it is not in the script)", t.team),
-                        };
+                        let who = self.who_plays(t, sibling);
                         // The engine lowercases faction names; a lobby seat on side Random keeps the word, its
                         // faction picked by the game at start (our own is read from the commander).
                         let side = if t.team == hello.team {

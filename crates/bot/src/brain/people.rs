@@ -50,6 +50,15 @@ fn value(body: &str, key: &str) -> Option<String> {
     own.split(';').filter_map(|pair| pair.split_once('=')).find(|(k, _)| k.trim().eq_ignore_ascii_case(key)).map(|(_, v)| v.trim().to_string())
 }
 
+/// A mod option of the lobby's, from the script's `[modoptions]` section (`deathmode` for the game-end rule).
+pub(super) fn mod_option(script: &str, key: &str) -> Option<String> {
+    let lower = script.to_ascii_lowercase();
+    let start = lower.find("[modoptions]")?;
+    let open = start + lower[start..].find('{')?;
+    let close = open + lower[open..].find('}')?;
+    value(&script[open + 1..close], key)
+}
+
 pub(super) fn people(script: &str) -> Vec<Person> {
     numbered_sections(script, "player")
         .into_iter()
@@ -117,5 +126,15 @@ mod tests {
         assert_eq!(people(arena), vec![Person { player: 0, name: "arena".into(), spectator: true, team: None }]);
         assert_eq!(host_of(arena, 1), Some(0));
         assert_eq!(host_of(arena, 5), None);
+    }
+
+    /// The lobby's game-end rule is read from the script's `[modoptions]`, whatever the case of the keys.
+    #[test]
+    fn the_scripts_mod_options_give_the_death_mode() {
+        let lobby = "[GAME]\n{\n[player0]\n{\nname=x;\n}\n[MODOPTIONS]\n{\ndeathmode=com;\nstartmetal=1000;\n}\n[allyTeam0]\n{\nnumallies=0;\n}\n}";
+        assert_eq!(mod_option(lobby, "deathmode").as_deref(), Some("com"));
+        assert_eq!(mod_option(lobby, "startmetal").as_deref(), Some("1000"));
+        assert_eq!(mod_option(lobby, "nope"), None);
+        assert_eq!(mod_option("[GAME]\n{\n}", "deathmode"), None);
     }
 }

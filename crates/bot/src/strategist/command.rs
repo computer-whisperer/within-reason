@@ -215,7 +215,7 @@ pub(super) fn tool_list() -> Value {
           "inputSchema": { "type": "object", "additionalProperties": false, "required": ["text"], "properties": { "text": { "type": "string", "maxLength": 240 } } } },
         super::mcp::signal_tool(),
         { "name": "transfer",
-          "description": "Move metal, energy or units between seats of ours: {\"metal\": 800, \"energy\": 0, \"from\": \"t2\", \"to\": \"t1\"} sends what the receiving seat's store can hold, or {\"units\": [\"group_A_t2\"], \"to\": \"t1\"} gives those units (a group by its name as the report writes it) to that seat: its player and hands take them as a group of their own from their next look, and the seat that gave them no longer has them. For a strike of two seats' bodies that are about to hit one place, giving one body to the other seat puts both under one player and one pair of hands; the giving seat's new units stay its own. Say in your direction what was given and why.",
+          "description": "Move metal or energy from one seat to another, ours or an ally's that is not ours (the allies line names them by tag), and units between seats of ours: {\"metal\": 800, \"energy\": 0, \"from\": \"t2\", \"to\": \"t1\"} sends what the receiving seat's store can hold, or {\"units\": [\"group_A_t2\"], \"to\": \"t1\"} gives those units (a group by its name as the report writes it) to that seat: its player and hands take them as a group of their own from their next look, and the seat that gave them no longer has them. For a strike of two seats' bodies that are about to hit one place, giving one body to the other seat puts both under one player and one pair of hands; the giving seat's new units stay its own. Say in your direction what was given and why.",
           "inputSchema": { "type": "object", "properties": { "metal": { "type": "number" }, "energy": { "type": "number" }, "units": { "type": "array", "items": { "type": "string" } }, "from": { "type": "string" }, "to": { "type": "string" } }, "required": ["to"] } },
         super::mcp::surrender_tool(),
         { "name": "situation",
@@ -311,15 +311,7 @@ fn report(side: &Shared, first: bool) -> String {
     let hands = side.hands.lock().unwrap().clone();
     for (team, view) in &seats {
         let b = &view.briefing;
-        let faction = view.field.factions.iter().find(|(t, _)| t == team).map(|(_, f)| f.as_str()).unwrap_or("faction not yet known");
-        let stalling = b.energy.storage > 0.0 && b.energy.current / b.energy.storage < 0.05 && b.energy.usage >= b.energy.income * 0.9;
-        lines.push(format!(
-            "seat t{team} ({faction}{}, home {}): metal {:.0} banked ({:+.1}/-{:.1}), energy {:.0}/{:.0} ({:+.0}){} | extractors {}, free spots in its reach {} | constructors {}, factories {}, turrets {} | soldiers {} worth {} metal",
-            if b.colour.is_empty() { String::new() } else { format!(", {} to the people in the game", b.colour) },
-            b.home.grid, b.metal.current, b.metal.income, b.metal.usage, b.energy.current, b.energy.storage, b.energy.income - b.energy.usage,
-            if stalling { " STALLING" } else { "" },
-            b.counts.extractors, view.field.score.free_spots, b.counts.constructors, b.counts.labs, b.counts.turrets, view.field.score.soldiers, view.field.score.army_metal
-        ));
+        lines.push(super::report::seat_block_line(*team, view));
         if let Some(line) = super::report::stockpile_line(b) {
             lines.push(format!("  {line}"));
         }

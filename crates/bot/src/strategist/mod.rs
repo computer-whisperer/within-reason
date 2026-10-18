@@ -706,9 +706,18 @@ fn player_prompt(game_time: &str, headline: &str, shared: &Shared, seen: &mut re
     let direction = shared.side.get().map(|side| side.direction_for(&shared.live_seats(), briefing.frame, &mut seen.direction, first_report)).unwrap_or_default();
     let (signals, _) = shared.signals_all(briefing.frame);
     let direction = if signals.is_empty() { direction } else { format!("{direction}signals (your hands see each one's status every second; a packet may wait on a name): {}\n", signals.iter().map(|(name, status)| format!("{name}: {status}")).collect::<Vec<_>>().join("; ")) };
+    // The other seats of ours under the commander, for a player with one seat (H-PLAYER-OTHER-SEATS).
+    let others: Vec<String> = shared
+        .side
+        .get()
+        .map(|side| {
+            let mine = shared.live_seats();
+            side.seats.lock().unwrap().iter().filter(|(team, _)| !mine.contains(team)).map(|(team, view)| report::seat_block_line(*team, view)).collect()
+        })
+        .unwrap_or_default();
     prompt += &format!(
         "[{game_time}] Woken because: {headline}\n{landing}{direction}{}\nwake conditions in force: {wake}",
-        report::player_report(seen, &briefing, &field, &fights, &hands, &chat, first_report)
+        report::player_report(seen, &briefing, &field, &hands, &report::Aside { fights: &fights, chat: &chat, others: &others }, first_report)
     );
     prompt
 }

@@ -190,7 +190,7 @@ fn tool_list() -> Value {
               "description": "What each factory or builder may build, and for a factory which group its new soldiers join ({\"plant_7\": {\"units\": [\"armflash\"], \"group\": \"group_A\"}}, or \"new\" for a fresh group of that factory's own, or \"by_type\" for one group of that factory's per unit type, so its Rovers and its Blitzes never share a group; by default a factory's soldiers gather in one group of its own and nothing merges by itself) and how they walk to it (\"join_in\": 4: its new soldiers wait beside the plant, out of its lane, and walk to their group four together, never alone; null lifts it): an object of actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" (every commander and constructor) or \"all\" (everyone) to a list of unit names (as the roster writes them: armpw, armham, armck, armfus; or role words the seat's faction fills in: constructor, vehicle_constructor, raider, line, rez, advanced_constructor, and the buildings' role words), or null to lift the restriction. A name with a count after a colon (armck:1) is made that many more times from now and then drops off the list by itself; a factory makes its counted entries in the order written, each to its count, without asking (armcv:1, armfav:3, armcv:1, armflash is one constructor, three Rovers, one constructor, then Blitzes); saying the same list again restarts it from the first entry: the way to say 'one constructor, then raiders' to hands that cannot count. With no counted entry left a factory is offered only the entries without a count, every time it is asked; your instructions say which of them and when. A builder without a list is offered the usual buildings (generators, factories, light and heavy turrets, radar, storage, the tier-2 lab and extractor, fusion); a list replaces that, so a fusion reactor, an aircraft plant or a jammer from a constructor is asked for here. Use it when the packet's words are not getting the mix you want. A list naming nothing the actor can build leaves it unrestricted; the actor's entry in the picture shows its list. Your policy is not bound by lists: it may order anything a builder can build.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "null" } ] }, "description": "Actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" or \"all\" to unit names, or null." } },
             { "name": "transfer",
-              "description": "Move metal, energy or units between seats of ours (a game with several seats: the `seats:` line): {\"metal\": 800, \"energy\": 0, \"from\": \"t2\", \"to\": \"t1\"} sends what the receiving seat's store can hold (the game caps it there; what does not fit stays), or {\"units\": [\"group_A_t2\", \"constructor_31002\", \"plant_4410\"], \"to\": \"t1\"} gives those units (a group's members, a builder, a plant, by actor name or <unit>_<id> handle) to that seat, whose hands take them into a group of their own and whose builders they become. What it makes possible: one army under one seat, the advanced plant's seat fed metal by the others, a tier-2 constructor made by one seat and given to each, a dead seat's plants and constructors given to a live one. Your hands carry it out from their next look and say what went.",
+              "description": "Move metal or energy to another seat of our side, ours or an ally's (seats of ours by tag in the `seats:` or `our other seats` line, allies in the `allies` line), and units between seats of ours: {\"metal\": 800, \"energy\": 0, \"from\": \"t2\", \"to\": \"t1\"} sends what the receiving seat's store can hold (the game caps it there; what does not fit stays), or {\"units\": [\"group_A_t2\", \"constructor_31002\", \"plant_4410\"], \"to\": \"t1\"} gives those units (a group's members, a builder, a plant, by actor name or <unit>_<id> handle) to that seat of ours, whose hands take them into a group of their own and whose builders they become. What it makes possible: the sprint to tier 2 (the seat whose advanced plant is placed fed by the others until it stands, its advanced constructors given to each seat), a sprinting ally fed the same way, one army under one seat, a dead seat's plants and constructors given to a live one. Your hands carry it out from their next look and say what went.",
               "inputSchema": { "type": "object", "properties": { "metal": { "type": "number" }, "energy": { "type": "number" }, "units": { "type": "array", "items": { "type": "string" } }, "from": { "type": "string" }, "to": { "type": "string" } }, "required": ["to"] } },
             { "name": "remove",
               "description": "Take apart or blow up what we own: {\"reclaim\": [handles], \"by\": \"constructor_N\" (optional; else the nearest builder without a list)} puts `reclaim <handle>` steps at the front of that builder's list, and most of the metal comes back; {\"destruct\": [handles]} sends the engine's self-destruct, and nothing comes back. A handle is a unit's name and id as the picture writes it (armsolar_31002: a factory's `yard` entry names the buildings in its exit lane) or an actor's name (constructor_N, plant_N, commander); for a reclaim, \"<type> at <place or grid cell>\" (\"armwin at spot_64\", \"armsolar at E4\") names the nearest standing unit of that type to the place, for a building the picture gives no handle for, and \"unfinished <type> at <place or grid cell>\" the nearest unfinished frame of the type there (the report's `unfinished structures` line gives frames' handles too). Every unit that self-destructs blows up: the answer says the blast's radius and damage and what of ours stands inside it, and a destruct that would kill something of ours is refused unless \"accept_losses\": true. The commander's blast is the game's largest; a reclaim is the safe way beside anything that matters.",
@@ -907,14 +907,22 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             };
             let to = team_of(&arguments["to"])?;
             let live = shared.live_seats();
-            if !live.contains(&to) {
-                return Err(format!("t{to} is not a seat of ours in this game (ours: {})", live.iter().map(|t| format!("t{t}")).collect::<Vec<_>>().join(", ")));
+            // An allied seat that is not ours takes metal and energy (H-TRANSFER-TO-ALLIES; the user, 2026-10-18: a
+            // sprinting ally is fed the same way), never units: its player is not ours to hand them to.
+            let allied = shared.briefing().allied_teams;
+            let to_ally = !live.contains(&to) && allied.contains(&to);
+            if !live.contains(&to) && !to_ally {
+                let tags = |teams: &[i32]| teams.iter().map(|t| format!("t{t}")).collect::<Vec<_>>().join(", ");
+                return Err(format!("t{to} is not a seat of our side in this game (ours: {}; allies: {})", tags(&live), if allied.is_empty() { "none".to_string() } else { tags(&allied) }));
             }
             let metal = arguments["metal"].as_f64().unwrap_or(0.0) as f32;
             let energy = arguments["energy"].as_f64().unwrap_or(0.0) as f32;
             let units: Vec<String> = arguments["units"].as_array().map(|a| a.iter().filter_map(|v| v.as_str().map(|s| s.trim().to_string())).collect()).unwrap_or_default();
             if metal <= 0.0 && energy <= 0.0 && units.is_empty() {
                 return Err("transfer takes metal and/or energy with from and to, or units with to".into());
+            }
+            if to_ally && !units.is_empty() {
+                return Err(format!("t{to} is an allied seat, not ours: metal and energy may go to it, units only to a seat of ours"));
             }
             let mut said: Vec<String> = Vec::new();
             if metal > 0.0 || energy > 0.0 {
@@ -1200,6 +1208,19 @@ mod tests {
         assert_eq!(firings.len(), 2);
         assert_eq!((firings[0].silo.as_str(), firings[0].at), ("armsilo_12", (6600.0, 3072.0)));
         assert_eq!(firings[1].at, (4.0 * 1024.0 + 512.0, 6.0 * 768.0 + 384.0), "E7 is its cell's centre");
+    }
+
+    /// `transfer` reaches an allied seat that is not ours with metal and energy, never with units (H-TRANSFER-TO-ALLIES).
+    #[test]
+    fn a_transfer_feeds_an_allied_seat_but_gives_it_no_units() {
+        let shared = Arc::new(Shared::default());
+        shared.publish_briefing(5, Default::default(), crate::strategist::shared::Briefing { allied_teams: vec![6, 7], ..Default::default() });
+        let said = call_tool("transfer", &json!({ "metal": 300, "from": "t5", "to": "t7" }), &shared).unwrap();
+        assert!(said.contains("t5 sends 300 metal and 0 energy to t7"), "{said}");
+        let err = call_tool("transfer", &json!({ "units": ["group_A"], "to": "t7" }), &shared).unwrap_err();
+        assert!(err.contains("allied seat, not ours"), "{err}");
+        let err = call_tool("transfer", &json!({ "metal": 300, "from": "t5", "to": "t2" }), &shared).unwrap_err();
+        assert!(err.contains("not a seat of our side") && err.contains("allies: t6, t7"), "{err}");
     }
 
     #[test]

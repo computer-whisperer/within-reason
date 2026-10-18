@@ -159,6 +159,15 @@ pub(super) fn front(briefing: &Briefing, field: &Field, fights: &[String], seats
             Some(ago) => format!("the last of ours stood in his half {} ago", clock(ago)),
         }
     ));
+    // The side's share of the map's spots (H-REPORT-SIDE-SPOTS; human-8v8-1: 43 of 84 for five seats, all taken by
+    // 12:00, read by both players as being "stuck" and by neither as the tier-1 ceiling).
+    if let Some((near, total, seats)) = briefing.side_spots {
+        lines.push(format!(
+            "spots: {near} of the map's {total} are nearer our side's start box than his, for the {seats} seat{} of our side ({}); past them income grows only by upgrading",
+            if seats == 1 { "" } else { "s" },
+            if seats > 1 { format!("about {} each", (near as f32 / seats as f32).round() as usize) } else { "all of them yours to take".to_string() }
+        ));
+    }
     // The trade by our own units' weapons, soldiers and buildings apart (H-PLAYER-OWN-TRADE): a seat's player
     // reads its own last minute, the commander the side's last three with each death counted once. Until
     // 2026-10-18 the destroyed side was every enemy death in the alliance's sight, the people's and the other
@@ -216,6 +225,14 @@ pub(super) fn front(briefing: &Briefing, field: &Field, fights: &[String], seats
             if our_seats > 1 { " (allies fight beside you; their units are theirs to order)" } else { "" },
             if theirs.is_empty() { "nobody".to_string() } else { theirs.iter().map(|s| s.seats.join(", ")).collect::<Vec<_>>().join(" | ") }
         ));
+    }
+    // The lobby's game-end rule (H-REPORT-GAME-END; human-8v8-1 ran `deathmode=com` with five seats a side, and the
+    // role text said "lose when ours dies" of a game a side loses only when it has no commander left).
+    if !briefing.game_end.is_empty() {
+        lines.push(format!("game end: {}", briefing.game_end));
+    }
+    if let Some(line) = allies_line(briefing) {
+        lines.push(line);
     }
     if seats_line && briefing.seats.len() > 1 {
         let seats: Vec<String> = briefing
@@ -467,8 +484,79 @@ fn spending_line(briefing: &Briefing) -> Option<String> {
     ))
 }
 
-pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, fights: &[String], hands: &Hands, chat: &[String], full: bool) -> String {
-    let mut lines = front(briefing, field, fights, true);
+/// The other seats of our side, one line's worth each, as the allied units in sight show them (H-REPORT-ALLIES-LINE;
+/// human-8v8-1: three Apex allies placed advanced labs at 5:20, 8:00 and 8:30, upgraded our extractors 22 times, and
+/// no report of either reader showed any of it).
+pub(super) fn allies_line(briefing: &Briefing) -> Option<String> {
+    if briefing.allies.is_empty() {
+        return None;
+    }
+    let parts: Vec<String> = briefing
+        .allies
+        .iter()
+        .map(|a| {
+            let tier = match a.tier2_since {
+                // `clock` takes seconds; `tier2_since` and `frame` are frames at 30 a second.
+                Some(since) => format!("tier 2 since {}{}", clock(since / 30), if briefing.frame - since < 100 * 30 { ", new" } else { "" }),
+                None => "tier 1".to_string(),
+            };
+            let mut who = a.who.clone();
+            if !a.colour.is_empty() {
+                who += &format!(", {}", a.colour);
+            }
+            if !a.faction.is_empty() {
+                who += &format!(", {}", a.faction);
+            }
+            format!(
+                "t{} ({who}): {} factor{} ({tier}), {} extractors{} (about {:.0} metal a second from its spots), {} constructors{}, {} nanos{}{}, army {} soldiers worth {}{}",
+                a.team,
+                a.factories,
+                if a.factories == 1 { "y" } else { "ies" },
+                a.extractors,
+                if a.mohos > 0 { format!(" + {} mohos", a.mohos) } else { String::new() },
+                a.income_estimate,
+                a.constructors,
+                if a.advanced_constructors > 0 { format!(" + {} advanced", a.advanced_constructors) } else { String::new() },
+                a.nanos,
+                if a.big_energy > 0 { format!(", {} fusions or advanced solars", a.big_energy) } else { String::new() },
+                if a.converters > 0 { format!(", {} converters", a.converters) } else { String::new() },
+                a.soldiers,
+                a.army_metal,
+                if a.army_at.is_empty() { String::new() } else { format!(" mostly at {}", a.army_at) }
+            )
+        })
+        .collect();
+    Some(format!("allies (the other seats of our side, theirs to order; `transfer` sends them metal and energy by tag): {}", parts.join(" | ")))
+}
+
+/// A seat of ours on one line, for the commander's report and the other seats' players (H-PLAYER-OTHER-SEATS; human-8v8-1:
+/// no report of a per-seat player named the other seat's bank, so neither could tell what a transfer would feed).
+pub(super) fn seat_block_line(team: i32, view: &super::seats::SeatView) -> String {
+    let b = &view.briefing;
+    let faction = view.field.factions.iter().find(|(t, _)| *t == team).map(|(_, f)| f.as_str()).unwrap_or("faction not yet known");
+    let stalling = b.energy.storage > 0.0 && b.energy.current / b.energy.storage < 0.05 && b.energy.usage >= b.energy.income * 0.9;
+    format!(
+        "seat t{team} ({faction}{}, home {}): metal {:.0} banked ({:+.1}/-{:.1}), energy {:.0}/{:.0} ({:+.0}){} | extractors {}, free spots in its reach {} | constructors {}, factories {}, turrets {} | soldiers {} worth {} metal",
+        if b.colour.is_empty() { String::new() } else { format!(", {} to the people in the game", b.colour) },
+        b.home.grid, b.metal.current, b.metal.income, b.metal.usage, b.energy.current, b.energy.storage, b.energy.income - b.energy.usage,
+        if stalling { " STALLING" } else { "" },
+        b.counts.extractors, view.field.score.free_spots, b.counts.constructors, b.counts.labs, b.counts.turrets, view.field.score.soldiers, view.field.score.army_metal
+    )
+}
+
+/// What the report carries from outside the briefing and the field: the fights since the last turn, the people's chat,
+/// and the other seats of ours under the same commander (one `seat_block_line` each, for a player with one seat).
+pub struct Aside<'a> {
+    pub fights: &'a [String],
+    pub chat: &'a [String],
+    pub others: &'a [String],
+}
+
+pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, hands: &Hands, aside: &Aside, full: bool) -> String {
+    let mut lines = front(briefing, field, aside.fights, true);
+    if !aside.others.is_empty() {
+        lines.push(format!("our other seats (under the same commander; `transfer` reaches them by tag, and a seat whose plant is going up is fed by the others): {}", aside.others.join(" | ")));
+    }
     lines.extend(contact(briefing, field));
     lines.extend(recently_seen(&hands.picture));
     extractor_lines(seen, field, full, &mut lines);
@@ -525,9 +613,9 @@ pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, fights
         lines.push(format!("actors gone (dead, merged or split): {}", gone.join(", ")));
     }
     seen.hands = actors;
-    if !chat.is_empty() {
+    if !aside.chat.is_empty() {
         lines.push("chat since your last turn (people in the game; `say` answers them):".to_string());
-        lines.extend(chat.iter().map(|c| format!("  {c}")));
+        lines.extend(aside.chat.iter().map(|c| format!("  {c}")));
     }
     if !hands.done.is_empty() {
         let skipped = hands.done.len().saturating_sub(DONE_LINES);
@@ -709,5 +797,33 @@ mod sightings_tests {
         let side = line(false);
         assert!(side.starts_with("traded: by our seats' units in the last 3 min, lost 13345 metal in soldiers and 640 in buildings; destroyed 21529 metal of his in soldiers and 0 in buildings | whole game: "), "{side}");
         assert!(side.ends_with(" (each death counted once across our seats)"), "{side}");
+    }
+
+    /// The side's lines (H-REPORT-ALLIES-LINE, H-REPORT-GAME-END, H-REPORT-SIDE-SPOTS): each allied seat on one line's
+    /// worth with its tier and when it reached it, the lobby's game-end rule, and the spots our side's box is nearer.
+    #[test]
+    fn the_side_lines_say_the_allies_tier_the_game_end_rule_and_the_spots_share() {
+        use super::super::shared::AllySeat;
+        let briefing = Briefing {
+            frame: 9 * 1800,
+            allies: vec![
+                AllySeat { team: 7, who: "Apex (an AI)".into(), colour: "orange".into(), faction: "Legion".into(), extractors: 8, mohos: 1, factories: 2, tier2_since: Some(5 * 1800 + 20 * 30), constructors: 20, advanced_constructors: 1, nanos: 4, big_energy: 2, converters: 6, soldiers: 25, army_metal: 2135, army_at: "G4".into(), income_estimate: 41.8 },
+                AllySeat { team: 9, who: "Within Reason (another seat of this bot)".into(), extractors: 9, factories: 2, constructors: 8, nanos: 1, soldiers: 58, army_metal: 5933, army_at: "G3".into(), income_estimate: 29.9, ..AllySeat::default() },
+            ],
+            game_end: "a side loses when it has no commanders left (the lobby's rule), so a seat whose commander dies plays on while another of ours stands; our side has 5 commanders standing of the 5 its seats started with".into(),
+            side_spots: Some((43, 84, 5)),
+            ..Briefing::default()
+        };
+        let lines = front(&briefing, &Field::default(), &[], true);
+        let allies = lines.iter().find(|l| l.starts_with("allies (")).expect("an allies line");
+        assert!(allies.contains("t7 (Apex (an AI), orange, Legion): 2 factories (tier 2 since 5:20), 8 extractors + 1 mohos (about 42 metal a second from its spots), 20 constructors + 1 advanced, 4 nanos, 2 fusions or advanced solars, 6 converters, army 25 soldiers worth 2135 mostly at G4"), "{allies}");
+        assert!(allies.contains(" | t9 (Within Reason (another seat of this bot)): 2 factories (tier 1), 9 extractors (about 30 metal a second from its spots), 8 constructors, 1 nanos, army 58 soldiers worth 5933 mostly at G3"), "{allies}");
+        assert!(lines.iter().any(|l| l == "game end: a side loses when it has no commanders left (the lobby's rule), so a seat whose commander dies plays on while another of ours stands; our side has 5 commanders standing of the 5 its seats started with"), "{lines:?}");
+        assert!(lines.iter().any(|l| l == "spots: 43 of the map's 84 are nearer our side's start box than his, for the 5 seats of our side (about 9 each); past them income grows only by upgrading"), "{lines:?}");
+        // A tier-2 factory seen standing within the last 100 s is new; no allies, no rule, no boxes: no lines.
+        let fresh = Briefing { frame: 5 * 1800 + 30 * 30, allies: vec![AllySeat { team: 7, factories: 1, tier2_since: Some(5 * 1800 + 20 * 30), ..AllySeat::default() }], ..Briefing::default() };
+        assert!(super::allies_line(&fresh).unwrap().contains("(tier 2 since 5:20, new)"));
+        let bare = front(&Briefing::default(), &Field::default(), &[], true);
+        assert!(bare.iter().all(|l| !l.starts_with("allies (") && !l.starts_with("game end:") && !l.starts_with("spots:")), "{bare:?}");
     }
 }

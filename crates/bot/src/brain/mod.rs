@@ -79,6 +79,8 @@ pub struct Brain {
     seat_tag: String,
     ally_starts: HashMap<i32, Vec3>,
     ally_spot_held: HashMap<usize, i32>,
+    /// The frame each allied team's first tier-2 factory was seen standing (`briefing.rs`, the allies line).
+    ally_tier2_since: HashMap<i32, i32>,
     /// Shared with the other seats of ours in this game (`team.rs`), and what they posted last tick.
     board: Arc<crate::team::TeamBoard>,
     team_mates: crate::team::Others,
@@ -288,6 +290,7 @@ impl Brain {
             seat_tag: tag,
             ally_starts: HashMap::new(),
             ally_spot_held: HashMap::new(),
+            ally_tier2_since: HashMap::new(),
             enemy_bases: Vec::new(),
             boxes_honoured: true,
             spot_claims: HashMap::new(),
