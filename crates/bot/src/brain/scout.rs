@@ -238,9 +238,38 @@ impl Brain {
         cells
     }
 
-    /// The `guns_N` places laid to a cell (H-GUNS): filled by `guns.rs`; none until it is built.
-    fn guns_in(&self, _cell: &str) -> Vec<String> {
-        Vec::new()
+    /// His shield generators seen standing (H-REPORT-SHIELDS): where, the bubble, and which of our soldiers' shots it
+    /// stops from outside, judged by the shim's intercept masks against the soldiers we have now.
+    pub(super) fn shield_lines(&self, tick: &Tick) -> Vec<String> {
+        let mut shields: Vec<(i32, String)> = self
+            .enemy_buildings
+            .iter()
+            .filter(|(id, (def, _, _))| !self.enemy_unfinished.contains(id) && self.world.def(*def).is_some_and(|d| d.shield.is_some()))
+            .map(|(_, (def, pos, seen))| (*seen, format!("{} at {} ({}, {}): {} (seen {} ago)", self.name(*def), self.world.grid(*pos), pos.x as i32, pos.z as i32, self.shield_words(*def, &tick.snapshot.own_units).unwrap_or_default(), super::pianist::picture::clock(tick.frame - seen))))
+            .collect();
+        shields.sort_by_key(|(seen, _)| std::cmp::Reverse(*seen));
+        shields.into_iter().map(|(_, line)| line).collect()
+    }
+
+    /// A shield in words against our own soldiers: its radius and strength, which of our types' shots it stops from
+    /// outside and which pass (the engine's masks: `shield.intercepts & weapon.intercepted_by`), and that inside the
+    /// bubble everything lands. None for a type with no shield.
+    pub(super) fn shield_words(&self, def: UnitDefId, own: &[bot_protocol::OwnUnit]) -> Option<String> {
+        let shield = self.world.def(def)?.shield?;
+        let mut ours: Vec<UnitDefId> = own.iter().filter(|u| !u.being_built).map(|u| u.def).filter(|d| self.world.def(*d).is_some_and(|d| d.speed > 0.0 && d.weapon_count > 0 && d.build_speed == 0.0)).collect();
+        ours.sort_by_key(|d| d.0);
+        ours.dedup();
+        let (stopped, passing): (Vec<UnitDefId>, Vec<UnitDefId>) = ours.into_iter().partition(|d| self.world.def(*d).is_some_and(|d| shield.intercepts & d.intercepted_by != 0));
+        let names = |defs: &[UnitDefId]| defs.iter().map(|d| self.name(*d).to_string()).collect::<Vec<_>>().join(", ");
+        let outside = if shield.exterior { " from outside" } else { "" };
+        let shots = match (stopped.is_empty(), passing.is_empty()) {
+            (true, true) => "nothing of ours stands to test it".to_string(),
+            (false, true) => format!("stops every shot of ours here{outside} ({})", names(&stopped)),
+            (true, false) => format!("stops none of our shots here ({} pass)", names(&passing)),
+            (false, false) => format!("stops{outside} the shots of our {}; those of our {} pass", names(&stopped), names(&passing)),
+        };
+        let inside = if shield.exterior { "; a unit inside the bubble shoots freely and everything lands" } else { "" };
+        Some(format!("shield {:.0} around it, {:.0} strength, regenerating; {shots}{inside}", shield.radius, shield.power))
     }
 
     /// The frame a spot was last within an own unit's sight; `None` when never.

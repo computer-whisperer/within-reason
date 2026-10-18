@@ -76,10 +76,14 @@ fn scouting_lines(cells: &[CellLook], factory_known: bool) -> Vec<String> {
         None => "never seen".to_string(),
     };
     let mut lines = vec!["scouting (each cell of the map by when units of ours last saw it; an old look says what was built there then, nothing about his army now):".to_string()];
-    let holds = |c: &CellLook| !c.his.is_empty() || c.his_commander;
+    let holds = |c: &CellLook| !c.his.is_empty() || c.his_commander || !c.guns.is_empty();
     for c in cells.iter().filter(|c| holds(c)) {
         let mut his: Vec<String> = c.his_commander.then(|| "his commander as last seen".to_string()).into_iter().collect();
         his.extend(c.his.iter().map(|(name, count)| format!("{count} {name}")));
+        // Fire from out of sight laid to the cell (H-GUNS): his guns stand about here whatever was seen.
+        if !c.guns.is_empty() {
+            his.push(format!("fire from out of sight laid here: {}", c.guns.join(", ")));
+        }
         lines.push(format!("  his, in {} ({}): {}", c.cell, look(c), his.join(", ")));
     }
     let bands: [(i32, &str); 4] = [(10, "nothing of his, in sight now"), (60, "nothing of his when seen under 1 min ago"), (180, "nothing of his when seen 1 to 3 min ago"), (360, "nothing of his when seen 3 to 6 min ago")];

@@ -145,7 +145,7 @@ impl Brain {
 
     /// Hits read together: the weapon that did the most damage, and its likeliest place: the point nearest every
     /// hit's ray when two or more rays cross, else four fifths of the range along the one direction.
-    fn shelling_over(&self, all: &[&Shell]) -> Option<Shelling> {
+    pub(super) fn shelling_over(&self, all: &[&Shell]) -> Option<Shelling> {
         if all.is_empty() {
             return None;
         }

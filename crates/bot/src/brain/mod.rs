@@ -8,6 +8,7 @@ mod bases;
 mod briefing;
 mod combat;
 mod economy;
+mod guns;
 pub mod journal;
 mod micro;
 mod people;
@@ -127,6 +128,14 @@ pub struct Brain {
     /// and radar cut by terrain, the engine's own (`docs/design/2026-10-18-sight-jammers-cloak-shields.md`); None
     /// from a shim before 2026-10-18, when sight is the glossary's circle (`scout.rs`).
     sensors: Option<(bot_protocol::Sensors, i32)>,
+    /// Fire from out of sight as standing places (`guns.rs`, H-GUNS): the guns, the count that names them, and the
+    /// frame up to which the hits have been read into them.
+    guns: Vec<guns::Gun>,
+    guns_named: usize,
+    guns_until: i32,
+    /// Our shots and the hits of ours the engine reported landing, in the last `FIRING_WINDOW` (`guns.rs`).
+    fired_log: Vec<(i32, UnitId)>,
+    landed_log: Vec<(i32, UnitId)>,
     /// Hits on our units with a known attacker in the last `HIT_MEMORY` frames: what each enemy party is shooting
     /// (H-HANDS-PARTY-KILLING).
     hits: Vec<Hit>,
@@ -314,6 +323,11 @@ impl Brain {
             enemy_unfinished: HashSet::new(),
             shelling: Vec::new(),
             sensors: None,
+            guns: Vec::new(),
+            guns_named: 0,
+            guns_until: 0,
+            fired_log: Vec::new(),
+            landed_log: Vec::new(),
             shelling_warned: i32::MIN / 2,
             hits: Vec::new(),
             takings: Vec::new(),
@@ -522,6 +536,8 @@ impl Brain {
             commands.push(Command::Say { text: format!("{{name}}{tail}") });
         }
         self.track_shelling(tick);
+        self.track_guns(tick);
+        self.track_fire(tick);
         self.track_hits(tick);
         self.track_takings(tick);
         self.run_pianist(tick, &kit, &mut commands);

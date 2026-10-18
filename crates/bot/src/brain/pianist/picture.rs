@@ -1287,6 +1287,10 @@ impl Brain {
         if let Some(s) = &shelling {
             places.push(Place { name: "shelling".into(), at: s.at, spot: None, cells: None });
         }
+        // His guns out of sight as standing places (`guns.rs`, H-GUNS): a packet can name them.
+        for gun in &self.guns {
+            places.push(Place { name: gun.name.clone(), at: gun.at, spot: None, cells: None });
+        }
         let mut group_shelling: BTreeMap<String, (super::super::shelling::Shelling, String)> = BTreeMap::new();
         if let Some(p) = self.pianist.as_ref() {
             for g in &p.groups {
@@ -1388,7 +1392,10 @@ impl Brain {
             for (id, (def, pos, seen)) in &self.enemy_buildings {
                 if pos.dist2d(place.at) < 500.0 {
                     let unfinished = if self.enemy_unfinished.contains(id) { " (being built)" } else { "" };
-                    *near.entry(format!("{}{unfinished}", self.short_words(*def))).or_default() += 1;
+                    // A shield's bubble and what of ours it stops (H-REPORT-SHIELDS); a cloaking type is said so.
+                    let shield = self.shield_words(*def, own).map_or(String::new(), |w| format!(" ({w})"));
+                    let cloaks = if self.world.def(*def).is_some_and(|d| d.cloak.is_some()) { " (cloaks: hidden until ours stand beside it)" } else { "" };
+                    *near.entry(format!("{}{unfinished}{shield}{cloaks}", self.short_words(*def))).or_default() += 1;
                     oldest = oldest.min(*seen);
                 }
             }
@@ -1837,6 +1844,10 @@ impl Brain {
             // last chose; Jev reads where it is on the way its instructions describe from these.
             if !group.reached.is_empty() {
                 entry["reached"] = json!(group.reached.iter().map(|(p, f)| format!("{p} ({})", clock(*f))).collect::<Vec<_>>().join(", "));
+            }
+            // What it fired lately and what of that was seen to land (H-HANDS-FIRING-LINE).
+            if let Some(words) = self.firing_words(&group.members) {
+                entry["firing"] = json!(words);
             }
             if let Some(words) = pianist.register_words(&format!("group_{}", group.name), frame) {
                 entry["last_pick"] = json!(words);
