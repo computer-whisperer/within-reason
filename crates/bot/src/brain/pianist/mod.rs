@@ -2008,7 +2008,7 @@ mod frame_tests {
 
     fn tick(frame: i32, ours: Vec<OwnUnit>, events: Vec<Event>) -> Tick {
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        Tick { frame, late: 0, events, snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies: Vec::new(), wrecks: None } }
+        Tick { frame, late: 0, events, snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None } }
     }
 
     /// A builder's started build is its own frame: a neighbour's frame of the same type finishing beside it does
@@ -2100,7 +2100,7 @@ mod stop_tests {
             brain.frame_builders.insert(UnitId(20), (UnitId(1), created));
             let ours = vec![own(1, 1, at(1000.0, 950.0)), OwnUnit { being_built: true, health: 70.0, max_health: 100.0, ..own(20, 2, at(1000.0, 1000.0)) }];
             let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-            let tick = Tick { frame: 200, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies: Vec::new(), wrecks: None } };
+            let tick = Tick { frame: 200, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None } };
             let mut commands = Vec::new();
             brain.take_lists(&tick, &mut commands);
             let pianist = brain.pianist.as_ref().unwrap();

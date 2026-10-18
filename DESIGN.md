@@ -58,7 +58,7 @@ tokens (`bots/README.md`).
    carries the setting, `WITHIN_REASON_TICK_FRAMES` overrides it with another divisor of 15) and sent at the first UPDATE at
    which the shim holds credit, `late` being the frames it waited. Events that occur while waiting are buffered, not
    dropped. Snapshot = economy, the wind blowing now, own units (with velocity and the frame each can next fire), allied units (seen, never
-   commanded), visible enemies with their team and velocity.
+   commanded), visible enemies with their team and velocity. Once a second the snapshot also carries `sensors`: our ally team's sight, radar and air-sight coverage grids as the engine computes them over the terrain (`Map_getLosMap`, `Map_getRadarMap`, `Map_getAirLosMap`; BAR squares of 64, 32 and 128 elmos), one bit a square; enemy jamming is not in them (BAR jams per side) and follows from a seen jammer's `jam_range`. The unit definitions carry `sight`, `jam_range`, `stealth`, `cloak`, `shield` and `intercepted_by` from 2026-10-18 (`docs/design/2026-10-18-sight-jammers-cloak-shields.md`).
 4. Shim reads the socket non-blocking at each UPDATE and applies any `Commands` on the engine thread.
 
 The bot runs two passes on every tick (`brain/mod.rs` `decide`): the control lane (`crates/micro`, driven from `brain/micro.rs`) every tick, and the

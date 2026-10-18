@@ -269,6 +269,55 @@ pub struct UnitDefInfo {
     /// with no interceptor, and in records and shims from before 2026-10-09.
     #[serde(default)]
     pub coverage: f32,
+    /// Sight radius in elmos (`UnitDef_getLosRadius`): what it sees over flat ground; terrain cuts it, as the
+    /// snapshot's `sensors` grids show. 0 in records and shims from before 2026-10-18, when the glossary's figure stands in.
+    #[serde(default)]
+    pub sight: f32,
+    /// Radar jamming radius (`UnitDef_getJammerRadius`): everything of its side within it is hidden from our radar
+    /// (BAR jams per side); 0 for a unit that jams nothing. Sight is not jammed.
+    #[serde(default)]
+    pub jam_range: f32,
+    /// Invisible to radar whatever covers it (`UnitDef_isStealth`): only sight finds it.
+    #[serde(default)]
+    pub stealth: bool,
+    /// How it cloaks, for a unit that can (`UnitDef_isAbleToCloak`): invisible to sight and radar until something of
+    /// ours stands within `decloak_distance`, or it fires; None for the rest.
+    #[serde(default)]
+    pub cloak: Option<Cloak>,
+    /// Its shield, for a unit that carries one (`UnitDef_getShieldDef`); None for the rest.
+    #[serde(default)]
+    pub shield: Option<Shield>,
+    /// Which shields stop its shots: the OR of its ordinary weapons' `interceptedByShieldType` (the engine's default
+    /// 1 for a cannon, 2 for a laser, 4 for a missile; BAR sets a starburst rocket to 1024). A shield takes a shot
+    /// when `shield.intercepts & intercepted_by != 0`. 0 unarmed.
+    #[serde(default)]
+    pub intercepted_by: u32,
+}
+
+/// How a unit cloaks (the engine's cloak fields).
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Cloak {
+    /// Energy a second it costs to stay cloaked standing still.
+    pub cost: f32,
+    /// An enemy within this of it decloaks it (BAR's `mincloakdistance`: 55 for a Pitbull).
+    pub decloak_distance: f32,
+    /// Whether firing decloaks it.
+    pub decloak_on_fire: bool,
+    /// Whether it is cloaked from birth.
+    pub starts_cloaked: bool,
+}
+
+/// A unit's shield (the engine's `Shield` weapon).
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Shield {
+    /// The bubble's radius in elmos.
+    pub radius: f32,
+    /// Damage it absorbs before it falls (it regenerates).
+    pub power: f32,
+    /// The bitmask of shot kinds it stops, against each weapon's `intercepted_by`.
+    pub intercepts: u32,
+    /// Whether it stops only shots from outside the bubble (a unit inside it shoots out and in freely).
+    pub exterior: bool,
 }
 
 /// An explosion: full `damage` at its centre, falling to nothing at `radius` elmos.
@@ -318,6 +367,65 @@ pub struct Snapshot {
     /// Reclaimable features in sight worth the walk (wrecks mostly), the richest first, capped. `None` on the ticks the
     /// shim did not look (it looks every few seconds): what was sent last still stands.
     pub wrecks: Option<Vec<Wreck>>,
+    /// Our side's sensor coverage this second, terrain-cut as the engine computes it; `None` on the ticks the shim
+    /// did not read it (it reads once a second), and always from a shim before 2026-10-18.
+    #[serde(default)]
+    pub sensors: Option<Sensors>,
+}
+
+/// Where our ally team sees, hears radar and sees aircraft right now: the engine's own coverage grids, cut by terrain
+/// for sight and radar (`Map_getLosMap`, `Map_getRadarMap`, `Map_getAirLosMap`). What enemy jammers hide is not in
+/// them (BAR jams per side, so the engine's jammer map is our own); it follows from a seen jammer and its `jam_range`.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Sensors {
+    pub los: Grid,
+    pub radar: Grid,
+    pub air: Grid,
+}
+
+/// A coverage grid: one bit per square, row-major from the north-west (index 0 is x 0, z 0), `square` elmos a side.
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub struct Grid {
+    pub cols: u32,
+    pub rows: u32,
+    pub square: f32,
+    /// `cols * rows` bits, packed eight to a byte, the first square in the lowest bit of the first byte.
+    pub bits: Vec<u8>,
+}
+
+impl Grid {
+    /// Whether the square holding the point is covered; a point off the grid is not.
+    pub fn at(&self, x: f32, z: f32) -> bool {
+        if self.square <= 0.0 || x < 0.0 || z < 0.0 {
+            return false;
+        }
+        let (col, row) = ((x / self.square) as u32, (z / self.square) as u32);
+        if col >= self.cols || row >= self.rows {
+            return false;
+        }
+        let index = (row * self.cols + col) as usize;
+        self.bits.get(index / 8).is_some_and(|byte| byte & (1 << (index % 8)) != 0)
+    }
+
+    /// The share of the squares covered, 0 to 1.
+    pub fn share(&self) -> f32 {
+        let total = (self.cols * self.rows) as f32;
+        if total <= 0.0 {
+            return 0.0;
+        }
+        self.bits.iter().map(|b| b.count_ones()).sum::<u32>() as f32 / total
+    }
+
+    /// Packs `covered` (one entry per square, row-major) into a grid.
+    pub fn pack(cols: u32, rows: u32, square: f32, covered: impl Iterator<Item = bool>) -> Grid {
+        let mut bits = vec![0u8; ((cols * rows) as usize).div_ceil(8)];
+        for (index, on) in covered.enumerate().take((cols * rows) as usize) {
+            if on {
+                bits[index / 8] |= 1 << (index % 8);
+            }
+        }
+        Grid { cols, rows, square, bits }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -562,5 +670,26 @@ mod lane_tests {
         assert!(!lane.contains(at(2440.0, 3000.0)), "behind the factory is not");
         assert!(!lane.contains(at(2600.0, 3288.0)), "beside the lane is not");
         assert!(!lane.contains(at(2440.0, 3700.0)), "well past the end is not (the strip has round ends)");
+    }
+}
+
+#[cfg(test)]
+mod grid_tests {
+    use super::Grid;
+
+    /// A coverage grid packs one bit a square from the north-west and answers by position; a point off the grid is
+    /// uncovered. BAR's sight grid on an 8192 map is 128 squares of 64 elmos.
+    #[test]
+    fn a_grid_packs_squares_and_answers_by_position() {
+        let covered = (0..128 * 128).map(|i| i % 128 >= 64 && i / 128 < 2);
+        let grid = Grid::pack(128, 128, 64.0, covered);
+        assert_eq!(grid.bits.len(), 2048);
+        assert!(grid.at(4100.0, 10.0), "the east half of the first row is covered");
+        assert!(grid.at(8191.0, 127.0));
+        assert!(!grid.at(4000.0, 10.0), "the west half is not");
+        assert!(!grid.at(4100.0, 200.0), "the third row is not");
+        assert!(!grid.at(-1.0, 10.0) && !grid.at(9000.0, 10.0), "off the grid is uncovered");
+        assert!((grid.share() - 128.0 / 16384.0).abs() < 1e-6);
+        assert!(!Grid::default().at(10.0, 10.0));
     }
 }

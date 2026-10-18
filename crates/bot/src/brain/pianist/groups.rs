@@ -1035,7 +1035,7 @@ mod tests {
         let none = UnitDefId(99);
         let kit = Kit { commander: none, extractor: none, converter: none, lab: none, turret: none, constructor: none, plant: none, vehicle_constructor: none, advanced_lab: none, advanced_constructor: none, advanced_extractor: none, raider: none, line: none, resurrector: none, roster: &crate::brain::roster::ROSTERS[0] };
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        let tick = |frame: i32, ours: &[OwnUnit], enemies: &[bot_protocol::EnemyUnit]| Tick { frame, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.to_vec(), allies: Vec::new(), enemies: enemies.to_vec(), wrecks: None } };
+        let tick = |frame: i32, ours: &[OwnUnit], enemies: &[bot_protocol::EnemyUnit]| Tick { frame, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.to_vec(), allies: Vec::new(), enemies: enemies.to_vec(), wrecks: None, sensors: None } };
         // The party has not moved: no order. The joiners are sent after the body, which is not where they were sent.
         let mut commands = Vec::new();
         brain.keep_groups(&tick(60, &ours, &enemies), &kit, &mut commands);
@@ -1080,7 +1080,7 @@ mod tests {
         let none = UnitDefId(99);
         let kit = Kit { commander: none, extractor: none, converter: none, lab: none, turret: none, constructor: none, plant: none, vehicle_constructor: none, advanced_lab: none, advanced_constructor: none, advanced_extractor: none, raider: none, line: none, resurrector: none, roster: &crate::brain::roster::ROSTERS[0] };
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        let tick = Tick { frame: 60, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.clone(), allies: Vec::new(), enemies: enemies.clone(), wrecks: None } };
+        let tick = Tick { frame: 60, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.clone(), allies: Vec::new(), enemies: enemies.clone(), wrecks: None, sensors: None } };
         let mut commands = Vec::new();
         brain.keep_groups(&tick, &kit, &mut commands);
         let group = &brain.pianist.as_ref().unwrap().groups[0];
@@ -1167,7 +1167,7 @@ mod tests {
         brain.pianist = Some(pianist);
         let own = vec![own(1, 1, at(1000.0, 1000.0)), own(2, 2, at(1050.0, 1000.0)), own(3, 1, at(1100.0, 1000.0))];
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies: Vec::new(), wrecks: None } };
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None } };
         let id = UnitDefId(3);
         let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let mut commands = Vec::new();

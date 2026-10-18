@@ -83,6 +83,9 @@ const CENSUS_INTERVAL: i32 = 60 * 30;
 const TRUTH_INTERVAL: i32 = 2 * 30;
 /// Frames between looks at the map's features (wrecks); a multiple of the brain's interval.
 const WRECKS_INTERVAL: i32 = 3 * 30;
+/// Frames between reads of our side's sensor coverage grids (sight, radar, air sight): once a second, a multiple of the
+/// brain's interval, so every brain think within the second reads the same grids.
+const SENSORS_INTERVAL: i32 = 30;
 
 struct Instance<L: Transport> {
     ai_id: c_int,
@@ -150,6 +153,9 @@ impl<L: Transport> Instance<L> {
             let mut snapshot = self.engine.snapshot();
             if due % WRECKS_INTERVAL == 0 {
                 snapshot.wrecks = Some(self.engine.wrecks());
+            }
+            if due % SENSORS_INTERVAL == 0 {
+                snapshot.sensors = self.engine.sensors();
             }
             let tick = Tick { frame, late: frame - due, events: std::mem::take(&mut self.events), snapshot };
             self.send(ToBot::Tick(tick));

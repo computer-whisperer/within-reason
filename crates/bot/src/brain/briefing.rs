@@ -1223,7 +1223,7 @@ mod frame_loss_tests {
 
     fn tick(frame: i32, ours: Vec<OwnUnit>, events: Vec<Event>) -> Tick {
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        Tick { frame, late: 0, events, snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies: Vec::new(), wrecks: None } }
+        Tick { frame, late: 0, events, snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None } }
     }
 
     /// An unfinished frame destroyed by nobody named is a decay only when nothing shot it: after a hit it was shot

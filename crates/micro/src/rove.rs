@@ -447,6 +447,12 @@ mod tests {
             stockpile_seconds: 0.0,
             stockpile_energy: 0.0,
             coverage: 0.0,
+            sight: 0.0,
+            jam_range: 0.0,
+            stealth: false,
+            cloak: None,
+            shield: None,
+            intercepted_by: 0,
         }
     }
 

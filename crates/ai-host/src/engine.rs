@@ -5,6 +5,7 @@
 use std::ffi::{CStr, CString, c_int, c_void};
 
 use bot_protocol::{
+    Grid, Sensors,
     Controller,
     AllyUnit, Blast, BuildSite, Command, Converter, EnemyUnit, Hello, Lane, MapInfo, MoveClass, MoveKind, OwnUnit, Resource, Snapshot, Terrain,
     FeatureId, StartBox, TeamInfo, UnitDefId, UnitDefInfo, UnitId, Vec3, Wreck,
@@ -352,7 +353,76 @@ impl Engine {
             stockpile_seconds: stockpile.0,
             stockpile_energy: stockpile.1,
             coverage: self.coverage(id),
+            sight: call!(self, UnitDef_getLosRadius(id)),
+            jam_range: call!(self, UnitDef_getJammerRadius(id)) as f32,
+            stealth: call!(self, UnitDef_isStealth(id)),
+            cloak: self.cloak(id),
+            shield: self.shield(id),
+            intercepted_by: self.intercepted_by(id),
         }
+    }
+
+    /// How the type cloaks, for one that can; None for the rest.
+    fn cloak(&self, id: c_int) -> Option<bot_protocol::Cloak> {
+        if !call!(self, UnitDef_isAbleToCloak(id)) {
+            return None;
+        }
+        Some(bot_protocol::Cloak {
+            cost: call!(self, UnitDef_getCloakCost(id)),
+            decloak_distance: call!(self, UnitDef_getDecloakDistance(id)),
+            decloak_on_fire: call!(self, UnitDef_isDecloakOnFire(id)),
+            starts_cloaked: call!(self, UnitDef_isStartCloaked(id)),
+        })
+    }
+
+    /// The type's shield, for one that carries one; None for the rest.
+    fn shield(&self, id: c_int) -> Option<bot_protocol::Shield> {
+        let weapon = call!(self, UnitDef_getShieldDef(id));
+        if weapon < 0 {
+            return None;
+        }
+        Some(bot_protocol::Shield {
+            radius: call!(self, WeaponDef_Shield_getRadius(weapon)),
+            power: call!(self, WeaponDef_Shield_getPower(weapon)),
+            intercepts: call!(self, WeaponDef_Shield_getInterceptType(weapon)).max(0) as u32,
+            exterior: call!(self, WeaponDef_isExteriorShield(weapon)),
+        })
+    }
+
+    /// Which shields stop the type's shots: the OR of its ordinary weapons' `interceptedByShieldType` (shield weapons
+    /// and manual-fire ones left out).
+    fn intercepted_by(&self, id: c_int) -> u32 {
+        let mounts = call!(self, UnitDef_getWeaponMounts(id)).max(0);
+        let mut mask = 0u32;
+        for mount in 0..mounts {
+            let weapon = call!(self, UnitDef_WeaponMount_getWeaponDef(id, mount));
+            if weapon < 0 || call!(self, WeaponDef_isShield(weapon)) || call!(self, WeaponDef_isManualFire(weapon)) {
+                continue;
+            }
+            mask |= call!(self, WeaponDef_getInterceptedByShieldType(weapon)).max(0) as u32;
+        }
+        mask
+    }
+
+    /// Our side's sight, radar and air-sight coverage this frame, as the engine computes them over the terrain: one
+    /// grid each at the mod's mip level (BAR: sight 64 elmos a square, radar 32, air 128). None when a read fails.
+    pub fn sensors(&self) -> Option<Sensors> {
+        let (squares_x, squares_z) = (call!(self, Map_getWidth()), call!(self, Map_getHeight()));
+        let (los_mip, radar_mip, air_mip) = (call!(self, Mod_getLosMipLevel()), call!(self, Mod_getRadarMipLevel()), call!(self, Mod_getAirMipLevel()));
+        let grid = |mip: c_int, read: &dyn Fn(*mut c_int, c_int) -> c_int| -> Option<Grid> {
+            let mip = mip.clamp(0, 30);
+            let (cols, rows) = ((squares_x >> mip).max(1) as u32, (squares_z >> mip).max(1) as u32);
+            let mut values = vec![0 as c_int; (cols * rows) as usize];
+            let got = read(values.as_mut_ptr(), values.len() as c_int);
+            if got != values.len() as c_int {
+                return None;
+            }
+            Some(Grid::pack(cols, rows, SQUARE_SIZE * (1 << mip) as f32, values.iter().map(|v| *v > 0)))
+        };
+        let los = grid(los_mip, &|buf, n| call!(self, Map_getLosMap(buf, n)))?;
+        let radar = grid(radar_mip, &|buf, n| call!(self, Map_getRadarMap(buf, n)))?;
+        let air = grid(air_mip, &|buf, n| call!(self, Map_getAirLosMap(buf, n)))?;
+        Some(Sensors { los, radar, air })
     }
 
     /// Seconds a round of the type's stockpiled weapon takes and the energy it costs; (0, 0) for a type that stockpiles
@@ -514,7 +584,7 @@ impl Engine {
             })
             .collect();
 
-        Snapshot { metal: self.resource(self.metal), energy: self.resource(self.energy), wind: call!(self, Map_getCurWind()), own_units, allies, enemies, wrecks: None }
+        Snapshot { metal: self.resource(self.metal), energy: self.resource(self.energy), wind: call!(self, Map_getCurWind()), own_units, allies, enemies, wrecks: None, sensors: None }
     }
 
     /// The reclaimable features in sight that hold metal worth a walk, the richest first.

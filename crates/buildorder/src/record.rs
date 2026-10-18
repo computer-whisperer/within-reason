@@ -147,6 +147,12 @@ fn unit_table(header: &Value) -> Result<Units, String> {
             stockpile_seconds: number(d, "stockpile_seconds"),
             stockpile_energy: number(d, "stockpile_energy"),
             coverage: number(d, "coverage"),
+            sight: number(d, "sight"),
+            jam_range: number(d, "jam_range"),
+            stealth: d["stealth"].as_bool().unwrap_or(false),
+            cloak: d["cloak"].as_array().and_then(|c| Some(bot_protocol::Cloak { cost: c.first()?.as_f64()? as f32, decloak_distance: c.get(1)?.as_f64()? as f32, decloak_on_fire: c.get(2)?.as_i64()? != 0, starts_cloaked: c.get(3)?.as_i64()? != 0 })),
+            shield: d["shield"].as_array().and_then(|s| Some(bot_protocol::Shield { radius: s.first()?.as_f64()? as f32, power: s.get(1)?.as_f64()? as f32, intercepts: s.get(2)?.as_u64()? as u32, exterior: s.get(3)?.as_i64()? != 0 })),
+            intercepted_by: d["intercepted_by"].as_u64().unwrap_or(0) as u32,
         })
         .collect();
     Ok(Units::new(&defs))

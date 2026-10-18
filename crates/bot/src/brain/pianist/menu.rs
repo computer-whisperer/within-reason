@@ -1656,7 +1656,7 @@ pub(super) mod tests {
         pianist.groups.push(Group::new("B".into(), Domain::Ground, hunters, GroupTask::Hunt(hunt), 150));
         brain.pianist = Some(pianist);
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies, wrecks: None } };
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies, wrecks: None, sensors: None } };
         let id = UnitDefId(1);
         let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let picture = Picture { rules: String::new(), state: serde_json::json!({ "instructions": "group_A holds.", "actors": {}, "places": {} }), places: vec![Place { name: "home".into(), at: at(500.0, 5000.0), spot: None, cells: None }], parties };
@@ -1689,7 +1689,7 @@ pub(super) mod tests {
         pianist.groups.push(Group::new("A".into(), Domain::Ground, ours.iter().map(|u| u.id).collect(), GroupTask::Hold { since: 0, committed: false, picked: false }, 0));
         brain.pianist = Some(pianist);
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies, wrecks: None } };
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies, wrecks: None, sensors: None } };
         let id = UnitDefId(1);
         let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let picture = Picture { rules: String::new(), state: serde_json::json!({ "instructions": "group_A: one body that never splits.", "actors": {}, "places": {} }), places: vec![Place { name: "home".into(), at: at(500.0, 5000.0), spot: None, cells: None }], parties };
@@ -1733,7 +1733,7 @@ pub(super) mod tests {
         pianist.layers.fuse = true;
         brain.pianist = Some(pianist);
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies, wrecks: None } };
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies, wrecks: None, sensors: None } };
         let id = UnitDefId(1);
         let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let picture = Picture {
@@ -1785,7 +1785,7 @@ pub(super) mod tests {
         let mut own = ours.clone();
         own.push(super::super::fixtures::own(900, 1, at(1000.0, 1000.0)));
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies, wrecks: None } };
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies, wrecks: None, sensors: None } };
         let id = UnitDefId(1);
         let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let place = |name: &str, x: f32, z: f32, spot: Option<usize>| Place { name: name.to_string(), at: at(x, z), spot, cells: None };
@@ -1822,7 +1822,7 @@ pub(super) mod tests {
         let mut own = ours.clone();
         own.push(super::super::fixtures::own(900, 1, at(1000.0, 1000.0)));
         let resource = || Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies, wrecks: None } };
+        let tick = Tick { frame: 300, late: 0, events: Vec::new(), snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: own, allies: Vec::new(), enemies, wrecks: None, sensors: None } };
         let id = UnitDefId(1);
         let kit = Kit { commander: id, extractor: id, converter: id, lab: id, turret: id, constructor: id, plant: id, vehicle_constructor: id, advanced_lab: id, advanced_constructor: id, advanced_extractor: id, raider: id, line: id, resurrector: id, roster: &crate::brain::roster::ROSTERS[0] };
         let place = |name: &str, x: f32, z: f32, spot: Option<usize>| Place { name: name.to_string(), at: at(x, z), spot, cells: None };

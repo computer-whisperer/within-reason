@@ -18,6 +18,8 @@ pub const FORMAT_VERSION: u32 = 1;
 /// A state sample once a game second: the viewer interpolates between samples, and a 40-minute game stays
 /// around ten megabytes (measured; see the format document).
 const SAMPLE_FRAMES: i32 = 30;
+/// Frames between `sense` rows (the sensor coverage grids): ten seconds, about 11 KB a row on an 8192 map.
+const SENSE_FRAMES: i32 = 300;
 
 const FLAG_BEING_BUILT: u8 = 1;
 const FLAG_IDLE: u8 = 2;
@@ -54,6 +56,8 @@ pub struct Recorder {
     exchange_friendly: BTreeMap<(i64, i64), f32>,
     exchange_out: BTreeMap<(i64, i64), f32>,
     exchange_in: BTreeMap<(i64, i64), f32>,
+    /// The frame of the last `sense` row (the sensor grids every `SENSE_FRAMES`).
+    last_sense: i32,
     /// Our own units as of the last tick: a hit on one of ours by another of ours is friendly fire.
     own: HashSet<UnitId>,
     /// Rounds ready in each stockpiler of ours as of the last tick: one more is a `round` event.
@@ -101,6 +105,7 @@ impl Recorder {
                 exchange_friendly: BTreeMap::new(),
                 exchange_out: BTreeMap::new(),
                 exchange_in: BTreeMap::new(),
+                last_sense: i32::MIN / 2,
                 own: HashSet::new(),
                 rounds: HashMap::new(),
                 slowest_decide_ms: 0.0,
@@ -178,6 +183,15 @@ impl Recorder {
         if tick.frame >= self.next_sample {
             self.next_sample = tick.frame - tick.frame % SAMPLE_FRAMES + SAMPLE_FRAMES;
             self.sample(tick, role);
+        }
+        // Our side's sensor coverage, every `SENSE_FRAMES` (the shim sends it every second): the three grids as
+        // base64 bitmaps with their dimensions, so a reader can tell a cell seen empty from one never covered.
+        if let Some(sensors) = &tick.snapshot.sensors
+            && tick.frame - self.last_sense >= SENSE_FRAMES
+        {
+            self.last_sense = tick.frame;
+            let grid = |g: &bot_protocol::Grid| json!([g.cols, g.rows, g.square, base64(&g.bits)]);
+            self.line(&json!({ "t": "sense", "f": tick.frame, "los": grid(&sensors.los), "radar": grid(&sensors.radar), "air": grid(&sensors.air) }));
         }
         self.out.write_all(self.buffer.as_bytes())?;
         self.buffer.clear();
@@ -406,6 +420,23 @@ impl Recorder {
     }
 }
 
+/// Standard base64 (RFC 4648, with padding) of raw bytes: the sensor grids' bitmaps in the `sense` row.
+fn base64(bytes: &[u8]) -> String {
+    const TABLE: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
+    for chunk in bytes.chunks(3) {
+        let n = chunk.iter().enumerate().fold(0u32, |acc, (i, b)| acc | (u32::from(*b) << (16 - 8 * i)));
+        for i in 0..4 {
+            if i <= chunk.len() {
+                out.push(TABLE[((n >> (18 - 6 * i)) & 63) as usize] as char);
+            } else {
+                out.push('=');
+            }
+        }
+    }
+    out
+}
+
 fn terrain_file(hello: &Hello) -> String {
     format!("terrain-{}.bin", hello.ai_id)
 }
@@ -458,6 +489,13 @@ fn header(hello: &Hello, mode: &str, session: bool, pianist: bool) -> Value {
                 "reach": d.reach, "reload": d.reload, "blast_radius": d.blast_radius,
                 "converter": d.converter.map(|c| json!([c.capacity, c.efficiency])),
                 "move": d.move_class.map(|m| json!([format!("{:?}", m.kind).to_lowercase(), m.max_slope, m.depth, m.slope_mod])),
+                // Sight, jamming, stealth, cloak and shields (records and shims from 2026-10-18): a cloak as
+                // [energy a second, decloak distance, decloaks on fire 0/1, starts cloaked 0/1], a shield as
+                // [radius, power, intercept mask, exterior 0/1]; `intercepted_by` the mask of shields that stop its shots.
+                "sight": d.sight, "jam_range": d.jam_range, "stealth": d.stealth,
+                "cloak": d.cloak.map(|c| json!([c.cost, c.decloak_distance, i32::from(c.decloak_on_fire), i32::from(c.starts_cloaked)])),
+                "shield": d.shield.map(|sh| json!([sh.radius, sh.power, sh.intercepts, i32::from(sh.exterior)])),
+                "intercepted_by": d.intercepted_by,
             })
         })
         .collect();
@@ -518,3 +556,16 @@ fn class(d: &bot_protocol::UnitDefInfo) -> &'static str {
     }
 }
 
+
+#[cfg(test)]
+mod sense_tests {
+    /// The `sense` row's bitmaps are standard base64 with padding (RFC 4648's own vectors).
+    #[test]
+    fn the_bitmaps_are_standard_base64() {
+        assert_eq!(super::base64(b"Man"), "TWFu");
+        assert_eq!(super::base64(b"Ma"), "TWE=");
+        assert_eq!(super::base64(b"M"), "TQ==");
+        assert_eq!(super::base64(b""), "");
+        assert_eq!(super::base64(&[0xff, 0x00, 0x80, 0x01]), "/wCAAQ==");
+    }
+}

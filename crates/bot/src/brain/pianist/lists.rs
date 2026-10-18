@@ -711,7 +711,7 @@ mod finish_tests {
         // Executed: a repair command on the frame, and a started build task that keeps the frame's id.
         brain.pianist = Some(pianist);
         let resource = || bot_protocol::Resource { current: 0.0, income: 0.0, usage: 0.0, storage: 0.0 };
-        let tick = bot_protocol::Tick { frame: 100, late: 0, events: Vec::new(), snapshot: bot_protocol::Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.clone(), allies: Vec::new(), enemies: Vec::new(), wrecks: None } };
+        let tick = bot_protocol::Tick { frame: 100, late: 0, events: Vec::new(), snapshot: bot_protocol::Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours.clone(), allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None } };
         let mut commands = Vec::new();
         let did = brain.execute_builder(&tick, &kit, &picture, UnitId(1), &Order::Finish(UnitId(20)), false, Some("finish armsolar_20"), &mut commands);
         assert!(did.as_deref().is_some_and(|d| d.starts_with("finish our Solar Collector")), "{did:?}");
