@@ -606,20 +606,41 @@ the lobby had three seats).
 **Claim.** The engine names no attacker for a unit killed by a silo's missile or by another unit's death blast: the
 `UnitDestroyed` event's attacker is -1 for both, and the kills are told apart only by the weapon of the last
 `UnitDamaged` on the dead unit (a warhead such as `crblmssl`, whose range is 72,000 against a map of 8,192; an
-explosion weapon such as `korgExplosion`, `nukeBuilding` or `commanderExplosion`, range 0) and by what died beside it
-the same tick with a death blast (`UnitDef_getDeathExplosion`: the Juggernaut's 10,600 over 640, a commander's 5,000
-over 350). A Juggernaut's death blast is nearly a warhead's and reads the same in the losses.
-**Status.** observed (2026-10-19)
+explosion weapon such as `korgExplosion`, `fusionexplosion`, `nukeBuilding` or `commanderExplosion`, which sets no
+range and carries the engine's default of 10) and by what died beside it with a death blast
+(`UnitDef_getDeathExplosion`: the Juggernaut's 10,600 over 640, a commander's 5,000 over 350, a fusion's 2,650 over
+240). A Juggernaut's death blast is nearly a warhead's and reads the same in the losses. The blast's victims fall
+after the exploder's own `UnitDestroyed`: 9-18 frames after a fusion, 21 and 84 along a converter chain, 210-229
+after an advanced fusion (its death animation runs before the explosion), 127 of a Juggernaut's 136 within 30 frames.
+The engine does name one of our own units as the attacker, for exactly two causes: its fire (a Mauser's or Janus's
+shell landing among ours) and its reclaim (`CUnit::AddBuildPower` kills the reclaimed unit with the builder as the
+attacker and no `UnitDamaged`). The game's unit weapons are named `<unit>_<weapon>` (`corstorm_cor_bot_rocket`,
+`corcom_disintegrator`, `corpun_plasma`), so the last hit's weapon tells a gun from a blast and names the gun's unit
+type without the attacker. The AI interface's `UnitDestroyed` event also carries the killing weapon's id
+(`rts/ExternalAI/Interface/AISEvents.h` `SUnitDestroyedEvent.weaponDefID`, passed at `EngineOutHandler.cpp:351`),
+negative for the engine's own causes (`SolidObject.h`: reclaimed 12, kamikaze 18, construction decay 19, turned into a
+feature 20); the shim does not read it yet.
+**Status.** observed (2026-10-19, apex60-1 and apex60-2)
 **Evidence.** apex-v032-altored-3v3-apex60-1: 15 of ours died at 33:10-33:13 within 806 of (1410, 1391) with `by`
 null (five mohos, winds, solars, a flak gun, a construction turret; seat 2's player: "a missile from the silo at G7
 hit the west side of our home at about 33:12"); 21 at 50:36-50:40 within 583 of (6361, 1312), one second after the
 anti-nuke there died; 77 at 57:17 within 2,350 of (2301, 1812) as Juggernaut 16356 died at (2614, 1762), beside 27
 more the Juggernaut's own guns were credited with; every one read "lost ... to unseen", and seat 2's player wrote of
 the Juggernaut that died at 34:43 at D8 "I suspect a second missile from his silo landed on the fight, but the report
-doesn't confirm it". The weapon names are from the game's unit files (`upstream/Beyond-All-Reason/units`:
-`corsilo.lua` `crblmssl` range 72000, `corkorg.lua` `explodeas = "korgExplosion"`, `armcom.lua`
-`explodeas = "commanderExplosion"`); the host already passes each hit's weapon name and range (`ai-host` `engine.weapon`).
+doesn't confirm it". apex-v032-altored-3v3-apex60-2 (the record's `w` from this game on): seat 1's fusion died at
+16:42 (frame 30084) to a Dragon and three winds and an advanced solar died at frames 30093-30102 with
+`w: fusionexplosion` and `by` null; three converters at 16:02-16:06 with `w: metalmaker` at +21 and +84 frames; two
+Shredders at 28:07 with `w: largebuildingexplosiongeneric`. Of 20 deaths in the three records with one of our own
+units as `by`, every attacker was alive two seconds later (Mausers 6, Janus 7, Bulldog, Whistler, Blitz; constructors
+4, where the player had ordered the dead frame taken apart). The delay histogram is from apex60-1's records (own
+unattributed deaths within an exploder's radius + 100 of its `enemy_destroyed` frame). The weapon names are from the
+game's unit files (`upstream/Beyond-All-Reason/units`: `corsilo.lua` `crblmssl` range 72000, `corkorg.lua`
+`explodeas = "korgExplosion"`, `armcom.lua` `explodeas = "commanderExplosion"`), the explosions from
+`weapons/Unit_Explosions.lua` (no `range` in the file), the default from `rts/Sim/Weapons/WeaponDef.cpp`
+(`WEAPONTAG(float, range).defaultValue(10.0f)`); the host already passes each hit's weapon name and range (`ai-host`
+`engine.weapon`).
 **Would be wrong if.** The engine named the silo as the attacker when it stands in our sight, or an explosion's
-weapon id reached the AI as -1 (then only the deaths-beside rule would tell a blast).
+weapon id reached the AI as -1 (then only the deaths-beside rule would tell a blast), or the game gave an explosion
+weapon a range (then it would read as a gun from out of sight).
 **Used by.** H-REPORT-BLAST-CAUSE; the briefs' anti-nuke passages (the user, 2026-10-19).
 

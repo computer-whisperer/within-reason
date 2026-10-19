@@ -191,6 +191,9 @@ pub struct Brain {
     /// The unfinished frames among this think's `UnitDestroyed` events and what became of each (`track_losses` fills
     /// it; the pianist's housekeeping runs after and words the line).
     frame_losses_now: HashMap<UnitId, briefing::FrameLoss>,
+    /// The units that died with a death blast worth naming in the last seconds, his and ours, for the cause of a
+    /// loss nobody is named for (`track_losses`).
+    recent_blasts: Vec<briefing::RecentBlast>,
     /// Every enemy unit's type once seen, so a killer that has left sight still has a name.
     enemy_defs: HashMap<UnitId, UnitDefId>,
     /// What each other team has been seen to field: team to (faction prefix to the units of it seen), and the
@@ -357,6 +360,7 @@ impl Brain {
             frame_hits: HashMap::new(),
             frame_alone_since: HashMap::new(),
             frame_losses_now: HashMap::new(),
+            recent_blasts: Vec::new(),
             enemy_defs: HashMap::new(),
             enemy_places: HashMap::new(),
             factions_seen: HashMap::new(),
