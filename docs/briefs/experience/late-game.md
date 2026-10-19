@@ -66,7 +66,10 @@ site is where the turrets can stand round it, and it stands alone under anti-air
 when it dies and bombers come for it. Each engine brings its own store (a fusion 2,500 energy, the advanced fusion
 9,000, a moho 600 metal) and the converters live on the energy above three quarters of it, so an energy storage (170
 metal for 6,000) beside the first fusion is where the conversion begins to run smoothly, and a seat "banking it
-unused" has the store full, not the economy served (K-eco-energy-storage-is-the-cheap-buffer). Our games have not
+unused" has the store full, not the economy served (K-eco-energy-storage-is-the-cheap-buffer). What the income is
+for, past the next engine: the gantry (7,900 metal and 1,800 build power; Cortex 8,400) and what walks out of it,
+which no tier-1 or tier-2 body trades evenly with; Apex at +60 % placed its gantry at 22:00 on Altored and had a
+Juggernaut on the field by 32:51 (the +60 game of 2026-10-19). Our games have not
 reached this ladder: the +50 Altored 3v3 of 2026-10-18 built
 one, two and three fusions a seat from 16:20 and no advanced fusion, and one seat banked 2,000 energy a second unused
 from 16:30 to the end with a single converter while its metal store sat at 150 to 300 and the report read STALLING
@@ -165,5 +168,16 @@ after that the missile is for what stands in the field, two thousand from any an
 missile, ends a game. The `fire` tool sends a ready missile at a place in coordinates; the kept count is the game's ten for
 now (a silo at its limit is a 1,042 energy a second draw until it holds ten), and a silo or anti-nuke listed without a
 place goes to the back field at home with the generators.
+
+**An anti-nuke under every home once his tier 2 stands is due diligence, not a reaction** (the user, 2026-10-19).
+Every opponent that reaches tier 2 can build a silo, nothing in sight warns of one (it stands in his base and the
+missile needs no sight of its target), and the first silo seen is already late: in the +60 Altored 3v3 Apex's first
+silo stood at 24:28, was in our picture at 33:19, and its missile had landed on the west of t2's home at 33:12 (five
+mohos, a flak gun, a construction turret and the generators within 800 of the point); our first anti-nuke was ordered
+that turn and stood at 34:43, 90 s from its first interceptor; t0's home, whose seat had no advanced constructor, was
+covered by t2's from 40:23, and a second missile landed there at 50:36, one second after that anti-nuke died. The
+anti-nuke is an advanced constructor's build, so the seat with one covers the seats without, with a `queue` step at
+their homes. A missile strike or a death blast (a Juggernaut's is 10,600 over 640, nearly a warhead's) reads in the
+losses as deaths with no killer named; the report says which it was when it can tell.
 
 **What players said** on the late game is under "What players said", on tier 2.

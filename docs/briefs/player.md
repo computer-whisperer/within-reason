@@ -111,7 +111,13 @@ case from another scenario still teaches, but its clock does not transfer.
   pause (`produce` them an empty list), the other seats send metal with `transfer` from the moment the plant is
   placed, and the received metal is a plant standing in two minutes, not a store. Its first units are an advanced
   constructor for each seat, given away with `transfer`, so the mohos go up on every seat at once, and the plant's
-  `produce` list keeps an advanced constructor on it until every seat has one. A tier-1 lab whose production is no
+  `produce` list keeps an advanced constructor on it until every seat has one. The sprint is one seat's and the
+  mohos are every seat's: a seat whose spots are still tier 1 when the sprint seat's first moho stands is the side's
+  largest unspent asset, and its own advanced plant and, past that, the gantry follow as its income allows, on no
+  clock. The +60 Altored 3v3 of 2026-10-19 is the case against: no advanced constructor left the sprint seat, two
+  seats held zero mohos for an hour at 25 to 46 metal a second beside one at 130 to 156, and their 450 Whistlers and
+  140 Stouts after 25:00 bought nothing against his Juggernauts; in the +40 and +50 games, with the constructors
+  given at 8:28 to 9:18, every seat held 6 to 11 mohos by 20:00. A tier-1 lab whose production is no
   longer the plan is reclaimed for its metal (`remove`; "eat your bot lab", thebluegecko), and the commander is
   reclaimable too, for 2,700, when the side keeps another and a frame stands to take the metal (the store caps what it
   holds; the game-end rule is in the role text). Metal is nothing without build power on the frame (the user,
@@ -137,6 +143,17 @@ case from another scenario still teaches, but its clock does not transfer.
   while doing t2 transition", thebluegecko); human-8v8-1, our first advanced lab at D8 killed at 16:53 by five
   Centurions and a Mace with 4,000 metal in it, the lab outside the turrets. BARb's own sprint is on a clock (its
   section below); a person's, in a duel, is the window the cases above describe.
+- **Tier-1 units trade badly against tier 2 and worse against tier 3, at any number** (the user, 2026-10-19). The
+  tier-2 sentence above holds against tier 3 with a wider margin: what walks out of a gantry (the roster's tier-3
+  lines) out-ranges, out-armours and out-splashes any tier-1 body, and a body that must walk to it arrives in pieces
+  (its front first, its tail minutes behind) and loses more on the way. The +60 Altored 3v3 of 2026-10-19: two
+  Juggernauts (29,000 metal, reach 950) killed 338 of our units after 44:00; the side's tier-1 output after 25:00,
+  about 200,000 metal of Stouts, Whistlers and Crossbows, bought nothing; and one Juggernaut's death blast (640
+  radius, 10,600 damage) took 77 of ours standing by its corpse at 57:17. What answers his tier 3 is ours (the
+  mohos, the fusions, the gantry, the Ambassadors' reach, bombers, a missile) and what a tier-1 body can still do
+  against it is kill the builders and the economy that pay for it; a thirteenth tier-1 body is the one answer that
+  is not one.
+
 - **Past the mohos the economy grows by turning energy into metal, and in this order** (K-t2-post-moho-scaling;
   the user, 2026-10-18). Every held spot upgraded first: +6 metal a second for 620, repaid in 104 s, and 20 energy a
   second of upkeep each. Then one or two fusions (750 to 850 a second) for that upkeep and the next frame's bill; then
@@ -147,6 +164,21 @@ case from another scenario still teaches, but its clock does not transfer.
   and 143 s with eight construction turrets beside them, so it goes where the turrets can stand round it, after the
   fusions, alone and under anti-air. Energy "banking it unused" beside a metal store at STALLING is this chain not
   begun: the +50 Altored 3v3 (2026-10-18) banked 2,000 energy a second for sixteen minutes on one converter.
+
+- **An anti-nuke under every home once his tier 2 stands is due diligence, not a reaction** (the user, 2026-10-19).
+  Every opponent that reaches tier 2 can build a silo: an advanced constructor builds it (8,100 metal; Cortex 7,700),
+  its first missile is ready 120 s after it stands (Cortex 180), the warhead kills every tier-1 and tier-2 unit and
+  building within 640 of the point, and nothing in sight warns you, since the silo stands in his base and the missile
+  needs no sight of its target. The counter is the anti-nuke (`armamd`/`corfmd`/`legabm`: 1,500 metal, 38,000 to
+  40,000 energy, built by an advanced constructor only), whose interceptors cover 2,000 and take 90 s each, so the
+  first silo seen is already late. The +60 Altored 3v3 of 2026-10-19: Apex's first silo stood at 24:28, was in our
+  picture at 33:19, and its missile had landed on the west of t2's home at 33:12 (five mohos, a flak gun, a
+  construction turret and the solars and winds within 800 of the point); our first anti-nuke was ordered that turn
+  and stood at 34:43; t0's home, whose seat had no advanced constructor, was covered by t2's from 40:23, and a
+  second missile landed there at 50:36, one second after that anti-nuke died. A seat without an advanced
+  constructor is covered by one that has one, with a `queue` step at its home; the report's `missiles` line and the
+  `round` wake say what each of ours holds. A missile strike or a death blast reads in the losses as deaths with no
+  killer named, and the report says which it was when it can tell (the blast line).
 
 - **Income past the spot count is tier-2 extractors and advanced solars: build a lot more of both** (the user,
   2026-10-02, from human-10, player-40 and player-42: "we need to be building a lot more t2 mexes and advanced

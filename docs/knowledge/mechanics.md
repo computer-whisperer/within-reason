@@ -602,3 +602,24 @@ wrecks, and the game ran to the cap.
 the lobby had three seats).
 **Used by.** The briefs' commander-kill words (candidate: reclaim or stand on a commander wreck; H-PLAYER-OWN-TRADE).
 
+### K-mech-missile-and-blast-deaths-unattributed
+**Claim.** The engine names no attacker for a unit killed by a silo's missile or by another unit's death blast: the
+`UnitDestroyed` event's attacker is -1 for both, and the kills are told apart only by the weapon of the last
+`UnitDamaged` on the dead unit (a warhead such as `crblmssl`, whose range is 72,000 against a map of 8,192; an
+explosion weapon such as `korgExplosion`, `nukeBuilding` or `commanderExplosion`, range 0) and by what died beside it
+the same tick with a death blast (`UnitDef_getDeathExplosion`: the Juggernaut's 10,600 over 640, a commander's 5,000
+over 350). A Juggernaut's death blast is nearly a warhead's and reads the same in the losses.
+**Status.** observed (2026-10-19)
+**Evidence.** apex-v032-altored-3v3-apex60-1: 15 of ours died at 33:10-33:13 within 806 of (1410, 1391) with `by`
+null (five mohos, winds, solars, a flak gun, a construction turret; seat 2's player: "a missile from the silo at G7
+hit the west side of our home at about 33:12"); 21 at 50:36-50:40 within 583 of (6361, 1312), one second after the
+anti-nuke there died; 77 at 57:17 within 2,350 of (2301, 1812) as Juggernaut 16356 died at (2614, 1762), beside 27
+more the Juggernaut's own guns were credited with; every one read "lost ... to unseen", and seat 2's player wrote of
+the Juggernaut that died at 34:43 at D8 "I suspect a second missile from his silo landed on the fight, but the report
+doesn't confirm it". The weapon names are from the game's unit files (`upstream/Beyond-All-Reason/units`:
+`corsilo.lua` `crblmssl` range 72000, `corkorg.lua` `explodeas = "korgExplosion"`, `armcom.lua`
+`explodeas = "commanderExplosion"`); the host already passes each hit's weapon name and range (`ai-host` `engine.weapon`).
+**Would be wrong if.** The engine named the silo as the attacker when it stands in our sight, or an explosion's
+weapon id reached the AI as -1 (then only the deaths-beside rule would tell a blast).
+**Used by.** H-REPORT-BLAST-CAUSE; the briefs' anti-nuke passages (the user, 2026-10-19).
+

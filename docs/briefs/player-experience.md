@@ -58,7 +58,13 @@ a tight map that gap is lethal, which is why the experienced duellists tech in 4
 moment to hit his base. On a larger map, with allies beside you, or once the fronts have settled, it is covered, and
 a game past twenty minutes is decided by who upgraded first; team games almost always go there. The call is yours:
 which seat sprints, when, and who feeds it. The cases, the team-game procedure and the arithmetic are under "Tier 2:
-the sprint" and the late-game part.
+the sprint" and the late-game part. The sprint is one seat's and the mohos are every seat's: a seat whose spots are
+still tier 1 after the sprint seat's first moho is the side's largest unspent asset (the +60 Altored 3v3 of
+2026-10-19: two such seats for an hour). And tier-1 units trade badly against tier 2 and worse against tier 3 at any
+number: two Juggernauts killed 338 of ours after 44:00 in that game while about 200,000 metal of tier-1 output after
+25:00 bought nothing, and one Juggernaut's death blast took 77 of ours standing by its corpse. What answers his tier
+3 is the economy and the units that out-range it, and the builders that pay for it; a thirteenth tier-1 body is not
+an answer.
 
 **A lead is spent or teched, never banked.** A lead in army goes into him. Where it cannot, because he sits behind a
 line it will not break or the front is long, it goes into the economy that outgrows him: tier-2 extractors on the
@@ -1287,7 +1293,13 @@ first bank or when the side's spots are taken, whichever comes first, not when h
 of that seat and a construction turret or two beside it go on the plant, its other plants pause, the other seats
 send metal with `transfer` from the moment the plant is placed, and the received metal is a plant standing in two
 minutes, not a store. Its first units are an advanced constructor for each seat, given away, so the mohos go up on
-every seat at once. A tier-1 lab whose production is no longer the plan is reclaimed for its metal ("eat your bot
+every seat at once. That handover is what the sprint is for the other seats: a seat whose spots are still tier 1
+when the sprint seat's first moho stands is the side's largest unspent asset, and its own advanced plant and, past
+that, the gantry follow as its income allows, on no clock. The +60 Altored 3v3 of 2026-10-19 is the case against:
+no advanced constructor left the sprint seat, two seats held zero mohos for an hour at 25 to 46 metal a second
+beside one at 130 to 156, and their 450 Whistlers and 140 Stouts after 25:00 bought nothing against his
+Juggernauts; the +40 and +50 games, with the constructors given at 8:28 to 9:18, had 6 to 11 mohos on every seat by
+20:00. A tier-1 lab whose production is no longer the plan is reclaimed for its metal ("eat your bot
 lab", thebluegecko), and the commander is reclaimable too, for 2,700, when the side keeps another and a frame stands
 to take the metal: a side loses only when it has no commanders left (the game-end rule). Metal is nothing without
 build power on the frame (the user, 2026-09-28: "Two players gifting to one doesn't help if that player doesn't
@@ -1621,7 +1633,10 @@ site is where the turrets can stand round it, and it stands alone under anti-air
 when it dies and bombers come for it. Each engine brings its own store (a fusion 2,500 energy, the advanced fusion
 9,000, a moho 600 metal) and the converters live on the energy above three quarters of it, so an energy storage (170
 metal for 6,000) beside the first fusion is where the conversion begins to run smoothly, and a seat "banking it
-unused" has the store full, not the economy served (K-eco-energy-storage-is-the-cheap-buffer). Our games have not
+unused" has the store full, not the economy served (K-eco-energy-storage-is-the-cheap-buffer). What the income is
+for, past the next engine: the gantry (7,900 metal and 1,800 build power; Cortex 8,400) and what walks out of it,
+which no tier-1 or tier-2 body trades evenly with; Apex at +60 % placed its gantry at 22:00 on Altored and had a
+Juggernaut on the field by 32:51 (the +60 game of 2026-10-19). Our games have not
 reached this ladder: the +50 Altored 3v3 of 2026-10-18 built
 one, two and three fusions a seat from 16:20 and no advanced fusion, and one seat banked 2,000 energy a second unused
 from 16:30 to the end with a single converter while its metal store sat at 150 to 300 and the report read STALLING
@@ -1720,6 +1735,17 @@ after that the missile is for what stands in the field, two thousand from any an
 missile, ends a game. The `fire` tool sends a ready missile at a place in coordinates; the kept count is the game's ten for
 now (a silo at its limit is a 1,042 energy a second draw until it holds ten), and a silo or anti-nuke listed without a
 place goes to the back field at home with the generators.
+
+**An anti-nuke under every home once his tier 2 stands is due diligence, not a reaction** (the user, 2026-10-19).
+Every opponent that reaches tier 2 can build a silo, nothing in sight warns of one (it stands in his base and the
+missile needs no sight of its target), and the first silo seen is already late: in the +60 Altored 3v3 Apex's first
+silo stood at 24:28, was in our picture at 33:19, and its missile had landed on the west of t2's home at 33:12 (five
+mohos, a flak gun, a construction turret and the generators within 800 of the point); our first anti-nuke was ordered
+that turn and stood at 34:43, 90 s from its first interceptor; t0's home, whose seat had no advanced constructor, was
+covered by t2's from 40:23, and a second missile landed there at 50:36, one second after that anti-nuke died. The
+anti-nuke is an advanced constructor's build, so the seat with one covers the seats without, with a `queue` step at
+their homes. A missile strike or a death blast (a Juggernaut's is 10,600 over 640, nearly a warhead's) reads in the
+losses as deaths with no killer named; the report says which it was when it can tell.
 
 **What players said** on the late game is under "What players said", on tier 2.
 

@@ -135,7 +135,13 @@ first bank or when the side's spots are taken, whichever comes first, not when h
 of that seat and a construction turret or two beside it go on the plant, its other plants pause, the other seats
 send metal with `transfer` from the moment the plant is placed, and the received metal is a plant standing in two
 minutes, not a store. Its first units are an advanced constructor for each seat, given away, so the mohos go up on
-every seat at once. A tier-1 lab whose production is no longer the plan is reclaimed for its metal ("eat your bot
+every seat at once. That handover is what the sprint is for the other seats: a seat whose spots are still tier 1
+when the sprint seat's first moho stands is the side's largest unspent asset, and its own advanced plant and, past
+that, the gantry follow as its income allows, on no clock. The +60 Altored 3v3 of 2026-10-19 is the case against:
+no advanced constructor left the sprint seat, two seats held zero mohos for an hour at 25 to 46 metal a second
+beside one at 130 to 156, and their 450 Whistlers and 140 Stouts after 25:00 bought nothing against his
+Juggernauts; the +40 and +50 games, with the constructors given at 8:28 to 9:18, had 6 to 11 mohos on every seat by
+20:00. A tier-1 lab whose production is no longer the plan is reclaimed for its metal ("eat your bot
 lab", thebluegecko), and the commander is reclaimable too, for 2,700, when the side keeps another and a frame stands
 to take the metal: a side loses only when it has no commanders left (the game-end rule). Metal is nothing without
 build power on the frame (the user, 2026-09-28: "Two players gifting to one doesn't help if that player doesn't

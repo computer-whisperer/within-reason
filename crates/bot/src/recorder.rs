@@ -46,6 +46,8 @@ pub struct Recorder {
     /// The control lane's milling counters since the last sample.
     milling: Milling,
     damage: BTreeMap<UnitId, f32>,
+    /// The weapon of each unit's last hit, for a `destroyed` row with no attacker named (a warhead, an explosion).
+    last_weapon: BTreeMap<UnitId, String>,
     /// Since the last sample, the fire instrument (`record-format.md`, the `s` line): damage each unit of ours dealt
     /// to enemies, shots each fired, damage each did to our own side, and the two exchange tables by type.
     dealt: BTreeMap<UnitId, f32>,
@@ -99,6 +101,7 @@ impl Recorder {
                 rules: BTreeMap::new(),
                 milling: Milling::default(),
                 damage: BTreeMap::new(),
+                last_weapon: BTreeMap::new(),
                 dealt: BTreeMap::new(),
                 shots: BTreeMap::new(),
                 friendly: BTreeMap::new(),
@@ -216,8 +219,11 @@ impl Recorder {
             // Idle is a unit flag in the samples; damage is summed into the next sample.
             Event::UnitIdle { .. } => return,
             Event::Chat { player, ref text } => json!({ "t": "ev", "f": frame, "k": "chat", "player": player, "text": text }),
-            Event::UnitDamaged { unit, attacker, damage, .. } => {
+            Event::UnitDamaged { unit, attacker, damage, ref weapon, .. } => {
                 *self.damage.entry(unit).or_default() += damage;
+                if let Some(w) = weapon {
+                    self.last_weapon.insert(unit, w.name.clone());
+                }
                 if let Some(attacker) = attacker {
                     if self.own.contains(&attacker) {
                         *self.friendly.entry(attacker).or_default() += damage;
@@ -257,6 +263,13 @@ impl Recorder {
                 let mut r = about(self, "destroyed", unit);
                 r["by"] = json!(attacker.map(|a| a.0));
                 r["by_d"] = json!(self.def(attacker.and_then(|a| self.known.get(&a)).and_then(|k| k.0)));
+                // The weapon of its last hit when no attacker is named: a silo's warhead, a death blast
+                // (H-REPORT-BLAST-CAUSE; the engine names no attacker for either).
+                if let Some(w) = self.last_weapon.remove(&unit)
+                    && attacker.is_none()
+                {
+                    r["w"] = json!(w);
+                }
                 self.known.remove(&unit);
                 self.own.remove(&unit);
                 r

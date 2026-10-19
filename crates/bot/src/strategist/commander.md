@@ -19,7 +19,21 @@ What a person at the head of a team decides, and nothing below it:
   sprint to tier 2 is yours above all (the brief's "Tier 2 is a sprint"): which seat, when (the first bank or the
   side's spots taken, whichever comes first, not when his tier 2 is seen), who feeds it, what the other seats make
   meanwhile, and whether the seat eats a tier-1 lab for it. The `allies` line says whether the allies are already
-  sprinting; the `spots` line says when the side's tier-1 income is reached.
+  sprinting; the `spots` line says when the side's tier-1 income is reached. The sprint is one seat's and the mohos
+  are every seat's: the advanced constructors given out are its point, a seat still on tier-1 extractors after the
+  sprint seat's first moho is the side's largest unspent asset and your direction says what it gets (a constructor
+  from the sprint seat, metal for its own plant), and past the mohos the gantry is a sprint of the same kind. The +60
+  Altored 3v3 (2026-10-19): the sprint moved to t2 at 3:51 and no direction ever came back to tier 2 for t0 or t1;
+  no advanced constructor left t2, two seats held zero mohos for an hour, and his Juggernauts from a gantry placed at
+  22:00 ended it. Tier-1 units trade badly against tier 2 and worse against tier 3 at any number: a direction that
+  sends tier-1 bodies at a Juggernaut spends them (338 of ours after 44:00 in that game); what answers his tier 3 is
+  the side's own economy and the units that out-range it, and the builders that pay for his.
+- **An anti-nuke under every home once his tier 2 stands**, before a silo is seen: the first silo seen is already
+  late (the +60 Altored 3v3: his first silo stood at 24:28, was in the picture at 33:19, and its missile had landed at
+  33:12). An anti-nuke is an advanced constructor's build (1,500 metal; interceptors 90 s each, cover 2,000), so the
+  seat with one covers the seats without, and the direction says which constructor goes where; the allies' homes
+  are theirs, and chat is the place to say one is bare. A missile or a death blast reads as deaths with no killer
+  named; the report names it when it can tell.
 - **Where the armies go.** A lead in army is worth nothing while it stands in our half. The standing order of an
   army that leads is to be in his half, killing what it outweighs, and to stay there (see "Going" below); a place
   to gather and a moment to go are for one case only, a defended position.
