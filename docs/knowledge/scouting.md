@@ -174,16 +174,21 @@ frame's) every 30 frames (`SENSORS_INTERVAL`) and the brain thinks every 15 (`BR
 holds a 15-frame-old grid, and a building our unit has just stepped away from is "in sight with nothing there"
 until the next read. A single such observation is therefore no evidence: sight-regress-1 (2026-10-18) declared
 107 buildings gone on it, 96 on the stale-grid thinks, and its report listed 2 of the 12 buildings in sight at
-his base; the memory held 61% of the truth's buildings in cells seen within the minute. With a two-second dwell
-(apex-v032-altored-3v3-1 and -bonus50-1) it held 86% and 83%. The grid itself is right: every own unit stood on a
-covered square at every sense row of three games, about a third under any flip of the layout.
+his base. With a two-second dwell (apex-v032-altored-3v3-1 and -bonus50-1) the misfires fell to 1 in 12 and 9 in
+20 per seat, and with this seat's own sight circle as a third guard (apex-v032-altored-3v3-apex20-1) to none in 25,
+every event matched to a death in the truth file a median four seconds earlier (`run/sightcheck.py`). The grid itself
+is right: every own unit stood on a covered square at every sense row of three games, about a third under any flip
+of the layout.
 
 **Status.** Observed in the engine source (Recoil 2026.07.04) and in the records of sight-regress-1 and the two
 Altored 3v3s (the `is gone` event rows against the truth files, `run/matches/1792356704-sight-regress-1`,
-`1792360263-apex-v032-altored-3v3-1`, `1792360810-apex-v032-altored-3v3-bonus50-1`). The remaining 14-17%
-shortfall is unexplained: a unit-id reconstruction of each dropped building is only an upper bound (a building
-first seen while being built raises no `enemy_seen` row; an ally's sighting is pooled without one), so the rule now
-writes its evidence (seconds in sight, our nearest unit's distance, the grid's age) into each event and requires
-this seat's own sight circle beside the grid. An earlier version of this claim said the flags lag 16 frames in a
+`1792360263-apex-v032-altored-3v3-1`, `1792360810-apex-v032-altored-3v3-bonus50-1`,
+`1792364323-apex-v032-altored-3v3-apex20-1`). The recall figures an earlier version of this claim gave (61%, 86%,
+83% of the truth's buildings in cells the report called in sight or seen within the minute) measured the eyes, not
+the memory: a cell is "all of it in sight now" when every tile of it was seen at some time and the median tile
+within ten seconds, so part of it is out of sight at that moment, and 15-23% of those buildings had never been in
+any seat's snapshot; of the buildings once seen, the memory held 99% (1,067 of 1,076 in the +20 game, 1,315 of
+1,318 in the +0 game). The rule writes its evidence (seconds in sight, our nearest unit's distance, the grid's age)
+into each event. An earlier version of this claim said the flags lag 16 frames in a
 slow-update loop; the source says otherwise (the loop over a sixteenth of the units is `SlowUpdateUnits`, a
 different one).

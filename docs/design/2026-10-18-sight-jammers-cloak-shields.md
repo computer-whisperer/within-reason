@@ -109,3 +109,16 @@ grid on every other think). The memory held 86% of the truth's buildings in cell
 being built raise no `enemy_seen` row). The rule now needs the engine's grid, this seat's own sight circle and the
 dwell together, and writes its evidence into the event.
 
+## Measured: apex-v032-altored-3v3-apex20-1 (2026-10-18, the three guards)
+
+The first game with the grid, this seat's own sight circle and the dwell together (3v3 against Apex v0.3.2 at +20
+on Altored Divide, won 17:30 on the referee's call): 25 "is gone" events (7, 1 and 17 by seat, since a seat drops
+only what its own units stand within sight of, and the drop is pooled to all three), every one matched by
+`run/sightcheck.py` to a building the truth file shows dead, the median four seconds after the death, none on a
+standing building. The same check over the earlier games: sight-regress-1's grid rule 80 misfires in 107, the dwell
+alone 1 in 12 per seat (+0 game) and 9 in 20 (+50 game). The recall figures of the sections above (61%, 86%, 83%)
+were the measure's shortfall, not the memory's: a cell is "all of it in sight now" when every tile of it was seen at
+some time and the median tile within ten seconds, so part of it is out of sight at that moment (D8 at 10:15: 97 of
+256 squares in the grid) and 15-23% of the truth's buildings in those cells had never been in any seat's snapshot;
+of the buildings once seen, the memory held 99% (1,067 of 1,076; 1,315 of 1,318 in the +0 game). The arc's
+perception rules are measured and clean; what remains open is the body's conduct, not its eyes.
