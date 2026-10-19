@@ -459,3 +459,28 @@ no `armuwmex` or `coruwmex`; the commander's and the constructors' build lists c
 placed one from the shore.
 **Used by.** H-REPORT-FREE-SPOTS-BY-REACH, the briefs' water passages (docs/briefs/player.md, the commander's prompt).
 
+### K-eco-energy-storage-is-the-cheap-buffer
+**Claim.** An energy storage is 170 metal (Cortex 175) for 6,000 stored, 35 energy per metal: a fusion's 2,500 comes
+with 3,350 metal, the advanced fusion's 9,000 with 9,700, a metal storage is 330 for 3,000. The side starts with the
+modoption's 1,000 plus the commander's 500; solars add 50 each, advanced solars 100, labs 200, so a tier-1 base of
+twenty solars holds 2,000 to 2,500, which a 750-a-second deficit (a fusion frame, a tier-2 plant's unit) empties in
+three seconds. The store is what the D-gun's 500 a shot, a laser turret line (it stops in a stall), the wind's swing
+(Altored 4 to 19: 23 turbines give 92 to 437 a second) and the converters draw on: converters run only on the energy
+above 75% of storage (K-mech-converter-threshold), so storage is the converter economy's working room, and a full
+store throws away everything above it. It explodes when killed (980 damage over 210 by the engine's definition). The
+experienced players build it: 23 of 80 Comet Catcher duel sides at OS 40+ built one, the first at 8:51 / 9:36 / 12:27
+(p25 / median / p75), 16 of them one, 7 two to eight; 5 of 80 a metal storage; 10 of 80 converters (3 to 24); none a
+fusion, the duels ending at 12:56 median.
+**Status.** supported (2026-10-19): the engine's unit definitions (run/matches/1792374652-apex-v032-altored-3v3-apex50-1's
+header), the pool's whole-game records (`run/data/replays/manifest.jsonl`, the `record-*.jsonl` of each kept game,
+`finished` events), the +50 game's reports.
+**Evidence.** Ours: no seat of the +50 Altored 3v3 (2026-10-18) built one. Seat 0's store was 1,150 to 1,460 through
+twenty STALLING turns (1:50 to 8:03) and the same seat wasted a median 820 energy a second (max 1,643) "banking it
+unused" in 85 of its 182 turns, from 2:40 to 32:16, with one converter; its store reached 6,400 only with the fusions
+at 20:00. The hands offered `build_armestor` 2,252, 1,506 and 1,548 times by seat; no list named it and no pick took
+it. Apex at +50 built 63 basic and 13 advanced converters, 53 advanced solars, 35 mohos and 6 fusions, and no storage.
+**Would be wrong if.** Stored energy made no difference to converter output or turret fire (the K-mech claims), or
+the pool's storages came only in long games (they come at 9:36 median in games of 12:56).
+**Used by.** The briefs' Economy bullet and "Scaling past the mohos" passage; the glossary's `armestor`/`corestor`
+lines; K-eco-storage-before-t2 (the inbox), K-mech-converter-threshold, K-t2-post-moho-scaling.
+
