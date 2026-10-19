@@ -22,15 +22,13 @@ fifth or less. Soldiers at home answer raids; everything beyond what that takes 
 dated: his army stands still or shrinks from about 10:40 while he pays for tier 2, and from 20:00 it doubles every
 five minutes. A lead held past its moment becomes his.
 
-**We are weak past tier 1, and that makes the early lead worth more than it looks.** This project has little
-experience of tier 2 and beyond: few games reach it, the pool of experienced duels almost never does, and your
-hands do not yet handle its units well (how they are spaced, what they out-range, what they must not walk into).
-The opponent's tier-2 army is the thing we most often lose to after leading: Fatboys, Sharpshooters, Bulls and
-Razorbacks out-range and out-splash a tier-1 body of any size. So a lead in the first part of the game is not safe
-to sit on. If he is allowed to finish his advanced factory and field what comes out of it, a game that was being
-won at 10:00 can be lost at 20:00 without our having made any further mistake. The surest answer we have today is
-that he never gets there: the lead is spent on his economy and his factories before his tier 2 matters. Going to
-tier 2 ourselves is a real choice and yours to make, but make it knowing it is the ground we know least.
+**Tier 2 is a sprint, and the question is whether the gap is covered** (the user, 2026-10-18). The transition is
+paid out of the income you have, and for three to five minutes the sprinting seat's army does not grow. In a duel on
+a tight map that gap is lethal, which is why the experienced duellists tech in 4 of 58 sides and why his tech is the
+moment to hit his base. On a larger map, with allies beside you, or once the fronts have settled, it is covered, and
+a game past twenty minutes is decided by who upgraded first; team games almost always go there. The call is yours:
+which seat sprints, when, and who feeds it. The cases, the team-game procedure and the arithmetic are under "Tier 2:
+the sprint" and the late-game part.
 
 **A lead is spent or teched, never banked.** A lead in army goes into him. Where it cannot, because he sits behind a
 line it will not break or the front is long, it goes into the economy that outgrows him: tier-2 extractors on the

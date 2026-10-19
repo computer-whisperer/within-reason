@@ -83,8 +83,6 @@ investment in advanced converters is what lets players scale further").
   longer in proportion: player-32's two fusions 274 and 276 s against 186 by the power on them, the energy store
   empty in three samples of four (`run/t2_frames.py`). Our energy was at zero through the whole plant build in
   player-10, 11 and 32.
-- **One builder on a frame.** bluegecko-3v1-10 (three seats against a person): one seat's advanced plant at 0 % from
-  15:40 until it was abandoned at 19:15, one constructor on it, that seat banking 1,432; nothing sent between seats.
 - **The bank was the frames not begun.** human-18 at 17:54: "Energy STALLING with 6.2k metal banked and ~20
   constructors idling"; player-50 held five to ten times his army and thousands in the store for twenty minutes
   (called undecided). The frontier's orders waste 7 metal in thirty minutes.
@@ -107,8 +105,6 @@ investment in advanced converters is what lets players scale further").
   ten thousand and took seven minutes, and the energy rule built 40 to 56 solars for a draw that never came. The
   rules were the bot's; the crowded yard and the storage cap are the game's
   (K-t2-the-late-spend-ceiling-in-a-bot).
-- **His side**: BARb hard_aggressive's advanced lab at 10:41 at the median, his army flat from 10:40 to 20:00 and
-  doubling every five minutes after (the cases, "Tier 2: his and ours").
 - **The first game with a silo** (nuke-1-medium, Comet Catcher, BARb medium, the objective set to the nuke; undecided
   at the 40-minute cap). The advanced plant begun 8:38 after a fourteen-Ak raid at 8:23 took its first frame, three
   constructors and eight extractors; fusion 14:26; the silo listed with one id for an advanced constructor, the

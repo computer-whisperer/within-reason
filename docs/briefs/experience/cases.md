@@ -112,40 +112,68 @@ size.
 - sonnet-medium-1 (Comet): 46 Shellshockers in one body of 50 to 68; at 21:36 it had 9,005 metal on the spot against
   two Bulls and lost 3,330, then 4,300 for 675. Friendly fire was 16% of the damage it dealt.
 
-### Tier 2: his and ours
+### Tier 2: the sprint
 
-Little here is settled. Duels between people at this level on Comet Catcher end at 12 to 15 minutes at the median,
-and 4 of 80 sides ever started an advanced factory, so the pool does not say when it pays. What follows is the few
-cases we have and what people said. The arithmetic of what tier 2 costs and returns is in the economy tables.
+**The argument** (the user, 2026-10-18). Going to tier 2 is paid out of the income you have: the advanced plant
+(2,600 metal, 14,000 to 16,000 energy), its first advanced constructor (410 to 470), the first tier-2 extractors
+(620 each, four times the spot), while that seat's tier-1 plants pause and its builders stand on the frames. For
+three to five minutes the army does not grow; the frontier's fastest orders with no enemy put the plant at 6 to 7
+minutes and the first moho at 6 to 9 (the late-game part), and under pressure every minute a frame waits on an
+empty store is added to that. What comes out is the real economy and the real army: a side that holds its share of
+the spots grows only by upgrading them, and tier-2 units out-range and out-fight any tier-1 body of equal metal. So
+the question is never his tech; it is the gap. In a duel on a tight map it is lethal: his raiders meet a thin army
+and an idle plant, and the experienced players tech in 4 of 58 sides, ending the game first instead (in a close duel
+the tech is a fatal weak point, so his tech is the moment to find and kill his base, and matching him is the
+mistake: the user, 2026-09-28). On a larger map, with allies beside you, or once the fronts have settled, the gap is
+covered, and a game past twenty minutes is decided by who upgraded first; team games almost always go there. Ask at
+the first report, and again whenever the side's spot count stops growing: how long will this game run, who holds
+the line while a seat sprints, and what tier-1 income is left to take. Long, covered, none: the sprint starts now,
+and the only question is which seat. Short, nobody, plenty: stay on tier 1 and kill his base when he sprints.
 
-**BARb on Comet Catcher** starts an advanced factory at 10:41 at the median (9:55 to 11:44), in 73 of 74 games that
-lasted fifteen minutes, whatever we did. His army's value falls or stands still while he pays for it (median 3,302
-at 12:00, 2,852 at 16:00), then doubles every five minutes from 20:00 (5,069, then 9,389 at 25:00 and 16,360 at
-30:00) as Fatboys, Sharpshooters and Razorbacks arrive.
+**The sprint in a team game.** One seat sprints, the one with the bank or the quietest front, and it starts at the
+first bank or when the side's spots are taken, whichever comes first, not when his tier 2 is seen. Every constructor
+of that seat and a construction turret or two beside it go on the plant, its other plants pause, the other seats
+send metal with `transfer` from the moment the plant is placed, and the received metal is a plant standing in two
+minutes, not a store. Its first units are an advanced constructor for each seat, given away, so the mohos go up on
+every seat at once. A tier-1 lab whose production is no longer the plan is reclaimed for its metal ("eat your bot
+lab", thebluegecko), and the commander is reclaimable too, for 2,700, when the side keeps another and a frame stands
+to take the metal: a side loses only when it has no commanders left (the game-end rule). Metal is nothing without
+build power on the frame (the user, 2026-09-28: "Two players gifting to one doesn't help if that player doesn't
+have the build power to push it through"). An allied seat that is sprinting is fed the same way: `transfer` sends
+metal and energy to an ally that is not ours. The direction names the seat, the moment and the feeders; the player
+of that seat runs the frames.
 
-**Cases.**
-- player-9 (Comet): his advanced lab started at 10:32 and his army fell from 2,736 to 2,220 by 12:00 while ours rose
-  to 6,565. Our mass stood at D5-D6 in our own half. The lab was never seen, and its Fatboys, Sharpshooters and a
-  Razorback ended the game.
-- player-10 and player-11 (Comet): his lab at 11:42 and 12:10. Both times we started our own; it stood at 14:15,
-  with our energy at 0 at 11:37 to pay for it. Both lost.
-- bluegecko-3v1-9 (Comet, a person): we stayed tier 1; 94 tier-1 tanks died to 15 Bulls.
-- bluegecko-3v1-10 (Comet, lost 26:10): our army was a mass of Lashers. "You made many lashers, so I was safe to go
-  T2." His Tzars and Tigers beat them. On our side one seat's advanced plant sat at 0% from 15:40 until it was
-  abandoned at 19:15, with one constructor on it, while that seat banked 1,432 metal; no metal was sent between
-  seats all game.
-- bluegecko-3v1-12: three transfers between seats, a dying seat's units and 700 metal to a live one at 11:41 to
-  12:13.
+**His sprint.** BARb on Comet Catcher starts an advanced factory at 10:41 at the median (9:55 to 11:44), in 73 of 74
+games that lasted fifteen minutes, whatever we did. His army's value falls or stands still while he pays for it
+(median 3,302 at 12:00, 2,852 at 16:00), then doubles every five minutes from 20:00 (5,069, then 9,389 at 25:00 and
+16,360 at 30:00) as Fatboys, Sharpshooters and Razorbacks arrive. A person's sprint in a duel is the window the
+cases describe; in a team game it is the cue that the other side has judged its gap covered.
 
-**What players said.**
-- "Two seats can gift resources to one seat, that seat can build t2, then share t2 constructors to let advanced
-  mexes go up." (the user, 2026-09-27)
-- "The top player had only one constructor applying build power to it ... Two players gifting to one doesn't help
-  if that player doesn't have the build power to push it through." (the user, 2026-09-28)
-- "Top should stop building other units while doing t2 transition." (thebluegecko, game 10)
-- In a close duel the tech is a weak point: his is the moment to find his base. Past about 25:00, with more than
-  two players, or against an opponent that techs on a clock whatever happens, that weak point is covered. (the
-  user, 2026-09-28)
+**Cases, in pairs.**
+- The gap lethal: player-10 and player-11 (Comet duels against BARb) matched his lab at 11:42 and 12:10, stood theirs
+  at 14:15 with energy at 0 from 11:37, and lost both. A tier-1 bot of ours that holds BARb hard_aggressive to one
+  win in five on Comet won 1 of 16 when it sprinted at income 22 and 0 of 8 at 30, and on Great Divide at 11 spots a
+  side 2 of 16 against 7 of 8 without (K-t2-the-transition-under-pressure-loses-at-either-gate: duels, tight maps,
+  nobody covering; the late-game part has the curves).
+- The gap covered: human-8v8-1 (a lobby 5v5 with people, our two seats at +50 % beside three Apex seats). Apex's
+  Legion seat placed its advanced lab at 5:20 on eight extractors and an income of 27, held its army near 2,000
+  metal from 6:00 to 12:00 while our two seats' armies of 5,000 to 12,000 carried both fronts, had its first moho at
+  9:00, six by 15:00 and seventeen by 30:00, and ran 104 metal a second at 15:00 and 206 at 30:00. Our seats, capped
+  at nine and fifteen spots from 6:00, placed their labs at 12:39 (on seeing his) and 18:28 (on a bank) and ran 42
+  and 57 at 15:00, 122 and 96 at 30:00; the commander directed both bodies at his lab at 12:36 and made no transfer
+  all game. Its army at 57:00 was 410,000 metal against our 132,000 and 111,000 (K-t2-the-gap-is-covered-by-allies).
+- The long game on tier 1: bluegecko-3v1-comet-catcher-9 (Comet, a person), lost 20:16 after leading three to one;
+  94 tier-1 tanks died to 15 Bulls.
+- His sprint as the window, in a duel: player-9 (Comet), his lab at 10:32, his army fell from 2,736 to 2,220 by
+  12:00 while ours rose to 6,565 and stood at D5-D6 in our own half; the lab was never seen, and its Fatboys,
+  Sharpshooters and a Razorback ended the game.
+- The sprint botched: bluegecko-3v1-comet-catcher-10 (lost 26:10), the top seat's plant at 0 % from 15:40 to 19:15
+  with one constructor on it, that seat banking 1,432 and no `transfer` all game ("Top should stop building other
+  units while doing t2 transition", thebluegecko; our Lasher mass had let him tech: "you made many lashers, so I was
+  safe to go T2"); human-8v8-1, our first advanced lab at D8 killed at 16:53 by five Centurions and a Mace with
+  4,000 metal in it, the lab outside the turrets.
+- The transfer used: bluegecko-3v1-12, three transfers between seats, a dying seat's units and 700 metal to a live
+  one at 11:41 to 12:13.
 
 ### Income past the spot count
 
