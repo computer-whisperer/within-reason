@@ -1623,7 +1623,15 @@ impl Brain {
                     entry["next"] = json!(format!("queued to start the moment this is done: {}", self.task_words(Some(next), unit, &places, frame, own)));
                 }
                 if let Some(steps) = pianist.scripts.get(&name).filter(|s| !s.is_empty()) {
-                    let waits = if pianist.list_held.contains(&unit.id) { "; waiting: the hands sent this builder away from an enemy, and its list goes on when no enemy is on it" } else { "" };
+                    let waits = if pianist.list_held.contains(&unit.id) {
+                        let covered = self.step_site(steps.front().map(String::as_str), &places).and_then(|site| pianist.parties.iter().find(|p| p.at.dist2d(site) < super::menu::THREATENED).map(|p| (p.name.clone(), site)));
+                        match covered {
+                            Some((party, site)) => format!("; waiting: the hands sent this builder away from an enemy, and {party} stands within {:.0} of the site of its next step ({}); the list goes on when no enemy is on the builder or on that site", super::menu::THREATENED, self.place_words(&places, site)),
+                            None => "; waiting: the hands sent this builder away from an enemy, and its list goes on when no enemy is on it".to_string(),
+                        }
+                    } else {
+                        String::new()
+                    };
                     // Its first step is an id's building it cannot make, and nobody has started that building yet.
                     let for_starter = steps.front().and_then(|first| {
                         let (body, tag) = super::lists::step_id(first);

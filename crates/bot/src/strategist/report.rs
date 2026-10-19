@@ -178,12 +178,16 @@ pub(super) fn front(briefing: &Briefing, field: &Field, fights: &[String], seats
     let c = &briefing.counts;
     let s = &field.score;
     lines.push(format!(
-        "score: extractors {} (most held {}, no new high for {}; free spots we can walk to {}, nearest on foot: {}; his extractors as our units last saw them, nearest our start first: {}) | army {} soldiers worth {} metal, {} of them within 800 of our start, {} | opponent: we see only what our units see. Its soldiers seen in the last 3 min and not seen to die: {} worth {} metal; {}",
+        "score: extractors {} (most held {}, no new high for {}; free spots {}: {} in our half our bots walk to, {} in our half under water or off their ground{}, {} in his half; nearest, our half first: {}; his extractors as our units last saw them, nearest our start first: {}) | army {} soldiers worth {} metal, {} of them within 800 of our start, {} | opponent: we see only what our units see. Its soldiers seen in the last 3 min and not seen to die: {} worth {} metal; {}",
         s.extractors,
         s.extractor_peak,
         clock(s.seconds_since_growth),
         s.free_spots,
-        if s.next_free.is_empty() { "none".to_string() } else { s.next_free.iter().map(|(n, p, walk)| format!("#{n} {} {walk}", p.grid)).collect::<Vec<_>>().join(", ") },
+        s.free_on_foot_ours,
+        s.free_other_ours,
+        s.other_reach.as_ref().map_or(String::new(), |r| format!(" ({r})")),
+        s.free_in_his_half,
+        if s.next_free.is_empty() { "none".to_string() } else { s.next_free.iter().map(|f| format!("#{} {} {}{}", f.n, f.place.grid, f.distance, f.how.as_ref().map_or(String::new(), |h| format!(" [{h}]")))).collect::<Vec<_>>().join(", ") },
         if s.enemy_spots.is_empty() { "none seen standing".to_string() } else { s.enemy_spots.iter().map(|(n, p, ago)| format!("#{n} {} ({} ago)", p.grid, clock(*ago))).collect::<Vec<_>>().join(", ") },
         s.soldiers,
         s.army_metal,
@@ -822,6 +826,36 @@ mod sightings_tests {
         assert!(score_line.contains("Its soldiers seen in the last 3 min and not seen to die: 12 worth 3756 metal; "), "{score_line}");
         for word in ["known to hold", "may be much more", "his spending", "a floor", "extractors' worth"] {
             assert!(lines.iter().all(|l| !l.contains(word)), "{word}: {lines:?}");
+        }
+    }
+
+    /// H-REPORT-FREE-SPOTS-BY-REACH: the free spots by who reaches them and by half, the nearest of our half first with
+    /// what of ours gets to one under water; "we can walk to" and "nearest on foot" are gone.
+    #[test]
+    fn the_score_line_counts_free_spots_by_reach_and_names_the_nearest_under_water() {
+        use super::super::shared::NextFree;
+        let place = |grid: &str| Place { grid: grid.to_string(), x: 0, z: 0 };
+        let reach = "under water: our corcom can take it now; a cormuskrat (from corvp) would";
+        let score = Score {
+            frame: 11 * 1800,
+            extractors: 17,
+            free_spots: 28,
+            free_on_foot_ours: 3,
+            free_other_ours: 13,
+            free_in_his_half: 12,
+            other_reach: Some(reach.to_string()),
+            next_free: vec![
+                NextFree { n: 57, place: place("G7"), distance: 1176, how: Some(format!("straight line; {reach}")) },
+                NextFree { n: 12, place: place("F2"), distance: 2761, how: None },
+                NextFree { n: 38, place: place("C5"), distance: 4100, how: Some("in his half".to_string()) },
+            ],
+            ..Score::default()
+        };
+        let field = Field { score, ..Field::default() };
+        let line = &front(&Briefing::default(), &field, &[], false)[0];
+        assert!(line.contains("free spots 28: 3 in our half our bots walk to, 13 in our half under water or off their ground (under water: our corcom can take it now; a cormuskrat (from corvp) would), 12 in his half; nearest, our half first: #57 G7 1176 [straight line; under water: our corcom can take it now; a cormuskrat (from corvp) would], #12 F2 2761, #38 C5 4100 [in his half];"), "{line}");
+        for gone in ["we can walk to", "nearest on foot"] {
+            assert!(!line.contains(gone), "{gone}: {line}");
         }
     }
 

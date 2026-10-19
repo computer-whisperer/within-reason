@@ -193,14 +193,20 @@ impl Shared {
             s.extractor_peak += o.extractor_peak;
             s.seconds_since_growth = s.seconds_since_growth.min(o.seconds_since_growth);
             s.free_spots = s.free_spots.min(o.free_spots);
-            // Each free spot with its walk from the nearest of our homes.
-            for (n, place, walk) in &o.next_free {
-                match s.next_free.iter_mut().find(|(have, ..)| have == n) {
-                    Some(have) => have.2 = have.2.min(*walk),
-                    None => s.next_free.push((*n, place.clone(), *walk)),
+            s.free_on_foot_ours = s.free_on_foot_ours.min(o.free_on_foot_ours);
+            s.free_other_ours = s.free_other_ours.min(o.free_other_ours);
+            s.free_in_his_half = s.free_in_his_half.min(o.free_in_his_half);
+            if s.other_reach.is_none() {
+                s.other_reach = o.other_reach.clone();
+            }
+            // Each free spot with its distance from the nearest of our homes.
+            for f in &o.next_free {
+                match s.next_free.iter_mut().find(|have| have.n == f.n) {
+                    Some(have) => have.distance = have.distance.min(f.distance),
+                    None => s.next_free.push(f.clone()),
                 }
             }
-            s.next_free.sort_by_key(|(_, _, walk)| *walk);
+            s.next_free.sort_by_key(|f| f.distance);
             s.next_free.truncate(lead.field.score.next_free.len().max(o.next_free.len()));
             for (n, place, ago) in &o.enemy_spots {
                 match s.enemy_spots.iter_mut().find(|(have, ..)| have == n) {

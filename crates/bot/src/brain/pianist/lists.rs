@@ -149,7 +149,13 @@ impl Brain {
             // to spot_68 away from the block never started, the block being within 800). Not after the pick has
             // sent the builder away from an enemy, while that enemy is still on it: the pick's way out stands
             // (player-31: 83 of 92 such retreats were undone by the list within three seconds).
-            if pianist.list_is_held(unit.id, status.threatened) {
+            // The hold outlasts the builder's own danger while the site of its waiting step is under a party
+            // (Cape Violet 2026-10-18: constructor_31731 flipped eight times in 35 s between its torpedo-launcher step
+            // at spot_16 and the pick's walk away from the Dolphin covering that spot, the hold lifting each time the
+            // builder was out of the Dolphin's reach and the list sending it back in).
+            let site_covered = pianist.list_held.contains(&unit.id)
+                && self.step_site(pianist.scripts.get(&name).and_then(|s| s.front()).map(String::as_str), &picture.places).is_some_and(|site| picture.parties.iter().any(|p| p.at.dist2d(site) < super::menu::THREATENED));
+            if pianist.list_is_held(unit.id, status.threatened || site_covered) {
                 continue;
             }
             let task = pianist.tasks.get(&unit.id).cloned();
@@ -322,6 +328,18 @@ impl Brain {
     /// said; `assist` before any factory exists waits.
     /// The wreck field a list step names: the richest in the grid cell (`E4`), else the nearest within two fields'
     /// radius of the named place.
+    /// Where a list step builds, when its second word is a spot or a place: the site the hold on a sent-away builder's
+    /// list watches (`play_lists`), and the words for its picture entry.
+    pub(super) fn step_site(&self, step: Option<&str>, places: &[Place]) -> Option<Vec3> {
+        let (body, _) = step_id(step?);
+        let (body, _) = step_low(body);
+        let place = body.split_whitespace().nth(1)?;
+        match place.strip_prefix("spot_").and_then(|n| n.parse::<usize>().ok()) {
+            Some(i) => self.world.hello.metal_spots.get(i).copied(),
+            None => places.iter().find(|p| p.name == place).map(|p| p.at),
+        }
+    }
+
     pub(super) fn wreck_field_at(&self, what: &str, places: &[Place]) -> Option<Vec3> {
         let cell = what.trim().to_ascii_uppercase();
         let is_cell = cell.len() == 2 && cell.starts_with(|c: char| ('A'..='H').contains(&c)) && cell.ends_with(|c: char| ('1'..='8').contains(&c));
@@ -469,6 +487,21 @@ mod tests {
 
     /// A list waits only for a builder the pick sent away from an enemy, and only while an enemy is still on it:
     /// once the builder is clear the hold is over for good, whatever comes near it later.
+    /// The site of a step: a spot by its number in the map's list, a place by its name, nothing for a step without one.
+    #[test]
+    fn a_steps_site_is_its_spot_or_its_place() {
+        use super::super::fixtures::{at, brain_of};
+        use super::super::Place;
+        let mut brain = brain_of(&["corcom", "cordl"]);
+        brain.world.hello.metal_spots = vec![at(100.0, 100.0), at(2000.0, 900.0)];
+        let places = vec![Place { name: "radar_hill".to_string(), at: at(500.0, 700.0), spot: None, cells: None }];
+        assert_eq!(brain.step_site(Some("cordl spot_1"), &places), Some(at(2000.0, 900.0)));
+        assert_eq!(brain.step_site(Some("corllt radar_hill #t1"), &places), Some(at(500.0, 700.0)));
+        assert_eq!(brain.step_site(Some("corllt nowhere"), &places), None);
+        assert_eq!(brain.step_site(Some("assist 25"), &places), None);
+        assert_eq!(brain.step_site(None, &places), None);
+    }
+
     #[test]
     fn a_list_is_held_after_the_picks_way_out_while_the_builder_is_threatened() {
         let mut pianist = super::Pianist::new(false, &std::env::temp_dir(), 0).expect("a pianist");

@@ -27,7 +27,7 @@ use crate::world::Domain;
 /// The rover's job, as the `rove` and `rove_1` moves say it (H-MICRO-ROVE; docs/studies/2026-10-07-rove-words.md).
 const ROVE_WORDS: &str = "looking at what we know least, killing unguarded constructors and extractors, and keeping out of every reach";
 
-const THREATENED: f32 = 800.0;
+pub(super) const THREATENED: f32 = 800.0;
 /// A builder whose started build is this far along has its moves ordered behind it (H-HANDS-QUEUE).
 const QUEUE_AT: f32 = 0.6;
 /// A place this close is where the actor stands: a move there would change nothing.
@@ -1319,11 +1319,18 @@ impl Brain {
                         continue;
                     }
                     let place = &picture.state["places"][format!("spot_{i}")];
+                    // A spot our soldiers cannot walk to says so: the one fact that sets this builder apart from the
+                    // rest (H-REPORT-FREE-SPOTS-BY-REACH; Cape Violet 2026-10-18: the commander's "spot_57 (about 50 s
+                    // of walking, G7, the free spot it reaches soonest)" never said G7 was under water).
+                    let off_foot = match self.world.hello.metal_spots.get(*i) {
+                        Some(s) if !self.reachable_on_foot(*s) => if self.world.under_water(*s) { ", under water: only a builder of this kind gets there" } else { ", off the ground our bots walk: only a builder of this kind gets there" },
+                        _ => "",
+                    };
                     push(
                         format!("build_{}_spot_{i}", self.name(kit.extractor)),
                         Order::Build(kit.extractor, Site::Spot(*i)),
                         format!(
-                            "{then}{name} builds a metal extractor at spot_{i} ({} of walking, {}{}{}): our {}{}{leaves}",
+                            "{then}{name} builds a metal extractor at spot_{i} ({} of walking, {}{off_foot}{}{}): our {}{}{leaves}",
                             seconds_words(*seconds),
                             place["grid"].as_str().unwrap_or_default(),
                             if k == 0 { ", the free spot it reaches soonest" } else { "" },

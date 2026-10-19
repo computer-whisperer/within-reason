@@ -440,3 +440,22 @@ builder, per player and game).
 **Would be wrong if.** Those players' constructors were born low by a widget version rather than a setting (the
 same versions show other players' constructors born high, so no).
 **Used by.** none directly: H-HANDS-LIST-LOW writes the same outcome the other way round (what can wait is tagged low)
+
+### K-eco-under-water-spots-are-the-amphibious-builders
+**Claim.** A metal spot under water takes the ordinary tier-1 extractor (BAR on Recoil 2026.07.04 has no separate
+under-water extractor: `armuwmex` and `coruwmex` are not in the game's unit defs), and only a builder whose movement
+class crosses deep water can place it: the commander from the first minute, the amphibious constructor (Beaver
+`armbeaver`, Muskrat `cormuskrat`, from the vehicle plant), the construction hovercraft (`armch`, `corch`, from the
+hover platform) and the construction ship (`armcs`, `corcs`, from the shipyard). A side that makes none of them and
+keeps its commander at home leaves every under-water spot to the opponent.
+**Status.** supported (2026-10-18)
+**Evidence.** Azurite Shores 2v3 with people (run/matches/1792366754-human): seat 2's Cortex commander and Muskrat
+built `cormex` on all seven water spots of our half between 6:16 and 9:21 by list steps; the Armada seat at B8 built
+none. Cape Violet 1v1 with a person (run/matches/1792372195-human): 26 of 72 spots under water, 13 in our half; the
+player produced no Muskrat or hovercraft constructor, built 39 extractors on land and none in water, and the person
+took the sea from 11:59 (a construction ship at G3, our half) to an Epoch at 29:56. The unit defs of both games hold
+no `armuwmex` or `coruwmex`; the commander's and the constructors' build lists carry `armmex`/`cormex` alone.
+**Would be wrong if.** The engine refused the commander's extractor order on a water spot, or a land constructor
+placed one from the shore.
+**Used by.** H-REPORT-FREE-SPOTS-BY-REACH, the briefs' water passages (docs/briefs/player.md, the commander's prompt).
+

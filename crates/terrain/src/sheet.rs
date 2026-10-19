@@ -192,7 +192,17 @@ pub fn markdown(s: &Value) -> String {
         "- {} elmos; wind {}; tidal {}; {} under water; ground height {}.\n- {} metal spots; a tier-1 extractor draws {} metal a second (lowest / median / highest spot).\n- Starts: {}.\n\n",
         list(&s["size"], " by "), list(&s["wind"], " to "), text(&s["tidal"]), text(&s["under_water"]), list(&s["ground_height"], " to "),
         text(&s["spots"]["count"]), list(&s["spots"]["metal_a_second_each_low_median_high"], " / "),
-        s["starts"].as_array().map(|a| a.iter().map(|p| format!("{} {} ({}, {}; {} from ours)", text(&p["whose"]), text(&p["cell"]), text(&p["x"]), text(&p["z"]), text(&p["straight_from_ours"]))).collect::<Vec<_>>().join(", ")).unwrap_or_default(),
+        // By cell, not "ours" and "the opponent's": the brief's sheet is read from either start (the commander on Cape
+        // Violet, 2026-10-18, read "ours A5" while its seat stood at H6).
+        s["starts"]
+            .as_array()
+            .map(|a| {
+                let names: Vec<String> = a.iter().map(|p| format!("{} ({}, {})", text(&p["cell"]), text(&p["x"]), text(&p["z"]))).collect();
+                let apart = a.get(1).map(|p| format!(", {} apart", text(&p["straight_from_ours"]))).unwrap_or_default();
+                let first = a.first().map(|p| text(&p["cell"])).unwrap_or_default();
+                format!("{}{apart}; the table below is from {first}, which was ours in the game the sheet was made from: from the other start, read \"us\" and \"him\" the other way round", names.join(" and "))
+            })
+            .unwrap_or_default(),
     );
     out += "| Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |\n|---|---|---|---|---|---|---|---|\n";
     for c in s["classes"].as_array().into_iter().flatten() {

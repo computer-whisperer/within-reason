@@ -173,11 +173,18 @@ impl Brain {
         let stagnant = tick.frame - self.wake.growth_frame.max(self.wake.last_stagnation_wake);
         if stagnant >= STAGNATION_FRAMES && field.score.free_spots > 0 {
             self.wake.last_stagnation_wake = tick.frame;
+            // The spots by who reaches them (H-REPORT-FREE-SPOTS-BY-REACH): "with 25 free spots we can walk to" counted
+            // his half's and left out our half's thirteen under water (Cape Violet 2026-10-18).
+            let s = &field.score;
             reasons.push(format!(
-                "no growth: we have not held more than {} extractors for {} min, with {} free spots we can walk to",
+                "no growth: we have not held more than {} extractors for {} min; free spots {}: {} in our half our bots walk to, {} in our half under water or off their ground{}, {} in his half",
                 self.wake.extractor_peak,
                 (tick.frame - self.wake.growth_frame) / (60 * FRAMES_PER_SECOND),
-                field.score.free_spots
+                s.free_spots,
+                s.free_on_foot_ours,
+                s.free_other_ours,
+                s.other_reach.as_ref().map_or(String::new(), |r| format!(" ({r})")),
+                s.free_in_his_half
             ));
         }
 

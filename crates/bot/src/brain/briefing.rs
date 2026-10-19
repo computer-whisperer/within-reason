@@ -7,7 +7,7 @@ use serde_json::json;
 
 use super::roster::Kit;
 use super::{Brain, FRAMES_PER_SECOND};
-use crate::strategist::shared::{Briefing, Counts, Draw, EnemyCluster, EnemyDeath, ExtractorStatus, Field, Group, Place, RememberedBuilding, Score, Spending, TradeKind, Traded, OWN_TRADE_FRAMES, SIDE_TRADE_FRAMES};
+use crate::strategist::shared::{Briefing, Counts, Draw, EnemyCluster, EnemyDeath, ExtractorStatus, Field, Group, NextFree, Place, RememberedBuilding, Score, Spending, TradeKind, Traded, OWN_TRADE_FRAMES, SIDE_TRADE_FRAMES};
 
 /// One death in the trade log: a loss of ours (`ours`), or a kill by one of our own units.
 #[derive(Clone, Copy, Debug)]
@@ -637,6 +637,48 @@ impl Brain {
         shared.publish_briefing(self.world.hello.team, self.home, briefing);
     }
 
+    /// What of ours gets to a spot our soldiers cannot walk to (H-REPORT-FREE-SPOTS-BY-REACH): "under water: our corcom
+    /// can take it now; a cormuskrat (from corvp) or a corch (from corhp) would". The mobile builders of our roster
+    /// whose movement class reaches the place; with `own`, those standing now apart from those a plant must make.
+    /// (Cape Violet 2026-10-18: thirteen spots of our half under water, the commander 1,176 from the nearest, and no
+    /// report named one or said who could take it.)
+    pub(super) fn reach_words(&self, spot: Vec3, own: Option<&[OwnUnit]>) -> String {
+        let where_ = if self.world.under_water(spot) { "under water" } else { "off the ground our bots walk (an islet, a cliff top)" };
+        let roster: Vec<UnitDefId> = self.kit.map(|k| self.world.reachable_from(k.commander)).unwrap_or_default();
+        let (mut now, mut later, mut any): (Vec<String>, Vec<String>, Vec<String>) = (Vec::new(), Vec::new(), Vec::new());
+        for d in self.world.hello.unit_defs.iter().filter(|d| d.speed > 0.0 && d.build_speed > 0.0 && roster.contains(&d.id) && self.reachable_for(self.walker_of(d.id), spot)) {
+            let makers: Vec<&str> = self.world.hello.unit_defs.iter().filter(|f| f.speed == 0.0 && f.build_options.contains(&d.id) && roster.contains(&f.id)).map(|f| f.name.as_str()).collect();
+            let made = if makers.is_empty() { String::new() } else { format!(" (from {})", makers.join(" or ")) };
+            match own.map(|own| own.iter().filter(|u| u.def == d.id && !u.being_built).count()) {
+                Some(0) => later.push(format!("a {}{made}", d.name)),
+                Some(1) => now.push(format!("our {}", d.name)),
+                Some(n) => now.push(format!("our {n} {}s", d.name)),
+                None => any.push(if d.id == self.kit.map(|k| k.commander).unwrap_or(d.id) { format!("our {}", d.name) } else { format!("a {}{made}", d.name) }),
+            }
+        }
+        if own.is_none() {
+            return if any.is_empty() { format!("{where_}: nothing of ours reaches it") } else { format!("{where_}: reached by {}", any.join(", ")) };
+        }
+        match (now.is_empty(), later.is_empty()) {
+            (true, true) => format!("{where_}: nothing of ours reaches it"),
+            (false, true) => format!("{where_}: {} can take it now", now.join(" or ")),
+            (true, false) => format!("{where_}: {} would take it; nothing of ours standing reaches it", later.join(" or ")),
+            (false, false) => format!("{where_}: {} can take it now; {} would", now.join(" or "), later.join(" or ")),
+        }
+    }
+
+    /// The map's spots by what of ours reaches them: "72 spots: 46 our bots walk to, 26 under water (reached by our
+    /// corcom, a cormuskrat (from corvp), ...), 0 on ground they cannot reach, 0 nothing of ours reaches".
+    fn spots_summary(&self) -> String {
+        let spots = &self.world.hello.metal_spots;
+        let on_foot = spots.iter().filter(|s| self.reachable_on_foot(**s)).count();
+        let water: Vec<Vec3> = spots.iter().filter(|s| !self.reachable_on_foot(**s) && self.world.under_water(**s) && self.reachable_by_any_class(**s)).copied().collect();
+        let ground: Vec<Vec3> = spots.iter().filter(|s| !self.reachable_on_foot(**s) && !self.world.under_water(**s) && self.reachable_by_any_class(**s)).copied().collect();
+        let none = spots.len() - on_foot - water.len() - ground.len();
+        let reach = |of: &[Vec3]| of.first().map_or(String::new(), |s| format!(" ({})", self.reach_words(*s, None).replace("under water: ", "").replace("off the ground our bots walk (an islet, a cliff top): ", "")));
+        format!("{} spots: {on_foot} our bots walk to, {} under water{}, {} on ground they cannot reach{}, {none} nothing of ours reaches", spots.len(), water.len(), reach(&water), ground.len(), reach(&ground))
+    }
+
     /// The sea: how much of the map is under water and what of ours can cross it (the user, on pianist-player-7: the
     /// map is an island, the enemy commander was out in the ocean building, and the player had never been told).
     fn water_description(&self) -> serde_json::Value {
@@ -654,11 +696,11 @@ impl Brain {
             .unit_defs
             .iter()
             .filter(|d| crosses(d) && roster.contains(&d.id) && (d.weapon_count > 0 || d.build_speed > 0.0))
-            .map(|d| format!("{} ({}{})", d.name, if d.weapon_count > 0 { "armed" } else { "a builder" }, if lab_builds.contains(&d.id) { ", from the bot lab" } else { "" }))
+            .map(|d| format!("{} ({}{})", d.name, match (d.weapon_count > 0, d.build_speed > 0.0) { (true, true) => "armed, a builder", (true, false) => "armed", _ => "a builder" }, if lab_builds.contains(&d.id) { ", from the bot lab" } else { "" }))
             .collect();
         json!({
             "share": format!("{share:.0}% of the map is under water (the sketch's ~)"),
-            "note": "Our bots and vehicles stop at the shore, except through fords their class wades (tanks to a depth of about 20, bots likewise: a ford is a crossing, deep water is not); a spot or a place in deep water is reached only by what is listed below, and an advance of tanks toward it stalls at the shore. The commander is amphibious: it walks on the sea floor, and so does the enemy's, which can retreat into the sea when its base is gone and build on the shore from the water; its construction ships take the under-water spots and its ships shell the shore from beyond our reach.",
+            "note": "Our bots and vehicles stop at the shore, except through fords their class wades (tanks to a depth of about 20, bots likewise: a ford is a crossing, deep water is not); a spot or a place in deep water is reached only by what is listed below, and an advance of tanks toward it stalls at the shore. Our commander is amphibious: it walks on the sea floor and builds an extractor on a spot under water from the first minute (the same extractor type; there is no special one), as do the amphibious, hover and ship constructors below once a plant makes them; the under-water spots are a share of the map's metal that is his alone unless some of these take them (Cape Violet 2026-10-18: 26 of 72 spots, none taken, the person's fleet and Epoch from them). The enemy's commander is amphibious too and can retreat into the sea when its base is gone and build on the shore from the water; its construction ships take the under-water spots and its ships shell the shore from beyond our reach.",
             "amphibious_of_ours": ours,
         })
     }
@@ -776,6 +818,10 @@ impl Brain {
                 let walk = self.reachable_on_foot(*s).then(|| self.walk_from_home(*s) as i32);
                 let straight = s.dist2d(self.home) as i32;
                 let mut entry = json!({ "n": n, "grid": self.world.grid(*s), "x": s.x as i32, "z": s.z as i32, "walk_from_home": walk, "straight_from_home": straight });
+                // A spot our soldiers cannot walk to says what of ours gets there (H-REPORT-FREE-SPOTS-BY-REACH).
+                if walk.is_none() {
+                    entry["reached_by"] = json!(if self.reachable_by_any_class(*s) { self.reach_words(*s, None) } else { "nothing of ours reaches it".to_string() });
+                }
                 if let Some(w) = walk && straight > 300 && w as f32 > 1.8 * straight as f32 {
                     entry["alcove"] = json!(format!("an alcove or a pocket: {w} on foot against {straight} straight; it opens from the far side, so a group sent here walks round"));
                 }
@@ -796,7 +842,8 @@ impl Brain {
                 _ => "the lobby's start boxes were NOT honoured: our own start lies in another team's box or outside ours, so the host placed the seats by hand and the boxes say nothing of where he is",
             },
             "metal_spots": spots,
-            "metal_spots_note": "n is the spot's number for the `expansion` tool; walk_from_home is the walking distance for our bots (null: they cannot walk there) beside straight_from_home; a spot marked `alcove` is far longer on foot than straight, and a group sent at it by the straight line huddles short of it",
+            "metal_spots_summary": self.spots_summary(),
+            "metal_spots_note": "n is the spot's number for the `expansion` tool; walk_from_home is the walking distance for our bots (null: they cannot walk there, and `reached_by` says what of ours can: our commander from the first minute, and the amphibious, hover and ship constructors once a plant makes them) beside straight_from_home; a spot marked `alcove` is far longer on foot than straight, and a group sent at it by the straight line huddles short of it",
             "terrain": self.terrain_sketch(),
             "people": self.people_description(),
             "sheet": self.map_sheet(),
@@ -1139,15 +1186,22 @@ impl Brain {
         let enemy_extractor_at: Vec<Vec3> = enemy_extractors.iter().map(|(pos, _)| *pos).collect();
         let our_extractors: Vec<Vec3> = own.iter().filter(|u| kit.is_extractor(u.def)).map(|u| u.pos).collect();
         let held = |spot: Vec3, by: &[Vec3]| by.iter().any(|p| p.dist2d(spot) < self.spot_occupied_radius());
-        let free: Vec<Vec3> = self
+        // Free spots something of ours reaches (H-REPORT-FREE-SPOTS-BY-REACH): on foot, or only by the commander and
+        // the amphibious, hover and ship constructors (under water, an islet); and by half.
+        let free: Vec<(usize, Vec3)> = self
             .world
             .hello
             .metal_spots
             .iter()
-            .filter(|s| self.reachable_on_foot(**s))
-            .filter(|s| !held(**s, &our_extractors) && !held(**s, &enemy_extractor_at) && !self.allied_extractor_on(**s))
-            .copied()
+            .enumerate()
+            .filter(|(_, s)| self.reachable_by_any_class(**s))
+            .filter(|(_, s)| !held(**s, &our_extractors) && !held(**s, &enemy_extractor_at) && !self.allied_extractor_on(**s))
+            .map(|(n, s)| (n, *s))
             .collect();
+        let ours_half = |s: Vec3| !self.his_half(s);
+        let free_on_foot_ours = free.iter().filter(|(_, s)| self.reachable_on_foot(*s) && ours_half(*s)).count();
+        let free_other_ours = free.iter().filter(|(_, s)| !self.reachable_on_foot(*s) && ours_half(*s)).count();
+        let free_in_his_half = free.iter().filter(|(_, s)| !ours_half(*s)).count();
         let recent = |seen: &i32| tick.frame - seen < SIDE_TRADE_FRAMES;
         let metal = |u: &&OwnUnit| self.world.def(u.def).map_or(0.0, |d| d.metal_cost);
         let traded = |since: i32| {
@@ -1164,18 +1218,33 @@ impl Brain {
             extractor_peak: self.wake.extractor_peak,
             seconds_since_growth: (tick.frame - self.wake.growth_frame) / FRAMES_PER_SECOND,
             free_spots: free.len(),
+            free_on_foot_ours,
+            free_other_ours,
+            free_in_his_half,
+            other_reach: {
+                let mut other: Vec<Vec3> = free.iter().filter(|(_, s)| !self.reachable_on_foot(*s) && ours_half(*s)).map(|(_, s)| *s).collect();
+                other.sort_by(|a, b| a.dist2d(self.home).total_cmp(&b.dist2d(self.home)));
+                other.first().map(|s| self.reach_words(*s, Some(own)))
+            },
             next_free: {
-                let mut nearest: Vec<(usize, Vec3, f32)> = self
-                    .world
-                    .hello
-                    .metal_spots
-                    .iter()
-                    .enumerate()
-                    .filter(|(_, s)| free.iter().any(|f| f.dist2d(**s) < 1.0))
-                    .map(|(n, s)| (n, *s, self.walk_from_home(*s)))
-                    .collect();
-                nearest.sort_by(|a, b| a.2.total_cmp(&b.2));
-                nearest.into_iter().take(NEXT_FREE).map(|(n, s, walk)| (n, self.place(s), walk as u32)).collect()
+                // Our half's nearest first (the walk for a spot our soldiers reach, the straight line for the rest),
+                // his half's filling the list when ours has fewer than NEXT_FREE.
+                let distance = |s: Vec3| if self.reachable_on_foot(s) { self.walk_from_home(s) } else { s.dist2d(self.home) };
+                let mut ours: Vec<(usize, Vec3)> = free.iter().copied().filter(|(_, s)| ours_half(*s)).collect();
+                let mut his: Vec<(usize, Vec3)> = free.iter().copied().filter(|(_, s)| !ours_half(*s)).collect();
+                ours.sort_by(|a, b| distance(a.1).total_cmp(&distance(b.1)));
+                his.sort_by(|a, b| distance(a.1).total_cmp(&distance(b.1)));
+                let how = |s: Vec3, his: bool| match (his, self.reachable_on_foot(s)) {
+                    (false, true) => None,
+                    (false, false) => Some(format!("straight line; {}", self.reach_words(s, Some(own)))),
+                    (true, true) => Some("in his half".to_string()),
+                    (true, false) => Some(format!("in his half; straight line; {}", self.reach_words(s, Some(own)))),
+                };
+                ours.into_iter()
+                    .map(|(n, s)| NextFree { n, place: self.place(s), distance: distance(s) as u32, how: how(s, false) })
+                    .chain(his.into_iter().map(|(n, s)| NextFree { n, place: self.place(s), distance: distance(s) as u32, how: how(s, true) }))
+                    .take(NEXT_FREE)
+                    .collect()
             },
             soldiers: soldiers.len(),
             army_metal: soldiers.iter().map(metal).sum::<f32>() as u32,

@@ -53,7 +53,7 @@ def sheets():
             maps[json.loads(open(p).readline())["map"]["name"]] = 1
         except (ValueError, KeyError):
             pass
-    out = ["## The map sheets\n", "Every map we have a recorded game on, in one table each. The first start is ours in the game the sheet was made from. "
+    out = ["## The map sheets\n", "Every map we have a recorded game on, in one table each. Each sheet's table is computed from the first start it lists, which was ours in the game the sheet was made from; from the other start, read \"us\" and \"him\" the other way round. "
            "Walks are in elmos at full speed; a unit's seconds are the walk over its speed. \"The ways at their tightest\" is how wide the routes between two starts are "
            "at their narrowest against their median width: a pass is a tightest width a fraction of the median. The game you are in sends its own sheet, from your "
            "start, in the first report.\n"]

@@ -195,6 +195,17 @@ pub struct Place {
     pub z: i32,
 }
 
+/// A free metal spot named in the score line (H-REPORT-FREE-SPOTS-BY-REACH): its number in the map's list, its
+/// place, its distance from home (the walk for a spot our soldiers reach, the straight line for the rest) and, for
+/// a spot our soldiers do not reach or one in his half, the words that say so and what of ours gets there.
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct NextFree {
+    pub n: usize,
+    pub place: Place,
+    pub distance: u32,
+    pub how: Option<String>,
+}
+
 /// One named cell of the map as units of ours last saw it. (Player-33: the main group was sent to raid "his
 /// southern strip", where the roving Rover had seen every spot empty three minutes before; the report listed the
 /// spots never seen and nothing said what had been seen, when, or that it was empty.)
@@ -339,11 +350,21 @@ pub struct Score {
     pub extractor_peak: usize,
     /// Game seconds since our extractor count last reached a new high.
     pub seconds_since_growth: i32,
-    /// Metal spots we can walk to on which no extractor has been seen: how many, and the nearest few on foot with their
-    /// number in the map's list and walking distance. (A count of those "within 2500" read 0 from minute 6 of commander
-    /// game 9 while 18 lay at 2700-5400, and the commander made no expansion call for ten minutes.)
+    /// Metal spots on which no extractor has been seen and that something of ours reaches: all of them; those in our
+    /// half our soldiers walk to; those in our half only the commander or an amphibious, hover or ship constructor
+    /// reaches (under water, an islet); those in his half. Then the nearest few, our half's first, with what reaches
+    /// each (H-REPORT-FREE-SPOTS-BY-REACH). The count was "spots we can walk to" until 2026-10-18: on Cape Violet the
+    /// line read "25 free spots we can walk to, nearest on foot #32 F4 2761" with thirteen spots of our half under
+    /// water, the nearest 1,176 from home, and twelve of the 25 in his half; the player took none of the thirteen and
+    /// the person took the sea. (Before that, a count of those "within 2500" read 0 from minute 6 of commander game 9
+    /// while 18 lay at 2700-5400, and the commander made no expansion call for ten minutes.)
     pub free_spots: usize,
-    pub next_free: Vec<(usize, Place, u32)>,
+    pub free_on_foot_ours: usize,
+    pub free_other_ours: usize,
+    pub free_in_his_half: usize,
+    /// What of ours reaches the spots of our half our soldiers do not (None when there are none).
+    pub other_reach: Option<String>,
+    pub next_free: Vec<NextFree>,
     /// His extractors as our units last saw them (seen standing, not seen die): each spot's number in the map's
     /// list, its place and the game seconds since the look, nearest our start first. Sightings with their age, not
     /// his count: the line said "known to hold N" until 2026-10-17 (the user: what he holds is the player's estimate

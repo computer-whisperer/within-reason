@@ -178,7 +178,7 @@ pub struct Pianist {
     /// by the pass, the builder gets the step back at the front of its list.
     pub(super) list_steps: HashMap<UnitId, (String, i32)>,
     /// The builders with a list that the pick has sent away from an enemy: their list takes no step while they
-    /// are still in the pass for one (`list_is_held`).
+    /// are still in the pass for one, or while a party stands on the site of their next step (`list_is_held`).
     pub(super) list_held: HashSet<UnitId>,
     /// The list step a queued task came from (`queued`), moved to `list_steps` when the task is promoted.
     pub(super) queued_steps: HashMap<UnitId, String>,
@@ -744,8 +744,9 @@ impl Pianist {
     }
 
     /// Whether this builder's list waits this second (H-HANDS-SCRIPT, 2026-10-01): the pick sent it away from an
-    /// enemy (`execute_builder`) and it is still threatened, which is while the pass still asks about it. The hold
-    /// ends when the enemy is off it; a new list from the player ends it too.
+    /// enemy (`execute_builder`) and it is still threatened, which is while the pass still asks about it, or the
+    /// site of its next step is (`play_lists`, 2026-10-18). The hold ends when the enemy is off both; a new list
+    /// from the player ends it too.
     pub(super) fn list_is_held(&mut self, builder: UnitId, threatened: bool) -> bool {
         if !threatened {
             self.list_held.remove(&builder);
