@@ -228,7 +228,7 @@
    "energy_make": 3000,
    "energy_storage": 9000,
    "flags": [],
-   "gloss": "3000 energy a second for 9700 metal; the late-game energy for long-range guns and gantries; huge explosion",
+   "gloss": "3000 energy a second for 9700 metal: 3.2 metal per energy a second, the cheapest energy off a steam vent and the engine of a converter economy (five advanced converters on one make 52 metal a second); build time 312500, so construction turrets build it after the fusions stand; huge explosion, the bombers' target",
    "prose": "The Advanced Fusion Reactor makes 3000 energy a second for 9700 metal and 69000 energy, with 8300 health and 9000 energy storage. It is what powers a Pulsar (armanni), a long-range cannon or a gantry army late in a game, and it is the bomber's favourite target; its explosion levels everything near it, so it stands alone under anti-air. Only the tier-2 constructors build it."
   },
   "armageo": {
@@ -1592,7 +1592,7 @@
    "sight": 273,
    "energy_storage": 6000,
    "flags": [],
-   "gloss": "6000 energy storage for 170 metal; smooths wind and lets laser turrets fire through a lull; explodes when killed",
+   "gloss": "6000 energy stored for 170 metal, the cheapest buffer there is: the D-gun's 500 a shot, a turret line's draw, the wind's swing, and the room converters run on (they use only the energy above three quarters of the store); the experienced players build one by 9:36; explodes when killed (980 damage over 210)",
    "prose": "The Energy Storage adds 6000 energy storage for 170 metal and 1700 energy, 1890 health. Storage is what lets a wind economy ride out a lull and what keeps laser turrets and beam weapons firing: a tower line fires at the rate energy arrives once the store is empty. It explodes with a large blast when destroyed and a larger one on self-destruct, so it stands away from the base, or on an approach as a deliberate bomb."
   },
   "armeyes": {
@@ -3219,7 +3219,7 @@
    "air": "",
    "sight": 273,
    "flags": [],
-   "gloss": "tier-2 converter, 600 energy a second into 10.3 metal for 380 metal; barely better than tier 1",
+   "gloss": "600 energy a second into 10.3 metal for 370-380 metal, a sixth better than the basic converter; how a tier-2 economy grows past its spots: five on an advanced fusion, repaid in under four minutes",
    "prose": "The Advanced Energy Converter turns 600 energy a second into 10.3 metal a second (58 energy a metal) for 380 metal and 21000 energy, 445 health. It is only about 17 percent more energy-efficient than the tier-1 converter (70 energy a metal); its gain is capacity in one building, so it is for a fusion-sized surplus late in a game, not a reason to go tier 2. Only the tier-2 constructors build it, and clusters chain-explode."
   },
   "armmoho": {
@@ -5223,7 +5223,7 @@
    "energy_make": 3000,
    "energy_storage": 9000,
    "flags": [],
-   "gloss": "3000 energy a second for 9700 metal; the late-game energy for long-range guns and gantries; huge explosion",
+   "gloss": "3000 energy a second for 9700 metal: 3.2 metal per energy a second, the cheapest energy off a steam vent and the engine of a converter economy (five advanced converters on one make 52 metal a second); build time 312500, so construction turrets build it after the fusions stand; huge explosion, the bombers' target",
    "prose": "The Advanced Fusion Reactor makes 3000 energy a second for 9700 metal and 48000 energy, with 9800 health and 9000 energy storage. It is what powers a Bulwark (cordoom), a long-range cannon or a gantry army late in a game, and it is the bomber's favourite target; its explosion levels everything near it, so it stands alone under anti-air. Only the tier-2 constructors build it."
   },
   "corageo": {
@@ -6363,7 +6363,7 @@
    "sight": 273,
    "energy_storage": 6000,
    "flags": [],
-   "gloss": "6000 energy storage for 175 metal; smooths wind and lets laser turrets fire through a lull; explodes when killed",
+   "gloss": "6000 energy stored for 170 metal, the cheapest buffer there is: the D-gun's 500 a shot, a turret line's draw, the wind's swing, and the room converters run on (they use only the energy above three quarters of the store); the experienced players build one by 9:36; explodes when killed (980 damage over 210)",
    "prose": "The Energy Storage adds 6000 energy storage for 175 metal and 1800 energy, 2000 health. Storage is what lets a wind economy ride out a lull and what keeps laser turrets and beam weapons firing: a tower line fires at the rate energy arrives once the store is empty. It explodes with a large blast when destroyed and a larger one on self-destruct, so it stands away from the base, or on an approach as a deliberate trap."
   },
   "coresupp": {
@@ -8007,7 +8007,7 @@
    "air": "",
    "sight": 273,
    "flags": [],
-   "gloss": "tier-2 converter, 600 energy a second into 10.3 metal for 370 metal; barely better than tier 1",
+   "gloss": "600 energy a second into 10.3 metal for 370-380 metal, a sixth better than the basic converter; how a tier-2 economy grows past its spots: five on an advanced fusion, repaid in under four minutes",
    "prose": "The Advanced Energy Converter turns 600 energy a second into 10.3 metal a second (58 energy a metal) for 370 metal and 21000 energy, 560 health. It is only about 17 percent more energy-efficient than the tier-1 converter (70 energy a metal); its gain is capacity in one building, so it is for a fusion-sized surplus late in a game, not a reason to go tier 2. Only the tier-2 constructors build it, and clusters chain-explode."
   },
   "cormoho": {

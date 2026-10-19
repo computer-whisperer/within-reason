@@ -137,6 +137,16 @@ case from another scenario still teaches, but its clock does not transfer.
   while doing t2 transition", thebluegecko); human-8v8-1, our first advanced lab at D8 killed at 16:53 by five
   Centurions and a Mace with 4,000 metal in it, the lab outside the turrets. BARb's own sprint is on a clock (its
   section below); a person's, in a duel, is the window the cases above describe.
+- **Past the mohos the economy grows by turning energy into metal, and in this order** (K-t2-post-moho-scaling;
+  the user, 2026-10-18). Every held spot upgraded first: +6 metal a second for 620, repaid in 104 s, and 20 energy a
+  second of upkeep each. Then one or two fusions (750 to 850 a second) for that upkeep and the next frame's bill; then
+  one advanced fusion (9,700 metal, 3,000 a second: 3.2 metal per energy a second, the cheapest energy there is off a
+  vent); then advanced converters by the handful (380 metal each, 600 energy a second into 10.3 metal): one advanced
+  fusion feeds five, 11,600 metal for +52 metal a second, repaid in under four minutes, and the next engine is paid
+  from the last. The advanced fusion's frame is 312,500 build time, nine minutes for two advanced constructors alone
+  and 143 s with eight construction turrets beside them, so it goes where the turrets can stand round it, after the
+  fusions, alone and under anti-air. Energy "banking it unused" beside a metal store at STALLING is this chain not
+  begun: the +50 Altored 3v3 (2026-10-18) banked 2,000 energy a second for sixteen minutes on one converter.
 
 - **Income past the spot count is tier-2 extractors and advanced solars: build a lot more of both** (the user,
   2026-10-02, from human-10, player-40 and player-42: "we need to be building a lot more t2 mexes and advanced
@@ -330,9 +340,17 @@ Thug `corthud` 140/1100/45/380 line unit; Trasher `corcrash` anti-air only; Grav
 
 **Economy.** [K-eco-production-is-the-bottleneck, K-eco-expansion-before-conversion, K-open-sim-energy-ratio]
 - Metal in the bank is army we do not have: when metal is banking up, a second lab or a construction turret, not
-  converters. Extractors beat converters while free spots remain. Energy only needs to keep storage from emptying;
-  laser turrets stop firing in an energy stall, and the picture says STALLING when it happens.
-  [K-units-laser-towers-need-energy]
+  converters. Extractors beat converters while free spots remain. Energy must keep the store from emptying: laser
+  turrets stop firing in a stall and the picture says STALLING; and the store is small until you build it. A base of
+  twenty solars holds 2,000 to 2,500, which a 750-a-second deficit (a fusion frame, a tier-2 plant's unit) empties in
+  three seconds; an energy storage is 170 metal for 6,000 more, the cheapest buffer in the game, and the experienced
+  players build one by 9:36 in 23 of 80 duels. It is what the D-gun's 500 a shot, a turret line and the wind's swing
+  (4 to 19 on Altored) draw on, and it is the working room of converters, which run only on the energy above three
+  quarters of the store. Energy "banking it unused" with the store full is income thrown away: a converter or a
+  storage, never a shrug (the +50 Altored 3v3: a seat wasted 820 energy a second for thirty minutes on one converter).
+  A metal storage is 330 for 3,000 and matters only when a frame worth more than the store is banked for: the advanced
+  plant's 2,600 fits; an advanced fusion's 9,700 is streamed into the frame as it builds, not banked.
+  [K-units-laser-towers-need-energy, K-eco-energy-storage-is-the-cheap-buffer, K-mech-converter-threshold]
 - Constructors die in the field walking alone to far spots. Expand in steps the army has already covered.
   [K-army-verdicts-v18]
 - Wrecks are income nobody is collecting. In the 29 Comet Catcher duels of the replay survey, 24 of 58 sides built

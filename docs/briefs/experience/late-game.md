@@ -22,12 +22,17 @@ building other units while doing t2 transition" (the players' words, on tier 2).
   spot it adds 6.9 metal a second over the extractor it replaces, so 90 seconds of its own output repays it; on a
   poorer spot (the map sheet's spot value) proportionally longer. One advanced constructor alone takes about 70 s
   an upgrade (K-t2-moho-first, K-t2-moho-energy).
-- Energy by price: a fusion 3,350 metal for 750 a second (4.5 metal per energy a second), an advanced solar 350 for
-  80 (4.4), a basic solar 155 for 20 (7.75), wind 40 metal over the map's average wind (about 3 on Quicksilver). The
-  fusion is not cheaper energy; it is dense, steady and one frame instead of nine (K-t2-fusion-numbers).
+- Energy by price: an advanced fusion 9,700 metal for 3,000 a second (3.2 metal per energy a second), a fusion 3,350
+  for 750 (4.5; Cortex 3,600 for 850, 4.2), an advanced solar 350 for 80 (4.4), a basic solar 155 for 20 (7.75), wind
+  40 metal over the map's average wind (about 3 on Quicksilver), a geothermal 560 for 300 (1.9) and the advanced one
+  1,600 for 1,250 (1.3), on a steam vent only. The fusion is not cheaper energy than advanced solar; it is dense, steady
+  and one frame instead of nine. The advanced fusion is the cheapest energy off a vent, by a quarter, and the engine of
+  the converter economy below (K-t2-fusion-numbers, K-t2-post-moho-scaling).
 - Converters: 70 energy a second into 1 metal, for 1 metal and 1,150 energy; the advanced one 600 into 10.3 for 370
-  metal and 21,000 energy, a sixth better per energy and mostly a saving of ground. On Comet Catcher the experienced
-  players build none and store the energy (K-mech-converter-rates, K-t2-advanced-converter, the players' words).
+  to 380 metal and 21,000 energy, a sixth better per energy and mostly a saving of ground. The converter's own price is
+  small; the energy is the cost (1,940 metal of advanced fusion for the 600 a second one advanced converter eats). On
+  Comet Catcher the experienced players build none and store the energy, the duel being over before the spots run out
+  (K-mech-converter-rates, K-t2-advanced-converter, the players' words).
 - A tier-2 army is an energy purchase: its beam and lightning weapons charge energy a shot, and the recommended
   mixes cost 390 to 500 energy a second at +30 metal and 580 to 740 at +45, over the 20 for each tier-2 extractor;
   below about 150 spare the fights fall off a cliff (K-t2-army-energy).
@@ -43,6 +48,30 @@ building other units while doing t2 transition" (the players' words, on tier 2).
   its first interceptor 90 s after it stands. The silo's frame (8,100 / 90,000 / build time 178,500: at 100 metal a
   second 2,200 power and 81 s; one advanced constructor alone, ten to fourteen minutes) is where a crew pays
   (K-rules-a-stockpile-takes-no-build-power, K-rules-a-stockpile-fills-itself-to-its-limit).
+
+**Scaling past the mohos** (the arithmetic; K-t2-post-moho-scaling). A tier-2 extractor is the cheapest metal in the
+game, +6 a second for 620 on an ordinary spot and repaid in 104 s, so every held spot is upgraded before anything
+below is begun; a seat with fourteen spots stands at about 110 metal a second when all are mohos, drawing 280 energy a
+second in upkeep, which wind and solars do not carry for long. From there the income grows only by turning energy
+into metal, and the chain that does it at the best price is: one or two fusions (750 to 850 a second each; 39 s with
+two advanced constructors and four construction turrets on the frame) for the mohos' upkeep and the next frame's
+energy bill; one advanced fusion (9,700 metal and 69,000 energy, 48,000 for Cortex; 3,000 a second at 3.2 metal per
+energy a second against the fusion's 4.5); then advanced converters by the handful, 380 metal each turning 600 energy
+a second into 10.3 metal. One advanced fusion feeds five: 11,600 metal for +51.7 metal a second, repaid in 3.7
+minutes, against 4.9 minutes for a fusion with its converter and a quarter of the frames; the next engine is paid from
+the last one's output, and a seat at 110 a second adds one every two minutes, each adding half again to its income.
+The advanced fusion's frame is the catch: build time 312,500, nine minutes for two advanced constructors alone, 143 s
+with eight construction turrets beside them drawing 68 metal and 480 energy a second, so the fusions stand first, the
+site is where the turrets can stand round it, and it stands alone under anti-air, since it levels everything near it
+when it dies and bombers come for it. Each engine brings its own store (a fusion 2,500 energy, the advanced fusion
+9,000, a moho 600 metal) and the converters live on the energy above three quarters of it, so an energy storage (170
+metal for 6,000) beside the first fusion is where the conversion begins to run smoothly, and a seat "banking it
+unused" has the store full, not the economy served (K-eco-energy-storage-is-the-cheap-buffer). Our games have not
+reached this ladder: the +50 Altored 3v3 of 2026-10-18 built
+one, two and three fusions a seat from 16:20 and no advanced fusion, and one seat banked 2,000 energy a second unused
+from 16:30 to the end with a single converter while its metal store sat at 150 to 300 and the report read STALLING
+(the user, 2026-10-18: "one or two fusions is reasonable as a transition to advanced fusion, and once there heavy
+investment in advanced converters is what lets players scale further").
 
 **What our late games looked like** (the records; the mechanism as we read it).
 
