@@ -472,3 +472,33 @@ minute, the milestones, the metal standing by bucket); `commander.jsonl` (46 dir
 **Would be wrong if.** A seat of ours that sprinted at the first bank in a team game lost its base or its spots during
 the gap more often than it gained by 20:00, with allies holding the fronts.
 **Used by.** The briefs' "Tier 2 is a sprint" (the covered pair); `docs/design/2026-10-18-team-game-tier2-and-allies.md`.
+
+### K-t2-post-moho-scaling
+**Claim.** Past the mohos a tier-2 economy grows only by turning energy into metal, and the chain that does it at the
+best price is: one or two fusions (the mohos' upkeep and the next frame's energy bill), then an advanced fusion (3,000
+energy a second for 9,700 metal: 3.23 metal per energy a second against the fusion's 4.47 (Cortex 4.24) and the
+advanced solar's 4.38, the cheapest energy off a steam vent by a quarter), then advanced converters by the handful
+(380 metal turns 600 energy a second into 10.34 metal). One advanced fusion feeds five: 11,600 metal for +51.7 metal a
+second, repaid in 224 s (3.7 min), against a fusion with 1.25 converters (3,825 metal, +12.9, 296 s) or an advanced
+solar with its share (401 metal, +1.4, 291 s). Every held spot is upgraded first: a moho is +5.97 metal a second for
+620 on a 2.0 spot, repaid in 104 s, half the price per metal a second of conversion (104 against 224 metal per +1 a
+second), and fourteen mohos draw 280 energy a second in upkeep. The advanced fusion's frame is the catch: build time
+312,500 (Cortex 329,200), 539 s for two advanced constructors alone, 226 s with four construction turrets beside them
+(drawing 43 metal and 305 energy a second), 143 s with eight (68 and 481); its 69,000 energy (Cortex 48,000) over
+those seconds is what the fusions pay for. A seat at 110 metal a second (fourteen mohos) pays one engine every two
+minutes, each adding 47 % to its income.
+**Status.** supported (2026-10-18) for every number (the engine's unit definitions as the record header carries them,
+run/matches/1792374652-apex-v032-altored-3v3-apex50-1: metal, energy, build_time, energy_make, converter capacity
+and efficiency, extracts_metal x the Altored spot's 1,989); the ordering is arithmetic plus the user's recollection
+(2026-10-18: "one or two fusions is reasonable as a transition to advanced fusion, and once there heavy investment in
+advanced converters is what lets players scale further").
+**Evidence.** The numbers above. Our games have not reached the ladder: the +50 Altored 3v3 (2026-10-18) built one,
+two and three fusions a seat from 16:20, no advanced fusion; seat 0 banked +2,000 energy a second unused from 16:21
+to the end with one converter while its metal store sat at 150-300 and the report read STALLING (20:00-28:30).
+Converter output is capacity x efficiency when energy is stored (K-t2-advanced-converter); whether the game throttles
+converters at low storage is not measured here.
+**Would be wrong if.** A seat that built the chain did not see its income rise by about the computed amounts, or the
+advanced fusion's frame took far longer than build_time over the power on it with the store full.
+**Used by.** The briefs' late-game arithmetic and "Scaling past the mohos" passage; the glossary's `armafus`/`corafus`
+and `armmmkr`/`cormmkr` lines; K-t2-moho-first, K-t2-moho-energy, K-t2-fusion-numbers, K-t2-advanced-converter.
+
