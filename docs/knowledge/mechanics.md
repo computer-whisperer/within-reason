@@ -614,7 +614,7 @@ after the exploder's own `UnitDestroyed`: 9-18 frames after a fusion, 21 and 84 
 after an advanced fusion (its death animation runs before the explosion), 127 of a Juggernaut's 136 within 30 frames.
 The engine does name one of our own units as the attacker, for exactly two causes: its fire (a Mauser's or Janus's
 shell landing among ours) and its reclaim (`CUnit::AddBuildPower` kills the reclaimed unit with the builder as the
-attacker and no `UnitDamaged`). The game's unit weapons are named `<unit>_<weapon>` (`corstorm_cor_bot_rocket`,
+attacker and no `UnitDamaged`). It also names our own exploding structure as the attacker of its blast's victims, with the explosion as the weapon (a vehicle plant, a moho, a construction turret and a converter in barb-ladder-50-1 and -100-1), while the fusion's four victims in apex60-2 had no attacker. The game's unit weapons are named `<unit>_<weapon>` (`corstorm_cor_bot_rocket`,
 `corcom_disintegrator`, `corpun_plasma`), so the last hit's weapon tells a gun from a blast and names the gun's unit
 type without the attacker. The AI interface's `UnitDestroyed` event also carries the killing weapon's id
 (`rts/ExternalAI/Interface/AISEvents.h` `SUnitDestroyedEvent.weaponDefID`, passed at `EngineOutHandler.cpp:351`),
