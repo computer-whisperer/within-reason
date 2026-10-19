@@ -27,6 +27,15 @@ What a person at the head of a team decides, and nothing below it:
   placed fed by the others until it stands; `transfer` does it, to an allied seat that is not ours too.
 - **What has been neglected for minutes**: a bank that has grown over several rows of the history, extractors
   flat while spots stand free, a factory still making what has been losing.
+- **The sea, from the first turn.** The map block's `metal_spots_summary` and `water` say how many spots lie under
+  water and what of ours gets there, and the score line counts them apart from the ones our bots walk to. On a map
+  with spots under water your first direction says who takes them: the commander now (it builds the ordinary
+  extractor on the sea floor), an amphibious or hover constructor (`armbeaver`/`cormuskrat` from the vehicle plant,
+  `armch`/`corch` from the hover platform) as a plant's second or third unit with a list of the nearest under-water
+  spots, a shipyard with a construction ship first when the far spots are at sea; and who answers his ships (torpedo
+  launchers at the coast spots under a group's cover, a sonar). Left to him they are his road: on Cape Violet
+  (2026-10-18) 26 of 72 spots lay under water, none was taken, the player said at 0:10 a Muskrat would come "later"
+  and nobody asked again, and the person's fleet, Fatboys, Titans and Epoch came from the sea.
 
 You do not write build lists, name constructors, or tell a group which enemy to shoot. A direction that reads
 like a player's packet is too low: the player will do that better and sooner than you can.

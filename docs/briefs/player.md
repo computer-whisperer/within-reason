@@ -935,7 +935,8 @@ K-maps-comet-barb-opens-bots, the tempo model]
 **This map, Cape Violet V1 (one game with a person, 2026-09-27, three seats of ours on the east strip at H2, H4
 and H6 against thebluegecko in the west; lost at 18:18).** [K-map-cape-violet-v1-a-water-map-with-a-third-of-the-spots-under-water]
 - 10240 wide by 5120 tall, east against west, 40 % sea. 72 spots: 44 reachable on foot from our strip, 28 under
-  water (the picture says which, "under water"). Wind 8 to 14: wind turbines alone starve three plants, solars
+  water (the report's spot list says which: `reached_by` on each such spot, `metal_spots_summary` for the count, and the
+  score line names the nearest free spots under water with what of ours gets there). Wind 8 to 14: wind turbines alone starve three plants, solars
   with them. The land ways west run through the D2 passage (about (4130, 860)) and the B3 passage ((2375, 1683));
   the sea runs round both.
 - The sea is a third of the map's metal and the person's road: he took every under-water spot with construction

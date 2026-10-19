@@ -52,13 +52,15 @@ fifth or less. Soldiers at home answer raids; everything beyond what that takes 
 dated: his army stands still or shrinks from about 10:40 while he pays for tier 2, and from 20:00 it doubles every
 five minutes. A lead held past its moment becomes his.
 
-**Tier 2 is a sprint, and the question is whether the gap is covered** (the user, 2026-10-18). The transition is
-paid out of the income you have, and for three to five minutes the sprinting seat's army does not grow. In a duel on
-a tight map that gap is lethal, which is why the experienced duellists tech in 4 of 58 sides and why his tech is the
-moment to hit his base. On a larger map, with allies beside you, or once the fronts have settled, it is covered, and
-a game past twenty minutes is decided by who upgraded first; team games almost always go there. The call is yours:
-which seat sprints, when, and who feeds it. The cases, the team-game procedure and the arithmetic are under "Tier 2:
-the sprint" and the late-game part.
+**We are weak past tier 1, and that makes the early lead worth more than it looks.** This project has little
+experience of tier 2 and beyond: few games reach it, the pool of experienced duels almost never does, and your
+hands do not yet handle its units well (how they are spaced, what they out-range, what they must not walk into).
+The opponent's tier-2 army is the thing we most often lose to after leading: Fatboys, Sharpshooters, Bulls and
+Razorbacks out-range and out-splash a tier-1 body of any size. So a lead in the first part of the game is not safe
+to sit on. If he is allowed to finish his advanced factory and field what comes out of it, a game that was being
+won at 10:00 can be lost at 20:00 without our having made any further mistake. The surest answer we have today is
+that he never gets there: the lead is spent on his economy and his factories before his tier 2 matters. Going to
+tier 2 ourselves is a real choice and yours to make, but make it knowing it is the ground we know least.
 
 **A lead is spent or teched, never banked.** A lead in army goes into him. Where it cannot, because he sits behind a
 line it will not break or the front is long, it goes into the economy that outgrows him: tier-2 extractors on the
@@ -101,13 +103,13 @@ is a minute he rebuilds in.
 
 ## The map sheets
 
-Every map we have a recorded game on, in one table each. The first start is ours in the game the sheet was made from. Walks are in elmos at full speed; a unit's seconds are the walk over its speed. "The ways at their tightest" is how wide the routes between two starts are at their narrowest against their median width: a pass is a tightest width a fraction of the median. The game you are in sends its own sheet, from your start, in the first report.
+Every map we have a recorded game on, in one table each. Each sheet's table is computed from the first start it lists, which was ours in the game the sheet was made from; from the other start, read "us" and "him" the other way round. Walks are in elmos at full speed; a unit's seconds are the walk over its speed. "The ways at their tightest" is how wide the routes between two starts are at their narrowest against their median width: a pass is a tightest width a fraction of the median. The game you are in sends its own sheet, from your start, in the first report.
 
 ### Comet Catcher Remake 1.8
 
 - 8192 by 6144 elmos; wind 1 to 4; tidal 0; 0% under water; ground height 102 to 439.
 - 80 metal spots; a tier-1 extractor draws 2.30 / 2.30 / 2.30 metal a second (lowest / median / highest spot).
-- Starts: ours (the pool's west start, B5) B5 (1420, 3550; 0 from ours), the opponent's (the pool's east start, H5) H5 (7290, 3600; 5870 from ours), the arena's old corner start of his (G1) G1 (6899, 681; 6184 from ours).
+- Starts: B5 (1420, 3550), H5 (7290, 3600), G1 (6899, 681); the table below is from B5, which was ours in the game the sheet was made from: from another start, read "us" and "him" the other way round.
 
 | Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
 |---|---|---|---|---|---|---|---|
@@ -141,7 +143,7 @@ Every map we have a recorded game on, in one table each. The first start is ours
 
 - 15360 by 10240 elmos; wind 0 to 16; tidal 0; 0% under water; ground height 163 to 554.
 - 437 metal spots; a tier-1 extractor draws 1.83 / 1.84 / 3.18 metal a second (lowest / median / highest spot).
-- Starts: ours F8 (11503, 9622; 0 from ours).
+- Starts: F8 (11503, 9622); the table below is from F8, which was ours in the game the sheet was made from.
 
 | Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
 |---|---|---|---|---|---|---|---|
@@ -157,7 +159,7 @@ Every map we have a recorded game on, in one table each. The first start is ours
 
 - 6144 by 10240 elmos; wind 0 to 16; tidal 0; 0% under water; ground height 163 to 536.
 - 152 metal spots; a tier-1 extractor draws 1.83 / 1.84 / 3.18 metal a second (lowest / median / highest spot).
-- Starts: ours A1 (735, 822; 0 from ours), the opponent's D8 (2971, 9220; 8690 from ours).
+- Starts: A1 (735, 822), D8 (2971, 9220), 8690 apart; the table below is from A1, which was ours in the game the sheet was made from: from another start, read "us" and "him" the other way round.
 
 | Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
 |---|---|---|---|---|---|---|---|
@@ -178,11 +180,36 @@ Every map we have a recorded game on, in one table each. The first start is ours
 | the opponent's | armck (36) | 9 / 25 / 52 / 71 | 22 / 30 / 37 |
 | the opponent's | armcv (54) | 17 / 52 / 78 / 103 | 15 / 20 / 25 |
 
+### Altored Divide Bar Remake 1.6.2
+
+- 8192 by 8192 elmos; wind 4 to 19; tidal 10; 0% under water; ground height 30 to 550.
+- 84 metal spots; a tier-1 extractor draws 1.99 / 1.99 / 1.99 metal a second (lowest / median / highest spot).
+- Starts: G1 (6152, 685), D8 (3966, 7462), 7120 apart; the table below is from G1, which was ours in the game the sheet was made from: from another start, read "us" and "him" the other way round.
+
+| Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
+|---|---|---|---|---|---|---|---|
+| bots | 95% | 84 | the opponent's | 8404 | armck 233, armpw 97, armrock 166, corak 104, corck 244 | 34 / 37 / 13 / 0 | 3776 at E6, 69% of the way (median 5060) |
+| vehicles | 84% | 82 | the opponent's | 8755 | armcv 162, armfav 52, armflash 87, armstump 117, corcv 172, corfav 57, corgator 103 | 32 / 35 / 15 / 2 | 2772 at D5, 67% of the way (median 3992) |
+| commander | 95% | 84 | the opponent's | 8404 | armcom 224, corcom 224 | 34 / 37 / 13 / 0 | 3776 at E6, 69% of the way (median 5060) |
+| all-terrain bots | 100% | 84 | the opponent's | 8276 | armscab 162, cortermite 166 | 34 / 37 / 13 / 0 | 4736 at F2, 15% of the way (median 5592) |
+| amphibious tanks | 95% | 84 | the opponent's | 8755 | armcroc 162, corseal 122 | 33 / 36 / 15 / 0 | 3184 at E5, 67% of the way (median 4696) |
+| hovercraft | 88% | 84 | the opponent's | 8788 | armch 131, armsh 77, corch 144, corsh 80 | 33 / 36 / 15 / 0 | 2784 at D5, 66% of the way (median 4140) |
+| ships | 0% | no ground on this map it can stand on | | | | | |
+
+| Start | Taken by (speed) | Spots within 30 / 60 / 90 / 120 s | Seconds to the 5th / 10th / 15th spot |
+|---|---|---|---|
+| ours | armcom (37.50) | 6 / 12 / 17 / 33 | 28 / 42 / 64 |
+| ours | armck (36) | 5 / 12 / 17 / 31 | 29 / 44 / 66 |
+| ours | armcv (54) | 10 / 17 / 32 / 52 | 20 / 30 / 44 |
+| the opponent's | armcom (37.50) | 5 / 13 / 21 / 38 | 28 / 52 / 65 |
+| the opponent's | armck (36) | 5 / 13 / 21 / 37 | 29 / 55 / 68 |
+| the opponent's | armcv (54) | 7 / 19 / 40 / 54 | 19 / 37 / 45 |
+
 ### Avalanche 3.4
 
 - 4096 by 4096 elmos; wind 3 to 19; tidal 20; 0% under water; ground height 130 to 696.
 - 19 metal spots; a tier-1 extractor draws 1.99 / 1.99 / 1.99 metal a second (lowest / median / highest spot).
-- Starts: ours H7 (3764, 3287; 0 from ours).
+- Starts: H7 (3764, 3287); the table below is from H7, which was ours in the game the sheet was made from.
 
 | Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
 |---|---|---|---|---|---|---|---|
@@ -194,11 +221,26 @@ Every map we have a recorded game on, in one table each. The first start is ours
 | ours | armck (36) | 4 / 7 / 12 / 18 | 45 / 75 / 98 |
 | ours | armcv (54) | 4 / 12 / 18 / 19 | 30 / 53 / 72 |
 
+### Azurite Shores 1.0.2
+
+- 9216 by 8192 elmos; wind 1 to 20; tidal 20; 26% under water; ground height -107 to 607.
+- 76 metal spots; a tier-1 extractor draws 2.45 / 2.45 / 2.45 metal a second (lowest / median / highest spot).
+- Starts: B8 (2186, 7577); the table below is from B8, which was ours in the game the sheet was made from.
+
+| Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
+|---|---|---|---|---|---|---|---|
+
+| Start | Taken by (speed) | Spots within 30 / 60 / 90 / 120 s | Seconds to the 5th / 10th / 15th spot |
+|---|---|---|---|
+| ours | armcom (37.50) | 4 / 8 / 18 / 26 | 41 / 64 / 81 |
+| ours | armck (36) | 4 / 7 / 12 / 15 | 42 / 80 / 114 |
+| ours | armcv (54) | 4 / 11 / 17 / 21 | 37 / 55 / 79 |
+
 ### Cape_Violet_V1
 
 - 10240 by 5120 elmos; wind 8 to 20; tidal 20; 40% under water; ground height -303 to 493.
 - 72 metal spots; a tier-1 extractor draws 1.99 / 2.07 / 2.24 metal a second (lowest / median / highest spot).
-- Starts: ours A5 (357, 2703; 0 from ours), the opponent's H6 (9319, 3833; 9032 from ours).
+- Starts: A5 (357, 2703), H6 (9319, 3833), 9032 apart; the table below is from A5, which was ours in the game the sheet was made from: from another start, read "us" and "him" the other way round.
 
 | Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
 |---|---|---|---|---|---|---|---|
@@ -223,7 +265,7 @@ Every map we have a recorded game on, in one table each. The first start is ours
 
 - 12288 by 12288 elmos; wind 6 to 12; tidal 20; 0% under water; ground height 383 to 771.
 - 172 metal spots; a tier-1 extractor draws 1.85 / 2.37 / 2.39 metal a second (lowest / median / highest spot).
-- Starts: ours B5 (2162, 7312; 0 from ours), the opponent's H5 (10825, 7134; 8664 from ours).
+- Starts: B5 (2162, 7312), H5 (10825, 7134), 8664 apart; the table below is from B5, which was ours in the game the sheet was made from: from another start, read "us" and "him" the other way round.
 
 | Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
 |---|---|---|---|---|---|---|---|
@@ -248,7 +290,7 @@ Every map we have a recorded game on, in one table each. The first start is ours
 
 - 6144 by 4096 elmos; wind 5 to 20; tidal 16; 60% under water; ground height -86 to 116.
 - 24 metal spots; a tier-1 extractor draws 1.41 / 2.16 / 2.17 metal a second (lowest / median / highest spot).
-- Starts: ours G4 (4996, 1684; 0 from ours).
+- Starts: G4 (4996, 1684); the table below is from G4, which was ours in the game the sheet was made from.
 
 | Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
 |---|---|---|---|---|---|---|---|
@@ -263,7 +305,7 @@ Every map we have a recorded game on, in one table each. The first start is ours
 
 - 7168 by 7168 elmos; wind 0 to 10; tidal 18; 13% under water; ground height -192 to 353.
 - 71 metal spots; a tier-1 extractor draws 1.45 / 1.45 / 2.58 metal a second (lowest / median / highest spot).
-- Starts: ours G1 (6216, 146; 0 from ours).
+- Starts: G1 (6216, 146); the table below is from G1, which was ours in the game the sheet was made from.
 
 | Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
 |---|---|---|---|---|---|---|---|
@@ -278,7 +320,7 @@ Every map we have a recorded game on, in one table each. The first start is ours
 
 - 8192 by 8192 elmos; wind 4 to 14; tidal 0; 7% under water; ground height -56 to 289.
 - 92 metal spots; a tier-1 extractor draws 0 / 0 / 0 metal a second (lowest / median / highest spot).
-- Starts: ours B2 (1246, 2020; 0 from ours), the opponent's G7 (6944, 6169; 7048 from ours).
+- Starts: B2 (1246, 2020), G7 (6944, 6169), 7048 apart; the table below is from B2, which was ours in the game the sheet was made from: from another start, read "us" and "him" the other way round.
 
 | Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
 |---|---|---|---|---|---|---|---|
@@ -290,7 +332,7 @@ Every map we have a recorded game on, in one table each. The first start is ours
 
 - 12288 by 12288 elmos; wind 4 to 12; tidal 15; 0% under water; ground height 197 to 373.
 - 204 metal spots; a tier-1 extractor draws 2.06 / 2.06 / 2.06 metal a second (lowest / median / highest spot).
-- Starts: ours G3 (10215, 4546; 0 from ours).
+- Starts: G3 (10215, 4546); the table below is from G3, which was ours in the game the sheet was made from.
 
 | Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
 |---|---|---|---|---|---|---|---|
@@ -306,7 +348,7 @@ Every map we have a recorded game on, in one table each. The first start is ours
 
 - 8192 by 9216 elmos; wind 2 to 16; tidal 25; 30% under water; ground height -110 to 299.
 - 88 metal spots; a tier-1 extractor draws 1.68 / 2.48 / 2.48 metal a second (lowest / median / highest spot).
-- Starts: ours G2 (7095, 1273; 0 from ours), the opponent's D7 (3771, 8036; 7535 from ours).
+- Starts: G2 (7095, 1273), D7 (3771, 8036), 7535 apart; the table below is from G2, which was ours in the game the sheet was made from: from another start, read "us" and "him" the other way round.
 
 | Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
 |---|---|---|---|---|---|---|---|
@@ -331,7 +373,7 @@ Every map we have a recorded game on, in one table each. The first start is ours
 
 - 3072 by 4096 elmos; wind 0 to 20; tidal 16; 0% under water; ground height 243 to 682.
 - 22 metal spots; a tier-1 extractor draws 2.12 / 2.17 / 2.32 metal a second (lowest / median / highest spot).
-- Starts: ours E2 (1736, 665; 0 from ours), the opponent's B8 (639, 3748; 3272 from ours).
+- Starts: E2 (1736, 665), B8 (639, 3748), 3272 apart; the table below is from E2, which was ours in the game the sheet was made from: from another start, read "us" and "him" the other way round.
 
 | Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
 |---|---|---|---|---|---|---|---|
@@ -356,7 +398,7 @@ Every map we have a recorded game on, in one table each. The first start is ours
 
 - 7168 by 7168 elmos; wind 2 to 20; tidal 0; 0% under water; ground height 103 to 458.
 - 82 metal spots; a tier-1 extractor draws 1.84 / 1.84 / 1.84 metal a second (lowest / median / highest spot).
-- Starts: ours A3 (731, 1958; 0 from ours), the opponent's H6 (6435, 5207; 6564 from ours).
+- Starts: A3 (731, 1958), H6 (6435, 5207), 6564 apart; the table below is from A3, which was ours in the game the sheet was made from: from another start, read "us" and "him" the other way round.
 
 | Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
 |---|---|---|---|---|---|---|---|
@@ -381,7 +423,7 @@ Every map we have a recorded game on, in one table each. The first start is ours
 
 - 6144 by 6144 elmos; wind 2 to 17; tidal 0; 0% under water; ground height 75 to 329.
 - 53 metal spots; a tier-1 extractor draws 0.49 / 2.00 / 2.00 metal a second (lowest / median / highest spot).
-- Starts: ours B2 (1479, 786; 0 from ours), the opponent's G7 (4663, 5355; 5568 from ours).
+- Starts: B2 (1479, 786), G7 (4663, 5355), 5568 apart; the table below is from B2, which was ours in the game the sheet was made from: from another start, read "us" and "him" the other way round.
 
 | Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
 |---|---|---|---|---|---|---|---|
@@ -406,7 +448,7 @@ Every map we have a recorded game on, in one table each. The first start is ours
 
 - 7168 by 7168 elmos; wind 3 to 17; tidal 0; 49% under water; ground height -80 to 324.
 - 44 metal spots; a tier-1 extractor draws 2.00 / 2.00 / 2.00 metal a second (lowest / median / highest spot).
-- Starts: ours E3 (3648, 2113; 0 from ours), the opponent's D7 (3368, 5445; 3343 from ours).
+- Starts: E3 (3648, 2113), D7 (3368, 5445), 3343 apart; the table below is from E3, which was ours in the game the sheet was made from: from another start, read "us" and "him" the other way round.
 
 | Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
 |---|---|---|---|---|---|---|---|
@@ -431,7 +473,7 @@ Every map we have a recorded game on, in one table each. The first start is ours
 
 - 10240 by 10240 elmos; wind 5 to 20; tidal 0; 69% under water; ground height -63 to 172.
 - 96 metal spots; a tier-1 extractor draws 1.95 / 1.95 / 1.95 metal a second (lowest / median / highest spot).
-- Starts: ours F7 (6947, 7916; 0 from ours).
+- Starts: F7 (6947, 7916); the table below is from F7, which was ours in the game the sheet was made from.
 
 | Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
 |---|---|---|---|---|---|---|---|
@@ -1224,68 +1266,40 @@ size.
 - sonnet-medium-1 (Comet): 46 Shellshockers in one body of 50 to 68; at 21:36 it had 9,005 metal on the spot against
   two Bulls and lost 3,330, then 4,300 for 675. Friendly fire was 16% of the damage it dealt.
 
-### Tier 2: the sprint
+### Tier 2: his and ours
 
-**The argument** (the user, 2026-10-18). Going to tier 2 is paid out of the income you have: the advanced plant
-(2,600 metal, 14,000 to 16,000 energy), its first advanced constructor (410 to 470), the first tier-2 extractors
-(620 each, four times the spot), while that seat's tier-1 plants pause and its builders stand on the frames. For
-three to five minutes the army does not grow; the frontier's fastest orders with no enemy put the plant at 6 to 7
-minutes and the first moho at 6 to 9 (the late-game part), and under pressure every minute a frame waits on an
-empty store is added to that. What comes out is the real economy and the real army: a side that holds its share of
-the spots grows only by upgrading them, and tier-2 units out-range and out-fight any tier-1 body of equal metal. So
-the question is never his tech; it is the gap. In a duel on a tight map it is lethal: his raiders meet a thin army
-and an idle plant, and the experienced players tech in 4 of 58 sides, ending the game first instead (in a close duel
-the tech is a fatal weak point, so his tech is the moment to find and kill his base, and matching him is the
-mistake: the user, 2026-09-28). On a larger map, with allies beside you, or once the fronts have settled, the gap is
-covered, and a game past twenty minutes is decided by who upgraded first; team games almost always go there. Ask at
-the first report, and again whenever the side's spot count stops growing: how long will this game run, who holds
-the line while a seat sprints, and what tier-1 income is left to take. Long, covered, none: the sprint starts now,
-and the only question is which seat. Short, nobody, plenty: stay on tier 1 and kill his base when he sprints.
+Little here is settled. Duels between people at this level on Comet Catcher end at 12 to 15 minutes at the median,
+and 4 of 80 sides ever started an advanced factory, so the pool does not say when it pays. What follows is the few
+cases we have and what people said. The arithmetic of what tier 2 costs and returns is in the economy tables.
 
-**The sprint in a team game.** One seat sprints, the one with the bank or the quietest front, and it starts at the
-first bank or when the side's spots are taken, whichever comes first, not when his tier 2 is seen. Every constructor
-of that seat and a construction turret or two beside it go on the plant, its other plants pause, the other seats
-send metal with `transfer` from the moment the plant is placed, and the received metal is a plant standing in two
-minutes, not a store. Its first units are an advanced constructor for each seat, given away, so the mohos go up on
-every seat at once. A tier-1 lab whose production is no longer the plan is reclaimed for its metal ("eat your bot
-lab", thebluegecko), and the commander is reclaimable too, for 2,700, when the side keeps another and a frame stands
-to take the metal: a side loses only when it has no commanders left (the game-end rule). Metal is nothing without
-build power on the frame (the user, 2026-09-28: "Two players gifting to one doesn't help if that player doesn't
-have the build power to push it through"). An allied seat that is sprinting is fed the same way: `transfer` sends
-metal and energy to an ally that is not ours. The direction names the seat, the moment and the feeders; the player
-of that seat runs the frames.
+**BARb on Comet Catcher** starts an advanced factory at 10:41 at the median (9:55 to 11:44), in 73 of 74 games that
+lasted fifteen minutes, whatever we did. His army's value falls or stands still while he pays for it (median 3,302
+at 12:00, 2,852 at 16:00), then doubles every five minutes from 20:00 (5,069, then 9,389 at 25:00 and 16,360 at
+30:00) as Fatboys, Sharpshooters and Razorbacks arrive.
 
-**His sprint.** BARb on Comet Catcher starts an advanced factory at 10:41 at the median (9:55 to 11:44), in 73 of 74
-games that lasted fifteen minutes, whatever we did. His army's value falls or stands still while he pays for it
-(median 3,302 at 12:00, 2,852 at 16:00), then doubles every five minutes from 20:00 (5,069, then 9,389 at 25:00 and
-16,360 at 30:00) as Fatboys, Sharpshooters and Razorbacks arrive. A person's sprint in a duel is the window the
-cases describe; in a team game it is the cue that the other side has judged its gap covered.
+**Cases.**
+- player-9 (Comet): his advanced lab started at 10:32 and his army fell from 2,736 to 2,220 by 12:00 while ours rose
+  to 6,565. Our mass stood at D5-D6 in our own half. The lab was never seen, and its Fatboys, Sharpshooters and a
+  Razorback ended the game.
+- player-10 and player-11 (Comet): his lab at 11:42 and 12:10. Both times we started our own; it stood at 14:15,
+  with our energy at 0 at 11:37 to pay for it. Both lost.
+- bluegecko-3v1-9 (Comet, a person): we stayed tier 1; 94 tier-1 tanks died to 15 Bulls.
+- bluegecko-3v1-10 (Comet, lost 26:10): our army was a mass of Lashers. "You made many lashers, so I was safe to go
+  T2." His Tzars and Tigers beat them. On our side one seat's advanced plant sat at 0% from 15:40 until it was
+  abandoned at 19:15, with one constructor on it, while that seat banked 1,432 metal; no metal was sent between
+  seats all game.
+- bluegecko-3v1-12: three transfers between seats, a dying seat's units and 700 metal to a live one at 11:41 to
+  12:13.
 
-**Cases, in pairs.**
-- The gap lethal: player-10 and player-11 (Comet duels against BARb) matched his lab at 11:42 and 12:10, stood theirs
-  at 14:15 with energy at 0 from 11:37, and lost both. A tier-1 bot of ours that holds BARb hard_aggressive to one
-  win in five on Comet won 1 of 16 when it sprinted at income 22 and 0 of 8 at 30, and on Great Divide at 11 spots a
-  side 2 of 16 against 7 of 8 without (K-t2-the-transition-under-pressure-loses-at-either-gate: duels, tight maps,
-  nobody covering; the late-game part has the curves).
-- The gap covered: human-8v8-1 (a lobby 5v5 with people, our two seats at +50 % beside three Apex seats). Apex's
-  Legion seat placed its advanced lab at 5:20 on eight extractors and an income of 27, held its army near 2,000
-  metal from 6:00 to 12:00 while our two seats' armies of 5,000 to 12,000 carried both fronts, had its first moho at
-  9:00, six by 15:00 and seventeen by 30:00, and ran 104 metal a second at 15:00 and 206 at 30:00. Our seats, capped
-  at nine and fifteen spots from 6:00, placed their labs at 12:39 (on seeing his) and 18:28 (on a bank) and ran 42
-  and 57 at 15:00, 122 and 96 at 30:00; the commander directed both bodies at his lab at 12:36 and made no transfer
-  all game. Its army at 57:00 was 410,000 metal against our 132,000 and 111,000 (K-t2-the-gap-is-covered-by-allies).
-- The long game on tier 1: bluegecko-3v1-comet-catcher-9 (Comet, a person), lost 20:16 after leading three to one;
-  94 tier-1 tanks died to 15 Bulls.
-- His sprint as the window, in a duel: player-9 (Comet), his lab at 10:32, his army fell from 2,736 to 2,220 by
-  12:00 while ours rose to 6,565 and stood at D5-D6 in our own half; the lab was never seen, and its Fatboys,
-  Sharpshooters and a Razorback ended the game.
-- The sprint botched: bluegecko-3v1-comet-catcher-10 (lost 26:10), the top seat's plant at 0 % from 15:40 to 19:15
-  with one constructor on it, that seat banking 1,432 and no `transfer` all game ("Top should stop building other
-  units while doing t2 transition", thebluegecko; our Lasher mass had let him tech: "you made many lashers, so I was
-  safe to go T2"); human-8v8-1, our first advanced lab at D8 killed at 16:53 by five Centurions and a Mace with
-  4,000 metal in it, the lab outside the turrets.
-- The transfer used: bluegecko-3v1-12, three transfers between seats, a dying seat's units and 700 metal to a live
-  one at 11:41 to 12:13.
+**What players said.**
+- "Two seats can gift resources to one seat, that seat can build t2, then share t2 constructors to let advanced
+  mexes go up." (the user, 2026-09-27)
+- "The top player had only one constructor applying build power to it ... Two players gifting to one doesn't help
+  if that player doesn't have the build power to push it through." (the user, 2026-09-28)
+- "Top should stop building other units while doing t2 transition." (thebluegecko, game 10)
+- In a close duel the tech is a weak point: his is the moment to find his base. Past about 25:00, with more than
+  two players, or against an opponent that techs on a clock whatever happens, that weak point is covered. (the
+  user, 2026-09-28)
 
 ### Income past the spot count
 
@@ -1481,6 +1495,37 @@ their turrets (our reading).
   still running.
 - The hands' own games from a default packet: the commander died twice walking to far spots beside the enemy.
 
+### Water maps: the under-water spots are a builder question from the first minute
+
+**The maps.** Cape Violet V1 (40% sea, 26 of 72 spots under water, east against west with the sea between), Azurite
+Shores 1.0.2 (a channel down the middle, 16 of 76 spots under water), Quicksilver (half water). The first report's
+`metal_spots_summary` gives the count, `reached_by` on each spot our bots cannot walk to says what of ours gets
+there, and the score line names the nearest free spots under water with what takes them.
+
+**What takes them.** The ordinary extractor, placed by the commander (amphibious, from 0:00), by an amphibious
+constructor (Beaver `armbeaver`, Muskrat `cormuskrat`: the vehicle plant makes them), by a construction hovercraft
+(`armch`, `corch`: the hover platform) or by a construction ship (`armcs`, `corcs`: the shipyard). Nothing else
+reaches them; a list step naming one for a land constructor is skipped as "not free".
+
+**Cases.**
+- Azurite Shores, three seats of ours against two people (2026-10-18): seat 2's commander and a Muskrat took all
+  seven water spots of our half between 6:16 and 9:21 by list steps (`cormex spot_61`, `spot_74`, ...); the Armada
+  seat at B8 took none and stood on 36 land extractors.
+- Cape Violet, one seat against a person at +100% (2026-10-18, lost 33:31): the player wrote at 0:10 "A Muskrat for
+  the under-water spots comes later" and never produced one; 39 extractors on land, none in water, the count flat
+  at 17-18 from 8:00 to 20:00 with three land spots left in our half; his construction ship took G3 in our half at
+  11:59, Corsairs 12:41, Fatboys 15:13, Titans 23:55, an Epoch 29:56. The two torpedo launchers ordered at 12:08 were
+  never built: one Dolphin kept the lone constructor off the coast through 35 s of flips until the player gave them
+  up. (Ours.)
+- Cape Violet, three seats against thebluegecko (2026-09-27, lost 18:18): he took every under-water spot with
+  construction ships and advanced subs by 10:00 while we took none, brought Welders over the water from 12:00,
+  Liche bombers killed two commanders at 17:07 and Longbow cruisers shelled from 1,550 at 17:49.
+
+**What the two losses share** (ours): the sea was left to him whole, and his answer to our land army came from it.
+What the Azurite seat did is the shape: the first list after the plant names the under-water spots nearest home for
+the commander and the first amphibious constructor; a shipyard with a construction ship first when the far spots
+are at sea; torpedo launchers at the coast spots under a group's cover, not a lone constructor's.
+
 
 ## The late game: what it takes
 
@@ -1538,6 +1583,8 @@ building other units while doing t2 transition" (the players' words, on tier 2).
   longer in proportion: player-32's two fusions 274 and 276 s against 186 by the power on them, the energy store
   empty in three samples of four (`run/t2_frames.py`). Our energy was at zero through the whole plant build in
   player-10, 11 and 32.
+- **One builder on a frame.** bluegecko-3v1-10 (three seats against a person): one seat's advanced plant at 0 % from
+  15:40 until it was abandoned at 19:15, one constructor on it, that seat banking 1,432; nothing sent between seats.
 - **The bank was the frames not begun.** human-18 at 17:54: "Energy STALLING with 6.2k metal banked and ~20
   constructors idling"; player-50 held five to ten times his army and thousands in the store for twenty minutes
   (called undecided). The frontier's orders waste 7 metal in thirty minutes.
@@ -1560,6 +1607,8 @@ building other units while doing t2 transition" (the players' words, on tier 2).
   ten thousand and took seven minutes, and the energy rule built 40 to 56 solars for a draw that never came. The
   rules were the bot's; the crowded yard and the storage cap are the game's
   (K-t2-the-late-spend-ceiling-in-a-bot).
+- **His side**: BARb hard_aggressive's advanced lab at 10:41 at the median, his army flat from 10:40 to 20:00 and
+  doubling every five minutes after (the cases, "Tier 2: his and ours").
 - **The first game with a silo** (nuke-1-medium, Comet Catcher, BARb medium, the objective set to the nuke; undecided
   at the 40-minute cap). The advanced plant begun 8:38 after a fourteen-Ak raid at 8:23 took its first frame, three
   constructors and eight extractors; fusion 14:26; the silo listed with one id for an advanced constructor, the

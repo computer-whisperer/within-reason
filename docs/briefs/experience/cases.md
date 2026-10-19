@@ -340,3 +340,35 @@ their turrets (our reading).
 - escalate-4 (Comet): the commander never engaged a Razorback at home because its list's "help the plant" step was
   still running.
 - The hands' own games from a default packet: the commander died twice walking to far spots beside the enemy.
+
+### Water maps: the under-water spots are a builder question from the first minute
+
+**The maps.** Cape Violet V1 (40% sea, 26 of 72 spots under water, east against west with the sea between), Azurite
+Shores 1.0.2 (a channel down the middle, 16 of 76 spots under water), Quicksilver (half water). The first report's
+`metal_spots_summary` gives the count, `reached_by` on each spot our bots cannot walk to says what of ours gets
+there, and the score line names the nearest free spots under water with what takes them.
+
+**What takes them.** The ordinary extractor, placed by the commander (amphibious, from 0:00), by an amphibious
+constructor (Beaver `armbeaver`, Muskrat `cormuskrat`: the vehicle plant makes them), by a construction hovercraft
+(`armch`, `corch`: the hover platform) or by a construction ship (`armcs`, `corcs`: the shipyard). Nothing else
+reaches them; a list step naming one for a land constructor is skipped as "not free".
+
+**Cases.**
+- Azurite Shores, three seats of ours against two people (2026-10-18): seat 2's commander and a Muskrat took all
+  seven water spots of our half between 6:16 and 9:21 by list steps (`cormex spot_61`, `spot_74`, ...); the Armada
+  seat at B8 took none and stood on 36 land extractors.
+- Cape Violet, one seat against a person at +100% (2026-10-18, lost 33:31): the player wrote at 0:10 "A Muskrat for
+  the under-water spots comes later" and never produced one; 39 extractors on land, none in water, the count flat
+  at 17-18 from 8:00 to 20:00 with three land spots left in our half; his construction ship took G3 in our half at
+  11:59, Corsairs 12:41, Fatboys 15:13, Titans 23:55, an Epoch 29:56. The two torpedo launchers ordered at 12:08 were
+  never built: one Dolphin kept the lone constructor off the coast through 35 s of flips until the player gave them
+  up. (Ours.)
+- Cape Violet, three seats against thebluegecko (2026-09-27, lost 18:18): he took every under-water spot with
+  construction ships and advanced subs by 10:00 while we took none, brought Welders over the water from 12:00,
+  Liche bombers killed two commanders at 17:07 and Longbow cruisers shelled from 1,550 at 17:49.
+
+**What the two losses share** (ours): the sea was left to him whole, and his answer to our land army came from it.
+What the Azurite seat did is the shape: the first list after the plant names the under-water spots nearest home for
+the commander and the first amphibious constructor; a shipyard with a construction ship first when the far spots
+are at sea; torpedo launchers at the coast spots under a group's cover, not a lone constructor's.
+

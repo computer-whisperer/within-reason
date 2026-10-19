@@ -198,9 +198,10 @@ pub fn markdown(s: &Value) -> String {
             .as_array()
             .map(|a| {
                 let names: Vec<String> = a.iter().map(|p| format!("{} ({}, {})", text(&p["cell"]), text(&p["x"]), text(&p["z"]))).collect();
-                let apart = a.get(1).map(|p| format!(", {} apart", text(&p["straight_from_ours"]))).unwrap_or_default();
+                let apart = if a.len() == 2 { a.get(1).map(|p| format!(", {} apart", text(&p["straight_from_ours"]))).unwrap_or_default() } else { String::new() };
                 let first = a.first().map(|p| text(&p["cell"])).unwrap_or_default();
-                format!("{}{apart}; the table below is from {first}, which was ours in the game the sheet was made from: from the other start, read \"us\" and \"him\" the other way round", names.join(" and "))
+                let others = if a.len() > 1 { ": from another start, read \"us\" and \"him\" the other way round" } else { "" };
+                format!("{}{apart}; the table below is from {first}, which was ours in the game the sheet was made from{others}", names.join(", "))
             })
             .unwrap_or_default(),
     );
