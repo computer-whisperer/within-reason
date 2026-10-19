@@ -588,3 +588,17 @@ intercept type, exterior) and each weapon's mask; the shim carries them from 202
 `units/CorBots/T2/corhrk.lua` (StarburstLauncher), `units/Legion/Bots/T2 Bots/leghrk.lua` (MissileLauncher).
 **Would be wrong if.** The lobby set `experimentalshields` to `absorbeverything` or `bounceeverything` (then every weapon reads 1 and the shields stop everything).
 **Used by.** H-REPORT-SHIELDS; the brief's sight passage.
+
+### K-mech-lazarus-raises-commanders
+**Claim.** A commander's wreck resurrected by a resurrection bot gives its side a new, living commander, so a side whose
+every commander has died is not out while a Lazarus reaches a commander wreck; the kill counts only when the wreck is
+reclaimed, destroyed or stood on.
+**Status.** observed (2026-10-19)
+**Evidence.** apex-v032-altored-3v3-apex60-1 (truth file): Apex's three commanders (ids 9947, 26858, 5831) died at
+21:14, 25:52 and 37:48; new commanders 6141 and 15353 first appear at 23:54 (E8) and 43:24 (G7), both alive at 60:00;
+Apex fielded 51 Lazarus (`cornecro`) over the game. Our bodies killed the commanders and moved on; nobody reclaimed the
+wrecks, and the game ran to the cap.
+**Would be wrong if.** The new ids were commanders given by a lobby rule or built, not raised (no building makes one;
+the lobby had three seats).
+**Used by.** The briefs' commander-kill words (candidate: reclaim or stand on a commander wreck; H-PLAYER-OWN-TRADE).
+
