@@ -1736,7 +1736,7 @@ impl Brain {
                         }
                     }
                 }
-                Event::UnitDestroyed { unit, attacker } => {
+                Event::UnitDestroyed { unit, attacker, .. } => {
                     // The frame of a builder's own build gone: the queued step begins (the engine goes on to the
                     // queued order), or the builder is free for the pass.
                     for builder in pianist.builders_of_frame(unit) {
@@ -2065,7 +2065,7 @@ mod frame_tests {
         assert_eq!(state(pianist.tasks.get(&builder)), Some((true, Some(UnitId(31)), 1040.0)));
         // The frame shot down: with nothing queued the builder is free for the pass.
         let ours = vec![own(10, 2, at(1000.0, 950.0))];
-        brain.pianist_housekeeping(&tick(90, ours, vec![Event::UnitDestroyed { unit: UnitId(31), attacker: None }]), &kit(), &mut commands);
+        brain.pianist_housekeeping(&tick(90, ours, vec![Event::UnitDestroyed { unit: UnitId(31), attacker: None, death: bot_protocol::Death::Unknown }]), &kit(), &mut commands);
         let pianist = brain.pianist.as_ref().expect("kept");
         assert!(pianist.tasks.get(&builder).is_none(), "{:?}", pianist.tasks.get(&builder));
         assert!(!commands.iter().any(|c| matches!(c, Command::Stop { .. })), "{commands:?}");

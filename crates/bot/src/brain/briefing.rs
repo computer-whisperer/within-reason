@@ -2,7 +2,7 @@
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 
-use bot_protocol::{UnitId, Event, OwnUnit, Tick, UnitDefId, Vec3};
+use bot_protocol::{Death, Event, OwnUnit, Tick, UnitDefId, UnitId, Vec3};
 use serde_json::json;
 
 use super::roster::Kit;
@@ -46,10 +46,6 @@ fn clock(frame: i32) -> String {
     format!("{}:{:02}", seconds / 60, seconds % 60)
 }
 
-/// A frame destroyed with no attacker named after a hit in these seconds was shot by something out of sight, not
-/// left to decay.
-const SHOT_WINDOW: i32 = 15 * FRAMES_PER_SECOND;
-
 /// What killed a unit of ours, for its loss line and the strike line (H-REPORT-BLAST-CAUSE).
 #[derive(Clone, Debug, PartialEq)]
 enum Cause {
@@ -63,10 +59,14 @@ enum Cause {
     Blast { name: Option<String>, ours: bool },
     /// Our own unit's shot: the engine names one of ours as the attacker for its fire and for its reclaim only.
     FriendlyFire(String),
-    /// Our own constructor taking it apart: one of ours named as the attacker with no hit on the dead unit.
-    TakenApart(String),
-    /// Shot by something out of sight: a gun's weapon on the last hit, or an unfinished frame hit before it fell.
-    UnseenFire,
+    /// Taken apart by our own constructor, named when the engine names it.
+    TakenApart(Option<String>),
+    SelfDestruct,
+    /// A gun's hit with nobody named: fire from out of sight, the shooter's type read from the weapon's name
+    /// (`<unit>_<weapon>`) when one of the game's units matches.
+    UnseenFire(Option<String>),
+    /// The engine's own verdict: a collision, a crash, a crushing, a transport's or a factory's death.
+    Engine(&'static str),
     Unseen,
 }
 
@@ -79,8 +79,12 @@ impl std::fmt::Display for Cause {
             Cause::Blast { name: Some(name), ours: true } => write!(f, "our own {name}'s death blast"),
             Cause::Blast { name: None, .. } => write!(f, "a death blast"),
             Cause::FriendlyFire(name) => write!(f, "our own {name}'s fire"),
-            Cause::TakenApart(name) => write!(f, "our own {name} taking it apart"),
-            Cause::UnseenFire => write!(f, "unseen fire"),
+            Cause::TakenApart(Some(name)) => write!(f, "our own {name} taking it apart"),
+            Cause::TakenApart(None) => write!(f, "a reclaim"),
+            Cause::SelfDestruct => write!(f, "its own self-destruct"),
+            Cause::UnseenFire(Some(shooter)) => write!(f, "a {shooter} out of sight"),
+            Cause::UnseenFire(None) => write!(f, "unseen fire"),
+            Cause::Engine(what) => write!(f, "{what}"),
             Cause::Unseen => write!(f, "unseen"),
         }
     }
@@ -221,16 +225,19 @@ impl Brain {
         });
     }
 
-    /// What killed a unit of ours at `pos` (H-REPORT-BLAST-CAUSE). The engine names an attacker for a shot (his, or
-    /// our own: friendly fire) and for a reclaim (our own constructor, with no hit on the dead), never for a missile
-    /// or a death blast; those are told from the weapon of the dead unit's last hit this tick (a warhead reaching
-    /// beyond the map: a silo's missile, `crblmssl` at 72,000 against a map of 8,192; an explosion, which has no
-    /// range) and from the units that died with a death blast reaching it within the window, his or ours. A gun's
-    /// hit with nobody named is fire from out of sight, never a blast.
-    fn death_cause(&self, unit: UnitId, pos: Vec3, attacker: Option<UnitId>, lethal: &HashMap<UnitId, bot_protocol::Weapon>, blasts: &[RecentBlast], own_defs_now: &HashMap<UnitId, UnitDefId>, dead_enemies_now: &HashMap<UnitId, UnitDefId>, unseen_fire: bool) -> Cause {
+    /// What killed a unit of ours at `pos` (H-REPORT-BLAST-CAUSE), from the kill event's attacker and cause. The
+    /// engine names an attacker for a shot (his, or our own: friendly fire) and for a reclaim (our own constructor),
+    /// never for a missile or a death blast; those are told from the killing weapon (a warhead reaching beyond the
+    /// map: a silo's missile, `crblmssl` at 72,000 against a map of 8,192; an explosion, which has no range) and from
+    /// the units that died with a death blast reaching it within the window, his or ours. A gun's hit with nobody
+    /// named is fire from out of sight, the shooter's type read from the weapon's name, never a blast.
+    fn death_cause(&self, unit: UnitId, pos: Vec3, attacker: Option<UnitId>, death: &Death, blasts: &[RecentBlast], own_defs_now: &HashMap<UnitId, UnitDefId>, dead_enemies_now: &HashMap<UnitId, UnitDefId>) -> Cause {
         let map = &self.world.hello.map;
-        let weapon = lethal.get(&unit);
-        let explosion = weapon.is_some_and(|w| w.range <= EXPLOSION_RANGE_CEILING);
+        let weapon = match death {
+            Death::Weapon(w) => Some(w),
+            _ => None,
+        };
+        let explosion = matches!(death, Death::Debris) || weapon.is_some_and(|w| w.range <= EXPLOSION_RANGE_CEILING);
         if let Some(id) = attacker {
             // A killer that died this tick itself (a Juggernaut's last shots as it fell) is still the killer.
             if let Some(def) = self.enemy_defs.get(&id).or_else(|| dead_enemies_now.get(&id)) {
@@ -238,20 +245,36 @@ impl Brain {
             }
             if id != unit && let Some(def) = own_defs_now.get(&id) {
                 let name = self.name(*def).to_string();
-                return if explosion {
-                    Cause::Blast { name: Some(name), ours: true }
-                } else if weapon.is_some() {
-                    Cause::FriendlyFire(name)
-                } else {
-                    Cause::TakenApart(name)
+                return match death {
+                    Death::Reclaimed => Cause::TakenApart(Some(name)),
+                    _ if explosion => Cause::Blast { name: Some(name), ours: true },
+                    // An older shim's event carries no cause: fire is the commoner reading (16 of 20 in apex60-2).
+                    _ => Cause::FriendlyFire(name),
                 };
             }
+        }
+        match death {
+            Death::Reclaimed => return Cause::TakenApart(None),
+            Death::SelfDestruct => return Cause::SelfDestruct,
+            Death::Other(code) => {
+                return match code {
+                    2 | 3 => Cause::Engine("a collision"),
+                    7 => Cause::Engine("being crushed"),
+                    8 => Cause::Engine("a crash"),
+                    14 => Cause::Engine("its transport's death"),
+                    15 => Cause::Engine("its factory's death"),
+                    _ => Cause::Unseen,
+                };
+            }
+            _ => {}
         }
         if weapon.is_some_and(|w| w.range > map.width + map.height) {
             return Cause::Missile;
         }
-        if weapon.is_some() && !explosion {
-            return Cause::UnseenFire;
+        if let Some(w) = weapon
+            && !explosion
+        {
+            return Cause::UnseenFire(self.unit_type_of_weapon(&w.name));
         }
         let reached = blasts.iter().filter(|b| b.unit != unit && pos.dist2d(b.at) <= b.radius + BLAST_SLACK);
         if let Some(blast) = reached.min_by(|a, b| pos.dist2d(a.at).total_cmp(&pos.dist2d(b.at))) {
@@ -260,7 +283,22 @@ impl Brain {
         if explosion {
             return Cause::Blast { name: None, ours: false };
         }
-        if unseen_fire { Cause::UnseenFire } else { Cause::Unseen }
+        Cause::Unseen
+    }
+
+    /// The unit type behind a weapon's name: the game names a unit's weapons `<unit>_<weapon>`
+    /// (`corstorm_cor_bot_rocket`, `corcom_disintegrator`); an explosion's name carries no unit. The longest match
+    /// wins (`armmex` against `armmexp`... `corak` against `corakm`).
+    fn unit_type_of_weapon(&self, weapon: &str) -> Option<String> {
+        let weapon = weapon.to_ascii_lowercase();
+        self.world
+            .hello
+            .unit_defs
+            .iter()
+            .map(|d| d.name.as_str())
+            .filter(|n| weapon.len() > n.len() && weapon.starts_with(*n) && weapon.as_bytes()[n.len()] == b'_')
+            .max_by_key(|n| n.len())
+            .map(str::to_string)
     }
 
     /// One line a cause for the deaths a missile or a death blast took this tick (H-REPORT-BLAST-CAUSE): where it
@@ -294,19 +332,11 @@ impl Brain {
     pub(super) fn track_losses(&mut self, tick: &Tick, kit: &Kit) {
         const LOSSES_WORTH_WAKING_FOR: usize = 2;
         self.frame_losses_now.clear();
-        // A frame's builder and its last hit, so a frame destroyed with no attacker named (the engine names none out
-        // of sight) is told a decay, which nobody shot, from a kill: 106 of 311 "decayed" frames in 23 games had
-        // taken damage in their last seconds, and the report said of each that its builder had been sent elsewhere
-        // (docs/studies/2026-10-17-unfinished-structures.md §2.2).
+        // A frame's builder, so a decayed frame's line says whether its builder died, and a `stop` spares a frame
+        // begun after the report the player read.
         for event in &tick.events {
-            match event {
-                Event::UnitCreated { unit, builder: Some(builder) } => {
-                    self.frame_builders.insert(*unit, (*builder, tick.frame));
-                }
-                Event::UnitDamaged { unit, .. } if self.unfinished.contains_key(unit) => {
-                    self.frame_hits.insert(*unit, tick.frame);
-                }
-                _ => {}
+            if let Event::UnitCreated { unit, builder: Some(builder) } = event {
+                self.frame_builders.insert(*unit, (*builder, tick.frame));
             }
         }
         for enemy in &tick.snapshot.enemies {
@@ -339,19 +369,11 @@ impl Brain {
                 _ => None,
             }))
             .collect();
-        // What killed a unit of ours when the engine names no attacker (H-REPORT-BLAST-CAUSE): the weapon of its
-        // last hit this tick, and the units that died with a death blast in the last seconds. The engine withholds
-        // the attacker of a missile strike and of a death blast alike (apex60-1: 15 of ours at 33:12 and 21 at 50:36
-        // under missiles, 77 at 57:17 under a Juggernaut's blast, each "lost ... to unseen"; the player wrote "I
-        // suspect a second missile ... but the report doesn't confirm it" of a Juggernaut's blast at 34:43).
-        let lethal: HashMap<UnitId, bot_protocol::Weapon> = tick
-            .events
-            .iter()
-            .filter_map(|e| match e {
-                Event::UnitDamaged { unit, weapon: Some(w), .. } => Some((*unit, w.clone())),
-                _ => None,
-            })
-            .collect();
+        // What killed a unit of ours when the engine names no attacker (H-REPORT-BLAST-CAUSE): the kill event's
+        // weapon, and the units that died with a death blast in the last seconds. The engine withholds the attacker
+        // of a missile strike and of a death blast alike (apex60-1: 15 of ours at 33:12 and 21 at 50:36 under
+        // missiles, 77 at 57:17 under a Juggernaut's blast, each "lost ... to unseen"; the player wrote "I suspect a
+        // second missile ... but the report doesn't confirm it" of a Juggernaut's blast at 34:43).
         let own_defs_now: HashMap<UnitId, UnitDefId> = self.known_units.iter().map(|(id, (def, _))| (*id, *def)).collect();
         let dead_enemies_now: HashMap<UnitId, UnitDefId> = tick
             .events
@@ -407,7 +429,7 @@ impl Brain {
                 }
                 *self.fight_ledger.entry(line).or_default() += 1;
             }
-            let Event::UnitDestroyed { unit, attacker } = event else { continue };
+            let Event::UnitDestroyed { unit, attacker, death } = event else { continue };
             let Some((def, pos)) = self.known_units.remove(unit) else { continue };
             // An extractor of ours that our own advanced extractor replaces dies by nobody's hand: an upgrade, not a
             // loss (the impedance tally, 2026-10-16: apex-v024-carrot-sym50-opus-1 15:22 to 16:36 read "extractors
@@ -421,15 +443,17 @@ impl Brain {
             }
             let cost = self.world.def(def).map_or(0.0, |d| d.metal_cost);
             let builder = self.frame_builders.remove(unit).map(|(b, _)| b);
-            let last_hit = self.frame_hits.remove(unit);
             self.frame_alone_since.remove(unit);
             // An unfinished frame: the metal put in is its peak share of the cost (left to decay it reads near 0 at
             // its end, and the report said "0% built" of every decay until 2026-10-17), and what became of it is
-            // read from its last hit and its builder.
+            // the kill event's cause: a weapon's hit with nobody named was a shot from out of sight (106 of 311
+            // "decayed" frames in 23 games had been hit in their last seconds, and the report said of each that its
+            // builder had been sent elsewhere, docs/studies/2026-10-17-unfinished-structures.md §2.2). An older
+            // shim's event carries no cause, and the frame reads as abandoned, the commoner case (205 of the 311).
             let frame_loss = self.unfinished.remove(unit).map(|share| {
                 let fate = if attacker.is_some() {
                     FrameFate::Killed
-                } else if last_hit.is_some_and(|f| tick.frame - f <= SHOT_WINDOW) {
+                } else if matches!(death, Death::Weapon(_) | Death::Debris) {
                     FrameFate::ShotUnseen
                 } else {
                     FrameFate::Decayed { builder_dead: builder.is_some_and(|b| !tick.snapshot.own_units.iter().any(|u| u.id == b)) }
@@ -452,7 +476,6 @@ impl Brain {
                 continue;
             }
             let built = frame_loss.as_ref().map_or(String::new(), |l| format!(" ({:.0}% built)", l.share * 100.0));
-            let unseen_fire = frame_loss.as_ref().is_some_and(|l| matches!(l.fate, FrameFate::ShotUnseen));
             let cost = frame_loss.as_ref().map_or(cost, |l| cost * l.share);
             if let Some(loss) = frame_loss {
                 self.frame_losses_now.insert(*unit, loss);
@@ -465,7 +488,7 @@ impl Brain {
             {
                 *self.spot_losses.entry(index).or_default() += 1;
             }
-            let cause = self.death_cause(*unit, pos, *attacker, &lethal, &self.recent_blasts, &own_defs_now, &dead_enemies_now, unseen_fire);
+            let cause = self.death_cause(*unit, pos, *attacker, death, &self.recent_blasts, &own_defs_now, &dead_enemies_now);
             let place = if pos.dist2d(self.home) < BASE_RADIUS { "at home" } else if pos.dist2d(self.home) < pos.dist2d(self.world.mirrored(self.home)) { "in our half" } else { "in their half" };
             let line = format!("lost {}{built} to {cause} {place}", self.name(def));
             if matches!(cause, Cause::Missile | Cause::Blast { .. }) {
@@ -519,7 +542,6 @@ impl Brain {
                 (u.id, peak.remove(&u.id).map_or(share, |p| p.max(share)))
             })
             .collect();
-        self.frame_hits.retain(|id, _| self.unfinished.contains_key(id));
         self.frame_builders.retain(|id, _| self.unfinished.contains_key(id));
         // Since when each frame has stood with nobody of ours building it.
         let on = self.builders_on_frames();
@@ -1511,7 +1533,7 @@ mod colour_tests {
 
 #[cfg(test)]
 mod frame_loss_tests {
-    use bot_protocol::{Event, OwnUnit, Resource, Snapshot, Tick, UnitDefId, UnitId, Vec3};
+    use bot_protocol::{Death, Event, OwnUnit, Resource, Snapshot, Tick, UnitDefId, UnitId, Vec3, Weapon};
 
     use super::super::pianist::fixtures::{at, brain_of, own};
     use super::super::roster::Kit;
@@ -1526,8 +1548,8 @@ mod frame_loss_tests {
         Tick { frame, late: 0, events, snapshot: Snapshot { metal: resource(), energy: resource(), wind: 0.0, own_units: ours, allies: Vec::new(), enemies: Vec::new(), wrecks: None, sensors: None } }
     }
 
-    /// An unfinished frame destroyed by nobody named is a decay only when nothing shot it: after a hit it was shot
-    /// by something out of sight; with a named attacker it was killed. Each is counted at the furthest the frame
+    /// An unfinished frame destroyed by nobody named is a decay when the kill event says so, and a shot from out of
+    /// sight when a weapon killed it; with a named attacker it was killed. Each is counted at the furthest the frame
     /// had been built, not the share left after decay (the report said "0% built" of a frame left at 98 %).
     #[test]
     fn an_unfinished_frame_is_told_a_decay_from_a_kill_and_counted_at_its_peak() {
@@ -1541,13 +1563,13 @@ mod frame_loss_tests {
         brain.track_losses(&tick(60, with(vec![frame(20, at(1000.0, 1000.0), 0.7), frame(21, at(1100.0, 1000.0), 0.6), frame(22, at(1200.0, 1000.0), 0.3), frame(23, at(3000.0, 1000.0), 0.7)]), Vec::new()), &kit);
         // Frame 20 decays to 10 % with its builder gone elsewhere; 23's builder dies.
         brain.track_losses(&tick(90, with(vec![frame(20, at(1000.0, 1000.0), 0.1), frame(21, at(1100.0, 1000.0), 0.6), frame(22, at(1200.0, 1000.0), 0.3), frame(23, at(3000.0, 1000.0), 0.05)]), Vec::new()), &kit);
+        let gun = || Death::Weapon(Weapon { name: "corak_gator_laser".into(), range: 190.0 });
         let events = vec![
-            Event::UnitDestroyed { unit: UnitId(20), attacker: None },
-            Event::UnitDamaged { unit: UnitId(21), attacker: None, damage: 300.0, from: None, weapon: None },
-            Event::UnitDestroyed { unit: UnitId(21), attacker: None },
-            Event::UnitDestroyed { unit: UnitId(22), attacker: Some(UnitId(500)) },
-            Event::UnitDestroyed { unit: UnitId(11), attacker: Some(UnitId(500)) },
-            Event::UnitDestroyed { unit: UnitId(23), attacker: None },
+            Event::UnitDestroyed { unit: UnitId(20), attacker: None, death: Death::Decayed },
+            Event::UnitDestroyed { unit: UnitId(21), attacker: None, death: gun() },
+            Event::UnitDestroyed { unit: UnitId(22), attacker: Some(UnitId(500)), death: gun() },
+            Event::UnitDestroyed { unit: UnitId(11), attacker: Some(UnitId(500)), death: gun() },
+            Event::UnitDestroyed { unit: UnitId(23), attacker: None, death: Death::Decayed },
         ];
         brain.track_losses(&tick(120, vec![own(10, 1, at(1000.0, 950.0))], events), &kit);
         let loss = |id: i32| brain.frame_losses_now.get(&UnitId(id)).copied().expect("a frame loss");
@@ -1572,7 +1594,7 @@ mod frame_loss_tests {
     /// one "lost ... to unseen").
     #[test]
     fn a_missile_and_a_death_blast_are_named_as_the_cause_of_unattributed_losses() {
-        use bot_protocol::{Blast, EnemyUnit, Weapon};
+        use bot_protocol::{Blast, EnemyUnit};
         let mut brain = brain_of(&["armcom", "armsolar", "corkorg"]);
         for d in brain.world.hello.unit_defs.iter_mut() {
             match d.name.as_str() {
@@ -1588,18 +1610,17 @@ mod frame_loss_tests {
         let mut first = tick(30, ours(), Vec::new());
         first.snapshot.enemies = vec![EnemyUnit { id: UnitId(500), def: Some(UnitDefId(3)), pos: at(1150.0, 1050.0), vel: Vec3::default(), health: 100.0, team: Some(1), being_built: false }];
         brain.track_losses(&first, &kit);
-        let warhead = || Some(Weapon { name: "crblmssl".into(), range: 72000.0 });
-        let explosion = || Some(Weapon { name: "korgExplosion".into(), range: 0.0 });
+        let warhead = || Death::Weapon(Weapon { name: "corsilo_crblmssl".into(), range: 72000.0 });
+        let explosion = || Death::Weapon(Weapon { name: "korgexplosion".into(), range: 10.0 });
+        let gun = || Death::Weapon(Weapon { name: "corkorg_corkorg_laser".into(), range: 900.0 });
         let events = vec![
-            Event::UnitDamaged { unit: UnitId(20), attacker: None, damage: 12500.0, from: None, weapon: warhead() },
-            Event::UnitDestroyed { unit: UnitId(20), attacker: None },
+            Event::UnitDestroyed { unit: UnitId(20), attacker: None, death: warhead() },
             Event::EnemyDestroyed { enemy: UnitId(500), attacker: None },
-            Event::UnitDamaged { unit: UnitId(21), attacker: None, damage: 9000.0, from: None, weapon: explosion() },
-            Event::UnitDestroyed { unit: UnitId(21), attacker: None },
-            Event::UnitDestroyed { unit: UnitId(22), attacker: Some(UnitId(500)) },
-            Event::UnitDestroyed { unit: UnitId(23), attacker: None },
-            Event::UnitDestroyed { unit: UnitId(10), attacker: None },
-            Event::UnitDestroyed { unit: UnitId(24), attacker: None },
+            Event::UnitDestroyed { unit: UnitId(21), attacker: None, death: explosion() },
+            Event::UnitDestroyed { unit: UnitId(22), attacker: Some(UnitId(500)), death: gun() },
+            Event::UnitDestroyed { unit: UnitId(23), attacker: None, death: Death::Unknown },
+            Event::UnitDestroyed { unit: UnitId(10), attacker: None, death: Death::Unknown },
+            Event::UnitDestroyed { unit: UnitId(24), attacker: None, death: Death::Unknown },
         ];
         brain.track_losses(&tick(60, Vec::new(), events), &kit);
         let lines: Vec<&String> = brain.fight_ledger.keys().collect();
@@ -1629,8 +1650,8 @@ mod frame_loss_tests {
     /// attacker alive after, and the fusion's four victims at 16:43 read "unseen").
     #[test]
     fn friendly_fire_a_reclaim_and_a_late_blast_are_told_apart() {
-        use bot_protocol::{Blast, Weapon};
-        let mut brain = brain_of(&["armcom", "armsolar", "armjanus", "armcv", "armfus"]);
+        use bot_protocol::Blast;
+        let mut brain = brain_of(&["armcom", "armsolar", "armjanus", "armcv", "armfus", "corstorm"]);
         for d in brain.world.hello.unit_defs.iter_mut() {
             if d.name == "armfus" {
                 d.death_blast = Some(Blast { radius: 240.0, damage: 2650.0 });
@@ -1652,37 +1673,38 @@ mod frame_loss_tests {
                 own(23, 2, at(1200.0, 1000.0)),
                 own(24, 2, at(3000.0, 3000.0)),
                 own(25, 2, at(1150.0, 1000.0)),
+                own(26, 2, at(3200.0, 3000.0)),
             ]
         };
         brain.track_losses(&tick(30, ours(), Vec::new()), &kit);
-        let gun = |name: &str, range: f32| Some(Weapon { name: name.into(), range });
-        // The Janus's shell kills solar 20, the constructor takes solar 21 apart, something unseen kills the fusion.
+        let gun = |name: &str, range: f32| Death::Weapon(Weapon { name: name.into(), range });
+        // The Janus's shell kills solar 20, the constructor takes solar 21 apart, a Dragon out of sight kills the
+        // fusion, solar 26 self-destructs.
         let events = vec![
-            Event::UnitDamaged { unit: UnitId(20), attacker: Some(UnitId(30)), damage: 100.0, from: None, weapon: gun("armjanus_janus", 450.0) },
-            Event::UnitDestroyed { unit: UnitId(20), attacker: Some(UnitId(30)) },
-            Event::UnitDestroyed { unit: UnitId(21), attacker: Some(UnitId(31)) },
-            Event::UnitDestroyed { unit: UnitId(40), attacker: None },
+            Event::UnitDestroyed { unit: UnitId(20), attacker: Some(UnitId(30)), death: gun("armjanus_janus", 450.0) },
+            Event::UnitDestroyed { unit: UnitId(21), attacker: Some(UnitId(31)), death: Death::Reclaimed },
+            Event::UnitDestroyed { unit: UnitId(40), attacker: None, death: gun("corcrwh_dragon_laser", 840.0) },
+            Event::UnitDestroyed { unit: UnitId(26), attacker: None, death: Death::SelfDestruct },
         ];
         brain.track_losses(&tick(60, Vec::new(), events), &kit);
         // Fifteen frames on: the fusion's explosion takes solar 22; a Storm's rocket from out of sight takes solar
         // 23 beside it; an explosion with no unit dying near it takes solar 24.
         let events = vec![
-            Event::UnitDamaged { unit: UnitId(22), attacker: None, damage: 2650.0, from: None, weapon: gun("fusionexplosion", 10.0) },
-            Event::UnitDestroyed { unit: UnitId(22), attacker: None },
-            Event::UnitDamaged { unit: UnitId(23), attacker: None, damage: 100.0, from: None, weapon: gun("corstorm_cor_bot_rocket", 600.0) },
-            Event::UnitDestroyed { unit: UnitId(23), attacker: None },
-            Event::UnitDamaged { unit: UnitId(24), attacker: None, damage: 660.0, from: None, weapon: gun("metalmaker", 10.0) },
-            Event::UnitDestroyed { unit: UnitId(24), attacker: None },
+            Event::UnitDestroyed { unit: UnitId(22), attacker: None, death: gun("fusionexplosion", 10.0) },
+            Event::UnitDestroyed { unit: UnitId(23), attacker: None, death: gun("corstorm_cor_bot_rocket", 600.0) },
+            Event::UnitDestroyed { unit: UnitId(24), attacker: None, death: gun("metalmaker", 10.0) },
         ];
         brain.track_losses(&tick(75, Vec::new(), events), &kit);
-        // Eleven seconds after the fusion fell, a death beside its site with nobody named and no hit is unseen.
-        brain.track_losses(&tick(60 + BLAST_WINDOW_FRAMES + 30, Vec::new(), vec![Event::UnitDestroyed { unit: UnitId(25), attacker: None }]), &kit);
+        // Eleven seconds after the fusion fell, a death beside its site with nobody named and no cause is unseen.
+        brain.track_losses(&tick(60 + BLAST_WINDOW_FRAMES + 30, Vec::new(), vec![Event::UnitDestroyed { unit: UnitId(25), attacker: None, death: Death::Unknown }]), &kit);
         let lines: Vec<&String> = brain.fight_ledger.keys().collect();
         let has = |start: &str| lines.iter().any(|l| l.starts_with(start));
         assert!(has("lost armsolar to our own armjanus's fire "), "{lines:?}");
         assert!(has("lost armsolar to our own armcv taking it apart "), "{lines:?}");
         assert!(has("lost armsolar to our own armfus's death blast "), "{lines:?}");
-        assert!(has("lost armsolar to unseen fire "), "{lines:?}");
+        assert!(has("lost armsolar to a corstorm out of sight "), "{lines:?}");
+        assert!(has("lost armfus to unseen fire "), "{lines:?}");
+        assert!(has("lost armsolar to its own self-destruct "), "{lines:?}");
         assert!(has("lost armsolar to a death blast "), "{lines:?}");
         assert!(lines.iter().any(|l| l.starts_with("lost armsolar to unseen ") && !l.starts_with("lost armsolar to unseen fire")), "{lines:?}");
         assert!(!lines.iter().any(|l| l.contains("armjanus's death blast") || l.contains("armcv's death blast")), "{lines:?}");

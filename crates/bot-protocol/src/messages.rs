@@ -18,11 +18,34 @@ pub struct Vec3 {
     pub z: f32,
 }
 
-/// A weapon as the engine names it, with its range: what hit us when the shooter is out of sight.
+/// A weapon as the engine names it, with its range: what hit us when the shooter is out of sight. The game names a
+/// unit's weapons `<unit>_<weapon>` (`corstorm_cor_bot_rocket`); its explosions (a death blast, `fusionexplosion`)
+/// carry no unit and no range (the engine's default, 10).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Weapon {
     pub name: String,
     pub range: f32,
+}
+
+/// How a unit died, from the engine's kill event: the weapon of the hit that killed it (a gun's, a warhead's, an
+/// explosion's such as a death blast), or one of the engine's own causes, which it passes as negative weapon ids
+/// (`CSolidObject::DamageType`).
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+pub enum Death {
+    /// The kill event carried no cause: a shim from before 2026-10-19.
+    #[default]
+    Unknown,
+    Weapon(Weapon),
+    /// Flying debris of a dying unit (a piece projectile's explosion).
+    Debris,
+    /// Taken apart by a constructor (the event's `attacker`).
+    Reclaimed,
+    /// An unfinished frame nobody worked on for long enough.
+    Decayed,
+    SelfDestruct,
+    /// The engine's other causes by their `DamageType` number: collisions (2, 3), crushed (7), an aircraft's crash
+    /// (8), a transport's or a factory's death (14, 15), a Lua kill (21 and beyond).
+    Other(i32),
 }
 
 impl Vec3 {
@@ -511,7 +534,9 @@ pub enum Event {
     /// attacker is in sight (only `attacker` is withheld then); `weapon`: what hit it. Both `None` for damage with
     /// no attacker (a collision, a crash).
     UnitDamaged { unit: UnitId, attacker: Option<UnitId>, damage: f32, #[serde(default)] from: Option<Vec3>, #[serde(default)] weapon: Option<Weapon> },
-    UnitDestroyed { unit: UnitId, attacker: Option<UnitId> },
+    /// `attacker`: the killer when the engine names one (one of his in sight, or one of ours for its fire or its
+    /// reclaim; none for a missile strike or a death blast); `death`: how it died, from the kill event's weapon id.
+    UnitDestroyed { unit: UnitId, attacker: Option<UnitId>, #[serde(default)] death: Death },
     /// A unit of ours hit an enemy (the engine sends this to the attacker's team only, and only while the enemy is
     /// in sight or on radar); `attacker` is ours, `None` when the engine names none.
     EnemyDamaged { enemy: UnitId, attacker: Option<UnitId>, damage: f32, #[serde(default)] weapon: Option<Weapon> },

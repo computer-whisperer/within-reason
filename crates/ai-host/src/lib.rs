@@ -289,7 +289,7 @@ impl<L: Transport> Instance<L> {
             }
             sys::EVENT_UNIT_DESTROYED => {
                 let e = event!(SUnitDestroyedEvent);
-                Event::UnitDestroyed { unit: UnitId(e.unit), attacker: unit(e.attacker) }
+                Event::UnitDestroyed { unit: UnitId(e.unit), attacker: unit(e.attacker), death: self.engine.death(e.weaponDefID) }
             }
             sys::EVENT_ENEMY_ENTER_LOS => Event::EnemyEnterLos { enemy: UnitId(event!(SEnemyEnterLOSEvent).enemy) },
             sys::EVENT_ENEMY_LEAVE_LOS => Event::EnemyLeaveLos { enemy: UnitId(event!(SEnemyLeaveLOSEvent).enemy) },

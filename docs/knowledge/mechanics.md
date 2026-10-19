@@ -619,7 +619,7 @@ attacker and no `UnitDamaged`). The game's unit weapons are named `<unit>_<weapo
 type without the attacker. The AI interface's `UnitDestroyed` event also carries the killing weapon's id
 (`rts/ExternalAI/Interface/AISEvents.h` `SUnitDestroyedEvent.weaponDefID`, passed at `EngineOutHandler.cpp:351`),
 negative for the engine's own causes (`SolidObject.h`: reclaimed 12, kamikaze 18, construction decay 19, turned into a
-feature 20); the shim does not read it yet.
+feature 20); the shim passes it as the `UnitDestroyed` event's `death` from 2026-10-19 evening (`ai-host` `engine.death`).
 **Status.** observed (2026-10-19, apex60-1 and apex60-2)
 **Evidence.** apex-v032-altored-3v3-apex60-1: 15 of ours died at 33:10-33:13 within 806 of (1410, 1391) with `by`
 null (five mohos, winds, solars, a flak gun, a construction turret; seat 2's player: "a missile from the silo at G7

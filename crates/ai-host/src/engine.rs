@@ -1066,6 +1066,22 @@ const BUILDER_PRIORITY_COMMAND: c_int = 34571;
     }
 
     /// The weapon behind a damage event, by the engine's weapon definition id; `None` for -1.
+    /// How a unit died, from the kill event's weapon id: a weapon def when 0 or more, else one of the engine's own
+    /// causes negated (`CSolidObject::DamageType`: debris 1, self-destruct 10, reclaimed 12, construction decay 19).
+    pub fn death(&self, id: std::ffi::c_int) -> bot_protocol::Death {
+        use bot_protocol::Death;
+        if id >= 0 {
+            return self.weapon(id).map_or(Death::Unknown, Death::Weapon);
+        }
+        match -id {
+            1 => Death::Debris,
+            10 => Death::SelfDestruct,
+            12 => Death::Reclaimed,
+            19 => Death::Decayed,
+            code => Death::Other(code),
+        }
+    }
+
     pub fn weapon(&self, def: std::ffi::c_int) -> Option<bot_protocol::Weapon> {
         if def < 0 {
             return None;
