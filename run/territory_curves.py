@@ -126,12 +126,15 @@ def main():
         head = f"{r['outcome'][0]}{r['game_minutes']:.0f} seed {r['seed']} {r['our_side']}" if r else "?"
         print(f"-- {nn} {head}: {len(curves)} curve lines, {len(plans)} plans" + (f", wall per plan median {statistics.median(p['wall'] for p in plans):.0f} ms, stale median {statistics.median(p['stale'] for p in plans):.1f} s" if plans else ""))
         by_minute = {c["minute"]: c for c in curves}
-        print("   min | mex cons fac nanos | build power | metal/s  energy/s | bank    | made   | begun dropped skipped")
+        print("   min | mex cons fac nanos | build power | metal/s  energy/s | spent | bank    | made   | begun dropped skipped")
         for m in marks:
             c = by_minute.get(m)
             if not c:
                 continue
-            print(f"   {m:3} | {c['extractors']:3} {c['constructors']:4} {c['factories']:3} {c['nanos']:5} | {c['build_power']:11} | {c['metal_income']:7.1f} {c['energy_income']:8} | {c['metal']:7} | {c['made']:6} | {c['begun']:5} {c['dropped']:7} {c['skipped']:7}")
+            # Spent: the engine's metal usage over its income at the mark, the share of what comes in that the hands
+            # put into frames (terr14: forty constructors spent a quarter of it with the bank at its cap).
+            spent = c['metal_usage'] / c['metal_income'] if c['metal_income'] > 0 else 0.0
+            print(f"   {m:3} | {c['extractors']:3} {c['constructors']:4} {c['factories']:3} {c['nanos']:5} | {c['build_power']:11} | {c['metal_income']:7.1f} {c['energy_income']:8} | {spent:4.0%} | {c['metal']:7} | {c['made']:6} | {c['begun']:5} {c['dropped']:7} {c['skipped']:7}")
         if "--lp" in args and curves:
             rows = lp_ceiling(game, max(marks))
             if rows:

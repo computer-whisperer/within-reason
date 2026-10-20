@@ -27,8 +27,11 @@ pub struct LpOptions {
     pub coarse_dt: f64,
     /// Seconds from the state's clock to the end.
     pub horizon: f64,
-    /// The hands' capacity: constructors and factories at most (the first solves ran to 420 constructors and 37
-    /// factories by 20:00, an exponential the engine's base cannot hold).
+    /// The hands' capacity: constructors of each tier, and factories, at most (the first solves ran to 420
+    /// constructors and 37 factories by 20:00, an exponential the engine's base cannot hold). By tier, so that a
+    /// cap the hands fill with the basic kind before an advanced plant stands leaves the plan room for the tier-2
+    /// constructors the upgrades need (terr16-lp-nullai-comet-1: forty of the lab's kind by 10:00, no upgrade all
+    /// game).
     pub max_constructors: f64,
     pub max_factories: f64,
     /// Seconds of the final income added to the metal made.
@@ -47,9 +50,10 @@ pub struct LpOptions {
     /// Seconds a constructor loses per unit it builds, by kind: an extractor or its upgrade (the spot), any other
     /// building, a factory; and the commander's own three. From the territory bot's `begun:` lines (the order's
     /// age at its frame): terr9-lp-nullai-comet-1 measured a constructor's extractor at a median 41 s and its base
-    /// building at 23 s, the commander's at 18 and 26, where the first solves had assumed 10 and 3.5; terr10, with
-    /// economy buildings beside the builder, a constructor's 46-56 and 9-16, the commander's 16-20 and 33-64 (its
-    /// base buildings wait on a crowded base's site search, the hands' next calibration).
+    /// building at 23 s, the commander's at 18 and 26, where the first solves had assumed 10 and 3.5; terr16, with
+    /// economy buildings beside the builder wherever it stands and the far spots reached, a constructor's extractor
+    /// 61-76 (22-28 for the spots within 1,500 of home, 134-191 beyond 6,000), its other building 2, its factory
+    /// 19-127; the commander's 14-18, 2-5 and 9.
     pub walk_extractor: f64,
     pub walk_base: f64,
     pub walk_factory: f64,
@@ -75,7 +79,7 @@ impl LpOptions {
 
 impl Default for LpOptions {
     fn default() -> Self {
-        LpOptions { dt: 10.0, mid_from: 60.0, mid_dt: 30.0, coarse_from: 300.0, coarse_dt: 60.0, horizon: 1200.0, max_constructors: 40.0, max_factories: 4.0, terminal: 0.0, assist_factor: 2.0, help_factor: 3.0, nanos_per_factory: 6.0, walk_extractor: 50.0, walk_base: 12.0, walk_factory: 12.0, commander_walk_extractor: 18.0, commander_walk_base: 45.0, commander_walk_factory: 7.0 }
+        LpOptions { dt: 10.0, mid_from: 60.0, mid_dt: 30.0, coarse_from: 300.0, coarse_dt: 60.0, horizon: 1200.0, max_constructors: 40.0, max_factories: 4.0, terminal: 0.0, assist_factor: 2.0, help_factor: 3.0, nanos_per_factory: 6.0, walk_extractor: 65.0, walk_base: 3.0, walk_factory: 40.0, commander_walk_extractor: 16.0, commander_walk_base: 5.0, commander_walk_factory: 9.0 }
     }
 }
 
@@ -149,6 +153,12 @@ impl LpPlan {
     pub fn income_at(&self, t: f64) -> f64 {
         let (k, share) = self.slot(t);
         if k >= self.buckets { self.metal_income[self.buckets] } else { self.metal_income[k] + (self.metal_income[k + 1] - self.metal_income[k]) * share }
+    }
+
+    /// Energy produced a second at absolute second `t` (the constant maker included), between buckets by the line.
+    pub fn energy_income_at(&self, t: f64) -> f64 {
+        let (k, share) = self.slot(t);
+        if k >= self.buckets { self.energy_income[self.buckets] } else { self.energy_income[k] + (self.energy_income[k + 1] - self.energy_income[k]) * share }
     }
 }
 
@@ -333,10 +343,12 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
             row += 1;
         }
     }
-    // Caps: constructors and factories at most, every bucket.
-    let constructor_types: Vec<usize> = (0..types.len()).filter(|&i| units.list[types[i]].role == Role::Builder).collect();
+    // Caps: constructors of each tier (an advanced constructor builds an upgrade) and factories at most, every bucket.
+    let advanced = |u: usize| units.list[u].builds.iter().any(|b| is_upgrade(*b));
+    let basic_constructors: Vec<usize> = (0..types.len()).filter(|&i| units.list[types[i]].role == Role::Builder && !advanced(types[i])).collect();
+    let advanced_constructors: Vec<usize> = (0..types.len()).filter(|&i| units.list[types[i]].role == Role::Builder && advanced(types[i])).collect();
     let factory_types: Vec<usize> = (0..types.len()).filter(|&i| units.list[types[i]].role == Role::Factory).collect();
-    let mut caps: Vec<(Vec<usize>, f64)> = vec![(constructor_types, options.max_constructors), (factory_types, options.max_factories)];
+    let mut caps: Vec<(Vec<usize>, f64)> = vec![(basic_constructors, options.max_constructors), (advanced_constructors, options.max_constructors), (factory_types, options.max_factories)];
     caps.retain(|(set, _)| !set.is_empty());
     // The start.
     for i in 0..types.len() {

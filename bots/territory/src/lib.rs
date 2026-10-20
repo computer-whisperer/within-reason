@@ -44,6 +44,8 @@ pub(crate) struct Territory {
     pub own: BTreeMap<UnitId, OwnUnit>,
     /// His units in sight this tick (the dead spots; what stands by a dropped order's site).
     pub enemies: Vec<EnemyUnit>,
+    /// The metal stock and income this tick (what a unit must be affordable against).
+    pub stock: (f64, f64),
     pub options: options::Options,
     pub hands: hands::Hands,
     /// The spots the hands may take (the scenario's), as indices into the game's list.
@@ -246,7 +248,9 @@ impl Territory {
                     ));
                     m += 60.0;
                 }
-                self.log(format_args!("targets: {}", by_minute.join(" | ")));
+                // The factory kinds the program ends with, since the kinds decide the tier-2 line.
+                let kinds: Vec<String> = plan.types.iter().enumerate().filter(|(_, u)| units.list[**u].role == Role::Factory && plan.count_at(**u, end) >= 0.05).map(|(_, u)| format!("{} {:.1}", units.list[*u].name, plan.count_at(*u, end))).collect();
+                self.log(format_args!("targets: {} | factory kinds at the end: {}", by_minute.join(" | "), kinds.join(" ")));
                 self.hands.targets = Some(plan.clone());
                 self.seed_committed();
                 return;
@@ -319,6 +323,7 @@ impl Bot for Territory {
             frame: 0,
             own: BTreeMap::new(),
             enemies: Vec::new(),
+            stock: (0.0, 0.0),
             options: options::Options::from_env(),
             hands: hands::Hands::default(),
             spots: Vec::new(),
@@ -336,6 +341,7 @@ impl Bot for Territory {
         self.frame = tick.frame;
         self.own = tick.snapshot.own_units.iter().map(|u| (u.id, u.clone())).collect();
         self.enemies = tick.snapshot.enemies.clone();
+        self.stock = (tick.snapshot.metal.current as f64, tick.snapshot.metal.income as f64);
         if !self.started {
             self.start(&tick);
             if !self.started {
@@ -346,6 +352,7 @@ impl Bot for Territory {
             match event {
                 Event::UnitCreated { unit, builder: Some(builder) } => self.frame_begun(*unit, *builder),
                 Event::BuildSiteNotFound { unit, .. } => self.failed(*unit, "no site"),
+                Event::BuildSited { unit, at, .. } => self.sited(*unit, *at),
                 Event::CommandRejected { unit, .. } => self.failed(*unit, "rejected"),
                 Event::UnitDestroyed { unit, attacker, death } => {
                     // Every death goes to the log: terr5-all-nullai-comet-1 lost one to three constructors a game

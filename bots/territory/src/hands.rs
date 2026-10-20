@@ -30,6 +30,21 @@ const BESIDE: f32 = 600.0;
 const FIRST_ORDERS: i32 = 3 * SECOND;
 /// A construction turret helps the factory within this of it.
 const NANO_REACH: f32 = 330.0;
+/// A construction turret is asked for this far behind its factory: outside the yard's keep-out, inside its reach.
+const NANO_BEHIND: f32 = 250.0;
+/// Nothing is placed within this of a factory's centre: a site tested against an open yard passes and the engine
+/// then drops the order (terr15-lp-nullai-comet-1: seven second labs and 48 construction turrets dropped against
+/// the first lab, its yard open round a constructor's frame).
+const FACTORY_YARD: f32 = 200.0;
+/// A building site placed but not yet begun keeps other sites this far off: the host's search knows nothing of
+/// sites chosen seconds before (terr16-lp-nullai-comet-1: 72 economy orders in four games dropped by the engine
+/// 5-30 s after the order with the builder idle a few hundred elmos from where it was ordered, forty constructors
+/// placing solars beside themselves round one base).
+const PENDING_SITE: f32 = 70.0;
+/// The commander takes extractor spots and upgrades within this of home only (terr15-lp-nullai-comet-1: following
+/// its extractor flows spot by spot it crossed the map, set up a base in the far corner, and died to his commander
+/// 7,300 elmos from home, two games of four lost).
+const COMMANDER_LEASH: f32 = 1500.0;
 /// A spot with an extractor, a frame or an order of ours this near is taken.
 const SPOT_TAKEN: f32 = 100.0;
 /// A refused spot is left alone this long.
@@ -44,9 +59,15 @@ const LEAD: f64 = 45.0;
 const START_AT: f64 = 0.5;
 /// What stands within this of a dropped order's site is named in its log line (the held extractor orders).
 const ON_SITE: f32 = 80.0;
-/// T-COMMIT: a factory type the program wants at all within this long, with none standing, framed or ordered, is
-/// started whole: the program builds fractions of a factory for minutes (0.3 of a lab in the first minute of the
-/// ceiling), and a fraction of a factory makes nothing in the engine.
+/// A unit starts only when the metal stock and this many seconds of income cover its metal cost: the program builds
+/// fractions of expensive things from the first minute (a tenth of a fusion in the ceiling's second minute, half by
+/// 5:00; terr17-lp-nullai-comet-1 committed the advanced plant whole at 3:55 on an income of ten, and the early game
+/// starved: income 7-23 at 5:00 against the ceiling's 51).
+const AFFORD_SECONDS: f64 = 45.0;
+/// T-COMMIT: a factory type the program wants at all within this long, whose products include one that nothing
+/// standing, framed or ordered makes, is started whole: the program builds fractions of a factory for minutes (0.3
+/// of a lab in the first minute of the ceiling, 0.3 of an advanced plant from 7:00 for every moho it makes), and a
+/// fraction of a factory makes nothing in the engine.
 const COMMIT_WITHIN: f64 = 180.0;
 const COMMIT_AT: f64 = 0.05;
 /// T-STRUCK: a unit type whose orders have come to nothing this many times, more often than its frames have begun,
@@ -284,25 +305,27 @@ impl Territory {
         let now = self.frame as f64 / SECOND as f64;
         let ahead = now + LEAD;
         let shortfalls = self.shortfalls(ahead);
-        // T-COMMIT: with no factory of any kind standing, framed or ordered, the factory type the program wants
-        // most within the window is started whole, before anything else (only the first: the program spreads
-        // fractions over every factory type, and terr7-lp-nullai-comet-1 stood three kinds by 5:00 on one
-        // commander's income).
+        // T-COMMIT: a factory type the program wants at all within the window, among whose products is one the
+        // program wants that no factory standing, framed or ordered makes, is started whole, before anything else:
+        // the first lab, and later the plant of the tier-2 constructors the upgrades need (terr16-lp-nullai-comet-1:
+        // the program wanted 0.3 of an advanced plant from 7:00 beside more labs, the class rule took the larger
+        // fraction, four labs stood by 9:48 and no upgrade all game; its own ceiling runs on 0.8 of an advanced
+        // vehicle plant). Not a kind whose products are all made already: the program spreads fractions over
+        // every factory type, and terr7-lp-nullai-comet-1 stood three kinds by 5:00 on one commander's income.
         let commit: Option<usize> = {
             let units = &self.game().units;
             let def = &units.list[unit];
             let targets = self.hands.targets.as_ref().expect("dispatching");
-            if self.factories_planned() > 0 {
-                None
-            } else {
-                targets
-                    .types
-                    .iter()
-                    .copied()
-                    .filter(|u| units.list[*u].role == Role::Factory && def.builds.contains(u))
-                    .filter(|u| (0..=6).any(|k| targets.count_at(*u, now + k as f64 * COMMIT_WITHIN / 6.0) >= COMMIT_AT))
-                    .max_by(|a, b| targets.count_at(*a, now + COMMIT_WITHIN).total_cmp(&targets.count_at(*b, now + COMMIT_WITHIN)))
-            }
+            let ordered = self.hands.orders.values().filter_map(|o| match &o.what { What::Build { unit, frame: None, .. } => Some(*unit), _ => None });
+            let covered: Vec<usize> = self.own.values().filter_map(|f| self.unit_index(f.def)).chain(ordered).filter(|f| units.list[*f].role == Role::Factory).flat_map(|f| units.list[f].builds.iter().copied()).collect();
+            let wanted_soon = |u: usize| (0..=6).any(|k| targets.count_at(u, now + k as f64 * COMMIT_WITHIN / 6.0) >= COMMIT_AT);
+            targets
+                .types
+                .iter()
+                .copied()
+                .filter(|f| units.list[*f].role == Role::Factory && def.builds.contains(f) && !self.hands.struck.contains(f))
+                .filter(|f| wanted_soon(*f) && units.list[*f].builds.iter().any(|p| !covered.contains(p) && wanted_soon(*p)))
+                .max_by(|a, b| targets.count_at(*a, now + COMMIT_WITHIN).total_cmp(&targets.count_at(*b, now + COMMIT_WITHIN)))
         };
         // The classes: the factories as a whole for a mobile builder; a factory's products by role.
         let class_pick: Option<usize> = commit.or_else(|| {
@@ -319,14 +342,29 @@ impl Territory {
             } else {
                 classes.push(Role::Factory);
             }
+            // The type started is the one of the class the program wants most. A builder that cannot build it leaves
+            // the class to one that can; a factory that does not make it substitutes its own best of the class only
+            // while no standing factory makes it (terr15-lp-nullai-comet-1: the lab filled the forty-constructor cap
+            // with its own kind while the program wanted the advanced plant's, which then made seven and stopped;
+            // seven mohos stood at 15:00 against the ceiling's eighty).
+            let made_by_a_standing_factory = |u: usize| self.own.values().any(|f| !f.being_built && self.unit_index(f.def).is_some_and(|fi| units.list[fi].role == Role::Factory && units.list[fi].builds.contains(&u)));
             classes
                 .into_iter()
                 .filter_map(|class| {
+                    let of_class = |u: &usize| units.list[*u].role == class && !self.hands.struck.contains(u);
                     let total: f64 = shortfalls.iter().filter(|(u, _)| units.list[*u].role == class).map(|(_, s)| *s).sum();
                     if total < START_AT {
                         return None;
                     }
-                    shortfalls.iter().filter(|(u, _)| units.list[*u].role == class && mine(u)).max_by(|a, b| a.1.total_cmp(&b.1)).map(|(u, _)| (*u, total))
+                    let wanted = shortfalls.iter().filter(|(u, _)| of_class(u)).max_by(|a, b| a.1.total_cmp(&b.1)).map(|(u, _)| *u)?;
+                    let pick = if mine(&wanted) {
+                        wanted
+                    } else if role == Role::Factory && !made_by_a_standing_factory(wanted) {
+                        shortfalls.iter().filter(|(u, _)| of_class(u) && mine(u)).max_by(|a, b| a.1.total_cmp(&b.1)).map(|(u, _)| *u)?
+                    } else {
+                        return None;
+                    };
+                    Some((pick, total))
                 })
                 .max_by(|a, b| a.1.total_cmp(&b.1))
                 .map(|(u, _)| u)
@@ -337,14 +375,43 @@ impl Territory {
         if role == Role::Factory {
             return;
         }
-        // The flows of this builder's type, the largest credit as a share of the unit's cost first.
+        // The energy as a class: the program's planned energy income at the lead, less what stands, is framed or is
+        // ordered, realized by the best affordable energy building this builder builds. The program's cheapest energy
+        // per metal is a fusion, which it builds as a fraction from its second minute and draws energy from at once;
+        // the engine's first energy is solars, and the program's solar flows are small beside the fusion's, so the
+        // early game stalled at zero energy from 1:00 to 5:00 (terr17-lp-nullai-comet-1).
+        let energy: Option<(usize, f64)> = {
+            let units = &self.game().units;
+            let def = &units.list[unit];
+            let targets = self.hands.targets.as_ref().expect("dispatching");
+            let rate = |u: usize| units.list[u].energy_make;
+            let had: f64 = self.own.values().filter_map(|o| self.unit_index(o.def)).filter(|u| self.is_energy(*u)).map(rate).sum::<f64>()
+                + self.hands.orders.values().filter_map(|o| match &o.what { What::Build { unit, frame: None, .. } if self.is_energy(*unit) => Some(rate(*unit)), _ => None }).sum::<f64>();
+            let short = targets.energy_income_at(ahead) - units.list[self.game().commander].energy_make - had;
+            def.builds
+                .iter()
+                .copied()
+                .filter(|u| self.is_energy(*u) && !self.hands.struck.contains(u) && self.affordable(*u))
+                .max_by(|a, b| (rate(*a) / units.list[*a].metal_cost.max(1.0)).total_cmp(&(rate(*b) / units.list[*b].metal_cost.max(1.0))))
+                .filter(|u| short >= 0.5 * rate(*u))
+                .map(|u| (u, units.list[u].build_time))
+        };
+        if let Some((u, cost)) = energy && self.order_one(id, unit, role, u, cost, commands) {
+            return;
+        }
+        // The flows of this builder's type, the largest credit as a share of the unit's cost first. A builder of a
+        // type the plan had none of at its start has no flows worth reading (the program gave a type with no
+        // units no power, and what little a fraction of one got ranks a construction turret first:
+        // terr16-lp-nullai-comet-1, the first constructor's first job at 1:23); it goes by the count shortfalls
+        // until the re-plan its coming asks for arrives.
+        let planned_type = unit == self.game().commander || self.hands.targets.as_ref().is_some_and(|t| t.count_at(unit, t.t0) >= 0.5);
         let mut flows: Vec<(usize, Kind, f64, f64)> = {
             let targets = self.hands.targets.as_ref().expect("dispatching");
             let units = &self.game().units;
             targets
                 .flows
                 .iter()
-                .filter(|f| f.builder == unit && units.list[f.unit].role != Role::Factory)
+                .filter(|f| planned_type && f.builder == unit && units.list[f.unit].role != Role::Factory && !self.is_energy(f.unit))
                 .map(|f| (f.unit, f.kind, targets.planned_power(unit, f.unit, ahead) - self.hands.committed.get(&(unit, f.unit)).copied().unwrap_or(0.0), f.cost))
                 .filter(|(_, _, credit, _)| *credit > 0.0)
                 .collect()
@@ -386,14 +453,28 @@ impl Territory {
     }
 
     /// One unit of `u` ordered from this builder (T-SITES places it) and charged to its type's commitment; false
-    /// when the hands pass it over (no site, the cap, a struck type).
+    /// when the hands pass it over (not affordable, no site, the cap, a struck type).
     fn order_one(&mut self, id: UnitId, unit: usize, role: Role, u: usize, cost: f64, commands: &mut Vec<Command>) -> bool {
+        if !self.affordable(u) {
+            return false;
+        }
         let attempt = self.hands.attempts.get(&id).copied().unwrap_or(0);
         let Some((command, what)) = self.give(id, unit, role, Step::build(u), attempt) else { return false };
         commands.push(command);
         self.hands.orders.insert(id, Order { what, given: self.frame, told: self.frame, arrived: None, step: None });
         *self.hands.committed.entry((unit, u)).or_default() += cost;
         true
+    }
+
+    /// Whether the stock and `AFFORD_SECONDS` of income cover a unit's metal cost.
+    fn affordable(&self, u: usize) -> bool {
+        self.game().units.list[u].metal_cost <= self.stock.0 + self.stock.1 * AFFORD_SECONDS
+    }
+
+    /// An energy building: makes energy, extracts and converts nothing (the commander is not one).
+    pub(crate) fn is_energy(&self, u: usize) -> bool {
+        let unit = &self.game().units.list[u];
+        unit.role == Role::Eco && unit.energy_make > 0.0 && unit.extracts_metal == 0.0 && unit.conv_capacity == 0.0
     }
 
     /// The standing factory nearest `from` that makes `u`.
@@ -594,7 +675,7 @@ impl Territory {
                 if role == Role::Factory {
                     return Some((Command::Build { unit: id, def, site: None, queue: false }, What::Build { unit, def, near: builder.pos, frame: None }));
                 }
-                let placements = || vec![Placement { facing: self.facing_enemy(), keep_out: self.exit_lanes() }];
+                let placements = || vec![Placement { facing: self.facing_enemy(), keep_out: self.keep_out() }];
                 let site = if target.role == Role::Factory {
                     // The simulator's rule for the anneal's plan: no more factories than it has queues for. With
                     // the program's targets the cap is the program's own (terr6-lp-nullai-comet-1: the empty plan's
@@ -603,12 +684,13 @@ impl Territory {
                     if self.factories_planned() >= cap {
                         return None;
                     }
-                    // Toward his start; after a dropped order a quarter turn round home from there (terr3-nullai-comet-1
-                    // game 00: the advanced lab's order dropped twice at the one site and the game never went to tier 2).
+                    // Toward his start; each factory after the first a quarter turn further round home, and a dropped
+                    // order one more (terr3-nullai-comet-1 game 00: the advanced lab's order dropped twice at the one
+                    // site and the game never went to tier 2; terr15: second labs asked for at the first lab's site).
                     let (dx, dz) = (self.enemy_home.x - self.home.x, self.enemy_home.z - self.home.z);
                     let length = dx.hypot(dz).max(1.0);
                     let (ux, uz) = (dx / length, dz / length);
-                    let (rx, rz) = match attempt % 4 {
+                    let (rx, rz) = match (self.factories_planned() as u32 + attempt) % 4 {
                         0 => (ux, uz),
                         1 => (-uz, ux),
                         2 => (uz, -ux),
@@ -623,6 +705,7 @@ impl Territory {
                         .own
                         .values()
                         .filter(|u| !u.being_built && u.id != id)
+                        .filter(|u| role != Role::Commander || u.pos.dist2d(self.home) < COMMANDER_LEASH)
                         .filter(|u| self.unit_index(u.def).is_some_and(|i| units.list[i].extracts_metal > 0.0 && !self.is_upgrade(i)))
                         .filter(|u| !ordered.iter().any(|o| o.dist2d(u.pos) < SPOT_TAKEN))
                         .min_by(|a, b| a.pos.dist2d(builder.pos).total_cmp(&b.pos.dist2d(builder.pos)))?;
@@ -631,7 +714,8 @@ impl Territory {
                     self.log(format_args!("upgrade: {} over unit {} at ({:.2},{:.2}) by unit {}", target.name, standing.id.0, standing.pos.x, standing.pos.z, id.0));
                     BuildSite { near: standing.pos, search_radius: 0.0, min_dist: 0, placements: Vec::new() }
                 } else if target.extracts_metal > 0.0 {
-                    let spot = self.free_spot(builder.pos, step.site)?;
+                    let leash = (role == Role::Commander).then_some((self.home, COMMANDER_LEASH));
+                    let spot = self.free_spot(builder.pos, step.site, leash)?;
                     BuildSite { near: self.hello.metal_spots[spot], search_radius: 0.0, min_dist: 0, placements: Vec::new() }
                 } else if target.role == Role::Nano {
                     // Behind the nearest factory, inside the turret's reach of it; the base spiral without one.
@@ -639,7 +723,7 @@ impl Territory {
                         Some(factory) => {
                             let (dx, dz) = (self.enemy_home.x - factory.pos.x, self.enemy_home.z - factory.pos.z);
                             let length = dx.hypot(dz).max(1.0);
-                            let near = Vec3 { x: factory.pos.x - dx / length * 150.0, y: factory.pos.y, z: factory.pos.z - dz / length * 150.0 };
+                            let near = Vec3 { x: factory.pos.x - dx / length * NANO_BEHIND, y: factory.pos.y, z: factory.pos.z - dz / length * NANO_BEHIND };
                             BuildSite { near, search_radius: 300.0, min_dist: 1, placements: placements() }
                         }
                         None => self.base_site_next(placements()),
@@ -663,8 +747,9 @@ impl Territory {
         BuildSite { near: base_site(self.home, self.hands.base_sites - 1), search_radius: 400.0, min_dist: 3, placements }
     }
 
-    /// The free spot of the scenario's list nearest `from`; with `named`, the free spot within 100 of it or none.
-    fn free_spot(&self, from: Vec3, named: Option<(f64, f64)>) -> Option<usize> {
+    /// The free spot of the scenario's list nearest `from`; with `named`, the free spot within 100 of it or none;
+    /// with `leash`, within that radius of that point.
+    fn free_spot(&self, from: Vec3, named: Option<(f64, f64)>, leash: Option<(Vec3, f32)>) -> Option<usize> {
         let spots = &self.hello.metal_spots;
         let taken = |i: usize| {
             let at = spots[i];
@@ -673,7 +758,8 @@ impl Territory {
                 || self.hands.orders.values().any(|o| matches!(&o.what, What::Build { unit, near, .. } if self.game().units.list[*unit].extracts_metal > 0.0 && near.dist2d(at) < SPOT_TAKEN))
         };
         let near_named = |i: usize| named.is_none_or(|(x, z)| spots[i].dist2d(Vec3 { x: x as f32, y: 0.0, z: z as f32 }) < SPOT_TAKEN);
-        self.spots.iter().copied().filter(|i| !taken(*i) && near_named(*i)).min_by(|a, b| spots[*a].dist2d(from).total_cmp(&spots[*b].dist2d(from)))
+        let leashed = |i: usize| leash.is_none_or(|(centre, radius)| spots[i].dist2d(centre) < radius);
+        self.spots.iter().copied().filter(|i| !taken(*i) && near_named(*i) && leashed(*i)).min_by(|a, b| spots[*a].dist2d(from).total_cmp(&spots[*b].dist2d(from)))
     }
 
     /// Factories standing or ordered, so a plan cannot start more than it has queues for (the simulator's rule).
@@ -731,6 +817,16 @@ impl Territory {
         self.log(format_args!("begun: {name} by unit {} at {distance:.0}, {age:.1} s after its order, site ({:.0},{:.0})", builder.0, frame.pos.x, frame.pos.z));
     }
 
+    /// The host placed a builder's site: the order's position is where the frame will stand (the hold clock and the
+    /// dropped line read it), and other sites keep off it until the frame stands.
+    pub(crate) fn sited(&mut self, builder: UnitId, at: Vec3) {
+        if let Some(order) = self.hands.orders.get_mut(&builder)
+            && let What::Build { frame: None, near, .. } = &mut order.what
+        {
+            *near = at;
+        }
+    }
+
     /// A unit of ours is gone: a builder's orders and queue with it, and an order whose frame it was.
     pub(crate) fn unit_lost(&mut self, unit: UnitId) {
         self.hands.orders.remove(&unit);
@@ -780,15 +876,25 @@ impl Territory {
         }
     }
 
-    /// Our factories' exit lanes: nothing is built in them.
-    fn exit_lanes(&self) -> Vec<Lane> {
+    /// Our factories' exit lanes and yards, and the building sites placed and not yet begun: nothing is built in
+    /// them (a lane of no length is a disc).
+    fn keep_out(&self) -> Vec<Lane> {
+        let units = &self.game().units;
+        let pending = self.hands.orders.values().filter_map(|o| match &o.what {
+            What::Build { unit, near, frame: None, .. } if units.list[*unit].speed == 0.0 => Some(Lane { from: *near, to: *near, half_width: PENDING_SITE }),
+            _ => None,
+        });
         self.own
             .values()
             .filter(|u| self.role_of_def(u.def) == Some(Role::Factory))
-            .map(|plant| {
+            .flat_map(|plant| {
                 let (dx, dz) = [(0.0, 1.0), (1.0, 0.0), (0.0, -1.0), (-1.0, 0.0)][plant.facing.rem_euclid(4) as usize];
-                Lane { from: plant.pos, to: Vec3 { x: plant.pos.x + dx * 400.0, y: plant.pos.y, z: plant.pos.z + dz * 400.0 }, half_width: 120.0 }
+                [
+                    Lane { from: plant.pos, to: Vec3 { x: plant.pos.x + dx * 400.0, y: plant.pos.y, z: plant.pos.z + dz * 400.0 }, half_width: 120.0 },
+                    Lane { from: plant.pos, to: plant.pos, half_width: FACTORY_YARD },
+                ]
             })
+            .chain(pending)
             .collect()
     }
 

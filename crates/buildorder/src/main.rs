@@ -22,9 +22,9 @@ const USAGE: &str = "usage: (the game, that is map, start, faction and unit numb
                        missile; --tax: metal a second to soldiers from each time, M:SS or seconds, before any build; turrets help the
                        dearest frame in reach unless --nanos-to-factory)
   buildorder lp        --game RECORD.jsonl | --hello DUMP.json [--minutes 20] [--dt 10] [--mid-from 60] [--mid-dt 30] [--coarse-from 300] [--coarse-dt 60] [--terminal 0] [--assist 2] [--help-factor 3]
-                       [--nanos-per-factory 6] [--max-constructors 40] [--max-factories 4] [--all-spots] [--builders-only]
-                       [--walk-extractor 50] [--walk-base 12] [--walk-factory 12] [--commander-walk-extractor 18] [--commander-walk-base 45]
-                       [--commander-walk-factory 7] [--csv FILE]
+                       [--nanos-per-factory 6] [--max-constructors 40 (per tier)] [--max-factories 4] [--all-spots] [--builders-only]
+                       [--walk-extractor 65] [--walk-base 3] [--walk-factory 40] [--commander-walk-extractor 16] [--commander-walk-base 5]
+                       [--commander-walk-factory 9] [--csv FILE]
                        (the planner as a linear program, docs/design/2026-10-20-territory-lp.md: the plan by minute with
                        the prices of metal, energy and build power; the csv in the simulator's format)
   buildorder simulate  --game RECORD.jsonl --plan FILE [--minutes ..] [--wind ..] [--detour X] [--help-frames] [--tax ..] [--csv FILE]
@@ -302,12 +302,12 @@ fn linear_program(args: &Args) {
         assist_factor: args.number("--assist", 2.0),
         help_factor: args.number("--help-factor", 3.0),
         nanos_per_factory: args.number("--nanos-per-factory", 6.0),
-        walk_extractor: args.number("--walk-extractor", 50.0),
-        walk_base: args.number("--walk-base", 12.0),
-        walk_factory: args.number("--walk-factory", 12.0),
-        commander_walk_extractor: args.number("--commander-walk-extractor", 18.0),
-        commander_walk_base: args.number("--commander-walk-base", 45.0),
-        commander_walk_factory: args.number("--commander-walk-factory", 7.0),
+        walk_extractor: args.number("--walk-extractor", 65.0),
+        walk_base: args.number("--walk-base", 3.0),
+        walk_factory: args.number("--walk-factory", 40.0),
+        commander_walk_extractor: args.number("--commander-walk-extractor", 16.0),
+        commander_walk_base: args.number("--commander-walk-base", 5.0),
+        commander_walk_factory: args.number("--commander-walk-factory", 9.0),
     };
     let plan = lp::solve(units, &scenario, &State::start(&scenario), &offer, &options).unwrap_or_else(|e| die(&e));
     println!(

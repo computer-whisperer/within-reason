@@ -16,7 +16,7 @@ pub(crate) struct Options {
     pub all_spots: bool,
     /// Soldiers on the factories' palette (the territory stage); off, the factories make builders only.
     pub soldiers: bool,
-    /// Queues the search may write for factories and constructors not yet standing.
+    /// Queues the search may write for factories and constructors not yet standing; the program's caps (constructors per tier).
     pub factories: usize,
     pub constructors: usize,
     /// Write the game's `Hello` with home and the commander's type beside the match for the oracle.
@@ -65,12 +65,12 @@ impl Default for Options {
             help_factor: 3.0,
             nanos_per_factory: 6.0,
             assist_factor: 2.0,
-            walk_extractor: 50.0,
-            walk_base: 12.0,
-            walk_factory: 12.0,
-            commander_walk_extractor: 18.0,
-            commander_walk_base: 45.0,
-            commander_walk_factory: 7.0,
+            walk_extractor: 65.0,
+            walk_base: 3.0,
+            walk_factory: 40.0,
+            commander_walk_extractor: 16.0,
+            commander_walk_base: 5.0,
+            commander_walk_factory: 9.0,
         }
     }
 }

@@ -113,7 +113,9 @@ heavier dependency). Decided at step 2 by measuring both on the same problem.
   the next solve sees the frame. If the plans show the artefact mattering (an advanced plant drawn out over minutes
   at a trickle), the first unit of each factory type becomes an integer variable gating its build power (a MILP of a
   dozen binaries, which HiGHS takes in the same time; `clarabel` has no integers, and this is the one reason to
-  prefer HiGHS from the start).
+  prefer HiGHS from the start). It mattered (terr16: 0.3 of an advanced plant for minutes, never started, no moho
+  all game); the answer taken is the hands' (T-COMMIT by capability: the first unit of a factory kind whose
+  products nothing standing makes is started whole as soon as the program wants any of it), not the MILP.
 - **Walks and geometry.** `wk[b, u]` is one number per builder type and unit type, calibrated from the `begun:` lines
   of the bot's own games (the age of each order at its frame, by type: extractors 5-20 s with the far spots, base
   buildings 2-5 s, the tier-2 projects 50-120 s today). The far spots cost more walk than the near ones; the mean
@@ -153,8 +155,11 @@ stood idle for seven minutes with both stocks at their caps (terr13).
 
 As built for terr14 (`hands.rs` `dispatch`): the lumpy things go by class. The factories as a whole, and a factory's
 products by role, start a unit when the program's count of the class runs half a unit ahead of what stands, is
-framed or is ordered, and the type started is the one of the class the program wants most. Everything else goes by
-the program's flows `x[b, u, t]` for the builder's type: its credit on `u` is the program's power on `(b, u)` to
+framed or is ordered, and the type started is the one of the class the program wants most; a builder that cannot
+build it leaves the class to one that can, and a factory that does not make it substitutes its own best of the
+class only while no standing factory makes it (else the lab fills the constructor cap with its own kind and the
+advanced plant has no room for the tier-2 constructors the mohos need: terr15). Everything else goes by the
+program's flows `x[b, u, t]` for the builder's type: its credit on `u` is the program's power on `(b, u)` to
 `now + lead`, less what type `b` has committed to `u` since the plan was adopted (an order's cost to its type, a
 guard's chunk of power; the standing orders' unbuilt cost seeds it at each adopt); the largest credit as a share of
 `cost[b, u]` is taken, however small, since standing idle is never what the program planned; a product's flow is a
@@ -239,9 +244,29 @@ linear, in the same program, with the prices of cover falling out as duals. Writ
   / 20) and the bank reached 29,000-45,000: 24-28 of forty constructors walking at any minute, 130 extractor orders
   in four games dropped as held on arrival at far spots (the held clock ran from the order, every walk past two
   minutes cut at the 300 ring), and a stale attempt count sending economy buildings to the base spiral from afar.
-  Both fixed for terr15. Next after it: the far spots' walks in the program (two extractor classes by distance, since
-  one constant walk over-values the far spots: the model error at +60 s rose to +15..+34 with forty constructors),
-  the crowded-base sites (solars beside a lab's yard dropped), his roaming commander's kills, then step 3.
+  Both fixed for terr15: no order held any more, the far spots reached (70-72 extractors at 15:00), income 103-121 /
+  184-225 at 10 / 15, the spent share 60-76 %; and three more causes read from its lines: the commander walking its
+  extractor flows across the map to its death (two games lost), second labs and turrets asked for against the first
+  lab's open yard and dropped, and the lab filling the constructor cap with its own kind so the advanced plant made
+  seven tier-2 constructors and stopped (seven mohos at 15:00 against eighty). The leash, the yard keep-out and the
+  class refinement above went in for terr16: no game lost, 72-73 extractors at 15:00, income 112-116 / 194-209 /
+  297-338 at 10 / 15 / 20, and no moho in any game: the program spreads a factory over kinds and wants labs for
+  their assist capacity, the class rule took the larger fraction each time, four labs by 9:48 filled the factory
+  cap and their kind the constructor cap, and no plan from a later snapshot could hold the tier-2 line (the
+  ceiling's own runs on 0.8 of an advanced vehicle plant). This is the note's "fractional chain buildings" artefact
+  as the hands meet it. For terr17: T-COMMIT by capability (a factory type the program wants at all, with a product
+  it wants that nothing standing makes, started whole), the constructor cap per tier, newborn builders on count
+  shortfalls until the re-plan, the walks at the new medians (a constructor's extractor 65 s, its other building 3,
+  the commander's 16 and 5). terr17: the tier-2 line opens (the plant in every game, 77-80 constructors at 15:00,
+  income 485-609 at 20:00 against 297-338) and the early game falls (7-23 at 5:00 against the ceiling's 51): the
+  plant committed whole at 3:55 on an income of ten, and energy at zero from 1:00 to 5:00 because the program's
+  cheapest energy is a fusion it builds as a fraction from its second minute, drawing energy from it at once, while
+  the engine's first energy is solars whose flows are small beside it. The fractional artefact again, in energy. For
+  terr18: nothing starts that the stock and 45 s of income do not cover, and energy goes by class (the program's
+  planned energy income realized by the best affordable energy building), with the host's placed site taken as the
+  order's position and every pending site a keep-out disc. Next: the far spots' walks in the program (two extractor
+  classes by distance: 22-28 s within 1,500 of home, 134-191 beyond 6,000), his roaming commander's kills, the late
+  build power (the ceiling's 24 construction turrets against 9-14), then step 3.
 - Decision 6 amended while building: the converters' threshold is dropped from the program (a full relaxation,
   converters bounded by capacity alone). The engine's converters burn what sits above three quarters of storage;
   a plan that runs them at their capacity has the stock climb to that level once and burn the inflow from then on,
