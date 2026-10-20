@@ -146,7 +146,8 @@ impl Distilled {
         if !self.options.lane {
             return;
         }
-        let pushing = !self.raiding(self.strike_weight());
+        // No raiding body since the rebuild of 2026-10-20: the strike body always pushes.
+        let pushing = true;
         let mut commitment: HashMap<UnitId, Commitment> = HashMap::new();
         for unit in &self.army.strike {
             commitment.insert(*unit, if pushing { Commitment::All } else { Commitment::Priced { turrets: Vec::new(), commander: false } });

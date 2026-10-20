@@ -9,4 +9,8 @@ fn main() {
     println!("cargo:rustc-env=WITHIN_REASON_COMMIT={commit}{}", if dirty { "+" } else { "" });
     println!("cargo:rerun-if-changed=../../.git/HEAD");
     println!("cargo:rerun-if-changed=../../.git/index");
+    // The index changes only when a file is staged: an edit to a tracked source left the flag clean (2026-10-20,
+    // the day's batteries said a clean commit while the tree was dirty), so the source trees are watched too.
+    println!("cargo:rerun-if-changed=../../bots");
+    println!("cargo:rerun-if-changed=../../crates");
 }

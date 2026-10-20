@@ -33,6 +33,19 @@ const TURRET_REFUSED: i32 = 2 * MINUTE;
 const COMMANDER_WALK: f32 = 700.0;
 /// An extractor farther from home than this gets a sentry beside it, from the builder that built it (D-SENTRY).
 const SENTRY_FROM: f32 = 900.0;
+/// ... and only at extractors this far along the way to his start, with no sentry of ours within `SENTRY_SHARED`.
+const SENTRY_TOWARD: f32 = 0.0;
+const SENTRY_SHARED: f32 = 450.0;
+/// D-FLEE (2026-10-20): a constructor with an armed mobile ground enemy of his within `FLEE_FROM` that outweighs
+/// the soldiers of ours within `FLEE_COVER` of it drops its job and walks `FLEE_WALK` toward home, for `FLEE_FOR`
+/// (16-29 builders a game died to Grunt packs with nothing of ours near, dist9-army-apex-v032-comet-cold-1).
+const FLEE_FROM: f32 = 500.0;
+const FLEE_COVER: f32 = 400.0;
+/// ... and only from a threat of this much metal (a lone Grunt sent every builder running 107-150 times a game,
+/// dist10-army-apex-v032-comet-cold-1, for no fewer builders lost).
+const FLEE_THREAT: f32 = 100.0;
+const FLEE_WALK: f32 = 700.0;
+const FLEE_FOR: i32 = 8 * SECOND;
 /// A spot with an armed enemy this near is not walked to.
 pub(crate) const SPOT_DANGER: f32 = 600.0;
 /// A frame counts as within a turret's reach this far beyond its build distance (the footprint's half).
@@ -78,6 +91,12 @@ const SCOUTS_FIRST: usize = 4;
 /// Constructors wanted by the income when that is more than the clock asks: one for every this much metal a second
 /// (at +50 % income the clock's count took the same spots at the same pace with the metal piling up).
 const CONSTRUCTOR_PER_INCOME: f32 = 6.0;
+/// D-ANTI-AIR (2026-10-20): once his armed aircraft have been seen, anti-air turrets by the plants: one more than
+/// the plants, up to this many, one builder at a time (Apex v0.3.2 flies every seat: its Phoenix and Thunder bombers
+/// killed 105 Brutes standing at home and then the commander, dist8-army-apex-v032-comet-cold-1 game 02; there is no
+/// tier-1 anti-air vehicle).
+const AA_AT_MOST: usize = 4;
+const AA_NEAR: f32 = 400.0;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub(crate) enum Job {
@@ -99,6 +118,8 @@ pub(crate) enum Job {
     /// Surplus energy into metal, at saturation (D-CONVERT).
     Converter,
     AdvancedConverter,
+    /// An anti-air turret by the plants, once his aircraft have been seen (D-ANTI-AIR).
+    AntiAir,
 }
 
 impl Job {
@@ -116,6 +137,7 @@ impl Job {
             Job::Moho(_) => kit.moho,
             Job::Converter => kit.converter,
             Job::AdvancedConverter => kit.advanced_converter,
+            Job::AntiAir => kit.aa_turret,
             Job::Assist | Job::Help(_) => None,
         }
     }
@@ -149,6 +171,8 @@ pub(crate) struct Economy {
     sidelined: BTreeMap<UnitId, i32>,
     /// Per metal spot, the frame until which it is left alone.
     refused: Vec<i32>,
+    /// Per builder, the frame until which it is fleeing (D-FLEE).
+    fleeing: BTreeMap<UnitId, i32>,
     factory_ordered: BTreeMap<UnitId, i32>,
     /// Per construction turret, when it was last told and the project's frame it was told to help, if any.
     turret_told: BTreeMap<UnitId, (i32, Option<UnitId>)>,
@@ -176,7 +200,7 @@ pub(crate) struct Economy {
 
 impl Economy {
     pub(crate) fn new(spots: usize) -> Self {
-        Economy { orders: BTreeMap::new(), attempts: BTreeMap::new(), sidelined: BTreeMap::new(), refused: vec![0; spots], factory_ordered: BTreeMap::new(), turret_told: BTreeMap::new(), made: 0, scouts_made: 0, since_constructor: 0, since_scout: 0, t2_made: 0, since_advanced_constructor: 0, moho_refused: BTreeMap::new(), turret_refused: BTreeMap::new(), turret_attempts: BTreeMap::new(), plant_refused: 0 }
+        Economy { orders: BTreeMap::new(), attempts: BTreeMap::new(), sidelined: BTreeMap::new(), refused: vec![0; spots], fleeing: BTreeMap::new(), factory_ordered: BTreeMap::new(), turret_told: BTreeMap::new(), made: 0, scouts_made: 0, since_constructor: 0, since_scout: 0, t2_made: 0, since_advanced_constructor: 0, moho_refused: BTreeMap::new(), turret_refused: BTreeMap::new(), turret_attempts: BTreeMap::new(), plant_refused: 0 }
     }
 
     /// Units the factories have been told to make.
@@ -227,7 +251,23 @@ impl Distilled {
     pub(crate) fn run_builders(&mut self, tick: &Tick, commands: &mut Vec<Command>) {
         self.economy.orders.retain(|id, _| self.own.contains_key(id));
         let builders: Vec<OwnUnit> = self.own.values().filter(|u| !u.being_built && self.def(u.def).is_some_and(|d| d.speed > 0.0 && !d.build_options.is_empty())).cloned().collect();
+        self.economy.fleeing.retain(|id, until| self.own.contains_key(id) && self.frame < *until);
         for unit in builders {
+            if self.economy.fleeing.contains_key(&unit.id) {
+                continue;
+            }
+            if let Some(threat) = self.flee_from(&unit, tick) {
+                let to = self.toward_point(unit.pos, self.home, FLEE_WALK);
+                eprintln!("[distilled ai={}] f={} flee: unit {} at ({:.0},{:.0}) from w{:.0} at ({:.0},{:.0})", self.hello.ai_id, self.frame, unit.id.0, unit.pos.x, unit.pos.z, threat.1, threat.0.x, threat.0.z);
+                if let Some(order) = self.economy.orders.remove(&unit.id)
+                    && let Job::Extractor(spot) = order.job
+                {
+                    self.economy.refused[spot] = self.frame + REFUSED;
+                }
+                self.economy.fleeing.insert(unit.id, self.frame + FLEE_FOR);
+                commands.push(Command::Move { unit: unit.id, to, queue: false });
+                continue;
+            }
             match self.review(&unit) {
                 Review::Busy => continue,
                 Review::Free => {}
@@ -269,6 +309,30 @@ impl Distilled {
             }
             self.economy.orders.insert(unit.id, Order { job, since: self.frame, still_since: None });
         }
+    }
+
+    /// D-FLEE: the armed mobile ground enemy within `FLEE_FROM` of a constructor (not the commander) that outweighs
+    /// our soldiers within `FLEE_COVER` of it, with its weight.
+    fn flee_from(&self, unit: &OwnUnit, tick: &Tick) -> Option<(Vec3, f32)> {
+        if Some(unit.def) == self.kit.commander {
+            return None;
+        }
+        let threats: Vec<(Vec3, f32)> = tick
+            .snapshot
+            .enemies
+            .iter()
+            .filter(|e| !e.being_built && e.pos.dist2d(unit.pos) < FLEE_FROM)
+            .filter_map(|e| {
+                let d = self.def(e.def?)?;
+                (d.speed > 0.0 && d.weapon_count > 0 && d.move_class.is_some()).then_some((e.pos, d.metal_cost))
+            })
+            .collect();
+        let threat: f32 = threats.iter().map(|(_, w)| w).sum();
+        if threat < FLEE_THREAT {
+            return None;
+        }
+        let cover: f32 = self.own.values().filter(|u| !u.being_built && u.pos.dist2d(unit.pos) < FLEE_COVER).filter_map(|u| self.def(u.def)).filter(|d| d.weapon_count > 0 && d.build_options.is_empty()).map(|d| if d.speed == 0.0 { 3.0 * d.metal_cost } else { d.metal_cost }).sum();
+        (threat > cover).then(|| (threats.iter().min_by(|a, b| a.0.dist2d(unit.pos).total_cmp(&b.0.dist2d(unit.pos))).map(|t| t.0).unwrap_or(unit.pos), threat))
     }
 
     /// D-ORDERS: what a builder's recorded order says now. A build order is dropped when the builder is idle again
@@ -337,6 +401,9 @@ impl Distilled {
             if energy {
                 return Some(Job::Solar);
             }
+            if self.anti_air_wanted(def) {
+                return Some(Job::AntiAir);
+            }
             // D-PROJECT: the commander's 300 is the biggest build power we own.
             if let Some(help) = self.project_help(tick) {
                 return Some(help);
@@ -356,6 +423,9 @@ impl Distilled {
             let advanced = self.kit.advanced_solar.filter(|d| def.build_options.contains(d));
             return Some(if tick.snapshot.metal.income >= ADVANCED_FROM && advanced.is_some() { Job::AdvancedSolar } else { Job::Solar });
         }
+        if self.anti_air_wanted(def) {
+            return Some(Job::AntiAir);
+        }
         if let Some(help) = self.project_help(tick) {
             return Some(help);
         }
@@ -369,6 +439,17 @@ impl Distilled {
             return Some(job);
         }
         self.free_spot(unit, tick, f32::MAX).map(Job::Extractor).or_else(|| self.saturated_job(tick)).or_else(assist)
+    }
+
+    /// D-ANTI-AIR: an anti-air turret is wanted by a builder that can build one once his aircraft have been seen,
+    /// while fewer than one more than the plants stand or are ordered, up to `AA_AT_MOST`, one builder at a time.
+    fn anti_air_wanted(&self, builder: &UnitDefInfo) -> bool {
+        let Some(aa) = self.kit.aa_turret.filter(|d| builder.build_options.contains(d)) else { return false };
+        if self.army.air_seen.is_none() || self.economy.working_on(|job| job == Job::AntiAir) > 0 {
+            return false;
+        }
+        let wanted = (1 + self.count(self.kit.plant) + self.count(self.kit.advanced_plant)).min(AA_AT_MOST);
+        self.count(Some(aa)) < wanted
     }
 
     /// D-BUILD-POWER's job for this builder, when one is wanted and not too many builders are on it already. No new
@@ -568,8 +649,12 @@ impl Distilled {
             Job::Extractor(spot) => {
                 let at = self.hello.metal_spots[spot];
                 commands.extend(build(self.kit.extractor, BuildSite { near: at, search_radius: 0.0, min_dist: 0, placements: Vec::new() }, false));
-                // D-SENTRY: an outer extractor gets a sentry on its enemy side, queued behind it.
-                if at.dist2d(self.home) > SENTRY_FROM {
+                // D-SENTRY: an outer extractor on his side of our ground gets a sentry on its enemy side, queued behind
+                // it, unless one stands within `SENTRY_SHARED` already (2026-10-20: nineteen sentries by 10:00 against
+                // Apex cost 12,900 energy, more than the thirteen solars of the same minutes made).
+                let toward = ((at.x - self.home.x) * (self.enemy_home.x - self.home.x) + (at.z - self.home.z) * (self.enemy_home.z - self.home.z)) / self.home.dist2d(self.enemy_home).max(1.0).powi(2);
+                let shared = self.own.values().any(|u| Some(u.def) == self.kit.sentry && u.pos.dist2d(at) < SENTRY_SHARED);
+                if at.dist2d(self.home) > SENTRY_FROM && toward >= SENTRY_TOWARD && !shared {
                     commands.extend(build(self.kit.sentry, BuildSite { near: self.toward_enemy(at, 120.0), search_radius: 200.0, min_dist: 1, placements: Vec::new() }, true));
                 }
             }
@@ -614,6 +699,14 @@ impl Distilled {
             Job::Converter | Job::AdvancedConverter => {
                 let def = if job == Job::Converter { self.kit.converter } else { self.kit.advanced_converter };
                 commands.extend(build(def, BuildSite { near: self.toward_enemy(self.home, -450.0), search_radius: 1500.0, min_dist: 2, placements: placements() }, false));
+            }
+            Job::AntiAir => {
+                // By the plant with the fewest anti-air turrets within `AA_NEAR`, on its enemy side; the base point
+                // when no plant stands.
+                let plants: Vec<&OwnUnit> = self.finished(self.kit.plant).chain(self.finished(self.kit.advanced_plant)).collect();
+                let aa_near = |p: &OwnUnit| self.own.values().filter(|u| Some(u.def) == self.kit.aa_turret && u.pos.dist2d(p.pos) < AA_NEAR).count();
+                let near = plants.iter().min_by_key(|p| aa_near(p)).map_or(self.toward_enemy(self.home, 300.0), |p| self.toward_enemy(p.pos, 200.0));
+                commands.extend(build(self.kit.aa_turret, BuildSite { near, search_radius: 400.0, min_dist: 2, placements: placements() }, false));
             }
             Job::Help(target) => commands.push(Command::Repair { unit: unit.id, target, queue: false }),
             Job::Moho(target) => {
@@ -708,6 +801,10 @@ impl Distilled {
         economy.since_scout += 1;
         if self.frame < TANKS_FROM {
             return kit.raider.or(kit.tank);
+        }
+        // D-RAIDERS: a raider in five after the tanks begin, so the group can be refilled.
+        if self.options.raiders && economy.made % 5 == 2 && kit.raider.is_some() {
+            return kit.raider;
         }
         if economy.made % 6 == 5 { kit.artillery.or(kit.tank) } else { kit.tank }.or(kit.raider)
     }

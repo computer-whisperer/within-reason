@@ -78,11 +78,13 @@ pub(crate) struct Options {
     /// `lane=on`: the control lane under the army's orders (D-LANE); off by default, as wired it did not move the
     /// exchange (apex-v029-distilled-comet-10: 1-14-1 over sixteen cold games against 3-12-1 without it).
     pub lane: bool,
+    /// `raid=off`: no raider group (D-RAIDERS, 2026-10-20).
+    pub raiders: bool,
 }
 
 impl Default for Options {
     fn default() -> Self {
-        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, field_gate: true, lane: false }
+        Options { t2_income: Some(22.0), fusion_first: false, converters: true, power: Power::Helpers, pause_t1: true, field_gate: true, lane: false, raiders: true }
     }
 }
 
@@ -103,6 +105,7 @@ impl Options {
                 ("pause", v) => options.pause_t1 = v != "off",
                 ("gate", v) => options.field_gate = v != "income",
                 ("lane", v) => options.lane = v == "on",
+                ("raid", v) => options.raiders = v != "off",
                 _ => eprintln!("[distilled] WITHIN_REASON_DISTILLED: unknown arm {pair:?}"),
             }
         }
@@ -111,14 +114,15 @@ impl Options {
 
     pub(crate) fn describe(&self) -> String {
         format!(
-            "t2={}, gate={}, energy={}, converters={}, power={:?}, pause={}, lane={}",
+            "t2={}, gate={}, energy={}, converters={}, power={:?}, pause={}, lane={}, raid={}",
             self.t2_income.map_or("never".to_string(), |n| format!("{n:.0}")),
             if self.field_gate { "field" } else { "income" },
             if self.fusion_first { "fusion" } else { "mohos" },
             if self.converters { "on" } else { "off" },
             self.power,
             if self.pause_t1 { "on" } else { "off" },
-            if self.lane { "on" } else { "off" }
+            if self.lane { "on" } else { "off" },
+            if self.raiders { "on" } else { "off" }
         )
     }
 }
