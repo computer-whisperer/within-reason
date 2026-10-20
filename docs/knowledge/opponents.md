@@ -15,13 +15,16 @@ weight (`hard` 0, so it never returns to a tier-1 lab when it switches factories
 0 Cortex) and the adaptive threat range's floor (`hard` 0.5 at 350 enemies a team, `hard_aggressive` 0.4 at 450).
 Water factories and the Legion files differ more. "Aggressive" is not in the scripts. At +0 on Comet Catcher the caps
 did not bind (5 turrets standing by 12:00 on 6-11 extractors under raids) and one game on each profile at the same
-seed ended alike: barb-hard-1 WON 16:30, barb-ladder-0-1 WON 16:54. Whether `hard` is harder is unmeasured beyond that
-one game; where it would show is a BARb left with income (a bonus, or an unraided base), where twice the turrets a
-factory turn into army.
-**Status.** supported (2026-10-20) for the file diff; one game for the play.
+seed ended alike: barb-hard-1 WON 16:30, barb-ladder-0-1 WON 16:54. With a bonus the caps bind and the turrets turn into
+army: at +10 and +20 (barb-hard-10-1 WON 21:14, barb-hard-20-1 WON 21:16, the seeds of the first hard_aggressive game
+on each rung) he stood 8 turrets at his bot lab by 12:00-16:00 and his army at 8:00-12:00 ran above every
+hard_aggressive game on the same rung (4,126 at 10:00 at +20 against 3,040 and 1,379), then he spent it in attacks that
+lost (the 13th minute of the +20 game: 2,849 of his lost in our half) and both games were converted leads where the
+hard_aggressive +20 rung is 0-2 on unconverted ones. Three games, one a rung: no ranking of the profiles at the result.
+**Status.** supported (2026-10-20) for the file diff and the early-army difference; three games for the play.
 **Evidence.** `run/barb_profiles.py "Beyond All Reason test-31677-a31a826" --diff hard hard_aggressive` (the game
 archive's `luarules/configs/barb/stable/config/{hard,hard_aggressive}/` and `script/`, out of the rapid pool; the same
-diff in upstream/Beyond-All-Reason at 54199a0d); ledger rows barb-hard-1 and barb-ladder-0-1.
+diff in upstream/Beyond-All-Reason at 54199a0d); ledger rows barb-hard-1, barb-hard-10-1, barb-hard-20-1 against barb-ladder-0-1, -10-1..3, -20-1..2.
 **Used by.** arena `--profile`; the choice of opponent for the 1v1 line.
 
 ### K-opp-faction-asymmetry
