@@ -143,14 +143,23 @@ sequences: nothing to re-base).
 
 ### Dispatch (T-DISPATCH)
 
-The plan is `n[u, t]` for every type. At each half second, for each idle builder `b` of a type that can build or
-assist `u`: the shortfall of `u` is `n[u, now] - (built[u] + ordered[u])`, in units, times `bt[u]` in
-build-power-seconds; the builder takes the type with the largest shortfall it can serve, placed as the hands place
-things today (its spot, its site, an upgrade over the nearest basic extractor, a factory's product queued on that
-factory, an assist as a guard on the factory whose products are shortest). A building starts only when its shortfall
-passes one half. With nothing short, a mobile builder assists the nearest factory with a shortfall, else the
-dearest frame; a factory stands idle. The order review, the retry at another site, the struck rule and the
-instruments stay as they are.
+As first written: the plan is `n[u, t]` for every type; at each half second an idle builder takes the type with the
+largest shortfall `n[u, now + lead] - (built[u] + ordered[u])` in build-power-seconds that it can serve, a building
+only when the shortfall passes one half; with nothing short a mobile builder assists, else helps the dearest frame; a
+factory stands idle. That rule ran in terr6 to terr13 and failed on the relaxation's own artefact (above, "fractional
+chain buildings"): the program is indifferent between factory types and spreads a plant over all of them, and grows
+its constructors through a fractional advanced plant, so by type no count ever ran half a unit ahead and the lab
+stood idle for seven minutes with both stocks at their caps (terr13).
+
+As built for terr14 (`hands.rs` `dispatch`): the lumpy things go by class. The factories as a whole, and a factory's
+products by role, start a unit when the program's count of the class runs half a unit ahead of what stands, is
+framed or is ordered, and the type started is the one of the class the program wants most. Everything else goes by
+the program's flows `x[b, u, t]` for the builder's type: its credit on `u` is the program's power on `(b, u)` to
+`now + lead`, less what type `b` has committed to `u` since the plan was adopted (an order's cost to its type, a
+guard's chunk of power; the standing orders' unbuilt cost seeds it at each adopt); the largest credit as a share of
+`cost[b, u]` is taken, however small, since standing idle is never what the program planned; a product's flow is a
+guard on the factory that makes it. With no credit, the largest count shortfall of a type it builds; with none, the
+dearest frame. The order review, the retry at another site, the struck rule and the instruments stay as they are.
 
 ## Verification, in order
 
@@ -210,20 +219,29 @@ linear, in the same program, with the prices of cover falling out as duals. Writ
   constructors, every spot by 8:00, every upgrade by 12:00, then converters; twice the flagship. Whether the hands can
   realize it is step 3's question.
 - Step 4 built before step 3 (the engine run is the test, and the plan lines already give the model error):
-  `planner=lp` the default, T-DISPATCH over the program's flows per builder type, T-COMMIT for the first factory.
-  Eight batches (terr6 to terr13) to make the hands carry the plan: the anneal plan's zero factory queues refused
-  every lab, factories were passed over for want of a queue, count shortfalls let nobody assist, the committed
-  power cleared at every re-solve bought the unbuilt half of a lab again, builders idled waiting for a share of a
-  unit to accrue on flows split many ways, a finished frame counted as a job beside its standing unit (two labs
-  where one stood), the walks were three to ten times under (calibrated from the begun lines: a constructor's
-  extractor 50 s, its base building 12, the commander's 18 and 45), and his roaming commander ate the far spots
-  (the dead spots follow his seen armed units). terr13: income 27-34 / 98-110 / 135-142 / 230-237 at 5 / 10 / 15
-  / 20 against the program's own ceiling of 49-52 / 262-268 / 885-902 / 1,362-1,410, and against the anneal bot's
-  105-165 / 188-225 / 199-321 at 10 / 15 / 20 on the same seeds: level at 20:00, behind at 10 and 15. The model
-  error at +60 s fell from +15..+28 to +8..+13 and is still the hands': the plan runs one to two minutes ahead of
-  the engine from the first minute and the gap compounds. Next: step 3 (the plan dispatched inside the simulator)
-  to split that gap into the model's and the engine's; the commander's base walk (45 s: its sites round a crowded
-  base); the held extractor orders.
+  `planner=lp` the default, T-DISPATCH over the program's targets, T-COMMIT for the first factory. Eight batches
+  (terr6 to terr13) on the hands: the anneal plan's zero factory queues refused every lab, factories were passed
+  over for want of a queue, a finished frame counted as a job beside its standing unit (two labs where one stood),
+  the walks were three to ten times under (calibrated from the begun lines: a constructor's extractor 50 s, its
+  base building 12, the commander's 18 and 45), and his roaming commander ate the far spots (the dead spots follow
+  his seen armed units). **Correction, 2026-10-20 evening:** the dispatch those batches ran was the count-shortfall
+  rule as first written; the flow-following credit dispatch that fa9723d's message, the ledger rows terr9 to terr12
+  and the README's row of the time describe was never in the tree (each edit script asserted before writing
+  hands.rs, found from the file times and the task outputs), and the diagnoses of terr10 and terr11 were of code
+  that never ran. terr13: income 27-34 / 98-110 / 135-142 / 230-237 at 5 / 10 / 15 / 20 against the program's own
+  ceiling of 49-52 / 262-268 / 885-902 / 1,362-1,410, and against the anneal bot's 105-165 / 188-225 / 199-321 at
+  10 / 15 / 20 on the same seeds: level at 20:00, behind at 10 and 15. Read again from its jobs and curve lines:
+  both stocks at their storage caps from 6:00 to 20:00, the lab idle from 7:00 to 14:00, constructors flat at 17
+  while the program asked for three more each minute of the tier-2 kind through a fractional advanced plant nobody
+  started (by type no count ever ran half a unit ahead), and 21 extractor orders held two minutes each.
+- T-DISPATCH rebuilt as the section above says (terr14): the factory side is fixed (36-40 constructors at 10:00,
+  four factories by 15:00, build power 7,000-8,000), the income barely moved (102-121 / 146-216 / 222-332 at 10 / 15
+  / 20) and the bank reached 29,000-45,000: 24-28 of forty constructors walking at any minute, 130 extractor orders
+  in four games dropped as held on arrival at far spots (the held clock ran from the order, every walk past two
+  minutes cut at the 300 ring), and a stale attempt count sending economy buildings to the base spiral from afar.
+  Both fixed for terr15. Next after it: the far spots' walks in the program (two extractor classes by distance, since
+  one constant walk over-values the far spots: the model error at +60 s rose to +15..+34 with forty constructors),
+  the crowded-base sites (solars beside a lab's yard dropped), his roaming commander's kills, then step 3.
 - Decision 6 amended while building: the converters' threshold is dropped from the program (a full relaxation,
   converters bounded by capacity alone). The engine's converters burn what sits above three quarters of storage;
   a plan that runs them at their capacity has the stock climb to that level once and burn the inflow from then on,

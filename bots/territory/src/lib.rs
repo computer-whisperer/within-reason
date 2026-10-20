@@ -16,7 +16,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-use bot_protocol::{Bot, Command, Commands, Event, Hello, OwnUnit, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
+use bot_protocol::{Bot, Command, Commands, EnemyUnit, Event, Hello, OwnUnit, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
 use buildorder::anneal::Palette;
 use buildorder::game::{Game, Ground};
 use buildorder::lp::LpOptions;
@@ -42,6 +42,8 @@ pub(crate) struct Territory {
     pub enemy_home: Vec3,
     pub frame: i32,
     pub own: BTreeMap<UnitId, OwnUnit>,
+    /// His units in sight this tick (the dead spots; what stands by a dropped order's site).
+    pub enemies: Vec<EnemyUnit>,
     pub options: options::Options,
     pub hands: hands::Hands,
     /// The spots the hands may take (the scenario's), as indices into the game's list.
@@ -246,6 +248,7 @@ impl Territory {
                 }
                 self.log(format_args!("targets: {}", by_minute.join(" | ")));
                 self.hands.targets = Some(plan.clone());
+                self.seed_committed();
                 return;
             }
             planner::Answer::Anneal(found) => found,
@@ -315,6 +318,7 @@ impl Bot for Territory {
             enemy_home: Vec3::default(),
             frame: 0,
             own: BTreeMap::new(),
+            enemies: Vec::new(),
             options: options::Options::from_env(),
             hands: hands::Hands::default(),
             spots: Vec::new(),
@@ -331,6 +335,7 @@ impl Bot for Territory {
     fn tick(&mut self, tick: Tick) -> Commands {
         self.frame = tick.frame;
         self.own = tick.snapshot.own_units.iter().map(|u| (u.id, u.clone())).collect();
+        self.enemies = tick.snapshot.enemies.clone();
         if !self.started {
             self.start(&tick);
             if !self.started {
