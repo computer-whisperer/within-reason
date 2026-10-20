@@ -407,7 +407,7 @@ impl Territory {
             return;
         }
         // The energy as a class ahead of the flows only in a stall (ENERGY_STALL), else after them.
-        if self.energy.0 < ENERGY_STALL * self.energy.1 && self.energy_class(id, unit, role, &builder, ahead, commands) {
+        if self.energy.0 < ENERGY_STALL * self.energy.1 && self.energy_class(id, unit, role, ahead, commands) {
             return;
         }
         // The credits by unit type over every builder type's flows (turret help apart), the largest as a share of
@@ -462,7 +462,7 @@ impl Territory {
                 }
             }
         }
-        if self.energy_class(id, unit, role, &builder, ahead, commands) {
+        if self.energy_class(id, unit, role, ahead, commands) {
             return;
         }
         // No credit: the largest count shortfall of a type it builds, in build-power-seconds; then the dearest frame.
@@ -493,8 +493,7 @@ impl Territory {
     /// backstop (terr19: read by every idle builder it put the first constructors on four advanced solars by 4:31;
     /// terr20: two orders by constructors alone left the energy at zero to 8:00). A whole unit's shortfall starts
     /// one (terr24: at half a unit, three solars where the plan wanted two).
-    fn energy_class(&mut self, id: UnitId, unit: usize, role: Role, builder: &OwnUnit, ahead: f64, commands: &mut Vec<Command>) -> bool {
-        let _ = builder;
+    fn energy_class(&mut self, id: UnitId, unit: usize, role: Role, ahead: f64, commands: &mut Vec<Command>) -> bool {
         let energy: Option<(usize, f64)> = {
             let units = &self.game().units;
             let def = &units.list[unit];
