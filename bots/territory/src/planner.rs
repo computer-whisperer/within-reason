@@ -10,6 +10,7 @@ use buildorder::game::Game;
 use buildorder::lp::{self, LpOptions, LpPlan};
 use buildorder::plan::{Item, Plan};
 use buildorder::sim::{Scenario, State};
+use buildorder::units::Role;
 
 /// What a planner found: the anneal's plan or the program's targets.
 pub(crate) enum Answer {
@@ -45,7 +46,9 @@ pub(crate) struct Request {
     /// Metal the hands could start a unit against now (the stock and `AFFORD_SECONDS` of income): the program is
     /// offered the types that cost no more, since a fraction of what cannot be started is energy and build power
     /// the engine never has (terr21-lp-nullai-comet-1: the fusion's fraction carried the program's energy from its
-    /// second minute while the engine's first energy is solars; the advanced plant from 4:00 on an income of ten).
+    /// second minute while the engine's first energy is solars). Factories are offered whatever they cost: T-COMMIT
+    /// starts one whole on the same affordability, and a plant the program plans for from 4:00 stood at 5:49-6:38
+    /// (terr21) where one it may not plan until affordable stood at 7:13-8:46 (terr23).
     pub affordable: f64,
 }
 
@@ -72,7 +75,7 @@ fn run(game: &Game, palette: &Palette, request: Request, budget: Duration, threa
     let began = Instant::now();
     let answer = match &request.lp {
         Some(options) => {
-            let offer: Vec<usize> = palette.mobile.iter().chain(palette.factory.iter()).filter_map(|i| match i { Item::Build(u) => Some(*u), _ => None }).filter(|u| game.units.list[*u].metal_cost <= request.affordable).collect();
+            let offer: Vec<usize> = palette.mobile.iter().chain(palette.factory.iter()).filter_map(|i| match i { Item::Build(u) => Some(*u), _ => None }).filter(|u| game.units.list[*u].role == Role::Factory || game.units.list[*u].metal_cost <= request.affordable).collect();
             match lp::solve(&game.units, &request.scenario, &request.state, &offer, options) {
                 Ok(plan) => Answer::Lp(plan),
                 Err(e) => {

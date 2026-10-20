@@ -55,8 +55,11 @@ const SPOT_REFUSED: i32 = MINUTE;
 const TYPE_REFUSED: i32 = MINUTE;
 /// The energy class fires only while the energy stock is under this share of its storage: with the stock at the
 /// cap the program's planned energy is for spending that is not happening, and solars ahead of the flows left the
-/// metal at zero from 2:00 to 8:00 (terr18-lp-nullai-comet-1).
+/// metal at zero from 2:00 to 8:00 (terr18-lp-nullai-comet-1). Ahead of the flows only under `ENERGY_STALL`, a
+/// stall; else after them, a backstop (terr24: the lab drains the starting energy below half, and the class ahead
+/// of the flows built four solars before any extractor in every Cortex opening).
 const ENERGY_LOW: f64 = 0.5;
+const ENERGY_STALL: f64 = 0.2;
 /// ... and only while fewer than this many energy orders stand without a frame.
 const ENERGY_PENDING: usize = 3;
 /// T-DISPATCH: the program's targets are read this far ahead of the clock, so a builder starts what the plan wants
@@ -122,9 +125,9 @@ pub(crate) struct Hands {
     pub plan: Plan,
     /// The program's targets (T-DISPATCH), when the planner is the program.
     pub targets: Option<LpPlan>,
-    /// Build-power-seconds committed per (builder type, unit type) since the targets were adopted: an order's cost
-    /// to its builder's type, a guard's chunk of its power.
-    pub committed: BTreeMap<(usize, usize), f64>,
+    /// Build-power-seconds committed per unit type since the targets were adopted: an order's cost to its builder's
+    /// type, a guard's chunk of its power.
+    pub committed: BTreeMap<usize, f64>,
     pub orders: BTreeMap<UnitId, Order>,
     /// Per builder: its queue in the plan and the index of its next step.
     pub queues: BTreeMap<UnitId, (usize, usize)>,
@@ -288,14 +291,14 @@ impl Territory {
     /// whole cost with no frame yet, the unbuilt share with one), since the program's new flows carry that remainder
     /// as work to do and would otherwise buy it twice.
     pub(crate) fn seed_committed(&mut self) {
-        let mut committed: BTreeMap<(usize, usize), f64> = BTreeMap::new();
+        let mut committed: BTreeMap<usize, f64> = BTreeMap::new();
         let Some(targets) = self.hands.targets.as_ref() else { return };
         for (id, order) in &self.hands.orders {
             let Some(builder) = self.own.get(id).and_then(|u| self.unit_index(u.def)) else { continue };
             let What::Build { unit, frame, .. } = &order.what else { continue };
             let left = frame.and_then(|f| self.own.get(&f)).map_or(1.0, |f| 1.0 - (f.health / f.max_health.max(1.0)).clamp(0.0, 1.0) as f64);
             let cost = targets.flows.iter().find(|f| f.builder == builder && f.unit == *unit).map_or(self.game().units.list[*unit].build_time, |f| f.cost);
-            *committed.entry((builder, *unit)).or_default() += cost * left;
+            *committed.entry(*unit).or_default() += cost * left;
         }
         self.hands.committed = committed;
     }
@@ -307,12 +310,16 @@ impl Territory {
     /// spreads a plant over all of them, and grows its constructors through a fractional advanced plant
     /// (terr13-lp-nullai-comet-1, game 01: the lab idle from 7:00 to 14:00 with both stocks at their caps, the
     /// program asking three constructors more each minute, all of the tier-2 kind, from a plant nobody started).
-    /// Everything else goes by the program's flows for this builder's type: its credit on a unit type is the power
-    /// the program has the type spend on it to the clock plus the lead, less what the type has committed to it
-    /// since the plan was adopted (the standing orders' unbuilt cost seeds it); the largest credit as a share of
-    /// the unit's cost is taken, however small, since standing idle is never what the program planned: a building
-    /// built where T-SITES puts it, a factory product as a guard on the factory that makes it. With no credit, the
-    /// largest count shortfall of a type it builds; with none, help on the dearest frame.
+    /// Everything else goes by the program's flows: a unit type's credit is the power the program has every builder
+    /// type spend on it to the clock plus the lead, less what has been committed to it since the plan was adopted
+    /// (the standing orders' unbuilt cost seeds it); the builder takes the largest credit as a share of the unit's
+    /// cost among what it can build or assist, however small, since standing idle is never what the program
+    /// planned: a building built where T-SITES puts it, a factory product as a guard on the factory that makes it.
+    /// By unit type across builders, not by the builder's own type: the program's extractors in the first minute
+    /// are on the fractional constructors it imagines and the commander's power on solars, and following its own
+    /// flows the commander built four solars and no extractor while the plan wanted two of each
+    /// (terr23-lp-nullai-comet-1). With no credit, the largest count shortfall of a type it builds; with none,
+    /// help on the frame with the most metal left per builder on it.
     fn dispatch(&mut self, id: UnitId, role: Role, commands: &mut Vec<Command>) {
         let Some(builder) = self.own.get(&id).cloned() else { return };
         let Some(unit) = self.unit_index(builder.def) else { return };
@@ -399,59 +406,47 @@ impl Territory {
         if role == Role::Factory {
             return;
         }
-        // The energy as a class: the program's planned energy income at the lead, less what stands, is framed or is
-        // ordered, realized by the best affordable energy building this builder builds. The program's cheapest energy
-        // per metal is a fusion, which it builds as a fraction from its second minute and draws energy from at once;
-        // the engine's first energy is solars, and the program's solar flows are small beside the fusion's, so the
-        // early game stalled at zero energy from 1:00 to 5:00 (terr17-lp-nullai-comet-1).
-        // At most three orders at a time: the program's planned energy runs on a fraction of a fusion, so the
-        // shortfall is always large (terr19-lp-nullai-comet-1: read by every idle builder it put the first
-        // constructors on four advanced solars by 4:31; terr20: two orders by constructors alone left the energy at
-        // zero from 1:00 to 8:00 and the income at seven at 5:00, since the engine's first energy is solars and the
-        // lab alone wants ninety a second). The backstop since terr22: the program is offered affordable types only
-        // and its energy flows are followed like any other (excluded, the fusions the late program wants by the
-        // dozen never came: eight by 20:00 in terr21, the bank at 49,000).
-        let energy: Option<(usize, f64)> = {
-            let units = &self.game().units;
-            let def = &units.list[unit];
-            let targets = self.hands.targets.as_ref().expect("dispatching");
-            let rate = |u: usize| units.list[u].energy_make;
-            let pending = self.hands.orders.values().filter(|o| matches!(&o.what, What::Build { unit, frame: None, .. } if self.is_energy(*unit))).count();
-            let had: f64 = self.own.values().filter_map(|o| self.unit_index(o.def)).filter(|u| self.is_energy(*u)).map(rate).sum::<f64>()
-                + self.hands.orders.values().filter_map(|o| match &o.what { What::Build { unit, frame: None, .. } if self.is_energy(*unit) => Some(rate(*unit)), _ => None }).sum::<f64>();
-            let short = if pending < ENERGY_PENDING && self.energy.0 < ENERGY_LOW * self.energy.1 { targets.energy_income_at(ahead) - units.list[self.game().commander].energy_make - had } else { 0.0 };
-            // Of the program's own types (the roster leaves out what stands only on a geothermal vent).
-            targets
-                .types
-                .iter()
-                .copied()
-                .filter(|u| def.builds.contains(u) && self.is_energy(*u) && !self.hands.struck.contains(u) && self.affordable(*u))
-                .max_by(|a, b| (rate(*a) / units.list[*a].metal_cost.max(1.0)).total_cmp(&(rate(*b) / units.list[*b].metal_cost.max(1.0))))
-                .filter(|u| short >= 0.5 * rate(*u))
-                .map(|u| (u, units.list[u].build_time))
-        };
-        if let Some((u, cost)) = energy && self.order_one(id, unit, role, u, cost, commands) {
+        // The energy as a class ahead of the flows only in a stall (ENERGY_STALL), else after them.
+        if self.energy.0 < ENERGY_STALL * self.energy.1 && self.energy_class(id, unit, role, &builder, ahead, commands) {
             return;
         }
-        // The flows of this builder's type, the largest credit as a share of the unit's cost first. A builder of a
-        // type the plan had none of at its start has no flows worth reading (the program gave a type with no
-        // units no power, and what little a fraction of one got ranks a construction turret first:
-        // terr16-lp-nullai-comet-1, the first constructor's first job at 1:23); it goes by the count shortfalls
-        // until the re-plan its coming asks for arrives.
-        let planned_type = unit == self.game().commander || self.hands.targets.as_ref().is_some_and(|t| t.count_at(unit, t.t0) >= 0.5);
-        let mut flows: Vec<(usize, Kind, f64, f64)> = {
+        // The credits by unit type over every builder type's flows (turret help apart), the largest as a share of
+        // the unit's cost first, and at a share tied the one the plan wants sooner (its share at a third of the
+        // lead: terr24, two solars and two extractors wanted by one minute tied, and unit order put the solars
+        // first); this builder's part is to build it or to guard the factory that makes it.
+        let mut flows: Vec<(usize, Kind, f64, f64, f64)> = {
             let targets = self.hands.targets.as_ref().expect("dispatching");
             let units = &self.game().units;
-            targets
-                .flows
-                .iter()
-                .filter(|f| planned_type && f.builder == unit && units.list[f.unit].role != Role::Factory)
-                .map(|f| (f.unit, f.kind, targets.planned_power(unit, f.unit, ahead) - self.hands.committed.get(&(unit, f.unit)).copied().unwrap_or(0.0), f.cost))
-                .filter(|(_, _, credit, _)| *credit > 0.0)
+            let def = &units.list[unit];
+            let mut per_unit: BTreeMap<usize, (f64, f64, f64)> = BTreeMap::new();
+            for f in targets.flows.iter().filter(|f| f.kind != Kind::Help && units.list[f.unit].role != Role::Factory) {
+                let e = per_unit.entry(f.unit).or_insert((0.0, 0.0, f64::MAX));
+                e.0 += targets.planned_power(f.builder, f.unit, ahead);
+                e.1 += targets.planned_power(f.builder, f.unit, now + LEAD / 3.0);
+                e.2 = e.2.min(f.cost);
+            }
+            per_unit
+                .into_iter()
+                .filter_map(|(u, (planned, soon, cost))| {
+                    let kind = if def.builds.contains(&u) {
+                        Kind::Direct
+                    } else if units.list[u].speed > 0.0 && self.factory_making(u, builder.pos).is_some() {
+                        Kind::Assist
+                    } else {
+                        return None;
+                    };
+                    let committed = self.hands.committed.get(&u).copied().unwrap_or(0.0);
+                    let credit = planned - committed;
+                    (credit > 0.0).then_some((u, kind, credit, cost, soon - committed))
+                })
                 .collect()
         };
-        flows.sort_by(|a, b| (b.2 / b.3.max(1.0)).total_cmp(&(a.2 / a.3.max(1.0))));
-        for (u, kind, _, cost) in flows {
+        flows.sort_by(|a, b| {
+            let share = |f: &(usize, Kind, f64, f64, f64)| (f.2 / f.3.max(1.0), f.4 / f.3.max(1.0));
+            let (sa, sb) = (share(a), share(b));
+            sb.0.total_cmp(&sa.0).then(sb.1.total_cmp(&sa.1))
+        });
+        for (u, kind, _, cost, _) in flows {
             match kind {
                 Kind::Direct => {
                     if self.order_one(id, unit, role, u, cost, commands) {
@@ -462,10 +457,13 @@ impl Territory {
                     let Some(factory) = self.factory_making(u, builder.pos) else { continue };
                     commands.push(Command::Guard { unit: id, target: factory });
                     self.hands.orders.insert(id, Order { what: What::Assist { factory, until: self.frame + ASSIST_CHUNK }, given: self.frame, told: self.frame, arrived: None, step: None });
-                    *self.hands.committed.entry((unit, u)).or_default() += self.game().units.list[unit].worker_time * ASSIST_CHUNK as f64 / SECOND as f64;
+                    *self.hands.committed.entry(u).or_default() += self.game().units.list[unit].worker_time * ASSIST_CHUNK as f64 / SECOND as f64;
                     return;
                 }
             }
+        }
+        if self.energy_class(id, unit, role, &builder, ahead, commands) {
+            return;
         }
         // No credit: the largest count shortfall of a type it builds, in build-power-seconds; then the dearest frame.
         let fallback: Option<usize> = {
@@ -486,6 +484,42 @@ impl Territory {
         }
     }
 
+    /// The energy as a class: the program's planned energy income at the lead, less what stands, is framed or is
+    /// ordered, realized by the best affordable energy building of the program's types this builder builds, while
+    /// the energy stock is under half its storage and fewer than three energy orders stand without a frame. The
+    /// program's cheapest energy was a fusion it built as a fraction from its second minute and drew energy from at
+    /// once, while the engine's first energy is solars (terr17: zero energy from 1:00 to 5:00); since terr22 the
+    /// program is offered affordable types only and its energy flows are followed like any other, and this is the
+    /// backstop (terr19: read by every idle builder it put the first constructors on four advanced solars by 4:31;
+    /// terr20: two orders by constructors alone left the energy at zero to 8:00). A whole unit's shortfall starts
+    /// one (terr24: at half a unit, three solars where the plan wanted two).
+    fn energy_class(&mut self, id: UnitId, unit: usize, role: Role, builder: &OwnUnit, ahead: f64, commands: &mut Vec<Command>) -> bool {
+        let _ = builder;
+        let energy: Option<(usize, f64)> = {
+            let units = &self.game().units;
+            let def = &units.list[unit];
+            let targets = self.hands.targets.as_ref().expect("dispatching");
+            let rate = |u: usize| units.list[u].energy_make;
+            let pending = self.hands.orders.values().filter(|o| matches!(&o.what, What::Build { unit, frame: None, .. } if self.is_energy(*unit))).count();
+            let had: f64 = self.own.values().filter_map(|o| self.unit_index(o.def)).filter(|u| self.is_energy(*u)).map(rate).sum::<f64>()
+                + self.hands.orders.values().filter_map(|o| match &o.what { What::Build { unit, frame: None, .. } if self.is_energy(*unit) => Some(rate(*unit)), _ => None }).sum::<f64>();
+            let short = if pending < ENERGY_PENDING && self.energy.0 < ENERGY_LOW * self.energy.1 { targets.energy_income_at(ahead) - units.list[self.game().commander].energy_make - had } else { 0.0 };
+            // Of the program's own types (the roster leaves out what stands only on a geothermal vent).
+            targets
+                .types
+                .iter()
+                .copied()
+                .filter(|u| def.builds.contains(u) && self.is_energy(*u) && !self.hands.struck.contains(u) && self.affordable(*u))
+                .max_by(|a, b| (rate(*a) / units.list[*a].metal_cost.max(1.0)).total_cmp(&(rate(*b) / units.list[*b].metal_cost.max(1.0))))
+                .filter(|u| short >= rate(*u))
+                .map(|u| (u, units.list[u].build_time))
+        };
+        match energy {
+            Some((u, cost)) if role != Role::Factory => self.order_one(id, unit, role, u, cost, commands),
+            _ => false,
+        }
+    }
+
     /// One unit of `u` ordered from this builder (T-SITES places it) and charged to its type's commitment; false
     /// when the hands pass it over (not affordable, no site, the cap, a struck type).
     fn order_one(&mut self, id: UnitId, unit: usize, role: Role, u: usize, cost: f64, commands: &mut Vec<Command>) -> bool {
@@ -496,7 +530,7 @@ impl Territory {
         let Some((command, what)) = self.give(id, unit, role, Step::build(u), attempt) else { return false };
         commands.push(command);
         self.hands.orders.insert(id, Order { what, given: self.frame, told: self.frame, arrived: None, step: None });
-        *self.hands.committed.entry((unit, u)).or_default() += cost;
+        *self.hands.committed.entry(u).or_default() += cost;
         true
     }
 

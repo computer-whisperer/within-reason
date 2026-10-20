@@ -24,7 +24,7 @@ const USAGE: &str = "usage: (the game, that is map, start, faction and unit numb
   buildorder lp        --game RECORD.jsonl | --hello DUMP.json [--minutes 20] [--dt 10] [--mid-from 60] [--mid-dt 30] [--coarse-from 300] [--coarse-dt 60] [--terminal 0] [--assist 2] [--help-factor 3]
                        [--nanos-per-factory 6] [--max-constructors 40 (per tier)] [--max-factories 4] [--all-spots] [--builders-only]
                        [--walk-extractor 65] [--walk-base 3] [--walk-factory 40] [--commander-walk-extractor 16] [--commander-walk-base 5]
-                       [--commander-walk-factory 9] [--affordable METAL] [--csv FILE]
+                       [--commander-walk-factory 9] [--affordable METAL] [--flows N] [--csv FILE]
                        (the planner as a linear program, docs/design/2026-10-20-territory-lp.md: the plan by minute with
                        the prices of metal, energy and build power; the csv in the simulator's format)
   buildorder simulate  --game RECORD.jsonl --plan FILE [--minutes ..] [--wind ..] [--detour X] [--help-frames] [--tax ..] [--csv FILE]
@@ -345,6 +345,26 @@ fn linear_program(args: &Args) {
     for (bt, prices) in &plan.power_price {
         let shown: Vec<String> = minutes_shown.iter().step_by(2).map(|(_, t)| format!("{:.3}", prices.get(*t).copied().unwrap_or(0.0))).collect();
         println!("price of a build-power-second of {} every two minutes: {}", units.list[*bt].name, shown.join(" "));
+    }
+    // `--flows N`: each builder type's power on each unit type in the first N buckets, in units of the unit's cost to
+    // that builder: how the program sequences the opening (which the hands follow by credits, T-DISPATCH).
+    if let Some(n) = args.value("--flows").and_then(|v| v.parse::<usize>().ok()) {
+        let n = n.min(plan.buckets);
+        println!("flows in the first {n} buckets ({} s), units of the unit's cost to the builder:", plan.starts[n]);
+        let mut rows: Vec<(f64, String)> = plan
+            .flows
+            .iter()
+            .map(|f| {
+                let per: Vec<String> = f.per_bucket.iter().take(n).map(|x| format!("{:.2}", x / f.cost)).collect();
+                let total: f64 = f.per_bucket.iter().take(n).sum::<f64>() / f.cost;
+                (total, format!("  {} -> {} ({:?}, cost {:.0}): {} = {total:.2}", units.list[f.builder].name, units.list[f.unit].name, f.kind, f.cost, per.join(" ")))
+            })
+            .filter(|(total, _)| *total > 0.005)
+            .collect();
+        rows.sort_by(|a, b| b.0.total_cmp(&a.0));
+        for (_, line) in rows {
+            println!("{line}");
+        }
     }
     if let Some(path) = args.value("--csv") {
         let mut text = format!("{CSV_HEADER}\n");

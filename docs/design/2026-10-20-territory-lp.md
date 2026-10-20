@@ -290,8 +290,19 @@ linear, in the same program, with the prices of cover falling out as duals. Writ
   metal is gone by 1:09 and every frame crawls for three minutes. For terr23 a factory ordered or framed is a
   commitment the program takes as standing with the rest of its cost drawn from the stocks (`State::committed`), and
   the help spreads over frames by metal left per builder (48 stood on one frame while five fusions had one each).
-  Next: the far spots' walks in the program (two extractor classes by distance), his roaming commander's kills,
-  the late build power (the ceiling's 24 turrets against 17-24), then step 3.
+  terr23: worse than terr21 (481-567 at 20:00; the plant at 7:13-8:46 since a factory not yet affordable was not
+  offered), and the Cortex openings unchanged: the program's second plan wanted two extractors and two solars by
+  one minute, with the extractors on the fractional constructors it imagines and the commander's power on solars,
+  and the commander followed its own flows. For terr24 the credits are by unit type over every builder type's
+  flows (the orphan power of imagined builders falls to those that stand), and factories are offered whatever they
+  cost. terr24: steady at 598-626 (terr21 636-667), and the Cortex openings unchanged: the energy backstop ran ahead
+  of the flows on a stock the lab had drained, and the flows tied two solars and two extractors wanted by one
+  minute. The tool's `--flows` shows the program's own first minute (0.37 of a lab, two solars, the commander
+  assisting the lab, extractors from 0:40). For terr25 the backstop runs ahead of the flows only in a stall (under a
+  fifth of the storage), else after them, starting a whole unit's shortfall, and a tied share goes to what the plan
+  wants sooner. Next: the far spots' walks in the program (two extractor classes by distance), his roaming
+  commander's kills, the late build power (the ceiling's 24 turrets against 17-24), the objective's end (under
+  `terminal=0` the plan builds nothing from 18:00 that pays past 20:00), then step 3.
 - Decision 6 amended while building: the converters' threshold is dropped from the program (a full relaxation,
   converters bounded by capacity alone). The engine's converters burn what sits above three quarters of storage;
   a plan that runs them at their capacity has the stock climb to that level once and burn the inflow from then on,
