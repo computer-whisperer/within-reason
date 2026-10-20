@@ -7,6 +7,23 @@ the default is `hard`. It loads its AngelScript and config from the GAME archive
 **Evidence.** `AI/Skirmish/BARb/stable/AIOptions.lua`; engine log "Load script: LuaRules/Configs/BARb/stable/script/hard/init.as".
 **Used by.** arena `--profile`.
 
+### K-opp-barb-hard-vs-hard-aggressive
+**Claim.** BARb's `hard` and `hard_aggressive` profiles share their economy, build chain, commander, response and
+AngelScript files; for an Armada or Cortex BARb on a land map they differ only in the construction-turret cap a
+factory (`hard`: bot lab 8, vehicle plant 8, advanced plants 12; `hard_aggressive`: 3, 4, 6), the tier-1 labs' switch
+weight (`hard` 0, so it never returns to a tier-1 lab when it switches factories; `hard_aggressive` 0.2 Armada, 0.1 and
+0 Cortex) and the adaptive threat range's floor (`hard` 0.5 at 350 enemies a team, `hard_aggressive` 0.4 at 450).
+Water factories and the Legion files differ more. "Aggressive" is not in the scripts. At +0 on Comet Catcher the caps
+did not bind (5 turrets standing by 12:00 on 6-11 extractors under raids) and one game on each profile at the same
+seed ended alike: barb-hard-1 WON 16:30, barb-ladder-0-1 WON 16:54. Whether `hard` is harder is unmeasured beyond that
+one game; where it would show is a BARb left with income (a bonus, or an unraided base), where twice the turrets a
+factory turn into army.
+**Status.** supported (2026-10-20) for the file diff; one game for the play.
+**Evidence.** `run/barb_profiles.py "Beyond All Reason test-31677-a31a826" --diff hard hard_aggressive` (the game
+archive's `luarules/configs/barb/stable/config/{hard,hard_aggressive}/` and `script/`, out of the rapid pool; the same
+diff in upstream/Beyond-All-Reason at 54199a0d); ledger rows barb-hard-1 and barb-ladder-0-1.
+**Used by.** arena `--profile`; the choice of opponent for the 1v1 line.
+
 ### K-opp-faction-asymmetry
 **Claim.** Against BARb easy our results follow the OPPONENT's faction: easy BARb is much harder as Cortex (it raids) than as
 Armada (it does not). It is not our Armada roster.

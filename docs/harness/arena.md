@@ -90,6 +90,10 @@ factory varies (bot lab or vehicle plant) and with it the whole game (K-barb-ope
 bots|vehicles` pins it; with `WITHIN_REASON_OBSERVE=1` every result carries `opponent_first_factory`, and
 `run/batch_curves.py --by-opening` splits the curves by it. Match i plays seed `--seed-base` + i (engine and BARb), and the
 two arms of an A/B batch meet the same seeds; the seed does not make BARb repeatable.
+What a profile is: `run/barb_profiles.py "<GameType>" --diff hard hard_aggressive` pulls BARb's config and script files
+for the game version out of the rapid pool (BARb reads them from the game archive, not the engine) and prints every
+key that differs; `hard` and `hard_aggressive` differ in the turret cap a factory, the tier-1 switch weight and the
+threat-range floor, nothing else on land (K-opp-barb-hard-vs-hard-aggressive).
 
 Stopping a match by hand: `run/stop_match.py <match or batch dir> [loss|win]` writes a `stop` file the arena's referee
 sees within a second; the match is recorded with that outcome (a timeout when none is given, `called: true`) and the
