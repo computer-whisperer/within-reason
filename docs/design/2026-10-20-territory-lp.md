@@ -300,9 +300,15 @@ linear, in the same program, with the prices of cover falling out as duals. Writ
   minute. The tool's `--flows` shows the program's own first minute (0.37 of a lab, two solars, the commander
   assisting the lab, extractors from 0:40). For terr25 the backstop runs ahead of the flows only in a stall (under a
   fifth of the storage), else after them, starting a whole unit's shortfall, and a tied share goes to what the plan
-  wants sooner. Next: the far spots' walks in the program (two extractor classes by distance), his roaming
-  commander's kills, the late build power (the ceiling's 24 turrets against 17-24), the objective's end (under
-  `terminal=0` the plan builds nothing from 18:00 that pays past 20:00), then step 3.
+  wants sooner. terr25: the best batch on every mark and steady, 25-34 / 117-124 / 241-278 / 552-678 at 5 / 10 /
+  15 / 20 (the flagship 36 / 177 / 463 / 802, the ceiling 51 / 266 / 961 / 1,665), the openings fixed, the plant at
+  4:39-7:08, 51-58 mohos. The one-minute model error by phase: +4..+6 to 5:00, +17..+22 to 10:00, +42..+141 after.
+  Next, in the order the error says: the far spots' walks in the program (two extractor classes by distance, the
+  mid-game's 12-21 constructors walking 70 s a spot), the late plan's fractional converter spiral (fusions and
+  converters by the hundred that the hands start one at a time: the offer by affordability covers the start of
+  each, not the rate), his roaming commander's kills (4-5 constructors a game), the late build power (the ceiling's
+  24 turrets and its assist factor against 15-25), the objective's end (under `terminal=0` nothing from 18:00 that
+  pays past 20:00; the bank 42,000-51,000 at 20:00), then step 3.
 - Decision 6 amended while building: the converters' threshold is dropped from the program (a full relaxation,
   converters bounded by capacity alone). The engine's converters burn what sits above three quarters of storage;
   a plan that runs them at their capacity has the stock climb to that level once and burn the inflow from then on,

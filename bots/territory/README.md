@@ -110,6 +110,14 @@ spent share 60-76 %, and two games lost to our commander walking its extractor f
 yard keep-out and the class refinement followed (terr16: no game lost, income 112-116 / 194-209 / 297-338 at 10 / 15
 / 20, and no moho in any game: four labs by 9:48 filled the factory cap and their kind the constructor cap, so no
 later plan could hold the tier-2 line; T-COMMIT by capability and the caps per tier followed, terr17).
+
+**As the hands stand** (terr25-lp-nullai-comet-1, after terr17's capability commit and caps per tier, terr19's
+feasible caps, terr21's classes by tier, terr22's affordable offer, terr23's commitments, terr24's credits by unit
+type and terr25's backstop behind the flows): income 25-34 / 117-124 / 241-278 / 552-678 at 5 / 10 / 15 / 20 on the
+same seeds, steady across them, the plant at 4:39-7:08, 51-58 mohos, 11-18 fusions, the program solving every time.
+Against the flagship's 36 / 177 / 463 / 802 and the program's ceiling of 51 / 266 / 961 / 1,665. The one-minute
+model error is +4 to +6 in the first five minutes, +17 to +22 to 10:00, and +42 to +141 after: the plan is honest
+early and runs ahead late, where its converter spiral is fractional fusions and converters by the hundred.
 The planner is global now; the hands are the gap, from the first minute.
 
 To 10:00 the anneal bot is the flagship's equal in two games; after it the rolling search finds no tier 2 in two games
