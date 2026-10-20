@@ -49,6 +49,16 @@ const COMMANDER_LEASH: f32 = 1500.0;
 const SPOT_TAKEN: f32 = 100.0;
 /// A refused spot is left alone this long.
 const SPOT_REFUSED: i32 = MINUTE;
+/// A unit type the host found no site for is left alone this long by every builder (terr18-lp-nullai-comet-1: the
+/// geothermal plant, with no vent on the map, asked for by every constructor every half second, 5,500 drops a game
+/// and nothing else built for ten minutes).
+const TYPE_REFUSED: i32 = MINUTE;
+/// The energy class fires only while the energy stock is under this share of its storage: with the stock at the
+/// cap the program's planned energy is for spending that is not happening, and solars ahead of the flows left the
+/// metal at zero from 2:00 to 8:00 (terr18-lp-nullai-comet-1).
+const ENERGY_LOW: f64 = 0.5;
+/// ... and only while fewer than this many energy orders stand without a frame.
+const ENERGY_PENDING: usize = 2;
 /// T-DISPATCH: the program's targets are read this far ahead of the clock, so a builder starts what the plan wants
 /// next rather than what it wanted at the last whole bucket. Not shorter: the program's counts ramp from the
 /// snapshot, and every re-solve restarts the ramp, so a target read 20 s ahead never crossed its threshold for
@@ -123,6 +133,8 @@ pub(crate) struct Hands {
     pub attempts: BTreeMap<UnitId, u32>,
     /// Spots (indices into the game's list) refused by the host or the engine, until this frame.
     pub refused: BTreeMap<usize, i32>,
+    /// Unit types the host found no site for, until this frame.
+    pub type_refused: BTreeMap<usize, i32>,
     pub nano_told: BTreeMap<UnitId, i32>,
     /// Per builder, the frames it has begun (frame, unit): what a plan searched from an older snapshot has to skip.
     pub begun_log: BTreeMap<UnitId, Vec<(i32, usize)>>,
@@ -149,6 +161,7 @@ impl Default for Hands {
             spare_constructor_queues: VecDeque::new(),
             attempts: BTreeMap::new(),
             refused: BTreeMap::new(),
+            type_refused: BTreeMap::new(),
             nano_told: BTreeMap::new(),
             begun_log: BTreeMap::new(),
             failures: BTreeMap::new(),
@@ -344,10 +357,13 @@ impl Territory {
             }
             // The type started is the one of the class the program wants most. A builder that cannot build it leaves
             // the class to one that can; a factory that does not make it substitutes its own best of the class only
-            // while no standing factory makes it (terr15-lp-nullai-comet-1: the lab filled the forty-constructor cap
-            // with its own kind while the program wanted the advanced plant's, which then made seven and stopped;
-            // seven mohos stood at 15:00 against the ceiling's eighty).
-            let made_by_a_standing_factory = |u: usize| self.own.values().any(|f| !f.being_built && self.unit_index(f.def).is_some_and(|fi| units.list[fi].role == Role::Factory && units.list[fi].builds.contains(&u)));
+            // while no factory standing, framed or ordered makes it (terr15-lp-nullai-comet-1: the lab filled the
+            // forty-constructor cap with its own kind while the program wanted the advanced plant's, which then made
+            // seven and stopped; terr19: substituting through the plant's frame it stood 51 against the tier's cap
+            // of forty, and the program had no feasible point from then on).
+            let ordered = self.hands.orders.values().filter_map(|o| match &o.what { What::Build { unit, frame: None, .. } => Some(*unit), _ => None });
+            let covered: Vec<usize> = self.own.values().filter_map(|f| self.unit_index(f.def)).chain(ordered).filter(|f| units.list[*f].role == Role::Factory).flat_map(|f| units.list[f].builds.iter().copied()).collect();
+            let made_by_a_standing_factory = |u: usize| covered.contains(&u);
             classes
                 .into_iter()
                 .filter_map(|class| {
@@ -380,18 +396,26 @@ impl Territory {
         // per metal is a fusion, which it builds as a fraction from its second minute and draws energy from at once;
         // the engine's first energy is solars, and the program's solar flows are small beside the fusion's, so the
         // early game stalled at zero energy from 1:00 to 5:00 (terr17-lp-nullai-comet-1).
+        // Carried by constructors (the commander only while none stands) and at most two orders at a time: the
+        // program's planned energy runs on a fraction of a fusion, so the shortfall is always large, and read by every
+        // idle builder it put the commander on eight solars and the first constructors on four advanced solars by
+        // 4:31 while the ceiling's commander builds extractors (terr19-lp-nullai-comet-1).
         let energy: Option<(usize, f64)> = {
             let units = &self.game().units;
             let def = &units.list[unit];
             let targets = self.hands.targets.as_ref().expect("dispatching");
             let rate = |u: usize| units.list[u].energy_make;
+            let pending = self.hands.orders.values().filter(|o| matches!(&o.what, What::Build { unit, frame: None, .. } if self.is_energy(*unit))).count();
             let had: f64 = self.own.values().filter_map(|o| self.unit_index(o.def)).filter(|u| self.is_energy(*u)).map(rate).sum::<f64>()
                 + self.hands.orders.values().filter_map(|o| match &o.what { What::Build { unit, frame: None, .. } if self.is_energy(*unit) => Some(rate(*unit)), _ => None }).sum::<f64>();
-            let short = targets.energy_income_at(ahead) - units.list[self.game().commander].energy_make - had;
-            def.builds
+            let carrier = role == Role::Builder || self.count_role(Role::Builder) == 0;
+            let short = if carrier && pending < ENERGY_PENDING && self.energy.0 < ENERGY_LOW * self.energy.1 { targets.energy_income_at(ahead) - units.list[self.game().commander].energy_make - had } else { 0.0 };
+            // Of the program's own types (the roster leaves out what stands only on a geothermal vent).
+            targets
+                .types
                 .iter()
                 .copied()
-                .filter(|u| self.is_energy(*u) && !self.hands.struck.contains(u) && self.affordable(*u))
+                .filter(|u| def.builds.contains(u) && self.is_energy(*u) && !self.hands.struck.contains(u) && self.affordable(*u))
                 .max_by(|a, b| (rate(*a) / units.list[*a].metal_cost.max(1.0)).total_cmp(&(rate(*b) / units.list[*b].metal_cost.max(1.0))))
                 .filter(|u| short >= 0.5 * rate(*u))
                 .map(|u| (u, units.list[u].build_time))
@@ -455,7 +479,7 @@ impl Territory {
     /// One unit of `u` ordered from this builder (T-SITES places it) and charged to its type's commitment; false
     /// when the hands pass it over (not affordable, no site, the cap, a struck type).
     fn order_one(&mut self, id: UnitId, unit: usize, role: Role, u: usize, cost: f64, commands: &mut Vec<Command>) -> bool {
-        if !self.affordable(u) {
+        if !self.affordable(u) || self.hands.type_refused.get(&u).is_some_and(|until| self.frame < *until) {
             return false;
         }
         let attempt = self.hands.attempts.get(&id).copied().unwrap_or(0);
@@ -580,6 +604,9 @@ impl Territory {
             && let Some(spot) = self.hello.metal_spots.iter().position(|s| s.dist2d(*near) < SPOT_TAKEN)
         {
             self.hands.refused.insert(spot, self.frame + SPOT_REFUSED);
+        }
+        if why == "no site" && let What::Build { unit, .. } = &order.what {
+            self.hands.type_refused.insert(*unit, self.frame + TYPE_REFUSED);
         }
         let counted = self.frame >= FIRST_ORDERS;
         // Only an order the engine dropped or rejected says the type cannot be built; a site the host could not find,

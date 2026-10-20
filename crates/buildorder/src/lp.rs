@@ -307,8 +307,12 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
             n0[i] += job.progress;
         }
     }
-    let base_metal_storage = (state.metal_storage - standing_metal_storage).max(0.0);
-    let base_energy_storage = (state.energy_storage - standing_energy_storage).max(0.0);
+    // What the stock may exceed the standing storage by: the engine's figure, or the stock itself when it stands
+    // above that (a cap on the first bucket must hold the start).
+    let n0_metal_storage: f64 = types.iter().enumerate().map(|(i, &u)| units.list[u].metal_storage * n0[i]).sum();
+    let n0_energy_storage: f64 = types.iter().enumerate().map(|(i, &u)| units.list[u].energy_storage * n0[i]).sum();
+    let base_metal_storage = (state.metal_storage - standing_metal_storage).max(state.metal - n0_metal_storage).max(0.0);
+    let base_energy_storage = (state.energy_storage - standing_energy_storage).max(state.energy - n0_energy_storage).max(0.0);
 
     // Variables: x[pair, t] for t < buckets; n[type, t] for t <= buckets; m[t], e[t] for t <= buckets; c[converter, t].
     let nx = pairs.len() * buckets;
@@ -364,12 +368,16 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
     row += 1;
     let equalities = row;
 
+    // A cap bounds what the plan adds, never what stands: with the hands past a cap (terr19-lp-nullai-comet-1: 51
+    // basic constructors against forty, the lab substituting its kind while the advanced plant was a frame) a cap on
+    // the first bucket has no feasible point, and every solve from 9:00 on failed in all four games.
     for (set, cap) in &caps {
+        let standing: f64 = set.iter().map(|&i| n0[i]).sum();
         for t in 0..t_n {
             for &i in set {
                 put(row, n_at(i, t), 1.0, &mut rows_i, &mut cols, &mut vals);
             }
-            b.push(*cap);
+            b.push(cap.max(standing));
             row += 1;
         }
     }
@@ -427,6 +435,7 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
     // 3c. Turrets per factory: sum_nano n[nano, t] - N sum_f n[f, t] <= 0.
     let nanos: Vec<usize> = (0..types.len()).filter(|&i| units.list[types[i]].role == Role::Nano).collect();
     if !nanos.is_empty() {
+        let over = nanos.iter().map(|&i| n0[i]).sum::<f64>() - options.nanos_per_factory * factories.iter().map(|&f| n0[index(f).unwrap()]).sum::<f64>();
         for t in 0..t_n {
             for &i in &nanos {
                 put(row, n_at(i, t), 1.0, &mut rows_i, &mut cols, &mut vals);
@@ -434,7 +443,7 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
             for &f in &factories {
                 put(row, n_at(index(f).unwrap(), t), -options.nanos_per_factory, &mut rows_i, &mut cols, &mut vals);
             }
-            b.push(0.0);
+            b.push(over.max(0.0));
             row += 1;
         }
     }
@@ -517,12 +526,13 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
     // 7. Spots and upgrades.
     let basics: Vec<usize> = (0..types.len()).filter(|&i| is_extractor(types[i]) && !is_upgrade(types[i])).collect();
     let upgrades: Vec<usize> = (0..types.len()).filter(|&i| is_upgrade(types[i])).collect();
+    let basics_standing: f64 = basics.iter().map(|&i| n0[i]).sum();
     for t in 0..t_n {
         if !basics.is_empty() {
             for &i in &basics {
                 put(row, n_at(i, t), 1.0, &mut rows_i, &mut cols, &mut vals);
             }
-            b.push(scenario.spots.len() as f64);
+            b.push((scenario.spots.len() as f64).max(basics_standing));
             row += 1;
         }
         if !upgrades.is_empty() {

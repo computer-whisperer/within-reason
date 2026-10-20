@@ -44,8 +44,9 @@ pub(crate) struct Territory {
     pub own: BTreeMap<UnitId, OwnUnit>,
     /// His units in sight this tick (the dead spots; what stands by a dropped order's site).
     pub enemies: Vec<EnemyUnit>,
-    /// The metal stock and income this tick (what a unit must be affordable against).
+    /// The metal stock and income this tick (what a unit must be affordable against); the energy stock and storage.
     pub stock: (f64, f64),
+    pub energy: (f64, f64),
     pub options: options::Options,
     pub hands: hands::Hands,
     /// The spots the hands may take (the scenario's), as indices into the game's list.
@@ -289,7 +290,7 @@ impl Territory {
         format!("{{name}} is WRTerritory {} | arms: {} | seat ai{} team {} {side}", ai_host::commit(), self.options.describe(), self.hello.ai_id, self.hello.team)
     }
 
-    fn count_role(&self, role: Role) -> usize {
+    pub(crate) fn count_role(&self, role: Role) -> usize {
         self.own.values().filter(|u| !u.being_built && self.role_of_def(u.def) == Some(role)).count()
     }
 
@@ -324,6 +325,7 @@ impl Bot for Territory {
             own: BTreeMap::new(),
             enemies: Vec::new(),
             stock: (0.0, 0.0),
+            energy: (0.0, 0.0),
             options: options::Options::from_env(),
             hands: hands::Hands::default(),
             spots: Vec::new(),
@@ -342,6 +344,7 @@ impl Bot for Territory {
         self.own = tick.snapshot.own_units.iter().map(|u| (u.id, u.clone())).collect();
         self.enemies = tick.snapshot.enemies.clone();
         self.stock = (tick.snapshot.metal.current as f64, tick.snapshot.metal.income as f64);
+        self.energy = (tick.snapshot.energy.current as f64, tick.snapshot.energy.storage as f64);
         if !self.started {
             self.start(&tick);
             if !self.started {
@@ -359,7 +362,15 @@ impl Bot for Territory {
                     // with no enemy on the map, and nothing said how.
                     if let Some(u) = self.own.get(unit) {
                         let name = self.def(u.def).map_or("?", |d| d.name.as_str());
-                        self.log(format_args!("died: {name} unit {} at ({:.0},{:.0}) death={death:?} attacker={attacker:?}", unit.0, u.pos.x, u.pos.z));
+                        // A basic extractor an upgrade of ours stands over is replaced, not lost (the engine reports
+                        // it destroyed with no attacker: terr19-lp-nullai-comet-1, 120 of 141 deaths).
+                        let replaced = self.unit_index(u.def).is_some_and(|i| self.game().units.list[i].extracts_metal > 0.0 && !self.is_upgrade(i))
+                            && self.own.values().any(|o| o.id != *unit && o.pos.dist2d(u.pos) < 50.0 && self.unit_index(o.def).is_some_and(|i| self.is_upgrade(i)));
+                        if replaced {
+                            self.log(format_args!("replaced: {name} unit {} at ({:.0},{:.0}) by an upgrade", unit.0, u.pos.x, u.pos.z));
+                        } else {
+                            self.log(format_args!("died: {name} unit {} at ({:.0},{:.0}) death={death:?} attacker={attacker:?}", unit.0, u.pos.x, u.pos.z));
+                        }
                     }
                     self.unit_lost(*unit);
                 }

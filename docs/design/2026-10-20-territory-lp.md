@@ -264,9 +264,19 @@ linear, in the same program, with the prices of cover falling out as duals. Writ
   the engine's first energy is solars whose flows are small beside it. The fractional artefact again, in energy. For
   terr18: nothing starts that the stock and 45 s of income do not cover, and energy goes by class (the program's
   planned energy income realized by the best affordable energy building), with the host's placed site taken as the
-  order's position and every pending site a keep-out disc. Next: the far spots' walks in the program (two extractor
-  classes by distance: 22-28 s within 1,500 of home, 134-191 beyond 6,000), his roaming commander's kills, the late
-  build power (the ceiling's 24 construction turrets against 9-14), then step 3.
+  order's position and every pending site a keep-out disc. terr18 collapsed on the energy class as first written
+  (candidates from the builder's whole build list: the geothermal plant with no vent on the map, 5,500 no-site drops
+  a game; and solars ahead of the flows on a stock of zero: metal at zero from 2:00 to 8:00 with energy at its cap):
+  income 6.6-8.9 at 5:00. For terr19 the class takes the program's own types and fires only while the energy stock
+  is under half its storage, and a type the host finds no site for is left alone a minute. terr19: the early game
+  back (20-27 at 5:00) and the late game kept (570-610 at 20:00 in three games, the fourth 308); the model error at
+  +60 s a median of about zero now. Found in it: the program had no feasible point from 9:05 on in every game (27-34
+  solves `PrimalInfeasible`), since the hands stood 51 basic constructors against the tier's cap of forty and a cap
+  on the first bucket cannot hold them: every cap now bounds what the plan adds (loosened to what stands). And the
+  energy class read by every idle builder put the commander on solars instead of extractors (constructors carry it
+  now, two orders at a time). For terr20. Next: the far spots' walks in the program (two extractor classes by
+  distance: 22-28 s within 1,500 of home, 134-191 beyond 6,000), his roaming commander's kills, the late build power
+  (the ceiling's 24 construction turrets against 9-14), then step 3.
 - Decision 6 amended while building: the converters' threshold is dropped from the program (a full relaxation,
   converters bounded by capacity alone). The engine's converters burn what sits above three quarters of storage;
   a plan that runs them at their capacity has the stock climb to that level once and burn the inflow from then on,
