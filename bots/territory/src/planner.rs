@@ -42,6 +42,11 @@ pub(crate) struct Request {
     pub frame: i32,
     /// The program's options when the planner is the program; none for the anneal.
     pub lp: Option<LpOptions>,
+    /// Metal the hands could start a unit against now (the stock and `AFFORD_SECONDS` of income): the program is
+    /// offered the types that cost no more, since a fraction of what cannot be started is energy and build power
+    /// the engine never has (terr21-lp-nullai-comet-1: the fusion's fraction carried the program's energy from its
+    /// second minute while the engine's first energy is solars; the advanced plant from 4:00 on an income of ten).
+    pub affordable: f64,
 }
 
 pub(crate) struct Planner {
@@ -67,7 +72,7 @@ fn run(game: &Game, palette: &Palette, request: Request, budget: Duration, threa
     let began = Instant::now();
     let answer = match &request.lp {
         Some(options) => {
-            let offer: Vec<usize> = palette.mobile.iter().chain(palette.factory.iter()).filter_map(|i| match i { Item::Build(u) => Some(*u), _ => None }).collect();
+            let offer: Vec<usize> = palette.mobile.iter().chain(palette.factory.iter()).filter_map(|i| match i { Item::Build(u) => Some(*u), _ => None }).filter(|u| game.units.list[*u].metal_cost <= request.affordable).collect();
             match lp::solve(&game.units, &request.scenario, &request.state, &offer, options) {
                 Ok(plan) => Answer::Lp(plan),
                 Err(e) => {

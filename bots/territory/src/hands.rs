@@ -58,7 +58,7 @@ const TYPE_REFUSED: i32 = MINUTE;
 /// metal at zero from 2:00 to 8:00 (terr18-lp-nullai-comet-1).
 const ENERGY_LOW: f64 = 0.5;
 /// ... and only while fewer than this many energy orders stand without a frame.
-const ENERGY_PENDING: usize = 2;
+const ENERGY_PENDING: usize = 3;
 /// T-DISPATCH: the program's targets are read this far ahead of the clock, so a builder starts what the plan wants
 /// next rather than what it wanted at the last whole bucket. Not shorter: the program's counts ramp from the
 /// snapshot, and every re-solve restarts the ramp, so a target read 20 s ahead never crossed its threshold for
@@ -72,8 +72,9 @@ const ON_SITE: f32 = 80.0;
 /// A unit starts only when the metal stock and this many seconds of income cover its metal cost: the program builds
 /// fractions of expensive things from the first minute (a tenth of a fusion in the ceiling's second minute, half by
 /// 5:00; terr17-lp-nullai-comet-1 committed the advanced plant whole at 3:55 on an income of ten, and the early game
-/// starved: income 7-23 at 5:00 against the ceiling's 51).
-const AFFORD_SECONDS: f64 = 45.0;
+/// starved: income 7-23 at 5:00 against the ceiling's 51). Ninety seconds, not forty-five: at forty-five the plant
+/// waited to 9:04-10:27 (terr20) where the ceiling takes its first third of one at 7:00.
+pub(crate) const AFFORD_SECONDS: f64 = 90.0;
 /// T-COMMIT: a factory type the program wants at all within this long, whose products include one that nothing
 /// standing, framed or ordered makes, is started whole: the program builds fractions of a factory for minutes (0.3
 /// of a lab in the first minute of the ceiling, 0.3 of an advanced plant from 7:00 for every moho it makes), and a
@@ -345,15 +346,21 @@ impl Territory {
             let units = &self.game().units;
             let def = &units.list[unit];
             let mine = |u: &usize| def.builds.contains(u) && !self.hands.struck.contains(u);
-            let mut classes: Vec<Role> = Vec::new();
+            // A product's class is its role and its tier (an advanced constructor builds an upgrade): a lab
+            // substitutes its kind for the program's basic wants only, never for the advanced plant's (terr20:
+            // substituting for the program's fractional advanced vehicle constructors, which nothing stood to
+            // make, the lab ran to 136 constructors once the caps no longer stopped it).
+            let advanced = |u: usize| units.list[u].builds.iter().any(|b| self.is_upgrade(*b));
+            let mut classes: Vec<(Role, bool)> = Vec::new();
             if role == Role::Factory {
                 for (u, _) in shortfalls.iter().filter(|(u, _)| mine(u)) {
-                    if !classes.contains(&units.list[*u].role) {
-                        classes.push(units.list[*u].role);
+                    let class = (units.list[*u].role, advanced(*u));
+                    if !classes.contains(&class) {
+                        classes.push(class);
                     }
                 }
             } else {
-                classes.push(Role::Factory);
+                classes.push((Role::Factory, false));
             }
             // The type started is the one of the class the program wants most. A builder that cannot build it leaves
             // the class to one that can; a factory that does not make it substitutes its own best of the class only
@@ -366,9 +373,10 @@ impl Territory {
             let made_by_a_standing_factory = |u: usize| covered.contains(&u);
             classes
                 .into_iter()
-                .filter_map(|class| {
-                    let of_class = |u: &usize| units.list[*u].role == class && !self.hands.struck.contains(u);
-                    let total: f64 = shortfalls.iter().filter(|(u, _)| units.list[*u].role == class).map(|(_, s)| *s).sum();
+                .filter_map(|(class, tier)| {
+                    let in_class = |u: usize| units.list[u].role == class && (class != Role::Builder || advanced(u) == tier);
+                    let of_class = |u: &usize| in_class(*u) && !self.hands.struck.contains(u);
+                    let total: f64 = shortfalls.iter().filter(|(u, _)| in_class(*u)).map(|(_, s)| *s).sum();
                     if total < START_AT {
                         return None;
                     }
@@ -396,10 +404,13 @@ impl Territory {
         // per metal is a fusion, which it builds as a fraction from its second minute and draws energy from at once;
         // the engine's first energy is solars, and the program's solar flows are small beside the fusion's, so the
         // early game stalled at zero energy from 1:00 to 5:00 (terr17-lp-nullai-comet-1).
-        // Carried by constructors (the commander only while none stands) and at most two orders at a time: the
-        // program's planned energy runs on a fraction of a fusion, so the shortfall is always large, and read by every
-        // idle builder it put the commander on eight solars and the first constructors on four advanced solars by
-        // 4:31 while the ceiling's commander builds extractors (terr19-lp-nullai-comet-1).
+        // At most three orders at a time: the program's planned energy runs on a fraction of a fusion, so the
+        // shortfall is always large (terr19-lp-nullai-comet-1: read by every idle builder it put the first
+        // constructors on four advanced solars by 4:31; terr20: two orders by constructors alone left the energy at
+        // zero from 1:00 to 8:00 and the income at seven at 5:00, since the engine's first energy is solars and the
+        // lab alone wants ninety a second). The backstop since terr22: the program is offered affordable types only
+        // and its energy flows are followed like any other (excluded, the fusions the late program wants by the
+        // dozen never came: eight by 20:00 in terr21, the bank at 49,000).
         let energy: Option<(usize, f64)> = {
             let units = &self.game().units;
             let def = &units.list[unit];
@@ -408,8 +419,7 @@ impl Territory {
             let pending = self.hands.orders.values().filter(|o| matches!(&o.what, What::Build { unit, frame: None, .. } if self.is_energy(*unit))).count();
             let had: f64 = self.own.values().filter_map(|o| self.unit_index(o.def)).filter(|u| self.is_energy(*u)).map(rate).sum::<f64>()
                 + self.hands.orders.values().filter_map(|o| match &o.what { What::Build { unit, frame: None, .. } if self.is_energy(*unit) => Some(rate(*unit)), _ => None }).sum::<f64>();
-            let carrier = role == Role::Builder || self.count_role(Role::Builder) == 0;
-            let short = if carrier && pending < ENERGY_PENDING && self.energy.0 < ENERGY_LOW * self.energy.1 { targets.energy_income_at(ahead) - units.list[self.game().commander].energy_make - had } else { 0.0 };
+            let short = if pending < ENERGY_PENDING && self.energy.0 < ENERGY_LOW * self.energy.1 { targets.energy_income_at(ahead) - units.list[self.game().commander].energy_make - had } else { 0.0 };
             // Of the program's own types (the roster leaves out what stands only on a geothermal vent).
             targets
                 .types
@@ -435,7 +445,7 @@ impl Territory {
             targets
                 .flows
                 .iter()
-                .filter(|f| planned_type && f.builder == unit && units.list[f.unit].role != Role::Factory && !self.is_energy(f.unit))
+                .filter(|f| planned_type && f.builder == unit && units.list[f.unit].role != Role::Factory)
                 .map(|f| (f.unit, f.kind, targets.planned_power(unit, f.unit, ahead) - self.hands.committed.get(&(unit, f.unit)).copied().unwrap_or(0.0), f.cost))
                 .filter(|(_, _, credit, _)| *credit > 0.0)
                 .collect()

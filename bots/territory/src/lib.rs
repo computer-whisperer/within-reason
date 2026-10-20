@@ -191,6 +191,7 @@ impl Territory {
             seed: 1 + self.plans as u64,
             frame: tick.frame,
             lp,
+            affordable: self.stock.0 + self.stock.1 * hands::AFFORD_SECONDS,
         }
     }
 

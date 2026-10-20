@@ -274,9 +274,19 @@ linear, in the same program, with the prices of cover falling out as duals. Writ
   solves `PrimalInfeasible`), since the hands stood 51 basic constructors against the tier's cap of forty and a cap
   on the first bucket cannot hold them: every cap now bounds what the plan adds (loosened to what stands). And the
   energy class read by every idle builder put the commander on solars instead of extractors (constructors carry it
-  now, two orders at a time). For terr20. Next: the far spots' walks in the program (two extractor classes by
-  distance: 22-28 s within 1,500 of home, 134-191 beyond 6,000), his roaming commander's kills, the late build power
-  (the ceiling's 24 construction turrets against 9-14), then step 3.
+  now, two orders at a time). terr20: no solve failed, 30-53 mohos a game; and two regressions: the lab
+  substituting its kind for the program's fractional advanced vehicle constructors ran to 136 constructors once the
+  caps no longer stopped it (a product's class is its role and tier now), and two pending solars by constructors
+  alone left the energy at zero to 8:00 (any builder, three pending, and the affordability window 90 s so the plant
+  comes nearer 7:00). terr21: the best and steadiest 20:00 yet, 636-667 in every seed (the flagship's 802), the
+  plant at 5:49-6:38, 44-59 mohos; late the hands spend a third of the income (eight fusions all game, since energy
+  was class-only and the class fires on a low stock) and early 11 extractors at 5:00 (the fusion's fraction still
+  the program's energy). For terr22 the program's palette is what the hands could start now (metal cost within the
+  stock and 90 s of income): its early energy is solars and advanced solars honestly, and the plant and fusions
+  enter the program when a whole one can be started; energy back in the flows, the class a backstop. The relaxation
+  answered by the offer rather than by integers. Next: the far spots' walks in the program (two extractor classes
+  by distance), his roaming commander's kills, the late build power (the ceiling's 24 turrets against 17-24), then
+  step 3.
 - Decision 6 amended while building: the converters' threshold is dropped from the program (a full relaxation,
   converters bounded by capacity alone). The engine's converters burn what sits above three quarters of storage;
   a plan that runs them at their capacity has the stock climb to that level once and burn the inflow from then on,
