@@ -814,14 +814,18 @@ impl Territory {
         self.own.values().filter(|u| !u.being_built && self.role_of_def(u.def) == Some(Role::Factory)).min_by(|a, b| a.pos.dist2d(from).total_cmp(&b.pos.dist2d(from)))
     }
 
-    /// The building frame with the most metal still to build (a factory's pad is not a frame).
+    /// The building frame with the most metal still to build per builder on it, one more counted (a factory's pad
+    /// is not a frame): the help spreads over the frames rather than piling on the dearest (terr22-lp-nullai-comet-1:
+    /// 48 constructors on one frame at 20:00 while five fusions stood with a builder each, and the program's power
+    /// on fusions, committed to those frames, never cleared for new ones).
     fn dearest_frame(&self) -> Option<UnitId> {
+        let helpers = |frame: UnitId| self.hands.orders.values().filter(|o| matches!(&o.what, What::Help { frame: f } | What::Build { frame: Some(f), .. } if *f == frame)).count() as f32;
         self.own
             .values()
             .filter(|u| u.being_built)
             .filter_map(|u| {
                 let d = self.def(u.def)?;
-                (d.speed == 0.0).then(|| (u.id, d.metal_cost * (1.0 - u.health / u.max_health.max(1.0))))
+                (d.speed == 0.0).then(|| (u.id, d.metal_cost * (1.0 - u.health / u.max_health.max(1.0)) / (1.0 + helpers(u.id))))
             })
             .max_by(|a, b| a.1.total_cmp(&b.1))
             .map(|(id, _)| id)

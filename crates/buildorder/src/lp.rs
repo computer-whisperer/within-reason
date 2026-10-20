@@ -222,7 +222,7 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
         _ => true,
     };
     let mut types: Vec<usize> = offer.iter().copied().filter(|u| *u != commander && kept(*u)).collect();
-    for u in state.standing.iter().map(|s| s.unit).chain(state.builders.iter().map(|b| b.unit)).chain(state.builders.iter().filter_map(|b| b.job.as_ref().map(|j| j.unit))) {
+    for u in state.standing.iter().map(|s| s.unit).chain(state.builders.iter().map(|b| b.unit)).chain(state.builders.iter().filter_map(|b| b.job.as_ref().map(|j| j.unit))).chain(state.committed.iter().map(|c| c.unit)) {
         if u != commander && !types.contains(&u) && matches!(units.list[u].role, Role::Eco | Role::Factory | Role::Builder | Role::Nano) {
             types.push(u);
         }
@@ -307,12 +307,23 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
             n0[i] += job.progress;
         }
     }
+    // The hands' commitments stand, the rest of their cost drawn from the stocks now; what the stock cannot pay the
+    // engine draws from the income as it comes, which the plan overstates by that much for a minute.
+    let (mut metal0, mut energy0) = (state.metal, state.energy);
+    for c in &state.committed {
+        if let Some(i) = index(c.unit) {
+            n0[i] += 1.0;
+            metal0 -= units.list[c.unit].metal_cost * c.left;
+            energy0 -= units.list[c.unit].energy_cost * c.left;
+        }
+    }
+    let (metal0, energy0) = (metal0.max(0.0), energy0.max(0.0));
     // What the stock may exceed the standing storage by: the engine's figure, or the stock itself when it stands
     // above that (a cap on the first bucket must hold the start).
     let n0_metal_storage: f64 = types.iter().enumerate().map(|(i, &u)| units.list[u].metal_storage * n0[i]).sum();
     let n0_energy_storage: f64 = types.iter().enumerate().map(|(i, &u)| units.list[u].energy_storage * n0[i]).sum();
-    let base_metal_storage = (state.metal_storage - standing_metal_storage).max(state.metal - n0_metal_storage).max(0.0);
-    let base_energy_storage = (state.energy_storage - standing_energy_storage).max(state.energy - n0_energy_storage).max(0.0);
+    let base_metal_storage = (state.metal_storage - standing_metal_storage).max(metal0 - n0_metal_storage).max(0.0);
+    let base_energy_storage = (state.energy_storage - standing_energy_storage).max(energy0 - n0_energy_storage).max(0.0);
 
     // Variables: x[pair, t] for t < buckets; n[type, t] for t <= buckets; m[t], e[t] for t <= buckets; c[converter, t].
     let nx = pairs.len() * buckets;
@@ -361,10 +372,10 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
         row += 1;
     }
     put(row, m_at(0), 1.0, &mut rows_i, &mut cols, &mut vals);
-    b.push(state.metal);
+    b.push(metal0);
     row += 1;
     put(row, e_at(0), 1.0, &mut rows_i, &mut cols, &mut vals);
-    b.push(state.energy);
+    b.push(energy0);
     row += 1;
     let equalities = row;
 

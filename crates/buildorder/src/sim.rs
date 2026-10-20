@@ -224,6 +224,16 @@ pub struct StateBuilder {
     pub job: Option<Job>,
 }
 
+/// A unit the hands are committed to whole and the share of its cost still to pay: the territory bot's factories,
+/// ordered or framed, which the linear program takes as standing with the rest of their cost drawn from the stocks
+/// now (the first lab at 0:09 is a lump the plan's 0.4 of one by 1:00 does not know; terr22-lp-nullai-comet-1: four
+/// solars beside it emptied the metal for three minutes). The simulator ignores it.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Committed {
+    pub unit: usize,
+    pub left: f64,
+}
+
 /// The game as it stands when a plan is priced: the empty start (`State::start`), or a snapshot of a game in
 /// progress (`docs/design/2026-09-21-rolling-planner.md`). Time is absolute: samples, finishes and the wind read
 /// `t0` onwards.
@@ -242,6 +252,8 @@ pub struct State {
     /// queues follow this order; the queues of factories and constructors not yet built come after, in the order
     /// they finish.
     pub builders: Vec<StateBuilder>,
+    /// What the hands are committed to whole (the linear program's reading; the simulator ignores it).
+    pub committed: Vec<Committed>,
 }
 
 impl State {
@@ -256,6 +268,7 @@ impl State {
             standing: Vec::new(),
             army_metal: 0.0,
             builders: vec![StateBuilder { unit: scenario.commander, place: scenario.home, job: None }],
+            committed: Vec::new(),
         }
     }
 

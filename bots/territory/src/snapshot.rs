@@ -3,7 +3,7 @@
 
 use bot_protocol::{OwnUnit, Tick, UnitId, Vec3};
 use buildorder::game::{distance, Spot};
-use buildorder::sim::{Job, Scenario, Standing, State, StateBuilder};
+use buildorder::sim::{Committed, Job, Scenario, Standing, State, StateBuilder};
 use buildorder::units::Role;
 
 use crate::hands::What;
@@ -67,8 +67,25 @@ impl Territory {
             })
             .collect();
         builders.sort_by_key(|(u, rank, _)| (*rank, u.id.0));
+        // A factory ordered or framed is a commitment the program takes whole (`Committed`), not a job.
+        let committed: Vec<Committed> = self
+            .hands
+            .orders
+            .values()
+            .filter_map(|o| match &o.what {
+                What::Build { unit, frame, .. } if game.units.list[*unit].role == Role::Factory => {
+                    let frame = frame.and_then(|f| self.own.get(&f));
+                    if frame.is_some_and(|f| !f.being_built) {
+                        return None;
+                    }
+                    Some(Committed { unit: *unit, left: frame.map_or(1.0, |f| 1.0 - (f.health / f.max_health.max(1.0)).clamp(0.0, 1.0) as f64) })
+                }
+                _ => None,
+            })
+            .collect();
         let job_of = |builder: &OwnUnit| -> Option<Job> {
             match &self.hands.orders.get(&builder.id)?.what {
+                What::Build { unit, .. } if game.units.list[*unit].role == Role::Factory => None,
                 What::Build { unit, near, frame, .. } => {
                     let frame = frame.and_then(|f| self.own.get(&f));
                     // A frame that stands finished is a standing unit already, not a job: counted as both, the
@@ -92,6 +109,7 @@ impl Territory {
             energy_storage: tick.snapshot.energy.storage as f64,
             standing,
             builders: builders.iter().map(|(u, _, unit)| StateBuilder { unit: *unit, place: at(u.pos), job: job_of(u) }).collect(),
+            committed,
         };
         (state, builders.iter().map(|(u, _, _)| u.id).collect())
     }

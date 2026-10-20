@@ -87,6 +87,7 @@ impl Brain {
             energy_storage: tick.snapshot.energy.storage as f64,
             standing,
             builders: builders.iter().map(|(u, _, unit)| StateBuilder { unit: *unit, place: at(u.pos), job: job_of(u) }).collect(),
+            committed: Vec::new(),
         };
         (state, builders.iter().map(|(u, rank, _)| (u.id, *rank)).collect())
     }

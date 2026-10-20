@@ -24,7 +24,7 @@ const USAGE: &str = "usage: (the game, that is map, start, faction and unit numb
   buildorder lp        --game RECORD.jsonl | --hello DUMP.json [--minutes 20] [--dt 10] [--mid-from 60] [--mid-dt 30] [--coarse-from 300] [--coarse-dt 60] [--terminal 0] [--assist 2] [--help-factor 3]
                        [--nanos-per-factory 6] [--max-constructors 40 (per tier)] [--max-factories 4] [--all-spots] [--builders-only]
                        [--walk-extractor 65] [--walk-base 3] [--walk-factory 40] [--commander-walk-extractor 16] [--commander-walk-base 5]
-                       [--commander-walk-factory 9] [--csv FILE]
+                       [--commander-walk-factory 9] [--affordable METAL] [--csv FILE]
                        (the planner as a linear program, docs/design/2026-10-20-territory-lp.md: the plan by minute with
                        the prices of metal, energy and build power; the csv in the simulator's format)
   buildorder simulate  --game RECORD.jsonl --plan FILE [--minutes ..] [--wind ..] [--detour X] [--help-frames] [--tax ..] [--csv FILE]
@@ -287,7 +287,10 @@ fn linear_program(args: &Args) {
     if args.has("--builders-only") {
         palette.factory.retain(|i| matches!(i, buildorder::plan::Item::Build(u) if units.list[*u].role == buildorder::units::Role::Builder));
     }
-    let offer: Vec<usize> = palette.mobile.iter().chain(palette.factory.iter()).filter_map(|i| match i { buildorder::plan::Item::Build(u) => Some(*u), _ => None }).collect();
+    // `--affordable M`: the types costing at most M metal, as the territory bot offers the program what its hands
+    // could start now (the stock and ninety seconds of income).
+    let affordable: f64 = args.number("--affordable", f64::INFINITY);
+    let offer: Vec<usize> = palette.mobile.iter().chain(palette.factory.iter()).filter_map(|i| match i { buildorder::plan::Item::Build(u) => Some(*u), _ => None }).filter(|u| units.list[*u].metal_cost <= affordable).collect();
     let minutes: f64 = args.number("--minutes", 20.0);
     let options = LpOptions {
         dt: args.number("--dt", 10.0),

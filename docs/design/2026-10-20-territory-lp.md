@@ -284,9 +284,14 @@ linear, in the same program, with the prices of cover falling out as duals. Writ
   the program's energy). For terr22 the program's palette is what the hands could start now (metal cost within the
   stock and 90 s of income): its early energy is solars and advanced solars honestly, and the plant and fusions
   enter the program when a whole one can be started; energy back in the flows, the class a backstop. The relaxation
-  answered by the offer rather than by integers. Next: the far spots' walks in the program (two extractor classes
-  by distance), his roaming commander's kills, the late build power (the ceiling's 24 turrets against 17-24), then
-  step 3.
+  answered by the offer rather than by integers. terr22: mixed (463-658 at 20:00; the Cortex games' openings worse),
+  and the opening's lump read from the lines: the program's honest first minute is three solars, two constructors
+  and 0.4 of a lab; the hands commit the lab whole and the commander builds the solars beside it, so the starting
+  metal is gone by 1:09 and every frame crawls for three minutes. For terr23 a factory ordered or framed is a
+  commitment the program takes as standing with the rest of its cost drawn from the stocks (`State::committed`), and
+  the help spreads over frames by metal left per builder (48 stood on one frame while five fusions had one each).
+  Next: the far spots' walks in the program (two extractor classes by distance), his roaming commander's kills,
+  the late build power (the ceiling's 24 turrets against 17-24), then step 3.
 - Decision 6 amended while building: the converters' threshold is dropped from the program (a full relaxation,
   converters bounded by capacity alone). The engine's converters burn what sits above three quarters of storage;
   a plan that runs them at their capacity has the stock climb to that level once and burn the inflow from then on,
