@@ -266,6 +266,23 @@ impl Distilled {
     }
 }
 
+impl Distilled {
+    /// The commander's recorded job as a word, for the jobs line.
+    fn commander_job(&self) -> String {
+        let commander = self.own.values().find(|u| Some(u.def) == self.kit.commander);
+        commander.map_or("dead".to_string(), |c| self.economy.job_word(c.id))
+    }
+
+    /// The constructors' recorded jobs, counted by word.
+    fn constructor_jobs(&self) -> String {
+        let mut counts: BTreeMap<String, usize> = BTreeMap::new();
+        for u in self.own.values().filter(|u| !u.being_built && Some(u.def) == self.kit.constructor) {
+            *counts.entry(self.economy.job_word(u.id)).or_default() += 1;
+        }
+        counts.iter().map(|(k, n)| format!("{k}:{n}")).collect::<Vec<_>>().join(" ")
+    }
+}
+
 /// The `Handicap` of a team's block in the start script, in percent of income; 0 when it has none.
 fn handicap_percent(script: &str, team: i32) -> f32 {
     let lower = script.to_ascii_lowercase();
@@ -346,6 +363,9 @@ impl Bot for Distilled {
         // Every tick: the lane's footwork over the soldiers' standing orders (D-LANE).
         self.run_lane(&tick, &mut commands);
         if tick.due() % MINUTE == 0 && tick.frame > 0 {
+            // The builders' jobs this minute (the assist pattern, the user 2026-10-20: "the assist patterns are also
+            // important to track"): what the commander is on, and the constructors by job.
+            eprintln!("[distilled ai={}] f={} jobs: commander {} | constructors {}", self.hello.ai_id, tick.frame, self.commander_job(), self.constructor_jobs());
             let project = self.project_frame().map_or("none".to_string(), |f| format!("{}:{:.0}%:{:.0}/{:.0}", self.def(f.def).map_or("?", |d| d.name.as_str()), 100.0 * f.health / f.max_health.max(1.0), self.power_on(f), self.power_wanted(f, &tick)));
             eprintln!(
                 "[distilled ai={}] f={} extractors={} solars={}+{} plants={} turrets={} constructors={} sentries={} aa={} air_seen={} can_spend={:.1} home_guard={} strike={} raiders={} launch={:.0}/{:.0} field_won={} his_buildings_known={} made={} advplant={} acv={} mohos={} fusions={} afus={} converters={} assist={} t2_made={} paused={} project={} low={} metal {:.0}/{:.0} +{:.1} -{:.1} energy {:.0}/{:.0} +{:.0} -{:.0}",

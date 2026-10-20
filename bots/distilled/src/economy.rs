@@ -50,9 +50,18 @@ const FLEE_FOR: i32 = 8 * SECOND;
 pub(crate) const SPOT_DANGER: f32 = 600.0;
 /// A frame counts as within a turret's reach this far beyond its build distance (the footprint's half).
 pub(crate) const TURRET_REACH_SLACK: f32 = 100.0;
-/// Builders on energy at one time: two, and one more for every four constructors.
-const ENERGY_BUILDERS: usize = 2;
-const ENERGY_BUILDERS_PER: usize = 4;
+/// Builders on energy at one time: three, and one more for every three constructors (2026-10-20: the flagship's
+/// twelve Comet wins hold a solar per extractor through 10:00, 18 for 20, where the bot held 13 for 26 and stalled on
+/// energy at 9:00 and 12:00).
+const ENERGY_BUILDERS: usize = 3;
+const ENERGY_BUILDERS_PER: usize = 3;
+/// D-ENERGY's ratio (2026-10-20): the energy income is kept at this much a second for every finished extractor, the
+/// flagship's 555 for 20 at 10:00 and 1,020 for 29 at 15:00 (28 and 35); the bot ran 18 and 25.
+const ENERGY_PER_EXTRACTOR: f32 = 28.0;
+const CONSTRUCTOR_ENERGY_PER_EXTRACTOR: f32 = 18.0;
+/// The commander builds for the ratio only while the energy store is under this share; above it, it assists the
+/// plant between solars, as the flagship's does ("assist 60 low" at 2:51 of barb-hard-1 between its solar bursts).
+const COMMANDER_SOLAR_STORE: f32 = 0.7;
 /// Plants at the most, and construction turrets a plant: one before another plant is built, three once the plants
 /// are all there. A plant's yard has to clear between units, so build power piled on one plant stops paying
 /// (distilled-v1-hard game 1: one plant with six turrets, the metal store full for four minutes).
@@ -65,20 +74,28 @@ const TURRETS_A_PLANT_AT_MOST: usize = 3;
 const TURRETS_TO_THREE_FROM_PLANTS: usize = 3;
 /// A piling metal store asks for build power only with the energy store over this share: the solars first.
 const PILING_ENERGY_STORE: f32 = 0.5;
-/// The plants should be able to spend this share of the metal income on soldiers (D-BUILD-POWER); the rest is buildings.
-const SOLDIERS_SHARE: f32 = 0.85;
+/// The plants should be able to spend this share of the metal income on soldiers (D-BUILD-POWER); the rest is
+/// buildings (2026-10-20: at 0.85 the bot banked 1,800 at 10:00 and 2,800 at 12:00 on an income it could not spend,
+/// can_spend 35 and 56 against 59 and 77; the flagship's bank peaks near 1,000 and is spent by 15:00).
+const SOLDIERS_SHARE: f32 = 1.0;
 /// Energy income is kept this much over what the soldiers being made draw (D-ENERGY), but nothing is built for the
 /// anticipated draw while the store is nearly full (distilled-t2b-30-hard: 40 to 56 solars and the store at a
 /// 16,000 cap for an income of 150, the anticipated draw being the tier-2 tank's 13.7 energy a metal at full speed).
 const ENERGY_MARGIN: f32 = 1.25;
 const ENERGY_FULL: f32 = 0.9;
-/// A constructor builds the advanced solar instead of the solar from this metal income.
-const ADVANCED_FROM: f32 = 15.0;
+/// A constructor builds the advanced solar instead of the solar from this metal income, with the energy store over
+/// half (the flagship's first advanced solar comes at 7:35-18:39, median 12:00, income about 40; its 4,000 energy
+/// to build is the store's whole early on).
+const ADVANCED_FROM: f32 = 40.0;
+const ADVANCED_ENERGY_STORE: f32 = 0.5;
 const BUILD_POWER_FROM: i32 = 5 * MINUTE / 2;
 /// One more builder on build power for every this much banked, up to this many, and every free one when the store
 /// is nearly full (distilled-t2-smoke-4: the store at its cap from 26:00 with income overflowing); a second advanced
 /// plant (600 power) from this income when the metal piles up.
-const BUILD_POWER_BANK_STEP: f32 = 1000.0;
+const BUILD_POWER_BANK_STEP: f32 = 500.0;
+/// The commander raises build power before its home spots while this much metal is banked (its 300 build power
+/// stands a nano in a third of a constructor's time).
+const COMMANDER_BUILD_POWER_BANK: f32 = 600.0;
 const BUILD_POWER_BUILDERS: usize = 6;
 const STORE_NEARLY_FULL: f32 = 0.9;
 const SECOND_ADVANCED_PLANT_FROM: f32 = 100.0;
@@ -215,6 +232,26 @@ impl Economy {
     /// Frames since a builder's recorded order, if it has one.
     pub(crate) fn order_age(&self, unit: UnitId, frame: i32) -> Option<i32> {
         self.orders.get(&unit).map(|o| frame - o.since)
+    }
+
+    /// A builder's recorded job as a word (the jobs line).
+    pub(crate) fn job_word(&self, unit: UnitId) -> String {
+        if self.fleeing.contains_key(&unit) {
+            return "flee".into();
+        }
+        match self.orders.get(&unit).map(|o| o.job) {
+            None => "none".into(),
+            Some(Job::Extractor(_)) => "extractor".into(),
+            Some(Job::Solar) | Some(Job::AdvancedSolar) => "energy".into(),
+            Some(Job::Plant) | Some(Job::AdvancedPlant) => "plant".into(),
+            Some(Job::Turret(_)) => "nano".into(),
+            Some(Job::Assist) => "assist".into(),
+            Some(Job::Help(_)) => "help".into(),
+            Some(Job::Fusion) | Some(Job::AdvancedFusion) => "fusion".into(),
+            Some(Job::Moho(_)) => "moho".into(),
+            Some(Job::Converter) | Some(Job::AdvancedConverter) => "converter".into(),
+            Some(Job::AntiAir) => "anti-air".into(),
+        }
     }
 }
 
@@ -398,7 +435,12 @@ impl Distilled {
             if self.count(self.kit.plant) == 0 {
                 return Some(Job::Plant);
             }
-            if energy {
+            // D-COMMANDER (2026-10-20): the commander is the energy engine, as the flagship's is: a solar whenever the
+            // energy income is under the ratio (D-ENERGY's `ENERGY_PER_EXTRACTOR`, the extractors under construction
+            // counted) or energy is short by the other tests; its 300 build power stands a solar in nine seconds and
+            // the flagship's commander built two to three a minute from 1:30 to 10:00 (barb-hard-1, spending-player-1,
+            // apex-v029-comet-sym0-opus-1), where ours averaged one with three-minute gaps of assisting.
+            if energy || (self.energy_below_ratio(tick) && tick.snapshot.energy.current < COMMANDER_SOLAR_STORE * tick.snapshot.energy.storage) {
                 return Some(Job::Solar);
             }
             if self.anti_air_wanted(def) {
@@ -408,7 +450,12 @@ impl Distilled {
             if let Some(help) = self.project_help(tick) {
                 return Some(help);
             }
-            // The home spots first: an extractor compounds, a plant can wait the thirty seconds.
+            // With metal banked, the build power first; else the home spots: an extractor compounds, a plant can wait.
+            if tick.snapshot.metal.current >= COMMANDER_BUILD_POWER_BANK
+                && let Some(job) = self.build_power_wanted(def, tick)
+            {
+                return Some(job);
+            }
             if let Some(spot) = self.free_spot(unit, tick, COMMANDER_WALK) {
                 return Some(Job::Extractor(spot));
             }
@@ -421,7 +468,8 @@ impl Distilled {
         }
         if energy {
             let advanced = self.kit.advanced_solar.filter(|d| def.build_options.contains(d));
-            return Some(if tick.snapshot.metal.income >= ADVANCED_FROM && advanced.is_some() { Job::AdvancedSolar } else { Job::Solar });
+            let (metal, energy) = (tick.snapshot.metal, tick.snapshot.energy);
+            return Some(if metal.income >= ADVANCED_FROM && energy.current >= ADVANCED_ENERGY_STORE * energy.storage && advanced.is_some() { Job::AdvancedSolar } else { Job::Solar });
         }
         if self.anti_air_wanted(def) {
             return Some(Job::AntiAir);
@@ -510,9 +558,19 @@ impl Distilled {
             .sum()
     }
 
+    /// D-ENERGY's ratio: the energy income is under `ENERGY_PER_EXTRACTOR` for every extractor standing or begun,
+    /// with the store not full. The commander answers this one (D-COMMANDER); the constructors answer it only at
+    /// `CONSTRUCTOR_ENERGY_PER_EXTRACTOR`, far behind, so the expansion keeps them (2026-10-20: with every builder
+    /// on the ratio the extractors fell from 22 to 18 at 10:00 and the income with them).
+    pub(crate) fn energy_below_ratio(&self, tick: &Tick) -> bool {
+        let energy = tick.snapshot.energy;
+        let extractors = self.count(self.kit.extractor) as f32;
+        energy.income < ENERGY_PER_EXTRACTOR * extractors && energy.current < ENERGY_FULL * energy.storage
+    }
+
     /// D-ENERGY: the store is low, or it is falling and not full, or the income is under what the soldiers the metal
     /// income pays for and the project's frame would draw together (the tier-2 soldier's energy per metal once an
-    /// advanced plant stands).
+    /// advanced plant stands), or far under the ratio.
     pub(crate) fn energy_short(&self, tick: &Tick) -> bool {
         let (metal, energy) = (tick.snapshot.metal, tick.snapshot.energy);
         let soldier = if self.count(self.kit.advanced_plant) > 0 { self.t2_soldier().or_else(|| self.soldier()) } else { self.soldier() };
@@ -521,9 +579,11 @@ impl Distilled {
         // income's; apex-v022-distilled-comet-sym50-2).
         let spend = if metal.current > 0.25 * metal.storage { self.can_spend() } else { self.can_spend().min(metal.income) };
         let soldiers_draw = soldier.map_or(0.0, |s| spend * s.energy_cost / s.metal_cost.max(1.0));
+        let extractors = self.finished(self.kit.extractor).count() as f32;
         energy.current < 0.3 * energy.storage
             || (energy.income < energy.usage && energy.current < 0.6 * energy.storage)
             || (energy.income < ENERGY_MARGIN * (soldiers_draw + self.project_draw(metal.income)) && energy.current < ENERGY_FULL * energy.storage)
+            || (energy.income < CONSTRUCTOR_ENERGY_PER_EXTRACTOR * extractors && energy.current < ENERGY_FULL * energy.storage)
     }
 
     /// D-BUILD-POWER: while the plants cannot spend the soldiers' share of the income, or metal piles up in the
@@ -660,12 +720,17 @@ impl Distilled {
             }
             Job::Solar | Job::AdvancedSolar => {
                 let def = if job == Job::Solar { self.kit.solar } else { self.kit.advanced_solar };
-                // The back field, well behind the yard: generators crowding the yard left no site for a plant or a
-                // turret (distilled-t2b-30-hard). After a refused or dropped order, a different quarter of the field:
-                // the host's search is the same for the same point, and the engine dropped the same advanced-solar
-                // site 38 times for one builder (D-ORDERS).
+                // The commander builds its solar field where it stands, as the flagship's does (three solars in 32 s
+                // at 2:00 in barb-hard-1): sent to the back field 450 behind home it walked 12-20 s each way between
+                // the plant it assists and the site and stood one solar a minute (dist13-com-apex-v032-comet-cold-1
+                // game 00). A constructor's goes to the back field, well behind the yard: generators crowding the
+                // yard left no site for a plant or a turret (distilled-t2b-30-hard). After a refused or dropped
+                // order, a different quarter of the field: the host's search is the same for the same point, and
+                // the engine dropped the same advanced-solar site 38 times for one builder (D-ORDERS).
                 let attempt = self.economy.attempts.get(&unit.id).copied().unwrap_or(0);
-                commands.extend(build(def, BuildSite { near: self.back_field(attempt), search_radius: 1500.0, min_dist: 3, placements: placements() }, false));
+                let commander = Some(unit.def) == self.kit.commander && unit.pos.dist2d(self.home) < COMMANDER_WALK;
+                let (near, radius) = if commander && attempt == 0 { (unit.pos, 600.0) } else { (self.back_field(attempt), 1500.0) };
+                commands.extend(build(def, BuildSite { near, search_radius: radius, min_dist: 3, placements: placements() }, false));
             }
             Job::Turret(target) => {
                 let Some(target) = self.own.get(&target) else { return };

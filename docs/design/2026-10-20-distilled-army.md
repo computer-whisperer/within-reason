@@ -83,3 +83,53 @@ the games that end by 20:00; the long losses (his tier-2 Tigers standing at 15-2
 of the first three rows was as Armada against BARb's Cortex, whose Incisor raids come at 2:26-3:04 (its Armada's at
 4:00 or never). Against Apex v0.3.2 the army no longer loses the game; the economy does (his 2-3x expansion, our
 builders and outposts to his Grunt packs), which is where the Opus player's raids made the difference.
+
+## The economy after the flagship's curves (the user, 2026-10-20 evening: "Focus on expansion and build power management first. Apex and barb are both terrible at that, so focus on replicating how the main within reason expands." and "The assist patterns are also important to track")
+
+**The flagship's shape** (twelve Comet wins at +0 and +10/+20 enemy bonus, Opus 5.5 medium: barb-ladder-0-1,
+barb-hard-1, barb-hard-10-1, barb-hard-20-1, barb-ladder-10-2, barb-ladder-10-3, barb-ladder-35-1,
+sight-regress-1, apex-v029-comet-sym0-opus-1, spending-player-1, predict-player-1, chase-player-2; medians,
+`scratchpad/eco_curves.py` over the records):
+
+| minute | extractors | constructors | solars (+advanced) | sentries | plants + nanos | army alive | made (soldiers+scouts / constructors) | metal store / income | energy income |
+|---|---|---|---|---|---|---|---|---|---|
+| 5 | 9 | 4 | 7 | 3 | 1 + 0 | 10 | 13 / 4-5 | 180 / 22 | 210 |
+| 8 | 16 | 7 | 11 | 10 | 2 + 1 | 21 | 28 / 8 | 1,140 / 40 | 335 |
+| 10 | 20 | 10 | 18 | 15 | 2 + 2 | 28 | 42 / 11 | 1,061 / 49 | 555 |
+| 12 | 24 | 12 | 21 (+1) | 22 | 2-3 + 2 | 44 | 69 / 13 | 1,017 / 58 | 645 |
+| 15 | 29 | 12 | 24 (+6) | 29 | 3 + 4 | 56 | 105 / 14 | 268 / 69 | 1,020 |
+
+Milestones: the plant at 1:02; the second plant 5:22-9:01 (median 7:10), the third 8:09-17:00 (10:30); the first
+nano 6:30-8:51 (6:56), the second 7:58-14:19; the third constructor 2:35-3:58, the sixth 5:40-7:11, the tenth
+7:43-13:31; the first advanced solar 7:35-18:39 (12:00). Builder by builder (the record's creation events):
+**the commander builds the solars** (2:00, 2:19, 2:32, 4:12, 4:29, 5:36, 5:46, 5:55, 7:55, 8:11, 8:21, 8:38, 8:55 in
+barb-hard-1: two to three a minute in bursts, the field beside it) and the second plant (5:51-7:03), and
+assists the plant between bursts; **each constructor alternates extractors with a sentry** (mex, mex, llt, mex,
+llt, ...) outward, the first nano by a constructor at 5:39-7:08, solars and advanced solars by constructors only
+from 8:00. Extractors by distance from home: 500-1,500 by 4:00, 1,500-2,200 by 5:30, 2,500-3,300 by 7:00-9:00.
+
+**The assist pattern, realized** (the two demos replayed, `scratchpad/assist_share.py` over the dump's build
+targets, to 15:00; "helping a frame" is the plant's current unit or another builder's frame): the commander's
+seconds in barb-hard-1 went 39 % to assisting, 25 % to its own frames, 36 % idle or walking; in the Apex game 30 /
+28 / 42. By minute it alternates: assisting at 1:00 (47-80 %), its own solars at 2:00 and 7:00-8:00 (50-68 %),
+assisting 45-78 % through 6:00-7:00 and 9:00-14:00. The constructors: 41-46 % on their own frames, 48-56 % idle
+or walking (expansion is walking), 2-5 % helping. The player's list steps say the same in words: `assist 60 low`
+at 2:51, `help plant` at 2:47, 6:03, 8:33, 14:01, 15:39 (the Apex game).
+
+**The bot against it** (dist11-raid, the rebuilt army before the economy rows): extractors 8 / 18 / 26 / 35 / 40 at
+5 / 8 / 10 / 12 / 15 (more than the flagship from 8:00), constructors 4 / 8 / 10 / 12 / 14 (the same), solars 7 /
+12 / 13 / 16 / 22 (half the flagship's per extractor from 8:00; advanced solars from 5:00), sentries about the
+same, plants + nanos 1+1 / 2+1 / 2+1 / 3+2 / 3+5, the army 2 / 12 / 12 / 16 / 33 (half), made 15 / 34 / 48 / 66 /
+112 (within 10 % of the flagship), the bank 142 / 460 / 1,824 / 2,824 / 2,839 (two to three times), energy stalls
+at 4:00, 9:00 and 12:00. The commander's solars came one a minute (walking 12-20 s each way from the plant to a
+back-field site) with three-minute gaps of assisting.
+
+**Changed for it** (dist12 to dist14): D-ENERGY's ratio (28 energy a second per extractor, the commander's to
+answer; the constructors from 18), the advanced solar from income 40 with the store over half, three builders on
+energy plus one per three constructors, D-BUILD-POWER's share 1.0 and a job per 500 banked, the commander on
+build power with 600 banked before its home spots, the commander's solar field where it stands (dist14), its
+assist when the store is over 70 %, and a `jobs:` line a minute in the engine log (the commander's job and the
+constructors' by kind) so the assist pattern is tracked from now on. Measured: dist12 the bank halved at 15:00
+(1,442 against 2,839) and solars 28 against 22 for the same results (4-3-1, 2-6); dist13 (the commander engine
+with the back-field site) the commander's time 58 % energy / 29 % assist, one solar a minute, the army at 8:00
+the lowest of any row (6), 2-5-1 and 2-6.
