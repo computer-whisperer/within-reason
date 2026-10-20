@@ -44,11 +44,18 @@ pub struct LpOptions {
     /// Construction turrets at most, per factory standing: a turret's reach holds a few frames round a factory and
     /// no more (the first solves bought 285-441 turrets).
     pub nanos_per_factory: f64,
-    /// Seconds a mobile builder loses per unit it builds, by kind: an extractor or its upgrade (the spot), a
-    /// building at the base, a factory. Calibrated from the territory bot's `begun:` lines.
+    /// Seconds a constructor loses per unit it builds, by kind: an extractor or its upgrade (the spot), any other
+    /// building, a factory; and the commander's own three. From the territory bot's `begun:` lines (the order's
+    /// age at its frame): terr9-lp-nullai-comet-1 measured a constructor's extractor at a median 41 s and its base
+    /// building at 23 s, the commander's at 18 and 26, where the first solves had assumed 10 and 3.5; terr10, with
+    /// economy buildings beside the builder, a constructor's 46-56 and 9-16, the commander's 16-20 and 33-64 (its
+    /// base buildings wait on a crowded base's site search, the hands' next calibration).
     pub walk_extractor: f64,
     pub walk_base: f64,
     pub walk_factory: f64,
+    pub commander_walk_extractor: f64,
+    pub commander_walk_base: f64,
+    pub commander_walk_factory: f64,
 }
 
 impl LpOptions {
@@ -68,7 +75,7 @@ impl LpOptions {
 
 impl Default for LpOptions {
     fn default() -> Self {
-        LpOptions { dt: 10.0, mid_from: 60.0, mid_dt: 30.0, coarse_from: 300.0, coarse_dt: 60.0, horizon: 1200.0, max_constructors: 40.0, max_factories: 4.0, terminal: 0.0, assist_factor: 2.0, help_factor: 3.0, nanos_per_factory: 6.0, walk_extractor: 10.0, walk_base: 3.5, walk_factory: 10.0 }
+        LpOptions { dt: 10.0, mid_from: 60.0, mid_dt: 30.0, coarse_from: 300.0, coarse_dt: 60.0, horizon: 1200.0, max_constructors: 40.0, max_factories: 4.0, terminal: 0.0, assist_factor: 2.0, help_factor: 3.0, nanos_per_factory: 6.0, walk_extractor: 50.0, walk_base: 12.0, walk_factory: 12.0, commander_walk_extractor: 18.0, commander_walk_base: 45.0, commander_walk_factory: 7.0 }
     }
 }
 
@@ -97,6 +104,8 @@ pub struct LpPlan {
     pub metal_price: Vec<f64>,
     pub energy_price: Vec<f64>,
     pub power_price: Vec<(usize, Vec<f64>)>,
+    /// Every (builder type, unit type) the program gave power to.
+    pub flows: Vec<Flow>,
     pub solve_time: f64,
     pub status: String,
     pub variables: usize,
@@ -127,19 +136,41 @@ impl LpPlan {
         if k >= self.buckets { row[self.buckets] } else { row[k] + (row[k + 1] - row[k]) * share }
     }
 
+    /// Build-power-seconds the program has `builder` spend on `unit` from its start to absolute second `t`.
+    pub fn planned_power(&self, builder: usize, unit: usize, t: f64) -> f64 {
+        let (k, share) = self.slot(t);
+        self.flows
+            .iter()
+            .filter(|f| f.builder == builder && f.unit == unit)
+            .map(|f| f.per_bucket.iter().take(k).sum::<f64>() + if k < self.buckets { f.per_bucket[k] * share } else { 0.0 })
+            .sum()
+    }
+
     pub fn income_at(&self, t: f64) -> f64 {
         let (k, share) = self.slot(t);
         if k >= self.buckets { self.metal_income[self.buckets] } else { self.metal_income[k] + (self.metal_income[k + 1] - self.metal_income[k]) * share }
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
-enum Kind {
+/// How a builder type's power reaches a unit type.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum Kind {
     Direct,
     /// A mobile builder guarding a factory: its power on the factory's products.
     Assist,
     /// A construction turret on a frame.
     Help,
+}
+
+/// One builder type's power on one unit type over the horizon: build-power-seconds per bucket, and what a unit
+/// costs that builder (the walk included), so the hands can follow the program's allocation (T-DISPATCH).
+#[derive(Clone, Debug)]
+pub struct Flow {
+    pub builder: usize,
+    pub unit: usize,
+    pub kind: Kind,
+    pub cost: f64,
+    pub per_bucket: Vec<f64>,
 }
 
 /// One (builder type, unit type) the program lets spend build power.
@@ -195,10 +226,13 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
         if !mobile(b) || units.list[u].speed > 0.0 {
             return 0.0;
         }
+        let com = b == commander;
         if is_extractor(u) {
-            options.walk_extractor
+            if com { options.commander_walk_extractor } else { options.walk_extractor }
         } else if units.list[u].role == Role::Factory {
-            options.walk_factory
+            if com { options.commander_walk_factory } else { options.walk_factory }
+        } else if com {
+            options.commander_walk_base
         } else {
             options.walk_base
         }
@@ -547,6 +581,12 @@ pub fn solve(units: &Units, scenario: &Scenario, state: &State, offer: &[usize],
         metal_price: metal_rows.iter().map(|r| solution.z[*r]).collect(),
         energy_price: energy_rows.iter().map(|r| solution.z[*r]).collect(),
         power_price: power_rows.iter().map(|(bt, rows)| (*bt, rows.iter().map(|r| solution.z[*r]).collect())).collect(),
+        flows: pairs
+            .iter()
+            .enumerate()
+            .map(|(p, pair)| Flow { builder: pair.builder, unit: pair.unit, kind: pair.kind, cost: pair.cost, per_bucket: (0..buckets).map(|t| x[x_at(p, t)].max(0.0)).collect() })
+            .filter(|f| f.per_bucket.iter().sum::<f64>() > 1e-6)
+            .collect(),
         solve_time: began.elapsed().as_secs_f64(),
         status,
         variables: nvars,

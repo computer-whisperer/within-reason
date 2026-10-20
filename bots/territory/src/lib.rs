@@ -19,6 +19,7 @@ use std::time::Duration;
 use bot_protocol::{Bot, Command, Commands, Event, Hello, OwnUnit, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
 use buildorder::anneal::Palette;
 use buildorder::game::{Game, Ground};
+use buildorder::lp::LpOptions;
 use buildorder::plan::{Item, Plan};
 use buildorder::units::Role;
 
@@ -102,7 +103,7 @@ impl Territory {
         let game = Arc::new(game);
         self.game = Some(game.clone());
         self.planner = Some(planner::Planner::new(game, palette));
-        let scenario = self.scenario();
+        let scenario = self.scenario(tick);
         self.spots = self.spot_indices(&scenario);
         // The ground's distance fields are made on first use, one per place walked to; made during the first
         // search they inflated its iteration-cost probe and it stopped at a third of its budget (terr-smoke-1: a
@@ -145,12 +146,36 @@ impl Territory {
         }
     }
 
-    fn request(&self, tick: &Tick) -> planner::Request {
+    fn request(&mut self, tick: &Tick) -> planner::Request {
+        // The spots in play follow his seen units (the dead spots, decision 4 and stage 2's first form).
+        let scenario = self.scenario(tick);
+        self.spots = self.spot_indices(&scenario);
         let (state, builders) = self.snapshot(tick);
         let horizon = (self.options.end - state.t0).max(HORIZON_LEAST);
         let start = self.warm_start(&builders);
+        let o = &self.options;
+        let lp = o.lp.then(|| LpOptions {
+            dt: o.dt,
+            mid_from: o.mid_from,
+            mid_dt: o.mid_dt,
+            coarse_from: o.coarse_from,
+            coarse_dt: o.coarse_dt,
+            horizon,
+            max_constructors: o.constructors as f64,
+            max_factories: o.factories as f64,
+            terminal: o.terminal,
+            assist_factor: o.assist_factor,
+            help_factor: o.help_factor,
+            nanos_per_factory: o.nanos_per_factory,
+            walk_extractor: o.walk_extractor,
+            walk_base: o.walk_base,
+            walk_factory: o.walk_factory,
+            commander_walk_extractor: o.commander_walk_extractor,
+            commander_walk_base: o.commander_walk_base,
+            commander_walk_factory: o.commander_walk_factory,
+        });
         planner::Request {
-            scenario: self.scenario(),
+            scenario,
             state,
             builders,
             start,
@@ -160,6 +185,7 @@ impl Territory {
             constructors: self.options.constructors,
             seed: 1 + self.plans as u64,
             frame: tick.frame,
+            lp,
         }
     }
 
@@ -183,7 +209,47 @@ impl Territory {
     fn adopt_planned(&mut self, planned: planner::Planned) {
         self.plans += 1;
         self.last_replan = self.frame;
-        let found = &planned.found;
+        let found = match &planned.answer {
+            planner::Answer::Lp(plan) => {
+                let at = |dt: f64| plan.income_at(planned.t0 + dt);
+                let end = plan.t0 + plan.starts[plan.buckets];
+                let units = &self.game().units;
+                let count = |test: &dyn Fn(&buildorder::units::Unit) -> bool| -> f64 { plan.types.iter().enumerate().filter(|(_, u)| test(&units.list[**u])).map(|(i, _)| plan.counts[i][plan.buckets]).sum() };
+                let basic = units.basic_extraction();
+                self.log(format_args!(
+                    "plan: n={} t0={:.0} wall={}ms score={:.0} horizon={:.0} predicted +60: income {:.1} mex {:.0} | +120: income {:.1} mex {:.0} | +300: income {:.1} mex {:.0} | end: income {:.1} mex {:.0} cons {:.0} fac {:.0} nanos {:.0} made {:.0}; stale {:.1} s; lp {} buckets {} vars {} rows {}",
+                    self.plans, planned.t0, planned.wall.as_millis(), plan.objective, planned.horizon,
+                    at(60.0), self.plan_count(plan, planned.t0 + 60.0, &|u| u.extracts_metal > 0.0 && u.extracts_metal <= basic * 1.5),
+                    at(120.0), self.plan_count(plan, planned.t0 + 120.0, &|u| u.extracts_metal > 0.0 && u.extracts_metal <= basic * 1.5),
+                    at(300.0), self.plan_count(plan, planned.t0 + 300.0, &|u| u.extracts_metal > 0.0 && u.extracts_metal <= basic * 1.5),
+                    plan.income_at(end), count(&|u| u.extracts_metal > 0.0 && u.extracts_metal <= basic * 1.5), count(&|u| u.role == Role::Builder), count(&|u| u.role == Role::Factory), count(&|u| u.role == Role::Nano), plan.made,
+                    (self.frame - planned.frame) as f32 / SECOND as f32, plan.status, plan.buckets, plan.variables, plan.rows
+                ));
+                // The targets by minute, one line: what the program wants standing at each whole minute from now.
+                let mut by_minute = Vec::new();
+                let mut m = 0.0;
+                while m <= planned.horizon {
+                    let t = planned.t0 + m;
+                    by_minute.push(format!(
+                        "{:.0}:mex{:.0}+{:.0} cons{:.0} fac{:.0} nano{:.0} conv{:.0} eco{:.0} inc{:.0}",
+                        m / 60.0,
+                        self.plan_count(plan, t, &|u| u.extracts_metal > 0.0 && u.extracts_metal <= basic * 1.5),
+                        self.plan_count(plan, t, &|u| u.extracts_metal > basic * 1.5),
+                        self.plan_count(plan, t, &|u| u.role == Role::Builder),
+                        self.plan_count(plan, t, &|u| u.role == Role::Factory),
+                        self.plan_count(plan, t, &|u| u.role == Role::Nano),
+                        self.plan_count(plan, t, &|u| u.conv_capacity > 0.0),
+                        self.plan_count(plan, t, &|u| u.role == Role::Eco && u.extracts_metal == 0.0 && u.conv_capacity == 0.0 && (u.energy_make > 0.0 || u.wind_cap > 0.0)),
+                        plan.income_at(t)
+                    ));
+                    m += 60.0;
+                }
+                self.log(format_args!("targets: {}", by_minute.join(" | ")));
+                self.hands.targets = Some(plan.clone());
+                return;
+            }
+            planner::Answer::Anneal(found) => found,
+        };
         let outcome = &found.outcome;
         let at = |dt: f64| {
             let t = planned.t0 + dt;
@@ -203,6 +269,12 @@ impl Territory {
             self.log(format_args!("queue: {line}"));
         }
         self.adopt(found.plan.clone(), &planned.builders, planned.frame);
+    }
+
+    /// The program's count of the types passing `test` at absolute second `t`.
+    fn plan_count(&self, plan: &buildorder::lp::LpPlan, t: f64, test: &dyn Fn(&buildorder::units::Unit) -> bool) -> f64 {
+        let units = &self.game().units;
+        plan.types.iter().filter(|u| test(&units.list[**u])).map(|u| plan.count_at(*u, t)).sum()
     }
 
     fn banner(&self) -> String {

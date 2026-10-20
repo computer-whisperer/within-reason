@@ -209,6 +209,21 @@ linear, in the same program, with the prices of cover falling out as duals. Writ
   from that start with the caps: income 89 / 423 / 1,138 / 1,643 at 5 / 10 / 15 / 20, 38 extractors at 5:00 on 11
   constructors, every spot by 8:00, every upgrade by 12:00, then converters; twice the flagship. Whether the hands can
   realize it is step 3's question.
+- Step 4 built before step 3 (the engine run is the test, and the plan lines already give the model error):
+  `planner=lp` the default, T-DISPATCH over the program's flows per builder type, T-COMMIT for the first factory.
+  Eight batches (terr6 to terr13) to make the hands carry the plan: the anneal plan's zero factory queues refused
+  every lab, factories were passed over for want of a queue, count shortfalls let nobody assist, the committed
+  power cleared at every re-solve bought the unbuilt half of a lab again, builders idled waiting for a share of a
+  unit to accrue on flows split many ways, a finished frame counted as a job beside its standing unit (two labs
+  where one stood), the walks were three to ten times under (calibrated from the begun lines: a constructor's
+  extractor 50 s, its base building 12, the commander's 18 and 45), and his roaming commander ate the far spots
+  (the dead spots follow his seen armed units). terr13: income 27-34 / 98-110 / 135-142 / 230-237 at 5 / 10 / 15
+  / 20 against the program's own ceiling of 49-52 / 262-268 / 885-902 / 1,362-1,410, and against the anneal bot's
+  105-165 / 188-225 / 199-321 at 10 / 15 / 20 on the same seeds: level at 20:00, behind at 10 and 15. The model
+  error at +60 s fell from +15..+28 to +8..+13 and is still the hands': the plan runs one to two minutes ahead of
+  the engine from the first minute and the gap compounds. Next: step 3 (the plan dispatched inside the simulator)
+  to split that gap into the model's and the engine's; the commander's base walk (45 s: its sites round a crowded
+  base); the held extractor orders.
 - Decision 6 amended while building: the converters' threshold is dropped from the program (a full relaxation,
   converters bounded by capacity alone). The engine's converters burn what sits above three quarters of storage;
   a plan that runs them at their capacity has the stock climb to that level once and burn the inflow from then on,

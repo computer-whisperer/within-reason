@@ -7,12 +7,19 @@ use std::time::{Duration, Instant};
 use bot_protocol::UnitId;
 use buildorder::anneal::{anneal_within, Found, Objective, Palette, Search};
 use buildorder::game::Game;
-use buildorder::plan::Plan;
+use buildorder::lp::{self, LpOptions, LpPlan};
+use buildorder::plan::{Item, Plan};
 use buildorder::sim::{Scenario, State};
+
+/// What a planner found: the anneal's plan or the program's targets.
+pub(crate) enum Answer {
+    Anneal(Found),
+    Lp(LpPlan),
+}
 
 /// What a search was asked for and what it found.
 pub(crate) struct Planned {
-    pub found: Found,
+    pub answer: Answer,
     /// The snapshot's builders in queue order: the commander, the factories, the constructors.
     pub builders: Vec<UnitId>,
     pub t0: f64,
@@ -33,6 +40,8 @@ pub(crate) struct Request {
     pub constructors: usize,
     pub seed: u64,
     pub frame: i32,
+    /// The program's options when the planner is the program; none for the anneal.
+    pub lp: Option<LpOptions>,
 }
 
 pub(crate) struct Planner {
@@ -56,9 +65,24 @@ fn search_of(request: &Request) -> Search {
 
 fn run(game: &Game, palette: &Palette, request: Request, budget: Duration, threads: usize) -> Planned {
     let began = Instant::now();
-    let search = search_of(&request);
-    let found = anneal_within(&game.units, &request.scenario, &request.state, palette, &search, budget, threads);
-    Planned { found, builders: request.builders, t0: request.state.t0, horizon: request.horizon, wall: began.elapsed(), frame: request.frame }
+    let answer = match &request.lp {
+        Some(options) => {
+            let offer: Vec<usize> = palette.mobile.iter().chain(palette.factory.iter()).filter_map(|i| match i { Item::Build(u) => Some(*u), _ => None }).collect();
+            match lp::solve(&game.units, &request.scenario, &request.state, &offer, options) {
+                Ok(plan) => Answer::Lp(plan),
+                Err(e) => {
+                    eprintln!("[territory] the program did not solve ({e}); the anneal answers instead");
+                    let search = search_of(&request);
+                    Answer::Anneal(anneal_within(&game.units, &request.scenario, &request.state, palette, &search, budget, threads))
+                }
+            }
+        }
+        None => {
+            let search = search_of(&request);
+            Answer::Anneal(anneal_within(&game.units, &request.scenario, &request.state, palette, &search, budget, threads))
+        }
+    };
+    Planned { answer, builders: request.builders, t0: request.state.t0, horizon: request.horizon, wall: began.elapsed(), frame: request.frame }
 }
 
 impl Planner {

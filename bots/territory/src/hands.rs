@@ -4,6 +4,7 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use bot_protocol::{BuildSite, Command, Lane, OwnUnit, Placement, UnitDefId, UnitId, Vec3};
+use buildorder::lp::LpPlan;
 use buildorder::plan::{Item, Plan, Step};
 use buildorder::units::Role;
 
@@ -31,6 +32,18 @@ const NANO_REACH: f32 = 330.0;
 const SPOT_TAKEN: f32 = 100.0;
 /// A refused spot is left alone this long.
 const SPOT_REFUSED: i32 = MINUTE;
+/// T-DISPATCH: the program's targets are read this far ahead of the clock, so a builder starts what the plan wants
+/// next rather than what it wanted at the last whole bucket. Not shorter: the program's counts ramp from the
+/// snapshot, and every re-solve restarts the ramp, so a target read 20 s ahead never crossed its threshold for
+/// anything the program wanted slowly (terr6-lp-nullai-comet-1: no factory in four games, the commander alone).
+const LEAD: f64 = 45.0;
+/// A building starts when its target runs this far ahead of what stands, is framed or is ordered.
+const START_AT: f64 = 0.5;
+/// T-COMMIT: a factory type the program wants at all within this long, with none standing, framed or ordered, is
+/// started whole: the program builds fractions of a factory for minutes (0.3 of a lab in the first minute of the
+/// ceiling), and a fraction of a factory makes nothing in the engine.
+const COMMIT_WITHIN: f64 = 180.0;
+const COMMIT_AT: f64 = 0.05;
 /// T-STRUCK: a unit type whose orders have come to nothing this many times, more often than its frames have begun,
 /// is struck from the palette for the rest of the game, and its remaining steps are passed over (terr1-nullai-comet-1:
 /// every wind generator order on Comet was dropped by the engine, 9-21 a game, and every Cortex tier-2 extractor,
@@ -68,6 +81,8 @@ const NO_QUEUE: usize = usize::MAX;
 
 pub(crate) struct Hands {
     pub plan: Plan,
+    /// The program's targets (T-DISPATCH), when the planner is the program.
+    pub targets: Option<LpPlan>,
     pub orders: BTreeMap<UnitId, Order>,
     /// Per builder: its queue in the plan and the index of its next step.
     pub queues: BTreeMap<UnitId, (usize, usize)>,
@@ -95,6 +110,7 @@ impl Default for Hands {
     fn default() -> Self {
         Hands {
             plan: Plan::empty(0, 0),
+            targets: None,
             orders: BTreeMap::new(),
             queues: BTreeMap::new(),
             spare_factory_queues: VecDeque::new(),
@@ -191,7 +207,9 @@ impl Territory {
             .collect();
         builders.sort_by_key(|(id, _)| id.0);
         for (id, role) in builders {
-            if !self.hands.queues.contains_key(&id) {
+            // The queues are the anneal's; the program's targets need none (terr7-lp-nullai-comet-1: a factory
+            // with no spare queue was passed over before the dispatch, and no game made a constructor).
+            if self.hands.targets.is_none() && !self.hands.queues.contains_key(&id) {
                 let spare = match role {
                     Role::Commander => Some(0),
                     Role::Factory => self.hands.spare_factory_queues.pop_front(),
@@ -212,8 +230,106 @@ impl Territory {
                     Review::Failed(why) => self.failed(id, why),
                 }
             }
-            self.give_next(id, role, commands);
+            if self.hands.targets.is_some() {
+                self.dispatch(id, role, commands);
+            } else {
+                self.give_next(id, role, commands);
+            }
         }
+    }
+
+    /// T-DISPATCH: the idle builder takes the unit type with the largest shortfall against the program's target
+    /// (in build-power-seconds) that it can build; a mobile builder with nothing of its own short guards the
+    /// factory whose products are shortest; a factory takes its shortest product.
+    fn dispatch(&mut self, id: UnitId, role: Role, commands: &mut Vec<Command>) {
+        let Some(builder) = self.own.get(&id).cloned() else { return };
+        let Some(unit) = self.unit_index(builder.def) else { return };
+        let now = self.frame as f64 / SECOND as f64 + LEAD;
+        let shortfalls = self.shortfalls(now);
+        // T-COMMIT: with no factory of any kind standing, framed or ordered, the factory type the program wants
+        // most within the window is started whole, before anything else (only the first: the program spreads
+        // fractions over every factory type, and terr7-lp-nullai-comet-1 stood three kinds by 5:00 on one
+        // commander's income).
+        let commit: Option<usize> = {
+            let units = &self.game().units;
+            let def = &units.list[unit];
+            let targets = self.hands.targets.as_ref().expect("dispatching");
+            let any_factory = self.own.values().any(|o| self.role_of_def(o.def) == Some(Role::Factory))
+                || self.hands.orders.values().any(|o| matches!(&o.what, What::Build { unit, frame: None, .. } if units.list[*unit].role == Role::Factory));
+            let now = self.frame as f64 / SECOND as f64;
+            if any_factory {
+                None
+            } else {
+                targets
+                    .types
+                    .iter()
+                    .copied()
+                    .filter(|u| units.list[*u].role == Role::Factory && def.builds.contains(u))
+                    .filter(|u| (0..=6).any(|k| targets.count_at(*u, now + k as f64 * COMMIT_WITHIN / 6.0) >= COMMIT_AT))
+                    .max_by(|a, b| targets.count_at(*a, now + COMMIT_WITHIN).total_cmp(&targets.count_at(*b, now + COMMIT_WITHIN)))
+            }
+        };
+        // Direct: the shortest type this builder builds.
+        let direct: Option<usize> = commit.or_else(|| {
+            let units = &self.game().units;
+            let def = &units.list[unit];
+            shortfalls
+                .iter()
+                .filter(|(u, short)| def.builds.contains(u) && *short >= START_AT)
+                .max_by(|a, b| (a.1 * units.list[a.0].build_time).total_cmp(&(b.1 * units.list[b.0].build_time)))
+                .map(|(u, _)| *u)
+        });
+        if let Some(u) = direct {
+            let attempt = self.hands.attempts.get(&id).copied().unwrap_or(0);
+            if let Some((command, what)) = self.give(id, unit, role, Step::build(u), attempt) {
+                commands.push(command);
+                self.hands.orders.insert(id, Order { what, given: self.frame, told: self.frame, step: None });
+                return;
+            }
+        }
+        if role == Role::Factory {
+            return;
+        }
+        // Assist: the factory whose products are shortest, when any is.
+        let shortest: Option<(UnitId, f64)> = {
+            let units = &self.game().units;
+            self.own
+                .values()
+                .filter(|u| !u.being_built && self.role_of_def(u.def) == Some(Role::Factory))
+                .filter_map(|f| {
+                    let fi = self.unit_index(f.def)?;
+                    let short: f64 = shortfalls.iter().filter(|(u, _)| units.list[fi].builds.contains(u)).map(|(u, s)| s.max(0.0) * units.list[*u].build_time).sum();
+                    (short > 0.0).then_some((f.id, short))
+                })
+                .max_by(|a, b| a.1.total_cmp(&b.1))
+        };
+        if let Some((factory, _)) = shortest {
+            commands.push(Command::Guard { unit: id, target: factory });
+            self.hands.orders.insert(id, Order { what: What::Assist { factory, until: self.frame + ASSIST_CHUNK }, given: self.frame, told: self.frame, step: None });
+            return;
+        }
+        // Else help the dearest frame, if any.
+        if let Some(frame) = self.dearest_frame() {
+            commands.push(Command::Repair { unit: id, target: frame, queue: false });
+            self.hands.orders.insert(id, Order { what: What::Help { frame }, given: self.frame, told: self.frame, step: None });
+        }
+    }
+
+    /// Per unit type in the program: its target at `t` less what stands, is framed, or is ordered.
+    fn shortfalls(&self, t: f64) -> Vec<(usize, f64)> {
+        let Some(targets) = self.hands.targets.as_ref() else { return Vec::new() };
+        let mut have: BTreeMap<usize, f64> = BTreeMap::new();
+        for u in self.own.values() {
+            if let Some(i) = self.unit_index(u.def) {
+                *have.entry(i).or_default() += 1.0;
+            }
+        }
+        for order in self.hands.orders.values() {
+            if let What::Build { unit, frame: None, .. } = &order.what {
+                *have.entry(*unit).or_default() += 1.0;
+            }
+        }
+        targets.types.iter().map(|u| (*u, targets.count_at(*u, t) - have.get(u).copied().unwrap_or(0.0))).collect()
     }
 
     fn review(&mut self, id: UnitId, order: &Order, commands: &mut Vec<Command>) -> Review {
@@ -375,7 +491,11 @@ impl Territory {
                 }
                 let placements = || vec![Placement { facing: self.facing_enemy(), keep_out: self.exit_lanes() }];
                 let site = if target.role == Role::Factory {
-                    if self.factories_planned() >= self.hands.plan.factories.len() {
+                    // The simulator's rule for the anneal's plan: no more factories than it has queues for. With
+                    // the program's targets the cap is the program's own (terr6-lp-nullai-comet-1: the empty plan's
+                    // zero queues refused every lab, and the commander played alone for twenty minutes).
+                    let cap = if self.hands.targets.is_some() { self.options.factories } else { self.hands.plan.factories.len() };
+                    if self.factories_planned() >= cap {
                         return None;
                     }
                     // Toward his start; after a dropped order a quarter turn round home from there (terr3-nullai-comet-1
@@ -516,6 +636,20 @@ impl Territory {
         let nanos: Vec<(UnitId, Vec3)> = self.own.values().filter(|u| !u.being_built && u.idle && self.role_of_def(u.def) == Some(Role::Nano)).map(|u| (u.id, u.pos)).collect();
         for (nano, at) in nanos {
             if self.hands.nano_told.get(&nano).is_some_and(|told| self.frame - told < GRACE) {
+                continue;
+            }
+            // With the program's targets a turret helps the dearest building frame in its reach, as the program
+            // prices its power (bounded by the builders' own); else, and with none in reach, the nearest factory.
+            let frame = self.hands.targets.as_ref().and_then(|_| {
+                self.own
+                    .values()
+                    .filter(|u| u.being_built && u.pos.dist2d(at) < NANO_REACH && self.def(u.def).is_some_and(|d| d.speed == 0.0))
+                    .max_by(|a, b| (self.def(a.def).map_or(0.0, |d| d.metal_cost) * (1.0 - a.health / a.max_health.max(1.0))).total_cmp(&(self.def(b.def).map_or(0.0, |d| d.metal_cost) * (1.0 - b.health / b.max_health.max(1.0)))))
+                    .map(|u| u.id)
+            });
+            if let Some(frame) = frame {
+                self.hands.nano_told.insert(nano, self.frame);
+                commands.push(Command::Repair { unit: nano, target: frame, queue: false });
                 continue;
             }
             let Some(factory) = self.nearest_factory(at).filter(|f| f.pos.dist2d(at) < NANO_REACH).map(|f| f.id) else { continue };

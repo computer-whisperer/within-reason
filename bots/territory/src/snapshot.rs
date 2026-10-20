@@ -9,8 +9,10 @@ use buildorder::units::Role;
 use crate::hands::What;
 use crate::Territory;
 
-/// Spots within this of his start are not taken: his standing commander shoots whatever comes near.
-const DEAD_SPOT: f64 = 400.0;
+/// Spots within this of his start, or of an armed unit of his in sight, are not taken: NullAI's commander shoots
+/// whatever comes near and follows it (terr9-lp-nullai-comet-1: it walked to our base behind fleeing constructors,
+/// killed three there and died to ours, which ended a game at 16:00). Stage 2's reach field in its first form.
+const DEAD_SPOT: f64 = 1000.0;
 
 impl Territory {
     /// The amount of the metal spot under `pos`, 0 off any spot.
@@ -69,6 +71,11 @@ impl Territory {
             match &self.hands.orders.get(&builder.id)?.what {
                 What::Build { unit, near, frame, .. } => {
                     let frame = frame.and_then(|f| self.own.get(&f));
+                    // A frame that stands finished is a standing unit already, not a job: counted as both, the
+                    // program saw two labs where one stood and planned a second (terr12-lp-nullai-comet-1).
+                    if frame.is_some_and(|f| !f.being_built) {
+                        return None;
+                    }
                     let site = frame.map_or(*near, |f| f.pos);
                     let progress = frame.map_or(0.0, |f| (f.health / f.max_health.max(1.0)).clamp(0.0, 1.0) as f64);
                     Some(Job { unit: *unit, site: at(site), progress, pays: self.pays(*unit, site, false) })
@@ -92,7 +99,7 @@ impl Territory {
     /// The scenario a plan is priced in: our half of the spots (every spot with `spots=all`), nearest first;
     /// constructors with an empty queue take the nearest free spot; construction turrets feed the first factory, as
     /// the hands have them do.
-    pub(crate) fn scenario(&self) -> Scenario {
+    pub(crate) fn scenario(&self, tick: &Tick) -> Scenario {
         let game = self.game();
         let mut spots: Vec<Spot> = if self.options.all_spots {
             let mut spots: Vec<Spot> = game.spots.iter().map(|(at, amount)| Spot { at: *at, metal: game.spot_metal(*amount) }).collect();
@@ -103,8 +110,9 @@ impl Territory {
         };
         // The dead spots round his start (the user, 2026-10-20: NullAI's commander "automatically attacks anything
         // near it. There will be a dead spot of 2-3 mexes we will just have to ignore"; by a radius, his ruling).
-        let his = (self.enemy_home.x as f64, self.enemy_home.z as f64);
-        spots.retain(|s| distance(s.at, his) > DEAD_SPOT);
+        let mut his: Vec<(f64, f64)> = vec![(self.enemy_home.x as f64, self.enemy_home.z as f64)];
+        his.extend(tick.snapshot.enemies.iter().filter(|e| e.def.and_then(|d| self.def(d)).is_some_and(|d| d.weapon_count > 0)).map(|e| (e.pos.x as f64, e.pos.z as f64)));
+        spots.retain(|s| his.iter().all(|h| distance(s.at, *h) > DEAD_SPOT));
         let mut scenario = game.scenario(spots, self.ground());
         scenario.constructors_default_to_extractors = true;
         scenario.nanos_help_frames = false;
