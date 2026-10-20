@@ -75,3 +75,23 @@ The flagship's medians on Comet against BARb (`run/flagship_curves.py`) are 9 / 
   host snaps every extractor order now).
 - The bank is not in the objective: 25,000-36,000 metal stands unspent at 20:00 once the spots are taken. Stage 2's
   soldiers are what it is for.
+
+**The flagship on the same task** (terr-flagship-nullai-1, the user's ask: Opus 5.5 medium as the player, told the
+opponent does nothing and the score is metal income): income 36 / 177 / 463 / 802 at 5 / 10 / 15 / 20 on 78 of the
+map's 80 spots (77 tier 2 at 20:00), constructors 8 / 28 / 87 / 97, 111 converters. The bot's rows above play half
+the map with fourteen constructor queues. With the whole map and forty queues (terr5-all-nullai-comet-1):
+
+| game (terr5-all) | 10:00 mex / cons / income | 15:00 | 20:00 | oracle income 10 / 15 / 20 | tier-2 extractors begun |
+|---|---|---|---|---|---|
+| seed 1 Armada | 45 / 15 / 105 | 72 / 20 / 202 | 77 / 20 / 317 | 147 / 461 / 737 | 23 |
+| seed 2 Armada | 71 / 16 / 165 | 78 / 14 / 194 | 78 / 13 / 209 | 132 / 411 / 679 | 0 |
+| seed 3 Cortex | 72 / 14 / 165 | 77 / 13 / 188 | 78 / 18 / 199 | 170 / 428 / 738 | 0 |
+| seed 4 Cortex | 49 / 13 / 115 | 76 / 18 / 225 | 76 / 16 / 321 | 157 / 414 / 661 | 24 |
+| the flagship, seed 1 | 68 / 28 / 177 | 78 / 87 / 463 | 78 / 97 / 802 | | 77 |
+
+To 10:00 the bot is the flagship's equal in two games; after it the rolling search finds no tier 2 in two games
+(every plan from 9:19 ends with no advanced plant and income flat at 200) and finds it late in the other two. The
+long search from the start says tier 2 pays (the oracle's 660-738, within a tenth of the flagship's 802): this is
+search regret, not model error. An advanced plant, its constructor and the mohos are a valley the 400 ms
+warm-started anneal does not cross with forty queues. The next step is the search, not the model: a chain-seeded
+restart beside the warm start (`Palette::chain_seed` exists), or a longer search at a lower cadence.

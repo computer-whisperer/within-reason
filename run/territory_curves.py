@@ -41,7 +41,19 @@ def oracle(game, minutes):
     if not dumps:
         return None
     if not os.path.exists(csv):
-        cmd = [f"{REPO}/target/release/buildorder", "optimize", "--hello", dumps[0], "--objective", "made", "--minutes", str(minutes), "--palette", "roster", "--builders-only", "--factories", "3", "--constructors", "14", "--csv", csv, "--plan-out", f"{game}/oracle.txt"]
+        # The bot's own arms (its home line: `arms: ... spots=all ... factories=N, constructors=N`), so the oracle
+        # searches the space the bot did.
+        arms = {}
+        for line in open(f"{game}/engine.log", errors="replace"):
+            if "[territory ai=" in line and "; arms: " in line:
+                for pair in line.split("; arms: ")[1].split(";")[0].split(","):
+                    if "=" in pair:
+                        k, v = pair.strip().split("=", 1)
+                        arms[k] = v
+                break
+        cmd = [f"{REPO}/target/release/buildorder", "optimize", "--hello", dumps[0], "--objective", "made", "--minutes", str(minutes), "--palette", "roster", "--builders-only", "--factories", arms.get("factories", "3"), "--constructors", arms.get("constructors", "14"), "--csv", csv, "--plan-out", f"{game}/oracle.txt"]
+        if arms.get("spots") == "all":
+            cmd.append("--all-spots")
         with open(f"{game}/oracle.md", "w") as out:
             subprocess.run(cmd, stdout=out, stderr=subprocess.STDOUT, check=False)
         if not os.path.exists(csv):

@@ -3,14 +3,14 @@ use std::fmt::Write as _;
 use buildorder::anneal::{anneal_restarts, Objective, Palette, Search, Contact};
 use std::sync::Arc;
 
-use buildorder::game::{Game, Ground, Straight};
+use buildorder::game::{Game, Ground, Spot, Straight};
 use buildorder::plan::Plan;
 use buildorder::record;
 use buildorder::sim::{simulate, Outcome, Sample, Scenario, State, Wind};
 
 const USAGE: &str = "usage: (the game, that is map, start, faction and unit numbers, comes from a match record's header, or from
                        a territory bot's dump of its Hello with --hello FILE in place of --game)
-  buildorder optimize  --game RECORD.jsonl [--factory lab|vp] [--palette kit|roster] [--builders-only] [--also silo,amd] [--minutes 10]
+  buildorder optimize  --game RECORD.jsonl [--factory lab|vp] [--palette kit|roster] [--builders-only] [--all-spots] [--also silo,amd] [--minutes 10]
                        [--objective income|army|mix|tempo|expect|reach:N|made[:TERMINAL]|target:UNIT[:COUNT][@SECONDS][,round:UNIT..][,income:N@SECONDS]] [--contact WALK[,AT,WEIGHT]]
                        [--iterations 40000] [--restarts 8] [--seed 1] [--wind MEAN] [--detour X] [--factories 2] [--constructors 6] [--leash ELMOS]
                        [--no-nano] [--turret llt] [--nanos-to-factory] [--tax FROM:RATE,..] [--tax-energy 8] [--seed-chain UNIT[:COUNT]] [--csv FILE] [--plan-out FILE] [--json-out FILE]
@@ -87,7 +87,16 @@ fn ground(game: &Game, args: &Args) -> Arc<dyn Ground> {
 }
 
 fn scenario(game: &Game, args: &Args) -> Scenario {
-    let mut scenario = game.scenario(game.own_half(), ground(game, args));
+    // `--all-spots`: every spot on the map, nearest first, in place of our half (the territory bot's `spots=all`
+    // against an opponent that does nothing; the flagship's player took 78 of Comet's 80 in terr-flagship-nullai-1).
+    let spots = if args.has("--all-spots") {
+        let mut spots: Vec<Spot> = game.spots.iter().map(|(at, amount)| Spot { at: *at, metal: game.spot_metal(*amount) }).collect();
+        spots.sort_by(|a, b| buildorder::game::distance(a.at, game.home).total_cmp(&buildorder::game::distance(b.at, game.home)));
+        spots
+    } else {
+        game.own_half()
+    };
+    let mut scenario = game.scenario(spots, ground(game, args));
     scenario.wind = Wind::Constant(args.number("--wind", game.mean_wind()));
     scenario.constructors_default_to_extractors = true;
     scenario.commander_leash = args.number("--leash", f64::MAX);

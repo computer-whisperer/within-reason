@@ -270,7 +270,15 @@ impl Bot for Territory {
                 Event::UnitCreated { unit, builder: Some(builder) } => self.frame_begun(*unit, *builder),
                 Event::BuildSiteNotFound { unit, .. } => self.failed(*unit, "no site"),
                 Event::CommandRejected { unit, .. } => self.failed(*unit, "rejected"),
-                Event::UnitDestroyed { unit, .. } => self.unit_lost(*unit),
+                Event::UnitDestroyed { unit, attacker, death } => {
+                    // Every death goes to the log: terr5-all-nullai-comet-1 lost one to three constructors a game
+                    // with no enemy on the map, and nothing said how.
+                    if let Some(u) = self.own.get(unit) {
+                        let name = self.def(u.def).map_or("?", |d| d.name.as_str());
+                        self.log(format_args!("died: {name} unit {} at ({:.0},{:.0}) death={death:?} attacker={attacker:?}", unit.0, u.pos.x, u.pos.z));
+                    }
+                    self.unit_lost(*unit);
+                }
                 _ => {}
             }
         }

@@ -97,3 +97,11 @@ The curve against the flagship's medians on Comet (extractors 9 / 20 / 29, incom
   extractor orders to the build grid: a change to the shared host, for the flagship too). Open: the tier-2
   calibration (fusions and advanced solars begun 50-120 s after their order, no nanos on the big frames), the
   twenty-second staleness, the bank the objective ignores.
+- 2026-10-20 night, the flagship on the task (the user: "run a test with the real within reason bot at this task"):
+  income 36 / 177 / 463 / 802 at 5 / 10 / 15 / 20 on 78 of 80 spots with 97 constructors (terr-flagship-nullai-1).
+  The bot given the same room (terr5-all: every spot, forty constructor queues) is its equal to 10:00 and then
+  199-321 at 20:00 against the model's own ceiling of 661-738: the rolling search misses the tier-2 branch in half
+  the games (an advanced plant, its constructor and the mohos are a valley the 400 ms warm-started anneal does not
+  cross with forty queues), while the ceiling sits within a tenth of the flagship. The two gaps as decision 7 meant
+  them: the model error is small; the search regret is the gap. Next: a chain-seeded restart beside the warm start
+  (`Palette::chain_seed`), or a longer search at a lower cadence; then the tier-2 hands calibration.
