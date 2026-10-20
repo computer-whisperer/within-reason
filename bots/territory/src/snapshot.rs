@@ -9,6 +9,9 @@ use buildorder::units::Role;
 use crate::hands::What;
 use crate::Territory;
 
+/// Spots within this of his start are not taken: his standing commander shoots whatever comes near.
+const DEAD_SPOT: f64 = 400.0;
+
 impl Territory {
     /// The amount of the metal spot under `pos`, 0 off any spot.
     pub(crate) fn spot_amount(&self, pos: Vec3) -> f64 {
@@ -91,13 +94,17 @@ impl Territory {
     /// the hands have them do.
     pub(crate) fn scenario(&self) -> Scenario {
         let game = self.game();
-        let spots: Vec<Spot> = if self.options.all_spots {
+        let mut spots: Vec<Spot> = if self.options.all_spots {
             let mut spots: Vec<Spot> = game.spots.iter().map(|(at, amount)| Spot { at: *at, metal: game.spot_metal(*amount) }).collect();
             spots.sort_by(|a, b| distance(a.at, game.home).total_cmp(&distance(b.at, game.home)));
             spots
         } else {
             game.own_half()
         };
+        // The dead spots round his start (the user, 2026-10-20: NullAI's commander "automatically attacks anything
+        // near it. There will be a dead spot of 2-3 mexes we will just have to ignore"; by a radius, his ruling).
+        let his = (self.enemy_home.x as f64, self.enemy_home.z as f64);
+        spots.retain(|s| distance(s.at, his) > DEAD_SPOT);
         let mut scenario = game.scenario(spots, self.ground());
         scenario.constructors_default_to_extractors = true;
         scenario.nanos_help_frames = false;

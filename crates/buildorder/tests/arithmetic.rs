@@ -400,3 +400,27 @@ fn made_is_the_income_summed_plus_the_terminal_seconds() {
     assert_eq!(Objective::parse("made:90"), Some(Objective::Made { terminal: 90.0 }));
     assert_eq!(Objective::parse("made").map(|o| o.name()), Some("made"));
 }
+
+/// The linear program (docs/design/2026-10-20-territory-lp.md) on the commander alone with two spots: both are
+/// taken by the end, never more than the build power allows a bucket (300 build power on a 1,800 extractor with a
+/// ten-second walk charged as 3,000: 0.625 a bucket), the stocks never negative, the final income the commander's
+/// plus both spots', the prices non-negative.
+#[test]
+fn the_linear_program_fills_the_spots_within_the_build_power() {
+    use buildorder::lp::{solve, LpOptions};
+    let game = game();
+    let units = &game.units;
+    let scenario = bare(&game);
+    let mex = units.index("armmex").unwrap();
+    let offer = vec![mex, units.index("armsolar").unwrap()];
+    let options = LpOptions { dt: 10.0, mid_from: 300.0, coarse_from: 300.0, horizon: 300.0, ..Default::default() };
+    let plan = solve(units, &scenario, &State::start(&scenario), &offer, &options).unwrap();
+    assert_eq!(plan.buckets, 30);
+    let at_end = plan.count_at(mex, 300.0);
+    assert!((at_end - 2.0).abs() < 0.05, "extractors at the end {at_end}");
+    assert!(plan.count_at(mex, 10.0) <= 0.625 + 1e-3, "{} after one bucket", plan.count_at(mex, 10.0));
+    assert!(plan.metal.iter().all(|m| *m >= -1e-6) && plan.energy.iter().all(|e| *e >= -1e-6));
+    let expected = units.list[game.commander].metal_make + 4.0;
+    assert!((plan.metal_income[plan.buckets] - expected).abs() < 0.1, "final income {} against {expected}", plan.metal_income[plan.buckets]);
+    assert!(plan.made > 0.0 && plan.metal_price.iter().all(|p| *p >= -1e-6) && plan.solve_time < 2.0);
+}

@@ -9,3 +9,4 @@ description = "A tier-1 economy simulator over a game's own unit numbers and gro
 bot-protocol = { path = "../bot-protocol" }
 terrain = { path = "../terrain" }
 serde_json = "1"
+clarabel = "0.10"

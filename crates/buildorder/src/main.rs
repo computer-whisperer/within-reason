@@ -4,6 +4,7 @@ use buildorder::anneal::{anneal_restarts, Objective, Palette, Search, Contact};
 use std::sync::Arc;
 
 use buildorder::game::{Game, Ground, Spot, Straight};
+use buildorder::lp::{self, LpOptions, LpPlan};
 use buildorder::plan::Plan;
 use buildorder::record;
 use buildorder::sim::{simulate, Outcome, Sample, Scenario, State, Wind};
@@ -20,6 +21,11 @@ const USAGE: &str = "usage: (the game, that is map, start, faction and unit numb
                        income, the territory bot's score; round:UNIT: a stockpile round, the first
                        missile; --tax: metal a second to soldiers from each time, M:SS or seconds, before any build; turrets help the
                        dearest frame in reach unless --nanos-to-factory)
+  buildorder lp        --game RECORD.jsonl | --hello DUMP.json [--minutes 20] [--dt 10] [--mid-from 60] [--mid-dt 30] [--coarse-from 300] [--coarse-dt 60] [--terminal 0] [--assist 2] [--help-factor 3]
+                       [--nanos-per-factory 6] [--max-constructors 40] [--max-factories 4] [--all-spots] [--builders-only]
+                       [--walk-extractor 10] [--walk-base 3.5] [--walk-factory 10] [--csv FILE]
+                       (the planner as a linear program, docs/design/2026-10-20-territory-lp.md: the plan by minute with
+                       the prices of metal, energy and build power; the csv in the simulator's format)
   buildorder simulate  --game RECORD.jsonl --plan FILE [--minutes ..] [--wind ..] [--detour X] [--help-frames] [--tax ..] [--csv FILE]
                        (plan words: unit names without the faction prefix, assist, help; help puts the builder's power on the dearest frame)
   buildorder walks     RECORD.jsonl... [--minutes 6]      (builders' ways between builds: recorded against predicted)
@@ -269,6 +275,89 @@ fn optimize(args: &Args) {
     }
 }
 
+/// The linear program from the empty start (docs/design/2026-10-20-territory-lp.md): the plan by minute, the counts at
+/// the end, the prices.
+fn linear_program(args: &Args) {
+    let game = game(args);
+    let units = &game.units;
+    let scenario = scenario(&game, args);
+    let water = game.terrain.heights.iter().any(|h| *h < 0);
+    let mut palette = Palette::roster(units, game.commander, None, water, &also(&game, args));
+    if args.has("--builders-only") {
+        palette.factory.retain(|i| matches!(i, buildorder::plan::Item::Build(u) if units.list[*u].role == buildorder::units::Role::Builder));
+    }
+    let offer: Vec<usize> = palette.mobile.iter().chain(palette.factory.iter()).filter_map(|i| match i { buildorder::plan::Item::Build(u) => Some(*u), _ => None }).collect();
+    let minutes: f64 = args.number("--minutes", 20.0);
+    let options = LpOptions {
+        dt: args.number("--dt", 10.0),
+        mid_from: args.number("--mid-from", 60.0),
+        mid_dt: args.number("--mid-dt", 30.0),
+        coarse_from: args.number("--coarse-from", 300.0),
+        coarse_dt: args.number("--coarse-dt", 60.0),
+        horizon: minutes * 60.0,
+        max_constructors: args.number("--max-constructors", 40.0),
+        max_factories: args.number("--max-factories", 4.0),
+        terminal: args.number("--terminal", 0.0),
+        assist_factor: args.number("--assist", 2.0),
+        help_factor: args.number("--help-factor", 3.0),
+        nanos_per_factory: args.number("--nanos-per-factory", 6.0),
+        walk_extractor: args.number("--walk-extractor", 10.0),
+        walk_base: args.number("--walk-base", 3.5),
+        walk_factory: args.number("--walk-factory", 10.0),
+    };
+    let plan = lp::solve(units, &scenario, &State::start(&scenario), &offer, &options).unwrap_or_else(|e| die(&e));
+    println!(
+        "# {} from {:.0},{:.0}: {} types, {} buckets ({} s to {} s), {} spots, {} variables, {} rows, {} in {:.0} ms; metal made {:.0}, objective {:.0}",
+        game.side(), game.home.0, game.home.1, plan.types.len(), plan.buckets, plan.lengths[0], plan.lengths[plan.buckets - 1], scenario.spots.len(), plan.variables, plan.rows, plan.status, plan.solve_time * 1000.0, plan.made, plan.objective
+    );
+    let basic = units.basic_extraction();
+    let count = |plan: &LpPlan, t: usize, test: &dyn Fn(&buildorder::units::Unit) -> bool| -> f64 { plan.types.iter().enumerate().filter(|(_, u)| test(&units.list[**u])).map(|(i, _)| plan.counts[i][t]).sum() };
+    println!("| min | metal/s | energy/s | mex | upgrades | cons | fac | nanos | conv | energy bldgs | metal | energy | price of metal | of energy |");
+    println!("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|");
+    // The bucket at each whole minute (the latest starting at or before it).
+    let minutes_shown: Vec<(usize, usize)> = (0..=minutes as usize).map(|m| (m, plan.bucket_at(plan.t0 + m as f64 * 60.0))).collect();
+    for (minute, t) in &minutes_shown {
+        let t = *t;
+        let price = |v: &Vec<f64>| v.get(t.min(plan.buckets - 1)).copied().unwrap_or(0.0);
+        println!(
+            "| {} | {:.1} | {:.0} | {:.1} | {:.1} | {:.1} | {:.1} | {:.1} | {:.1} | {:.1} | {:.0} | {:.0} | {:.2} | {:.4} |",
+            minute, plan.metal_income[t], plan.energy_income[t],
+            count(&plan, t, &|u| u.extracts_metal > 0.0 && u.extracts_metal <= basic * 1.5),
+            count(&plan, t, &|u| u.extracts_metal > basic * 1.5),
+            count(&plan, t, &|u| u.role == buildorder::units::Role::Builder),
+            count(&plan, t, &|u| u.role == buildorder::units::Role::Factory),
+            count(&plan, t, &|u| u.role == buildorder::units::Role::Nano),
+            count(&plan, t, &|u| u.conv_capacity > 0.0),
+            count(&plan, t, &|u| u.role == buildorder::units::Role::Eco && u.extracts_metal == 0.0 && u.conv_capacity == 0.0 && (u.energy_make > 0.0 || u.wind_cap > 0.0)),
+            plan.metal[t], plan.energy[t], price(&plan.metal_price), price(&plan.energy_price)
+        );
+    }
+    let mut at_end: Vec<(f64, &str)> = plan.types.iter().enumerate().map(|(i, u)| (plan.counts[i][plan.buckets], units.list[*u].name.as_str())).filter(|(n, _)| *n > 0.05).collect();
+    at_end.sort_by(|a, b| b.0.total_cmp(&a.0));
+    println!("at the end: {}", at_end.iter().map(|(n, name)| format!("{name} {n:.1}")).collect::<Vec<_>>().join(", "));
+    for (bt, prices) in &plan.power_price {
+        let shown: Vec<String> = minutes_shown.iter().step_by(2).map(|(_, t)| format!("{:.3}", prices.get(*t).copied().unwrap_or(0.0))).collect();
+        println!("price of a build-power-second of {} every two minutes: {}", units.list[*bt].name, shown.join(" "));
+    }
+    if let Some(path) = args.value("--csv") {
+        let mut text = format!("{CSV_HEADER}\n");
+        for t in 0..=plan.buckets {
+            let bp: f64 = units.list[game.commander].worker_time + plan.types.iter().enumerate().map(|(i, u)| units.list[*u].worker_time * plan.counts[i][t]).sum::<f64>();
+            let _ = writeln!(
+                text,
+                "{},{:.0},{:.0},{:.2},{:.1},{:.0},{:.0},{:.0},{:.0},{:.0},{:.0},0,0,1.00,0,0,0,0,0",
+                plan.t0 + plan.starts[t], plan.metal[t], plan.energy[t], plan.metal_income[t], plan.energy_income[t],
+                count(&plan, t, &|u| u.extracts_metal > 0.0 && u.extracts_metal <= basic * 1.5),
+                count(&plan, t, &|u| u.conv_capacity > 0.0), bp,
+                count(&plan, t, &|u| u.role == buildorder::units::Role::Factory),
+                count(&plan, t, &|u| u.role == buildorder::units::Role::Builder),
+                count(&plan, t, &|u| u.role == buildorder::units::Role::Nano)
+            );
+        }
+        std::fs::write(path, text).unwrap_or_else(|e| die(&format!("{path}: {e}")));
+    }
+}
+
 fn run_plan(args: &Args) {
     let game = game(args);
     let units = &game.units;
@@ -418,6 +507,7 @@ fn main() {
     match args.0.first().map(String::as_str) {
         Some("optimize") => optimize(&args),
         Some("simulate") => run_plan(&args),
+        Some("lp") => linear_program(&args),
         Some("calibrate") => calibrate(&args),
         Some("walks") => walks(&args),
         _ => die("missing or unknown command"),

@@ -3,6 +3,7 @@
 
 pub mod anneal;
 pub mod game;
+pub mod lp;
 pub mod plan;
 pub mod record;
 pub mod sim;

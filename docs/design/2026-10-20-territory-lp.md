@@ -194,3 +194,23 @@ linear, in the same program, with the prices of cover falling out as duals. Writ
 ## Status
 
 - 2026-10-20 night: written; nothing built.
+- 2026-10-20 night, the user's rulings on the three questions: the dead spots by a radius round his start; the
+  assist factor 2 to start; clarabel first, integers only if the fractional artefact shows. Building step 1.
+- Step 1 built (`crates/buildorder/src/lp.rs`, `buildorder lp`, the test): the first solves on terr5-all's seed 1
+  with every spot showed three things the note had not: construction turrets are a free lunch to the program (441
+  of them, a converter spiral to 4,000 metal a second), the roster's air, hover and gantry lines give it fractional
+  factories of every kind, and the economy is exponential in the model with a few minutes' doubling once fusions
+  and converters pay (which the flagship's 177 / 463 / 802 at 10 / 15 / 20 shows the game is too). Added to the
+  program: turret help at most three times the mobile builders' direct power on a type (3b), turrets at most six a
+  factory (3c), the land lines only (a factory that makes no ground builder, and a builder that flies or hovers or
+  builds no extractor and no factory, are out), caps as the hands' capacity (forty constructors, four factories),
+  and buckets that grow from 10 s to 30 s after the first minute and 60 s after the fifth, since a solve's cost
+  grows with the square of the bucket count (120 ten-second buckets 30 s, 29 buckets 1.6 s). The ceiling it gives
+  from that start with the caps: income 89 / 423 / 1,138 / 1,643 at 5 / 10 / 15 / 20, 38 extractors at 5:00 on 11
+  constructors, every spot by 8:00, every upgrade by 12:00, then converters; twice the flagship. Whether the hands can
+  realize it is step 3's question.
+- Decision 6 amended while building: the converters' threshold is dropped from the program (a full relaxation,
+  converters bounded by capacity alone). The engine's converters burn what sits above three quarters of storage;
+  a plan that runs them at their capacity has the stock climb to that level once and burn the inflow from then on,
+  so the relaxation costs one transient of three quarters of the energy storage, not a steady-state error. The
+  verifier measures it.
