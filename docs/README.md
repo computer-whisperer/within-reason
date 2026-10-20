@@ -42,3 +42,8 @@ The study behind it: `studies/2026-09-27-review-skill.md`. A second kind of revi
 the game: did the harness do what the player ordered, and was the player told what it needed (`harness/impedance.md`:
 `run/impedance_sweep.py`, the brief in `studies/data/impedance-2026-10-16/`, `run/impedance_tally.py` to sum the
 reviewers' `impedance.json` files; the study `studies/2026-10-16-opus-hands-impedance.md`).
+
+**The unit glossary** (`crates/bot/data/units.json`: numbers generated from the game source by `run/unit_stats.py`, a
+gloss and a prose paragraph a unit written by hand) is what the player's `units` tool and every menu line say about a
+unit. `run/glossary_sheet.py` lays it out with the repo's other per-unit facts as `glossary/units.csv`, a sheet for
+experienced players to annotate (`glossary/README.md`: the columns, what we ask, the way back through `knowledge/_inbox/`).
