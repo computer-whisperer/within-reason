@@ -19,6 +19,7 @@ that shape which anyone in the BAR community can run for nothing.
 |---|---|---|
 | `template` | `WRTemplate` | The skeleton to copy. One rule: an idle builder builds an extractor on the nearest metal spot it has not been sent to. |
 | `distilled` | `WRDistilled` | The flagship's opening, expansion and production as rules, read from seven games it won, and a simple army over them. Its rules, their sources and its results: `distilled/README.md`. |
+| `territory` | `WRTerritory` | Plans its economy by a rolling-horizon search over the build-order simulator (`crates/buildorder`): no rule names a unit. Stage 1 is metal against an opponent that does nothing; the territory model comes after. Its design, arms and results: `territory/README.md`. |
 
 ## Running one
 

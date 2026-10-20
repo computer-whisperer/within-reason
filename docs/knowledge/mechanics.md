@@ -334,6 +334,14 @@ the record's `created` extractors.
 **Would be wrong if.** A moho placed on our extractor's position were still refused (a footprint or terrain rule).
 **Used by.** H-ECO-SPOT-CENTROID, H-HANDS-SCRIPT.
 
+**Amended 2026-10-20 (terr2-nullai-comet-1, terr3-nullai-comet-1):** the position must match to the last digit, and
+the AI interface reports a standing Cortex extractor 0.01 off the build grid (x.01, z.01; Armada's at .00): a tier-2
+extractor ordered at that reported position was dropped by the engine every time for seat 0 as Cortex (0 of 94
+orders begun over two batteries) while Armada's went up, and seat 1 as Cortex was spared because `cmd_mex_denier`
+counts our own extractor only when the ally team of the AI's hosting player is ours (it reads `playerID`, player 0 in
+the arena). The host now snaps every extractor order to the engine's own build grid (`ai-host` `snap_to_build_grid`,
+`CGameHelper::Pos2BuildPos`): Cortex seat 0 then began 40 of 46 tier-2 orders (terr3-nullai-comet-1 game 02).
+
 ### K-mech-nano-turrets-idle-without-an-order
 **Claim.** A construction turret does nothing on its own: the game gives it no order when it stands, and it helps a
 factory only under a guard (or repair) order. In escalate-7 five turrets stood beside the plant from 6:15 and were

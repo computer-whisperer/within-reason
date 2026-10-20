@@ -9,7 +9,7 @@ use std::sync::Arc;
 use bot_protocol::{OwnUnit, Tick, UnitDefId, UnitId, Vec3};
 use buildorder::game::{distance, Game, Ground, Spot};
 use buildorder::sim::{Job, Scenario, Standing, State, StateBuilder};
-use buildorder::units::{Role, Units};
+use buildorder::units::Role;
 
 use super::roster::Kit;
 use super::{Brain, FRAMES_PER_SECOND};
@@ -25,19 +25,10 @@ impl Brain {
     /// The game as the build-order simulator sees it, from what the engine told us at the start.
     pub(super) fn buildorder_game(&self, kit: &Kit) -> Option<Game> {
         let hello = &self.world.hello;
-        let units = Units::new(&hello.unit_defs);
-        let commander = hello.unit_defs.iter().position(|d| d.id == kit.commander)?;
-        Some(Game {
-            units,
-            commander,
-            home: (self.home.x as f64, self.home.z as f64),
-            size: (hello.map.width as f64, hello.map.height as f64),
-            spots: hello.metal_spots.iter().map(|s| ((s.x as f64, s.z as f64), s.y as f64)).collect(),
-            wind: (hello.map.wind_min as f64, hello.map.wind_max as f64),
-            // H-OPEN-WIND: plans priced at the engine's process mean; off, at the middle of the range as before.
-            wind_override: (!self.enabled("H-OPEN-WIND")).then(|| (hello.map.wind_min as f64 + hello.map.wind_max as f64) / 2.0),
-            terrain: hello.terrain.clone(),
-        })
+        let mut game = Game::from_hello(hello, kit.commander, (self.home.x as f64, self.home.z as f64))?;
+        // H-OPEN-WIND: plans priced at the engine's process mean; off, at the middle of the range as before.
+        game.wind_override = (!self.enabled("H-OPEN-WIND")).then(|| (hello.map.wind_min as f64 + hello.map.wind_max as f64) / 2.0);
+        Some(game)
     }
 
     /// The game as it stands now, for the simulator: standing economy buildings, the builders with their jobs, the

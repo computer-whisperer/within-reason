@@ -185,7 +185,9 @@ impl Units {
         let u = &self.list[unit];
         let ship = u.move_class.is_some_and(|m| matches!(m.kind, bot_protocol::MoveKind::Ship));
         let name = u.name.get(3..).unwrap_or("");
-        ship || name.starts_with("uw") || name == "sy" || name.starts_with("asy") || name.starts_with("fhp") || name.contains("float") || name.starts_with("tl") || name.starts_with("dl")
+        // ... the floating metal maker (`armfmkr`), the seaplane platforms (`armplat`, `armnanotcplat`) and the amphibious
+        // complex (`armamsub`), which the territory bot's hands found no land site for on Comet's puddles (terr1-nullai-comet-1).
+        ship || name.starts_with("uw") || name == "sy" || name.starts_with("asy") || name.starts_with("fhp") || name.contains("float") || name.starts_with("tl") || name.starts_with("dl") || name == "fmkr" || name.ends_with("plat") || name == "amsub"
     }
 
     /// Whether a unit type stands only on a geothermal vent (the numbers carry no such flag; the names do: `armgeo`,

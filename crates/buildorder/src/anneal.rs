@@ -82,6 +82,11 @@ pub enum Objective {
     /// `TARGET_INCOME_SECONDS` of the final income as the slope toward it, less the stall penalty. `reach:100` on the
     /// command line; `target income:100 by 12:00` is the requirement form of the same question.
     Reach { income: f64 },
+    /// Metal made over the horizon (the sum of every second's metal income: extractors, the commander, converters)
+    /// plus `terminal` seconds of the income it ends on, and nothing else: the territory bot's score against an
+    /// opponent that does nothing (docs/design/2026-10-20-territory-bot.md). `made` on the command line, `made:90`
+    /// with a terminal value.
+    Made { terminal: f64 },
 }
 
 /// What a game is expected to have by each second of the clock: a piecewise-linear curve per quantity. The standard
@@ -182,7 +187,13 @@ impl Objective {
             "mix" => Some(Objective::Mix),
             "tempo" => Some(Objective::Tempo { army: 1.0, exposed: 0.3, contact: None }),
             "expect" => Some(Objective::Expect { exposed: 0.3, contact: None, expect: Expectations::STANDARD }),
-            _ => name.strip_prefix("reach:").and_then(|n| n.parse().ok()).filter(|n: &f64| *n > 0.0).map(|income| Objective::Reach { income }),
+            "made" => Some(Objective::Made { terminal: 0.0 }),
+            _ => name
+                .strip_prefix("reach:")
+                .and_then(|n| n.parse().ok())
+                .filter(|n: &f64| *n > 0.0)
+                .map(|income| Objective::Reach { income })
+                .or_else(|| name.strip_prefix("made:").and_then(|n| n.parse().ok()).map(|terminal| Objective::Made { terminal })),
         }
     }
 
@@ -261,6 +272,7 @@ impl Objective {
             Objective::Expect { .. } => "expect",
             Objective::Target { .. } => "target",
             Objective::Reach { .. } => "reach",
+            Objective::Made { .. } => "made",
         }
     }
 
@@ -338,6 +350,10 @@ impl Objective {
                 let reached = outcome.samples.iter().filter(|s| s.t >= 30.0).find(|s| outcome.mean_metal_income(s.t, 30.0) >= *wanted).map(|s| s.t);
                 let early = reached.map_or(0.0, |t| REACH_EARLY * wanted * (horizon - t) / 60.0);
                 early + TARGET_INCOME_SECONDS * income - TEMPO_STALL_METAL * stalled + shaping
+            }
+            Objective::Made { terminal } => {
+                let made: f64 = outcome.samples.iter().map(|s| s.metal_income).sum();
+                made + terminal * income + shaping
             }
         };
         base - owed

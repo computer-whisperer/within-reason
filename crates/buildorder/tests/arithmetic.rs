@@ -379,3 +379,24 @@ fn the_reach_objective_round_goals_and_the_help_word() {
     assert_eq!(plan.commander[1].item, Item::Help);
     assert_eq!(plan.to_text(units), "com: mex help\ncon0: help assist\n");
 }
+
+/// The territory bot's score (`docs/design/2026-10-20-territory-bot.md`, decision 2): metal made over the horizon is
+/// the sum of every second's income, a terminal value adds that many seconds of the income at the end, and nothing
+/// else counts: a plan that builds a soldier scores no more than one that does not.
+#[test]
+fn made_is_the_income_summed_plus_the_terminal_seconds() {
+    let game = game();
+    let units = &game.units;
+    let scenario = bare(&game);
+    let plan = Plan { commander: at_home(units, &["armmex", "armmex"]), factories: Vec::new(), constructors: Vec::new() };
+    let outcome = run(units, &scenario, &plan, 120.0);
+    let summed: f64 = outcome.samples.iter().map(|s| s.metal_income).sum();
+    let plain = Objective::Made { terminal: 0.0 }.score(units, &outcome, 120.0);
+    assert!((plain - summed).abs() < 1.0, "made {plain} against the income summed {summed} (the shaping term is below one)");
+    let with_terminal = Objective::Made { terminal: 90.0 }.score(units, &outcome, 120.0);
+    let final_income = outcome.mean_metal_income(120.0, 30.0);
+    assert!((with_terminal - plain - 90.0 * final_income).abs() < 1e-6, "{with_terminal} against {plain} + 90 x {final_income}");
+    assert_eq!(Objective::parse("made"), Some(Objective::Made { terminal: 0.0 }));
+    assert_eq!(Objective::parse("made:90"), Some(Objective::Made { terminal: 90.0 }));
+    assert_eq!(Objective::parse("made").map(|o| o.name()), Some("made"));
+}

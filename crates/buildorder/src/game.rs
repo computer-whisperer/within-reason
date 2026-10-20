@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
 
-use bot_protocol::{MoveClass, Terrain, Vec3};
+use bot_protocol::{Hello, MoveClass, Terrain, UnitDefId, Vec3};
 use terrain::Field;
 
 use crate::sim::Scenario;
@@ -136,6 +136,23 @@ pub fn process_mean_wind(min: f64, max: f64) -> f64 {
 }
 
 impl Game {
+    /// The game as the bot's `Hello` describes it, for a bot in a game or the oracle run from a bot's dump of it:
+    /// `commander` is our commander's type, `home` where it stands at the first tick.
+    pub fn from_hello(hello: &Hello, commander: UnitDefId, home: (f64, f64)) -> Option<Game> {
+        let units = Units::new(&hello.unit_defs);
+        let commander = hello.unit_defs.iter().position(|d| d.id == commander)?;
+        Some(Game {
+            units,
+            commander,
+            home,
+            size: (hello.map.width as f64, hello.map.height as f64),
+            spots: hello.metal_spots.iter().map(|s| ((s.x as f64, s.z as f64), s.y as f64)).collect(),
+            wind: (hello.map.wind_min as f64, hello.map.wind_max as f64),
+            wind_override: None,
+            terrain: hello.terrain.clone(),
+        })
+    }
+
     /// The wind a plan is priced at: the mean of the engine's law for this map's bounds (`process_mean_wind`).
     pub fn mean_wind(&self) -> f64 {
         self.wind_override.unwrap_or_else(|| process_mean_wind(self.wind.0, self.wind.1))

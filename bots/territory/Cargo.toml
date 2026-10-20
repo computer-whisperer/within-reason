@@ -1,0 +1,15 @@
+[package]
+name = "bot-territory"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-2.0-or-later"
+description = "Heuristic bot that plans its economy by a rolling-horizon search over the build-order simulator; no model, no bot process"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ai-host = { path = "../../crates/ai-host" }
+bot-protocol = { path = "../../crates/bot-protocol" }
+buildorder = { path = "../../crates/buildorder" }
+serde_json = "1"

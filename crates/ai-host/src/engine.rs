@@ -658,15 +658,28 @@ impl Engine {
     /// metal spots, or the base's own generators bury the nearest extractor sites.
     pub fn find_build_site(&self, def: UnitDefId, site: &BuildSite) -> Option<(Vec3, Option<usize>)> {
         if call!(self, UnitDef_getExtractsResource(def.0, self.metal)) > 0.0 {
-            let mut at = [site.near.x, site.near.y, site.near.z];
+            let near = self.snap_to_build_grid(def, site.near);
+            let mut at = [near.x, near.y, near.z];
             return call!(self, Map_isPossibleToBuildAt(def.0, at.as_mut_ptr(), sys::UNIT_COMMAND_BUILD_NO_FACING))
-                .then_some((site.near, None));
+                .then_some((near, None));
         }
         if site.placements.is_empty() {
             return self.site_facing(def, site, sys::UNIT_COMMAND_BUILD_NO_FACING, &[]).map(|pos| (pos, None));
         }
         // The placements in the bot's order: the first facing with a site wins.
         site.placements.iter().enumerate().find_map(|(i, p)| self.site_facing(def, site, p.facing, &p.keep_out).map(|pos| (pos, Some(i))))
+    }
+
+    /// Where the engine would stand a building of `def` ordered at `pos` (`CGameHelper::Pos2BuildPos`: a 16-elmo grid,
+    /// offset by 8 on an axis whose footprint size in squares is 2 mod 4). The AI interface reports a standing unit
+    /// at its model's centre, which for Cortex's extractor is 0.01 off the grid; a tier-2 extractor ordered over it at
+    /// that position is denied by the game's "Deny Invalid Mex Orders" rule, which takes the order's position against
+    /// the unit's to the last digit when the unit counts as ours (terr2-nullai-comet-1: every tier-2 extractor order
+    /// of seat 0 as Cortex dropped by the engine, Armada's at .00 begun; K-mech-tier-2-extractor-stands-on-ours).
+    fn snap_to_build_grid(&self, def: UnitDefId, pos: Vec3) -> Vec3 {
+        let snap = |v: f32, size: c_int| if size & 2 != 0 { (v / 16.0).floor() * 16.0 + 8.0 } else { ((v + 8.0) / 16.0).floor() * 16.0 };
+        let (xs, zs) = (call!(self, UnitDef_getXSize(def.0)), call!(self, UnitDef_getZSize(def.0)));
+        Vec3 { x: snap(pos.x, xs), y: pos.y, z: snap(pos.z, zs) }
     }
 
     /// The closest site to `site.near` for one facing, off the metal spots and out of `keep_out` (our factories'

@@ -8,13 +8,16 @@ use buildorder::plan::Plan;
 use buildorder::record;
 use buildorder::sim::{simulate, Outcome, Sample, Scenario, State, Wind};
 
-const USAGE: &str = "usage: (the game, that is map, start, faction and unit numbers, comes from a match record's header)
-  buildorder optimize  --game RECORD.jsonl [--factory lab|vp] [--palette kit|roster] [--also silo,amd] [--minutes 10]
-                       [--objective income|army|mix|tempo|expect|reach:N|target:UNIT[:COUNT][@SECONDS][,round:UNIT..][,income:N@SECONDS]] [--contact WALK[,AT,WEIGHT]]
+const USAGE: &str = "usage: (the game, that is map, start, faction and unit numbers, comes from a match record's header, or from
+                       a territory bot's dump of its Hello with --hello FILE in place of --game)
+  buildorder optimize  --game RECORD.jsonl [--factory lab|vp] [--palette kit|roster] [--builders-only] [--also silo,amd] [--minutes 10]
+                       [--objective income|army|mix|tempo|expect|reach:N|made[:TERMINAL]|target:UNIT[:COUNT][@SECONDS][,round:UNIT..][,income:N@SECONDS]] [--contact WALK[,AT,WEIGHT]]
                        [--iterations 40000] [--restarts 8] [--seed 1] [--wind MEAN] [--detour X] [--factories 2] [--constructors 6] [--leash ELMOS]
                        [--no-nano] [--turret llt] [--nanos-to-factory] [--tax FROM:RATE,..] [--tax-energy 8] [--seed-chain UNIT[:COUNT]] [--csv FILE] [--plan-out FILE] [--json-out FILE]
                        (--detour X: open ground, every walk X straight lines, in place of the map's own ground; --also: unit types the
-                       roster's rule leaves out; reach:N: the fastest order to N metal a second; round:UNIT: a stockpile round, the first
+                       roster's rule leaves out; --builders-only: the factories make nothing but builders (the territory bot's economy);
+                       reach:N: the fastest order to N metal a second; made[:T]: metal made over the horizon plus T seconds of the final
+                       income, the territory bot's score; round:UNIT: a stockpile round, the first
                        missile; --tax: metal a second to soldiers from each time, M:SS or seconds, before any build; turrets help the
                        dearest frame in reach unless --nanos-to-factory)
   buildorder simulate  --game RECORD.jsonl --plan FILE [--minutes ..] [--wind ..] [--detour X] [--help-frames] [--tax ..] [--csv FILE]
@@ -60,9 +63,18 @@ fn die(message: &str) -> ! {
     std::process::exit(2)
 }
 
-/// The game of `--game`'s record, and the search's scenario in it: our half of the spots over open ground.
+/// The game of `--game`'s record, or of `--hello`'s dump: the territory bot writes `{"home": [x, z], "commander": ID,
+/// "hello": {...}}` (`bots/territory`), so the oracle runs from the start the bot had.
 fn game(args: &Args) -> Game {
-    let path = args.value("--game").unwrap_or_else(|| die("--game RECORD.jsonl is required"));
+    if let Some(path) = args.value("--hello") {
+        let text = std::fs::read_to_string(path).unwrap_or_else(|e| die(&format!("{path}: {e}")));
+        let dump: serde_json::Value = serde_json::from_str(&text).unwrap_or_else(|e| die(&format!("{path}: {e}")));
+        let hello: bot_protocol::Hello = serde_json::from_value(dump["hello"].clone()).unwrap_or_else(|e| die(&format!("{path}: {e}")));
+        let home = (dump["home"][0].as_f64().unwrap_or(0.0), dump["home"][1].as_f64().unwrap_or(0.0));
+        let commander = bot_protocol::UnitDefId(dump["commander"].as_i64().unwrap_or(-1) as i32);
+        return Game::from_hello(&hello, commander, home).unwrap_or_else(|| die(&format!("{path}: the commander's type is not in the unit table")));
+    }
+    let path = args.value("--game").unwrap_or_else(|| die("--game RECORD.jsonl is required (or --hello DUMP.json)"));
     record::read(path, 60.0).unwrap_or_else(|e| die(&e)).game
 }
 
@@ -176,10 +188,13 @@ fn optimize(args: &Args) {
     let factory_unit = game.factory(&factory).unwrap_or_else(|| die(&format!("the commander builds no {factory}")));
     let turret = units.index(&format!("{}{}", game.side(), args.text("--turret", "llt")));
     let water = game.terrain.heights.iter().any(|h| *h < 0);
-    let palette = match args.text("--palette", "kit").as_str() {
+    let mut palette = match args.text("--palette", "kit").as_str() {
         "roster" => Palette::roster(units, game.commander, turret, water, &also(&game, args)),
         _ => Palette::new(units, game.commander, factory_unit, !args.has("--no-nano"), turret),
     };
+    if args.has("--builders-only") {
+        palette.factory.retain(|i| matches!(i, buildorder::plan::Item::Build(u) if units.list[*u].role == buildorder::units::Role::Builder));
+    }
     let (factories_n, constructors_n) = (args.number::<usize>("--factories", 2), args.number::<usize>("--constructors", 6));
     let wind_mean = match scenario.wind { buildorder::sim::Wind::Constant(w) => w, _ => 10.0 };
     // `--seed-chain UNIT[:COUNT]`: start from the seed with the production chain to this unit laid through it, whatever
