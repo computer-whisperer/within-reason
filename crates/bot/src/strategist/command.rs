@@ -341,6 +341,9 @@ fn report(side: &Shared, first: bool) -> String {
         lines.push(build_power_line(*team, &b.build_power));
         lines.extend(side.direction.lock().unwrap().history_lines(*team));
     }
+    // What went between seats (H-COMMANDER-TRANSFERS-LINE): a direction that names a feed is checked here, not
+    // assumed (Center Command 2v4, 2026-10-19: three asks, 450 metal in nineteen minutes, and no line said so).
+    lines.extend(transfers_lines(side, frame));
     // What the players wrote since the last report: their notes, and the opening paragraph of each standing packet.
     let players: Vec<(i32, Arc<Shared>)> = side.players.lock().unwrap().iter().filter_map(|(team, p)| p.upgrade().map(|p| (*team, p))).collect();
     let mut direction = side.direction.lock().unwrap();
@@ -384,6 +387,46 @@ fn report(side: &Shared, first: bool) -> String {
     }
     lines.push(format!("your next report comes {} s of game after this one (`wait` changes it)", side.wake.lock().unwrap().max_seconds));
     lines.join("\n")
+}
+
+/// Metal and energy sent between seats, by pair, over the game and over the last three minutes, and the standing
+/// transfers in force; nothing when nothing was ever sent.
+fn transfers_lines(side: &Shared, frame: i32) -> Vec<String> {
+    use std::collections::BTreeMap;
+    let sent = side.sent.lock().unwrap().clone();
+    let standing = side.standing.lock().unwrap().clone();
+    if sent.is_empty() && standing.is_empty() {
+        return Vec::new();
+    }
+    let mut game: BTreeMap<(i32, i32), (f32, f32)> = BTreeMap::new();
+    let mut recent: BTreeMap<(i32, i32), (f32, f32)> = BTreeMap::new();
+    for s in &sent {
+        let e = game.entry((s.from_team, s.to_team)).or_default();
+        e.0 += s.metal;
+        e.1 += s.energy;
+        if frame - s.frame <= super::shared::SIDE_TRADE_FRAMES {
+            let e = recent.entry((s.from_team, s.to_team)).or_default();
+            e.0 += s.metal;
+            e.1 += s.energy;
+        }
+    }
+    let words = |m: &BTreeMap<(i32, i32), (f32, f32)>| m.iter().map(|((from, to), (metal, energy))| format!("t{from} to t{to} {metal:.0} metal and {energy:.0} energy")).collect::<Vec<_>>().join(", ");
+    let mut lines = vec![format!(
+        "transfers between seats (what each seat fed the others; the game caps a send at what the receiver's store holds): this game {}; the last three minutes {}",
+        if game.is_empty() { "none".to_string() } else { words(&game) },
+        if recent.is_empty() { "none".to_string() } else { words(&recent) }
+    )];
+    if !standing.is_empty() {
+        let parts: Vec<String> = standing
+            .iter()
+            .map(|(from, s)| {
+                let keep: Vec<String> = [s.keep_metal.map(|k| format!("above {k:.0} metal")), s.keep_energy.map(|k| format!("above {k:.0} energy"))].into_iter().flatten().collect();
+                format!("t{from} sends t{} everything {} every second since {} ({:.0} metal and {:.0} energy so far)", s.to_team, keep.join(" and "), clock(s.since), s.sent_metal, s.sent_energy)
+            })
+            .collect();
+        lines.push(format!("standing transfers in force: {}", parts.join("; ")));
+    }
+    lines
 }
 
 /// The commander's session and its side's state, alive while a seat's session holds it.

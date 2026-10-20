@@ -27,8 +27,10 @@ paid out of the income you have, and for three to five minutes the sprinting sea
 a tight map that gap is lethal, which is why the experienced duellists tech in 4 of 58 sides and why his tech is the
 moment to hit his base. On a larger map, with allies beside you, or once the fronts have settled, it is covered, and
 a game past twenty minutes is decided by who upgraded first; team games almost always go there. The call is yours:
-which seat sprints, when, and who feeds it. The cases, the team-game procedure and the arithmetic are under "Tier 2:
-the sprint" and the late-game part. The sprint is one seat's and the mohos are every seat's: a seat whose spots are
+which seat sprints, when, and who feeds it; and feeding is production, not surplus: the feeders' plants make nothing
+while the plant builds and a standing `transfer` carries their metal every second, since a seat spending as it earns
+never has a surplus to send (Center Command 2v4: 450 metal fed in nineteen minutes against three asks). The cases,
+the team-game procedure and the arithmetic are under "Tier 2: the sprint" and the late-game part. The sprint is one seat's and the mohos are every seat's: a seat whose spots are
 still tier 1 after the sprint seat's first moho is the side's largest unspent asset (the +60 Altored 3v3 of
 2026-10-19: two such seats for an hour). And tier-1 units trade badly against tier 2 and worse against tier 3 at any
 number: two Juggernauts killed 338 of ours after 44:00 in that game while about 200,000 metal of tier-1 output after

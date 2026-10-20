@@ -41,6 +41,21 @@ pub(crate) fn step_is_low(step: &str) -> bool {
     step_low(step_id(step).0).1
 }
 
+/// A list step's words without the word `start`, and whether it carried it: the builder places the frame and
+/// takes its next step the moment the frame stands up, leaving it to whoever finishes it (the tier-1 constructors
+/// and nanos the player lists with `finish`, the pick's finish moves), the way the people run one advanced
+/// constructor over many moho frames (H-HANDS-LIST-START; Center Command 2v4, 2026-10-19: u6bkep's borrowed Cortex
+/// constructor left two of its frames to his Armada constructors). "cormoho spot_28 start", "armfus home start #f1".
+pub(crate) fn step_start(body: &str) -> (String, bool) {
+    let start = body.split_whitespace().any(|w| w == "start");
+    (body.split_whitespace().filter(|w| *w != "start").collect::<Vec<_>>().join(" "), start)
+}
+
+/// Whether a whole step carries the word `start`.
+pub(crate) fn step_is_start(step: &str) -> bool {
+    step_start(&step_low(step_id(step).0).0).1
+}
+
 /// The seconds of a timed list step `assist N`; None for any other step.
 pub(super) fn timed_assist(step: &str) -> Option<i32> {
     let mut words = step.split_whitespace();
@@ -89,8 +104,14 @@ impl Pianist {
     fn note_tag(&mut self, tag: &str, builder: UnitId, own: &[OwnUnit], did: String, queue: bool, frame_now: i32) -> String {
         let task = if queue { self.queued.get(&builder) } else { self.tasks.get(&builder) }.cloned();
         match task {
-            Some(Task::Build { def, .. }) => {
-                self.tagged.insert(tag.to_string(), Tagged { def, claim: Some(builder), claimed: frame_now, building: None });
+            // A build on a frame that stands already (the id's frame finished by this builder) keeps the frame as
+            // the id's building: inserted with none, the id was free again the moment the frame stood and its
+            // builder moved on, and the next list to reach the step built the thing again (Center Command 2v4,
+            // 2026-10-19: a second advanced plant at 8:41, 62 s after the first stood, from a constructor listed
+            // at 4:27 while it was being built).
+            Some(Task::Build { def, frame, .. }) => {
+                let claimed = self.tagged.get(tag).filter(|_| frame.is_some()).map_or(frame_now, |t| t.claimed);
+                self.tagged.insert(tag.to_string(), Tagged { def, claim: Some(builder), claimed, building: frame });
                 format!("{did} (#{tag})")
             }
             Some(Task::Repair { target, .. }) | Some(Task::Assist { lab: target, .. }) => {
@@ -163,9 +184,12 @@ impl Brain {
             // repairing takes its next step at once (plan-1: the commander helped a plant from 3:46 to 14:24 while
             // four lists waited, since a guard order never ends). A build in progress keeps the 60 % rule.
             let list_frame = pianist.script_frame.get(&name).copied().unwrap_or(0);
+            // A build on a `start` step: the builder leaves the frame the moment it stands up, and its next order
+            // replaces the build rather than queueing behind it (H-HANDS-LIST-START).
+            let leaving = matches!(&task, Some(Task::Build { started: true, frame: Some(_), .. })) && pianist.list_steps.get(&unit.id).is_some_and(|(step, _)| step_is_start(step));
             let ready = match &task {
                 None => unit.idle,
-                Some(Task::Build { started: true, .. }) => status.queue_ahead,
+                Some(Task::Build { started: true, .. }) => status.queue_ahead || leaving,
                 // A list's own reclaim step (`reclaim <handle|cell|place>`) runs until the builder is idle: the unit,
                 // or the wrecks it was given, are gone. The bot's filler reclaim gives way to a list at once.
                 Some(Task::Reclaim { .. }) | Some(Task::ReclaimUnit { .. }) if pianist.list_steps.get(&unit.id).is_some_and(|(step, _)| step.starts_with("reclaim ")) => unit.idle,
@@ -200,7 +224,7 @@ impl Brain {
                 }
             }
             if let Some((order, step)) = self.next_list_step(unit, &name, &mut pianist, picture, own, frame, kit) {
-                steps.push((unit.id, order, step, status.queue_ahead));
+                steps.push((unit.id, order, step, status.queue_ahead && !leaving));
             }
         }
         // Several builders reaching one id's step on this tick: the nearest starts it, the rest help it.
@@ -227,6 +251,7 @@ impl Brain {
                         None => did,
                     };
                     let did = if step_is_low(&step) { format!("{did}; low priority on this step: it draws only surplus") } else { did };
+                    let did = if step_is_start(&step) { format!("{did}; it leaves the frame to other builders once it stands up (start)") } else { did };
                     pianist.done.push(format!("{} {name}: {did} (from its list)", clock(frame)));
                     pianist.played.push(json!({ "actor": name, "kind": "builder", "played": step, "did": did, "source": "list" }));
                     self.journal.note_from("list", frame, "builder", json!({ "actor": name, "step": step }), json!({ "did": did }));
@@ -333,6 +358,7 @@ impl Brain {
     pub(super) fn step_site(&self, step: Option<&str>, places: &[Place]) -> Option<Vec3> {
         let (body, _) = step_id(step?);
         let (body, _) = step_low(body);
+        let (body, _) = step_start(&body);
         let place = body.split_whitespace().nth(1)?;
         match place.strip_prefix("spot_").and_then(|n| n.parse::<usize>().ok()) {
             Some(i) => self.world.hello.metal_spots.get(i).copied(),
@@ -357,6 +383,7 @@ impl Brain {
             let step = pianist.scripts.get_mut(name)?.pop_front()?;
             let (body, tag) = step_id(&step);
             let (body, _) = step_low(body);
+            let (body, _) = step_start(&body);
             let mut words = body.split_whitespace();
             let kind = words.next().unwrap_or_default();
             // `extractor nearest` is the bare `extractor`: the free spot this builder reaches soonest, whatever the
@@ -604,7 +631,11 @@ mod tests {
     /// The word `low` anywhere in a step marks it and is not one of its words; a step without it is high.
     #[test]
     fn the_word_low_marks_a_step_and_leaves_its_words() {
-        use super::{step_is_low, step_low, timed_assist};
+        use super::{step_is_low, step_is_start, step_low, step_start, timed_assist};
+        assert_eq!(step_start("cormoho spot_28 start"), ("cormoho spot_28".to_string(), true));
+        assert_eq!(step_start("armsolar"), ("armsolar".to_string(), false));
+        assert!(step_is_start("armfus home start low #f1"));
+        assert!(!step_is_start("armfus home low #f1"));
         assert_eq!(step_low("assist 90 low"), ("assist 90".to_string(), true));
         assert_eq!(step_low("armsolar low"), ("armsolar".to_string(), true));
         assert_eq!(step_low("extractor spot_5"), ("extractor spot_5".to_string(), false));
@@ -679,10 +710,19 @@ mod tests {
         pianist.tagged.get_mut("avp1").unwrap().building = Some(frame);
         assert_eq!(pianist.tag_state("avp1", plant, second, &own), TagState::UnderWay(frame));
         assert_eq!(pianist.tag_state("avp1", plant, first, &own), TagState::Mine);
+        // A builder finishing the id's frame (a `finish`, a Task::Build with the frame) keeps the frame as the id's
+        // building: Center Command 2v4, 2026-10-19, the finish re-inserted the id with no building, and a builder
+        // listed while being built reached the step 62 s after the plant stood and built a second one.
+        pianist.tasks.insert(second, Task::Build { def: plant, near: Vec3::default(), spot: None, ordered: 120, started: true, frame: Some(frame) });
+        assert_eq!(pianist.note_tag("avp1", second, &own, "finish our plant".into(), false, 120), "finish our plant (#avp1)");
+        assert_eq!(pianist.tagged.get("avp1").and_then(|t| t.building), Some(frame));
         // It stands: every step with the id is done, also in a list sent again.
         own[2].being_built = false;
         pianist.tasks.remove(&first);
+        pianist.tasks.remove(&second);
         assert_eq!(pianist.tag_state("avp1", plant, first, &own), TagState::Stands);
+        let late = UnitId(3);
+        assert_eq!(pianist.tag_state("avp1", plant, late, &own), TagState::Stands);
         assert_eq!(pianist.tag_state("avp1", plant, second, &own), TagState::Stands);
         // It is destroyed: the id is free, and a step with it builds anew.
         own.pop();

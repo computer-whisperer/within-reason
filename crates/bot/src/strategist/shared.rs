@@ -611,6 +611,35 @@ pub enum Transfer {
     Units { handles: Vec<String>, to_team: i32 },
 }
 
+/// A standing transfer (H-PLAYER-STANDING-TRANSFER): every second the sending seat keeps `keep_metal` metal and
+/// `keep_energy` energy in its store and sends the rest to `to_team`, until the player lifts it. The one-shot
+/// `transfer` never fed a sprint (Center Command 2v4, 2026-10-19: the commander asked three times for "every 150
+/// metal that builds up", and 450 metal went in nineteen minutes, the feeders' stores standing at zero).
+#[derive(Clone, Debug)]
+pub struct Standing {
+    pub to_team: i32,
+    pub keep_metal: Option<f32>,
+    pub keep_energy: Option<f32>,
+    pub since: i32,
+    pub sent_metal: f32,
+    pub sent_energy: f32,
+    /// This minute's sends, for the hands' once-a-minute line.
+    pub minute_metal: f32,
+    pub minute_energy: f32,
+    pub minute_from: i32,
+}
+
+/// One send between seats, for the commander's transfers line (H-COMMANDER-TRANSFERS-LINE): what each seat fed
+/// the others, by the frame.
+#[derive(Clone, Copy, Debug)]
+pub struct Sent {
+    pub frame: i32,
+    pub from_team: i32,
+    pub to_team: i32,
+    pub metal: f32,
+    pub energy: f32,
+}
+
 /// State shared between the brain's thread, the MCP server and the strategist driver.
 #[derive(Default)]
 pub struct Shared {
@@ -681,6 +710,10 @@ pub struct Shared {
     pub firings: Mutex<Vec<Firing>>,
     /// The `transfer` tool's orders, taken by the seat that owns what is sent.
     pub transfers: Mutex<Vec<Transfer>>,
+    /// Standing transfers by the sending seat's team (`transfer` with `keep_metal` or `keep_energy`).
+    pub standing: Mutex<BTreeMap<i32, Standing>>,
+    /// Every send between seats this game, one-shot and standing, oldest first.
+    pub sent: Mutex<Vec<Sent>>,
     pub wake: Mutex<Wake>,
     /// Chat from people in the game, unread by the player: (frame, player number, the line with who said it).
     pub chat_in: Mutex<Vec<(i32, i32, String)>>,

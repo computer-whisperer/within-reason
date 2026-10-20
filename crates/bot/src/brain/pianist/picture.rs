@@ -387,10 +387,12 @@ impl Brain {
         let allowed = shared.allowed.lock().unwrap();
         let builder = actor.starts_with("commander") || actor.starts_with("constructor_");
         let mut allowance = allowed.get(actor).or_else(|| if builder { allowed.get("all_builders") } else { None }).or_else(|| allowed.get("all")).cloned()?;
-        // A role word in an entry ("constructor:1", "raider") is the faction's unit from here on.
+        // A role word in an entry ("constructor:1", "raider") is the faction's unit from here on: the actor's own
+        // faction (a factory or constructor given by a seat of another faction makes its own), else the seat's.
         if let Some(kit) = self.kit {
             let plant = actor.starts_with("plant_");
-            allowance.units = allowance.units.iter().map(|e| if plant { kit.roster.resolve_words_at_the_plant(e) } else { kit.roster.resolve_words(e) }).collect();
+            let roster = actor.rsplit('_').next().and_then(|n| n.parse::<i32>().ok()).and_then(|id| self.known_units.get(&bot_protocol::UnitId(id))).map_or(kit.roster, |(def, _)| crate::brain::roster::of_unit(self.name(*def)));
+            allowance.units = allowance.units.iter().map(|e| if plant { roster.resolve_words_at_the_plant(e) } else { roster.resolve_words(e) }).collect();
         }
         Some(allowance)
     }

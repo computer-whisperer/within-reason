@@ -64,12 +64,36 @@ factory draws about 80 energy a second while it is being built. Vehicles cost ei
 store is empty; the picture says STALLING when it is. An energy converter (`armmakr`) turns 70 energy a second into
 1 metal.
 
-**Tier 2, what it costs (Armada).** The advanced vehicle plant `armavp` 2,600 metal and 14,000 energy; the advanced
-bot lab `armalab` 2,600 and 15,000; an advanced constructor 550 and 6,800 (vehicle) or 430 and 6,900 (bot); an
-advanced extractor 620 and 7,700; a fusion reactor `armfus` 3,350 and 18,000 for 750 energy a second. On a Comet
-spot an advanced extractor adds 6.9 metal a second over the extractor it replaces: 90 seconds of its output is its
-own metal. The plant and one constructor before the first advanced extractor: 3,150 metal, 61 seconds of income at
-52 a second with nothing else built.
+**Tier 2, what it costs, in every faction a game can hold.** Every seat reads this whole table, not its own
+column: a seat's allies and its opponents are often of another faction (the lobby's "Random" is decided at the
+start), an advanced constructor an ally hands over builds its own faction's buildings (u6bkep built Cortex mohos
+with thebluegecko's `corack` on Center Command), and his tier-2 units are named by his faction when they appear.
+Metal / energy (the glossary, game source 54199a0d; the `units` tool has every unit's full entry by name):
+
+| | Armada | Cortex | Legion |
+|---|---|---|---|
+| advanced bot lab | `armalab` 2,600/15,000 | `coralab` 2,600/16,000 | `legalab` 2,600/16,000 |
+| advanced vehicle plant | `armavp` 2,600/14,000 | `coravp` 2,600/16,000 | `legavp` 2,500/16,000 |
+| advanced air plant | `armaap` 2,900/29,000 | `coraap` 2,900/28,000 | `legaap` 2,900/28,000 |
+| advanced constructor bot | `armack` 430/6,900 | `corack` 470/6,900 | `legack` 410/6,900 |
+| advanced constructor vehicle | `armacv` 550/6,800 | `coracv` 580/7,000 | `legacv` 530/6,600 |
+| advanced extractor (moho) | `armmoho` 620/7,700 | `cormoho` 640/8,100 | `legmoho` 640/8,100 |
+| fusion | `armfus` 3,350/18,000 | `corfus` 3,600/22,000 | `legfus` 4,000/25,000 |
+| advanced fusion | `armafus` 9,700/69,000 | `corafus` 9,700/48,000 | `legafus` 10,500/69,000 |
+| advanced solar | `armadvsol` 350/5,000 | `coradvsol` 370/4,000 | `legadvsol` 465/4,080 |
+| converter | `armmakr` 1/1,150 | `cormakr` 1/1,250 | `legeconv` 1/1,150 |
+| advanced converter | `armmmkr` 380/21,000 | `cormmkr` 370/21,000 | `legadveconv` 370/21,000 |
+| anti-nuke | `armamd` 1,500/38,000 | `corfmd` 1,500/40,000 | `legabm` 1,500/40,000 |
+| silo | `armsilo` 8,100/90,000 | `corsilo` 7,700/82,000 | `legsilo` 7,700/82,000 |
+| construction turret | `armnanotc` 230/3,200 | `cornanotc` 230/3,200 | `legnanotc` 230/3,200 |
+| metal storage | `armmstor` 330/570 | `cormstor` 340/590 | `legmstor` 340/590 |
+| energy storage | `armestor` 170/1,700 | `corestor` 175/1,800 | `legestor` 175/1,800 |
+| geothermal (on a vent) | `armgeo` 560/13,000 | `corgeo` 540/13,000 | `leggeo` 560/13,000 |
+
+On a Comet spot an advanced extractor adds 6.9 metal a second over the extractor it replaces: 90 seconds of its
+output is its own metal. The plant and one constructor before the first advanced extractor: 3,150 metal, 61 seconds
+of income at 52 a second with nothing else built, or three and a half minutes at 9 a second (the Center Command
+sprint seat, unfed).
 
 **Builders and build power.** Build power is what turns metal into things: a frame builds at the sum of the power on
 it, and its draw a second is that power times its cost over its build time. Metal / build power / metal per point /

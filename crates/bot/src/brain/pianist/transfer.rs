@@ -4,12 +4,16 @@
 use bot_protocol::{Command, Event, OwnUnit, Tick, UnitId};
 
 use super::super::Brain;
-use crate::strategist::shared::{Shared, Transfer};
+use crate::strategist::shared::{Sent, Shared, Transfer};
+
+/// A standing transfer sends only what is worth a net message: at least this much metal or energy.
+const STANDING_MIN: f32 = 5.0;
 
 impl Brain {
     /// The `transfer` tool's orders since the last ask: this seat sends the resources it was told to and the units
     /// of its own that were named; the rest stay for their seats.
     pub(in crate::brain) fn take_transfers(&mut self, tick: &Tick, commands: &mut Vec<Command>, shared: &Shared) {
+        self.keep_standing_transfer(tick, commands, shared);
         let transfers = std::mem::take(&mut *shared.transfers.lock().unwrap());
         if transfers.is_empty() {
             return;
@@ -28,6 +32,7 @@ impl Brain {
                     let (have_m, have_e) = (tick.snapshot.metal.current, tick.snapshot.energy.current);
                     let (m, e) = (metal.min(have_m).max(0.0), energy.min(have_e).max(0.0));
                     commands.push(Command::SendResources { metal: m, energy: e, to_team });
+                    shared.sent.lock().unwrap().push(Sent { frame: tick.frame, from_team: team, to_team, metal: m, energy: e });
                     notes.push(format!("sent {m:.0} metal and {e:.0} energy to t{to_team} on order{}", if m < metal || e < energy { format!(" (the store held {have_m:.0} metal and {have_e:.0} energy: less than asked)") } else { String::new() }));
                 }
                 Transfer::Units { handles, to_team } => {
@@ -78,6 +83,39 @@ impl Brain {
             for text in notes {
                 pianist.done.push(format!("{} {text}", super::clock(frame)));
                 pianist.note(frame, text);
+            }
+        }
+    }
+
+    /// This seat's standing transfer, once a second (H-PLAYER-STANDING-TRANSFER): what the store holds above the
+    /// kept amounts goes to the named seat, and a line a minute says what went.
+    fn keep_standing_transfer(&mut self, tick: &Tick, commands: &mut Vec<Command>, shared: &Shared) {
+        if tick.frame % 30 != 0 {
+            return;
+        }
+        let team = self.world.hello.team;
+        let mut standing = shared.standing.lock().unwrap();
+        let Some(s) = standing.get_mut(&team) else { return };
+        let excess = |have: f32, keep: Option<f32>| keep.map_or(0.0, |k| (have - k).max(0.0));
+        let (m, e) = (excess(tick.snapshot.metal.current, s.keep_metal), excess(tick.snapshot.energy.current, s.keep_energy));
+        if m >= STANDING_MIN || e >= STANDING_MIN {
+            let (m, e) = (if m >= STANDING_MIN { m } else { 0.0 }, if e >= STANDING_MIN { e } else { 0.0 });
+            commands.push(Command::SendResources { metal: m, energy: e, to_team: s.to_team });
+            s.sent_metal += m;
+            s.sent_energy += e;
+            s.minute_metal += m;
+            s.minute_energy += e;
+            shared.sent.lock().unwrap().push(Sent { frame: tick.frame, from_team: team, to_team: s.to_team, metal: m, energy: e });
+        }
+        if tick.frame - s.minute_from >= 60 * 30 {
+            let text = format!("standing transfer to t{}: sent {:.0} metal and {:.0} energy this minute ({:.0} and {:.0} since {})", s.to_team, s.minute_metal, s.minute_energy, s.sent_metal, s.sent_energy, super::clock(s.since));
+            s.minute_from = tick.frame;
+            s.minute_metal = 0.0;
+            s.minute_energy = 0.0;
+            drop(standing);
+            if let Some(pianist) = self.pianist.as_mut() {
+                pianist.done.push(format!("{} {text}", super::clock(tick.frame)));
+                pianist.note(tick.frame, text);
             }
         }
     }

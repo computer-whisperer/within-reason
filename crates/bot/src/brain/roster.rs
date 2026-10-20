@@ -162,6 +162,23 @@ const USUAL_LEGION: &[&str] = &[
     "legafus", "legageo", "legamstor", "legadvestore", "legajam", "legapopupdef", "legbastion", "legacluster", "legabm", "legtarg",
 ];
 
+/// The roster of a faction by the name `World::faction_of` gives (armada, cortex, legion); Armada's for anything else.
+pub fn for_faction(faction: &str) -> &'static Roster {
+    match faction {
+        "cortex" => &ROSTERS[1],
+        "legion" => &ROSTERS[2],
+        _ => &ROSTERS[0],
+    }
+}
+
+/// The roster of the faction a unit's internal name belongs to: a role word on a builder's list is that builder's
+/// faction's unit, not the seat's (Center Command 2v4, 2026-10-19: a Cortex advanced constructor given to the Armada
+/// seat idled three minutes on `advanced_extractor`, resolved to the Armada moho it could not build, while the people
+/// built Cortex mohos with the one they shared the same way).
+pub fn of_unit(unit_name: &str) -> &'static Roster {
+    for_faction(World::faction_of(unit_name))
+}
+
 /// The usual list for a builder of the faction its name belongs to.
 pub fn usual_menu(builder_name: &str) -> &'static [&'static str] {
     match World::faction_of(builder_name) {
@@ -255,6 +272,10 @@ mod tests {
         assert_eq!(cor.resolve_words("constructor:1"), "corck:1");
         assert_eq!(arm.resolve_words("lab #l1"), "armlab #l1");
         assert_eq!(arm.resolve_words("corsolar"), "corsolar");
+        // A role word on a builder of another faction is that faction's unit (a borrowed constructor).
+        assert_eq!(of_unit("coracv").resolve_words("advanced_extractor spot_2"), "cormoho spot_2");
+        assert_eq!(of_unit("armck").resolve_words("advanced_extractor spot_2"), "armmoho spot_2");
+        assert_eq!(for_faction("legion").resolve_words("nano"), "legnanotc");
         assert_eq!(arm.resolve_words_at_the_plant("raider:5"), "armflash:5");
         assert_eq!(cor.resolve_words_at_the_plant("constructor:1"), "corcv:1");
         assert_eq!(arm.resolve_words_at_the_plant("line"), "armstump");

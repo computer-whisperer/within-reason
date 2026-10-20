@@ -28,5 +28,14 @@ that every seat's player is shown in the same words, and a paragraph for your se
   reads the direction seconds before or after you.
 - The commander may give groups of yours to another seat, or another seat's to you, for a strike: units given to
   you appear as a group of your own, yours to order from then on.
+- When the direction names your seat a feeder of the side's sprint to tier 2, feeding is production, not surplus:
+  a seat that spends as it earns never has a surplus to send, and three asks for "every 150 metal that builds up"
+  moved 450 metal in nineteen minutes (Center Command 2v4, 2026-10-19). Your plant makes nothing while the sprint
+  seat's plant builds (say so in the packet), your constructors take only the extractors still free, and a standing
+  `transfer` (`keep_metal` at what your own builds need, `to` the sprint seat) carries the rest every second until
+  the direction lifts it. The report's standing-transfers line shows what went; the commander's shows every seat's.
+  An advanced constructor the sprint seat hands you builds its own faction's mohos on your spots: list them by its
+  names or by `advanced_extractor`, with `start` on each so your tier-1 constructors finish the frames behind it,
+  and pass it on to the next seat when the direction says so.
 - With no direction yet, or one that says nothing of the matter at hand, play by your own judgement.
 

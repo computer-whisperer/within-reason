@@ -601,12 +601,17 @@ pub struct Aside<'a> {
     pub fights: &'a [String],
     pub chat: &'a [String],
     pub others: &'a [String],
+    /// Standing transfers touching this player's seats (H-PLAYER-STANDING-TRANSFER).
+    pub standing: &'a [String],
 }
 
 pub fn player_report(seen: &mut Seen, briefing: &Briefing, field: &Field, hands: &Hands, aside: &Aside, full: bool) -> String {
     let mut lines = front(briefing, field, aside.fights, true);
     if !aside.others.is_empty() {
         lines.push(format!("our other seats (under the same commander; `transfer` reaches them by tag, and a seat whose plant is going up is fed by the others): {}", aside.others.join(" | ")));
+    }
+    if !aside.standing.is_empty() {
+        lines.push(format!("standing transfers: {}", aside.standing.join("; ")));
     }
     lines.extend(contact(briefing, field));
     lines.extend(recently_seen(&hands.picture));

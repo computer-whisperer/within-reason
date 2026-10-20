@@ -56,6 +56,18 @@ In three of these we were ahead on units traded when we lost.
   plants kept producing until 17:39, when thebluegecko said to stop them.
 - bluegecko-3v1-12: three transfers, a dying seat's units and 700 metal to a live one at 11:41 to 12:13.
 - human-10 (three seats): 35 extractors and 70 metal a second at 12:00.
+- Center Command 2v4 (2026-10-19, lost about 21:05): two people on 12 spots each against our four seats on 6. They
+  ran one sprint as a team: thebluegecko's advanced bot lab placed at 7:06 on 11 extractors and a 1,165 bank, his
+  tier-1 lab reclaimed the same second, the plant standing at 8:52, five advanced constructors by 10:15 with the
+  second handed to u6bkep, who built Cortex mohos on his Armada spots with it from 9:47; mohos 19 to 33 s each with
+  tier-1 constructors and nanos on the frames, 8 standing at 12:00, 12 at 13:00, 21 at 17:00, 37 at 20:00; the
+  advanced bot lab reclaimed at 13:21 for an advanced vehicle plant placed forward at E2 (standing in 45 s), that
+  one reclaimed at 18:45 for an air plant (5 s, with 26 nanos), 75 construction turrets by 21:00. Ours: the sprint
+  seat placed its plant at 4:15 on 9 metal a second and had it standing at 7:39; the other three seats sent it 450
+  metal before 19:32 against three asks from the commander, their stores at zero, having ordered about 12,000 metal
+  of tanks in minutes 4 to 12; its own tier-1 plant kept a constructor frame crawling from 4:09 to 8:33 and was
+  reclaimed at 9:41; first moho 11:25, each 90 to 135 s on one constructor alone, 7 mohos at the peak and one
+  construction turret on the side. Side income: theirs 55 at 8:00, 106 at 12:00, 250 at 15:00; ours 59, 56, 63.
 
 What the people said about it is in "What players said" under tier 2.
 

@@ -190,8 +190,8 @@ fn tool_list() -> Value {
               "description": "What each factory or builder may build, and for a factory which group its new soldiers join ({\"plant_7\": {\"units\": [\"armflash\"], \"group\": \"group_A\"}}, or \"new\" for a fresh group of that factory's own, or \"by_type\" for one group of that factory's per unit type, so its Rovers and its Blitzes never share a group; by default a factory's soldiers gather in one group of its own and nothing merges by itself) and how they walk to it (\"join_in\": 4: its new soldiers wait beside the plant, out of its lane, and walk to their group four together, never alone; null lifts it): an object of actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" (every commander and constructor) or \"all\" (everyone) to a list of unit names (as the roster writes them: armpw, armham, armck, armfus; or role words the seat's faction fills in: constructor, vehicle_constructor, raider, line, rez, advanced_constructor, and the buildings' role words), or null to lift the restriction. A name with a count after a colon (armck:1) is made that many more times from now and then drops off the list by itself; a factory makes its counted entries in the order written, each to its count, without asking (armcv:1, armfav:3, armcv:1, armflash is one constructor, three Rovers, one constructor, then Blitzes); saying the same list again restarts it from the first entry: the way to say 'one constructor, then raiders' to hands that cannot count. With no counted entry left a factory is offered only the entries without a count, every time it is asked; your instructions say which of them and when. A builder without a list is offered the usual buildings (generators, factories, light and heavy turrets, radar, storage, the tier-2 lab and extractor, fusion); a list replaces that, so a fusion reactor, an aircraft plant or a jammer from a constructor is asked for here. Use it when the packet's words are not getting the mix you want. A list naming nothing the actor can build leaves it unrestricted; the actor's entry in the picture shows its list. Your policy is not bound by lists: it may order anything a builder can build.",
               "inputSchema": { "type": "object", "additionalProperties": { "oneOf": [ { "type": "array", "items": { "type": "string" } }, { "type": "null" } ] }, "description": "Actor name (lab_N, plant_N, factory_N, commander, constructor_N), \"all_builders\" or \"all\" to unit names, or null." } },
             { "name": "transfer",
-              "description": "Move metal or energy to another seat of our side, ours or an ally's (seats of ours by tag in the `seats:` or `our other seats` line, allies in the `allies` line), and units between seats of ours: {\"metal\": 800, \"energy\": 0, \"from\": \"t2\", \"to\": \"t1\"} sends what the receiving seat's store can hold (the game caps it there; what does not fit stays), or {\"units\": [\"group_A_t2\", \"constructor_31002\", \"plant_4410\"], \"to\": \"t1\"} gives those units (a group's members, a builder, a plant, by actor name or <unit>_<id> handle) to that seat of ours, whose hands take them into a group of their own and whose builders they become. What it makes possible: the sprint to tier 2 (the seat whose advanced plant is placed fed by the others until it stands, its advanced constructors given to each seat), a sprinting ally fed the same way, one army under one seat, a dead seat's plants and constructors given to a live one. Your hands carry it out from their next look and say what went.",
-              "inputSchema": { "type": "object", "properties": { "metal": { "type": "number" }, "energy": { "type": "number" }, "units": { "type": "array", "items": { "type": "string" } }, "from": { "type": "string" }, "to": { "type": "string" } }, "required": ["to"] } },
+              "description": "Move metal or energy to another seat of our side, ours or an ally's (seats of ours by tag in the `seats:` or `our other seats` line, allies in the `allies` line), and units between seats of ours: {\"metal\": 800, \"energy\": 0, \"from\": \"t2\", \"to\": \"t1\"} sends what the receiving seat's store can hold (the game caps it there; what does not fit stays), or {\"units\": [\"group_A_t2\", \"constructor_31002\", \"plant_4410\"], \"to\": \"t1\"} gives those units (a group's members, a builder, a plant, by actor name or <unit>_<id> handle) to that seat of ours, whose hands take them into a group of their own and whose builders they become; a constructor or factory of another faction builds its own faction's things there (write them by their own names or by role words). A standing transfer, {\"from\": \"t2\", \"to\": \"t5\", \"keep_metal\": 100, \"keep_energy\": 2000}, has t2's hands send t5 everything above those amounts in t2's store every second until {\"from\": \"t2\", \"standing\": false} lifts it; one keep or both. This is how a seat feeds a sprint: a one-shot send moves a surplus, and a seat spending as it earns never has one (Center Command 2v4: 450 metal fed in nineteen minutes against three asks). What it makes possible: the sprint to tier 2 (the seat whose advanced plant is placed fed by the others until it stands, its advanced constructors given to each seat and passed on), a sprinting ally fed the same way, one army under one seat, a dead seat's plants and constructors given to a live one. Your hands carry it out from their next look and say what went.",
+              "inputSchema": { "type": "object", "properties": { "metal": { "type": "number" }, "energy": { "type": "number" }, "units": { "type": "array", "items": { "type": "string" } }, "from": { "type": "string" }, "to": { "type": "string" }, "keep_metal": { "type": "number" }, "keep_energy": { "type": "number" }, "standing": { "type": "boolean" } } } },
             { "name": "remove",
               "description": "Take apart or blow up what we own: {\"reclaim\": [handles], \"by\": \"constructor_N\" (optional; else the nearest builder without a list)} puts `reclaim <handle>` steps at the front of that builder's list, and most of the metal comes back; {\"destruct\": [handles]} sends the engine's self-destruct, and nothing comes back. A handle is a unit's name and id as the picture writes it (armsolar_31002: a factory's `yard` entry names the buildings in its exit lane) or an actor's name (constructor_N, plant_N, commander); for a reclaim, \"<type> at <place or grid cell>\" (\"armwin at spot_64\", \"armsolar at E4\") names the nearest standing unit of that type to the place, for a building the picture gives no handle for, and \"unfinished <type> at <place or grid cell>\" the nearest unfinished frame of the type there (the report's `unfinished structures` line gives frames' handles too). Every unit that self-destructs blows up: the answer says the blast's radius and damage and what of ours stands inside it, and a destruct that would kill something of ours is refused unless \"accept_losses\": true. The commander's blast is the game's largest; a reclaim is the safe way beside anything that matters.",
               "inputSchema": { "type": "object", "additionalProperties": false, "properties": { "reclaim": { "type": "array", "items": { "type": "string" } }, "by": { "type": "string" }, "destruct": { "type": "array", "items": { "type": "string" } }, "accept_losses": { "type": "boolean" } } } },
@@ -563,8 +563,13 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                             let (body, tag) = step_id(step);
                             // The word `low` (the builder draws only surplus on the step) is not one of the step's words.
                             let (body, _) = crate::brain::pianist::step_low(body);
+                            // The word `start` (the builder leaves the frame once it stands up) is not one of the step's words either.
+                            let (body, start) = crate::brain::pianist::step_start(&body);
                             let mut words = body.split_whitespace();
                             let kind = words.next().unwrap_or_default();
+                            if start && matches!(kind, "assist" | "stop" | "reclaim" | "finish" | "extractor") {
+                                return Err(format!("{name}: '{step}': `start` goes on a step that builds a structure by name (cormoho spot_28 start): the builder places the frame and moves on"));
+                            }
                             // An id is the step's last word (`#avp1`), on a step that builds something.
                             if body.split_whitespace().any(|w| w.starts_with('#')) {
                                 return Err(format!("{name}: '{step}': an id is one word after everything else in the step (armavp avp_yard #avp1)"));
@@ -580,8 +585,12 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                             if kind == "stop" && i > 0 {
                                 return Err(format!("{name}: 'stop' only begins a list (it drops the build in progress, then the list follows)"));
                             }
-                            if !matches!(kind, "extractor" | "assist" | "stop" | "reclaim" | "finish") && !crate::brain::roster::ROLE_WORDS.contains(&kind) && !roster.is_empty() && !roster.contains(&kind.to_string()) {
-                                return Err(format!("{name}: '{step}' is not a step; a step is extractor, assist, reclaim, finish, a role word ({}) or a unit's internal name from the roster (armsolar, armllt spot_3)", crate::brain::roster::ROLE_WORDS.join(", ")));
+                            // A unit of another faction is a step too when this builder makes it (a constructor given by a
+                            // seat of that faction: Center Command 2v4, 2026-10-19, `cormoho` refused to the Armada seat
+                            // holding a Cortex advanced constructor, which then held no mohos all game).
+                            let builder_makes = field.builders.get(name.as_str()).is_some_and(|can| can.contains_key(kind));
+                            if !matches!(kind, "extractor" | "assist" | "stop" | "reclaim" | "finish") && !crate::brain::roster::ROLE_WORDS.contains(&kind) && !roster.is_empty() && !roster.contains(&kind.to_string()) && !builder_makes {
+                                return Err(format!("{name}: '{step}' is not a step; a step is extractor, assist, reclaim, finish, a role word ({}) or a unit's internal name from the roster (armsolar, armllt spot_3), or of another faction when this builder makes it", crate::brain::roster::ROLE_WORDS.join(", ")));
                             }
                             // `finish <handle>`: an unfinished structure of ours by its handle.
                             if kind == "finish" {
@@ -641,6 +650,7 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 for step in list.iter().flatten() {
                     let (body, tag) = step_id(step);
                     let (body, _) = crate::brain::pianist::step_low(body);
+                    let (body, _) = crate::brain::pianist::step_start(&body);
                     match tag {
                         Some(tag) => match tags.get(tag) {
                             Some((first, on)) if *first != body => return Err(format!("#{tag} names two buildings: '{first}' on {on}'s list and '{body}' on {name}'s; an id is one building, written the same on every list")),
@@ -751,7 +761,11 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
         }
         "produce" => {
             let lists = arguments.as_object().filter(|o| !o.is_empty()).ok_or("produce takes an object: factory name (lab_N or plant_N) or \"all\" to a list of unit names, or to {\"units\": [...], \"group\": \"group_A\" | \"new\" | \"by_type\", \"join_in\": N} for a factory")?;
-            let known: Vec<String> = shared.field().roster.iter().map(|(name, _)| name.clone()).collect();
+            // The seat's roster, and what its builders and factories make now: a factory or constructor of another
+            // faction, given by an ally, makes its own faction's units.
+            let field = shared.field();
+            let mut known: Vec<String> = field.roster.iter().map(|(name, _)| name.clone()).collect();
+            known.extend(field.buildable.iter().map(|(name, _)| name.clone()));
             let groups: Vec<String> = shared.hands_merged(false).picture["actors"].as_object().map(|a| a.keys().filter(|k| k.starts_with("group_")).cloned().collect()).unwrap_or_default();
             let check_units = |name: &str, items: &[Value]| -> Result<Vec<String>, String> {
                 let units: Vec<String> = items.iter().map(|v| v.as_str().map(str::to_string).ok_or_else(|| format!("{name}: unit names are strings"))).collect::<Result<_, _>>()?;
@@ -905,6 +919,15 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
                 let text = v.as_str().ok_or("from and to are seat tags such as \"t2\"")?;
                 text.trim().trim_start_matches('t').parse::<i32>().map_err(|_| format!("{text}: a seat tag is t<team>, as the seats line writes it"))
             };
+            // Lifting a standing transfer names the sender alone.
+            let lift = matches!(&arguments["standing"], Value::Bool(false)) || arguments["standing"].as_str().is_some_and(|s| matches!(s.trim(), "off" | "stop" | "no"));
+            if lift {
+                let from = team_of(&arguments["from"])?;
+                return match shared.standing.lock().unwrap().remove(&from) {
+                    Some(s) => Ok(format!("t{from}'s standing transfer to t{} is lifted; it sent {:.0} metal and {:.0} energy since {}", s.to_team, s.sent_metal, s.sent_energy, crate::brain::pianist::clock(s.since))),
+                    None => Err(format!("t{from} has no standing transfer")),
+                };
+            }
             let to = team_of(&arguments["to"])?;
             let live = shared.live_seats();
             // An allied seat that is not ours takes metal and energy (H-TRANSFER-TO-ALLIES; the user, 2026-10-18: a
@@ -918,8 +941,27 @@ fn call_tool(name: &str, arguments: &Value, shared: &Arc<Shared>) -> Result<Stri
             let metal = arguments["metal"].as_f64().unwrap_or(0.0) as f32;
             let energy = arguments["energy"].as_f64().unwrap_or(0.0) as f32;
             let units: Vec<String> = arguments["units"].as_array().map(|a| a.iter().filter_map(|v| v.as_str().map(|s| s.trim().to_string())).collect()).unwrap_or_default();
+            // A standing transfer (H-PLAYER-STANDING-TRANSFER): `keep_metal` and/or `keep_energy` with from and to,
+            // kept by the hands every second until `standing: false` (or "off") with from lifts it.
+            let keep_metal = arguments["keep_metal"].as_f64().map(|v| v.max(0.0) as f32);
+            let keep_energy = arguments["keep_energy"].as_f64().map(|v| v.max(0.0) as f32);
+            if keep_metal.is_some() || keep_energy.is_some() {
+                let from = team_of(&arguments["from"])?;
+                if from == to {
+                    return Err("from and to are the same seat".into());
+                }
+                if !live.contains(&from) {
+                    return Err(format!("t{from} is not a seat of ours in this game"));
+                }
+                let frame = shared.briefing().frame;
+                let mut standing = shared.standing.lock().unwrap();
+                let before = standing.get(&from).map(|s| (s.sent_metal, s.sent_energy, s.since)).unwrap_or((0.0, 0.0, frame));
+                standing.insert(from, super::shared::Standing { to_team: to, keep_metal, keep_energy, since: before.2, sent_metal: before.0, sent_energy: before.1, minute_metal: 0.0, minute_energy: 0.0, minute_from: frame });
+                let what: Vec<String> = [keep_metal.map(|k| format!("every metal above {k:.0} in its store")), keep_energy.map(|k| format!("every energy above {k:.0}"))].into_iter().flatten().collect();
+                return Ok(format!("standing: t{from} sends t{to} {} every second from now until you lift it ({{\"from\": \"t{from}\", \"standing\": false}}); its report and yours say what went. What t{to}'s store cannot hold stays with t{from}, so t{to} spends or stores as it comes.", what.join(" and ")));
+            }
             if metal <= 0.0 && energy <= 0.0 && units.is_empty() {
-                return Err("transfer takes metal and/or energy with from and to, or units with to".into());
+                return Err("transfer takes metal and/or energy with from and to, or units with to; or keep_metal / keep_energy with from and to for a standing transfer".into());
             }
             if to_ally && !units.is_empty() {
                 return Err(format!("t{to} is an allied seat, not ours: metal and energy may go to it, units only to a seat of ours"));
@@ -1219,6 +1261,12 @@ mod tests {
         assert!(said.contains("t5 sends 300 metal and 0 energy to t7"), "{said}");
         let err = call_tool("transfer", &json!({ "units": ["group_A"], "to": "t7" }), &shared).unwrap_err();
         assert!(err.contains("allied seat, not ours"), "{err}");
+        // A standing transfer (H-PLAYER-STANDING-TRANSFER): set with a keep, lifted by the sender alone.
+        let standing = call_tool("transfer", &json!({ "from": "t5", "to": "t7", "keep_metal": 100 }), &shared).unwrap();
+        assert!(standing.contains("standing: t5 sends t7 every metal above 100"), "{standing}");
+        assert_eq!(shared.standing.lock().unwrap().get(&5).map(|s| (s.to_team, s.keep_metal, s.keep_energy)), Some((7, Some(100.0), None)));
+        assert!(call_tool("transfer", &json!({ "from": "t5", "standing": false }), &shared).unwrap().contains("lifted"));
+        assert!(call_tool("transfer", &json!({ "from": "t5", "standing": false }), &shared).unwrap_err().contains("no standing transfer"));
         let err = call_tool("transfer", &json!({ "metal": 300, "from": "t5", "to": "t2" }), &shared).unwrap_err();
         assert!(err.contains("not a seat of our side") && err.contains("allies: t6, t7"), "{err}");
     }
@@ -1262,6 +1310,13 @@ mod tests {
         assert!(call_tool("queue", &json!({ "commander": ["turret"] }), &shared).unwrap_err().contains("stands at a place"));
         assert!(call_tool("queue", &json!({ "commander": ["armllt spot_3", "turret spot_4", "extractor", "extractor nearest", "armsolar low", "assist"] }), &shared).is_ok());
         assert!(call_tool("queue", &json!({ "constructor_9": ["armnanotc"] }), &shared).is_ok());
+        // A constructor of another faction (given by an ally) takes its own faction's names: what it makes is a step
+        // whatever the seat's roster says (Center Command 2v4: `cormoho` refused to the Armada seat's borrowed Cortex constructor).
+        let borrowed = std::collections::BTreeMap::from([("constructor_14291".to_string(), std::collections::BTreeMap::from([("cormoho".to_string(), true), ("advanced_extractor".to_string(), true), ("corfus".to_string(), false)]))]);
+        shared.publish_field(0, super::super::shared::Field { roster: vec![("armsolar".into(), 155), ("armmoho".into(), 620)], builders: borrowed, ..Default::default() });
+        assert!(call_tool("queue", &json!({ "constructor_14291": ["cormoho spot_2", "advanced_extractor spot_4 start", "corfus home"] }), &shared).is_ok());
+        assert!(call_tool("queue", &json!({ "constructor_14291": ["corgant"] }), &shared).is_err());
+        assert!(call_tool("queue", &json!({ "constructor_14291": ["assist 30 start"] }), &shared).unwrap_err().contains("start"));
         // `signal` goes in an `orders` batch like the other levers (impedance tally 2026-10-16: 38 refusals in 23 games).
         assert!(batchable().contains(&"signal"));
         assert!(call_tool("produce", &json!({ "all": ["raiders"] }), &shared).unwrap_err().contains("role word"));

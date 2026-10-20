@@ -169,15 +169,22 @@ missile, ends a game. The `fire` tool sends a ready missile at a place in coordi
 now (a silo at its limit is a 1,042 energy a second draw until it holds ten), and a silo or anti-nuke listed without a
 place goes to the back field at home with the generators.
 
-**An anti-nuke under every home once his tier 2 stands is due diligence, not a reaction** (the user, 2026-10-19).
-Every opponent that reaches tier 2 can build a silo, nothing in sight warns of one (it stands in his base and the
-missile needs no sight of its target), and the first silo seen is already late: in the +60 Altored 3v3 Apex's first
-silo stood at 24:28, was in our picture at 33:19, and its missile had landed on the west of t2's home at 33:12 (five
-mohos, a flak gun, a construction turret and the generators within 800 of the point); our first anti-nuke was ordered
-that turn and stood at 34:43, 90 s from its first interceptor; t0's home, whose seat had no advanced constructor, was
-covered by t2's from 40:23, and a second missile landed there at 50:36, one second after that anti-nuke died. The
-anti-nuke is an advanced constructor's build, so the seat with one covers the seats without, with a `queue` step at
-their homes. A missile strike or a death blast (a Juggernaut's is 10,600 over 640, nearly a warhead's) reads in the
-losses as deaths with no killer named; the report says which it was when it can tell.
+**The anti-nuke goes up on the opponent's clock, not on his tier 2** (the user, 2026-10-20: "we have definitely
+been building the anti-nuke too early in these games"). Nothing in sight warns of a silo (it stands in his base and
+the missile needs no sight of its target) and the first silo seen is already late: in the +60 Altored 3v3 Apex's
+first silo stood at 24:28, was in our picture at 33:19, and its missile had landed on the west of t2's home at 33:12
+(five mohos, a flak gun, a construction turret and the generators within 800 of the point); our first anti-nuke was
+ordered that turn and stood at 34:43, 90 s from its first interceptor. So the timing is the opponent's habit, and
+the habits differ. The experienced people we play build a silo very late or never: thebluegecko and u6bkep built none
+in 21 minutes on Center Command (2026-10-19) while standing 37 mohos and two fusions, and computer_whisperer's two
+missiles on Cape Violet came after 30:00 at +100 % income. BARb hard_aggressive has its own clock (its anti-nuke at
+21-25 in 27 of 33 long games, a silo begun 29:50 in nuke-2-hard); Apex at +60 placed one at 24:28 in one game and
+none in the next (K-opp-people-nuke-late-or-never, K-barb-anti-nuke-by-minute). Against people, an anti-nuke before
+the seat's spots are mohos is 1,500 metal that was two and a half mohos: ours on Center Command went up in minutes
+12 to 16 at a seat holding two mohos, and nothing ever flew. Against BARb or Apex it goes up as their clock nears,
+and in a long game against anyone, once the mohos stand, one covers the homes within 2,000 of it. It is an advanced
+constructor's build, so the seat with one covers the seats without, with a `queue` step at their homes. A missile
+strike or a death blast (a Juggernaut's is 10,600 over 640, nearly a warhead's) reads in the losses as deaths with no
+killer named; the report says which it was when it can tell.
 
 **What players said** on the late game is under "What players said", on tier 2.

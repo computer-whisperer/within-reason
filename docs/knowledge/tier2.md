@@ -502,3 +502,53 @@ advanced fusion's frame took far longer than build_time over the power on it wit
 **Used by.** The briefs' late-game arithmetic and "Scaling past the mohos" passage; the glossary's `armafus`/`corafus`
 and `armmmkr`/`cormmkr` lines; K-t2-moho-first, K-t2-moho-energy, K-t2-fusion-numbers, K-t2-advanced-converter.
 
+
+### K-t2-people-share-advanced-constructors-across-factions
+**Claim.** Experienced players run one sprint for a team: one advanced lab, its constructors handed to the other
+seats whatever their faction, and a borrowed constructor builds its own faction's mohos on the receiving seat's spots
+while that seat's tier-1 constructors finish the frames.
+**Status.** supported (2026-10-20, one game).
+**Evidence.** Center Command 2v4 (`run/matches/1792466765-replay-center-command-2v4b`, the engine replay):
+thebluegecko's `coralab` stood 8:52; his second `corack` (29718) was u6bkep's by 9:47 and built `cormoho` on
+u6bkep's Armada spots (9:47, 10:06, 11:25, ...), u6bkep's `armcv` doing 80-91 % of the builder samples on 16 of his
+18 moho frames and finishing two the corack left (9:47-11:02, 11:25-11:51). Our Armada seat, given a `coracv` at
+10:30, could order nothing with it (the tool and the role words followed the seat's faction) and held zero mohos.
+**Would be wrong if.** A borrowed constructor's frames stalled without its own faction's helpers, or the people were
+seen building a lab a seat instead.
+**Used by.** The roster-by-builder fix (`roster::of_unit`, 2026-10-20), H-HANDS-LIST-START, the brief's "The sprint
+in a team game".
+
+### K-t2-feeding-is-production-not-surplus
+**Claim.** A seat that spends as it earns has no surplus to send, so a sprint fed by one-shot transfers of "what
+builds up" is not fed; the feed is the feeders' production paused and their income carried over every second.
+**Status.** supported (2026-10-20, one game, with the +40/+50 Altored 3v3s as the fed cases).
+**Evidence.** Center Command 2v4: the commander asked at 0:20, 3:20 and 4:50 for every 150 metal that builds up;
+the three feeders' stores read 0 at every minute mark from 3:00 to 13:00 (`record-0/1/2.jsonl`), they ordered
+12,060 metal of soldiers and 2,000 of turrets in minutes 4-12, and sent 450 metal before 19:32 (`send_resources`
+rows). The sprint seat's plant stood after 3:24 on 9 metal a second; thebluegecko's in 1:46 on 25 and a 1,165 bank.
+**Would be wrong if.** A feeder with a zero store had its sends arrive anyway, or a sprint fed by one-shot sends
+stood within two minutes.
+**Used by.** H-PLAYER-STANDING-TRANSFER, H-COMMANDER-TRANSFERS-LINE, the brief's "The sprint in a team game",
+commander.md, player-under-command.md.
+
+### K-t2-moho-frames-finished-by-tier-1-build-power
+**Claim.** A moho frame on one advanced constructor alone takes 90-135 s; with tier-1 constructors and a nano or two
+on it, 19-33 s. The advanced constructor's scarce part is the placing, not the building.
+**Status.** supported (2026-10-20, both sides of one game).
+**Evidence.** Center Command 2v4 replay, the `bp` rows (every builder's target by sample): thebluegecko's 18 frames
+18-35 s with `corck` and `cornanotc` at 72-73 % of the builder samples on half of them; our sprint seat's four
+frames 90, 122 and 135 s on `coracv` alone (its five tier-1 constructors on converters, wrecks and solars); our
+seat 0's four frames 43-132 s with a `corcv` at 61-76 %, the store at 0 (metal-bound there).
+**Would be wrong if.** Frames with helpers took as long as frames without at the same income.
+**Used by.** H-HANDS-LIST-START, the brief's "Build power on the moho frames".
+
+### K-t2-people-eat-each-plant-for-the-next
+**Claim.** The people reclaim the tier-1 lab the second the advanced lab is placed, and each advanced plant once it
+has made what it was for, standing the next one in seconds under a nano farm; one advanced plant stands at a time.
+**Status.** supported (2026-10-20, one player, one game).
+**Evidence.** thebluegecko, Center Command 2v4 replay: `corlab` destroyed 7:07 (`coralab` placed 7:06); `coralab`
+reclaimed 13:21 (by a `cornanotc`) with `coravp` placed 12:36 forward at E2 and standing 13:21; `coravp` reclaimed
+18:45 and `coraap` standing 18:51; construction turrets 7 by 13:00, 23 by 17:00, 45 by 20:00. The user (2026-10-20):
+metal storage first, if the reclaim would overflow the store.
+**Would be wrong if.** He kept the plants standing in other games, or the reclaims were losses to the enemy.
+**Used by.** The brief's "Eat the lab"; commander.md.

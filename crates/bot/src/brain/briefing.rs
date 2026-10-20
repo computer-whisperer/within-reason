@@ -1367,8 +1367,10 @@ impl Brain {
                     words.insert(b.name.clone(), self.placed_at_place(*id));
                 }
             }
+            // A role word names the builder's own faction's unit (a constructor given by a seat of another faction).
+            let roster = super::roster::of_unit(&d.name);
             for role in super::roster::ROLE_WORDS {
-                if let Some(name) = kit.roster.role(role)
+                if let Some(name) = roster.role(role)
                     && let Some(id) = self.world.def_named(name)
                     && d.build_options.contains(&id)
                 {

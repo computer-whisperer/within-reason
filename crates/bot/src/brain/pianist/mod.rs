@@ -14,7 +14,7 @@ pub(super) mod groups;
 mod execute;
 mod lists;
 mod priority;
-pub(crate) use lists::{step_id, step_low};
+pub(crate) use lists::{step_id, step_low, step_start};
 pub(super) mod picture;
 mod remove;
 mod fire;
@@ -917,9 +917,12 @@ impl Brain {
     fn take_lists(&mut self, tick: &Tick, commands: &mut Vec<Command>) {
         let Some(shared) = &self.strategist else { return };
         // The lists wait for the faction: a role word in a step ("solar", "lab", "turret spot_3") is resolved
-        // against it here, once, so the rest of the bot sees internal names only.
+        // here, once, so the rest of the bot sees internal names only; against the builder's own faction when it
+        // stands (a constructor an ally of another faction gave us builds its own faction's buildings), else the seat's.
         let Some(kit) = self.kit else { return };
-        let lists: BTreeMap<String, Option<Vec<String>>> = std::mem::take(&mut *shared.queues.lock().unwrap()).into_iter().map(|(name, list)| (name, list.map(|steps| steps.iter().map(|step| kit.roster.resolve_words(step)).collect()))).collect();
+        let own_units = &tick.snapshot.own_units;
+        let roster_of = |name: &str| self.unit_by_handle(name, own_units).and_then(|u| self.world.def(u.def)).map_or(kit.roster, |d| crate::brain::roster::of_unit(&d.name));
+        let lists: BTreeMap<String, Option<Vec<String>>> = std::mem::take(&mut *shared.queues.lock().unwrap()).into_iter().map(|(name, list)| { let roster = roster_of(&name); (name, list.map(|steps| steps.iter().map(|step| roster.resolve_words(step)).collect())) }).collect();
         let mut others: BTreeMap<String, Option<Vec<String>>> = BTreeMap::new();
         for (name, list) in lists {
             // A list is for the seat that owns the builder: another seat's stays for it (bluegecko-2v1-great-divide:

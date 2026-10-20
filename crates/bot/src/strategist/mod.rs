@@ -715,9 +715,26 @@ fn player_prompt(game_time: &str, headline: &str, shared: &Shared, seen: &mut re
             side.seats.lock().unwrap().iter().filter(|(team, _)| !mine.contains(team)).map(|(team, view)| report::seat_block_line(*team, view)).collect()
         })
         .unwrap_or_default();
+    // Standing transfers that touch this player's seats (H-PLAYER-STANDING-TRANSFER): what its seats send, and what
+    // comes to them.
+    let standing: Vec<String> = {
+        let mine = shared.live_seats();
+        let side = shared.side.get().map(|s| s.as_ref()).unwrap_or(shared);
+        let clock = |f: i32| format!("{}:{:02}", f / 30 / 60, f / 30 % 60);
+        side.standing
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|(from, s)| mine.contains(from) || mine.contains(&s.to_team))
+            .map(|(from, s)| {
+                let keep: Vec<String> = [s.keep_metal.map(|k| format!("above {k:.0} metal")), s.keep_energy.map(|k| format!("above {k:.0} energy"))].into_iter().flatten().collect();
+                format!("t{from} sends t{} everything {} in its store every second since {} ({:.0} metal and {:.0} energy so far; `transfer` with \"standing\": false lifts it)", s.to_team, keep.join(" and "), clock(s.since), s.sent_metal, s.sent_energy)
+            })
+            .collect()
+    };
     prompt += &format!(
         "[{game_time}] Woken because: {headline}\n{landing}{direction}{}\nwake conditions in force: {wake}",
-        report::player_report(seen, &briefing, &field, &hands, &report::Aside { fights: &fights, chat: &chat, others: &others }, first_report)
+        report::player_report(seen, &briefing, &field, &hands, &report::Aside { fights: &fights, chat: &chat, others: &others, standing: &standing }, first_report)
     );
     prompt
 }

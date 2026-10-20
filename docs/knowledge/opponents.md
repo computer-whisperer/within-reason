@@ -79,3 +79,19 @@ it outweighs what stands there.
 (his side is team 0 in each); the three Comet games' records and reviews (`run/matches/1790467496-*`,
 `1790469236-*`, `1790471259-*`); his 17 public duels in replays.md (13 on Comet Catcher, 12 of 17 won).
 **Status.** supported (2026-09-27, six games). Exploited by [[H-PLAYER-SEATS-VS-A-PERSON]].
+
+### K-opp-people-nuke-late-or-never
+**Claim.** The experienced people we play (thebluegecko, u6bkep) build a silo very late or never; an anti-nuke
+against them before the game's thirtieth minute buys nothing, while BARb hard_aggressive and Apex have clocks of
+their own (BARb's anti-nuke at 21-25 and a silo begun 29:50 in nuke-2-hard; Apex at +60 on Altored a silo standing
+24:28 in apex60-1 and none in apex60-2).
+**Status.** supported (2026-10-20; the user's reading, three lobby games).
+**Evidence.** Center Command 2v4 replay: no `corsilo`, `armsilo`, `corfmd` or `armamd` in either person's events
+over 21 minutes while they held 37 mohos and two fusions; the Cape Violet 1v1 (`1792372195-human`): computer_whisperer's
+two missiles after 30:00 at +100 % income; our anti-nuke at 12-16 min on Center Command cost the sprint seat 1,500
+metal, two and a half mohos, when it held two. The user (2026-10-20): "We have definitely been building the anti-nuke
+too early in these games. thebluegecko and u6bkep use nukes very late or never, but BARb and apex-ai have their own
+situational timings."
+**Would be wrong if.** A person's silo stood before 25:00 in a lobby game of ours, or BARb's clock moved.
+**Used by.** The brief's anti-nuke passage (late-game.md), commander.md; replaces the 2026-10-19 "due diligence"
+wording.

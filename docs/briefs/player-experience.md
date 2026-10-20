@@ -57,8 +57,10 @@ paid out of the income you have, and for three to five minutes the sprinting sea
 a tight map that gap is lethal, which is why the experienced duellists tech in 4 of 58 sides and why his tech is the
 moment to hit his base. On a larger map, with allies beside you, or once the fronts have settled, it is covered, and
 a game past twenty minutes is decided by who upgraded first; team games almost always go there. The call is yours:
-which seat sprints, when, and who feeds it. The cases, the team-game procedure and the arithmetic are under "Tier 2:
-the sprint" and the late-game part. The sprint is one seat's and the mohos are every seat's: a seat whose spots are
+which seat sprints, when, and who feeds it; and feeding is production, not surplus: the feeders' plants make nothing
+while the plant builds and a standing `transfer` carries their metal every second, since a seat spending as it earns
+never has a surplus to send (Center Command 2v4: 450 metal fed in nineteen minutes against three asks). The cases,
+the team-game procedure and the arithmetic are under "Tier 2: the sprint" and the late-game part. The sprint is one seat's and the mohos are every seat's: a seat whose spots are
 still tier 1 after the sprint seat's first moho is the side's largest unspent asset (the +60 Altored 3v3 of
 2026-10-19: two such seats for an hour). And tier-1 units trade badly against tier 2 and worse against tier 3 at any
 number: two Juggernauts killed 338 of ours after 44:00 in that game while about 200,000 metal of tier-1 output after
@@ -289,6 +291,21 @@ Every map we have a recorded game on, in one table each. Each sheet's table is c
 | the opponent's | armcom (37.50) | 5 / 13 / 30 / 45 | 30 / 42 / 63 |
 | the opponent's | armck (36) | 4 / 12 / 29 / 43 | 31 / 44 / 66 |
 | the opponent's | armcv (54) | 6 / 20 / 42 / 69 | 27 / 34 / 52 |
+
+### Center Command BAR v1.0
+
+- 8192 by 4096 elmos; wind 1 to 19; tidal 75; 2% under water; ground height -164 to 636.
+- 48 metal spots; a tier-1 extractor draws 1.79 / 1.80 / 1.81 metal a second (lowest / median / highest spot).
+- Starts: H7 (7716, 3508); the table below is from H7, which was ours in the game the sheet was made from.
+
+| Moves as | Ground it can stand on | Spots it reaches from our start | To | Walked | Seconds for | Spots nearer us / nearer him / contested / unreachable | The ways at their tightest |
+|---|---|---|---|---|---|---|---|
+
+| Start | Taken by (speed) | Spots within 30 / 60 / 90 / 120 s | Seconds to the 5th / 10th / 15th spot |
+|---|---|---|---|
+| ours | armcom (37.50) | 5 / 9 / 17 / 24 | 26 / 65 / 82 |
+| ours | armck (36) | 5 / 9 / 17 / 22 | 27 / 67 / 85 |
+| ours | armcv (54) | 6 / 17 / 25 / 35 | 18 / 45 / 57 |
 
 ### Coast To Coast BAR v1.0
 
@@ -1016,12 +1033,36 @@ factory draws about 80 energy a second while it is being built. Vehicles cost ei
 store is empty; the picture says STALLING when it is. An energy converter (`armmakr`) turns 70 energy a second into
 1 metal.
 
-**Tier 2, what it costs (Armada).** The advanced vehicle plant `armavp` 2,600 metal and 14,000 energy; the advanced
-bot lab `armalab` 2,600 and 15,000; an advanced constructor 550 and 6,800 (vehicle) or 430 and 6,900 (bot); an
-advanced extractor 620 and 7,700; a fusion reactor `armfus` 3,350 and 18,000 for 750 energy a second. On a Comet
-spot an advanced extractor adds 6.9 metal a second over the extractor it replaces: 90 seconds of its output is its
-own metal. The plant and one constructor before the first advanced extractor: 3,150 metal, 61 seconds of income at
-52 a second with nothing else built.
+**Tier 2, what it costs, in every faction a game can hold.** Every seat reads this whole table, not its own
+column: a seat's allies and its opponents are often of another faction (the lobby's "Random" is decided at the
+start), an advanced constructor an ally hands over builds its own faction's buildings (u6bkep built Cortex mohos
+with thebluegecko's `corack` on Center Command), and his tier-2 units are named by his faction when they appear.
+Metal / energy (the glossary, game source 54199a0d; the `units` tool has every unit's full entry by name):
+
+| | Armada | Cortex | Legion |
+|---|---|---|---|
+| advanced bot lab | `armalab` 2,600/15,000 | `coralab` 2,600/16,000 | `legalab` 2,600/16,000 |
+| advanced vehicle plant | `armavp` 2,600/14,000 | `coravp` 2,600/16,000 | `legavp` 2,500/16,000 |
+| advanced air plant | `armaap` 2,900/29,000 | `coraap` 2,900/28,000 | `legaap` 2,900/28,000 |
+| advanced constructor bot | `armack` 430/6,900 | `corack` 470/6,900 | `legack` 410/6,900 |
+| advanced constructor vehicle | `armacv` 550/6,800 | `coracv` 580/7,000 | `legacv` 530/6,600 |
+| advanced extractor (moho) | `armmoho` 620/7,700 | `cormoho` 640/8,100 | `legmoho` 640/8,100 |
+| fusion | `armfus` 3,350/18,000 | `corfus` 3,600/22,000 | `legfus` 4,000/25,000 |
+| advanced fusion | `armafus` 9,700/69,000 | `corafus` 9,700/48,000 | `legafus` 10,500/69,000 |
+| advanced solar | `armadvsol` 350/5,000 | `coradvsol` 370/4,000 | `legadvsol` 465/4,080 |
+| converter | `armmakr` 1/1,150 | `cormakr` 1/1,250 | `legeconv` 1/1,150 |
+| advanced converter | `armmmkr` 380/21,000 | `cormmkr` 370/21,000 | `legadveconv` 370/21,000 |
+| anti-nuke | `armamd` 1,500/38,000 | `corfmd` 1,500/40,000 | `legabm` 1,500/40,000 |
+| silo | `armsilo` 8,100/90,000 | `corsilo` 7,700/82,000 | `legsilo` 7,700/82,000 |
+| construction turret | `armnanotc` 230/3,200 | `cornanotc` 230/3,200 | `legnanotc` 230/3,200 |
+| metal storage | `armmstor` 330/570 | `cormstor` 340/590 | `legmstor` 340/590 |
+| energy storage | `armestor` 170/1,700 | `corestor` 175/1,800 | `legestor` 175/1,800 |
+| geothermal (on a vent) | `armgeo` 560/13,000 | `corgeo` 540/13,000 | `leggeo` 560/13,000 |
+
+On a Comet spot an advanced extractor adds 6.9 metal a second over the extractor it replaces: 90 seconds of its
+output is its own metal. The plant and one constructor before the first advanced extractor: 3,150 metal, 61 seconds
+of income at 52 a second with nothing else built, or three and a half minutes at 9 a second (the Center Command
+sprint seat, unfed).
 
 **Builders and build power.** Build power is what turns metal into things: a frame builds at the sum of the power on
 it, and its draw a second is that power times its cost over its build time. Metal / build power / metal per point /
@@ -1290,18 +1331,41 @@ and the only question is which seat. Short, nobody, plenty: stay on tier 1 and k
 
 **The sprint in a team game.** One seat sprints, the one with the bank or the quietest front, and it starts at the
 first bank or when the side's spots are taken, whichever comes first, not when his tier 2 is seen. Every constructor
-of that seat and a construction turret or two beside it go on the plant, its other plants pause, the other seats
-send metal with `transfer` from the moment the plant is placed, and the received metal is a plant standing in two
-minutes, not a store. Its first units are an advanced constructor for each seat, given away, so the mohos go up on
-every seat at once. That handover is what the sprint is for the other seats: a seat whose spots are still tier 1
-when the sprint seat's first moho stands is the side's largest unspent asset, and its own advanced plant and, past
-that, the gantry follow as its income allows, on no clock. The +60 Altored 3v3 of 2026-10-19 is the case against:
-no advanced constructor left the sprint seat, two seats held zero mohos for an hour at 25 to 46 metal a second
-beside one at 130 to 156, and their 450 Whistlers and 140 Stouts after 25:00 bought nothing against his
-Juggernauts; the +40 and +50 games, with the constructors given at 8:28 to 9:18, had 6 to 11 mohos on every seat by
-20:00. A tier-1 lab whose production is no longer the plan is reclaimed for its metal ("eat your bot
-lab", thebluegecko), and the commander is reclaimable too, for 2,700, when the side keeps another and a frame stands
-to take the metal: a side loses only when it has no commanders left (the game-end rule). Metal is nothing without
+of that seat and a construction turret or two beside it go on the plant, its tier-1 plant makes nothing from the
+moment the advanced one is placed and is reclaimed (below), and the other seats feed it. **Feeding is production,
+not surplus.** A seat that spends as it earns never has a surplus to send: on Center Command (2026-10-19) the
+commander asked three times for "every 150 metal that builds up", the feeders' stores stood at zero while they
+ordered about 12,000 metal of tanks, 450 metal arrived in nineteen minutes, and the sprint seat's plant stood after
+three and a half minutes on its own 9 metal a second. thebluegecko's, beside it, stood in 1:46 on 25 a second and a
+bank. So the feeders' plants make nothing while the plant builds, their constructors take only the spots still free,
+and each feeder sets a standing `transfer` (`keep_metal` at what its own builds need, `to` the sprint seat) that
+carries the rest every second; the received metal is a plant standing in two minutes, not a store (metal storage
+first, if the plant's own store would overflow). The commander's report carries a line of what each seat sent, and
+the direction is checked against it, not assumed.
+
+What the advanced plant makes first is the player's and the commander's call in the situation, not a sequence: an
+advanced constructor is a moho's worth of metal (430 to 580 against 620 to 640), a moho on an ordinary spot repays
+itself in about 100 s and pays 20 energy a second from then on, a fusion is five mohos, an anti-nuke two and a half
+(its timing is under the late-game part). The ways the people use are these. **Constructors are shared and passed
+on.** One advanced constructor serves several seats: it starts moho frames on one seat's spots with `start` on each
+step, that seat's tier-1 constructors and nanos finish the frames behind it (a tier-1 constructor assists a tier-2
+frame like any other, whatever its faction), and it is given to the next seat while they build; u6bkep's borrowed
+Cortex constructor built his Armada seat's mohos this way from 9:47, and the whole side's constructors went out from
+one lab. A seat whose spots are still tier 1 when the sprint seat's first moho stands is the side's largest unspent
+asset, and its own advanced plant and, past that, the gantry follow as its income allows, on no clock. The +60
+Altored 3v3 of 2026-10-19 is the case against: no advanced constructor left the sprint seat, two seats held zero
+mohos for an hour at 25 to 46 metal a second beside one at 130 to 156, and their 450 Whistlers and 140 Stouts after
+25:00 bought nothing against his Juggernauts; the +40 and +50 games, with the constructors given at 8:28 to 9:18,
+had 6 to 11 mohos on every seat by 20:00. **Build power on the moho frames.** A moho frame on one advanced
+constructor alone takes 90 to 135 s (our sprint seat's four, Center Command); with tier-1 constructors and a nano or
+two on it, 19 to 33 s (thebluegecko's eighteen). **Eat the lab.** A tier-1 lab whose production is no longer the
+plan is reclaimed for its metal ("eat your bot lab", thebluegecko: his at 7:07, the second after his advanced lab
+was placed; ours kept a constructor frame crawling from 4:09 to 8:33 at the sprint seat and stood until 9:41), with
+a metal storage first when the reclaim would overflow the store; and so is each advanced plant once it has made what
+it was for (his advanced bot lab reclaimed at 13:21 for an advanced vehicle plant forward at E2, that one at 18:45
+for an air plant, each standing in seconds under his nano farm). The commander is reclaimable too, for 2,700, when
+the side keeps another and a frame stands to take the metal: a side loses only when it has no commanders left (the
+game-end rule). Metal is nothing without
 build power on the frame (the user, 2026-09-28: "Two players gifting to one doesn't help if that player doesn't
 have the build power to push it through"). An allied seat that is sprinting is fed the same way: `transfer` sends
 metal and energy to an ally that is not ours. The direction names the seat, the moment and the feeders; the player
@@ -1736,16 +1800,23 @@ missile, ends a game. The `fire` tool sends a ready missile at a place in coordi
 now (a silo at its limit is a 1,042 energy a second draw until it holds ten), and a silo or anti-nuke listed without a
 place goes to the back field at home with the generators.
 
-**An anti-nuke under every home once his tier 2 stands is due diligence, not a reaction** (the user, 2026-10-19).
-Every opponent that reaches tier 2 can build a silo, nothing in sight warns of one (it stands in his base and the
-missile needs no sight of its target), and the first silo seen is already late: in the +60 Altored 3v3 Apex's first
-silo stood at 24:28, was in our picture at 33:19, and its missile had landed on the west of t2's home at 33:12 (five
-mohos, a flak gun, a construction turret and the generators within 800 of the point); our first anti-nuke was ordered
-that turn and stood at 34:43, 90 s from its first interceptor; t0's home, whose seat had no advanced constructor, was
-covered by t2's from 40:23, and a second missile landed there at 50:36, one second after that anti-nuke died. The
-anti-nuke is an advanced constructor's build, so the seat with one covers the seats without, with a `queue` step at
-their homes. A missile strike or a death blast (a Juggernaut's is 10,600 over 640, nearly a warhead's) reads in the
-losses as deaths with no killer named; the report says which it was when it can tell.
+**The anti-nuke goes up on the opponent's clock, not on his tier 2** (the user, 2026-10-20: "we have definitely
+been building the anti-nuke too early in these games"). Nothing in sight warns of a silo (it stands in his base and
+the missile needs no sight of its target) and the first silo seen is already late: in the +60 Altored 3v3 Apex's
+first silo stood at 24:28, was in our picture at 33:19, and its missile had landed on the west of t2's home at 33:12
+(five mohos, a flak gun, a construction turret and the generators within 800 of the point); our first anti-nuke was
+ordered that turn and stood at 34:43, 90 s from its first interceptor. So the timing is the opponent's habit, and
+the habits differ. The experienced people we play build a silo very late or never: thebluegecko and u6bkep built none
+in 21 minutes on Center Command (2026-10-19) while standing 37 mohos and two fusions, and computer_whisperer's two
+missiles on Cape Violet came after 30:00 at +100 % income. BARb hard_aggressive has its own clock (its anti-nuke at
+21-25 in 27 of 33 long games, a silo begun 29:50 in nuke-2-hard); Apex at +60 placed one at 24:28 in one game and
+none in the next (K-opp-people-nuke-late-or-never, K-barb-anti-nuke-by-minute). Against people, an anti-nuke before
+the seat's spots are mohos is 1,500 metal that was two and a half mohos: ours on Center Command went up in minutes
+12 to 16 at a seat holding two mohos, and nothing ever flew. Against BARb or Apex it goes up as their clock nears,
+and in a long game against anyone, once the mohos stand, one covers the homes within 2,000 of it. It is an advanced
+constructor's build, so the seat with one covers the seats without, with a `queue` step at their homes. A missile
+strike or a death blast (a Juggernaut's is 10,600 over 640, nearly a warhead's) reads in the losses as deaths with no
+killer named; the report says which it was when it can tell.
 
 **What players said** on the late game is under "What players said", on tier 2.
 
