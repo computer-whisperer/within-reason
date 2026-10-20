@@ -8,6 +8,7 @@ function widget:GetInfo()
 end
 
 local SAMPLE = 30
+local OUT = "LuaUI/Config/within-reason/"
 local TRUTH = 60
 local teams = {}
 local files = {}
@@ -104,8 +105,10 @@ function widget:Initialize()
 	for _, team in ipairs(Spring.GetTeamList()) do
 		if team ~= gaia then
 			teams[#teams + 1] = team
-			files[team] = io.open("record-" .. team .. ".jsonl", "w")
-			truths[team] = io.open("truth-" .. team .. ".jsonl", "w")
+			-- From game test-31677 (2026-10) a user widget may write only under LuaUI/Config/ and LuaUI/Widgets/
+			-- (barwidgets.lua `userWritableFolders`); run/replay_match.py makes the folder and moves the files up.
+			files[team] = io.open(OUT .. "record-" .. team .. ".jsonl", "w")
+			truths[team] = io.open(OUT .. "truth-" .. team .. ".jsonl", "w")
 		end
 	end
 	for _, team in ipairs(teams) do header(team) end

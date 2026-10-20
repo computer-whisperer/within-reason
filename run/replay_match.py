@@ -29,6 +29,8 @@ def main():
     port = int(args[args.index("--port") + 1]) if "--port" in args else 8452 + (os.getpid() % 1000)
     with open(os.path.join(out, "springsettings.cfg"), "a") as settings:
         settings.write(f"HostPortDefault = {port}\n")
+    # The dump widget may write only under LuaUI/Config/ (game test-31677 on, barwidgets.lua `userWritableFolders`).
+    os.makedirs(os.path.join(out, "LuaUI", "Config", "within-reason"), exist_ok=True)
     log = open(os.path.join(out, "engine.log"), "w")
     started = time.time()
     engine = subprocess.Popen(
@@ -40,6 +42,10 @@ def main():
     except subprocess.TimeoutExpired:
         print(f"engine still running after {timeout:.0f} s; leaving it (stop it with run/stop_match.py {out})")
         return
+    written = os.path.join(out, "LuaUI", "Config", "within-reason")
+    for name in sorted(os.listdir(written)) if os.path.isdir(written) else []:
+        if name.startswith(("record-", "truth-")) and name.endswith(".jsonl"):
+            os.replace(os.path.join(written, name), os.path.join(out, name))
     records = sorted(f for f in os.listdir(out) if f.startswith("record-"))
     print(f"{out}\n  engine exit {engine.returncode} after {time.time() - started:.0f} s; records: {', '.join(records) or 'none (see engine.log and infolog.txt)'}")
 

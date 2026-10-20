@@ -169,3 +169,13 @@ Every library built on `crates/ai-host` prints the arena's `heartbeat`, `census`
 `[wreason ai=N]` prefix, each from its own seat's side. With a bot of `bots/` as the `--opponent` of the flagship,
 the referee's settled-game call reads whichever `balance` line is newest, ours or theirs: pass `--play-out` (no
 settled call) for such a game until the lines carry the side.
+
+## A user widget may write only under `LuaUI/Config/` from game test-31677 on (2026-10-19)
+
+`run/replay_match.py` dumps a demo's records through a LuaUI widget (`run/replay-template/LuaUI/Widgets/replay_dump.lua`).
+From the game build the lobby ran on 2026-10-19 (test-31677), `luaui/barwidgets.lua` sandboxes user widgets' file
+writes to `luaui/config/` and `luaui/widgets/` (`userWritableFolders`): every `io.open` elsewhere fails with
+`record-0.jsonl: is outside the write paths for user widgets` in infolog.txt, the engine replays the whole demo,
+and the match directory ends with no records (the first Center Command replay, `1792466245-replay-center-command-2v4`).
+The widget now writes under `LuaUI/Config/within-reason/` and the runner moves the files up when the engine exits.
+Watch infolog.txt for that message when the game moves the folders again.
