@@ -166,6 +166,51 @@ guard's chunk of power; the standing orders' unbuilt cost seeds it at each adopt
 guard on the factory that makes it. With no credit, the largest count shortfall of a type it builds; with none, the
 dearest frame. The order review, the retry at another site, the struck rule and the instruments stay as they are.
 
+## Columns: the frames under way and the spots by ring
+
+Written 2026-10-20 before the build (terr28), from the one-minute error of terr25 and the lock the user saw at
+12:14 (three fusions and an advanced one framed together while the energy stood at zero).
+
+The program's unknowns are per *column*, not per unit type. A column is a unit type and a class:
+
+- **Whole**: units of the type started from nothing. The pairs' cost is the build time plus the builder's walk.
+- **Frames**: the frames of the type under way at the start, framed or still walking, which the snapshot reported
+  as jobs. One column per type with jobs: its count runs from zero to the number of frames, a frame costing the
+  mean work left on them and no walk, its makers the type's makers (the factory for a product, with assist and
+  turret help as for the whole). The frame's share of the type's production, storage and caps follows its count,
+  so a frame produces as the program pays what is left on it and nothing at the start. Before this a frame entered
+  as a fraction of a standing unit (`n0 += progress`): a fusion a third built was a third of a fusion's energy
+  from the first bucket, and with four energy frames the program read a thousand energy a second that did not
+  exist, planned upgrades on it, and the hands followed it into the lock. Extractor frames stay fractions in their
+  ring (a spot, not work, is what they hold; the hands' commitment keeps them from being ordered twice).
+- **Ring k** (extractors only, basic and upgrade): the spots in distance ring `k` of `RINGS` from home, the rings
+  by distance quantiles so each holds a like number of spots. A ring's column has the ring's mean spot value, the
+  ring's spot count as its cap (loosened to what stands in it), its upgrades bounded by its basics, and a walk of
+  the base overhead plus the ring's mean distance over the builder's speed (armck 36 elmo/s: 1,500 elmos is 42 s,
+  6,000 is 167 s, against one constant of 65 for every spot, with the hands measured at 22-28 s within 1,500 and
+  134-191 beyond 6,000). The spot choice then belongs to the program: a near upgrade against a far basic is
+  priced by both its spot value and its walk.
+
+Measured (terr31-33): the frames column holds; the rings' walk from home is wrong in kind. The hands' realized
+extractor walk is a median 56-66 s in every batch whatever the plan prices, because a constructor takes its next
+spot from where it stands, not from home; priced at 59 / 118 / 177 s by ring the plan deferred the far spots and
+the hands stood 35-46 extractors at 10:00 against 50-61. The rings stay as an arm (`rings=N`, one by default with
+the constant walk); a ring model that pays would price the step between neighbouring spots, not the trip from home.
+terr34 then found that every columns batch had dropped the commander's extractor pairs (the reach test against the
+ring's mean distance, 1,900 for ring 0 and 4,000 for one ring, against 1,500), so terr31-33's openings are not the
+rings' verdict; the test is the ring's inner bound now. terr35 (the frames alone): 718 / 640 / 755 / 587, the openings back,
+games 00-02 ahead of terr30 at 15:00 and game 02 the best game yet; game 03's plant frame unhelped for five minutes
+(the Frames flows outrank the dearest-frame fallback, and a factory's frame is no Frames column). terr36: a
+factory's frame helped first, six on it at most: 691 / 695 / 729 / 693, every game above 690, the steadiest batch
+of the arc; committed as the standing state. Open: the late orders (the plan's hundred converters a minute against
+the hands' 25-50; the far upgrades walking), his roaming commander, the factory mix, then step 3.
+
+The hands read the columns through `LpPlan`: `count_at(unit, t)` sums the unit's columns; a `Flow` carries its
+column's class, so a flow on a Frames column is power to put on the type's frames (the help the plan wants, not the
+dearest frame), and a flow on a ring is an extractor on a spot of that ring (T-SITES takes the spot from the
+ring). The credits are by (unit, class); the standing orders' seed counts extractor orders only, since the Frames
+columns carry the rest.
+
 ## Verification, in order
 
 1. **The LP against the simulator.** The LP's plan from the empty start, dispatched inside the simulator by the same
@@ -309,6 +354,23 @@ linear, in the same program, with the prices of cover falling out as duals. Writ
   each, not the rate), his roaming commander's kills (4-5 constructors a game), the late build power (the ceiling's
   24 turrets and its assist factor against 15-25), the objective's end (under `terminal=0` nothing from 18:00 that
   pays past 20:00; the bank 42,000-51,000 at 20:00), then step 3.
+- 2026-10-20, later: the user named the lock (12:14, three fusions and an advanced one framed together while
+  energy-locked). Read from the lines: the plan counted the fusion frames as fractions of standing fusions (a
+  thousand energy a second that did not exist), planned upgrades on it, and the hands followed it to zero from
+  12:00 to 15:00. Built in order, a batch each: T-ENERGY's budget (terr26 over-refused on walking orders' whole
+  draws; terr27 discounted them and held producers to the stock), the no-site strikes (terr28: one converter's
+  failure had banned the type for everyone a minute), the pad walk and the plant on the producers' budget (terr29
+  took the commander off the yard every chunk and drained the energy; terr30 narrowed both). terr27t: `terminal=300`
+  changed nothing; the late bank is the hands'. terr30: 736 / 636 / 717 / 716 at 20:00, the steadiest batch, every
+  game within 170 of the flagship. Then the columns (above): the program's ceiling with honest walks is 1,498 at
+  20:00, the user's figure, and the program takes the vehicle line (an advanced vehicle constructor is 290 build
+  power at speed 52 for 550 metal; the bot's is 210 at 33 for 430). terr31 regressed (520-645): with the frames in
+  their own column nothing seeded the whole-unit credits and an advanced fusion started at every re-plan. terr32
+  (a whole unit at half its cost of credit; producers held to their own frames' draw): 696 / 235 / 704 / 515, two
+  games at terr30's level and two lost to rules meeting the program's new wants (two factories committed in the
+  first minute; the vehicle plant's pad past the hundred). terr33 (one commitment at a time; the pad test by the
+  factory's own product inside its yard) measures the columns a third time. Open after that: the late orders
+  (converters by the hundred the sites cannot take; far upgrades walking), his roaming commander, then step 3.
 - Decision 6 amended while building: the converters' threshold is dropped from the program (a full relaxation,
   converters bounded by capacity alone). The engine's converters burn what sits above three quarters of storage;
   a plan that runs them at their capacity has the stock climb to that level once and burn the inflow from then on,

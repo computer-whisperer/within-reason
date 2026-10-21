@@ -16,7 +16,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 use std::time::Duration;
 
-use bot_protocol::{Bot, Command, Commands, EnemyUnit, Event, Hello, OwnUnit, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
+use bot_protocol::{Bot, Command, Commands, EnemyUnit, Event, Hello, OwnUnit, Resource, Tick, UnitDefId, UnitDefInfo, UnitId, Vec3};
 use buildorder::anneal::Palette;
 use buildorder::game::{Game, Ground};
 use buildorder::lp::LpOptions;
@@ -44,9 +44,10 @@ pub(crate) struct Territory {
     pub own: BTreeMap<UnitId, OwnUnit>,
     /// His units in sight this tick (the dead spots; what stands by a dropped order's site).
     pub enemies: Vec<EnemyUnit>,
-    /// The metal stock and income this tick (what a unit must be affordable against); the energy stock and storage.
-    pub stock: (f64, f64),
-    pub energy: (f64, f64),
+    /// The metal and the energy this tick, stock, income, usage and storage: what a unit must be affordable against
+    /// (T-ENERGY's budget reads the energy's).
+    pub metal: Resource,
+    pub energy: Resource,
     pub options: options::Options,
     pub hands: hands::Hands,
     /// The spots the hands may take (the scenario's), as indices into the game's list.
@@ -169,6 +170,7 @@ impl Territory {
             max_constructors: o.constructors as f64,
             max_factories: o.factories as f64,
             terminal: o.terminal,
+            energy_reserve: o.energy_reserve,
             assist_factor: o.assist_factor,
             help_factor: o.help_factor,
             nanos_per_factory: o.nanos_per_factory,
@@ -178,6 +180,9 @@ impl Territory {
             commander_walk_extractor: o.commander_walk_extractor,
             commander_walk_base: o.commander_walk_base,
             commander_walk_factory: o.commander_walk_factory,
+            commander_reach: hands::COMMANDER_LEASH as f64,
+            rings: o.rings,
+            ring_overhead: o.ring_overhead,
         });
         planner::Request {
             scenario,
@@ -191,7 +196,7 @@ impl Territory {
             seed: 1 + self.plans as u64,
             frame: tick.frame,
             lp,
-            affordable: self.stock.0 + self.stock.1 * hands::AFFORD_SECONDS,
+            affordable: self.metal.current as f64 + self.metal.income as f64 * hands::AFFORD_SECONDS,
         }
     }
 
@@ -237,7 +242,7 @@ impl Territory {
                 while m <= planned.horizon {
                     let t = planned.t0 + m;
                     by_minute.push(format!(
-                        "{:.0}:mex{:.0}+{:.0} cons{:.0} fac{:.0} nano{:.0} conv{:.0} eco{:.0} inc{:.0}",
+                        "{:.0}:mex{:.0}+{:.0} cons{:.0} fac{:.0} nano{:.0} conv{:.0} eco{:.0} inc{:.0} bank{:.0}/{:.0}",
                         m / 60.0,
                         self.plan_count(plan, t, &|u| u.extracts_metal > 0.0 && u.extracts_metal <= basic * 1.5),
                         self.plan_count(plan, t, &|u| u.extracts_metal > basic * 1.5),
@@ -246,13 +251,16 @@ impl Territory {
                         self.plan_count(plan, t, &|u| u.role == Role::Nano),
                         self.plan_count(plan, t, &|u| u.conv_capacity > 0.0),
                         self.plan_count(plan, t, &|u| u.role == Role::Eco && u.extracts_metal == 0.0 && u.conv_capacity == 0.0 && (u.energy_make > 0.0 || u.wind_cap > 0.0)),
-                        plan.income_at(t)
+                        plan.income_at(t),
+                        plan.metal_at(t),
+                        plan.energy_at(t)
                     ));
                     m += 60.0;
                 }
                 // The factory kinds the program ends with, since the kinds decide the tier-2 line.
                 let kinds: Vec<String> = plan.types.iter().enumerate().filter(|(_, u)| units.list[**u].role == Role::Factory && plan.count_at(**u, end) >= 0.05).map(|(_, u)| format!("{} {:.1}", units.list[*u].name, plan.count_at(*u, end))).collect();
-                self.log(format_args!("targets: {} | factory kinds at the end: {}", by_minute.join(" | "), kinds.join(" ")));
+                let rings: Vec<String> = plan.rings.iter().enumerate().map(|(k, r)| format!("r{k} {} spots to {:.0} at {:.0} ({:.2}/s)", r.spots, r.bound, r.distance, r.metal)).collect();
+                self.log(format_args!("targets: {} | factory kinds at the end: {} | rings: {}", by_minute.join(" | "), kinds.join(" "), rings.join(", ")));
                 self.hands.targets = Some(plan.clone());
                 self.seed_committed();
                 return;
@@ -295,17 +303,21 @@ impl Territory {
         self.own.values().filter(|u| !u.being_built && self.role_of_def(u.def) == Some(role)).count()
     }
 
-    fn curve_line(&self, tick: &Tick) {
+    fn curve_line(&mut self, tick: &Tick) {
         let game = self.game();
         let extractors = self.own.values().filter(|u| !u.being_built && self.unit_index(u.def).is_some_and(|i| game.units.list[i].extracts_metal > 0.0)).count();
         let build_power: f32 = self.own.values().filter(|u| !u.being_built && matches!(self.role_of_def(u.def), Some(Role::Commander | Role::Builder | Role::Factory | Role::Nano))).filter_map(|u| self.def(u.def)).map(|d| d.build_speed).sum();
         let (m, e) = (&tick.snapshot.metal, &tick.snapshot.energy);
         self.log(format_args!(
-            "curve: extractors={extractors} constructors={} factories={} nanos={} build_power={build_power:.0} metal {:.0}/{:.0} +{:.1} -{:.1} energy {:.0}/{:.0} +{:.0} -{:.0} made={:.0} orders={} begun={} dropped={} skipped={} plans={}",
+            "curve: extractors={extractors} constructors={} factories={} nanos={} build_power={build_power:.0} metal {:.0}/{:.0} +{:.1} -{:.1} energy {:.0}/{:.0} +{:.0} -{:.0} made={:.0} orders={} begun={} dropped={} skipped={} energy_refused={} plans={}",
             self.count_role(Role::Builder), self.count_role(Role::Factory), self.count_role(Role::Nano), m.current, m.storage, m.income, m.usage, e.current, e.storage, e.income, e.usage,
-            self.made, self.hands.orders.len(), self.hands.begun, self.hands.dropped, self.hands.skipped, self.plans
+            self.made, self.hands.orders.len(), self.hands.begun, self.hands.dropped, self.hands.skipped, self.hands.energy_refused, self.plans
         ));
         self.log(format_args!("jobs: {}", self.jobs_line()));
+        let energy = self.energy_line();
+        self.log(format_args!("energy: {energy}"));
+        let ordered = self.ordered_line();
+        self.log(format_args!("ordered: {ordered}"));
     }
 }
 
@@ -325,8 +337,8 @@ impl Bot for Territory {
             frame: 0,
             own: BTreeMap::new(),
             enemies: Vec::new(),
-            stock: (0.0, 0.0),
-            energy: (0.0, 0.0),
+            metal: Resource::default(),
+            energy: Resource::default(),
             options: options::Options::from_env(),
             hands: hands::Hands::default(),
             spots: Vec::new(),
@@ -344,8 +356,8 @@ impl Bot for Territory {
         self.frame = tick.frame;
         self.own = tick.snapshot.own_units.iter().map(|u| (u.id, u.clone())).collect();
         self.enemies = tick.snapshot.enemies.clone();
-        self.stock = (tick.snapshot.metal.current as f64, tick.snapshot.metal.income as f64);
-        self.energy = (tick.snapshot.energy.current as f64, tick.snapshot.energy.storage as f64);
+        self.metal = tick.snapshot.metal;
+        self.energy = tick.snapshot.energy;
         if !self.started {
             self.start(&tick);
             if !self.started {

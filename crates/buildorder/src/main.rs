@@ -21,9 +21,9 @@ const USAGE: &str = "usage: (the game, that is map, start, faction and unit numb
                        income, the territory bot's score; round:UNIT: a stockpile round, the first
                        missile; --tax: metal a second to soldiers from each time, M:SS or seconds, before any build; turrets help the
                        dearest frame in reach unless --nanos-to-factory)
-  buildorder lp        --game RECORD.jsonl | --hello DUMP.json [--minutes 20] [--dt 10] [--mid-from 60] [--mid-dt 30] [--coarse-from 300] [--coarse-dt 60] [--terminal 0] [--assist 2] [--help-factor 3]
+  buildorder lp        --game RECORD.jsonl | --hello DUMP.json [--minutes 20] [--dt 10] [--mid-from 60] [--mid-dt 30] [--coarse-from 300] [--coarse-dt 60] [--terminal 0] [--energy-reserve 0.2] [--assist 2] [--help-factor 3]
                        [--nanos-per-factory 6] [--max-constructors 40 (per tier)] [--max-factories 4] [--all-spots] [--builders-only]
-                       [--walk-extractor 65] [--walk-base 3] [--walk-factory 40] [--commander-walk-extractor 16] [--commander-walk-base 5]
+                       [--walk-extractor 65] [--walk-base 3] [--walk-factory 40] [--commander-walk-extractor 16] [--commander-walk-base 5] [--commander-reach 1500] [--rings 1] [--ring-overhead 5]
                        [--commander-walk-factory 9] [--affordable METAL] [--flows N] [--csv FILE]
                        (the planner as a linear program, docs/design/2026-10-20-territory-lp.md: the plan by minute with
                        the prices of metal, energy and build power; the csv in the simulator's format)
@@ -302,6 +302,7 @@ fn linear_program(args: &Args) {
         max_constructors: args.number("--max-constructors", 40.0),
         max_factories: args.number("--max-factories", 4.0),
         terminal: args.number("--terminal", 0.0),
+        energy_reserve: args.number("--energy-reserve", 0.2),
         assist_factor: args.number("--assist", 2.0),
         help_factor: args.number("--help-factor", 3.0),
         nanos_per_factory: args.number("--nanos-per-factory", 6.0),
@@ -311,6 +312,9 @@ fn linear_program(args: &Args) {
         commander_walk_extractor: args.number("--commander-walk-extractor", 16.0),
         commander_walk_base: args.number("--commander-walk-base", 5.0),
         commander_walk_factory: args.number("--commander-walk-factory", 9.0),
+        commander_reach: args.number("--commander-reach", 1500.0),
+        rings: args.number("--rings", 1.0) as usize,
+        ring_overhead: args.number("--ring-overhead", 5.0),
     };
     let plan = lp::solve(units, &scenario, &State::start(&scenario), &offer, &options).unwrap_or_else(|e| die(&e));
     println!(
@@ -318,7 +322,13 @@ fn linear_program(args: &Args) {
         game.side(), game.home.0, game.home.1, plan.types.len(), plan.buckets, plan.lengths[0], plan.lengths[plan.buckets - 1], scenario.spots.len(), plan.variables, plan.rows, plan.status, plan.solve_time * 1000.0, plan.made, plan.objective
     );
     let basic = units.basic_extraction();
-    let count = |plan: &LpPlan, t: usize, test: &dyn Fn(&buildorder::units::Unit) -> bool| -> f64 { plan.types.iter().enumerate().filter(|(_, u)| test(&units.list[**u])).map(|(i, _)| plan.counts[i][t]).sum() };
+    let count = |plan: &LpPlan, t: usize, test: &dyn Fn(&buildorder::units::Unit) -> bool| -> f64 { plan.columns.iter().enumerate().filter(|(_, c)| test(&units.list[c.unit])).map(|(i, _)| plan.counts[i][t]).sum() };
+    let class_name = |class: buildorder::lp::Class| match class {
+        buildorder::lp::Class::Whole => String::new(),
+        buildorder::lp::Class::Frames => "(frames)".to_string(),
+        buildorder::lp::Class::Ring(k) => format!("[r{k}]"),
+    };
+    println!("rings: {}", plan.rings.iter().enumerate().map(|(k, r)| format!("r{k} {} spots to {:.0}, mean {:.0} elmos, {:.2} metal/s", r.spots, r.bound, r.distance, r.metal)).collect::<Vec<_>>().join("; "));
     println!("| min | metal/s | energy/s | mex | upgrades | cons | fac | nanos | conv | energy bldgs | metal | energy | price of metal | of energy |");
     println!("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|");
     // The bucket at each whole minute (the latest starting at or before it).
@@ -339,7 +349,7 @@ fn linear_program(args: &Args) {
             plan.metal[t], plan.energy[t], price(&plan.metal_price), price(&plan.energy_price)
         );
     }
-    let mut at_end: Vec<(f64, &str)> = plan.types.iter().enumerate().map(|(i, u)| (plan.counts[i][plan.buckets], units.list[*u].name.as_str())).filter(|(n, _)| *n > 0.05).collect();
+    let mut at_end: Vec<(f64, String)> = plan.columns.iter().enumerate().map(|(i, c)| (plan.counts[i][plan.buckets], format!("{}{}", units.list[c.unit].name, class_name(c.class)))).filter(|(n, _)| *n > 0.05).collect();
     at_end.sort_by(|a, b| b.0.total_cmp(&a.0));
     println!("at the end: {}", at_end.iter().map(|(n, name)| format!("{name} {n:.1}")).collect::<Vec<_>>().join(", "));
     for (bt, prices) in &plan.power_price {
@@ -357,7 +367,7 @@ fn linear_program(args: &Args) {
             .map(|f| {
                 let per: Vec<String> = f.per_bucket.iter().take(n).map(|x| format!("{:.2}", x / f.cost)).collect();
                 let total: f64 = f.per_bucket.iter().take(n).sum::<f64>() / f.cost;
-                (total, format!("  {} -> {} ({:?}, cost {:.0}): {} = {total:.2}", units.list[f.builder].name, units.list[f.unit].name, f.kind, f.cost, per.join(" ")))
+                (total, format!("  {} -> {}{} ({:?}, cost {:.0}): {} = {total:.2}", units.list[f.builder].name, units.list[f.unit].name, class_name(f.class), f.kind, f.cost, per.join(" ")))
             })
             .filter(|(total, _)| *total > 0.005)
             .collect();
@@ -369,7 +379,7 @@ fn linear_program(args: &Args) {
     if let Some(path) = args.value("--csv") {
         let mut text = format!("{CSV_HEADER}\n");
         for t in 0..=plan.buckets {
-            let bp: f64 = units.list[game.commander].worker_time + plan.types.iter().enumerate().map(|(i, u)| units.list[*u].worker_time * plan.counts[i][t]).sum::<f64>();
+            let bp: f64 = units.list[game.commander].worker_time + plan.columns.iter().enumerate().map(|(i, c)| units.list[c.unit].worker_time * plan.counts[i][t]).sum::<f64>();
             let _ = writeln!(
                 text,
                 "{},{:.0},{:.0},{:.2},{:.1},{:.0},{:.0},{:.0},{:.0},{:.0},{:.0},0,0,1.00,0,0,0,0,0",

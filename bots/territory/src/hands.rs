@@ -4,7 +4,7 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use bot_protocol::{BuildSite, Command, Lane, OwnUnit, Placement, UnitDefId, UnitId, Vec3};
-use buildorder::lp::{Kind, LpPlan};
+use buildorder::lp::{Class, Kind, LpPlan};
 use buildorder::plan::{Item, Plan, Step};
 use buildorder::units::Role;
 
@@ -36,6 +36,18 @@ const NANO_BEHIND: f32 = 250.0;
 /// then drops the order (terr15-lp-nullai-comet-1: seven second labs and 48 construction turrets dropped against
 /// the first lab, its yard open round a constructor's frame).
 const FACTORY_YARD: f32 = 200.0;
+/// A factory's own product inside its yard, told to guard it, walks off first and is given the guard this much
+/// later: a newborn guarding its own factory from the pad blocks the next unit (terr28-lp-nullai-comet-1, game 01:
+/// the plant's two orders held two minutes each from 9:45 with 28-37 guards standing, the income flat at 190 for
+/// four minutes). Its own products only: moved off the yard at every chunk, the commander guarding the first lab
+/// lost a third of its power to walks (terr29: nine constructors at 5:00 against fifteen); and the yard, not a
+/// hundred of the centre, since the advanced vehicle plant's pad lies past that (terr32 game 01).
+const PAD_CLEAR: i32 = 10 * SECOND;
+/// Builders at most on a factory's frame: a committed factory (T-COMMIT) is counted standing by the program from
+/// its order, so its frame is helped before anything else, this many on it (the yard crowds past that). Left to
+/// the flows, the plant's frame kept one builder from 5:02 past 10:00 while five to eight constructors built solars
+/// beside it (terr35-lp-nullai-comet-1 game 03; terr28 game 03 the same).
+const FACTORY_HELPERS: usize = 6;
 /// A building site placed but not yet begun keeps other sites this far off: the host's search knows nothing of
 /// sites chosen seconds before (terr16-lp-nullai-comet-1: 72 economy orders in four games dropped by the engine
 /// 5-30 s after the order with the builder idle a few hundred elmos from where it was ordered, forty constructors
@@ -44,15 +56,19 @@ const PENDING_SITE: f32 = 70.0;
 /// The commander takes extractor spots and upgrades within this of home only (terr15-lp-nullai-comet-1: following
 /// its extractor flows spot by spot it crossed the map, set up a base in the far corner, and died to his commander
 /// 7,300 elmos from home, two games of four lost).
-const COMMANDER_LEASH: f32 = 1500.0;
+pub(crate) const COMMANDER_LEASH: f32 = 1500.0;
 /// A spot with an extractor, a frame or an order of ours this near is taken.
 const SPOT_TAKEN: f32 = 100.0;
 /// A refused spot is left alone this long.
 const SPOT_REFUSED: i32 = MINUTE;
-/// A unit type the host found no site for is left alone this long by every builder (terr18-lp-nullai-comet-1: the
-/// geothermal plant, with no vent on the map, asked for by every constructor every half second, 5,500 drops a game
-/// and nothing else built for ten minutes).
+/// A unit type the host found no site for this many times within the window is left alone for the window by every
+/// builder (terr18-lp-nullai-comet-1: the geothermal plant, with no vent on the map, asked for by every constructor
+/// every half second, 5,500 drops a game and nothing else built for ten minutes). Not on one failure: a converter
+/// the host could not place beside one builder in a crowd banned converters for everyone for a minute, three of the
+/// last five minutes in terr27-lp-nullai-comet-1's game 00, where the plan wanted a hundred a minute and the
+/// hands began thirteen frames of anything in minute nineteen.
 const TYPE_REFUSED: i32 = MINUTE;
+const NO_SITE_STRIKES: usize = 3;
 /// The energy class fires only while the energy stock is under this share of its storage: with the stock at the
 /// cap the program's planned energy is for spending that is not happening, and solars ahead of the flows left the
 /// metal at zero from 2:00 to 8:00 (terr18-lp-nullai-comet-1). Ahead of the flows only under `ENERGY_STALL`, a
@@ -62,6 +78,9 @@ const ENERGY_LOW: f64 = 0.5;
 const ENERGY_STALL: f64 = 0.2;
 /// ... and only while fewer than this many energy orders stand without a frame.
 const ENERGY_PENDING: usize = 3;
+/// A unit costing this little energy starts whatever the energy budget says (a solar, a wind, a basic extractor):
+/// the stall's own remedies and the cheapest metal.
+const ENERGY_FREE: f64 = 500.0;
 /// T-DISPATCH: the program's targets are read this far ahead of the clock, so a builder starts what the plan wants
 /// next rather than what it wanted at the last whole bucket. Not shorter: the program's counts ramp from the
 /// snapshot, and every re-solve restarts the ramp, so a target read 20 s ahead never crossed its threshold for
@@ -127,7 +146,7 @@ pub(crate) struct Hands {
     pub targets: Option<LpPlan>,
     /// Build-power-seconds committed per unit type since the targets were adopted: an order's cost to its builder's
     /// type, a guard's chunk of its power.
-    pub committed: BTreeMap<usize, f64>,
+    pub committed: BTreeMap<(usize, Class), f64>,
     pub orders: BTreeMap<UnitId, Order>,
     /// Per builder: its queue in the plan and the index of its next step.
     pub queues: BTreeMap<UnitId, (usize, usize)>,
@@ -139,6 +158,10 @@ pub(crate) struct Hands {
     pub refused: BTreeMap<usize, i32>,
     /// Unit types the host found no site for, until this frame.
     pub type_refused: BTreeMap<usize, i32>,
+    /// The frames of the "no site" drops of each type within the window (NO_SITE_STRIKES).
+    pub no_site: BTreeMap<usize, Vec<i32>>,
+    /// Build orders given since the last log line, by type.
+    pub ordered: BTreeMap<usize, usize>,
     pub nano_told: BTreeMap<UnitId, i32>,
     /// Per builder, the frames it has begun (frame, unit): what a plan searched from an older snapshot has to skip.
     pub begun_log: BTreeMap<UnitId, Vec<(i32, usize)>>,
@@ -151,6 +174,9 @@ pub(crate) struct Hands {
     pub dropped: usize,
     pub begun: usize,
     pub skipped: usize,
+    /// Orders the energy budget refused (T-ENERGY), and by type since the last log line.
+    pub energy_refused: usize,
+    pub energy_refused_by: BTreeMap<usize, usize>,
 }
 
 impl Default for Hands {
@@ -166,6 +192,8 @@ impl Default for Hands {
             attempts: BTreeMap::new(),
             refused: BTreeMap::new(),
             type_refused: BTreeMap::new(),
+            no_site: BTreeMap::new(),
+            ordered: BTreeMap::new(),
             nano_told: BTreeMap::new(),
             begun_log: BTreeMap::new(),
             failures: BTreeMap::new(),
@@ -175,6 +203,8 @@ impl Default for Hands {
             dropped: 0,
             begun: 0,
             skipped: 0,
+            energy_refused: 0,
+            energy_refused_by: BTreeMap::new(),
         }
     }
 }
@@ -291,14 +321,20 @@ impl Territory {
     /// whole cost with no frame yet, the unbuilt share with one), since the program's new flows carry that remainder
     /// as work to do and would otherwise buy it twice.
     pub(crate) fn seed_committed(&mut self) {
-        let mut committed: BTreeMap<usize, f64> = BTreeMap::new();
+        let mut committed: BTreeMap<(usize, Class), f64> = BTreeMap::new();
         let Some(targets) = self.hands.targets.as_ref() else { return };
         for (id, order) in &self.hands.orders {
             let Some(builder) = self.own.get(id).and_then(|u| self.unit_index(u.def)) else { continue };
-            let What::Build { unit, frame, .. } = &order.what else { continue };
+            let What::Build { unit, frame, near, .. } = &order.what else { continue };
+            // Extractor orders only, in their ring: the program's Frames columns carry every other frame, and the
+            // power on those is read live (`frames_power`).
+            if self.game().units.list[*unit].extracts_metal == 0.0 {
+                continue;
+            }
+            let class = Class::Ring(targets.ring_of(near.dist2d(self.home) as f64));
             let left = frame.and_then(|f| self.own.get(&f)).map_or(1.0, |f| 1.0 - (f.health / f.max_health.max(1.0)).clamp(0.0, 1.0) as f64);
-            let cost = targets.flows.iter().find(|f| f.builder == builder && f.unit == *unit).map_or(self.game().units.list[*unit].build_time, |f| f.cost);
-            *committed.entry(*unit).or_default() += cost * left;
+            let cost = targets.flows.iter().find(|f| f.builder == builder && f.unit == *unit && f.class == class).map_or(self.game().units.list[*unit].build_time, |f| f.cost);
+            *committed.entry((*unit, class)).or_default() += cost * left;
         }
         self.hands.committed = committed;
     }
@@ -338,14 +374,23 @@ impl Territory {
             let def = &units.list[unit];
             let targets = self.hands.targets.as_ref().expect("dispatching");
             let ordered = self.hands.orders.values().filter_map(|o| match &o.what { What::Build { unit, frame: None, .. } => Some(*unit), _ => None });
-            let covered: Vec<usize> = self.own.values().filter_map(|f| self.unit_index(f.def)).chain(ordered).filter(|f| units.list[*f].role == Role::Factory).flat_map(|f| units.list[f].builds.iter().copied()).collect();
+            // Covered by tier: a product's role and whether it builds an upgrade. By exact type the second basic kind
+            // was committed as soon as the first stood (terr33 game 03: a lab at 0:18, a vehicle plant at 0:42, the
+            // commander on both to 5:00); the intent is the plant of the tier the upgrades need.
+            let tier = |u: usize| (units.list[u].role, units.list[u].builds.iter().any(|b| self.is_upgrade(*b)));
+            let covered: Vec<(Role, bool)> = self.own.values().filter_map(|f| self.unit_index(f.def)).chain(ordered).filter(|f| units.list[*f].role == Role::Factory).flat_map(|f| units.list[f].builds.iter().map(|p| tier(*p))).collect();
             let wanted_soon = |u: usize| (0..=6).any(|k| targets.count_at(u, now + k as f64 * COMMIT_WITHIN / 6.0) >= COMMIT_AT);
+            // One commitment at a time: with a factory framed or ordered, none (terr32: the program wanting both
+            // constructor kinds, a lab and a vehicle plant were committed in the first minute, and the commander
+            // built both and assisted them to 5:00 on an income of seven).
+            let pending_factory = self.hands.orders.values().any(|o| matches!(&o.what, What::Build { unit, frame, .. } if units.list[*unit].role == Role::Factory && frame.is_none_or(|f| self.own.get(&f).is_some_and(|u| u.being_built))));
             targets
                 .types
                 .iter()
                 .copied()
+                .filter(|_| !pending_factory)
                 .filter(|f| units.list[*f].role == Role::Factory && def.builds.contains(f) && !self.hands.struck.contains(f))
-                .filter(|f| wanted_soon(*f) && units.list[*f].builds.iter().any(|p| !covered.contains(p) && wanted_soon(*p)))
+                .filter(|f| wanted_soon(*f) && units.list[*f].builds.iter().any(|p| !covered.contains(&tier(*p)) && wanted_soon(*p)))
                 .max_by(|a, b| targets.count_at(*a, now + COMMIT_WITHIN).total_cmp(&targets.count_at(*b, now + COMMIT_WITHIN)))
         };
         // The classes: the factories as a whole for a mobile builder; a factory's products by role.
@@ -400,64 +445,120 @@ impl Territory {
                 .max_by(|a, b| a.1.total_cmp(&b.1))
                 .map(|(u, _)| u)
         });
-        if let Some(u) = class_pick && self.order_one(id, unit, role, u, self.game().units.list[u].build_time, commands) {
+        if let Some(u) = class_pick && self.order_one(id, unit, role, u, self.game().units.list[u].build_time, None, commands) {
             return;
         }
         if role == Role::Factory {
             return;
         }
+        // A factory's frame first (FACTORY_HELPERS), on the producers' budget.
+        let factory_frame: Option<UnitId> = {
+            let units = &self.game().units;
+            self.own
+                .values()
+                .filter(|f| f.being_built)
+                .filter_map(|f| {
+                    let i = self.unit_index(f.def)?;
+                    (units.list[i].role == Role::Factory && self.helpers_on(f.id) < FACTORY_HELPERS && self.energy_fits(i, unit)).then_some((f.id, f.pos.dist2d(builder.pos)))
+                })
+                .min_by(|a, b| a.1.total_cmp(&b.1))
+                .map(|(id, _)| id)
+        };
+        if let Some(frame) = factory_frame {
+            commands.push(Command::Repair { unit: id, target: frame, queue: false });
+            self.hands.orders.insert(id, Order { what: What::Help { frame }, given: self.frame, told: self.frame, arrived: None, step: None });
+            return;
+        }
         // The energy as a class ahead of the flows only in a stall (ENERGY_STALL), else after them.
-        if self.energy.0 < ENERGY_STALL * self.energy.1 && self.energy_class(id, unit, role, ahead, commands) {
+        if self.in_stall() && self.energy_class(id, unit, role, ahead, commands) {
             return;
         }
         // The credits by unit type over every builder type's flows (turret help apart), the largest as a share of
         // the unit's cost first, and at a share tied the one the plan wants sooner (its share at a third of the
         // lead: terr24, two solars and two extractors wanted by one minute tied, and unit order put the solars
         // first); this builder's part is to build it or to guard the factory that makes it.
-        let mut flows: Vec<(usize, Kind, f64, f64, f64)> = {
+        // By column: a whole unit's flow is built or assisted, a ring's is an extractor on a spot of that ring, and a
+        // Frames column's is help on a frame of the type (the program's finishing work, in place of the dearest
+        // frame), its commitment read live from the power standing on those frames.
+        let mut flows: Vec<(usize, Class, Kind, f64, f64, f64)> = {
             let targets = self.hands.targets.as_ref().expect("dispatching");
             let units = &self.game().units;
             let def = &units.list[unit];
-            let mut per_unit: BTreeMap<usize, (f64, f64, f64)> = BTreeMap::new();
+            let mut per_column: BTreeMap<(usize, Class), (f64, f64, f64)> = BTreeMap::new();
             for f in targets.flows.iter().filter(|f| f.kind != Kind::Help && units.list[f.unit].role != Role::Factory) {
-                let e = per_unit.entry(f.unit).or_insert((0.0, 0.0, f64::MAX));
-                e.0 += targets.planned_power(f.builder, f.unit, ahead);
-                e.1 += targets.planned_power(f.builder, f.unit, now + LEAD / 3.0);
+                let e = per_column.entry((f.unit, f.class)).or_insert((0.0, 0.0, f64::MAX));
+                e.0 += targets.planned_power_class(f.builder, f.unit, f.class, ahead);
+                e.1 += targets.planned_power_class(f.builder, f.unit, f.class, now + LEAD / 3.0);
                 e.2 = e.2.min(f.cost);
             }
-            per_unit
+            per_column
                 .into_iter()
-                .filter_map(|(u, (planned, soon, cost))| {
-                    let kind = if def.builds.contains(&u) {
+                .filter_map(|((u, class), (planned, soon, cost))| {
+                    let kind = if class == Class::Frames && units.list[u].speed == 0.0 {
+                        Kind::Help
+                    } else if def.builds.contains(&u) {
                         Kind::Direct
                     } else if units.list[u].speed > 0.0 && self.factory_making(u, builder.pos).is_some() {
                         Kind::Assist
                     } else {
                         return None;
                     };
-                    let committed = self.hands.committed.get(&u).copied().unwrap_or(0.0);
+                    let committed = if class == Class::Frames { self.frames_power(u, targets.t0) } else { self.hands.committed.get(&(u, class)).copied().unwrap_or(0.0) };
                     let credit = planned - committed;
-                    (credit > 0.0).then_some((u, kind, credit, cost, soon - committed))
+                    // A whole unit starts at half its cost of credit; help on frames at any. With the frames in their
+                    // own column the standing orders no longer seed the whole-unit credits, and on any credit the
+                    // hands started an advanced fusion at every re-plan (terr31: four in minute thirteen, 39,000
+                    // metal, the upgrades refused by the consumers' budget for three minutes, the metal at zero).
+                    let enough = if class == Class::Frames { credit > 0.0 } else { credit >= START_AT * cost };
+                    enough.then_some((u, class, kind, credit, cost, soon - committed))
                 })
                 .collect()
         };
         flows.sort_by(|a, b| {
-            let share = |f: &(usize, Kind, f64, f64, f64)| (f.2 / f.3.max(1.0), f.4 / f.3.max(1.0));
+            let share = |f: &(usize, Class, Kind, f64, f64, f64)| (f.3 / f.4.max(1.0), f.5 / f.4.max(1.0));
             let (sa, sb) = (share(a), share(b));
             sb.0.total_cmp(&sa.0).then(sb.1.total_cmp(&sa.1))
         });
-        for (u, kind, _, cost, _) in flows {
+        for (u, class, kind, _, cost, _) in flows {
             match kind {
                 Kind::Direct => {
-                    if self.order_one(id, unit, role, u, cost, commands) {
+                    let ring = match class {
+                        Class::Ring(k) => Some(k),
+                        _ => None,
+                    };
+                    if self.order_one(id, unit, role, u, cost, ring, commands) {
                         return;
                     }
                 }
-                Kind::Assist | Kind::Help => {
+                Kind::Help => {
+                    if let Some(frame) = self.frame_to_finish(u, unit) {
+                        commands.push(Command::Repair { unit: id, target: frame, queue: false });
+                        self.hands.orders.insert(id, Order { what: What::Help { frame }, given: self.frame, told: self.frame, arrived: None, step: None });
+                        return;
+                    }
+                }
+                Kind::Assist => {
                     let Some(factory) = self.factory_making(u, builder.pos) else { continue };
+                    if !self.energy_fits(u, unit) {
+                        self.hands.energy_refused += 1;
+                        *self.hands.energy_refused_by.entry(u).or_default() += 1;
+                        continue;
+                    }
+                    // Its own product inside its yard is on or beside the pad (the advanced vehicle plant's pad lies
+                    // past 100 from its centre: terr32 game 01, three orders held two minutes each); the commander and
+                    // the rest guard from where they stand.
+                    let own_product = |f: &OwnUnit| self.unit_index(f.def).is_some_and(|fi| self.game().units.list[fi].builds.contains(&unit));
+                    if let Some(f) = self.own.get(&factory) && own_product(f) && builder.pos.dist2d(f.pos) < FACTORY_YARD {
+                        let to = self.beside_factory(f.pos, id);
+                        commands.push(Command::Move { unit: id, to, queue: false });
+                        self.hands.orders.insert(id, Order { what: What::Assist { factory, until: self.frame + PAD_CLEAR }, given: self.frame, told: self.frame, arrived: None, step: None });
+                        return;
+                    }
                     commands.push(Command::Guard { unit: id, target: factory });
                     self.hands.orders.insert(id, Order { what: What::Assist { factory, until: self.frame + ASSIST_CHUNK }, given: self.frame, told: self.frame, arrived: None, step: None });
-                    *self.hands.committed.entry(u).or_default() += self.game().units.list[unit].worker_time * ASSIST_CHUNK as f64 / SECOND as f64;
+                    if class != Class::Frames {
+                        *self.hands.committed.entry((u, class)).or_default() += self.game().units.list[unit].worker_time * ASSIST_CHUNK as f64 / SECOND as f64;
+                    }
                     return;
                 }
             }
@@ -475,12 +576,219 @@ impl Territory {
                 .max_by(|a, b| (a.1 * units.list[a.0].build_time).total_cmp(&(b.1 * units.list[b.0].build_time)))
                 .map(|(u, _)| *u)
         };
-        if let Some(u) = fallback && self.order_one(id, unit, role, u, self.game().units.list[u].build_time, commands) {
+        if let Some(u) = fallback && self.order_one(id, unit, role, u, self.game().units.list[u].build_time, None, commands) {
             return;
         }
-        if let Some(frame) = self.dearest_frame() {
+        // T-ENERGY: in a stall the help goes to the energy frame that finishes soonest with this builder on it, else
+        // to the dearest frame the energy budget allows a helper on; with none, and the budget refusing, a solar.
+        let frame = if self.in_stall() { self.energy_frame_to_finish(unit) } else { self.dearest_frame(unit) };
+        if let Some(frame) = frame {
             commands.push(Command::Repair { unit: id, target: frame, queue: false });
             self.hands.orders.insert(id, Order { what: What::Help { frame }, given: self.frame, told: self.frame, arrived: None, step: None });
+            return;
+        }
+        if (self.energy.current as f64) < ENERGY_LOW * self.energy.storage as f64 && self.energy_budget(true) < 0.0 {
+            self.free_energy_building(id, unit, role, commands);
+        }
+    }
+
+    /// T-ENERGY: the energy the hands may commit over the affordability window: the stock above the reserve, the
+    /// window's net income with the frames that finish inside it credited back, less what the orders still walking
+    /// draw inside it (a unit's draw is what its frame takes over the window at its builder's power, or its whole
+    /// cost if less). A unit or a helper is refused when its draw does not fit. The program's plan is feasible in
+    /// fractions and spends energy to the edge; the hands' whole units overshot it into a stall that lasted minutes
+    /// (terr25-lp-nullai-comet-1, game 00: two fusions, a cloakable one and an advanced one framed together from
+    /// 10:08 to 11:59 beside nine upgrades, the energy at zero from 12:00 to 15:00, the income growth a third of
+    /// the plan's). A producer is held to the stock and to the net only when that is positive, and against the
+    /// pending producers alone: a fusion is what raises the net, and the window's balance must not refuse it
+    /// (terr26: the first budget counted every walking order's whole draw inside the window and refused fusions
+    /// and upgrades alike at a stock on its cap; the hands built twenty solars into that cap and banked the metal).
+    fn energy_budget(&self, producer: bool) -> f64 {
+        let units = &self.game().units;
+        let e = &self.energy;
+        let w = AFFORD_SECONDS;
+        // The frames in the budget's own class: every frame for the consumers, the producers' and factories' own
+        // for them. Their draw now, and what of it is credited back because the frame finishes inside the window.
+        let (drawing, finishing) = self
+            .own
+            .values()
+            .filter(|u| u.being_built)
+            .filter_map(|u| {
+                let i = self.unit_index(u.def)?;
+                let def = &units.list[i];
+                if producer && !(self.is_energy(i) || def.role == Role::Factory) {
+                    return None;
+                }
+                let rate = self.power_on(u.id) * def.energy_cost / def.build_time.max(1.0);
+                let left = def.energy_cost * (1.0 - (u.health / u.max_health.max(1.0)).clamp(0.0, 1.0) as f64);
+                Some((rate, (rate * w - left).max(0.0)))
+            })
+            .fold((0.0, 0.0), |(d, f), (rate, fin)| (d + rate, f + fin));
+        let pending: f64 = self
+            .hands
+            .orders
+            .iter()
+            .filter_map(|(id, o)| match &o.what {
+                What::Build { unit, frame: None, near, .. } if !producer || self.is_energy(*unit) => {
+                    let builder = self.own.get(id)?;
+                    let bi = self.unit_index(builder.def)?;
+                    let def = &units.list[*unit];
+                    let inside = (w - builder.pos.dist2d(*near) as f64 / units.list[bi].speed.max(1.0)).max(0.0);
+                    Some(def.energy_cost.min(inside * units.list[bi].worker_time * def.energy_cost / def.build_time.max(1.0)))
+                }
+                _ => None,
+            })
+            .sum();
+        // A producer is held to its own kind's draw, not the consumers' (terr27), but to that: five advanced fusions
+        // framed together on a producers' budget that read no draw at all (terr31).
+        let net = if producer { e.income as f64 - drawing } else { e.income as f64 - e.usage as f64 };
+        (e.current as f64 - self.options.energy_reserve * e.storage as f64) + w * net + finishing - pending
+    }
+
+    /// The budget line for the log: the consumers' and the producers' budgets, and the refusals by type since the
+    /// last line.
+    pub(crate) fn energy_line(&mut self) -> String {
+        let units = &self.game().units;
+        let refused: Vec<String> = self.hands.energy_refused_by.iter().map(|(u, n)| format!("{}:{n}", units.list[*u].name)).collect();
+        self.hands.energy_refused_by.clear();
+        format!("budget {:.0}/{:.0} refused {}", self.energy_budget(false), self.energy_budget(true), if refused.is_empty() { "-".to_string() } else { refused.join(" ") })
+    }
+
+    /// The build orders given since the last log line, by type, most first.
+    pub(crate) fn ordered_line(&mut self) -> String {
+        let units = &self.game().units;
+        let mut ordered: Vec<(usize, usize)> = self.hands.ordered.iter().map(|(u, n)| (*u, *n)).collect();
+        ordered.sort_by(|a, b| b.1.cmp(&a.1));
+        let line = if ordered.is_empty() { "-".to_string() } else { ordered.iter().map(|(u, n)| format!("{}:{n}", units.list[*u].name)).collect::<Vec<_>>().join(" ") };
+        self.hands.ordered.clear();
+        line
+    }
+
+    /// The energy a frame of `u` draws over the window with `builder`'s power on it, or its whole cost if less.
+    fn energy_draw(&self, u: usize, builder: usize) -> f64 {
+        let units = &self.game().units;
+        let def = &units.list[u];
+        def.energy_cost.min(AFFORD_SECONDS * units.list[builder].worker_time * def.energy_cost / def.build_time.max(1.0))
+    }
+
+    /// Whether `builder` may start or help a `u` for the energy: a cheap one always (ENERGY_FREE), else by the
+    /// budget, a factory on the producers' (the program takes a committed factory as standing, T-COMMIT, and its
+    /// frame waited on the consumers' budget under one builder from 5:18 to 10:00 while ten built advanced solars
+    /// beside it, terr28-lp-nullai-comet-1 game 03; exempt from both it drained the energy to zero, terr29).
+    fn energy_fits(&self, u: usize, builder: usize) -> bool {
+        let def = &self.game().units.list[u];
+        def.energy_cost <= ENERGY_FREE || self.energy_draw(u, builder) <= self.energy_budget(self.is_energy(u) || def.role == Role::Factory)
+    }
+
+    /// A point beside a factory, out of its yard and off its exit lane: across the lane at NANO_BEHIND, the side
+    /// by the builder's id.
+    fn beside_factory(&self, factory: Vec3, builder: UnitId) -> Vec3 {
+        let (dx, dz) = (self.enemy_home.x - factory.x, self.enemy_home.z - factory.z);
+        let length = dx.hypot(dz).max(1.0);
+        let side = if builder.0 % 2 == 0 { 1.0 } else { -1.0 };
+        Vec3 { x: factory.x - dz / length * NANO_BEHIND * side, y: factory.y, z: factory.z + dx / length * NANO_BEHIND * side }
+    }
+
+    /// The energy stock under the stall line (ENERGY_STALL of the storage).
+    fn in_stall(&self) -> bool {
+        (self.energy.current as f64) < ENERGY_STALL * self.energy.storage as f64
+    }
+
+    /// The energy frame that finishes soonest with `builder`'s power added to what is on it.
+    fn energy_frame_to_finish(&self, builder: usize) -> Option<UnitId> {
+        let units = &self.game().units;
+        let mine = units.list[builder].worker_time;
+        self.own
+            .values()
+            .filter(|u| u.being_built)
+            .filter_map(|u| {
+                let i = self.unit_index(u.def)?;
+                self.is_energy(i).then_some(())?;
+                let left = units.list[i].build_time * (1.0 - (u.health / u.max_health.max(1.0)).clamp(0.0, 1.0) as f64);
+                Some((u.id, left / (self.power_on(u.id) + mine)))
+            })
+            .min_by(|a, b| a.1.total_cmp(&b.1))
+            .map(|(id, _)| id)
+    }
+
+    /// The ring of the program's a point falls in (the nearest, with no program).
+    fn ring_of_pos(&self, at: Vec3) -> usize {
+        self.hands.targets.as_ref().map_or(0, |t| t.ring_of(at.dist2d(self.home) as f64))
+    }
+
+    /// Build-power-seconds standing on the frames of `u` since the plan's start `t0`, the lead ahead counted: the
+    /// orders building them, the help on them, and the guards on a factory making one, each at its builder's
+    /// power from when it arrived. The live commitment of a Frames column.
+    fn frames_power(&self, u: usize, t0: f64) -> f64 {
+        let units = &self.game().units;
+        let now = self.frame as f64 / SECOND as f64;
+        let frame_unit = |frame: &UnitId| self.own.get(frame).and_then(|f| self.unit_index(f.def));
+        let factory_making_u = |factory: &UnitId| matches!(self.hands.orders.get(factory).map(|o| &o.what), Some(What::Build { unit, .. }) if *unit == u);
+        self.hands
+            .orders
+            .iter()
+            .filter(|(_, o)| match &o.what {
+                What::Build { unit, .. } => *unit == u,
+                What::Help { frame } => frame_unit(frame) == Some(u),
+                What::Assist { factory, .. } => factory_making_u(factory),
+            })
+            .filter_map(|(id, o)| {
+                let w = units.list[self.unit_index(self.own.get(id)?.def)?].worker_time;
+                let since = (o.arrived.unwrap_or(o.given) as f64 / SECOND as f64).max(t0);
+                Some(w * ((now - since).max(0.0) + LEAD))
+            })
+            .sum()
+    }
+
+    /// The frame of `u` that finishes soonest with `builder`'s power added to what is on it.
+    fn frame_to_finish(&self, u: usize, builder: usize) -> Option<UnitId> {
+        let units = &self.game().units;
+        let mine = units.list[builder].worker_time;
+        self.own
+            .values()
+            .filter(|f| f.being_built && self.unit_index(f.def) == Some(u))
+            .map(|f| {
+                let left = units.list[u].build_time * (1.0 - (f.health / f.max_health.max(1.0)).clamp(0.0, 1.0) as f64);
+                (f.id, left / (self.power_on(f.id) + mine))
+            })
+            .min_by(|a, b| a.1.total_cmp(&b.1))
+            .map(|(id, _)| id)
+    }
+
+    /// Builders on a frame: the one building it and the helpers.
+    fn helpers_on(&self, frame: UnitId) -> usize {
+        self.hands.orders.values().filter(|o| matches!(&o.what, What::Help { frame: f } | What::Build { frame: Some(f), .. } if *f == frame)).count()
+    }
+
+    /// Build power on a frame: its builder's and its helpers'.
+    fn power_on(&self, frame: UnitId) -> f64 {
+        let units = &self.game().units;
+        self.hands
+            .orders
+            .iter()
+            .filter(|(_, o)| matches!(&o.what, What::Help { frame: f } | What::Build { frame: Some(f), .. } if *f == frame))
+            .filter_map(|(id, _)| self.unit_index(self.own.get(id)?.def))
+            .map(|b| units.list[b].worker_time)
+            .sum()
+    }
+
+    /// A cheap energy building of the program's types this builder builds, the most energy for the metal: what a
+    /// builder the energy budget refused everything builds.
+    fn free_energy_building(&mut self, id: UnitId, unit: usize, role: Role, commands: &mut Vec<Command>) -> bool {
+        let pick: Option<usize> = {
+            let units = &self.game().units;
+            let def = &units.list[unit];
+            let targets = self.hands.targets.as_ref().expect("dispatching");
+            targets
+                .types
+                .iter()
+                .copied()
+                .filter(|u| def.builds.contains(u) && self.is_energy(*u) && units.list[*u].energy_cost <= ENERGY_FREE && !self.hands.struck.contains(u) && self.affordable(*u))
+                .max_by(|a, b| (units.list[*a].energy_make / units.list[*a].metal_cost.max(1.0)).total_cmp(&(units.list[*b].energy_make / units.list[*b].metal_cost.max(1.0))))
+        };
+        match pick {
+            Some(u) if role != Role::Factory => self.order_one(id, unit, role, u, self.game().units.list[u].build_time, None, commands),
+            _ => false,
         }
     }
 
@@ -502,40 +810,46 @@ impl Territory {
             let pending = self.hands.orders.values().filter(|o| matches!(&o.what, What::Build { unit, frame: None, .. } if self.is_energy(*unit))).count();
             let had: f64 = self.own.values().filter_map(|o| self.unit_index(o.def)).filter(|u| self.is_energy(*u)).map(rate).sum::<f64>()
                 + self.hands.orders.values().filter_map(|o| match &o.what { What::Build { unit, frame: None, .. } if self.is_energy(*unit) => Some(rate(*unit)), _ => None }).sum::<f64>();
-            let short = if pending < ENERGY_PENDING && self.energy.0 < ENERGY_LOW * self.energy.1 { targets.energy_income_at(ahead) - units.list[self.game().commander].energy_make - had } else { 0.0 };
+            let short = if pending < ENERGY_PENDING && (self.energy.current as f64) < ENERGY_LOW * self.energy.storage as f64 { targets.energy_income_at(ahead) - units.list[self.game().commander].energy_make - had } else { 0.0 };
             // Of the program's own types (the roster leaves out what stands only on a geothermal vent).
             targets
                 .types
                 .iter()
                 .copied()
-                .filter(|u| def.builds.contains(u) && self.is_energy(*u) && !self.hands.struck.contains(u) && self.affordable(*u))
+                .filter(|u| def.builds.contains(u) && self.is_energy(*u) && !self.hands.struck.contains(u) && self.affordable(*u) && self.energy_fits(*u, unit))
                 .max_by(|a, b| (rate(*a) / units.list[*a].metal_cost.max(1.0)).total_cmp(&(rate(*b) / units.list[*b].metal_cost.max(1.0))))
                 .filter(|u| short >= rate(*u))
                 .map(|u| (u, units.list[u].build_time))
         };
         match energy {
-            Some((u, cost)) if role != Role::Factory => self.order_one(id, unit, role, u, cost, commands),
+            Some((u, cost)) if role != Role::Factory => self.order_one(id, unit, role, u, cost, None, commands),
             _ => false,
         }
     }
 
     /// One unit of `u` ordered from this builder (T-SITES places it) and charged to its type's commitment; false
     /// when the hands pass it over (not affordable, no site, the cap, a struck type).
-    fn order_one(&mut self, id: UnitId, unit: usize, role: Role, u: usize, cost: f64, commands: &mut Vec<Command>) -> bool {
+    fn order_one(&mut self, id: UnitId, unit: usize, role: Role, u: usize, cost: f64, ring: Option<usize>, commands: &mut Vec<Command>) -> bool {
         if !self.affordable(u) || self.hands.type_refused.get(&u).is_some_and(|until| self.frame < *until) {
             return false;
         }
+        if !self.energy_fits(u, unit) {
+            self.hands.energy_refused += 1;
+            *self.hands.energy_refused_by.entry(u).or_default() += 1;
+            return false;
+        }
         let attempt = self.hands.attempts.get(&id).copied().unwrap_or(0);
-        let Some((command, what)) = self.give(id, unit, role, Step::build(u), attempt) else { return false };
+        let Some((command, what)) = self.give(id, unit, role, Step::build(u), attempt, ring) else { return false };
         commands.push(command);
         self.hands.orders.insert(id, Order { what, given: self.frame, told: self.frame, arrived: None, step: None });
-        *self.hands.committed.entry(u).or_default() += cost;
+        *self.hands.committed.entry((u, ring.map_or(Class::Whole, Class::Ring))).or_default() += cost;
+        *self.hands.ordered.entry(u).or_default() += 1;
         true
     }
 
     /// Whether the stock and `AFFORD_SECONDS` of income cover a unit's metal cost.
     fn affordable(&self, u: usize) -> bool {
-        self.game().units.list[u].metal_cost <= self.stock.0 + self.stock.1 * AFFORD_SECONDS
+        self.game().units.list[u].metal_cost <= self.metal.current as f64 + self.metal.income as f64 * AFFORD_SECONDS
     }
 
     /// An energy building: makes energy, extracts and converts nothing (the commander is not one).
@@ -649,7 +963,13 @@ impl Territory {
             self.hands.refused.insert(spot, self.frame + SPOT_REFUSED);
         }
         if why == "no site" && let What::Build { unit, .. } = &order.what {
-            self.hands.type_refused.insert(*unit, self.frame + TYPE_REFUSED);
+            let frame = self.frame;
+            let strikes = self.hands.no_site.entry(*unit).or_default();
+            strikes.retain(|f| frame - *f < TYPE_REFUSED);
+            strikes.push(frame);
+            if strikes.len() >= NO_SITE_STRIKES {
+                self.hands.type_refused.insert(*unit, frame + TYPE_REFUSED);
+            }
         }
         let counted = self.frame >= FIRST_ORDERS;
         // Only an order the engine dropped or rejected says the type cannot be built; a site the host could not find,
@@ -704,7 +1024,7 @@ impl Territory {
                 self.hands.queues.insert(id, (queue, next));
             }
             let attempt = self.hands.attempts.get(&id).copied().unwrap_or(0);
-            if let Some((command, what)) = self.give(id, unit, role, step, attempt) {
+            if let Some((command, what)) = self.give(id, unit, role, step, attempt, None) {
                 commands.push(command);
                 self.hands.orders.insert(id, Order { what, given: self.frame, told: self.frame, arrived: None, step: from_queue.then_some(next - 1) });
                 return;
@@ -717,7 +1037,7 @@ impl Territory {
 
     /// One step as an order, placed as the simulator places it (T-SITES); none when the step is passed over, as the
     /// simulator passes it over (no free spot, a unit this builder cannot build, a factory beyond the plan's queues).
-    fn give(&mut self, id: UnitId, builder_unit: usize, role: Role, step: Step, attempt: u32) -> Option<(Command, What)> {
+    fn give(&mut self, id: UnitId, builder_unit: usize, role: Role, step: Step, attempt: u32, ring: Option<usize>) -> Option<(Command, What)> {
         let builder = self.own.get(&id)?.clone();
         let game = self.game();
         let units = &game.units;
@@ -733,7 +1053,7 @@ impl Territory {
                 if role == Role::Factory {
                     return None;
                 }
-                let frame = self.dearest_frame()?;
+                let frame = self.dearest_frame(builder_unit)?;
                 Some((Command::Repair { unit: id, target: frame, queue: false }, What::Help { frame }))
             }
             Item::Build(unit) => {
@@ -777,6 +1097,7 @@ impl Territory {
                         .filter(|u| !u.being_built && u.id != id)
                         .filter(|u| role != Role::Commander || u.pos.dist2d(self.home) < COMMANDER_LEASH)
                         .filter(|u| self.unit_index(u.def).is_some_and(|i| units.list[i].extracts_metal > 0.0 && !self.is_upgrade(i)))
+                        .filter(|u| ring.is_none_or(|k| self.ring_of_pos(u.pos) == k))
                         .filter(|u| !ordered.iter().any(|o| o.dist2d(u.pos) < SPOT_TAKEN))
                         .min_by(|a, b| a.pos.dist2d(builder.pos).total_cmp(&b.pos.dist2d(builder.pos)))?;
                     // Logged to the hundredth: the game's "Deny Invalid Mex Orders" rule allows an extractor over
@@ -785,7 +1106,7 @@ impl Territory {
                     BuildSite { near: standing.pos, search_radius: 0.0, min_dist: 0, placements: Vec::new() }
                 } else if target.extracts_metal > 0.0 {
                     let leash = (role == Role::Commander).then_some((self.home, COMMANDER_LEASH));
-                    let spot = self.free_spot(builder.pos, step.site, leash)?;
+                    let spot = self.free_spot(builder.pos, step.site, leash, ring)?;
                     BuildSite { near: self.hello.metal_spots[spot], search_radius: 0.0, min_dist: 0, placements: Vec::new() }
                 } else if target.role == Role::Nano {
                     // Behind the nearest factory, inside the turret's reach of it; the base spiral without one.
@@ -819,7 +1140,7 @@ impl Territory {
 
     /// The free spot of the scenario's list nearest `from`; with `named`, the free spot within 100 of it or none;
     /// with `leash`, within that radius of that point.
-    fn free_spot(&self, from: Vec3, named: Option<(f64, f64)>, leash: Option<(Vec3, f32)>) -> Option<usize> {
+    fn free_spot(&self, from: Vec3, named: Option<(f64, f64)>, leash: Option<(Vec3, f32)>, ring: Option<usize>) -> Option<usize> {
         let spots = &self.hello.metal_spots;
         let taken = |i: usize| {
             let at = spots[i];
@@ -829,7 +1150,8 @@ impl Territory {
         };
         let near_named = |i: usize| named.is_none_or(|(x, z)| spots[i].dist2d(Vec3 { x: x as f32, y: 0.0, z: z as f32 }) < SPOT_TAKEN);
         let leashed = |i: usize| leash.is_none_or(|(centre, radius)| spots[i].dist2d(centre) < radius);
-        self.spots.iter().copied().filter(|i| !taken(*i) && near_named(*i) && leashed(*i)).min_by(|a, b| spots[*a].dist2d(from).total_cmp(&spots[*b].dist2d(from)))
+        let in_ring = |i: usize| ring.is_none_or(|k| self.ring_of_pos(spots[i]) == k);
+        self.spots.iter().copied().filter(|i| !taken(*i) && near_named(*i) && leashed(*i) && in_ring(*i)).min_by(|a, b| spots[*a].dist2d(from).total_cmp(&spots[*b].dist2d(from)))
     }
 
     /// Factories standing or ordered, so a plan cannot start more than it has queues for (the simulator's rule).
@@ -848,17 +1170,19 @@ impl Territory {
     }
 
     /// The building frame with the most metal still to build per builder on it, one more counted (a factory's pad
-    /// is not a frame): the help spreads over the frames rather than piling on the dearest (terr22-lp-nullai-comet-1:
-    /// 48 constructors on one frame at 20:00 while five fusions stood with a builder each, and the program's power
-    /// on fusions, committed to those frames, never cleared for new ones).
-    fn dearest_frame(&self) -> Option<UnitId> {
+    /// is not a frame), among those the energy budget allows `builder` on: the help spreads over the frames rather
+    /// than piling on the dearest (terr22-lp-nullai-comet-1: 48 constructors on one frame at 20:00 while five
+    /// fusions stood with a builder each, and the program's power on fusions, committed to those frames, never
+    /// cleared for new ones).
+    fn dearest_frame(&self, builder: usize) -> Option<UnitId> {
         let helpers = |frame: UnitId| self.hands.orders.values().filter(|o| matches!(&o.what, What::Help { frame: f } | What::Build { frame: Some(f), .. } if *f == frame)).count() as f32;
         self.own
             .values()
             .filter(|u| u.being_built)
             .filter_map(|u| {
                 let d = self.def(u.def)?;
-                (d.speed == 0.0).then(|| (u.id, d.metal_cost * (1.0 - u.health / u.max_health.max(1.0)) / (1.0 + helpers(u.id))))
+                let i = self.unit_index(u.def)?;
+                (d.speed == 0.0 && self.energy_fits(i, builder)).then(|| (u.id, d.metal_cost * (1.0 - u.health / u.max_health.max(1.0)) / (1.0 + helpers(u.id))))
             })
             .max_by(|a, b| a.1.total_cmp(&b.1))
             .map(|(id, _)| id)

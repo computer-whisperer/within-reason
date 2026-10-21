@@ -14,7 +14,7 @@ every plan line. With --lp, the linear program's own ceiling from the same start
 """
 import glob, json, os, re, statistics, subprocess, sys
 
-CURVE = re.compile(r"\[territory ai=\d\] f=(\d+) curve: extractors=(\d+) constructors=(\d+) factories=(\d+) nanos=(\d+) build_power=(\d+) metal (-?\d+)/(\d+) \+([\d.]+) -([\d.]+) energy (-?\d+)/(\d+) \+(\d+) -(\d+) made=(\d+) orders=(\d+) begun=(\d+) dropped=(\d+) skipped=(\d+) plans=(\d+)")
+CURVE = re.compile(r"\[territory ai=\d\] f=(\d+) curve: extractors=(\d+) constructors=(\d+) factories=(\d+) nanos=(\d+) build_power=(\d+) metal (-?\d+)/(\d+) \+([\d.]+) -([\d.]+) energy (-?\d+)/(\d+) \+(\d+) -(\d+) made=(\d+) orders=(\d+) begun=(\d+) dropped=(\d+) skipped=(\d+)(?: energy_refused=(\d+))? plans=(\d+)")
 PLAN = re.compile(r"\[territory ai=\d\] f=(\d+) plan: n=(\d+) t0=(\d+) wall=(\d+)ms score=(-?\d+) horizon=(\d+) predicted \+60: income ([\d.]+) mex (\d+) \| \+120: income ([\d.]+) mex (\d+) \| \+300: income ([\d.]+) mex (\d+) \| end: income ([\d.]+) mex (\d+) cons (\d+) fac (\d+) nanos (\d+) made (\d+); stale ([\d.]+) s")
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -25,7 +25,7 @@ def read(game):
         m = CURVE.search(line)
         if m:
             g = m.groups()
-            curves.append(dict(minute=int(g[0]) // 1800, extractors=int(g[1]), constructors=int(g[2]), factories=int(g[3]), nanos=int(g[4]), build_power=int(g[5]), metal=int(g[6]), metal_income=float(g[8]), metal_usage=float(g[9]), energy=int(g[10]), energy_income=int(g[12]), made=int(g[14]), orders=int(g[15]), begun=int(g[16]), dropped=int(g[17]), skipped=int(g[18]), plans=int(g[19])))
+            curves.append(dict(minute=int(g[0]) // 1800, extractors=int(g[1]), constructors=int(g[2]), factories=int(g[3]), nanos=int(g[4]), build_power=int(g[5]), metal=int(g[6]), metal_income=float(g[8]), metal_usage=float(g[9]), energy=int(g[10]), energy_income=int(g[12]), made=int(g[14]), orders=int(g[15]), begun=int(g[16]), dropped=int(g[17]), skipped=int(g[18]), energy_refused=int(g[19] or 0), plans=int(g[20])))
             continue
         m = PLAN.search(line)
         if m:
@@ -126,7 +126,7 @@ def main():
         head = f"{r['outcome'][0]}{r['game_minutes']:.0f} seed {r['seed']} {r['our_side']}" if r else "?"
         print(f"-- {nn} {head}: {len(curves)} curve lines, {len(plans)} plans" + (f", wall per plan median {statistics.median(p['wall'] for p in plans):.0f} ms, stale median {statistics.median(p['stale'] for p in plans):.1f} s" if plans else ""))
         by_minute = {c["minute"]: c for c in curves}
-        print("   min | mex cons fac nanos | build power | metal/s  energy/s | spent | bank    | made   | begun dropped skipped")
+        print("   min | mex cons fac nanos | build power | metal/s  energy/s | spent | bank    | energy  | made   | begun dropped skipped refused")
         for m in marks:
             c = by_minute.get(m)
             if not c:
@@ -134,7 +134,7 @@ def main():
             # Spent: the engine's metal usage over its income at the mark, the share of what comes in that the hands
             # put into frames (terr14: forty constructors spent a quarter of it with the bank at its cap).
             spent = c['metal_usage'] / c['metal_income'] if c['metal_income'] > 0 else 0.0
-            print(f"   {m:3} | {c['extractors']:3} {c['constructors']:4} {c['factories']:3} {c['nanos']:5} | {c['build_power']:11} | {c['metal_income']:7.1f} {c['energy_income']:8} | {spent:4.0%} | {c['metal']:7} | {c['made']:6} | {c['begun']:5} {c['dropped']:7} {c['skipped']:7}")
+            print(f"   {m:3} | {c['extractors']:3} {c['constructors']:4} {c['factories']:3} {c['nanos']:5} | {c['build_power']:11} | {c['metal_income']:7.1f} {c['energy_income']:8} | {spent:4.0%} | {c['metal']:7} | {c['energy']:7} | {c['made']:6} | {c['begun']:5} {c['dropped']:7} {c['skipped']:7} {c['energy_refused']:7}")
         if "--lp" in args and curves:
             rows = lp_ceiling(game, max(marks))
             if rows:
