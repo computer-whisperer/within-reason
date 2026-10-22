@@ -432,6 +432,7 @@ when the fight began.
 ### K-engine-a-pushed-tank-crushes-a-light-unit
 **Claim.** A light vehicle given beside tanks that were given close together (and push each other apart) is killed by
 them without a shot: the engine names the tank as its killer.
+**Mechanism corrected 2026-10-22 (the engine's code):** units are never crushed (`SolidObject.h:341` crushable is false for units and only features set it; `MoveMath.cpp:209-217`), so the Rovers died of unit-to-unit collision damage (`modrules.lua:71` allowUnitCollisionDamage true), a hypothesis from the code, not traced in the records. See docs/briefs/facts/fights.md F-fight-ground.
 **Status.** conjectured (2026-09-24): the mechanism (crushing) is inferred from the killer being a tank that fired no
 shot; not read from the engine.
 **Evidence.** Scenario smoke runs of `2v1b-hard-1510-truth` (2026-09-24): Rovers given 100-160 from Stouts in the same
